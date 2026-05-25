@@ -22,8 +22,8 @@ Build Lucent into the production backend for Luminous:
 
 ## Phases
 
-1. Protocol foundation: define `/api/v1`, envelope, error codes, request id header, and JWT identity rules.
-2. Infrastructure: add PostgreSQL, Prisma, Redis, config validation, and local development env files.
+1. Protocol foundation: define `/api/v1`, envelope, error codes, request id header, and JWT identity rules. Current status: initialized with `GET /api/v1/health`.
+2. Infrastructure: add PostgreSQL, Prisma, Redis, config validation, and local development env files. Current status: SWC, config validation, env templates, and script modes are initialized; database, Redis, and Prisma are next.
 3. Data fixtures: create small xlsx/DrugBank fixtures and import reports.
 4. Knowledge schema: add product, instruction section, source metadata, search document, and DrugBank staging tables.
 5. Public medicine APIs: implement search, detail, Markdown detail, and scan candidate lookup.

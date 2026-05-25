@@ -10,6 +10,12 @@ Lucent APIs are versioned. The first public API lives under:
 /api/v1
 ```
 
+Current implemented baseline:
+
+```text
+GET /api/v1/health
+```
+
 Legacy Express `/api/*` routes are reference material only. Lucent does not need to keep their request bodies or response envelope.
 
 ## Response Envelope

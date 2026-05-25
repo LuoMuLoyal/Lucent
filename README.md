@@ -34,18 +34,32 @@ pnpm lint
 Environment files:
 
 ```text
+.env.example
+.env.development.example
+.env.production.example
+```
+
+Local runtime files:
+
+```text
 .env.development
 .env.production
-.env.example
 ```
 
 Do not commit real environment files or local data imports.
+
+Current baseline:
+
+- Nest CLI uses SWC for application builds.
+- Runtime config loads `.env.development` and `.env.production` by convention.
+- API prefix and versioning are enabled at `GET /api/v1/health`.
 
 ## Documentation
 
 - [docs/README.md](docs/README.md): documentation map and ownership.
 - [docs/api-contract.md](docs/api-contract.md): `/api/v1`, response envelope, auth, and error rules.
 - [docs/data-sources.md](docs/data-sources.md): `DrugDataBase` source boundaries and import rules.
+- [docs/environment.md](docs/environment.md): env files, scripts, and bootstrap baseline.
 - [docs/migration-roadmap.md](docs/migration-roadmap.md): backend buildout phases.
 
 ## Submodule Workflow
