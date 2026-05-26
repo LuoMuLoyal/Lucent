@@ -4,6 +4,7 @@ import { appConfig } from './config/app.config';
 import { getEnvFilePaths } from './config/env-file-paths';
 import { validateEnvironment } from './config/environment.validation';
 import { HealthModule } from './health/health.module';
+import { LoggerModule } from './common/logger/logger.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { HealthModule } from './health/health.module';
       load: [appConfig],
       validate: validateEnvironment,
     }),
+    LoggerModule,
     HealthModule,
   ],
 })

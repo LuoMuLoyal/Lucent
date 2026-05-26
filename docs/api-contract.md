@@ -1,6 +1,17 @@
+---
+title: "Lucent API Contract"
+tags:
+  - backend
+  - contract
+aliases:
+  - API协议
+  - API规范
+created: 2026-05-25
+---
+
 # API Contract
 
-Last updated: 2026-05-25
+Last updated: 2026-05-26
 
 ## Versioning
 
