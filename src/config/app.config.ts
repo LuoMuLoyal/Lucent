@@ -1,4 +1,6 @@
 import { registerAs } from '@nestjs/config';
+import { ConfigKey } from './config-keys.enum';
+import { EnvKey } from './env-keys.enum';
 
 function parseCorsOrigin(raw: string): boolean | string[] {
   const value = raw.trim();
@@ -16,9 +18,9 @@ function parseCorsOrigin(raw: string): boolean | string[] {
     .filter(Boolean);
 }
 
-export const appConfig = registerAs('app', () => ({
-  env: process.env.NODE_ENV ?? 'development',
-  host: process.env.HOST ?? '0.0.0.0',
-  port: Number(process.env.PORT ?? 3000),
-  corsOrigin: parseCorsOrigin(process.env.CORS_ORIGIN ?? '*'),
+export const appConfig = registerAs(ConfigKey.App, () => ({
+  env: process.env[EnvKey.NODE_ENV] ?? 'development',
+  host: process.env[EnvKey.HOST] ?? '0.0.0.0',
+  port: Number(process.env[EnvKey.PORT] ?? 3000),
+  corsOrigin: parseCorsOrigin(process.env[EnvKey.CORS_ORIGIN] ?? '*'),
 }));

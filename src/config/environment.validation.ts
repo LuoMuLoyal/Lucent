@@ -7,8 +7,9 @@ import {
   Min,
   validateSync,
 } from 'class-validator';
+import { EnvKey } from './env-keys.enum';
 
-enum NodeEnvironment {
+export enum NodeEnvironment {
   Development = 'development',
   Test = 'test',
   Production = 'production',
@@ -16,61 +17,65 @@ enum NodeEnvironment {
 
 class EnvironmentVariables {
   @IsEnum(NodeEnvironment)
-  NODE_ENV: NodeEnvironment = NodeEnvironment.Development;
+  [EnvKey.NODE_ENV]: NodeEnvironment = NodeEnvironment.Development;
 
   @IsString()
-  HOST = '0.0.0.0';
+  [EnvKey.HOST] = '0.0.0.0';
 
   @IsInt()
   @Min(1)
-  PORT = 3000;
+  [EnvKey.PORT] = 3000;
 
   @IsString()
-  CORS_ORIGIN = '*';
-
-  @IsOptional()
-  @IsString()
-  DATABASE_URL?: string;
+  [EnvKey.CORS_ORIGIN] = '*';
 
   @IsOptional()
   @IsString()
-  REDIS_URL?: string;
+  [EnvKey.DATABASE_URL]?: string;
 
   @IsOptional()
   @IsString()
-  JWT_ACCESS_SECRET?: string;
+  [EnvKey.REDIS_URL]?: string;
 
   @IsOptional()
   @IsString()
-  JWT_REFRESH_SECRET?: string;
+  [EnvKey.JWT_ACCESS_SECRET]?: string;
 
   @IsOptional()
   @IsString()
-  JWT_ACCESS_TTL?: string;
+  [EnvKey.JWT_REFRESH_SECRET]?: string;
 
   @IsOptional()
   @IsString()
-  JWT_REFRESH_TTL?: string;
+  [EnvKey.JWT_ACCESS_TTL]?: string;
 
   @IsOptional()
   @IsString()
-  AI_PROVIDER?: string;
+  [EnvKey.JWT_REFRESH_TTL]?: string;
 
   @IsOptional()
   @IsString()
-  AI_API_KEY?: string;
+  [EnvKey.AI_PROVIDER]?: string;
 
   @IsOptional()
   @IsString()
-  AI_BASE_URL?: string;
+  [EnvKey.AI_API_KEY]?: string;
 
   @IsOptional()
   @IsString()
-  AI_TEXT_MODEL?: string;
+  [EnvKey.AI_BASE_URL]?: string;
 
   @IsOptional()
   @IsString()
-  AI_VISION_MODEL?: string;
+  [EnvKey.AI_TEXT_MODEL]?: string;
+
+  @IsOptional()
+  @IsString()
+  [EnvKey.AI_VISION_MODEL]?: string;
+
+  @IsOptional()
+  @IsString()
+  [EnvKey.LOG_LEVEL]?: string;
 }
 
 export function validateEnvironment(
@@ -98,10 +103,10 @@ function assertProductionEnvironment(config: EnvironmentVariables): void {
   }
 
   const missingKeys = [
-    'DATABASE_URL',
-    'REDIS_URL',
-    'JWT_ACCESS_SECRET',
-    'JWT_REFRESH_SECRET',
+    EnvKey.DATABASE_URL,
+    EnvKey.REDIS_URL,
+    EnvKey.JWT_ACCESS_SECRET,
+    EnvKey.JWT_REFRESH_SECRET,
   ].filter((key) => !config[key as keyof EnvironmentVariables]);
 
   if (missingKeys.length > 0) {
@@ -110,7 +115,8 @@ function assertProductionEnvironment(config: EnvironmentVariables): void {
     );
   }
 
-  if (!config.CORS_ORIGIN || config.CORS_ORIGIN.trim() === '*') {
+  const corsOrigin = config[EnvKey.CORS_ORIGIN] as string;
+  if (!corsOrigin || corsOrigin.trim() === '*') {
     throw new Error('CORS_ORIGIN must be explicit in production');
   }
 }

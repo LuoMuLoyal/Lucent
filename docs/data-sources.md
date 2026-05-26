@@ -1,6 +1,17 @@
+---
+title: "Lucent Data Sources"
+tags:
+  - backend
+  - data
+aliases:
+  - 数据源
+  - 外部数据
+created: 2026-05-25
+---
+
 # Data Sources
 
-Last updated: 2026-05-25
+Last updated: 2026-05-26
 
 ## Target Directory
 

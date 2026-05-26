@@ -1,6 +1,17 @@
+---
+title: "Lucent Migration Roadmap"
+tags:
+  - backend
+  - strategy
+aliases:
+  - 后端路线图
+  - Lucent路线
+created: 2026-05-25
+---
+
 # Migration Roadmap
 
-Last updated: 2026-05-25
+Last updated: 2026-05-26
 
 ## Goal
 

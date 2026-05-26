@@ -1,6 +1,17 @@
+---
+title: "Lucent Environment"
+tags:
+  - backend
+  - ops
+aliases:
+  - 环境配置
+  - env
+created: 2026-05-25
+---
+
 # Environment
 
-Last updated: 2026-05-25
+Last updated: 2026-05-26
 
 Lucent uses `@nestjs/config` with validated environment variables.
 
