@@ -25,7 +25,7 @@ describe('Lucent API (e2e)', () => {
       .expect(200)
       .expect('X-Request-Id', /.+/)
       .expect({
-        code: 'OK',
+        code: 0,
         message: '',
         data: {
           status: 'ok',

@@ -44,6 +44,17 @@
 
 ---
 
+### Changed
+- **API 响应码：字符串 → 数字** — `api-envelope.ts` `ErrorCode` 枚举
+  - `0` 成功 / `400001` 参数错误 / `401001` 未登录 / `401002` Token 过期 / `404001` 未找到 / `5xxxxx` 服务端异常
+  - Flutter `LucentApiClient.code` 改为 `int`，`GlobalConstants.LUCENT_SUCCESS_CODE` = `0`
+  - `docs/api-contract.md` 同步
+
+### Fixed
+- `tsconfig.json` — 移除 `baseUrl` + `ignoreDeprecations`（NestJS SWC builder 不兼容）
+
+---
+
 ## 2026-05-26（基线）
 
 - NestJS 11 项目初始化
