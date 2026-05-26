@@ -6,10 +6,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { errorEnvelope } from '../api-envelope';
+import { ResultCode, errorEnvelope } from '../api-envelope';
 
 interface ErrorResponseBody {
-  code?: string;
+  code?: string | number;
   message?: string | string[];
   error?: string;
 }
@@ -35,7 +35,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
   private resolveBody(
     exception: unknown,
     status: number,
-  ): { code: string; message: string } {
+  ): { code: ResultCode; message: string } {
     if (exception instanceof HttpException) {
       const response = exception.getResponse();
       if (typeof response === 'string') {
@@ -46,30 +46,37 @@ export class ApiExceptionFilter implements ExceptionFilter {
       }
 
       const body = response as ErrorResponseBody;
+      if (typeof body.code === 'number') {
+        return {
+          code: body.code as ResultCode,
+          message: this.normalizeMessage(body.message ?? body.error),
+        };
+      }
+
       return {
-        code: body.code ?? this.defaultCode(status),
+        code: this.defaultCode(status),
         message: this.normalizeMessage(body.message ?? body.error),
       };
     }
 
     return {
-      code: 'INTERNAL_SERVER_ERROR',
+      code: ResultCode.INTERNAL_ERROR,
       message: 'Internal server error',
     };
   }
 
-  private defaultCode(status: number): string {
+  private defaultCode(status: number): ResultCode {
     switch (status) {
       case HttpStatus.BAD_REQUEST:
-        return 'COMMON_BAD_REQUEST';
+        return ResultCode.BAD_REQUEST;
       case HttpStatus.UNAUTHORIZED:
-        return 'AUTH_UNAUTHORIZED';
+        return ResultCode.UNAUTHORIZED;
       case HttpStatus.FORBIDDEN:
-        return 'AUTH_FORBIDDEN';
+        return ResultCode.FORBIDDEN;
       case HttpStatus.NOT_FOUND:
-        return 'COMMON_NOT_FOUND';
+        return ResultCode.NOT_FOUND;
       default:
-        return `HTTP_${status}`;
+        return ResultCode.INTERNAL_ERROR;
     }
   }
 

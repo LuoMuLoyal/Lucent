@@ -14,7 +14,7 @@ function isApiEnvelope(value: unknown): value is ApiEnvelope<unknown> {
 
   const maybeEnvelope = value as Partial<ApiEnvelope<unknown>>;
   return (
-    typeof maybeEnvelope.code === 'string' &&
+    typeof maybeEnvelope.code === 'number' &&
     typeof maybeEnvelope.message === 'string' &&
     'data' in maybeEnvelope
   );
