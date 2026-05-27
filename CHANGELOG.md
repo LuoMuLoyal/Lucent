@@ -1,5 +1,57 @@
 # Lucent Changelog
 
+## 2026-05-27
+
+### Added — Auth 基础设施 (Step 0)
+
+- **Prisma ORM 集成**
+  - `Lumos/prisma/schema.prisma` — User + RefreshToken 模型（UUID v4 主键，argon2 密码哈希）
+  - `Lumos/prisma.config.ts` — Prisma v7 配置，输出到 `Lucent/src/generated/prisma/`
+  - `src/prisma/prisma.service.ts` — `OnModuleInit` 自动连接
+  - `src/prisma/prisma.module.ts` — `@Global()`
+  - 依赖：`@prisma/client@^7.8.0`, `prisma@^7.8.0`, `pg@^8.21.0`
+
+- **Mail 模块**
+  - `src/mail/mail.service.ts` — `send()` / `sendVerificationCode()`，双模式：
+    - `MAIL_DRIVER=log`：Winston Logger 打印（开发用）
+    - `MAIL_DRIVER=smtp`：nodemailer 真实发送
+  - `src/mail/mail.module.ts` — `@Global()`
+  - `src/config/mail.config.ts` — `registerAs(ConfigKey.Mail, ...)`
+  - 依赖：`nodemailer@^8.0.9`
+
+- **Cache 模块 (Redis)**
+  - `src/config/cache.config.ts` — `CacheConfigService`，从 `REDIS_URL` 解析连接参数
+  - 使用 `cache-manager-ioredis-yet`，无 Redis 时 fallback 内存缓存
+  - `app.module.ts` 中通过 `CacheModule.registerAsync` 全局注册
+  - 依赖：`@nestjs/cache-manager@^3.1.2`, `cache-manager@^7.2.8`, `cache-manager-ioredis-yet@^2.1.2`
+
+- **邮件环境变量** — `EnvKey` 新增 `MAIL_DRIVER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM`
+
+- **ConfigKey 新增** — `Mail` namespace
+
+### Changed — 环境变量架构重构
+
+- **`.env` 文件层级分离**：
+  - `.env` — 各环境公有默认值（HOST, PORT, CORS_ORIGIN, JWT TTL, 邮件默认值, LOG_LEVEL）
+  - `.env.development` — 开发环境专属（NODE_ENV, 数据库, JWT dev secret, MAIL_DRIVER=log）
+  - `.env.production` — 生产环境专属（NODE_ENV, 数据库, JWT prod secret, MAIL_DRIVER=smtp）
+  - `.env.example` / `.env.development.example` / `.env.production.example` — 同步结构
+  - 加载链：`.env.{NODE_ENV}` → `.env`（后者为 fallback）
+
+- **`app.module.ts`** — 注册 `PrismaModule`, `MailModule`, `CacheModule`
+
+- **`environment.validation.ts`** — Joi schema 新增 6 个 mail key 校验
+
+### Changed — 密码哈希方案
+
+- `bcrypt` → `argon2@^0.44.0`（更强抗 GPU/ASIC 攻击，自带 TS 类型）
+
+### Pending
+
+- **Step 0.6 数据库迁移** — 等待 PostgreSQL 启动后执行 `prisma migrate dev --name init`
+
+---
+
 ## 2026-05-26
 
 ### Added
