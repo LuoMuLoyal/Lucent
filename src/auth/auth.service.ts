@@ -14,6 +14,7 @@ import { ConfigKey } from '../config/config-keys.enum';
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '../generated/prisma/client';
 import { UserService } from '../user/user.service';
+import { VerificationCodeService } from './verification-code.service';
 import { ResultCode } from '../common/api-envelope';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -67,6 +68,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly verificationCodeService: VerificationCodeService,
   ) {}
 
   private get jwtConfig(): JwtConfigShape {
@@ -125,7 +127,10 @@ export class AuthService {
       }
     }
 
-    // TODO: 验证码登录 (dto.code)
+    // Code-based login
+    if (dto.code) {
+      await this.verificationCodeService.verify(dto.email, dto.code, 'login');
+    }
     // TODO: 2FA 校验
 
     this.clearLoginFailures(dto.email);
@@ -244,16 +249,16 @@ export class AuthService {
 
   // ── Email Verification & Password Reset (stubs) ──────────────
 
-  sendVerificationCode(dto: SendVerificationCodeDto): { message: string } {
-    // TODO: 验证发送频率限制
-    // TODO: 生成 6 位验证码，存入 Redis，发送邮件
-    this.logger.warn(`sendVerificationCode(${dto.email}, ${dto.scene}): TODO`);
-    return { message: '验证码已发送（TODO）' };
+  async sendVerificationCode(
+    dto: SendVerificationCodeDto,
+  ): Promise<{ message: string }> {
+    await this.verificationCodeService.send(dto.email, dto.scene);
+    return { message: '验证码已发送，请查收邮件' };
   }
 
-  verifyEmail(_dto: VerifyEmailDto): void {
-    // TODO: 从 Redis 读取验证码，校验，更新 emailVerified
-    this.logger.warn(`verifyEmail(${_dto.email}): TODO`);
+  async verifyEmail(dto: VerifyEmailDto): Promise<void> {
+    await this.verificationCodeService.verify(dto.email, dto.code, 'register');
+    await this.userService.updateByEmail(dto.email, { emailVerified: true });
   }
 
   forgotPassword(_dto: ForgotPasswordDto): { message: string } {

@@ -107,8 +107,8 @@ export class AuthController {
 
   @Post('send-verification-code')
   @HttpCode(HttpStatus.OK)
-  sendVerificationCode(@Body() dto: SendVerificationCodeDto) {
-    const result = this.authService.sendVerificationCode(dto);
+  async sendVerificationCode(@Body() dto: SendVerificationCodeDto) {
+    const result = await this.authService.sendVerificationCode(dto);
     return successEnvelope({
       cooldown: 60,
       message: result.message,
@@ -119,8 +119,8 @@ export class AuthController {
 
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  verifyEmail(@Body() dto: VerifyEmailDto) {
-    this.authService.verifyEmail(dto);
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    await this.authService.verifyEmail(dto);
     return successEnvelope({ emailVerified: true });
   }
 

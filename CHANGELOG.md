@@ -1,5 +1,35 @@
 # Lucent Changelog
 
+## 2026-05-27 (Auth Step 1.5 — 验证码服务)
+
+### Added — VerificationCodeService 真实实现
+
+- **VerificationCodeService** (`src/auth/verification-code.service.ts`)
+  - `send(email, scene)` — 生成 6 位随机验证码（`crypto.randomInt`），存入 Cache，调用 MailService 发送邮件
+  - `verify(email, code, scene)` — 从 Cache 校验验证码，一次性（校验后删除）
+  - 频率限制：60s cooldown（`vcode:cd:{scene}:{email}`），验证码 TTL 5min（`vcode:{scene}:{email}`）
+  - 依赖 `CACHE_MANAGER`（全局 CacheModule）和 `MailService`
+
+- **AuthService 实桩替换**
+  - `sendVerificationCode` — 调用 VerificationCodeService.send
+  - `verifyEmail` — 调用 VerificationCodeService.verify + UserService.updateByEmail 标记邮箱已验证
+  - `login` — 支持 `dto.code` 验证码登录（可选，与密码登录互斥）
+
+- **UserService 新增**
+  - `updateByEmail(email, data)` — 按邮箱更新用户（用于 verifyEmail 场景）
+
+- **AuthModule** — 注册 `VerificationCodeService` 为 provider
+
+- **AuthController** — `sendVerificationCode` 和 `verifyEmail` 方法改为 `async`
+
+### Changed — ResultCode 枚举
+
+- `api-envelope.ts` 新增：
+  - `VERIFICATION_CODE_INVALID = 400_100` — 验证码错误/过期
+  - `VERIFICATION_CODE_COOLDOWN = 400_101` — 发送过于频繁
+
+---
+
 ## 2026-05-27 (Auth Step 1 — Controller 层)
 
 ### Added — AuthController + AuthModule
