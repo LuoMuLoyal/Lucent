@@ -1,27 +1,12 @@
----
-title: "Lucent API Contract"
-tags:
-  - backend
-  - contract
-aliases:
-  - API协议
-  - API规范
-created: 2026-05-25
----
-
 # API Contract
 
 Last updated: 2026-06-02
 
 ## Versioning
 
-Lucent APIs are versioned. The first public API lives under:
+使用 NestJS 内置版本控制。全局 prefix 为 `/api`，版本通过 URI versioning 自动追加：
 
-```text
-/api/v1
-```
-
-Current implemented baseline:
+当前已实现的基线：
 
 ```text
 GET /api/v1/health
@@ -92,19 +77,19 @@ Clients do not need to parse it during normal flows. It exists for issue reports
 
 Lucent uses **numeric error codes** mapped automatically by `ApiExceptionFilter` from NestJS standard exceptions:
 
-| NestJS Exception | HTTP | `code` | 说明 |
-|-----------------|------|--------|------|
-| `BadRequestException` | 400 | `400001` | 请求参数错误 |
-| `ValidationPipe` 自动校验 | 400 | `400002` | DTO 字段校验失败（message 含详情） |
-| `UnauthorizedException` | 401 | `401001` | 未认证 |
-| — | 401 | `401002` | Token 过期 |
-| — | 401 | `401003` | Refresh Token 无效 |
-| `ForbiddenException` | 403 | `403001` | 无权限 |
-| `NotFoundException` | 404 | `404001` | 资源不存在 |
-| — | 409 | `409001` | 业务冲突（如重复添加） |
-| 未捕获异常 | 500 | `500001` | 内部错误 |
-| — | 500 | `500002` | 数据库错误 |
-| — | 500 | `500003` | 第三方服务超时/失败 |
+| NestJS Exception          | HTTP | `code`   | 说明                               |
+| ------------------------- | ---- | -------- | ---------------------------------- |
+| `BadRequestException`     | 400  | `400001` | 请求参数错误                       |
+| `ValidationPipe` 自动校验 | 400  | `400002` | DTO 字段校验失败（message 含详情） |
+| `UnauthorizedException`   | 401  | `401001` | 未认证                             |
+| —                         | 401  | `401002` | Token 过期                         |
+| —                         | 401  | `401003` | Refresh Token 无效                 |
+| `ForbiddenException`      | 403  | `403001` | 无权限                             |
+| `NotFoundException`       | 404  | `404001` | 资源不存在                         |
+| —                         | 409  | `409001` | 业务冲突（如重复添加）             |
+| 未捕获异常                | 500  | `500001` | 内部错误                           |
+| —                         | 500  | `500002` | 数据库错误                         |
+| —                         | 500  | `500003` | 第三方服务超时/失败                |
 
 ### 使用方式
 
@@ -122,7 +107,7 @@ throw new UnauthorizedException('Token expired');
 
 ```typescript
 throw new BadRequestException({
-  code: 400100,  // custom business code
+  code: 400100, // custom business code
   message: '该药品已在你的列表中',
 });
 ```
