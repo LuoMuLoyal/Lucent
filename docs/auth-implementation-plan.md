@@ -2,7 +2,7 @@
 
 > 基于 [auth-api-mock.md](auth-api-mock.md) 约束，分步实现 Lucent 认证模块。
 >
-> **最后更新**: 2026-05-27 18:00 | **当前阶段**: Step 0 基础设施 (5/6 完成)
+> **最后更新**: 2026-05-27 20:00 | **当前阶段**: Step 1 核心认证 (7/14 完成)
 >
 > ⚠️ 此文档随实施同步更新，每一步完成/变更都应反映在此文件中。
 
@@ -74,14 +74,14 @@ MAIL_FROM=noreply@example.com
 
 ### Step 0.1 — 安装依赖 ✅
 
-| 类别 | 包 | 版本 |
-|------|---|------|
-| ORM | `@prisma/client`, `prisma`, `pg` | ^7.8.0 |
-| Auth | `@nestjs/jwt`, `@nestjs/passport`, `passport`, `passport-jwt` | ^11 / ^0.7 |
-| Hash | `argon2` (替代 bcrypt) | ^0.44.0 |
+| 类别  | 包                                                                    | 版本        |
+| ----- | --------------------------------------------------------------------- | ----------- |
+| ORM   | `@prisma/client`, `prisma`, `pg`                                      | ^7.8.0      |
+| Auth  | `@nestjs/jwt`, `@nestjs/passport`, `passport`, `passport-jwt`         | ^11 / ^0.7  |
+| Hash  | `argon2` (替代 bcrypt)                                                | ^0.44.0     |
 | Cache | `@nestjs/cache-manager`, `cache-manager`, `cache-manager-ioredis-yet` | ^3.1 / ^7.2 |
-| Mail | `nodemailer`, `@types/nodemailer` | ^8.0 |
-| Dev | `@types/passport-jwt` | ^4.0 |
+| Mail  | `nodemailer`, `@types/nodemailer`                                     | ^8.0        |
+| Dev   | `@types/passport-jwt`                                                 | ^4.0        |
 
 > `argon2` 自带类型声明，无需额外 `@types/` 包。
 
@@ -134,6 +134,7 @@ model RefreshToken {
 `ConfigKey` 新增: `Mail`。
 
 已更新文件:
+
 - `src/config/env-keys.enum.ts`
 - `src/config/config-keys.enum.ts`
 - `src/config/environment.validation.ts` (Joi schema)
@@ -160,35 +161,76 @@ model RefreshToken {
 **阻塞**：PostgreSQL 未启动 (`127.0.0.1:5432` 无法连接)。
 
 待执行的命令：
+
 ```bash
 pnpm exec prisma migrate dev --name init
 ```
 
 ---
 
-## Step 1: 核心认证 (待开始)
+## Step 1: 核心认证 (7/14 完成)
 
-### Step 1.1 — JWT 配置
-### Step 1.2 — UserModule + UserService
-### Step 1.3 — DTOs
-### Step 1.4 — AuthService.register
-### Step 1.5 — AuthService.login（密码模式）
-### Step 1.6 — Token 管理
-### Step 1.7 — JWT Strategy + Guard
-### Step 1.8 — AuthController.register
-### Step 1.9 — AuthController.login
-### Step 1.10 — AuthController.logout
-### Step 1.11 — AuthController.refresh
-### Step 1.12 — AuthController.getMe
-### Step 1.13 — AuthController.updateMe
+### Step 1.1 — JWT 配置 ✅
+
+- `src/config/jwt.config.ts` — `registerAs(ConfigKey.Jwt, ...)`
+- `ConfigKey.Jwt` 枚举值
+
+### Step 1.2 — UserModule + UserService ✅
+
+- `src/user/user.service.ts` — `create`, `findByEmail`, `findById`, `update`
+- `src/user/user.module.ts` — `@Global()`
+
+### Step 1.3 — DTOs ✅
+
+- `src/auth/dto/` — 14 个 class-validator DTO
+- `src/auth/dto/index.ts` — 统一导出
+
+### Step 1.4 — AuthService.register ✅
+
+- 邮箱唯一性检查 + argon2id 密码哈希 + JWT 签发
+- Argon2id 参数：memoryCost 19456, timeCost 2, parallelism 1
+
+### Step 1.5 — AuthService.login（密码模式）✅
+
+- 密码验证 + 登录频率限制（内存，待迁 Redis）
+- `checkLoginRateLimit` / `recordLoginFailure` / `clearLoginFailures`
+
+### Step 1.6 — Token 管理 ✅
+
+- `refresh` — Refresh Token 旋转（旧删除 + 新签发）
+- `logout` / `logoutAll` — 单设备 / 全设备登出
+- Refresh Token 存储原始值（高熵随机字符串）
+
+### Step 1.7 — JWT Strategy + Guard ✅
+
+- `src/auth/strategies/jwt-access.strategy.ts` — Passport Strategy, HS512
+- `src/auth/guards/jwt-auth.guard.ts` — `@UseGuards(JwtAuthGuard)`
+- `src/auth/decorators/current-user.decorator.ts` — `@CurrentUser()`
+
+### Step 1.8 — AuthController.register ⏳
+
+### Step 1.9 — AuthController.login ⏳
+
+### Step 1.10 — AuthController.logout ⏳
+
+### Step 1.11 — AuthController.refresh ⏳
+
+### Step 1.12 — AuthController.getMe ⏳
+
+### Step 1.13 — AuthController.updateMe ⏳
+
+> ⏳ = 待实现（AuthService 方法已就绪，需创建 Controller 路由）
 
 ---
 
 ## Step 2: 验证码系统 (待开始)
 
 ### Step 2.1 — VerificationCodeService
+
 ### Step 2.2 — AuthController.sendVerificationCode
+
 ### Step 2.3 — AuthController.verifyEmail
+
 ### Step 2.4 — AuthService.login（验证码模式）
 
 ---
@@ -196,9 +238,13 @@ pnpm exec prisma migrate dev --name init
 ## Step 3: 密码 & 账号管理 (待开始)
 
 ### Step 3.1 — AuthController.forgotPassword
+
 ### Step 3.2 — AuthController.resetPassword
+
 ### Step 3.3 — AuthController.changePassword
+
 ### Step 3.4 — AuthController.changeEmail
+
 ### Step 3.5 — AuthController.deleteAccount
 
 ---

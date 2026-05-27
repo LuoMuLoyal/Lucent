@@ -1,6 +1,43 @@
 # Lucent Changelog
 
-## 2026-05-27
+## 2026-05-27 (Auth Step 1 — 核心认证)
+
+### Added — Auth 核心认证模块 (Step 1)
+
+- **JWT 配置** (`src/config/jwt.config.ts`)
+  - `registerAs(ConfigKey.Jwt, ...)`，支持 `accessSecret` / `refreshSecret` / `accessTtl` / `refreshTtl`
+  - `ConfigKey` 新增 `Jwt` 枚举值
+
+- **User 模块** (`src/user/`)
+  - `UserService` — `create`, `findByEmail`, `findById`, `update` (CRUD)
+  - `UserModule` — `@Global()`，导出 `UserService`
+
+- **DTO 层** (`src/auth/dto/`)
+  - 14 个 class-validator DTO：`RegisterDto`, `LoginDto`, `RefreshDto`, `LogoutDto`, `UpdateMeDto`, `ChangePasswordDto`, `ChangeEmailDto`, `DeleteAccountDto`, `SendVerificationCodeDto`, `VerifyEmailDto`, `ForgotPasswordDto`, `ResetPasswordDto`
+  - 统一导出 `src/auth/dto/index.ts`
+
+- **AuthService** (`src/auth/auth.service.ts`)
+  - `register` — 邮箱唯一性检查 + argon2id 密码哈希 + JWT 签发
+  - `login` — 密码验证 + 登录频率限制（内存，待迁 Redis）
+  - `refresh` — Refresh Token 旋转（旧 token 删除 + 新 token 签发）
+  - `logout` / `logoutAll` — 单设备 / 全设备登出
+  - `getMe` / `updateMe` — Profile 读写
+  - `changePassword` / `changeEmail` / `deleteAccount` — 账号管理
+  - `sendVerificationCode` / `verifyEmail` / `forgotPassword` / `resetPassword` — 邮件验证 & 密码重置（桩实现）
+  - Argon2id 参数：memoryCost 19456, timeCost 2, parallelism 1（OWASP 2024 推荐）
+  - Refresh Token 存储原始值（高熵随机字符串，HTTPS 传输保障）
+
+- **JWT Strategy + Guard** (`src/auth/strategies/`, `src/auth/guards/`)
+  - `JwtAccessStrategy` — Passport Strategy，`HS512` 算法，从 `Authorization: Bearer` 提取 token
+  - `JwtAuthGuard` — `@UseGuards(JwtAuthGuard)` 触发验证
+
+- **CurrentUser 装饰器** (`src/auth/decorators/current-user.decorator.ts`)
+  - `@CurrentUser()` 提取 `request.user` (UserPayload: `{ sub, email }`)
+  - `@CurrentUser('sub')` 提取单个字段
+
+- **依赖新增**
+  - `passport@^0.7.0`, `passport-jwt@^4.0.1`, `@nestjs/passport@^11.0.0`, `@nestjs/jwt@^11.0.0`
+  - `@types/passport-jwt@^4.0.1`
 
 ### Added — Auth 基础设施 (Step 0)
 
@@ -97,12 +134,14 @@
 ---
 
 ### Changed
+
 - **API 响应码：字符串 → 数字** — `api-envelope.ts` `ErrorCode` 枚举
   - `0` 成功 / `400001` 参数错误 / `401001` 未登录 / `401002` Token 过期 / `404001` 未找到 / `5xxxxx` 服务端异常
   - Flutter `LucentApiClient.code` 改为 `int`，`GlobalConstants.LUCENT_SUCCESS_CODE` = `0`
   - `docs/api-contract.md` 同步
 
 ### Fixed
+
 - `tsconfig.json` — 移除 `baseUrl` + `ignoreDeprecations`（NestJS SWC builder 不兼容）
 
 ---
