@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { UserModule } from '../user/user.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { VerificationCodeService } from './verification-code.service';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 
 @Module({
@@ -14,7 +15,7 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
     JwtModule.register({}), // actual secret is configured per-sign in AuthService
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAccessStrategy],
+  providers: [AuthService, JwtAccessStrategy, VerificationCodeService],
   exports: [AuthService],
 })
 export class AuthModule {}

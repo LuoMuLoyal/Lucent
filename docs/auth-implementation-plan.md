@@ -2,7 +2,7 @@
 
 > 基于 [auth-api-mock.md](auth-api-mock.md) 约束，分步实现 Lucent 认证模块。
 >
-> **最后更新**: 2026-05-27 20:25 | **当前阶段**: Step 1 核心认证 (14/14 完成)
+> **最后更新**: 2026-05-27 20:41 | **当前阶段**: Step 2 验证码系统 (4/4 完成)
 >
 > ⚠️ 此文档随实施同步更新，每一步完成/变更都应反映在此文件中。
 
@@ -260,15 +260,37 @@ pnpm exec prisma migrate dev --name init
 
 ---
 
-## Step 2: 验证码系统 (待开始)
+## Step 2: 验证码系统 ✅ (4/4 完成)
 
-### Step 2.1 — VerificationCodeService
+### Step 2.1 — VerificationCodeService ✅
 
-### Step 2.2 — AuthController.sendVerificationCode
+- `src/auth/verification-code.service.ts` — 新建
+- `send(email, scene)` — 生成 6 位随机验证码（`crypto.randomInt`），存入 Cache，调用 MailService 发送邮件
+- `verify(email, code, scene)` — 从 Cache 校验验证码，一次性（校验后删除）
+- 频率限制：60s cooldown（`vcode:cd:{scene}:{email}`），验证码 TTL 5min（`vcode:{scene}:{email}`）
+- 依赖 `CACHE_MANAGER`（全局 CacheModule）和 `MailService`
 
-### Step 2.3 — AuthController.verifyEmail
+### Step 2.2 — AuthController.sendVerificationCode ✅
 
-### Step 2.4 — AuthService.login（验证码模式）
+- `src/auth/auth.controller.ts` — `sendVerificationCode` 方法改为 `async`
+- `src/auth/auth.service.ts` — `sendVerificationCode` 桩替换为调用 `VerificationCodeService.send`
+
+### Step 2.3 — AuthController.verifyEmail ✅
+
+- `src/auth/auth.controller.ts` — `verifyEmail` 方法改为 `async`
+- `src/auth/auth.service.ts` — `verifyEmail` 桩替换为调用 `VerificationCodeService.verify` + `UserService.updateByEmail`
+
+### Step 2.4 — AuthService.login（验证码模式）✅
+
+- `src/auth/auth.service.ts` — `login` 方法支持 `dto.code` 验证码登录（可选，与密码登录互斥）
+- `src/user/user.service.ts` — 新增 `updateByEmail(email, data)` 方法
+
+### Step 2 附加 — ResultCode 枚举扩展 ✅
+
+- `src/common/api-envelope.ts` — 新增：
+  - `VERIFICATION_CODE_INVALID = 400_100` — 验证码错误/过期
+  - `VERIFICATION_CODE_COOLDOWN = 400_101` — 发送过于频繁
+- `src/auth/auth.module.ts` — 注册 `VerificationCodeService` 为 provider
 
 ---
 
