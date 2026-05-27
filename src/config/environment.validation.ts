@@ -24,6 +24,14 @@ export interface EnvironmentVariables {
   [EnvKey.AI_TEXT_MODEL]?: string;
   [EnvKey.AI_VISION_MODEL]?: string;
   [EnvKey.LOG_LEVEL]?: string;
+
+  // ── Mail ─────────────────────────────────────────────────────
+  [EnvKey.MAIL_DRIVER]?: string;
+  [EnvKey.MAIL_HOST]?: string;
+  [EnvKey.MAIL_PORT]?: number;
+  [EnvKey.MAIL_USER]?: string;
+  [EnvKey.MAIL_PASS]?: string;
+  [EnvKey.MAIL_FROM]?: string;
 }
 
 const envSchema = Joi.object<EnvironmentVariables>({
@@ -66,6 +74,19 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.LOG_LEVEL]: Joi.string()
     .valid('debug', 'info', 'warn', 'error')
     .default('debug'),
+
+  // ── Mail ─────────────────────────────────────────────────────
+  [EnvKey.MAIL_DRIVER]: Joi.string().valid('log', 'smtp').default('log'),
+
+  [EnvKey.MAIL_HOST]: Joi.string().optional(),
+
+  [EnvKey.MAIL_PORT]: Joi.number().integer().min(1).optional(),
+
+  [EnvKey.MAIL_USER]: Joi.string().optional(),
+
+  [EnvKey.MAIL_PASS]: Joi.string().optional(),
+
+  [EnvKey.MAIL_FROM]: Joi.string().optional(),
 });
 
 export function validateEnvironment(

@@ -1,0 +1,211 @@
+# Auth Implementation Plan
+
+> 基于 [auth-api-mock.md](auth-api-mock.md) 约束，分步实现 Lucent 认证模块。
+>
+> **最后更新**: 2026-05-27 18:00 | **当前阶段**: Step 0 基础设施 (5/6 完成)
+>
+> ⚠️ 此文档随实施同步更新，每一步完成/变更都应反映在此文件中。
+
+---
+
+## 总体架构
+
+```
+Lumos/                              ← monorepo 根（pnpm + Prisma 在此层级）
+  prisma/
+    schema.prisma                   ← User, RefreshToken 模型
+    migrations/                     ← (待 Step 0.6 生成)
+  prisma.config.ts                  ← Prisma v7 配置，datasource URL
+  generated/                        ← (已清理，输出改到 Lucent/src)
+  .env                              ← DATABASE_URL（供 Prisma CLI 使用）
+
+Lucent/                            ← NestJS 后端
+  src/
+    generated/prisma/               ← [生成] Prisma Client (v7, provider="prisma-client")
+    config/
+      app.config.ts
+      cache.config.ts               ← [NEW] CacheModule Redis 配置
+      config-keys.enum.ts           ← [UPDATED] +Mail
+      env-keys.enum.ts              ← [UPDATED] +MAIL_*
+      environment.validation.ts     ← [UPDATED] +Mail keys + Joi
+      mail.config.ts                ← [NEW] Mail 配置 (registerAs)
+    prisma/
+      prisma.module.ts              ← [NEW] @Global()
+      prisma.service.ts             ← [NEW] extends PrismaClient, OnModuleInit
+    mail/
+      mail.module.ts                ← [NEW] @Global()
+      mail.service.ts               ← [NEW] send() / sendVerificationCode()
+    auth/                           ← (Step 1 开始创建)
+      ...
+    user/                           ← (Step 1.2 开始创建)
+      ...
+    app.module.ts                   ← [UPDATED] +PrismaModule +MailModule +CacheModule
+```
+
+---
+
+## 环境变量总览
+
+```bash
+# ── 数据库 (Lumos/.env, Prisma CLI 读取) ──
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/lucent?schema=public
+
+# ── Redis (Lucent/.env.development) ──
+REDIS_URL=redis://127.0.0.1:6379
+
+# ── JWT (Step 1.1 开始使用) ──
+JWT_ACCESS_SECRET=dev_access_secret_change_me
+JWT_REFRESH_SECRET=dev_refresh_secret_change_me
+JWT_ACCESS_TTL=15m
+JWT_REFRESH_TTL=14d
+
+# ── 邮件 (Step 2.2 开始使用) ──
+MAIL_DRIVER=log                 # log | smtp
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USER=
+MAIL_PASS=
+MAIL_FROM=noreply@example.com
+```
+
+---
+
+## Step 0: 基础设施 ✅ (5/6)
+
+### Step 0.1 — 安装依赖 ✅
+
+| 类别 | 包 | 版本 |
+|------|---|------|
+| ORM | `@prisma/client`, `prisma`, `pg` | ^7.8.0 |
+| Auth | `@nestjs/jwt`, `@nestjs/passport`, `passport`, `passport-jwt` | ^11 / ^0.7 |
+| Hash | `argon2` (替代 bcrypt) | ^0.44.0 |
+| Cache | `@nestjs/cache-manager`, `cache-manager`, `cache-manager-ioredis-yet` | ^3.1 / ^7.2 |
+| Mail | `nodemailer`, `@types/nodemailer` | ^8.0 |
+| Dev | `@types/passport-jwt` | ^4.0 |
+
+> `argon2` 自带类型声明，无需额外 `@types/` 包。
+
+### Step 0.2 — Prisma 初始化 + Schema ✅
+
+**实际结构**：Prisma 配置在 `Lumos/` 根（monorepo 层级），client 生成到 `Lucent/src/generated/prisma/`。
+
+```prisma
+// Lumos/prisma/schema.prisma
+generator client {
+  provider = "prisma-client"
+  output   = "../Lucent/src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String          // argon2 hashed
+  nickname      String?
+  avatar        String?
+  emailVerified Boolean   @default(false)
+  deletedAt     DateTime?       // 软删除
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  refreshTokens RefreshToken[]
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique    // JWT token 本体
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@map("refresh_tokens")
+}
+```
+
+**注意**：不再有 `VerificationCode` 模型 —— 验证码纯走 Redis Cache（Step 2.1）。
+
+### Step 0.3 — 环境变量扩展 ✅
+
+`EnvKey` 新增: `MAIL_DRIVER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, `MAIL_FROM`。
+
+`ConfigKey` 新增: `Mail`。
+
+已更新文件:
+- `src/config/env-keys.enum.ts`
+- `src/config/config-keys.enum.ts`
+- `src/config/environment.validation.ts` (Joi schema)
+- `.env.development`, `.env.example`, `.env.development.example`, `.env.production`, `.env.production.example`
+
+### Step 0.4 — MailModule + MailService ✅
+
+- `MailService` 通过 `mailConfig` (registerAs) 读取配置
+- `MAIL_DRIVER=log`: Winston Logger 打印邮件内容（开发用）
+- `MAIL_DRIVER=smtp`: nodemailer 真实发送
+- `MailModule` @Global()
+- 便捷方法 `sendVerificationCode(email, code)` 已就绪
+
+### Step 0.5 — CacheModule 集成 ✅
+
+- `CacheConfigService` 从 `REDIS_URL` 解析 host/port/password
+- 使用 `cache-manager-ioredis-yet` (redisStore)
+- 默认 TTL 5 分钟
+- 无 Redis URL 时 fallback 内存缓存
+- @Global()
+
+### Step 0.6 — 数据库迁移 ⏳
+
+**阻塞**：PostgreSQL 未启动 (`127.0.0.1:5432` 无法连接)。
+
+待执行的命令：
+```bash
+pnpm exec prisma migrate dev --name init
+```
+
+---
+
+## Step 1: 核心认证 (待开始)
+
+### Step 1.1 — JWT 配置
+### Step 1.2 — UserModule + UserService
+### Step 1.3 — DTOs
+### Step 1.4 — AuthService.register
+### Step 1.5 — AuthService.login（密码模式）
+### Step 1.6 — Token 管理
+### Step 1.7 — JWT Strategy + Guard
+### Step 1.8 — AuthController.register
+### Step 1.9 — AuthController.login
+### Step 1.10 — AuthController.logout
+### Step 1.11 — AuthController.refresh
+### Step 1.12 — AuthController.getMe
+### Step 1.13 — AuthController.updateMe
+
+---
+
+## Step 2: 验证码系统 (待开始)
+
+### Step 2.1 — VerificationCodeService
+### Step 2.2 — AuthController.sendVerificationCode
+### Step 2.3 — AuthController.verifyEmail
+### Step 2.4 — AuthService.login（验证码模式）
+
+---
+
+## Step 3: 密码 & 账号管理 (待开始)
+
+### Step 3.1 — AuthController.forgotPassword
+### Step 3.2 — AuthController.resetPassword
+### Step 3.3 — AuthController.changePassword
+### Step 3.4 — AuthController.changeEmail
+### Step 3.5 — AuthController.deleteAccount
+
+---
+
+## 每步检查清单
+
+- [ ] TypeScript 编译通过：`pnpm --prefix Lucent build`
+- [ ] 不破坏已有健康检查：`GET /api/v1/health`
+- [ ] 新增代码遵循现有模式（envelope、filter、middleware）
+- [ ] 文档同步更新（本文件 + 相关 .md）

@@ -52,4 +52,24 @@ export enum EnvKey {
 
   /** Winston log level */
   LOG_LEVEL = 'LOG_LEVEL',
+
+  // ── Mail ─────────────────────────────────────────────────────
+
+  /** Mail driver: "log" (console) or "smtp" (real send) */
+  MAIL_DRIVER = 'MAIL_DRIVER',
+
+  /** SMTP host */
+  MAIL_HOST = 'MAIL_HOST',
+
+  /** SMTP port */
+  MAIL_PORT = 'MAIL_PORT',
+
+  /** SMTP username */
+  MAIL_USER = 'MAIL_USER',
+
+  /** SMTP password */
+  MAIL_PASS = 'MAIL_PASS',
+
+  /** Sender address */
+  MAIL_FROM = 'MAIL_FROM',
 }

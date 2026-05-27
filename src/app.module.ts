@@ -1,10 +1,14 @@
 import { Module } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
 import { appConfig } from './config/app.config';
 import { getEnvFilePaths } from './config/env-file-paths';
 import { validateEnvironment } from './config/environment.validation';
 import { HealthModule } from './health/health.module';
 import { LoggerModule } from './common/logger/logger.module';
+import { MailModule } from './mail/mail.module';
+import { PrismaModule } from './prisma/prisma.module';
+import { CacheConfigService } from './config/cache.config';
 
 @Module({
   imports: [
@@ -14,7 +18,13 @@ import { LoggerModule } from './common/logger/logger.module';
       load: [appConfig],
       validate: validateEnvironment,
     }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      useClass: CacheConfigService,
+    }),
     LoggerModule,
+    PrismaModule,
+    MailModule,
     HealthModule,
   ],
 })
