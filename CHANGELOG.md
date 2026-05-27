@@ -1,5 +1,31 @@
 # Lucent Changelog
 
+## 2026-05-27 (Git 提交约束)
+
+### Added — Git 提交规范工具链
+
+- **commitlint** — `commitlint.config.mjs`
+  - 基于 `@commitlint/config-conventional`
+  - 类型枚举：`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+  - 允许中文 subject，header 最大 120 字符
+
+- **husky** — Git hooks 管理
+  - `.husky/pre-commit` — 运行 `lint-staged`（暂存文件 lint + prettier）
+  - `.husky/commit-msg` — 运行 `commitlint`（校验 commit message 格式）
+
+- **lint-staged** — 暂存文件检查
+  - `*.ts` → eslint --fix + prettier --write
+  - `*.{json,md,yml,yaml}` → prettier --write
+
+- **依赖新增**
+  - `@commitlint/cli@^21.0.1`, `@commitlint/config-conventional@^21.0.1`
+  - `husky@^9.1.7`, `lint-staged@^17.0.5`
+
+- **脚本更新** — `package.json` 新增 `"prepare": "husky"`
+- **ESLint 更新** — `commitlint.config.mjs` 加入 ignores
+
+---
+
 ## 2026-05-27 (Auth Step 1 — 核心认证)
 
 ### Added — Auth 核心认证模块 (Step 1)
