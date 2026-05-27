@@ -299,17 +299,30 @@ model RefreshToken {
 
 ---
 
-## Step 3: 密码 & 账号管理 (待开始)
+## Step 3: 密码 & 账号管理 ✅ (5/5 完成)
 
-### Step 3.1 — AuthController.forgotPassword
+### Step 3.1 — AuthController.forgotPassword ✅
 
-### Step 3.2 — AuthController.resetPassword
+- `AuthService.forgotPassword` — 发送重置密码验证码（`reset-password` scene）
+- 安全策略：无论邮箱是否存在都返回成功提示（防邮箱枚举攻击）
+- `AuthController.forgotPassword` 改为 `async`
 
-### Step 3.3 — AuthController.changePassword
+### Step 3.2 — AuthController.resetPassword ✅
 
-### Step 3.4 — AuthController.changeEmail
+- `AuthService.resetPassword` — 验证码校验 + argon2id 哈希新密码 + 登出所有设备
+- `AuthController.resetPassword` 改为 `async`
 
-### Step 3.5 — AuthController.deleteAccount
+### Step 3.3 — AuthController.changePassword ✅
+
+- `AuthService.changePassword` — 验证旧密码 + 哈希新密码 + 登出所有设备（Step 1 已实现，完整）
+
+### Step 3.4 — AuthController.changeEmail ✅
+
+- `AuthService.changeEmail` — 新增 `currentEmail` 验证码校验（`change-email` scene）
+- `ChangeEmailDto` 扩展 `currentEmail` 字段（`@IsEmail`，必填）
+
+### Step 3.5 — AuthController.deleteAccount ✅
+
 
 ---
 

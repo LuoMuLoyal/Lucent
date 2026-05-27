@@ -219,7 +219,13 @@ export class AuthService {
   }
 
   async changeEmail(userId: string, dto: ChangeEmailDto): Promise<void> {
-    // TODO: 验证码校验
+    // 校验当前邮箱的验证码
+    await this.verificationCodeService.verify(
+      dto.currentEmail,
+      dto.code,
+      'change-email',
+    );
+
     const exists = await this.userService.findByEmail(dto.newEmail);
     if (exists) {
       throw new ConflictException({
@@ -242,12 +248,15 @@ export class AuthService {
         message: '密码错误',
       });
     }
-    // Revoke all tokens then hard-delete
+    // Revoke all tokens then soft-delete
     await this.logoutAll(userId);
-    await this.prisma.user.delete({ where: { id: userId } });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { deletedAt: new Date() },
+    });
   }
 
-  // ── Email Verification & Password Reset (stubs) ──────────────
+  // ── Email Verification & Password Reset ──────────────────────
 
   async sendVerificationCode(
     dto: SendVerificationCodeDto,
@@ -261,15 +270,35 @@ export class AuthService {
     await this.userService.updateByEmail(dto.email, { emailVerified: true });
   }
 
-  forgotPassword(_dto: ForgotPasswordDto): { message: string } {
-    // TODO: 生成重置 token，发送邮件
-    this.logger.warn(`forgotPassword(${_dto.email}): TODO`);
-    return { message: '如果该邮箱已注册，重置链接已发送（TODO）' };
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
+    // 安全策略：无论邮箱是否存在，都返回成功提示（防止邮箱枚举攻击）
+    const user = await this.userService.findByEmail(dto.email);
+    if (user) {
+      await this.verificationCodeService.send(dto.email, 'reset-password');
+    }
+    return { message: '如果该邮箱已注册，重置验证码已发送' };
   }
 
-  resetPassword(_dto: ResetPasswordDto): void {
-    // TODO: 验证 token，重置密码
-    this.logger.warn(`resetPassword(${_dto.email}): TODO`);
+  async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    await this.verificationCodeService.verify(
+      dto.email,
+      dto.code,
+      'reset-password',
+    );
+    const user = await this.userService.findByEmail(dto.email);
+    if (!user) {
+      throw new NotFoundException({
+        code: ResultCode.NOT_FOUND,
+        message: '用户不存在',
+      });
+    }
+    const password = await argon2.hash(dto.password, ARGON2_OPTIONS);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { password },
+    });
+    // 重置密码后登出所有设备
+    await this.logoutAll(user.id);
   }
 
   // ── Private Helpers ──────────────────────────────────────────

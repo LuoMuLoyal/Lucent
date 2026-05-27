@@ -1,5 +1,27 @@
 # Lucent Changelog
 
+## 2026-05-27 (Auth Step 3 — 密码 & 账号管理)
+
+### Changed — 桩实现替换为真实实现
+
+- **AuthService** (`src/auth/auth.service.ts`)
+  - `forgotPassword` — 发送重置密码验证码（`reset-password` scene），安全策略：无论邮箱是否存在都返回成功提示（防邮箱枚举攻击）
+  - `resetPassword` — 验证码校验 + argon2id 哈希新密码 + 登出所有设备
+  - `changeEmail` — 新增 `currentEmail` 验证码校验（`change-email` scene），防止未授权修改邮箱
+  - `deleteAccount` — 从硬删除改为软删除（`deletedAt = new Date()`），保留数据可恢复性
+
+### Changed — ChangeEmailDto 扩展
+
+- **ChangeEmailDto** (`src/auth/dto/change-email.dto.ts`)
+  - 新增 `currentEmail` 字段（`@IsEmail`，必填）— 用于验证当前邮箱的验证码
+
+### Changed — AuthController 异步化
+
+- **AuthController** (`src/auth/auth.controller.ts`)
+  - `forgotPassword` / `resetPassword` 改为 `async`，正确 `await` AuthService 返回值
+
+---
+
 ## 2026-05-27 (Auth Step 0 — 数据库基础设施)
 
 ### Added — Prisma + PostgreSQL 设置

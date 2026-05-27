@@ -8,6 +8,10 @@ import {
 
 export class ChangeEmailDto {
   @IsEmail({}, { message: '邮箱格式不正确' })
+  @IsNotEmpty({ message: '当前邮箱不能为空' })
+  currentEmail!: string;
+
+  @IsEmail({}, { message: '邮箱格式不正确' })
   @IsNotEmpty({ message: '新邮箱不能为空' })
   newEmail!: string;
 
