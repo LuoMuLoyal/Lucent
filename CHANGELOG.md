@@ -1,5 +1,37 @@
 # Lucent Changelog
 
+## 2026-05-27 (Auth Step 1 — Controller 层)
+
+### Added — AuthController + AuthModule
+
+- **AuthController** (`src/auth/auth.controller.ts`)
+  - 13 个路由，严格对齐 `docs/auth-api-mock.md`：
+    - `POST /auth/register` — 注册 → 201
+    - `POST /auth/login` — 密码登录
+    - `POST /auth/logout` — 登出（需认证）
+    - `POST /auth/refresh` — 刷新 Token（无需认证）
+    - `POST /auth/send-verification-code` — 发送验证码（桩）
+    - `POST /auth/verify-email` — 验证邮箱（桩）
+    - `POST /auth/forgot-password` — 忘记密码（桩）
+    - `POST /auth/reset-password` — 重置密码（桩）
+    - `GET /auth/me` — 获取当前用户（需认证）
+    - `PATCH /auth/me` — 更新当前用户（需认证）
+    - `POST /auth/me/password` — 修改密码（需认证）
+    - `POST /auth/me/email` — 修改邮箱（需认证）
+    - `DELETE /auth/me` — 注销账号（需认证）
+  - 受保护路由使用 `@UseGuards(JwtAuthGuard)` + `@CurrentUser()` 提取用户
+  - `/auth/refresh` 不加 Guard（accessToken 可能已过期）
+  - 响应格式严格遵循 `successEnvelope`（`{ code: 0, message: "", data }`）
+
+- **AuthModule** (`src/auth/auth.module.ts`)
+  - 导入 `UserModule`、`PassportModule`、`JwtModule`
+  - 注册 `AuthService`、`JwtAccessStrategy`、`AuthController`
+  - 导出 `AuthService` 供其他模块使用
+
+- **app.module.ts** — 注册 `AuthModule`
+
+---
+
 ## 2026-05-27 (Git 提交约束)
 
 ### Added — Git 提交规范工具链

@@ -2,7 +2,7 @@
 
 > 基于 [auth-api-mock.md](auth-api-mock.md) 约束，分步实现 Lucent 认证模块。
 >
-> **最后更新**: 2026-05-27 20:00 | **当前阶段**: Step 1 核心认证 (7/14 完成)
+> **最后更新**: 2026-05-27 20:25 | **当前阶段**: Step 1 核心认证 (14/14 完成)
 >
 > ⚠️ 此文档随实施同步更新，每一步完成/变更都应反映在此文件中。
 
@@ -168,7 +168,7 @@ pnpm exec prisma migrate dev --name init
 
 ---
 
-## Step 1: 核心认证 (7/14 完成)
+## Step 1: 核心认证 ✅ (14/14 完成)
 
 ### Step 1.1 — JWT 配置 ✅
 
@@ -207,19 +207,56 @@ pnpm exec prisma migrate dev --name init
 - `src/auth/guards/jwt-auth.guard.ts` — `@UseGuards(JwtAuthGuard)`
 - `src/auth/decorators/current-user.decorator.ts` — `@CurrentUser()`
 
-### Step 1.8 — AuthController.register ⏳
+### Step 1.8 — AuthController.register ✅
 
-### Step 1.9 — AuthController.login ⏳
+- `POST /auth/register` → `201`
+- 返回 `{ user, tokens }`，格式对齐 auth-api-mock.md
 
-### Step 1.10 — AuthController.logout ⏳
+### Step 1.9 — AuthController.login ✅
 
-### Step 1.11 — AuthController.refresh ⏳
+- `POST /auth/login` → `200`
+- 返回 `{ user, tokens }`
 
-### Step 1.12 — AuthController.getMe ⏳
+### Step 1.10 — AuthController.logout ✅
 
-### Step 1.13 — AuthController.updateMe ⏳
+- `POST /auth/logout`（需认证）
+- 删除对应 refreshToken，返回 `null`
 
-> ⏳ = 待实现（AuthService 方法已就绪，需创建 Controller 路由）
+### Step 1.11 — AuthController.refresh ✅
+
+- `POST /auth/refresh`（无需认证）
+- 返回新的 `{ accessToken, refreshToken, expiresIn }`
+
+### Step 1.12 — AuthController.getMe ✅
+
+- `GET /auth/me`（需认证）
+- 返回用户 profile
+
+### Step 1.13 — AuthController.updateMe ✅
+
+- `PATCH /auth/me`（需认证）
+- 更新 nickname / avatar，返回更新后的 profile
+
+### Step 1.14 — AuthController 完整路由 + AuthModule ✅
+
+**额外路由**（AuthService 方法已就绪，Controller 一并实现）：
+
+- `POST /auth/send-verification-code` — 桩实现
+- `POST /auth/verify-email` — 桩实现
+- `POST /auth/forgot-password` — 桩实现
+- `POST /auth/reset-password` — 桩实现
+- `POST /auth/me/password` — 修改密码（需认证）
+- `POST /auth/me/email` — 修改邮箱（需认证）
+- `DELETE /auth/me` — 注销账号（需认证）
+
+**新增文件**：
+
+- `src/auth/auth.controller.ts` — 13 个路由
+- `src/auth/auth.module.ts` — 导入 UserModule / PassportModule / JwtModule，注册 AuthService + JwtAccessStrategy
+
+**修改文件**：
+
+- `src/app.module.ts` — 注册 AuthModule
 
 ---
 
