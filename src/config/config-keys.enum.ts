@@ -6,4 +6,7 @@
 export enum ConfigKey {
   /** Application-level configuration (host, port, cors, etc.) */
   App = 'app',
+
+  /** Mail configuration */
+  Mail = 'mail',
 }
