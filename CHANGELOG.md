@@ -1,5 +1,47 @@
 # Lucent Changelog
 
+## 2026-05-27 (Auth Step 0 — 数据库基础设施)
+
+### Added — Prisma + PostgreSQL 设置
+
+- **Prisma Schema** (`prisma/schema.prisma`)
+  - `User` 模型：id, email (unique), password, nickname, avatar, emailVerified, deletedAt, createdAt, updatedAt
+  - `RefreshToken` 模型：id, token (unique), userId, expiresAt, createdAt，外键关联 User（级联删除）
+  - Generator 输出到 `src/generated/prisma`，使用 `prisma-client` provider (Prisma v7)
+  - Datasource: PostgreSQL，URL 从环境变量读取
+
+- **prisma.config.ts**
+  - 手动加载 `.env.development` → `.env`（dotenv），解决 Prisma CLI 无法读取环境差异文件的问题
+  - DATABASE_URL 从 `process.env['DATABASE_URL']` 获取
+
+- **PrismaService** (`src/prisma/prisma.service.ts`)
+  - 继承 `PrismaClient`，实现 `OnModuleInit` / `OnModuleDestroy`
+  - 模块初始化时 `$connect()`，销毁时 `$disconnect()`
+
+- **PrismaModule** (`src/prisma/prisma.module.ts`)
+  - `@Global()` 全局模块，导出 PrismaService
+  - 已在 AppModule 中注册
+
+- **Docker PostgreSQL 容器**
+  - 容器名：`lucent-postgres`，镜像：`postgres:16-alpine`
+  - 端口映射：`127.0.0.1:15432:5432`（Hyper-V 占用 5432，改用 15432）
+  - 用户/密码/数据库：postgres/postgres/lucent
+
+- **数据库迁移**
+  - `prisma migrate dev --name init` 成功创建 `users` 和 `refresh_tokens` 表
+
+- **Prisma Client 生成**
+  - `prisma generate` 输出到 `src/generated/prisma/`
+
+- **依赖变更**
+  - 新增 `dotenv` (devDependency) — prisma.config.ts 需要
+
+### Changed — 环境配置
+
+- `.env.development` — `DATABASE_URL` 端口从 `5432` 改为 `15432`
+
+---
+
 ## 2026-05-27 (Auth Step 1.5 — 验证码服务)
 
 ### Added — VerificationCodeService 真实实现
