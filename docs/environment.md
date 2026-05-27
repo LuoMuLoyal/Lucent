@@ -1,14 +1,3 @@
----
-title: "Lucent Environment"
-tags:
-  - backend
-  - ops
-aliases:
-  - 环境配置
-  - env
-created: 2026-05-25
----
-
 # Environment
 
 Last updated: 2026-05-26
@@ -67,6 +56,7 @@ CORS_ORIGIN
 
 - Compiler: Nest CLI SWC builder with type checking enabled.
 - Global prefix: `/api`.
-- Versioning: URI versioning, default version `1`.
+- Versioning: NestJS URI versioning，默认版本 `1`。
+- Global prefix: `/api`。Flutter 请求时 baseURL 设为 `domain/api`，路径写 `/v1/xxx`。
 - Health check: `GET /api/v1/health`.
 - Request id: returned in `X-Request-Id` and available for server-side log correlation.

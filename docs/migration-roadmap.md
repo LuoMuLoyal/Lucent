@@ -1,14 +1,3 @@
----
-title: "Lucent Migration Roadmap"
-tags:
-  - backend
-  - strategy
-aliases:
-  - 后端路线图
-  - Lucent路线
-created: 2026-05-25
----
-
 # Migration Roadmap
 
 Last updated: 2026-05-26
@@ -22,7 +11,7 @@ Build Lucent into the production backend for Luminous:
 - Prisma for schema, migrations, and imports.
 - Redis for verification codes, cooldowns, short-lived cache, and selected AI cache.
 - Passport JWT for protected APIs.
-- Versioned `/api/v1` protocol.
+- `/api` global prefix + NestJS URI versioning (`/v1`, `/v2`).
 
 ## Non-Goals
 
@@ -33,7 +22,7 @@ Build Lucent into the production backend for Luminous:
 
 ## Phases
 
-1. Protocol foundation: define `/api/v1`, envelope, error codes, request id header, and JWT identity rules. Current status: initialized with `GET /api/v1/health`.
+1. Protocol foundation: define `/api` global prefix with NestJS URI versioning, envelope, error codes, request id header, and JWT identity rules. Current status: initialized with `GET /api/v1/health`.
 2. Infrastructure: add PostgreSQL, Prisma, Redis, config validation, and local development env files. Current status: SWC, config validation, env templates, and script modes are initialized; database, Redis, and Prisma are next.
 3. Data fixtures: create small xlsx/DrugBank fixtures and import reports.
 4. Knowledge schema: add product, instruction section, source metadata, search document, and DrugBank staging tables.
