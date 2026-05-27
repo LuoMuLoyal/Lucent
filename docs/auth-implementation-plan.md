@@ -70,7 +70,7 @@ MAIL_FROM=noreply@example.com
 
 ---
 
-## Step 0: 基础设施 ✅ (5/6)
+## Step 0: 基础设施 ✅ (6/6)
 
 ### Step 0.1 — 安装依赖 ✅
 
@@ -156,14 +156,19 @@ model RefreshToken {
 - 无 Redis URL 时 fallback 内存缓存
 - @Global()
 
-### Step 0.6 — 数据库迁移 ⏳
+### Step 0.6 — 数据库迁移 ✅
 
-**阻塞**：PostgreSQL 未启动 (`127.0.0.1:5432` 无法连接)。
+- **Docker PostgreSQL 容器**：`lucent-postgres`（`postgres:16-alpine`）
+  - 端口映射：`127.0.0.1:15432:5432`（Hyper-V 占用 5432，改用 15432）
+  - 用户/密码/数据库：postgres/postgres/lucent
+- **Prisma config**：`prisma.config.ts` 手动加载 `.env.development`（dotenv），解决 Prisma CLI 不读 `.env.*` 的问题
+- **迁移命令**：`pnpm exec prisma migrate dev --name init` → 创建 `users` + `refresh_tokens` 表
+- **Client 生成**：`pnpm exec prisma generate` → `src/generated/prisma/`
+- **依赖变更**：新增 `dotenv` (devDependency)
+- **.env.development**：`DATABASE_URL` 端口 `5432` → `15432`
 
-待执行的命令：
+---
 
-```bash
-pnpm exec prisma migrate dev --name init
 ```
 
 ---
@@ -314,3 +319,4 @@ pnpm exec prisma migrate dev --name init
 - [ ] 不破坏已有健康检查：`GET /api/v1/health`
 - [ ] 新增代码遵循现有模式（envelope、filter、middleware）
 - [ ] 文档同步更新（本文件 + 相关 .md）
+```
