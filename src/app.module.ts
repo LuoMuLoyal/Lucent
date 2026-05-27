@@ -6,6 +6,7 @@ import { jwtConfig } from './config/jwt.config';
 import { getEnvFilePaths } from './config/env-file-paths';
 import { validateEnvironment } from './config/environment.validation';
 import { HealthModule } from './health/health.module';
+import { AuthModule } from './auth/auth.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -27,6 +28,7 @@ import { CacheConfigService } from './config/cache.config';
     PrismaModule,
     MailModule,
     HealthModule,
+    AuthModule,
   ],
 })
 export class AppModule {}
