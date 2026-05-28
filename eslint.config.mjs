@@ -50,8 +50,7 @@ export default tseslint.config(
       '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/no-confusing-void-expression': 'error',
 
-      // ── Prettier ──
-      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+      // Prettier 由 eslint-plugin-prettier/recommended 自动从 .prettierrc 读取配置，不再显式覆盖
     },
   },
   {
