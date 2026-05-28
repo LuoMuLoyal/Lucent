@@ -1,3 +1,24 @@
+## 📝 铁律：每次对话结束必须更新 CHANGELOG
+
+> **每完成一次对话（即所有任务完成、准备 attempt_completion 之前），必须将本次变更写入 `CHANGELOG.md`。**
+
+**规则：**
+
+1. **CHANGELOG 格式**：遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/) 风格
+   - 按日期分组：`## YYYY-MM-DD (简短描述)`
+   - 分类：`Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Security`
+   - 每条记录列出影响的文件和具体变更
+
+2. **时机**：在 `attempt_completion` 之前完成，确保 CHANGELOG 是最新状态
+
+3. **不需要写 CHANGELOG 的情况**：
+   - 纯文档阅读 / 信息查询（无代码或配置变更）
+   - 仅讨论方案、未落地实施
+
+4. **AGENTS.md 踩坑记录**也要同步更新（如果对话中发现了新的坑）
+
+---
+
 ## ⛔ 铁律：严禁降低代码检查等级
 
 > **此规则无任何例外，所有 AI agent 必须严格遵守。**
