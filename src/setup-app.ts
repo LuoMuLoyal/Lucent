@@ -1,11 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
-import {
-  INestApplication,
-  Logger,
-  ValidationPipe,
-  VersioningType,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import type { INestApplication } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigKey } from './config/config-keys.enum';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
@@ -24,7 +20,7 @@ export function setupApp(
     res.on('finish', () => {
       const duration = Date.now() - start;
       logger.log(
-        `${req.method} ${req.originalUrl || req.url} ${res.statusCode} ${duration}ms`,
+        `${req.method} ${req.originalUrl || req.url} ${String(res.statusCode)} ${String(duration)}ms`,
       );
     });
     next();

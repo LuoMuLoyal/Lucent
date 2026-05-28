@@ -1,6 +1,7 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import type { ExecutionContext } from '@nestjs/common';
+import { createParamDecorator } from '@nestjs/common';
 
-import { UserPayload } from '../auth.service';
+import type { UserPayload } from '../auth.service';
 
 /**
  * 参数装饰器：从 request.user 中提取当前登录用户信息。
