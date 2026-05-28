@@ -8,7 +8,7 @@ import { EnvKey } from './env-keys.enum';
 export class CacheConfigService implements CacheOptionsFactory {
   constructor(private readonly configService: ConfigService) {}
 
-  async createCacheOptions(): Promise<CacheModuleOptions> {
+  createCacheOptions(): CacheModuleOptions {
     const redisUrl = this.configService.get<string>(EnvKey.REDIS_URL);
 
     if (redisUrl) {

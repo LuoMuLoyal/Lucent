@@ -11,6 +11,8 @@ import { LoggerModule } from './common/logger/logger.module';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CacheConfigService } from './config/cache.config';
+import { AppController } from './app/app.controller';
+import { AppService } from './app/app.service';
 
 @Module({
   imports: [
@@ -30,5 +32,7 @@ import { CacheConfigService } from './config/cache.config';
     HealthModule,
     AuthModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

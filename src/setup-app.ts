@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express';
 import {
   INestApplication,
   Logger,
@@ -17,7 +18,7 @@ export function setupApp(
   app.use(requestIdMiddleware);
 
   const logger = new Logger('HTTP');
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     const start = Date.now();
     res.on('finish', () => {
       const duration = Date.now() - start;
