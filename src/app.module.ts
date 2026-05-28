@@ -5,14 +5,13 @@ import { appConfig } from './config/app.config';
 import { jwtConfig } from './config/jwt.config';
 import { getEnvFilePaths } from './config/env-file-paths';
 import { validateEnvironment } from './config/environment.validation';
-import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CacheConfigService } from './config/cache.config';
-import { AppController } from './app/app.controller';
-import { AppService } from './app/app.service';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -29,7 +28,6 @@ import { AppService } from './app/app.service';
     LoggerModule,
     PrismaModule,
     MailModule,
-    HealthModule,
     AuthModule,
   ],
   controllers: [AppController],
