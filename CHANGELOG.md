@@ -1,5 +1,42 @@
 # Lucent Changelog
 
+## 2026-05-28 (OpenAPI + 运行时修复 + 日志滚动)
+
+### Added — OpenAPI / Swagger 文档
+
+- **Swagger 配置** (`src/setup-app.ts`)
+  - `@nestjs/swagger` 集成，路径 `/api/docs`
+  - `SwaggerModule.setup()` 自动生成 OpenAPI 3.0 规范
+  - 所有 Auth DTO 添加 `@ApiProperty()` 装饰器（14 个文件）
+- **依赖新增** — `@nestjs/swagger@^11`
+
+### Added — Winston 日志按天滚动
+
+- **日志文件输出** (`src/common/logger/logger.config.ts`)
+  - 新增 `winston-daily-rotate-file` transport
+  - `app-YYYY-MM-DD.log` — 全量日志，按天滚动
+  - `error-YYYY-MM-DD.log` — 仅 error 级别，独立归档
+  - 滚动策略：`maxSize: 20m`，`maxFiles: 30d`，`zippedArchive: true`
+  - 日志目录：项目根 `logs/`（已被 `.gitignore` 覆盖）
+- **依赖新增** — `winston-daily-rotate-file@^5`
+
+### Fixed — Prisma v7 运行时兼容
+
+- **PrismaService** (`src/prisma/prisma.service.ts`)
+  - Prisma v7 不再自动读取 `DATABASE_URL`，需显式传递 adapter
+  - 安装 `@prisma/adapter-pg`，使用 `new PrismaPg({ connectionString })` 构造 adapter
+  - `super({ adapter })` 替代旧的 `super()` 调用
+- **依赖新增** — `@prisma/adapter-pg@^7.8.0`
+
+### Fixed — 环境变量校验
+
+- **environment.validation.ts** (`src/config/environment.validation.ts`)
+  - `DATABASE_URL` / `REDIS_URL` 的 Joi `.uri({ scheme: regex })` 改为 `.uri({ scheme: ['postgres', 'postgresql'] })`（Joi v18 不支持 regex）
+  - `AI_*` / `MAIL_*` 可选字段添加 `.allow('')`，兼容 `.env` 中的空值
+  - `CORS_ORIGIN` 添加 `.allow('')`
+
+---
+
 ## 2026-05-27 (Auth Step 3 — 密码 & 账号管理)
 
 ### Changed — 桩实现替换为真实实现
