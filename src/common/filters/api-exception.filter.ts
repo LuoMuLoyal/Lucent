@@ -25,7 +25,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     response.status(status).json(errorEnvelope(body.code, body.message));
   }
 
-  private resolveStatus(exception: unknown): number {
+  private resolveStatus(exception: unknown): HttpStatus {
     if (exception instanceof HttpException) {
       return exception.getStatus();
     }
@@ -34,7 +34,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
   private resolveBody(
     exception: unknown,
-    status: number,
+    status: HttpStatus,
   ): { code: ResultCode; message: string } {
     if (exception instanceof HttpException) {
       const response = exception.getResponse();
@@ -48,7 +48,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
       const body = response as ErrorResponseBody;
       if (typeof body.code === 'number') {
         return {
-          code: body.code as ResultCode,
+          code: body.code,
           message: this.normalizeMessage(body.message ?? body.error),
         };
       }
@@ -65,7 +65,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     };
   }
 
-  private defaultCode(status: number): ResultCode {
+  private defaultCode(status: HttpStatus): ResultCode {
     switch (status) {
       case HttpStatus.BAD_REQUEST:
         return ResultCode.BAD_REQUEST;

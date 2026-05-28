@@ -95,13 +95,13 @@ export function validateEnvironment(
   const { value, error } = envSchema.validate(config, {
     allowUnknown: true,
     stripUnknown: false,
-  });
+  }) as { value: EnvironmentVariables; error: Joi.ValidationError | undefined };
 
   if (error) {
     throw new Error(`Environment validation failed: ${error.message}`);
   }
 
-  const validated = value as EnvironmentVariables;
+  const validated = value;
 
   assertProductionEnvironment(validated);
 

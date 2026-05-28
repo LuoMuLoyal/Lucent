@@ -1,0 +1,8 @@
+name: dev
+variables:
+  - name: baseUrl
+    value: http://127.0.0.1:3000
+  - name: accessToken
+    value: ''
+  - name: refreshToken
+    value: ''
