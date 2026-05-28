@@ -1,3 +1,5 @@
+# AGENTS.md
+
 ## 📝 铁律：每次对话结束必须更新 CHANGELOG
 
 > **每完成一次对话（即所有任务完成、准备 attempt_completion 之前），必须将本次变更写入 `CHANGELOG.md`。**
@@ -69,7 +71,7 @@
 - 如果确实需要在某一行临时绕过（如第三方库类型不完整），使用行内注释 `// eslint-disable-next-line <rule>` 并附上原因说明，**不得**全局禁用规则。
 - 唯一允许的例外：测试文件（`*.spec.ts`、`*.test.ts`）中 `@typescript-eslint/unbound-method` 可设为 `off`（这是 jest 相关的已知限制）。
 
-# AGENTS.md — 踩坑记录
+— 踩坑记录
 
 > 此文件记录 AI agent 在本项目中犯过的错误和教训，避免后续重复。
 > 每次对话发现的错误都应追加到此文件中。

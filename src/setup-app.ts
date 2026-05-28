@@ -20,7 +20,7 @@ export function setupApp(
     res.on('finish', () => {
       const duration = Date.now() - start;
       logger.log(
-        `${req.method} ${req.originalUrl || req.url} ${String(res.statusCode)} ${String(duration)}ms`,
+        `${req.method} ${req.originalUrl || req.url} ${res.statusCode.toString()} ${duration.toString()}ms`,
       );
     });
     next();
