@@ -1,5 +1,20 @@
 # Lucent Changelog
 
+## 2026-05-28 (Docker Build Fix)
+
+### Fixed
+
+- `src/auth/strategies/jwt-access.strategy.ts` — 移除未使用的 `configService` 参数的 `private` 修饰符（TS6138: 值从未被读取）
+- `src/config/jwt.config.ts` — 修复 `match[2]` 在 `noUncheckedIndexedAccess` 下可能为 `undefined` 的问题（改用 `?.` 可选链 + 缩小类型为 `'s' | 'm' | 'h' | 'd'`）
+- `src/i18n/i18n.module.ts` — 移除未使用的 `I18nService` import 和构造函数参数（TS6138）；添加 `@typescript-eslint/no-extraneous-class` 行内禁用注释
+- `src/prisma/prisma.service.ts` — 移除未使用的 `configService` 参数的 `private` 修饰符（TS6138）
+- `prisma.config.ts` — 修复 `exactOptionalPropertyTypes` 报错（`process.env['DATABASE_URL']` 可能为 `undefined`，改为 `?? ''` fallback）
+
+### Changed
+
+- `Dockerfile` — production stage 改为安装全部依赖（含 `prisma` CLI），因为 `docker-entrypoint.sh` 需要运行 `prisma migrate deploy`；添加注释说明 i18n 翻译文件由 `nest build` assets 配置复制到 `dist/`
+- `docker-entrypoint.sh` — `npx` 改为 `pnpm exec`（与 pnpm 项目保持一致）
+
 ## 2026-05-28 (OpenAPI 响应 DTO + @ApiResponse 装饰器)
 
 ### Added — Auth 响应 DTO

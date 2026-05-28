@@ -17,6 +17,7 @@ import {
 } from '@nestjs/swagger';
 
 import { successEnvelope } from '../common/api-envelope';
+import { VERIFICATION_CODE_COOLDOWN_SEC } from './verification-code.service';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -140,7 +141,7 @@ export class AuthController {
   async sendVerificationCode(@Body() dto: SendVerificationCodeDto) {
     const result = await this.authService.sendVerificationCode(dto);
     return successEnvelope({
-      cooldown: 60,
+      cooldown: VERIFICATION_CODE_COOLDOWN_SEC,
       message: result.message,
     });
   }
@@ -165,7 +166,7 @@ export class AuthController {
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     const result = await this.authService.forgotPassword(dto);
     return successEnvelope({
-      cooldown: 60,
+      cooldown: VERIFICATION_CODE_COOLDOWN_SEC,
       message: result.message,
     });
   }

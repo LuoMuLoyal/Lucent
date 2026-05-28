@@ -18,9 +18,9 @@ function parseTtl(raw: string | undefined, defaultSeconds: number): number {
   }
 
   const value = Number(match[1]);
-  const unit = match[2].toLowerCase();
+  const unit = match[2]?.toLowerCase() as 's' | 'm' | 'h' | 'd';
 
-  const multipliers: Record<string, number> = {
+  const multipliers: Record<'s' | 'm' | 'h' | 'd', number> = {
     s: 1,
     m: 60,
     h: 3600,

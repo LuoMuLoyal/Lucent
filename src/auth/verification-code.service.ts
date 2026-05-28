@@ -16,6 +16,8 @@ import type { VerificationScene } from './dto/send-verification-code.dto';
 
 const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const COOLDOWN_TTL_MS = 60 * 1000; // 60 seconds
+/** Cooldown period in seconds (exposed for API response) */
+export const VERIFICATION_CODE_COOLDOWN_SEC = COOLDOWN_TTL_MS / 1000;
 const CODE_LENGTH = 6;
 
 @Injectable()
