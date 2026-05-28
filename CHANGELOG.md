@@ -1,5 +1,16 @@
 # Lucent Changelog
 
+## 2026-05-28 (OpenAPI 导出脚本)
+
+### Added
+
+- **`scripts/export-openapi.ts`** — 独立 OpenAPI 3.0 规范导出脚本
+  - 启动 NestJS 应用（无日志），调用 `SwaggerModule.createDocument()` 生成完整 OpenAPI JSON
+  - 输出到 `docs/openapi.json`，可直接用于 openapi-generator 生成客户端代码
+  - 统计并打印 paths 和 schemas 数量
+
+---
+
 ## 2026-05-28 (Docker Build Fix)
 
 ### Fixed
