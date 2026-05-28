@@ -1,3 +1,53 @@
+## ⛔ 铁律：严禁降低代码检查等级
+
+> **此规则无任何例外，所有 AI agent 必须严格遵守。**
+
+### 涉及的配置文件
+
+| 文件                | 作用                            |
+| ------------------- | ------------------------------- |
+| `tsconfig.json`     | TypeScript 编译器检查           |
+| `eslint.config.mjs` | ESLint + typescript-eslint 规则 |
+
+### 禁止的操作
+
+1. **禁止**将 `tsconfig.json` 中以下选项设为 `false` 或删除：
+   - `strict`（及其子选项 `strictNullChecks`、`strictBindCallApply`、`strictFunctionTypes` 等）
+   - `noImplicitAny`
+   - `noImplicitReturns`
+   - `noFallthroughCasesInSwitch`
+   - `noUncheckedIndexedAccess`
+   - `noUnusedLocals`
+   - `noUnusedParameters`
+   - `exactOptionalPropertyTypes`
+   - `noImplicitOverride`
+   - `noPropertyAccessFromIndexSignature`
+   - `forceConsistentCasingInFileNames`
+
+2. **禁止**在 `eslint.config.mjs` 中将以下规则从 `error` 降为 `warn` 或 `off`：
+   - `@typescript-eslint/no-explicit-any`
+   - `@typescript-eslint/no-floating-promises`
+   - `@typescript-eslint/no-unsafe-argument`
+   - `@typescript-eslint/no-unsafe-assignment`
+   - `@typescript-eslint/no-unsafe-call`
+   - `@typescript-eslint/no-unsafe-member-access`
+   - `@typescript-eslint/no-unsafe-return`
+   - `@typescript-eslint/restrict-template-expressions`
+   - `@typescript-eslint/restrict-plus-operands`
+   - `@typescript-eslint/no-unused-vars`
+   - `@typescript-eslint/no-non-null-assertion`
+   - `@typescript-eslint/consistent-type-imports`
+   - `@typescript-eslint/no-unnecessary-condition`
+   - `@typescript-eslint/no-confusing-void-expression`
+
+3. **禁止**将 ESLint 配置中的 `tseslint.configs.strictTypeChecked` 降级为 `recommendedTypeChecked` 或 `recommended`。
+
+### 正确的做法
+
+- 如果某个检查导致 lint 错误，应**修复代码本身**使其通过检查，而非降低检查等级。
+- 如果确实需要在某一行临时绕过（如第三方库类型不完整），使用行内注释 `// eslint-disable-next-line <rule>` 并附上原因说明，**不得**全局禁用规则。
+- 唯一允许的例外：测试文件（`*.spec.ts`、`*.test.ts`）中 `@typescript-eslint/unbound-method` 可设为 `off`（这是 jest 相关的已知限制）。
+
 # AGENTS.md — 踩坑记录
 
 > 此文件记录 AI agent 在本项目中犯过的错误和教训，避免后续重复。
@@ -24,6 +74,7 @@
 **原因**：工作目录（cwd）是 `D:\25080\Documents\VSCodeProject\Lumos`（monorepo 根），不是 `Lucent/` 子目录。`prisma init` 默认在当前目录创建文件。
 
 **教训**：
+
 - 任何有副作用的初始化命令（`prisma init`, `npm init`, `git init` 等），先 `echo %cd%` 或用 `get_file_info` 确认目标目录。
 - 此项目 Prisma 最终确实留在 `Lumos/` 根层级（因为 DATABASE_URL 在此 .env 中），但这是事后发现而非有意设计。
 
@@ -52,6 +103,7 @@
 **错误**：Step 0.3 扩展 mail 环境变量时，更新了 4 个 `.env.*.example` 文件和 `.env.development` / `.env.production`，但没有创建 `.env` 基础文件。而且原有的 `.env.development` 和 `.env.production` 包含了所有变量（公有的和差异的混在一起），没有做层级分离。
 
 **正确做法**：
+
 - `.env` — 所有环境共享的默认值
 - `.env.development` — 仅开发环境差异项
 - `.env.production` — 仅生产环境差异项
