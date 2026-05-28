@@ -1,5 +1,27 @@
 # Lucent Changelog
 
+## 2026-05-28 (ESLint 修复 + 单元测试补全)
+
+### Fixed — ESLint `restrict-template-expressions`
+
+- **`src/setup-app.ts`** (第 23 行)
+  - `String(res.statusCode)` / `String(duration)` 改为 `.toString()`，修复 `@typescript-eslint/restrict-template-expressions` 对 `number` 类型的报错
+  - 原因：`String()` 返回类型仍被识别为 `number`，`.toString()` 是更安全的类型转换方式
+
+### Added — 单元测试
+
+- **`src/common/api-envelope.spec.ts`** — `successEnvelope` / `errorEnvelope` 函数测试 + `ResultCode` 枚举唯一性校验
+- **`src/common/interceptors/api-envelope.interceptor.spec.ts`** — `ApiEnvelopeInterceptor` 测试（plain data 包装 / null / undefined / 已有 envelope 透传 / 原始类型 / 数组）
+- **`src/common/middleware/request-id.middleware.spec.ts`** — `requestIdMiddleware` 测试（无 header 生成 UUID / 自定义 header 透传 / trim / 空白 / next 调用 / 响应头设置）
+- **`src/user/user.service.spec.ts`** — `UserService` 测试（findById / findByEmail / create / update / updateByEmail，mock PrismaService）
+- **`src/auth/verification-code.service.spec.ts`** — `VerificationCodeService` 测试（send 生成码+缓存+发邮件 / cooldown 限制 / verify 正确码 / 过期码 / 错误码 / 缓存 key 格式）
+
+### Test Results
+
+- 6 suites, 65 tests — 全部通过 ✅
+
+---
+
 ## 2026-05-28 (环境变量 & Docker 架构重构)
 
 ### Changed — 去掉公共 `.env`，改为单文件自包含
