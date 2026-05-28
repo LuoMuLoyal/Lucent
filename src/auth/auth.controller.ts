@@ -9,6 +9,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { successEnvelope } from '../common/api-envelope';
 import { AuthService } from './auth.service';
@@ -29,6 +30,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -37,6 +39,7 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: '用户注册' })
   async register(@Body() dto: RegisterDto) {
     const result = await this.authService.register(dto);
     return successEnvelope({
@@ -59,6 +62,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '用户登录' })
   async login(@Body() dto: LoginDto) {
     const result = await this.authService.login(dto);
     return successEnvelope({
@@ -83,7 +87,9 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '用户登出' })
   async logout(@Body() dto: LogoutDto) {
     await this.authService.logout(dto.refreshToken);
     return successEnvelope(null);
@@ -94,6 +100,7 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '刷新令牌' })
   async refresh(@Body() dto: RefreshDto) {
     const result = await this.authService.refresh(dto.refreshToken);
     return successEnvelope({
@@ -107,6 +114,7 @@ export class AuthController {
 
   @Post('send-verification-code')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '发送邮箱验证码' })
   async sendVerificationCode(@Body() dto: SendVerificationCodeDto) {
     const result = await this.authService.sendVerificationCode(dto);
     return successEnvelope({
@@ -119,6 +127,7 @@ export class AuthController {
 
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '验证邮箱' })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     await this.authService.verifyEmail(dto);
     return successEnvelope({ emailVerified: true });
@@ -128,6 +137,7 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '忘记密码' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     const result = await this.authService.forgotPassword(dto);
     return successEnvelope({
@@ -140,6 +150,7 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '重置密码' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto);
     return successEnvelope(null);
@@ -149,6 +160,8 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: '获取当前用户信息' })
   async getMe(@CurrentUser() user: UserPayload) {
     const me = await this.authService.getMe(user.sub);
     return successEnvelope({
@@ -166,6 +179,8 @@ export class AuthController {
 
   @Patch('me')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: '更新当前用户信息' })
   async updateMe(@CurrentUser() user: UserPayload, @Body() dto: UpdateMeDto) {
     const updated = await this.authService.updateMe(user.sub, dto);
     return successEnvelope({
@@ -183,7 +198,9 @@ export class AuthController {
 
   @Post('me/password')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '修改密码' })
   async changePassword(
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangePasswordDto,
@@ -196,7 +213,9 @@ export class AuthController {
 
   @Post('me/email')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '修改邮箱' })
   async changeEmail(
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangeEmailDto,
@@ -212,7 +231,9 @@ export class AuthController {
 
   @Delete('me')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '注销账户' })
   async deleteAccount(
     @CurrentUser() user: UserPayload,
     @Body() dto: DeleteAccountDto,
