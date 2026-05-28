@@ -9,7 +9,12 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { successEnvelope } from '../common/api-envelope';
 import { AuthService } from './auth.service';
@@ -30,6 +35,18 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
 
+import {
+  ChangeEmailResponseDto,
+  ForgotPasswordResponseDto,
+  LoginResponseDto,
+  MeResponseDto,
+  RefreshResponseDto,
+  RegisterResponseDto,
+  SendVerificationCodeResponseDto,
+  SuccessResponseDto,
+  VerifyEmailResponseDto,
+} from './dto/responses';
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -40,6 +57,7 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: '用户注册' })
+  @ApiResponse({ status: 201, type: RegisterResponseDto })
   async register(@Body() dto: RegisterDto) {
     const result = await this.authService.register(dto);
     return successEnvelope({
@@ -63,6 +81,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '用户登录' })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
   async login(@Body() dto: LoginDto) {
     const result = await this.authService.login(dto);
     return successEnvelope({
@@ -90,6 +109,7 @@ export class AuthController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '用户登出' })
+  @ApiResponse({ status: 200, type: SuccessResponseDto })
   async logout(@Body() dto: LogoutDto) {
     await this.authService.logout(dto.refreshToken);
     return successEnvelope(null);
@@ -101,6 +121,7 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '刷新令牌' })
+  @ApiResponse({ status: 200, type: RefreshResponseDto })
   async refresh(@Body() dto: RefreshDto) {
     const result = await this.authService.refresh(dto.refreshToken);
     return successEnvelope({
@@ -115,6 +136,7 @@ export class AuthController {
   @Post('send-verification-code')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '发送邮箱验证码' })
+  @ApiResponse({ status: 200, type: SendVerificationCodeResponseDto })
   async sendVerificationCode(@Body() dto: SendVerificationCodeDto) {
     const result = await this.authService.sendVerificationCode(dto);
     return successEnvelope({
@@ -128,6 +150,7 @@ export class AuthController {
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '验证邮箱' })
+  @ApiResponse({ status: 200, type: VerifyEmailResponseDto })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     await this.authService.verifyEmail(dto);
     return successEnvelope({ emailVerified: true });
@@ -138,6 +161,7 @@ export class AuthController {
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '忘记密码' })
+  @ApiResponse({ status: 200, type: ForgotPasswordResponseDto })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     const result = await this.authService.forgotPassword(dto);
     return successEnvelope({
@@ -151,6 +175,7 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '重置密码' })
+  @ApiResponse({ status: 200, type: SuccessResponseDto })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto);
     return successEnvelope(null);
@@ -162,6 +187,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: '获取当前用户信息' })
+  @ApiResponse({ status: 200, type: MeResponseDto })
   async getMe(@CurrentUser() user: UserPayload) {
     const me = await this.authService.getMe(user.sub);
     return successEnvelope({
@@ -181,6 +207,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: '更新当前用户信息' })
+  @ApiResponse({ status: 200, type: MeResponseDto })
   async updateMe(@CurrentUser() user: UserPayload, @Body() dto: UpdateMeDto) {
     const updated = await this.authService.updateMe(user.sub, dto);
     return successEnvelope({
@@ -201,6 +228,7 @@ export class AuthController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '修改密码' })
+  @ApiResponse({ status: 200, type: SuccessResponseDto })
   async changePassword(
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangePasswordDto,
@@ -216,6 +244,7 @@ export class AuthController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '修改邮箱' })
+  @ApiResponse({ status: 200, type: ChangeEmailResponseDto })
   async changeEmail(
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangeEmailDto,
@@ -234,6 +263,7 @@ export class AuthController {
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '注销账户' })
+  @ApiResponse({ status: 200, type: SuccessResponseDto })
   async deleteAccount(
     @CurrentUser() user: UserPayload,
     @Body() dto: DeleteAccountDto,

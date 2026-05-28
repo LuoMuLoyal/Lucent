@@ -1,5 +1,28 @@
 # Lucent Changelog
 
+## 2026-05-28 (OpenAPI 响应 DTO + @ApiResponse 装饰器)
+
+### Added — Auth 响应 DTO
+
+- **`src/auth/dto/responses/common.dto.ts`** — 公共响应模型
+  - `UserBriefDto` — 简略用户信息（id, email, nickname, emailVerified, createdAt）
+  - `UserFullDto` — 完整用户信息（id, email, nickname, avatar, emailVerified, createdAt, updatedAt）
+  - `TokensDto` — 令牌信息（accessToken, refreshToken, expiresIn）
+  - `CooldownMessageDto` — 冷却提示（cooldown, message）
+- **`src/auth/dto/responses/auth-responses.dto.ts`** — 各端点响应 envelope DTO
+  - `SuccessResponseDto` — data 为 null 的通用成功响应（logout / resetPassword / changePassword / deleteAccount）
+  - `RegisterResponseDto` / `LoginResponseDto` / `RefreshResponseDto`
+  - `SendVerificationCodeResponseDto` / `VerifyEmailResponseDto` / `ForgotPasswordResponseDto`
+  - `MeResponseDto` / `ChangeEmailResponseDto`
+- **`src/auth/dto/responses/index.ts`** — 统一导出
+
+### Changed — AuthController @ApiResponse 装饰器
+
+- **`src/auth/auth.controller.ts`**
+  - 13 个端点全部添加 `@ApiResponse({ status, type })` 装饰器
+  - 新增 `ApiResponse` 导入和 9 个响应 DTO 导入
+  - Swagger JSON 现包含完整的请求/响应类型定义，可直接用于 openapi-generator 生成 Dart 客户端
+
 ## 2026-05-28 (i18n 国际化集成 + ESLint 修复)
 
 ### Added — nestjs-i18n 国际化框架
