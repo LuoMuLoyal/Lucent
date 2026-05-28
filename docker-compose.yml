@@ -38,7 +38,6 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
-      - .env
       - .env.development
     environment:
       DATABASE_URL: postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public

@@ -6,11 +6,14 @@ Lucent uses `@nestjs/config` with validated environment variables.
 
 ## Files
 
+每个环境使用一个独立的 `.env.<NODE_ENV>` 文件，所有变量（含公共）集中在一个文件中。
+
 Runtime files are local only and must not be committed:
 
 ```text
 .env.development
 .env.production
+.env.test
 .env.development.local
 .env.production.local
 ```
@@ -18,18 +21,15 @@ Runtime files are local only and must not be committed:
 Tracked templates:
 
 ```text
-.env.example
 .env.development.example
 .env.production.example
 ```
 
-Loading order is environment-specific:
+Loading order is environment-specific（优先级从高到低）：
 
 ```text
 .env.<NODE_ENV>.local
 .env.<NODE_ENV>
-.env.local
-.env
 ```
 
 ## Scripts

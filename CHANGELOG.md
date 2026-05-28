@@ -1,5 +1,34 @@
 # Lucent Changelog
 
+## 2026-05-28 (环境变量 & Docker 架构重构)
+
+### Changed — 去掉公共 `.env`，改为单文件自包含
+
+- **`src/config/env-file-paths.ts`**
+  - 加载链从 `.env.{NODE_ENV}.local → .env.{NODE_ENV} → .env.local → .env` 精简为 `.env.{NODE_ENV}.local → .env.{NODE_ENV}`
+  - 每个环境的 `.env.<NODE_ENV>` 文件自包含所有变量（含 HOST, PORT, CORS_ORIGIN 等公共项）
+  - 删除 `.env` 和 `.env.example`
+
+### Changed — Docker Compose 环境变量注入
+
+- **`docker-compose.yml`**
+  - `app` 服务的 `env_file` 从 `.env.docker`（已删除）改为 `.env.development`
+  - 新增 `environment` 覆盖容器间连接地址：`DATABASE_URL` → `postgres:5432`，`REDIS_URL` → `redis:6379`
+  - postgres 凭证统一为 `lucent/lucent_dev`，与 `.env.development` 一致
+
+### Changed — `.env.*` 文件补全
+
+- **`.env.development`** / **`.env.production`** / **`.env.test`**
+  - 补充公共变量：`HOST`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_FROM`, `LOG_LEVEL`
+- **`.env.test`** — 独立配置，DATABASE_URL 指向 Docker PostgreSQL（端口 15432），不设 REDIS_URL（fallback 内存缓存）
+
+### Updated — 文档
+
+- **`docs/environment.md`** — 反映新的单文件自包含结构和加载顺序
+- **`.env.development.example`** / **`.env.production.example`** — 同步所有变量
+
+---
+
 ## 2026-05-28 (OpenAPI + 运行时修复 + 日志滚动)
 
 ### Added — OpenAPI / Swagger 文档
