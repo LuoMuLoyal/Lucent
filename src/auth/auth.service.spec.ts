@@ -1,6 +1,10 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { ConflictException, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnauthorizedException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -172,7 +176,10 @@ describe('AuthService', () => {
         password: 'Password123!',
       });
 
-      expect(argon2.verify).toHaveBeenCalledWith(mockUser.password, 'Password123!');
+      expect(argon2.verify).toHaveBeenCalledWith(
+        mockUser.password,
+        'Password123!',
+      );
       expect(result.user).toEqual(mockUser);
       expect(result.accessToken).toBe('mock-jwt-token');
     });
@@ -228,8 +235,12 @@ describe('AuthService', () => {
         user: mockUser,
       };
 
-      (prismaService.refreshToken.findUnique as jest.Mock).mockResolvedValue(mockRefreshRecord);
-      (prismaService.refreshToken.delete as jest.Mock).mockResolvedValue(mockRefreshRecord);
+      (prismaService.refreshToken.findUnique as jest.Mock).mockResolvedValue(
+        mockRefreshRecord,
+      );
+      (prismaService.refreshToken.delete as jest.Mock).mockResolvedValue(
+        mockRefreshRecord,
+      );
       (prismaService.refreshToken.deleteMany as jest.Mock).mockResolvedValue({
         count: 0,
       });
@@ -247,9 +258,13 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException for invalid refresh token', async () => {
-      (prismaService.refreshToken.findUnique as jest.Mock).mockResolvedValue(null);
+      (prismaService.refreshToken.findUnique as jest.Mock).mockResolvedValue(
+        null,
+      );
 
-      await expect(service.refresh('invalid-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh('invalid-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException for expired refresh token', async () => {
@@ -261,7 +276,9 @@ describe('AuthService', () => {
         user: mockUser,
       });
 
-      await expect(service.refresh('expired-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh('expired-token')).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
@@ -310,7 +327,9 @@ describe('AuthService', () => {
     it('should throw NotFoundException if user not found', async () => {
       userService.findById.mockResolvedValue(null);
 
-      await expect(service.getMe('non-existent')).rejects.toThrow(NotFoundException);
+      await expect(service.getMe('non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -354,7 +373,10 @@ describe('AuthService', () => {
         newPassword: 'NewPass456!',
       });
 
-      expect(argon2.verify).toHaveBeenCalledWith(mockUser.password, 'OldPass123!');
+      expect(argon2.verify).toHaveBeenCalledWith(
+        mockUser.password,
+        'OldPass123!',
+      );
       expect(argon2.hash).toHaveBeenCalledWith(
         'NewPass456!',
         expect.objectContaining({ type: argon2.argon2id }),
@@ -466,7 +488,10 @@ describe('AuthService', () => {
         scene: 'register',
       });
 
-      expect(verificationCodeService.send).toHaveBeenCalledWith('test@example.com', 'register');
+      expect(verificationCodeService.send).toHaveBeenCalledWith(
+        'test@example.com',
+        'register',
+      );
       expect(result.message).toContain('验证码已发送');
     });
   });
@@ -485,9 +510,12 @@ describe('AuthService', () => {
         '123456',
         'register',
       );
-      expect(userService.updateByEmail).toHaveBeenCalledWith('test@example.com', {
-        emailVerified: true,
-      });
+      expect(userService.updateByEmail).toHaveBeenCalledWith(
+        'test@example.com',
+        {
+          emailVerified: true,
+        },
+      );
     });
   });
 

@@ -16,7 +16,7 @@ export interface MailConfig {
 export const mailConfig = registerAs(
   ConfigKey.Mail,
   (): MailConfig => ({
-    driver: (process.env[EnvKey.MAIL_DRIVER] as MailDriver) ?? 'log',
+    driver: (process.env[EnvKey.MAIL_DRIVER] ?? 'log') as MailDriver,
     host: process.env[EnvKey.MAIL_HOST] ?? '',
     port: Number(process.env[EnvKey.MAIL_PORT] ?? 587),
     user: process.env[EnvKey.MAIL_USER] ?? '',

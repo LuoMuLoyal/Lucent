@@ -10,7 +10,12 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   constructor(private readonly configService: ConfigService) {
-    const connectionString = configService.get<string>(EnvKey.DATABASE_URL)!;
+    const connectionString = configService.get<string>(EnvKey.DATABASE_URL);
+    if (connectionString === undefined) {
+      throw new Error(
+        `Missing required environment variable: ${EnvKey.DATABASE_URL}`,
+      );
+    }
     const adapter = new PrismaPg({ connectionString });
     super({ adapter });
   }
