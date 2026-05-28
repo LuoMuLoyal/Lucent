@@ -1,7 +1,6 @@
 import {
   ConflictException,
   Injectable,
-  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -61,8 +60,6 @@ interface JwtConfigShape {
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
@@ -198,8 +195,8 @@ export class AuthService {
 
   async updateMe(userId: string, dto: UpdateMeDto): Promise<User> {
     return this.userService.update(userId, {
-      nickname: dto.nickname,
-      avatar: dto.avatar,
+      ...(dto.nickname !== undefined && { nickname: dto.nickname }),
+      ...(dto.avatar !== undefined && { avatar: dto.avatar }),
     });
   }
 
@@ -359,7 +356,7 @@ export class AuthService {
       const minutes = Math.ceil((entry.lockedUntil - Date.now()) / 60_000);
       throw new UnauthorizedException({
         code: ResultCode.LOGIN_RATE_LIMITED,
-        message: `登录失败次数过多，请 ${minutes} 分钟后重试`,
+        message: `登录失败次数过多，请 ${String(minutes)} 分钟后重试`,
       });
     }
 
