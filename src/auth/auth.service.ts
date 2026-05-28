@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 import { randomBytes } from 'node:crypto';
 
@@ -66,6 +67,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly verificationCodeService: VerificationCodeService,
+    private readonly i18n: I18nService,
   ) {}
 
   private get jwtConfig(): JwtConfigShape {
@@ -79,7 +81,7 @@ export class AuthService {
     if (exists) {
       throw new ConflictException({
         code: ResultCode.CONFLICT,
-        message: '该邮箱已被注册',
+        message: this.i18n.t('auth.email_already_registered'),
       });
     }
 
@@ -108,7 +110,7 @@ export class AuthService {
       this.recordLoginFailure(dto.email);
       throw new UnauthorizedException({
         code: ResultCode.UNAUTHORIZED,
-        message: '邮箱或密码错误',
+        message: this.i18n.t('auth.email_or_password_wrong'),
       });
     }
 
@@ -119,7 +121,7 @@ export class AuthService {
         this.recordLoginFailure(dto.email);
         throw new UnauthorizedException({
           code: ResultCode.UNAUTHORIZED,
-          message: '邮箱或密码错误',
+          message: this.i18n.t('auth.email_or_password_wrong'),
         });
       }
     }
@@ -147,7 +149,7 @@ export class AuthService {
     if (!record || record.expiresAt < new Date()) {
       throw new UnauthorizedException({
         code: ResultCode.REFRESH_TOKEN_INVALID,
-        message: 'refreshToken 无效或已过期',
+        message: this.i18n.t('auth.refresh_token_invalid'),
       });
     }
 
@@ -187,7 +189,7 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException({
         code: ResultCode.NOT_FOUND,
-        message: '用户不存在',
+        message: this.i18n.t('auth.user_not_found'),
       });
     }
     return user;
@@ -206,7 +208,7 @@ export class AuthService {
     if (!valid) {
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,
-        message: '当前密码错误',
+        message: this.i18n.t('auth.current_password_wrong'),
       });
     }
     const password = await argon2.hash(dto.newPassword, ARGON2_OPTIONS);
@@ -227,7 +229,7 @@ export class AuthService {
     if (exists) {
       throw new ConflictException({
         code: ResultCode.CONFLICT,
-        message: '该邮箱已被其他账号使用',
+        message: this.i18n.t('auth.email_in_use'),
       });
     }
     await this.userService.update(userId, {
@@ -242,7 +244,7 @@ export class AuthService {
     if (!valid) {
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,
-        message: '密码错误',
+        message: this.i18n.t('auth.password_wrong'),
       });
     }
     // Revoke all tokens then soft-delete
@@ -259,7 +261,7 @@ export class AuthService {
     dto: SendVerificationCodeDto,
   ): Promise<{ message: string }> {
     await this.verificationCodeService.send(dto.email, dto.scene);
-    return { message: '验证码已发送，请查收邮件' };
+    return { message: this.i18n.t('auth.verification_code_sent') };
   }
 
   async verifyEmail(dto: VerifyEmailDto): Promise<void> {
@@ -273,7 +275,7 @@ export class AuthService {
     if (user) {
       await this.verificationCodeService.send(dto.email, 'reset-password');
     }
-    return { message: '如果该邮箱已注册，重置验证码已发送' };
+    return { message: this.i18n.t('auth.forgot_password_hint') };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
@@ -286,7 +288,7 @@ export class AuthService {
     if (!user) {
       throw new NotFoundException({
         code: ResultCode.NOT_FOUND,
-        message: '用户不存在',
+        message: this.i18n.t('auth.user_not_found'),
       });
     }
     const password = await argon2.hash(dto.password, ARGON2_OPTIONS);
@@ -356,7 +358,9 @@ export class AuthService {
       const minutes = Math.ceil((entry.lockedUntil - Date.now()) / 60_000);
       throw new UnauthorizedException({
         code: ResultCode.LOGIN_RATE_LIMITED,
-        message: `登录失败次数过多，请 ${String(minutes)} 分钟后重试`,
+        message: this.i18n.t('auth.login_rate_limited', {
+          args: { minutes },
+        }),
       });
     }
 

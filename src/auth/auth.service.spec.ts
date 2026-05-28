@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
 import { AuthService } from './auth.service';
@@ -93,6 +94,12 @@ describe('AuthService', () => {
           useValue: {
             send: jest.fn(),
             verify: jest.fn(),
+          },
+        },
+        {
+          provide: I18nService,
+          useValue: {
+            t: jest.fn((key: string) => key),
           },
         },
       ],
@@ -492,7 +499,7 @@ describe('AuthService', () => {
         'test@example.com',
         'register',
       );
-      expect(result.message).toContain('验证码已发送');
+      expect(result.message).toBe('auth.verification_code_sent');
     });
   });
 
@@ -534,7 +541,7 @@ describe('AuthService', () => {
         'test@example.com',
         'reset-password',
       );
-      expect(result.message).toContain('重置验证码已发送');
+      expect(result.message).toBe('auth.forgot_password_hint');
     });
 
     it('should return success message even if user does not exist (anti-enumeration)', async () => {
@@ -545,7 +552,7 @@ describe('AuthService', () => {
       });
 
       expect(verificationCodeService.send).not.toHaveBeenCalled();
-      expect(result.message).toContain('如果该邮箱已注册');
+      expect(result.message).toBe('auth.forgot_password_hint');
     });
   });
 

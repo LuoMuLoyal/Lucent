@@ -12,6 +12,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { CacheConfigService } from './config/cache.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { I18nModule } from './i18n/i18n.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { AppService } from './app.service';
       isGlobal: true,
       useClass: CacheConfigService,
     }),
+    I18nModule,
     LoggerModule,
     PrismaModule,
     MailModule,
@@ -33,4 +35,5 @@ import { AppService } from './app.service';
   controllers: [AppController],
   providers: [AppService],
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class AppModule {}
