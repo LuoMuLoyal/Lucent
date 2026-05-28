@@ -21,7 +21,7 @@ interface JwtConfigShape {
  */
 @Injectable()
 export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(private readonly configService: ConfigService) {
+  constructor(configService: ConfigService) {
     const jwtConfig = configService.getOrThrow<JwtConfigShape>(ConfigKey.Jwt);
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),

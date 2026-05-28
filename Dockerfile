@@ -17,7 +17,7 @@ COPY src ./src
 # 生成 Prisma Client
 RUN pnpm exec prisma generate
 
-# 编译 TypeScript
+# 编译 TypeScript（nest build 会根据 assets 配置复制 i18n JSON 到 dist/）
 RUN pnpm run build
 
 # ── Production stage ─────────────────────────────────────────────
@@ -27,11 +27,11 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# 仅安装生产依赖（--ignore-scripts 跳过 prepare/husky 等生命周期脚本）
+# 安装全部依赖（含 prisma CLI，entrypoint 需要运行 migrate deploy）
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# 从 builder 拷贝编译产物
+# 从 builder 拷贝编译产物（含 dist/i18n/ 翻译文件）
 COPY --from=builder /app/dist ./dist
 
 # 拷贝 Prisma 生成的客户端（自定义 output 路径 src/generated/prisma）

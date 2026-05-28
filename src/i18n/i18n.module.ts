@@ -3,7 +3,6 @@ import { Global, Module } from '@nestjs/common';
 import {
   I18nModule as NestI18nModule,
   AcceptLanguageResolver,
-  I18nService,
 } from 'nestjs-i18n';
 
 @Global()
@@ -26,6 +25,5 @@ import {
   ],
   exports: [NestI18nModule],
 })
-export class I18nModule {
-  constructor(private readonly _i18n: I18nService) {}
-}
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Global() module requires class declaration
+export class I18nModule {}
