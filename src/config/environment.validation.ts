@@ -46,11 +46,11 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.CORS_ORIGIN]: Joi.string().default('*'),
 
   [EnvKey.DATABASE_URL]: Joi.string()
-    .uri({ scheme: /^postgres/ })
+    .uri({ scheme: ['postgres', 'postgresql'] })
     .optional(),
 
   [EnvKey.REDIS_URL]: Joi.string()
-    .uri({ scheme: /^redis/ })
+    .uri({ scheme: ['redis', 'rediss'] })
     .optional(),
 
   [EnvKey.JWT_ACCESS_SECRET]: Joi.string().optional(),
@@ -61,15 +61,15 @@ const envSchema = Joi.object<EnvironmentVariables>({
 
   [EnvKey.JWT_REFRESH_TTL]: Joi.string().optional(),
 
-  [EnvKey.AI_PROVIDER]: Joi.string().optional(),
+  [EnvKey.AI_PROVIDER]: Joi.string().allow('').optional(),
 
-  [EnvKey.AI_API_KEY]: Joi.string().optional(),
+  [EnvKey.AI_API_KEY]: Joi.string().allow('').optional(),
 
-  [EnvKey.AI_BASE_URL]: Joi.string().uri().optional(),
+  [EnvKey.AI_BASE_URL]: Joi.string().uri().allow('').optional(),
 
-  [EnvKey.AI_TEXT_MODEL]: Joi.string().optional(),
+  [EnvKey.AI_TEXT_MODEL]: Joi.string().allow('').optional(),
 
-  [EnvKey.AI_VISION_MODEL]: Joi.string().optional(),
+  [EnvKey.AI_VISION_MODEL]: Joi.string().allow('').optional(),
 
   [EnvKey.LOG_LEVEL]: Joi.string()
     .valid('debug', 'info', 'warn', 'error')
@@ -82,11 +82,11 @@ const envSchema = Joi.object<EnvironmentVariables>({
 
   [EnvKey.MAIL_PORT]: Joi.number().integer().min(1).optional(),
 
-  [EnvKey.MAIL_USER]: Joi.string().optional(),
+  [EnvKey.MAIL_USER]: Joi.string().allow('').optional(),
 
-  [EnvKey.MAIL_PASS]: Joi.string().optional(),
+  [EnvKey.MAIL_PASS]: Joi.string().allow('').optional(),
 
-  [EnvKey.MAIL_FROM]: Joi.string().optional(),
+  [EnvKey.MAIL_FROM]: Joi.string().allow('').optional(),
 });
 
 export function validateEnvironment(

@@ -6,6 +6,7 @@ import {
   VersioningType,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigKey } from './config/config-keys.enum';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ApiEnvelopeInterceptor } from './common/interceptors/api-envelope.interceptor';
@@ -50,4 +51,23 @@ export function setupApp(
       false,
     ),
   });
+
+  // ── Swagger / OpenAPI ──────────────────────────────────────────
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Lucent API')
+    .setDescription('Lucent 后端 API 文档')
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: '输入 accessToken',
+      },
+      'access-token',
+    )
+    .build();
+
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document);
 }
