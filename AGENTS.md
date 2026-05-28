@@ -153,3 +153,38 @@
 **原因**：`generator.output` 的相对路径基准未确认。最终通过在 schema 中写绝对相对路径 `"../Lucent/src/generated/prisma"` 解决（相对 schema 文件所在目录 `Lumos/prisma/` 向上再进入 Lucent）。
 
 **教训**：Prisma v7 的 `output` 路径相对 `schema.prisma` 文件位置解析，不是相对 `prisma.config.ts` 或 cwd。先用 `prisma generate` 验证输出位置再大量编码。
+
+---
+
+## 2026-05-28 — ESLint 严格模式修复
+
+### 8. `restrict-template-expressions` 对 `number` 类型报错
+
+**错误**：模板字面量中直接使用 `res.statusCode.toString()` 或 `duration.toString()`，ESLint 仍报 `Invalid type "number" of template literal expression`。
+
+**正确**：使用 `String(res.statusCode)` / `String(duration)` 包装，显式转换为 `string` 类型。
+
+**教训**：`.toString()` 在某些 ESLint strict 模式下不被接受为安全的类型转换，`String()` 更可靠。
+
+---
+
+### 9. NestJS 空 Module 类触发 `no-extraneous-class`
+
+**错误**：`AppModule` 只有 `@Module()` 装饰器，没有构造函数和方法体，ESLint 报 `Unexpected empty class @typescript-eslint/no-extraneous-class`。尝试添加空构造函数后又报 `Useless constructor`。
+
+**正确**：使用行内注释 `// eslint-disable-next-line @typescript-eslint/no-extraneous-class` 禁用该行规则，并附说明 NestJS `@Module()` 装饰器要求 class 声明。
+
+**教训**：NestJS 的 Module / Controller / Service 空类是框架约定，属于 ESLint 误报。用行内 disable 而非构造函数填充。
+
+---
+
+### 10. 测试文件 Provider 注入 token 重复/遗漏
+
+**错误**：`verification-code.service.spec.ts` 中 `I18nService` provider 重复注册（两个相同 token），同时遗漏了 `MailService` provider，导致 `module.get(MailService)` 返回的是其他 provider 的 mock。
+
+**正确**：检查每个测试 module 的 providers 列表，确保：
+
+1. 每个 token 只注册一次
+2. 所有被测 service 依赖的 provider 都要 mock
+
+**教训**：测试 providers 配置出错不会报编译错误，只会在运行时静默失败（返回错误的 mock 或 undefined），排查困难。

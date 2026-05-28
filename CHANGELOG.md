@@ -1,12 +1,38 @@
 # Lucent Changelog
 
-## 2026-05-28 (ESLint 修复 + 单元测试补全)
+## 2026-05-28 (i18n 国际化集成 + ESLint 修复)
 
-### Fixed — ESLint `restrict-template-expressions`
+### Added — nestjs-i18n 国际化框架
+
+- **依赖新增** — `nestjs-i18n@^11`
+- **I18nModule** (`src/i18n/i18n.module.ts`)
+  - `I18nModule.forRoot()` — HeaderResolver 提取 `Accept-Language`，fallback 语言 `zh-CN`
+  - Loader: `src/i18n/{lang}/{module}.json` 按模块拆分
+- **翻译文件**
+  - `src/i18n/zh-CN/auth.json` — 认证相关中文翻译（16 个 key）
+  - `src/i18n/zh-CN/common.json` — 通用错误中文翻译
+  - `src/i18n/en/auth.json` — 认证相关英文翻译
+  - `src/i18n/en/common.json` — 通用错误英文翻译
+- **`nest-cli.json`** — `compilerOptions.assets` 配置 `i18n/**/*.json` 编译时复制
+- **`app.module.ts`** — 注册 `I18nModule`
+
+### Changed — AuthService / VerificationCodeService i18n 重构
+
+- **`src/auth/auth.service.ts`**
+  - 注入 `I18nService`（nestjs-i18n），替换所有硬编码中文错误消息为 `this.i18n.t('auth.xxx', { lang })`
+  - `lang` 从 `this.i18n.resolveLanguage(lang)` 获取（支持 Header 兜底）
+  - 涉及方法：register / login / refresh / getMe / changePassword / changeEmail / deleteAccount / sendVerificationCode / verifyEmail / forgotPassword / resetPassword
+- **`src/auth/verification-code.service.ts`**
+  - 注入 `I18nService`，替换 cooldown 和验证码过期/错误的硬编码消息
+
+### Fixed — ESLint 修复
 
 - **`src/setup-app.ts`** (第 23 行)
-  - `String(res.statusCode)` / `String(duration)` 改为 `.toString()`，修复 `@typescript-eslint/restrict-template-expressions` 对 `number` 类型的报错
-  - 原因：`String()` 返回类型仍被识别为 `number`，`.toString()` 是更安全的类型转换方式
+  - `res.statusCode` 和 `duration`（`number` 类型）在模板字面量中改为 `String()` 包装
+  - 修复 `@typescript-eslint/restrict-template-expressions` 报错
+- **`src/app.module.ts`**
+  - 空类 `AppModule` 添加 `// eslint-disable-next-line @typescript-eslint/no-extraneous-class` 行内禁用
+  - NestJS `@Module()` 装饰器要求 class 声明，此规则属于误报
 
 ### Added — 单元测试
 

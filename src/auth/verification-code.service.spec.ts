@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 
+import { I18nService } from 'nestjs-i18n';
 import { VerificationCodeService } from './verification-code.service';
 import { MailService } from '../mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -29,6 +30,12 @@ describe('VerificationCodeService', () => {
           provide: MailService,
           useValue: {
             sendVerificationCode: jest.fn(),
+          },
+        },
+        {
+          provide: I18nService,
+          useValue: {
+            t: jest.fn((key: string) => key),
           },
         },
       ],

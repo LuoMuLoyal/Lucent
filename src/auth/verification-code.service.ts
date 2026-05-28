@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { I18nService } from 'nestjs-i18n';
 import { randomInt } from 'node:crypto';
 
 import { ResultCode } from '../common/api-envelope';
@@ -24,6 +25,7 @@ export class VerificationCodeService {
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly mailService: MailService,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -37,7 +39,7 @@ export class VerificationCodeService {
     if (inCooldown) {
       throw new BadRequestException({
         code: ResultCode.VERIFICATION_CODE_COOLDOWN,
-        message: '验证码发送过于频繁，请稍后再试',
+        message: this.i18n.t('auth.verification_code_cooldown'),
       });
     }
 
@@ -72,14 +74,14 @@ export class VerificationCodeService {
     if (!stored) {
       throw new BadRequestException({
         code: ResultCode.VERIFICATION_CODE_INVALID,
-        message: '验证码已过期或不存在',
+        message: this.i18n.t('auth.verification_code_expired'),
       });
     }
 
     if (stored !== code) {
       throw new UnauthorizedException({
         code: ResultCode.VERIFICATION_CODE_INVALID,
-        message: '验证码错误',
+        message: this.i18n.t('auth.verification_code_wrong'),
       });
     }
 
