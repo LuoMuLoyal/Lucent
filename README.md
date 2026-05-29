@@ -58,9 +58,19 @@ Current baseline:
 
 ## Documentation
 
-- [docs/README.md](docs/README.md): documentation map and ownership.
-- [docs/api-contract.md](docs/api-contract.md): `/api` 前缀 + URI versioning、响应 envelope、auth 与错误码。
-- [docs/data-sources.md](docs/data-sources.md): `DrugDataBase` source boundaries and import rules.
+### 共享文档（`docs/public/`）
+
+- [docs/public/README.md](docs/public/README.md): shared documentation map.
+- [docs/public/Promise.md](docs/public/Promise.md): product vision.
+- [docs/public/ROADMAP.md](docs/public/ROADMAP.md): product roadmap and current milestones.
+- [docs/public/design-system.md](docs/public/design-system.md): design token specification.
+- [docs/public/api-contract.md](docs/public/api-contract.md): `/api` prefix + URI versioning, response envelope, auth, and error codes.
+- [docs/public/data-sources.md](docs/public/data-sources.md): `DrugDataBase` source boundaries and import rules.
+
+### Lucent 专属文档（`docs/`）
+
+- [docs/auth-api-mock.md](docs/auth-api-mock.md): auth module RESTful API specification.
+- [docs/auth-implementation-plan.md](docs/auth-implementation-plan.md): auth implementation roadmap.
 - [docs/environment.md](docs/environment.md): env files, scripts, and bootstrap baseline.
 - [docs/migration-roadmap.md](docs/migration-roadmap.md): backend buildout phases.
 
