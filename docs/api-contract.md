@@ -40,7 +40,7 @@ Paginated response:
 
 ```json
 {
-  "code": "OK",
+  "code": 0,
   "message": "",
   "data": [],
   "meta": {
