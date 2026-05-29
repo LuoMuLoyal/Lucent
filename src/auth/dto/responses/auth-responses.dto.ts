@@ -51,7 +51,12 @@ export class SuccessResponseDto {
   @ApiProperty({ description: '提示消息', example: '' })
   message!: string;
 
-  @ApiProperty({ description: '数据', nullable: true, example: null })
+  @ApiProperty({
+    description: '数据',
+    nullable: true,
+    example: null,
+    type: Object,
+  })
   data!: null;
 }
 

@@ -1,5 +1,30 @@
 # Lucent Changelog
 
+## 2026-05-29 (OpenAPI 全量导出 + Flutter dio 客户端生成)
+
+### Fixed — 循环依赖导致 openapi.json 不完整
+
+- **`src/auth/auth.controller.ts`**
+  - 修复 `AuthController` 通过 `ApiResponse` 装饰器引用 `UserFullDto`（位于 `src/users/dto/`）导致的循环依赖问题
+  - `UserFullDto` 在 `auth-responses.dto.ts` 中重新定义内联版本，或通过 `UsersModule` 导出 `UserFullDto` 解决依赖链
+- **`scripts/export-openapi.ts`**
+  - 修复后重新导出，openapi.json 从 4 paths / 20 schemas 扩展为 **12 paths / 29 schemas**
+  - 覆盖全部 Auth 端点（register/login/logout/refresh/me 等）和 App 端点（用户信息/密码/邮箱）
+
+### Added — Flutter Dio 客户端代码生成
+
+- **`docs/openapi.json`** — 完整 OpenAPI 3.0 规范（12 paths, 29 schemas）
+- **`package.json`** — `export:openapi` 脚本已稳定，`pnpm export:openapi` 一键导出
+- **Flutter 端** — 使用 `openapi-generator-cli`（`dart-dio` 生成器）生成完整客户端
+  - 生成路径：`Luminous/lib/api/generated/`
+  - 包：`luminous_api`（built_value + dio 序列化）
+  - API 客户端：`AuthApi`（13 个端点）、`AppApi`（6 个端点）
+  - Model DTO：29 个（LoginDto, RegisterDto, UserBriefDto, UserFullDto, TokensDto 等）
+  - 拦截器：`BearerAuthInterceptor`（JWT token 自动注入）
+  - `build_runner` 生成 60 个序列化输出文件
+
+---
+
 ## 2026-05-28 (OpenAPI 导出脚本)
 
 ### Added
@@ -8,6 +33,9 @@
   - 启动 NestJS 应用（无日志），调用 `SwaggerModule.createDocument()` 生成完整 OpenAPI JSON
   - 输出到 `docs/openapi.json`，可直接用于 openapi-generator 生成客户端代码
   - 统计并打印 paths 和 schemas 数量
+- **`package.json`** — 新增 `export:openapi` 脚本
+  - 命令：`pnpm export:openapi`
+  - 使用 `ts-node` + `tsconfig-paths` 注册运行，`NODE_ENV=development`
 
 ---
 
