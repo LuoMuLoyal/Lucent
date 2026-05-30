@@ -56,7 +56,13 @@ export const ModelName = {
   UserDevice: 'UserDevice',
   UserAllergy: 'UserAllergy',
   UserCondition: 'UserCondition',
-  UserCurrentMedicine: 'UserCurrentMedicine'
+  UserCurrentMedicine: 'UserCurrentMedicine',
+  DrugSourceImport: 'DrugSourceImport',
+  CnMedicineProduct: 'CnMedicineProduct',
+  DrugbankDrug: 'DrugbankDrug',
+  DrugbankExternalLink: 'DrugbankExternalLink',
+  DrugbankTarget: 'DrugbankTarget',
+  DrugbankDrugTarget: 'DrugbankDrugTarget'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -204,6 +210,179 @@ export const UserCurrentMedicineScalarFieldEnum = {
 } as const
 
 export type UserCurrentMedicineScalarFieldEnum = (typeof UserCurrentMedicineScalarFieldEnum)[keyof typeof UserCurrentMedicineScalarFieldEnum]
+
+
+export const DrugSourceImportScalarFieldEnum = {
+  id: 'id',
+  sourceKey: 'sourceKey',
+  sourceName: 'sourceName',
+  sourceVersion: 'sourceVersion',
+  sourceFileName: 'sourceFileName',
+  sourceFileHash: 'sourceFileHash',
+  sourceExportedAt: 'sourceExportedAt',
+  status: 'status',
+  rawRowCount: 'rawRowCount',
+  importedRowCount: 'importedRowCount',
+  rejectedRowCount: 'rejectedRowCount',
+  rejectionSummary: 'rejectionSummary',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DrugSourceImportScalarFieldEnum = (typeof DrugSourceImportScalarFieldEnum)[keyof typeof DrugSourceImportScalarFieldEnum]
+
+
+export const CnMedicineProductScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  sourceName: 'sourceName',
+  sourceRowNumber: 'sourceRowNumber',
+  name: 'name',
+  imageUrl: 'imageUrl',
+  priceText: 'priceText',
+  packageSpec: 'packageSpec',
+  approvalNumber: 'approvalNumber',
+  manufacturer: 'manufacturer',
+  drugType: 'drugType',
+  mainCategory: 'mainCategory',
+  subcategory: 'subcategory',
+  sourceUrl: 'sourceUrl',
+  brandName: 'brandName',
+  ingredients: 'ingredients',
+  properties: 'properties',
+  indications: 'indications',
+  dosage: 'dosage',
+  adverseReactions: 'adverseReactions',
+  contraindications: 'contraindications',
+  precautions: 'precautions',
+  pediatricUse: 'pediatricUse',
+  geriatricUse: 'geriatricUse',
+  pregnancyLactation: 'pregnancyLactation',
+  pharmacologyToxicology: 'pharmacologyToxicology',
+  drugInteractions: 'drugInteractions',
+  pharmacokinetics: 'pharmacokinetics',
+  overdose: 'overdose',
+  storage: 'storage',
+  validityPeriod: 'validityPeriod',
+  barcode: 'barcode',
+  nationalDrugCode: 'nationalDrugCode',
+  searchText: 'searchText',
+  extras: 'extras',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CnMedicineProductScalarFieldEnum = (typeof CnMedicineProductScalarFieldEnum)[keyof typeof CnMedicineProductScalarFieldEnum]
+
+
+export const DrugbankDrugScalarFieldEnum = {
+  drugbankId: 'drugbankId',
+  importRunId: 'importRunId',
+  secondaryDrugbankIds: 'secondaryDrugbankIds',
+  drugType: 'drugType',
+  sourceCreatedAt: 'sourceCreatedAt',
+  sourceUpdatedAt: 'sourceUpdatedAt',
+  name: 'name',
+  description: 'description',
+  casNumber: 'casNumber',
+  unii: 'unii',
+  state: 'state',
+  groups: 'groups',
+  indication: 'indication',
+  pharmacodynamics: 'pharmacodynamics',
+  mechanismOfAction: 'mechanismOfAction',
+  toxicity: 'toxicity',
+  metabolism: 'metabolism',
+  absorption: 'absorption',
+  halfLife: 'halfLife',
+  proteinBinding: 'proteinBinding',
+  routeOfElimination: 'routeOfElimination',
+  volumeOfDistribution: 'volumeOfDistribution',
+  clearance: 'clearance',
+  classification: 'classification',
+  synonyms: 'synonyms',
+  products: 'products',
+  internationalBrands: 'internationalBrands',
+  categories: 'categories',
+  atcCodes: 'atcCodes',
+  foodInteractions: 'foodInteractions',
+  drugInteractions: 'drugInteractions',
+  externalIdentifiers: 'externalIdentifiers',
+  externalLinks: 'externalLinks',
+  searchText: 'searchText',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DrugbankDrugScalarFieldEnum = (typeof DrugbankDrugScalarFieldEnum)[keyof typeof DrugbankDrugScalarFieldEnum]
+
+
+export const DrugbankExternalLinkScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  drugbankId: 'drugbankId',
+  drugName: 'drugName',
+  casNumber: 'casNumber',
+  drugType: 'drugType',
+  keggCompoundId: 'keggCompoundId',
+  keggDrugId: 'keggDrugId',
+  pubchemCompoundId: 'pubchemCompoundId',
+  pubchemSubstanceId: 'pubchemSubstanceId',
+  chebiId: 'chebiId',
+  pharmgkbId: 'pharmgkbId',
+  hetId: 'hetId',
+  uniprotId: 'uniprotId',
+  uniprotTitle: 'uniprotTitle',
+  genbankId: 'genbankId',
+  dpdId: 'dpdId',
+  rxlistLink: 'rxlistLink',
+  pdrhealthLink: 'pdrhealthLink',
+  wikipediaId: 'wikipediaId',
+  drugsComLink: 'drugsComLink',
+  ndcId: 'ndcId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DrugbankExternalLinkScalarFieldEnum = (typeof DrugbankExternalLinkScalarFieldEnum)[keyof typeof DrugbankExternalLinkScalarFieldEnum]
+
+
+export const DrugbankTargetScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  sourceDataset: 'sourceDataset',
+  sourceTargetId: 'sourceTargetId',
+  name: 'name',
+  geneName: 'geneName',
+  genbankProteinId: 'genbankProteinId',
+  genbankGeneId: 'genbankGeneId',
+  uniprotId: 'uniprotId',
+  uniprotTitle: 'uniprotTitle',
+  pdbIds: 'pdbIds',
+  geneCardId: 'geneCardId',
+  genAtlasId: 'genAtlasId',
+  hgncId: 'hgncId',
+  species: 'species',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DrugbankTargetScalarFieldEnum = (typeof DrugbankTargetScalarFieldEnum)[keyof typeof DrugbankTargetScalarFieldEnum]
+
+
+export const DrugbankDrugTargetScalarFieldEnum = {
+  id: 'id',
+  drugbankId: 'drugbankId',
+  targetId: 'targetId',
+  relationKind: 'relationKind',
+  actions: 'actions',
+  knownAction: 'knownAction',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DrugbankDrugTargetScalarFieldEnum = (typeof DrugbankDrugTargetScalarFieldEnum)[keyof typeof DrugbankDrugTargetScalarFieldEnum]
 
 
 export const SortOrder = {

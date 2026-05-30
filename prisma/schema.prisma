@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
   moduleFormat = "cjs"
 }
 
@@ -100,7 +100,7 @@ model User {
   lastLoginAt      DateTime?             @map("last_login_at") @db.Timestamptz(3)
   deletedAt        DateTime?             @map("deleted_at") @db.Timestamptz(3)
   createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt        DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   profile          UserProfile?
   sessions         UserSession[]
   devices          UserDevice[]
@@ -114,42 +114,42 @@ model User {
 }
 
 model UserProfile {
-  userId                 String          @id @map("user_id")
-  birthDate              DateTime?       @map("birth_date") @db.Date
-  sexAtBirth             SexAtBirth?     @map("sex_at_birth")
-  heightCm               Int?            @map("height_cm")
-  pregnancyState         PregnancyState? @map("pregnancy_state")
-  lactationState         LactationState? @map("lactation_state")
-  bloodType              String?         @map("blood_type")
-  locale                 String?
-  timezone               String?
-  unitSystem             UnitSystem?     @map("unit_system")
-  onboardingCompletedAt  DateTime?       @map("onboarding_completed_at") @db.Timestamptz(3)
-  extras                 Json?           @db.JsonB
-  createdAt              DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt              DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user                   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                String          @id @map("user_id")
+  birthDate             DateTime?       @map("birth_date") @db.Date
+  sexAtBirth            SexAtBirth?     @map("sex_at_birth")
+  heightCm              Int?            @map("height_cm")
+  pregnancyState        PregnancyState? @map("pregnancy_state")
+  lactationState        LactationState? @map("lactation_state")
+  bloodType             String?         @map("blood_type")
+  locale                String?
+  timezone              String?
+  unitSystem            UnitSystem?     @map("unit_system")
+  onboardingCompletedAt DateTime?       @map("onboarding_completed_at") @db.Timestamptz(3)
+  extras                Json?           @db.JsonB
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
 }
 
 model UserSession {
-  id               String                @id @default(uuid())
-  userId           String                @map("user_id")
-  refreshTokenHash String                @unique @map("refresh_token_hash")
+  id               String                 @id @default(uuid())
+  userId           String                 @map("user_id")
+  refreshTokenHash String                 @unique @map("refresh_token_hash")
   deviceType       UserSessionDeviceType? @map("device_type")
-  deviceName       String?               @map("device_name")
+  deviceName       String?                @map("device_name")
   platform         UserDevicePlatform?
-  appVersion       String?               @map("app_version")
-  ipAddress        String?               @map("ip_address")
-  userAgent        String?               @map("user_agent")
-  context          Json?                 @db.JsonB
-  lastUsedAt       DateTime?             @map("last_used_at") @db.Timestamptz(3)
-  expiresAt        DateTime              @map("expires_at") @db.Timestamptz(3)
-  revokedAt        DateTime?             @map("revoked_at") @db.Timestamptz(3)
-  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appVersion       String?                @map("app_version")
+  ipAddress        String?                @map("ip_address")
+  userAgent        String?                @map("user_agent")
+  context          Json?                  @db.JsonB
+  lastUsedAt       DateTime?              @map("last_used_at") @db.Timestamptz(3)
+  expiresAt        DateTime               @map("expires_at") @db.Timestamptz(3)
+  revokedAt        DateTime?              @map("revoked_at") @db.Timestamptz(3)
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, revokedAt])
   @@index([userId, expiresAt])
@@ -168,7 +168,7 @@ model UserDevice {
   capabilities         Json?              @db.JsonB
   lastSeenAt           DateTime?          @map("last_seen_at") @db.Timestamptz(3)
   createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt            DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, platform])
@@ -187,7 +187,7 @@ model UserAllergy {
   extras     Json?                @db.JsonB
   recordedAt DateTime?            @map("recorded_at") @db.Timestamptz(3)
   createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt  DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isActive])
@@ -204,7 +204,7 @@ model UserCondition {
   note        String?
   extras      Json?               @db.JsonB
   createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
@@ -226,10 +226,211 @@ model UserCurrentMedicine {
   note          String?
   sourcePayload Json?          @map("source_payload") @db.JsonB
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isCurrent])
   @@index([userId, source])
   @@map("user_current_medicines")
+}
+
+model DrugSourceImport {
+  id               String                 @id @default(uuid())
+  sourceKey        String                 @map("source_key")
+  sourceName       String                 @map("source_name")
+  sourceVersion    String?                @map("source_version")
+  sourceFileName   String?                @map("source_file_name")
+  sourceFileHash   String?                @map("source_file_hash")
+  sourceExportedAt DateTime?              @map("source_exported_at") @db.Timestamptz(3)
+  status           String                 @default("completed")
+  rawRowCount      Int?                   @map("raw_row_count")
+  importedRowCount Int?                   @map("imported_row_count")
+  rejectedRowCount Int?                   @map("rejected_row_count")
+  rejectionSummary Json?                  @map("rejection_summary") @db.JsonB
+  note             String?
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cnProducts       CnMedicineProduct[]
+  drugbankDrugs    DrugbankDrug[]
+  drugbankLinks    DrugbankExternalLink[]
+  drugbankTargets  DrugbankTarget[]
+
+  @@index([sourceKey, createdAt])
+  @@map("drug_source_imports")
+}
+
+model CnMedicineProduct {
+  id                     String            @id @default(uuid())
+  importRunId            String?           @map("import_run_id")
+  sourceName             String            @map("source_name")
+  sourceRowNumber        Int?              @map("source_row_number")
+  name                   String
+  imageUrl               String?           @map("image_url")
+  priceText              String?           @map("price_text")
+  packageSpec            String?           @map("package_spec")
+  approvalNumber         String?           @map("approval_number")
+  manufacturer           String?
+  drugType               String?           @map("drug_type")
+  mainCategory           String?           @map("main_category")
+  subcategory            String?
+  sourceUrl              String?           @map("source_url")
+  brandName              String?           @map("brand_name")
+  ingredients            String?
+  properties             String?
+  indications            String?
+  dosage                 String?
+  adverseReactions       String?           @map("adverse_reactions")
+  contraindications      String?
+  precautions            String?
+  pediatricUse           String?           @map("pediatric_use")
+  geriatricUse           String?           @map("geriatric_use")
+  pregnancyLactation     String?           @map("pregnancy_lactation")
+  pharmacologyToxicology String?           @map("pharmacology_toxicology")
+  drugInteractions       String?           @map("drug_interactions")
+  pharmacokinetics       String?
+  overdose               String?
+  storage                String?
+  validityPeriod         String?           @map("validity_period")
+  barcode                String?
+  nationalDrugCode       String?           @map("national_drug_code")
+  searchText             String?           @map("search_text")
+  extras                 Json?             @db.JsonB
+  createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun              DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+
+  @@index([name])
+  @@index([approvalNumber])
+  @@index([manufacturer])
+  @@index([barcode])
+  @@index([nationalDrugCode])
+  @@index([searchText])
+  @@map("cn_medicine_products")
+}
+
+model DrugbankDrug {
+  drugbankId           String                 @id @map("drugbank_id")
+  importRunId          String?                @map("import_run_id")
+  secondaryDrugbankIds Json?                  @map("secondary_drugbank_ids") @db.JsonB
+  drugType             String?                @map("drug_type")
+  sourceCreatedAt      DateTime?              @map("source_created_at") @db.Timestamptz(3)
+  sourceUpdatedAt      DateTime?              @map("source_updated_at") @db.Timestamptz(3)
+  name                 String
+  description          String?
+  casNumber            String?                @map("cas_number")
+  unii                 String?
+  state                String?
+  groups               Json?                  @db.JsonB
+  indication           String?
+  pharmacodynamics     String?
+  mechanismOfAction    String?                @map("mechanism_of_action")
+  toxicity             String?
+  metabolism           String?
+  absorption           String?
+  halfLife             String?                @map("half_life")
+  proteinBinding       String?                @map("protein_binding")
+  routeOfElimination   String?                @map("route_of_elimination")
+  volumeOfDistribution String?                @map("volume_of_distribution")
+  clearance            String?
+  classification       Json?                  @db.JsonB
+  synonyms             Json?                  @db.JsonB
+  products             Json?                  @db.JsonB
+  internationalBrands  Json?                  @map("international_brands") @db.JsonB
+  categories           Json?                  @db.JsonB
+  atcCodes             Json?                  @map("atc_codes") @db.JsonB
+  foodInteractions     Json?                  @map("food_interactions") @db.JsonB
+  drugInteractions     Json?                  @map("drug_interactions") @db.JsonB
+  externalIdentifiers  Json?                  @map("external_identifiers") @db.JsonB
+  externalLinks        Json?                  @map("external_links") @db.JsonB
+  searchText           String?                @map("search_text")
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun            DrugSourceImport?      @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  externalLinkRows     DrugbankExternalLink[]
+  targetRelations      DrugbankDrugTarget[]
+
+  @@index([name])
+  @@index([casNumber])
+  @@index([unii])
+  @@index([searchText])
+  @@map("drugbank_drugs")
+}
+
+model DrugbankExternalLink {
+  id                 String            @id @default(uuid())
+  importRunId        String?           @map("import_run_id")
+  drugbankId         String            @map("drugbank_id")
+  drugName           String?           @map("drug_name")
+  casNumber          String?           @map("cas_number")
+  drugType           String?           @map("drug_type")
+  keggCompoundId     String?           @map("kegg_compound_id")
+  keggDrugId         String?           @map("kegg_drug_id")
+  pubchemCompoundId  String?           @map("pubchem_compound_id")
+  pubchemSubstanceId String?           @map("pubchem_substance_id")
+  chebiId            String?           @map("chebi_id")
+  pharmgkbId         String?           @map("pharmgkb_id")
+  hetId              String?           @map("het_id")
+  uniprotId          String?           @map("uniprot_id")
+  uniprotTitle       String?           @map("uniprot_title")
+  genbankId          String?           @map("genbank_id")
+  dpdId              String?           @map("dpd_id")
+  rxlistLink         String?           @map("rxlist_link")
+  pdrhealthLink      String?           @map("pdrhealth_link")
+  wikipediaId        String?           @map("wikipedia_id")
+  drugsComLink       String?           @map("drugs_com_link")
+  ndcId              String?           @map("ndc_id")
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun          DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drug               DrugbankDrug      @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@index([drugbankId])
+  @@index([uniprotId])
+  @@index([ndcId])
+  @@map("drugbank_external_links")
+}
+
+model DrugbankTarget {
+  id               String               @id @default(uuid())
+  importRunId      String?              @map("import_run_id")
+  sourceDataset    String               @map("source_dataset")
+  sourceTargetId   String               @map("source_target_id")
+  name             String
+  geneName         String?              @map("gene_name")
+  genbankProteinId String?              @map("genbank_protein_id")
+  genbankGeneId    String?              @map("genbank_gene_id")
+  uniprotId        String?              @map("uniprot_id")
+  uniprotTitle     String?              @map("uniprot_title")
+  pdbIds           Json?                @map("pdb_ids") @db.JsonB
+  geneCardId       String?              @map("gene_card_id")
+  genAtlasId       String?              @map("gen_atlas_id")
+  hgncId           String?              @map("hgnc_id")
+  species          String?
+  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun        DrugSourceImport?    @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  drugRelations    DrugbankDrugTarget[]
+
+  @@unique([sourceDataset, sourceTargetId])
+  @@index([name])
+  @@index([geneName])
+  @@index([uniprotId])
+  @@map("drugbank_targets")
+}
+
+model DrugbankDrugTarget {
+  id           String         @id @default(uuid())
+  drugbankId   String         @map("drugbank_id")
+  targetId     String         @map("target_id")
+  relationKind String?        @map("relation_kind")
+  actions      Json?          @db.JsonB
+  knownAction  String?        @map("known_action")
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  drug         DrugbankDrug   @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+  target       DrugbankTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([drugbankId, targetId, relationKind])
+  @@index([targetId])
+  @@map("drugbank_drug_targets")
 }

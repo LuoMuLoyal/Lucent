@@ -17,6 +17,13 @@ This directory is not tracked by Git and must not be packaged into Flutter.
 - `FullDrugDetail.xlsx`: detailed Chinese medicine product and instruction source.
 - DrugBank files: English scientific enrichment source, including XML, CSV, FASTA, and SDF assets.
 
+## Practical Import Workflow
+
+- `FullDrugDetail.xlsx` can be imported with GUI tools such as DBeaver when we need a quick raw/staging load or spot-check import.
+- `drug links.csv`, `all.csv`, and `pharmacologically_active.csv` can also be handled by DBeaver or regular PostgreSQL CSV import flows.
+- `full database.xml` should not be treated as a manual GUI import. It is about 1.9 GB after unzip and should be parsed by an idempotent script into normalized tables.
+- Lucent now has durable destination tables for both sources. Tool-based import is acceptable for the Chinese source, but the DrugBank XML path should stay scripted so we can reproduce it.
+
 ## Medicine Data Strategy
 
 Lucent keeps the Chinese and English medicine datasets separate at query time. The two sources describe different things:
@@ -43,6 +50,8 @@ Recommended durable tables after staging:
 | `drugbank_targets`        | Target/polypeptide rows from `all.csv` or `pharmacologically_active.csv`.                          |
 | `drugbank_drug_targets`   | Many-to-many relationship between DrugBank drugs and target rows.                                  |
 | `drug_source_imports`     | Import run metadata: source name, version/export date, file hash, row counts, rejection summary.   |
+
+These durable tables now exist in Lucent's Prisma schema and migration history, even though the real source data has not been imported yet.
 
 Optional later table:
 

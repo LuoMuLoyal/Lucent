@@ -389,7 +389,13 @@ export const ModelName = {
   UserDevice: 'UserDevice',
   UserAllergy: 'UserAllergy',
   UserCondition: 'UserCondition',
-  UserCurrentMedicine: 'UserCurrentMedicine'
+  UserCurrentMedicine: 'UserCurrentMedicine',
+  DrugSourceImport: 'DrugSourceImport',
+  CnMedicineProduct: 'CnMedicineProduct',
+  DrugbankDrug: 'DrugbankDrug',
+  DrugbankExternalLink: 'DrugbankExternalLink',
+  DrugbankTarget: 'DrugbankTarget',
+  DrugbankDrugTarget: 'DrugbankDrugTarget'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -405,7 +411,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine"
+    modelProps: "user" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -927,6 +933,450 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    DrugSourceImport: {
+      payload: Prisma.$DrugSourceImportPayload<ExtArgs>
+      fields: Prisma.DrugSourceImportFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DrugSourceImportFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DrugSourceImportFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload>
+        }
+        findFirst: {
+          args: Prisma.DrugSourceImportFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DrugSourceImportFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload>
+        }
+        findMany: {
+          args: Prisma.DrugSourceImportFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload>[]
+        }
+        create: {
+          args: Prisma.DrugSourceImportCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload>
+        }
+        createMany: {
+          args: Prisma.DrugSourceImportCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DrugSourceImportCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload>[]
+        }
+        delete: {
+          args: Prisma.DrugSourceImportDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload>
+        }
+        update: {
+          args: Prisma.DrugSourceImportUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload>
+        }
+        deleteMany: {
+          args: Prisma.DrugSourceImportDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DrugSourceImportUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DrugSourceImportUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload>[]
+        }
+        upsert: {
+          args: Prisma.DrugSourceImportUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugSourceImportPayload>
+        }
+        aggregate: {
+          args: Prisma.DrugSourceImportAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDrugSourceImport>
+        }
+        groupBy: {
+          args: Prisma.DrugSourceImportGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugSourceImportGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DrugSourceImportCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugSourceImportCountAggregateOutputType> | number
+        }
+      }
+    }
+    CnMedicineProduct: {
+      payload: Prisma.$CnMedicineProductPayload<ExtArgs>
+      fields: Prisma.CnMedicineProductFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CnMedicineProductFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CnMedicineProductFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload>
+        }
+        findFirst: {
+          args: Prisma.CnMedicineProductFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CnMedicineProductFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload>
+        }
+        findMany: {
+          args: Prisma.CnMedicineProductFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload>[]
+        }
+        create: {
+          args: Prisma.CnMedicineProductCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload>
+        }
+        createMany: {
+          args: Prisma.CnMedicineProductCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CnMedicineProductCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload>[]
+        }
+        delete: {
+          args: Prisma.CnMedicineProductDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload>
+        }
+        update: {
+          args: Prisma.CnMedicineProductUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload>
+        }
+        deleteMany: {
+          args: Prisma.CnMedicineProductDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CnMedicineProductUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CnMedicineProductUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload>[]
+        }
+        upsert: {
+          args: Prisma.CnMedicineProductUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductPayload>
+        }
+        aggregate: {
+          args: Prisma.CnMedicineProductAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCnMedicineProduct>
+        }
+        groupBy: {
+          args: Prisma.CnMedicineProductGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CnMedicineProductGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CnMedicineProductCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CnMedicineProductCountAggregateOutputType> | number
+        }
+      }
+    }
+    DrugbankDrug: {
+      payload: Prisma.$DrugbankDrugPayload<ExtArgs>
+      fields: Prisma.DrugbankDrugFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DrugbankDrugFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DrugbankDrugFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload>
+        }
+        findFirst: {
+          args: Prisma.DrugbankDrugFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DrugbankDrugFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload>
+        }
+        findMany: {
+          args: Prisma.DrugbankDrugFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload>[]
+        }
+        create: {
+          args: Prisma.DrugbankDrugCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload>
+        }
+        createMany: {
+          args: Prisma.DrugbankDrugCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DrugbankDrugCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload>[]
+        }
+        delete: {
+          args: Prisma.DrugbankDrugDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload>
+        }
+        update: {
+          args: Prisma.DrugbankDrugUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload>
+        }
+        deleteMany: {
+          args: Prisma.DrugbankDrugDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DrugbankDrugUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DrugbankDrugUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload>[]
+        }
+        upsert: {
+          args: Prisma.DrugbankDrugUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugPayload>
+        }
+        aggregate: {
+          args: Prisma.DrugbankDrugAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDrugbankDrug>
+        }
+        groupBy: {
+          args: Prisma.DrugbankDrugGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugbankDrugGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DrugbankDrugCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugbankDrugCountAggregateOutputType> | number
+        }
+      }
+    }
+    DrugbankExternalLink: {
+      payload: Prisma.$DrugbankExternalLinkPayload<ExtArgs>
+      fields: Prisma.DrugbankExternalLinkFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DrugbankExternalLinkFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DrugbankExternalLinkFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload>
+        }
+        findFirst: {
+          args: Prisma.DrugbankExternalLinkFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DrugbankExternalLinkFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload>
+        }
+        findMany: {
+          args: Prisma.DrugbankExternalLinkFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload>[]
+        }
+        create: {
+          args: Prisma.DrugbankExternalLinkCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload>
+        }
+        createMany: {
+          args: Prisma.DrugbankExternalLinkCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DrugbankExternalLinkCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload>[]
+        }
+        delete: {
+          args: Prisma.DrugbankExternalLinkDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload>
+        }
+        update: {
+          args: Prisma.DrugbankExternalLinkUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload>
+        }
+        deleteMany: {
+          args: Prisma.DrugbankExternalLinkDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DrugbankExternalLinkUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DrugbankExternalLinkUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload>[]
+        }
+        upsert: {
+          args: Prisma.DrugbankExternalLinkUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankExternalLinkPayload>
+        }
+        aggregate: {
+          args: Prisma.DrugbankExternalLinkAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDrugbankExternalLink>
+        }
+        groupBy: {
+          args: Prisma.DrugbankExternalLinkGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugbankExternalLinkGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DrugbankExternalLinkCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugbankExternalLinkCountAggregateOutputType> | number
+        }
+      }
+    }
+    DrugbankTarget: {
+      payload: Prisma.$DrugbankTargetPayload<ExtArgs>
+      fields: Prisma.DrugbankTargetFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DrugbankTargetFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DrugbankTargetFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload>
+        }
+        findFirst: {
+          args: Prisma.DrugbankTargetFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DrugbankTargetFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload>
+        }
+        findMany: {
+          args: Prisma.DrugbankTargetFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload>[]
+        }
+        create: {
+          args: Prisma.DrugbankTargetCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload>
+        }
+        createMany: {
+          args: Prisma.DrugbankTargetCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DrugbankTargetCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload>[]
+        }
+        delete: {
+          args: Prisma.DrugbankTargetDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload>
+        }
+        update: {
+          args: Prisma.DrugbankTargetUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload>
+        }
+        deleteMany: {
+          args: Prisma.DrugbankTargetDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DrugbankTargetUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DrugbankTargetUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload>[]
+        }
+        upsert: {
+          args: Prisma.DrugbankTargetUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankTargetPayload>
+        }
+        aggregate: {
+          args: Prisma.DrugbankTargetAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDrugbankTarget>
+        }
+        groupBy: {
+          args: Prisma.DrugbankTargetGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugbankTargetGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DrugbankTargetCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugbankTargetCountAggregateOutputType> | number
+        }
+      }
+    }
+    DrugbankDrugTarget: {
+      payload: Prisma.$DrugbankDrugTargetPayload<ExtArgs>
+      fields: Prisma.DrugbankDrugTargetFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DrugbankDrugTargetFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DrugbankDrugTargetFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload>
+        }
+        findFirst: {
+          args: Prisma.DrugbankDrugTargetFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DrugbankDrugTargetFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload>
+        }
+        findMany: {
+          args: Prisma.DrugbankDrugTargetFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload>[]
+        }
+        create: {
+          args: Prisma.DrugbankDrugTargetCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload>
+        }
+        createMany: {
+          args: Prisma.DrugbankDrugTargetCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DrugbankDrugTargetCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload>[]
+        }
+        delete: {
+          args: Prisma.DrugbankDrugTargetDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload>
+        }
+        update: {
+          args: Prisma.DrugbankDrugTargetUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload>
+        }
+        deleteMany: {
+          args: Prisma.DrugbankDrugTargetDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DrugbankDrugTargetUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DrugbankDrugTargetUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload>[]
+        }
+        upsert: {
+          args: Prisma.DrugbankDrugTargetUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DrugbankDrugTargetPayload>
+        }
+        aggregate: {
+          args: Prisma.DrugbankDrugTargetAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDrugbankDrugTarget>
+        }
+        groupBy: {
+          args: Prisma.DrugbankDrugTargetGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugbankDrugTargetGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DrugbankDrugTargetCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DrugbankDrugTargetCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1095,6 +1545,179 @@ export const UserCurrentMedicineScalarFieldEnum = {
 } as const
 
 export type UserCurrentMedicineScalarFieldEnum = (typeof UserCurrentMedicineScalarFieldEnum)[keyof typeof UserCurrentMedicineScalarFieldEnum]
+
+
+export const DrugSourceImportScalarFieldEnum = {
+  id: 'id',
+  sourceKey: 'sourceKey',
+  sourceName: 'sourceName',
+  sourceVersion: 'sourceVersion',
+  sourceFileName: 'sourceFileName',
+  sourceFileHash: 'sourceFileHash',
+  sourceExportedAt: 'sourceExportedAt',
+  status: 'status',
+  rawRowCount: 'rawRowCount',
+  importedRowCount: 'importedRowCount',
+  rejectedRowCount: 'rejectedRowCount',
+  rejectionSummary: 'rejectionSummary',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DrugSourceImportScalarFieldEnum = (typeof DrugSourceImportScalarFieldEnum)[keyof typeof DrugSourceImportScalarFieldEnum]
+
+
+export const CnMedicineProductScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  sourceName: 'sourceName',
+  sourceRowNumber: 'sourceRowNumber',
+  name: 'name',
+  imageUrl: 'imageUrl',
+  priceText: 'priceText',
+  packageSpec: 'packageSpec',
+  approvalNumber: 'approvalNumber',
+  manufacturer: 'manufacturer',
+  drugType: 'drugType',
+  mainCategory: 'mainCategory',
+  subcategory: 'subcategory',
+  sourceUrl: 'sourceUrl',
+  brandName: 'brandName',
+  ingredients: 'ingredients',
+  properties: 'properties',
+  indications: 'indications',
+  dosage: 'dosage',
+  adverseReactions: 'adverseReactions',
+  contraindications: 'contraindications',
+  precautions: 'precautions',
+  pediatricUse: 'pediatricUse',
+  geriatricUse: 'geriatricUse',
+  pregnancyLactation: 'pregnancyLactation',
+  pharmacologyToxicology: 'pharmacologyToxicology',
+  drugInteractions: 'drugInteractions',
+  pharmacokinetics: 'pharmacokinetics',
+  overdose: 'overdose',
+  storage: 'storage',
+  validityPeriod: 'validityPeriod',
+  barcode: 'barcode',
+  nationalDrugCode: 'nationalDrugCode',
+  searchText: 'searchText',
+  extras: 'extras',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CnMedicineProductScalarFieldEnum = (typeof CnMedicineProductScalarFieldEnum)[keyof typeof CnMedicineProductScalarFieldEnum]
+
+
+export const DrugbankDrugScalarFieldEnum = {
+  drugbankId: 'drugbankId',
+  importRunId: 'importRunId',
+  secondaryDrugbankIds: 'secondaryDrugbankIds',
+  drugType: 'drugType',
+  sourceCreatedAt: 'sourceCreatedAt',
+  sourceUpdatedAt: 'sourceUpdatedAt',
+  name: 'name',
+  description: 'description',
+  casNumber: 'casNumber',
+  unii: 'unii',
+  state: 'state',
+  groups: 'groups',
+  indication: 'indication',
+  pharmacodynamics: 'pharmacodynamics',
+  mechanismOfAction: 'mechanismOfAction',
+  toxicity: 'toxicity',
+  metabolism: 'metabolism',
+  absorption: 'absorption',
+  halfLife: 'halfLife',
+  proteinBinding: 'proteinBinding',
+  routeOfElimination: 'routeOfElimination',
+  volumeOfDistribution: 'volumeOfDistribution',
+  clearance: 'clearance',
+  classification: 'classification',
+  synonyms: 'synonyms',
+  products: 'products',
+  internationalBrands: 'internationalBrands',
+  categories: 'categories',
+  atcCodes: 'atcCodes',
+  foodInteractions: 'foodInteractions',
+  drugInteractions: 'drugInteractions',
+  externalIdentifiers: 'externalIdentifiers',
+  externalLinks: 'externalLinks',
+  searchText: 'searchText',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DrugbankDrugScalarFieldEnum = (typeof DrugbankDrugScalarFieldEnum)[keyof typeof DrugbankDrugScalarFieldEnum]
+
+
+export const DrugbankExternalLinkScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  drugbankId: 'drugbankId',
+  drugName: 'drugName',
+  casNumber: 'casNumber',
+  drugType: 'drugType',
+  keggCompoundId: 'keggCompoundId',
+  keggDrugId: 'keggDrugId',
+  pubchemCompoundId: 'pubchemCompoundId',
+  pubchemSubstanceId: 'pubchemSubstanceId',
+  chebiId: 'chebiId',
+  pharmgkbId: 'pharmgkbId',
+  hetId: 'hetId',
+  uniprotId: 'uniprotId',
+  uniprotTitle: 'uniprotTitle',
+  genbankId: 'genbankId',
+  dpdId: 'dpdId',
+  rxlistLink: 'rxlistLink',
+  pdrhealthLink: 'pdrhealthLink',
+  wikipediaId: 'wikipediaId',
+  drugsComLink: 'drugsComLink',
+  ndcId: 'ndcId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DrugbankExternalLinkScalarFieldEnum = (typeof DrugbankExternalLinkScalarFieldEnum)[keyof typeof DrugbankExternalLinkScalarFieldEnum]
+
+
+export const DrugbankTargetScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  sourceDataset: 'sourceDataset',
+  sourceTargetId: 'sourceTargetId',
+  name: 'name',
+  geneName: 'geneName',
+  genbankProteinId: 'genbankProteinId',
+  genbankGeneId: 'genbankGeneId',
+  uniprotId: 'uniprotId',
+  uniprotTitle: 'uniprotTitle',
+  pdbIds: 'pdbIds',
+  geneCardId: 'geneCardId',
+  genAtlasId: 'genAtlasId',
+  hgncId: 'hgncId',
+  species: 'species',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DrugbankTargetScalarFieldEnum = (typeof DrugbankTargetScalarFieldEnum)[keyof typeof DrugbankTargetScalarFieldEnum]
+
+
+export const DrugbankDrugTargetScalarFieldEnum = {
+  id: 'id',
+  drugbankId: 'drugbankId',
+  targetId: 'targetId',
+  relationKind: 'relationKind',
+  actions: 'actions',
+  knownAction: 'knownAction',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DrugbankDrugTargetScalarFieldEnum = (typeof DrugbankDrugTargetScalarFieldEnum)[keyof typeof DrugbankDrugTargetScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1491,6 +2114,12 @@ export type GlobalOmitConfig = {
   userAllergy?: Prisma.UserAllergyOmit
   userCondition?: Prisma.UserConditionOmit
   userCurrentMedicine?: Prisma.UserCurrentMedicineOmit
+  drugSourceImport?: Prisma.DrugSourceImportOmit
+  cnMedicineProduct?: Prisma.CnMedicineProductOmit
+  drugbankDrug?: Prisma.DrugbankDrugOmit
+  drugbankExternalLink?: Prisma.DrugbankExternalLinkOmit
+  drugbankTarget?: Prisma.DrugbankTargetOmit
+  drugbankDrugTarget?: Prisma.DrugbankDrugTargetOmit
 }
 
 /* Types for Logging */
