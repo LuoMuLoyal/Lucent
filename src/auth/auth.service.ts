@@ -8,11 +8,11 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 
 import { ConfigKey } from '../config/config-keys.enum';
 import { PrismaService } from '../prisma/prisma.service';
-import { User } from '../generated/prisma/client';
+import { User, UserStatus } from '../generated/prisma/client';
 import { UserService } from '../user/user.service';
 import { VerificationCodeService } from './verification-code.service';
 import { ResultCode } from '../common/api-envelope';
@@ -77,7 +77,8 @@ export class AuthService {
   // ── Registration ─────────────────────────────────────────────
 
   async register(dto: RegisterDto): Promise<{ user: User } & TokenPair> {
-    const exists = await this.userService.findByEmail(dto.email);
+    const email = this.normalizeEmail(dto.email);
+    const exists = await this.userService.findByEmail(email);
     if (exists) {
       throw new ConflictException({
         code: ResultCode.CONFLICT,
@@ -85,15 +86,17 @@ export class AuthService {
       });
     }
 
-    await this.verificationCodeService.verify(dto.email, dto.code, 'register');
+    await this.verificationCodeService.verify(email, dto.code, 'register');
 
-    const password = await argon2.hash(dto.password, ARGON2_OPTIONS);
+    const passwordHash = await argon2.hash(dto.password, ARGON2_OPTIONS);
+    const now = new Date();
 
     const user = await this.userService.create({
-      email: dto.email,
-      password,
+      email,
+      passwordHash,
       nickname: dto.nickname ?? null,
-      emailVerified: true,
+      emailVerifiedAt: now,
+      profile: { create: {} },
     });
 
     const tokens = await this.generateTokenPair(user);
@@ -103,13 +106,14 @@ export class AuthService {
   // ── Login ────────────────────────────────────────────────────
 
   async login(dto: LoginDto): Promise<{ user: User } & TokenPair> {
-    const user = await this.userService.findByEmail(dto.email);
+    const email = this.normalizeEmail(dto.email);
+    const user = await this.userService.findByEmail(email);
 
     // Always check rate limit first
-    this.checkLoginRateLimit(dto.email);
+    this.checkLoginRateLimit(email);
 
     if (!user) {
-      this.recordLoginFailure(dto.email);
+      this.recordLoginFailure(email);
       throw new UnauthorizedException({
         code: ResultCode.UNAUTHORIZED,
         message: this.i18n.t('auth.email_or_password_wrong'),
@@ -121,7 +125,7 @@ export class AuthService {
     const hasPassword = password !== undefined;
     const hasCode = code !== undefined;
     if (hasPassword === hasCode) {
-      this.recordLoginFailure(dto.email);
+      this.recordLoginFailure(email);
       throw new UnauthorizedException({
         code: ResultCode.UNAUTHORIZED,
         message: this.i18n.t('auth.email_or_password_wrong'),
@@ -130,9 +134,9 @@ export class AuthService {
 
     // Password-based login
     if (hasPassword) {
-      const valid = await argon2.verify(user.password, password);
+      const valid = await argon2.verify(user.passwordHash, password);
       if (!valid) {
-        this.recordLoginFailure(dto.email);
+        this.recordLoginFailure(email);
         throw new UnauthorizedException({
           code: ResultCode.UNAUTHORIZED,
           message: this.i18n.t('auth.email_or_password_wrong'),
@@ -142,25 +146,32 @@ export class AuthService {
 
     // Code-based login
     if (hasCode) {
-      await this.verificationCodeService.verify(dto.email, code, 'login');
+      await this.verificationCodeService.verify(email, code, 'login');
     }
     // TODO: 2FA 校验
 
-    this.clearLoginFailures(dto.email);
+    this.clearLoginFailures(email);
 
-    const tokens = await this.generateTokenPair(user);
-    return { user, ...tokens };
+    const now = new Date();
+    const updatedUser = await this.userService.update(user.id, {
+      lastLoginAt: now,
+      status: UserStatus.active,
+    });
+
+    const tokens = await this.generateTokenPair(updatedUser);
+    return { user: updatedUser, ...tokens };
   }
 
   // ── Token Refresh ────────────────────────────────────────────
 
   async refresh(refreshToken: string): Promise<TokenPair> {
-    const record = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
+    const refreshTokenHash = this.hashRefreshToken(refreshToken);
+    const record = await this.prisma.userSession.findUnique({
+      where: { refreshTokenHash },
       include: { user: true },
     });
 
-    if (!record || record.expiresAt < new Date()) {
+    if (!record || record.expiresAt < new Date() || record.revokedAt !== null) {
       throw new UnauthorizedException({
         code: ResultCode.REFRESH_TOKEN_INVALID,
         message: this.i18n.t('auth.refresh_token_invalid'),
@@ -168,7 +179,7 @@ export class AuthService {
     }
 
     // Delete the old refresh token (rotation)
-    await this.prisma.refreshToken.delete({
+    await this.prisma.userSession.delete({
       where: { id: record.id },
     });
 
@@ -178,15 +189,14 @@ export class AuthService {
   // ── Logout ───────────────────────────────────────────────────
 
   async logout(refreshToken: string): Promise<void> {
-    // Raw token stored in DB (high-entropy random string, acceptable for most applications).
-    // Security relies on HTTPS transport + short expiry.
-    await this.prisma.refreshToken.deleteMany({
-      where: { token: refreshToken },
+    // Refresh tokens are stored as SHA-256 hashes so DB reads cannot replay them.
+    await this.prisma.userSession.deleteMany({
+      where: { refreshTokenHash: this.hashRefreshToken(refreshToken) },
     });
   }
 
   async logoutAll(userId: string): Promise<void> {
-    await this.prisma.refreshToken.deleteMany({
+    await this.prisma.userSession.deleteMany({
       where: { userId },
     });
   }
@@ -213,23 +223,24 @@ export class AuthService {
 
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     const user = await this.getMe(userId);
-    const valid = await argon2.verify(user.password, dto.oldPassword);
+    const valid = await argon2.verify(user.passwordHash, dto.oldPassword);
     if (!valid) {
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,
         message: this.i18n.t('auth.current_password_wrong'),
       });
     }
-    const password = await argon2.hash(dto.newPassword, ARGON2_OPTIONS);
-    await this.userService.update(userId, { password });
+    const passwordHash = await argon2.hash(dto.newPassword, ARGON2_OPTIONS);
+    await this.userService.update(userId, { passwordHash });
     // Invalidate all sessions
     await this.logoutAll(userId);
   }
 
   async changeEmail(userId: string, dto: ChangeEmailDto): Promise<void> {
     await this.getMe(userId);
+    const newEmail = this.normalizeEmail(dto.newEmail);
 
-    const exists = await this.userService.findByEmail(dto.newEmail);
+    const exists = await this.userService.findByEmail(newEmail);
     if (exists) {
       throw new ConflictException({
         code: ResultCode.CONFLICT,
@@ -239,20 +250,20 @@ export class AuthService {
 
     // 校验发往新邮箱的验证码，确认新邮箱归属。
     await this.verificationCodeService.verify(
-      dto.newEmail,
+      newEmail,
       dto.code,
       'change-email',
     );
 
     await this.userService.update(userId, {
-      email: dto.newEmail,
-      emailVerified: true,
+      email: newEmail,
+      emailVerifiedAt: new Date(),
     });
   }
 
   async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
     const user = await this.getMe(userId);
-    const valid = await argon2.verify(user.password, dto.password);
+    const valid = await argon2.verify(user.passwordHash, dto.password);
     if (!valid) {
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,
@@ -263,7 +274,7 @@ export class AuthService {
     await this.logoutAll(userId);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { deletedAt: new Date() },
+      data: { deletedAt: new Date(), status: UserStatus.deleted },
     });
   }
 
@@ -272,41 +283,49 @@ export class AuthService {
   async sendVerificationCode(
     dto: SendVerificationCodeDto,
   ): Promise<{ message: string }> {
-    await this.verificationCodeService.send(dto.email, dto.scene);
+    await this.verificationCodeService.send(
+      this.normalizeEmail(dto.email),
+      dto.scene,
+    );
     return { message: this.i18n.t('auth.verification_code_sent') };
   }
 
   async verifyEmail(dto: VerifyEmailDto): Promise<void> {
-    await this.verificationCodeService.verify(dto.email, dto.code, 'register');
-    await this.userService.updateByEmail(dto.email, { emailVerified: true });
+    const email = this.normalizeEmail(dto.email);
+    await this.verificationCodeService.verify(email, dto.code, 'register');
+    await this.userService.updateByEmail(email, {
+      emailVerifiedAt: new Date(),
+    });
   }
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
     // 安全策略：无论邮箱是否存在，都返回成功提示（防止邮箱枚举攻击）
-    const user = await this.userService.findByEmail(dto.email);
+    const email = this.normalizeEmail(dto.email);
+    const user = await this.userService.findByEmail(email);
     if (user) {
-      await this.verificationCodeService.send(dto.email, 'reset-password');
+      await this.verificationCodeService.send(email, 'reset-password');
     }
     return { message: this.i18n.t('auth.forgot_password_hint') };
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const email = this.normalizeEmail(dto.email);
     await this.verificationCodeService.verify(
-      dto.email,
+      email,
       dto.code,
       'reset-password',
     );
-    const user = await this.userService.findByEmail(dto.email);
+    const user = await this.userService.findByEmail(email);
     if (!user) {
       throw new NotFoundException({
         code: ResultCode.NOT_FOUND,
         message: this.i18n.t('auth.user_not_found'),
       });
     }
-    const password = await argon2.hash(dto.password, ARGON2_OPTIONS);
+    const passwordHash = await argon2.hash(dto.password, ARGON2_OPTIONS);
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { password },
+      data: { passwordHash },
     });
     // 重置密码后登出所有设备
     await this.logoutAll(user.id);
@@ -320,7 +339,8 @@ export class AuthService {
     const payload: UserPayload = { sub: user.id, email: user.email };
 
     const accessTokenId = randomBytes(16).toString('hex');
-    const refreshTokenId = randomBytes(32).toString('hex');
+    const refreshToken = randomBytes(32).toString('hex');
+    const refreshTokenHash = this.hashRefreshToken(refreshToken);
 
     const now = Date.now();
     const accessTokenExpiresInMs = config.accessTtl * 1000;
@@ -333,18 +353,19 @@ export class AuthService {
       jwtid: accessTokenId,
     });
 
-    // Store refresh token in DB (raw value — it's a high-entropy random string)
-    await this.prisma.refreshToken.create({
+    // Persist only the hash of the refresh token; the plaintext token is returned once.
+    await this.prisma.userSession.create({
       data: {
-        token: refreshTokenId,
+        refreshTokenHash,
         expiresAt: new Date(now + refreshTokenExpiresInMs),
+        lastUsedAt: new Date(now),
         user: { connect: { id: user.id } },
       },
     });
 
     return {
       accessToken,
-      refreshToken: refreshTokenId,
+      refreshToken,
       accessTokenExpiresAt: new Date(
         now + accessTokenExpiresInMs,
       ).toISOString(),
@@ -352,6 +373,14 @@ export class AuthService {
         now + refreshTokenExpiresInMs,
       ).toISOString(),
     };
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
+  }
+
+  private hashRefreshToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 
   // ── Login Rate Limiting (in-memory, TODO: Redis) ─────────────

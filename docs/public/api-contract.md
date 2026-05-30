@@ -224,3 +224,9 @@ Protected APIs must use Passport JWT guards. User-scoped handlers derive the use
 Request-body `userId` must not be used as an authorization boundary.
 
 Registration requires a verification code issued by `POST /api/v1/auth/send-verification-code` with `scene=register`. `RegisterDto` requires `email`, `password`, and `code`; a successful registration marks the email as verified.
+
+Current auth compatibility notes:
+
+- Email identity is case-insensitive; Lucent trims and lowercases email before lookup/persistence.
+- Auth responses still expose `emailVerified: boolean` for frontend compatibility, but persistence uses `emailVerifiedAt`.
+- Refresh tokens are opaque session secrets, not JWTs. Lucent stores only their hash in `user_sessions`.

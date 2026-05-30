@@ -66,7 +66,7 @@ export class AuthController {
         id: result.user.id,
         email: result.user.email,
         nickname: result.user.nickname,
-        emailVerified: result.user.emailVerified,
+        emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
       },
       tokens: {
@@ -91,7 +91,7 @@ export class AuthController {
         email: result.user.email,
         nickname: result.user.nickname,
         avatar: result.user.avatar,
-        emailVerified: result.user.emailVerified,
+        emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
         updatedAt: result.user.updatedAt.toISOString(),
       },
@@ -196,7 +196,7 @@ export class AuthController {
       email: me.email,
       nickname: me.nickname,
       avatar: me.avatar,
-      emailVerified: me.emailVerified,
+      emailVerified: this.toEmailVerified(me.emailVerifiedAt),
       createdAt: me.createdAt.toISOString(),
       updatedAt: me.updatedAt.toISOString(),
     });
@@ -216,7 +216,7 @@ export class AuthController {
       email: updated.email,
       nickname: updated.nickname,
       avatar: updated.avatar,
-      emailVerified: updated.emailVerified,
+      emailVerified: this.toEmailVerified(updated.emailVerifiedAt),
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
     });
@@ -278,5 +278,9 @@ export class AuthController {
   private calculateExpiresIn(expiresAtIso: string): number {
     const diff = new Date(expiresAtIso).getTime() - Date.now();
     return Math.max(0, Math.ceil(diff / 1000));
+  }
+
+  private toEmailVerified(emailVerifiedAt: Date | null): boolean {
+    return emailVerifiedAt !== null;
   }
 }

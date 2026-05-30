@@ -4,8 +4,17 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { defineConfig } from 'prisma/config';
 
-// 优先加载 .env.development（如存在），再 fallback .env
-dotenv.config({ path: path.resolve(__dirname, '.env.development') });
+const nodeEnv = process.env['NODE_ENV']?.trim() || 'development';
+
+// Mirror the Nest app's env resolution so Prisma CLI targets the expected DB per NODE_ENV.
+dotenv.config({
+  path: path.resolve(__dirname, `.env.${nodeEnv}.local`),
+  override: true,
+});
+dotenv.config({
+  path: path.resolve(__dirname, `.env.${nodeEnv}`),
+  override: true,
+});
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 export default defineConfig({
