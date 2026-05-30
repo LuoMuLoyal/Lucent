@@ -39,6 +39,32 @@
 - `pnpm exec jest --runInBand --config ./test/jest-e2e.json test/medicines.e2e-spec.ts` — 通过
 - `pnpm build` — 通过
 
+## 2026-05-30 (Dual Local PostgreSQL + Local Stack Scripts)
+
+### Changed
+
+- `docker-compose.dev.yml` 现在拆分为两个本地 PostgreSQL 服务：
+  - `postgres-dev` → `127.0.0.1:15432`，供 `NODE_ENV=development` 使用
+  - `postgres-test` → `127.0.0.1:5432`，供 `NODE_ENV=test` / e2e 使用
+- `.env.development.example` 更新为开发库端口 `15432`。
+- `eslint.config.mjs` 忽略 `scripts/**/*.js`，解决编辑器对 `scripts/export-openapi.js` 的 project-service 解析报错。
+
+### Added
+
+- `scripts/dev/up-local-stack.ps1`：启动本地 dev/test PostgreSQL 和 Redis。
+- `scripts/dev/down-local-stack.ps1`：停止本地 stack，可选删除 volumes。
+- `scripts/dev/migrate-local-databases.ps1`：生成 Prisma client，并依次迁移 development/test 数据库。
+- `package.json` 新增：
+  - `pnpm dev:stack:up`
+  - `pnpm dev:stack:down`
+  - `pnpm db:migrate:dev`
+  - `pnpm db:migrate:test`
+  - `pnpm db:migrate:all`
+
+### Docs
+
+- `README.md` 与 `docs/environment.md` 同步本地双数据库布局和新脚本用法。
+
 ## 2026-05-30 (User Domain 第二层 - Health Context 聚合读取)
 
 ### Added
