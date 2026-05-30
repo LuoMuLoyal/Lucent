@@ -8,7 +8,7 @@ $composeFile = Join-Path $repoRoot 'docker-compose.dev.yml'
 
 Push-Location $repoRoot
 try {
-  $dockerArgs = @('compose', '-f', $composeFile, 'up', '-d')
+  $dockerArgs = @('compose', '-f', $composeFile, 'up', '-d', '--remove-orphans')
   if ($Build) {
     $dockerArgs += '--build'
   }

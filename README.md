@@ -18,6 +18,7 @@ pnpm test
 pnpm test:e2e
 pnpm lint
 pnpm export:openapi
+pnpm import:medicine:all
 ```
 
 Local database layout:
@@ -26,6 +27,13 @@ Local database layout:
 - test / e2e DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`
 
 `pnpm dev:stack:up` starts both PostgreSQL services plus Redis. `pnpm db:migrate:all` applies Prisma migrations to both local databases.
+
+Medicine import quick start:
+
+- `pip install -r scripts/medicine/requirements.txt` if you want to import `FullDrugDetail.xlsx` directly.
+- `pnpm import:medicine:all` runs the default development import order: DrugBank drugs -> links -> targets -> Chinese products.
+- `scripts/dev/import-medicine-datasets.ps1 -Command <dataset> -SourcePath <file>` lets you smoke-test or override a single source file.
+- For smoke tests you can call `powershell -ExecutionPolicy Bypass -File scripts/dev/import-medicine-datasets.ps1 -Limit 20 -WithHash`.
 
 ## Baseline
 
