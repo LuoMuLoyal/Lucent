@@ -7,12 +7,12 @@ import {
 import { Observable, map } from 'rxjs';
 import { ApiEnvelope, successEnvelope } from '../api-envelope';
 
-function isApiEnvelope(value: unknown): value is ApiEnvelope<unknown> {
+function isApiEnvelope(value: unknown): value is ApiEnvelope {
   if (!value || typeof value !== 'object') {
     return false;
   }
 
-  const maybeEnvelope = value as Partial<ApiEnvelope<unknown>>;
+  const maybeEnvelope = value as Partial<ApiEnvelope>;
   return (
     typeof maybeEnvelope.code === 'number' &&
     typeof maybeEnvelope.message === 'string' &&

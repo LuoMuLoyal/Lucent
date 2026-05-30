@@ -418,6 +418,31 @@
         "summary": "修改邮箱",
         "tags": ["Auth"]
       }
+    },
+    "/api/v1/me/health-context": {
+      "get": {
+        "operationId": "UserHealthContextController_getMeHealthContext_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get the current user health context aggregate",
+        "tags": ["User Health Context"]
+      }
     }
   },
   "info": {
@@ -975,6 +1000,515 @@
           }
         },
         "required": ["password"]
+      },
+      "UserHealthSummaryDto": {
+        "type": "object",
+        "properties": {
+          "age": {
+            "type": "object",
+            "description": "Age derived from birth date. Null when birth date is missing.",
+            "example": 28,
+            "nullable": true
+          },
+          "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Whether the onboarding flow has been completed.",
+            "example": true
+          },
+          "activeAllergyCount": {
+            "type": "number",
+            "description": "Number of active allergy records returned in this payload.",
+            "example": 2
+          },
+          "conditionCount": {
+            "type": "number",
+            "description": "Number of condition records returned in this payload.",
+            "example": 3
+          },
+          "currentMedicineCount": {
+            "type": "number",
+            "description": "Number of current medicine records returned in this payload.",
+            "example": 1
+          },
+          "missingCoreProfileFields": {
+            "description": "Missing core profile fields that the frontend can use for onboarding nudges.",
+            "example": ["birthDate", "heightCm"],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "age",
+          "onboardingCompleted",
+          "activeAllergyCount",
+          "conditionCount",
+          "currentMedicineCount",
+          "missingCoreProfileFields"
+        ]
+      },
+      "SexAtBirth": {
+        "type": "string",
+        "enum": ["female", "male", "intersex", "unknown"],
+        "description": "Sex assigned at birth."
+      },
+      "PregnancyState": {
+        "type": "string",
+        "enum": [
+          "not_applicable",
+          "unknown",
+          "not_pregnant",
+          "pregnant",
+          "trying",
+          "postpartum"
+        ],
+        "description": "Pregnancy state for personalized medical guidance."
+      },
+      "LactationState": {
+        "type": "string",
+        "enum": ["not_applicable", "unknown", "no", "yes"],
+        "description": "Lactation state for personalized medical guidance."
+      },
+      "UnitSystem": {
+        "type": "string",
+        "enum": ["metric", "imperial"],
+        "description": "Preferred unit system."
+      },
+      "UserHealthProfileDto": {
+        "type": "object",
+        "properties": {
+          "birthDate": {
+            "type": "object",
+            "description": "Birth date in YYYY-MM-DD format.",
+            "example": "1998-03-15",
+            "nullable": true
+          },
+          "sexAtBirth": {
+            "description": "Sex assigned at birth.",
+            "example": "female",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SexAtBirth"
+              }
+            ]
+          },
+          "heightCm": {
+            "type": "object",
+            "description": "Height in centimeters.",
+            "example": 168,
+            "nullable": true
+          },
+          "pregnancyState": {
+            "description": "Pregnancy state for personalized medical guidance.",
+            "example": "not_pregnant",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PregnancyState"
+              }
+            ]
+          },
+          "lactationState": {
+            "description": "Lactation state for personalized medical guidance.",
+            "example": "no",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LactationState"
+              }
+            ]
+          },
+          "bloodType": {
+            "type": "object",
+            "description": "Blood type.",
+            "example": "O+",
+            "nullable": true
+          },
+          "locale": {
+            "type": "object",
+            "description": "Preferred locale.",
+            "example": "en-US",
+            "nullable": true
+          },
+          "timezone": {
+            "type": "object",
+            "description": "Preferred timezone.",
+            "example": "Asia/Shanghai",
+            "nullable": true
+          },
+          "unitSystem": {
+            "description": "Preferred unit system.",
+            "example": "metric",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UnitSystem"
+              }
+            ]
+          },
+          "onboardingCompletedAt": {
+            "type": "object",
+            "description": "When the onboarding flow was completed.",
+            "example": "2026-05-30T09:00:00.000Z",
+            "nullable": true
+          },
+          "extras": {
+            "type": "object",
+            "description": "Sparse profile extensions stored in jsonb.",
+            "nullable": true,
+            "additionalProperties": true,
+            "example": {
+              "preferredReminderHour": 9,
+              "emergencyContactReady": true
+            }
+          }
+        },
+        "required": [
+          "birthDate",
+          "sexAtBirth",
+          "heightCm",
+          "pregnancyState",
+          "lactationState",
+          "bloodType",
+          "locale",
+          "timezone",
+          "unitSystem",
+          "onboardingCompletedAt",
+          "extras"
+        ]
+      },
+      "UserAllergyKind": {
+        "type": "string",
+        "enum": ["drug", "food", "environment", "other"],
+        "description": "Allergy kind."
+      },
+      "UserAllergySeverity": {
+        "type": "string",
+        "enum": ["mild", "moderate", "severe", "unknown"],
+        "description": "Severity level."
+      },
+      "UserAllergyItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Allergy id."
+          },
+          "kind": {
+            "description": "Allergy kind.",
+            "example": "drug",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserAllergyKind"
+              }
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "User-visible allergy label.",
+            "example": "Penicillin"
+          },
+          "reaction": {
+            "type": "object",
+            "description": "Recorded reaction.",
+            "example": "Rash",
+            "nullable": true
+          },
+          "severity": {
+            "description": "Severity level.",
+            "example": "moderate",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserAllergySeverity"
+              }
+            ]
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the allergy is currently active."
+          },
+          "note": {
+            "type": "object",
+            "description": "User note for the allergy.",
+            "example": "Avoid completely",
+            "nullable": true
+          },
+          "extras": {
+            "type": "object",
+            "description": "Sparse allergy extensions stored in jsonb.",
+            "nullable": true,
+            "additionalProperties": true,
+            "example": {
+              "source": "manual"
+            }
+          },
+          "recordedAt": {
+            "type": "object",
+            "description": "When this allergy was recorded.",
+            "example": "2026-05-20T09:00:00.000Z",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created time in ISO 8601 format.",
+            "example": "2026-05-20T09:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated time in ISO 8601 format.",
+            "example": "2026-05-21T09:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "reaction",
+          "severity",
+          "isActive",
+          "note",
+          "extras",
+          "recordedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UserConditionStatus": {
+        "type": "string",
+        "enum": ["active", "resolved", "suspected"],
+        "description": "Condition status."
+      },
+      "UserConditionItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Condition id."
+          },
+          "label": {
+            "type": "string",
+            "description": "Condition label.",
+            "example": "Asthma"
+          },
+          "status": {
+            "description": "Condition status.",
+            "example": "active",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserConditionStatus"
+              }
+            ]
+          },
+          "diagnosedAt": {
+            "type": "object",
+            "description": "Diagnosis date in YYYY-MM-DD format.",
+            "example": "2024-02-01",
+            "nullable": true
+          },
+          "resolvedAt": {
+            "type": "object",
+            "description": "Resolved date in YYYY-MM-DD format.",
+            "example": "2025-03-12",
+            "nullable": true
+          },
+          "note": {
+            "type": "object",
+            "description": "User note for the condition.",
+            "example": "Triggered during pollen season",
+            "nullable": true
+          },
+          "extras": {
+            "type": "object",
+            "description": "Sparse condition extensions stored in jsonb.",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created time in ISO 8601 format.",
+            "example": "2024-02-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated time in ISO 8601 format.",
+            "example": "2026-05-18T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "status",
+          "diagnosedAt",
+          "resolvedAt",
+          "note",
+          "extras",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "MedicineSource": {
+        "type": "string",
+        "enum": ["drugbank", "cn", "manual"],
+        "description": "Upstream source used to anchor this medicine."
+      },
+      "UserCurrentMedicineItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Current medicine id."
+          },
+          "source": {
+            "description": "Upstream source used to anchor this medicine.",
+            "example": "drugbank",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MedicineSource"
+              }
+            ]
+          },
+          "sourceRefId": {
+            "type": "object",
+            "description": "Source-specific reference id.",
+            "example": "DB01050",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name shown to the user.",
+            "example": "Ibuprofen"
+          },
+          "strengthText": {
+            "type": "object",
+            "description": "Strength text.",
+            "example": "200 mg",
+            "nullable": true
+          },
+          "doseText": {
+            "type": "object",
+            "description": "Dose text.",
+            "example": "1 tablet after meals",
+            "nullable": true
+          },
+          "route": {
+            "type": "object",
+            "description": "Administration route.",
+            "example": "oral",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "object",
+            "description": "Start date in YYYY-MM-DD format.",
+            "example": "2026-05-01",
+            "nullable": true
+          },
+          "endedAt": {
+            "type": "object",
+            "description": "End date in YYYY-MM-DD format.",
+            "example": "2026-05-07",
+            "nullable": true
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "description": "Whether the medicine is currently active."
+          },
+          "note": {
+            "type": "object",
+            "description": "User note for the medicine.",
+            "example": "Use only when needed for headaches",
+            "nullable": true
+          },
+          "sourcePayload": {
+            "type": "object",
+            "description": "Original source payload stored in jsonb.",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created time in ISO 8601 format.",
+            "example": "2026-05-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated time in ISO 8601 format.",
+            "example": "2026-05-21T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "sourceRefId",
+          "displayName",
+          "strengthText",
+          "doseText",
+          "route",
+          "startedAt",
+          "endedAt",
+          "isCurrent",
+          "note",
+          "sourcePayload",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "HealthContextDataDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/UserHealthSummaryDto"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/UserHealthProfileDto"
+          },
+          "allergies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserAllergyItemDto"
+            }
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserConditionItemDto"
+            }
+          },
+          "currentMedicines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserCurrentMedicineItemDto"
+            }
+          }
+        },
+        "required": [
+          "summary",
+          "profile",
+          "allergies",
+          "conditions",
+          "currentMedicines"
+        ]
+      },
+      "HealthContextResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Prompt message",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/HealthContextDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
       }
     }
   }

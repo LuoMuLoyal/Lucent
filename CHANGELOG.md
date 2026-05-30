@@ -3,6 +3,27 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-05-30 (User Domain 第二层 - Health Context 聚合读取)
+
+### Added
+
+- `src/user-health-context/` 新增 feature-first 模块，提供 `GET /api/v1/me/health-context`。
+- 聚合读取当前登录用户的 `profile`、`allergies`、`conditions`、`currentMedicines`，并返回 `summary`。
+- `summary` 当前包含年龄、onboarding 完成状态、活跃过敏数量、条件数量、当前用药数量和缺失核心 profile 字段列表。
+- 输出层统一把 `@db.Date` 字段映射为 `YYYY-MM-DD`，时间戳映射为 ISO 8601 字符串，避免前端直接面对 Prisma `Date` 对象。
+- 新增 `src/user-health-context/user-health-context.service.spec.ts` 与 `test/user-health-context.e2e-spec.ts`，覆盖空 profile 回退、聚合映射和 JWT 认证读取场景。
+
+### Changed
+
+- `src/app.module.ts` 注册 `UserHealthContextModule`。
+- `docs/backend-user-domain.md` 与 `docs/public/api-contract.md` 同步新增当前 health-context API 边界说明。
+
+### Test Results
+
+- `pnpm exec jest --runInBand src/user-health-context/user-health-context.service.spec.ts` — 通过
+- `pnpm exec jest --runInBand --config ./test/jest-e2e.json test/user-health-context.e2e-spec.ts` — 通过
+- `pnpm build` — 通过
+
 ## 2026-05-30 (Auth 注册验证码、邮箱变更与刷新令牌修正)
 
 ### Fixed
