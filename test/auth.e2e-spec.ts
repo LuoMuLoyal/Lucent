@@ -302,6 +302,28 @@ describe('Auth API (e2e)', () => {
       expect(body2.code).toBe(ResultCode.REFRESH_TOKEN_INVALID);
     });
 
+    it('should not invalidate other sessions when refreshing one token', async () => {
+      const email = uniqueEmail();
+      const firstSession = await registerUser(email);
+      const secondLogin = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ email, password: TEST_PASSWORD })
+        .expect(200);
+
+      const secondBody = secondLogin.body as ApiEnvelope<RegisterLoginData>;
+      const secondTokens = expectData(secondBody).tokens;
+
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: firstSession.tokens.refreshToken })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken: secondTokens.refreshToken })
+        .expect(200);
+    });
+
     it('should reject invalid refresh token', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
@@ -586,23 +608,23 @@ describe('Auth API (e2e)', () => {
 
   describe('POST /api/v1/auth/me/email', () => {
     it('should change email with valid verification code', async () => {
-      const { email: oldEmail, tokens } = await registerUser();
+      const { tokens } = await registerUser();
       const newEmail = uniqueEmail();
 
-      // Send verification code for change-email scene (sent to current email)
+      // Send verification code for change-email scene (sent to new email)
       await request(app.getHttpServer())
         .post('/api/v1/auth/send-verification-code')
-        .send({ email: oldEmail, scene: 'change-email' })
+        .send({ email: newEmail, scene: 'change-email' })
         .expect(200);
 
-      const code = await getVerificationCode('change-email', oldEmail);
+      const code = await getVerificationCode('change-email', newEmail);
       expect(code).toBeDefined();
 
       // Change email
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/me/email')
         .set('Authorization', `Bearer ${tokens.accessToken}`)
-        .send({ currentEmail: oldEmail, newEmail, code })
+        .send({ newEmail, code })
         .expect(200);
 
       const body = res.body as ApiEnvelope<{
@@ -626,13 +648,13 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should reject invalid verification code', async () => {
-      const { email, tokens } = await registerUser();
+      const { tokens } = await registerUser();
       const newEmail = uniqueEmail();
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/auth/me/email')
         .set('Authorization', `Bearer ${tokens.accessToken}`)
-        .send({ currentEmail: email, newEmail, code: '000000' })
+        .send({ newEmail, code: '000000' })
         .expect(400);
 
       const body = res.body as ApiEnvelope;

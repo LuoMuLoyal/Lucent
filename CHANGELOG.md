@@ -3,6 +3,26 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-05-30 (Auth 邮箱变更与刷新令牌修正)
+
+### Fixed
+
+- `changeEmail` 改为校验发往新邮箱的验证码，不再用旧邮箱验证码确认新邮箱归属。
+- `changeEmail` 由 JWT 用户身份确认当前账号边界，request body 不再接收 `currentEmail`。
+- `refresh` 只轮换当前 refreshToken，不再删除同账号其他设备的 refreshToken。
+- `export:openapi` 改为先构建再从 `dist` 导出，避免 ts-node 无法解析 Prisma 7 生成客户端 `.js` import。
+
+### Test Results
+
+- `pnpm build` — 通过
+- `pnpm test` — 6 suites / 67 tests 通过
+- `pnpm test:e2e` — 2 suites / 31 tests 通过
+- `pnpm export:openapi` — 通过
+- `flutter analyze` — 通过
+- `flutter test` — 通过
+
+---
+
 ## 2026-05-30 (文档边界重整)
 
 ### Changed — 文档入口与更新规则

@@ -278,9 +278,6 @@ describe('AuthService', () => {
       (prismaService.refreshToken.delete as jest.Mock).mockResolvedValue(
         mockRefreshRecord,
       );
-      (prismaService.refreshToken.deleteMany as jest.Mock).mockResolvedValue({
-        count: 0,
-      });
 
       const result = await service.refresh('old-refresh-token');
 
@@ -291,6 +288,7 @@ describe('AuthService', () => {
       expect(prismaService.refreshToken.delete).toHaveBeenCalledWith({
         where: { id: 'rt-id' },
       });
+      expect(prismaService.refreshToken.deleteMany).not.toHaveBeenCalled();
       expect(result.accessToken).toBe('mock-jwt-token');
     });
 
@@ -443,6 +441,7 @@ describe('AuthService', () => {
 
   describe('changeEmail', () => {
     it('should change email after verification', async () => {
+      userService.findById.mockResolvedValue(mockUser);
       verificationCodeService.verify.mockResolvedValue(true);
       userService.findByEmail.mockResolvedValue(null); // new email not taken
       userService.update.mockResolvedValue({
@@ -452,13 +451,14 @@ describe('AuthService', () => {
       });
 
       await service.changeEmail('user-uuid-1', {
-        currentEmail: 'test@example.com',
         newEmail: 'new@example.com',
         code: '654321',
       });
 
+      expect(userService.findById).toHaveBeenCalledWith('user-uuid-1');
+      expect(userService.findByEmail).toHaveBeenCalledWith('new@example.com');
       expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'test@example.com',
+        'new@example.com',
         '654321',
         'change-email',
       );
@@ -469,16 +469,16 @@ describe('AuthService', () => {
     });
 
     it('should throw ConflictException if new email already taken', async () => {
-      verificationCodeService.verify.mockResolvedValue(true);
+      userService.findById.mockResolvedValue(mockUser);
       userService.findByEmail.mockResolvedValue(mockUser); // email taken
 
       await expect(
         service.changeEmail('user-uuid-1', {
-          currentEmail: 'test@example.com',
           newEmail: 'taken@example.com',
           code: '654321',
         }),
       ).rejects.toThrow(ConflictException);
+      expect(verificationCodeService.verify).not.toHaveBeenCalled();
     });
   });
 

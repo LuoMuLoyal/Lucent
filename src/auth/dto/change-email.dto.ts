@@ -8,11 +8,6 @@ import {
 } from 'class-validator';
 
 export class ChangeEmailDto {
-  @ApiProperty({ description: '当前邮箱', example: 'user@example.com' })
-  @IsEmail({}, { message: '邮箱格式不正确' })
-  @IsNotEmpty({ message: '当前邮箱不能为空' })
-  currentEmail!: string;
-
   @ApiProperty({ description: '新邮箱', example: 'newuser@example.com' })
   @IsEmail({}, { message: '邮箱格式不正确' })
   @IsNotEmpty({ message: '新邮箱不能为空' })

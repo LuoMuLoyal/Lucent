@@ -326,8 +326,8 @@ model RefreshToken {
 
 ### Step 3.4 — AuthController.changeEmail ✅
 
-- `AuthService.changeEmail` — 新增 `currentEmail` 验证码校验（`change-email` scene）
-- `ChangeEmailDto` 扩展 `currentEmail` 字段（`@IsEmail`，必填）
+- 2026-05-30 修正：`changeEmail` 只接收 `newEmail` + `code`。
+- `change-email` 验证码必须发往并校验新邮箱；当前账号边界由 JWT 用户身份确认。
 
 ### Step 3.5 — AuthController.deleteAccount ✅
 
