@@ -59,7 +59,6 @@ CORS_ORIGIN
 - Compiler: Nest CLI SWC builder with type checking enabled.
 - Global prefix: `/api`.
 - Versioning: NestJS URI versioning，默认版本 `1`。
-- Global prefix: `/api`。Flutter 请求时 baseURL 设为 `domain/api`，路径写 `/v1/xxx`。
 - Health check: `GET /api/v1/health`.
 - Request id: returned in `X-Request-Id` and available for server-side log correlation.
 - Auth e2e baseline passes for register / login / refresh / me / logout.

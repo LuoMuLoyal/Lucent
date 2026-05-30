@@ -1,209 +1,50 @@
----
-title: 'Luminous 产品路线图'
-tags:
-  - strategy
-  - roadmap
-aliases:
-  - ROADMAP
-  - 路线图
-created: 2026-06-03
----
+# Luminous Roadmap
 
-# Luminous 产品路线图
+Last updated: 2026-05-30
 
-最后更新: 2026-06-03
+## Current Reality
 
-> 从当前"用药查询 + 提醒"出发，逐阶段走向 [[Promise]] 描述的"全人全程健康伙伴"。
+- Frontend has been reset to a clean five-tab shell.
+- Auth/network/i18n/design-token foundations are in place.
+- Login/register pages are minimal and still need UX completion.
+- Medicine, reminder, scan, and real Today data flows are not restored yet.
+- Lucent is the target backend; legacy backend remains historical/deployed context.
 
----
+## Phase 1 - Medication Loop
 
-## 当前状态
+Goal: make `search medicine -> view detail -> add medicine -> set reminder -> check in -> record reaction` trustworthy and demo-ready.
 
-- 药品搜索、扫码识别、AI 药品详情、用药提醒、打卡记录 已可用
-- 登录/注册、个人中心、相册、浏览历史 已就绪
-- 今日页（Today）UI 框架已搭建：喝水追踪、用药提醒、健康快照、饮食建议、环境提醒、Lumi 建议 6 大卡片
-- 今日页全局常量（`TodayConstants`）+ 可复用组件（进度环、统计卡片、区块标题、环境标签）已封装
-- 今日页已完成国际化（27 个 l10n 键，中/英双语）
-- 所有功能依赖旧版后端，数据源为少量样例数据
+Milestones:
 
----
+1. Keep `/api/v1`, envelope, auth, and e2e baseline stable.
+2. Import a small verified medicine dataset into Lucent.
+3. Provide Lucent medicine search/detail APIs.
+4. Move Flutter medicine search/detail to Lucent.
+5. Rebuild reminders, check-in, and reaction records.
+6. Use AI only as an explanation layer, not the source of medicine facts.
 
-## 第一阶段：用药闭环夯实 🔴 当前重点
+## Phase 2 - Personal Health Record
 
-> 先把"药品查询 → 了解药品 → 设置提醒 → 按时打卡"这条路走扎实，数据源从样例升级为权威药品知识库。
+- Vitals, symptoms, reports, mood, water, and exercise records.
+- Health timeline and weekly/monthly summaries.
+- Preventive screening and environment reminders.
 
-### 当前阶段唯一主线
+## Phase 3 - Proactive Health Partner
 
-把"搜索药品 → 查看真实详情 → 加入我的药品 → 设置提醒 → 今日打卡 → 记录用药反应"做成可信、稳定、可演示、可继续扩展的闭环。
+- Personalized reminders based on profile, medicine, and trends.
+- Mental health tracking and graded suggestions.
+- Specialist record OCR for dental, eye, and hearing data.
 
-### Milestone 0：基线拉平 ✅
+## Phase 4 - Multi-Device
 
-- 修复 Flutter 测试，`flutter analyze` + `flutter test` 全绿
-- Lucent 本地 `.env` 与测试环境就绪
+- Watch: quick check-ins and lightweight reminders.
+- Desktop: reports and long-term trend review.
+- Web: family care view and expiring doctor-share links.
 
-### Milestone 1：稳住 Lucent 协议与认证边界
+## Later
 
-- 固化 `/api/v1` 路由规范
-- 完成 auth 主链路 e2e：register / login / refresh / me / logout
-- JWT 派生用户身份，不再以 body/query `userId` 作为授权边界
+- Women's health
+- Family collaboration
+- Exploratory hardware and skin-photo workflows
 
-### Milestone 2：药品知识库 sample import
-
-- 在 Lucent 建立 staging 层 schema
-- 从 `FullDrugDetail.xlsx` 做字段探测，先导入小样本
-- 输出 source row / imported row / rejected row / sample errors
-
-### Milestone 3：Lucent 提供真实药品搜索与详情
-
-- 建立 medicine search/detail API
-- 返回结构化字段 + `detailMarkdown`
-- AI 详情不再充当药品事实主来源
-
-### Milestone 4：Flutter 搜索与详情切到 Lucent
-
-- 搜索页改走 Lucent medicine search
-- 药品详情页改走 Lucent detail
-- `lib/assets/data.json` 只保留开发兜底职责
-
-### Milestone 5：把用药闭环切到 Lucent
-
-- 我的药品 → 提醒列表与编辑 → 今日提醒/打卡 → 扫码记录
-- 本地 SQLite 从主数据源降级为离线缓存
-
-### Milestone 6：AI 重定位为解释层
-
-- AI 只基于真实药品数据做通俗化解释
-- 不再让 AI 生成药品用法、禁忌等事实信息
-
-### 功能清单
-
-**药品知识库上线**
-
-- 导入 20 万条中文药品完整说明书数据，覆盖名称、成分、用法、禁忌、相互作用等结构化字段
-- 药品详情从 AI 生成改为真实数据库驱动，展示结构化信息卡片
-- 药品说明书长文本用清晰排版展示
-
-**用药闭环体验升级**
-
-- 药品搜索支持多维度（名称、厂家、批准文号、条码）
-- 扫码识别准确率优化
-- 提醒创建、编辑、打卡流程打磨
-- 新增"服药后反应记录"：记录用药后的效果、不适、备注
-
-**AI 不再编造药品信息**
-
-- AI 只基于已有的真实药品数据做通俗化解释
-- 不再让 AI 生成药品用法、禁忌等事实信息
-- 用药安全提示基于真实数据规则检查，AI 仅做补充解读
-
----
-
-## 第二阶段：个人健康记录 🟡 下一阶段
-
-> 用药闭环稳定后，从"管药"扩展到"管健康"。
-
-**健康数据录入**
-
-- 体检报告拍照导入，关键指标手动录入
-- 日常体征追踪：血糖、血压、体重、体温、血氧
-- 症状记录：身体部位标记 + 严重程度 + 持续时间
-- 饮水、情绪、运动快速记录
-
-**健康时间线**
-
-- 用药、打卡、反应、报告、体征、症状按时间轴统一展示
-- 周报/月报：关键趋势小结 + 待办提醒
-
-**预防保健**
-
-- 根据年龄、性别、家族史自动生成筛查清单（乳腺、宫颈、结直肠、骨密度等）
-- 成人疫苗接种记录 + 下一针预测
-- 口腔、眼科、听力检查档案 + 复查提醒
-- 紫外线、花粉、空气污染环境提醒
-
----
-
-## 第三阶段：主动健康伙伴 🟢 中期目标
-
-> AI 从被动回答变成主动提示，根据个人档案给建议。
-
-**主动建议**
-
-- 根据个人病史、用药记录、体征趋势，主动推送健康提示
-- 示例："明天需复查空腹血糖，今晚8点后请勿进食"
-- 建议疲劳度控制：同类内容不重复轰炸，用户可切换"仅重要提醒"
-
-**情绪与心理**
-
-- 情绪记录 + 趋势可视化
-- 心理自评量表（PHQ-9/GAD-7）
-- 分级响应：轻度推自助练习，中度建议咨询，重度引导危机热线
-- 情绪与药物的相互作用提醒
-
-**专科档案深度**
-
-- 口腔/眼科/听力检查结果 OCR 提取关键信息
-- 听力变化与药物关联提醒
-
----
-
-## 第四阶段：多终端覆盖 🔵 远期
-
-> 不同设备做不同的事，不只是把手机版放大。
-
-**手表**
-
-- 情绪快速标记、饮水记录、经期标记
-- 心率异常时推送呼吸引导
-- 用户自选 2-3 个快捷动作固定在表盘
-
-**电脑**
-
-- 大屏健康报告与多年趋势对比
-- 报告批量导入与分析
-
-**网页**
-
-- 家庭照护面板
-- 临时医生分享链接（可过期、可撤销、有访问记录）
-- 默认分享摘要，不暴露原始隐私数据
-
----
-
-## 延缓启动 ⚪
-
-> 以下功能在核心用药闭环和多终端稳定后再考虑。
-
-**女性健康**
-
-- 经期日历、周期记录、排卵预测
-- 孕期模式（自动审核用药安全）
-- 经期饮食与生活建议
-
-**家庭协作**
-
-- 家庭成员健康面板
-- 儿童用药体重/年龄校核
-- 老人接种与体检提醒
-- 家庭成员异常情绪预警
-
-**探索性功能**
-
-- 手表心率变异性(HRV) + 睡眠数据分析，识别"沉默的健康信号"
-- 皮肤问题拍照初步识别
-- 智能水杯、蓝牙体温计等硬件联动
-- 心理咨询服务接入
-
----
-
-## 优先顺序总览
-
-```
-🔴 第一阶段  → 药品知识库 → AI 重定位 → 用药闭环体验 → 用药反应记录
-🟡 第二阶段  → 体征/症状/情绪记录 → 健康时间线 → 预防筛查 → 环境提醒
-🟢 第三阶段  → 主动建议 → 情绪心理深度 → 专科档案 OCR
-🔵 第四阶段  → 手表 → 电脑 → 网页 → 医生分享
-⚪ 延缓      → 女性健康 → 家庭协作 → 探索性功能
-```
-
-红线不变：不诊断、不替代医生、不编造药品信息。
+Boundary: no diagnosis, no doctor replacement, no fabricated medicine facts.

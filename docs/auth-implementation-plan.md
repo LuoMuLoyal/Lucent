@@ -1,5 +1,10 @@
 # Auth Implementation Plan
 
+> 状态：归档 / 实施记录。
+>
+> Auth 基线已经完成并通过 e2e。当前进度请先读 `README.md`、`docs/README.md`、`CHANGELOG.md` 和 `docs/auth-api-mock.md`。
+> 本文件只在 Auth 边界发生重大变化时补充，不再作为每日进度来源。
+
 > 基于 [auth-api-mock.md](auth-api-mock.md) 约束，分步实现 Lucent 认证模块。
 >
 > **最后更新**: 2026-05-30 16:45 | **当前阶段**: Auth 基线加固完成，进入前端登录/注册体验完善
