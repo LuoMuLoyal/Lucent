@@ -9,7 +9,7 @@ import {
 @Module({
   imports: [
     NestI18nModule.forRoot({
-      fallbackLanguage: 'zh-CN',
+      fallbackLanguage: 'en',
       loaderOptions: {
         path: path.join(__dirname),
         watch: process.env['NODE_ENV'] !== 'production',
