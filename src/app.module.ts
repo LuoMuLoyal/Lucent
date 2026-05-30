@@ -13,6 +13,7 @@ import { CacheConfigService } from './config/cache.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { I18nModule } from './i18n/i18n.module';
+import { UserHealthContextModule } from './user-health-context/user-health-context.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { I18nModule } from './i18n/i18n.module';
     PrismaModule,
     MailModule,
     AuthModule,
+    UserHealthContextModule,
   ],
   controllers: [AppController],
   providers: [AppService],

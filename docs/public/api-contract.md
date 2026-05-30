@@ -10,6 +10,7 @@ Last updated: 2026-05-30
 
 ```text
 GET /api/v1/health
+GET /api/v1/me/health-context
 ```
 
 Legacy Express `/api/*` routes are reference material only. Lucent does not need to keep their request bodies or response envelope.
@@ -230,3 +231,20 @@ Current auth compatibility notes:
 - Email identity is case-insensitive; Lucent trims and lowercases email before lookup/persistence.
 - Auth responses still expose `emailVerified: boolean` for frontend compatibility, but persistence uses `emailVerifiedAt`.
 - Refresh tokens are opaque session secrets, not JWTs. Lucent stores only their hash in `user_sessions`.
+
+## User Health Context
+
+Current authenticated aggregate endpoint:
+
+```text
+GET /api/v1/me/health-context
+Authorization: Bearer <accessToken>
+```
+
+Contract notes:
+
+- Returns `summary`, `profile`, `allergies`, `conditions`, and `currentMedicines` in one envelope.
+- `profile` shape is stable and null-safe even if the stored relation row is missing.
+- Day-level medical dates use `YYYY-MM-DD`.
+- Timestamp fields use ISO 8601 strings.
+- The endpoint is read-only in the current phase and is meant to be the first backend-facing aggregate for personalized Today flows.

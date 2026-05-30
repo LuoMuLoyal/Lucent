@@ -5,4 +5,5 @@ import { UserService } from './user.service';
   providers: [UserService],
   exports: [UserService],
 })
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class UserModule {}

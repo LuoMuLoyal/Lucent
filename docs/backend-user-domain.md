@@ -9,7 +9,31 @@ This document is the current source of truth for Lucent's user-domain persistenc
 Current boundary:
 
 - `/api/v1/auth/*` stays frontend-compatible and still returns a minimal user shape.
-- Rich personal health context is already modeled in the database, but most of it is not exposed as public API yet.
+- `GET /api/v1/me/health-context` now exposes a read-only aggregate for the authenticated user's health context.
+- Rich personal health context is modeled in the database, but write APIs are still not exposed yet.
+
+## Current API Surface
+
+### `GET /api/v1/me/health-context`
+
+Auth-protected aggregate read model for the current user.
+
+Returns:
+
+- `summary`
+- `profile`
+- `allergies`
+- `conditions`
+- `currentMedicines`
+
+Notes:
+
+- The handler derives the user id from JWT payload and does not accept request-body or query `userId`.
+- `profile` always returns a stable object shape even if the legacy relation row is missing.
+- `birth_date`, `diagnosed_at`, and medicine start/end dates are exposed as `YYYY-MM-DD`.
+- Timestamp fields are exposed as ISO 8601 strings.
+- Active allergies and current medicines are filtered at the query layer; conditions currently return the full recorded list.
+- This endpoint is intended as the backend second layer for Today and other personalized read experiences.
 
 ## Design Principles
 
@@ -188,9 +212,9 @@ Internal behavior already changed:
 
 ## Deliberately Not Done Yet
 
+- No write APIs yet for profile, allergies, conditions, or current medicines.
 - No separate public profile endpoints yet.
 - No PostgreSQL schema split or row-level security yet.
 - No session-management UI/API for listing devices or revoking individual sessions by id.
-- No first-class backend modules for profile, allergies, conditions, or current medicines yet.
 
-Those pieces should land as feature-first modules when the frontend starts consuming Today and personal health context.
+Next pieces should land as feature-first modules around writes, editing flows, and more granular Today-specific projections when the frontend begins integrating live data.
