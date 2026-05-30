@@ -8,7 +8,7 @@ Lucent is the target backend for Luminous. It replaces the deprecated Express ba
 
 - `Luminous/backend` still powers the deployed legacy `https://devluo.com` service.
 - Lucent is the mainline for all new backend work.
-- Luminous includes Lucent as a Git submodule at `Luminous/Lucent`.
+- Lucent lives alongside `Luminous/` inside the shared `Lumos/` workspace.
 
 ## Stack
 
@@ -55,6 +55,7 @@ Current baseline:
 - Nest CLI uses SWC for application builds.
 - Runtime config loads `.env.development` and `.env.production` by convention.
 - API 全局 prefix `/api` + NestJS URI versioning（`/v1`），health check: `GET /api/v1/health`。
+- i18n uses `Accept-Language` request header, with fallback language `en`.
 
 ## Documentation
 
@@ -74,13 +75,14 @@ Current baseline:
 - [docs/environment.md](docs/environment.md): env files, scripts, and bootstrap baseline.
 - [docs/migration-roadmap.md](docs/migration-roadmap.md): backend buildout phases.
 
-## Submodule Workflow
+## Workspace Note
 
-When working from Luminous:
+Current local layout:
 
-```bash
-git submodule update --init --recursive
-cd Lucent
+```text
+Lumos/
+  Luminous/
+  Lucent/
 ```
 
-Commit and push Lucent changes in this repository first. Then update and commit the submodule pointer in Luminous.
+Work on `Lucent/` directly in this workspace. Do not rely on old submodule instructions.

@@ -73,6 +73,17 @@ X-Request-Id: <request-id>
 
 Clients do not need to parse it during normal flows. It exists for issue reports and log correlation.
 
+Lucent also reads:
+
+```text
+Accept-Language: en | zh-CN
+```
+
+Current fallback behavior:
+
+- If the client sends no language header, Lucent falls back to `en`.
+- Clients that need Chinese responses should explicitly send `Accept-Language: zh-CN`.
+
 ## Error Codes
 
 Lucent uses **numeric error codes** mapped automatically by `ApiExceptionFilter` from NestJS standard exceptions:
