@@ -51,7 +51,12 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
-  RefreshToken: 'RefreshToken'
+  UserProfile: 'UserProfile',
+  UserSession: 'UserSession',
+  UserDevice: 'UserDevice',
+  UserAllergy: 'UserAllergy',
+  UserCondition: 'UserCondition',
+  UserCurrentMedicine: 'UserCurrentMedicine'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -73,10 +78,12 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const UserScalarFieldEnum = {
   id: 'id',
   email: 'email',
-  password: 'password',
+  passwordHash: 'passwordHash',
   nickname: 'nickname',
   avatar: 'avatar',
-  emailVerified: 'emailVerified',
+  status: 'status',
+  emailVerifiedAt: 'emailVerifiedAt',
+  lastLoginAt: 'lastLoginAt',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -85,15 +92,118 @@ export const UserScalarFieldEnum = {
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
-export const RefreshTokenScalarFieldEnum = {
-  id: 'id',
-  token: 'token',
+export const UserProfileScalarFieldEnum = {
   userId: 'userId',
-  expiresAt: 'expiresAt',
-  createdAt: 'createdAt'
+  birthDate: 'birthDate',
+  sexAtBirth: 'sexAtBirth',
+  heightCm: 'heightCm',
+  pregnancyState: 'pregnancyState',
+  lactationState: 'lactationState',
+  bloodType: 'bloodType',
+  locale: 'locale',
+  timezone: 'timezone',
+  unitSystem: 'unitSystem',
+  onboardingCompletedAt: 'onboardingCompletedAt',
+  extras: 'extras',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
-export type RefreshTokenScalarFieldEnum = (typeof RefreshTokenScalarFieldEnum)[keyof typeof RefreshTokenScalarFieldEnum]
+export type UserProfileScalarFieldEnum = (typeof UserProfileScalarFieldEnum)[keyof typeof UserProfileScalarFieldEnum]
+
+
+export const UserSessionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  refreshTokenHash: 'refreshTokenHash',
+  deviceType: 'deviceType',
+  deviceName: 'deviceName',
+  platform: 'platform',
+  appVersion: 'appVersion',
+  ipAddress: 'ipAddress',
+  userAgent: 'userAgent',
+  context: 'context',
+  lastUsedAt: 'lastUsedAt',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserSessionScalarFieldEnum = (typeof UserSessionScalarFieldEnum)[keyof typeof UserSessionScalarFieldEnum]
+
+
+export const UserDeviceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  platform: 'platform',
+  deviceName: 'deviceName',
+  pushToken: 'pushToken',
+  locale: 'locale',
+  timezone: 'timezone',
+  notificationsEnabled: 'notificationsEnabled',
+  capabilities: 'capabilities',
+  lastSeenAt: 'lastSeenAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserDeviceScalarFieldEnum = (typeof UserDeviceScalarFieldEnum)[keyof typeof UserDeviceScalarFieldEnum]
+
+
+export const UserAllergyScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  kind: 'kind',
+  label: 'label',
+  reaction: 'reaction',
+  severity: 'severity',
+  isActive: 'isActive',
+  note: 'note',
+  extras: 'extras',
+  recordedAt: 'recordedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserAllergyScalarFieldEnum = (typeof UserAllergyScalarFieldEnum)[keyof typeof UserAllergyScalarFieldEnum]
+
+
+export const UserConditionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  label: 'label',
+  status: 'status',
+  diagnosedAt: 'diagnosedAt',
+  resolvedAt: 'resolvedAt',
+  note: 'note',
+  extras: 'extras',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserConditionScalarFieldEnum = (typeof UserConditionScalarFieldEnum)[keyof typeof UserConditionScalarFieldEnum]
+
+
+export const UserCurrentMedicineScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  source: 'source',
+  sourceRefId: 'sourceRefId',
+  displayName: 'displayName',
+  strengthText: 'strengthText',
+  doseText: 'doseText',
+  route: 'route',
+  startedAt: 'startedAt',
+  endedAt: 'endedAt',
+  isCurrent: 'isCurrent',
+  note: 'note',
+  sourcePayload: 'sourcePayload',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserCurrentMedicineScalarFieldEnum = (typeof UserCurrentMedicineScalarFieldEnum)[keyof typeof UserCurrentMedicineScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -102,6 +212,14 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+export const NullableJsonNullValueInput = {
+  DbNull: DbNull,
+  JsonNull: JsonNull
+} as const
+
+export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {
@@ -118,4 +236,13 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+export const JsonNullValueFilter = {
+  DbNull: DbNull,
+  JsonNull: JsonNull,
+  AnyNull: AnyNull
+} as const
+
+export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

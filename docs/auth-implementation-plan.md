@@ -4,6 +4,15 @@
 >
 > Auth 基线已经完成并通过 e2e。当前进度请先读 `README.md`、`docs/README.md`、`CHANGELOG.md` 和 `docs/auth-api-mock.md`。
 > 本文件只在 Auth 边界发生重大变化时补充，不再作为每日进度来源。
+>
+> 当前真实状态请优先以 `docs/backend-user-domain.md`、`docs/auth-api-mock.md` 和 `docs/environment.md` 为准。
+> 下文正文主要记录最初 auth 基线落地过程，已经不再是当前 schema / session / Prisma CLI 行为的权威说明。
+>
+> 已知过期点：
+>
+> - 正文中的 `RefreshToken` / `refresh_tokens` 设计已经被 `UserSession` / `user_sessions` 取代。
+> - 正文中的 `emailVerified` / `password` 持久化字段已经改为 `emailVerifiedAt` / `passwordHash`。
+> - Prisma CLI 不再固定读取 `.env.development`，而是按 `NODE_ENV` 解析环境文件。
 
 > 基于 [auth-api-mock.md](auth-api-mock.md) 约束，分步实现 Lucent 认证模块。
 >

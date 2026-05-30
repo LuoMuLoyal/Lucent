@@ -2,20 +2,21 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import {
   ConflictException,
-  UnauthorizedException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
+import { createHash } from 'node:crypto';
 
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserService } from '../user/user.service';
 import { VerificationCodeService } from './verification-code.service';
+import { UserStatus } from '../generated/prisma/client';
 
-// Mock argon2
 jest.mock('argon2', () => ({
   argon2id: 2,
   hash: jest.fn(),
@@ -26,10 +27,12 @@ jest.mock('argon2', () => ({
 const mockUser = {
   id: 'user-uuid-1',
   email: 'test@example.com',
-  password: '$argon2id$mock',
+  passwordHash: '$argon2id$mock',
   nickname: 'TestUser',
   avatar: null,
-  emailVerified: false,
+  status: UserStatus.active,
+  emailVerifiedAt: null,
+  lastLoginAt: null,
   deletedAt: null,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-01T00:00:00Z'),
@@ -38,9 +41,13 @@ const mockUser = {
 const mockJwtConfig = {
   accessSecret: 'test-access-secret',
   refreshSecret: 'test-refresh-secret',
-  accessTtl: 900, // 15 min
-  refreshTtl: 1209600, // 14 days
+  accessTtl: 900,
+  refreshTtl: 1_209_600,
 };
+
+function hashRefreshToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -56,7 +63,7 @@ describe('AuthService', () => {
         {
           provide: PrismaService,
           useValue: {
-            refreshToken: {
+            userSession: {
               create: jest.fn(),
               findUnique: jest.fn(),
               delete: jest.fn(),
@@ -111,18 +118,25 @@ describe('AuthService', () => {
     jwtService = module.get(JwtService);
     verificationCodeService = module.get(VerificationCodeService);
 
-    // Default: argon2.hash returns a hashed password
     (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$newhash');
     (argon2.verify as jest.Mock).mockResolvedValue(true);
-    // Default: jwtService.signAsync returns a token
     jwtService.signAsync.mockResolvedValue('mock-jwt-token');
-    // Default: prisma refreshToken.create succeeds
-    (prismaService.refreshToken.create as jest.Mock).mockResolvedValue({
-      id: 'rt-id',
-      token: 'rt-token',
-      userId: 'user-uuid-1',
-      expiresAt: new Date(Date.now() + 14 * 86400 * 1000),
+    (prismaService.userSession.create as jest.Mock).mockResolvedValue({
+      id: 'session-id',
+      userId: mockUser.id,
+      refreshTokenHash: hashRefreshToken('created-token'),
+      deviceType: null,
+      deviceName: null,
+      platform: null,
+      appVersion: null,
+      ipAddress: null,
+      userAgent: null,
+      context: null,
+      lastUsedAt: new Date(),
+      expiresAt: new Date(Date.now() + 14 * 86_400 * 1000),
+      revokedAt: null,
       createdAt: new Date(),
+      updatedAt: new Date(),
     });
   });
 
@@ -130,15 +144,17 @@ describe('AuthService', () => {
     jest.restoreAllMocks();
   });
 
-  // ── register ──────────────────────────────────────────────────
-
   describe('register', () => {
     it('should register a new user and return user + tokens', async () => {
+      const verifiedUser = {
+        ...mockUser,
+        emailVerifiedAt: new Date('2026-01-02T00:00:00Z'),
+      };
       userService.findByEmail.mockResolvedValue(null);
-      userService.create.mockResolvedValue(mockUser);
+      userService.create.mockResolvedValue(verifiedUser);
 
       const result = await service.register({
-        email: 'test@example.com',
+        email: 'TEST@example.com',
         password: 'Password123!',
         code: '123456',
         nickname: 'TestUser',
@@ -157,11 +173,13 @@ describe('AuthService', () => {
       expect(userService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           email: 'test@example.com',
+          passwordHash: '$argon2id$newhash',
           nickname: 'TestUser',
-          emailVerified: true,
+          emailVerifiedAt: expect.any(Date) as Date,
+          profile: { create: {} },
         }),
       );
-      expect(result.user).toEqual(mockUser);
+      expect(result.user).toEqual(verifiedUser);
       expect(result.accessToken).toBe('mock-jwt-token');
       expect(result.refreshToken).toBeDefined();
     });
@@ -180,11 +198,14 @@ describe('AuthService', () => {
     });
   });
 
-  // ── login ─────────────────────────────────────────────────────
-
   describe('login', () => {
     it('should login with valid password and return user + tokens', async () => {
+      const updatedUser = {
+        ...mockUser,
+        lastLoginAt: new Date('2026-01-02T00:00:00Z'),
+      };
       userService.findByEmail.mockResolvedValue(mockUser);
+      userService.update.mockResolvedValue(updatedUser);
       (argon2.verify as jest.Mock).mockResolvedValue(true);
 
       const result = await service.login({
@@ -193,10 +214,14 @@ describe('AuthService', () => {
       });
 
       expect(argon2.verify).toHaveBeenCalledWith(
-        mockUser.password,
+        mockUser.passwordHash,
         'Password123!',
       );
-      expect(result.user).toEqual(mockUser);
+      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
+        lastLoginAt: expect.any(Date) as Date,
+        status: UserStatus.active,
+      });
+      expect(result.user).toEqual(updatedUser);
       expect(result.accessToken).toBe('mock-jwt-token');
     });
 
@@ -251,7 +276,12 @@ describe('AuthService', () => {
     });
 
     it('should login with verification code', async () => {
+      const updatedUser = {
+        ...mockUser,
+        lastLoginAt: new Date('2026-01-02T00:00:00Z'),
+      };
       userService.findByEmail.mockResolvedValue(mockUser);
+      userService.update.mockResolvedValue(updatedUser);
       verificationCodeService.verify.mockResolvedValue(true);
 
       const result = await service.login({
@@ -264,45 +294,54 @@ describe('AuthService', () => {
         '123456',
         'login',
       );
-      expect(result.user).toEqual(mockUser);
+      expect(result.user).toEqual(updatedUser);
     });
   });
 
-  // ── refresh ───────────────────────────────────────────────────
-
   describe('refresh', () => {
     it('should rotate refresh token and return new token pair', async () => {
+      const refreshToken = 'old-refresh-token';
       const mockRefreshRecord = {
-        id: 'rt-id',
-        token: 'old-refresh-token',
+        id: 'session-id',
         userId: 'user-uuid-1',
-        expiresAt: new Date(Date.now() + 86400 * 1000),
+        refreshTokenHash: hashRefreshToken(refreshToken),
+        deviceType: null,
+        deviceName: null,
+        platform: null,
+        appVersion: null,
+        ipAddress: null,
+        userAgent: null,
+        context: null,
+        lastUsedAt: new Date(),
+        expiresAt: new Date(Date.now() + 86_400 * 1000),
+        revokedAt: null,
         createdAt: new Date(),
+        updatedAt: new Date(),
         user: mockUser,
       };
 
-      (prismaService.refreshToken.findUnique as jest.Mock).mockResolvedValue(
+      (prismaService.userSession.findUnique as jest.Mock).mockResolvedValue(
         mockRefreshRecord,
       );
-      (prismaService.refreshToken.delete as jest.Mock).mockResolvedValue(
+      (prismaService.userSession.delete as jest.Mock).mockResolvedValue(
         mockRefreshRecord,
       );
 
-      const result = await service.refresh('old-refresh-token');
+      const result = await service.refresh(refreshToken);
 
-      expect(prismaService.refreshToken.findUnique).toHaveBeenCalledWith({
-        where: { token: 'old-refresh-token' },
+      expect(prismaService.userSession.findUnique).toHaveBeenCalledWith({
+        where: { refreshTokenHash: hashRefreshToken(refreshToken) },
         include: { user: true },
       });
-      expect(prismaService.refreshToken.delete).toHaveBeenCalledWith({
-        where: { id: 'rt-id' },
+      expect(prismaService.userSession.delete).toHaveBeenCalledWith({
+        where: { id: 'session-id' },
       });
-      expect(prismaService.refreshToken.deleteMany).not.toHaveBeenCalled();
+      expect(prismaService.userSession.deleteMany).not.toHaveBeenCalled();
       expect(result.accessToken).toBe('mock-jwt-token');
     });
 
     it('should throw UnauthorizedException for invalid refresh token', async () => {
-      (prismaService.refreshToken.findUnique as jest.Mock).mockResolvedValue(
+      (prismaService.userSession.findUnique as jest.Mock).mockResolvedValue(
         null,
       );
 
@@ -312,11 +351,22 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException for expired refresh token', async () => {
-      (prismaService.refreshToken.findUnique as jest.Mock).mockResolvedValue({
-        id: 'rt-id',
-        token: 'expired-token',
+      (prismaService.userSession.findUnique as jest.Mock).mockResolvedValue({
+        id: 'session-id',
         userId: 'user-uuid-1',
-        expiresAt: new Date(Date.now() - 86400 * 1000), // expired yesterday
+        refreshTokenHash: hashRefreshToken('expired-token'),
+        deviceType: null,
+        deviceName: null,
+        platform: null,
+        appVersion: null,
+        ipAddress: null,
+        userAgent: null,
+        context: null,
+        lastUsedAt: new Date(),
+        expiresAt: new Date(Date.now() - 86_400 * 1000),
+        revokedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
         user: mockUser,
       });
 
@@ -326,37 +376,33 @@ describe('AuthService', () => {
     });
   });
 
-  // ── logout ────────────────────────────────────────────────────
-
   describe('logout', () => {
-    it('should delete the refresh token', async () => {
-      (prismaService.refreshToken.deleteMany as jest.Mock).mockResolvedValue({
+    it('should delete the refresh token session', async () => {
+      (prismaService.userSession.deleteMany as jest.Mock).mockResolvedValue({
         count: 1,
       });
 
       await service.logout('some-refresh-token');
 
-      expect(prismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
-        where: { token: 'some-refresh-token' },
+      expect(prismaService.userSession.deleteMany).toHaveBeenCalledWith({
+        where: { refreshTokenHash: hashRefreshToken('some-refresh-token') },
       });
     });
   });
 
   describe('logoutAll', () => {
-    it('should delete all refresh tokens for a user', async () => {
-      (prismaService.refreshToken.deleteMany as jest.Mock).mockResolvedValue({
+    it('should delete all refresh token sessions for a user', async () => {
+      (prismaService.userSession.deleteMany as jest.Mock).mockResolvedValue({
         count: 3,
       });
 
       await service.logoutAll('user-uuid-1');
 
-      expect(prismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+      expect(prismaService.userSession.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'user-uuid-1' },
       });
     });
   });
-
-  // ── getMe ─────────────────────────────────────────────────────
 
   describe('getMe', () => {
     it('should return user by id', async () => {
@@ -376,8 +422,6 @@ describe('AuthService', () => {
       );
     });
   });
-
-  // ── updateMe ──────────────────────────────────────────────────
 
   describe('updateMe', () => {
     it('should update nickname and avatar', async () => {
@@ -401,14 +445,12 @@ describe('AuthService', () => {
     });
   });
 
-  // ── changePassword ────────────────────────────────────────────
-
   describe('changePassword', () => {
     it('should change password and logout all devices', async () => {
       userService.findById.mockResolvedValue(mockUser);
       (argon2.verify as jest.Mock).mockResolvedValue(true);
       userService.update.mockResolvedValue(mockUser);
-      (prismaService.refreshToken.deleteMany as jest.Mock).mockResolvedValue({
+      (prismaService.userSession.deleteMany as jest.Mock).mockResolvedValue({
         count: 0,
       });
 
@@ -418,7 +460,7 @@ describe('AuthService', () => {
       });
 
       expect(argon2.verify).toHaveBeenCalledWith(
-        mockUser.password,
+        mockUser.passwordHash,
         'OldPass123!',
       );
       expect(argon2.hash).toHaveBeenCalledWith(
@@ -426,9 +468,9 @@ describe('AuthService', () => {
         expect.objectContaining({ type: argon2.argon2id }),
       );
       expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
-        password: '$argon2id$newhash',
+        passwordHash: '$argon2id$newhash',
       });
-      expect(prismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+      expect(prismaService.userSession.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'user-uuid-1' },
       });
     });
@@ -446,21 +488,19 @@ describe('AuthService', () => {
     });
   });
 
-  // ── changeEmail ───────────────────────────────────────────────
-
   describe('changeEmail', () => {
     it('should change email after verification', async () => {
       userService.findById.mockResolvedValue(mockUser);
       verificationCodeService.verify.mockResolvedValue(true);
-      userService.findByEmail.mockResolvedValue(null); // new email not taken
+      userService.findByEmail.mockResolvedValue(null);
       userService.update.mockResolvedValue({
         ...mockUser,
         email: 'new@example.com',
-        emailVerified: true,
+        emailVerifiedAt: new Date('2026-01-02T00:00:00Z'),
       });
 
       await service.changeEmail('user-uuid-1', {
-        newEmail: 'new@example.com',
+        newEmail: 'NEW@example.com',
         code: '654321',
       });
 
@@ -473,13 +513,13 @@ describe('AuthService', () => {
       );
       expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
         email: 'new@example.com',
-        emailVerified: true,
+        emailVerifiedAt: expect.any(Date) as Date,
       });
     });
 
     it('should throw ConflictException if new email already taken', async () => {
       userService.findById.mockResolvedValue(mockUser);
-      userService.findByEmail.mockResolvedValue(mockUser); // email taken
+      userService.findByEmail.mockResolvedValue(mockUser);
 
       await expect(
         service.changeEmail('user-uuid-1', {
@@ -491,25 +531,30 @@ describe('AuthService', () => {
     });
   });
 
-  // ── deleteAccount ─────────────────────────────────────────────
-
   describe('deleteAccount', () => {
     it('should soft-delete user after password verification', async () => {
       userService.findById.mockResolvedValue(mockUser);
       (argon2.verify as jest.Mock).mockResolvedValue(true);
-      (prismaService.refreshToken.deleteMany as jest.Mock).mockResolvedValue({
+      (prismaService.userSession.deleteMany as jest.Mock).mockResolvedValue({
         count: 0,
       });
-      (prismaService.user.update as jest.Mock).mockResolvedValue(mockUser);
+      (prismaService.user.update as jest.Mock).mockResolvedValue({
+        ...mockUser,
+        deletedAt: new Date('2026-01-02T00:00:00Z'),
+        status: UserStatus.deleted,
+      });
 
       await service.deleteAccount('user-uuid-1', { password: 'Password123!' });
 
-      expect(prismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+      expect(prismaService.userSession.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'user-uuid-1' },
       });
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'user-uuid-1' },
-        data: { deletedAt: expect.any(Date) as Date },
+        data: {
+          deletedAt: expect.any(Date) as Date,
+          status: UserStatus.deleted,
+        },
       });
     });
 
@@ -523,14 +568,12 @@ describe('AuthService', () => {
     });
   });
 
-  // ── sendVerificationCode ──────────────────────────────────────
-
   describe('sendVerificationCode', () => {
     it('should delegate to verificationCodeService.send', async () => {
       verificationCodeService.send.mockResolvedValue(undefined);
 
       const result = await service.sendVerificationCode({
-        email: 'test@example.com',
+        email: 'TEST@example.com',
         scene: 'register',
       });
 
@@ -542,14 +585,15 @@ describe('AuthService', () => {
     });
   });
 
-  // ── verifyEmail ───────────────────────────────────────────────
-
   describe('verifyEmail', () => {
     it('should verify code and mark email as verified', async () => {
       verificationCodeService.verify.mockResolvedValue(true);
-      userService.updateByEmail.mockResolvedValue(mockUser);
+      userService.updateByEmail.mockResolvedValue({
+        ...mockUser,
+        emailVerifiedAt: new Date('2026-01-02T00:00:00Z'),
+      });
 
-      await service.verifyEmail({ email: 'test@example.com', code: '123456' });
+      await service.verifyEmail({ email: 'TEST@example.com', code: '123456' });
 
       expect(verificationCodeService.verify).toHaveBeenCalledWith(
         'test@example.com',
@@ -559,13 +603,11 @@ describe('AuthService', () => {
       expect(userService.updateByEmail).toHaveBeenCalledWith(
         'test@example.com',
         {
-          emailVerified: true,
+          emailVerifiedAt: expect.any(Date) as Date,
         },
       );
     });
   });
-
-  // ── forgotPassword ────────────────────────────────────────────
 
   describe('forgotPassword', () => {
     it('should send reset code if user exists', async () => {
@@ -573,7 +615,7 @@ describe('AuthService', () => {
       verificationCodeService.send.mockResolvedValue(undefined);
 
       const result = await service.forgotPassword({
-        email: 'test@example.com',
+        email: 'TEST@example.com',
       });
 
       expect(verificationCodeService.send).toHaveBeenCalledWith(
@@ -583,7 +625,7 @@ describe('AuthService', () => {
       expect(result.message).toBe('auth.forgot_password_hint');
     });
 
-    it('should return success message even if user does not exist (anti-enumeration)', async () => {
+    it('should return success message even if user does not exist', async () => {
       userService.findByEmail.mockResolvedValue(null);
 
       const result = await service.forgotPassword({
@@ -595,20 +637,18 @@ describe('AuthService', () => {
     });
   });
 
-  // ── resetPassword ─────────────────────────────────────────────
-
   describe('resetPassword', () => {
     it('should verify code, hash new password, and logout all devices', async () => {
       verificationCodeService.verify.mockResolvedValue(true);
       userService.findByEmail.mockResolvedValue(mockUser);
       (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$reset');
       (prismaService.user.update as jest.Mock).mockResolvedValue(mockUser);
-      (prismaService.refreshToken.deleteMany as jest.Mock).mockResolvedValue({
+      (prismaService.userSession.deleteMany as jest.Mock).mockResolvedValue({
         count: 0,
       });
 
       await service.resetPassword({
-        email: 'test@example.com',
+        email: 'TEST@example.com',
         code: '123456',
         password: 'NewPassword123!',
       });
@@ -624,9 +664,9 @@ describe('AuthService', () => {
       );
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'user-uuid-1' },
-        data: { password: '$argon2id$reset' },
+        data: { passwordHash: '$argon2id$reset' },
       });
-      expect(prismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+      expect(prismaService.userSession.deleteMany).toHaveBeenCalledWith({
         where: { userId: 'user-uuid-1' },
       });
     });

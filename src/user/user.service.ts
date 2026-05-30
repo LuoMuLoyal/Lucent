@@ -15,7 +15,17 @@ export class UserService {
   }
 
   async create(data: Prisma.UserCreateInput): Promise<User> {
-    return this.prisma.user.create({ data });
+    const profileData =
+      data.profile === undefined
+        ? { create: {} satisfies Prisma.UserProfileCreateWithoutUserInput }
+        : data.profile;
+
+    return this.prisma.user.create({
+      data: {
+        ...data,
+        profile: profileData,
+      },
+    });
   }
 
   async update(id: string, data: Prisma.UserUpdateInput): Promise<User> {
@@ -25,7 +35,12 @@ export class UserService {
   async updateByEmail(
     email: string,
     data: Prisma.UserUpdateInput,
-  ): Promise<User> {
-    return this.prisma.user.update({ where: { email }, data });
+  ): Promise<User | null> {
+    const user = await this.findByEmail(email);
+    if (!user) {
+      return null;
+    }
+
+    return this.prisma.user.update({ where: { id: user.id }, data });
   }
 }

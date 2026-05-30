@@ -8,7 +8,115 @@
 * 🟢 You can import this file directly.
 */
 
+export const UserStatus = {
+  active: 'active',
+  suspended: 'suspended',
+  deleted: 'deleted'
+} as const
+
+export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus]
 
 
-// This file is empty because there are no enums in the schema.
-export {}
+export const SexAtBirth = {
+  female: 'female',
+  male: 'male',
+  intersex: 'intersex',
+  unknown: 'unknown'
+} as const
+
+export type SexAtBirth = (typeof SexAtBirth)[keyof typeof SexAtBirth]
+
+
+export const PregnancyState = {
+  not_applicable: 'not_applicable',
+  unknown: 'unknown',
+  not_pregnant: 'not_pregnant',
+  pregnant: 'pregnant',
+  trying: 'trying',
+  postpartum: 'postpartum'
+} as const
+
+export type PregnancyState = (typeof PregnancyState)[keyof typeof PregnancyState]
+
+
+export const LactationState = {
+  not_applicable: 'not_applicable',
+  unknown: 'unknown',
+  no: 'no',
+  yes: 'yes'
+} as const
+
+export type LactationState = (typeof LactationState)[keyof typeof LactationState]
+
+
+export const UnitSystem = {
+  metric: 'metric',
+  imperial: 'imperial'
+} as const
+
+export type UnitSystem = (typeof UnitSystem)[keyof typeof UnitSystem]
+
+
+export const UserSessionDeviceType = {
+  mobile: 'mobile',
+  tablet: 'tablet',
+  desktop: 'desktop',
+  web: 'web',
+  watch: 'watch',
+  server: 'server',
+  other: 'other'
+} as const
+
+export type UserSessionDeviceType = (typeof UserSessionDeviceType)[keyof typeof UserSessionDeviceType]
+
+
+export const UserDevicePlatform = {
+  ios: 'ios',
+  android: 'android',
+  web: 'web',
+  windows: 'windows',
+  macos: 'macos',
+  linux: 'linux',
+  watchos: 'watchos',
+  other: 'other'
+} as const
+
+export type UserDevicePlatform = (typeof UserDevicePlatform)[keyof typeof UserDevicePlatform]
+
+
+export const UserAllergyKind = {
+  drug: 'drug',
+  food: 'food',
+  environment: 'environment',
+  other: 'other'
+} as const
+
+export type UserAllergyKind = (typeof UserAllergyKind)[keyof typeof UserAllergyKind]
+
+
+export const UserAllergySeverity = {
+  mild: 'mild',
+  moderate: 'moderate',
+  severe: 'severe',
+  unknown: 'unknown'
+} as const
+
+export type UserAllergySeverity = (typeof UserAllergySeverity)[keyof typeof UserAllergySeverity]
+
+
+export const UserConditionStatus = {
+  active: 'active',
+  resolved: 'resolved',
+  suspected: 'suspected'
+} as const
+
+export type UserConditionStatus = (typeof UserConditionStatus)[keyof typeof UserConditionStatus]
+
+
+export const MedicineSource = {
+  drugbank: 'drugbank',
+  cn: 'cn',
+  manual: 'manual'
+} as const
+
+export type MedicineSource = (typeof MedicineSource)[keyof typeof MedicineSource]

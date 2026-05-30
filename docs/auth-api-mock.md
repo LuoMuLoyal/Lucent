@@ -1,6 +1,6 @@
 # Auth API
 
-> 标准 RESTful 认证模块 mock，前后端以此文档对齐即可并行开发。
+> Lucent 认证接口契约。前后端按此文档对齐即可并行开发。
 >
 > 基础约定见 [api-contract](public/api-contract.md)。响应统一 `{ code, message, data }`，分页接口附加 `meta`。
 
@@ -9,22 +9,33 @@
 ## 目录
 
 - [Auth API](#auth-api)
-  - [目录](#目录)
-  - [1. 注册](#1-注册)
-  - [2. 登录](#2-登录)
-  - [3. 登出](#3-登出)
-  - [4. 刷新 Token](#4-刷新-token)
-  - [5. 发送邮箱验证码](#5-发送邮箱验证码)
-  - [6. 验证邮箱](#6-验证邮箱)
-  - [7. 忘记密码](#7-忘记密码)
-  - [8. 重置密码](#8-重置密码)
-  - [9. 获取当前用户](#9-获取当前用户)
-  - [10. 更新当前用户](#10-更新当前用户)
-  - [11. 修改密码](#11-修改密码)
-  - [12. 修改邮箱](#12-修改邮箱)
-  - [13. 注销账号](#13-注销账号)
-  - [认证说明](#认证说明)
-  - [错误码汇总](#错误码汇总)
+- [目录](#目录)
+- [实现对齐说明](#实现对齐说明)
+- [1. 注册](#1-注册)
+- [2. 登录](#2-登录)
+- [3. 登出](#3-登出)
+- [4. 刷新 Token](#4-刷新-token)
+- [5. 发送邮箱验证码](#5-发送邮箱验证码)
+- [6. 验证邮箱](#6-验证邮箱)
+- [7. 忘记密码](#7-忘记密码)
+- [8. 重置密码](#8-重置密码)
+- [9. 获取当前用户](#9-获取当前用户)
+- [10. 更新当前用户](#10-更新当前用户)
+- [11. 修改密码](#11-修改密码)
+- [12. 修改邮箱](#12-修改邮箱)
+- [13. 注销账号](#13-注销账号)
+- [认证说明](#认证说明)
+- [错误码汇总](#错误码汇总)
+
+---
+
+## 实现对齐说明
+
+- API 仍返回 `emailVerified: boolean`，但后端持久化字段已经是 `emailVerifiedAt`。
+- 邮箱在后端会先 `trim + lowercase` 后再查重、登录和持久化。
+- `refreshToken` 是不透明随机字符串，不是 JWT；数据库只保存其哈希，具体会话保存在 `user_sessions`。
+- `expiresIn` 反映当前 access token 配置。示例沿用默认值 `2h`，但实际环境可通过配置改成别的 TTL。
+- 修改密码、重置密码会清空该账号的所有 refresh sessions；客户端应主动清理本地会话。
 
 ---
 
@@ -71,23 +82,23 @@ POST /api/v1/auth/register
     },
     "tokens": {
       "accessToken": "eyJhbG...",
-      "refreshToken": "eyJhbG...",
+      "refreshToken": "4f8c9b1ef27c6a0a44dd6f3e1a1b2c3d4e5f60718293a4b5c6d7e8f901234567",
       "expiresIn": 7200
     }
   }
 }
 ```
 
-| 字段                | 类型         | 说明                     |
-| ------------------- | ------------ | ------------------------ |
-| user.id             | string       | 用户 ID                  |
-| user.email          | string       | 邮箱                     |
-| user.nickname       | string\|null | 昵称                     |
-| user.emailVerified  | boolean      | 邮箱是否已验证           |
-| user.createdAt      | string       | ISO 8601                 |
-| tokens.accessToken  | string       | JWT，默认有效期 2h       |
-| tokens.refreshToken | string       | 刷新令牌，默认有效期 30d |
-| tokens.expiresIn    | number       | accessToken 剩余有效秒数 |
+| 字段                | 类型         | 说明                                                   |
+| ------------------- | ------------ | ------------------------------------------------------ |
+| user.id             | string       | 用户 ID                                                |
+| user.email          | string       | 邮箱                                                   |
+| user.nickname       | string\|null | 昵称                                                   |
+| user.emailVerified  | boolean      | 邮箱是否已验证                                         |
+| user.createdAt      | string       | ISO 8601                                               |
+| tokens.accessToken  | string       | JWT，TTL 由环境配置决定（默认 2h）                     |
+| tokens.refreshToken | string       | opaque refresh token，服务端仅保存其哈希，TTL 默认 30d |
+| tokens.expiresIn    | number       | accessToken 剩余有效秒数                               |
 
 **Errors**
 
@@ -150,7 +161,7 @@ POST /api/v1/auth/login
     },
     "tokens": {
       "accessToken": "eyJhbG...",
-      "refreshToken": "eyJhbG...",
+      "refreshToken": "4f8c9b1ef27c6a0a44dd6f3e1a1b2c3d4e5f60718293a4b5c6d7e8f901234567",
       "expiresIn": 7200
     }
   }
@@ -159,12 +170,12 @@ POST /api/v1/auth/login
 
 **Errors**
 
-| HTTP | code   | message                             |
-| ---- | ------ | ----------------------------------- |
-| 400  | 400002 | DTO 字段校验详情                    |
-| 401  | 401001 | "邮箱或密码错误"                    |
-| 400  | 400100 | "验证码错误或已过期"                |
-| 429  | 401004 | "登录失败次数过多，请 N 分钟后重试" |
+| HTTP    | code   | message                             |
+| ------- | ------ | ----------------------------------- |
+| 400     | 400002 | DTO 字段校验详情                    |
+| 401     | 401001 | "邮箱或密码错误"                    |
+| 400/401 | 400100 | "验证码错误或已过期"                |
+| 401     | 401004 | "登录失败次数过多，请 N 分钟后重试" |
 
 ---
 
@@ -179,7 +190,7 @@ Authorization: Bearer <accessToken>
 
 ```json
 {
-  "refreshToken": "eyJhbG..."
+  "refreshToken": "4f8c9b1ef27c6a0a44dd6f3e1a1b2c3d4e5f60718293a4b5c6d7e8f901234567"
 }
 ```
 
@@ -204,7 +215,8 @@ Authorization: Bearer <accessToken>
 | 401  | 401001 | "未认证"       |
 | 401  | 401002 | "Token 已过期" |
 
-> accessToken 短期有效（默认 2h），不主动失效；登出主要目的是使 refreshToken 失效。
+> accessToken 为短期 JWT（默认 2h，可配置），服务端不跟踪其即时失效。
+> 登出主要目的是使本次 refresh session 失效。
 
 ---
 
@@ -220,7 +232,7 @@ POST /api/v1/auth/refresh
 
 ```json
 {
-  "refreshToken": "eyJhbG..."
+  "refreshToken": "4f8c9b1ef27c6a0a44dd6f3e1a1b2c3d4e5f60718293a4b5c6d7e8f901234567"
 }
 ```
 
@@ -236,7 +248,7 @@ POST /api/v1/auth/refresh
   "message": "",
   "data": {
     "accessToken": "eyJhbG...",
-    "refreshToken": "eyJhbG...",
+    "refreshToken": "9ab81234cd56ef7890aa11bb22cc33dd44ee55ff6677889900aabbccddeeff11",
     "expiresIn": 7200
   }
 }
@@ -295,7 +307,7 @@ POST /api/v1/auth/send-verification-code
 | HTTP | code   | message                       |
 | ---- | ------ | ----------------------------- |
 | 400  | 400002 | "scene 取值不合法"            |
-| 429  | 400101 | "发送过于频繁，请 N 秒后再试" |
+| 400  | 400101 | "发送过于频繁，请 N 秒后再试" |
 
 ---
 
@@ -333,10 +345,10 @@ POST /api/v1/auth/verify-email
 
 **Errors**
 
-| HTTP | code   | message              |
-| ---- | ------ | -------------------- |
-| 400  | 400002 | DTO 字段校验详情     |
-| 400  | 400100 | "验证码错误或已过期" |
+| HTTP    | code   | message              |
+| ------- | ------ | -------------------- |
+| 400     | 400002 | DTO 字段校验详情     |
+| 400/401 | 400100 | "验证码错误或已过期" |
 
 ---
 
@@ -377,7 +389,7 @@ POST /api/v1/auth/forgot-password
 | HTTP | code   | message                       |
 | ---- | ------ | ----------------------------- |
 | 400  | 400002 | "邮箱格式不正确"              |
-| 429  | 400101 | "发送过于频繁，请 N 秒后再试" |
+| 400  | 400101 | "发送过于频繁，请 N 秒后再试" |
 
 ---
 
@@ -413,14 +425,14 @@ POST /api/v1/auth/reset-password
 }
 ```
 
-> 重置成功后，该账号所有旧 token 全部失效。
+> 重置成功后，该账号的所有 refresh sessions 都会失效。
 
 **Errors**
 
-| HTTP | code   | message              |
-| ---- | ------ | -------------------- |
-| 400  | 400002 | DTO 字段校验详情     |
-| 400  | 400100 | "验证码错误或已过期" |
+| HTTP    | code   | message              |
+| ------- | ------ | -------------------- |
+| 400     | 400002 | DTO 字段校验详情     |
+| 400/401 | 400100 | "验证码错误或已过期" |
 
 > 无论邮箱是否已注册，验证码校验失败均返回 `400100`（防止邮箱枚举）。
 
@@ -540,7 +552,9 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-> 修改成功后，除当前 token 外该账号所有旧 token 全部失效。
+> 修改成功后，该账号的所有 refresh sessions 都会失效，包括当前设备。
+>
+> accessToken 是无状态 JWT，客户端应在成功后主动清理本地会话并按需重新登录。
 
 **Errors**
 
@@ -590,12 +604,12 @@ Authorization: Bearer <accessToken>
 
 **Errors**
 
-| HTTP | code   | message                  |
-| ---- | ------ | ------------------------ |
-| 400  | 400002 | DTO 字段校验详情         |
-| 400  | 400100 | "验证码错误或已过期"     |
-| 401  | 401001 | "未认证"                 |
-| 409  | 409001 | "该邮箱已被其他账号使用" |
+| HTTP    | code   | message                  |
+| ------- | ------ | ------------------------ |
+| 400     | 400002 | DTO 字段校验详情         |
+| 400/401 | 400100 | "验证码错误或已过期"     |
+| 401     | 401001 | "未认证"                 |
+| 409     | 409001 | "该邮箱已被其他账号使用" |
 
 ---
 
@@ -628,9 +642,9 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-> 账号数据保留 N 天后永久清除（软删除），期间可联系客服恢复。
+> 账号进入软删除状态（`deletedAt` + `status=deleted`），期间可以保留恢复空间。
 >
-> 注销后该账号所有 token 立即失效。
+> 注销后该账号所有 refresh sessions 立即失效。
 
 **Errors**
 
@@ -646,24 +660,26 @@ Authorization: Bearer <accessToken>
 
 - 受保护接口通过 `Authorization: Bearer <accessToken>` 认证
 - 用户身份从 JWT payload 派生，不接受 body / query 中的 `userId`
+- 邮箱按大小写不敏感处理，后端会在鉴权前做 `trim + lowercase`
 - accessToken 过期后客户端调用 `/auth/refresh` 换取新 token
 - refreshToken 每次使用后轮换（旧 token 立即失效）
-- refresh 不影响同账号其他设备的 refreshToken
-- 重置密码或修改密码后，除当前 token 外所有 token 失效
+- refreshToken 是 opaque session secret，服务端仅以哈希形式存入 `user_sessions`
+- refresh 不影响同账号其他设备的 refresh sessions
+- 重置密码或修改密码后，所有 refresh sessions 失效；客户端应清理本地会话
 
 ---
 
 ## 错误码汇总
 
-| code   | HTTP    | 说明                                |
-| ------ | ------- | ----------------------------------- |
-| 0      | 200/201 | 成功                                |
-| 400002 | 400     | 字段校验失败，message 含详情        |
-| 400100 | 400     | 验证码错误或已过期                  |
-| 400101 | 429     | 验证码发送冷却中                    |
-| 401001 | 401     | 未认证（无 token / token 格式错误） |
-| 401002 | 401     | accessToken 过期                    |
-| 401003 | 401     | refreshToken 无效或过期             |
-| 401004 | 429     | 登录失败次数过多，触发风控          |
-| 401005 | 401     | 当前密码错误                        |
-| 409001 | 409     | 邮箱已注册 / 已被占用               |
+| code   | HTTP      | 说明                                |
+| ------ | --------- | ----------------------------------- |
+| 0      | 200/201   | 成功                                |
+| 400002 | 400       | 字段校验失败，message 含详情        |
+| 400100 | 400 / 401 | 验证码错误或已过期                  |
+| 400101 | 400       | 验证码发送冷却中                    |
+| 401001 | 401       | 未认证（无 token / token 格式错误） |
+| 401002 | 401       | accessToken 过期                    |
+| 401003 | 401       | refreshToken 无效或过期             |
+| 401004 | 401       | 登录失败次数过多，触发风控          |
+| 401005 | 401       | 当前密码错误                        |
+| 409001 | 409       | 邮箱已注册 / 已被占用               |

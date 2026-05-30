@@ -22,7 +22,32 @@ export * from './enums.js';
  */
 export type User = Prisma.UserModel
 /**
- * Model RefreshToken
+ * Model UserProfile
  * 
  */
-export type RefreshToken = Prisma.RefreshTokenModel
+export type UserProfile = Prisma.UserProfileModel
+/**
+ * Model UserSession
+ * 
+ */
+export type UserSession = Prisma.UserSessionModel
+/**
+ * Model UserDevice
+ * 
+ */
+export type UserDevice = Prisma.UserDeviceModel
+/**
+ * Model UserAllergy
+ * 
+ */
+export type UserAllergy = Prisma.UserAllergyModel
+/**
+ * Model UserCondition
+ * 
+ */
+export type UserCondition = Prisma.UserConditionModel
+/**
+ * Model UserCurrentMedicine
+ * 
+ */
+export type UserCurrentMedicine = Prisma.UserCurrentMedicineModel

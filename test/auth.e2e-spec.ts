@@ -131,13 +131,13 @@ describe('Auth API (e2e)', () => {
     cache = app.get(CACHE_MANAGER);
 
     // Clean test data (delete in correct order for FK constraints)
-    await prisma.refreshToken.deleteMany();
+    await prisma.userSession.deleteMany();
     await prisma.user.deleteMany();
   });
 
   afterAll(async () => {
     // Final cleanup
-    await prisma.refreshToken.deleteMany();
+    await prisma.userSession.deleteMany();
     await prisma.user.deleteMany();
     await app.close();
   });

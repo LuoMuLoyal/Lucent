@@ -1,34 +1,235 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String          // argon2 hashed
-  nickname      String?
-  avatar        String?
-  emailVerified Boolean   @default(false)
-  deletedAt     DateTime?       // soft delete
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  refreshTokens RefreshToken[]
+enum UserStatus {
+  active
+  suspended
+  deleted
+}
 
+enum SexAtBirth {
+  female
+  male
+  intersex
+  unknown
+}
+
+enum PregnancyState {
+  not_applicable
+  unknown
+  not_pregnant
+  pregnant
+  trying
+  postpartum
+}
+
+enum LactationState {
+  not_applicable
+  unknown
+  no
+  yes
+}
+
+enum UnitSystem {
+  metric
+  imperial
+}
+
+enum UserSessionDeviceType {
+  mobile
+  tablet
+  desktop
+  web
+  watch
+  server
+  other
+}
+
+enum UserDevicePlatform {
+  ios
+  android
+  web
+  windows
+  macos
+  linux
+  watchos
+  other
+}
+
+enum UserAllergyKind {
+  drug
+  food
+  environment
+  other
+}
+
+enum UserAllergySeverity {
+  mild
+  moderate
+  severe
+  unknown
+}
+
+enum UserConditionStatus {
+  active
+  resolved
+  suspected
+}
+
+enum MedicineSource {
+  drugbank
+  cn
+  manual
+}
+
+model User {
+  id               String                @id @default(uuid())
+  email            String
+  passwordHash     String                @map("password_hash") // argon2 hashed
+  nickname         String?
+  avatar           String?
+  status           UserStatus            @default(active)
+  emailVerifiedAt  DateTime?             @map("email_verified_at") @db.Timestamptz(3)
+  lastLoginAt      DateTime?             @map("last_login_at") @db.Timestamptz(3)
+  deletedAt        DateTime?             @map("deleted_at") @db.Timestamptz(3)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  profile          UserProfile?
+  sessions         UserSession[]
+  devices          UserDevice[]
+  allergies        UserAllergy[]
+  conditions       UserCondition[]
+  currentMedicines UserCurrentMedicine[]
+
+  @@index([email])
+  @@index([status])
   @@map("users")
 }
 
-model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model UserProfile {
+  userId                 String          @id @map("user_id")
+  birthDate              DateTime?       @map("birth_date") @db.Date
+  sexAtBirth             SexAtBirth?     @map("sex_at_birth")
+  heightCm               Int?            @map("height_cm")
+  pregnancyState         PregnancyState? @map("pregnancy_state")
+  lactationState         LactationState? @map("lactation_state")
+  bloodType              String?         @map("blood_type")
+  locale                 String?
+  timezone               String?
+  unitSystem             UnitSystem?     @map("unit_system")
+  onboardingCompletedAt  DateTime?       @map("onboarding_completed_at") @db.Timestamptz(3)
+  extras                 Json?           @db.JsonB
+  createdAt              DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("refresh_tokens")
+  @@map("user_profiles")
+}
+
+model UserSession {
+  id               String                @id @default(uuid())
+  userId           String                @map("user_id")
+  refreshTokenHash String                @unique @map("refresh_token_hash")
+  deviceType       UserSessionDeviceType? @map("device_type")
+  deviceName       String?               @map("device_name")
+  platform         UserDevicePlatform?
+  appVersion       String?               @map("app_version")
+  ipAddress        String?               @map("ip_address")
+  userAgent        String?               @map("user_agent")
+  context          Json?                 @db.JsonB
+  lastUsedAt       DateTime?             @map("last_used_at") @db.Timestamptz(3)
+  expiresAt        DateTime              @map("expires_at") @db.Timestamptz(3)
+  revokedAt        DateTime?             @map("revoked_at") @db.Timestamptz(3)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user             User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([userId, expiresAt])
+  @@map("user_sessions")
+}
+
+model UserDevice {
+  id                   String             @id @default(uuid())
+  userId               String             @map("user_id")
+  platform             UserDevicePlatform
+  deviceName           String?            @map("device_name")
+  pushToken            String?            @unique @map("push_token")
+  locale               String?
+  timezone             String?
+  notificationsEnabled Boolean            @default(false) @map("notifications_enabled")
+  capabilities         Json?              @db.JsonB
+  lastSeenAt           DateTime?          @map("last_seen_at") @db.Timestamptz(3)
+  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, platform])
+  @@map("user_devices")
+}
+
+model UserAllergy {
+  id         String               @id @default(uuid())
+  userId     String               @map("user_id")
+  kind       UserAllergyKind
+  label      String
+  reaction   String?
+  severity   UserAllergySeverity? @default(unknown)
+  isActive   Boolean              @default(true) @map("is_active")
+  note       String?
+  extras     Json?                @db.JsonB
+  recordedAt DateTime?            @map("recorded_at") @db.Timestamptz(3)
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@map("user_allergies")
+}
+
+model UserCondition {
+  id          String              @id @default(uuid())
+  userId      String              @map("user_id")
+  label       String
+  status      UserConditionStatus @default(active)
+  diagnosedAt DateTime?           @map("diagnosed_at") @db.Date
+  resolvedAt  DateTime?           @map("resolved_at") @db.Date
+  note        String?
+  extras      Json?               @db.JsonB
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("user_conditions")
+}
+
+model UserCurrentMedicine {
+  id            String         @id @default(uuid())
+  userId        String         @map("user_id")
+  source        MedicineSource
+  sourceRefId   String?        @map("source_ref_id")
+  displayName   String         @map("display_name")
+  strengthText  String?        @map("strength_text")
+  doseText      String?        @map("dose_text")
+  route         String?
+  startedAt     DateTime?      @map("started_at") @db.Date
+  endedAt       DateTime?      @map("ended_at") @db.Date
+  isCurrent     Boolean        @default(true) @map("is_current")
+  note          String?
+  sourcePayload Json?          @map("source_payload") @db.JsonB
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isCurrent])
+  @@index([userId, source])
+  @@map("user_current_medicines")
 }
