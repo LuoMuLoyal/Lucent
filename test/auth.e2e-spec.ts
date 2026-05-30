@@ -37,13 +37,59 @@ interface RegisterLoginData {
 
 // ── Helpers ──────────────────────────────────────────────────
 
+const AUTH_PATH = {
+  register: '/api/v1/auth/register',
+  login: '/api/v1/auth/login',
+  logout: '/api/v1/auth/logout',
+  refresh: '/api/v1/auth/refresh',
+  sendVerificationCode: '/api/v1/auth/send-verification-code',
+  verifyEmail: '/api/v1/auth/verify-email',
+  forgotPassword: '/api/v1/auth/forgot-password',
+  resetPassword: '/api/v1/auth/reset-password',
+  me: '/api/v1/auth/me',
+  mePassword: '/api/v1/auth/me/password',
+  meEmail: '/api/v1/auth/me/email',
+} as const;
+
+const AUTH_SCENE = {
+  register: 'register',
+  login: 'login',
+  resetPassword: 'reset-password',
+  changeEmail: 'change-email',
+} as const;
+
+type AuthScene = (typeof AUTH_SCENE)[keyof typeof AUTH_SCENE];
+
+const TEST_EMAIL_DOMAIN = 'example.com';
+const TEST_PASSWORD = 'Test@123456';
+const WRONG_LOGIN_PASSWORD = 'WrongPassword123!';
+const WRONG_OLD_PASSWORD = 'WrongOldPass1!';
+const WRONG_DELETE_PASSWORD = 'WrongPassword!';
+const RESET_PASSWORD = 'NewSecure@Pass1';
+const CHANGED_PASSWORD = 'NewSecure@Pass2';
+const REJECTED_NEW_PASSWORD = 'NewSecure@Pass3';
+const DEFAULT_VERIFICATION_CODE = '123456';
+const INVALID_VERIFICATION_CODE = '000000';
+const TEST_USER_NICKNAME = 'TestUser';
+const NEW_USER_NICKNAME = 'NewUser';
+const UPDATED_NICKNAME = 'UpdatedNick';
+const UNAUTHENTICATED_NICKNAME = 'Hacker';
+const UPDATED_AVATAR_URL = `https://${TEST_EMAIL_DOMAIN}/avatar.png`;
+const FAKE_REFRESH_TOKEN = 'fake-token';
+const UNKNOWN_REFRESH_TOKEN = 'non-existent-token';
+const UNKNOWN_LOGIN_EMAIL = `nonexistent@${TEST_EMAIL_DOMAIN}`;
+const UNKNOWN_RESET_EMAIL = `nobody@${TEST_EMAIL_DOMAIN}`;
+const INVALID_EMAIL = 'not-an-email';
+const AUTHORIZATION_HEADER = 'Authorization';
+const BEARER_AUTH_SCHEME = 'Bearer';
+const VERIFICATION_CODE_TTL_MS = 5 * 60 * 1000;
+const VERIFICATION_CODE_COOLDOWN_SECONDS = 60;
+
 let userSeq = 0;
 function uniqueEmail(): string {
   userSeq += 1;
-  return `testuser${String(userSeq)}_${String(Date.now())}@example.com`;
+  return `testuser${String(userSeq)}_${String(Date.now())}@${TEST_EMAIL_DOMAIN}`;
 }
-
-const TEST_PASSWORD = 'Test@123456';
 
 /** Assert envelope.data is not null and return typed data. */
 
@@ -51,6 +97,18 @@ function expectData<T>(body: ApiEnvelope<T>): T {
   expect(body.data).not.toBeNull();
   // body.data is guaranteed non-null by the expect above
   return body.data as T;
+}
+
+function expectDefined<T>(value: T | undefined, message: string): T {
+  expect(value).toBeDefined();
+  if (value === undefined) {
+    throw new Error(message);
+  }
+  return value;
+}
+
+function bearer(accessToken: string): string {
+  return `${BEARER_AUTH_SCHEME} ${accessToken}`;
 }
 
 // ── Test Suite ───────────────────────────────────────────────
@@ -90,9 +148,15 @@ describe('Auth API (e2e)', () => {
 
   async function registerUser(email?: string) {
     const userEmail = email ?? uniqueEmail();
+    const code = await issueVerificationCode(AUTH_SCENE.register, userEmail);
     const res = await request(app.getHttpServer())
-      .post('/api/v1/auth/register')
-      .send({ email: userEmail, password: TEST_PASSWORD, nickname: 'TestUser' })
+      .post(AUTH_PATH.register)
+      .send({
+        email: userEmail,
+        password: TEST_PASSWORD,
+        code,
+        nickname: TEST_USER_NICKNAME,
+      })
       .expect(201);
 
     const body = res.body as ApiEnvelope<RegisterLoginData>;
@@ -106,11 +170,36 @@ describe('Auth API (e2e)', () => {
   // ────────────────────────────────────────────────────────────
 
   async function getVerificationCode(
-    scene: string,
+    scene: AuthScene,
     email: string,
   ): Promise<string | undefined> {
     const key = `vcode:${scene}:${email}`;
     return cache.get<string>(key);
+  }
+
+  async function issueVerificationCode(
+    scene: AuthScene,
+    email: string,
+  ): Promise<string> {
+    await request(app.getHttpServer())
+      .post(AUTH_PATH.sendVerificationCode)
+      .send({ email, scene })
+      .expect(200);
+
+    const code = await getVerificationCode(scene, email);
+    return expectDefined(
+      code,
+      `Verification code was not cached for ${scene}:${email}`,
+    );
+  }
+
+  async function seedVerificationCode(
+    scene: AuthScene,
+    email: string,
+    code = DEFAULT_VERIFICATION_CODE,
+  ): Promise<string> {
+    await cache.set(`vcode:${scene}:${email}`, code, VERIFICATION_CODE_TTL_MS);
+    return code;
   }
 
   // ════════════════════════════════════════════════════════════
@@ -120,16 +209,23 @@ describe('Auth API (e2e)', () => {
   describe('POST /api/v1/auth/register', () => {
     it('should register a new user successfully', async () => {
       const email = uniqueEmail();
+      const code = await issueVerificationCode(AUTH_SCENE.register, email);
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/register')
-        .send({ email, password: TEST_PASSWORD, nickname: 'NewUser' })
+        .post(AUTH_PATH.register)
+        .send({
+          email,
+          password: TEST_PASSWORD,
+          code,
+          nickname: NEW_USER_NICKNAME,
+        })
         .expect(201);
 
       const body = res.body as ApiEnvelope<RegisterLoginData>;
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.user.email).toBe(email);
-      expect(data.user.nickname).toBe('NewUser');
+      expect(data.user.nickname).toBe(NEW_USER_NICKNAME);
+      expect(data.user.emailVerified).toBe(true);
       expect(data.user.id).toBeDefined();
       expect(data.user.createdAt).toBeDefined();
       expect(data.tokens.accessToken).toBeDefined();
@@ -140,15 +236,16 @@ describe('Auth API (e2e)', () => {
     it('should reject duplicate email', async () => {
       const email = uniqueEmail();
       // Register first
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/register')
-        .send({ email, password: TEST_PASSWORD })
-        .expect(201);
+      await registerUser(email);
 
       // Try again with same email
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/register')
-        .send({ email, password: TEST_PASSWORD })
+        .post(AUTH_PATH.register)
+        .send({
+          email,
+          password: TEST_PASSWORD,
+          code: DEFAULT_VERIFICATION_CODE,
+        })
         .expect(409);
 
       const body = res.body as ApiEnvelope;
@@ -157,14 +254,14 @@ describe('Auth API (e2e)', () => {
 
     it('should reject invalid email format', async () => {
       await request(app.getHttpServer())
-        .post('/api/v1/auth/register')
-        .send({ email: 'not-an-email', password: TEST_PASSWORD })
+        .post(AUTH_PATH.register)
+        .send({ email: INVALID_EMAIL, password: TEST_PASSWORD })
         .expect(400);
     });
 
     it('should reject missing password', async () => {
       await request(app.getHttpServer())
-        .post('/api/v1/auth/register')
+        .post(AUTH_PATH.register)
         .send({ email: uniqueEmail() })
         .expect(400);
     });
@@ -179,7 +276,7 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
+        .post(AUTH_PATH.login)
         .send({ email, password: TEST_PASSWORD })
         .expect(200);
 
@@ -194,8 +291,8 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email, password: 'WrongPassword123!' })
+        .post(AUTH_PATH.login)
+        .send({ email, password: WRONG_LOGIN_PASSWORD })
         .expect(401);
 
       const body = res.body as ApiEnvelope;
@@ -204,8 +301,8 @@ describe('Auth API (e2e)', () => {
 
     it('should reject non-existent email', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
-        .send({ email: 'nonexistent@example.com', password: TEST_PASSWORD })
+        .post(AUTH_PATH.login)
+        .send({ email: UNKNOWN_LOGIN_EMAIL, password: TEST_PASSWORD })
         .expect(401);
 
       const body = res.body as ApiEnvelope;
@@ -217,17 +314,19 @@ describe('Auth API (e2e)', () => {
 
       // Send verification code (login scene)
       await request(app.getHttpServer())
-        .post('/api/v1/auth/send-verification-code')
-        .send({ email, scene: 'login' })
+        .post(AUTH_PATH.sendVerificationCode)
+        .send({ email, scene: AUTH_SCENE.login })
         .expect(200);
 
       // Get code from cache
-      const code = await getVerificationCode('login', email);
-      expect(code).toBeDefined();
+      const code = expectDefined(
+        await getVerificationCode(AUTH_SCENE.login, email),
+        `Verification code was not cached for ${AUTH_SCENE.login}:${email}`,
+      );
 
       // Login with code
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
+        .post(AUTH_PATH.login)
         .send({ email, code })
         .expect(200);
 
@@ -248,14 +347,14 @@ describe('Auth API (e2e)', () => {
 
       // Logout
       await request(app.getHttpServer())
-        .post('/api/v1/auth/logout')
-        .set('Authorization', `Bearer ${tokens.accessToken}`)
+        .post(AUTH_PATH.logout)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ refreshToken: tokens.refreshToken })
         .expect(200);
 
       // Refresh with the same token should fail
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/refresh')
+        .post(AUTH_PATH.refresh)
         .send({ refreshToken: tokens.refreshToken })
         .expect(401);
 
@@ -265,8 +364,8 @@ describe('Auth API (e2e)', () => {
 
     it('should reject logout without auth token', async () => {
       await request(app.getHttpServer())
-        .post('/api/v1/auth/logout')
-        .send({ refreshToken: 'fake-token' })
+        .post(AUTH_PATH.logout)
+        .send({ refreshToken: FAKE_REFRESH_TOKEN })
         .expect(401);
     });
   });
@@ -280,7 +379,7 @@ describe('Auth API (e2e)', () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/refresh')
+        .post(AUTH_PATH.refresh)
         .send({ refreshToken: tokens.refreshToken })
         .expect(200);
 
@@ -294,7 +393,7 @@ describe('Auth API (e2e)', () => {
 
       // Old refresh token should be invalidated
       const res2 = await request(app.getHttpServer())
-        .post('/api/v1/auth/refresh')
+        .post(AUTH_PATH.refresh)
         .send({ refreshToken: tokens.refreshToken })
         .expect(401);
 
@@ -306,7 +405,7 @@ describe('Auth API (e2e)', () => {
       const email = uniqueEmail();
       const firstSession = await registerUser(email);
       const secondLogin = await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
+        .post(AUTH_PATH.login)
         .send({ email, password: TEST_PASSWORD })
         .expect(200);
 
@@ -314,20 +413,20 @@ describe('Auth API (e2e)', () => {
       const secondTokens = expectData(secondBody).tokens;
 
       await request(app.getHttpServer())
-        .post('/api/v1/auth/refresh')
+        .post(AUTH_PATH.refresh)
         .send({ refreshToken: firstSession.tokens.refreshToken })
         .expect(200);
 
       await request(app.getHttpServer())
-        .post('/api/v1/auth/refresh')
+        .post(AUTH_PATH.refresh)
         .send({ refreshToken: secondTokens.refreshToken })
         .expect(200);
     });
 
     it('should reject invalid refresh token', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/refresh')
-        .send({ refreshToken: 'non-existent-token' })
+        .post(AUTH_PATH.refresh)
+        .send({ refreshToken: UNKNOWN_REFRESH_TOKEN })
         .expect(401);
 
       const body = res.body as ApiEnvelope;
@@ -341,11 +440,11 @@ describe('Auth API (e2e)', () => {
 
   describe('POST /api/v1/auth/send-verification-code', () => {
     it('should send verification code', async () => {
-      const { email } = await registerUser();
+      const email = uniqueEmail();
 
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/send-verification-code')
-        .send({ email, scene: 'register' })
+        .post(AUTH_PATH.sendVerificationCode)
+        .send({ email, scene: AUTH_SCENE.register })
         .expect(200);
 
       const body = res.body as ApiEnvelope<{
@@ -354,7 +453,7 @@ describe('Auth API (e2e)', () => {
       }>;
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
-      expect(data.cooldown).toBe(60);
+      expect(data.cooldown).toBe(VERIFICATION_CODE_COOLDOWN_SECONDS);
     });
 
     it('should enforce cooldown', async () => {
@@ -362,14 +461,14 @@ describe('Auth API (e2e)', () => {
 
       // First send
       await request(app.getHttpServer())
-        .post('/api/v1/auth/send-verification-code')
-        .send({ email, scene: 'login' })
+        .post(AUTH_PATH.sendVerificationCode)
+        .send({ email, scene: AUTH_SCENE.login })
         .expect(200);
 
       // Second send within cooldown
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/send-verification-code')
-        .send({ email, scene: 'login' })
+        .post(AUTH_PATH.sendVerificationCode)
+        .send({ email, scene: AUTH_SCENE.login })
         .expect(400);
 
       const body = res.body as ApiEnvelope;
@@ -384,19 +483,11 @@ describe('Auth API (e2e)', () => {
   describe('POST /api/v1/auth/verify-email', () => {
     it('should verify email with correct code', async () => {
       const { email } = await registerUser();
-
-      // Send verification code
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/send-verification-code')
-        .send({ email, scene: 'register' })
-        .expect(200);
-
-      const code = await getVerificationCode('register', email);
-      expect(code).toBeDefined();
+      const code = await seedVerificationCode(AUTH_SCENE.register, email);
 
       // Verify email
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/verify-email')
+        .post(AUTH_PATH.verifyEmail)
         .send({ email, code })
         .expect(200);
 
@@ -408,15 +499,11 @@ describe('Auth API (e2e)', () => {
 
     it('should reject invalid verification code', async () => {
       const { email } = await registerUser();
-
-      await request(app.getHttpServer())
-        .post('/api/v1/auth/send-verification-code')
-        .send({ email, scene: 'register' })
-        .expect(200);
+      await seedVerificationCode(AUTH_SCENE.register, email);
 
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/verify-email')
-        .send({ email, code: '000000' })
+        .post(AUTH_PATH.verifyEmail)
+        .send({ email, code: INVALID_VERIFICATION_CODE })
         .expect(401);
 
       const body = res.body as ApiEnvelope;
@@ -433,7 +520,7 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/forgot-password')
+        .post(AUTH_PATH.forgotPassword)
         .send({ email })
         .expect(200);
 
@@ -446,8 +533,8 @@ describe('Auth API (e2e)', () => {
 
     it('should return success even for non-existent email (anti-enumeration)', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/forgot-password')
-        .send({ email: 'nobody@example.com' })
+        .post(AUTH_PATH.forgotPassword)
+        .send({ email: UNKNOWN_RESET_EMAIL })
         .expect(200);
 
       const body = res.body as ApiEnvelope<{
@@ -468,17 +555,19 @@ describe('Auth API (e2e)', () => {
 
       // Send forgot-password code
       await request(app.getHttpServer())
-        .post('/api/v1/auth/forgot-password')
+        .post(AUTH_PATH.forgotPassword)
         .send({ email })
         .expect(200);
 
-      const code = await getVerificationCode('reset-password', email);
-      expect(code).toBeDefined();
+      const code = expectDefined(
+        await getVerificationCode(AUTH_SCENE.resetPassword, email),
+        `Verification code was not cached for ${AUTH_SCENE.resetPassword}:${email}`,
+      );
 
       // Reset password
-      const newPassword = 'NewSecure@Pass1';
+      const newPassword = RESET_PASSWORD;
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/reset-password')
+        .post(AUTH_PATH.resetPassword)
         .send({ email, code, password: newPassword })
         .expect(200);
 
@@ -487,13 +576,13 @@ describe('Auth API (e2e)', () => {
 
       // Login with new password should work
       await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
+        .post(AUTH_PATH.login)
         .send({ email, password: newPassword })
         .expect(200);
 
       // Old password should fail
       await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
+        .post(AUTH_PATH.login)
         .send({ email, password: TEST_PASSWORD })
         .expect(401);
     });
@@ -508,8 +597,8 @@ describe('Auth API (e2e)', () => {
       const { email, tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .get('/api/v1/auth/me')
-        .set('Authorization', `Bearer ${tokens.accessToken}`)
+        .get(AUTH_PATH.me)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .expect(200);
 
       const body = res.body as ApiEnvelope<UserDto>;
@@ -520,7 +609,7 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should reject unauthenticated request', async () => {
-      await request(app.getHttpServer()).get('/api/v1/auth/me').expect(401);
+      await request(app.getHttpServer()).get(AUTH_PATH.me).expect(401);
     });
   });
 
@@ -533,25 +622,25 @@ describe('Auth API (e2e)', () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .patch('/api/v1/auth/me')
-        .set('Authorization', `Bearer ${tokens.accessToken}`)
+        .patch(AUTH_PATH.me)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({
-          nickname: 'UpdatedNick',
-          avatar: 'https://example.com/avatar.png',
+          nickname: UPDATED_NICKNAME,
+          avatar: UPDATED_AVATAR_URL,
         })
         .expect(200);
 
       const body = res.body as ApiEnvelope<UserDto>;
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
-      expect(data.nickname).toBe('UpdatedNick');
-      expect(data.avatar).toBe('https://example.com/avatar.png');
+      expect(data.nickname).toBe(UPDATED_NICKNAME);
+      expect(data.avatar).toBe(UPDATED_AVATAR_URL);
     });
 
     it('should reject unauthenticated request', async () => {
       await request(app.getHttpServer())
-        .patch('/api/v1/auth/me')
-        .send({ nickname: 'Hacker' })
+        .patch(AUTH_PATH.me)
+        .send({ nickname: UNAUTHENTICATED_NICKNAME })
         .expect(401);
     });
   });
@@ -563,12 +652,12 @@ describe('Auth API (e2e)', () => {
   describe('POST /api/v1/auth/me/password', () => {
     it('should change password', async () => {
       const { email, tokens } = await registerUser();
-      const newPassword = 'NewSecure@Pass2';
+      const newPassword = CHANGED_PASSWORD;
 
       // Change password
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/me/password')
-        .set('Authorization', `Bearer ${tokens.accessToken}`)
+        .post(AUTH_PATH.mePassword)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ oldPassword: TEST_PASSWORD, newPassword })
         .expect(200);
 
@@ -577,13 +666,13 @@ describe('Auth API (e2e)', () => {
 
       // Login with new password
       await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
+        .post(AUTH_PATH.login)
         .send({ email, password: newPassword })
         .expect(200);
 
       // Old password should fail
       await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
+        .post(AUTH_PATH.login)
         .send({ email, password: TEST_PASSWORD })
         .expect(401);
     });
@@ -592,9 +681,12 @@ describe('Auth API (e2e)', () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/me/password')
-        .set('Authorization', `Bearer ${tokens.accessToken}`)
-        .send({ oldPassword: 'WrongOldPass1!', newPassword: 'NewSecure@Pass3' })
+        .post(AUTH_PATH.mePassword)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .send({
+          oldPassword: WRONG_OLD_PASSWORD,
+          newPassword: REJECTED_NEW_PASSWORD,
+        })
         .expect(401);
 
       const body = res.body as ApiEnvelope;
@@ -613,17 +705,19 @@ describe('Auth API (e2e)', () => {
 
       // Send verification code for change-email scene (sent to new email)
       await request(app.getHttpServer())
-        .post('/api/v1/auth/send-verification-code')
-        .send({ email: newEmail, scene: 'change-email' })
+        .post(AUTH_PATH.sendVerificationCode)
+        .send({ email: newEmail, scene: AUTH_SCENE.changeEmail })
         .expect(200);
 
-      const code = await getVerificationCode('change-email', newEmail);
-      expect(code).toBeDefined();
+      const code = expectDefined(
+        await getVerificationCode(AUTH_SCENE.changeEmail, newEmail),
+        `Verification code was not cached for ${AUTH_SCENE.changeEmail}:${newEmail}`,
+      );
 
       // Change email
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/me/email')
-        .set('Authorization', `Bearer ${tokens.accessToken}`)
+        .post(AUTH_PATH.meEmail)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ newEmail, code })
         .expect(200);
 
@@ -638,8 +732,8 @@ describe('Auth API (e2e)', () => {
 
       // Verify updated profile reflects new email
       const meRes = await request(app.getHttpServer())
-        .get('/api/v1/auth/me')
-        .set('Authorization', `Bearer ${tokens.accessToken}`)
+        .get(AUTH_PATH.me)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .expect(200);
 
       const meBody = meRes.body as ApiEnvelope<UserDto>;
@@ -652,9 +746,9 @@ describe('Auth API (e2e)', () => {
       const newEmail = uniqueEmail();
 
       const res = await request(app.getHttpServer())
-        .post('/api/v1/auth/me/email')
-        .set('Authorization', `Bearer ${tokens.accessToken}`)
-        .send({ newEmail, code: '000000' })
+        .post(AUTH_PATH.meEmail)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .send({ newEmail, code: INVALID_VERIFICATION_CODE })
         .expect(400);
 
       const body = res.body as ApiEnvelope;
@@ -672,8 +766,8 @@ describe('Auth API (e2e)', () => {
 
       // Delete account
       const res = await request(app.getHttpServer())
-        .delete('/api/v1/auth/me')
-        .set('Authorization', `Bearer ${tokens.accessToken}`)
+        .delete(AUTH_PATH.me)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ password: TEST_PASSWORD })
         .expect(200);
 
@@ -682,7 +776,7 @@ describe('Auth API (e2e)', () => {
 
       // Login should fail after deletion
       await request(app.getHttpServer())
-        .post('/api/v1/auth/login')
+        .post(AUTH_PATH.login)
         .send({ email, password: TEST_PASSWORD })
         .expect(401);
     });
@@ -691,9 +785,9 @@ describe('Auth API (e2e)', () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .delete('/api/v1/auth/me')
-        .set('Authorization', `Bearer ${tokens.accessToken}`)
-        .send({ password: 'WrongPassword!' })
+        .delete(AUTH_PATH.me)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .send({ password: WRONG_DELETE_PASSWORD })
         .expect(401);
 
       const body = res.body as ApiEnvelope;

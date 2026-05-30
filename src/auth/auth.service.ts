@@ -85,13 +85,15 @@ export class AuthService {
       });
     }
 
+    await this.verificationCodeService.verify(dto.email, dto.code, 'register');
+
     const password = await argon2.hash(dto.password, ARGON2_OPTIONS);
 
     const user = await this.userService.create({
       email: dto.email,
       password,
       nickname: dto.nickname ?? null,
-      emailVerified: false,
+      emailVerified: true,
     });
 
     const tokens = await this.generateTokenPair(user);

@@ -84,6 +84,100 @@ Current fallback behavior:
 - If the client sends no language header, Lucent falls back to `en`.
 - Clients that need Chinese responses should explicitly send `Accept-Language: zh-CN`.
 
+`Accept-Language` is not a medicine database selector. It controls localized response messages and generic text only.
+
+## Medicine Source Selection
+
+Chinese and English medicine data are imported into separate Lucent tables. Frontend clients must tell Lucent which medicine source they want when calling medicine search/detail APIs.
+
+Use a query parameter:
+
+```text
+source=cn
+source=drugbank
+```
+
+Planned Phase 1 endpoints:
+
+```text
+GET /api/v1/medicines?source=cn&q=<keyword>&page=1&pageSize=20
+GET /api/v1/medicines/:id?source=cn
+
+GET /api/v1/medicines?source=drugbank&q=<keyword>&page=1&pageSize=20
+GET /api/v1/medicines/:id?source=drugbank
+```
+
+Rules:
+
+- `source=cn` queries Chinese product/package-insert rows from `cn_medicine_products`.
+- `source=drugbank` queries English DrugBank scientific drug rows from `drugbank_drugs`.
+- If `source` is missing, Lucent defaults to `drugbank` because the current product direction is knowledge-first personal health copilot.
+- For `source=cn`, `:id` is the Lucent Chinese product id.
+- For `source=drugbank`, `:id` is the primary DrugBank id such as `DB00001`.
+- Unsupported source values should return HTTP 400 with code `400001`.
+- `Accept-Language` can still be sent together with `source`; for example, `source=drugbank` and `Accept-Language: zh-CN` means "query DrugBank but localize Lucent wrapper/error text in Chinese where available".
+
+The two medicine sources have different fields. API responses should not flatten them into a fake shared schema. Use a common shell plus a source-specific `detail` payload.
+
+Search item shape:
+
+```json
+{
+  "id": "DB01050",
+  "source": "drugbank",
+  "name": "Ibuprofen",
+  "subtitle": "CAS 15687-27-1",
+  "summary": "A non-steroidal anti-inflammatory drug...",
+  "tags": ["approved", "small molecule"],
+  "imageUrl": null,
+  "matchedBy": ["name"]
+}
+```
+
+Detail shape:
+
+```json
+{
+  "id": "DB01050",
+  "source": "drugbank",
+  "name": "Ibuprofen",
+  "subtitle": "CAS 15687-27-1",
+  "detail": {
+    "kind": "drugbank",
+    "description": "...",
+    "indication": "...",
+    "mechanismOfAction": "...",
+    "pharmacodynamics": "...",
+    "drugInteractions": []
+  }
+}
+```
+
+```json
+{
+  "id": "cn_...",
+  "source": "cn",
+  "name": "布洛芬缓释胶囊",
+  "subtitle": "0.3g / 某某制药",
+  "detail": {
+    "kind": "cnProduct",
+    "approvalNumber": "...",
+    "manufacturer": "...",
+    "packageSpec": "...",
+    "indications": "...",
+    "dosage": "...",
+    "contraindications": "..."
+  }
+}
+```
+
+Rationale:
+
+- A query parameter is explicit, easy to inspect in logs, cache-friendly, and works naturally for search/detail links.
+- A custom request header such as `X-Medicine-Source` is not recommended for normal product flows because it hides a user-visible data choice outside the URL.
+- Request body selection is not recommended for `GET` search/detail APIs.
+- A common shell plus source-specific detail keeps Flutter UI stable without losing fields that only exist in one source.
+
 ## Error Codes
 
 Lucent uses **numeric error codes** mapped automatically by `ApiExceptionFilter` from NestJS standard exceptions:
@@ -128,3 +222,5 @@ throw new BadRequestException({
 Protected APIs must use Passport JWT guards. User-scoped handlers derive the user id from JWT payload, not from request-body `userId`.
 
 Request-body `userId` must not be used as an authorization boundary.
+
+Registration requires a verification code issued by `POST /api/v1/auth/send-verification-code` with `scene=register`. `RegisterDto` requires `email`, `password`, and `code`; a successful registration marks the email as verified.

@@ -40,17 +40,20 @@ POST /api/v1/auth/register
 {
   "email": "user@example.com",
   "password": "Abc12345",
+  "code": "123456",
   "nickname": "小明"
 }
 ```
 
-| 字段     | 类型   | 必填 | 说明                              |
-| -------- | ------ | ---- | --------------------------------- |
-| email    | string | 是   | 邮箱                              |
-| password | string | 是   | 8-32 字符，至少含大写、小写、数字 |
-| nickname | string | 否   | 昵称，1-20 字符                   |
+| 字段     | 类型   | 必填 | 说明                                           |
+| -------- | ------ | ---- | ---------------------------------------------- |
+| email    | string | 是   | 邮箱                                           |
+| password | string | 是   | 8-32 字符，至少含大写、小写、数字              |
+| code     | string | 是   | 通过 `send-verification-code` 获取的注册验证码 |
+| nickname | string | 否   | 昵称，1-20 字符                                |
 
 > 密码规则仅要求大写+小写+数字，特殊字符不做强制要求，但前后端需约定一致。
+> 注册前需先调用 [发送邮箱验证码](#5-发送邮箱验证码)（`scene=register`）。验证码通过后，注册成功的用户邮箱视为已验证。
 
 **Response** `201`
 
@@ -63,7 +66,7 @@ POST /api/v1/auth/register
       "id": "u_abc123",
       "email": "user@example.com",
       "nickname": "小明",
-      "emailVerified": false,
+      "emailVerified": true,
       "createdAt": "2026-05-30T12:00:00Z"
     },
     "tokens": {

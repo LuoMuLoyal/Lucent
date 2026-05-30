@@ -30,6 +30,11 @@ export class RegisterDto {
   })
   password!: string;
 
+  @ApiProperty({ description: '邮箱验证码', example: '123456' })
+  @IsString()
+  @IsNotEmpty({ message: '验证码不能为空' })
+  code!: string;
+
   @ApiPropertyOptional({ description: '昵称', example: '小明', maxLength: 20 })
   @IsOptional()
   @IsString()
