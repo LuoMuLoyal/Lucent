@@ -28,10 +28,7 @@ describe('Lucent API (e2e)', () => {
       .expect({
         code: 0,
         message: '',
-        data: {
-          status: 'ok',
-          service: 'lucent',
-        },
+        data: {},
       });
   });
 

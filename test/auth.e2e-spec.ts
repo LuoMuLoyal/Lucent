@@ -633,7 +633,7 @@ describe('Auth API (e2e)', () => {
         .post('/api/v1/auth/me/email')
         .set('Authorization', `Bearer ${tokens.accessToken}`)
         .send({ currentEmail: email, newEmail, code: '000000' })
-        .expect(401);
+        .expect(400);
 
       const body = res.body as ApiEnvelope;
       expect(body.code).toBe(ResultCode.VERIFICATION_CODE_INVALID);

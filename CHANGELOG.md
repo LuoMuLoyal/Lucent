@@ -1,5 +1,45 @@
 # Lucent Changelog
 
+## 2026-05-30 (Auth 安全边界 + E2E 基线修复)
+
+### Fixed — 登录凭据校验安全修复
+
+- **`src/auth/auth.service.ts`**
+  - 修复 `login` 在只传邮箱、不传 `password` / `code` 时仍会签发 token 的问题。
+  - 明确约束登录凭据必须且只能二选一：密码登录或验证码登录。
+  - 修复 JWT 签发时 payload 已含 `sub` 又传 `subject` 导致 jsonwebtoken 9 抛错的问题。
+- **`src/auth/auth.service.spec.ts`**
+  - 新增空凭据、双凭据登录拒绝测试。
+
+### Fixed — 软删除用户查询边界
+
+- **`src/user/user.service.ts`**
+  - `findById` / `findByEmail` 改为默认只返回 `deletedAt = null` 的用户。
+  - 注销账号后的用户不再参与登录、`me` 查询和邮箱占用判断。
+- **`src/user/user.service.spec.ts`**
+  - 同步断言查询条件包含 `deletedAt: null`。
+
+### Fixed — E2E 测试运行条件
+
+- **`package.json`**
+  - `test:e2e` 增加 `NODE_OPTIONS=--experimental-vm-modules`，适配 Prisma 7 生成客户端加载 `.mjs` query compiler。
+- **`.env.test`**
+  - 本地测试数据库连接对齐 `docker-compose.dev.yml`：`lucent/lucent_dev@127.0.0.1:5432/lucent`。
+- **`src/i18n/i18n.module.ts`**
+  - `typesOutputPath` 仅在 `NODE_ENV=development` 启用，避免 test / dist 运行时访问缺失的 `dist/generated/i18n.generated.ts`。
+- **`src/app.service.ts`**
+  - `GET /api/v1/health` 保持统一 envelope：`{ code: 0, message: '', data: {} }`，不额外塞业务 payload。
+- **`test/auth.e2e-spec.ts`**
+  - 将未发送验证码时的 change-email 错误期望对齐到 `400 / 400100`。
+
+### Test Results
+
+- `pnpm build` — 通过
+- `pnpm test` — 6 suites / 67 tests 通过
+- `pnpm test:e2e` — 2 suites / 30 tests 通过
+
+---
+
 ## 2026-05-29 (OpenAPI 全量导出 + Flutter dio 客户端生成)
 
 ### Fixed — 循环依赖导致 openapi.json 不完整

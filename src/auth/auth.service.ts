@@ -114,9 +114,21 @@ export class AuthService {
       });
     }
 
+    const password = dto.password;
+    const code = dto.code;
+    const hasPassword = password !== undefined;
+    const hasCode = code !== undefined;
+    if (hasPassword === hasCode) {
+      this.recordLoginFailure(dto.email);
+      throw new UnauthorizedException({
+        code: ResultCode.UNAUTHORIZED,
+        message: this.i18n.t('auth.email_or_password_wrong'),
+      });
+    }
+
     // Password-based login
-    if (dto.password) {
-      const valid = await argon2.verify(user.password, dto.password);
+    if (hasPassword) {
+      const valid = await argon2.verify(user.password, password);
       if (!valid) {
         this.recordLoginFailure(dto.email);
         throw new UnauthorizedException({
@@ -127,8 +139,8 @@ export class AuthService {
     }
 
     // Code-based login
-    if (dto.code) {
-      await this.verificationCodeService.verify(dto.email, dto.code, 'login');
+    if (hasCode) {
+      await this.verificationCodeService.verify(dto.email, code, 'login');
     }
     // TODO: 2FA 校验
 
@@ -318,7 +330,6 @@ export class AuthService {
       secret: config.accessSecret,
       expiresIn: config.accessTtl,
       algorithm: 'HS512',
-      subject: user.id,
       jwtid: accessTokenId,
     });
 
