@@ -1,8 +1,27 @@
 services:
-  # ── PostgreSQL 16 ────────────────────────────────────────────
-  postgres:
+  # ── PostgreSQL 16 (development) ──────────────────────────────
+  postgres-dev:
     image: postgres:16-alpine
-    container_name: lucent-postgres
+    container_name: lucent-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: lucent
+    ports:
+      - '15432:5432'
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d lucent']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── PostgreSQL 16 (test / e2e) ───────────────────────────────
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: lucent-postgres-test
     restart: unless-stopped
     environment:
       POSTGRES_USER: lucent
@@ -11,9 +30,9 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata-test:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U lucent']
+      test: ['CMD-SHELL', 'pg_isready -U lucent -d lucent']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -34,5 +53,6 @@ services:
       retries: 5
 
 volumes:
-  pgdata:
+  pgdata-dev:
+  pgdata-test:
   redisdata:

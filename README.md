@@ -10,6 +10,8 @@ NestJS / PostgreSQL / Prisma / Redis / Passport JWT / OpenAI-compatible AI gatew
 
 ```bash
 pnpm install
+pnpm dev:stack:up
+pnpm db:migrate:all
 pnpm start:dev
 pnpm build
 pnpm test
@@ -18,7 +20,12 @@ pnpm lint
 pnpm export:openapi
 ```
 
-`pnpm test:e2e` needs `docker-compose.dev.yml` PostgreSQL running at `127.0.0.1:5432`.
+Local database layout:
+
+- development DB: `postgres/postgres@127.0.0.1:15432/lucent`
+- test / e2e DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`
+
+`pnpm dev:stack:up` starts both PostgreSQL services plus Redis. `pnpm db:migrate:all` applies Prisma migrations to both local databases.
 
 ## Baseline
 

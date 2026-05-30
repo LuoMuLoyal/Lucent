@@ -6,7 +6,11 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs', 'commitlint.config.mjs'],
+    ignores: [
+      'eslint.config.mjs',
+      'commitlint.config.mjs',
+      'scripts/**/*.js',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
