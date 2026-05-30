@@ -170,11 +170,6 @@ export class AuthService {
       where: { id: record.id },
     });
 
-    // Delete all other refresh tokens for this user (invalidate all sessions)
-    await this.prisma.refreshToken.deleteMany({
-      where: { userId: record.userId },
-    });
-
     return this.generateTokenPair(record.user);
   }
 
@@ -230,12 +225,7 @@ export class AuthService {
   }
 
   async changeEmail(userId: string, dto: ChangeEmailDto): Promise<void> {
-    // 校验当前邮箱的验证码
-    await this.verificationCodeService.verify(
-      dto.currentEmail,
-      dto.code,
-      'change-email',
-    );
+    await this.getMe(userId);
 
     const exists = await this.userService.findByEmail(dto.newEmail);
     if (exists) {
@@ -244,6 +234,14 @@ export class AuthService {
         message: this.i18n.t('auth.email_in_use'),
       });
     }
+
+    // 校验发往新邮箱的验证码，确认新邮箱归属。
+    await this.verificationCodeService.verify(
+      dto.newEmail,
+      dto.code,
+      'change-email',
+    );
+
     await this.userService.update(userId, {
       email: dto.newEmail,
       emailVerified: true,

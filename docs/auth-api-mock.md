@@ -240,6 +240,7 @@ POST /api/v1/auth/refresh
 ```
 
 > 每次刷新后旧 refreshToken 失效，返回全新的 token 对。
+> 只轮换本次使用的 refreshToken，不影响同账号其他设备会话。
 
 **Errors**
 
@@ -644,6 +645,7 @@ Authorization: Bearer <accessToken>
 - 用户身份从 JWT payload 派生，不接受 body / query 中的 `userId`
 - accessToken 过期后客户端调用 `/auth/refresh` 换取新 token
 - refreshToken 每次使用后轮换（旧 token 立即失效）
+- refresh 不影响同账号其他设备的 refreshToken
 - 重置密码或修改密码后，除当前 token 外所有 token 失效
 
 ---

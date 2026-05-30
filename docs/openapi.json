@@ -422,20 +422,10 @@
   },
   "info": {
     "title": "Lucent API",
-    "description": "Lucent backend API",
-    "version": "1.0",
-    "contact": {}
+    "description": "Lucent 后端 API 文档",
+    "version": "1.0"
   },
-  "tags": [],
-  "servers": [],
   "components": {
-    "securitySchemes": {
-      "access-token": {
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "type": "http"
-      }
-    },
     "schemas": {
       "RegisterDto": {
         "type": "object",
@@ -920,11 +910,6 @@
       "ChangeEmailDto": {
         "type": "object",
         "properties": {
-          "currentEmail": {
-            "type": "string",
-            "description": "当前邮箱",
-            "example": "user@example.com"
-          },
           "newEmail": {
             "type": "string",
             "description": "新邮箱",
@@ -938,7 +923,7 @@
             "maxLength": 6
           }
         },
-        "required": ["currentEmail", "newEmail", "code"]
+        "required": ["newEmail", "code"]
       },
       "ChangeEmailDataDto": {
         "type": "object",

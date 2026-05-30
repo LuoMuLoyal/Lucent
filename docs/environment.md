@@ -38,6 +38,7 @@ Loading order is environment-specific（优先级从高到低）：
 - `pnpm start:prod` runs the built app with `NODE_ENV=production`.
 - `pnpm test` runs with `NODE_ENV=test`.
 - `pnpm test:e2e` runs with `NODE_ENV=test` and `NODE_OPTIONS=--experimental-vm-modules` for Prisma 7 generated client compatibility.
+- `pnpm export:openapi` builds Lucent first, then exports `docs/openapi.json` from `dist` so Prisma generated imports resolve correctly.
 - Local e2e expects the `docker-compose.dev.yml` PostgreSQL service: `lucent/lucent_dev@127.0.0.1:5432/lucent`.
 
 ## Production Rules

@@ -15,6 +15,7 @@ pnpm build
 pnpm test
 pnpm test:e2e
 pnpm lint
+pnpm export:openapi
 ```
 
 `pnpm test:e2e` needs `docker-compose.dev.yml` PostgreSQL running at `127.0.0.1:5432`.
