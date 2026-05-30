@@ -45,6 +45,8 @@ Prisma CLI uses the same resolution order through `prisma.config.ts`, so `NODE_E
 - `pnpm export:openapi` builds Lucent first, then exports `docs/openapi.json` from `dist` so Prisma generated imports resolve correctly.
 - `pnpm dev:stack:up` starts the local development stack from `docker-compose.dev.yml`.
 - `pnpm db:migrate:all` runs Prisma generate plus migrate deploy for both the development and test databases.
+- `pnpm import:medicine:all` runs the default medicine knowledge import sequence against `NODE_ENV=development`.
+- `scripts/dev/import-medicine-datasets.ps1` accepts `-Command`, `-SourcePath`, `-Limit`, `-BatchSize`, `-SourceVersion`, and `-WithHash` for repeatable smoke or full imports.
 - Local development expects `postgres/postgres@127.0.0.1:15432/lucent`.
 - Local e2e expects `lucent/lucent_dev@127.0.0.1:5432/lucent`.
 

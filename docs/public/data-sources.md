@@ -24,6 +24,54 @@ This directory is not tracked by Git and must not be packaged into Flutter.
 - `full database.xml` should not be treated as a manual GUI import. It is about 1.9 GB after unzip and should be parsed by an idempotent script into normalized tables.
 - Lucent now has durable destination tables for both sources. Tool-based import is acceptable for the Chinese source, but the DrugBank XML path should stay scripted so we can reproduce it.
 
+## Scripted Import Commands
+
+Recommended local preparation:
+
+1. `pnpm dev:stack:up`
+2. `pnpm db:migrate:all`
+3. `pip install -r scripts/medicine/requirements.txt` if the Chinese source is still `.xlsx`
+
+Default scripted import order:
+
+```bash
+pnpm import:medicine:all
+```
+
+This runs:
+
+1. `drugbank-drugs`
+2. `drugbank-links`
+3. `drugbank-targets-all`
+4. `drugbank-targets-active`
+5. `cn-products`
+
+Why this order:
+
+- `drugbank_external_links` depends on `drugbank_drugs.drugbank_id`.
+- `drugbank_drug_targets` depends on both imported DrugBank drugs and imported target rows.
+- Chinese products are independent and can run last.
+
+Smoke-test example:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/dev/import-medicine-datasets.ps1 -Limit 20 -WithHash
+```
+
+Useful options:
+
+- `-Command cn-products` or `-Command drugbank-drugs` to run one dataset only.
+- `-SourcePath <file>` to override the default file for a single dataset import.
+- `-NodeEnv test` to target the test database intentionally.
+- `-BatchSize 250` to tune upsert batch size.
+- `-SourceVersion 2026-05-30` to persist the export/version string into `drug_source_imports.source_version`.
+- `-WithHash` to store a SHA-256 file hash in `drug_source_imports.source_file_hash`.
+
+Chinese source note:
+
+- `scripts/medicine/parsers/cn_products.py` supports both `.xlsx` and `.csv`.
+- If `openpyxl` is not available, export `FullDrugDetail.xlsx` sheet `总的` to CSV and pass `--source` / `-Command cn-products` with that CSV path.
+
 ## Medicine Data Strategy
 
 Lucent keeps the Chinese and English medicine datasets separate at query time. The two sources describe different things:
@@ -183,6 +231,8 @@ Import `unziped/all.csv` or `unziped/pharmacologically_active.csv` into target t
 | `GeneCard ID` / `GenAtlas ID` / `HGNC ID` | corresponding fields                     | External ids.                                         |
 | `Species`                                 | `species`                                | Target species.                                       |
 | `Drug IDs`                                | `drugbank_drug_targets.drugbank_id`      | Split semicolon-delimited ids into relationship rows. |
+| `Actions`                                 | `drugbank_drug_targets.actions`          | Split semicolon-delimited action labels when present. |
+| `Known Action`                            | `drugbank_drug_targets.known_action`     | Preserve source yes/no or descriptive text.           |
 
 FASTA and SDF files are not needed for Phase 1 search/detail. Keep them outside the database until a feature requires sequences or structures.
 
@@ -270,6 +320,7 @@ This keeps frontend rendering stable while letting each source keep its real sch
 - Do not merge Chinese product records with DrugBank records until matching rules are reviewed.
 - Use small fixtures for tests; do not run normal tests against the full xlsx or full XML.
 - Import scripts must be idempotent and report source rows, imported rows, rejected rows, and sample rejection reasons.
+- Import scripts should also stamp `drug_source_imports` with source file name, optional source version, optional SHA-256 hash, and batch-level rejection samples.
 - Large files remain outside Git, generated dumps remain outside Git, and Flutter assets must not include these sources.
 
 ## Open Decisions

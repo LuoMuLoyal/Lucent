@@ -21,6 +21,11 @@
 - Search API 统一返回 common card shell；detail API 返回 `drugbank` / `cnProduct` 的 source-specific payload。
 - 新增 `src/i18n/en/medicine.json` 与 `src/i18n/zh-CN/medicine.json`，覆盖无效来源和药品不存在场景。
 - 新增 `src/medicines/medicines.service.spec.ts` 与 `test/medicines.e2e-spec.ts`。
+- 新增药品知识导入链路：
+  - `scripts/medicine/import-medicine-knowledge.js`
+  - `scripts/medicine/parsers/`
+  - `scripts/dev/import-medicine-datasets.ps1`
+  - `scripts/medicine/requirements.txt`
 
 ### Changed
 
@@ -29,6 +34,9 @@
 - `docs/public/data-sources.md` 补充实际导入建议：
   - `FullDrugDetail.xlsx` / CSV 适合 DBeaver 等工具导入
   - DrugBank `full database.xml` 继续推荐脚本化、可重复导入
+- 导入脚本现在会把每次运行写入 `drug_source_imports`，支持 source version / file hash / rejection sample 元数据。
+- Target 导入现在显式生成稳定主键，并在 target + relation 批次内使用事务，避免 `drugbank_targets` / `drugbank_drug_targets` 插入失败。
+- `drugbank_targets` 导入补充保留 `Actions` / `Known Action` 到关系表。
 - `docs/README.md` 将 `public/data-sources.md` 提升为药品库变更的主文档入口。
 
 ### Test Results
@@ -48,6 +56,7 @@
   - `postgres-test` → `127.0.0.1:5432`，供 `NODE_ENV=test` / e2e 使用
 - `.env.development.example` 更新为开发库端口 `15432`。
 - `eslint.config.mjs` 忽略 `scripts/**/*.js`，解决编辑器对 `scripts/export-openapi.js` 的 project-service 解析报错。
+- `scripts/dev/up-local-stack.ps1` 现在带 `--remove-orphans`，减少旧单库容器残留导致的 5432 端口冲突。
 
 ### Added
 
