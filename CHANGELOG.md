@@ -3,6 +3,42 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-05-30 (Medicine Knowledge Foundation - Source-Aware API + Durable Tables)
+
+### Added
+
+- `prisma/schema.prisma` 新增药品知识层持久化模型：
+  - `drug_source_imports`
+  - `cn_medicine_products`
+  - `drugbank_drugs`
+  - `drugbank_external_links`
+  - `drugbank_targets`
+  - `drugbank_drug_targets`
+- 新增迁移 `prisma/migrations/20260530233000_add_medicine_knowledge`。
+- `src/medicines/` 新增 source-aware feature-first 模块，提供：
+  - `GET /api/v1/medicines`
+  - `GET /api/v1/medicines/:id`
+- Search API 统一返回 common card shell；detail API 返回 `drugbank` / `cnProduct` 的 source-specific payload。
+- 新增 `src/i18n/en/medicine.json` 与 `src/i18n/zh-CN/medicine.json`，覆盖无效来源和药品不存在场景。
+- 新增 `src/medicines/medicines.service.spec.ts` 与 `test/medicines.e2e-spec.ts`。
+
+### Changed
+
+- `src/app.module.ts` 注册 `MedicinesModule`。
+- `docs/public/api-contract.md` 从“planned”推进到当前已实现的 medicines endpoints。
+- `docs/public/data-sources.md` 补充实际导入建议：
+  - `FullDrugDetail.xlsx` / CSV 适合 DBeaver 等工具导入
+  - DrugBank `full database.xml` 继续推荐脚本化、可重复导入
+- `docs/README.md` 将 `public/data-sources.md` 提升为药品库变更的主文档入口。
+
+### Test Results
+
+- `pnpm exec prisma generate` — 通过
+- `NODE_ENV=test pnpm exec prisma migrate deploy` — 通过
+- `pnpm exec jest --runInBand src/medicines/medicines.service.spec.ts` — 通过
+- `pnpm exec jest --runInBand --config ./test/jest-e2e.json test/medicines.e2e-spec.ts` — 通过
+- `pnpm build` — 通过
+
 ## 2026-05-30 (User Domain 第二层 - Health Context 聚合读取)
 
 ### Added

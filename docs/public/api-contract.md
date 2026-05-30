@@ -10,6 +10,8 @@ Last updated: 2026-05-30
 
 ```text
 GET /api/v1/health
+GET /api/v1/medicines
+GET /api/v1/medicines/:id
 GET /api/v1/me/health-context
 ```
 
@@ -98,7 +100,7 @@ source=cn
 source=drugbank
 ```
 
-Planned Phase 1 endpoints:
+Current Phase 1 endpoints:
 
 ```text
 GET /api/v1/medicines?source=cn&q=<keyword>&page=1&pageSize=20
@@ -117,6 +119,7 @@ Rules:
 - For `source=drugbank`, `:id` is the primary DrugBank id such as `DB00001`.
 - Unsupported source values should return HTTP 400 with code `400001`.
 - `Accept-Language` can still be sent together with `source`; for example, `source=drugbank` and `Accept-Language: zh-CN` means "query DrugBank but localize Lucent wrapper/error text in Chinese where available".
+- Search responses use the common pagination envelope shape with `meta.pagination`.
 
 The two medicine sources have different fields. API responses should not flatten them into a fake shared schema. Use a common shell plus a source-specific `detail` payload.
 

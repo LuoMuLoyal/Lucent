@@ -51,3 +51,33 @@ export type UserCondition = Prisma.UserConditionModel
  * 
  */
 export type UserCurrentMedicine = Prisma.UserCurrentMedicineModel
+/**
+ * Model DrugSourceImport
+ * 
+ */
+export type DrugSourceImport = Prisma.DrugSourceImportModel
+/**
+ * Model CnMedicineProduct
+ * 
+ */
+export type CnMedicineProduct = Prisma.CnMedicineProductModel
+/**
+ * Model DrugbankDrug
+ * 
+ */
+export type DrugbankDrug = Prisma.DrugbankDrugModel
+/**
+ * Model DrugbankExternalLink
+ * 
+ */
+export type DrugbankExternalLink = Prisma.DrugbankExternalLinkModel
+/**
+ * Model DrugbankTarget
+ * 
+ */
+export type DrugbankTarget = Prisma.DrugbankTargetModel
+/**
+ * Model DrugbankDrugTarget
+ * 
+ */
+export type DrugbankDrugTarget = Prisma.DrugbankDrugTargetModel

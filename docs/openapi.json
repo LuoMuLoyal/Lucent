@@ -419,6 +419,111 @@
         "tags": ["Auth"]
       }
     },
+    "/api/v1/medicines": {
+      "get": {
+        "operationId": "MedicinesController_search_v1",
+        "parameters": [
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Knowledge source selector.",
+            "schema": {
+              "default": "drugbank",
+              "type": "string",
+              "enum": ["drugbank", "cn"]
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword.",
+            "schema": {
+              "maxLength": 200,
+              "example": "ibuprofen",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number, 1-based.",
+            "schema": {
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size.",
+            "schema": {
+              "maximum": 50,
+              "default": 20,
+              "example": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineSearchResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Search medicines from a selected knowledge source",
+        "tags": ["Medicines"]
+      }
+    },
+    "/api/v1/medicines/{id}": {
+      "get": {
+        "operationId": "MedicinesController_getDetail_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Medicine id in the selected source",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Knowledge source selector.",
+            "schema": {
+              "default": "drugbank",
+              "type": "string",
+              "enum": ["drugbank", "cn"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get medicine detail from a selected knowledge source",
+        "tags": ["Medicines"]
+      }
+    },
     "/api/v1/me/health-context": {
       "get": {
         "operationId": "UserHealthContextController_getMeHealthContext_v1",
@@ -1000,6 +1105,416 @@
           }
         },
         "required": ["password"]
+      },
+      "DrugbankMedicineDetailDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "example": "drugbank"
+          },
+          "drugType": {
+            "type": "object",
+            "nullable": true,
+            "example": "small molecule"
+          },
+          "state": {
+            "type": "object",
+            "nullable": true,
+            "example": "solid"
+          },
+          "description": {
+            "type": "object",
+            "nullable": true,
+            "example": "A non-steroidal anti-inflammatory drug."
+          },
+          "indication": {
+            "type": "object",
+            "nullable": true,
+            "example": "Used for pain, fever, and inflammation."
+          },
+          "mechanismOfAction": {
+            "type": "object",
+            "nullable": true
+          },
+          "pharmacodynamics": {
+            "type": "object",
+            "nullable": true
+          },
+          "toxicity": {
+            "type": "object",
+            "nullable": true
+          },
+          "metabolism": {
+            "type": "object",
+            "nullable": true
+          },
+          "absorption": {
+            "type": "object",
+            "nullable": true
+          },
+          "halfLife": {
+            "type": "object",
+            "nullable": true
+          },
+          "proteinBinding": {
+            "type": "object",
+            "nullable": true
+          },
+          "routeOfElimination": {
+            "type": "object",
+            "nullable": true
+          },
+          "volumeOfDistribution": {
+            "type": "object",
+            "nullable": true
+          },
+          "clearance": {
+            "type": "object",
+            "nullable": true
+          },
+          "groups": {
+            "example": ["approved", "small molecule"],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "categories": {
+            "example": ["Anti-inflammatory Agents"],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "atcCodes": {
+            "example": ["M01AE01"],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "synonyms": {
+            "example": ["Ibuprofen"],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "foodInteractions": {
+            "example": ["Avoid taking with alcohol."],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "drugInteractions": {
+            "type": "object",
+            "description": "Raw source interaction payload.",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "externalIdentifiers": {
+            "type": "object",
+            "description": "Raw source external identifier payload.",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "externalLinks": {
+            "type": "object",
+            "description": "Raw source external link payload.",
+            "nullable": true,
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "kind",
+          "groups",
+          "categories",
+          "atcCodes",
+          "synonyms",
+          "foodInteractions"
+        ]
+      },
+      "CnMedicineDetailDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "example": "cnProduct"
+          },
+          "approvalNumber": {
+            "type": "object",
+            "nullable": true,
+            "example": "国药准字H10900089"
+          },
+          "manufacturer": {
+            "type": "object",
+            "nullable": true,
+            "example": "某某制药"
+          },
+          "packageSpec": {
+            "type": "object",
+            "nullable": true,
+            "example": "0.3g*10粒"
+          },
+          "brandName": {
+            "type": "object",
+            "nullable": true,
+            "example": "布洛芬"
+          },
+          "ingredients": {
+            "type": "object",
+            "nullable": true
+          },
+          "properties": {
+            "type": "object",
+            "nullable": true
+          },
+          "indications": {
+            "type": "object",
+            "nullable": true
+          },
+          "dosage": {
+            "type": "object",
+            "nullable": true
+          },
+          "adverseReactions": {
+            "type": "object",
+            "nullable": true
+          },
+          "contraindications": {
+            "type": "object",
+            "nullable": true
+          },
+          "precautions": {
+            "type": "object",
+            "nullable": true
+          },
+          "pediatricUse": {
+            "type": "object",
+            "nullable": true
+          },
+          "geriatricUse": {
+            "type": "object",
+            "nullable": true
+          },
+          "pregnancyLactation": {
+            "type": "object",
+            "nullable": true
+          },
+          "pharmacologyToxicology": {
+            "type": "object",
+            "nullable": true
+          },
+          "drugInteractions": {
+            "type": "object",
+            "nullable": true
+          },
+          "pharmacokinetics": {
+            "type": "object",
+            "nullable": true
+          },
+          "overdose": {
+            "type": "object",
+            "nullable": true
+          },
+          "storage": {
+            "type": "object",
+            "nullable": true
+          },
+          "validityPeriod": {
+            "type": "object",
+            "nullable": true
+          },
+          "barcode": {
+            "type": "object",
+            "nullable": true
+          },
+          "nationalDrugCode": {
+            "type": "object",
+            "nullable": true
+          },
+          "sourceUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": ["kind"]
+      },
+      "MedicineSearchItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable medicine id.",
+            "example": "DB01050"
+          },
+          "source": {
+            "type": "string",
+            "description": "Knowledge source.",
+            "enum": ["drugbank", "cn"],
+            "example": "drugbank"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name.",
+            "example": "Ibuprofen"
+          },
+          "subtitle": {
+            "type": "object",
+            "description": "Short supporting subtitle.",
+            "example": "CAS 15687-27-1",
+            "nullable": true
+          },
+          "summary": {
+            "type": "object",
+            "description": "Short preview summary.",
+            "example": "A non-steroidal anti-inflammatory drug...",
+            "nullable": true
+          },
+          "tags": {
+            "description": "Compact tags for search cards.",
+            "example": ["approved", "small molecule"],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "imageUrl": {
+            "type": "object",
+            "description": "Optional image URL.",
+            "example": null,
+            "nullable": true
+          },
+          "matchedBy": {
+            "description": "Which fields matched the current query.",
+            "example": ["name"],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "name",
+          "subtitle",
+          "summary",
+          "tags",
+          "imageUrl",
+          "matchedBy"
+        ]
+      },
+      "MedicinePaginationDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "number",
+            "example": 20
+          },
+          "total": {
+            "type": "number",
+            "example": 87
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 5
+          }
+        },
+        "required": ["page", "pageSize", "total", "totalPages"]
+      },
+      "MedicineSearchMetaDto": {
+        "type": "object",
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/MedicinePaginationDto"
+          }
+        },
+        "required": ["pagination"]
+      },
+      "MedicineSearchResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSearchItemDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MedicineSearchMetaDto"
+          }
+        },
+        "required": ["code", "message", "data", "meta"]
+      },
+      "MedicineDetailDataDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "DB01050"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["drugbank", "cn"],
+            "example": "drugbank"
+          },
+          "name": {
+            "type": "string",
+            "example": "Ibuprofen"
+          },
+          "subtitle": {
+            "type": "object",
+            "example": "CAS 15687-27-1",
+            "nullable": true
+          },
+          "detail": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DrugbankMedicineDetailDto"
+              },
+              {
+                "$ref": "#/components/schemas/CnMedicineDetailDto"
+              }
+            ]
+          }
+        },
+        "required": ["id", "source", "name", "subtitle", "detail"]
+      },
+      "MedicineDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/MedicineDetailDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
       },
       "UserHealthSummaryDto": {
         "type": "object",
