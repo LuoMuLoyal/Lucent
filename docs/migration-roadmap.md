@@ -2,6 +2,11 @@
 
 Last updated: 2026-05-26
 
+> 状态：早期路线参考。
+>
+> 当前产品阶段请读 `docs/public/ROADMAP.md`；当前后端基线请读 `README.md` 和 `CHANGELOG.md`。
+> 本文件保留迁移思路，不再作为当前进度来源。
+
 ## Goal
 
 Build Lucent into the production backend for Luminous:

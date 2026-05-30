@@ -1,5 +1,19 @@
 # Lucent Changelog
 
+> 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
+> 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
+
+## 2026-05-30 (文档边界重整)
+
+### Changed — 文档入口与更新规则
+
+- 新增 `docs/README.md` 作为 Lucent 文档地图，明确 README、CHANGELOG、API contract、环境文档、产品 roadmap 与归档文档的边界。
+- 更新 `README.md`、`AGENTS.md` 和 `docs/public/README.md`，把“每次代码变更按文档边界更新对应文档”写入协作规则。
+- 标记 `docs/auth-implementation-plan.md` 与 `docs/migration-roadmap.md` 为归档/参考文档，避免继续作为当前进度来源。
+- 保留历史 changelog 内容，但明确旧端口、脚本或目录说明以当前 README / environment 文档为准。
+
+---
+
 ## 2026-05-30 (Auth 安全边界 + E2E 基线修复)
 
 ### Fixed — 登录凭据校验安全修复

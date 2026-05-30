@@ -2,7 +2,7 @@
 
 > 标准 RESTful 认证模块 mock，前后端以此文档对齐即可并行开发。
 >
-> 基础约定见 [api-contract](api-contract.md)。响应统一 `{ code, message, data }`，分页接口附加 `meta`。
+> 基础约定见 [api-contract](public/api-contract.md)。响应统一 `{ code, message, data }`，分页接口附加 `meta`。
 
 ---
 
@@ -64,7 +64,7 @@ POST /api/v1/auth/register
       "email": "user@example.com",
       "nickname": "小明",
       "emailVerified": false,
-      "createdAt": "2026-06-03T12:00:00Z"
+      "createdAt": "2026-05-30T12:00:00Z"
     },
     "tokens": {
       "accessToken": "eyJhbG...",
@@ -142,8 +142,8 @@ POST /api/v1/auth/login
       "nickname": "小明",
       "avatar": "https://cdn.example.com/avatars/u_abc123.jpg",
       "emailVerified": true,
-      "createdAt": "2026-06-03T12:00:00Z",
-      "updatedAt": "2026-06-10T08:30:00Z"
+      "createdAt": "2026-05-30T12:00:00Z",
+      "updatedAt": "2026-05-30T12:30:00Z"
     },
     "tokens": {
       "accessToken": "eyJhbG...",
@@ -441,8 +441,8 @@ Authorization: Bearer <accessToken>
     "nickname": "小明",
     "avatar": "https://cdn.example.com/avatars/u_abc123.jpg",
     "emailVerified": true,
-    "createdAt": "2026-06-03T12:00:00Z",
-    "updatedAt": "2026-06-10T08:30:00Z"
+    "createdAt": "2026-05-30T12:00:00Z",
+    "updatedAt": "2026-05-30T12:30:00Z"
   }
 }
 ```
@@ -489,8 +489,8 @@ Authorization: Bearer <accessToken>
     "nickname": "新昵称",
     "avatar": "https://cdn.example.com/avatars/new.jpg",
     "emailVerified": true,
-    "createdAt": "2026-06-03T12:00:00Z",
-    "updatedAt": "2026-06-10T09:00:00Z"
+    "createdAt": "2026-05-30T12:00:00Z",
+    "updatedAt": "2026-05-30T13:00:00Z"
   }
 }
 ```
