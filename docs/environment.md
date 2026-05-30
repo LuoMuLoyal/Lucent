@@ -1,6 +1,6 @@
 # Environment
 
-Last updated: 2026-05-26
+Last updated: 2026-05-30
 
 Lucent uses `@nestjs/config` with validated environment variables.
 
@@ -36,7 +36,9 @@ Loading order is environment-specific（优先级从高到低）：
 
 - `pnpm start` and `pnpm start:dev` run with `NODE_ENV=development`.
 - `pnpm start:prod` runs the built app with `NODE_ENV=production`.
-- `pnpm test` and `pnpm test:e2e` run with `NODE_ENV=test`.
+- `pnpm test` runs with `NODE_ENV=test`.
+- `pnpm test:e2e` runs with `NODE_ENV=test` and `NODE_OPTIONS=--experimental-vm-modules` for Prisma 7 generated client compatibility.
+- Local e2e expects the `docker-compose.dev.yml` PostgreSQL service: `lucent/lucent_dev@127.0.0.1:5432/lucent`.
 
 ## Production Rules
 
@@ -60,3 +62,4 @@ CORS_ORIGIN
 - Global prefix: `/api`。Flutter 请求时 baseURL 设为 `domain/api`，路径写 `/v1/xxx`。
 - Health check: `GET /api/v1/health`.
 - Request id: returned in `X-Request-Id` and available for server-side log correlation.
+- Auth e2e baseline passes for register / login / refresh / me / logout.

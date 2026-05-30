@@ -2,7 +2,7 @@
 
 > 基于 [auth-api-mock.md](auth-api-mock.md) 约束，分步实现 Lucent 认证模块。
 >
-> **最后更新**: 2026-05-27 20:41 | **当前阶段**: Step 2 验证码系统 (4/4 完成)
+> **最后更新**: 2026-05-30 16:45 | **当前阶段**: Auth 基线加固完成，进入前端登录/注册体验完善
 >
 > ⚠️ 此文档随实施同步更新，每一步完成/变更都应反映在此文件中。
 
@@ -159,17 +159,18 @@ model RefreshToken {
 ### Step 0.6 — 数据库迁移 ✅
 
 - **Docker PostgreSQL 容器**：`lucent-postgres`（`postgres:16-alpine`）
-  - 端口映射：`127.0.0.1:15432:5432`（Hyper-V 占用 5432，改用 15432）
-  - 用户/密码/数据库：postgres/postgres/lucent
+  - 当前 `docker-compose.dev.yml` 端口映射：`127.0.0.1:5432:5432`
+  - 用户/密码/数据库：`lucent/lucent_dev/lucent`
+  - 历史记录中曾使用 `15432` 与 `postgres/postgres/lucent`，当前本地 e2e 以 compose 配置为准。
 - **Prisma config**：`prisma.config.ts` 手动加载 `.env.development`（dotenv），解决 Prisma CLI 不读 `.env.*` 的问题
 - **迁移命令**：`pnpm exec prisma migrate dev --name init` → 创建 `users` + `refresh_tokens` 表
 - **Client 生成**：`pnpm exec prisma generate` → `src/generated/prisma/`
 - **依赖变更**：新增 `dotenv` (devDependency)
-- **.env.development**：`DATABASE_URL` 端口 `5432` → `15432`
+- **.env.test**：`DATABASE_URL` 对齐 compose PostgreSQL：`postgresql://lucent:lucent_dev@127.0.0.1:5432/lucent?schema=public`
 
 ---
 
-```
+````
 
 ---
 
@@ -199,6 +200,7 @@ model RefreshToken {
 
 - 密码验证 + 登录频率限制（内存，待迁 Redis）
 - `checkLoginRateLimit` / `recordLoginFailure` / `clearLoginFailures`
+- 登录凭据边界已加固：`password` / `code` 必须且只能提供一种；空凭据和双凭据都会拒绝。
 
 ### Step 1.6 — Token 管理 ✅
 
@@ -221,6 +223,7 @@ model RefreshToken {
 
 - `POST /auth/login` → `200`
 - 返回 `{ user, tokens }`
+- 已修复空凭据只凭邮箱登录的安全漏洞。
 
 ### Step 1.10 — AuthController.logout ✅
 
@@ -323,13 +326,48 @@ model RefreshToken {
 
 ### Step 3.5 — AuthController.deleteAccount ✅
 
+- `deleteAccount` 采用软删除：设置 `deletedAt`
+- `UserService.findById` / `findByEmail` 默认过滤软删除用户，注销账号不再参与登录、`me` 查询和邮箱占用判断。
+
+
+---
+
+## 2026-05-30 安全与测试基线加固 ✅
+
+### 修复范围
+
+- 登录凭据必须二选一，阻止只传邮箱获得 token。
+- JWT 签发保留 payload `sub`，移除重复 `subject` 选项，兼容 jsonwebtoken 9。
+- 软删除用户默认从用户查询边界排除。
+- i18n 类型生成只在 development 启用，避免 test / dist 运行时访问缺失生成文件。
+- `GET /api/v1/health` 保持统一 envelope：`{ code: 0, message: '', data: {} }`。
+- `pnpm test:e2e` 固化 `NODE_OPTIONS=--experimental-vm-modules`，适配 Prisma 7 `.mjs` query compiler。
+
+### 当前验证
+
+```bash
+pnpm build
+pnpm test
+pnpm test:e2e
+````
+
+结果：
+
+- `pnpm build` 通过
+- `pnpm test` 通过：6 suites / 67 tests
+- `pnpm test:e2e` 通过：2 suites / 30 tests
+
+### 下一步
+
+- 前端继续完善登录/注册页面：字段校验、成功后跳转、受保护路由、全局 session restore。
+- 后端后续业务 API 继续沿用 JWT 派生用户身份，不接受 body / query `userId` 作为授权边界。
 
 ---
 
 ## 每步检查清单
 
-- [ ] TypeScript 编译通过：`pnpm --prefix Lucent build`
-- [ ] 不破坏已有健康检查：`GET /api/v1/health`
-- [ ] 新增代码遵循现有模式（envelope、filter、middleware）
-- [ ] 文档同步更新（本文件 + 相关 .md）
-```
+- [x] TypeScript 编译通过：`pnpm build`
+- [x] 不破坏已有健康检查：`GET /api/v1/health`
+- [x] 新增代码遵循现有模式（envelope、filter、middleware）
+- [x] Auth 主链路 e2e 通过：register / login / refresh / me / logout
+- [x] 文档同步更新（本文件 + 相关 .md）

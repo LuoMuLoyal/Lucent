@@ -33,6 +33,8 @@ pnpm test:e2e
 pnpm lint
 ```
 
+`pnpm test:e2e` expects the local `docker-compose.dev.yml` PostgreSQL service to be running (`lucent/lucent_dev` on `127.0.0.1:5432`) and uses Node VM modules for the Prisma 7 generated client.
+
 Environment files:
 
 ```text
@@ -56,6 +58,7 @@ Current baseline:
 - Runtime config loads `.env.development` and `.env.production` by convention.
 - API 全局 prefix `/api` + NestJS URI versioning（`/v1`），health check: `GET /api/v1/health`。
 - i18n uses `Accept-Language` request header, with fallback language `en`.
+- Auth e2e baseline passes for register / login / refresh / me / logout.
 
 ## Documentation
 

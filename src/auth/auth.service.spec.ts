@@ -211,6 +211,36 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
+    it('should throw UnauthorizedException when no credential is provided', async () => {
+      userService.findByEmail.mockResolvedValue(mockUser);
+      (argon2.verify as jest.Mock).mockClear();
+      verificationCodeService.verify.mockClear();
+
+      await expect(
+        service.login({ email: 'test@example.com' }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(argon2.verify).not.toHaveBeenCalled();
+      expect(verificationCodeService.verify).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when both password and code are provided', async () => {
+      userService.findByEmail.mockResolvedValue(mockUser);
+      (argon2.verify as jest.Mock).mockClear();
+      verificationCodeService.verify.mockClear();
+
+      await expect(
+        service.login({
+          email: 'test@example.com',
+          password: 'Password123!',
+          code: '123456',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(argon2.verify).not.toHaveBeenCalled();
+      expect(verificationCodeService.verify).not.toHaveBeenCalled();
+    });
+
     it('should login with verification code', async () => {
       userService.findByEmail.mockResolvedValue(mockUser);
       verificationCodeService.verify.mockResolvedValue(true);
