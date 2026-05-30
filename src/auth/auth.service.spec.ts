@@ -140,10 +140,16 @@ describe('AuthService', () => {
       const result = await service.register({
         email: 'test@example.com',
         password: 'Password123!',
+        code: '123456',
         nickname: 'TestUser',
       });
 
       expect(userService.findByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(verificationCodeService.verify).toHaveBeenCalledWith(
+        'test@example.com',
+        '123456',
+        'register',
+      );
       expect(argon2.hash).toHaveBeenCalledWith(
         'Password123!',
         expect.objectContaining({ type: argon2.argon2id }),
@@ -152,6 +158,7 @@ describe('AuthService', () => {
         expect.objectContaining({
           email: 'test@example.com',
           nickname: 'TestUser',
+          emailVerified: true,
         }),
       );
       expect(result.user).toEqual(mockUser);
@@ -166,8 +173,10 @@ describe('AuthService', () => {
         service.register({
           email: 'test@example.com',
           password: 'Password123!',
+          code: '123456',
         }),
       ).rejects.toThrow(ConflictException);
+      expect(verificationCodeService.verify).not.toHaveBeenCalled();
     });
   });
 

@@ -7,31 +7,32 @@ Last updated: 2026-05-30
 - Frontend has been reset to a clean five-tab shell.
 - Auth/network/i18n/design-token foundations are in place.
 - Login/register pages are minimal and still need UX completion.
-- Medicine, reminder, scan, and real Today data flows are not restored yet.
+- Medicine knowledge, personal records, reminders, scan, and real Today data flows are not restored yet.
 - Lucent is the target backend; legacy backend remains historical/deployed context.
 
-## Phase 1 - Medication Loop
+## Phase 1 - Health Copilot Foundation
 
-Goal: make `search medicine -> view detail -> add medicine -> set reminder -> check in -> record reaction` trustworthy and demo-ready.
+Goal: make Lucent a trustworthy personal health copilot backend: source-grounded knowledge, user-owned health context, and safe AI explanation boundaries.
 
 Milestones:
 
 1. Keep `/api/v1`, envelope, auth, and e2e baseline stable.
-2. Import a small verified medicine dataset into Lucent.
-3. Provide Lucent medicine search/detail APIs.
-4. Move Flutter medicine search/detail to Lucent.
-5. Rebuild reminders, check-in, and reaction records.
-6. Use AI only as an explanation layer, not the source of medicine facts.
+2. Import the English DrugBank dataset as the default medicine knowledge source.
+3. Import the Chinese medicine product/package-insert dataset as a regional execution source.
+4. Provide source-aware medicine search/detail APIs with stable common response fields and source-specific detail payloads.
+5. Reconnect Flutter to Lucent for medicine knowledge lookup, Today data, and user-owned health context.
+6. Use AI only as a source-grounded explanation and planning layer, not as the source of medicine facts.
 
-## Phase 2 - Personal Health Record
+## Phase 2 - Personal Health Context
 
 - Vitals, symptoms, reports, mood, water, and exercise records.
 - Health timeline and weekly/monthly summaries.
 - Preventive screening and environment reminders.
+- User profile context for age, sex, pregnancy/lactation state, allergies, conditions, and current medicines.
 
 ## Phase 3 - Proactive Health Partner
 
-- Personalized reminders based on profile, medicine, and trends.
+- Personalized reminders and suggestions based on profile, medicine knowledge, records, and trends.
 - Mental health tracking and graded suggestions.
 - Specialist record OCR for dental, eye, and hearing data.
 

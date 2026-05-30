@@ -442,6 +442,11 @@
             "minLength": 8,
             "maxLength": 32
           },
+          "code": {
+            "type": "string",
+            "description": "邮箱验证码",
+            "example": "123456"
+          },
           "nickname": {
             "type": "string",
             "description": "昵称",
@@ -449,7 +454,7 @@
             "maxLength": 20
           }
         },
-        "required": ["email", "password"]
+        "required": ["email", "password", "code"]
       },
       "UserBriefDto": {
         "type": "object",
