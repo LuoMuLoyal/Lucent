@@ -27,6 +27,26 @@
 - `pnpm exec jest --runInBand src/config/cache.config.spec.ts src/auth/verification-code.service.spec.ts` — 通过
 - `pnpm build` — 通过
 
+## 2026-05-31 (Medicines Read Cache)
+
+### Added
+
+- `src/medicines/cache/medicines-cache.service.ts`：药品 search/detail 统一缓存入口，负责 source-aware key 生成与 TTL 管理。
+- `src/medicines/cache/medicines-cache.service.spec.ts`：覆盖 search/detail cache hit/miss 和 key 规则。
+
+### Changed
+
+- `src/medicines/medicines.service.ts` 现在通过服务层缓存包装 medicines search/detail，而不是依赖控制器层默认 URL cache key。
+- `src/medicines/medicines.module.ts` 注册 `MedicinesCacheService`。
+- `src/medicines/medicines.service.spec.ts` 同步缓存接入后的调用边界。
+- `docs/environment.md` 记录当前 medicines 缓存前缀与 TTL。
+
+### Test Results
+
+- `pnpm exec jest --runInBand src/medicines/cache/medicines-cache.service.spec.ts src/medicines/medicines.service.spec.ts` — 通过
+- `pnpm exec eslint --fix --no-warn-ignored src/medicines/cache/medicines-cache.service.ts src/medicines/cache/medicines-cache.service.spec.ts src/medicines/medicines.service.ts src/medicines/medicines.service.spec.ts src/medicines/medicines.module.ts` — 通过
+- `pnpm build` — 通过
+
 ## 2026-05-30 (Medicine Knowledge Foundation - Source-Aware API + Durable Tables)
 
 ### Added

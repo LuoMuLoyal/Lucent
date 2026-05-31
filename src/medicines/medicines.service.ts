@@ -13,6 +13,7 @@ import type {
   MedicineSearchResult,
 } from './dto';
 import { DEFAULT_MEDICINE_SOURCE } from './dto';
+import { MedicinesCacheService } from './cache/medicines-cache.service';
 import { CnMedicinesService } from './sources/cn-medicines.service';
 import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
 
@@ -21,6 +22,7 @@ export class MedicinesService {
   constructor(
     private readonly drugbankMedicinesService: DrugbankMedicinesService,
     private readonly cnMedicinesService: CnMedicinesService,
+    private readonly medicinesCacheService: MedicinesCacheService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -32,9 +34,16 @@ export class MedicinesService {
       pageSize: query.pageSize,
     };
 
-    return source === 'drugbank'
-      ? this.drugbankMedicinesService.search(criteria)
-      : this.cnMedicinesService.search(criteria);
+    return this.medicinesCacheService.getOrSetSearch(
+      {
+        source,
+        ...criteria,
+      },
+      () =>
+        source === 'drugbank'
+          ? this.drugbankMedicinesService.search(criteria)
+          : this.cnMedicinesService.search(criteria),
+    );
   }
 
   async getDetail(
@@ -44,10 +53,14 @@ export class MedicinesService {
     const source = this.resolveSource(query.source);
     const normalizedId = id.trim();
 
-    const detail =
-      source === 'drugbank'
-        ? await this.drugbankMedicinesService.getDetail(normalizedId)
-        : await this.cnMedicinesService.getDetail(normalizedId);
+    const detail = await this.medicinesCacheService.getOrSetDetail(
+      source,
+      normalizedId,
+      () =>
+        source === 'drugbank'
+          ? this.drugbankMedicinesService.getDetail(normalizedId)
+          : this.cnMedicinesService.getDetail(normalizedId),
+    );
 
     if (!detail) {
       throw new NotFoundException({
