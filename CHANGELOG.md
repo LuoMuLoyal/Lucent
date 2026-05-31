@@ -47,6 +47,27 @@
 - `pnpm exec eslint --fix --no-warn-ignored src/medicines/cache/medicines-cache.service.ts src/medicines/cache/medicines-cache.service.spec.ts src/medicines/medicines.service.ts src/medicines/medicines.service.spec.ts src/medicines/medicines.module.ts` — 通过
 - `pnpm build` — 通过
 
+## 2026-05-31 (Medicines Cache Bypass + Import Invalidation)
+
+### Added
+
+- `src/medicines/cache/medicines-cache.constants.ts`：统一 medicines cache 前缀、TTL 和 bypass header 常量。
+- `src/medicines/cache/medicines-cache-admin.service.ts`：提供 medicines cache key 扫描和失效入口。
+- `src/medicines/cache/medicines-cache-admin.service.spec.ts`：覆盖 medicines cache 删除逻辑。
+
+### Changed
+
+- `src/medicines/medicines.controller.ts` 支持 `x-bypass-cache` 请求头，仅绕过当前读请求缓存。
+- `src/medicines/medicines.service.ts` / `src/medicines/cache/medicines-cache.service.ts` 新增 bypass 参数支持。
+- `scripts/medicine/import-medicine-knowledge.js` 在导入完成后会清理 Redis 中的 `medicines:*` key。
+- `docs/environment.md` 与 `docs/public/api-contract.md` 同步 bypass / invalidate 语义。
+
+### Test Results
+
+- `pnpm exec jest --runInBand src/medicines/cache/medicines-cache-admin.service.spec.ts src/medicines/cache/medicines-cache.service.spec.ts src/medicines/medicines.service.spec.ts` — 通过
+- `pnpm exec eslint --fix --no-warn-ignored src/medicines/cache/medicines-cache.constants.ts src/medicines/cache/medicines-cache-admin.service.ts src/medicines/cache/medicines-cache-admin.service.spec.ts src/medicines/cache/medicines-cache.service.ts src/medicines/cache/medicines-cache.service.spec.ts src/medicines/medicines.controller.ts src/medicines/medicines.service.ts src/medicines/medicines.service.spec.ts src/medicines/medicines.module.ts scripts/medicine/import-medicine-knowledge.js` — 通过
+- `pnpm build` — 通过
+
 ## 2026-05-30 (Medicine Knowledge Foundation - Source-Aware API + Durable Tables)
 
 ### Added

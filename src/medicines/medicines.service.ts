@@ -27,6 +27,13 @@ export class MedicinesService {
   ) {}
 
   async search(query: MedicineSearchQueryDto): Promise<MedicineSearchResult> {
+    return this.searchWithCache(query, false);
+  }
+
+  async searchWithCache(
+    query: MedicineSearchQueryDto,
+    bypassCache: boolean,
+  ): Promise<MedicineSearchResult> {
     const source = this.resolveSource(query.source);
     const criteria = {
       q: query.q?.trim() ?? '',
@@ -39,6 +46,7 @@ export class MedicinesService {
         source,
         ...criteria,
       },
+      bypassCache,
       () =>
         source === 'drugbank'
           ? this.drugbankMedicinesService.search(criteria)
@@ -50,12 +58,21 @@ export class MedicinesService {
     id: string,
     query: MedicineDetailQueryDto,
   ): Promise<MedicineDetailDataDto> {
+    return this.getDetailWithCache(id, query, false);
+  }
+
+  async getDetailWithCache(
+    id: string,
+    query: MedicineDetailQueryDto,
+    bypassCache: boolean,
+  ): Promise<MedicineDetailDataDto> {
     const source = this.resolveSource(query.source);
     const normalizedId = id.trim();
 
     const detail = await this.medicinesCacheService.getOrSetDetail(
       source,
       normalizedId,
+      bypassCache,
       () =>
         source === 'drugbank'
           ? this.drugbankMedicinesService.getDetail(normalizedId)

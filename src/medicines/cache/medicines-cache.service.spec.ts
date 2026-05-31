@@ -41,6 +41,7 @@ describe('MedicinesCacheService', () => {
         page: 1,
         pageSize: 10,
       },
+      false,
       load,
     );
 
@@ -65,6 +66,7 @@ describe('MedicinesCacheService', () => {
         page: 2,
         pageSize: 5,
       },
+      false,
       load,
     );
 
@@ -94,10 +96,46 @@ describe('MedicinesCacheService', () => {
     cache.get.mockResolvedValue(undefined);
     cache.set.mockResolvedValue(loadedValue);
 
-    const result = await service.getOrSetDetail('drugbank', 'DB01050', load);
+    const result = await service.getOrSetDetail(
+      'drugbank',
+      'DB01050',
+      false,
+      load,
+    );
 
     expect(result).toBe(loadedValue);
     expect(cache.get).toHaveBeenCalledWith('medicines:detail:drugbank:DB01050');
+    expect(cache.set).toHaveBeenCalledWith(
+      'medicines:detail:drugbank:DB01050',
+      loadedValue,
+      900_000,
+    );
+  });
+
+  it('bypasses cache reads when explicitly requested', async () => {
+    const loadedValue = {
+      id: 'DB01050',
+      source: 'drugbank' as const,
+      name: 'Ibuprofen',
+      subtitle: 'CAS 15687-27-1',
+      detail: {
+        kind: 'drugbank' as const,
+      },
+    };
+    const load = jest.fn().mockResolvedValue(loadedValue);
+    cache.get.mockResolvedValue(loadedValue);
+    cache.set.mockResolvedValue(loadedValue);
+
+    const result = await service.getOrSetDetail(
+      'drugbank',
+      'DB01050',
+      true,
+      load,
+    );
+
+    expect(result).toBe(loadedValue);
+    expect(cache.get).not.toHaveBeenCalled();
+    expect(load).toHaveBeenCalledTimes(1);
     expect(cache.set).toHaveBeenCalledWith(
       'medicines:detail:drugbank:DB01050',
       loadedValue,

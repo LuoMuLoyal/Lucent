@@ -66,7 +66,7 @@ describe('MedicinesService', () => {
     };
     drugbankMedicinesService.search.mockResolvedValue(expectedResult);
     medicinesCacheService.getOrSetSearch.mockImplementation(
-      async (_input, load) => load(),
+      async (_input, _bypass, load) => load(),
     );
 
     await expect(
@@ -84,6 +84,7 @@ describe('MedicinesService', () => {
         page: 1,
         pageSize: 20,
       },
+      false,
       expect.any(Function),
     );
     expect(drugbankMedicinesService.search).toHaveBeenCalledWith({
@@ -101,7 +102,7 @@ describe('MedicinesService', () => {
     };
     cnMedicinesService.search.mockResolvedValue(expectedResult);
     medicinesCacheService.getOrSetSearch.mockImplementation(
-      async (_input, load) => load(),
+      async (_input, _bypass, load) => load(),
     );
 
     await service.search({
@@ -118,6 +119,7 @@ describe('MedicinesService', () => {
         page: 2,
         pageSize: 10,
       },
+      false,
       expect.any(Function),
     );
     expect(cnMedicinesService.search).toHaveBeenCalledWith({
@@ -156,7 +158,7 @@ describe('MedicinesService', () => {
   it('should throw not found when the selected source has no detail record', async () => {
     drugbankMedicinesService.getDetail.mockResolvedValue(null);
     medicinesCacheService.getOrSetDetail.mockImplementation(
-      async (_source, _id, load) => load(),
+      async (_source, _id, _bypass, load) => load(),
     );
 
     await expect(
@@ -185,7 +187,7 @@ describe('MedicinesService', () => {
     };
     drugbankMedicinesService.getDetail.mockResolvedValue(expectedDetail);
     medicinesCacheService.getOrSetDetail.mockImplementation(
-      async (_source, _id, load) => load(),
+      async (_source, _id, _bypass, load) => load(),
     );
 
     await expect(
@@ -195,6 +197,7 @@ describe('MedicinesService', () => {
     expect(medicinesCacheService.getOrSetDetail).toHaveBeenCalledWith(
       'drugbank',
       'DB01050',
+      false,
       expect.any(Function),
     );
     expect(drugbankMedicinesService.getDetail).toHaveBeenCalledWith('DB01050');

@@ -355,6 +355,40 @@ function parseArgs(argv) {
   return args;
 }
 
+async function redisStoreFromUrl(redisUrl) {
+  const { redisStore } = require('cache-manager-ioredis-yet');
+  const url = new URL(redisUrl);
+
+  return redisStore({
+    host: url.hostname,
+    port: Number(url.port) || 6379,
+    password: url.password || undefined,
+    db: url.pathname ? Number(url.pathname.slice(1)) || 0 : 0,
+    tls: url.protocol === 'rediss:' ? {} : undefined,
+  });
+}
+
+async function invalidateMedicineCache() {
+  const redisUrl = process.env.REDIS_URL?.trim();
+  if (!redisUrl) {
+    return { invalidated: 0, skipped: 'REDIS_URL is not configured' };
+  }
+
+  const store = await redisStoreFromUrl(redisUrl);
+
+  try {
+    const keys = await store.keys('medicines:*');
+    if (keys.length === 0) {
+      return { invalidated: 0 };
+    }
+
+    await Promise.all(keys.map((key) => store.del(key)));
+    return { invalidated: keys.length };
+  } finally {
+    store.client.disconnect();
+  }
+}
+
 function printUsage() {
   console.log(`Usage:
   node scripts/medicine/import-medicine-knowledge.js <command> [options]
@@ -836,6 +870,7 @@ async function runImport(command, cliOptions) {
         rawRowCount: summary.rawRowCount,
         importedRowCount: summary.importedRowCount,
         rejectedRowCount: summary.rejectedRowCount,
+        cacheInvalidation: await invalidateMedicineCache(),
       },
       null,
       2,
