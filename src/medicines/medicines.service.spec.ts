@@ -4,6 +4,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { MedicinesService } from './medicines.service';
+import { MedicinesCacheService } from './cache/medicines-cache.service';
 import { CnMedicinesService } from './sources/cn-medicines.service';
 import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
 import { ResultCode } from '../common/api-envelope';
@@ -12,6 +13,7 @@ describe('MedicinesService', () => {
   let service: MedicinesService;
   let drugbankMedicinesService: jest.Mocked<DrugbankMedicinesService>;
   let cnMedicinesService: jest.Mocked<CnMedicinesService>;
+  let medicinesCacheService: jest.Mocked<MedicinesCacheService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,6 +34,13 @@ describe('MedicinesService', () => {
           },
         },
         {
+          provide: MedicinesCacheService,
+          useValue: {
+            getOrSetSearch: jest.fn(),
+            getOrSetDetail: jest.fn(),
+          },
+        },
+        {
           provide: I18nService,
           useValue: {
             t: jest.fn((key: string) => key),
@@ -43,6 +52,7 @@ describe('MedicinesService', () => {
     service = module.get(MedicinesService);
     drugbankMedicinesService = module.get(DrugbankMedicinesService);
     cnMedicinesService = module.get(CnMedicinesService);
+    medicinesCacheService = module.get(MedicinesCacheService);
   });
 
   afterEach(() => {
@@ -50,17 +60,32 @@ describe('MedicinesService', () => {
   });
 
   it('should default search source to drugbank', async () => {
-    drugbankMedicinesService.search.mockResolvedValue({
+    const expectedResult = {
       items: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
-    });
+    };
+    drugbankMedicinesService.search.mockResolvedValue(expectedResult);
+    medicinesCacheService.getOrSetSearch.mockImplementation(
+      async (_input, load) => load(),
+    );
 
-    await service.search({
-      q: ' ibuprofen ',
-      page: 1,
-      pageSize: 20,
-    });
+    await expect(
+      service.search({
+        q: ' ibuprofen ',
+        page: 1,
+        pageSize: 20,
+      }),
+    ).resolves.toEqual(expectedResult);
 
+    expect(medicinesCacheService.getOrSetSearch).toHaveBeenCalledWith(
+      {
+        source: 'drugbank',
+        q: 'ibuprofen',
+        page: 1,
+        pageSize: 20,
+      },
+      expect.any(Function),
+    );
     expect(drugbankMedicinesService.search).toHaveBeenCalledWith({
       q: 'ibuprofen',
       page: 1,
@@ -70,10 +95,14 @@ describe('MedicinesService', () => {
   });
 
   it('should route explicit cn source to the cn reader', async () => {
-    cnMedicinesService.search.mockResolvedValue({
+    const expectedResult = {
       items: [],
       pagination: { page: 2, pageSize: 10, total: 0, totalPages: 0 },
-    });
+    };
+    cnMedicinesService.search.mockResolvedValue(expectedResult);
+    medicinesCacheService.getOrSetSearch.mockImplementation(
+      async (_input, load) => load(),
+    );
 
     await service.search({
       source: 'cn',
@@ -82,6 +111,15 @@ describe('MedicinesService', () => {
       pageSize: 10,
     });
 
+    expect(medicinesCacheService.getOrSetSearch).toHaveBeenCalledWith(
+      {
+        source: 'cn',
+        q: '布洛芬',
+        page: 2,
+        pageSize: 10,
+      },
+      expect.any(Function),
+    );
     expect(cnMedicinesService.search).toHaveBeenCalledWith({
       q: '布洛芬',
       page: 2,
@@ -117,6 +155,9 @@ describe('MedicinesService', () => {
 
   it('should throw not found when the selected source has no detail record', async () => {
     drugbankMedicinesService.getDetail.mockResolvedValue(null);
+    medicinesCacheService.getOrSetDetail.mockImplementation(
+      async (_source, _id, load) => load(),
+    );
 
     await expect(
       service.getDetail('DB00001', { source: 'drugbank' }),
@@ -130,5 +171,32 @@ describe('MedicinesService', () => {
         message: 'medicine.not_found',
       },
     });
+  });
+
+  it('should resolve detail through the cache service before hitting the source reader', async () => {
+    const expectedDetail = {
+      id: 'DB01050',
+      source: 'drugbank' as const,
+      name: 'Ibuprofen',
+      subtitle: 'CAS 15687-27-1',
+      detail: {
+        kind: 'drugbank' as const,
+      },
+    };
+    drugbankMedicinesService.getDetail.mockResolvedValue(expectedDetail);
+    medicinesCacheService.getOrSetDetail.mockImplementation(
+      async (_source, _id, load) => load(),
+    );
+
+    await expect(
+      service.getDetail(' DB01050 ', { source: 'drugbank' }),
+    ).resolves.toEqual(expectedDetail);
+
+    expect(medicinesCacheService.getOrSetDetail).toHaveBeenCalledWith(
+      'drugbank',
+      'DB01050',
+      expect.any(Function),
+    );
+    expect(drugbankMedicinesService.getDetail).toHaveBeenCalledWith('DB01050');
   });
 });
