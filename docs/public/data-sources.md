@@ -22,6 +22,7 @@ This directory is not tracked by Git and must not be packaged into Flutter.
 - `FullDrugDetail.xlsx` can be imported with GUI tools such as DBeaver when we need a quick raw/staging load or spot-check import.
 - `drug links.csv`, `all.csv`, and `pharmacologically_active.csv` can also be handled by DBeaver or regular PostgreSQL CSV import flows.
 - `full database.xml` should not be treated as a manual GUI import. It is about 1.9 GB after unzip and should be parsed by an idempotent script into normalized tables.
+- Do not convert `full database.xml` to `xlsx` as a normal workflow. `xlsx` adds a row/column flattening step, size overhead, Excel/DBeaver cell limits, and loses the benefit of streaming the XML incrementally.
 - Lucent now has durable destination tables for both sources. Tool-based import is acceptable for the Chinese source, but the DrugBank XML path should stay scripted so we can reproduce it.
 
 ## Scripted Import Commands

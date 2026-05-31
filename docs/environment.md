@@ -72,3 +72,4 @@ CORS_ORIGIN
 - Health check: `GET /api/v1/health`.
 - Request id: returned in `X-Request-Id` and available for server-side log correlation.
 - Auth e2e baseline passes for register / login / refresh / me / logout.
+- Cache manager is global. When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; when `REDIS_URL` is absent, it falls back to in-memory cache.

@@ -3,6 +3,30 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-05-31 (Cache Manager Redis Wiring + Agent Doc Cleanup)
+
+### Fixed
+
+- `src/config/cache.config.ts` 改为适配 NestJS 11 当前缓存接口：
+  - 使用 `stores` 而不是旧的 `store` 字段
+  - Redis store 通过 Keyv adapter 接入，避免全局缓存管理器配置成看似启用 Redis、实际不受当前 Nest cache API 正确消费的状态
+  - 继续保留 `REDIS_URL` 缺失时的内存缓存回退
+- `src/config/cache.config.spec.ts` 新增缓存配置测试，覆盖：
+  - 无 `REDIS_URL` 的内存回退
+  - `redis://` URL 的 host / port / password / db 解析
+  - `rediss://` URL 的 TLS 启用
+
+### Changed
+
+- `docs/environment.md` 补充当前缓存管理器的 Redis / memory 回退行为。
+- `docs/public/data-sources.md` 明确写清 DrugBank `full database.xml` 不走 `xlsx` 中转导入路径。
+- `AGENTS.md` 收敛为项目事实、文档入口、工作规则和已知坑，移除泛化程度过高的信息。
+
+### Test Results
+
+- `pnpm exec jest --runInBand src/config/cache.config.spec.ts src/auth/verification-code.service.spec.ts` — 通过
+- `pnpm build` — 通过
+
 ## 2026-05-30 (Medicine Knowledge Foundation - Source-Aware API + Durable Tables)
 
 ### Added
