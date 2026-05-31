@@ -7,6 +7,13 @@ type CacheStoreWithKeys = {
   keys?: () => Promise<string[]>;
 };
 
+type KeyvLikeStore = {
+  namespace?: string;
+  store?: {
+    _cache?: CacheStoreWithKeys;
+  };
+};
+
 @Injectable()
 export class MedicinesCacheAdminService {
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
@@ -22,25 +29,61 @@ export class MedicinesCacheAdminService {
   }
 
   private async listMedicineKeys(): Promise<string[]> {
-    const stores = this.cache.stores as CacheStoreWithKeys[] | undefined;
+    const stores = this.cache.stores as KeyvLikeStore[] | undefined;
     if (!stores || stores.length === 0) {
       return [];
     }
 
     const uniqueKeys = new Set<string>();
     for (const store of stores) {
-      if (!store.keys) {
+      const rawStore = this.resolveRawStore(store);
+      if (!rawStore?.keys) {
         continue;
       }
 
-      const keys = await store.keys();
+      const keys = await rawStore.keys();
+      const namespacePrefix = this.resolveNamespacePrefix(store);
       for (const key of keys) {
-        if (key.startsWith(`${MEDICINES_CACHE_KEY_PREFIX}:`)) {
-          uniqueKeys.add(key);
+        const normalizedKey = this.stripNamespacePrefix(key, namespacePrefix);
+        if (normalizedKey.startsWith(`${MEDICINES_CACHE_KEY_PREFIX}:`)) {
+          uniqueKeys.add(normalizedKey);
         }
       }
     }
 
     return [...uniqueKeys];
+  }
+
+  private resolveNamespacePrefix(store: KeyvLikeStore): string | null {
+    const namespace = store.namespace?.trim();
+    if (!namespace) {
+      return null;
+    }
+
+    return `${namespace}:`;
+  }
+
+  private stripNamespacePrefix(key: string, namespacePrefix: string | null) {
+    if (!namespacePrefix || !key.startsWith(namespacePrefix)) {
+      return key;
+    }
+
+    return key.slice(namespacePrefix.length);
+  }
+
+  private resolveRawStore(store: unknown): CacheStoreWithKeys | null {
+    if (!this.isKeyvLikeStore(store)) {
+      return null;
+    }
+
+    return store.store?._cache ?? null;
+  }
+
+  private isKeyvLikeStore(store: unknown): store is KeyvLikeStore {
+    if (!store || typeof store !== 'object') {
+      return false;
+    }
+
+    return 'store' in store;
   }
 }

@@ -465,6 +465,15 @@
               "default": 20,
               "example": 20
             }
+          },
+          {
+            "name": "x-bypass-cache",
+            "required": false,
+            "in": "header",
+            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -505,6 +514,15 @@
               "default": "drugbank",
               "type": "string",
               "enum": ["drugbank", "cn"]
+            }
+          },
+          {
+            "name": "x-bypass-cache",
+            "required": false,
+            "in": "header",
+            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
+            "schema": {
+              "type": "string"
             }
           }
         ],
