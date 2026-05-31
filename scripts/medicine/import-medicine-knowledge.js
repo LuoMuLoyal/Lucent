@@ -12,6 +12,7 @@ const { Client } = require('pg');
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
 const STABLE_ID_NAMESPACE = 'lucent:medicine-import';
+const MEDICINES_CACHE_KEY_PREFIX = 'medicines';
 
 const COMMANDS = {
   'cn-products': {
@@ -353,6 +354,72 @@ function parseArgs(argv) {
   }
 
   return args;
+}
+
+async function redisStoreFromUrl(redisUrl) {
+  const { redisStore } = require('cache-manager-ioredis-yet');
+  const url = new URL(redisUrl);
+
+  return redisStore({
+    host: url.hostname,
+    port: Number(url.port) || 6379,
+    password: url.password || undefined,
+    db: url.pathname ? Number(url.pathname.slice(1)) || 0 : 0,
+    tls: url.protocol === 'rediss:' ? {} : undefined,
+  });
+}
+
+function uniqueStrings(values) {
+  return [...new Set(values)];
+}
+
+function stripNamespacePrefix(key, namespacePrefix) {
+  if (!namespacePrefix || !key.startsWith(namespacePrefix)) {
+    return key;
+  }
+
+  return key.slice(namespacePrefix.length);
+}
+
+async function listMedicineCacheKeys(store, namespace = 'keyv') {
+  const namespacePrefix = namespace ? `${namespace}:` : null;
+  const patterns = namespacePrefix
+    ? [`${namespacePrefix}${MEDICINES_CACHE_KEY_PREFIX}:*`, `${MEDICINES_CACHE_KEY_PREFIX}:*`]
+    : [`${MEDICINES_CACHE_KEY_PREFIX}:*`];
+  const matchedKeys = [];
+
+  for (const pattern of patterns) {
+    const keys = await store.keys(pattern);
+    for (const key of keys) {
+      const normalizedKey = stripNamespacePrefix(key, namespacePrefix);
+      if (normalizedKey.startsWith(`${MEDICINES_CACHE_KEY_PREFIX}:`)) {
+        matchedKeys.push(normalizedKey);
+      }
+    }
+  }
+
+  return uniqueStrings(matchedKeys);
+}
+
+async function invalidateMedicineCache() {
+  const redisUrl = process.env.REDIS_URL?.trim();
+  if (!redisUrl) {
+    return { invalidated: 0, skipped: 'REDIS_URL is not configured' };
+  }
+
+  const store = await redisStoreFromUrl(redisUrl);
+
+  try {
+    const keys = await listMedicineCacheKeys(store);
+    if (keys.length === 0) {
+      return { invalidated: 0 };
+    }
+
+    await Promise.all(keys.map((key) => store.del(key)));
+    return { invalidated: keys.length };
+  } finally {
+    store.client.disconnect();
+  }
 }
 
 function printUsage() {
@@ -836,6 +903,7 @@ async function runImport(command, cliOptions) {
         rawRowCount: summary.rawRowCount,
         importedRowCount: summary.importedRowCount,
         rejectedRowCount: summary.rejectedRowCount,
+        cacheInvalidation: await invalidateMedicineCache(),
       },
       null,
       2,
@@ -863,4 +931,13 @@ async function main() {
   }
 }
 
-void main();
+if (require.main === module) {
+  void main();
+}
+
+module.exports = {
+  invalidateMedicineCache,
+  listMedicineCacheKeys,
+  redisStoreFromUrl,
+  stripNamespacePrefix,
+};

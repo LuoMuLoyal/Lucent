@@ -110,6 +110,12 @@ GET /api/v1/medicines?source=drugbank&q=<keyword>&page=1&pageSize=20
 GET /api/v1/medicines/:id?source=drugbank
 ```
 
+Optional request header for one-off freshness:
+
+```text
+x-bypass-cache: true
+```
+
 Rules:
 
 - `source=cn` queries Chinese product/package-insert rows from `cn_medicine_products`.
@@ -120,6 +126,7 @@ Rules:
 - Unsupported source values should return HTTP 400 with code `400001`.
 - `Accept-Language` can still be sent together with `source`; for example, `source=drugbank` and `Accept-Language: zh-CN` means "query DrugBank but localize Lucent wrapper/error text in Chinese where available".
 - Search responses use the common pagination envelope shape with `meta.pagination`.
+- `x-bypass-cache: true` bypasses medicines read cache for the current request only. It does not invalidate shared cache for other callers.
 
 The two medicine sources have different fields. API responses should not flatten them into a fake shared schema. Use a common shell plus a source-specific `detail` payload.
 

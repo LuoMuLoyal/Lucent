@@ -6,10 +6,11 @@ import type {
   MedicineKnowledgeSource,
   MedicineSearchResult,
 } from '../dto';
-
-const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
-const DETAIL_CACHE_TTL_MS = 15 * 60 * 1000;
-const CACHE_KEY_PREFIX = 'medicines';
+import {
+  MEDICINES_CACHE_KEY_PREFIX,
+  MEDICINES_DETAIL_CACHE_TTL_MS,
+  MEDICINES_SEARCH_CACHE_TTL_MS,
+} from './medicines-cache.constants';
 
 interface SearchCacheKeyInput {
   source: MedicineKnowledgeSource;
@@ -24,29 +25,34 @@ export class MedicinesCacheService {
 
   async getOrSetSearch(
     input: SearchCacheKeyInput,
+    bypass: boolean,
     load: () => Promise<MedicineSearchResult>,
   ): Promise<MedicineSearchResult> {
     const key = this.buildSearchKey(input);
-    return this.getOrSet(key, SEARCH_CACHE_TTL_MS, load);
+    return this.getOrSet(key, MEDICINES_SEARCH_CACHE_TTL_MS, bypass, load);
   }
 
   async getOrSetDetail(
     source: MedicineKnowledgeSource,
     id: string,
+    bypass: boolean,
     load: () => Promise<MedicineDetailDataDto | null>,
   ): Promise<MedicineDetailDataDto | null> {
     const key = this.buildDetailKey(source, id);
-    return this.getOrSet(key, DETAIL_CACHE_TTL_MS, load);
+    return this.getOrSet(key, MEDICINES_DETAIL_CACHE_TTL_MS, bypass, load);
   }
 
   private async getOrSet<T>(
     key: string,
     ttl: number,
+    bypass: boolean,
     load: () => Promise<T>,
   ): Promise<T> {
-    const cached = await this.cache.get<T>(key);
-    if (cached !== undefined) {
-      return cached;
+    if (!bypass) {
+      const cached = await this.cache.get<T>(key);
+      if (cached !== undefined) {
+        return cached;
+      }
     }
 
     const value = await load();
@@ -56,7 +62,7 @@ export class MedicinesCacheService {
 
   private buildSearchKey(input: SearchCacheKeyInput): string {
     return [
-      CACHE_KEY_PREFIX,
+      MEDICINES_CACHE_KEY_PREFIX,
       'search',
       input.source,
       this.encode(input.q),
@@ -66,7 +72,9 @@ export class MedicinesCacheService {
   }
 
   private buildDetailKey(source: MedicineKnowledgeSource, id: string): string {
-    return [CACHE_KEY_PREFIX, 'detail', source, this.encode(id)].join(':');
+    return [MEDICINES_CACHE_KEY_PREFIX, 'detail', source, this.encode(id)].join(
+      ':',
+    );
   }
 
   private encode(value: string): string {

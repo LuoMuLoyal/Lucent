@@ -3,6 +3,29 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-05-31 (Medicines Cache Invalidation + OpenAPI Export Sync)
+
+### Fixed
+
+- `src/medicines/cache/medicines-cache-admin.service.ts` 现在按 Nest cache runtime 的真实 `Keyv -> KeyvAdapter -> raw store` 结构扫描药品缓存键，不再假设 `cache.stores` 直接暴露 `keys()`；`invalidateAll()` 现在能删除 Redis-backed medicines cache。
+- `scripts/medicine/import-medicine-knowledge.js` 现在会同时扫描 Keyv namespace 前缀下的 Redis key 和未加 namespace 的回退模式，并在删除前归一化为逻辑 `medicines:*` key，避免导入后误报 `invalidated: 0` 但旧缓存仍保留。
+- `docs/openapi.json` 重新导出并保留 medicines endpoints 上的 `x-bypass-cache` header 参数，避免 Lucent 已提交契约落后于控制器声明。
+
+### Added
+
+- `src/medicines/cache/medicines-cache-admin.service.spec.ts` 改为覆盖真实 Keyv-backed store 形状和 namespace key 归一化逻辑。
+- `scripts/medicine/import-medicine-knowledge.test.js` 新增 Node-level 脚本测试，覆盖 namespaced cache key 扫描、归一化和去重。
+
+### Changed
+
+- `docs/environment.md` 把导入脚本缓存失效说明更新为与 Keyv namespace 行为一致的描述。
+
+### Test Results
+
+- `pnpm exec jest --runInBand src/config/cache.config.spec.ts src/medicines/cache/medicines-cache-admin.service.spec.ts` — 通过
+- `node --test scripts/medicine/import-medicine-knowledge.test.js` — 通过
+- `pnpm export:openapi` — 通过
+
 ## 2026-05-31 (Cache Manager Redis Wiring + Agent Doc Cleanup)
 
 ### Fixed
@@ -45,6 +68,27 @@
 
 - `pnpm exec jest --runInBand src/medicines/cache/medicines-cache.service.spec.ts src/medicines/medicines.service.spec.ts` — 通过
 - `pnpm exec eslint --fix --no-warn-ignored src/medicines/cache/medicines-cache.service.ts src/medicines/cache/medicines-cache.service.spec.ts src/medicines/medicines.service.ts src/medicines/medicines.service.spec.ts src/medicines/medicines.module.ts` — 通过
+- `pnpm build` — 通过
+
+## 2026-05-31 (Medicines Cache Bypass + Import Invalidation)
+
+### Added
+
+- `src/medicines/cache/medicines-cache.constants.ts`：统一 medicines cache 前缀、TTL 和 bypass header 常量。
+- `src/medicines/cache/medicines-cache-admin.service.ts`：提供 medicines cache key 扫描和失效入口。
+- `src/medicines/cache/medicines-cache-admin.service.spec.ts`：覆盖 medicines cache 删除逻辑。
+
+### Changed
+
+- `src/medicines/medicines.controller.ts` 支持 `x-bypass-cache` 请求头，仅绕过当前读请求缓存。
+- `src/medicines/medicines.service.ts` / `src/medicines/cache/medicines-cache.service.ts` 新增 bypass 参数支持。
+- `scripts/medicine/import-medicine-knowledge.js` 在导入完成后会清理 Redis 中的 `medicines:*` key。
+- `docs/environment.md` 与 `docs/public/api-contract.md` 同步 bypass / invalidate 语义。
+
+### Test Results
+
+- `pnpm exec jest --runInBand src/medicines/cache/medicines-cache-admin.service.spec.ts src/medicines/cache/medicines-cache.service.spec.ts src/medicines/medicines.service.spec.ts` — 通过
+- `pnpm exec eslint --fix --no-warn-ignored src/medicines/cache/medicines-cache.constants.ts src/medicines/cache/medicines-cache-admin.service.ts src/medicines/cache/medicines-cache-admin.service.spec.ts src/medicines/cache/medicines-cache.service.ts src/medicines/cache/medicines-cache.service.spec.ts src/medicines/medicines.controller.ts src/medicines/medicines.service.ts src/medicines/medicines.service.spec.ts src/medicines/medicines.module.ts scripts/medicine/import-medicine-knowledge.js` — 通过
 - `pnpm build` — 通过
 
 ## 2026-05-30 (Medicine Knowledge Foundation - Source-Aware API + Durable Tables)
