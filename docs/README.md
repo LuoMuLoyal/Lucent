@@ -1,6 +1,6 @@
 # Lucent Docs
 
-Last updated: 2026-05-30
+Last updated: 2026-06-01
 
 ## Read First
 
@@ -10,7 +10,8 @@ Last updated: 2026-05-30
 4. `backend-user-domain.md`
 5. `public/data-sources.md`
 6. `environment.md`
-7. `../CHANGELOG.md`
+7. `tencent-cloud-cicd.md` when deploying to a Tencent Cloud CVM
+8. `../CHANGELOG.md`
 
 ## Update Map
 
@@ -20,7 +21,7 @@ Last updated: 2026-05-30
 | User domain / auth persistence        | `backend-user-domain.md`, `environment.md`            |
 | Medicine knowledge / imports          | `public/data-sources.md`, `public/api-contract.md`    |
 | Backend behavior                      | `../CHANGELOG.md`                                     |
-| env / Docker / test command           | `environment.md`, `../README.md`                      |
+| env / Docker / test / simple deploy   | `environment.md`, `../README.md`                      |
 | product stage                         | `public/ROADMAP.md`                                   |
 
 ## Reference Only

@@ -1,7 +1,7 @@
 services:
   # ── PostgreSQL ───────────────────────────────────────────────
   postgres:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:18-alpine}
     restart: unless-stopped
     environment:
       POSTGRES_USER: lucent
@@ -10,7 +10,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U lucent']
       interval: 5s
@@ -19,7 +19,7 @@ services:
 
   # ── Redis ────────────────────────────────────────────────────
   redis:
-    image: redis:7-alpine
+    image: ${REDIS_IMAGE:-redis:8-alpine}
     restart: unless-stopped
     ports:
       - '6379:6379'
@@ -33,15 +33,16 @@ services:
 
   # ── Lucent App ───────────────────────────────────────────────
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${LUCENT_IMAGE:?LUCENT_IMAGE is required}
     restart: unless-stopped
     env_file:
-      - .env.development
+      - .env.production
     environment:
       DATABASE_URL: postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public
       REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
     ports:
       - '3000:3000'
     depends_on:
@@ -49,6 +50,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q -O - http://127.0.0.1:3000/api/v1/health >/dev/null 2>&1 || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
 volumes:
   pgdata:

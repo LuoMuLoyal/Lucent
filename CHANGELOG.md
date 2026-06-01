@@ -756,3 +756,47 @@
 - `@nestjs/config` + `environment.validation.ts`（class-validator 版本）
 - URI 版本控制：`/api/v1`
 - 文档：`docs/api-contract.md` / `docs/environment.md` / `docs/migration-roadmap.md`
+
+# 2026-06-01
+
+## chore(deploy): add full GitHub Actions CI/CD pipeline
+
+- Expanded `.github/workflows/deploy-server.yml` into a full pipeline:
+  - CI on `push` / `pull_request`
+  - build + push immutable Docker images on `main`
+  - SSH deploy to the server after CI passes
+- CI now runs:
+  - Prisma generate
+  - Prisma migrate deploy against the test database
+  - `pnpm lint:check`
+  - `pnpm build`
+  - unit tests
+  - e2e tests
+- `pnpm lint` / `pnpm lint:check` now ignore Prisma generated sources under `src/generated/**` so CI does not fail on generated artifacts.
+- Production deploy now:
+  - pulls the exact image tag built from the commit
+  - mirrors PostgreSQL / Redis runtime images into the target registry
+  - syncs deployment files over SSH instead of running `git pull` on the server
+  - works even when the server cannot reach GitHub directly
+  - keeps PostgreSQL / Redis data volumes on the server
+  - recreates containers from the synced compose file
+  - waits for Docker health checks
+  - rolls back the `app` image if health checks fail
+- `docker-compose.yml` now consumes `LUCENT_IMAGE`, `POSTGRES_IMAGE`, and `REDIS_IMAGE`, and exposes a Docker health check for Lucent.
+- Added `scripts/deploy/deploy-server.sh` for repeatable server-side deployment orchestration.
+- Added `.deploy-image.env` to `.gitignore`.
+- Updated `.env.production.example` to match the default single-host Docker deployment topology.
+- Updated `README.md` and `docs/environment.md` with registry, secrets, and bootstrap instructions.
+- Added `docs/tencent-cloud-cicd.md` as the Tencent Cloud CVM + TCR operator runbook for the current pipeline.
+
+## chore(docker): bump local postgres and redis major versions
+
+- `docker-compose.dev.yml`
+  - development PostgreSQL image: `postgres:16-alpine` -> `postgres:18-alpine`
+  - test PostgreSQL image: `postgres:16-alpine` -> `postgres:18-alpine`
+  - Redis image: `redis:7-alpine` -> `redis:8-alpine`
+  - PostgreSQL volume mount path: `/var/lib/postgresql/data` -> `/var/lib/postgresql`
+- `docker-compose.yml`
+  - PostgreSQL image: `postgres:16-alpine` -> `postgres:18-alpine`
+  - Redis image: `redis:7-alpine` -> `redis:8-alpine`
+  - PostgreSQL volume mount path: `/var/lib/postgresql/data` -> `/var/lib/postgresql`
