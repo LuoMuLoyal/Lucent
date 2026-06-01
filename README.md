@@ -21,6 +21,16 @@ pnpm export:openapi
 pnpm import:medicine:all
 ```
 
+Simple server deployment:
+
+- keep a writable deployment directory on the server
+- keep `.env.production` on the server
+- use GitHub Actions workflow `.github/workflows/deploy-server.yml`
+- workflow runs `lint` + `build` + unit/e2e tests, builds a Docker image, mirrors PostgreSQL / Redis base images into your target registry, syncs deployment files over SSH, then recreates containers on the server
+- the server no longer needs `git pull` access to GitHub during deployment
+- the server keeps PostgreSQL / Redis data locally and uses `.deploy-image.env` to remember the deployed image tags
+- default production compose is single-host: `app + postgres + redis` run together, and Lucent connects to `postgres` / `redis` service names inside Docker
+
 Local database layout:
 
 - development DB: `postgres/postgres@127.0.0.1:15432/lucent`
@@ -52,4 +62,5 @@ Key docs:
 - [docs/public/api-contract.md](docs/public/api-contract.md)
 - [docs/auth-api-mock.md](docs/auth-api-mock.md)
 - [docs/environment.md](docs/environment.md)
+- [docs/tencent-cloud-cicd.md](docs/tencent-cloud-cicd.md)
 - [CHANGELOG.md](CHANGELOG.md)

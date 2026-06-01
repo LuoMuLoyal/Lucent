@@ -1,7 +1,7 @@
 services:
-  # ── PostgreSQL 16 (development) ──────────────────────────────
+  # ── PostgreSQL 18 (development) ──────────────────────────────
   postgres-dev:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: lucent-postgres-dev
     restart: unless-stopped
     environment:
@@ -11,16 +11,16 @@ services:
     ports:
       - '15432:5432'
     volumes:
-      - pgdata-dev:/var/lib/postgresql/data
+      - pgdata-dev:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d lucent']
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # ── PostgreSQL 16 (test / e2e) ───────────────────────────────
+  # ── PostgreSQL 18 (test / e2e) ───────────────────────────────
   postgres-test:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: lucent-postgres-test
     restart: unless-stopped
     environment:
@@ -30,16 +30,16 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - pgdata-test:/var/lib/postgresql/data
+      - pgdata-test:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U lucent -d lucent']
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # ── Redis 7 ──────────────────────────────────────────────────
+  # ── Redis 8 ──────────────────────────────────────────────────
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: lucent-redis
     restart: unless-stopped
     ports:
