@@ -191,12 +191,26 @@ docker login ccr.ccs.tencentyun.com --username '<你的腾讯云账号ID>'
 docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent:latest
 ```
 
-当前仓库的 workflow 还会额外推这两个基础镜像到你的腾讯云仓库：
+当前仓库的生产 compose 会固定使用这两个基础镜像标签：
 
 - `ccr.ccs.tencentyun.com/<namespace>/lucent-postgres:18-alpine`
 - `ccr.ccs.tencentyun.com/<namespace>/lucent-redis:8-alpine`
 
-所以你也可以验证：
+它们不再由每次发版的 GitHub Actions 自动同步。你需要在首个部署前手工同步一次，然后再验证拉取。
+
+推荐在你本地开发机或一台网络比 GitHub Runner 更稳定的机器上执行：
+
+```bash
+docker pull postgres:18-alpine
+docker tag postgres:18-alpine ccr.ccs.tencentyun.com/<你的namespace>/lucent-postgres:18-alpine
+docker push ccr.ccs.tencentyun.com/<你的namespace>/lucent-postgres:18-alpine
+
+docker pull redis:8-alpine
+docker tag redis:8-alpine ccr.ccs.tencentyun.com/<你的namespace>/lucent-redis:8-alpine
+docker push ccr.ccs.tencentyun.com/<你的namespace>/lucent-redis:8-alpine
+```
+
+同步完以后，再在服务器上验证：
 
 ```bash
 docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent-postgres:18-alpine
@@ -272,6 +286,8 @@ docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent:latest
 - GitHub Actions 构建镜像
 - GitHub Actions 把部署文件通过 SSH 传到服务器
 - 服务器只从腾讯云镜像仓库拉镜像
+
+基础镜像不再放在每次发版的热路径里，否则你会继续被 GitHub Runner 到 Docker Hub / TCR 的链路波动拖住。
 
 这样服务器不再依赖 GitHub，也不再依赖 Docker Hub。
 
