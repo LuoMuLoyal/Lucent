@@ -111,8 +111,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '用户登出' })
   @ApiResponse({ status: 200, type: SuccessResponseDto })
-  async logout(@Body() dto: LogoutDto) {
-    await this.authService.logout(dto.refreshToken);
+  async logout(@CurrentUser() user: UserPayload, @Body() dto: LogoutDto) {
+    await this.authService.logout(user.sub, dto.refreshToken);
     return successEnvelope(null);
   }
 
@@ -250,9 +250,9 @@ export class AuthController {
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangeEmailDto,
   ) {
-    await this.authService.changeEmail(user.sub, dto);
+    const updated = await this.authService.changeEmail(user.sub, dto);
     return successEnvelope({
-      email: dto.newEmail,
+      email: updated.email,
       emailVerified: true,
     });
   }

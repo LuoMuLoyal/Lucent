@@ -377,15 +377,18 @@ describe('AuthService', () => {
   });
 
   describe('logout', () => {
-    it('should delete the refresh token session', async () => {
+    it('should delete only the current user refresh token session', async () => {
       (prismaService.userSession.deleteMany as jest.Mock).mockResolvedValue({
         count: 1,
       });
 
-      await service.logout('some-refresh-token');
+      await service.logout('user-uuid-1', 'some-refresh-token');
 
       expect(prismaService.userSession.deleteMany).toHaveBeenCalledWith({
-        where: { refreshTokenHash: hashRefreshToken('some-refresh-token') },
+        where: {
+          userId: 'user-uuid-1',
+          refreshTokenHash: hashRefreshToken('some-refresh-token'),
+        },
       });
     });
   });
@@ -443,6 +446,24 @@ describe('AuthService', () => {
       });
       expect(result.nickname).toBe('NewName');
     });
+
+    it('should clear nickname and avatar when empty strings are provided', async () => {
+      userService.update.mockResolvedValue({
+        ...mockUser,
+        nickname: null,
+        avatar: null,
+      });
+
+      await service.updateMe('user-uuid-1', {
+        nickname: '',
+        avatar: '',
+      });
+
+      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
+        nickname: null,
+        avatar: null,
+      });
+    });
   });
 
   describe('changePassword', () => {
@@ -499,7 +520,7 @@ describe('AuthService', () => {
         emailVerifiedAt: new Date('2026-01-02T00:00:00Z'),
       });
 
-      await service.changeEmail('user-uuid-1', {
+      const result = await service.changeEmail('user-uuid-1', {
         newEmail: 'NEW@example.com',
         code: '654321',
       });
@@ -515,6 +536,7 @@ describe('AuthService', () => {
         email: 'new@example.com',
         emailVerifiedAt: expect.any(Date) as Date,
       });
+      expect(result.email).toBe('new@example.com');
     });
 
     it('should throw ConflictException if new email already taken', async () => {

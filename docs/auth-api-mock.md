@@ -217,6 +217,7 @@ Authorization: Bearer <accessToken>
 
 > accessToken 为短期 JWT（默认 2h，可配置），服务端不跟踪其即时失效。
 > 登出主要目的是使本次 refresh session 失效。
+> 当前实现会把 `refreshToken` 约束在当前 JWT 用户名下，只失效“当前用户持有的该 refresh session”，不会跨账号删除别人的 session。
 
 ---
 
@@ -293,7 +294,8 @@ POST /api/v1/auth/send-verification-code
   "code": 0,
   "message": "",
   "data": {
-    "cooldown": 60
+    "cooldown": 60,
+    "message": "验证码已发送"
   }
 }
 ```
@@ -301,6 +303,7 @@ POST /api/v1/auth/send-verification-code
 | 字段     | 类型   | 说明               |
 | -------- | ------ | ------------------ |
 | cooldown | number | 下次可重发冷却秒数 |
+| message  | string | 本次发送结果提示   |
 
 **Errors**
 
@@ -377,12 +380,19 @@ POST /api/v1/auth/forgot-password
   "code": 0,
   "message": "",
   "data": {
-    "cooldown": 60
+    "cooldown": 60,
+    "message": "若邮箱已注册，我们已发送重置说明"
   }
 }
 ```
 
 > 无论邮箱是否已注册，均返回成功（防止邮箱枚举）。验证码实际只发送给已注册邮箱。
+> 当前实现会继续返回 `cooldown + message`，其中 `message` 是给前端直接展示的通用提示。
+
+| 字段     | 类型   | 说明                             |
+| -------- | ------ | -------------------------------- |
+| cooldown | number | 下次可重发冷却秒数               |
+| message  | string | 通用提示文案，不暴露邮箱是否存在 |
 
 **Errors**
 
@@ -433,8 +443,14 @@ POST /api/v1/auth/reset-password
 | ------- | ------ | -------------------- |
 | 400     | 400002 | DTO 字段校验详情     |
 | 400/401 | 400100 | "验证码错误或已过期" |
+| 404     | 404001 | "用户不存在"         |
 
-> 无论邮箱是否已注册，验证码校验失败均返回 `400100`（防止邮箱枚举）。
+> 当前实现的精确语义是：
+>
+> - 验证码不通过：返回 `400100`
+> - 验证码通过但邮箱不存在：返回 `404001`
+>
+> 也就是说，接口只在“验证码校验阶段”做防枚举兜底，不会把“验证码已通过但用户不存在”继续折叠成 `400100`。
 
 ---
 
@@ -491,7 +507,7 @@ Authorization: Bearer <accessToken>
 | 字段     | 类型   | 必填 | 说明                                |
 | -------- | ------ | ---- | ----------------------------------- |
 | nickname | string | 否   | 昵称，1-20 字符，传空字符串视为清空 |
-| avatar   | string | 否   | 头像 URL，传空字符串视为清空        |
+| avatar   | string | 否   | 头像字符串，传空字符串视为清空      |
 
 **Response** `200`
 
@@ -601,6 +617,8 @@ Authorization: Bearer <accessToken>
   }
 }
 ```
+
+> `newEmail` 在后端会先 `trim + lowercase` 后再校验、查重和持久化；响应中的 `data.email` 返回规范化后的最终邮箱值。
 
 **Errors**
 

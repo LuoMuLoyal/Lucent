@@ -10,7 +10,9 @@
             "description": ""
           }
         },
-        "tags": ["App"]
+        "tags": [
+          "App"
+        ]
       }
     },
     "/api/v1/auth/register": {
@@ -40,7 +42,9 @@
           }
         },
         "summary": "用户注册",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/login": {
@@ -70,7 +74,9 @@
           }
         },
         "summary": "用户登录",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/logout": {
@@ -105,7 +111,9 @@
           }
         ],
         "summary": "用户登出",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/refresh": {
@@ -135,7 +143,9 @@
           }
         },
         "summary": "刷新令牌",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/send-verification-code": {
@@ -165,7 +175,9 @@
           }
         },
         "summary": "发送邮箱验证码",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/verify-email": {
@@ -195,7 +207,9 @@
           }
         },
         "summary": "验证邮箱",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/forgot-password": {
@@ -225,7 +239,9 @@
           }
         },
         "summary": "忘记密码",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/reset-password": {
@@ -255,7 +271,9 @@
           }
         },
         "summary": "重置密码",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/me": {
@@ -280,7 +298,9 @@
           }
         ],
         "summary": "获取当前用户信息",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       },
       "patch": {
         "operationId": "AuthController_updateMe_v1",
@@ -313,7 +333,9 @@
           }
         ],
         "summary": "更新当前用户信息",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       },
       "delete": {
         "operationId": "AuthController_deleteAccount_v1",
@@ -346,7 +368,9 @@
           }
         ],
         "summary": "注销账户",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/me/password": {
@@ -381,7 +405,9 @@
           }
         ],
         "summary": "修改密码",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/me/email": {
@@ -416,7 +442,9 @@
           }
         ],
         "summary": "修改邮箱",
-        "tags": ["Auth"]
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/medicines": {
@@ -431,7 +459,10 @@
             "schema": {
               "default": "drugbank",
               "type": "string",
-              "enum": ["drugbank", "cn"]
+              "enum": [
+                "drugbank",
+                "cn"
+              ]
             }
           },
           {
@@ -489,7 +520,9 @@
           }
         },
         "summary": "Search medicines from a selected knowledge source",
-        "tags": ["Medicines"]
+        "tags": [
+          "Medicines"
+        ]
       }
     },
     "/api/v1/medicines/{id}": {
@@ -513,7 +546,10 @@
             "schema": {
               "default": "drugbank",
               "type": "string",
-              "enum": ["drugbank", "cn"]
+              "enum": [
+                "drugbank",
+                "cn"
+              ]
             }
           },
           {
@@ -539,7 +575,9 @@
           }
         },
         "summary": "Get medicine detail from a selected knowledge source",
-        "tags": ["Medicines"]
+        "tags": [
+          "Medicines"
+        ]
       }
     },
     "/api/v1/me/health-context": {
@@ -564,7 +602,9 @@
           }
         ],
         "summary": "Get the current user health context aggregate",
-        "tags": ["User Health Context"]
+        "tags": [
+          "User Health Context"
+        ]
       }
     }
   },
@@ -602,7 +642,11 @@
             "maxLength": 20
           }
         },
-        "required": ["email", "password", "code"]
+        "required": [
+          "email",
+          "password",
+          "code"
+        ]
       },
       "UserBriefDto": {
         "type": "object",
@@ -633,7 +677,13 @@
             "example": "2026-01-01T00:00:00.000Z"
           }
         },
-        "required": ["id", "email", "nickname", "emailVerified", "createdAt"]
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "emailVerified",
+          "createdAt"
+        ]
       },
       "TokensDto": {
         "type": "object",
@@ -652,7 +702,11 @@
             "example": 3600
           }
         },
-        "required": ["accessToken", "refreshToken", "expiresIn"]
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "expiresIn"
+        ]
       },
       "RegisterDataDto": {
         "type": "object",
@@ -664,7 +718,10 @@
             "$ref": "#/components/schemas/TokensDto"
           }
         },
-        "required": ["user", "tokens"]
+        "required": [
+          "user",
+          "tokens"
+        ]
       },
       "RegisterResponseDto": {
         "type": "object",
@@ -683,7 +740,11 @@
             "$ref": "#/components/schemas/RegisterDataDto"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "LoginDto": {
         "type": "object",
@@ -708,7 +769,9 @@
             "maxLength": 6
           }
         },
-        "required": ["email"]
+        "required": [
+          "email"
+        ]
       },
       "UserFullDto": {
         "type": "object",
@@ -770,7 +833,10 @@
             "$ref": "#/components/schemas/TokensDto"
           }
         },
-        "required": ["user", "tokens"]
+        "required": [
+          "user",
+          "tokens"
+        ]
       },
       "LoginResponseDto": {
         "type": "object",
@@ -789,7 +855,11 @@
             "$ref": "#/components/schemas/LoginDataDto"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "LogoutDto": {
         "type": "object",
@@ -799,7 +869,9 @@
             "description": "刷新令牌"
           }
         },
-        "required": ["refreshToken"]
+        "required": [
+          "refreshToken"
+        ]
       },
       "SuccessResponseDto": {
         "type": "object",
@@ -821,7 +893,11 @@
             "example": null
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "RefreshDto": {
         "type": "object",
@@ -831,7 +907,9 @@
             "description": "刷新令牌"
           }
         },
-        "required": ["refreshToken"]
+        "required": [
+          "refreshToken"
+        ]
       },
       "RefreshResponseDto": {
         "type": "object",
@@ -850,7 +928,11 @@
             "$ref": "#/components/schemas/TokensDto"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "SendVerificationCodeDto": {
         "type": "object",
@@ -863,11 +945,19 @@
           "scene": {
             "type": "string",
             "description": "验证码场景",
-            "enum": ["register", "login", "reset-password", "change-email"],
+            "enum": [
+              "register",
+              "login",
+              "reset-password",
+              "change-email"
+            ],
             "example": "register"
           }
         },
-        "required": ["email", "scene"]
+        "required": [
+          "email",
+          "scene"
+        ]
       },
       "CooldownMessageDto": {
         "type": "object",
@@ -883,7 +973,10 @@
             "example": "验证码已发送"
           }
         },
-        "required": ["cooldown", "message"]
+        "required": [
+          "cooldown",
+          "message"
+        ]
       },
       "SendVerificationCodeResponseDto": {
         "type": "object",
@@ -902,7 +995,11 @@
             "$ref": "#/components/schemas/CooldownMessageDto"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "VerifyEmailDto": {
         "type": "object",
@@ -920,7 +1017,10 @@
             "maxLength": 6
           }
         },
-        "required": ["email", "code"]
+        "required": [
+          "email",
+          "code"
+        ]
       },
       "VerifyEmailDataDto": {
         "type": "object",
@@ -931,7 +1031,9 @@
             "example": true
           }
         },
-        "required": ["emailVerified"]
+        "required": [
+          "emailVerified"
+        ]
       },
       "VerifyEmailResponseDto": {
         "type": "object",
@@ -950,7 +1052,11 @@
             "$ref": "#/components/schemas/VerifyEmailDataDto"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "ForgotPasswordDto": {
         "type": "object",
@@ -961,7 +1067,9 @@
             "example": "user@example.com"
           }
         },
-        "required": ["email"]
+        "required": [
+          "email"
+        ]
       },
       "ForgotPasswordResponseDto": {
         "type": "object",
@@ -980,7 +1088,11 @@
             "$ref": "#/components/schemas/CooldownMessageDto"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "ResetPasswordDto": {
         "type": "object",
@@ -1005,7 +1117,11 @@
             "maxLength": 32
           }
         },
-        "required": ["email", "code", "password"]
+        "required": [
+          "email",
+          "code",
+          "password"
+        ]
       },
       "MeResponseDto": {
         "type": "object",
@@ -1024,7 +1140,11 @@
             "$ref": "#/components/schemas/UserFullDto"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "UpdateMeDto": {
         "type": "object",
@@ -1058,7 +1178,10 @@
             "maxLength": 32
           }
         },
-        "required": ["oldPassword", "newPassword"]
+        "required": [
+          "oldPassword",
+          "newPassword"
+        ]
       },
       "ChangeEmailDto": {
         "type": "object",
@@ -1076,7 +1199,10 @@
             "maxLength": 6
           }
         },
-        "required": ["newEmail", "code"]
+        "required": [
+          "newEmail",
+          "code"
+        ]
       },
       "ChangeEmailDataDto": {
         "type": "object",
@@ -1092,7 +1218,10 @@
             "example": true
           }
         },
-        "required": ["email", "emailVerified"]
+        "required": [
+          "email",
+          "emailVerified"
+        ]
       },
       "ChangeEmailResponseDto": {
         "type": "object",
@@ -1111,7 +1240,11 @@
             "$ref": "#/components/schemas/ChangeEmailDataDto"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "DeleteAccountDto": {
         "type": "object",
@@ -1122,7 +1255,9 @@
             "example": "Passw0rd123"
           }
         },
-        "required": ["password"]
+        "required": [
+          "password"
+        ]
       },
       "DrugbankMedicineDetailDto": {
         "type": "object",
@@ -1192,35 +1327,46 @@
             "nullable": true
           },
           "groups": {
-            "example": ["approved", "small molecule"],
+            "example": [
+              "approved",
+              "small molecule"
+            ],
             "type": "array",
             "items": {
               "type": "string"
             }
           },
           "categories": {
-            "example": ["Anti-inflammatory Agents"],
+            "example": [
+              "Anti-inflammatory Agents"
+            ],
             "type": "array",
             "items": {
               "type": "string"
             }
           },
           "atcCodes": {
-            "example": ["M01AE01"],
+            "example": [
+              "M01AE01"
+            ],
             "type": "array",
             "items": {
               "type": "string"
             }
           },
           "synonyms": {
-            "example": ["Ibuprofen"],
+            "example": [
+              "Ibuprofen"
+            ],
             "type": "array",
             "items": {
               "type": "string"
             }
           },
           "foodInteractions": {
-            "example": ["Avoid taking with alcohol."],
+            "example": [
+              "Avoid taking with alcohol."
+            ],
             "type": "array",
             "items": {
               "type": "string"
@@ -1362,7 +1508,9 @@
             "nullable": true
           }
         },
-        "required": ["kind"]
+        "required": [
+          "kind"
+        ]
       },
       "MedicineSearchItemDto": {
         "type": "object",
@@ -1375,7 +1523,10 @@
           "source": {
             "type": "string",
             "description": "Knowledge source.",
-            "enum": ["drugbank", "cn"],
+            "enum": [
+              "drugbank",
+              "cn"
+            ],
             "example": "drugbank"
           },
           "name": {
@@ -1397,7 +1548,10 @@
           },
           "tags": {
             "description": "Compact tags for search cards.",
-            "example": ["approved", "small molecule"],
+            "example": [
+              "approved",
+              "small molecule"
+            ],
             "type": "array",
             "items": {
               "type": "string"
@@ -1411,7 +1565,9 @@
           },
           "matchedBy": {
             "description": "Which fields matched the current query.",
-            "example": ["name"],
+            "example": [
+              "name"
+            ],
             "type": "array",
             "items": {
               "type": "string"
@@ -1449,7 +1605,12 @@
             "example": 5
           }
         },
-        "required": ["page", "pageSize", "total", "totalPages"]
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
       },
       "MedicineSearchMetaDto": {
         "type": "object",
@@ -1458,7 +1619,9 @@
             "$ref": "#/components/schemas/MedicinePaginationDto"
           }
         },
-        "required": ["pagination"]
+        "required": [
+          "pagination"
+        ]
       },
       "MedicineSearchResponseDto": {
         "type": "object",
@@ -1481,7 +1644,12 @@
             "$ref": "#/components/schemas/MedicineSearchMetaDto"
           }
         },
-        "required": ["code", "message", "data", "meta"]
+        "required": [
+          "code",
+          "message",
+          "data",
+          "meta"
+        ]
       },
       "MedicineDetailDataDto": {
         "type": "object",
@@ -1492,7 +1660,10 @@
           },
           "source": {
             "type": "string",
-            "enum": ["drugbank", "cn"],
+            "enum": [
+              "drugbank",
+              "cn"
+            ],
             "example": "drugbank"
           },
           "name": {
@@ -1515,7 +1686,13 @@
             ]
           }
         },
-        "required": ["id", "source", "name", "subtitle", "detail"]
+        "required": [
+          "id",
+          "source",
+          "name",
+          "subtitle",
+          "detail"
+        ]
       },
       "MedicineDetailResponseDto": {
         "type": "object",
@@ -1532,7 +1709,11 @@
             "$ref": "#/components/schemas/MedicineDetailDataDto"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "UserHealthSummaryDto": {
         "type": "object",
@@ -1565,7 +1746,10 @@
           },
           "missingCoreProfileFields": {
             "description": "Missing core profile fields that the frontend can use for onboarding nudges.",
-            "example": ["birthDate", "heightCm"],
+            "example": [
+              "birthDate",
+              "heightCm"
+            ],
             "type": "array",
             "items": {
               "type": "string"
@@ -1583,7 +1767,12 @@
       },
       "SexAtBirth": {
         "type": "string",
-        "enum": ["female", "male", "intersex", "unknown"],
+        "enum": [
+          "female",
+          "male",
+          "intersex",
+          "unknown"
+        ],
         "description": "Sex assigned at birth."
       },
       "PregnancyState": {
@@ -1600,12 +1789,20 @@
       },
       "LactationState": {
         "type": "string",
-        "enum": ["not_applicable", "unknown", "no", "yes"],
+        "enum": [
+          "not_applicable",
+          "unknown",
+          "no",
+          "yes"
+        ],
         "description": "Lactation state for personalized medical guidance."
       },
       "UnitSystem": {
         "type": "string",
-        "enum": ["metric", "imperial"],
+        "enum": [
+          "metric",
+          "imperial"
+        ],
         "description": "Preferred unit system."
       },
       "UserHealthProfileDto": {
@@ -1714,12 +1911,22 @@
       },
       "UserAllergyKind": {
         "type": "string",
-        "enum": ["drug", "food", "environment", "other"],
+        "enum": [
+          "drug",
+          "food",
+          "environment",
+          "other"
+        ],
         "description": "Allergy kind."
       },
       "UserAllergySeverity": {
         "type": "string",
-        "enum": ["mild", "moderate", "severe", "unknown"],
+        "enum": [
+          "mild",
+          "moderate",
+          "severe",
+          "unknown"
+        ],
         "description": "Severity level."
       },
       "UserAllergyItemDto": {
@@ -1811,7 +2018,11 @@
       },
       "UserConditionStatus": {
         "type": "string",
-        "enum": ["active", "resolved", "suspected"],
+        "enum": [
+          "active",
+          "resolved",
+          "suspected"
+        ],
         "description": "Condition status."
       },
       "UserConditionItemDto": {
@@ -1884,7 +2095,11 @@
       },
       "MedicineSource": {
         "type": "string",
-        "enum": ["drugbank", "cn", "manual"],
+        "enum": [
+          "drugbank",
+          "cn",
+          "manual"
+        ],
         "description": "Upstream source used to anchor this medicine."
       },
       "UserCurrentMedicineItemDto": {
@@ -2041,7 +2256,11 @@
             "$ref": "#/components/schemas/HealthContextDataDto"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       }
     }
   }

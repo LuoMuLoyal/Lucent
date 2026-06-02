@@ -260,10 +260,13 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should reject missing password', async () => {
-      await request(app.getHttpServer())
+      const res = await request(app.getHttpServer())
         .post(AUTH_PATH.register)
         .send({ email: uniqueEmail() })
         .expect(400);
+
+      const body = res.body as ApiEnvelope;
+      expect(body.code).toBe(ResultCode.VALIDATION_FAILED);
     });
   });
 
@@ -367,6 +370,22 @@ describe('Auth API (e2e)', () => {
         .post(AUTH_PATH.logout)
         .send({ refreshToken: FAKE_REFRESH_TOKEN })
         .expect(401);
+    });
+
+    it('should not invalidate another user session with a foreign refresh token', async () => {
+      const firstUser = await registerUser();
+      const secondUser = await registerUser();
+
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.logout)
+        .set(AUTHORIZATION_HEADER, bearer(firstUser.tokens.accessToken))
+        .send({ refreshToken: secondUser.tokens.refreshToken })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.refresh)
+        .send({ refreshToken: secondUser.tokens.refreshToken })
+        .expect(200);
     });
   });
 
@@ -643,6 +662,24 @@ describe('Auth API (e2e)', () => {
         .send({ nickname: UNAUTHENTICATED_NICKNAME })
         .expect(401);
     });
+
+    it('should clear nickname and avatar when empty strings are provided', async () => {
+      const { tokens } = await registerUser();
+
+      const res = await request(app.getHttpServer())
+        .patch(AUTH_PATH.me)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .send({
+          nickname: '',
+          avatar: '',
+        })
+        .expect(200);
+
+      const body = res.body as ApiEnvelope<UserDto>;
+      const data = expectData(body);
+      expect(data.nickname).toBeNull();
+      expect(data.avatar).toBeNull();
+    });
   });
 
   // ════════════════════════════════════════════════════════════
@@ -753,6 +790,39 @@ describe('Auth API (e2e)', () => {
 
       const body = res.body as ApiEnvelope;
       expect(body.code).toBe(ResultCode.VERIFICATION_CODE_INVALID);
+    });
+
+    it('should return normalized email after change', async () => {
+      const { tokens } = await registerUser();
+      const normalizedEmail = uniqueEmail().toLowerCase();
+      const mixedCaseEmail = normalizedEmail.replace(
+        /^([^@]+)@(.+)$/,
+        (_, localPart: string, domain: string) =>
+          `${localPart.toUpperCase()}@${domain.toUpperCase()}`,
+      );
+
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.sendVerificationCode)
+        .send({ email: mixedCaseEmail, scene: AUTH_SCENE.changeEmail })
+        .expect(200);
+
+      const code = expectDefined(
+        await getVerificationCode(AUTH_SCENE.changeEmail, normalizedEmail),
+        `Verification code was not cached for ${AUTH_SCENE.changeEmail}:${normalizedEmail}`,
+      );
+
+      const res = await request(app.getHttpServer())
+        .post(AUTH_PATH.meEmail)
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .send({ newEmail: mixedCaseEmail, code })
+        .expect(200);
+
+      const body = res.body as ApiEnvelope<{
+        email: string;
+        emailVerified: boolean;
+      }>;
+      const data = expectData(body);
+      expect(data.email).toBe(normalizedEmail);
     });
   });
 
