@@ -144,21 +144,22 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build \
+            -f ./Dockerfile \
+            -t "${{ steps.meta.outputs.image_ref }}" \
+            -t "${{ steps.meta.outputs.image_repo }}:latest" \
+            .
 
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          platforms: linux/amd64
-          tags: |
-            ${{ steps.meta.outputs.image_ref }}
-            ${{ steps.meta.outputs.image_repo }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Push image tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker push "${{ steps.meta.outputs.image_ref }}"
+          docker push "${{ steps.meta.outputs.image_repo }}:latest"
 
   deploy:
     name: Deploy to Server
