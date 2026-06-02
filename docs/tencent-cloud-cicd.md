@@ -8,6 +8,7 @@ Last updated: 2026-06-01
 - 腾讯云广州 CVM 只负责拉取镜像和运行容器
 - 服务器不需要在部署时访问 GitHub
 - 服务器也不需要访问 Docker Hub
+- 当前 workflow 对业务镜像使用普通 `docker build` + `docker push`，不走 Docker Buildx 的 attestation / manifest 导出路径
 
 ## 先说结论
 
