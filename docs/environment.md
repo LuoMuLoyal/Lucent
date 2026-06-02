@@ -77,6 +77,7 @@ If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` togeth
   - `docker compose pull postgres redis app`
   - keep PostgreSQL / Redis data volumes, recreate containers from the synced compose file
   - wait for Docker health checks and rollback `app` to the previous image if the new image fails to become healthy
+- GitHub-hosted JavaScript actions are forced onto the Node 24 runtime via `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` so the workflow no longer depends on the deprecated Node 20 actions runtime.
 
 ### Expected server shape
 
