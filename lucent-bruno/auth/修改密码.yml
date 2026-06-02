@@ -1,0 +1,24 @@
+info:
+  name: 修改密码
+  type: http
+  seq: 8
+
+http:
+  method: PATCH
+  url: '{{baseUrl}}/api/v1/auth/password'
+  body:
+    type: json
+    data: |-
+      {
+        "oldPassword": "Abc12345",
+        "newPassword": "NewAbc12345"
+      }
+  headers:
+    Authorization: 'Bearer {{accessToken}}'
+  auth: none
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,2331 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "AppController_getHealth_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "AuthController_register_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "用户注册",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "用户登录",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "用户登出",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refresh_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "刷新令牌",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/send-verification-code": {
+      "post": {
+        "operationId": "AuthController_sendVerificationCode_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendVerificationCodeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendVerificationCodeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "发送邮箱验证码",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "operationId": "AuthController_verifyEmail_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyEmailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "验证邮箱",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForgotPasswordResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "忘记密码",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "重置密码",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_getMe_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "获取当前用户信息",
+        "tags": [
+          "Auth"
+        ]
+      },
+      "patch": {
+        "operationId": "AuthController_updateMe_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "更新当前用户信息",
+        "tags": [
+          "Auth"
+        ]
+      },
+      "delete": {
+        "operationId": "AuthController_deleteAccount_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "注销账户",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me/password": {
+      "post": {
+        "operationId": "AuthController_changePassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "修改密码",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me/email": {
+      "post": {
+        "operationId": "AuthController_changeEmail_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeEmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeEmailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "修改邮箱",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/medicines": {
+      "get": {
+        "operationId": "MedicinesController_search_v1",
+        "parameters": [
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Knowledge source selector.",
+            "schema": {
+              "default": "drugbank",
+              "type": "string",
+              "enum": [
+                "drugbank",
+                "cn"
+              ]
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search keyword.",
+            "schema": {
+              "maxLength": 200,
+              "example": "ibuprofen",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number, 1-based.",
+            "schema": {
+              "default": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size.",
+            "schema": {
+              "maximum": 50,
+              "default": 20,
+              "example": 20
+            }
+          },
+          {
+            "name": "x-bypass-cache",
+            "required": false,
+            "in": "header",
+            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineSearchResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Search medicines from a selected knowledge source",
+        "tags": [
+          "Medicines"
+        ]
+      }
+    },
+    "/api/v1/medicines/{id}": {
+      "get": {
+        "operationId": "MedicinesController_getDetail_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Medicine id in the selected source",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Knowledge source selector.",
+            "schema": {
+              "default": "drugbank",
+              "type": "string",
+              "enum": [
+                "drugbank",
+                "cn"
+              ]
+            }
+          },
+          {
+            "name": "x-bypass-cache",
+            "required": false,
+            "in": "header",
+            "description": "Set to true/1/no-cache to bypass medicines read cache for this request only.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get medicine detail from a selected knowledge source",
+        "tags": [
+          "Medicines"
+        ]
+      }
+    },
+    "/api/v1/me/health-context": {
+      "get": {
+        "operationId": "UserHealthContextController_getMeHealthContext_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get the current user health context aggregate",
+        "tags": [
+          "User Health Context"
+        ]
+      }
+    },
+    "/api/v1/me/health-context/profile": {
+      "patch": {
+        "operationId": "UserHealthContextController_updateMeHealthContextProfile_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHealthContextProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update the current user health-context profile preferences",
+        "tags": [
+          "User Health Context"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Lucent API",
+    "description": "Lucent 后端 API 文档",
+    "version": "1.0"
+  },
+  "components": {
+    "schemas": {
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "邮箱地址",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "密码（8-32位，需包含大小写字母和数字）",
+            "example": "Passw0rd123",
+            "minLength": 8,
+            "maxLength": 32
+          },
+          "code": {
+            "type": "string",
+            "description": "邮箱验证码",
+            "example": "123456"
+          },
+          "nickname": {
+            "type": "string",
+            "description": "昵称",
+            "example": "小明",
+            "maxLength": 20
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "code"
+        ]
+      },
+      "UserBriefDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "用户 ID"
+          },
+          "email": {
+            "type": "string",
+            "description": "邮箱地址",
+            "example": "user@example.com"
+          },
+          "nickname": {
+            "type": "object",
+            "description": "昵称",
+            "example": "小明",
+            "nullable": true
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "description": "邮箱是否已验证",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "创建时间 (ISO 8601)",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "emailVerified",
+          "createdAt"
+        ]
+      },
+      "TokensDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "访问令牌"
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "刷新令牌"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "访问令牌过期时间（秒）",
+            "example": 3600
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "expiresIn"
+        ]
+      },
+      "RegisterDataDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserBriefDto"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/TokensDto"
+          }
+        },
+        "required": [
+          "user",
+          "tokens"
+        ]
+      },
+      "RegisterResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "结果码",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/RegisterDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "邮箱地址",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "description": "密码（与验证码二选一）",
+            "example": "Passw0rd123",
+            "minLength": 8,
+            "maxLength": 32
+          },
+          "code": {
+            "type": "string",
+            "description": "邮箱验证码（与密码二选一）",
+            "example": "123456",
+            "minLength": 6,
+            "maxLength": 6
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "UserFullDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "用户 ID"
+          },
+          "email": {
+            "type": "string",
+            "description": "邮箱地址",
+            "example": "user@example.com"
+          },
+          "nickname": {
+            "type": "object",
+            "description": "昵称",
+            "example": "小明",
+            "nullable": true
+          },
+          "avatar": {
+            "type": "object",
+            "description": "头像 URL",
+            "example": "https://example.com/avatar.png",
+            "nullable": true
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "description": "邮箱是否已验证",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "创建时间 (ISO 8601)",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "更新时间 (ISO 8601)",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "avatar",
+          "emailVerified",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "LoginDataDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserFullDto"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/TokensDto"
+          }
+        },
+        "required": [
+          "user",
+          "tokens"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "结果码",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/LoginDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "LogoutDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "刷新令牌"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "SuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "结果码",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": ""
+          },
+          "data": {
+            "type": "object",
+            "description": "数据",
+            "nullable": true,
+            "example": null
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "RefreshDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "刷新令牌"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ]
+      },
+      "RefreshResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "结果码",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/TokensDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "SendVerificationCodeDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "邮箱地址",
+            "example": "user@example.com"
+          },
+          "scene": {
+            "type": "string",
+            "description": "验证码场景",
+            "enum": [
+              "register",
+              "login",
+              "reset-password",
+              "change-email"
+            ],
+            "example": "register"
+          }
+        },
+        "required": [
+          "email",
+          "scene"
+        ]
+      },
+      "CooldownMessageDto": {
+        "type": "object",
+        "properties": {
+          "cooldown": {
+            "type": "number",
+            "description": "冷却时间（秒）",
+            "example": 60
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": "验证码已发送"
+          }
+        },
+        "required": [
+          "cooldown",
+          "message"
+        ]
+      },
+      "SendVerificationCodeResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "结果码",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/CooldownMessageDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "VerifyEmailDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "邮箱地址",
+            "example": "user@example.com"
+          },
+          "code": {
+            "type": "string",
+            "description": "验证码",
+            "example": "123456",
+            "minLength": 6,
+            "maxLength": 6
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ]
+      },
+      "VerifyEmailDataDto": {
+        "type": "object",
+        "properties": {
+          "emailVerified": {
+            "type": "boolean",
+            "description": "邮箱是否已验证",
+            "example": true
+          }
+        },
+        "required": [
+          "emailVerified"
+        ]
+      },
+      "VerifyEmailResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "结果码",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/VerifyEmailDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "ForgotPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "邮箱地址",
+            "example": "user@example.com"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ForgotPasswordResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "结果码",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/CooldownMessageDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "邮箱地址",
+            "example": "user@example.com"
+          },
+          "code": {
+            "type": "string",
+            "description": "验证码",
+            "example": "123456",
+            "minLength": 6,
+            "maxLength": 6
+          },
+          "password": {
+            "type": "string",
+            "description": "新密码（8-32位，需包含大小写字母和数字）",
+            "example": "NewPassw0rd",
+            "minLength": 8,
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "email",
+          "code",
+          "password"
+        ]
+      },
+      "MeResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "结果码",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserFullDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "UpdateMeDto": {
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string",
+            "description": "昵称",
+            "example": "小明",
+            "maxLength": 20
+          },
+          "avatar": {
+            "type": "string",
+            "description": "头像 URL",
+            "example": "https://example.com/avatar.png"
+          }
+        }
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "oldPassword": {
+            "type": "string",
+            "description": "当前密码",
+            "example": "Passw0rd123"
+          },
+          "newPassword": {
+            "type": "string",
+            "description": "新密码（8-32位，需包含大小写字母和数字）",
+            "example": "NewPassw0rd",
+            "minLength": 8,
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "oldPassword",
+          "newPassword"
+        ]
+      },
+      "ChangeEmailDto": {
+        "type": "object",
+        "properties": {
+          "newEmail": {
+            "type": "string",
+            "description": "新邮箱",
+            "example": "newuser@example.com"
+          },
+          "code": {
+            "type": "string",
+            "description": "验证码",
+            "example": "123456",
+            "minLength": 6,
+            "maxLength": 6
+          }
+        },
+        "required": [
+          "newEmail",
+          "code"
+        ]
+      },
+      "ChangeEmailDataDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "新邮箱地址",
+            "example": "new@example.com"
+          },
+          "emailVerified": {
+            "type": "boolean",
+            "description": "邮箱是否已验证",
+            "example": true
+          }
+        },
+        "required": [
+          "email",
+          "emailVerified"
+        ]
+      },
+      "ChangeEmailResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "结果码",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/ChangeEmailDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "DeleteAccountDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "当前密码（确认注销）",
+            "example": "Passw0rd123"
+          }
+        },
+        "required": [
+          "password"
+        ]
+      },
+      "DrugbankMedicineDetailDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "example": "drugbank"
+          },
+          "drugType": {
+            "type": "object",
+            "nullable": true,
+            "example": "small molecule"
+          },
+          "state": {
+            "type": "object",
+            "nullable": true,
+            "example": "solid"
+          },
+          "description": {
+            "type": "object",
+            "nullable": true,
+            "example": "A non-steroidal anti-inflammatory drug."
+          },
+          "indication": {
+            "type": "object",
+            "nullable": true,
+            "example": "Used for pain, fever, and inflammation."
+          },
+          "mechanismOfAction": {
+            "type": "object",
+            "nullable": true
+          },
+          "pharmacodynamics": {
+            "type": "object",
+            "nullable": true
+          },
+          "toxicity": {
+            "type": "object",
+            "nullable": true
+          },
+          "metabolism": {
+            "type": "object",
+            "nullable": true
+          },
+          "absorption": {
+            "type": "object",
+            "nullable": true
+          },
+          "halfLife": {
+            "type": "object",
+            "nullable": true
+          },
+          "proteinBinding": {
+            "type": "object",
+            "nullable": true
+          },
+          "routeOfElimination": {
+            "type": "object",
+            "nullable": true
+          },
+          "volumeOfDistribution": {
+            "type": "object",
+            "nullable": true
+          },
+          "clearance": {
+            "type": "object",
+            "nullable": true
+          },
+          "groups": {
+            "example": [
+              "approved",
+              "small molecule"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "categories": {
+            "example": [
+              "Anti-inflammatory Agents"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "atcCodes": {
+            "example": [
+              "M01AE01"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "synonyms": {
+            "example": [
+              "Ibuprofen"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "foodInteractions": {
+            "example": [
+              "Avoid taking with alcohol."
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "drugInteractions": {
+            "type": "object",
+            "description": "Raw source interaction payload.",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "externalIdentifiers": {
+            "type": "object",
+            "description": "Raw source external identifier payload.",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "externalLinks": {
+            "type": "object",
+            "description": "Raw source external link payload.",
+            "nullable": true,
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "kind",
+          "groups",
+          "categories",
+          "atcCodes",
+          "synonyms",
+          "foodInteractions"
+        ]
+      },
+      "CnMedicineDetailDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "example": "cnProduct"
+          },
+          "approvalNumber": {
+            "type": "object",
+            "nullable": true,
+            "example": "国药准字H10900089"
+          },
+          "manufacturer": {
+            "type": "object",
+            "nullable": true,
+            "example": "某某制药"
+          },
+          "packageSpec": {
+            "type": "object",
+            "nullable": true,
+            "example": "0.3g*10粒"
+          },
+          "brandName": {
+            "type": "object",
+            "nullable": true,
+            "example": "布洛芬"
+          },
+          "ingredients": {
+            "type": "object",
+            "nullable": true
+          },
+          "properties": {
+            "type": "object",
+            "nullable": true
+          },
+          "indications": {
+            "type": "object",
+            "nullable": true
+          },
+          "dosage": {
+            "type": "object",
+            "nullable": true
+          },
+          "adverseReactions": {
+            "type": "object",
+            "nullable": true
+          },
+          "contraindications": {
+            "type": "object",
+            "nullable": true
+          },
+          "precautions": {
+            "type": "object",
+            "nullable": true
+          },
+          "pediatricUse": {
+            "type": "object",
+            "nullable": true
+          },
+          "geriatricUse": {
+            "type": "object",
+            "nullable": true
+          },
+          "pregnancyLactation": {
+            "type": "object",
+            "nullable": true
+          },
+          "pharmacologyToxicology": {
+            "type": "object",
+            "nullable": true
+          },
+          "drugInteractions": {
+            "type": "object",
+            "nullable": true
+          },
+          "pharmacokinetics": {
+            "type": "object",
+            "nullable": true
+          },
+          "overdose": {
+            "type": "object",
+            "nullable": true
+          },
+          "storage": {
+            "type": "object",
+            "nullable": true
+          },
+          "validityPeriod": {
+            "type": "object",
+            "nullable": true
+          },
+          "barcode": {
+            "type": "object",
+            "nullable": true
+          },
+          "nationalDrugCode": {
+            "type": "object",
+            "nullable": true
+          },
+          "sourceUrl": {
+            "type": "object",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "object",
+            "nullable": true
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "MedicineSearchItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable medicine id.",
+            "example": "DB01050"
+          },
+          "source": {
+            "type": "string",
+            "description": "Knowledge source.",
+            "enum": [
+              "drugbank",
+              "cn"
+            ],
+            "example": "drugbank"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name.",
+            "example": "Ibuprofen"
+          },
+          "subtitle": {
+            "type": "object",
+            "description": "Short supporting subtitle.",
+            "example": "CAS 15687-27-1",
+            "nullable": true
+          },
+          "summary": {
+            "type": "object",
+            "description": "Short preview summary.",
+            "example": "A non-steroidal anti-inflammatory drug...",
+            "nullable": true
+          },
+          "tags": {
+            "description": "Compact tags for search cards.",
+            "example": [
+              "approved",
+              "small molecule"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "imageUrl": {
+            "type": "object",
+            "description": "Optional image URL.",
+            "example": null,
+            "nullable": true
+          },
+          "matchedBy": {
+            "description": "Which fields matched the current query.",
+            "example": [
+              "name"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "name",
+          "subtitle",
+          "summary",
+          "tags",
+          "imageUrl",
+          "matchedBy"
+        ]
+      },
+      "MedicinePaginationDto": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number",
+            "example": 1
+          },
+          "pageSize": {
+            "type": "number",
+            "example": 20
+          },
+          "total": {
+            "type": "number",
+            "example": 87
+          },
+          "totalPages": {
+            "type": "number",
+            "example": 5
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
+      },
+      "MedicineSearchMetaDto": {
+        "type": "object",
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/MedicinePaginationDto"
+          }
+        },
+        "required": [
+          "pagination"
+        ]
+      },
+      "MedicineSearchResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSearchItemDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MedicineSearchMetaDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data",
+          "meta"
+        ]
+      },
+      "MedicineDetailDataDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "DB01050"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "drugbank",
+              "cn"
+            ],
+            "example": "drugbank"
+          },
+          "name": {
+            "type": "string",
+            "example": "Ibuprofen"
+          },
+          "subtitle": {
+            "type": "object",
+            "example": "CAS 15687-27-1",
+            "nullable": true
+          },
+          "detail": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DrugbankMedicineDetailDto"
+              },
+              {
+                "$ref": "#/components/schemas/CnMedicineDetailDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "name",
+          "subtitle",
+          "detail"
+        ]
+      },
+      "MedicineDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/MedicineDetailDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "UserHealthSummaryDto": {
+        "type": "object",
+        "properties": {
+          "age": {
+            "type": "object",
+            "description": "Age derived from birth date. Null when birth date is missing.",
+            "example": 28,
+            "nullable": true
+          },
+          "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Whether the onboarding flow has been completed.",
+            "example": true
+          },
+          "activeAllergyCount": {
+            "type": "number",
+            "description": "Number of active allergy records returned in this payload.",
+            "example": 2
+          },
+          "conditionCount": {
+            "type": "number",
+            "description": "Number of condition records returned in this payload.",
+            "example": 3
+          },
+          "currentMedicineCount": {
+            "type": "number",
+            "description": "Number of current medicine records returned in this payload.",
+            "example": 1
+          },
+          "missingCoreProfileFields": {
+            "description": "Missing core profile fields that the frontend can use for onboarding nudges.",
+            "example": [
+              "birthDate",
+              "heightCm"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "age",
+          "onboardingCompleted",
+          "activeAllergyCount",
+          "conditionCount",
+          "currentMedicineCount",
+          "missingCoreProfileFields"
+        ]
+      },
+      "SexAtBirth": {
+        "type": "string",
+        "enum": [
+          "female",
+          "male",
+          "intersex",
+          "unknown"
+        ],
+        "description": "Sex assigned at birth."
+      },
+      "PregnancyState": {
+        "type": "string",
+        "enum": [
+          "not_applicable",
+          "unknown",
+          "not_pregnant",
+          "pregnant",
+          "trying",
+          "postpartum"
+        ],
+        "description": "Pregnancy state for personalized medical guidance."
+      },
+      "LactationState": {
+        "type": "string",
+        "enum": [
+          "not_applicable",
+          "unknown",
+          "no",
+          "yes"
+        ],
+        "description": "Lactation state for personalized medical guidance."
+      },
+      "UnitSystem": {
+        "type": "string",
+        "enum": [
+          "metric",
+          "imperial"
+        ],
+        "description": "Preferred unit system."
+      },
+      "UserHealthProfileDto": {
+        "type": "object",
+        "properties": {
+          "birthDate": {
+            "type": "object",
+            "description": "Birth date in YYYY-MM-DD format.",
+            "example": "1998-03-15",
+            "nullable": true
+          },
+          "sexAtBirth": {
+            "description": "Sex assigned at birth.",
+            "example": "female",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SexAtBirth"
+              }
+            ]
+          },
+          "heightCm": {
+            "type": "object",
+            "description": "Height in centimeters.",
+            "example": 168,
+            "nullable": true
+          },
+          "pregnancyState": {
+            "description": "Pregnancy state for personalized medical guidance.",
+            "example": "not_pregnant",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PregnancyState"
+              }
+            ]
+          },
+          "lactationState": {
+            "description": "Lactation state for personalized medical guidance.",
+            "example": "no",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LactationState"
+              }
+            ]
+          },
+          "bloodType": {
+            "type": "object",
+            "description": "Blood type.",
+            "example": "O+",
+            "nullable": true
+          },
+          "locale": {
+            "type": "object",
+            "description": "Preferred locale.",
+            "example": "en-US",
+            "nullable": true
+          },
+          "timezone": {
+            "type": "object",
+            "description": "Preferred timezone.",
+            "example": "Asia/Shanghai",
+            "nullable": true
+          },
+          "unitSystem": {
+            "description": "Preferred unit system.",
+            "example": "metric",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UnitSystem"
+              }
+            ]
+          },
+          "onboardingCompletedAt": {
+            "type": "object",
+            "description": "When the onboarding flow was completed.",
+            "example": "2026-05-30T09:00:00.000Z",
+            "nullable": true
+          },
+          "extras": {
+            "type": "object",
+            "description": "Sparse profile extensions stored in jsonb.",
+            "nullable": true,
+            "additionalProperties": true,
+            "example": {
+              "preferredReminderHour": 9,
+              "emergencyContactReady": true
+            }
+          }
+        },
+        "required": [
+          "birthDate",
+          "sexAtBirth",
+          "heightCm",
+          "pregnancyState",
+          "lactationState",
+          "bloodType",
+          "locale",
+          "timezone",
+          "unitSystem",
+          "onboardingCompletedAt",
+          "extras"
+        ]
+      },
+      "UserAllergyKind": {
+        "type": "string",
+        "enum": [
+          "drug",
+          "food",
+          "environment",
+          "other"
+        ],
+        "description": "Allergy kind."
+      },
+      "UserAllergySeverity": {
+        "type": "string",
+        "enum": [
+          "mild",
+          "moderate",
+          "severe",
+          "unknown"
+        ],
+        "description": "Severity level."
+      },
+      "UserAllergyItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Allergy id."
+          },
+          "kind": {
+            "description": "Allergy kind.",
+            "example": "drug",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserAllergyKind"
+              }
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "User-visible allergy label.",
+            "example": "Penicillin"
+          },
+          "reaction": {
+            "type": "object",
+            "description": "Recorded reaction.",
+            "example": "Rash",
+            "nullable": true
+          },
+          "severity": {
+            "description": "Severity level.",
+            "example": "moderate",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserAllergySeverity"
+              }
+            ]
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the allergy is currently active."
+          },
+          "note": {
+            "type": "object",
+            "description": "User note for the allergy.",
+            "example": "Avoid completely",
+            "nullable": true
+          },
+          "extras": {
+            "type": "object",
+            "description": "Sparse allergy extensions stored in jsonb.",
+            "nullable": true,
+            "additionalProperties": true,
+            "example": {
+              "source": "manual"
+            }
+          },
+          "recordedAt": {
+            "type": "object",
+            "description": "When this allergy was recorded.",
+            "example": "2026-05-20T09:00:00.000Z",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created time in ISO 8601 format.",
+            "example": "2026-05-20T09:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated time in ISO 8601 format.",
+            "example": "2026-05-21T09:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "reaction",
+          "severity",
+          "isActive",
+          "note",
+          "extras",
+          "recordedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UserConditionStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "resolved",
+          "suspected"
+        ],
+        "description": "Condition status."
+      },
+      "UserConditionItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Condition id."
+          },
+          "label": {
+            "type": "string",
+            "description": "Condition label.",
+            "example": "Asthma"
+          },
+          "status": {
+            "description": "Condition status.",
+            "example": "active",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserConditionStatus"
+              }
+            ]
+          },
+          "diagnosedAt": {
+            "type": "object",
+            "description": "Diagnosis date in YYYY-MM-DD format.",
+            "example": "2024-02-01",
+            "nullable": true
+          },
+          "resolvedAt": {
+            "type": "object",
+            "description": "Resolved date in YYYY-MM-DD format.",
+            "example": "2025-03-12",
+            "nullable": true
+          },
+          "note": {
+            "type": "object",
+            "description": "User note for the condition.",
+            "example": "Triggered during pollen season",
+            "nullable": true
+          },
+          "extras": {
+            "type": "object",
+            "description": "Sparse condition extensions stored in jsonb.",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created time in ISO 8601 format.",
+            "example": "2024-02-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated time in ISO 8601 format.",
+            "example": "2026-05-18T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "status",
+          "diagnosedAt",
+          "resolvedAt",
+          "note",
+          "extras",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "MedicineSource": {
+        "type": "string",
+        "enum": [
+          "drugbank",
+          "cn",
+          "manual"
+        ],
+        "description": "Upstream source used to anchor this medicine."
+      },
+      "UserCurrentMedicineItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Current medicine id."
+          },
+          "source": {
+            "description": "Upstream source used to anchor this medicine.",
+            "example": "drugbank",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MedicineSource"
+              }
+            ]
+          },
+          "sourceRefId": {
+            "type": "object",
+            "description": "Source-specific reference id.",
+            "example": "DB01050",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name shown to the user.",
+            "example": "Ibuprofen"
+          },
+          "strengthText": {
+            "type": "object",
+            "description": "Strength text.",
+            "example": "200 mg",
+            "nullable": true
+          },
+          "doseText": {
+            "type": "object",
+            "description": "Dose text.",
+            "example": "1 tablet after meals",
+            "nullable": true
+          },
+          "route": {
+            "type": "object",
+            "description": "Administration route.",
+            "example": "oral",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "object",
+            "description": "Start date in YYYY-MM-DD format.",
+            "example": "2026-05-01",
+            "nullable": true
+          },
+          "endedAt": {
+            "type": "object",
+            "description": "End date in YYYY-MM-DD format.",
+            "example": "2026-05-07",
+            "nullable": true
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "description": "Whether the medicine is currently active."
+          },
+          "note": {
+            "type": "object",
+            "description": "User note for the medicine.",
+            "example": "Use only when needed for headaches",
+            "nullable": true
+          },
+          "sourcePayload": {
+            "type": "object",
+            "description": "Original source payload stored in jsonb.",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created time in ISO 8601 format.",
+            "example": "2026-05-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated time in ISO 8601 format.",
+            "example": "2026-05-21T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "sourceRefId",
+          "displayName",
+          "strengthText",
+          "doseText",
+          "route",
+          "startedAt",
+          "endedAt",
+          "isCurrent",
+          "note",
+          "sourcePayload",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "HealthContextDataDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/UserHealthSummaryDto"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/UserHealthProfileDto"
+          },
+          "allergies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserAllergyItemDto"
+            }
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserConditionItemDto"
+            }
+          },
+          "currentMedicines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserCurrentMedicineItemDto"
+            }
+          }
+        },
+        "required": [
+          "summary",
+          "profile",
+          "allergies",
+          "conditions",
+          "currentMedicines"
+        ]
+      },
+      "HealthContextResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Prompt message",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/HealthContextDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "UpdateHealthContextProfileDto": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "object",
+            "description": "Preferred locale. Use null to clear and follow the client default.",
+            "example": "zh-CN",
+            "nullable": true
+          },
+          "timezone": {
+            "type": "object",
+            "description": "Preferred timezone. Use null to clear.",
+            "example": "Asia/Shanghai",
+            "nullable": true
+          },
+          "unitSystem": {
+            "description": "Preferred unit system. Use null to clear.",
+            "example": "metric",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UnitSystem"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

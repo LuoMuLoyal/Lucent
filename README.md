@@ -1,76 +1,69 @@
 # Lucent
 
-[![Frontend](https://img.shields.io/badge/Frontend-Luminous-8b5cf6)](https://github.com/LuoMuLoyal/Luminous)
-
-Lucent is the target backend for Luminous. It replaces the deprecated Express backend in `Luminous/backend`.
-
-## Current Status
-
-- `Luminous/backend` still powers the deployed legacy `https://devluo.com` service.
-- Lucent is the mainline for all new backend work.
-- Luminous includes Lucent as a Git submodule at `Luminous/Lucent`.
+NestJS backend for Luminous. New backend work happens here; `Luminous/backend` is legacy production code.
 
 ## Stack
 
-- NestJS
-- PostgreSQL
-- Prisma
-- Redis
-- Passport JWT
-- OpenAI-compatible AI gateway
+NestJS / PostgreSQL / Prisma / Redis / Passport JWT / OpenAI-compatible AI gateway
 
-## Development
+## Commands
 
 ```bash
 pnpm install
+pnpm dev:stack:up
+pnpm db:migrate:all
 pnpm start:dev
-```
-
-```bash
 pnpm build
 pnpm test
+pnpm test:ci
 pnpm test:e2e
+pnpm test:e2e:ci
 pnpm lint
+pnpm export:openapi
+pnpm import:medicine:all
 ```
 
-Environment files:
+Simple server deployment:
 
-```text
-.env.example
-.env.development.example
-.env.production.example
-```
+- keep a writable deployment directory on the server
+- keep `.env.production` on the server
+- use GitHub Actions workflow `.github/workflows/deploy-server.yml`
+- workflow runs `lint` + `build` + unit/e2e tests, builds a Docker image, mirrors PostgreSQL / Redis base images into your target registry, syncs deployment files over SSH, then recreates containers on the server
+- workflow already opts JavaScript-based GitHub Actions into the Node 24 runtime, so the current pipeline does not rely on the deprecated Node 20 actions runtime
+- the server no longer needs `git pull` access to GitHub during deployment
+- the server keeps PostgreSQL / Redis data locally and uses `.deploy-image.env` to remember the deployed image tags
+- default production compose is single-host: `app + postgres + redis` run together, and Lucent connects to `postgres` / `redis` service names inside Docker
 
-Local runtime files:
+Local database layout:
 
-```text
-.env.development
-.env.production
-```
+- development DB: `postgres/postgres@127.0.0.1:15432/lucent`
+- test / e2e DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`
 
-Do not commit real environment files or local data imports.
+`pnpm dev:stack:up` starts both PostgreSQL services plus Redis. `pnpm db:migrate:all` applies Prisma migrations to both local databases.
 
-Current baseline:
+Medicine import quick start:
 
-- Nest CLI uses SWC for application builds.
-- Runtime config loads `.env.development` and `.env.production` by convention.
-- API 全局 prefix `/api` + NestJS URI versioning（`/v1`），health check: `GET /api/v1/health`。
+- `pip install -r scripts/medicine/requirements.txt` if you want to import `FullDrugDetail.xlsx` directly.
+- `pnpm import:medicine:all` runs the default development import order: DrugBank drugs -> links -> targets -> Chinese products.
+- `scripts/dev/import-medicine-datasets.ps1 -Command <dataset> -SourcePath <file>` lets you smoke-test or override a single source file.
+- For smoke tests you can call `powershell -ExecutionPolicy Bypass -File scripts/dev/import-medicine-datasets.ps1 -Limit 20 -WithHash`.
 
-## Documentation
+## Baseline
 
-- [docs/README.md](docs/README.md): documentation map and ownership.
-- [docs/api-contract.md](docs/api-contract.md): `/api` 前缀 + URI versioning、响应 envelope、auth 与错误码。
-- [docs/data-sources.md](docs/data-sources.md): `DrugDataBase` source boundaries and import rules.
-- [docs/environment.md](docs/environment.md): env files, scripts, and bootstrap baseline.
-- [docs/migration-roadmap.md](docs/migration-roadmap.md): backend buildout phases.
+- API: `/api/v1`
+- Health: `GET /api/v1/health`
+- Response envelope: `{ code, message, data }`
+- Language: `Accept-Language`, fallback `en`
+- Auth e2e: register / login / refresh / me / logout
 
-## Submodule Workflow
+## Docs
 
-When working from Luminous:
+Start with [docs/README.md](docs/README.md).
 
-```bash
-git submodule update --init --recursive
-cd Lucent
-```
+Key docs:
 
-Commit and push Lucent changes in this repository first. Then update and commit the submodule pointer in Luminous.
+- [docs/public/api-contract.md](docs/public/api-contract.md)
+- [docs/auth-api-mock.md](docs/auth-api-mock.md)
+- [docs/environment.md](docs/environment.md)
+- [docs/tencent-cloud-cicd.md](docs/tencent-cloud-cicd.md)
+- [CHANGELOG.md](CHANGELOG.md)

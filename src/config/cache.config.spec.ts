@@ -1,0 +1,107 @@
+import type { ConfigService } from '@nestjs/config';
+import { KeyvAdapter } from 'cache-manager';
+import { redisStore } from 'cache-manager-ioredis-yet';
+import Keyv from 'keyv';
+import { CacheConfigService } from './cache.config';
+
+jest.mock('cache-manager-ioredis-yet', () => ({
+  redisStore: jest.fn(),
+}));
+
+describe('CacheConfigService', () => {
+  const redisStoreMock = redisStore as jest.MockedFunction<typeof redisStore>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('falls back to memory cache when REDIS_URL is missing', async () => {
+    const service = new CacheConfigService({
+      get: jest.fn().mockReturnValue(undefined),
+    } as unknown as ConfigService);
+
+    await expect(service.createCacheOptions()).resolves.toEqual({
+      ttl: 300_000,
+    });
+    expect(redisStoreMock).not.toHaveBeenCalled();
+  });
+
+  it('builds a redis-backed Keyv store from REDIS_URL', async () => {
+    const mockStore = {
+      get: jest.fn(),
+      mget: jest.fn(),
+      set: jest.fn(),
+      mset: jest.fn(),
+      del: jest.fn(),
+      mdel: jest.fn(),
+      ttl: jest.fn(),
+      keys: jest.fn(),
+      disconnect: jest.fn(),
+    };
+    redisStoreMock.mockResolvedValue(
+      mockStore as Awaited<ReturnType<typeof redisStore>>,
+    );
+
+    const service = new CacheConfigService({
+      get: jest.fn().mockImplementation((key: string) => {
+        if (key === 'REDIS_URL') {
+          return 'redis://:secret@cache.internal:6380/2';
+        }
+
+        return undefined;
+      }),
+    } as unknown as ConfigService);
+
+    const options = await service.createCacheOptions();
+
+    expect(redisStoreMock).toHaveBeenCalledWith({
+      host: 'cache.internal',
+      port: 6380,
+      password: 'secret',
+      db: 2,
+      tls: undefined,
+    });
+    expect(options.ttl).toBe(300_000);
+    expect(Array.isArray(options.stores)).toBe(true);
+    if (!Array.isArray(options.stores)) {
+      throw new Error('Expected redis cache options to include a stores array');
+    }
+
+    expect(options.stores).toHaveLength(1);
+    expect(options.stores[0]).toBeInstanceOf(Keyv);
+    if (!(options.stores[0] instanceof Keyv)) {
+      throw new Error('Expected redis cache store to be a Keyv instance');
+    }
+
+    const firstStore: Keyv<unknown> = options.stores[0];
+    expect(firstStore.opts.store).toBeInstanceOf(KeyvAdapter);
+  });
+
+  it('enables tls for rediss URLs', async () => {
+    redisStoreMock.mockResolvedValue({
+      get: jest.fn(),
+      mget: jest.fn(),
+      set: jest.fn(),
+      mset: jest.fn(),
+      del: jest.fn(),
+      mdel: jest.fn(),
+      ttl: jest.fn(),
+      keys: jest.fn(),
+      disconnect: jest.fn(),
+    } as Awaited<ReturnType<typeof redisStore>>);
+
+    const service = new CacheConfigService({
+      get: jest.fn().mockReturnValue('rediss://secure-cache.internal'),
+    } as unknown as ConfigService);
+
+    await service.createCacheOptions();
+
+    expect(redisStoreMock).toHaveBeenCalledWith({
+      host: 'secure-cache.internal',
+      port: 6379,
+      password: undefined,
+      db: 0,
+      tls: {},
+    });
+  });
+});

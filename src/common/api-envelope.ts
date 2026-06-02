@@ -29,6 +29,10 @@ export enum ResultCode {
   TOKEN_EXPIRED = 401_002,
   /** Refresh token invalid or expired */
   REFRESH_TOKEN_INVALID = 401_003,
+  /** Too many login failures, rate limited */
+  LOGIN_RATE_LIMITED = 401_004,
+  /** Current password incorrect */
+  WRONG_PASSWORD = 401_005,
 
   // ── Forbidden (403xxx) ───────────────────────────────────────
   /** Authenticated but lacking required permission */
@@ -37,6 +41,12 @@ export enum ResultCode {
   // ── Not found (404xxx) ───────────────────────────────────────
   /** Requested resource does not exist */
   NOT_FOUND = 404_001,
+
+  // ── Verification (400xxx) ────────────────────────────────────
+  /** Verification code incorrect or expired */
+  VERIFICATION_CODE_INVALID = 400_100,
+  /** Verification code send cooldown */
+  VERIFICATION_CODE_COOLDOWN = 400_101,
 
   // ── Conflict (409xxx) ────────────────────────────────────────
   /** Resource already exists (e.g. duplicate add) */

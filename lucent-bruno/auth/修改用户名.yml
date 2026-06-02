@@ -1,0 +1,23 @@
+info:
+  name: 修改用户名
+  type: http
+  seq: 7
+
+http:
+  method: PATCH
+  url: '{{baseUrl}}/api/v1/auth/me'
+  body:
+    type: json
+    data: |-
+      {
+        "nickname": "新昵称"
+      }
+  headers:
+    Authorization: 'Bearer {{accessToken}}'
+  auth: none
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
