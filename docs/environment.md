@@ -43,6 +43,7 @@ Prisma CLI uses the same resolution order through `prisma.config.ts`, so `NODE_E
 - `pnpm test:e2e` runs with `NODE_ENV=test` and `NODE_OPTIONS=--experimental-vm-modules` for Prisma 7 generated client compatibility.
 - Prisma commands should be run with an explicit `NODE_ENV` when they are not targeting development. Example: `NODE_ENV=test pnpm exec prisma migrate deploy`.
 - `pnpm export:openapi` builds Lucent first, then exports `docs/openapi.json` from `dist` so Prisma generated imports resolve correctly.
+- i18n type generation only writes `src/generated/i18n.generated.ts` when Lucent is running from the source tree in `NODE_ENV=development`; compiled `dist` runtime and `pnpm export:openapi` no longer attempt to write or read `dist/generated/i18n.generated.ts`.
 - `pnpm dev:stack:up` starts the local development stack from `docker-compose.dev.yml`.
 - `pnpm db:migrate:all` runs Prisma generate plus migrate deploy for both the development and test databases.
 - `pnpm import:medicine:all` runs the default medicine knowledge import sequence against `NODE_ENV=development`.

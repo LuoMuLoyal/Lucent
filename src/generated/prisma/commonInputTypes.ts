@@ -831,3 +831,4 @@ export type NestedEnumMedicineSourceWithAggregatesFilter<$PrismaModel = never> =
   _max?: Prisma.NestedEnumMedicineSourceFilter<$PrismaModel>
 }
 
+

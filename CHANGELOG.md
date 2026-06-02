@@ -3,6 +3,30 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-02 (I18n Dist Runtime Fix + Auth Smoke Validation)
+
+### Fixed
+
+- `src/i18n/i18n.module.ts`
+  - `typesOutputPath` 现在只在 `NODE_ENV=development` 且运行上下文仍是源码目录时启用，不再让编译后的 `dist` 运行时去访问不存在的 `dist/generated/i18n.generated.ts`。
+  - `pnpm export:openapi` 和 `node dist/main.js` 的 development 运行场景现在都能正常启动。
+
+### Changed
+
+- `docs/environment.md`
+  - 补充当前 i18n 类型生成只针对源码运行上下文的说明，避免再把 `dist` 运行误解成会产出 generated types。
+
+### Test Results
+
+- `pnpm build` — 通过
+- `pnpm export:openapi` — 通过
+- `NODE_ENV=development node dist/main.js` + `GET /api/v1/health` — 通过
+- 真实 auth 冒烟链路 — 通过
+  - `send-verification-code -> register -> login -> me -> refresh -> logout`
+  - `logout` 后再次 `refresh` 返回 `401 / 401003`
+- `pnpm test -- auth.service.spec.ts` — 通过
+- `pnpm test:e2e -- auth.e2e-spec.ts` — 通过
+
 ## 2026-06-02 (Auth Validation Code Alignment + UpdateMe Empty-String Clearing)
 
 ### Fixed
