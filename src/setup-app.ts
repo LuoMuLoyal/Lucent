@@ -1,9 +1,15 @@
 import type { Request, Response, NextFunction } from 'express';
-import type { INestApplication } from '@nestjs/common';
-import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
+import type { INestApplication, ValidationError } from '@nestjs/common';
+import {
+  BadRequestException,
+  Logger,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigKey } from './config/config-keys.enum';
+import { ResultCode } from './common/api-envelope';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ApiEnvelopeInterceptor } from './common/interceptors/api-envelope.interceptor';
 import { requestIdMiddleware } from './common/middleware/request-id.middleware';
@@ -36,6 +42,11 @@ export function setupApp(
       transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
+      exceptionFactory: (errors: ValidationError[]) =>
+        new BadRequestException({
+          code: ResultCode.VALIDATION_FAILED,
+          message: formatValidationErrors(errors),
+        }),
     }),
   );
   app.useGlobalInterceptors(new ApiEnvelopeInterceptor());
@@ -66,4 +77,16 @@ export function setupApp(
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
+}
+
+function formatValidationErrors(errors: ValidationError[]): string {
+  return errors.flatMap(collectValidationMessages).join('; ');
+}
+
+function collectValidationMessages(error: ValidationError): string[] {
+  const currentMessages = Object.values(error.constraints ?? {});
+  const childMessages = (error.children ?? []).flatMap(
+    collectValidationMessages,
+  );
+  return [...currentMessages, ...childMessages];
 }

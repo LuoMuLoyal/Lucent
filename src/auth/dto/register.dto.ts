@@ -38,6 +38,7 @@ export class RegisterDto {
   @ApiPropertyOptional({ description: '昵称', example: '小明', maxLength: 20 })
   @IsOptional()
   @IsString()
+  @MinLength(1, { message: '昵称至少 1 个字符' })
   @MaxLength(20, { message: '昵称最多 20 个字符' })
   nickname?: string;
 }

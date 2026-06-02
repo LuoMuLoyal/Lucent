@@ -188,10 +188,13 @@ export class AuthService {
 
   // ── Logout ───────────────────────────────────────────────────
 
-  async logout(refreshToken: string): Promise<void> {
+  async logout(userId: string, refreshToken: string): Promise<void> {
     // Refresh tokens are stored as SHA-256 hashes so DB reads cannot replay them.
     await this.prisma.userSession.deleteMany({
-      where: { refreshTokenHash: this.hashRefreshToken(refreshToken) },
+      where: {
+        userId,
+        refreshTokenHash: this.hashRefreshToken(refreshToken),
+      },
     });
   }
 
@@ -215,9 +218,12 @@ export class AuthService {
   }
 
   async updateMe(userId: string, dto: UpdateMeDto): Promise<User> {
+    const nickname = dto.nickname === '' ? null : dto.nickname;
+    const avatar = dto.avatar === '' ? null : dto.avatar;
+
     return this.userService.update(userId, {
-      ...(dto.nickname !== undefined && { nickname: dto.nickname }),
-      ...(dto.avatar !== undefined && { avatar: dto.avatar }),
+      ...(dto.nickname !== undefined && { nickname }),
+      ...(dto.avatar !== undefined && { avatar }),
     });
   }
 
@@ -236,7 +242,7 @@ export class AuthService {
     await this.logoutAll(userId);
   }
 
-  async changeEmail(userId: string, dto: ChangeEmailDto): Promise<void> {
+  async changeEmail(userId: string, dto: ChangeEmailDto): Promise<User> {
     await this.getMe(userId);
     const newEmail = this.normalizeEmail(dto.newEmail);
 
@@ -255,7 +261,7 @@ export class AuthService {
       'change-email',
     );
 
-    await this.userService.update(userId, {
+    return this.userService.update(userId, {
       email: newEmail,
       emailVerifiedAt: new Date(),
     });

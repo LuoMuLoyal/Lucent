@@ -3,6 +3,60 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-02 (Auth Validation Code Alignment + UpdateMe Empty-String Clearing)
+
+### Fixed
+
+- `src/setup-app.ts`
+  - 全局 `ValidationPipe` 现在通过自定义 `exceptionFactory` 把 DTO 校验错误稳定映射到 `400002`，与当前合同文档一致。
+- `src/auth/auth.service.ts`
+  - `updateMe` 现在把 `nickname: ''` / `avatar: ''` 解释为清空字段，并以 `null` 持久化，真实行为对齐 auth 文档。
+- `src/auth/dto/register.dto.ts`
+  - `nickname` 补上 `MinLength(1)`，使 DTO 约束与“1-20 字符”的合同说明一致。
+- `src/auth/auth.service.spec.ts`
+  - 新增 `updateMe` 空字符串清空断言。
+- `test/auth.e2e-spec.ts`
+  - `register` 缺少必填字段时现在显式断言返回 `400002`。
+  - 新增 `PATCH /auth/me` 空字符串清空昵称/头像的 e2e 覆盖。
+
+### Changed
+
+- `docs/auth-api-mock.md`
+  - `PATCH /auth/me` 的 `avatar` 描述改为“头像字符串”，避免误导成当前后端会做 URL 校验。
+
+### Test Results
+
+- 待本次改动验证
+
+## 2026-06-02 (Auth Logout Boundary + Normalized Change Email Response)
+
+### Fixed
+
+- `src/auth/auth.service.ts`
+  - `logout` 现在把 `refreshToken` 删除约束在当前 JWT 用户名下，不再允许一个已认证用户仅凭别人的 refresh token 明文就删除对方 session。
+  - `changeEmail` 现在返回更新后的 `User`，供控制器回显真实持久化结果。
+- `src/auth/auth.controller.ts`
+  - `POST /api/v1/auth/logout` 现在把 `CurrentUser().sub` 传给 service，落实当前账号边界。
+  - `POST /api/v1/auth/me/email` 现在返回规范化后的最终邮箱值，而不是原始 `dto.newEmail`。
+- `test/auth.e2e-spec.ts`
+  - 新增“跨账号 logout 不应删掉 чужой refresh session”覆盖。
+  - 新增“changeEmail 响应应返回 lowercase 规范化邮箱”覆盖。
+- `src/auth/auth.service.spec.ts`
+  - 同步断言 `logout` 只按 `userId + refreshTokenHash` 删除 session。
+  - 同步断言 `changeEmail` 返回更新后的规范化邮箱。
+
+### Changed
+
+- `docs/auth-api-mock.md`
+  - 补充 logout 的当前账号边界说明。
+  - 补充 changeEmail 响应返回规范化邮箱的说明。
+
+### Test Results
+
+- `pnpm test -- auth.service.spec.ts` — 通过
+- `pnpm test:e2e -- auth.e2e-spec.ts` — 通过
+- `pnpm export:openapi` — 通过
+
 ## 2026-05-31 (Medicines Cache Invalidation + OpenAPI Export Sync)
 
 ### Fixed
