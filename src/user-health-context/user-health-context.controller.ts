@@ -1,6 +1,7 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiResponse,
   ApiTags,
@@ -10,7 +11,7 @@ import { successEnvelope } from '../common/api-envelope';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { UserPayload } from '../auth/auth.service';
-import { HealthContextResponseDto } from './dto';
+import { HealthContextResponseDto, UpdateHealthContextProfileDto } from './dto';
 import { UserHealthContextService } from './user-health-context.service';
 
 @ApiTags('User Health Context')
@@ -29,6 +30,27 @@ export class UserHealthContextController {
     const healthContext = await this.userHealthContextService.getForUser(
       user.sub,
     );
+
+    return successEnvelope(healthContext);
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Update the current user health-context profile preferences',
+  })
+  @ApiBody({ type: UpdateHealthContextProfileDto })
+  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  async updateMeHealthContextProfile(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: UpdateHealthContextProfileDto,
+  ) {
+    const healthContext =
+      await this.userHealthContextService.updateProfilePreferences(
+        user.sub,
+        dto,
+      );
 
     return successEnvelope(healthContext);
   }

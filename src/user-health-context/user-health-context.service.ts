@@ -3,7 +3,10 @@ import { I18nService } from 'nestjs-i18n';
 import { Prisma } from '../generated/prisma/client';
 import { ResultCode } from '../common/api-envelope';
 import { PrismaService } from '../prisma/prisma.service';
-import type { HealthContextResponseData } from './dto';
+import type {
+  HealthContextResponseData,
+  UpdateHealthContextProfileDto,
+} from './dto';
 
 const CORE_PROFILE_FIELDS = [
   'birthDate',
@@ -65,6 +68,43 @@ export class UserHealthContextService {
     }
 
     return this.toHealthContextResponse(user);
+  }
+
+  async updateProfilePreferences(
+    userId: string,
+    dto: UpdateHealthContextProfileDto,
+  ): Promise<HealthContextResponseData> {
+    await this.ensureActiveUserExists(userId);
+
+    const updateData: Prisma.UserProfileUpdateInput = {};
+    const createData: Prisma.UserProfileUncheckedCreateInput = { userId };
+
+    if (dto.locale !== undefined) {
+      const locale = this.normalizePreferenceString(dto.locale);
+      updateData.locale = locale;
+      createData.locale = locale;
+    }
+
+    if (dto.timezone !== undefined) {
+      const timezone = this.normalizePreferenceString(dto.timezone);
+      updateData.timezone = timezone;
+      createData.timezone = timezone;
+    }
+
+    if (dto.unitSystem !== undefined) {
+      updateData.unitSystem = dto.unitSystem;
+      createData.unitSystem = dto.unitSystem;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await this.prisma.userProfile.upsert({
+        where: { userId },
+        create: createData,
+        update: updateData,
+      });
+    }
+
+    return this.getForUser(userId);
   }
 
   private toHealthContextResponse(
@@ -184,5 +224,33 @@ export class UserHealthContextService {
 
   private formatDateTime(value: Date | null): string | null {
     return value?.toISOString() ?? null;
+  }
+
+  private async ensureActiveUserExists(userId: string): Promise<void> {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException({
+        code: ResultCode.NOT_FOUND,
+        message: this.i18n.t('auth.user_not_found'),
+      });
+    }
+  }
+
+  private normalizePreferenceString(value: string | null): string | null {
+    if (value == null) {
+      return null;
+    }
+
+    const normalized = value.trim();
+    return normalized.length == 0 ? null : normalized;
   }
 }

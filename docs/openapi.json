@@ -606,6 +606,43 @@
           "User Health Context"
         ]
       }
+    },
+    "/api/v1/me/health-context/profile": {
+      "patch": {
+        "operationId": "UserHealthContextController_updateMeHealthContextProfile_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHealthContextProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update the current user health-context profile preferences",
+        "tags": [
+          "User Health Context"
+        ]
+      }
     }
   },
   "info": {
@@ -2261,6 +2298,33 @@
           "message",
           "data"
         ]
+      },
+      "UpdateHealthContextProfileDto": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "object",
+            "description": "Preferred locale. Use null to clear and follow the client default.",
+            "example": "zh-CN",
+            "nullable": true
+          },
+          "timezone": {
+            "type": "object",
+            "description": "Preferred timezone. Use null to clear.",
+            "example": "Asia/Shanghai",
+            "nullable": true
+          },
+          "unitSystem": {
+            "description": "Preferred unit system. Use null to clear.",
+            "example": "metric",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UnitSystem"
+              }
+            ]
+          }
+        }
       }
     }
   }

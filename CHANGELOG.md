@@ -3,6 +3,34 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-02 (Health Context Preference Write API)
+
+### Added
+
+- `src/user-health-context/user-health-context.controller.ts`
+  - 新增 `PATCH /api/v1/me/health-context/profile`，允许当前登录用户更新 `locale`、`timezone`、`unitSystem`。
+- `src/user-health-context/dto/update-health-context-profile.dto.ts`
+  - 新增 health-context 偏好写入 DTO，支持可选部分更新与 `null` 清空。
+- `test/user-health-context.e2e-spec.ts`
+  - 新增偏好写入 e2e 覆盖，断言返回聚合结果与数据库持久化都同步更新。
+- `src/user-health-context/user-health-context.service.spec.ts`
+  - 新增 service 层 upsert 偏好与空字符串归一化覆盖。
+
+### Changed
+
+- `src/user-health-context/user-health-context.service.ts`
+  - 新增 profile 偏好写入逻辑；当 `locale/timezone` 传空字符串时归一化为 `null`。
+  - 写入后直接返回最新 health-context 聚合结果，避免前端额外拼装局部状态。
+- `docs/public/api-contract.md`
+  - 补充 `PATCH /api/v1/me/health-context/profile` 合同说明。
+
+### Test Results
+
+- `pnpm test -- user-health-context.service.spec.ts` — 通过
+- `pnpm test:e2e -- user-health-context.e2e-spec.ts` — 通过
+- `pnpm build` — 通过
+- `pnpm export:openapi` — 通过
+
 ## 2026-06-02 (I18n Dist Runtime Fix + Auth Smoke Validation)
 
 ### Fixed
