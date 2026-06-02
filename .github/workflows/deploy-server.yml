@@ -147,19 +147,6 @@ jobs:
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Mirror runtime base images to target registry
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          docker pull postgres:18-alpine
-          docker tag postgres:18-alpine "${{ steps.meta.outputs.postgres_image_ref }}"
-          docker push "${{ steps.meta.outputs.postgres_image_ref }}"
-
-          docker pull redis:8-alpine
-          docker tag redis:8-alpine "${{ steps.meta.outputs.redis_image_ref }}"
-          docker push "${{ steps.meta.outputs.redis_image_ref }}"
-
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
