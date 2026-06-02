@@ -289,4 +289,49 @@ describe('User Health Context API (e2e)', () => {
     expect(body.code).toBe(ResultCode.NOT_FOUND);
     expect(body.message).toBe('User not found');
   });
+
+  it('should update locale preferences for the authenticated user', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        profile: {
+          create: {
+            locale: 'en',
+            timezone: 'UTC',
+            unitSystem: UnitSystem.imperial,
+          },
+        },
+      },
+    });
+
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/profile`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({
+        locale: ' zh-CN ',
+        timezone: null,
+        unitSystem: UnitSystem.metric,
+      })
+      .expect(200);
+
+    const body = response.body as ApiEnvelope<HealthContextData>;
+    expect(body.code).toBe(ResultCode.SUCCESS);
+
+    const data = expectData(body);
+    expect(data.profile.locale).toBe('zh-CN');
+    expect(data.profile.timezone).toBeNull();
+    expect(data.profile.unitSystem).toBe(UnitSystem.metric);
+
+    const storedProfile = await prisma.userProfile.findUniqueOrThrow({
+      where: { userId: user.id },
+    });
+    expect(storedProfile.locale).toBe('zh-CN');
+    expect(storedProfile.timezone).toBeNull();
+    expect(storedProfile.unitSystem).toBe(UnitSystem.metric);
+  });
 });

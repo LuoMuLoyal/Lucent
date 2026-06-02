@@ -1,6 +1,6 @@
 # API Contract
 
-Last updated: 2026-05-30
+Last updated: 2026-06-02
 
 ## Versioning
 
@@ -13,6 +13,7 @@ GET /api/v1/health
 GET /api/v1/medicines
 GET /api/v1/medicines/:id
 GET /api/v1/me/health-context
+PATCH /api/v1/me/health-context/profile
 ```
 
 Legacy Express `/api/*` routes are reference material only. Lucent does not need to keep their request bodies or response envelope.
@@ -251,10 +252,19 @@ GET /api/v1/me/health-context
 Authorization: Bearer <accessToken>
 ```
 
+```text
+PATCH /api/v1/me/health-context/profile
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+```
+
 Contract notes:
 
 - Returns `summary`, `profile`, `allergies`, `conditions`, and `currentMedicines` in one envelope.
 - `profile` shape is stable and null-safe even if the stored relation row is missing.
 - Day-level medical dates use `YYYY-MM-DD`.
 - Timestamp fields use ISO 8601 strings.
-- The endpoint is read-only in the current phase and is meant to be the first backend-facing aggregate for personalized Today flows.
+- `PATCH /me/health-context/profile` currently supports partial updates for `locale`, `timezone`, and `unitSystem`.
+- `PATCH /me/health-context/profile` returns the refreshed aggregate payload after the write succeeds.
+- Sending `null` or an empty string for `locale` / `timezone` clears the stored preference.
+- Other profile fields remain read-only in the current phase; the aggregate is still the main backend-facing payload for personalized Today flows.

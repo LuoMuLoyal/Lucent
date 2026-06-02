@@ -46,6 +46,9 @@ describe('UserHealthContextService', () => {
             user: {
               findFirst: jest.fn(),
             },
+            userProfile: {
+              upsert: jest.fn(),
+            },
           },
         },
         {
@@ -277,5 +280,56 @@ describe('UserHealthContextService', () => {
       createdAt: '2026-05-01T00:00:00.000Z',
       updatedAt: '2026-05-21T00:00:00.000Z',
     });
+  });
+
+  it('should upsert profile preferences and return the refreshed aggregate', async () => {
+    (prismaService.user.findFirst as jest.Mock)
+      .mockResolvedValueOnce({ id: mockUserBase.id })
+      .mockResolvedValueOnce({
+        ...mockUserBase,
+        profile: {
+          userId: mockUserBase.id,
+          birthDate: null,
+          sexAtBirth: null,
+          heightCm: null,
+          pregnancyState: null,
+          lactationState: null,
+          bloodType: null,
+          locale: 'zh-CN',
+          timezone: 'Asia/Shanghai',
+          unitSystem: UnitSystem.metric,
+          onboardingCompletedAt: null,
+          extras: null,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+        },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      });
+
+    const result = await service.updateProfilePreferences(mockUserBase.id, {
+      locale: ' zh-CN ',
+      timezone: '',
+      unitSystem: UnitSystem.metric,
+    });
+
+    expect(prismaService.userProfile.upsert).toHaveBeenCalledWith({
+      where: { userId: mockUserBase.id },
+      create: {
+        userId: mockUserBase.id,
+        locale: 'zh-CN',
+        timezone: null,
+        unitSystem: UnitSystem.metric,
+      },
+      update: {
+        locale: 'zh-CN',
+        timezone: null,
+        unitSystem: UnitSystem.metric,
+      },
+    });
+    expect(result.profile.locale).toBe('zh-CN');
+    expect(result.profile.timezone).toBe('Asia/Shanghai');
+    expect(result.profile.unitSystem).toBe(UnitSystem.metric);
   });
 });
