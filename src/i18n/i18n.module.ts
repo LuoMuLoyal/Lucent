@@ -15,7 +15,9 @@ const i18nOptions: I18nOptions = {
   resolvers: [AcceptLanguageResolver],
 };
 
-if (process.env['NODE_ENV'] === 'development') {
+const runtimeRoot = path.basename(path.dirname(__dirname));
+
+if (process.env['NODE_ENV'] === 'development' && runtimeRoot !== 'dist') {
   i18nOptions.typesOutputPath = path.join(
     __dirname,
     '..',
