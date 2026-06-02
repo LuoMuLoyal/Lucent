@@ -15,7 +15,9 @@ pnpm db:migrate:all
 pnpm start:dev
 pnpm build
 pnpm test
+pnpm test:ci
 pnpm test:e2e
+pnpm test:e2e:ci
 pnpm lint
 pnpm export:openapi
 pnpm import:medicine:all
@@ -27,6 +29,7 @@ Simple server deployment:
 - keep `.env.production` on the server
 - use GitHub Actions workflow `.github/workflows/deploy-server.yml`
 - workflow runs `lint` + `build` + unit/e2e tests, builds a Docker image, mirrors PostgreSQL / Redis base images into your target registry, syncs deployment files over SSH, then recreates containers on the server
+- workflow already opts JavaScript-based GitHub Actions into the Node 24 runtime, so the current pipeline does not rely on the deprecated Node 20 actions runtime
 - the server no longer needs `git pull` access to GitHub during deployment
 - the server keeps PostgreSQL / Redis data locally and uses `.deploy-image.env` to remember the deployed image tags
 - default production compose is single-host: `app + postgres + redis` run together, and Lucent connects to `postgres` / `redis` service names inside Docker

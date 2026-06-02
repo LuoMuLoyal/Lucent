@@ -40,7 +40,9 @@ Prisma CLI uses the same resolution order through `prisma.config.ts`, so `NODE_E
 - `pnpm start` and `pnpm start:dev` run with `NODE_ENV=development`.
 - `pnpm start:prod` runs the built app with `NODE_ENV=production`.
 - `pnpm test` runs with `NODE_ENV=test`.
+- `pnpm test:ci` runs unit tests with `NODE_ENV=test` and `--runInBand` for GitHub Actions.
 - `pnpm test:e2e` runs with `NODE_ENV=test` and `NODE_OPTIONS=--experimental-vm-modules` for Prisma 7 generated client compatibility.
+- `pnpm test:e2e:ci` runs e2e tests with the same test env plus `--runInBand` for GitHub Actions.
 - Prisma commands should be run with an explicit `NODE_ENV` when they are not targeting development. Example: `NODE_ENV=test pnpm exec prisma migrate deploy`.
 - `pnpm export:openapi` builds Lucent first, then exports `docs/openapi.json` from `dist` so Prisma generated imports resolve correctly.
 - i18n type generation only writes `src/generated/i18n.generated.ts` when Lucent is running from the source tree in `NODE_ENV=development`; compiled `dist` runtime and `pnpm export:openapi` no longer attempt to write or read `dist/generated/i18n.generated.ts`.
@@ -65,8 +67,8 @@ If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` togeth
   - run `pnpm exec prisma migrate deploy`
   - run `pnpm lint:check`
   - run `pnpm build`
-  - run `pnpm test -- --runInBand`
-  - run `pnpm test:e2e -- --runInBand`
+  - run `pnpm test:ci`
+  - run `pnpm test:e2e:ci`
 - `push` to `main`
   - build `linux/amd64` Docker image for the Guangzhou 2c4g production server
   - push immutable tag `sha-<commit>` plus `latest` to the configured registry
@@ -77,6 +79,7 @@ If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` togeth
   - `docker compose pull postgres redis app`
   - keep PostgreSQL / Redis data volumes, recreate containers from the synced compose file
   - wait for Docker health checks and rollback `app` to the previous image if the new image fails to become healthy
+- GitHub-hosted JavaScript actions are forced onto the Node 24 runtime via `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` so the workflow no longer depends on the deprecated Node 20 actions runtime.
 
 ### Expected server shape
 
