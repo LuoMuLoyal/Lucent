@@ -70,8 +70,8 @@ If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` togeth
   - run `pnpm test:ci`
   - run `pnpm test:e2e:ci`
 - `push` to `main`
-  - build `linux/amd64` Docker image for the Guangzhou 2c4g production server
-  - push immutable tag `sha-<commit>` plus `latest` to the configured registry
+  - build the production Docker image on the GitHub-hosted `ubuntu-latest` runner with plain `docker build`
+  - push immutable tag `sha-<commit>` plus `latest` to the configured registry with plain `docker push`
   - SSH to the server
   - sync `docker-compose.yml` and `scripts/deploy/deploy-server.sh` to the server over SSH
   - write `.deploy-image.env`
@@ -79,6 +79,7 @@ If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` togeth
   - keep PostgreSQL / Redis data volumes, recreate containers from the synced compose file
   - wait for Docker health checks and rollback `app` to the previous image if the new image fails to become healthy
 - GitHub-hosted JavaScript actions are forced onto the Node 24 runtime via `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` so the workflow no longer depends on the deprecated Node 20 actions runtime.
+- The workflow intentionally avoids Docker Buildx / OCI attestation export because Tencent TCR can stall on the final manifest push path.
 - Production still expects fixed registry tags for PostgreSQL and Redis: `<registry>/<namespace>/<image-name>-postgres:18-alpine` and `<registry>/<namespace>/<image-name>-redis:8-alpine`. Seed those two images into the target registry once before the first deployment.
 
 ### Expected server shape

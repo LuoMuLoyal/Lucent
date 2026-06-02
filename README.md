@@ -29,6 +29,7 @@ Simple server deployment:
 - keep `.env.production` on the server
 - use GitHub Actions workflow `.github/workflows/deploy-server.yml`
 - workflow runs `lint` + `build` + unit/e2e tests, builds a Docker image, syncs deployment files over SSH, then recreates containers on the server
+- image publishing now uses plain `docker build` + `docker push` on the GitHub runner to avoid `buildx` manifest / attestation compatibility issues with Tencent TCR
 - workflow already opts JavaScript-based GitHub Actions into the Node 24 runtime, so the current pipeline does not rely on the deprecated Node 20 actions runtime
 - the server no longer needs `git pull` access to GitHub during deployment
 - PostgreSQL / Redis runtime images should be pre-seeded into the target registry once using the fixed tags `lucent-postgres:18-alpine` and `lucent-redis:8-alpine`
