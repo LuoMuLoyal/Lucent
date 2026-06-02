@@ -72,7 +72,6 @@ If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` togeth
 - `push` to `main`
   - build `linux/amd64` Docker image for the Guangzhou 2c4g production server
   - push immutable tag `sha-<commit>` plus `latest` to the configured registry
-  - mirror `postgres:18-alpine` and `redis:8-alpine` into the same target registry
   - SSH to the server
   - sync `docker-compose.yml` and `scripts/deploy/deploy-server.sh` to the server over SSH
   - write `.deploy-image.env`
@@ -80,6 +79,7 @@ If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` togeth
   - keep PostgreSQL / Redis data volumes, recreate containers from the synced compose file
   - wait for Docker health checks and rollback `app` to the previous image if the new image fails to become healthy
 - GitHub-hosted JavaScript actions are forced onto the Node 24 runtime via `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` so the workflow no longer depends on the deprecated Node 20 actions runtime.
+- Production still expects fixed registry tags for PostgreSQL and Redis: `<registry>/<namespace>/<image-name>-postgres:18-alpine` and `<registry>/<namespace>/<image-name>-redis:8-alpine`. Seed those two images into the target registry once before the first deployment.
 
 ### Expected server shape
 
