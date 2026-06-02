@@ -15,7 +15,9 @@ pnpm db:migrate:all
 pnpm start:dev
 pnpm build
 pnpm test
+pnpm test:ci
 pnpm test:e2e
+pnpm test:e2e:ci
 pnpm lint
 pnpm export:openapi
 pnpm import:medicine:all
