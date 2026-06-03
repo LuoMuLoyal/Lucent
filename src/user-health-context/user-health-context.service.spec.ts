@@ -358,6 +358,7 @@ describe('UserHealthContextService', () => {
         pregnancyState: PregnancyState.not_pregnant,
         lactationState: LactationState.no,
         bloodType: 'O+',
+        onboardingCompletedAt: expect.any(Date),
       },
       update: expect.objectContaining({
         locale: 'zh-CN',
@@ -479,6 +480,52 @@ describe('UserHealthContextService', () => {
       expect.objectContaining({
         update: expect.objectContaining({
           onboardingCompletedAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it('should include onboardingCompletedAt when completing onboarding creates a profile', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
+
+    (prismaService.user.findFirst as jest.Mock)
+      .mockResolvedValueOnce({ id: mockUserBase.id })
+      .mockResolvedValueOnce({
+        ...mockUserBase,
+        profile: {
+          userId: mockUserBase.id,
+          birthDate: null,
+          sexAtBirth: null,
+          heightCm: null,
+          pregnancyState: null,
+          lactationState: null,
+          bloodType: null,
+          locale: null,
+          timezone: null,
+          unitSystem: null,
+          onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
+          extras: null,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+        },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      });
+
+    (prismaService.userProfile.findUnique as jest.Mock).mockResolvedValue(null);
+
+    await service.updateProfile(mockUserBase.id, {
+      onboardingCompleted: true,
+    });
+
+    expect(prismaService.userProfile.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
+        }),
+        update: expect.objectContaining({
+          onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
         }),
       }),
     );

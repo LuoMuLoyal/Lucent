@@ -3,6 +3,27 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-03 (Health Context Profile Upsert Completion Fix)
+
+### Fixed
+
+- `src/user-health-context/user-health-context.service.ts`
+  - `PATCH /api/v1/me/health-context/profile` 现在在用户尚无 profile 行、且请求 `onboardingCompleted: true` 时，会在 upsert `create` 分支同步写入 `onboardingCompletedAt`。
+  - 之前只有 `update` 分支设置 timestamp，导致首个 profile 写入可能返回/持久化为未完成 onboarding。
+- `src/user-health-context/user-health-context.service.spec.ts`
+  - 新增并收紧覆盖，断言 upsert `create` 和 `update` 分支都包含 `onboardingCompletedAt`。
+- `test/user-health-context.e2e-spec.ts`
+  - 新增无 profile 行直接完成 onboarding 的 e2e 覆盖，断言响应和数据库均有完成时间。
+
+### Test Results
+
+- `pnpm test -- user-health-context.service.spec.ts --runInBand` passed.
+- `pnpm test:e2e:ci -- user-health-context.e2e-spec.ts` passed.
+- `pnpm lint:check` passed.
+- `pnpm build` passed.
+- `pnpm test:ci` passed.
+- `pnpm test:e2e:ci` passed.
+
 ## 2026-06-03 (Current Medicine Write APIs + OpenAPI Export)
 
 ### Added

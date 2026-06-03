@@ -146,7 +146,9 @@ export class UserHealthContextService {
           select: { onboardingCompletedAt: true },
         });
         if (!current?.onboardingCompletedAt) {
-          updateData.onboardingCompletedAt = new Date();
+          const completedAt = new Date();
+          updateData.onboardingCompletedAt = completedAt;
+          createData.onboardingCompletedAt = completedAt;
         }
       } else {
         updateData.onboardingCompletedAt = null;
