@@ -290,7 +290,7 @@ describe('User Health Context API (e2e)', () => {
     expect(body.message).toBe('User not found');
   });
 
-  it('should update locale preferences for the authenticated user', async () => {
+  it('should update profile fields for the authenticated user', async () => {
     const email = uniqueEmail();
     const user = await prisma.user.create({
       data: {
@@ -316,6 +316,13 @@ describe('User Health Context API (e2e)', () => {
         locale: ' zh-CN ',
         timezone: null,
         unitSystem: UnitSystem.metric,
+        birthDate: '1998-03-15',
+        sexAtBirth: SexAtBirth.female,
+        heightCm: 168,
+        pregnancyState: PregnancyState.not_pregnant,
+        lactationState: LactationState.no,
+        bloodType: 'O+',
+        onboardingCompleted: true,
       })
       .expect(200);
 
@@ -326,6 +333,13 @@ describe('User Health Context API (e2e)', () => {
     expect(data.profile.locale).toBe('zh-CN');
     expect(data.profile.timezone).toBeNull();
     expect(data.profile.unitSystem).toBe(UnitSystem.metric);
+    expect(data.profile.birthDate).toBe('1998-03-15');
+    expect(data.profile.sexAtBirth).toBe(SexAtBirth.female);
+    expect(data.profile.heightCm).toBe(168);
+    expect(data.profile.pregnancyState).toBe(PregnancyState.not_pregnant);
+    expect(data.profile.lactationState).toBe(LactationState.no);
+    expect(data.profile.bloodType).toBe('O+');
+    expect(data.summary.onboardingCompleted).toBe(true);
 
     const storedProfile = await prisma.userProfile.findUniqueOrThrow({
       where: { userId: user.id },
@@ -333,5 +347,126 @@ describe('User Health Context API (e2e)', () => {
     expect(storedProfile.locale).toBe('zh-CN');
     expect(storedProfile.timezone).toBeNull();
     expect(storedProfile.unitSystem).toBe(UnitSystem.metric);
+    expect(storedProfile.birthDate).toEqual(
+      new Date('1998-03-15T00:00:00.000Z'),
+    );
+    expect(storedProfile.sexAtBirth).toBe(SexAtBirth.female);
+    expect(storedProfile.heightCm).toBe(168);
+    expect(storedProfile.pregnancyState).toBe(PregnancyState.not_pregnant);
+    expect(storedProfile.lactationState).toBe(LactationState.no);
+    expect(storedProfile.bloodType).toBe('O+');
+    expect(storedProfile.onboardingCompletedAt).not.toBeNull();
+  });
+
+  it('should clear profile fields when sending null', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        profile: {
+          create: {
+            birthDate: new Date('1998-03-15T00:00:00.000Z'),
+            sexAtBirth: SexAtBirth.female,
+            heightCm: 168,
+            bloodType: 'O+',
+          },
+        },
+      },
+    });
+
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/profile`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({
+        birthDate: null,
+        sexAtBirth: null,
+        heightCm: null,
+        bloodType: null,
+      })
+      .expect(200);
+
+    const body = response.body as ApiEnvelope<HealthContextData>;
+    expect(body.code).toBe(ResultCode.SUCCESS);
+
+    const data = expectData(body);
+    expect(data.profile.birthDate).toBeNull();
+    expect(data.profile.sexAtBirth).toBeNull();
+    expect(data.profile.heightCm).toBeNull();
+    expect(data.profile.bloodType).toBeNull();
+
+    const storedProfile = await prisma.userProfile.findUniqueOrThrow({
+      where: { userId: user.id },
+    });
+    expect(storedProfile.birthDate).toBeNull();
+    expect(storedProfile.sexAtBirth).toBeNull();
+    expect(storedProfile.heightCm).toBeNull();
+    expect(storedProfile.bloodType).toBeNull();
+  });
+
+  it('should reject invalid birthDate format', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/profile`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ birthDate: '15-03-1998' })
+      .expect(400);
+  });
+
+  it('should reject heightCm out of range', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/profile`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ heightCm: 0 })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/profile`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ heightCm: 301 })
+      .expect(400);
+  });
+
+  it('should reject unsupported sexAtBirth enum value', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/profile`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ sexAtBirth: 'alien' })
+      .expect(400);
   });
 });

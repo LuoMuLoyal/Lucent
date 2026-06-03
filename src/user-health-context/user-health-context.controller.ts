@@ -38,7 +38,7 @@ export class UserHealthContextController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
-    summary: 'Update the current user health-context profile preferences',
+    summary: 'Update the current user health-context profile',
   })
   @ApiBody({ type: UpdateHealthContextProfileDto })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
@@ -46,11 +46,10 @@ export class UserHealthContextController {
     @CurrentUser() user: UserPayload,
     @Body() dto: UpdateHealthContextProfileDto,
   ) {
-    const healthContext =
-      await this.userHealthContextService.updateProfilePreferences(
-        user.sub,
-        dto,
-      );
+    const healthContext = await this.userHealthContextService.updateProfile(
+      user.sub,
+      dto,
+    );
 
     return successEnvelope(healthContext);
   }

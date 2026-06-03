@@ -1,6 +1,6 @@
 # Backend User Domain
 
-Last updated: 2026-05-30
+Last updated: 2026-06-03
 
 ## Purpose
 
@@ -212,7 +212,7 @@ Internal behavior already changed:
 
 ## Deliberately Not Done Yet
 
-- No write APIs yet for profile, allergies, conditions, or current medicines.
+- No write APIs yet for allergies, conditions, or current medicines.
 - No separate public profile endpoints yet.
 - No PostgreSQL schema split or row-level security yet.
 - No session-management UI/API for listing devices or revoking individual sessions by id.

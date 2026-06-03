@@ -70,7 +70,7 @@ export class UserHealthContextService {
     return this.toHealthContextResponse(user);
   }
 
-  async updateProfilePreferences(
+  async updateProfile(
     userId: string,
     dto: UpdateHealthContextProfileDto,
   ): Promise<HealthContextResponseData> {
@@ -94,6 +94,57 @@ export class UserHealthContextService {
     if (dto.unitSystem !== undefined) {
       updateData.unitSystem = dto.unitSystem;
       createData.unitSystem = dto.unitSystem;
+    }
+
+    if (dto.birthDate !== undefined) {
+      const date = dto.birthDate
+        ? new Date(`${dto.birthDate}T00:00:00.000Z`)
+        : null;
+      updateData.birthDate = date;
+      createData.birthDate = date;
+    }
+
+    if (dto.sexAtBirth !== undefined) {
+      updateData.sexAtBirth = dto.sexAtBirth;
+      createData.sexAtBirth = dto.sexAtBirth;
+    }
+
+    if (dto.heightCm !== undefined) {
+      updateData.heightCm = dto.heightCm;
+      createData.heightCm = dto.heightCm;
+    }
+
+    if (dto.pregnancyState !== undefined) {
+      updateData.pregnancyState = dto.pregnancyState;
+      createData.pregnancyState = dto.pregnancyState;
+    }
+
+    if (dto.lactationState !== undefined) {
+      updateData.lactationState = dto.lactationState;
+      createData.lactationState = dto.lactationState;
+    }
+
+    if (dto.bloodType !== undefined) {
+      const blood = this.normalizePreferenceString(dto.bloodType);
+      updateData.bloodType = blood;
+      createData.bloodType = blood;
+    }
+
+    if (dto.onboardingCompleted !== undefined) {
+      if (dto.onboardingCompleted) {
+        // Set onboardingCompletedAt only when it is missing.
+        // We cannot read-and-check atomically in a single upsert,
+        // so we first fetch the current value.
+        const current = await this.prisma.userProfile.findUnique({
+          where: { userId },
+          select: { onboardingCompletedAt: true },
+        });
+        if (!current?.onboardingCompletedAt) {
+          updateData.onboardingCompletedAt = new Date();
+        }
+      } else {
+        updateData.onboardingCompletedAt = null;
+      }
     }
 
     if (Object.keys(updateData).length > 0) {

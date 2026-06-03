@@ -1,6 +1,6 @@
 # API Contract
 
-Last updated: 2026-06-02
+Last updated: 2026-06-03
 
 ## Versioning
 
@@ -264,7 +264,17 @@ Contract notes:
 - `profile` shape is stable and null-safe even if the stored relation row is missing.
 - Day-level medical dates use `YYYY-MM-DD`.
 - Timestamp fields use ISO 8601 strings.
-- `PATCH /me/health-context/profile` currently supports partial updates for `locale`, `timezone`, and `unitSystem`.
+- `PATCH /me/health-context/profile` supports partial updates for all core profile fields:
+  - `birthDate` — `YYYY-MM-DD` string; null clears.
+  - `sexAtBirth` — enum (`female` / `male` / `intersex` / `unknown`); null clears.
+  - `heightCm` — integer in 1..300 range; null clears.
+  - `pregnancyState` — enum (`not_applicable` / `unknown` / `not_pregnant` / `pregnant` / `trying` / `postpartum`); null clears.
+  - `lactationState` — enum (`not_applicable` / `unknown` / `no` / `yes`); null clears.
+  - `bloodType` — string up to 8 characters; null or empty string clears.
+  - `locale` — string; null or empty string clears.
+  - `timezone` — string; null or empty string clears.
+  - `unitSystem` — enum (`metric` / `imperial`); null clears.
+  - `onboardingCompleted` — boolean. `true` sets `onboardingCompletedAt` when it is missing; `false` clears `onboardingCompletedAt`.
 - `PATCH /me/health-context/profile` returns the refreshed aggregate payload after the write succeeds.
-- Sending `null` or an empty string for `locale` / `timezone` clears the stored preference.
-- Other profile fields remain read-only in the current phase; the aggregate is still the main backend-facing payload for personalized Today flows.
+- All fields are optional; omitted fields are left unchanged.
+- Unsupported enum values and out-of-range numeric values fail with 400 / 400002.
