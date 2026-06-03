@@ -3,6 +3,35 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-03 (Allergy And Condition Write APIs)
+
+### Added
+
+- `src/user-health-context/dto/create-health-context-allergy.dto.ts` — 过敏创建 DTO。
+- `src/user-health-context/dto/update-health-context-allergy.dto.ts` — 过敏更新 DTO。
+- `src/user-health-context/dto/create-health-context-condition.dto.ts` — 疾病创建 DTO。
+- `src/user-health-context/dto/update-health-context-condition.dto.ts` — 疾病更新 DTO。
+- `src/user-health-context/user-health-context.controller.ts`
+  - 新增 6 个端点：`POST/PATCH/DELETE /allergies` 和 `POST/PATCH/DELETE /conditions`。
+- `src/user-health-context/user-health-context.service.ts`
+  - 新增 `createAllergy`、`updateAllergy`、`deleteAllergy`（软删除：`isActive=false`）。
+  - 新增 `createCondition`、`updateCondition`、`deleteCondition`（软解决：`status=resolved` + 设置 `resolvedAt`）。
+  - 新增 `ensureAllergyOwnedByUser`、`ensureConditionOwnedByUser` 归属校验；外键 id 返回 404。
+- `src/user-health-context/user-health-context.service.spec.ts`
+  - 扩展覆盖：创建/更新/软删除过敏、创建/更新/软解决疾病、外键 404。
+- `test/user-health-context.e2e-spec.ts`
+  - 扩展覆盖：全部 6 个端点的 e2e 流程 + 外键保护。
+- `docs/public/api-contract.md`
+  - 新增 Allergy Write Endpoints 和 Condition Write Endpoints 合同说明。
+- `docs/backend-user-domain.md`
+  - 从 "Deliberately Not Done Yet" 中移除 allergy 和 condition write API。
+
+### Test Results
+
+- `pnpm test -- user-health-context.service.spec.ts` — 16/16 通过
+- `pnpm test:e2e:ci -- user-health-context.e2e-spec.ts` — 15/15 通过
+- `pnpm build` — 通过
+
 ## 2026-06-03 (Expanded Profile Write API)
 
 ### Changed

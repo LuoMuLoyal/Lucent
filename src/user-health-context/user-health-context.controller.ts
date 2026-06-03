@@ -1,8 +1,18 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiBody,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -11,7 +21,14 @@ import { successEnvelope } from '../common/api-envelope';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { UserPayload } from '../auth/auth.service';
-import { HealthContextResponseDto, UpdateHealthContextProfileDto } from './dto';
+import {
+  CreateHealthContextAllergyDto,
+  CreateHealthContextConditionDto,
+  HealthContextResponseDto,
+  UpdateHealthContextAllergyDto,
+  UpdateHealthContextConditionDto,
+  UpdateHealthContextProfileDto,
+} from './dto';
 import { UserHealthContextService } from './user-health-context.service';
 
 @ApiTags('User Health Context')
@@ -51,6 +68,118 @@ export class UserHealthContextController {
       dto,
     );
 
+    return successEnvelope(healthContext);
+  }
+
+  // ── Allergy endpoints ──
+
+  @Post('allergies')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Create an allergy record' })
+  @ApiBody({ type: CreateHealthContextAllergyDto })
+  @ApiResponse({ status: 201, type: HealthContextResponseDto })
+  async createAllergy(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: CreateHealthContextAllergyDto,
+  ) {
+    const healthContext = await this.userHealthContextService.createAllergy(
+      user.sub,
+      dto,
+    );
+    return successEnvelope(healthContext);
+  }
+
+  @Patch('allergies/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Update an allergy record' })
+  @ApiParam({ name: 'id', description: 'Allergy id' })
+  @ApiBody({ type: UpdateHealthContextAllergyDto })
+  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  async updateAllergy(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateHealthContextAllergyDto,
+  ) {
+    const healthContext = await this.userHealthContextService.updateAllergy(
+      user.sub,
+      id,
+      dto,
+    );
+    return successEnvelope(healthContext);
+  }
+
+  @Delete('allergies/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Deactivate an allergy record (soft delete)' })
+  @ApiParam({ name: 'id', description: 'Allergy id' })
+  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  async deleteAllergy(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+  ) {
+    const healthContext = await this.userHealthContextService.deleteAllergy(
+      user.sub,
+      id,
+    );
+    return successEnvelope(healthContext);
+  }
+
+  // ── Condition endpoints ──
+
+  @Post('conditions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Create a condition record' })
+  @ApiBody({ type: CreateHealthContextConditionDto })
+  @ApiResponse({ status: 201, type: HealthContextResponseDto })
+  async createCondition(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: CreateHealthContextConditionDto,
+  ) {
+    const healthContext = await this.userHealthContextService.createCondition(
+      user.sub,
+      dto,
+    );
+    return successEnvelope(healthContext);
+  }
+
+  @Patch('conditions/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Update a condition record' })
+  @ApiParam({ name: 'id', description: 'Condition id' })
+  @ApiBody({ type: UpdateHealthContextConditionDto })
+  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  async updateCondition(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateHealthContextConditionDto,
+  ) {
+    const healthContext = await this.userHealthContextService.updateCondition(
+      user.sub,
+      id,
+      dto,
+    );
+    return successEnvelope(healthContext);
+  }
+
+  @Delete('conditions/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Resolve a condition record (soft delete)' })
+  @ApiParam({ name: 'id', description: 'Condition id' })
+  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  async deleteCondition(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+  ) {
+    const healthContext = await this.userHealthContextService.deleteCondition(
+      user.sub,
+      id,
+    );
     return successEnvelope(healthContext);
   }
 }
