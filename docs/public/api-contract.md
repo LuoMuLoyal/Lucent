@@ -278,3 +278,31 @@ Contract notes:
 - `PATCH /me/health-context/profile` returns the refreshed aggregate payload after the write succeeds.
 - All fields are optional; omitted fields are left unchanged.
 - Unsupported enum values and out-of-range numeric values fail with 400 / 400002.
+
+### Allergy Write Endpoints
+
+```text
+POST   /api/v1/me/health-context/allergies
+PATCH  /api/v1/me/health-context/allergies/:id
+DELETE /api/v1/me/health-context/allergies/:id
+```
+
+- All write responses return the refreshed aggregate.
+- `DELETE` sets `isActive=false` (soft delete); the row is preserved.
+- Update and delete are scoped to the current user; foreign ids return 404.
+- `label` is required for create, trimmed, max 120 chars.
+- `reaction` and `note` are optional, max 1000 chars.
+
+### Condition Write Endpoints
+
+```text
+POST   /api/v1/me/health-context/conditions
+PATCH  /api/v1/me/health-context/conditions/:id
+DELETE /api/v1/me/health-context/conditions/:id
+```
+
+- All write responses return the refreshed aggregate.
+- `DELETE` sets `status=resolved` and sets `resolvedAt` to the current UTC date when missing (soft resolve); the row is preserved.
+- Update and delete are scoped to the current user; foreign ids return 404.
+- `label` is required for create, trimmed, max 120 chars.
+- `note` is optional, max 1000 chars.

@@ -52,6 +52,16 @@ describe('UserHealthContextService', () => {
               upsert: jest.fn(),
               findUnique: jest.fn(),
             },
+            userAllergy: {
+              create: jest.fn(),
+              update: jest.fn(),
+              findUnique: jest.fn(),
+            },
+            userCondition: {
+              create: jest.fn(),
+              update: jest.fn(),
+              findUnique: jest.fn(),
+            },
           },
         },
         {
@@ -547,5 +557,271 @@ describe('UserHealthContextService', () => {
         }),
       }),
     );
+  });
+
+  // ── Allergy tests ──
+
+  it('should create an allergy and return the refreshed aggregate', async () => {
+    (prismaService.user.findFirst as jest.Mock)
+      .mockResolvedValueOnce({ id: mockUserBase.id })
+      .mockResolvedValueOnce({
+        ...mockUserBase,
+        profile: null,
+        allergies: [
+          {
+            id: 'allergy-1',
+            userId: mockUserBase.id,
+            kind: UserAllergyKind.drug,
+            label: 'Penicillin',
+            reaction: 'Rash',
+            severity: UserAllergySeverity.moderate,
+            isActive: true,
+            note: null,
+            extras: null,
+            recordedAt: new Date('2026-06-03T09:00:00.000Z'),
+            createdAt: new Date('2026-06-03T09:00:00.000Z'),
+            updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+          },
+        ],
+        conditions: [],
+        currentMedicines: [],
+      });
+
+    const result = await service.createAllergy(mockUserBase.id, {
+      kind: UserAllergyKind.drug,
+      label: ' Penicillin ',
+      reaction: 'Rash',
+      severity: UserAllergySeverity.moderate,
+      recordedAt: '2026-06-03T09:00:00.000Z',
+    });
+
+    expect(prismaService.userAllergy.create).toHaveBeenCalledWith({
+      data: {
+        userId: mockUserBase.id,
+        kind: UserAllergyKind.drug,
+        label: 'Penicillin',
+        reaction: 'Rash',
+        severity: UserAllergySeverity.moderate,
+        note: null,
+        recordedAt: new Date('2026-06-03T09:00:00.000Z'),
+      },
+    });
+    expect(result.allergies).toHaveLength(1);
+    expect(result.allergies[0].label).toBe('Penicillin');
+  });
+
+  it('should update an allergy and return the refreshed aggregate', async () => {
+    (prismaService.userAllergy.findUnique as jest.Mock).mockResolvedValue({
+      userId: mockUserBase.id,
+    });
+    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+      ...mockUserBase,
+      profile: null,
+      allergies: [
+        {
+          id: 'allergy-1',
+          userId: mockUserBase.id,
+          kind: UserAllergyKind.drug,
+          label: 'Penicillin Updated',
+          reaction: null,
+          severity: UserAllergySeverity.mild,
+          isActive: true,
+          note: 'Updated note',
+          extras: null,
+          recordedAt: null,
+          createdAt: new Date('2026-06-03T09:00:00.000Z'),
+          updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+        },
+      ],
+      conditions: [],
+      currentMedicines: [],
+    });
+
+    const result = await service.updateAllergy(mockUserBase.id, 'allergy-1', {
+      label: ' Penicillin Updated ',
+      severity: UserAllergySeverity.mild,
+      note: 'Updated note',
+      reaction: null,
+    });
+
+    expect(prismaService.userAllergy.update).toHaveBeenCalledWith({
+      where: { id: 'allergy-1' },
+      data: expect.objectContaining({
+        label: 'Penicillin Updated',
+        severity: UserAllergySeverity.mild,
+        note: 'Updated note',
+        reaction: null,
+      }),
+    });
+    expect(result.allergies[0].label).toBe('Penicillin Updated');
+  });
+
+  it('should soft-delete an allergy (set isActive=false)', async () => {
+    (prismaService.userAllergy.findUnique as jest.Mock).mockResolvedValue({
+      userId: mockUserBase.id,
+    });
+    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+      ...mockUserBase,
+      profile: null,
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    });
+
+    const result = await service.deleteAllergy(mockUserBase.id, 'allergy-1');
+
+    expect(prismaService.userAllergy.update).toHaveBeenCalledWith({
+      where: { id: 'allergy-1' },
+      data: { isActive: false },
+    });
+    expect(result.allergies).toHaveLength(0);
+  });
+
+  it('should throw NotFoundException when updating a foreign allergy', async () => {
+    (prismaService.userAllergy.findUnique as jest.Mock).mockResolvedValue({
+      userId: 'other-user',
+    });
+
+    await expect(
+      service.updateAllergy(mockUserBase.id, 'allergy-1', { label: 'X' }),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  // ── Condition tests ──
+
+  it('should create a condition and return the refreshed aggregate', async () => {
+    (prismaService.user.findFirst as jest.Mock)
+      .mockResolvedValueOnce({ id: mockUserBase.id })
+      .mockResolvedValueOnce({
+        ...mockUserBase,
+        profile: null,
+        allergies: [],
+        conditions: [
+          {
+            id: 'cond-1',
+            userId: mockUserBase.id,
+            label: 'Asthma',
+            status: UserConditionStatus.active,
+            diagnosedAt: new Date('2024-02-01T00:00:00.000Z'),
+            resolvedAt: null,
+            note: 'Triggered during pollen season',
+            extras: null,
+            createdAt: new Date('2026-06-03T09:00:00.000Z'),
+            updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+          },
+        ],
+        currentMedicines: [],
+      });
+
+    const result = await service.createCondition(mockUserBase.id, {
+      label: ' Asthma ',
+      status: UserConditionStatus.active,
+      diagnosedAt: '2024-02-01',
+      note: 'Triggered during pollen season',
+    });
+
+    expect(prismaService.userCondition.create).toHaveBeenCalledWith({
+      data: {
+        user: { connect: { id: mockUserBase.id } },
+        label: 'Asthma',
+        status: UserConditionStatus.active,
+        diagnosedAt: new Date('2024-02-01T00:00:00.000Z'),
+        note: 'Triggered during pollen season',
+      },
+    });
+    expect(result.conditions).toHaveLength(1);
+    expect(result.conditions[0].label).toBe('Asthma');
+  });
+
+  it('should update a condition and return the refreshed aggregate', async () => {
+    (prismaService.userCondition.findUnique as jest.Mock).mockResolvedValue({
+      userId: mockUserBase.id,
+    });
+    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+      ...mockUserBase,
+      profile: null,
+      allergies: [],
+      conditions: [
+        {
+          id: 'cond-1',
+          userId: mockUserBase.id,
+          label: 'Asthma Updated',
+          status: UserConditionStatus.suspected,
+          diagnosedAt: null,
+          resolvedAt: null,
+          note: null,
+          extras: null,
+          createdAt: new Date('2026-06-03T09:00:00.000Z'),
+          updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+        },
+      ],
+      currentMedicines: [],
+    });
+
+    const result = await service.updateCondition(mockUserBase.id, 'cond-1', {
+      label: ' Asthma Updated ',
+      status: UserConditionStatus.suspected,
+      diagnosedAt: null,
+    });
+
+    expect(prismaService.userCondition.update).toHaveBeenCalledWith({
+      where: { id: 'cond-1' },
+      data: expect.objectContaining({
+        label: 'Asthma Updated',
+        status: UserConditionStatus.suspected,
+        diagnosedAt: null,
+      }),
+    });
+    expect(result.conditions[0].label).toBe('Asthma Updated');
+    expect(result.conditions[0].status).toBe(UserConditionStatus.suspected);
+  });
+
+  it('should soft-resolve a condition (set status=resolved)', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-06-03T12:00:00Z'));
+
+    (prismaService.userCondition.findUnique as jest.Mock)
+      .mockResolvedValueOnce({ userId: mockUserBase.id })
+      .mockResolvedValueOnce({ resolvedAt: null });
+    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+      ...mockUserBase,
+      profile: null,
+      allergies: [],
+      conditions: [
+        {
+          id: 'cond-1',
+          userId: mockUserBase.id,
+          label: 'Asthma',
+          status: UserConditionStatus.resolved,
+          diagnosedAt: new Date('2024-02-01T00:00:00.000Z'),
+          resolvedAt: new Date('2026-06-03T00:00:00.000Z'),
+          note: null,
+          extras: null,
+          createdAt: new Date('2026-06-03T09:00:00.000Z'),
+          updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+        },
+      ],
+      currentMedicines: [],
+    });
+
+    const result = await service.deleteCondition(mockUserBase.id, 'cond-1');
+
+    expect(prismaService.userCondition.update).toHaveBeenCalledWith({
+      where: { id: 'cond-1' },
+      data: {
+        status: 'resolved',
+        resolvedAt: new Date('2026-06-03T00:00:00.000Z'),
+      },
+    });
+    expect(result.conditions[0].status).toBe(UserConditionStatus.resolved);
+  });
+
+  it('should throw NotFoundException when updating a foreign condition', async () => {
+    (prismaService.userCondition.findUnique as jest.Mock).mockResolvedValue({
+      userId: 'other-user',
+    });
+
+    await expect(
+      service.updateCondition(mockUserBase.id, 'cond-1', { label: 'X' }),
+    ).rejects.toThrow(NotFoundException);
   });
 });

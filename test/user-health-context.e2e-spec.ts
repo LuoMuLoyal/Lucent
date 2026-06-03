@@ -469,4 +469,302 @@ describe('User Health Context API (e2e)', () => {
       .send({ sexAtBirth: 'alien' })
       .expect(400);
   });
+
+  // ── Allergy e2e ──
+
+  it('should create an allergy and return the refreshed aggregate', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .post(`${HEALTH_CONTEXT_PATH}/allergies`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({
+        kind: UserAllergyKind.drug,
+        label: ' Penicillin ',
+        reaction: 'Rash',
+        severity: UserAllergySeverity.moderate,
+        note: 'Avoid completely',
+        recordedAt: '2026-06-03T09:00:00.000Z',
+      })
+      .expect(201);
+
+    const body = response.body as ApiEnvelope<HealthContextData>;
+    expect(body.code).toBe(ResultCode.SUCCESS);
+
+    const data = expectData(body);
+    expect(data.summary.activeAllergyCount).toBe(1);
+    expect(data.allergies[0].label).toBe('Penicillin');
+    expect(data.allergies[0].kind).toBe(UserAllergyKind.drug);
+    expect(data.allergies[0].isActive).toBe(true);
+
+    // Verify persistence
+    const stored = await prisma.userAllergy.findFirstOrThrow({
+      where: { userId: user.id },
+    });
+    expect(stored.label).toBe('Penicillin');
+    expect(stored.isActive).toBe(true);
+  });
+
+  it('should update an allergy', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        allergies: {
+          create: {
+            kind: UserAllergyKind.drug,
+            label: 'Penicillin',
+            severity: UserAllergySeverity.mild,
+          },
+        },
+      },
+    });
+
+    const allergy = await prisma.userAllergy.findFirstOrThrow({
+      where: { userId: user.id },
+    });
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/allergies/${allergy.id}`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ label: ' Penicillin G ', severity: UserAllergySeverity.severe })
+      .expect(200);
+
+    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    expect(data.allergies[0].label).toBe('Penicillin G');
+    expect(data.allergies[0].severity).toBe(UserAllergySeverity.severe);
+  });
+
+  it('should soft-delete an allergy', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        allergies: {
+          create: {
+            kind: UserAllergyKind.food,
+            label: 'Shrimp',
+          },
+        },
+      },
+    });
+
+    const allergy = await prisma.userAllergy.findFirstOrThrow({
+      where: { userId: user.id },
+    });
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .delete(`${HEALTH_CONTEXT_PATH}/allergies/${allergy.id}`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .expect(200);
+
+    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    // Active allergies should be 0 after soft delete
+    expect(data.summary.activeAllergyCount).toBe(0);
+
+    // Verify persistence: isActive=false, row still exists
+    const stored = await prisma.userAllergy.findUniqueOrThrow({
+      where: { id: allergy.id },
+    });
+    expect(stored.isActive).toBe(false);
+  });
+
+  it('should return 404 when accessing a foreign allergy', async () => {
+    const email1 = uniqueEmail();
+    const user1 = await prisma.user.create({
+      data: {
+        email: email1,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        allergies: {
+          create: { kind: UserAllergyKind.drug, label: 'Penicillin' },
+        },
+      },
+    });
+
+    const email2 = uniqueEmail();
+    const user2 = await prisma.user.create({
+      data: {
+        email: email2,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+
+    const allergy = await prisma.userAllergy.findFirstOrThrow({
+      where: { userId: user1.id },
+    });
+    const accessToken = await createAccessToken(user2.id, user2.email);
+
+    await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/allergies/${allergy.id}`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ label: 'X' })
+      .expect(404);
+  });
+
+  // ── Condition e2e ──
+
+  it('should create a condition and return the refreshed aggregate', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .post(`${HEALTH_CONTEXT_PATH}/conditions`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({
+        label: ' Asthma ',
+        status: UserConditionStatus.active,
+        diagnosedAt: '2024-02-01',
+        note: 'Triggered during pollen season',
+      })
+      .expect(201);
+
+    const body = response.body as ApiEnvelope<HealthContextData>;
+    expect(body.code).toBe(ResultCode.SUCCESS);
+
+    const data = expectData(body);
+    expect(data.summary.conditionCount).toBe(1);
+    expect(data.conditions[0].label).toBe('Asthma');
+    expect(data.conditions[0].status).toBe(UserConditionStatus.active);
+    expect(data.conditions[0].diagnosedAt).toBe('2024-02-01');
+
+    // Verify persistence
+    const stored = await prisma.userCondition.findFirstOrThrow({
+      where: { userId: user.id },
+    });
+    expect(stored.label).toBe('Asthma');
+    expect(stored.status).toBe(UserConditionStatus.active);
+  });
+
+  it('should update a condition', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        conditions: {
+          create: {
+            label: 'Asthma',
+            status: UserConditionStatus.active,
+            diagnosedAt: new Date('2024-02-01T00:00:00.000Z'),
+          },
+        },
+      },
+    });
+
+    const condition = await prisma.userCondition.findFirstOrThrow({
+      where: { userId: user.id },
+    });
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/conditions/${condition.id}`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({
+        label: ' Asthma Updated ',
+        status: UserConditionStatus.suspected,
+      })
+      .expect(200);
+
+    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    expect(data.conditions[0].label).toBe('Asthma Updated');
+    expect(data.conditions[0].status).toBe(UserConditionStatus.suspected);
+  });
+
+  it('should soft-resolve a condition', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        conditions: {
+          create: {
+            label: 'Asthma',
+            status: UserConditionStatus.active,
+          },
+        },
+      },
+    });
+
+    const condition = await prisma.userCondition.findFirstOrThrow({
+      where: { userId: user.id },
+    });
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .delete(`${HEALTH_CONTEXT_PATH}/conditions/${condition.id}`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .expect(200);
+
+    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    expect(data.conditions[0].status).toBe(UserConditionStatus.resolved);
+    expect(data.conditions[0].resolvedAt).not.toBeNull();
+
+    // Verify persistence
+    const stored = await prisma.userCondition.findUniqueOrThrow({
+      where: { id: condition.id },
+    });
+    expect(stored.status).toBe(UserConditionStatus.resolved);
+    expect(stored.resolvedAt).not.toBeNull();
+  });
+
+  it('should return 404 when accessing a foreign condition', async () => {
+    const email1 = uniqueEmail();
+    const user1 = await prisma.user.create({
+      data: {
+        email: email1,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        conditions: {
+          create: { label: 'Asthma', status: UserConditionStatus.active },
+        },
+      },
+    });
+
+    const email2 = uniqueEmail();
+    const user2 = await prisma.user.create({
+      data: {
+        email: email2,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+
+    const condition = await prisma.userCondition.findFirstOrThrow({
+      where: { userId: user1.id },
+    });
+    const accessToken = await createAccessToken(user2.id, user2.email);
+
+    await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/conditions/${condition.id}`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ label: 'X' })
+      .expect(404);
+  });
 });
