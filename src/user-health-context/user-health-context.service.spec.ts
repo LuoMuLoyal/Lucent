@@ -62,6 +62,11 @@ describe('UserHealthContextService', () => {
               update: jest.fn(),
               findUnique: jest.fn(),
             },
+            userCurrentMedicine: {
+              create: jest.fn(),
+              update: jest.fn(),
+              findUnique: jest.fn(),
+            },
           },
         },
         {
@@ -822,6 +827,198 @@ describe('UserHealthContextService', () => {
 
     await expect(
       service.updateCondition(mockUserBase.id, 'cond-1', { label: 'X' }),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  // ── Current medicine tests ──
+
+  it('should create a current medicine and return the refreshed aggregate', async () => {
+    (prismaService.user.findFirst as jest.Mock)
+      .mockResolvedValueOnce({ id: mockUserBase.id })
+      .mockResolvedValueOnce({
+        ...mockUserBase,
+        profile: null,
+        allergies: [],
+        conditions: [],
+        currentMedicines: [
+          {
+            id: 'med-1',
+            userId: mockUserBase.id,
+            source: MedicineSource.drugbank,
+            sourceRefId: 'DB01050',
+            displayName: 'Ibuprofen',
+            strengthText: '200 mg',
+            doseText: '1 tablet after meals',
+            route: 'oral',
+            startedAt: new Date('2026-06-03T00:00:00.000Z'),
+            endedAt: null,
+            isCurrent: true,
+            note: null,
+            sourcePayload: null,
+            createdAt: new Date('2026-06-03T09:00:00.000Z'),
+            updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+          },
+        ],
+      });
+
+    const result = await service.createCurrentMedicine(mockUserBase.id, {
+      source: MedicineSource.drugbank,
+      sourceRefId: 'DB01050',
+      displayName: ' Ibuprofen ',
+      strengthText: '200 mg',
+      doseText: '1 tablet after meals',
+      route: 'oral',
+      startedAt: '2026-06-03',
+    });
+
+    expect(prismaService.userCurrentMedicine.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: mockUserBase.id,
+        source: MedicineSource.drugbank,
+        sourceRefId: 'DB01050',
+        displayName: 'Ibuprofen',
+        strengthText: '200 mg',
+        doseText: '1 tablet after meals',
+        route: 'oral',
+        startedAt: new Date('2026-06-03T00:00:00.000Z'),
+      }),
+    });
+    expect(result.currentMedicines).toHaveLength(1);
+    expect(result.currentMedicines[0].displayName).toBe('Ibuprofen');
+  });
+
+  it('should create a manual current medicine without sourceRefId', async () => {
+    (prismaService.user.findFirst as jest.Mock)
+      .mockResolvedValueOnce({ id: mockUserBase.id })
+      .mockResolvedValueOnce({
+        ...mockUserBase,
+        profile: null,
+        allergies: [],
+        conditions: [],
+        currentMedicines: [
+          {
+            id: 'med-1',
+            userId: mockUserBase.id,
+            source: MedicineSource.manual,
+            sourceRefId: null,
+            displayName: 'Vitamin D',
+            strengthText: null,
+            doseText: null,
+            route: null,
+            startedAt: null,
+            endedAt: null,
+            isCurrent: true,
+            note: null,
+            sourcePayload: null,
+            createdAt: new Date('2026-06-03T09:00:00.000Z'),
+            updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+          },
+        ],
+      });
+
+    const result = await service.createCurrentMedicine(mockUserBase.id, {
+      source: MedicineSource.manual,
+      displayName: 'Vitamin D',
+    });
+
+    expect(prismaService.userCurrentMedicine.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        source: MedicineSource.manual,
+        sourceRefId: null,
+        displayName: 'Vitamin D',
+      }),
+    });
+    expect(result.currentMedicines[0].source).toBe(MedicineSource.manual);
+    expect(result.currentMedicines[0].sourceRefId).toBeNull();
+  });
+
+  it('should update a current medicine', async () => {
+    (
+      prismaService.userCurrentMedicine.findUnique as jest.Mock
+    ).mockResolvedValue({ userId: mockUserBase.id });
+    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+      ...mockUserBase,
+      profile: null,
+      allergies: [],
+      conditions: [],
+      currentMedicines: [
+        {
+          id: 'med-1',
+          userId: mockUserBase.id,
+          source: MedicineSource.drugbank,
+          sourceRefId: 'DB01050',
+          displayName: 'Ibuprofen Updated',
+          strengthText: '400 mg',
+          doseText: null,
+          route: null,
+          startedAt: new Date('2026-06-03T00:00:00.000Z'),
+          endedAt: null,
+          isCurrent: true,
+          note: 'Updated note',
+          sourcePayload: null,
+          createdAt: new Date('2026-06-03T09:00:00.000Z'),
+          updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+        },
+      ],
+    });
+
+    const result = await service.updateCurrentMedicine(
+      mockUserBase.id,
+      'med-1',
+      {
+        displayName: ' Ibuprofen Updated ',
+        strengthText: '400 mg',
+        note: 'Updated note',
+      },
+    );
+
+    expect(prismaService.userCurrentMedicine.update).toHaveBeenCalledWith({
+      where: { id: 'med-1' },
+      data: expect.objectContaining({
+        displayName: 'Ibuprofen Updated',
+        strengthText: '400 mg',
+        note: 'Updated note',
+      }),
+    });
+    expect(result.currentMedicines[0].displayName).toBe('Ibuprofen Updated');
+  });
+
+  it('should soft-delete a current medicine (set isCurrent=false)', async () => {
+    (prismaService.userCurrentMedicine.findUnique as jest.Mock)
+      .mockResolvedValueOnce({ userId: mockUserBase.id })
+      .mockResolvedValueOnce({ endedAt: null });
+    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+      ...mockUserBase,
+      profile: null,
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    });
+
+    const result = await service.deleteCurrentMedicine(
+      mockUserBase.id,
+      'med-1',
+    );
+
+    expect(prismaService.userCurrentMedicine.update).toHaveBeenCalledWith({
+      where: { id: 'med-1' },
+      data: {
+        isCurrent: false,
+        endedAt: expect.any(Date),
+      },
+    });
+    expect(result.currentMedicines).toHaveLength(0);
+  });
+
+  it('should throw NotFoundException when accessing a foreign current medicine', async () => {
+    (
+      prismaService.userCurrentMedicine.findUnique as jest.Mock
+    ).mockResolvedValue({ userId: 'other-user' });
+
+    await expect(
+      service.updateCurrentMedicine(mockUserBase.id, 'med-1', {
+        displayName: 'X',
+      }),
     ).rejects.toThrow(NotFoundException);
   });
 });

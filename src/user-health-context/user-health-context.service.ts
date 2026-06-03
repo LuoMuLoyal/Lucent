@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { Prisma } from '../generated/prisma/client';
+import { MedicineSource, Prisma } from '../generated/prisma/client';
 import { ResultCode } from '../common/api-envelope';
 import { PrismaService } from '../prisma/prisma.service';
 import type {
+  CreateCurrentMedicineDto,
   CreateHealthContextAllergyDto,
   CreateHealthContextConditionDto,
   HealthContextResponseData,
+  UpdateCurrentMedicineDto,
   UpdateHealthContextAllergyDto,
   UpdateHealthContextConditionDto,
   UpdateHealthContextProfileDto,
@@ -329,6 +331,121 @@ export class UserHealthContextService {
     return this.getForUser(userId);
   }
 
+  // ── Current medicine write methods ──
+
+  async createCurrentMedicine(
+    userId: string,
+    dto: CreateCurrentMedicineDto,
+  ): Promise<HealthContextResponseData> {
+    await this.ensureActiveUserExists(userId);
+
+    const sourceRefId =
+      dto.source === MedicineSource.manual ? null : (dto.sourceRefId ?? null);
+
+    await this.prisma.userCurrentMedicine.create({
+      data: {
+        userId,
+        source: dto.source,
+        sourceRefId,
+        displayName: dto.displayName.trim(),
+        strengthText: dto.strengthText?.trim() ?? null,
+        doseText: dto.doseText?.trim() ?? null,
+        route: dto.route?.trim() ?? null,
+        startedAt: dto.startedAt
+          ? new Date(`${dto.startedAt}T00:00:00.000Z`)
+          : null,
+        endedAt: dto.endedAt ? new Date(`${dto.endedAt}T00:00:00.000Z`) : null,
+        note: dto.note?.trim() ?? null,
+      },
+    });
+
+    return this.getForUser(userId);
+  }
+
+  async updateCurrentMedicine(
+    userId: string,
+    medicineId: string,
+    dto: UpdateCurrentMedicineDto,
+  ): Promise<HealthContextResponseData> {
+    await this.ensureCurrentMedicineOwnedByUser(userId, medicineId);
+
+    const data: Prisma.UserCurrentMedicineUpdateInput = {};
+
+    if (dto.source !== undefined) {
+      data.source = dto.source;
+    }
+    if (dto.sourceRefId !== undefined) {
+      data.sourceRefId = dto.sourceRefId?.trim() ?? null;
+    }
+    if (dto.displayName !== undefined) {
+      data.displayName = dto.displayName.trim();
+    }
+    if (dto.strengthText !== undefined) {
+      data.strengthText = dto.strengthText?.trim() ?? null;
+    }
+    if (dto.doseText !== undefined) {
+      data.doseText = dto.doseText?.trim() ?? null;
+    }
+    if (dto.route !== undefined) {
+      data.route = dto.route?.trim() ?? null;
+    }
+    if (dto.startedAt !== undefined) {
+      data.startedAt = dto.startedAt
+        ? new Date(`${dto.startedAt}T00:00:00.000Z`)
+        : null;
+    }
+    if (dto.endedAt !== undefined) {
+      data.endedAt = dto.endedAt
+        ? new Date(`${dto.endedAt}T00:00:00.000Z`)
+        : null;
+    }
+    if (dto.note !== undefined) {
+      data.note = dto.note?.trim() ?? null;
+    }
+    if (dto.isCurrent !== undefined) {
+      data.isCurrent = dto.isCurrent;
+    }
+
+    await this.prisma.userCurrentMedicine.update({
+      where: { id: medicineId },
+      data,
+    });
+
+    return this.getForUser(userId);
+  }
+
+  async deleteCurrentMedicine(
+    userId: string,
+    medicineId: string,
+  ): Promise<HealthContextResponseData> {
+    await this.ensureCurrentMedicineOwnedByUser(userId, medicineId);
+
+    const endedAt = new Date();
+    const endedDate = new Date(
+      Date.UTC(
+        endedAt.getUTCFullYear(),
+        endedAt.getUTCMonth(),
+        endedAt.getUTCDate(),
+      ),
+    );
+
+    // Only set endedAt when it is missing.
+    const current = await this.prisma.userCurrentMedicine.findUnique({
+      where: { id: medicineId },
+      select: { endedAt: true },
+    });
+
+    await this.prisma.userCurrentMedicine.update({
+      where: { id: medicineId },
+      data: {
+        isCurrent: false,
+        endedAt: current?.endedAt ?? endedDate,
+      },
+    });
+
+    return this.getForUser(userId);
+  }
+
   // ── Ownership guards ──
 
   private async ensureAllergyOwnedByUser(
@@ -358,6 +475,23 @@ export class UserHealthContextService {
     });
 
     if (!condition || condition.userId !== userId) {
+      throw new NotFoundException({
+        code: ResultCode.NOT_FOUND,
+        message: this.i18n.t('auth.user_not_found'),
+      });
+    }
+  }
+
+  private async ensureCurrentMedicineOwnedByUser(
+    userId: string,
+    medicineId: string,
+  ): Promise<void> {
+    const medicine = await this.prisma.userCurrentMedicine.findUnique({
+      where: { id: medicineId },
+      select: { userId: true },
+    });
+
+    if (!medicine || medicine.userId !== userId) {
       throw new NotFoundException({
         code: ResultCode.NOT_FOUND,
         message: this.i18n.t('auth.user_not_found'),

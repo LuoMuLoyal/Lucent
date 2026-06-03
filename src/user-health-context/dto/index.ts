@@ -4,3 +4,5 @@ export * from './create-health-context-allergy.dto';
 export * from './update-health-context-allergy.dto';
 export * from './create-health-context-condition.dto';
 export * from './update-health-context-condition.dto';
+export * from './create-current-medicine.dto';
+export * from './update-current-medicine.dto';
