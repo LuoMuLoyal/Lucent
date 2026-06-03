@@ -4,11 +4,11 @@ Last updated: 2026-06-01
 
 这份说明对应当前 Lucent 仓库里的 CI/CD 实现：
 
-- GitHub Actions 负责 `lint` / `build` / tests / Docker build / push
+- GitHub Actions 负责 `lint` / `build` / tests / 远程部署
 - 腾讯云广州 CVM 只负责拉取镜像和运行容器
 - 服务器不需要在部署时访问 GitHub
 - 服务器也不需要访问 Docker Hub
-- 当前 workflow 对业务镜像使用普通 `docker build` + `docker push`，不走 Docker Buildx 的 attestation / manifest 导出路径
+- Lucent / PostgreSQL / Redis 镜像由你手工推送到 TCR，GitHub Actions 只消费你已经推好的镜像标签
 
 ## 先说结论
 
