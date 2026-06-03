@@ -358,6 +358,37 @@ describe('User Health Context API (e2e)', () => {
     expect(storedProfile.onboardingCompletedAt).not.toBeNull();
   });
 
+  it('should set onboardingCompletedAt when onboarding completion creates a profile', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/profile`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ onboardingCompleted: true })
+      .expect(200);
+
+    const body = response.body as ApiEnvelope<HealthContextData>;
+    expect(body.code).toBe(ResultCode.SUCCESS);
+
+    const data = expectData(body);
+    expect(data.summary.onboardingCompleted).toBe(true);
+    expect(data.profile.onboardingCompletedAt).not.toBeNull();
+
+    const storedProfile = await prisma.userProfile.findUniqueOrThrow({
+      where: { userId: user.id },
+    });
+    expect(storedProfile.onboardingCompletedAt).not.toBeNull();
+  });
+
   it('should clear profile fields when sending null', async () => {
     const email = uniqueEmail();
     const user = await prisma.user.create({
