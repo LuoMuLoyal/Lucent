@@ -306,3 +306,20 @@ DELETE /api/v1/me/health-context/conditions/:id
 - Update and delete are scoped to the current user; foreign ids return 404.
 - `label` is required for create, trimmed, max 120 chars.
 - `note` is optional, max 1000 chars.
+
+### Current Medicine Write Endpoints
+
+```text
+POST   /api/v1/me/health-context/current-medicines
+PATCH  /api/v1/me/health-context/current-medicines/:id
+DELETE /api/v1/me/health-context/current-medicines/:id
+```
+
+- All write responses return the refreshed aggregate.
+- `DELETE` sets `isCurrent=false` and sets `endedAt` to the current UTC date when missing (soft delete); the row is preserved.
+- `displayName` is required for create, trimmed.
+- `source` must be one of `drugbank`, `cn`, or `manual`.
+- `sourceRefId` is required for `drugbank` and `cn`; may be null for `manual`.
+- `startedAt` and `endedAt` use `YYYY-MM-DD`.
+- No reminder, notification, or dose schedule API is included.
+- Update and delete are scoped to the current user; foreign ids return 404.

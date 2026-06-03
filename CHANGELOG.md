@@ -3,6 +3,36 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-03 (Current Medicine Write APIs + OpenAPI Export)
+
+### Added
+
+- `src/user-health-context/dto/create-current-medicine.dto.ts` — 当前用药创建 DTO，含 source/sourceRefId 条件校验。
+- `src/user-health-context/dto/update-current-medicine.dto.ts` — 当前用药更新 DTO。
+- `src/user-health-context/user-health-context.controller.ts`
+  - 新增 3 个端点：`POST/PATCH/DELETE /current-medicines`。
+- `src/user-health-context/user-health-context.service.ts`
+  - 新增 `createCurrentMedicine`、`updateCurrentMedicine`、`deleteCurrentMedicine`（软删除：`isCurrent=false` + 设置 `endedAt`）。
+  - 手动来源 (`manual`) 时 `sourceRefId` 强制为 null。
+  - 新增 `ensureCurrentMedicineOwnedByUser` 归属校验。
+- `src/user-health-context/user-health-context.service.spec.ts`
+  - 扩展覆盖：创建 drugbank/manual 用药、更新、软删除、外键 404。
+- `test/user-health-context.e2e-spec.ts`
+  - 扩展覆盖：全部 3 个端点的 e2e 流程 + 外键保护。
+- `docs/openapi.json`
+  - 重新导出：22 paths, 59 schemas（含新增 current-medicine 端点）。
+- `docs/public/api-contract.md`
+  - 新增 Current Medicine Write Endpoints 合同说明。
+- `docs/backend-user-domain.md`
+  - 移除所有写 API 未完成标记。
+
+### Test Results
+
+- `pnpm test -- user-health-context.service.spec.ts` — 21/21 通过
+- `pnpm test:e2e:ci -- user-health-context.e2e-spec.ts` — 19/19 通过
+- `pnpm build` — 通过
+- `pnpm export:openapi` — 通过 (22 paths, 59 schemas)
+
 ## 2026-06-03 (Allergy And Condition Write APIs)
 
 ### Added

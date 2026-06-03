@@ -22,9 +22,11 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { UserPayload } from '../auth/auth.service';
 import {
+  CreateCurrentMedicineDto,
   CreateHealthContextAllergyDto,
   CreateHealthContextConditionDto,
   HealthContextResponseDto,
+  UpdateCurrentMedicineDto,
   UpdateHealthContextAllergyDto,
   UpdateHealthContextConditionDto,
   UpdateHealthContextProfileDto,
@@ -180,6 +182,61 @@ export class UserHealthContextController {
       user.sub,
       id,
     );
+    return successEnvelope(healthContext);
+  }
+
+  // ── Current medicine endpoints ──
+
+  @Post('current-medicines')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Add a current medicine record' })
+  @ApiBody({ type: CreateCurrentMedicineDto })
+  @ApiResponse({ status: 201, type: HealthContextResponseDto })
+  async createCurrentMedicine(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: CreateCurrentMedicineDto,
+  ) {
+    const healthContext =
+      await this.userHealthContextService.createCurrentMedicine(user.sub, dto);
+    return successEnvelope(healthContext);
+  }
+
+  @Patch('current-medicines/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Update a current medicine record' })
+  @ApiParam({ name: 'id', description: 'Current medicine id' })
+  @ApiBody({ type: UpdateCurrentMedicineDto })
+  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  async updateCurrentMedicine(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateCurrentMedicineDto,
+  ) {
+    const healthContext =
+      await this.userHealthContextService.updateCurrentMedicine(
+        user.sub,
+        id,
+        dto,
+      );
+    return successEnvelope(healthContext);
+  }
+
+  @Delete('current-medicines/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Deactivate a current medicine record (soft delete)',
+  })
+  @ApiParam({ name: 'id', description: 'Current medicine id' })
+  @ApiResponse({ status: 200, type: HealthContextResponseDto })
+  async deleteCurrentMedicine(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+  ) {
+    const healthContext =
+      await this.userHealthContextService.deleteCurrentMedicine(user.sub, id);
     return successEnvelope(healthContext);
   }
 }

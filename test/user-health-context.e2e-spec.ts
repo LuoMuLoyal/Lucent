@@ -767,4 +767,149 @@ describe('User Health Context API (e2e)', () => {
       .send({ label: 'X' })
       .expect(404);
   });
+
+  // ── Current medicine e2e ──
+
+  it('should create a current medicine and return the refreshed aggregate', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .post(`${HEALTH_CONTEXT_PATH}/current-medicines`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({
+        source: MedicineSource.drugbank,
+        sourceRefId: 'DB01050',
+        displayName: ' Ibuprofen ',
+        strengthText: '200 mg',
+        doseText: '1 tablet after meals',
+        route: 'oral',
+        startedAt: '2026-06-03',
+      })
+      .expect(201);
+
+    const body = response.body as ApiEnvelope<HealthContextData>;
+    expect(body.code).toBe(ResultCode.SUCCESS);
+
+    const data = expectData(body);
+    expect(data.summary.currentMedicineCount).toBe(1);
+    expect(data.currentMedicines[0].displayName).toBe('Ibuprofen');
+    expect(data.currentMedicines[0].source).toBe(MedicineSource.drugbank);
+    expect(data.currentMedicines[0].isCurrent).toBe(true);
+  });
+
+  it('should update a current medicine', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        currentMedicines: {
+          create: {
+            source: MedicineSource.drugbank,
+            sourceRefId: 'DB01050',
+            displayName: 'Ibuprofen',
+          },
+        },
+      },
+    });
+
+    const medicine = await prisma.userCurrentMedicine.findFirstOrThrow({
+      where: { userId: user.id },
+    });
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/current-medicines/${medicine.id}`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ displayName: ' Ibuprofen G ', strengthText: '400 mg' })
+      .expect(200);
+
+    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    expect(data.currentMedicines[0].displayName).toBe('Ibuprofen G');
+    expect(data.currentMedicines[0].strengthText).toBe('400 mg');
+  });
+
+  it('should soft-delete a current medicine', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        currentMedicines: {
+          create: {
+            source: MedicineSource.manual,
+            displayName: 'Vitamin D',
+          },
+        },
+      },
+    });
+
+    const medicine = await prisma.userCurrentMedicine.findFirstOrThrow({
+      where: { userId: user.id },
+    });
+    const accessToken = await createAccessToken(user.id, user.email);
+
+    const response = await request(app.getHttpServer())
+      .delete(`${HEALTH_CONTEXT_PATH}/current-medicines/${medicine.id}`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .expect(200);
+
+    const data = expectData(response.body as ApiEnvelope<HealthContextData>);
+    // isCurrent=false medicines are excluded from the aggregate
+    expect(data.summary.currentMedicineCount).toBe(0);
+
+    const stored = await prisma.userCurrentMedicine.findUniqueOrThrow({
+      where: { id: medicine.id },
+    });
+    expect(stored.isCurrent).toBe(false);
+    expect(stored.endedAt).not.toBeNull();
+  });
+
+  it('should return 404 when accessing a foreign current medicine', async () => {
+    const email1 = uniqueEmail();
+    const user1 = await prisma.user.create({
+      data: {
+        email: email1,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+        currentMedicines: {
+          create: {
+            source: MedicineSource.manual,
+            displayName: 'Vitamin D',
+          },
+        },
+      },
+    });
+
+    const email2 = uniqueEmail();
+    const user2 = await prisma.user.create({
+      data: {
+        email: email2,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+
+    const medicine = await prisma.userCurrentMedicine.findFirstOrThrow({
+      where: { userId: user1.id },
+    });
+    const accessToken = await createAccessToken(user2.id, user2.email);
+
+    await request(app.getHttpServer())
+      .patch(`${HEALTH_CONTEXT_PATH}/current-medicines/${medicine.id}`)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ displayName: 'X' })
+      .expect(404);
+  });
 });
