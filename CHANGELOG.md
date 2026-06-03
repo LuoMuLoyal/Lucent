@@ -3,6 +3,37 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-03 (Expanded Profile Write API)
+
+### Changed
+
+- `src/user-health-context/dto/update-health-context-profile.dto.ts`
+  - 扩展 DTO 支持全部核心 profile 字段：`birthDate`、`sexAtBirth`、`heightCm`、`pregnancyState`、`lactationState`、`bloodType`、`onboardingCompleted`。
+  - `birthDate` 强制 `YYYY-MM-DD` 格式校验。
+  - `heightCm` 强制 1..300 范围校验。
+  - `sexAtBirth`、`pregnancyState`、`lactationState` 使用 Prisma 枚举校验。
+- `src/user-health-context/user-health-context.service.ts`
+  - `updateProfilePreferences` 重命名为 `updateProfile`，语义从偏好同步扩展为全量 profile 更新。
+  - 新增 `birthDate`、`sexAtBirth`、`heightCm`、`pregnancyState`、`lactationState`、`bloodType`、`onboardingCompleted` 写入逻辑。
+  - `onboardingCompleted: true` 仅在 `onboardingCompletedAt` 缺失时设置时间戳；`false` 清空。
+  - `null` 值清空可空字段；`bloodType` 空字符串归一化为 `null`。
+- `src/user-health-context/user-health-context.controller.ts`
+  - `@ApiOperation` summary 更新为 "Update the current user health-context profile"。
+- `src/user-health-context/user-health-context.service.spec.ts`
+  - 扩展覆盖：全量字段写入、null 清空、onboardingCompleted true/false、onboardingCompletedAt 已存在时跳过覆盖。
+- `test/user-health-context.e2e-spec.ts`
+  - 扩展覆盖：全量字段写入、null 清空、无效 birthDate 格式拒绝、heightCm 越界拒绝、非法 sexAtBirth 枚举值拒绝。
+- `docs/public/api-contract.md`
+  - 更新 `PATCH /me/health-context/profile` 合同说明，列出全部支持的字段和校验规则。
+- `docs/backend-user-domain.md`
+  - 从 "Deliberately Not Done Yet" 中移除 profile write API。
+
+### Test Results
+
+- `pnpm test -- user-health-context.service.spec.ts` — 8/8 通过
+- `pnpm test:e2e:ci -- user-health-context.e2e-spec.ts` — 7/7 通过
+- `pnpm build` — 通过
+
 ## 2026-06-02 (Health Context Preference Write API)
 
 ### Added

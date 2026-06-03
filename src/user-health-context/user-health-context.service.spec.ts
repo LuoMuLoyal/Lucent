@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
@@ -48,6 +50,7 @@ describe('UserHealthContextService', () => {
             },
             userProfile: {
               upsert: jest.fn(),
+              findUnique: jest.fn(),
             },
           },
         },
@@ -282,7 +285,87 @@ describe('UserHealthContextService', () => {
     });
   });
 
-  it('should upsert profile preferences and return the refreshed aggregate', async () => {
+  it('should upsert profile fields and return the refreshed aggregate', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
+
+    (prismaService.user.findFirst as jest.Mock)
+      .mockResolvedValueOnce({ id: mockUserBase.id })
+      .mockResolvedValueOnce({
+        ...mockUserBase,
+        profile: {
+          userId: mockUserBase.id,
+          birthDate: new Date('1998-03-15T00:00:00.000Z'),
+          sexAtBirth: SexAtBirth.female,
+          heightCm: 168,
+          pregnancyState: PregnancyState.not_pregnant,
+          lactationState: LactationState.no,
+          bloodType: 'O+',
+          locale: 'zh-CN',
+          timezone: 'Asia/Shanghai',
+          unitSystem: UnitSystem.metric,
+          onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
+          extras: null,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+        },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      });
+
+    (prismaService.userProfile.findUnique as jest.Mock).mockResolvedValue({
+      onboardingCompletedAt: null,
+    });
+
+    const result = await service.updateProfile(mockUserBase.id, {
+      locale: ' zh-CN ',
+      timezone: '',
+      unitSystem: UnitSystem.metric,
+      birthDate: '1998-03-15',
+      sexAtBirth: SexAtBirth.female,
+      heightCm: 168,
+      pregnancyState: PregnancyState.not_pregnant,
+      lactationState: LactationState.no,
+      bloodType: ' O+ ',
+      onboardingCompleted: true,
+    });
+
+    expect(prismaService.userProfile.upsert).toHaveBeenCalledWith({
+      where: { userId: mockUserBase.id },
+      create: {
+        userId: mockUserBase.id,
+        locale: 'zh-CN',
+        timezone: null,
+        unitSystem: UnitSystem.metric,
+        birthDate: new Date('1998-03-15T00:00:00.000Z'),
+        sexAtBirth: SexAtBirth.female,
+        heightCm: 168,
+        pregnancyState: PregnancyState.not_pregnant,
+        lactationState: LactationState.no,
+        bloodType: 'O+',
+      },
+      update: expect.objectContaining({
+        locale: 'zh-CN',
+        timezone: null,
+        unitSystem: UnitSystem.metric,
+        birthDate: new Date('1998-03-15T00:00:00.000Z'),
+        sexAtBirth: SexAtBirth.female,
+        heightCm: 168,
+        pregnancyState: PregnancyState.not_pregnant,
+        lactationState: LactationState.no,
+        bloodType: 'O+',
+        onboardingCompletedAt: expect.any(Date),
+      }),
+    });
+    expect(result.profile.locale).toBe('zh-CN');
+    expect(result.profile.birthDate).toBe('1998-03-15');
+    expect(result.profile.sexAtBirth).toBe(SexAtBirth.female);
+    expect(result.profile.heightCm).toBe(168);
+    expect(result.profile.bloodType).toBe('O+');
+    expect(result.summary.onboardingCompleted).toBe(true);
+  });
+
+  it('should clear nullable profile fields when sending null', async () => {
     (prismaService.user.findFirst as jest.Mock)
       .mockResolvedValueOnce({ id: mockUserBase.id })
       .mockResolvedValueOnce({
@@ -295,9 +378,9 @@ describe('UserHealthContextService', () => {
           pregnancyState: null,
           lactationState: null,
           bloodType: null,
-          locale: 'zh-CN',
-          timezone: 'Asia/Shanghai',
-          unitSystem: UnitSystem.metric,
+          locale: null,
+          timezone: null,
+          unitSystem: null,
           onboardingCompletedAt: null,
           extras: null,
           createdAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -308,28 +391,161 @@ describe('UserHealthContextService', () => {
         currentMedicines: [],
       });
 
-    const result = await service.updateProfilePreferences(mockUserBase.id, {
-      locale: ' zh-CN ',
-      timezone: '',
-      unitSystem: UnitSystem.metric,
+    await service.updateProfile(mockUserBase.id, {
+      birthDate: null,
+      sexAtBirth: null,
+      heightCm: null,
+      pregnancyState: null,
+      lactationState: null,
+      bloodType: null,
+      unitSystem: null,
     });
 
     expect(prismaService.userProfile.upsert).toHaveBeenCalledWith({
       where: { userId: mockUserBase.id },
-      create: {
-        userId: mockUserBase.id,
-        locale: 'zh-CN',
-        timezone: null,
-        unitSystem: UnitSystem.metric,
-      },
-      update: {
-        locale: 'zh-CN',
-        timezone: null,
-        unitSystem: UnitSystem.metric,
-      },
+      create: expect.objectContaining({
+        birthDate: null,
+        sexAtBirth: null,
+        heightCm: null,
+        pregnancyState: null,
+        lactationState: null,
+        bloodType: null,
+        unitSystem: null,
+      }),
+      update: expect.objectContaining({
+        birthDate: null,
+        sexAtBirth: null,
+        heightCm: null,
+        pregnancyState: null,
+        lactationState: null,
+        bloodType: null,
+        unitSystem: null,
+      }),
     });
-    expect(result.profile.locale).toBe('zh-CN');
-    expect(result.profile.timezone).toBe('Asia/Shanghai');
-    expect(result.profile.unitSystem).toBe(UnitSystem.metric);
+  });
+
+  it('should set onboardingCompletedAt when onboardingCompleted is true and not yet set', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
+
+    (prismaService.user.findFirst as jest.Mock)
+      .mockResolvedValueOnce({ id: mockUserBase.id })
+      .mockResolvedValueOnce({
+        ...mockUserBase,
+        profile: {
+          userId: mockUserBase.id,
+          birthDate: null,
+          sexAtBirth: null,
+          heightCm: null,
+          pregnancyState: null,
+          lactationState: null,
+          bloodType: null,
+          locale: null,
+          timezone: null,
+          unitSystem: null,
+          onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
+          extras: null,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+        },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      });
+
+    (prismaService.userProfile.findUnique as jest.Mock).mockResolvedValue({
+      onboardingCompletedAt: null,
+    });
+
+    await service.updateProfile(mockUserBase.id, {
+      onboardingCompleted: true,
+    });
+
+    expect(prismaService.userProfile.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          onboardingCompletedAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it('should not overwrite onboardingCompletedAt when already set', async () => {
+    const existingDate = new Date('2026-05-01T08:00:00.000Z');
+
+    (prismaService.user.findFirst as jest.Mock)
+      .mockResolvedValueOnce({ id: mockUserBase.id })
+      .mockResolvedValueOnce({
+        ...mockUserBase,
+        profile: {
+          userId: mockUserBase.id,
+          birthDate: null,
+          sexAtBirth: null,
+          heightCm: null,
+          pregnancyState: null,
+          lactationState: null,
+          bloodType: null,
+          locale: null,
+          timezone: null,
+          unitSystem: null,
+          onboardingCompletedAt: existingDate,
+          extras: null,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+        },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      });
+
+    (prismaService.userProfile.findUnique as jest.Mock).mockResolvedValue({
+      onboardingCompletedAt: existingDate,
+    });
+
+    await service.updateProfile(mockUserBase.id, {
+      onboardingCompleted: true,
+    });
+
+    // upsert should NOT be called because updateData is empty
+    // (onboardingCompletedAt was already set, so nothing to update)
+    expect(prismaService.userProfile.upsert).not.toHaveBeenCalled();
+  });
+
+  it('should clear onboardingCompletedAt when onboardingCompleted is false', async () => {
+    (prismaService.user.findFirst as jest.Mock)
+      .mockResolvedValueOnce({ id: mockUserBase.id })
+      .mockResolvedValueOnce({
+        ...mockUserBase,
+        profile: {
+          userId: mockUserBase.id,
+          birthDate: null,
+          sexAtBirth: null,
+          heightCm: null,
+          pregnancyState: null,
+          lactationState: null,
+          bloodType: null,
+          locale: null,
+          timezone: null,
+          unitSystem: null,
+          onboardingCompletedAt: null,
+          extras: null,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+        },
+        allergies: [],
+        conditions: [],
+        currentMedicines: [],
+      });
+
+    await service.updateProfile(mockUserBase.id, {
+      onboardingCompleted: false,
+    });
+
+    expect(prismaService.userProfile.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          onboardingCompletedAt: null,
+        }),
+      }),
+    );
   });
 });
