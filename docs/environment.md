@@ -70,8 +70,7 @@ If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` togeth
   - run `pnpm test:ci`
   - run `pnpm test:e2e:ci`
 - `push` to `main`
-  - build the production Docker image on the GitHub-hosted `ubuntu-latest` runner with plain `docker build`
-  - push immutable tag `sha-<commit>` plus `latest` to the configured registry with plain `docker push`
+  - resolve the Lucent image reference from `DEPLOY_LUCENT_IMAGE`, or fall back to `<registry>/<namespace>/<image>:latest`
   - SSH to the server
   - sync `docker-compose.yml` and `scripts/deploy/deploy-server.sh` to the server over SSH
   - write `.deploy-image.env`
@@ -79,7 +78,7 @@ If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` togeth
   - keep PostgreSQL / Redis data volumes, recreate containers from the synced compose file
   - wait for Docker health checks and rollback `app` to the previous image if the new image fails to become healthy
 - GitHub-hosted JavaScript actions are forced onto the Node 24 runtime via `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` so the workflow no longer depends on the deprecated Node 20 actions runtime.
-- The workflow intentionally avoids Docker Buildx / OCI attestation export because Tencent TCR can stall on the final manifest push path.
+- The workflow no longer builds or pushes the Lucent runtime image. Push Lucent / PostgreSQL / Redis runtime images to your target registry manually before merging to `main`.
 - Production still expects fixed registry tags for PostgreSQL and Redis: `<registry>/<namespace>/<image-name>-postgres:18-alpine` and `<registry>/<namespace>/<image-name>-redis:8-alpine`. Seed those two images into the target registry once before the first deployment.
 
 ### Expected server shape
@@ -117,6 +116,8 @@ For mainland China servers, the target registry should be a registry that your s
   Default: lowercased `github.repository_owner`
 - `REGISTRY_IMAGE_NAME`
   Default: lowercased repository name
+- `DEPLOY_LUCENT_IMAGE`
+  Recommended: exact prebuilt image tag such as `ccr.ccs.tencentyun.com/<namespace>/lucent:2026-06-02-01`
 
 Recommended mainland setup:
 
@@ -171,6 +172,15 @@ In the default single-server compose deployment, `DATABASE_URL` and `REDIS_URL` 
 - `scripts/deploy/deploy-server.sh`
 
 Only `.env.production` and `.deploy-image.env` are runtime-local and must not be committed.
+
+### Recommended release flow
+
+1. 本地手动构建并推送 Lucent 业务镜像到目标 registry
+2. 确认 PostgreSQL / Redis 固定标签镜像已经在目标 registry 中存在
+3. 更新 GitHub variable `DEPLOY_LUCENT_IMAGE` 为这次要部署的 Lucent 精确标签
+4. 提交 PR
+5. PR 阶段只跑 CI
+6. 合并到 `main` 后触发远程部署
 
 ## Production Rules
 
