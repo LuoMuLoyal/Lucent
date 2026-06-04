@@ -89,6 +89,16 @@ enum MedicineSource {
   manual
 }
 
+enum DailyRecordKind {
+  water
+  meal
+  vital
+  mood
+  symptom
+  activity
+  note
+}
+
 model User {
   id               String                @id @default(uuid())
   email            String
@@ -107,6 +117,7 @@ model User {
   allergies        UserAllergy[]
   conditions       UserCondition[]
   currentMedicines UserCurrentMedicine[]
+  dailyRecords     UserDailyRecord[]
 
   @@index([email])
   @@index([status])
@@ -232,6 +243,28 @@ model UserCurrentMedicine {
   @@index([userId, isCurrent])
   @@index([userId, source])
   @@map("user_current_medicines")
+}
+
+model UserDailyRecord {
+  id         String          @id @default(uuid())
+  userId     String          @map("user_id")
+  kind       DailyRecordKind
+  occurredAt DateTime        @map("occurred_at") @db.Date
+  title      String?
+  value      String?
+  unit       String?
+  note       String?
+  payload    Json?           @db.JsonB
+  source     String?         @default("manual")
+  deletedAt  DateTime?       @map("deleted_at") @db.Timestamptz(3)
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, occurredAt])
+  @@index([userId, kind])
+  @@index([userId, deletedAt])
+  @@map("user_daily_records")
 }
 
 model DrugSourceImport {

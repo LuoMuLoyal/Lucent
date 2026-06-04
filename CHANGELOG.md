@@ -3,6 +3,28 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-04 (Daily Record Schema Design)
+
+### Added
+
+- `prisma/schema.prisma`
+  - 新增 `DailyRecordKind` 枚举（`water`, `meal`, `vital`, `mood`, `symptom`, `activity`, `note`）。
+  - 新增 `UserDailyRecord` 模型：`id`, `userId`, `kind`, `occurredAt`, `title`, `value`, `unit`, `note`, `payload` (jsonb), `source`, `deletedAt`, `createdAt`, `updatedAt`。
+  - `User` 模型新增 `dailyRecords` 关联。
+- `prisma/migrations/20260604000000_add_user_daily_records`
+  - 创建 `user_daily_records` 表、索引 (`userId + occurredAt`, `userId + kind`, `userId + deletedAt`)、外键。
+- `docs/backend-user-domain.md`
+  - 新增 `user_daily_records` 模型说明。
+- `docs/public/api-contract.md`
+  - 新增 `Daily Records (proposed)` 合同章节，列出计划中的 5 个端点及 contract 要点。
+  - 更新基线端点列表，包含已完成和计划中的端点。
+
+### Design Notes
+
+- API 尚未实现；schema 和迁移为合同基线。
+- 仅用于手动日志记录，不提供 AI 解释、诊断或营养推断。
+- 软删除通过 `deletedAt`。
+
 ## 2026-06-02 (Health Context Preference Write API)
 
 ### Added

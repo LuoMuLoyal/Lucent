@@ -1,6 +1,6 @@
 # API Contract
 
-Last updated: 2026-06-02
+Last updated: 2026-06-04
 
 ## Versioning
 
@@ -14,6 +14,25 @@ GET /api/v1/medicines
 GET /api/v1/medicines/:id
 GET /api/v1/me/health-context
 PATCH /api/v1/me/health-context/profile
+POST   /api/v1/me/health-context/allergies
+PATCH  /api/v1/me/health-context/allergies/:id
+DELETE /api/v1/me/health-context/allergies/:id
+POST   /api/v1/me/health-context/conditions
+PATCH  /api/v1/me/health-context/conditions/:id
+DELETE /api/v1/me/health-context/conditions/:id
+POST   /api/v1/me/health-context/current-medicines
+PATCH  /api/v1/me/health-context/current-medicines/:id
+DELETE /api/v1/me/health-context/current-medicines/:id
+```
+
+计划中（schema 已就绪，API 尚未实现）：
+
+```text
+GET    /api/v1/me/daily-records?date=YYYY-MM-DD&kind=&page=1&pageSize=50
+POST   /api/v1/me/daily-records
+PATCH  /api/v1/me/daily-records/:id
+DELETE /api/v1/me/daily-records/:id
+GET    /api/v1/me/daily-records/summary?date=YYYY-MM-DD
 ```
 
 Legacy Express `/api/*` routes are reference material only. Lucent does not need to keep their request bodies or response envelope.
@@ -268,3 +287,27 @@ Contract notes:
 - `PATCH /me/health-context/profile` returns the refreshed aggregate payload after the write succeeds.
 - Sending `null` or an empty string for `locale` / `timezone` clears the stored preference.
 - Other profile fields remain read-only in the current phase; the aggregate is still the main backend-facing payload for personalized Today flows.
+
+## Daily Records (proposed)
+
+Schema and migration exist (`prisma/migrations/20260604000000_add_user_daily_records`); APIs are not yet implemented.
+
+### Planned endpoints
+
+```text
+GET    /api/v1/me/daily-records?date=YYYY-MM-DD&kind=&page=1&pageSize=50
+POST   /api/v1/me/daily-records
+PATCH  /api/v1/me/daily-records/:id
+DELETE /api/v1/me/daily-records/:id
+GET    /api/v1/me/daily-records/summary?date=YYYY-MM-DD
+```
+
+### Planned contract
+
+- All endpoints are auth-protected and scoped to `CurrentUser.sub`.
+- `GET /daily-records` returns paginated records for the given date, optionally filtered by `kind`.
+- `POST /daily-records` creates a record: `kind` (required enum), `occurredAt` (YYYY-MM-DD), `title`, `value`, `unit`, `note`.
+- `PATCH /daily-records/:id` supports partial update with omitted/no-change semantics.
+- `DELETE /daily-records/:id` soft-deletes via `deletedAt`.
+- `GET /daily-records/summary` returns counts by kind for the given date plus the most recent record per kind.
+- No AI interpretation, diagnosis, or nutrition inference. This is manual user logging only.
