@@ -89,4 +89,64 @@ describe('MedicineDoseLogsService', () => {
       expect.objectContaining({ data: { deletedAt: expect.any(Date) } }),
     );
   });
+
+  it('should update omitted fields without clearing nullable values', async () => {
+    (prisma.userMedicineDoseLog.findUnique as jest.Mock).mockResolvedValue({
+      userId: 'u1',
+    });
+    (prisma.userMedicineDoseLog.update as jest.Mock).mockResolvedValue({
+      id: 'd1',
+      userId: 'u1',
+      currentMedicineId: null,
+      status: DoseLogStatus.skipped,
+      scheduledFor: new Date('2026-06-04'),
+      doseText: '1 tablet',
+      note: 'with food',
+      source: 'manual',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.update('u1', 'd1', { status: DoseLogStatus.skipped });
+
+    expect(prisma.userMedicineDoseLog.update).toHaveBeenCalledWith({
+      where: { id: 'd1' },
+      data: { status: DoseLogStatus.skipped },
+    });
+  });
+
+  it('should clear nullable dose fields when null is provided', async () => {
+    (prisma.userMedicineDoseLog.findUnique as jest.Mock).mockResolvedValue({
+      userId: 'u1',
+    });
+    (prisma.userMedicineDoseLog.update as jest.Mock).mockResolvedValue({
+      id: 'd1',
+      userId: 'u1',
+      currentMedicineId: null,
+      status: DoseLogStatus.taken,
+      scheduledFor: new Date('2026-06-04'),
+      doseText: null,
+      note: null,
+      source: 'manual',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.update('u1', 'd1', { doseText: null, note: null });
+
+    expect(prisma.userMedicineDoseLog.update).toHaveBeenCalledWith({
+      where: { id: 'd1' },
+      data: { doseText: null, note: null },
+    });
+  });
+
+  it('should reject foreign dose-log updates', async () => {
+    (prisma.userMedicineDoseLog.findUnique as jest.Mock).mockResolvedValue({
+      userId: 'other',
+    });
+
+    await expect(
+      service.update('u1', 'd1', { status: DoseLogStatus.taken }),
+    ).rejects.toThrow(NotFoundException);
+  });
 });

@@ -9,8 +9,9 @@ This document is the current source of truth for Lucent's user-domain persistenc
 Current boundary:
 
 - `/api/v1/auth/*` stays frontend-compatible and still returns a minimal user shape.
-- `GET /api/v1/me/health-context` now exposes a read-only aggregate for the authenticated user's health context.
-- Rich personal health context is modeled in the database, but write APIs are still not exposed yet.
+- `GET /api/v1/me/health-context` exposes the authenticated user's health-context aggregate.
+- Health-context profile, allergies, conditions, and current medicines are writable through user-scoped `/me/health-context/*` APIs.
+- Daily records and medicine dose logs are implemented for manual user logging. They do not provide AI interpretation, push notification scheduling, or automatic adherence plans.
 
 ## Current API Surface
 
@@ -34,6 +35,69 @@ Notes:
 - Timestamp fields are exposed as ISO 8601 strings.
 - Active allergies and current medicines are filtered at the query layer; conditions currently return the full recorded list.
 - This endpoint is intended as the backend second layer for Today and other personalized read experiences.
+
+### Health-context writes
+
+Auth-protected write APIs for the current user's health context:
+
+```text
+PATCH  /api/v1/me/health-context/profile
+POST   /api/v1/me/health-context/allergies
+PATCH  /api/v1/me/health-context/allergies/:id
+DELETE /api/v1/me/health-context/allergies/:id
+POST   /api/v1/me/health-context/conditions
+PATCH  /api/v1/me/health-context/conditions/:id
+DELETE /api/v1/me/health-context/conditions/:id
+POST   /api/v1/me/health-context/current-medicines
+PATCH  /api/v1/me/health-context/current-medicines/:id
+DELETE /api/v1/me/health-context/current-medicines/:id
+```
+
+Notes:
+
+- Handlers derive the user id from JWT payload and reject foreign record ids as not found.
+- Profile writes use upsert semantics and return the refreshed aggregate payload.
+- Nullable fields distinguish omitted/no-change from explicit `null` clearing.
+- Allergy and current-medicine deletes are soft state changes (`isActive=false`, `isCurrent=false`).
+- Condition delete resolves the condition and preserves an existing `resolvedAt` value.
+
+### Daily records
+
+Auth-protected manual daily timeline APIs:
+
+```text
+GET    /api/v1/me/daily-records?date=YYYY-MM-DD&kind=&page=1&pageSize=50
+POST   /api/v1/me/daily-records
+PATCH  /api/v1/me/daily-records/:id
+DELETE /api/v1/me/daily-records/:id
+GET    /api/v1/me/daily-records/summary?date=YYYY-MM-DD
+```
+
+Notes:
+
+- All records are scoped to `CurrentUser.sub`.
+- `PATCH` uses omitted/no-change semantics and explicit `null` to clear nullable fields.
+- `DELETE` soft-deletes via `deletedAt`.
+- Summary returns per-kind counts and the latest record for the requested date.
+
+### Medicine dose logs
+
+Auth-protected manual adherence log APIs:
+
+```text
+GET    /api/v1/me/medicine-dose-logs?date=YYYY-MM-DD
+POST   /api/v1/me/medicine-dose-logs
+PATCH  /api/v1/me/medicine-dose-logs/:id
+DELETE /api/v1/me/medicine-dose-logs/:id
+```
+
+Notes:
+
+- Dose-log statuses are `taken`, `skipped`, `missed`, and `planned`.
+- `currentMedicineId`, when present, must belong to the current user.
+- `PATCH` supports omitted/no-change and explicit `null` clearing for nullable text fields.
+- `DELETE` soft-deletes via `deletedAt`.
+- This is manual logging only; no push reminder scheduling is implied.
 
 ## Design Principles
 
@@ -175,7 +239,7 @@ Key fields:
 
 ### `user_daily_records`
 
-User-owned daily timeline records for lightweight manual health tracking. This model is schema-only for now; no APIs exist yet.
+User-owned daily timeline records for lightweight manual health tracking.
 
 Key fields:
 
@@ -195,6 +259,28 @@ Notes:
 - Indexed on `(userId, occurredAt)`, `(userId, kind)`, `(userId, deletedAt)`.
 - No AI interpretation, diagnosis, or nutrition inference.
 - Migration: `prisma/migrations/20260604000000_add_user_daily_records`.
+
+### `user_medicine_dose_logs`
+
+User-owned manual medicine adherence logs.
+
+Key fields:
+
+- `current_medicine_id` — optional link to a current medicine owned by the same user.
+- `status` — enum: `taken`, `skipped`, `missed`, `planned`.
+- `scheduled_for` — date the log is associated with (`@db.Date`).
+- `taken_at` — optional timestamp for future richer adherence flows.
+- `doseText` — optional dose text. The current Prisma schema intentionally maps this to the database column `"doseText"`.
+- `note` — optional free-text note.
+- `source` — defaults to `"manual"`.
+- `deleted_at` — soft-delete timestamp.
+
+Notes:
+
+- Isolated per user via `userId` with cascade delete.
+- Optional current-medicine link uses `ON DELETE SET NULL`.
+- Indexed on `(userId, scheduledFor)`, `(userId, currentMedicineId)`, `(userId, deletedAt)`.
+- Migration: `prisma/migrations/20260604010000_add_user_medicine_dose_logs`.
 
 ## PostgreSQL Features In Use
 
@@ -235,9 +321,10 @@ Internal behavior already changed:
 
 ## Deliberately Not Done Yet
 
-- No write APIs yet for profile, allergies, conditions, or current medicines.
 - No separate public profile endpoints yet.
 - No PostgreSQL schema split or row-level security yet.
 - No session-management UI/API for listing devices or revoking individual sessions by id.
+- No push notification scheduling or automatic reminder engine for dose logs yet.
+- No AI interpretation, diagnosis, nutrition inference, OCR, or wearable-sync ingestion for daily records or dose logs yet.
 
 Next pieces should land as feature-first modules around writes, editing flows, and more granular Today-specific projections when the frontend begins integrating live data.
