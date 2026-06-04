@@ -1,6 +1,6 @@
 # Lucent Docs
 
-Last updated: 2026-06-01
+Last updated: 2026-06-04
 
 ## Read First
 
@@ -12,6 +12,7 @@ Last updated: 2026-06-01
 6. `environment.md`
 7. `tencent-cloud-cicd.md` when deploying to a Tencent Cloud CVM
 8. `../CHANGELOG.md`
+9. `../../Luminous/docs/Project_Error_Audit.md` for cross-repo historical errors and recurring audit checks
 
 ## Update Map
 
@@ -23,6 +24,7 @@ Last updated: 2026-06-01
 | Backend behavior                      | `../CHANGELOG.md`                                     |
 | env / Docker / test / simple deploy   | `environment.md`, `../README.md`                      |
 | product stage                         | `public/ROADMAP.md`                                   |
+| historical errors / recurring checks  | `../../Luminous/docs/Project_Error_Audit.md`          |
 
 ## Reference Only
 
