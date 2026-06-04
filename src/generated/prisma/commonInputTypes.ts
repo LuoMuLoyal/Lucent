@@ -429,6 +429,23 @@ export type EnumMedicineSourceWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumMedicineSourceFilter<$PrismaModel>
 }
 
+export type EnumDoseLogStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.DoseLogStatus | Prisma.EnumDoseLogStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DoseLogStatus[] | Prisma.ListEnumDoseLogStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DoseLogStatus[] | Prisma.ListEnumDoseLogStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDoseLogStatusFilter<$PrismaModel> | $Enums.DoseLogStatus
+}
+
+export type EnumDoseLogStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DoseLogStatus | Prisma.EnumDoseLogStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DoseLogStatus[] | Prisma.ListEnumDoseLogStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DoseLogStatus[] | Prisma.ListEnumDoseLogStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDoseLogStatusWithAggregatesFilter<$PrismaModel> | $Enums.DoseLogStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDoseLogStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDoseLogStatusFilter<$PrismaModel>
+}
+
 export type EnumDailyRecordKindFilter<$PrismaModel = never> = {
   equals?: $Enums.DailyRecordKind | Prisma.EnumDailyRecordKindFieldRefInput<$PrismaModel>
   in?: $Enums.DailyRecordKind[] | Prisma.ListEnumDailyRecordKindFieldRefInput<$PrismaModel>
@@ -846,6 +863,23 @@ export type NestedEnumMedicineSourceWithAggregatesFilter<$PrismaModel = never> =
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumMedicineSourceFilter<$PrismaModel>
   _max?: Prisma.NestedEnumMedicineSourceFilter<$PrismaModel>
+}
+
+export type NestedEnumDoseLogStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.DoseLogStatus | Prisma.EnumDoseLogStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DoseLogStatus[] | Prisma.ListEnumDoseLogStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DoseLogStatus[] | Prisma.ListEnumDoseLogStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDoseLogStatusFilter<$PrismaModel> | $Enums.DoseLogStatus
+}
+
+export type NestedEnumDoseLogStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DoseLogStatus | Prisma.EnumDoseLogStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DoseLogStatus[] | Prisma.ListEnumDoseLogStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DoseLogStatus[] | Prisma.ListEnumDoseLogStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDoseLogStatusWithAggregatesFilter<$PrismaModel> | $Enums.DoseLogStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDoseLogStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDoseLogStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumDailyRecordKindFilter<$PrismaModel = never> = {

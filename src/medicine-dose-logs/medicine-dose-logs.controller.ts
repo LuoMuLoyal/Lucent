@@ -1,0 +1,75 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { successEnvelope } from '../common/api-envelope';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import type { UserPayload } from '../auth/auth.service';
+import { CreateDoseLogDto, UpdateDoseLogDto } from './dto';
+import { MedicineDoseLogsService } from './medicine-dose-logs.service';
+
+@ApiTags('Medicine Dose Logs')
+@Controller('me/medicine-dose-logs')
+export class MedicineDoseLogsController {
+  constructor(private readonly service: MedicineDoseLogsService) {}
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'List dose logs for a date' })
+  @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
+  async list(@CurrentUser() user: UserPayload, @Query('date') date: string) {
+    return successEnvelope(await this.service.list(user.sub, date));
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Create a dose log' })
+  @ApiResponse({ status: 201 })
+  async create(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: CreateDoseLogDto,
+  ) {
+    return successEnvelope(await this.service.create(user.sub, dto));
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Update a dose log' })
+  @ApiParam({ name: 'id' })
+  async update(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateDoseLogDto,
+  ) {
+    return successEnvelope(await this.service.update(user.sub, id, dto));
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Soft-delete a dose log' })
+  @ApiParam({ name: 'id' })
+  async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
+    await this.service.delete(user.sub, id);
+    return successEnvelope(null);
+  }
+}

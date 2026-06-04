@@ -390,6 +390,7 @@ export const ModelName = {
   UserAllergy: 'UserAllergy',
   UserCondition: 'UserCondition',
   UserCurrentMedicine: 'UserCurrentMedicine',
+  UserMedicineDoseLog: 'UserMedicineDoseLog',
   UserDailyRecord: 'UserDailyRecord',
   DrugSourceImport: 'DrugSourceImport',
   CnMedicineProduct: 'CnMedicineProduct',
@@ -412,7 +413,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userDailyRecord" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget"
+    modelProps: "user" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineDoseLog" | "userDailyRecord" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -931,6 +932,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCurrentMedicineCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCurrentMedicineCountAggregateOutputType> | number
+        }
+      }
+    }
+    UserMedicineDoseLog: {
+      payload: Prisma.$UserMedicineDoseLogPayload<ExtArgs>
+      fields: Prisma.UserMedicineDoseLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserMedicineDoseLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserMedicineDoseLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload>
+        }
+        findFirst: {
+          args: Prisma.UserMedicineDoseLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserMedicineDoseLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload>
+        }
+        findMany: {
+          args: Prisma.UserMedicineDoseLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload>[]
+        }
+        create: {
+          args: Prisma.UserMedicineDoseLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload>
+        }
+        createMany: {
+          args: Prisma.UserMedicineDoseLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserMedicineDoseLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload>[]
+        }
+        delete: {
+          args: Prisma.UserMedicineDoseLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload>
+        }
+        update: {
+          args: Prisma.UserMedicineDoseLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserMedicineDoseLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserMedicineDoseLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserMedicineDoseLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserMedicineDoseLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserMedicineDoseLogPayload>
+        }
+        aggregate: {
+          args: Prisma.UserMedicineDoseLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserMedicineDoseLog>
+        }
+        groupBy: {
+          args: Prisma.UserMedicineDoseLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserMedicineDoseLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserMedicineDoseLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserMedicineDoseLogCountAggregateOutputType> | number
         }
       }
     }
@@ -1622,6 +1697,24 @@ export const UserCurrentMedicineScalarFieldEnum = {
 export type UserCurrentMedicineScalarFieldEnum = (typeof UserCurrentMedicineScalarFieldEnum)[keyof typeof UserCurrentMedicineScalarFieldEnum]
 
 
+export const UserMedicineDoseLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  currentMedicineId: 'currentMedicineId',
+  status: 'status',
+  scheduledFor: 'scheduledFor',
+  takenAt: 'takenAt',
+  doseText: 'doseText',
+  note: 'note',
+  source: 'source',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserMedicineDoseLogScalarFieldEnum = (typeof UserMedicineDoseLogScalarFieldEnum)[keyof typeof UserMedicineDoseLogScalarFieldEnum]
+
+
 export const UserDailyRecordScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -2079,6 +2172,20 @@ export type ListEnumMedicineSourceFieldRefInput<$PrismaModel> = FieldRefInputTyp
 
 
 /**
+ * Reference to a field of type 'DoseLogStatus'
+ */
+export type EnumDoseLogStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DoseLogStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'DoseLogStatus[]'
+ */
+export type ListEnumDoseLogStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DoseLogStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'DailyRecordKind'
  */
 export type EnumDailyRecordKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DailyRecordKind'>
@@ -2222,6 +2329,7 @@ export type GlobalOmitConfig = {
   userAllergy?: Prisma.UserAllergyOmit
   userCondition?: Prisma.UserConditionOmit
   userCurrentMedicine?: Prisma.UserCurrentMedicineOmit
+  userMedicineDoseLog?: Prisma.UserMedicineDoseLogOmit
   userDailyRecord?: Prisma.UserDailyRecordOmit
   drugSourceImport?: Prisma.DrugSourceImportOmit
   cnMedicineProduct?: Prisma.CnMedicineProductOmit

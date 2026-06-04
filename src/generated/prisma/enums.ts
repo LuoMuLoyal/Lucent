@@ -133,3 +133,13 @@ export const DailyRecordKind = {
 } as const
 
 export type DailyRecordKind = (typeof DailyRecordKind)[keyof typeof DailyRecordKind]
+
+
+export const DoseLogStatus = {
+  taken: 'taken',
+  skipped: 'skipped',
+  missed: 'missed',
+  planned: 'planned'
+} as const
+
+export type DoseLogStatus = (typeof DoseLogStatus)[keyof typeof DoseLogStatus]

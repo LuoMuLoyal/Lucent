@@ -849,6 +849,130 @@
           "Daily Records"
         ]
       }
+    },
+    "/api/v1/me/medicine-dose-logs": {
+      "get": {
+        "operationId": "MedicineDoseLogsController_list_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-06-04",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List dose logs for a date",
+        "tags": [
+          "Medicine Dose Logs"
+        ]
+      },
+      "post": {
+        "operationId": "MedicineDoseLogsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDoseLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a dose log",
+        "tags": [
+          "Medicine Dose Logs"
+        ]
+      }
+    },
+    "/api/v1/me/medicine-dose-logs/{id}": {
+      "patch": {
+        "operationId": "MedicineDoseLogsController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDoseLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a dose log",
+        "tags": [
+          "Medicine Dose Logs"
+        ]
+      },
+      "delete": {
+        "operationId": "MedicineDoseLogsController_delete_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete a dose log",
+        "tags": [
+          "Medicine Dose Logs"
+        ]
+      }
     }
   },
   "info": {
@@ -2797,6 +2921,69 @@
           "note": {
             "type": "object",
             "description": "Free-text note. Use null to clear.",
+            "nullable": true
+          }
+        }
+      },
+      "DoseLogStatus": {
+        "type": "string",
+        "enum": [
+          "taken",
+          "skipped",
+          "missed",
+          "planned"
+        ]
+      },
+      "CreateDoseLogDto": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "description": "Linked current medicine id."
+          },
+          "status": {
+            "example": "taken",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoseLogStatus"
+              }
+            ]
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date YYYY-MM-DD.",
+            "example": "2026-06-04"
+          },
+          "doseText": {
+            "type": "string",
+            "description": "Dose text."
+          },
+          "note": {
+            "type": "string",
+            "description": "Free-text note."
+          }
+        },
+        "required": [
+          "status",
+          "scheduledFor"
+        ]
+      },
+      "UpdateDoseLogDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoseLogStatus"
+              }
+            ]
+          },
+          "doseText": {
+            "type": "object",
+            "nullable": true
+          },
+          "note": {
+            "type": "object",
             "nullable": true
           }
         }
