@@ -643,6 +643,212 @@
           "User Health Context"
         ]
       }
+    },
+    "/api/v1/me/daily-records": {
+      "get": {
+        "operationId": "DailyRecordsController_list_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-06-04",
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List daily records for a given date",
+        "tags": [
+          "Daily Records"
+        ]
+      },
+      "post": {
+        "operationId": "DailyRecordsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDailyRecordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a daily record",
+        "tags": [
+          "Daily Records"
+        ]
+      }
+    },
+    "/api/v1/me/daily-records/summary": {
+      "get": {
+        "operationId": "DailyRecordsController_summary_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-06-04",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordSummaryResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get daily record summary (counts by kind)",
+        "tags": [
+          "Daily Records"
+        ]
+      }
+    },
+    "/api/v1/me/daily-records/{id}": {
+      "patch": {
+        "operationId": "DailyRecordsController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDailyRecordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a daily record",
+        "tags": [
+          "Daily Records"
+        ]
+      },
+      "delete": {
+        "operationId": "DailyRecordsController_delete_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete a daily record",
+        "tags": [
+          "Daily Records"
+        ]
+      }
     }
   },
   "info": {
@@ -2323,6 +2529,275 @@
                 "$ref": "#/components/schemas/UnitSystem"
               }
             ]
+          }
+        }
+      },
+      "DailyRecordKind": {
+        "type": "string",
+        "enum": [
+          "water",
+          "meal",
+          "vital",
+          "mood",
+          "symptom",
+          "activity",
+          "note"
+        ]
+      },
+      "DailyRecordItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Record id."
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordKind"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format.",
+            "example": "2026-06-04"
+          },
+          "title": {
+            "type": "object",
+            "description": "Short label."
+          },
+          "value": {
+            "type": "object",
+            "description": "Measured value."
+          },
+          "unit": {
+            "type": "object",
+            "description": "Unit label.",
+            "example": "bpm"
+          },
+          "note": {
+            "type": "object",
+            "description": "Free-text note."
+          },
+          "source": {
+            "type": "object",
+            "description": "Source.",
+            "example": "manual"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "occurredAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DailyRecordListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total records for the date (before pagination)."
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ]
+      },
+      "DailyRecordListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordListDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "DailyRecordSummaryDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordKind"
+              }
+            ]
+          },
+          "count": {
+            "type": "number",
+            "description": "Count of records for this kind on the given date."
+          },
+          "latest": {
+            "description": "Most recent record of this kind.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordItemDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "count"
+        ]
+      },
+      "DailyRecordSummaryDataDto": {
+        "type": "object",
+        "properties": {
+          "summaries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordSummaryDto"
+            }
+          }
+        },
+        "required": [
+          "summaries"
+        ]
+      },
+      "DailyRecordSummaryResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordSummaryDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "CreateDailyRecordDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordKind"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format.",
+            "example": "2026-06-04"
+          },
+          "title": {
+            "type": "string",
+            "description": "Short label."
+          },
+          "value": {
+            "type": "string",
+            "description": "Measured value."
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unit label.",
+            "example": "bpm"
+          },
+          "note": {
+            "type": "string",
+            "description": "Free-text note."
+          }
+        },
+        "required": [
+          "kind",
+          "occurredAt"
+        ]
+      },
+      "DailyRecordResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordItemDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "UpdateDailyRecordDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordKind"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format.",
+            "example": "2026-06-04"
+          },
+          "title": {
+            "type": "object",
+            "description": "Short label. Use null to clear.",
+            "nullable": true
+          },
+          "value": {
+            "type": "object",
+            "description": "Measured value. Use null to clear.",
+            "nullable": true
+          },
+          "unit": {
+            "type": "object",
+            "description": "Unit label. Use null to clear.",
+            "nullable": true
+          },
+          "note": {
+            "type": "object",
+            "description": "Free-text note. Use null to clear.",
+            "nullable": true
           }
         }
       }
