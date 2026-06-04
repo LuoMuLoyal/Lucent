@@ -3,6 +3,28 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-04 (Daily Record APIs)
+
+### Added
+
+- `src/daily-records/` — 新增 feature-first 模块：controller, service, DTOs, module。
+- 5 个端点：
+  - `GET /api/v1/me/daily-records?date=&kind=&page=&pageSize=` — 按日期列出记录，支持分页和 kind 过滤。
+  - `POST /api/v1/me/daily-records` — 创建记录。
+  - `PATCH /api/v1/me/daily-records/:id` — 部分更新，null 清空可空字段。
+  - `DELETE /api/v1/me/daily-records/:id` — 软删除（设置 `deletedAt`）。
+  - `GET /api/v1/me/daily-records/summary?date=` — 按 kind 汇总当日记录数 + 最新记录。
+- `src/daily-records/daily-records.service.spec.ts` — 7 个单元测试。
+- `test/daily-records.e2e-spec.ts` — 6 个 e2e 测试。
+- `src/app.module.ts` — 注册 `DailyRecordsModule`。
+- `docs/public/api-contract.md` — Daily Records 从"计划中"移至"已实现"。
+
+### Test Results
+
+- `pnpm test -- daily-records.service.spec.ts` — 7/7 通过
+- `pnpm test:e2e:ci -- daily-records.e2e-spec.ts` — 6/6 通过
+- `pnpm build` — 通过
+
 ## 2026-06-04 (Daily Record Schema Design)
 
 ### Added

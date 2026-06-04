@@ -25,7 +25,7 @@ PATCH  /api/v1/me/health-context/current-medicines/:id
 DELETE /api/v1/me/health-context/current-medicines/:id
 ```
 
-计划中（schema 已就绪，API 尚未实现）：
+已实现：
 
 ```text
 GET    /api/v1/me/daily-records?date=YYYY-MM-DD&kind=&page=1&pageSize=50

@@ -120,3 +120,16 @@ export const MedicineSource = {
 } as const
 
 export type MedicineSource = (typeof MedicineSource)[keyof typeof MedicineSource]
+
+
+export const DailyRecordKind = {
+  water: 'water',
+  meal: 'meal',
+  vital: 'vital',
+  mood: 'mood',
+  symptom: 'symptom',
+  activity: 'activity',
+  note: 'note'
+} as const
+
+export type DailyRecordKind = (typeof DailyRecordKind)[keyof typeof DailyRecordKind]

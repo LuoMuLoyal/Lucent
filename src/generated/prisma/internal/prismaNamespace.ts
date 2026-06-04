@@ -390,6 +390,7 @@ export const ModelName = {
   UserAllergy: 'UserAllergy',
   UserCondition: 'UserCondition',
   UserCurrentMedicine: 'UserCurrentMedicine',
+  UserDailyRecord: 'UserDailyRecord',
   DrugSourceImport: 'DrugSourceImport',
   CnMedicineProduct: 'CnMedicineProduct',
   DrugbankDrug: 'DrugbankDrug',
@@ -411,7 +412,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget"
+    modelProps: "user" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userDailyRecord" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -930,6 +931,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCurrentMedicineCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCurrentMedicineCountAggregateOutputType> | number
+        }
+      }
+    }
+    UserDailyRecord: {
+      payload: Prisma.$UserDailyRecordPayload<ExtArgs>
+      fields: Prisma.UserDailyRecordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserDailyRecordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserDailyRecordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload>
+        }
+        findFirst: {
+          args: Prisma.UserDailyRecordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserDailyRecordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload>
+        }
+        findMany: {
+          args: Prisma.UserDailyRecordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload>[]
+        }
+        create: {
+          args: Prisma.UserDailyRecordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload>
+        }
+        createMany: {
+          args: Prisma.UserDailyRecordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserDailyRecordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload>[]
+        }
+        delete: {
+          args: Prisma.UserDailyRecordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload>
+        }
+        update: {
+          args: Prisma.UserDailyRecordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserDailyRecordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserDailyRecordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserDailyRecordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserDailyRecordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserDailyRecordPayload>
+        }
+        aggregate: {
+          args: Prisma.UserDailyRecordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserDailyRecord>
+        }
+        groupBy: {
+          args: Prisma.UserDailyRecordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserDailyRecordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserDailyRecordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserDailyRecordCountAggregateOutputType> | number
         }
       }
     }
@@ -1547,6 +1622,25 @@ export const UserCurrentMedicineScalarFieldEnum = {
 export type UserCurrentMedicineScalarFieldEnum = (typeof UserCurrentMedicineScalarFieldEnum)[keyof typeof UserCurrentMedicineScalarFieldEnum]
 
 
+export const UserDailyRecordScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  kind: 'kind',
+  occurredAt: 'occurredAt',
+  title: 'title',
+  value: 'value',
+  unit: 'unit',
+  note: 'note',
+  payload: 'payload',
+  source: 'source',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserDailyRecordScalarFieldEnum = (typeof UserDailyRecordScalarFieldEnum)[keyof typeof UserDailyRecordScalarFieldEnum]
+
+
 export const DrugSourceImportScalarFieldEnum = {
   id: 'id',
   sourceKey: 'sourceKey',
@@ -1985,6 +2079,20 @@ export type ListEnumMedicineSourceFieldRefInput<$PrismaModel> = FieldRefInputTyp
 
 
 /**
+ * Reference to a field of type 'DailyRecordKind'
+ */
+export type EnumDailyRecordKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DailyRecordKind'>
+    
+
+
+/**
+ * Reference to a field of type 'DailyRecordKind[]'
+ */
+export type ListEnumDailyRecordKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DailyRecordKind[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -2114,6 +2222,7 @@ export type GlobalOmitConfig = {
   userAllergy?: Prisma.UserAllergyOmit
   userCondition?: Prisma.UserConditionOmit
   userCurrentMedicine?: Prisma.UserCurrentMedicineOmit
+  userDailyRecord?: Prisma.UserDailyRecordOmit
   drugSourceImport?: Prisma.DrugSourceImportOmit
   cnMedicineProduct?: Prisma.CnMedicineProductOmit
   drugbankDrug?: Prisma.DrugbankDrugOmit
