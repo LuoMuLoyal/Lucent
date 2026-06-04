@@ -3,6 +3,24 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-04 (Medicine Dose-Log Schema Design)
+
+### Added
+
+- `prisma/schema.prisma`
+  - 新增 `DoseLogStatus` 枚举（`taken`, `skipped`, `missed`, `planned`）。
+  - 新增 `UserMedicineDoseLog` 模型：`id`, `userId`, `currentMedicineId`, `status`, `scheduledFor`, `takenAt`, `doseText`, `note`, `source`, `deletedAt`。
+  - `User` 和 `UserCurrentMedicine` 新增 `doseLogs` 关联。
+- `prisma/migrations/20260604...add_medicine_dose_logs`
+  - 创建 `user_medicine_dose_logs` 表、索引、外键。
+- `docs/backend-user-domain.md`
+  - 计划更新（no-op for schema task）。
+
+### Design Notes
+
+- 仅手动依从性记录；明确标注"无推送通知 / 无真实提醒调度"。
+- API 尚未实现。
+
 ## 2026-06-04 (Daily Record APIs)
 
 ### Added

@@ -118,6 +118,7 @@ model User {
   conditions       UserCondition[]
   currentMedicines UserCurrentMedicine[]
   dailyRecords     UserDailyRecord[]
+  doseLogs         UserMedicineDoseLog[]
 
   @@index([email])
   @@index([status])
@@ -239,10 +240,40 @@ model UserCurrentMedicine {
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doseLogs      UserMedicineDoseLog[]
 
   @@index([userId, isCurrent])
   @@index([userId, source])
   @@map("user_current_medicines")
+}
+
+enum DoseLogStatus {
+  taken
+  skipped
+  missed
+  planned
+}
+
+model UserMedicineDoseLog {
+  id                String         @id @default(uuid())
+  userId            String         @map("user_id")
+  currentMedicineId String?        @map("current_medicine_id")
+  status            DoseLogStatus  @default(planned)
+  scheduledFor      DateTime       @map("scheduled_for") @db.Date
+  takenAt           DateTime?      @map("taken_at") @db.Timestamptz(3)
+  doseText          String?
+  note              String?
+  source            String?        @default("manual")
+  deletedAt         DateTime?      @map("deleted_at") @db.Timestamptz(3)
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
+
+  @@index([userId, scheduledFor])
+  @@index([userId, currentMedicineId])
+  @@index([userId, deletedAt])
+  @@map("user_medicine_dose_logs")
 }
 
 model UserDailyRecord {
