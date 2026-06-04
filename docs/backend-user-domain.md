@@ -1,6 +1,6 @@
 # Backend User Domain
 
-Last updated: 2026-06-03
+Last updated: 2026-06-04
 
 ## Purpose
 
@@ -173,6 +173,29 @@ Key fields:
 - `note`
 - `source_payload` (`jsonb`)
 
+### `user_daily_records`
+
+User-owned daily timeline records for lightweight manual health tracking. This model is schema-only for now; no APIs exist yet.
+
+Key fields:
+
+- `kind` — enum: `water`, `meal`, `vital`, `mood`, `symptom`, `activity`, `note`.
+- `occurred_at` — date the record is associated with (`@db.Date`).
+- `title` — optional short label for display.
+- `value` — optional measured value as a string (e.g. `"72"`, `"118/76"`).
+- `unit` — optional unit label (e.g. `"bpm"`, `"cups"`).
+- `note` — optional free-text note.
+- `payload` — optional jsonb for future structured extensions.
+- `source` — defaults to `"manual"`.
+- `deleted_at` — soft-delete timestamp.
+
+Notes:
+
+- Isolated per user via `userId` with cascade delete.
+- Indexed on `(userId, occurredAt)`, `(userId, kind)`, `(userId, deletedAt)`.
+- No AI interpretation, diagnosis, or nutrition inference.
+- Migration: `prisma/migrations/20260604000000_add_user_daily_records`.
+
 ## PostgreSQL Features In Use
 
 - `enum` types for user status, sex at birth, pregnancy/lactation state, session/device metadata, allergy metadata, condition status, and medicine source.
@@ -212,7 +235,7 @@ Internal behavior already changed:
 
 ## Deliberately Not Done Yet
 
-- No write APIs yet remaining in the current phase.
+- No write APIs yet for profile, allergies, conditions, or current medicines.
 - No separate public profile endpoints yet.
 - No PostgreSQL schema split or row-level security yet.
 - No session-management UI/API for listing devices or revoking individual sessions by id.

@@ -3,116 +3,27 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
-## 2026-06-03 (Health Context Profile Upsert Completion Fix)
-
-### Fixed
-
-- `src/user-health-context/user-health-context.service.ts`
-  - `PATCH /api/v1/me/health-context/profile` 现在在用户尚无 profile 行、且请求 `onboardingCompleted: true` 时，会在 upsert `create` 分支同步写入 `onboardingCompletedAt`。
-  - 之前只有 `update` 分支设置 timestamp，导致首个 profile 写入可能返回/持久化为未完成 onboarding。
-- `src/user-health-context/user-health-context.service.spec.ts`
-  - 新增并收紧覆盖，断言 upsert `create` 和 `update` 分支都包含 `onboardingCompletedAt`。
-- `test/user-health-context.e2e-spec.ts`
-  - 新增无 profile 行直接完成 onboarding 的 e2e 覆盖，断言响应和数据库均有完成时间。
-
-### Test Results
-
-- `pnpm test -- user-health-context.service.spec.ts --runInBand` passed.
-- `pnpm test:e2e:ci -- user-health-context.e2e-spec.ts` passed.
-- `pnpm lint:check` passed.
-- `pnpm build` passed.
-- `pnpm test:ci` passed.
-- `pnpm test:e2e:ci` passed.
-
-## 2026-06-03 (Current Medicine Write APIs + OpenAPI Export)
+## 2026-06-04 (Daily Record Schema Design)
 
 ### Added
 
-- `src/user-health-context/dto/create-current-medicine.dto.ts` — 当前用药创建 DTO，含 source/sourceRefId 条件校验。
-- `src/user-health-context/dto/update-current-medicine.dto.ts` — 当前用药更新 DTO。
-- `src/user-health-context/user-health-context.controller.ts`
-  - 新增 3 个端点：`POST/PATCH/DELETE /current-medicines`。
-- `src/user-health-context/user-health-context.service.ts`
-  - 新增 `createCurrentMedicine`、`updateCurrentMedicine`、`deleteCurrentMedicine`（软删除：`isCurrent=false` + 设置 `endedAt`）。
-  - 手动来源 (`manual`) 时 `sourceRefId` 强制为 null。
-  - 新增 `ensureCurrentMedicineOwnedByUser` 归属校验。
-- `src/user-health-context/user-health-context.service.spec.ts`
-  - 扩展覆盖：创建 drugbank/manual 用药、更新、软删除、外键 404。
-- `test/user-health-context.e2e-spec.ts`
-  - 扩展覆盖：全部 3 个端点的 e2e 流程 + 外键保护。
-- `docs/openapi.json`
-  - 重新导出：22 paths, 59 schemas（含新增 current-medicine 端点）。
-- `docs/public/api-contract.md`
-  - 新增 Current Medicine Write Endpoints 合同说明。
+- `prisma/schema.prisma`
+  - 新增 `DailyRecordKind` 枚举（`water`, `meal`, `vital`, `mood`, `symptom`, `activity`, `note`）。
+  - 新增 `UserDailyRecord` 模型：`id`, `userId`, `kind`, `occurredAt`, `title`, `value`, `unit`, `note`, `payload` (jsonb), `source`, `deletedAt`, `createdAt`, `updatedAt`。
+  - `User` 模型新增 `dailyRecords` 关联。
+- `prisma/migrations/20260604000000_add_user_daily_records`
+  - 创建 `user_daily_records` 表、索引 (`userId + occurredAt`, `userId + kind`, `userId + deletedAt`)、外键。
 - `docs/backend-user-domain.md`
-  - 移除所有写 API 未完成标记。
-
-### Test Results
-
-- `pnpm test -- user-health-context.service.spec.ts` — 21/21 通过
-- `pnpm test:e2e:ci -- user-health-context.e2e-spec.ts` — 19/19 通过
-- `pnpm build` — 通过
-- `pnpm export:openapi` — 通过 (22 paths, 59 schemas)
-
-## 2026-06-03 (Allergy And Condition Write APIs)
-
-### Added
-
-- `src/user-health-context/dto/create-health-context-allergy.dto.ts` — 过敏创建 DTO。
-- `src/user-health-context/dto/update-health-context-allergy.dto.ts` — 过敏更新 DTO。
-- `src/user-health-context/dto/create-health-context-condition.dto.ts` — 疾病创建 DTO。
-- `src/user-health-context/dto/update-health-context-condition.dto.ts` — 疾病更新 DTO。
-- `src/user-health-context/user-health-context.controller.ts`
-  - 新增 6 个端点：`POST/PATCH/DELETE /allergies` 和 `POST/PATCH/DELETE /conditions`。
-- `src/user-health-context/user-health-context.service.ts`
-  - 新增 `createAllergy`、`updateAllergy`、`deleteAllergy`（软删除：`isActive=false`）。
-  - 新增 `createCondition`、`updateCondition`、`deleteCondition`（软解决：`status=resolved` + 设置 `resolvedAt`）。
-  - 新增 `ensureAllergyOwnedByUser`、`ensureConditionOwnedByUser` 归属校验；外键 id 返回 404。
-- `src/user-health-context/user-health-context.service.spec.ts`
-  - 扩展覆盖：创建/更新/软删除过敏、创建/更新/软解决疾病、外键 404。
-- `test/user-health-context.e2e-spec.ts`
-  - 扩展覆盖：全部 6 个端点的 e2e 流程 + 外键保护。
+  - 新增 `user_daily_records` 模型说明。
 - `docs/public/api-contract.md`
-  - 新增 Allergy Write Endpoints 和 Condition Write Endpoints 合同说明。
-- `docs/backend-user-domain.md`
-  - 从 "Deliberately Not Done Yet" 中移除 allergy 和 condition write API。
+  - 新增 `Daily Records (proposed)` 合同章节，列出计划中的 5 个端点及 contract 要点。
+  - 更新基线端点列表，包含已完成和计划中的端点。
 
-### Test Results
+### Design Notes
 
-- `pnpm test -- user-health-context.service.spec.ts` — 16/16 通过
-- `pnpm test:e2e:ci -- user-health-context.e2e-spec.ts` — 15/15 通过
-- `pnpm build` — 通过
-
-## 2026-06-03 (Expanded Profile Write API)
-
-### Changed
-
-- `src/user-health-context/dto/update-health-context-profile.dto.ts`
-  - 扩展 DTO 支持全部核心 profile 字段：`birthDate`、`sexAtBirth`、`heightCm`、`pregnancyState`、`lactationState`、`bloodType`、`onboardingCompleted`。
-  - `birthDate` 强制 `YYYY-MM-DD` 格式校验。
-  - `heightCm` 强制 1..300 范围校验。
-  - `sexAtBirth`、`pregnancyState`、`lactationState` 使用 Prisma 枚举校验。
-- `src/user-health-context/user-health-context.service.ts`
-  - `updateProfilePreferences` 重命名为 `updateProfile`，语义从偏好同步扩展为全量 profile 更新。
-  - 新增 `birthDate`、`sexAtBirth`、`heightCm`、`pregnancyState`、`lactationState`、`bloodType`、`onboardingCompleted` 写入逻辑。
-  - `onboardingCompleted: true` 仅在 `onboardingCompletedAt` 缺失时设置时间戳；`false` 清空。
-  - `null` 值清空可空字段；`bloodType` 空字符串归一化为 `null`。
-- `src/user-health-context/user-health-context.controller.ts`
-  - `@ApiOperation` summary 更新为 "Update the current user health-context profile"。
-- `src/user-health-context/user-health-context.service.spec.ts`
-  - 扩展覆盖：全量字段写入、null 清空、onboardingCompleted true/false、onboardingCompletedAt 已存在时跳过覆盖。
-- `test/user-health-context.e2e-spec.ts`
-  - 扩展覆盖：全量字段写入、null 清空、无效 birthDate 格式拒绝、heightCm 越界拒绝、非法 sexAtBirth 枚举值拒绝。
-- `docs/public/api-contract.md`
-  - 更新 `PATCH /me/health-context/profile` 合同说明，列出全部支持的字段和校验规则。
-- `docs/backend-user-domain.md`
-  - 从 "Deliberately Not Done Yet" 中移除 profile write API。
-
-### Test Results
-
-- `pnpm test -- user-health-context.service.spec.ts` — 8/8 通过
-- `pnpm test:e2e:ci -- user-health-context.e2e-spec.ts` — 7/7 通过
-- `pnpm build` — 通过
+- API 尚未实现；schema 和迁移为合同基线。
+- 仅用于手动日志记录，不提供 AI 解释、诊断或营养推断。
+- 软删除通过 `deletedAt`。
 
 ## 2026-06-02 (Health Context Preference Write API)
 

@@ -90,18 +90,17 @@ jobs:
       - name: E2E tests
         run: pnpm test:e2e:ci
 
-  prepare_deploy:
-    name: Resolve Deploy Image
+  docker:
+    name: Build and Push Image
     runs-on: ubuntu-latest
     needs: ci
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    timeout-minutes: 10
+    timeout-minutes: 30
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       REGISTRY_HOST: ${{ vars.REGISTRY_HOST }}
       REGISTRY_NAMESPACE: ${{ vars.REGISTRY_NAMESPACE }}
       REGISTRY_IMAGE_NAME: ${{ vars.REGISTRY_IMAGE_NAME }}
-      DEPLOY_LUCENT_IMAGE: ${{ vars.DEPLOY_LUCENT_IMAGE }}
     outputs:
       image_ref: ${{ steps.meta.outputs.image_ref }}
       postgres_image_ref: ${{ steps.meta.outputs.postgres_image_ref }}
@@ -122,7 +121,7 @@ jobs:
           namespace="${REGISTRY_NAMESPACE:-$default_namespace}"
           image_name="${REGISTRY_IMAGE_NAME:-$default_image_name}"
           image_repo="${registry_host}/${namespace}/${image_name}"
-          image_ref="${DEPLOY_LUCENT_IMAGE:-${image_repo}:latest}"
+          image_ref="${image_repo}:sha-${GITHUB_SHA}"
           postgres_image_repo="${registry_host}/${namespace}/${image_name}-postgres"
           postgres_image_ref="${postgres_image_repo}:18-alpine"
           redis_image_repo="${registry_host}/${namespace}/${image_name}-redis"
@@ -138,19 +137,43 @@ jobs:
             echo "redis_image_ref=${redis_image_ref}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Login to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ steps.meta.outputs.registry_host }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build \
+            -f ./Dockerfile \
+            -t "${{ steps.meta.outputs.image_ref }}" \
+            -t "${{ steps.meta.outputs.image_repo }}:latest" \
+            .
+
+      - name: Push image tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker push "${{ steps.meta.outputs.image_ref }}"
+          docker push "${{ steps.meta.outputs.image_repo }}:latest"
+
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
-    needs: prepare_deploy
+    needs: docker
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     timeout-minutes: 20
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       SERVER_APP_DIR: ${{ vars.SERVER_APP_DIR }}
-      LUCENT_IMAGE: ${{ needs.prepare_deploy.outputs.image_ref }}
-      POSTGRES_IMAGE: ${{ needs.prepare_deploy.outputs.postgres_image_ref }}
-      REDIS_IMAGE: ${{ needs.prepare_deploy.outputs.redis_image_ref }}
-      REGISTRY_HOST: ${{ needs.prepare_deploy.outputs.registry_host }}
+      LUCENT_IMAGE: ${{ needs.docker.outputs.image_ref }}
+      POSTGRES_IMAGE: ${{ needs.docker.outputs.postgres_image_ref }}
+      REDIS_IMAGE: ${{ needs.docker.outputs.redis_image_ref }}
+      REGISTRY_HOST: ${{ needs.docker.outputs.registry_host }}
       REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
     steps:

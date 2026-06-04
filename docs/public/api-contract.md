@@ -1,6 +1,6 @@
 # API Contract
 
-Last updated: 2026-06-03
+Last updated: 2026-06-04
 
 ## Versioning
 
@@ -14,6 +14,25 @@ GET /api/v1/medicines
 GET /api/v1/medicines/:id
 GET /api/v1/me/health-context
 PATCH /api/v1/me/health-context/profile
+POST   /api/v1/me/health-context/allergies
+PATCH  /api/v1/me/health-context/allergies/:id
+DELETE /api/v1/me/health-context/allergies/:id
+POST   /api/v1/me/health-context/conditions
+PATCH  /api/v1/me/health-context/conditions/:id
+DELETE /api/v1/me/health-context/conditions/:id
+POST   /api/v1/me/health-context/current-medicines
+PATCH  /api/v1/me/health-context/current-medicines/:id
+DELETE /api/v1/me/health-context/current-medicines/:id
+```
+
+计划中（schema 已就绪，API 尚未实现）：
+
+```text
+GET    /api/v1/me/daily-records?date=YYYY-MM-DD&kind=&page=1&pageSize=50
+POST   /api/v1/me/daily-records
+PATCH  /api/v1/me/daily-records/:id
+DELETE /api/v1/me/daily-records/:id
+GET    /api/v1/me/daily-records/summary?date=YYYY-MM-DD
 ```
 
 Legacy Express `/api/*` routes are reference material only. Lucent does not need to keep their request bodies or response envelope.
@@ -264,62 +283,31 @@ Contract notes:
 - `profile` shape is stable and null-safe even if the stored relation row is missing.
 - Day-level medical dates use `YYYY-MM-DD`.
 - Timestamp fields use ISO 8601 strings.
-- `PATCH /me/health-context/profile` supports partial updates for all core profile fields:
-  - `birthDate` — `YYYY-MM-DD` string; null clears.
-  - `sexAtBirth` — enum (`female` / `male` / `intersex` / `unknown`); null clears.
-  - `heightCm` — integer in 1..300 range; null clears.
-  - `pregnancyState` — enum (`not_applicable` / `unknown` / `not_pregnant` / `pregnant` / `trying` / `postpartum`); null clears.
-  - `lactationState` — enum (`not_applicable` / `unknown` / `no` / `yes`); null clears.
-  - `bloodType` — string up to 8 characters; null or empty string clears.
-  - `locale` — string; null or empty string clears.
-  - `timezone` — string; null or empty string clears.
-  - `unitSystem` — enum (`metric` / `imperial`); null clears.
-  - `onboardingCompleted` — boolean. `true` sets `onboardingCompletedAt` when it is missing; `false` clears `onboardingCompletedAt`.
+- `PATCH /me/health-context/profile` currently supports partial updates for `locale`, `timezone`, and `unitSystem`.
 - `PATCH /me/health-context/profile` returns the refreshed aggregate payload after the write succeeds.
-- All fields are optional; omitted fields are left unchanged.
-- Unsupported enum values and out-of-range numeric values fail with 400 / 400002.
+- Sending `null` or an empty string for `locale` / `timezone` clears the stored preference.
+- Other profile fields remain read-only in the current phase; the aggregate is still the main backend-facing payload for personalized Today flows.
 
-### Allergy Write Endpoints
+## Daily Records (proposed)
 
-```text
-POST   /api/v1/me/health-context/allergies
-PATCH  /api/v1/me/health-context/allergies/:id
-DELETE /api/v1/me/health-context/allergies/:id
-```
+Schema and migration exist (`prisma/migrations/20260604000000_add_user_daily_records`); APIs are not yet implemented.
 
-- All write responses return the refreshed aggregate.
-- `DELETE` sets `isActive=false` (soft delete); the row is preserved.
-- Update and delete are scoped to the current user; foreign ids return 404.
-- `label` is required for create, trimmed, max 120 chars.
-- `reaction` and `note` are optional, max 1000 chars.
-
-### Condition Write Endpoints
+### Planned endpoints
 
 ```text
-POST   /api/v1/me/health-context/conditions
-PATCH  /api/v1/me/health-context/conditions/:id
-DELETE /api/v1/me/health-context/conditions/:id
+GET    /api/v1/me/daily-records?date=YYYY-MM-DD&kind=&page=1&pageSize=50
+POST   /api/v1/me/daily-records
+PATCH  /api/v1/me/daily-records/:id
+DELETE /api/v1/me/daily-records/:id
+GET    /api/v1/me/daily-records/summary?date=YYYY-MM-DD
 ```
 
-- All write responses return the refreshed aggregate.
-- `DELETE` sets `status=resolved` and sets `resolvedAt` to the current UTC date when missing (soft resolve); the row is preserved.
-- Update and delete are scoped to the current user; foreign ids return 404.
-- `label` is required for create, trimmed, max 120 chars.
-- `note` is optional, max 1000 chars.
+### Planned contract
 
-### Current Medicine Write Endpoints
-
-```text
-POST   /api/v1/me/health-context/current-medicines
-PATCH  /api/v1/me/health-context/current-medicines/:id
-DELETE /api/v1/me/health-context/current-medicines/:id
-```
-
-- All write responses return the refreshed aggregate.
-- `DELETE` sets `isCurrent=false` and sets `endedAt` to the current UTC date when missing (soft delete); the row is preserved.
-- `displayName` is required for create, trimmed.
-- `source` must be one of `drugbank`, `cn`, or `manual`.
-- `sourceRefId` is required for `drugbank` and `cn`; may be null for `manual`.
-- `startedAt` and `endedAt` use `YYYY-MM-DD`.
-- No reminder, notification, or dose schedule API is included.
-- Update and delete are scoped to the current user; foreign ids return 404.
+- All endpoints are auth-protected and scoped to `CurrentUser.sub`.
+- `GET /daily-records` returns paginated records for the given date, optionally filtered by `kind`.
+- `POST /daily-records` creates a record: `kind` (required enum), `occurredAt` (YYYY-MM-DD), `title`, `value`, `unit`, `note`.
+- `PATCH /daily-records/:id` supports partial update with omitted/no-change semantics.
+- `DELETE /daily-records/:id` soft-deletes via `deletedAt`.
+- `GET /daily-records/summary` returns counts by kind for the given date plus the most recent record per kind.
+- No AI interpretation, diagnosis, or nutrition inference. This is manual user logging only.
