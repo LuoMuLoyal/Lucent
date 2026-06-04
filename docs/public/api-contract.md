@@ -23,16 +23,15 @@ DELETE /api/v1/me/health-context/conditions/:id
 POST   /api/v1/me/health-context/current-medicines
 PATCH  /api/v1/me/health-context/current-medicines/:id
 DELETE /api/v1/me/health-context/current-medicines/:id
-```
-
-已实现：
-
-```text
 GET    /api/v1/me/daily-records?date=YYYY-MM-DD&kind=&page=1&pageSize=50
 POST   /api/v1/me/daily-records
 PATCH  /api/v1/me/daily-records/:id
 DELETE /api/v1/me/daily-records/:id
 GET    /api/v1/me/daily-records/summary?date=YYYY-MM-DD
+GET    /api/v1/me/medicine-dose-logs?date=YYYY-MM-DD
+POST   /api/v1/me/medicine-dose-logs
+PATCH  /api/v1/me/medicine-dose-logs/:id
+DELETE /api/v1/me/medicine-dose-logs/:id
 ```
 
 Legacy Express `/api/*` routes are reference material only. Lucent does not need to keep their request bodies or response envelope.
@@ -277,22 +276,33 @@ Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
+```text
+POST   /api/v1/me/health-context/allergies
+PATCH  /api/v1/me/health-context/allergies/:id
+DELETE /api/v1/me/health-context/allergies/:id
+POST   /api/v1/me/health-context/conditions
+PATCH  /api/v1/me/health-context/conditions/:id
+DELETE /api/v1/me/health-context/conditions/:id
+POST   /api/v1/me/health-context/current-medicines
+PATCH  /api/v1/me/health-context/current-medicines/:id
+DELETE /api/v1/me/health-context/current-medicines/:id
+```
+
 Contract notes:
 
 - Returns `summary`, `profile`, `allergies`, `conditions`, and `currentMedicines` in one envelope.
 - `profile` shape is stable and null-safe even if the stored relation row is missing.
 - Day-level medical dates use `YYYY-MM-DD`.
 - Timestamp fields use ISO 8601 strings.
-- `PATCH /me/health-context/profile` currently supports partial updates for `locale`, `timezone`, and `unitSystem`.
+- `PATCH /me/health-context/profile` supports partial updates for preference fields plus demographic/safety fields such as `birthDate`, `sexAtBirth`, `heightCm`, `pregnancyState`, `lactationState`, `bloodType`, and `onboardingCompleted`.
 - `PATCH /me/health-context/profile` returns the refreshed aggregate payload after the write succeeds.
 - Sending `null` or an empty string for `locale` / `timezone` clears the stored preference.
-- Other profile fields remain read-only in the current phase; the aggregate is still the main backend-facing payload for personalized Today flows.
+- Allergy, condition, and current-medicine writes are scoped to the current JWT user and return the refreshed aggregate payload.
+- Nullable write fields distinguish omitted/no-change from explicit `null` clearing.
 
-## Daily Records (proposed)
+## Daily Records
 
-Schema and migration exist (`prisma/migrations/20260604000000_add_user_daily_records`); APIs are not yet implemented.
-
-### Planned endpoints
+Manual daily timeline records for the authenticated user.
 
 ```text
 GET    /api/v1/me/daily-records?date=YYYY-MM-DD&kind=&page=1&pageSize=50
@@ -302,8 +312,6 @@ DELETE /api/v1/me/daily-records/:id
 GET    /api/v1/me/daily-records/summary?date=YYYY-MM-DD
 ```
 
-### Planned contract
-
 - All endpoints are auth-protected and scoped to `CurrentUser.sub`.
 - `GET /daily-records` returns paginated records for the given date, optionally filtered by `kind`.
 - `POST /daily-records` creates a record: `kind` (required enum), `occurredAt` (YYYY-MM-DD), `title`, `value`, `unit`, `note`.
@@ -311,3 +319,26 @@ GET    /api/v1/me/daily-records/summary?date=YYYY-MM-DD
 - `DELETE /daily-records/:id` soft-deletes via `deletedAt`.
 - `GET /daily-records/summary` returns counts by kind for the given date plus the most recent record per kind.
 - No AI interpretation, diagnosis, or nutrition inference. This is manual user logging only.
+
+## Medicine Dose Logs
+
+Manual medicine adherence logs for the authenticated user.
+
+```text
+GET    /api/v1/me/medicine-dose-logs?date=YYYY-MM-DD
+POST   /api/v1/me/medicine-dose-logs
+PATCH  /api/v1/me/medicine-dose-logs/:id
+DELETE /api/v1/me/medicine-dose-logs/:id
+```
+
+Contract notes:
+
+- All endpoints are auth-protected and scoped to `CurrentUser.sub`.
+- `GET /medicine-dose-logs` requires `date=YYYY-MM-DD` and returns `{ items }` for that day, excluding soft-deleted logs.
+- `POST /medicine-dose-logs` creates a log with `status`, `scheduledFor`, optional `currentMedicineId`, `doseText`, and `note`.
+- `currentMedicineId`, when provided, must belong to the current user.
+- `PATCH /medicine-dose-logs/:id` supports partial update with omitted/no-change semantics.
+- Sending explicit `null` for `doseText` or `note` clears the stored value.
+- `DELETE /medicine-dose-logs/:id` soft-deletes via `deletedAt`.
+- Status values are `taken`, `skipped`, `missed`, and `planned`.
+- This is manual adherence logging only; it does not mean push reminders or reminder scheduling exist.

@@ -3,6 +3,34 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-04 (Post-Audit Health Context + Dose-Log Fix)
+
+### Fixed
+
+- 恢复 `dev` 分支丢失的 health-context 写入 API：
+  - `PATCH /api/v1/me/health-context/profile`
+  - allergies / conditions / current-medicines 的 create / update / delete。
+- 补齐 health-context 写入 DTO，并恢复 service / controller / e2e 对 owner boundary、nullable clearing、create/update upsert 分支的覆盖。
+- 补齐 `user_medicine_dose_logs` 数据库迁移，确保本地 dev/test 数据库可以从空库迁移到当前 schema。
+- `medicine-dose-logs` OpenAPI 响应现在使用显式 response DTO，生成的 Luminous 客户端可以拿到 typed dose-log response model。
+- `medicine-dose-logs` 覆盖 omitted/no-change、explicit null 清空、跨用户更新拒绝、linked medicine ownership、soft delete 和 auth 分支。
+
+### Changed
+
+- `docs/openapi.json` 重新导出，当前为 **27 paths / 76 schemas**。
+- `docs/backend-user-domain.md` 与 `docs/public/api-contract.md` 同步当前已实现状态：health-context 写 API、daily-record API、manual medicine dose-log API 均已可用。
+
+### Test Results
+
+- `pnpm dev:stack:up` — 通过
+- `pnpm db:migrate:all` — dev/test 数据库迁移通过
+- `pnpm exec prisma validate` — 通过
+- `pnpm lint:check` — 通过
+- `pnpm build` — 通过
+- `pnpm test:ci` — 13 suites / 120 tests 通过
+- `pnpm test:e2e:ci` — 6 suites / 71 tests 通过
+- `pnpm export:openapi` — 27 paths / 76 schemas
+
 ## 2026-06-04 (Medicine Dose-Log Schema Design)
 
 ### Added

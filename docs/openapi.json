@@ -638,7 +638,364 @@
             "access-token": []
           }
         ],
-        "summary": "Update the current user health-context profile preferences",
+        "summary": "Update the current user health-context profile",
+        "tags": [
+          "User Health Context"
+        ]
+      }
+    },
+    "/api/v1/me/health-context/allergies": {
+      "post": {
+        "operationId": "UserHealthContextController_createAllergy_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHealthContextAllergyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create an allergy record",
+        "tags": [
+          "User Health Context"
+        ]
+      }
+    },
+    "/api/v1/me/health-context/allergies/{id}": {
+      "patch": {
+        "operationId": "UserHealthContextController_updateAllergy_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Allergy id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHealthContextAllergyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update an allergy record",
+        "tags": [
+          "User Health Context"
+        ]
+      },
+      "delete": {
+        "operationId": "UserHealthContextController_deleteAllergy_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Allergy id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Deactivate an allergy record (soft delete)",
+        "tags": [
+          "User Health Context"
+        ]
+      }
+    },
+    "/api/v1/me/health-context/conditions": {
+      "post": {
+        "operationId": "UserHealthContextController_createCondition_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHealthContextConditionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a condition record",
+        "tags": [
+          "User Health Context"
+        ]
+      }
+    },
+    "/api/v1/me/health-context/conditions/{id}": {
+      "patch": {
+        "operationId": "UserHealthContextController_updateCondition_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Condition id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHealthContextConditionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a condition record",
+        "tags": [
+          "User Health Context"
+        ]
+      },
+      "delete": {
+        "operationId": "UserHealthContextController_deleteCondition_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Condition id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Resolve a condition record (soft delete)",
+        "tags": [
+          "User Health Context"
+        ]
+      }
+    },
+    "/api/v1/me/health-context/current-medicines": {
+      "post": {
+        "operationId": "UserHealthContextController_createCurrentMedicine_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCurrentMedicineDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Add a current medicine record",
+        "tags": [
+          "User Health Context"
+        ]
+      }
+    },
+    "/api/v1/me/health-context/current-medicines/{id}": {
+      "patch": {
+        "operationId": "UserHealthContextController_updateCurrentMedicine_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Current medicine id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCurrentMedicineDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a current medicine record",
+        "tags": [
+          "User Health Context"
+        ]
+      },
+      "delete": {
+        "operationId": "UserHealthContextController_deleteCurrentMedicine_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Current medicine id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthContextResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Deactivate a current medicine record (soft delete)",
         "tags": [
           "User Health Context"
         ]
@@ -866,7 +1223,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoseLogListResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -894,7 +1258,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoseLogResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -933,7 +1304,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoseLogResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2634,13 +3012,13 @@
         "properties": {
           "locale": {
             "type": "object",
-            "description": "Preferred locale. Use null to clear and follow the client default.",
+            "description": "Preferred locale. Use null or empty string to clear and follow the client default.",
             "example": "zh-CN",
             "nullable": true
           },
           "timezone": {
             "type": "object",
-            "description": "Preferred timezone. Use null to clear.",
+            "description": "Preferred timezone. Use null or empty string to clear.",
             "example": "Asia/Shanghai",
             "nullable": true
           },
@@ -2653,6 +3031,343 @@
                 "$ref": "#/components/schemas/UnitSystem"
               }
             ]
+          },
+          "birthDate": {
+            "type": "object",
+            "description": "Birth date in YYYY-MM-DD format.",
+            "example": "1998-03-15",
+            "nullable": true
+          },
+          "sexAtBirth": {
+            "description": "Sex assigned at birth. Use null to clear.",
+            "example": "female",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SexAtBirth"
+              }
+            ]
+          },
+          "heightCm": {
+            "type": "object",
+            "description": "Height in centimeters. Use null to clear.",
+            "example": 168,
+            "minimum": 1,
+            "maximum": 300,
+            "nullable": true
+          },
+          "pregnancyState": {
+            "description": "Pregnancy state for personalized medical guidance. Use null to clear.",
+            "example": "not_pregnant",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PregnancyState"
+              }
+            ]
+          },
+          "lactationState": {
+            "description": "Lactation state for personalized medical guidance. Use null to clear.",
+            "example": "no",
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LactationState"
+              }
+            ]
+          },
+          "bloodType": {
+            "type": "object",
+            "description": "Blood type. Use null to clear.",
+            "example": "O+",
+            "nullable": true
+          },
+          "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Set true to complete onboarding (sets completedAt when missing). Set false to clear onboarding completion.",
+            "example": true
+          }
+        }
+      },
+      "CreateHealthContextAllergyDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "Allergy kind.",
+            "example": "drug",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserAllergyKind"
+              }
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "User-visible allergy label.",
+            "example": "Penicillin"
+          },
+          "reaction": {
+            "type": "string",
+            "description": "Recorded reaction.",
+            "example": "Rash"
+          },
+          "severity": {
+            "description": "Severity level. Defaults to unknown.",
+            "example": "moderate",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserAllergySeverity"
+              }
+            ]
+          },
+          "note": {
+            "type": "string",
+            "description": "User note for the allergy.",
+            "example": "Avoid completely"
+          },
+          "recordedAt": {
+            "type": "string",
+            "description": "When this allergy was recorded in ISO 8601 format.",
+            "example": "2026-06-03T09:00:00.000Z"
+          }
+        },
+        "required": [
+          "kind",
+          "label"
+        ]
+      },
+      "UpdateHealthContextAllergyDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "description": "Allergy kind.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserAllergyKind"
+              }
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "User-visible allergy label.",
+            "example": "Penicillin"
+          },
+          "reaction": {
+            "type": "object",
+            "description": "Recorded reaction. Use null to clear.",
+            "example": "Rash",
+            "nullable": true
+          },
+          "severity": {
+            "description": "Severity level.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserAllergySeverity"
+              }
+            ]
+          },
+          "note": {
+            "type": "object",
+            "description": "User note for the allergy. Use null to clear.",
+            "example": "Avoid completely",
+            "nullable": true
+          },
+          "recordedAt": {
+            "type": "object",
+            "description": "When this allergy was recorded in ISO 8601 format.",
+            "example": "2026-06-03T09:00:00.000Z",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the allergy is currently active."
+          }
+        }
+      },
+      "CreateHealthContextConditionDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Condition label.",
+            "example": "Asthma"
+          },
+          "status": {
+            "description": "Condition status. Defaults to active.",
+            "example": "active",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserConditionStatus"
+              }
+            ]
+          },
+          "diagnosedAt": {
+            "type": "object",
+            "description": "Diagnosis date in YYYY-MM-DD format.",
+            "example": "2024-02-01",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "description": "User note for the condition.",
+            "example": "Triggered during pollen season"
+          }
+        },
+        "required": [
+          "label"
+        ]
+      },
+      "UpdateHealthContextConditionDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Condition label.",
+            "example": "Asthma"
+          },
+          "status": {
+            "description": "Condition status.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserConditionStatus"
+              }
+            ]
+          },
+          "diagnosedAt": {
+            "type": "object",
+            "description": "Diagnosis date in YYYY-MM-DD format. Use null to clear.",
+            "example": "2024-02-01",
+            "nullable": true
+          },
+          "note": {
+            "type": "object",
+            "description": "User note for the condition. Use null to clear.",
+            "example": "Triggered during pollen season",
+            "nullable": true
+          }
+        }
+      },
+      "CreateCurrentMedicineDto": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "description": "Upstream source used to anchor this medicine.",
+            "example": "drugbank",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MedicineSource"
+              }
+            ]
+          },
+          "sourceRefId": {
+            "type": "string",
+            "description": "Source-specific reference id. Required for drugbank and cn sources.",
+            "example": "DB01050"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name shown to the user.",
+            "example": "Ibuprofen"
+          },
+          "strengthText": {
+            "type": "string",
+            "description": "Strength text.",
+            "example": "200 mg"
+          },
+          "doseText": {
+            "type": "string",
+            "description": "Dose text.",
+            "example": "1 tablet after meals"
+          },
+          "route": {
+            "type": "string",
+            "description": "Administration route.",
+            "example": "oral"
+          },
+          "startedAt": {
+            "type": "object",
+            "description": "Start date in YYYY-MM-DD format.",
+            "example": "2026-06-03",
+            "nullable": true
+          },
+          "endedAt": {
+            "type": "object",
+            "description": "End date in YYYY-MM-DD format.",
+            "example": "2026-06-10",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "description": "User note for the medicine.",
+            "example": "Use only when needed for headaches"
+          }
+        },
+        "required": [
+          "source",
+          "displayName"
+        ]
+      },
+      "UpdateCurrentMedicineDto": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "description": "Upstream source.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MedicineSource"
+              }
+            ]
+          },
+          "sourceRefId": {
+            "type": "object",
+            "description": "Source-specific reference id.",
+            "example": "DB01050",
+            "nullable": true
+          },
+          "displayName": {
+            "type": "string",
+            "description": "Display name shown to the user.",
+            "example": "Ibuprofen"
+          },
+          "strengthText": {
+            "type": "object",
+            "description": "Strength text. Use null to clear.",
+            "example": "200 mg",
+            "nullable": true
+          },
+          "doseText": {
+            "type": "object",
+            "description": "Dose text. Use null to clear.",
+            "example": "1 tablet after meals",
+            "nullable": true
+          },
+          "route": {
+            "type": "object",
+            "description": "Administration route. Use null to clear.",
+            "example": "oral",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "object",
+            "description": "Start date in YYYY-MM-DD format. Use null to clear.",
+            "example": "2026-06-03",
+            "nullable": true
+          },
+          "endedAt": {
+            "type": "object",
+            "description": "End date in YYYY-MM-DD format. Use null to clear.",
+            "example": "2026-06-10",
+            "nullable": true
+          },
+          "note": {
+            "type": "object",
+            "description": "User note. Use null to clear.",
+            "example": "Use only when needed for headaches",
+            "nullable": true
+          },
+          "isCurrent": {
+            "type": "boolean",
+            "description": "Whether the medicine is currently active."
           }
         }
       },
@@ -2934,6 +3649,94 @@
           "planned"
         ]
       },
+      "DoseLogItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Dose log id."
+          },
+          "currentMedicineId": {
+            "type": "object",
+            "description": "Linked current medicine id."
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoseLogStatus"
+              }
+            ]
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date in YYYY-MM-DD format.",
+            "example": "2026-06-04"
+          },
+          "doseText": {
+            "type": "object",
+            "description": "Dose text."
+          },
+          "note": {
+            "type": "object",
+            "description": "Free-text note."
+          },
+          "source": {
+            "type": "object",
+            "description": "Source.",
+            "example": "manual"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "scheduledFor",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DoseLogListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoseLogItemDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "DoseLogListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DoseLogListDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
       "CreateDoseLogDto": {
         "type": "object",
         "properties": {
@@ -2966,6 +3769,27 @@
         "required": [
           "status",
           "scheduledFor"
+        ]
+      },
+      "DoseLogResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DoseLogItemDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
         ]
       },
       "UpdateDoseLogDto": {
