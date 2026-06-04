@@ -15,6 +15,7 @@ import { AppService } from './app.service';
 import { I18nModule } from './i18n/i18n.module';
 import { MedicinesModule } from './medicines/medicines.module';
 import { DailyRecordsModule } from './daily-records/daily-records.module';
+import { MedicineDoseLogsModule } from './medicine-dose-logs/medicine-dose-logs.module';
 import { UserHealthContextModule } from './user-health-context/user-health-context.module';
 
 @Module({
@@ -37,6 +38,7 @@ import { UserHealthContextModule } from './user-health-context/user-health-conte
     MedicinesModule,
     UserHealthContextModule,
     DailyRecordsModule,
+    MedicineDoseLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

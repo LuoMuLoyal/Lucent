@@ -52,6 +52,11 @@ export type UserCondition = Prisma.UserConditionModel
  */
 export type UserCurrentMedicine = Prisma.UserCurrentMedicineModel
 /**
+ * Model UserMedicineDoseLog
+ * 
+ */
+export type UserMedicineDoseLog = Prisma.UserMedicineDoseLogModel
+/**
  * Model UserDailyRecord
  * 
  */

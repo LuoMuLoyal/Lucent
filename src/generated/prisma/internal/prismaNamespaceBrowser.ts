@@ -57,6 +57,7 @@ export const ModelName = {
   UserAllergy: 'UserAllergy',
   UserCondition: 'UserCondition',
   UserCurrentMedicine: 'UserCurrentMedicine',
+  UserMedicineDoseLog: 'UserMedicineDoseLog',
   UserDailyRecord: 'UserDailyRecord',
   DrugSourceImport: 'DrugSourceImport',
   CnMedicineProduct: 'CnMedicineProduct',
@@ -211,6 +212,24 @@ export const UserCurrentMedicineScalarFieldEnum = {
 } as const
 
 export type UserCurrentMedicineScalarFieldEnum = (typeof UserCurrentMedicineScalarFieldEnum)[keyof typeof UserCurrentMedicineScalarFieldEnum]
+
+
+export const UserMedicineDoseLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  currentMedicineId: 'currentMedicineId',
+  status: 'status',
+  scheduledFor: 'scheduledFor',
+  takenAt: 'takenAt',
+  doseText: 'doseText',
+  note: 'note',
+  source: 'source',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserMedicineDoseLogScalarFieldEnum = (typeof UserMedicineDoseLogScalarFieldEnum)[keyof typeof UserMedicineDoseLogScalarFieldEnum]
 
 
 export const UserDailyRecordScalarFieldEnum = {
