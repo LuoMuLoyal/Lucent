@@ -154,6 +154,14 @@ export class AuthService {
 
     // Password-based login
     if (hasPassword) {
+      if (!user.passwordHash) {
+        await this.recordLoginFailure(email);
+        throw new UnauthorizedException({
+          code: ResultCode.UNAUTHORIZED,
+          message: this.i18n.t('auth.email_or_password_wrong'),
+        });
+      }
+
       const valid = await argon2.verify(user.passwordHash, password);
       if (!valid) {
         await this.recordLoginFailure(email);
@@ -252,6 +260,13 @@ export class AuthService {
 
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     const user = await this.getMe(userId);
+    if (!user.passwordHash) {
+      throw new UnauthorizedException({
+        code: ResultCode.WRONG_PASSWORD,
+        message: this.i18n.t('auth.current_password_wrong'),
+      });
+    }
+
     const valid = await argon2.verify(user.passwordHash, dto.oldPassword);
     if (!valid) {
       throw new UnauthorizedException({
@@ -292,6 +307,13 @@ export class AuthService {
 
   async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
     const user = await this.getMe(userId);
+    if (!user.passwordHash) {
+      throw new UnauthorizedException({
+        code: ResultCode.WRONG_PASSWORD,
+        message: this.i18n.t('auth.password_wrong'),
+      });
+    }
+
     const valid = await argon2.verify(user.passwordHash, dto.password);
     if (!valid) {
       throw new UnauthorizedException({

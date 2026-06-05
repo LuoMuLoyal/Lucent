@@ -51,6 +51,11 @@ const mockRequestContext = {
   userAgent: 'LuminousTest/1.0',
 };
 
+const mockOAuthOnlyUser = {
+  ...mockUser,
+  passwordHash: null,
+};
+
 function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
@@ -319,6 +324,25 @@ describe('AuthService', () => {
           password: 'WrongPassword!',
         }),
       ).rejects.toThrow(UnauthorizedException);
+      const [key, bucket, ttl] = getLastCacheSetCall(cache);
+      expect(key).toBe(loginFailureKey('test@example.com'));
+      expect(bucket.count).toBe(1);
+      expect(typeof bucket.resetAt).toBe('number');
+      expect(typeof ttl).toBe('number');
+    });
+
+    it('should reject password login when the user has no local password', async () => {
+      userService.findByEmail.mockResolvedValue(mockOAuthOnlyUser);
+      (argon2.verify as jest.Mock).mockClear();
+
+      await expect(
+        service.login({
+          email: 'test@example.com',
+          password: 'Password123!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(argon2.verify).not.toHaveBeenCalled();
       const [key, bucket, ttl] = getLastCacheSetCall(cache);
       expect(key).toBe(loginFailureKey('test@example.com'));
       expect(bucket.count).toBe(1);
@@ -628,6 +652,22 @@ describe('AuthService', () => {
         }),
       ).rejects.toThrow(UnauthorizedException);
     });
+
+    it('should reject password change when the user has no local password', async () => {
+      userService.findById.mockResolvedValue(mockOAuthOnlyUser);
+      (argon2.verify as jest.Mock).mockClear();
+
+      await expect(
+        service.changePassword('user-uuid-1', {
+          oldPassword: 'OldPass123!',
+          newPassword: 'NewPass456!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(argon2.verify).not.toHaveBeenCalled();
+      expect(userService.update).not.toHaveBeenCalled();
+      expect(prismaService.userSession.deleteMany).not.toHaveBeenCalled();
+    });
   });
 
   describe('changeEmail', () => {
@@ -708,6 +748,19 @@ describe('AuthService', () => {
       await expect(
         service.deleteAccount('user-uuid-1', { password: 'WrongPass!' }),
       ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should reject account deletion when the user has no local password', async () => {
+      userService.findById.mockResolvedValue(mockOAuthOnlyUser);
+      (argon2.verify as jest.Mock).mockClear();
+
+      await expect(
+        service.deleteAccount('user-uuid-1', { password: 'Password123!' }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(argon2.verify).not.toHaveBeenCalled();
+      expect(prismaService.userSession.deleteMany).not.toHaveBeenCalled();
+      expect(prismaService.user.update).not.toHaveBeenCalled();
     });
   });
 

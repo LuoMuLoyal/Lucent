@@ -19,6 +19,18 @@ const mockUser = {
   updatedAt: new Date('2026-01-01T00:00:00Z'),
 };
 
+const mockIdentity = {
+  id: 'identity-uuid-1',
+  userId: mockUser.id,
+  provider: 'google',
+  providerUserId: 'google-sub-1',
+  email: mockUser.email,
+  emailVerifiedAt: new Date('2026-01-02T00:00:00Z'),
+  rawProfile: { sub: 'google-sub-1' },
+  createdAt: new Date('2026-01-01T00:00:00Z'),
+  updatedAt: new Date('2026-01-01T00:00:00Z'),
+};
+
 describe('UserService', () => {
   let service: UserService;
   let prismaService: jest.Mocked<PrismaService>;
@@ -34,6 +46,10 @@ describe('UserService', () => {
               findFirst: jest.fn(),
               create: jest.fn(),
               update: jest.fn(),
+            },
+            userIdentity: {
+              findUnique: jest.fn(),
+              create: jest.fn(),
             },
           },
         },
@@ -90,6 +106,52 @@ describe('UserService', () => {
     });
   });
 
+  describe('findByIdentity', () => {
+    it('should return the active user linked to an OAuth identity', async () => {
+      (prismaService.userIdentity.findUnique as jest.Mock).mockResolvedValue({
+        ...mockIdentity,
+        user: mockUser,
+      });
+
+      const result = await service.findByIdentity('google', 'google-sub-1');
+
+      expect(prismaService.userIdentity.findUnique).toHaveBeenCalledWith({
+        where: {
+          provider_providerUserId: {
+            provider: 'google',
+            providerUserId: 'google-sub-1',
+          },
+        },
+        include: { user: true },
+      });
+      expect(result).toEqual(mockUser);
+    });
+
+    it('should return null when identity is missing', async () => {
+      (prismaService.userIdentity.findUnique as jest.Mock).mockResolvedValue(
+        null,
+      );
+
+      const result = await service.findByIdentity('google', 'missing-sub');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when linked user is soft-deleted', async () => {
+      (prismaService.userIdentity.findUnique as jest.Mock).mockResolvedValue({
+        ...mockIdentity,
+        user: {
+          ...mockUser,
+          deletedAt: new Date('2026-01-02T00:00:00Z'),
+        },
+      });
+
+      const result = await service.findByIdentity('google', 'google-sub-1');
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe('create', () => {
     it('should create a user and backfill an empty profile when one is not provided', async () => {
       (prismaService.user.create as jest.Mock).mockResolvedValue(mockUser);
@@ -135,6 +197,77 @@ describe('UserService', () => {
           },
         },
       });
+    });
+  });
+
+  describe('createOAuthUser', () => {
+    it('should create a passwordless user with profile and provider identity', async () => {
+      const verifiedAt = new Date('2026-01-02T00:00:00Z');
+      const oauthUser = {
+        ...mockUser,
+        passwordHash: null,
+        emailVerifiedAt: verifiedAt,
+      };
+      (prismaService.user.create as jest.Mock).mockResolvedValue(oauthUser);
+
+      const result = await service.createOAuthUser({
+        email: 'test@example.com',
+        nickname: 'TestUser',
+        avatar: null,
+        emailVerifiedAt: verifiedAt,
+        identity: {
+          provider: 'google',
+          providerUserId: 'google-sub-1',
+          email: 'test@example.com',
+          emailVerifiedAt: verifiedAt,
+          rawProfile: { sub: 'google-sub-1' },
+        },
+      });
+
+      expect(prismaService.user.create).toHaveBeenCalledWith({
+        data: {
+          email: 'test@example.com',
+          passwordHash: null,
+          nickname: 'TestUser',
+          avatar: null,
+          emailVerifiedAt: verifiedAt,
+          profile: { create: {} },
+          identities: {
+            create: {
+              provider: 'google',
+              providerUserId: 'google-sub-1',
+              email: 'test@example.com',
+              emailVerifiedAt: verifiedAt,
+              rawProfile: { sub: 'google-sub-1' },
+            },
+          },
+        },
+      });
+      expect(result).toEqual(oauthUser);
+    });
+  });
+
+  describe('linkIdentity', () => {
+    it('should attach a provider identity to an existing user', async () => {
+      (prismaService.userIdentity.create as jest.Mock).mockResolvedValue(
+        mockIdentity,
+      );
+
+      const result = await service.linkIdentity('user-uuid-1', {
+        provider: 'google',
+        providerUserId: 'google-sub-1',
+        email: 'test@example.com',
+      });
+
+      expect(prismaService.userIdentity.create).toHaveBeenCalledWith({
+        data: {
+          provider: 'google',
+          providerUserId: 'google-sub-1',
+          email: 'test@example.com',
+          user: { connect: { id: 'user-uuid-1' } },
+        },
+      });
+      expect(result).toEqual(mockIdentity);
     });
   });
 
