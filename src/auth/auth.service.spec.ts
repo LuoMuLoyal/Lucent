@@ -99,6 +99,7 @@ describe('AuthService', () => {
         {
           provide: VerificationCodeService,
           useValue: {
+            assertClientRateLimit: jest.fn(),
             send: jest.fn(),
             verify: jest.fn(),
           },
@@ -602,6 +603,7 @@ describe('AuthService', () => {
       expect(verificationCodeService.send).toHaveBeenCalledWith(
         'test@example.com',
         'register',
+        undefined,
       );
       expect(result.message).toBe('auth.verification_code_sent');
     });
@@ -644,6 +646,9 @@ describe('AuthService', () => {
         'test@example.com',
         'reset-password',
       );
+      expect(
+        verificationCodeService.assertClientRateLimit,
+      ).toHaveBeenCalledWith(undefined);
       expect(result.message).toBe('auth.forgot_password_hint');
     });
 
@@ -654,6 +659,9 @@ describe('AuthService', () => {
         email: 'noone@example.com',
       });
 
+      expect(
+        verificationCodeService.assertClientRateLimit,
+      ).toHaveBeenCalledWith(undefined);
       expect(verificationCodeService.send).not.toHaveBeenCalled();
       expect(result.message).toBe('auth.forgot_password_hint');
     });

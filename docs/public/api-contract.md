@@ -83,6 +83,7 @@ Rules:
 - `timestamp` stays in server logs by default and is not part of the body.
 - `requestId` is returned in the `X-Request-Id` response header and included in server logs; clients only read it for support/debug flows.
 - Business and validation failures should use appropriate HTTP status codes instead of returning every failure as HTTP 200.
+- Rate-limited verification-code requests return HTTP 429 with code `429100`.
 - `message` is human-readable and can be localized later.
 
 ## Headers

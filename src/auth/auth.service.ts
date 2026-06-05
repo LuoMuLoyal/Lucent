@@ -288,10 +288,12 @@ export class AuthService {
 
   async sendVerificationCode(
     dto: SendVerificationCodeDto,
+    clientKey?: string,
   ): Promise<{ message: string }> {
     await this.verificationCodeService.send(
       this.normalizeEmail(dto.email),
       dto.scene,
+      clientKey,
     );
     return { message: this.i18n.t('auth.verification_code_sent') };
   }
@@ -304,8 +306,12 @@ export class AuthService {
     });
   }
 
-  async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
+  async forgotPassword(
+    dto: ForgotPasswordDto,
+    clientKey?: string,
+  ): Promise<{ message: string }> {
     // 安全策略：无论邮箱是否存在，都返回成功提示（防止邮箱枚举攻击）
+    await this.verificationCodeService.assertClientRateLimit(clientKey);
     const email = this.normalizeEmail(dto.email);
     const user = await this.userService.findByEmail(email);
     if (user) {

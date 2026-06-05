@@ -47,6 +47,8 @@ export enum ResultCode {
   VERIFICATION_CODE_INVALID = 400_100,
   /** Verification code send cooldown */
   VERIFICATION_CODE_COOLDOWN = 400_101,
+  /** Verification code endpoint rate limited */
+  VERIFICATION_CODE_RATE_LIMITED = 429_100,
 
   // ── Conflict (409xxx) ────────────────────────────────────────
   /** Resource already exists (e.g. duplicate add) */

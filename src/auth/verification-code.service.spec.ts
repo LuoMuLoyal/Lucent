@@ -1,10 +1,17 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 
 import { I18nService } from 'nestjs-i18n';
-import { VerificationCodeService } from './verification-code.service';
+import {
+  VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS,
+  VerificationCodeService,
+} from './verification-code.service';
 import { MailService } from '../mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ResultCode } from '../common/api-envelope';
@@ -100,6 +107,36 @@ describe('VerificationCodeService', () => {
         };
         expect(response.code).toBe(ResultCode.VERIFICATION_CODE_COOLDOWN);
       }
+    });
+
+    it('should store a client rate limit bucket when client key is provided', async () => {
+      (cache.get as jest.Mock).mockResolvedValue(undefined);
+      (cache.set as jest.Mock).mockResolvedValue(undefined);
+      mailService.sendVerificationCode.mockResolvedValue(undefined);
+
+      await service.send('test@example.com', 'register', '127.0.0.1');
+
+      expect(cache.set).toHaveBeenCalledWith(
+        expect.stringMatching(/^vcode:rl:client:[a-f0-9]{64}$/),
+        expect.objectContaining({
+          count: 1,
+          resetAt: expect.any(Number) as number,
+        }),
+        600_000,
+      );
+    });
+
+    it('should throw 429 when client rate limit is exceeded', async () => {
+      const resetAt = Date.now() + 60_000;
+      (cache.get as jest.Mock).mockResolvedValue({
+        count: VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS,
+        resetAt,
+      });
+
+      await expect(
+        service.send('test@example.com', 'register', '127.0.0.1'),
+      ).rejects.toThrow(HttpException);
+      expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
     });
   });
 
