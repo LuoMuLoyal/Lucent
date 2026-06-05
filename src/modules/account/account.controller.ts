@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Patch,
   Post,
   UseGuards,
@@ -85,6 +86,19 @@ export class AccountController {
       email: updated.email,
       emailVerifiedAt: updated.emailVerifiedAt?.toISOString() ?? null,
     });
+  }
+
+  @Delete('identities/:identityId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Unlink authenticated account OAuth identity' })
+  @ApiResponse({ status: 200, type: AccountResponseDto })
+  async unlinkIdentity(
+    @CurrentUser() user: UserPayload,
+    @Param('identityId') identityId: string,
+  ) {
+    return successEnvelope(
+      await this.accountService.unlinkIdentity(user.sub, identityId),
+    );
   }
 
   @Delete()

@@ -581,6 +581,42 @@
         ]
       }
     },
+    "/api/v1/account/identities/{identityId}": {
+      "delete": {
+        "operationId": "AccountController_unlinkIdentity_v1",
+        "parameters": [
+          {
+            "name": "identityId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Unlink authenticated account OAuth identity",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
     "/api/v1/medicines": {
       "get": {
         "operationId": "MedicinesController_search_v1",
@@ -2111,6 +2147,10 @@
       "AccountIdentityDto": {
         "type": "object",
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "Account identity ID."
+          },
           "provider": {
             "type": "string",
             "description": "OAuth provider name.",
@@ -2135,6 +2175,7 @@
           }
         },
         "required": [
+          "id",
           "provider",
           "email",
           "emailVerifiedAt",

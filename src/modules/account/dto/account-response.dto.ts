@@ -1,6 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 class AccountIdentityDto {
+  @ApiProperty({ description: 'Account identity ID.' })
+  id!: string;
+
   @ApiProperty({ description: 'OAuth provider name.', example: 'wechat_web' })
   provider!: string;
 
