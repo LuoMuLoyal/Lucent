@@ -133,6 +133,38 @@
         ]
       }
     },
+    "/api/v1/auth/oauth/wechat-mobile/callback": {
+      "post": {
+        "operationId": "AuthController_loginWithWechatMobile_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthCodeCallbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "微信移动端登录回调",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/api/v1/auth/logout": {
       "post": {
         "operationId": "AuthController_logout_v1",
@@ -1729,6 +1761,18 @@
         "required": [
           "code",
           "state"
+        ]
+      },
+      "OAuthCodeCallbackDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "OAuth 授权码"
+          }
+        },
+        "required": [
+          "code"
         ]
       },
       "LogoutDto": {

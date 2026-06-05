@@ -1663,6 +1663,7 @@ export const UserIdentityScalarFieldEnum = {
   userId: 'userId',
   provider: 'provider',
   providerUserId: 'providerUserId',
+  providerUnionId: 'providerUnionId',
   email: 'email',
   emailVerifiedAt: 'emailVerifiedAt',
   rawProfile: 'rawProfile',

@@ -6,6 +6,7 @@ import { UserModule } from '../user/user.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { VerificationCodeService } from './verification-code.service';
+import { WechatMobileOAuthProvider } from './wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 
@@ -20,6 +21,7 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
     AuthService,
     JwtAccessStrategy,
     VerificationCodeService,
+    WechatMobileOAuthProvider,
     WechatWebOAuthProvider,
   ],
   exports: [AuthService],

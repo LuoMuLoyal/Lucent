@@ -38,7 +38,7 @@ import { UpdateMeDto } from './dto/update-me.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
-import { OAuthCallbackDto } from './dto/oauth.dto';
+import { OAuthCallbackDto, OAuthCodeCallbackDto } from './dto/oauth.dto';
 
 import {
   ChangeEmailResponseDto,
@@ -136,6 +136,38 @@ export class AuthController {
     @Req() request: Request,
   ) {
     const result = await this.authService.loginWithWechatWeb(
+      dto,
+      this.getAuthRequestContext(request),
+    );
+    return successEnvelope({
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        nickname: result.user.nickname,
+        avatar: result.user.avatar,
+        emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
+        createdAt: result.user.createdAt.toISOString(),
+        updatedAt: result.user.updatedAt.toISOString(),
+      },
+      tokens: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: this.calculateExpiresIn(result.accessTokenExpiresAt),
+      },
+    });
+  }
+
+  // ── 2.3 POST /api/v1/auth/oauth/wechat-mobile/callback ───────
+
+  @Post('oauth/wechat-mobile/callback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '微信移动端登录回调' })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
+  async loginWithWechatMobile(
+    @Body() dto: OAuthCodeCallbackDto,
+    @Req() request: Request,
+  ) {
+    const result = await this.authService.loginWithWechatMobile(
       dto,
       this.getAuthRequestContext(request),
     );

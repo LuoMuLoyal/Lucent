@@ -12,3 +12,10 @@ export class OAuthCallbackDto {
   @MaxLength(512)
   state!: string;
 }
+
+export class OAuthCodeCallbackDto {
+  @ApiProperty({ description: 'OAuth 授权码' })
+  @IsString()
+  @MaxLength(512)
+  code!: string;
+}

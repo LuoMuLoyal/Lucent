@@ -131,6 +131,7 @@ model UserIdentity {
   userId          String    @map("user_id")
   provider        String
   providerUserId  String    @map("provider_user_id")
+  providerUnionId String?   @map("provider_union_id")
   email           String?
   emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
   rawProfile      Json?     @map("raw_profile") @db.JsonB
@@ -140,6 +141,7 @@ model UserIdentity {
 
   @@unique([provider, providerUserId])
   @@index([userId])
+  @@index([providerUnionId])
   @@index([email])
   @@map("user_identities")
 }

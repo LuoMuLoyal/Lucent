@@ -29,10 +29,12 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { SendVerificationCodeDto } from './dto/send-verification-code.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
-import { OAuthCallbackDto } from './dto/oauth.dto';
+import { OAuthCallbackDto, OAuthCodeCallbackDto } from './dto/oauth.dto';
 import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
+import { WechatMobileOAuthProvider } from './wechat-mobile-oauth.provider';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
+  type OAuthProvider,
   type OAuthAuthorizeResult,
   type OAuthProfile,
 } from './oauth.types';
@@ -97,6 +99,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly wechatWebOAuthProvider: WechatWebOAuthProvider,
+    private readonly wechatMobileOAuthProvider: WechatMobileOAuthProvider,
     private readonly i18n: I18nService,
   ) {}
 
@@ -428,18 +431,15 @@ export class AuthService {
   ): Promise<{ user: User } & TokenPair> {
     await this.consumeOAuthState(OAUTH_PROVIDER_WECHAT_WEB, dto.state);
     const profile = await this.wechatWebOAuthProvider.fetchProfile(dto.code);
-    const user = await this.findOrCreateOAuthUser(profile);
+    return this.loginWithOAuthProfile(profile, context);
+  }
 
-    const now = new Date();
-    const updatedUser = await this.userService.update(user.id, {
-      lastLoginAt: now,
-      status: UserStatus.active,
-      ...(profile.nickname !== undefined && { nickname: profile.nickname }),
-      ...(profile.avatar !== undefined && { avatar: profile.avatar }),
-    });
-
-    const tokens = await this.generateTokenPair(updatedUser, context);
-    return { user: updatedUser, ...tokens };
+  async loginWithWechatMobile(
+    dto: OAuthCodeCallbackDto,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
+    const profile = await this.wechatMobileOAuthProvider.fetchProfile(dto.code);
+    return this.loginWithOAuthProfile(profile, context);
   }
 
   // ── Private Helpers ──────────────────────────────────────────
@@ -498,6 +498,24 @@ export class AuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
+  private async loginWithOAuthProfile(
+    profile: OAuthProfile,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
+    const user = await this.findOrCreateOAuthUser(profile);
+
+    const now = new Date();
+    const updatedUser = await this.userService.update(user.id, {
+      lastLoginAt: now,
+      status: UserStatus.active,
+      ...(profile.nickname !== undefined && { nickname: profile.nickname }),
+      ...(profile.avatar !== undefined && { avatar: profile.avatar }),
+    });
+
+    const tokens = await this.generateTokenPair(updatedUser, context);
+    return { user: updatedUser, ...tokens };
+  }
+
   private async findOrCreateOAuthUser(profile: OAuthProfile): Promise<User> {
     const linkedUser = await this.userService.findByIdentity(
       profile.provider,
@@ -507,22 +525,22 @@ export class AuthService {
       return linkedUser;
     }
 
+    if (profile.unionId) {
+      const existingUnionUser = await this.userService.findByProviderUnionId(
+        profile.unionId,
+      );
+      if (existingUnionUser) {
+        await this.linkOAuthIdentity(existingUnionUser.id, profile);
+        return existingUnionUser;
+      }
+    }
+
     if (profile.email) {
       const existingUser = await this.userService.findByEmail(
         this.normalizeEmail(profile.email),
       );
       if (existingUser) {
-        await this.userService.linkIdentity(existingUser.id, {
-          provider: profile.provider,
-          providerUserId: profile.providerUserId,
-          email: this.normalizeEmail(profile.email),
-          ...(profile.emailVerifiedAt !== undefined && {
-            emailVerifiedAt: profile.emailVerifiedAt,
-          }),
-          ...(profile.rawProfile !== undefined && {
-            rawProfile: profile.rawProfile,
-          }),
-        });
+        await this.linkOAuthIdentity(existingUser.id, profile);
         return existingUser;
       }
     }
@@ -540,6 +558,9 @@ export class AuthService {
       identity: {
         provider: profile.provider,
         providerUserId: profile.providerUserId,
+        ...(profile.unionId !== undefined && {
+          providerUnionId: profile.unionId,
+        }),
         ...(profile.email !== undefined && {
           email:
             profile.email === null ? null : this.normalizeEmail(profile.email),
@@ -551,6 +572,29 @@ export class AuthService {
           rawProfile: profile.rawProfile,
         }),
       },
+    });
+  }
+
+  private async linkOAuthIdentity(
+    userId: string,
+    profile: OAuthProfile,
+  ): Promise<void> {
+    await this.userService.linkIdentity(userId, {
+      provider: profile.provider,
+      providerUserId: profile.providerUserId,
+      ...(profile.unionId !== undefined && {
+        providerUnionId: profile.unionId,
+      }),
+      ...(profile.email !== undefined && {
+        email:
+          profile.email === null ? null : this.normalizeEmail(profile.email),
+      }),
+      ...(profile.emailVerifiedAt !== undefined && {
+        emailVerifiedAt: profile.emailVerifiedAt,
+      }),
+      ...(profile.rawProfile !== undefined && {
+        rawProfile: profile.rawProfile,
+      }),
     });
   }
 
@@ -572,10 +616,7 @@ export class AuthService {
     return entry;
   }
 
-  private oauthStateKey(
-    provider: typeof OAUTH_PROVIDER_WECHAT_WEB,
-    state: string,
-  ): string {
+  private oauthStateKey(provider: OAuthProvider, state: string): string {
     const digest = createHash('sha256').update(state).digest('hex');
     return `auth:oauth-state:${provider}:${digest}`;
   }
