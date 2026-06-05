@@ -5,6 +5,7 @@ import { Prisma, User, UserIdentity } from '../../generated/prisma/client';
 export interface UserIdentityInput {
   provider: string;
   providerUserId: string;
+  providerUnionId?: string | null;
   email?: string | null;
   emailVerifiedAt?: Date | null;
   rawProfile?: Prisma.InputJsonValue;
@@ -37,6 +38,20 @@ export class UserService {
     const identity = await this.prisma.userIdentity.findUnique({
       where: { provider_providerUserId: { provider, providerUserId } },
       include: { user: true },
+    });
+
+    if (!identity || identity.user.deletedAt !== null) {
+      return null;
+    }
+
+    return identity.user;
+  }
+
+  async findByProviderUnionId(providerUnionId: string): Promise<User | null> {
+    const identity = await this.prisma.userIdentity.findFirst({
+      where: { providerUnionId },
+      include: { user: true },
+      orderBy: { createdAt: 'asc' },
     });
 
     if (!identity || identity.user.deletedAt !== null) {
@@ -112,6 +127,9 @@ export class UserService {
     return {
       provider: data.provider,
       providerUserId: data.providerUserId,
+      ...(data.providerUnionId !== undefined && {
+        providerUnionId: data.providerUnionId,
+      }),
       ...(data.email !== undefined && { email: data.email }),
       ...(data.emailVerifiedAt !== undefined && {
         emailVerifiedAt: data.emailVerifiedAt,

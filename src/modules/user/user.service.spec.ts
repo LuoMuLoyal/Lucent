@@ -49,6 +49,7 @@ describe('UserService', () => {
             },
             userIdentity: {
               findUnique: jest.fn(),
+              findFirst: jest.fn(),
               create: jest.fn(),
             },
           },
@@ -147,6 +148,40 @@ describe('UserService', () => {
       });
 
       const result = await service.findByIdentity('google', 'google-sub-1');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findByProviderUnionId', () => {
+    it('should return the earliest active user linked to a provider union id', async () => {
+      (prismaService.userIdentity.findFirst as jest.Mock).mockResolvedValue({
+        ...mockIdentity,
+        providerUnionId: 'wechat-unionid-1',
+        user: mockUser,
+      });
+
+      const result = await service.findByProviderUnionId('wechat-unionid-1');
+
+      expect(prismaService.userIdentity.findFirst).toHaveBeenCalledWith({
+        where: { providerUnionId: 'wechat-unionid-1' },
+        include: { user: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      expect(result).toEqual(mockUser);
+    });
+
+    it('should return null when the union-linked user is soft-deleted', async () => {
+      (prismaService.userIdentity.findFirst as jest.Mock).mockResolvedValue({
+        ...mockIdentity,
+        providerUnionId: 'wechat-unionid-1',
+        user: {
+          ...mockUser,
+          deletedAt: new Date('2026-01-02T00:00:00Z'),
+        },
+      });
+
+      const result = await service.findByProviderUnionId('wechat-unionid-1');
 
       expect(result).toBeNull();
     });
@@ -262,6 +297,7 @@ describe('UserService', () => {
         identity: {
           provider: 'wechat_web',
           providerUserId: 'wechat-openid-1',
+          providerUnionId: 'wechat-unionid-1',
           email: null,
           rawProfile: { openid: 'wechat-openid-1' },
         },
@@ -277,6 +313,7 @@ describe('UserService', () => {
             create: {
               provider: 'wechat_web',
               providerUserId: 'wechat-openid-1',
+              providerUnionId: 'wechat-unionid-1',
               email: null,
               rawProfile: { openid: 'wechat-openid-1' },
             },
@@ -296,6 +333,7 @@ describe('UserService', () => {
       const result = await service.linkIdentity('user-uuid-1', {
         provider: 'google',
         providerUserId: 'google-sub-1',
+        providerUnionId: 'google-union-1',
         email: 'test@example.com',
       });
 
@@ -303,6 +341,7 @@ describe('UserService', () => {
         data: {
           provider: 'google',
           providerUserId: 'google-sub-1',
+          providerUnionId: 'google-union-1',
           email: 'test@example.com',
           user: { connect: { id: 'user-uuid-1' } },
         },

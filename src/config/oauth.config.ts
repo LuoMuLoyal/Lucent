@@ -10,6 +10,7 @@ export interface OAuthProviderConfig {
 
 export interface OAuthConfig {
   wechatWeb: OAuthProviderConfig;
+  wechatMobile: Omit<OAuthProviderConfig, 'redirectUri'>;
 }
 
 export const oauthConfig = registerAs(
@@ -19,6 +20,10 @@ export const oauthConfig = registerAs(
       appId: process.env[EnvKey.WECHAT_WEB_APP_ID] ?? '',
       appSecret: process.env[EnvKey.WECHAT_WEB_APP_SECRET] ?? '',
       redirectUri: process.env[EnvKey.WECHAT_WEB_REDIRECT_URI] ?? '',
+    },
+    wechatMobile: {
+      appId: process.env[EnvKey.WECHAT_MOBILE_APP_ID] ?? '',
+      appSecret: process.env[EnvKey.WECHAT_MOBILE_APP_SECRET] ?? '',
     },
   }),
 );

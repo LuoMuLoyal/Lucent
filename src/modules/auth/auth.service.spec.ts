@@ -17,8 +17,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { UserService } from '../user/user.service';
 import { VerificationCodeService } from './verification-code.service';
 import { UserStatus } from '../../generated/prisma/client';
+import { WechatMobileOAuthProvider } from './wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
-import { OAUTH_PROVIDER_WECHAT_WEB } from './oauth.types';
+import {
+  OAUTH_PROVIDER_WECHAT_MOBILE,
+  OAUTH_PROVIDER_WECHAT_WEB,
+} from './oauth.types';
 
 jest.mock('argon2', () => ({
   argon2id: 2,
@@ -105,6 +109,7 @@ describe('AuthService', () => {
   let userService: jest.Mocked<UserService>;
   let jwtService: jest.Mocked<JwtService>;
   let verificationCodeService: jest.Mocked<VerificationCodeService>;
+  let wechatMobileOAuthProvider: jest.Mocked<WechatMobileOAuthProvider>;
   let wechatWebOAuthProvider: jest.Mocked<WechatWebOAuthProvider>;
 
   beforeEach(async () => {
@@ -139,6 +144,7 @@ describe('AuthService', () => {
             findByEmail: jest.fn(),
             findById: jest.fn(),
             findByIdentity: jest.fn(),
+            findByProviderUnionId: jest.fn(),
             create: jest.fn(),
             createOAuthUser: jest.fn(),
             linkIdentity: jest.fn(),
@@ -167,6 +173,12 @@ describe('AuthService', () => {
           },
         },
         {
+          provide: WechatMobileOAuthProvider,
+          useValue: {
+            fetchProfile: jest.fn(),
+          },
+        },
+        {
           provide: WechatWebOAuthProvider,
           useValue: {
             buildAuthorizeUrl: jest.fn(),
@@ -188,6 +200,7 @@ describe('AuthService', () => {
     userService = module.get(UserService);
     jwtService = module.get(JwtService);
     verificationCodeService = module.get(VerificationCodeService);
+    wechatMobileOAuthProvider = module.get(WechatMobileOAuthProvider);
     wechatWebOAuthProvider = module.get(WechatWebOAuthProvider);
 
     (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$newhash');
@@ -202,10 +215,20 @@ describe('AuthService', () => {
     wechatWebOAuthProvider.fetchProfile.mockResolvedValue({
       provider: OAUTH_PROVIDER_WECHAT_WEB,
       providerUserId: 'wechat-openid-1',
+      unionId: 'wechat-unionid-1',
       email: null,
       nickname: 'WechatUser',
       avatar: 'https://example.com/wechat-avatar.png',
       rawProfile: { openid: 'wechat-openid-1' },
+    });
+    wechatMobileOAuthProvider.fetchProfile.mockResolvedValue({
+      provider: OAUTH_PROVIDER_WECHAT_MOBILE,
+      providerUserId: 'wechat-mobile-openid-1',
+      unionId: 'wechat-unionid-1',
+      email: null,
+      nickname: 'WechatMobileUser',
+      avatar: 'https://example.com/wechat-mobile-avatar.png',
+      rawProfile: { openid: 'wechat-mobile-openid-1' },
     });
     (prismaService.userSession.create as jest.Mock).mockResolvedValue({
       id: 'session-id',
@@ -983,6 +1006,7 @@ describe('AuthService', () => {
         identity: {
           provider: OAUTH_PROVIDER_WECHAT_WEB,
           providerUserId: 'wechat-openid-1',
+          providerUnionId: 'wechat-unionid-1',
           email: null,
           rawProfile: { openid: 'wechat-openid-1' },
         },
@@ -1039,6 +1063,54 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
 
       expect(wechatWebOAuthProvider.fetchProfile).not.toHaveBeenCalled();
+    });
+
+    it('should link mobile WeChat identity by union id and return tokens', async () => {
+      const updatedUser = {
+        ...mockOAuthOnlyUser,
+        nickname: 'WechatMobileUser',
+        avatar: 'https://example.com/wechat-mobile-avatar.png',
+        lastLoginAt: new Date('2026-01-02T00:00:00Z'),
+      };
+      userService.findByIdentity.mockResolvedValue(null);
+      userService.findByProviderUnionId.mockResolvedValue(mockOAuthOnlyUser);
+      userService.linkIdentity.mockResolvedValue({
+        id: 'identity-uuid-2',
+        userId: mockOAuthOnlyUser.id,
+        provider: OAUTH_PROVIDER_WECHAT_MOBILE,
+        providerUserId: 'wechat-mobile-openid-1',
+        providerUnionId: 'wechat-unionid-1',
+        email: null,
+        emailVerifiedAt: null,
+        rawProfile: { openid: 'wechat-mobile-openid-1' },
+        createdAt: new Date('2026-01-02T00:00:00Z'),
+        updatedAt: new Date('2026-01-02T00:00:00Z'),
+      });
+      userService.update.mockResolvedValue(updatedUser);
+
+      const result = await service.loginWithWechatMobile(
+        { code: 'wechat-mobile-code' },
+        mockRequestContext,
+      );
+
+      expect(wechatMobileOAuthProvider.fetchProfile).toHaveBeenCalledWith(
+        'wechat-mobile-code',
+      );
+      expect(userService.findByProviderUnionId).toHaveBeenCalledWith(
+        'wechat-unionid-1',
+      );
+      expect(userService.linkIdentity).toHaveBeenCalledWith('user-uuid-1', {
+        provider: OAUTH_PROVIDER_WECHAT_MOBILE,
+        providerUserId: 'wechat-mobile-openid-1',
+        providerUnionId: 'wechat-unionid-1',
+        email: null,
+        rawProfile: { openid: 'wechat-mobile-openid-1' },
+      });
+      expect(userService.createOAuthUser).not.toHaveBeenCalled();
+      expect(result.user).toEqual(updatedUser);
+      expect(getLastSessionCreateData(prismaService)).toEqual(
+        expect.objectContaining(mockRequestContext),
+      );
     });
   });
 });

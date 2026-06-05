@@ -37,6 +37,8 @@ export interface EnvironmentVariables {
   [EnvKey.WECHAT_WEB_APP_ID]?: string;
   [EnvKey.WECHAT_WEB_APP_SECRET]?: string;
   [EnvKey.WECHAT_WEB_REDIRECT_URI]?: string;
+  [EnvKey.WECHAT_MOBILE_APP_ID]?: string;
+  [EnvKey.WECHAT_MOBILE_APP_SECRET]?: string;
 }
 
 const envSchema = Joi.object<EnvironmentVariables>({
@@ -99,6 +101,10 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.WECHAT_WEB_APP_SECRET]: Joi.string().allow('').optional(),
 
   [EnvKey.WECHAT_WEB_REDIRECT_URI]: Joi.string().uri().allow('').optional(),
+
+  [EnvKey.WECHAT_MOBILE_APP_ID]: Joi.string().allow('').optional(),
+
+  [EnvKey.WECHAT_MOBILE_APP_SECRET]: Joi.string().allow('').optional(),
 });
 
 export function validateEnvironment(
