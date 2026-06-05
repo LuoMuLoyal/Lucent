@@ -151,6 +151,9 @@ MAIL_PORT=587
 MAIL_FROM=noreply@example.com
 MAIL_USER=your_email@example.com
 MAIL_PASS=your_password
+WECHAT_WEB_APP_ID=
+WECHAT_WEB_APP_SECRET=
+WECHAT_WEB_REDIRECT_URI=https://your-domain.example/oauth/wechat/callback
 LOG_LEVEL=info
 EOF
 ```
@@ -160,6 +163,14 @@ Then edit `.env.production`, especially:
 - `JWT_ACCESS_SECRET`
 - `JWT_REFRESH_SECRET`
 - `CORS_ORIGIN`
+
+Optional WeChat Web OAuth login variables:
+
+- `WECHAT_WEB_APP_ID`
+- `WECHAT_WEB_APP_SECRET`
+- `WECHAT_WEB_REDIRECT_URI`
+
+When these are empty, Lucent still starts normally and the WeChat Web OAuth endpoints report the provider as not configured.
 
 In the default single-server compose deployment, `DATABASE_URL` and `REDIS_URL` are pinned to the local `postgres` / `redis` containers by `docker-compose.yml`. If you want to use external services instead, update both `.env.production` and `docker-compose.yml`.
 
@@ -197,6 +208,7 @@ CORS_ORIGIN
 - Cache manager is global. When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; when `REDIS_URL` is absent, it falls back to in-memory cache.
 - Mail delivery uses BullMQ when `REDIS_URL` is set: `MailService` enqueues jobs to `lucent-mail`, and an in-process worker sends through the configured log/smtp transport with retry/backoff. Without `REDIS_URL`, mail is sent immediately.
 - Auth transient state uses scoped cache prefixes: `vcode:*` for email verification codes/cooldowns/client limits and `auth:login-failure:*` for login failure buckets. Keys store opaque values or hashed identifiers rather than raw passwords/tokens.
+- WeChat Web OAuth state uses `auth:oauth-state:wechat_web:*` keys with a 10 minute TTL. WeChat Web accounts may not expose email, so `users.email` is nullable; email/password flows still require an email in their DTOs.
 - Medicine knowledge reads currently use service-layer cache keys under the `medicines:` prefix. Search cache TTL is 5 minutes; detail cache TTL is 15 minutes.
 - Frontend may send `x-bypass-cache: true` (also accepts `1`, `yes`, or `no-cache`) on medicines read requests to bypass cache for that request only.
 - Medicine import scripts scan Redis for medicines cache entries under the active Keyv namespace and invalidate the matching logical `medicines:*` keys after import when `REDIS_URL` is configured.

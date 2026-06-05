@@ -245,6 +245,46 @@ describe('UserService', () => {
       });
       expect(result).toEqual(oauthUser);
     });
+
+    it('should create an OAuth user without email for providers that do not expose one', async () => {
+      const oauthUser = {
+        ...mockUser,
+        email: null,
+        passwordHash: null,
+        nickname: 'WechatUser',
+        avatar: 'https://example.com/avatar.png',
+      };
+      (prismaService.user.create as jest.Mock).mockResolvedValue(oauthUser);
+
+      const result = await service.createOAuthUser({
+        nickname: 'WechatUser',
+        avatar: 'https://example.com/avatar.png',
+        identity: {
+          provider: 'wechat_web',
+          providerUserId: 'wechat-openid-1',
+          email: null,
+          rawProfile: { openid: 'wechat-openid-1' },
+        },
+      });
+
+      expect(prismaService.user.create).toHaveBeenCalledWith({
+        data: {
+          passwordHash: null,
+          nickname: 'WechatUser',
+          avatar: 'https://example.com/avatar.png',
+          profile: { create: {} },
+          identities: {
+            create: {
+              provider: 'wechat_web',
+              providerUserId: 'wechat-openid-1',
+              email: null,
+              rawProfile: { openid: 'wechat-openid-1' },
+            },
+          },
+        },
+      });
+      expect(result).toEqual(oauthUser);
+    });
   });
 
   describe('linkIdentity', () => {

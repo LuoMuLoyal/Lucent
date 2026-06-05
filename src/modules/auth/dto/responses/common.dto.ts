@@ -5,8 +5,12 @@ export class UserBriefDto {
   @ApiProperty({ description: '用户 ID' })
   id!: string;
 
-  @ApiProperty({ description: '邮箱地址', example: 'user@example.com' })
-  email!: string;
+  @ApiProperty({
+    description: '邮箱地址，第三方账号可能为空',
+    example: 'user@example.com',
+    nullable: true,
+  })
+  email!: string | null;
 
   @ApiProperty({ description: '昵称', example: '小明', nullable: true })
   nickname!: string | null;
@@ -26,8 +30,12 @@ export class UserFullDto {
   @ApiProperty({ description: '用户 ID' })
   id!: string;
 
-  @ApiProperty({ description: '邮箱地址', example: 'user@example.com' })
-  email!: string;
+  @ApiProperty({
+    description: '邮箱地址，第三方账号可能为空',
+    example: 'user@example.com',
+    nullable: true,
+  })
+  email!: string | null;
 
   @ApiProperty({ description: '昵称', example: '小明', nullable: true })
   nickname!: string | null;

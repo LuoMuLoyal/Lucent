@@ -35,7 +35,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
    * 返回值会挂载到 request.user。
    */
   validate(payload: UserPayload): UserPayload {
-    if (!payload.sub || !payload.email) {
+    if (!payload.sub) {
       throw new UnauthorizedException({
         code: ResultCode.UNAUTHORIZED,
         message: '无效的 access token',

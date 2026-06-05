@@ -29,6 +29,13 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { SendVerificationCodeDto } from './dto/send-verification-code.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
+import { OAuthCallbackDto } from './dto/oauth.dto';
+import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
+import {
+  OAUTH_PROVIDER_WECHAT_WEB,
+  type OAuthAuthorizeResult,
+  type OAuthProfile,
+} from './oauth.types';
 
 // Login rate limiting
 const LOGIN_RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
@@ -52,7 +59,7 @@ export interface TokenPair {
 
 export interface UserPayload {
   sub: string;
-  email: string;
+  email: string | null;
 }
 
 export interface AuthRequestContext {
@@ -73,6 +80,13 @@ interface LoginFailureBucket {
   lockedUntil?: number;
 }
 
+interface OAuthStateEntry {
+  provider: typeof OAUTH_PROVIDER_WECHAT_WEB;
+}
+
+const OAUTH_STATE_TTL = 10 * 60 * 1000;
+const OAUTH_STATE_TTL_SEC = OAUTH_STATE_TTL / 1000;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -82,6 +96,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly verificationCodeService: VerificationCodeService,
+    private readonly wechatWebOAuthProvider: WechatWebOAuthProvider,
     private readonly i18n: I18nService,
   ) {}
 
@@ -388,6 +403,45 @@ export class AuthService {
     await this.logoutAll(user.id);
   }
 
+  // ── OAuth ────────────────────────────────────────────────────
+
+  async createWechatWebAuthorizeUrl(): Promise<OAuthAuthorizeResult> {
+    const state = randomBytes(24).toString('base64url');
+    await this.cache.set(
+      this.oauthStateKey(OAUTH_PROVIDER_WECHAT_WEB, state),
+      {
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+      },
+      OAUTH_STATE_TTL,
+    );
+
+    return {
+      authorizeUrl: this.wechatWebOAuthProvider.buildAuthorizeUrl(state),
+      state,
+      expiresIn: OAUTH_STATE_TTL_SEC,
+    };
+  }
+
+  async loginWithWechatWeb(
+    dto: OAuthCallbackDto,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
+    await this.consumeOAuthState(OAUTH_PROVIDER_WECHAT_WEB, dto.state);
+    const profile = await this.wechatWebOAuthProvider.fetchProfile(dto.code);
+    const user = await this.findOrCreateOAuthUser(profile);
+
+    const now = new Date();
+    const updatedUser = await this.userService.update(user.id, {
+      lastLoginAt: now,
+      status: UserStatus.active,
+      ...(profile.nickname !== undefined && { nickname: profile.nickname }),
+      ...(profile.avatar !== undefined && { avatar: profile.avatar }),
+    });
+
+    const tokens = await this.generateTokenPair(updatedUser, context);
+    return { user: updatedUser, ...tokens };
+  }
+
   // ── Private Helpers ──────────────────────────────────────────
 
   private async generateTokenPair(
@@ -442,6 +496,100 @@ export class AuthService {
 
   private hashRefreshToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async findOrCreateOAuthUser(profile: OAuthProfile): Promise<User> {
+    const linkedUser = await this.userService.findByIdentity(
+      profile.provider,
+      profile.providerUserId,
+    );
+    if (linkedUser) {
+      return linkedUser;
+    }
+
+    if (profile.email) {
+      const existingUser = await this.userService.findByEmail(
+        this.normalizeEmail(profile.email),
+      );
+      if (existingUser) {
+        await this.userService.linkIdentity(existingUser.id, {
+          provider: profile.provider,
+          providerUserId: profile.providerUserId,
+          email: this.normalizeEmail(profile.email),
+          ...(profile.emailVerifiedAt !== undefined && {
+            emailVerifiedAt: profile.emailVerifiedAt,
+          }),
+          ...(profile.rawProfile !== undefined && {
+            rawProfile: profile.rawProfile,
+          }),
+        });
+        return existingUser;
+      }
+    }
+
+    return this.userService.createOAuthUser({
+      ...(profile.email !== undefined && {
+        email:
+          profile.email === null ? null : this.normalizeEmail(profile.email),
+      }),
+      ...(profile.nickname !== undefined && { nickname: profile.nickname }),
+      ...(profile.avatar !== undefined && { avatar: profile.avatar }),
+      ...(profile.emailVerifiedAt !== undefined && {
+        emailVerifiedAt: profile.emailVerifiedAt,
+      }),
+      identity: {
+        provider: profile.provider,
+        providerUserId: profile.providerUserId,
+        ...(profile.email !== undefined && {
+          email:
+            profile.email === null ? null : this.normalizeEmail(profile.email),
+        }),
+        ...(profile.emailVerifiedAt !== undefined && {
+          emailVerifiedAt: profile.emailVerifiedAt,
+        }),
+        ...(profile.rawProfile !== undefined && {
+          rawProfile: profile.rawProfile,
+        }),
+      },
+    });
+  }
+
+  private async consumeOAuthState(
+    provider: typeof OAUTH_PROVIDER_WECHAT_WEB,
+    state: string,
+  ): Promise<OAuthStateEntry> {
+    const key = this.oauthStateKey(provider, state);
+    const entry = await this.cache.get<OAuthStateEntry>(key);
+    await this.cache.del(key);
+
+    if (!this.isValidOAuthStateEntry(entry, provider)) {
+      throw new UnauthorizedException({
+        code: ResultCode.UNAUTHORIZED,
+        message: this.i18n.t('auth.oauth_state_invalid'),
+      });
+    }
+
+    return entry;
+  }
+
+  private oauthStateKey(
+    provider: typeof OAUTH_PROVIDER_WECHAT_WEB,
+    state: string,
+  ): string {
+    const digest = createHash('sha256').update(state).digest('hex');
+    return `auth:oauth-state:${provider}:${digest}`;
+  }
+
+  private isValidOAuthStateEntry(
+    entry: unknown,
+    provider: typeof OAUTH_PROVIDER_WECHAT_WEB,
+  ): entry is OAuthStateEntry {
+    if (typeof entry !== 'object' || entry === null) {
+      return false;
+    }
+
+    const candidate = entry as Partial<OAuthStateEntry>;
+    return candidate.provider === provider;
   }
 
   private getSessionContextData(context: AuthRequestContext | undefined): {

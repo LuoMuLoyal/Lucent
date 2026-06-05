@@ -6,6 +6,7 @@ import { UserModule } from '../user/user.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { VerificationCodeService } from './verification-code.service';
+import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 
 @Module({
@@ -15,7 +16,12 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
     JwtModule.register({}), // actual secret is configured per-sign in AuthService
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAccessStrategy, VerificationCodeService],
+  providers: [
+    AuthService,
+    JwtAccessStrategy,
+    VerificationCodeService,
+    WechatWebOAuthProvider,
+  ],
   exports: [AuthService],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration

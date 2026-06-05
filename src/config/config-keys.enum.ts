@@ -12,4 +12,7 @@ export enum ConfigKey {
 
   /** Mail configuration */
   Mail = 'mail',
+
+  /** OAuth provider configuration */
+  OAuth = 'oauth',
 }
