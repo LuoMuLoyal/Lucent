@@ -1,6 +1,6 @@
 # Environment
 
-Last updated: 2026-06-01
+Last updated: 2026-06-05
 
 Lucent uses `@nestjs/config` with validated environment variables.
 
@@ -44,7 +44,7 @@ Prisma CLI uses the same resolution order through `prisma.config.ts`, so `NODE_E
 - `pnpm test:e2e` runs with `NODE_ENV=test` and `NODE_OPTIONS=--experimental-vm-modules` for Prisma 7 generated client compatibility.
 - `pnpm test:e2e:ci` runs e2e tests with the same test env plus `--runInBand` for GitHub Actions.
 - Prisma commands should be run with an explicit `NODE_ENV` when they are not targeting development. Example: `NODE_ENV=test pnpm exec prisma migrate deploy`.
-- `pnpm export:openapi` builds Lucent first, then exports `docs/openapi.json` from `dist` so Prisma generated imports resolve correctly.
+- `pnpm export:openapi` builds Lucent first, then exports `docs/openapi.json` from `dist` so Prisma generated imports resolve correctly. The export script disables `REDIS_URL` inside that process so docs generation does not start Redis-backed cache or BullMQ connections.
 - i18n type generation only writes `src/generated/i18n.generated.ts` when Lucent is running from the source tree in `NODE_ENV=development`; compiled `dist` runtime and `pnpm export:openapi` no longer attempt to write or read `dist/generated/i18n.generated.ts`.
 - `pnpm dev:stack:up` starts the local development stack from `docker-compose.dev.yml`.
 - `pnpm db:migrate:all` runs Prisma generate plus migrate deploy for both the development and test databases.
@@ -195,6 +195,7 @@ CORS_ORIGIN
 - Request id: returned in `X-Request-Id` and available for server-side log correlation.
 - Auth e2e baseline passes for register / login / refresh / me / logout.
 - Cache manager is global. When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; when `REDIS_URL` is absent, it falls back to in-memory cache.
+- Mail delivery uses BullMQ when `REDIS_URL` is set: `MailService` enqueues jobs to `lucent-mail`, and an in-process worker sends through the configured log/smtp transport with retry/backoff. Without `REDIS_URL`, mail is sent immediately.
 - Medicine knowledge reads currently use service-layer cache keys under the `medicines:` prefix. Search cache TTL is 5 minutes; detail cache TTL is 15 minutes.
 - Frontend may send `x-bypass-cache: true` (also accepts `1`, `yes`, or `no-cache`) on medicines read requests to bypass cache for that request only.
 - Medicine import scripts scan Redis for medicines cache entries under the active Keyv namespace and invalidate the matching logical `medicines:*` keys after import when `REDIS_URL` is configured.

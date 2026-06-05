@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -15,6 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Request } from 'express';
 
 import { successEnvelope } from '../common/api-envelope';
 import { VERIFICATION_CODE_COOLDOWN_SEC } from './verification-code.service';
@@ -138,8 +140,15 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '发送邮箱验证码' })
   @ApiResponse({ status: 200, type: SendVerificationCodeResponseDto })
-  async sendVerificationCode(@Body() dto: SendVerificationCodeDto) {
-    const result = await this.authService.sendVerificationCode(dto);
+  @ApiResponse({ status: 429, description: '验证码接口请求过多' })
+  async sendVerificationCode(
+    @Body() dto: SendVerificationCodeDto,
+    @Req() request: Request,
+  ) {
+    const result = await this.authService.sendVerificationCode(
+      dto,
+      this.getClientRateLimitKey(request),
+    );
     return successEnvelope({
       cooldown: VERIFICATION_CODE_COOLDOWN_SEC,
       message: result.message,
@@ -163,8 +172,15 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '忘记密码' })
   @ApiResponse({ status: 200, type: ForgotPasswordResponseDto })
-  async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    const result = await this.authService.forgotPassword(dto);
+  @ApiResponse({ status: 429, description: '验证码接口请求过多' })
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+    @Req() request: Request,
+  ) {
+    const result = await this.authService.forgotPassword(
+      dto,
+      this.getClientRateLimitKey(request),
+    );
     return successEnvelope({
       cooldown: VERIFICATION_CODE_COOLDOWN_SEC,
       message: result.message,
@@ -282,5 +298,20 @@ export class AuthController {
 
   private toEmailVerified(emailVerifiedAt: Date | null): boolean {
     return emailVerifiedAt !== null;
+  }
+
+  private getClientRateLimitKey(request: Request): string {
+    const forwardedFor = request.headers['x-forwarded-for'];
+    const forwardedValue = Array.isArray(forwardedFor)
+      ? forwardedFor[0]
+      : forwardedFor;
+    const firstForwardedIp = forwardedValue?.split(',')[0]?.trim();
+
+    return (
+      firstForwardedIp ||
+      request.ip ||
+      request.socket.remoteAddress ||
+      'unknown-client'
+    );
   }
 }

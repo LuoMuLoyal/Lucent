@@ -3,6 +3,30 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-05 (Verification Code Rate Limit + BullMQ Mail Queue)
+
+### Added
+
+- `bullmq` dependency for asynchronous mail delivery.
+- `src/mail/mail-queue.service.ts` — BullMQ-backed mail queue. When `REDIS_URL` is configured, mail is enqueued to `lucent-mail` and consumed by an in-process worker with retry/backoff. Without `REDIS_URL`, mail falls back to immediate sending for lightweight local/test runs.
+- `src/mail/mail-transport.service.ts` — extracted the actual log/smtp transport from `MailService`.
+- Verification code client rate limit: at most 20 verification-code requests per client key in 10 minutes, across `send-verification-code` and `forgot-password`.
+- New result code `429100` for verification-code endpoint rate limiting.
+
+### Changed
+
+- `MailService` keeps the existing `send` / `sendVerificationCode` API but now delegates to `MailQueueService`.
+- `POST /api/v1/auth/send-verification-code` and `POST /api/v1/auth/forgot-password` now derive the client key from `x-forwarded-for`, then `request.ip`, then socket remote address.
+- `docs/auth-api-mock.md`, `docs/public/api-contract.md`, and `docs/environment.md` document the new 429 behavior and mail queue runtime.
+
+### Test Results
+
+- `pnpm install --frozen-lockfile` — passed
+- `pnpm test -- verification-code.service.spec.ts auth.service.spec.ts mail.service.spec.ts mail-queue.service.spec.ts` — 4 suites / 44 tests passed
+- `pnpm lint:check` — passed
+- `pnpm test:e2e:ci -- auth.e2e-spec.ts` — 34 tests passed
+- `pnpm export:openapi` — 27 paths / 76 schemas
+
 ## 2026-06-04 (Post-Audit Health Context + Dose-Log Fix)
 
 ### Fixed

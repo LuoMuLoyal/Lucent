@@ -11,6 +11,7 @@ import { setupApp } from '../src/setup-app';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ResultCode } from '../src/common/api-envelope';
 import type { ApiEnvelope } from '../src/common/api-envelope';
+import { VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS } from '../src/auth/verification-code.service';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -89,6 +90,12 @@ let userSeq = 0;
 function uniqueEmail(): string {
   userSeq += 1;
   return `testuser${String(userSeq)}_${String(Date.now())}@${TEST_EMAIL_DOMAIN}`;
+}
+
+let clientIpSeq = 0;
+function uniqueClientIp(): string {
+  clientIpSeq += 1;
+  return `198.51.100.${String(clientIpSeq)}`;
 }
 
 /** Assert envelope.data is not null and return typed data. */
@@ -183,6 +190,7 @@ describe('Auth API (e2e)', () => {
   ): Promise<string> {
     await request(app.getHttpServer())
       .post(AUTH_PATH.sendVerificationCode)
+      .set('x-forwarded-for', uniqueClientIp())
       .send({ email, scene })
       .expect(200);
 
@@ -492,6 +500,31 @@ describe('Auth API (e2e)', () => {
 
       const body = res.body as ApiEnvelope;
       expect(body.code).toBe(ResultCode.VERIFICATION_CODE_COOLDOWN);
+    });
+
+    it('should rate limit repeated requests from the same client', async () => {
+      const clientIp = '203.0.113.10';
+
+      for (
+        let index = 0;
+        index < VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS;
+        index += 1
+      ) {
+        await request(app.getHttpServer())
+          .post(AUTH_PATH.sendVerificationCode)
+          .set('x-forwarded-for', clientIp)
+          .send({ email: uniqueEmail(), scene: AUTH_SCENE.register })
+          .expect(200);
+      }
+
+      const res = await request(app.getHttpServer())
+        .post(AUTH_PATH.sendVerificationCode)
+        .set('x-forwarded-for', clientIp)
+        .send({ email: uniqueEmail(), scene: AUTH_SCENE.register })
+        .expect(429);
+
+      const body = res.body as ApiEnvelope;
+      expect(body.code).toBe(ResultCode.VERIFICATION_CODE_RATE_LIMITED);
     });
   });
 

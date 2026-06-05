@@ -5,6 +5,8 @@ const { ConfigService } = require('@nestjs/config');
 const { SwaggerModule } = require('@nestjs/swagger');
 
 async function main() {
+  delete process.env.REDIS_URL;
+
   const { AppModule } = require('../dist/app.module.js');
   const { setupApp } = require('../dist/setup-app.js');
 
@@ -21,7 +23,11 @@ async function main() {
   });
 
   const outputPath = path.resolve(__dirname, '..', 'docs', 'openapi.json');
-  fs.writeFileSync(outputPath, `${JSON.stringify(document, null, 2)}\n`, 'utf-8');
+  fs.writeFileSync(
+    outputPath,
+    `${JSON.stringify(document, null, 2)}\n`,
+    'utf-8',
+  );
 
   console.log(`OpenAPI spec exported to: ${outputPath}`);
   console.log(`Paths: ${Object.keys(document.paths).length}`);
