@@ -58,6 +58,11 @@ Medicine import quick start:
 - Language: `Accept-Language`, fallback `en`
 - Auth e2e: register / login / refresh / me / logout
 
+## Source Layout
+
+- Business feature modules live under `src/modules/`.
+- Top-level `src/` keeps app bootstrap and infrastructure/runtime support such as `common`, `config`, `generated`, `i18n`, `mail`, and `prisma`.
+
 ## Docs
 
 Start with [docs/README.md](docs/README.md).

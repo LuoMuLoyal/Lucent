@@ -5,7 +5,7 @@ import { appConfig } from './config/app.config';
 import { jwtConfig } from './config/jwt.config';
 import { getEnvFilePaths } from './config/env-file-paths';
 import { validateEnvironment } from './config/environment.validation';
-import { AuthModule } from './auth/auth.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { MailModule } from './mail/mail.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -13,10 +13,10 @@ import { CacheConfigService } from './config/cache.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { I18nModule } from './i18n/i18n.module';
-import { MedicinesModule } from './medicines/medicines.module';
-import { DailyRecordsModule } from './daily-records/daily-records.module';
-import { MedicineDoseLogsModule } from './medicine-dose-logs/medicine-dose-logs.module';
-import { UserHealthContextModule } from './user-health-context/user-health-context.module';
+import { MedicinesModule } from './modules/medicines/medicines.module';
+import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
+import { MedicineDoseLogsModule } from './modules/medicine-dose-logs/medicine-dose-logs.module';
+import { UserHealthContextModule } from './modules/user-health-context/user-health-context.module';
 
 @Module({
   imports: [
