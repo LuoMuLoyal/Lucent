@@ -3,6 +3,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
 import { appConfig } from './config/app.config';
 import { jwtConfig } from './config/jwt.config';
+import { oauthConfig } from './config/oauth.config';
 import { getEnvFilePaths } from './config/env-file-paths';
 import { validateEnvironment } from './config/environment.validation';
 import { AuthModule } from './modules/auth/auth.module';
@@ -23,7 +24,7 @@ import { UserHealthContextModule } from './modules/user-health-context/user-heal
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: getEnvFilePaths(),
-      load: [appConfig, jwtConfig],
+      load: [appConfig, jwtConfig, oauthConfig],
       validate: validateEnvironment,
     }),
     CacheModule.registerAsync({

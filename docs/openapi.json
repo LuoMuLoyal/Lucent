@@ -79,6 +79,60 @@
         ]
       }
     },
+    "/api/v1/auth/oauth/wechat-web/authorize": {
+      "post": {
+        "operationId": "AuthController_createWechatWebAuthorizeUrl_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "创建微信网页登录授权地址",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/oauth/wechat-web/callback": {
+      "post": {
+        "operationId": "AuthController_loginWithWechatWeb_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthCallbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "微信网页登录回调登录",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/api/v1/auth/logout": {
       "post": {
         "operationId": "AuthController_logout_v1",
@@ -1407,9 +1461,10 @@
             "description": "用户 ID"
           },
           "email": {
-            "type": "string",
-            "description": "邮箱地址",
-            "example": "user@example.com"
+            "type": "object",
+            "description": "邮箱地址，第三方账号可能为空",
+            "example": "user@example.com",
+            "nullable": true
           },
           "nickname": {
             "type": "object",
@@ -1532,9 +1587,10 @@
             "description": "用户 ID"
           },
           "email": {
-            "type": "string",
-            "description": "邮箱地址",
-            "example": "user@example.com"
+            "type": "object",
+            "description": "邮箱地址，第三方账号可能为空",
+            "example": "user@example.com",
+            "nullable": true
           },
           "nickname": {
             "type": "object",
@@ -1610,6 +1666,69 @@
           "code",
           "message",
           "data"
+        ]
+      },
+      "OAuthAuthorizeDataDto": {
+        "type": "object",
+        "properties": {
+          "authorizeUrl": {
+            "type": "string",
+            "description": "第三方授权地址"
+          },
+          "state": {
+            "type": "string",
+            "description": "本次授权 state"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "state 过期时间（秒）",
+            "example": 600
+          }
+        },
+        "required": [
+          "authorizeUrl",
+          "state",
+          "expiresIn"
+        ]
+      },
+      "OAuthAuthorizeResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "结果码",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "提示消息",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/OAuthAuthorizeDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "OAuthCallbackDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "OAuth 授权码"
+          },
+          "state": {
+            "type": "string",
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": [
+          "code",
+          "state"
         ]
       },
       "LogoutDto": {

@@ -101,7 +101,7 @@ enum DailyRecordKind {
 
 model User {
   id               String                @id @default(uuid())
-  email            String
+  email            String?
   passwordHash     String?               @map("password_hash") // argon2 hashed for local accounts
   nickname         String?
   avatar           String?

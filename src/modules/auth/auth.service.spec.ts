@@ -17,6 +17,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { UserService } from '../user/user.service';
 import { VerificationCodeService } from './verification-code.service';
 import { UserStatus } from '../../generated/prisma/client';
+import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
+import { OAUTH_PROVIDER_WECHAT_WEB } from './oauth.types';
 
 jest.mock('argon2', () => ({
   argon2id: 2,
@@ -103,6 +105,7 @@ describe('AuthService', () => {
   let userService: jest.Mocked<UserService>;
   let jwtService: jest.Mocked<JwtService>;
   let verificationCodeService: jest.Mocked<VerificationCodeService>;
+  let wechatWebOAuthProvider: jest.Mocked<WechatWebOAuthProvider>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -135,7 +138,10 @@ describe('AuthService', () => {
           useValue: {
             findByEmail: jest.fn(),
             findById: jest.fn(),
+            findByIdentity: jest.fn(),
             create: jest.fn(),
+            createOAuthUser: jest.fn(),
+            linkIdentity: jest.fn(),
             update: jest.fn(),
             updateByEmail: jest.fn(),
           },
@@ -161,6 +167,13 @@ describe('AuthService', () => {
           },
         },
         {
+          provide: WechatWebOAuthProvider,
+          useValue: {
+            buildAuthorizeUrl: jest.fn(),
+            fetchProfile: jest.fn(),
+          },
+        },
+        {
           provide: I18nService,
           useValue: {
             t: jest.fn((key: string) => key),
@@ -175,6 +188,7 @@ describe('AuthService', () => {
     userService = module.get(UserService);
     jwtService = module.get(JwtService);
     verificationCodeService = module.get(VerificationCodeService);
+    wechatWebOAuthProvider = module.get(WechatWebOAuthProvider);
 
     (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$newhash');
     (argon2.verify as jest.Mock).mockResolvedValue(true);
@@ -182,6 +196,17 @@ describe('AuthService', () => {
     cache.set.mockResolvedValue(undefined);
     cache.del.mockResolvedValue(undefined);
     jwtService.signAsync.mockResolvedValue('mock-jwt-token');
+    wechatWebOAuthProvider.buildAuthorizeUrl.mockReturnValue(
+      'https://open.weixin.qq.com/connect/qrconnect?mock=1',
+    );
+    wechatWebOAuthProvider.fetchProfile.mockResolvedValue({
+      provider: OAUTH_PROVIDER_WECHAT_WEB,
+      providerUserId: 'wechat-openid-1',
+      email: null,
+      nickname: 'WechatUser',
+      avatar: 'https://example.com/wechat-avatar.png',
+      rawProfile: { openid: 'wechat-openid-1' },
+    });
     (prismaService.userSession.create as jest.Mock).mockResolvedValue({
       id: 'session-id',
       userId: mockUser.id,
@@ -885,6 +910,135 @@ describe('AuthService', () => {
           password: 'NewPass!',
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('wechat web oauth', () => {
+    it('should create a WeChat web authorize URL and cache state', async () => {
+      const result = await service.createWechatWebAuthorizeUrl();
+
+      expect(result.authorizeUrl).toBe(
+        'https://open.weixin.qq.com/connect/qrconnect?mock=1',
+      );
+      expect(result.state).toBeDefined();
+      expect(result.expiresIn).toBe(600);
+      expect(wechatWebOAuthProvider.buildAuthorizeUrl).toHaveBeenCalledWith(
+        result.state,
+      );
+      expect(cache.set).toHaveBeenCalledWith(
+        `auth:oauth-state:${OAUTH_PROVIDER_WECHAT_WEB}:${createHash('sha256')
+          .update(result.state)
+          .digest('hex')}`,
+        {
+          provider: OAUTH_PROVIDER_WECHAT_WEB,
+        },
+        600_000,
+      );
+    });
+
+    it('should create a passwordless user from WeChat profile and return tokens', async () => {
+      const createdUser = {
+        ...mockUser,
+        email: null,
+        passwordHash: null,
+        nickname: 'WechatUser',
+        avatar: 'https://example.com/wechat-avatar.png',
+      };
+      const updatedUser = {
+        ...createdUser,
+        lastLoginAt: new Date('2026-01-02T00:00:00Z'),
+      };
+      cache.get.mockResolvedValue({
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+      });
+      userService.findByIdentity.mockResolvedValue(null);
+      userService.createOAuthUser.mockResolvedValue(createdUser);
+      userService.update.mockResolvedValue(updatedUser);
+
+      const result = await service.loginWithWechatWeb(
+        {
+          code: 'wechat-code',
+          state: 'oauth-state',
+        },
+        mockRequestContext,
+      );
+
+      expect(cache.get).toHaveBeenCalledWith(
+        `auth:oauth-state:${OAUTH_PROVIDER_WECHAT_WEB}:${createHash('sha256')
+          .update('oauth-state')
+          .digest('hex')}`,
+      );
+      expect(cache.del).toHaveBeenCalledWith(
+        `auth:oauth-state:${OAUTH_PROVIDER_WECHAT_WEB}:${createHash('sha256')
+          .update('oauth-state')
+          .digest('hex')}`,
+      );
+      expect(wechatWebOAuthProvider.fetchProfile).toHaveBeenCalledWith(
+        'wechat-code',
+      );
+      expect(userService.createOAuthUser).toHaveBeenCalledWith({
+        email: null,
+        nickname: 'WechatUser',
+        avatar: 'https://example.com/wechat-avatar.png',
+        identity: {
+          provider: OAUTH_PROVIDER_WECHAT_WEB,
+          providerUserId: 'wechat-openid-1',
+          email: null,
+          rawProfile: { openid: 'wechat-openid-1' },
+        },
+      });
+      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
+        lastLoginAt: expect.any(Date) as Date,
+        status: UserStatus.active,
+        nickname: 'WechatUser',
+        avatar: 'https://example.com/wechat-avatar.png',
+      });
+      expect(result.user).toEqual(updatedUser);
+      expect(result.accessToken).toBe('mock-jwt-token');
+      expect(getLastSessionCreateData(prismaService)).toEqual(
+        expect.objectContaining(mockRequestContext),
+      );
+    });
+
+    it('should reuse an existing identity user for WeChat login', async () => {
+      const updatedUser = {
+        ...mockOAuthOnlyUser,
+        nickname: 'WechatUser',
+        avatar: 'https://example.com/wechat-avatar.png',
+        lastLoginAt: new Date('2026-01-02T00:00:00Z'),
+      };
+      cache.get.mockResolvedValue({
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+      });
+      userService.findByIdentity.mockResolvedValue(mockOAuthOnlyUser);
+      userService.update.mockResolvedValue(updatedUser);
+
+      await service.loginWithWechatWeb({
+        code: 'wechat-code',
+        state: 'oauth-state',
+      });
+
+      expect(userService.createOAuthUser).not.toHaveBeenCalled();
+      expect(userService.linkIdentity).not.toHaveBeenCalled();
+      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
+        lastLoginAt: expect.any(Date) as Date,
+        status: UserStatus.active,
+        nickname: 'WechatUser',
+        avatar: 'https://example.com/wechat-avatar.png',
+      });
+    });
+
+    it('should reject callback when OAuth state is missing', async () => {
+      cache.get.mockResolvedValue(null);
+
+      await expect(
+        service.loginWithWechatWeb({
+          code: 'wechat-code',
+          state: 'missing-state',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(wechatWebOAuthProvider.fetchProfile).not.toHaveBeenCalled();
     });
   });
 });

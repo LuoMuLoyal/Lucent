@@ -26,6 +26,18 @@ class LoginDataDto {
   tokens!: TokensDto;
 }
 
+/** OAuth 授权地址响应 data */
+class OAuthAuthorizeDataDto {
+  @ApiProperty({ description: '第三方授权地址' })
+  authorizeUrl!: string;
+
+  @ApiProperty({ description: '本次授权 state' })
+  state!: string;
+
+  @ApiProperty({ description: 'state 过期时间（秒）', example: 600 })
+  expiresIn!: number;
+}
+
 /** 验证邮箱响应 data */
 class VerifyEmailDataDto {
   @ApiProperty({ description: '邮箱是否已验证', example: true })
@@ -82,6 +94,18 @@ export class LoginResponseDto {
 
   @ApiProperty({ type: () => LoginDataDto })
   data!: LoginDataDto;
+}
+
+/** OAuth 授权地址响应 */
+export class OAuthAuthorizeResponseDto {
+  @ApiProperty({ description: '结果码', example: 0 })
+  code!: number;
+
+  @ApiProperty({ description: '提示消息', example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => OAuthAuthorizeDataDto })
+  data!: OAuthAuthorizeDataDto;
 }
 
 /** 刷新令牌响应 */

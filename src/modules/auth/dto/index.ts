@@ -10,3 +10,4 @@ export * from './send-verification-code.dto';
 export * from './verify-email.dto';
 export * from './forgot-password.dto';
 export * from './reset-password.dto';
+export * from './oauth.dto';

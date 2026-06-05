@@ -32,6 +32,11 @@ export interface EnvironmentVariables {
   [EnvKey.MAIL_USER]?: string;
   [EnvKey.MAIL_PASS]?: string;
   [EnvKey.MAIL_FROM]?: string;
+
+  // ── OAuth ────────────────────────────────────────────────────
+  [EnvKey.WECHAT_WEB_APP_ID]?: string;
+  [EnvKey.WECHAT_WEB_APP_SECRET]?: string;
+  [EnvKey.WECHAT_WEB_REDIRECT_URI]?: string;
 }
 
 const envSchema = Joi.object<EnvironmentVariables>({
@@ -87,6 +92,13 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.MAIL_PASS]: Joi.string().allow('').optional(),
 
   [EnvKey.MAIL_FROM]: Joi.string().allow('').optional(),
+
+  // ── OAuth ────────────────────────────────────────────────────
+  [EnvKey.WECHAT_WEB_APP_ID]: Joi.string().allow('').optional(),
+
+  [EnvKey.WECHAT_WEB_APP_SECRET]: Joi.string().allow('').optional(),
+
+  [EnvKey.WECHAT_WEB_REDIRECT_URI]: Joi.string().uri().allow('').optional(),
 });
 
 export function validateEnvironment(

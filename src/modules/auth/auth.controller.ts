@@ -38,12 +38,14 @@ import { UpdateMeDto } from './dto/update-me.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
+import { OAuthCallbackDto } from './dto/oauth.dto';
 
 import {
   ChangeEmailResponseDto,
   ForgotPasswordResponseDto,
   LoginResponseDto,
   MeResponseDto,
+  OAuthAuthorizeResponseDto,
   RefreshResponseDto,
   RegisterResponseDto,
   SendVerificationCodeResponseDto,
@@ -91,6 +93,49 @@ export class AuthController {
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async login(@Body() dto: LoginDto, @Req() request: Request) {
     const result = await this.authService.login(
+      dto,
+      this.getAuthRequestContext(request),
+    );
+    return successEnvelope({
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        nickname: result.user.nickname,
+        avatar: result.user.avatar,
+        emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
+        createdAt: result.user.createdAt.toISOString(),
+        updatedAt: result.user.updatedAt.toISOString(),
+      },
+      tokens: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: this.calculateExpiresIn(result.accessTokenExpiresAt),
+      },
+    });
+  }
+
+  // ── 2.1 POST /api/v1/auth/oauth/wechat-web/authorize ─────────
+
+  @Post('oauth/wechat-web/authorize')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '创建微信网页登录授权地址' })
+  @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  async createWechatWebAuthorizeUrl() {
+    const result = await this.authService.createWechatWebAuthorizeUrl();
+    return successEnvelope(result);
+  }
+
+  // ── 2.2 POST /api/v1/auth/oauth/wechat-web/callback ──────────
+
+  @Post('oauth/wechat-web/callback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '微信网页登录回调登录' })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
+  async loginWithWechatWeb(
+    @Body() dto: OAuthCallbackDto,
+    @Req() request: Request,
+  ) {
+    const result = await this.authService.loginWithWechatWeb(
       dto,
       this.getAuthRequestContext(request),
     );
