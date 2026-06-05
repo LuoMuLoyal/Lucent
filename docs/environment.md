@@ -210,7 +210,7 @@ CORS_ORIGIN
 - Versioning: NestJS URI versioning，默认版本 `1`。
 - Health check: `GET /api/v1/health`.
 - Request id: returned in `X-Request-Id` and available for server-side log correlation.
-- Auth e2e baseline passes for register / login / refresh / me / logout.
+- Auth e2e baseline passes for register / login / refresh / account / logout.
 - Cache manager is global. When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; when `REDIS_URL` is absent, it falls back to in-memory cache.
 - Mail delivery uses BullMQ when `REDIS_URL` is set: `MailService` enqueues jobs to `lucent-mail`, and an in-process worker sends through the configured log/smtp transport with retry/backoff. Without `REDIS_URL`, mail is sent immediately.
 - Auth transient state uses scoped cache prefixes: `vcode:*` for email verification codes/cooldowns/client limits and `auth:login-failure:*` for login failure buckets. Keys store opaque values or hashed identifiers rather than raw passwords/tokens.

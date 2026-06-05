@@ -607,11 +607,11 @@ describe('AuthService', () => {
     });
   });
 
-  describe('getMe', () => {
+  describe('getActiveUser', () => {
     it('should return user by id', async () => {
       userService.findById.mockResolvedValue(mockUser);
 
-      const result = await service.getMe('user-uuid-1');
+      const result = await service.getActiveUser('user-uuid-1');
 
       expect(userService.findById).toHaveBeenCalledWith('user-uuid-1');
       expect(result).toEqual(mockUser);
@@ -620,49 +620,9 @@ describe('AuthService', () => {
     it('should throw NotFoundException if user not found', async () => {
       userService.findById.mockResolvedValue(null);
 
-      await expect(service.getMe('non-existent')).rejects.toThrow(
+      await expect(service.getActiveUser('non-existent')).rejects.toThrow(
         NotFoundException,
       );
-    });
-  });
-
-  describe('updateMe', () => {
-    it('should update nickname and avatar', async () => {
-      const updatedUser = {
-        ...mockUser,
-        nickname: 'NewName',
-        avatar: 'https://example.com/avatar.png',
-      };
-      userService.update.mockResolvedValue(updatedUser);
-
-      const result = await service.updateMe('user-uuid-1', {
-        nickname: 'NewName',
-        avatar: 'https://example.com/avatar.png',
-      });
-
-      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
-        nickname: 'NewName',
-        avatar: 'https://example.com/avatar.png',
-      });
-      expect(result.nickname).toBe('NewName');
-    });
-
-    it('should clear nickname and avatar when empty strings are provided', async () => {
-      userService.update.mockResolvedValue({
-        ...mockUser,
-        nickname: null,
-        avatar: null,
-      });
-
-      await service.updateMe('user-uuid-1', {
-        nickname: '',
-        avatar: '',
-      });
-
-      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
-        nickname: null,
-        avatar: null,
-      });
     });
   });
 

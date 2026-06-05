@@ -51,15 +51,6 @@ class VerifyEmailDataDto {
   emailVerified!: boolean;
 }
 
-/** 修改邮箱响应 data */
-class ChangeEmailDataDto {
-  @ApiProperty({ description: '新邮箱地址', example: 'new@example.com' })
-  email!: string;
-
-  @ApiProperty({ description: '邮箱是否已验证', example: true })
-  emailVerified!: boolean;
-}
-
 // ── Envelope response DTOs ─────────────────────────────────────
 
 /** 通用成功响应（data 为 null）— logout / resetPassword / changePassword / deleteAccount */
@@ -161,28 +152,4 @@ export class ForgotPasswordResponseDto {
 
   @ApiProperty({ type: () => CooldownMessageDto })
   data!: CooldownMessageDto;
-}
-
-/** 获取/更新当前用户信息响应 */
-export class MeResponseDto {
-  @ApiProperty({ description: '结果码', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: '提示消息', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => UserFullDto })
-  data!: UserFullDto;
-}
-
-/** 修改邮箱响应 */
-export class ChangeEmailResponseDto {
-  @ApiProperty({ description: '结果码', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: '提示消息', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => ChangeEmailDataDto })
-  data!: ChangeEmailDataDto;
 }

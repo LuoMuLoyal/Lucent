@@ -1,11 +1,9 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   HttpCode,
   HttpStatus,
-  Patch,
   Post,
   Query,
   Res,
@@ -38,10 +36,6 @@ import { SendVerificationCodeDto } from './dto/send-verification-code.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { UpdateMeDto } from './dto/update-me.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { ChangeEmailDto } from './dto/change-email.dto';
-import { DeleteAccountDto } from './dto/delete-account.dto';
 import {
   OAuthAuthorizeDto,
   OAuthCallbackDto,
@@ -49,10 +43,8 @@ import {
 } from './dto/oauth.dto';
 
 import {
-  ChangeEmailResponseDto,
   ForgotPasswordResponseDto,
   LoginResponseDto,
-  MeResponseDto,
   OAuthAuthorizeResponseDto,
   RefreshResponseDto,
   RegisterResponseDto,
@@ -83,6 +75,7 @@ export class AuthController {
         email: result.user.email,
         nickname: result.user.nickname,
         emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
+        emailVerifiedAt: this.formatDateTime(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
       },
       tokens: {
@@ -111,6 +104,7 @@ export class AuthController {
         nickname: result.user.nickname,
         avatar: result.user.avatar,
         emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
+        emailVerifiedAt: this.formatDateTime(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
         updatedAt: result.user.updatedAt.toISOString(),
       },
@@ -155,6 +149,7 @@ export class AuthController {
         nickname: result.user.nickname,
         avatar: result.user.avatar,
         emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
+        emailVerifiedAt: this.formatDateTime(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
         updatedAt: result.user.updatedAt.toISOString(),
       },
@@ -203,6 +198,7 @@ export class AuthController {
         nickname: result.user.nickname,
         avatar: result.user.avatar,
         emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
+        emailVerifiedAt: this.formatDateTime(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
         updatedAt: result.user.updatedAt.toISOString(),
       },
@@ -310,97 +306,6 @@ export class AuthController {
     return successEnvelope(null);
   }
 
-  // ── 9. GET /api/v1/auth/me ─────────────────────────────────────
-
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: '获取当前用户信息' })
-  @ApiResponse({ status: 200, type: MeResponseDto })
-  async getMe(@CurrentUser() user: UserPayload) {
-    const me = await this.authService.getMe(user.sub);
-    return successEnvelope({
-      id: me.id,
-      email: me.email,
-      nickname: me.nickname,
-      avatar: me.avatar,
-      emailVerified: this.toEmailVerified(me.emailVerifiedAt),
-      createdAt: me.createdAt.toISOString(),
-      updatedAt: me.updatedAt.toISOString(),
-    });
-  }
-
-  // ── 10. PATCH /api/v1/auth/me ──────────────────────────────────
-
-  @Patch('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: '更新当前用户信息' })
-  @ApiResponse({ status: 200, type: MeResponseDto })
-  async updateMe(@CurrentUser() user: UserPayload, @Body() dto: UpdateMeDto) {
-    const updated = await this.authService.updateMe(user.sub, dto);
-    return successEnvelope({
-      id: updated.id,
-      email: updated.email,
-      nickname: updated.nickname,
-      avatar: updated.avatar,
-      emailVerified: this.toEmailVerified(updated.emailVerifiedAt),
-      createdAt: updated.createdAt.toISOString(),
-      updatedAt: updated.updatedAt.toISOString(),
-    });
-  }
-
-  // ── 11. POST /api/v1/auth/me/password ──────────────────────────
-
-  @Post('me/password')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '修改密码' })
-  @ApiResponse({ status: 200, type: SuccessResponseDto })
-  async changePassword(
-    @CurrentUser() user: UserPayload,
-    @Body() dto: ChangePasswordDto,
-  ) {
-    await this.authService.changePassword(user.sub, dto);
-    return successEnvelope(null);
-  }
-
-  // ── 12. POST /api/v1/auth/me/email ─────────────────────────────
-
-  @Post('me/email')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '修改邮箱' })
-  @ApiResponse({ status: 200, type: ChangeEmailResponseDto })
-  async changeEmail(
-    @CurrentUser() user: UserPayload,
-    @Body() dto: ChangeEmailDto,
-  ) {
-    const updated = await this.authService.changeEmail(user.sub, dto);
-    return successEnvelope({
-      email: updated.email,
-      emailVerified: true,
-    });
-  }
-
-  // ── 13. DELETE /api/v1/auth/me ─────────────────────────────────
-
-  @Delete('me')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('access-token')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '注销账户' })
-  @ApiResponse({ status: 200, type: SuccessResponseDto })
-  async deleteAccount(
-    @CurrentUser() user: UserPayload,
-    @Body() dto: DeleteAccountDto,
-  ) {
-    await this.authService.deleteAccount(user.sub, dto);
-    return successEnvelope(null);
-  }
-
   // ── Helpers ────────────────────────────────────────────────────
 
   private calculateExpiresIn(expiresAtIso: string): number {
@@ -410,6 +315,10 @@ export class AuthController {
 
   private toEmailVerified(emailVerifiedAt: Date | null): boolean {
     return emailVerifiedAt !== null;
+  }
+
+  private formatDateTime(value: Date | null): string | null {
+    return value?.toISOString() ?? null;
   }
 
   private getAuthRequestContext(request: Request): AuthRequestContext {
