@@ -35,6 +35,7 @@ interface AccountDto {
   hasPassword: boolean;
   lastLoginAt: string | null;
   linkedIdentities: Array<{
+    id: string;
     provider: string;
     email: string | null;
     emailVerifiedAt: string | null;
@@ -69,6 +70,8 @@ const AUTH_PATH = {
   account: '/api/v1/account',
   accountPassword: '/api/v1/account/password',
   accountEmail: '/api/v1/account/email',
+  accountIdentity: (identityId: string) =>
+    `/api/v1/account/identities/${identityId}`,
 } as const;
 
 const AUTH_SCENE = {
@@ -902,7 +905,78 @@ describe('Auth API (e2e)', () => {
   });
 
   // ════════════════════════════════════════════════════════════
-  // 13. DELETE /api/v1/account
+  // 13. DELETE /api/v1/account/identities/:identityId
+  // ════════════════════════════════════════════════════════════
+
+  describe('DELETE /api/v1/account/identities/:identityId', () => {
+    it('should unlink an OAuth identity when another sign-in method remains', async () => {
+      const { user, tokens } = await registerUser();
+      const identity = await prisma.userIdentity.create({
+        data: {
+          userId: user.id,
+          provider: 'wechat_web',
+          providerUserId: `wechat-openid-${user.id}`,
+          providerUnionId: `wechat-unionid-${user.id}`,
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .delete(AUTH_PATH.accountIdentity(identity.id))
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .expect(200);
+
+      const body = res.body as ApiEnvelope<AccountDto>;
+      const data = expectData(body);
+      expect(data.linkedIdentities).toEqual([]);
+      await expect(
+        prisma.userIdentity.findUnique({ where: { id: identity.id } }),
+      ).resolves.toBeNull();
+    });
+
+    it('should reject unlinking the last sign-in method', async () => {
+      const { user, tokens } = await registerUser();
+      const identity = await prisma.userIdentity.create({
+        data: {
+          userId: user.id,
+          provider: 'wechat_web',
+          providerUserId: `wechat-openid-${user.id}`,
+          providerUnionId: `wechat-unionid-${user.id}`,
+        },
+      });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: null },
+      });
+
+      const res = await request(app.getHttpServer())
+        .delete(AUTH_PATH.accountIdentity(identity.id))
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .expect(403);
+
+      const body = res.body as ApiEnvelope;
+      expect(body.code).toBe(ResultCode.FORBIDDEN);
+    });
+
+    it('should reject unlinking another account identity', async () => {
+      const { tokens } = await registerUser();
+      const other = await registerUser();
+      const identity = await prisma.userIdentity.create({
+        data: {
+          userId: other.user.id,
+          provider: 'wechat_web',
+          providerUserId: `wechat-openid-${other.user.id}`,
+        },
+      });
+
+      await request(app.getHttpServer())
+        .delete(AUTH_PATH.accountIdentity(identity.id))
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .expect(404);
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════
+  // 14. DELETE /api/v1/account
   // ════════════════════════════════════════════════════════════
 
   describe('DELETE /api/v1/account', () => {

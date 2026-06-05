@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import { ResultCode } from '../../common/api-envelope';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -35,6 +39,30 @@ export class AccountService {
     return this.getAccount(userId);
   }
 
+  async unlinkIdentity(
+    userId: string,
+    identityId: string,
+  ): Promise<AccountDto> {
+    const user = await this.getActiveAccountUser(userId);
+    const identity = user.identities.find((item) => item.id === identityId);
+    if (!identity) {
+      throw new NotFoundException({
+        code: ResultCode.NOT_FOUND,
+        message: 'Account identity not found',
+      });
+    }
+
+    if (user.passwordHash === null && user.identities.length <= 1) {
+      throw new ForbiddenException({
+        code: ResultCode.FORBIDDEN,
+        message: 'Cannot unlink the last sign-in method',
+      });
+    }
+
+    await this.prisma.userIdentity.delete({ where: { id: identityId } });
+    return this.getAccount(userId);
+  }
+
   private async getActiveAccountUser(userId: string): Promise<AccountUser> {
     const user = await this.prisma.user.findFirst({
       where: { id: userId, deletedAt: null },
@@ -61,6 +89,7 @@ export class AccountService {
       hasPassword: user.passwordHash !== null,
       lastLoginAt: this.formatDateTime(user.lastLoginAt),
       linkedIdentities: user.identities.map((identity) => ({
+        id: identity.id,
         provider: identity.provider,
         email: identity.email,
         emailVerifiedAt: this.formatDateTime(identity.emailVerifiedAt),
