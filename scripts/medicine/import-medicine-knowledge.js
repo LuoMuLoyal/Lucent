@@ -466,6 +466,19 @@ function normalizeStableIdPart(value) {
   return String(value).trim();
 }
 
+function dedupeByConflictColumns(spec, records) {
+  const deduped = new Map();
+
+  for (const record of records) {
+    const key = spec.conflictColumns
+      .map((column) => normalizeStableIdPart(record[column]))
+      .join('||');
+    deduped.set(key, record);
+  }
+
+  return [...deduped.values()];
+}
+
 function formatUuid(buffer) {
   const hex = buffer.toString('hex');
   return [
@@ -535,15 +548,17 @@ function buildUpsertStatement(spec, rowCount) {
 
 async function executeUpsert(client, spec, records) {
   if (records.length === 0) {
-    return;
+    return 0;
   }
 
-  const sql = buildUpsertStatement(spec, records.length);
-  const params = records.flatMap((record) =>
+  const rows = dedupeByConflictColumns(spec, records);
+  const sql = buildUpsertStatement(spec, rows.length);
+  const params = rows.flatMap((record) =>
     spec.columns.map((column) => normalizeValue(record[column])),
   );
 
   await client.query(sql, params);
+  return rows.length;
 }
 
 function collectRejectionSample(samples, rejection) {
@@ -674,7 +689,11 @@ async function executeTargetBatch(client, spec, importRunId, records) {
   await client.query('BEGIN');
 
   try {
-    await executeUpsert(client, spec, normalizedTargets);
+    const upsertedTargetCount = await executeUpsert(
+      client,
+      spec,
+      normalizedTargets,
+    );
 
     const sourceTargetIds = normalizedTargets.map(
       (target) => target.source_target_id,
@@ -728,6 +747,7 @@ async function executeTargetBatch(client, spec, importRunId, records) {
     );
 
     await client.query('COMMIT');
+    return { upsertedTargetCount };
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -825,16 +845,25 @@ async function runImport(command, cliOptions) {
       }
 
       if (config.mode === 'targets') {
-        await executeTargetBatch(client, config, importRunId, currentBatch);
+        const { upsertedTargetCount } = await executeTargetBatch(
+          client,
+          config,
+          importRunId,
+          currentBatch,
+        );
+        summary.importedRowCount += upsertedTargetCount;
       } else {
         const normalizedBatch = currentBatch.map((record) => ({
           ...record,
           import_run_id: importRunId,
         }));
-        await executeUpsert(client, config, normalizedBatch);
+        summary.importedRowCount += await executeUpsert(
+          client,
+          config,
+          normalizedBatch,
+        );
       }
 
-      summary.importedRowCount += currentBatch.length;
       currentBatch = [];
     };
 
