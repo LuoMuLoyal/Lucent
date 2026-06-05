@@ -109,6 +109,10 @@ describe('AuthService', () => {
   let prismaService: jest.Mocked<PrismaService>;
   let userService: jest.Mocked<UserService>;
   let jwtService: jest.Mocked<JwtService>;
+  let configService: {
+    get: jest.Mock;
+    getOrThrow: jest.Mock;
+  };
   let verificationCodeService: jest.Mocked<VerificationCodeService>;
   let wechatMobileOAuthProvider: jest.Mocked<WechatMobileOAuthProvider>;
   let wechatWebOAuthProvider: jest.Mocked<WechatWebOAuthProvider>;
@@ -162,6 +166,7 @@ describe('AuthService', () => {
         {
           provide: ConfigService,
           useValue: {
+            get: jest.fn((_: string, defaultValue: unknown) => defaultValue),
             getOrThrow: jest.fn().mockReturnValue(mockJwtConfig),
           },
         },
@@ -200,6 +205,7 @@ describe('AuthService', () => {
     prismaService = module.get(PrismaService);
     userService = module.get(UserService);
     jwtService = module.get(JwtService);
+    configService = module.get(ConfigService);
     verificationCodeService = module.get(VerificationCodeService);
     wechatMobileOAuthProvider = module.get(WechatMobileOAuthProvider);
     wechatWebOAuthProvider = module.get(WechatWebOAuthProvider);
@@ -987,6 +993,38 @@ describe('AuthService', () => {
 
       expect(cache.set).not.toHaveBeenCalled();
       expect(wechatWebOAuthProvider.buildAuthorizeUrl).not.toHaveBeenCalled();
+    });
+
+    it('should cache a trusted web callback URI for web WeChat OAuth', async () => {
+      configService.get.mockReturnValue(['https://app.example.com']);
+
+      const result = await service.createWechatWebAuthorizeUrl({
+        callbackUri: 'https://app.example.com/login/oauth/wechat?stale=1',
+      });
+
+      expect(result.callbackUri).toBe(
+        'https://app.example.com/login/oauth/wechat',
+      );
+      expect(cache.set).toHaveBeenCalledWith(
+        `auth:oauth-state:${OAUTH_PROVIDER_WECHAT_WEB}:${createHash('sha256')
+          .update(result.state)
+          .digest('hex')}`,
+        {
+          provider: OAUTH_PROVIDER_WECHAT_WEB,
+          callbackUri: 'https://app.example.com/login/oauth/wechat',
+        },
+        600_000,
+      );
+    });
+
+    it('should reject untrusted web callback origins', async () => {
+      configService.get.mockReturnValue(['https://app.example.com']);
+
+      await expect(
+        service.createWechatWebAuthorizeUrl({
+          callbackUri: 'https://evil.example.com/login/oauth/wechat',
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should resolve desktop WeChat web callback redirect without consuming state', async () => {

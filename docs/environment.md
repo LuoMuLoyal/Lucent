@@ -153,7 +153,7 @@ MAIL_USER=your_email@example.com
 MAIL_PASS=your_password
 WECHAT_WEB_APP_ID=
 WECHAT_WEB_APP_SECRET=
-WECHAT_WEB_REDIRECT_URI=https://your-domain.example/oauth/wechat/callback
+WECHAT_WEB_REDIRECT_URI=https://your-domain.example/api/v1/auth/oauth/wechat-web/callback
 WECHAT_MOBILE_APP_ID=
 WECHAT_MOBILE_APP_SECRET=
 LOG_LEVEL=info
@@ -176,7 +176,7 @@ Optional WeChat OAuth login variables:
 
 When these are empty, Lucent still starts normally and the WeChat OAuth endpoints report the provider as not configured.
 
-`WECHAT_WEB_REDIRECT_URI` should point at Lucent's browser callback endpoint, for example `https://your-domain.example/api/v1/auth/oauth/wechat-web/callback`. Desktop clients pass a temporary loopback `callbackUri` to `POST /api/v1/auth/oauth/wechat-web/authorize`; Lucent stores that URI in OAuth state and the browser callback redirects back to it after WeChat returns `code` and `state`. Only loopback `http://127.0.0.1:<port>` / `localhost` / `[::1]` callback URIs are accepted.
+`WECHAT_WEB_REDIRECT_URI` should point at Lucent's browser callback endpoint, for example `https://your-domain.example/api/v1/auth/oauth/wechat-web/callback`. Desktop clients pass a temporary loopback `callbackUri` to `POST /api/v1/auth/oauth/wechat-web/authorize`; Lucent stores that URI in OAuth state and the browser callback redirects back to it after WeChat returns `code` and `state`. Web clients may pass `https://<trusted-origin>/login/oauth/wechat`; the origin must be explicitly listed in `CORS_ORIGIN`. Loopback callbacks must use `http://127.0.0.1:<port>` / `localhost:<port>` / `[::1]:<port>`.
 
 In the default single-server compose deployment, `DATABASE_URL` and `REDIS_URL` are pinned to the local `postgres` / `redis` containers by `docker-compose.yml`. If you want to use external services instead, update both `.env.production` and `docker-compose.yml`.
 

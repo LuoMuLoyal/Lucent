@@ -418,7 +418,7 @@ export class AuthService {
     dto?: OAuthAuthorizeDto,
   ): Promise<OAuthAuthorizeResult> {
     const state = randomBytes(24).toString('base64url');
-    const callbackUri = this.normalizeLoopbackCallbackUri(dto?.callbackUri);
+    const callbackUri = this.normalizeOAuthCallbackUri(dto?.callbackUri);
     await this.cache.set(
       this.oauthStateKey(OAUTH_PROVIDER_WECHAT_WEB, state),
       {
@@ -686,7 +686,7 @@ export class AuthService {
     );
   }
 
-  private normalizeLoopbackCallbackUri(
+  private normalizeOAuthCallbackUri(
     callbackUri: string | undefined,
   ): string | undefined {
     const trimmed = callbackUri?.trim();
@@ -708,19 +708,43 @@ export class AuthService {
       hostname === '[::1]' ||
       hostname === '::1';
 
+    if (parsed.username.length > 0 || parsed.password.length > 0) {
+      throw this.invalidOAuthCallbackUri();
+    }
+
+    if (isLoopbackHost) {
+      if (
+        parsed.protocol !== 'http:' ||
+        parsed.port.length === 0 ||
+        parsed.hash.length > 0
+      ) {
+        throw this.invalidOAuthCallbackUri();
+      }
+
+      parsed.search = '';
+      return parsed.toString();
+    }
+
     if (
-      parsed.protocol !== 'http:' ||
-      !isLoopbackHost ||
-      parsed.port.length === 0 ||
-      parsed.username.length > 0 ||
-      parsed.password.length > 0 ||
-      parsed.hash.length > 0
+      parsed.protocol !== 'https:' ||
+      parsed.pathname !== '/login/oauth/wechat' ||
+      parsed.hash.length > 0 ||
+      !this.isTrustedWebOAuthCallbackOrigin(parsed.origin)
     ) {
       throw this.invalidOAuthCallbackUri();
     }
 
     parsed.search = '';
     return parsed.toString();
+  }
+
+  private isTrustedWebOAuthCallbackOrigin(origin: string): boolean {
+    const corsOrigin = this.configService.get<boolean | string[]>(
+      `${ConfigKey.App}.corsOrigin`,
+      false,
+    );
+
+    return Array.isArray(corsOrigin) && corsOrigin.includes(origin);
   }
 
   private invalidOAuthCallbackUri(): BadRequestException {
