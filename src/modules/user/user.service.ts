@@ -1,6 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Prisma, User } from '../../generated/prisma/client';
+import { Prisma, User, UserIdentity } from '../../generated/prisma/client';
+
+export interface UserIdentityInput {
+  provider: string;
+  providerUserId: string;
+  email?: string | null;
+  emailVerifiedAt?: Date | null;
+  rawProfile?: Prisma.InputJsonValue;
+}
+
+export interface CreateOAuthUserInput {
+  email: string;
+  nickname?: string | null;
+  avatar?: string | null;
+  emailVerifiedAt?: Date | null;
+  identity: UserIdentityInput;
+}
 
 @Injectable()
 export class UserService {
@@ -14,6 +30,22 @@ export class UserService {
     return this.prisma.user.findFirst({ where: { email, deletedAt: null } });
   }
 
+  async findByIdentity(
+    provider: string,
+    providerUserId: string,
+  ): Promise<User | null> {
+    const identity = await this.prisma.userIdentity.findUnique({
+      where: { provider_providerUserId: { provider, providerUserId } },
+      include: { user: true },
+    });
+
+    if (!identity || identity.user.deletedAt !== null) {
+      return null;
+    }
+
+    return identity.user;
+  }
+
   async create(data: Prisma.UserCreateInput): Promise<User> {
     const profileData =
       data.profile === undefined
@@ -24,6 +56,36 @@ export class UserService {
       data: {
         ...data,
         profile: profileData,
+      },
+    });
+  }
+
+  async createOAuthUser(data: CreateOAuthUserInput): Promise<User> {
+    return this.prisma.user.create({
+      data: {
+        email: data.email,
+        passwordHash: null,
+        ...(data.nickname !== undefined && { nickname: data.nickname }),
+        ...(data.avatar !== undefined && { avatar: data.avatar }),
+        ...(data.emailVerifiedAt !== undefined && {
+          emailVerifiedAt: data.emailVerifiedAt,
+        }),
+        profile: { create: {} },
+        identities: {
+          create: this.toIdentityCreateData(data.identity),
+        },
+      },
+    });
+  }
+
+  async linkIdentity(
+    userId: string,
+    data: UserIdentityInput,
+  ): Promise<UserIdentity> {
+    return this.prisma.userIdentity.create({
+      data: {
+        ...this.toIdentityCreateData(data),
+        user: { connect: { id: userId } },
       },
     });
   }
@@ -42,5 +104,19 @@ export class UserService {
     }
 
     return this.prisma.user.update({ where: { id: user.id }, data });
+  }
+
+  private toIdentityCreateData(
+    data: UserIdentityInput,
+  ): Prisma.UserIdentityCreateWithoutUserInput {
+    return {
+      provider: data.provider,
+      providerUserId: data.providerUserId,
+      ...(data.email !== undefined && { email: data.email }),
+      ...(data.emailVerifiedAt !== undefined && {
+        emailVerifiedAt: data.emailVerifiedAt,
+      }),
+      ...(data.rawProfile !== undefined && { rawProfile: data.rawProfile }),
+    };
   }
 }

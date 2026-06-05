@@ -102,7 +102,7 @@ enum DailyRecordKind {
 model User {
   id               String                @id @default(uuid())
   email            String
-  passwordHash     String                @map("password_hash") // argon2 hashed
+  passwordHash     String?               @map("password_hash") // argon2 hashed for local accounts
   nickname         String?
   avatar           String?
   status           UserStatus            @default(active)
@@ -112,6 +112,7 @@ model User {
   createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   profile          UserProfile?
+  identities       UserIdentity[]
   sessions         UserSession[]
   devices          UserDevice[]
   allergies        UserAllergy[]
@@ -123,6 +124,24 @@ model User {
   @@index([email])
   @@index([status])
   @@map("users")
+}
+
+model UserIdentity {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  provider        String
+  providerUserId  String    @map("provider_user_id")
+  email           String?
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  rawProfile      Json?     @map("raw_profile") @db.JsonB
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@index([email])
+  @@map("user_identities")
 }
 
 model UserProfile {
@@ -224,22 +243,22 @@ model UserCondition {
 }
 
 model UserCurrentMedicine {
-  id            String         @id @default(uuid())
-  userId        String         @map("user_id")
+  id            String                @id @default(uuid())
+  userId        String                @map("user_id")
   source        MedicineSource
-  sourceRefId   String?        @map("source_ref_id")
-  displayName   String         @map("display_name")
-  strengthText  String?        @map("strength_text")
-  doseText      String?        @map("dose_text")
+  sourceRefId   String?               @map("source_ref_id")
+  displayName   String                @map("display_name")
+  strengthText  String?               @map("strength_text")
+  doseText      String?               @map("dose_text")
   route         String?
-  startedAt     DateTime?      @map("started_at") @db.Date
-  endedAt       DateTime?      @map("ended_at") @db.Date
-  isCurrent     Boolean        @default(true) @map("is_current")
+  startedAt     DateTime?             @map("started_at") @db.Date
+  endedAt       DateTime?             @map("ended_at") @db.Date
+  isCurrent     Boolean               @default(true) @map("is_current")
   note          String?
-  sourcePayload Json?          @map("source_payload") @db.JsonB
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourcePayload Json?                 @map("source_payload") @db.JsonB
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   doseLogs      UserMedicineDoseLog[]
 
   @@index([userId, isCurrent])
@@ -255,19 +274,19 @@ enum DoseLogStatus {
 }
 
 model UserMedicineDoseLog {
-  id                String         @id @default(uuid())
-  userId            String         @map("user_id")
-  currentMedicineId String?        @map("current_medicine_id")
-  status            DoseLogStatus  @default(planned)
-  scheduledFor      DateTime       @map("scheduled_for") @db.Date
-  takenAt           DateTime?      @map("taken_at") @db.Timestamptz(3)
+  id                String               @id @default(uuid())
+  userId            String               @map("user_id")
+  currentMedicineId String?              @map("current_medicine_id")
+  status            DoseLogStatus        @default(planned)
+  scheduledFor      DateTime             @map("scheduled_for") @db.Date
+  takenAt           DateTime?            @map("taken_at") @db.Timestamptz(3)
   doseText          String?
   note              String?
-  source            String?        @default("manual")
-  deletedAt         DateTime?      @map("deleted_at") @db.Timestamptz(3)
-  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source            String?              @default("manual")
+  deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz(3)
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
 
   @@index([userId, scheduledFor])
