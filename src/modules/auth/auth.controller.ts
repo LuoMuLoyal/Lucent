@@ -24,7 +24,7 @@ import { VERIFICATION_CODE_COOLDOWN_SEC } from './verification-code.service';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import type { UserPayload } from './auth.service';
+import type { AuthRequestContext, UserPayload } from './auth.service';
 
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -62,8 +62,11 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: '用户注册' })
   @ApiResponse({ status: 201, type: RegisterResponseDto })
-  async register(@Body() dto: RegisterDto) {
-    const result = await this.authService.register(dto);
+  async register(@Body() dto: RegisterDto, @Req() request: Request) {
+    const result = await this.authService.register(
+      dto,
+      this.getAuthRequestContext(request),
+    );
     return successEnvelope({
       user: {
         id: result.user.id,
@@ -86,8 +89,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '用户登录' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
-  async login(@Body() dto: LoginDto) {
-    const result = await this.authService.login(dto);
+  async login(@Body() dto: LoginDto, @Req() request: Request) {
+    const result = await this.authService.login(
+      dto,
+      this.getAuthRequestContext(request),
+    );
     return successEnvelope({
       user: {
         id: result.user.id,
@@ -126,8 +132,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '刷新令牌' })
   @ApiResponse({ status: 200, type: RefreshResponseDto })
-  async refresh(@Body() dto: RefreshDto) {
-    const result = await this.authService.refresh(dto.refreshToken);
+  async refresh(@Body() dto: RefreshDto, @Req() request: Request) {
+    const result = await this.authService.refresh(
+      dto.refreshToken,
+      this.getAuthRequestContext(request),
+    );
     return successEnvelope({
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
@@ -299,5 +308,14 @@ export class AuthController {
 
   private toEmailVerified(emailVerifiedAt: Date | null): boolean {
     return emailVerifiedAt !== null;
+  }
+
+  private getAuthRequestContext(request: Request): AuthRequestContext {
+    const userAgent = request.headers['user-agent'];
+
+    return {
+      ipAddress: getRequestClientIp(request),
+      ...(userAgent !== undefined && { userAgent }),
+    };
   }
 }
