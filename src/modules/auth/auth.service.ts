@@ -88,6 +88,7 @@ interface LoginFailureBucket {
 
 interface OAuthStateEntry {
   provider: typeof OAUTH_PROVIDER_WECHAT_WEB;
+  purpose: 'login' | 'link';
   callbackUri?: string;
 }
 
@@ -406,12 +407,29 @@ export class AuthService {
   async createWechatWebAuthorizeUrl(
     dto?: OAuthAuthorizeDto,
   ): Promise<OAuthAuthorizeResult> {
+    return this.createWechatWebAuthorizeUrlForPurpose('login', dto);
+  }
+
+  async createWechatWebIdentityLinkAuthorizeUrl(
+    dto?: OAuthAuthorizeDto,
+  ): Promise<OAuthAuthorizeResult> {
+    return this.createWechatWebAuthorizeUrlForPurpose('link', dto);
+  }
+
+  private async createWechatWebAuthorizeUrlForPurpose(
+    purpose: OAuthStateEntry['purpose'],
+    dto?: OAuthAuthorizeDto,
+  ): Promise<OAuthAuthorizeResult> {
     const state = randomBytes(24).toString('base64url');
-    const callbackUri = this.normalizeOAuthCallbackUri(dto?.callbackUri);
+    const callbackUri = this.normalizeOAuthCallbackUri(
+      dto?.callbackUri,
+      purpose,
+    );
     await this.cache.set(
       this.oauthStateKey(OAUTH_PROVIDER_WECHAT_WEB, state),
       {
         provider: OAUTH_PROVIDER_WECHAT_WEB,
+        purpose,
         ...(callbackUri !== undefined && { callbackUri }),
       },
       OAUTH_STATE_TTL,
@@ -449,7 +467,7 @@ export class AuthService {
     dto: OAuthCallbackDto,
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
-    await this.consumeOAuthState(OAUTH_PROVIDER_WECHAT_WEB, dto.state);
+    await this.consumeOAuthState(OAUTH_PROVIDER_WECHAT_WEB, dto.state, 'login');
     const profile = await this.wechatWebOAuthProvider.fetchProfile(dto.code);
     return this.loginWithOAuthProfile(profile, context);
   }
@@ -460,6 +478,25 @@ export class AuthService {
   ): Promise<{ user: User } & TokenPair> {
     const profile = await this.wechatMobileOAuthProvider.fetchProfile(dto.code);
     return this.loginWithOAuthProfile(profile, context);
+  }
+
+  async linkWechatWebIdentity(
+    userId: string,
+    dto: OAuthCallbackDto,
+  ): Promise<void> {
+    await this.getActiveUser(userId);
+    await this.consumeOAuthState(OAUTH_PROVIDER_WECHAT_WEB, dto.state, 'link');
+    const profile = await this.wechatWebOAuthProvider.fetchProfile(dto.code);
+    await this.linkOAuthProfileToUser(userId, profile);
+  }
+
+  async linkWechatMobileIdentity(
+    userId: string,
+    dto: OAuthCodeCallbackDto,
+  ): Promise<void> {
+    await this.getActiveUser(userId);
+    const profile = await this.wechatMobileOAuthProvider.fetchProfile(dto.code);
+    await this.linkOAuthProfileToUser(userId, profile);
   }
 
   // ── Private Helpers ──────────────────────────────────────────
@@ -618,15 +655,49 @@ export class AuthService {
     });
   }
 
+  private async linkOAuthProfileToUser(
+    userId: string,
+    profile: OAuthProfile,
+  ): Promise<void> {
+    const linkedUser = await this.userService.findByIdentity(
+      profile.provider,
+      profile.providerUserId,
+    );
+    if (linkedUser) {
+      if (linkedUser.id !== userId) {
+        throw new ConflictException({
+          code: ResultCode.CONFLICT,
+          message: this.i18n.t('auth.oauth_identity_in_use'),
+        });
+      }
+      return;
+    }
+
+    if (profile.unionId) {
+      const unionUser = await this.userService.findByProviderUnionId(
+        profile.unionId,
+      );
+      if (unionUser && unionUser.id !== userId) {
+        throw new ConflictException({
+          code: ResultCode.CONFLICT,
+          message: this.i18n.t('auth.oauth_identity_in_use'),
+        });
+      }
+    }
+
+    await this.linkOAuthIdentity(userId, profile);
+  }
+
   private async consumeOAuthState(
     provider: typeof OAUTH_PROVIDER_WECHAT_WEB,
     state: string,
+    purpose: OAuthStateEntry['purpose'],
   ): Promise<OAuthStateEntry> {
     const key = this.oauthStateKey(provider, state);
     const entry = await this.cache.get<OAuthStateEntry>(key);
     await this.cache.del(key);
 
-    if (!this.isValidOAuthStateEntry(entry, provider)) {
+    if (!this.isValidOAuthStateEntry(entry, provider, purpose)) {
       throw new UnauthorizedException({
         code: ResultCode.UNAUTHORIZED,
         message: this.i18n.t('auth.oauth_state_invalid'),
@@ -662,6 +733,7 @@ export class AuthService {
   private isValidOAuthStateEntry(
     entry: unknown,
     provider: typeof OAUTH_PROVIDER_WECHAT_WEB,
+    purpose?: OAuthStateEntry['purpose'],
   ): entry is OAuthStateEntry {
     if (typeof entry !== 'object' || entry === null) {
       return false;
@@ -670,6 +742,8 @@ export class AuthService {
     const candidate = entry as Partial<OAuthStateEntry>;
     return (
       candidate.provider === provider &&
+      (candidate.purpose === 'login' || candidate.purpose === 'link') &&
+      (purpose === undefined || candidate.purpose === purpose) &&
       (candidate.callbackUri === undefined ||
         typeof candidate.callbackUri === 'string')
     );
@@ -677,6 +751,7 @@ export class AuthService {
 
   private normalizeOAuthCallbackUri(
     callbackUri: string | undefined,
+    purpose: OAuthStateEntry['purpose'],
   ): string | undefined {
     const trimmed = callbackUri?.trim();
     if (!trimmed) {
@@ -716,7 +791,7 @@ export class AuthService {
 
     if (
       parsed.protocol !== 'https:' ||
-      parsed.pathname !== '/login/oauth/wechat' ||
+      parsed.pathname !== this.getWebOAuthCallbackPath(purpose) ||
       parsed.hash.length > 0 ||
       !this.isTrustedWebOAuthCallbackOrigin(parsed.origin)
     ) {
@@ -725,6 +800,12 @@ export class AuthService {
 
     parsed.search = '';
     return parsed.toString();
+  }
+
+  private getWebOAuthCallbackPath(purpose: OAuthStateEntry['purpose']): string {
+    return purpose === 'login'
+      ? '/login/oauth/wechat'
+      : '/account/oauth/wechat';
   }
 
   private isTrustedWebOAuthCallbackOrigin(origin: string): boolean {

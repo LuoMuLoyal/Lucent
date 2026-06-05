@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBody,
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
@@ -24,7 +25,15 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChangeEmailDto } from '../auth/dto/change-email.dto';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 import { DeleteAccountDto } from '../auth/dto/delete-account.dto';
-import { SuccessResponseDto } from '../auth/dto/responses';
+import {
+  OAuthAuthorizeResponseDto,
+  SuccessResponseDto,
+} from '../auth/dto/responses';
+import {
+  OAuthAuthorizeDto,
+  OAuthCallbackDto,
+  OAuthCodeCallbackDto,
+} from '../auth/dto/oauth.dto';
 import { AccountService } from './account.service';
 import {
   AccountEmailResponseDto,
@@ -99,6 +108,49 @@ export class AccountController {
     return successEnvelope(
       await this.accountService.unlinkIdentity(user.sub, identityId),
     );
+  }
+
+  @Post('identities/wechat-web/authorize')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Create WeChat web OAuth authorize URL for linking',
+  })
+  @ApiBody({ type: OAuthAuthorizeDto, required: false })
+  @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  async createWechatWebIdentityLinkAuthorizeUrl(
+    @Body() dto?: OAuthAuthorizeDto,
+  ) {
+    return successEnvelope(
+      await this.authService.createWechatWebIdentityLinkAuthorizeUrl(dto),
+    );
+  }
+
+  @Post('identities/wechat-web/callback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Link WeChat web identity to authenticated account',
+  })
+  @ApiResponse({ status: 200, type: AccountResponseDto })
+  async linkWechatWebIdentity(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: OAuthCallbackDto,
+  ) {
+    await this.authService.linkWechatWebIdentity(user.sub, dto);
+    return successEnvelope(await this.accountService.getAccount(user.sub));
+  }
+
+  @Post('identities/wechat-mobile/callback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Link WeChat mobile identity to authenticated account',
+  })
+  @ApiResponse({ status: 200, type: AccountResponseDto })
+  async linkWechatMobileIdentity(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: OAuthCodeCallbackDto,
+  ) {
+    await this.authService.linkWechatMobileIdentity(user.sub, dto);
+    return successEnvelope(await this.accountService.getAccount(user.sub));
   }
 
   @Delete()

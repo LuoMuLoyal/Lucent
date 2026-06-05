@@ -921,6 +921,7 @@ describe('AuthService', () => {
           .digest('hex')}`,
         {
           provider: OAUTH_PROVIDER_WECHAT_WEB,
+          purpose: 'login',
         },
         600_000,
       );
@@ -938,6 +939,7 @@ describe('AuthService', () => {
           .digest('hex')}`,
         {
           provider: OAUTH_PROVIDER_WECHAT_WEB,
+          purpose: 'login',
           callbackUri: 'http://127.0.0.1:49152/oauth/wechat',
         },
         600_000,
@@ -971,10 +973,44 @@ describe('AuthService', () => {
           .digest('hex')}`,
         {
           provider: OAUTH_PROVIDER_WECHAT_WEB,
+          purpose: 'login',
           callbackUri: 'https://app.example.com/login/oauth/wechat',
         },
         600_000,
       );
+    });
+
+    it('should cache a trusted account callback URI for WeChat web identity linking', async () => {
+      configService.get.mockReturnValue(['https://app.example.com']);
+
+      const result = await service.createWechatWebIdentityLinkAuthorizeUrl({
+        callbackUri: 'https://app.example.com/account/oauth/wechat?stale=1',
+      });
+
+      expect(result.callbackUri).toBe(
+        'https://app.example.com/account/oauth/wechat',
+      );
+      expect(cache.set).toHaveBeenCalledWith(
+        `auth:oauth-state:${OAUTH_PROVIDER_WECHAT_WEB}:${createHash('sha256')
+          .update(result.state)
+          .digest('hex')}`,
+        {
+          provider: OAUTH_PROVIDER_WECHAT_WEB,
+          purpose: 'link',
+          callbackUri: 'https://app.example.com/account/oauth/wechat',
+        },
+        600_000,
+      );
+    });
+
+    it('should reject login callback URI path for WeChat web identity linking', async () => {
+      configService.get.mockReturnValue(['https://app.example.com']);
+
+      await expect(
+        service.createWechatWebIdentityLinkAuthorizeUrl({
+          callbackUri: 'https://app.example.com/login/oauth/wechat',
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should reject untrusted web callback origins', async () => {
@@ -990,6 +1026,7 @@ describe('AuthService', () => {
     it('should resolve desktop WeChat web callback redirect without consuming state', async () => {
       cache.get.mockResolvedValue({
         provider: OAUTH_PROVIDER_WECHAT_WEB,
+        purpose: 'login',
         callbackUri: 'http://127.0.0.1:49152/oauth/wechat',
       });
 
@@ -1012,6 +1049,7 @@ describe('AuthService', () => {
     it('should reject browser callback redirect when desktop callback URI is missing', async () => {
       cache.get.mockResolvedValue({
         provider: OAUTH_PROVIDER_WECHAT_WEB,
+        purpose: 'login',
       });
 
       await expect(
@@ -1038,6 +1076,7 @@ describe('AuthService', () => {
       };
       cache.get.mockResolvedValue({
         provider: OAUTH_PROVIDER_WECHAT_WEB,
+        purpose: 'login',
       });
       userService.findByIdentity.mockResolvedValue(null);
       userService.createOAuthUser.mockResolvedValue(createdUser);
@@ -1098,6 +1137,7 @@ describe('AuthService', () => {
       };
       cache.get.mockResolvedValue({
         provider: OAUTH_PROVIDER_WECHAT_WEB,
+        purpose: 'login',
       });
       userService.findByIdentity.mockResolvedValue(mockOAuthOnlyUser);
       userService.update.mockResolvedValue(updatedUser);
@@ -1176,6 +1216,159 @@ describe('AuthService', () => {
       expect(getLastSessionCreateData(prismaService)).toEqual(
         expect.objectContaining(mockRequestContext),
       );
+    });
+
+    it('should link WeChat web identity to the current user', async () => {
+      cache.get.mockResolvedValue({
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+        purpose: 'link',
+      });
+      userService.findById.mockResolvedValue(mockUser);
+      userService.findByIdentity.mockResolvedValue(null);
+      userService.findByProviderUnionId.mockResolvedValue(null);
+      userService.linkIdentity.mockResolvedValue({
+        id: 'identity-uuid-1',
+        userId: mockUser.id,
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+        providerUserId: 'wechat-openid-1',
+        providerUnionId: 'wechat-unionid-1',
+        email: null,
+        emailVerifiedAt: null,
+        rawProfile: { openid: 'wechat-openid-1' },
+        createdAt: new Date('2026-01-02T00:00:00Z'),
+        updatedAt: new Date('2026-01-02T00:00:00Z'),
+      });
+
+      await service.linkWechatWebIdentity('user-uuid-1', {
+        code: 'wechat-code',
+        state: 'oauth-state',
+      });
+
+      expect(cache.del).toHaveBeenCalledWith(
+        `auth:oauth-state:${OAUTH_PROVIDER_WECHAT_WEB}:${createHash('sha256')
+          .update('oauth-state')
+          .digest('hex')}`,
+      );
+      expect(wechatWebOAuthProvider.fetchProfile).toHaveBeenCalledWith(
+        'wechat-code',
+      );
+      expect(userService.linkIdentity).toHaveBeenCalledWith('user-uuid-1', {
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+        providerUserId: 'wechat-openid-1',
+        providerUnionId: 'wechat-unionid-1',
+        email: null,
+        rawProfile: { openid: 'wechat-openid-1' },
+      });
+    });
+
+    it('should keep WeChat web identity linking idempotent for the current user', async () => {
+      cache.get.mockResolvedValue({
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+        purpose: 'link',
+      });
+      userService.findById.mockResolvedValue(mockUser);
+      userService.findByIdentity.mockResolvedValue(mockUser);
+
+      await service.linkWechatWebIdentity('user-uuid-1', {
+        code: 'wechat-code',
+        state: 'oauth-state',
+      });
+
+      expect(userService.findByProviderUnionId).not.toHaveBeenCalled();
+      expect(userService.linkIdentity).not.toHaveBeenCalled();
+    });
+
+    it('should reject WeChat web identity linking when the identity belongs to another user', async () => {
+      cache.get.mockResolvedValue({
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+        purpose: 'link',
+      });
+      userService.findById.mockResolvedValue(mockUser);
+      userService.findByIdentity.mockResolvedValue({
+        ...mockUser,
+        id: 'other-user-uuid',
+      });
+
+      await expect(
+        service.linkWechatWebIdentity('user-uuid-1', {
+          code: 'wechat-code',
+          state: 'oauth-state',
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(userService.linkIdentity).not.toHaveBeenCalled();
+    });
+
+    it('should reject WeChat web identity linking when the union id belongs to another user', async () => {
+      cache.get.mockResolvedValue({
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+        purpose: 'link',
+      });
+      userService.findById.mockResolvedValue(mockUser);
+      userService.findByIdentity.mockResolvedValue(null);
+      userService.findByProviderUnionId.mockResolvedValue({
+        ...mockUser,
+        id: 'other-user-uuid',
+      });
+
+      await expect(
+        service.linkWechatWebIdentity('user-uuid-1', {
+          code: 'wechat-code',
+          state: 'oauth-state',
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(userService.linkIdentity).not.toHaveBeenCalled();
+    });
+
+    it('should reject login OAuth state for WeChat web identity linking', async () => {
+      cache.get.mockResolvedValue({
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+        purpose: 'login',
+      });
+      userService.findById.mockResolvedValue(mockUser);
+
+      await expect(
+        service.linkWechatWebIdentity('user-uuid-1', {
+          code: 'wechat-code',
+          state: 'oauth-state',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(wechatWebOAuthProvider.fetchProfile).not.toHaveBeenCalled();
+    });
+
+    it('should link WeChat mobile identity to the current user', async () => {
+      userService.findById.mockResolvedValue(mockUser);
+      userService.findByIdentity.mockResolvedValue(null);
+      userService.findByProviderUnionId.mockResolvedValue(null);
+      userService.linkIdentity.mockResolvedValue({
+        id: 'identity-uuid-2',
+        userId: mockUser.id,
+        provider: OAUTH_PROVIDER_WECHAT_MOBILE,
+        providerUserId: 'wechat-mobile-openid-1',
+        providerUnionId: 'wechat-unionid-1',
+        email: null,
+        emailVerifiedAt: null,
+        rawProfile: { openid: 'wechat-mobile-openid-1' },
+        createdAt: new Date('2026-01-02T00:00:00Z'),
+        updatedAt: new Date('2026-01-02T00:00:00Z'),
+      });
+
+      await service.linkWechatMobileIdentity('user-uuid-1', {
+        code: 'wechat-mobile-code',
+      });
+
+      expect(wechatMobileOAuthProvider.fetchProfile).toHaveBeenCalledWith(
+        'wechat-mobile-code',
+      );
+      expect(userService.linkIdentity).toHaveBeenCalledWith('user-uuid-1', {
+        provider: OAUTH_PROVIDER_WECHAT_MOBILE,
+        providerUserId: 'wechat-mobile-openid-1',
+        providerUnionId: 'wechat-unionid-1',
+        email: null,
+        rawProfile: { openid: 'wechat-mobile-openid-1' },
+      });
     });
   });
 });
