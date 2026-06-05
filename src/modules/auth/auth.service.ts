@@ -55,6 +55,11 @@ export interface UserPayload {
   email: string;
 }
 
+export interface AuthRequestContext {
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 interface JwtConfigShape {
   accessSecret: string;
   refreshSecret: string;
@@ -86,7 +91,10 @@ export class AuthService {
 
   // ── Registration ─────────────────────────────────────────────
 
-  async register(dto: RegisterDto): Promise<{ user: User } & TokenPair> {
+  async register(
+    dto: RegisterDto,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
     const email = this.normalizeEmail(dto.email);
     const exists = await this.userService.findByEmail(email);
     if (exists) {
@@ -109,13 +117,16 @@ export class AuthService {
       profile: { create: {} },
     });
 
-    const tokens = await this.generateTokenPair(user);
+    const tokens = await this.generateTokenPair(user, context);
     return { user, ...tokens };
   }
 
   // ── Login ────────────────────────────────────────────────────
 
-  async login(dto: LoginDto): Promise<{ user: User } & TokenPair> {
+  async login(
+    dto: LoginDto,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
     const email = this.normalizeEmail(dto.email);
     await this.checkLoginRateLimit(email);
 
@@ -167,13 +178,16 @@ export class AuthService {
       status: UserStatus.active,
     });
 
-    const tokens = await this.generateTokenPair(updatedUser);
+    const tokens = await this.generateTokenPair(updatedUser, context);
     return { user: updatedUser, ...tokens };
   }
 
   // ── Token Refresh ────────────────────────────────────────────
 
-  async refresh(refreshToken: string): Promise<TokenPair> {
+  async refresh(
+    refreshToken: string,
+    context?: AuthRequestContext,
+  ): Promise<TokenPair> {
     const refreshTokenHash = this.hashRefreshToken(refreshToken);
     const record = await this.prisma.userSession.findUnique({
       where: { refreshTokenHash },
@@ -192,7 +206,7 @@ export class AuthService {
       where: { id: record.id },
     });
 
-    return this.generateTokenPair(record.user);
+    return this.generateTokenPair(record.user, context);
   }
 
   // ── Logout ───────────────────────────────────────────────────
@@ -354,7 +368,10 @@ export class AuthService {
 
   // ── Private Helpers ──────────────────────────────────────────
 
-  private async generateTokenPair(user: User): Promise<TokenPair> {
+  private async generateTokenPair(
+    user: User,
+    context?: AuthRequestContext,
+  ): Promise<TokenPair> {
     const config = this.jwtConfig;
 
     const payload: UserPayload = { sub: user.id, email: user.email };
@@ -380,6 +397,7 @@ export class AuthService {
         refreshTokenHash,
         expiresAt: new Date(now + refreshTokenExpiresInMs),
         lastUsedAt: new Date(now),
+        ...this.getSessionContextData(context),
         user: { connect: { id: user.id } },
       },
     });
@@ -402,6 +420,16 @@ export class AuthService {
 
   private hashRefreshToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private getSessionContextData(context: AuthRequestContext | undefined): {
+    ipAddress?: string;
+    userAgent?: string;
+  } {
+    return {
+      ...(context?.ipAddress !== undefined && { ipAddress: context.ipAddress }),
+      ...(context?.userAgent !== undefined && { userAgent: context.userAgent }),
+    };
   }
 
   // ── Login Rate Limiting ─────────────────────────────────────

@@ -46,6 +46,11 @@ const mockJwtConfig = {
   refreshTtl: 1_209_600,
 };
 
+const mockRequestContext = {
+  ipAddress: '203.0.113.10',
+  userAgent: 'LuminousTest/1.0',
+};
+
 function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
@@ -68,6 +73,18 @@ function getLastCacheSetCall(cache: {
   const call = calls.at(-1);
   expect(call).toBeDefined();
   return call as [string, LoginFailureBucketTestShape, number];
+}
+
+function getLastSessionCreateData(prismaService: jest.Mocked<PrismaService>): {
+  ipAddress?: string;
+  userAgent?: string;
+} {
+  const calls = (prismaService.userSession.create as jest.Mock).mock
+    .calls as unknown[][];
+  const call = calls.at(-1);
+  expect(call).toBeDefined();
+  const [args] = call as [{ data: { ipAddress?: string; userAgent?: string } }];
+  return args.data;
 }
 
 describe('AuthService', () => {
@@ -192,12 +209,15 @@ describe('AuthService', () => {
       userService.findByEmail.mockResolvedValue(null);
       userService.create.mockResolvedValue(verifiedUser);
 
-      const result = await service.register({
-        email: 'TEST@example.com',
-        password: 'Password123!',
-        code: '123456',
-        nickname: 'TestUser',
-      });
+      const result = await service.register(
+        {
+          email: 'TEST@example.com',
+          password: 'Password123!',
+          code: '123456',
+          nickname: 'TestUser',
+        },
+        mockRequestContext,
+      );
 
       expect(userService.findByEmail).toHaveBeenCalledWith('test@example.com');
       expect(verificationCodeService.verify).toHaveBeenCalledWith(
@@ -221,6 +241,9 @@ describe('AuthService', () => {
       expect(result.user).toEqual(verifiedUser);
       expect(result.accessToken).toBe('mock-jwt-token');
       expect(result.refreshToken).toBeDefined();
+      expect(getLastSessionCreateData(prismaService)).toEqual(
+        expect.objectContaining(mockRequestContext),
+      );
     });
 
     it('should throw ConflictException if email already exists', async () => {
@@ -247,10 +270,13 @@ describe('AuthService', () => {
       userService.update.mockResolvedValue(updatedUser);
       (argon2.verify as jest.Mock).mockResolvedValue(true);
 
-      const result = await service.login({
-        email: 'test@example.com',
-        password: 'Password123!',
-      });
+      const result = await service.login(
+        {
+          email: 'test@example.com',
+          password: 'Password123!',
+        },
+        mockRequestContext,
+      );
 
       expect(argon2.verify).toHaveBeenCalledWith(
         mockUser.passwordHash,
@@ -262,6 +288,9 @@ describe('AuthService', () => {
       });
       expect(result.user).toEqual(updatedUser);
       expect(result.accessToken).toBe('mock-jwt-token');
+      expect(getLastSessionCreateData(prismaService)).toEqual(
+        expect.objectContaining(mockRequestContext),
+      );
       expect(cache.del).toHaveBeenCalledWith(
         loginFailureKey('test@example.com'),
       );
@@ -416,7 +445,7 @@ describe('AuthService', () => {
         mockRefreshRecord,
       );
 
-      const result = await service.refresh(refreshToken);
+      const result = await service.refresh(refreshToken, mockRequestContext);
 
       expect(prismaService.userSession.findUnique).toHaveBeenCalledWith({
         where: { refreshTokenHash: hashRefreshToken(refreshToken) },
@@ -425,6 +454,9 @@ describe('AuthService', () => {
       expect(prismaService.userSession.delete).toHaveBeenCalledWith({
         where: { id: 'session-id' },
       });
+      expect(getLastSessionCreateData(prismaService)).toEqual(
+        expect.objectContaining(mockRequestContext),
+      );
       expect(prismaService.userSession.deleteMany).not.toHaveBeenCalled();
       expect(result.accessToken).toBe('mock-jwt-token');
     });

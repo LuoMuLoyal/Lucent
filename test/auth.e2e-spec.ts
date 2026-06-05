@@ -5,6 +5,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import request from 'supertest';
 import type { App } from 'supertest/types';
+import { createHash } from 'node:crypto';
 
 import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/setup-app';
@@ -116,6 +117,10 @@ function expectDefined<T>(value: T | undefined, message: string): T {
 
 function bearer(accessToken: string): string {
   return `${BEARER_AUTH_SCHEME} ${accessToken}`;
+}
+
+function hashRefreshToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }
 
 // ── Test Suite ───────────────────────────────────────────────
@@ -285,9 +290,13 @@ describe('Auth API (e2e)', () => {
   describe('POST /api/v1/auth/login', () => {
     it('should login with correct password', async () => {
       const { email } = await registerUser();
+      const clientIp = uniqueClientIp();
+      const userAgent = 'LuminousE2E/1.0';
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.login)
+        .set('x-forwarded-for', clientIp)
+        .set('user-agent', userAgent)
         .send({ email, password: TEST_PASSWORD })
         .expect(200);
 
@@ -296,6 +305,14 @@ describe('Auth API (e2e)', () => {
       const data = expectData(body);
       expect(data.user.email).toBe(email);
       expect(data.tokens.accessToken).toBeDefined();
+
+      const session = await prisma.userSession.findUnique({
+        where: {
+          refreshTokenHash: hashRefreshToken(data.tokens.refreshToken),
+        },
+      });
+      expect(session?.ipAddress).toBe(clientIp);
+      expect(session?.userAgent).toBe(userAgent);
     });
 
     it('should reject wrong password', async () => {
