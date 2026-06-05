@@ -3,6 +3,20 @@
 > 历史条目保留当时状态，可能包含已经废弃的端口、脚本或目录说明。
 > 当前运行方式以 `README.md`、`docs/README.md`、`docs/environment.md` 为准。
 
+## 2026-06-05 (Module Layout + DTO Organization)
+
+### Added
+
+- `request-ip` / `@types/request-ip` for verification-code client IP extraction.
+- `src/common/request/client-ip.ts` centralizes client IP fallback handling.
+- `src/modules/` now owns business feature modules: auth, user, user-health-context, daily-records, medicine-dose-logs, and medicines.
+
+### Changed
+
+- Moved business modules out of top-level `src/`; infrastructure/runtime support remains top-level (`common`, `config`, `generated`, `i18n`, `mail`, `prisma`, app bootstrap files).
+- Split oversized DTO files in medicines, daily-records, and medicine-dose-logs into focused create/update/query/response/source files while preserving DTO class names and endpoint contracts.
+- Verification-code rate limiting now obtains the client IP through `request-ip` instead of manually parsing forwarding headers in `AuthController`.
+
 ## 2026-06-05 (Verification Code Rate Limit + BullMQ Mail Queue)
 
 ### Added
@@ -16,7 +30,7 @@
 ### Changed
 
 - `MailService` keeps the existing `send` / `sendVerificationCode` API but now delegates to `MailQueueService`.
-- `POST /api/v1/auth/send-verification-code` and `POST /api/v1/auth/forgot-password` now derive the client key from `x-forwarded-for`, then `request.ip`, then socket remote address.
+- `POST /api/v1/auth/send-verification-code` and `POST /api/v1/auth/forgot-password` now derive the client key through `request-ip`, with request/socket address fallbacks.
 - `docs/auth-api-mock.md`, `docs/public/api-contract.md`, and `docs/environment.md` document the new 429 behavior and mail queue runtime.
 
 ### Test Results

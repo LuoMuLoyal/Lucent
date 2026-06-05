@@ -36,7 +36,7 @@
 - `refreshToken` 是不透明随机字符串，不是 JWT；数据库只保存其哈希，具体会话保存在 `user_sessions`。
 - `expiresIn` 反映当前 access token 配置。示例沿用默认值 `2h`，但实际环境可通过配置改成别的 TTL。
 - 修改密码、重置密码会清空该账号的所有 refresh sessions；客户端应主动清理本地会话。
-- 验证码发送相关接口按客户端维度限流：同一 client key 10 分钟最多 20 次。client key 优先取 `x-forwarded-for` 的第一个 IP，其次取请求 IP。
+- 验证码发送相关接口按客户端维度限流：同一 client key 10 分钟最多 20 次。client key 通过 `request-ip` 解析客户端 IP，并保留请求 IP / socket 地址兜底。
 - 邮件发送通过 BullMQ 队列处理；配置 `REDIS_URL` 时入队并由 worker 消费，未配置时同步发送，接口响应语义不变。
 
 ---

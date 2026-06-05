@@ -11,7 +11,7 @@ import { setupApp } from '../src/setup-app';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ResultCode } from '../src/common/api-envelope';
 import type { ApiEnvelope } from '../src/common/api-envelope';
-import { VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS } from '../src/auth/verification-code.service';
+import { VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS } from '../src/modules/auth/verification-code.service';
 
 // ── Types ─────────────────────────────────────────────────────
 

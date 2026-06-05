@@ -82,6 +82,9 @@ importers:
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
+      request-ip:
+        specifier: ^3.3.0
+        version: 3.3.0
       rxjs:
         specifier: ^7.8.1
         version: 7.8.2
@@ -137,6 +140,9 @@ importers:
       '@types/passport-jwt':
         specifier: ^4.0.1
         version: 4.0.1
+      '@types/request-ip':
+        specifier: ^0.0.41
+        version: 0.0.41
       '@types/supertest':
         specifier: ^7.0.0
         version: 7.2.0
@@ -2354,6 +2360,12 @@ packages:
     resolution:
       {
         integrity: sha512-Y0Ykz6nWP4jpxgEUYq8NoVZeCQPo1ZndJLfapI249g1jHChvRfZRO/LS3tqu26YgAS/laI1qx98sYGz0IalRXQ==,
+      }
+
+  '@types/request-ip@0.0.41':
+    resolution:
+      {
+        integrity: sha512-Qzz0PM2nSZej4lsLzzNfADIORZhhxO7PED0fXpg4FjXiHuJ/lMyUg+YFF5q8x9HPZH3Gl6N+NOM8QZjItNgGKg==,
       }
 
   '@types/passport-strategy@0.2.38':
@@ -6807,6 +6819,12 @@ packages:
         integrity: sha512-ygHswjlc/opg2VrtiYvUOPLjxjtdKvjGz1/plDhkG66hjNjFr1xmfrs2ClNFo/E6TyUFiwYNh53bKV26oBoMGQ==,
       }
 
+  request-ip@3.3.0:
+    resolution:
+      {
+        integrity: sha512-cA6Xh6e0fDBBBwH77SLJaJPBmD3nWVAcF9/XAcsrIHdjhFzFiB5aNQFytdjCGPezU3ROwrR11IddKAM08vohxA==,
+      }
+
   require-directory@2.1.1:
     resolution:
       {
@@ -9692,6 +9710,10 @@ snapshots:
       '@types/jsonwebtoken': 9.0.10
       '@types/passport-strategy': 0.2.38
 
+  '@types/request-ip@0.0.41':
+    dependencies:
+      '@types/node': 24.12.4
+
   '@types/passport-strategy@0.2.38':
     dependencies:
       '@types/express': 5.0.6
@@ -12421,6 +12443,8 @@ snapshots:
   reflect-metadata@0.2.2: {}
 
   remeda@2.33.4: {}
+
+  request-ip@3.3.0: {}
 
   require-directory@2.1.1: {}
 

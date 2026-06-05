@@ -69,6 +69,7 @@
     "passport-jwt": "^4.0.1",
     "pg": "^8.21.0",
     "reflect-metadata": "^0.2.2",
+    "request-ip": "^3.3.0",
     "rxjs": "^7.8.1",
     "winston": "^3.19.0",
     "winston-daily-rotate-file": "^5.0.0"
@@ -89,6 +90,7 @@
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^8.0.0",
     "@types/passport-jwt": "^4.0.1",
+    "@types/request-ip": "^0.0.41",
     "@types/supertest": "^7.0.0",
     "cross-env": "^10.1.0",
     "dotenv": "^17.4.2",
