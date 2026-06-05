@@ -18,6 +18,7 @@ import { MedicinesModule } from './modules/medicines/medicines.module';
 import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from './modules/medicine-dose-logs/medicine-dose-logs.module';
 import { UserHealthContextModule } from './modules/user-health-context/user-health-context.module';
+import { AccountModule } from './modules/account/account.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { UserHealthContextModule } from './modules/user-health-context/user-heal
     PrismaModule,
     MailModule,
     AuthModule,
+    AccountModule,
     MedicinesModule,
     UserHealthContextModule,
     DailyRecordsModule,

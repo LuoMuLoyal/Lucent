@@ -23,7 +23,6 @@ import { ResultCode } from '../../common/api-envelope';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { UpdateMeDto } from './dto/update-me.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -261,7 +260,7 @@ export class AuthService {
 
   // ── Profile Management ───────────────────────────────────────
 
-  async getMe(userId: string): Promise<User> {
+  async getActiveUser(userId: string): Promise<User> {
     const user = await this.userService.findById(userId);
     if (!user) {
       throw new NotFoundException({
@@ -272,18 +271,8 @@ export class AuthService {
     return user;
   }
 
-  async updateMe(userId: string, dto: UpdateMeDto): Promise<User> {
-    const nickname = dto.nickname === '' ? null : dto.nickname;
-    const avatar = dto.avatar === '' ? null : dto.avatar;
-
-    return this.userService.update(userId, {
-      ...(dto.nickname !== undefined && { nickname }),
-      ...(dto.avatar !== undefined && { avatar }),
-    });
-  }
-
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
-    const user = await this.getMe(userId);
+    const user = await this.getActiveUser(userId);
     if (!user.passwordHash) {
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,
@@ -305,7 +294,7 @@ export class AuthService {
   }
 
   async changeEmail(userId: string, dto: ChangeEmailDto): Promise<User> {
-    await this.getMe(userId);
+    await this.getActiveUser(userId);
     const newEmail = this.normalizeEmail(dto.newEmail);
 
     const exists = await this.userService.findByEmail(newEmail);
@@ -330,7 +319,7 @@ export class AuthService {
   }
 
   async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
-    const user = await this.getMe(userId);
+    const user = await this.getActiveUser(userId);
     if (!user.passwordHash) {
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,

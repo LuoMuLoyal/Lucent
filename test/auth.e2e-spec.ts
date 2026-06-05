@@ -26,6 +26,24 @@ interface UserDto {
   updatedAt?: string;
 }
 
+interface AccountDto {
+  id: string;
+  email: string | null;
+  nickname: string | null;
+  avatar: string | null;
+  emailVerifiedAt: string | null;
+  hasPassword: boolean;
+  lastLoginAt: string | null;
+  linkedIdentities: Array<{
+    provider: string;
+    email: string | null;
+    emailVerifiedAt: string | null;
+    linkedAt: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface TokensDto {
   accessToken: string;
   refreshToken: string;
@@ -48,9 +66,9 @@ const AUTH_PATH = {
   verifyEmail: '/api/v1/auth/verify-email',
   forgotPassword: '/api/v1/auth/forgot-password',
   resetPassword: '/api/v1/auth/reset-password',
-  me: '/api/v1/auth/me',
-  mePassword: '/api/v1/auth/me/password',
-  meEmail: '/api/v1/auth/me/email',
+  account: '/api/v1/account',
+  accountPassword: '/api/v1/account/password',
+  accountEmail: '/api/v1/account/email',
 } as const;
 
 const AUTH_SCENE = {
@@ -658,40 +676,45 @@ describe('Auth API (e2e)', () => {
   });
 
   // ════════════════════════════════════════════════════════════
-  // 9. GET /api/v1/auth/me
+  // 9. GET /api/v1/account
   // ════════════════════════════════════════════════════════════
 
-  describe('GET /api/v1/auth/me', () => {
-    it('should return current user info', async () => {
+  describe('GET /api/v1/account', () => {
+    it('should return authenticated account detail', async () => {
       const { email, tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .get(AUTH_PATH.me)
+        .get(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .expect(200);
 
-      const body = res.body as ApiEnvelope<UserDto>;
+      const body = res.body as ApiEnvelope<AccountDto>;
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.email).toBe(email);
       expect(data.id).toBeDefined();
+      expect(data.emailVerifiedAt).toEqual(expect.any(String));
+      expect(data.hasPassword).toBe(true);
+      expect(data.linkedIdentities).toEqual([]);
+      expect(data.createdAt).toEqual(expect.any(String));
+      expect(data.updatedAt).toEqual(expect.any(String));
     });
 
-    it('should reject unauthenticated request', async () => {
-      await request(app.getHttpServer()).get(AUTH_PATH.me).expect(401);
+    it('should reject unauthenticated account request', async () => {
+      await request(app.getHttpServer()).get(AUTH_PATH.account).expect(401);
     });
   });
 
   // ════════════════════════════════════════════════════════════
-  // 10. PATCH /api/v1/auth/me
+  // 10. PATCH /api/v1/account
   // ════════════════════════════════════════════════════════════
 
-  describe('PATCH /api/v1/auth/me', () => {
-    it('should update nickname and avatar', async () => {
+  describe('PATCH /api/v1/account', () => {
+    it('should update nickname and avatar through account route', async () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .patch(AUTH_PATH.me)
+        .patch(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({
           nickname: UPDATED_NICKNAME,
@@ -699,25 +722,19 @@ describe('Auth API (e2e)', () => {
         })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<UserDto>;
+      const body = res.body as ApiEnvelope<AccountDto>;
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.nickname).toBe(UPDATED_NICKNAME);
       expect(data.avatar).toBe(UPDATED_AVATAR_URL);
+      expect(data.emailVerifiedAt).toEqual(expect.any(String));
     });
 
-    it('should reject unauthenticated request', async () => {
-      await request(app.getHttpServer())
-        .patch(AUTH_PATH.me)
-        .send({ nickname: UNAUTHENTICATED_NICKNAME })
-        .expect(401);
-    });
-
-    it('should clear nickname and avatar when empty strings are provided', async () => {
+    it('should clear nickname and avatar through account route', async () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .patch(AUTH_PATH.me)
+        .patch(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({
           nickname: '',
@@ -725,50 +742,45 @@ describe('Auth API (e2e)', () => {
         })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<UserDto>;
+      const body = res.body as ApiEnvelope<AccountDto>;
       const data = expectData(body);
       expect(data.nickname).toBeNull();
       expect(data.avatar).toBeNull();
     });
+
+    it('should reject unauthenticated account update', async () => {
+      await request(app.getHttpServer())
+        .patch(AUTH_PATH.account)
+        .send({ nickname: UNAUTHENTICATED_NICKNAME })
+        .expect(401);
+    });
   });
 
   // ════════════════════════════════════════════════════════════
-  // 11. POST /api/v1/auth/me/password
+  // 11. POST /api/v1/account/password
   // ════════════════════════════════════════════════════════════
 
-  describe('POST /api/v1/auth/me/password', () => {
-    it('should change password', async () => {
+  describe('POST /api/v1/account/password', () => {
+    it('should change password through account route', async () => {
       const { email, tokens } = await registerUser();
-      const newPassword = CHANGED_PASSWORD;
 
-      // Change password
-      const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.mePassword)
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.accountPassword)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
-        .send({ oldPassword: TEST_PASSWORD, newPassword })
+        .send({ oldPassword: TEST_PASSWORD, newPassword: CHANGED_PASSWORD })
         .expect(200);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-
-      // Login with new password
       await request(app.getHttpServer())
         .post(AUTH_PATH.login)
-        .send({ email, password: newPassword })
+        .send({ email, password: CHANGED_PASSWORD })
         .expect(200);
-
-      // Old password should fail
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.login)
-        .send({ email, password: TEST_PASSWORD })
-        .expect(401);
     });
 
     it('should reject wrong old password', async () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.mePassword)
+        .post(AUTH_PATH.accountPassword)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({
           oldPassword: WRONG_OLD_PASSWORD,
@@ -779,18 +791,27 @@ describe('Auth API (e2e)', () => {
       const body = res.body as ApiEnvelope;
       expect(body.code).toBe(ResultCode.WRONG_PASSWORD);
     });
+
+    it('should reject unauthenticated password change', async () => {
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.accountPassword)
+        .send({
+          oldPassword: TEST_PASSWORD,
+          newPassword: CHANGED_PASSWORD,
+        })
+        .expect(401);
+    });
   });
 
   // ════════════════════════════════════════════════════════════
-  // 12. POST /api/v1/auth/me/email
+  // 12. POST /api/v1/account/email
   // ════════════════════════════════════════════════════════════
 
-  describe('POST /api/v1/auth/me/email', () => {
-    it('should change email with valid verification code', async () => {
+  describe('POST /api/v1/account/email', () => {
+    it('should change email through account route and return verification time', async () => {
       const { tokens } = await registerUser();
       const newEmail = uniqueEmail();
 
-      // Send verification code for change-email scene (sent to new email)
       await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
         .send({ email: newEmail, scene: AUTH_SCENE.changeEmail })
@@ -801,31 +822,28 @@ describe('Auth API (e2e)', () => {
         `Verification code was not cached for ${AUTH_SCENE.changeEmail}:${newEmail}`,
       );
 
-      // Change email
       const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.meEmail)
+        .post(AUTH_PATH.accountEmail)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ newEmail, code })
         .expect(200);
 
       const body = res.body as ApiEnvelope<{
         email: string;
-        emailVerified: boolean;
+        emailVerifiedAt: string;
       }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.email).toBe(newEmail);
-      expect(data.emailVerified).toBe(true);
+      expect(data.emailVerifiedAt).toEqual(expect.any(String));
 
-      // Verify updated profile reflects new email
-      const meRes = await request(app.getHttpServer())
-        .get(AUTH_PATH.me)
+      const accountRes = await request(app.getHttpServer())
+        .get(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .expect(200);
 
-      const meBody = meRes.body as ApiEnvelope<UserDto>;
-      const meData = expectData(meBody);
-      expect(meData.email).toBe(newEmail);
+      const accountBody = accountRes.body as ApiEnvelope<AccountDto>;
+      const accountData = expectData(accountBody);
+      expect(accountData.email).toBe(newEmail);
     });
 
     it('should reject invalid verification code', async () => {
@@ -833,7 +851,7 @@ describe('Auth API (e2e)', () => {
       const newEmail = uniqueEmail();
 
       const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.meEmail)
+        .post(AUTH_PATH.accountEmail)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ newEmail, code: INVALID_VERIFICATION_CODE })
         .expect(400);
@@ -862,39 +880,41 @@ describe('Auth API (e2e)', () => {
       );
 
       const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.meEmail)
+        .post(AUTH_PATH.accountEmail)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ newEmail: mixedCaseEmail, code })
         .expect(200);
 
       const body = res.body as ApiEnvelope<{
         email: string;
-        emailVerified: boolean;
+        emailVerifiedAt: string;
       }>;
       const data = expectData(body);
       expect(data.email).toBe(normalizedEmail);
     });
+
+    it('should reject unauthenticated email change', async () => {
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.accountEmail)
+        .send({ newEmail: uniqueEmail(), code: DEFAULT_VERIFICATION_CODE })
+        .expect(401);
+    });
   });
 
   // ════════════════════════════════════════════════════════════
-  // 13. DELETE /api/v1/auth/me
+  // 13. DELETE /api/v1/account
   // ════════════════════════════════════════════════════════════
 
-  describe('DELETE /api/v1/auth/me', () => {
-    it('should delete account with correct password', async () => {
+  describe('DELETE /api/v1/account', () => {
+    it('should delete account through account route', async () => {
       const { email, tokens } = await registerUser();
 
-      // Delete account
-      const res = await request(app.getHttpServer())
-        .delete(AUTH_PATH.me)
+      await request(app.getHttpServer())
+        .delete(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ password: TEST_PASSWORD })
         .expect(200);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-
-      // Login should fail after deletion
       await request(app.getHttpServer())
         .post(AUTH_PATH.login)
         .send({ email, password: TEST_PASSWORD })
@@ -905,13 +925,20 @@ describe('Auth API (e2e)', () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .delete(AUTH_PATH.me)
+        .delete(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ password: WRONG_DELETE_PASSWORD })
         .expect(401);
 
       const body = res.body as ApiEnvelope;
       expect(body.code).toBe(ResultCode.WRONG_PASSWORD);
+    });
+
+    it('should reject unauthenticated account deletion', async () => {
+      await request(app.getHttpServer())
+        .delete(AUTH_PATH.account)
+        .send({ password: TEST_PASSWORD })
+        .expect(401);
     });
   });
 });

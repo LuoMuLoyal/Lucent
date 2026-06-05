@@ -19,6 +19,13 @@ export class UserBriefDto {
   emailVerified!: boolean;
 
   @ApiProperty({
+    description: '邮箱验证时间 (ISO 8601)',
+    example: '2026-01-01T00:00:00.000Z',
+    nullable: true,
+  })
+  emailVerifiedAt!: string | null;
+
+  @ApiProperty({
     description: '创建时间 (ISO 8601)',
     example: '2026-01-01T00:00:00.000Z',
   })
@@ -49,6 +56,13 @@ export class UserFullDto {
 
   @ApiProperty({ description: '邮箱是否已验证', example: true })
   emailVerified!: boolean;
+
+  @ApiProperty({
+    description: '邮箱验证时间 (ISO 8601)',
+    example: '2026-01-01T00:00:00.000Z',
+    nullable: true,
+  })
+  emailVerifiedAt!: string | null;
 
   @ApiProperty({
     description: '创建时间 (ISO 8601)',

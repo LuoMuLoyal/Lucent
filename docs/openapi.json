@@ -410,9 +410,9 @@
         ]
       }
     },
-    "/api/v1/auth/me": {
+    "/api/v1/account": {
       "get": {
-        "operationId": "AuthController_getMe_v1",
+        "operationId": "AccountController_getAccount_v1",
         "parameters": [],
         "responses": {
           "200": {
@@ -420,7 +420,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeResponseDto"
+                  "$ref": "#/components/schemas/AccountResponseDto"
                 }
               }
             }
@@ -431,20 +431,20 @@
             "access-token": []
           }
         ],
-        "summary": "获取当前用户信息",
+        "summary": "Get authenticated account profile",
         "tags": [
-          "Auth"
+          "Account"
         ]
       },
       "patch": {
-        "operationId": "AuthController_updateMe_v1",
+        "operationId": "AccountController_updateAccount_v1",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateMeDto"
+                "$ref": "#/components/schemas/UpdateAccountDto"
               }
             }
           }
@@ -455,7 +455,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeResponseDto"
+                  "$ref": "#/components/schemas/AccountResponseDto"
                 }
               }
             }
@@ -466,13 +466,13 @@
             "access-token": []
           }
         ],
-        "summary": "更新当前用户信息",
+        "summary": "Update authenticated account profile",
         "tags": [
-          "Auth"
+          "Account"
         ]
       },
       "delete": {
-        "operationId": "AuthController_deleteAccount_v1",
+        "operationId": "AccountController_deleteAccount_v1",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -501,15 +501,15 @@
             "access-token": []
           }
         ],
-        "summary": "注销账户",
+        "summary": "Delete authenticated account",
         "tags": [
-          "Auth"
+          "Account"
         ]
       }
     },
-    "/api/v1/auth/me/password": {
+    "/api/v1/account/password": {
       "post": {
-        "operationId": "AuthController_changePassword_v1",
+        "operationId": "AccountController_changePassword_v1",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -538,15 +538,15 @@
             "access-token": []
           }
         ],
-        "summary": "修改密码",
+        "summary": "Change authenticated account password",
         "tags": [
-          "Auth"
+          "Account"
         ]
       }
     },
-    "/api/v1/auth/me/email": {
+    "/api/v1/account/email": {
       "post": {
-        "operationId": "AuthController_changeEmail_v1",
+        "operationId": "AccountController_changeEmail_v1",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -564,7 +564,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ChangeEmailResponseDto"
+                  "$ref": "#/components/schemas/AccountEmailResponseDto"
                 }
               }
             }
@@ -575,9 +575,9 @@
             "access-token": []
           }
         ],
-        "summary": "修改邮箱",
+        "summary": "Change authenticated account email",
         "tags": [
-          "Auth"
+          "Account"
         ]
       }
     },
@@ -1551,6 +1551,12 @@
             "description": "邮箱是否已验证",
             "example": true
           },
+          "emailVerifiedAt": {
+            "type": "object",
+            "description": "邮箱验证时间 (ISO 8601)",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
           "createdAt": {
             "type": "string",
             "description": "创建时间 (ISO 8601)",
@@ -1562,6 +1568,7 @@
           "email",
           "nickname",
           "emailVerified",
+          "emailVerifiedAt",
           "createdAt"
         ]
       },
@@ -1683,6 +1690,12 @@
             "description": "邮箱是否已验证",
             "example": true
           },
+          "emailVerifiedAt": {
+            "type": "object",
+            "description": "邮箱验证时间 (ISO 8601)",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
           "createdAt": {
             "type": "string",
             "description": "创建时间 (ISO 8601)",
@@ -1700,6 +1713,7 @@
           "nickname",
           "avatar",
           "emailVerified",
+          "emailVerifiedAt",
           "createdAt",
           "updatedAt"
         ]
@@ -2094,21 +2108,126 @@
           "password"
         ]
       },
-      "MeResponseDto": {
+      "AccountIdentityDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "description": "OAuth provider name.",
+            "example": "wechat_web"
+          },
+          "email": {
+            "type": "object",
+            "description": "Provider email when the provider exposes one.",
+            "example": "user@example.com",
+            "nullable": true
+          },
+          "emailVerifiedAt": {
+            "type": "object",
+            "description": "Provider email verification time in ISO 8601.",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "linkedAt": {
+            "type": "string",
+            "description": "Identity linked time in ISO 8601.",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "provider",
+          "email",
+          "emailVerifiedAt",
+          "linkedAt"
+        ]
+      },
+      "AccountDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "User ID."
+          },
+          "email": {
+            "type": "object",
+            "description": "Account email. OAuth-only accounts may not have one.",
+            "example": "user@example.com",
+            "nullable": true
+          },
+          "nickname": {
+            "type": "object",
+            "description": "Display nickname.",
+            "example": "Lumi User",
+            "nullable": true
+          },
+          "avatar": {
+            "type": "object",
+            "description": "Avatar URL.",
+            "example": "https://example.com/avatar.png",
+            "nullable": true
+          },
+          "emailVerifiedAt": {
+            "type": "object",
+            "description": "Account email verification time in ISO 8601.",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "hasPassword": {
+            "type": "boolean",
+            "description": "Whether the account has a local password."
+          },
+          "lastLoginAt": {
+            "type": "object",
+            "description": "Last login time in ISO 8601.",
+            "example": "2026-01-01T00:00:00.000Z",
+            "nullable": true
+          },
+          "linkedIdentities": {
+            "description": "Linked third-party identities without provider user ids.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccountIdentityDto"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created time in ISO 8601.",
+            "example": "2026-01-01T00:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated time in ISO 8601.",
+            "example": "2026-01-01T00:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "nickname",
+          "avatar",
+          "emailVerifiedAt",
+          "hasPassword",
+          "lastLoginAt",
+          "linkedIdentities",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "AccountResponseDto": {
         "type": "object",
         "properties": {
           "code": {
             "type": "number",
-            "description": "结果码",
+            "description": "Result code.",
             "example": 0
           },
           "message": {
             "type": "string",
-            "description": "提示消息",
+            "description": "Message.",
             "example": ""
           },
           "data": {
-            "$ref": "#/components/schemas/UserFullDto"
+            "$ref": "#/components/schemas/AccountDto"
           }
         },
         "required": [
@@ -2117,18 +2236,18 @@
           "data"
         ]
       },
-      "UpdateMeDto": {
+      "UpdateAccountDto": {
         "type": "object",
         "properties": {
           "nickname": {
             "type": "string",
-            "description": "昵称",
-            "example": "小明",
+            "description": "Display nickname. Send an empty string to clear it.",
+            "example": "Lumi User",
             "maxLength": 20
           },
           "avatar": {
             "type": "string",
-            "description": "头像 URL",
+            "description": "Avatar URL. Send an empty string to clear it.",
             "example": "https://example.com/avatar.png"
           }
         }
@@ -2175,40 +2294,40 @@
           "code"
         ]
       },
-      "ChangeEmailDataDto": {
+      "AccountEmailDataDto": {
         "type": "object",
         "properties": {
           "email": {
             "type": "string",
-            "description": "新邮箱地址",
+            "description": "New email address.",
             "example": "new@example.com"
           },
-          "emailVerified": {
-            "type": "boolean",
-            "description": "邮箱是否已验证",
-            "example": true
+          "emailVerifiedAt": {
+            "type": "string",
+            "description": "Email verification time in ISO 8601.",
+            "example": "2026-01-01T00:00:00.000Z"
           }
         },
         "required": [
           "email",
-          "emailVerified"
+          "emailVerifiedAt"
         ]
       },
-      "ChangeEmailResponseDto": {
+      "AccountEmailResponseDto": {
         "type": "object",
         "properties": {
           "code": {
             "type": "number",
-            "description": "结果码",
+            "description": "Result code.",
             "example": 0
           },
           "message": {
             "type": "string",
-            "description": "提示消息",
+            "description": "Message.",
             "example": ""
           },
           "data": {
-            "$ref": "#/components/schemas/ChangeEmailDataDto"
+            "$ref": "#/components/schemas/AccountEmailDataDto"
           }
         },
         "required": [

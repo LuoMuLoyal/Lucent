@@ -7,14 +7,14 @@ import type { UserPayload } from '../auth.service';
  * 参数装饰器：从 request.user 中提取当前登录用户信息。
  *
  * 使用方式：
- *  @Get('me')
+ *  @Get('account')
  *  @UseGuards(JwtAuthGuard)
- *  getMe(@CurrentUser() user: UserPayload) {
+ *  getAccount(@CurrentUser() user: UserPayload) {
  *    return user;
  *  }
  *
  *  // 只取某个字段：
- *  @Get('me/id')
+ *  @Get('account/id')
  *  @UseGuards(JwtAuthGuard)
  *  getMyId(@CurrentUser('sub') userId: string) {
  *    return userId;

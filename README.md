@@ -53,7 +53,7 @@ Use narrower commands while iterating, then run the relevant broader checks befo
 
 ## Source Layout
 
-- `src/modules/` contains business feature modules: auth, user, health context, daily records, dose logs, medicines.
+- `src/modules/` contains business feature modules: auth, account, user, health context, daily records, dose logs, medicines.
 - Top-level `src/` keeps app bootstrap and infrastructure/runtime support: `common`, `config`, `generated`, `i18n`, `mail`, `prisma`.
 - `scripts/` contains local dev, OpenAPI export, deployment, and medicine import helpers.
 

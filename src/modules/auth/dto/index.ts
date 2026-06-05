@@ -2,7 +2,6 @@ export * from './register.dto';
 export * from './login.dto';
 export * from './refresh.dto';
 export * from './logout.dto';
-export * from './update-me.dto';
 export * from './change-password.dto';
 export * from './change-email.dto';
 export * from './delete-account.dto';
