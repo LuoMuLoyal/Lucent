@@ -1,6 +1,6 @@
 # Data Sources
 
-Last updated: 2026-05-30
+Last updated: 2026-06-05
 
 ## Target Directory
 
@@ -67,6 +67,8 @@ Useful options:
 - `-BatchSize 250` to tune upsert batch size.
 - `-SourceVersion 2026-05-30` to persist the export/version string into `drug_source_imports.source_version`.
 - `-WithHash` to store a SHA-256 file hash in `drug_source_imports.source_file_hash`.
+
+Import batches are deduplicated by the target table conflict key before upsert. This keeps smoke and full imports idempotent when a source file emits multiple rows for the same durable record, such as repeated DrugBank primary ids in the XML stream.
 
 Chinese source note:
 
