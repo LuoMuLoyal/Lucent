@@ -1747,7 +1747,7 @@
         "properties": {
           "callbackUri": {
             "type": "string",
-            "description": "授权完成后的客户端回跳地址。桌面端只支持 loopback 地址。",
+            "description": "授权完成后的客户端回跳地址。桌面端支持 loopback 地址，Web 端支持可信 CORS origin 下的 /login/oauth/wechat。",
             "example": "http://127.0.0.1:49152/oauth/wechat"
           }
         }
@@ -1770,7 +1770,7 @@
           },
           "callbackUri": {
             "type": "string",
-            "description": "客户端回跳地址。桌面端 loopback 登录时返回。",
+            "description": "客户端回跳地址。桌面端 loopback 或可信 Web 回调登录时返回。",
             "example": "http://127.0.0.1:49152/oauth/wechat"
           }
         },
