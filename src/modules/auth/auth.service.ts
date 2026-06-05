@@ -200,7 +200,7 @@ export class AuthService {
     if (hasCode) {
       await this.verificationCodeService.verify(email, code, 'login');
     }
-    // TODO: 2FA 校验
+    // TODO(auth-security): add optional 2FA challenge verification before issuing tokens.
 
     await this.clearLoginFailures(email);
 
@@ -258,6 +258,7 @@ export class AuthService {
       where: { userId },
     });
   }
+  // TODO(auth-session): expose device/session management so users can review and revoke individual sessions.
 
   // ── Profile Management ───────────────────────────────────────
 
@@ -275,6 +276,7 @@ export class AuthService {
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     const user = await this.getActiveUser(userId);
     if (!user.passwordHash) {
+      // TODO(auth-password): add a dedicated set-password flow for OAuth-only accounts.
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,
         message: this.i18n.t('auth.current_password_wrong'),
@@ -322,6 +324,7 @@ export class AuthService {
   async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
     const user = await this.getActiveUser(userId);
     if (!user.passwordHash) {
+      // TODO(auth-password): allow OAuth-only accounts to delete only after a fresh linked-identity verification.
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,
         message: this.i18n.t('auth.password_wrong'),
@@ -570,6 +573,7 @@ export class AuthService {
     });
 
     const tokens = await this.generateTokenPair(updatedUser, context);
+    // TODO(auth-audit): emit security notifications for new OAuth logins and newly linked identities.
     return { user: updatedUser, ...tokens };
   }
 

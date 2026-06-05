@@ -122,6 +122,7 @@ export class WechatWebOAuthProvider {
     const wechat = config.wechatWeb;
 
     if (!wechat.appId || !wechat.appSecret) {
+      // TODO(auth-oauth): validate production OAuth configuration during boot instead of first request.
       throw new ServiceUnavailableException({
         code: ResultCode.EXTERNAL_SERVICE_ERROR,
         message: this.i18n.t('auth.oauth_provider_not_configured'),
