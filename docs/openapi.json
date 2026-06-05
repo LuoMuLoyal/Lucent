@@ -83,6 +83,16 @@
       "post": {
         "operationId": "AuthController_createWechatWebAuthorizeUrl_v1",
         "parameters": [],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthAuthorizeDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
@@ -128,6 +138,38 @@
           }
         },
         "summary": "微信网页登录回调登录",
+        "tags": [
+          "Auth"
+        ]
+      },
+      "get": {
+        "operationId": "AuthController_redirectWechatWebCallback_v1",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "description": "OAuth 授权码",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "description": "授权时生成的 state",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to desktop callback URI"
+          }
+        },
+        "summary": "微信网页登录浏览器回跳",
         "tags": [
           "Auth"
         ]
@@ -1700,6 +1742,16 @@
           "data"
         ]
       },
+      "OAuthAuthorizeDto": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "description": "授权完成后的客户端回跳地址。桌面端只支持 loopback 地址。",
+            "example": "http://127.0.0.1:49152/oauth/wechat"
+          }
+        }
+      },
       "OAuthAuthorizeDataDto": {
         "type": "object",
         "properties": {
@@ -1715,6 +1767,11 @@
             "type": "number",
             "description": "state 过期时间（秒）",
             "example": 600
+          },
+          "callbackUri": {
+            "type": "string",
+            "description": "客户端回跳地址。桌面端 loopback 登录时返回。",
+            "example": "http://127.0.0.1:49152/oauth/wechat"
           }
         },
         "required": [

@@ -166,7 +166,7 @@ Then edit `.env.production`, especially:
 - `JWT_REFRESH_SECRET`
 - `CORS_ORIGIN`
 
-Optional WeChat Web OAuth login variables:
+Optional WeChat OAuth login variables:
 
 - `WECHAT_WEB_APP_ID`
 - `WECHAT_WEB_APP_SECRET`
@@ -174,7 +174,9 @@ Optional WeChat Web OAuth login variables:
 - `WECHAT_MOBILE_APP_ID`
 - `WECHAT_MOBILE_APP_SECRET`
 
-When these are empty, Lucent still starts normally and the WeChat Web OAuth endpoints report the provider as not configured.
+When these are empty, Lucent still starts normally and the WeChat OAuth endpoints report the provider as not configured.
+
+`WECHAT_WEB_REDIRECT_URI` should point at Lucent's browser callback endpoint, for example `https://your-domain.example/api/v1/auth/oauth/wechat-web/callback`. Desktop clients pass a temporary loopback `callbackUri` to `POST /api/v1/auth/oauth/wechat-web/authorize`; Lucent stores that URI in OAuth state and the browser callback redirects back to it after WeChat returns `code` and `state`. Only loopback `http://127.0.0.1:<port>` / `localhost` / `[::1]` callback URIs are accepted.
 
 In the default single-server compose deployment, `DATABASE_URL` and `REDIS_URL` are pinned to the local `postgres` / `redis` containers by `docker-compose.yml`. If you want to use external services instead, update both `.env.production` and `docker-compose.yml`.
 
@@ -212,7 +214,7 @@ CORS_ORIGIN
 - Cache manager is global. When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; when `REDIS_URL` is absent, it falls back to in-memory cache.
 - Mail delivery uses BullMQ when `REDIS_URL` is set: `MailService` enqueues jobs to `lucent-mail`, and an in-process worker sends through the configured log/smtp transport with retry/backoff. Without `REDIS_URL`, mail is sent immediately.
 - Auth transient state uses scoped cache prefixes: `vcode:*` for email verification codes/cooldowns/client limits and `auth:login-failure:*` for login failure buckets. Keys store opaque values or hashed identifiers rather than raw passwords/tokens.
-- WeChat Web OAuth state uses `auth:oauth-state:wechat_web:*` keys with a 10 minute TTL. WeChat accounts may not expose email, so `users.email` is nullable; email/password flows still require an email in their DTOs. Web and mobile WeChat identities are stored as separate providers and linked by `provider_union_id` when WeChat returns `unionid`.
+- WeChat Web OAuth state uses `auth:oauth-state:wechat_web:*` keys with a 10 minute TTL. Desktop Web OAuth state may include a loopback callback URI used only for the browser-to-app redirect. WeChat accounts may not expose email, so `users.email` is nullable; email/password flows still require an email in their DTOs. Web and mobile WeChat identities are stored as separate providers and linked by `provider_union_id` when WeChat returns `unionid`.
 - Medicine knowledge reads currently use service-layer cache keys under the `medicines:` prefix. Search cache TTL is 5 minutes; detail cache TTL is 15 minutes.
 - Frontend may send `x-bypass-cache: true` (also accepts `1`, `yes`, or `no-cache`) on medicines read requests to bypass cache for that request only.
 - Medicine import scripts scan Redis for medicines cache entries under the active Keyv namespace and invalidate the matching logical `medicines:*` keys after import when `REDIS_URL` is configured.

@@ -7,16 +7,20 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Query,
+  Res,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 
 import { successEnvelope } from '../../common/api-envelope';
 import { getRequestClientIp } from '../../common/request/client-ip';
@@ -38,7 +42,11 @@ import { UpdateMeDto } from './dto/update-me.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
-import { OAuthCallbackDto, OAuthCodeCallbackDto } from './dto/oauth.dto';
+import {
+  OAuthAuthorizeDto,
+  OAuthCallbackDto,
+  OAuthCodeCallbackDto,
+} from './dto/oauth.dto';
 
 import {
   ChangeEmailResponseDto,
@@ -119,9 +127,10 @@ export class AuthController {
   @Post('oauth/wechat-web/authorize')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '创建微信网页登录授权地址' })
+  @ApiBody({ type: OAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
-  async createWechatWebAuthorizeUrl() {
-    const result = await this.authService.createWechatWebAuthorizeUrl();
+  async createWechatWebAuthorizeUrl(@Body() dto?: OAuthAuthorizeDto) {
+    const result = await this.authService.createWechatWebAuthorizeUrl(dto);
     return successEnvelope(result);
   }
 
@@ -155,6 +164,22 @@ export class AuthController {
         expiresIn: this.calculateExpiresIn(result.accessTokenExpiresAt),
       },
     });
+  }
+
+  // ── 2.2.1 GET /api/v1/auth/oauth/wechat-web/callback ───────
+
+  @Get('oauth/wechat-web/callback')
+  @ApiOperation({ summary: '微信网页登录浏览器回跳' })
+  @ApiQuery({ name: 'code', required: true })
+  @ApiQuery({ name: 'state', required: true })
+  @ApiResponse({ status: 302, description: 'Redirect to desktop callback URI' })
+  async redirectWechatWebCallback(
+    @Query() dto: OAuthCallbackDto,
+    @Res() response: Response,
+  ) {
+    const redirectUrl =
+      await this.authService.resolveWechatWebCallbackRedirect(dto);
+    response.redirect(HttpStatus.FOUND, redirectUrl);
   }
 
   // ── 2.3 POST /api/v1/auth/oauth/wechat-mobile/callback ───────

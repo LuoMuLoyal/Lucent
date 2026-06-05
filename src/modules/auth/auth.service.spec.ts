@@ -1,6 +1,7 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import {
+  BadRequestException,
   ConflictException,
   NotFoundException,
   UnauthorizedException,
@@ -957,6 +958,72 @@ describe('AuthService', () => {
         },
         600_000,
       );
+    });
+
+    it('should cache a loopback callback URI for desktop WeChat web OAuth', async () => {
+      const result = await service.createWechatWebAuthorizeUrl({
+        callbackUri: ' http://127.0.0.1:49152/oauth/wechat?stale=1 ',
+      });
+
+      expect(result.callbackUri).toBe('http://127.0.0.1:49152/oauth/wechat');
+      expect(cache.set).toHaveBeenCalledWith(
+        `auth:oauth-state:${OAUTH_PROVIDER_WECHAT_WEB}:${createHash('sha256')
+          .update(result.state)
+          .digest('hex')}`,
+        {
+          provider: OAUTH_PROVIDER_WECHAT_WEB,
+          callbackUri: 'http://127.0.0.1:49152/oauth/wechat',
+        },
+        600_000,
+      );
+    });
+
+    it('should reject non-loopback desktop callback URIs', async () => {
+      await expect(
+        service.createWechatWebAuthorizeUrl({
+          callbackUri: 'https://evil.example.com/oauth/wechat',
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(cache.set).not.toHaveBeenCalled();
+      expect(wechatWebOAuthProvider.buildAuthorizeUrl).not.toHaveBeenCalled();
+    });
+
+    it('should resolve desktop WeChat web callback redirect without consuming state', async () => {
+      cache.get.mockResolvedValue({
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+        callbackUri: 'http://127.0.0.1:49152/oauth/wechat',
+      });
+
+      const redirectUrl = await service.resolveWechatWebCallbackRedirect({
+        code: 'wechat-code',
+        state: 'oauth-state',
+      });
+
+      expect(redirectUrl).toBe(
+        'http://127.0.0.1:49152/oauth/wechat?code=wechat-code&state=oauth-state',
+      );
+      expect(cache.get).toHaveBeenCalledWith(
+        `auth:oauth-state:${OAUTH_PROVIDER_WECHAT_WEB}:${createHash('sha256')
+          .update('oauth-state')
+          .digest('hex')}`,
+      );
+      expect(cache.del).not.toHaveBeenCalled();
+    });
+
+    it('should reject browser callback redirect when desktop callback URI is missing', async () => {
+      cache.get.mockResolvedValue({
+        provider: OAUTH_PROVIDER_WECHAT_WEB,
+      });
+
+      await expect(
+        service.resolveWechatWebCallbackRedirect({
+          code: 'wechat-code',
+          state: 'oauth-state',
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(cache.del).not.toHaveBeenCalled();
     });
 
     it('should create a passwordless user from WeChat profile and return tokens', async () => {

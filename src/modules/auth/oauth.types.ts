@@ -11,6 +11,7 @@ export interface OAuthAuthorizeResult {
   authorizeUrl: string;
   state: string;
   expiresIn: number;
+  callbackUri?: string;
 }
 
 export interface OAuthProfile {

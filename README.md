@@ -21,7 +21,7 @@ pnpm export:openapi
 - Prisma 7 / PostgreSQL
 - Redis / BullMQ
 - Passport JWT
-- WeChat Web OAuth login
+- WeChat Web / Mobile OAuth login
 - OpenAPI-generated client/docs
 
 ## Local Development
