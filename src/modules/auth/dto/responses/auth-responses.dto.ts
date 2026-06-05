@@ -36,6 +36,13 @@ class OAuthAuthorizeDataDto {
 
   @ApiProperty({ description: 'state 过期时间（秒）', example: 600 })
   expiresIn!: number;
+
+  @ApiProperty({
+    description: '客户端回跳地址。桌面端 loopback 登录时返回。',
+    required: false,
+    example: 'http://127.0.0.1:49152/oauth/wechat',
+  })
+  callbackUri?: string;
 }
 
 /** 验证邮箱响应 data */

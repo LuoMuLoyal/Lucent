@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -29,7 +30,11 @@ import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { SendVerificationCodeDto } from './dto/send-verification-code.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
-import { OAuthCallbackDto, OAuthCodeCallbackDto } from './dto/oauth.dto';
+import {
+  OAuthAuthorizeDto,
+  OAuthCallbackDto,
+  OAuthCodeCallbackDto,
+} from './dto/oauth.dto';
 import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
 import { WechatMobileOAuthProvider } from './wechat-mobile-oauth.provider';
 import {
@@ -84,6 +89,7 @@ interface LoginFailureBucket {
 
 interface OAuthStateEntry {
   provider: typeof OAUTH_PROVIDER_WECHAT_WEB;
+  callbackUri?: string;
 }
 
 const OAUTH_STATE_TTL = 10 * 60 * 1000;
@@ -408,12 +414,16 @@ export class AuthService {
 
   // ── OAuth ────────────────────────────────────────────────────
 
-  async createWechatWebAuthorizeUrl(): Promise<OAuthAuthorizeResult> {
+  async createWechatWebAuthorizeUrl(
+    dto?: OAuthAuthorizeDto,
+  ): Promise<OAuthAuthorizeResult> {
     const state = randomBytes(24).toString('base64url');
+    const callbackUri = this.normalizeLoopbackCallbackUri(dto?.callbackUri);
     await this.cache.set(
       this.oauthStateKey(OAUTH_PROVIDER_WECHAT_WEB, state),
       {
         provider: OAUTH_PROVIDER_WECHAT_WEB,
+        ...(callbackUri !== undefined && { callbackUri }),
       },
       OAUTH_STATE_TTL,
     );
@@ -422,7 +432,28 @@ export class AuthService {
       authorizeUrl: this.wechatWebOAuthProvider.buildAuthorizeUrl(state),
       state,
       expiresIn: OAUTH_STATE_TTL_SEC,
+      ...(callbackUri !== undefined && { callbackUri }),
     };
+  }
+
+  async resolveWechatWebCallbackRedirect(
+    dto: OAuthCallbackDto,
+  ): Promise<string> {
+    const entry = await this.peekOAuthState(
+      OAUTH_PROVIDER_WECHAT_WEB,
+      dto.state,
+    );
+    if (entry.callbackUri === undefined) {
+      throw new BadRequestException({
+        code: ResultCode.BAD_REQUEST,
+        message: this.i18n.t('auth.oauth_callback_uri_missing'),
+      });
+    }
+
+    const redirectUrl = new URL(entry.callbackUri);
+    redirectUrl.searchParams.set('code', dto.code);
+    redirectUrl.searchParams.set('state', dto.state);
+    return redirectUrl.toString();
   }
 
   async loginWithWechatWeb(
@@ -616,6 +647,24 @@ export class AuthService {
     return entry;
   }
 
+  private async peekOAuthState(
+    provider: typeof OAUTH_PROVIDER_WECHAT_WEB,
+    state: string,
+  ): Promise<OAuthStateEntry> {
+    const entry = await this.cache.get<OAuthStateEntry>(
+      this.oauthStateKey(provider, state),
+    );
+
+    if (!this.isValidOAuthStateEntry(entry, provider)) {
+      throw new UnauthorizedException({
+        code: ResultCode.UNAUTHORIZED,
+        message: this.i18n.t('auth.oauth_state_invalid'),
+      });
+    }
+
+    return entry;
+  }
+
   private oauthStateKey(provider: OAuthProvider, state: string): string {
     const digest = createHash('sha256').update(state).digest('hex');
     return `auth:oauth-state:${provider}:${digest}`;
@@ -630,7 +679,55 @@ export class AuthService {
     }
 
     const candidate = entry as Partial<OAuthStateEntry>;
-    return candidate.provider === provider;
+    return (
+      candidate.provider === provider &&
+      (candidate.callbackUri === undefined ||
+        typeof candidate.callbackUri === 'string')
+    );
+  }
+
+  private normalizeLoopbackCallbackUri(
+    callbackUri: string | undefined,
+  ): string | undefined {
+    const trimmed = callbackUri?.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      throw this.invalidOAuthCallbackUri();
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+    const isLoopbackHost =
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '[::1]' ||
+      hostname === '::1';
+
+    if (
+      parsed.protocol !== 'http:' ||
+      !isLoopbackHost ||
+      parsed.port.length === 0 ||
+      parsed.username.length > 0 ||
+      parsed.password.length > 0 ||
+      parsed.hash.length > 0
+    ) {
+      throw this.invalidOAuthCallbackUri();
+    }
+
+    parsed.search = '';
+    return parsed.toString();
+  }
+
+  private invalidOAuthCallbackUri(): BadRequestException {
+    return new BadRequestException({
+      code: ResultCode.BAD_REQUEST,
+      message: this.i18n.t('auth.oauth_callback_uri_invalid'),
+    });
   }
 
   private getSessionContextData(context: AuthRequestContext | undefined): {
