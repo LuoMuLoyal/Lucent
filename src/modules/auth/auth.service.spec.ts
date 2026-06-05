@@ -5,6 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
@@ -49,8 +50,33 @@ function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
+function loginFailureKey(email: string): string {
+  const digest = createHash('sha256').update(email).digest('hex');
+  return `auth:login-failure:${digest}`;
+}
+
+interface LoginFailureBucketTestShape {
+  count: number;
+  resetAt: number;
+  lockedUntil?: number;
+}
+
+function getLastCacheSetCall(cache: {
+  set: jest.Mock;
+}): [string, LoginFailureBucketTestShape, number] {
+  const calls = cache.set.mock.calls as unknown[][];
+  const call = calls.at(-1);
+  expect(call).toBeDefined();
+  return call as [string, LoginFailureBucketTestShape, number];
+}
+
 describe('AuthService', () => {
   let service: AuthService;
+  let cache: {
+    get: jest.Mock;
+    set: jest.Mock;
+    del: jest.Mock;
+  };
   let prismaService: jest.Mocked<PrismaService>;
   let userService: jest.Mocked<UserService>;
   let jwtService: jest.Mocked<JwtService>;
@@ -60,6 +86,14 @@ describe('AuthService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+          },
+        },
         {
           provide: PrismaService,
           useValue: {
@@ -114,6 +148,7 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get(AuthService);
+    cache = module.get(CACHE_MANAGER);
     prismaService = module.get(PrismaService);
     userService = module.get(UserService);
     jwtService = module.get(JwtService);
@@ -121,6 +156,9 @@ describe('AuthService', () => {
 
     (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$newhash');
     (argon2.verify as jest.Mock).mockResolvedValue(true);
+    cache.get.mockResolvedValue(null);
+    cache.set.mockResolvedValue(undefined);
+    cache.del.mockResolvedValue(undefined);
     jwtService.signAsync.mockResolvedValue('mock-jwt-token');
     (prismaService.userSession.create as jest.Mock).mockResolvedValue({
       id: 'session-id',
@@ -224,6 +262,9 @@ describe('AuthService', () => {
       });
       expect(result.user).toEqual(updatedUser);
       expect(result.accessToken).toBe('mock-jwt-token');
+      expect(cache.del).toHaveBeenCalledWith(
+        loginFailureKey('test@example.com'),
+      );
     });
 
     it('should throw UnauthorizedException for non-existent user', async () => {
@@ -232,6 +273,11 @@ describe('AuthService', () => {
       await expect(
         service.login({ email: 'noone@example.com', password: 'Password123!' }),
       ).rejects.toThrow(UnauthorizedException);
+      const [key, bucket, ttl] = getLastCacheSetCall(cache);
+      expect(key).toBe(loginFailureKey('noone@example.com'));
+      expect(bucket.count).toBe(1);
+      expect(typeof bucket.resetAt).toBe('number');
+      expect(typeof ttl).toBe('number');
     });
 
     it('should throw UnauthorizedException for wrong password', async () => {
@@ -244,6 +290,48 @@ describe('AuthService', () => {
           password: 'WrongPassword!',
         }),
       ).rejects.toThrow(UnauthorizedException);
+      const [key, bucket, ttl] = getLastCacheSetCall(cache);
+      expect(key).toBe(loginFailureKey('test@example.com'));
+      expect(bucket.count).toBe(1);
+      expect(typeof bucket.resetAt).toBe('number');
+      expect(typeof ttl).toBe('number');
+    });
+
+    it('should reject login while email is rate limited', async () => {
+      cache.get.mockResolvedValue({
+        count: 10,
+        resetAt: Date.now() + 15 * 60 * 1000,
+        lockedUntil: Date.now() + 60 * 60 * 1000,
+      });
+
+      await expect(
+        service.login({ email: 'test@example.com', password: 'Password123!' }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(userService.findByEmail).not.toHaveBeenCalled();
+      expect(cache.set).not.toHaveBeenCalled();
+    });
+
+    it('should increment login failures and lock after the maximum', async () => {
+      cache.get.mockResolvedValueOnce(null).mockResolvedValueOnce({
+        count: 9,
+        resetAt: Date.now() + 15 * 60 * 1000,
+      });
+      userService.findByEmail.mockResolvedValue(mockUser);
+      (argon2.verify as jest.Mock).mockResolvedValue(false);
+
+      await expect(
+        service.login({
+          email: 'test@example.com',
+          password: 'WrongPassword!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      const [key, bucket, ttl] = getLastCacheSetCall(cache);
+      expect(key).toBe(loginFailureKey('test@example.com'));
+      expect(bucket.count).toBe(10);
+      expect(typeof bucket.lockedUntil).toBe('number');
+      expect(typeof ttl).toBe('number');
     });
 
     it('should throw UnauthorizedException when no credential is provided', async () => {

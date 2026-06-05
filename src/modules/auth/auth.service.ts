@@ -1,9 +1,12 @@
 import {
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
@@ -59,9 +62,16 @@ interface JwtConfigShape {
   refreshTtl: number; // seconds
 }
 
+interface LoginFailureBucket {
+  count: number;
+  resetAt: number;
+  lockedUntil?: number;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
@@ -107,13 +117,12 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<{ user: User } & TokenPair> {
     const email = this.normalizeEmail(dto.email);
+    await this.checkLoginRateLimit(email);
+
     const user = await this.userService.findByEmail(email);
 
-    // Always check rate limit first
-    this.checkLoginRateLimit(email);
-
     if (!user) {
-      this.recordLoginFailure(email);
+      await this.recordLoginFailure(email);
       throw new UnauthorizedException({
         code: ResultCode.UNAUTHORIZED,
         message: this.i18n.t('auth.email_or_password_wrong'),
@@ -125,7 +134,7 @@ export class AuthService {
     const hasPassword = password !== undefined;
     const hasCode = code !== undefined;
     if (hasPassword === hasCode) {
-      this.recordLoginFailure(email);
+      await this.recordLoginFailure(email);
       throw new UnauthorizedException({
         code: ResultCode.UNAUTHORIZED,
         message: this.i18n.t('auth.email_or_password_wrong'),
@@ -136,7 +145,7 @@ export class AuthService {
     if (hasPassword) {
       const valid = await argon2.verify(user.passwordHash, password);
       if (!valid) {
-        this.recordLoginFailure(email);
+        await this.recordLoginFailure(email);
         throw new UnauthorizedException({
           code: ResultCode.UNAUTHORIZED,
           message: this.i18n.t('auth.email_or_password_wrong'),
@@ -150,7 +159,7 @@ export class AuthService {
     }
     // TODO: 2FA 校验
 
-    this.clearLoginFailures(email);
+    await this.clearLoginFailures(email);
 
     const now = new Date();
     const updatedUser = await this.userService.update(user.id, {
@@ -395,15 +404,11 @@ export class AuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  // ── Login Rate Limiting (in-memory, TODO: Redis) ─────────────
+  // ── Login Rate Limiting ─────────────────────────────────────
 
-  private loginFailures = new Map<
-    string,
-    { count: number; firstAt: number; lockedUntil?: number }
-  >();
-
-  private checkLoginRateLimit(email: string): void {
-    const entry = this.loginFailures.get(email);
+  private async checkLoginRateLimit(email: string): Promise<void> {
+    const key = this.loginFailureKey(email);
+    const entry = await this.cache.get<LoginFailureBucket>(key);
     if (!entry) return;
 
     if (entry.lockedUntil && entry.lockedUntil > Date.now()) {
@@ -416,26 +421,65 @@ export class AuthService {
       });
     }
 
-    // Clear if window expired
-    if (Date.now() - entry.firstAt > LOGIN_RATE_LIMIT_WINDOW) {
-      this.loginFailures.delete(email);
+    if (!this.isValidLoginFailureBucket(entry) || entry.resetAt <= Date.now()) {
+      await this.cache.del(key);
     }
   }
 
-  private recordLoginFailure(email: string): void {
-    const entry = this.loginFailures.get(email);
-    if (!entry || Date.now() - entry.firstAt > LOGIN_RATE_LIMIT_WINDOW) {
-      this.loginFailures.set(email, { count: 1, firstAt: Date.now() });
+  private async recordLoginFailure(email: string): Promise<void> {
+    const key = this.loginFailureKey(email);
+    const now = Date.now();
+    const entry = await this.cache.get<LoginFailureBucket>(key);
+
+    if (
+      !this.isValidLoginFailureBucket(entry) ||
+      entry.resetAt <= now ||
+      entry.lockedUntil !== undefined
+    ) {
+      await this.cache.set(
+        key,
+        { count: 1, resetAt: now + LOGIN_RATE_LIMIT_WINDOW },
+        LOGIN_RATE_LIMIT_WINDOW,
+      );
       return;
     }
 
-    entry.count += 1;
-    if (entry.count >= LOGIN_RATE_LIMIT_MAX) {
-      entry.lockedUntil = Date.now() + LOGIN_RATE_LIMIT_LOCKOUT;
-    }
+    const next: LoginFailureBucket = {
+      count: entry.count + 1,
+      resetAt: entry.resetAt,
+      ...(entry.count + 1 >= LOGIN_RATE_LIMIT_MAX && {
+        lockedUntil: now + LOGIN_RATE_LIMIT_LOCKOUT,
+      }),
+    };
+    const ttl = Math.max(
+      next.resetAt - now,
+      (next.lockedUntil ?? next.resetAt) - now,
+    );
+    await this.cache.set(key, next, ttl);
   }
 
-  private clearLoginFailures(email: string): void {
-    this.loginFailures.delete(email);
+  private async clearLoginFailures(email: string): Promise<void> {
+    await this.cache.del(this.loginFailureKey(email));
+  }
+
+  private loginFailureKey(email: string): string {
+    const digest = createHash('sha256').update(email).digest('hex');
+    return `auth:login-failure:${digest}`;
+  }
+
+  private isValidLoginFailureBucket(
+    bucket: unknown,
+  ): bucket is LoginFailureBucket {
+    if (typeof bucket !== 'object' || bucket === null) {
+      return false;
+    }
+
+    const candidate = bucket as Partial<LoginFailureBucket>;
+    return (
+      typeof candidate.count === 'number' &&
+      typeof candidate.resetAt === 'number' &&
+      (candidate.lockedUntil === undefined ||
+        typeof candidate.lockedUntil === 'number')
+    );
   }
 }
