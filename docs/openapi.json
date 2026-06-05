@@ -617,6 +617,117 @@
         ]
       }
     },
+    "/api/v1/account/identities/wechat-web/authorize": {
+      "post": {
+        "operationId": "AccountController_createWechatWebIdentityLinkAuthorizeUrl_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthAuthorizeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create WeChat web OAuth authorize URL for linking",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
+    "/api/v1/account/identities/wechat-web/callback": {
+      "post": {
+        "operationId": "AccountController_linkWechatWebIdentity_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthCallbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Link WeChat web identity to authenticated account",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
+    "/api/v1/account/identities/wechat-mobile/callback": {
+      "post": {
+        "operationId": "AccountController_linkWechatMobileIdentity_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthCodeCallbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Link WeChat mobile identity to authenticated account",
+        "tags": [
+          "Account"
+        ]
+      }
+    },
     "/api/v1/medicines": {
       "get": {
         "operationId": "MedicinesController_search_v1",
