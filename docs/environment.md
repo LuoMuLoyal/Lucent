@@ -196,6 +196,7 @@ CORS_ORIGIN
 - Auth e2e baseline passes for register / login / refresh / me / logout.
 - Cache manager is global. When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; when `REDIS_URL` is absent, it falls back to in-memory cache.
 - Mail delivery uses BullMQ when `REDIS_URL` is set: `MailService` enqueues jobs to `lucent-mail`, and an in-process worker sends through the configured log/smtp transport with retry/backoff. Without `REDIS_URL`, mail is sent immediately.
+- Auth transient state uses scoped cache prefixes: `vcode:*` for email verification codes/cooldowns/client limits and `auth:login-failure:*` for login failure buckets. Keys store opaque values or hashed identifiers rather than raw passwords/tokens.
 - Medicine knowledge reads currently use service-layer cache keys under the `medicines:` prefix. Search cache TTL is 5 minutes; detail cache TTL is 15 minutes.
 - Frontend may send `x-bypass-cache: true` (also accepts `1`, `yes`, or `no-cache`) on medicines read requests to bypass cache for that request only.
 - Medicine import scripts scan Redis for medicines cache entries under the active Keyv namespace and invalidate the matching logical `medicines:*` keys after import when `REDIS_URL` is configured.
