@@ -19,6 +19,7 @@ import { DailyRecordsModule } from './modules/daily-records/daily-records.module
 import { MedicineDoseLogsModule } from './modules/medicine-dose-logs/medicine-dose-logs.module';
 import { UserHealthContextModule } from './modules/user-health-context/user-health-context.module';
 import { AccountModule } from './modules/account/account.module';
+import { AdminPanelModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { AccountModule } from './modules/account/account.module';
     UserHealthContextModule,
     DailyRecordsModule,
     MedicineDoseLogsModule,
+    AdminPanelModule,
   ],
   controllers: [AppController],
   providers: [AppService],
