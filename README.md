@@ -76,5 +76,8 @@ Active docs:
 
 - [docs/environment.md](docs/environment.md)
 - [docs/tencent-cloud-cicd.md](docs/tencent-cloud-cicd.md)
+- [docs/openapi.json](docs/openapi.json)
 - [docs/public/data-sources.md](docs/public/data-sources.md)
 - [docs/public/ROADMAP.md](docs/public/ROADMAP.md)
+- [docs/public/reminder-contract.md](docs/public/reminder-contract.md)
+- [docs/public/environment-contract.md](docs/public/environment-contract.md)
