@@ -22,7 +22,8 @@ import { registerPrismaAdapter, buildAdminResources } from './prisma-adapter';
             },
           },
           auth: {
-            authenticate: (email: string, password: string) => {
+            // eslint-disable-next-line @typescript-eslint/require-await
+            authenticate: async (email: string, password: string) => {
               const adminEmail =
                 process.env['ADMIN_EMAIL'] ?? 'admin@lucent.local';
               const adminPassword = process.env['ADMIN_PASSWORD'] ?? 'admin123';
