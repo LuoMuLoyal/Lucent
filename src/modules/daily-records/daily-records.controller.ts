@@ -72,6 +72,17 @@ export class DailyRecordsController {
     return successEnvelope(result);
   }
 
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Get a daily record by id' })
+  @ApiParam({ name: 'id' })
+  @ApiResponse({ status: 200, type: DailyRecordResponseDto })
+  async get(@CurrentUser() user: UserPayload, @Param('id') id: string) {
+    const result = await this.dailyRecordsService.get(user.sub, id);
+    return successEnvelope(result);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')

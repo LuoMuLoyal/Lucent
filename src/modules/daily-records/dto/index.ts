@@ -1,4 +1,5 @@
 export * from './create-daily-record.dto';
+export * from './daily-record-attachment.dto';
 export * from './daily-record-data.dto';
 export * from './daily-record-item.dto';
 export * from './daily-record-response.dto';
