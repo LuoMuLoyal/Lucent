@@ -18,6 +18,9 @@ export interface EnvironmentVariables {
   [EnvKey.JWT_REFRESH_SECRET]?: string;
   [EnvKey.JWT_ACCESS_TTL]?: string;
   [EnvKey.JWT_REFRESH_TTL]?: string;
+  [EnvKey.ADMIN_EMAIL]: string;
+  [EnvKey.ADMIN_PASSWORD]: string;
+  [EnvKey.ADMIN_COOKIE_SECRET]: string;
   [EnvKey.AI_PROVIDER]?: string;
   [EnvKey.AI_API_KEY]?: string;
   [EnvKey.AI_BASE_URL]?: string;
@@ -67,6 +70,26 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.JWT_ACCESS_TTL]: Joi.string().optional(),
 
   [EnvKey.JWT_REFRESH_TTL]: Joi.string().optional(),
+
+  [EnvKey.ADMIN_EMAIL]: Joi.when(EnvKey.NODE_ENV, {
+    is: NodeEnvironment.Production,
+    then: Joi.string().email().required(),
+    otherwise: Joi.string().email().default('admin@lucent.local'),
+  }),
+
+  [EnvKey.ADMIN_PASSWORD]: Joi.when(EnvKey.NODE_ENV, {
+    is: NodeEnvironment.Production,
+    then: Joi.string().min(8).required(),
+    otherwise: Joi.string().min(8).default('admin12345'),
+  }),
+
+  [EnvKey.ADMIN_COOKIE_SECRET]: Joi.when(EnvKey.NODE_ENV, {
+    is: NodeEnvironment.Production,
+    then: Joi.string().min(32).required(),
+    otherwise: Joi.string()
+      .min(32)
+      .default('dev_lucent_admin_cookie_secret_32_chars'),
+  }),
 
   [EnvKey.AI_PROVIDER]: Joi.string().allow('').optional(),
 
@@ -136,6 +159,9 @@ function assertProductionEnvironment(config: EnvironmentVariables): void {
     EnvKey.REDIS_URL,
     EnvKey.JWT_ACCESS_SECRET,
     EnvKey.JWT_REFRESH_SECRET,
+    EnvKey.ADMIN_EMAIL,
+    EnvKey.ADMIN_PASSWORD,
+    EnvKey.ADMIN_COOKIE_SECRET,
   ].filter((key) => !config[key]);
 
   if (missingKeys.length > 0) {

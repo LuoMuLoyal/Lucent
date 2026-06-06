@@ -33,6 +33,11 @@ pnpm db:migrate:all
 pnpm start:dev
 ```
 
+The embedded AdminJS panel is available at `/admin`. In local development the
+template credentials are `admin@lucent.local` / `admin12345`; override
+`ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_COOKIE_SECRET` in your local env
+file before exposing it.
+
 Local database layout:
 
 - development DB: `postgres/postgres@127.0.0.1:15432/lucent`
