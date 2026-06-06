@@ -4,14 +4,15 @@ Last updated: 2026-06-06
 
 ## Current Docs
 
-| Need                       | Read / update                                       |
-| -------------------------- | --------------------------------------------------- |
-| Runtime env and local dev  | `environment.md`                                    |
-| Tencent Cloud deployment   | `tencent-cloud-cicd.md`                             |
-| Medicine data sources      | `public/data-sources.md`                            |
-| Product direction          | `public/Promise.md`, `public/ROADMAP.md`            |
-| Visual/product references  | `public/design-system.md`                           |
-| API contract / client docs | generated `openapi.json` from `pnpm export:openapi` |
+| Need                             | Read / update                                       |
+| -------------------------------- | --------------------------------------------------- |
+| Runtime env and local dev        | `environment.md`                                    |
+| Tencent Cloud deployment         | `tencent-cloud-cicd.md`                             |
+| Medicine data sources            | `public/data-sources.md`                            |
+| Product roadmap                  | `public/ROADMAP.md`                                 |
+| Reminder / notification contract | `public/reminder-contract.md`                       |
+| Environment snapshot contract    | `public/environment-contract.md`                    |
+| API contract / client docs       | generated `openapi.json` from `pnpm export:openapi` |
 
 ## Rules
 
@@ -20,6 +21,7 @@ Last updated: 2026-06-06
 - When environment variables, Docker, deployment, local database layout, or commands change, update `environment.md` and the root `README.md`.
 - When medicine import behavior or source-table strategy changes, update `public/data-sources.md`.
 - Keep old implementation plans out of this directory unless they are still operationally useful.
+- Historical vision/design references moved to the workspace root archive, outside git.
 
 ## Generated Files
 

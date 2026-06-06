@@ -2,10 +2,8 @@
 
 Shared by Luminous and Lucent.
 
-- `Promise.md` - product vision
-- `ROADMAP.md` - product phases
-- `design-system.md` - design tokens
-- `data-sources.md` - external data sources
+- `ROADMAP.md` - product phases and current reality
+- `data-sources.md` - external medicine data sources
 - `reminder-contract.md` - notification/reminder boundary and API plan
 - `environment-contract.md` - environment snapshot API contract
 

@@ -1,5 +1,7 @@
 # Lucent
 
+[![Frontend: Luminous](https://img.shields.io/badge/frontend-LuoMuLoyal%2FLuminous-16a34a?logo=github)](https://github.com/LuoMuLoyal/Luminous)
+
 Lucent is the NestJS backend for Luminous. New backend work happens here; `Luminous/backend` is legacy reference code.
 
 ## Source Of Truth
