@@ -51,5 +51,6 @@ Milestones:
 ## Active Contracts
 
 - `reminder-contract.md` — notification/reminder boundary: local vs backend, planned API surface, migration path. No push delivery (FCM/APNs) in scope.
+- `environment-contract.md` — environment snapshot API: pollen, UV, air quality, temperature. Static reference data first, external API optional later.
 
 Boundary: no diagnosis, no doctor replacement, no fabricated medicine facts.
