@@ -4,11 +4,17 @@ Last updated: 2026-06-06
 
 ## Current Reality
 
-- Frontend has been reset to a clean five-tab shell.
-- Auth/network/i18n/design-token foundations are in place.
-- Login/register pages are minimal and still need UX completion.
-- Medicine knowledge, personal records, reminders, scan, and real Today data flows are not restored yet.
-- Lucent is the target backend; legacy backend remains historical/deployed context.
+- Luminous: five-tab shell (Today/Record/Medicine/Mine/More) with 96 widget tests.
+- Lucent: NestJS backend with Prisma, PostgreSQL, Redis, 162 unit tests.
+- Auth: register/login/refresh/logout, WeChat Web/Mobile OAuth, account management, identity linking.
+- Medicine: DrugBank + CN source-aware search with detail preview, add-to-current-medicines.
+- Records: daily record CRUD with timeline, quick-create, edit/delete.
+- Medicine dose-logs: manual taken/skipped status tracking.
+- Today: water/vital/dose-log summaries from real data; meal/environment/Lumi static.
+- Settings: theme palettes, language persistence, notification permissions, local preferences.
+- More: mock dashboard with planned badges; environment contract defined.
+- Notifications: local permission bridge, three preference toggles, reminder contract defined but no push delivery.
+- Unsupported: live reminders, OCR/barcode, smart devices, family profiles, push notifications.
 
 ## Phase 1 - Health Copilot Foundation
 
