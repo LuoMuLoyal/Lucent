@@ -1,5 +1,7 @@
 import {
   Injectable,
+  Logger,
+  OnModuleInit,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -42,7 +44,8 @@ interface WechatErrorResponse {
 }
 
 @Injectable()
-export class WechatMobileOAuthProvider {
+export class WechatMobileOAuthProvider implements OnModuleInit {
+  private readonly logger = new Logger(WechatMobileOAuthProvider.name);
   constructor(
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
@@ -91,12 +94,19 @@ export class WechatMobileOAuthProvider {
     };
   }
 
+  onModuleInit(): void {
+    const wechat = this.readRawConfig();
+    if (!wechat.appId || !wechat.appSecret) {
+      this.logger.warn(
+        'WeChat Mobile OAuth is not fully configured — mobile WeChat login will be unavailable.',
+      );
+    }
+  }
+
   private getConfig(): { appId: string; appSecret: string } {
-    const config = this.configService.getOrThrow<OAuthConfig>(ConfigKey.OAuth);
-    const wechat = config.wechatMobile;
+    const wechat = this.readRawConfig();
 
     if (!wechat.appId || !wechat.appSecret) {
-      // TODO(auth-oauth): validate production OAuth configuration during boot instead of first request.
       throw new ServiceUnavailableException({
         code: ResultCode.EXTERNAL_SERVICE_ERROR,
         message: this.i18n.t('auth.oauth_provider_not_configured'),
@@ -104,6 +114,11 @@ export class WechatMobileOAuthProvider {
     }
 
     return wechat;
+  }
+
+  private readRawConfig(): { appId: string; appSecret: string } {
+    const config = this.configService.getOrThrow<OAuthConfig>(ConfigKey.OAuth);
+    return config.wechatMobile;
   }
 
   private async fetchWechat<T>(url: string): Promise<T> {

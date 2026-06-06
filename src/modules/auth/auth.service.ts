@@ -201,6 +201,7 @@ export class AuthService {
       await this.verificationCodeService.verify(email, code, 'login');
     }
     // TODO(auth-security): add optional 2FA challenge verification before issuing tokens.
+    // blocked: requires product decision on 2FA method (TOTP/SMS/email) and UX for setup/recovery flows.
 
     await this.clearLoginFailures(email);
 
@@ -259,6 +260,7 @@ export class AuthService {
     });
   }
   // TODO(auth-session): expose device/session management so users can review and revoke individual sessions.
+  // blocked: requires session-list API + UI, device fingerprinting strategy, and revoke-by-id endpoint.
 
   // ── Profile Management ───────────────────────────────────────
 
@@ -277,6 +279,7 @@ export class AuthService {
     const user = await this.getActiveUser(userId);
     if (!user.passwordHash) {
       // TODO(auth-password): add a dedicated set-password flow for OAuth-only accounts.
+      // blocked: requires security review — OAuth-only users have no existing credential to verify identity before setting a password.
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,
         message: this.i18n.t('auth.current_password_wrong'),
@@ -325,6 +328,7 @@ export class AuthService {
     const user = await this.getActiveUser(userId);
     if (!user.passwordHash) {
       // TODO(auth-password): allow OAuth-only accounts to delete only after a fresh linked-identity verification.
+      // blocked: depends on set-password flow above; OAuth-only users currently cannot prove account ownership for deletion.
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,
         message: this.i18n.t('auth.password_wrong'),
@@ -574,6 +578,7 @@ export class AuthService {
 
     const tokens = await this.generateTokenPair(updatedUser, context);
     // TODO(auth-audit): emit security notifications for new OAuth logins and newly linked identities.
+    // blocked: requires email/notification delivery infrastructure and user-facing notification preference model.
     return { user: updatedUser, ...tokens };
   }
 
