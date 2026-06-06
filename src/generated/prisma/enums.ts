@@ -135,6 +135,13 @@ export const DailyRecordKind = {
 export type DailyRecordKind = (typeof DailyRecordKind)[keyof typeof DailyRecordKind]
 
 
+export const DailyRecordAttachmentKind = {
+  image: 'image'
+} as const
+
+export type DailyRecordAttachmentKind = (typeof DailyRecordAttachmentKind)[keyof typeof DailyRecordAttachmentKind]
+
+
 export const DoseLogStatus = {
   taken: 'taken',
   skipped: 'skipped',

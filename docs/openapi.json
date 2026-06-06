@@ -1416,6 +1416,40 @@
       }
     },
     "/api/v1/me/daily-records/{id}": {
+      "get": {
+        "operationId": "DailyRecordsController_get_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get a daily record by id",
+        "tags": [
+          "Daily Records"
+        ]
+      },
       "patch": {
         "operationId": "DailyRecordsController_update_v1",
         "parameters": [
@@ -3880,6 +3914,74 @@
           "note"
         ]
       },
+      "DailyRecordAttachmentKind": {
+        "type": "string",
+        "enum": [
+          "image"
+        ]
+      },
+      "DailyRecordAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Attachment id."
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordAttachmentKind"
+              }
+            ]
+          },
+          "objectKey": {
+            "type": "string",
+            "description": "Object storage key."
+          },
+          "bucket": {
+            "type": "object",
+            "description": "Object storage bucket."
+          },
+          "provider": {
+            "type": "object",
+            "description": "Storage provider."
+          },
+          "fileName": {
+            "type": "object",
+            "description": "Original file name."
+          },
+          "contentType": {
+            "type": "object",
+            "description": "MIME content type."
+          },
+          "sizeBytes": {
+            "type": "object",
+            "description": "File size in bytes."
+          },
+          "width": {
+            "type": "object",
+            "description": "Image width in pixels."
+          },
+          "height": {
+            "type": "object",
+            "description": "Image height in pixels."
+          },
+          "publicUrl": {
+            "type": "object",
+            "description": "Public or signed display URL."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "objectKey",
+          "createdAt"
+        ]
+      },
       "DailyRecordItemDto": {
         "type": "object",
         "properties": {
@@ -3921,6 +4023,12 @@
             "description": "Source.",
             "example": "manual"
           },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordAttachmentDto"
+            }
+          },
           "createdAt": {
             "type": "string",
             "description": "Created at (ISO 8601)."
@@ -3934,6 +4042,7 @@
           "id",
           "kind",
           "occurredAt",
+          "attachments",
           "createdAt",
           "updatedAt"
         ]
@@ -4041,6 +4150,81 @@
           "data"
         ]
       },
+      "DailyRecordResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordItemDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "DailyRecordAttachmentInputDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "default": "image",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordAttachmentKind"
+              }
+            ]
+          },
+          "objectKey": {
+            "type": "string",
+            "description": "Object storage key, stable across signed URL rotations.",
+            "example": "daily-records/user-id/2026-06-06/photo.jpg"
+          },
+          "bucket": {
+            "type": "object",
+            "description": "Object storage bucket."
+          },
+          "provider": {
+            "type": "object",
+            "description": "Storage provider, e.g. s3/oss/cos/r2."
+          },
+          "fileName": {
+            "type": "object",
+            "description": "Original file name."
+          },
+          "contentType": {
+            "type": "object",
+            "description": "MIME content type.",
+            "example": "image/jpeg"
+          },
+          "sizeBytes": {
+            "type": "object",
+            "description": "File size in bytes."
+          },
+          "width": {
+            "type": "object",
+            "description": "Image width in pixels."
+          },
+          "height": {
+            "type": "object",
+            "description": "Image height in pixels."
+          },
+          "publicUrl": {
+            "type": "object",
+            "description": "Optional public or already-signed display URL."
+          }
+        },
+        "required": [
+          "objectKey"
+        ]
+      },
       "CreateDailyRecordDto": {
         "type": "object",
         "properties": {
@@ -4072,32 +4256,18 @@
           "note": {
             "type": "string",
             "description": "Free-text note."
+          },
+          "attachments": {
+            "description": "Attachment metadata. File upload itself is handled separately.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordAttachmentInputDto"
+            }
           }
         },
         "required": [
           "kind",
           "occurredAt"
-        ]
-      },
-      "DailyRecordResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordItemDto"
-          }
-        },
-        "required": [
-          "code",
-          "message",
-          "data"
         ]
       },
       "UpdateDailyRecordDto": {
@@ -4134,6 +4304,13 @@
             "type": "object",
             "description": "Free-text note. Use null to clear.",
             "nullable": true
+          },
+          "attachments": {
+            "description": "Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordAttachmentInputDto"
+            }
           }
         }
       },

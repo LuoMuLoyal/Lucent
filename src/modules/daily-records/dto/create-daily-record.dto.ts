@@ -1,13 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsDateString,
   IsEnum,
   IsOptional,
   IsString,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 
 import { DailyRecordKind } from '../../../generated/prisma/client';
+import { DailyRecordAttachmentInputDto } from './daily-record-attachment.dto';
 
 export class CreateDailyRecordDto {
   @ApiProperty({ enum: DailyRecordKind, enumName: 'DailyRecordKind' })
@@ -44,4 +48,16 @@ export class CreateDailyRecordDto {
   @IsString()
   @MaxLength(1000)
   note?: string;
+
+  @ApiPropertyOptional({
+    type: () => DailyRecordAttachmentInputDto,
+    isArray: true,
+    description:
+      'Attachment metadata. File upload itself is handled separately.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DailyRecordAttachmentInputDto)
+  attachments?: DailyRecordAttachmentInputDto[];
 }

@@ -49,6 +49,7 @@ describe('Daily Records API (e2e)', () => {
     jwtService = app.get(JwtService);
     configService = app.get(ConfigService);
 
+    await prisma.userDailyRecordAttachment.deleteMany();
     await prisma.userDailyRecord.deleteMany();
     await prisma.userCurrentMedicine.deleteMany();
     await prisma.userCondition.deleteMany();
@@ -58,6 +59,7 @@ describe('Daily Records API (e2e)', () => {
   });
 
   afterAll(async () => {
+    await prisma.userDailyRecordAttachment.deleteMany();
     await prisma.userDailyRecord.deleteMany();
     await prisma.userCurrentMedicine.deleteMany();
     await prisma.userCondition.deleteMany();
@@ -155,6 +157,73 @@ describe('Daily Records API (e2e)', () => {
       where: { id },
     });
     expect(stored.note).toBeNull();
+  });
+
+  it('should create, get, and replace record image attachments', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+    const token = await createAccessToken(user.id, user.email);
+
+    const createRes = await request(app.getHttpServer())
+      .post(BASE_PATH)
+      .set(AUTH_HEADER, bearer(token))
+      .send({
+        kind: DailyRecordKind.meal,
+        occurredAt: '2026-06-04',
+        title: 'Breakfast',
+        attachments: [
+          {
+            objectKey: `daily-records/${user.id}/breakfast.jpg`,
+            bucket: 'lucent-dev',
+            provider: 'oss',
+            fileName: 'breakfast.jpg',
+            contentType: 'image/jpeg',
+            sizeBytes: 2048,
+            width: 800,
+            height: 600,
+            publicUrl: 'https://cdn.example.com/breakfast.jpg',
+          },
+        ],
+      })
+      .expect(201);
+
+    const created = createRes.body as ApiEnvelope<{
+      id: string;
+      attachments: any[];
+    }>;
+    const id = created.data!.id;
+    expect(created.data!.attachments).toHaveLength(1);
+    expect(created.data!.attachments[0].objectKey).toBe(
+      `daily-records/${user.id}/breakfast.jpg`,
+    );
+
+    const detailRes = await request(app.getHttpServer())
+      .get(`${BASE_PATH}/${id}`)
+      .set(AUTH_HEADER, bearer(token))
+      .expect(200);
+
+    const detail = detailRes.body as ApiEnvelope<{ attachments: any[] }>;
+    expect(detail.data!.attachments[0].provider).toBe('oss');
+    expect(detail.data!.attachments[0].publicUrl).toBe(
+      'https://cdn.example.com/breakfast.jpg',
+    );
+
+    await request(app.getHttpServer())
+      .patch(`${BASE_PATH}/${id}`)
+      .set(AUTH_HEADER, bearer(token))
+      .send({ attachments: [] })
+      .expect(200);
+
+    const storedAttachments = await prisma.userDailyRecordAttachment.findMany({
+      where: { recordId: id },
+    });
+    expect(storedAttachments).toHaveLength(0);
   });
 
   it('should soft-delete a record', async () => {

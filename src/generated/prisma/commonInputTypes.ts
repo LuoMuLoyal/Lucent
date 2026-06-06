@@ -463,6 +463,23 @@ export type EnumDailyRecordKindWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumDailyRecordKindFilter<$PrismaModel>
 }
 
+export type EnumDailyRecordAttachmentKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.DailyRecordAttachmentKind | Prisma.EnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  in?: $Enums.DailyRecordAttachmentKind[] | Prisma.ListEnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DailyRecordAttachmentKind[] | Prisma.ListEnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel> | $Enums.DailyRecordAttachmentKind
+}
+
+export type EnumDailyRecordAttachmentKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DailyRecordAttachmentKind | Prisma.EnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  in?: $Enums.DailyRecordAttachmentKind[] | Prisma.ListEnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DailyRecordAttachmentKind[] | Prisma.ListEnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDailyRecordAttachmentKindWithAggregatesFilter<$PrismaModel> | $Enums.DailyRecordAttachmentKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -897,6 +914,23 @@ export type NestedEnumDailyRecordKindWithAggregatesFilter<$PrismaModel = never> 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumDailyRecordKindFilter<$PrismaModel>
   _max?: Prisma.NestedEnumDailyRecordKindFilter<$PrismaModel>
+}
+
+export type NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.DailyRecordAttachmentKind | Prisma.EnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  in?: $Enums.DailyRecordAttachmentKind[] | Prisma.ListEnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DailyRecordAttachmentKind[] | Prisma.ListEnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel> | $Enums.DailyRecordAttachmentKind
+}
+
+export type NestedEnumDailyRecordAttachmentKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DailyRecordAttachmentKind | Prisma.EnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  in?: $Enums.DailyRecordAttachmentKind[] | Prisma.ListEnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DailyRecordAttachmentKind[] | Prisma.ListEnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDailyRecordAttachmentKindWithAggregatesFilter<$PrismaModel> | $Enums.DailyRecordAttachmentKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
 }
 
 

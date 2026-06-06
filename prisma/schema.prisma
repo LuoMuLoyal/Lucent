@@ -99,27 +99,32 @@ enum DailyRecordKind {
   note
 }
 
+enum DailyRecordAttachmentKind {
+  image
+}
+
 model User {
-  id               String                @id @default(uuid())
-  email            String?
-  passwordHash     String?               @map("password_hash") // argon2 hashed for local accounts
-  nickname         String?
-  avatar           String?
-  status           UserStatus            @default(active)
-  emailVerifiedAt  DateTime?             @map("email_verified_at") @db.Timestamptz(3)
-  lastLoginAt      DateTime?             @map("last_login_at") @db.Timestamptz(3)
-  deletedAt        DateTime?             @map("deleted_at") @db.Timestamptz(3)
-  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  profile          UserProfile?
-  identities       UserIdentity[]
-  sessions         UserSession[]
-  devices          UserDevice[]
-  allergies        UserAllergy[]
-  conditions       UserCondition[]
-  currentMedicines UserCurrentMedicine[]
-  dailyRecords     UserDailyRecord[]
-  doseLogs         UserMedicineDoseLog[]
+  id                     String                      @id @default(uuid())
+  email                  String?
+  passwordHash           String?                     @map("password_hash") // argon2 hashed for local accounts
+  nickname               String?
+  avatar                 String?
+  status                 UserStatus                  @default(active)
+  emailVerifiedAt        DateTime?                   @map("email_verified_at") @db.Timestamptz(3)
+  lastLoginAt            DateTime?                   @map("last_login_at") @db.Timestamptz(3)
+  deletedAt              DateTime?                   @map("deleted_at") @db.Timestamptz(3)
+  createdAt              DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  profile                UserProfile?
+  identities             UserIdentity[]
+  sessions               UserSession[]
+  devices                UserDevice[]
+  allergies              UserAllergy[]
+  conditions             UserCondition[]
+  currentMedicines       UserCurrentMedicine[]
+  dailyRecords           UserDailyRecord[]
+  dailyRecordAttachments UserDailyRecordAttachment[]
+  doseLogs               UserMedicineDoseLog[]
 
   @@index([email])
   @@index([status])
@@ -298,25 +303,48 @@ model UserMedicineDoseLog {
 }
 
 model UserDailyRecord {
-  id         String          @id @default(uuid())
-  userId     String          @map("user_id")
-  kind       DailyRecordKind
-  occurredAt DateTime        @map("occurred_at") @db.Date
-  title      String?
-  value      String?
-  unit       String?
-  note       String?
-  payload    Json?           @db.JsonB
-  source     String?         @default("manual")
-  deletedAt  DateTime?       @map("deleted_at") @db.Timestamptz(3)
-  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String                      @id @default(uuid())
+  userId      String                      @map("user_id")
+  kind        DailyRecordKind
+  occurredAt  DateTime                    @map("occurred_at") @db.Date
+  title       String?
+  value       String?
+  unit        String?
+  note        String?
+  payload     Json?                       @db.JsonB
+  source      String?                     @default("manual")
+  deletedAt   DateTime?                   @map("deleted_at") @db.Timestamptz(3)
+  createdAt   DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user        User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments UserDailyRecordAttachment[]
 
   @@index([userId, occurredAt])
   @@index([userId, kind])
   @@index([userId, deletedAt])
   @@map("user_daily_records")
+}
+
+model UserDailyRecordAttachment {
+  id          String                    @id @default(uuid())
+  userId      String                    @map("user_id")
+  recordId    String                    @map("record_id")
+  kind        DailyRecordAttachmentKind @default(image)
+  objectKey   String                    @map("object_key")
+  bucket      String?
+  provider    String?
+  fileName    String?                   @map("file_name")
+  contentType String?                   @map("content_type")
+  sizeBytes   Int?                      @map("size_bytes")
+  width       Int?
+  height      Int?
+  publicUrl   String?                   @map("public_url")
+  createdAt   DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  record      UserDailyRecord           @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordId])
+  @@map("user_daily_record_attachments")
 }
 
 model DrugSourceImport {
