@@ -71,13 +71,13 @@ If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` togeth
   - run `pnpm test:e2e:ci`
 - `push` to `main`
   - build the production Docker image on the GitHub-hosted `ubuntu-latest` runner with plain `docker build`
-  - push immutable tag `sha-<commit>` plus `latest` to the configured registry with plain `docker push`
+  - push only the `latest` tag to the configured registry with plain `docker push`
   - SSH to the server
   - sync `docker-compose.yml` and `scripts/deploy/deploy-server.sh` to the server over SSH
   - write `.deploy-image.env`
   - `docker compose pull postgres redis app`
   - keep PostgreSQL / Redis data volumes, recreate containers from the synced compose file
-  - wait for Docker health checks and rollback `app` to the previous image if the new image fails to become healthy
+  - wait for Docker health checks; rollback is manual because the workflow no longer keeps a separate `sha-<commit>` image tag
 - GitHub-hosted JavaScript actions are forced onto the Node 24 runtime via `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` so the workflow no longer depends on the deprecated Node 20 actions runtime.
 - The workflow intentionally avoids Docker Buildx / OCI attestation export because Tencent TCR can stall on the final manifest push path.
 - Production still expects fixed registry tags for PostgreSQL and Redis: `<registry>/<namespace>/<image-name>-postgres:18-alpine` and `<registry>/<namespace>/<image-name>-redis:8-alpine`. Seed those two images into the target registry once before the first deployment.
@@ -159,6 +159,13 @@ WECHAT_WEB_APP_SECRET=
 WECHAT_WEB_REDIRECT_URI=https://your-domain.example/api/v1/auth/oauth/wechat-web/callback
 WECHAT_MOBILE_APP_ID=
 WECHAT_MOBILE_APP_SECRET=
+TENCENT_COS_SECRET_ID=
+TENCENT_COS_SECRET_KEY=
+TENCENT_COS_BUCKET=
+TENCENT_COS_REGION=ap-guangzhou
+TENCENT_COS_PUBLIC_BASE_URL=
+TENCENT_COS_UPLOAD_EXPIRES_SECONDS=600
+TENCENT_COS_MAX_UPLOAD_BYTES=10485760
 LOG_LEVEL=info
 EOF
 ```
@@ -181,6 +188,18 @@ Optional WeChat OAuth login variables:
 - `WECHAT_MOBILE_APP_SECRET`
 
 When these are empty, Lucent still starts normally and the WeChat OAuth endpoints report the provider as not configured.
+
+Optional Tencent COS image upload variables:
+
+- `TENCENT_COS_SECRET_ID`
+- `TENCENT_COS_SECRET_KEY`
+- `TENCENT_COS_BUCKET`
+- `TENCENT_COS_REGION`
+- `TENCENT_COS_PUBLIC_BASE_URL`
+- `TENCENT_COS_UPLOAD_EXPIRES_SECONDS`
+- `TENCENT_COS_MAX_UPLOAD_BYTES`
+
+When all required Tencent COS variables are empty, Lucent still starts normally and the daily-record image upload signing endpoint returns COS as not configured. If any required Tencent COS variable is set, all of `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and `TENCENT_COS_REGION` must be set.
 
 `WECHAT_WEB_REDIRECT_URI` should point at Lucent's browser callback endpoint, for example `https://your-domain.example/api/v1/auth/oauth/wechat-web/callback`. Desktop clients pass a temporary loopback `callbackUri` to `POST /api/v1/auth/oauth/wechat-web/authorize`; Lucent stores that URI in OAuth state and the browser callback redirects back to it after WeChat returns `code` and `state`. Web clients may pass `https://<trusted-origin>/login/oauth/wechat`; the origin must be explicitly listed in `CORS_ORIGIN`. Loopback callbacks must use `http://127.0.0.1:<port>` / `localhost:<port>` / `[::1]:<port>`.
 
@@ -219,6 +238,7 @@ CORS_ORIGIN
 - Versioning: NestJS URI versioning，默认版本 `1`。
 - Health check: `GET /api/v1/health`.
 - Embedded admin panel: `GET /admin`, powered by AdminJS and protected by `ADMIN_EMAIL` / `ADMIN_PASSWORD`. The current resource set is read-only.
+- Daily-record image uploads use Tencent COS presigned PUT URLs from `POST /api/v1/me/daily-records/attachments/images/presign-upload`; clients upload directly to COS and then store returned `provider`, `bucket`, `objectKey`, and optional `publicUrl` in daily-record attachment metadata.
 - Request id: returned in `X-Request-Id` and available for server-side log correlation.
 - Auth e2e baseline passes for register / login / refresh / account / logout.
 - Cache manager is global. When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; when `REDIS_URL` is absent, it falls back to in-memory cache.

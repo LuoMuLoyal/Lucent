@@ -184,7 +184,7 @@ describe('DailyRecordsService', () => {
           kind: 'image',
           objectKey: 'daily-records/u1/r1/photo.jpg',
           bucket: 'lucent-dev',
-          provider: 'oss',
+          provider: 'tencent-cos',
           fileName: 'photo.jpg',
           contentType: 'image/jpeg',
           sizeBytes: 1234,
@@ -206,7 +206,7 @@ describe('DailyRecordsService', () => {
         {
           objectKey: 'daily-records/u1/r1/photo.jpg',
           bucket: 'lucent-dev',
-          provider: 'oss',
+          provider: 'tencent-cos',
           fileName: 'photo.jpg',
           contentType: 'image/jpeg',
           sizeBytes: 1234,
@@ -225,7 +225,7 @@ describe('DailyRecordsService', () => {
           kind: 'image',
           objectKey: 'daily-records/u1/r1/photo.jpg',
           bucket: 'lucent-dev',
-          provider: 'oss',
+          provider: 'tencent-cos',
           fileName: 'photo.jpg',
           contentType: 'image/jpeg',
           sizeBytes: 1234,
@@ -261,7 +261,7 @@ describe('DailyRecordsService', () => {
             kind: 'image',
             objectKey: 'daily-records/u1/r1/new.jpg',
             bucket: null,
-            provider: 's3',
+            provider: 'tencent-cos',
             fileName: null,
             contentType: 'image/jpeg',
             sizeBytes: null,
@@ -302,7 +302,7 @@ describe('DailyRecordsService', () => {
       attachments: [
         {
           objectKey: 'daily-records/u1/r1/new.jpg',
-          provider: 's3',
+          provider: 'tencent-cos',
           contentType: 'image/jpeg',
         },
       ],
@@ -319,7 +319,7 @@ describe('DailyRecordsService', () => {
           kind: 'image',
           objectKey: 'daily-records/u1/r1/new.jpg',
           bucket: null,
-          provider: 's3',
+          provider: 'tencent-cos',
           fileName: null,
           contentType: 'image/jpeg',
           sizeBytes: null,
@@ -329,7 +329,7 @@ describe('DailyRecordsService', () => {
         },
       ],
     });
-    expect(result.attachments[0]!.provider).toBe('s3');
+    expect(result.attachments[0]!.provider).toBe('tencent-cos');
   });
 
   it('should soft-delete a record', async () => {

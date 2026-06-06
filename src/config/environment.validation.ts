@@ -42,6 +42,15 @@ export interface EnvironmentVariables {
   [EnvKey.WECHAT_WEB_REDIRECT_URI]?: string;
   [EnvKey.WECHAT_MOBILE_APP_ID]?: string;
   [EnvKey.WECHAT_MOBILE_APP_SECRET]?: string;
+
+  // ── Tencent COS ──────────────────────────────────────────────
+  [EnvKey.TENCENT_COS_SECRET_ID]?: string;
+  [EnvKey.TENCENT_COS_SECRET_KEY]?: string;
+  [EnvKey.TENCENT_COS_BUCKET]?: string;
+  [EnvKey.TENCENT_COS_REGION]?: string;
+  [EnvKey.TENCENT_COS_PUBLIC_BASE_URL]?: string;
+  [EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS]?: number;
+  [EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]?: number;
 }
 
 const envSchema = Joi.object<EnvironmentVariables>({
@@ -128,6 +137,32 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.WECHAT_MOBILE_APP_ID]: Joi.string().allow('').optional(),
 
   [EnvKey.WECHAT_MOBILE_APP_SECRET]: Joi.string().allow('').optional(),
+
+  // ── Tencent COS ──────────────────────────────────────────────
+  [EnvKey.TENCENT_COS_SECRET_ID]: Joi.string().allow('').optional(),
+
+  [EnvKey.TENCENT_COS_SECRET_KEY]: Joi.string().allow('').optional(),
+
+  [EnvKey.TENCENT_COS_BUCKET]: Joi.string().allow('').optional(),
+
+  [EnvKey.TENCENT_COS_REGION]: Joi.string().allow('').optional(),
+
+  [EnvKey.TENCENT_COS_PUBLIC_BASE_URL]: Joi.string()
+    .uri({ scheme: ['http', 'https'] })
+    .allow('')
+    .optional(),
+
+  [EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS]: Joi.number()
+    .integer()
+    .min(60)
+    .max(3600)
+    .default(600),
+
+  [EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]: Joi.number()
+    .integer()
+    .min(1)
+    .max(50_000_000)
+    .default(10_485_760),
 });
 
 export function validateEnvironment(
@@ -145,6 +180,7 @@ export function validateEnvironment(
   const validated = value;
 
   assertProductionEnvironment(validated);
+  assertTencentCosEnvironment(validated);
 
   return validated;
 }
@@ -173,5 +209,29 @@ function assertProductionEnvironment(config: EnvironmentVariables): void {
   const corsOrigin = config[EnvKey.CORS_ORIGIN];
   if (!corsOrigin || corsOrigin.trim() === '*') {
     throw new Error('CORS_ORIGIN must be explicit in production (not *)');
+  }
+}
+
+function assertTencentCosEnvironment(config: EnvironmentVariables): void {
+  const requiredKeys = [
+    EnvKey.TENCENT_COS_SECRET_ID,
+    EnvKey.TENCENT_COS_SECRET_KEY,
+    EnvKey.TENCENT_COS_BUCKET,
+    EnvKey.TENCENT_COS_REGION,
+  ] as const;
+  const hasAnyTencentCosConfig = requiredKeys.some((key) =>
+    (config[key] ?? '').trim(),
+  );
+
+  if (!hasAnyTencentCosConfig) {
+    return;
+  }
+
+  const missingKeys = requiredKeys.filter((key) => !(config[key] ?? '').trim());
+
+  if (missingKeys.length > 0) {
+    throw new Error(
+      `Incomplete Tencent COS environment variables: ${missingKeys.join(', ')}`,
+    );
   }
 }

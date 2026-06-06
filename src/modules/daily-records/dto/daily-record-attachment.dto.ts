@@ -35,7 +35,9 @@ export class DailyRecordAttachmentInputDto {
   @MaxLength(200)
   bucket?: string | null;
 
-  @ApiPropertyOptional({ description: 'Storage provider, e.g. s3/oss/cos/r2.' })
+  @ApiPropertyOptional({
+    description: 'Storage provider, currently tencent-cos.',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(50)

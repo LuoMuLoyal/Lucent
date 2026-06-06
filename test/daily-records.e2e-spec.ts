@@ -181,7 +181,7 @@ describe('Daily Records API (e2e)', () => {
           {
             objectKey: `daily-records/${user.id}/breakfast.jpg`,
             bucket: 'lucent-dev',
-            provider: 'oss',
+            provider: 'tencent-cos',
             fileName: 'breakfast.jpg',
             contentType: 'image/jpeg',
             sizeBytes: 2048,
@@ -209,7 +209,7 @@ describe('Daily Records API (e2e)', () => {
       .expect(200);
 
     const detail = detailRes.body as ApiEnvelope<{ attachments: any[] }>;
-    expect(detail.data!.attachments[0].provider).toBe('oss');
+    expect(detail.data!.attachments[0].provider).toBe('tencent-cos');
     expect(detail.data!.attachments[0].publicUrl).toBe(
       'https://cdn.example.com/breakfast.jpg',
     );

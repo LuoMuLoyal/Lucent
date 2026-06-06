@@ -121,7 +121,7 @@ jobs:
           namespace="${REGISTRY_NAMESPACE:-$default_namespace}"
           image_name="${REGISTRY_IMAGE_NAME:-$default_image_name}"
           image_repo="${registry_host}/${namespace}/${image_name}"
-          image_ref="${image_repo}:sha-${GITHUB_SHA}"
+          image_ref="${image_repo}:latest"
           postgres_image_repo="${registry_host}/${namespace}/${image_name}-postgres"
           postgres_image_ref="${postgres_image_repo}:18-alpine"
           redis_image_repo="${registry_host}/${namespace}/${image_name}-redis"
@@ -151,15 +151,13 @@ jobs:
           docker build \
             -f ./Dockerfile \
             -t "${{ steps.meta.outputs.image_ref }}" \
-            -t "${{ steps.meta.outputs.image_repo }}:latest" \
             .
 
-      - name: Push image tags
+      - name: Push image tag
         shell: bash
         run: |
           set -euo pipefail
           docker push "${{ steps.meta.outputs.image_ref }}"
-          docker push "${{ steps.meta.outputs.image_repo }}:latest"
 
   deploy:
     name: Deploy to Server
