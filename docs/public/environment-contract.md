@@ -19,7 +19,7 @@ reference tables or optional free-tier APIs).
 - **No external credentials required:** the initial implementation uses
   static seasonal reference tables, not third-party API keys.
 
-## Planned API Surface
+## API Surface
 
 ### 1. Environment Snapshot
 
@@ -128,8 +128,8 @@ a "预览" badge; the More environment section will show a "参考值" / "Refere
 ## Migration Path
 
 1. **Phase A (Task 13 — this doc):** Contract design and review.
-2. **Phase B (future):** Add static reference data + `GET /api/v1/environment/snapshot` in Lucent.
-3. **Phase C (future):** Luminous swaps mock environment data for real API.
+2. **Phase B (implemented 2026-06-06):** Static reference data + `GET /api/v1/environment/snapshot` in Lucent.
+3. **Phase C (next):** Luminous swaps mock environment data for real API.
 4. **Phase D (future):** Optional external API integration behind same contract.
 
 ## Luminous Integration Notes
