@@ -1,6 +1,6 @@
 # Environment
 
-Last updated: 2026-06-05
+Last updated: 2026-06-06
 
 Lucent uses `@nestjs/config` with validated environment variables.
 
@@ -151,6 +151,9 @@ MAIL_PORT=587
 MAIL_FROM=noreply@example.com
 MAIL_USER=your_email@example.com
 MAIL_PASS=your_password
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=replace_with_strong_admin_password
+ADMIN_COOKIE_SECRET=replace_with_at_least_32_chars_admin_cookie_secret
 WECHAT_WEB_APP_ID=
 WECHAT_WEB_APP_SECRET=
 WECHAT_WEB_REDIRECT_URI=https://your-domain.example/api/v1/auth/oauth/wechat-web/callback
@@ -164,6 +167,9 @@ Then edit `.env.production`, especially:
 
 - `JWT_ACCESS_SECRET`
 - `JWT_REFRESH_SECRET`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- `ADMIN_COOKIE_SECRET`
 - `CORS_ORIGIN`
 
 Optional WeChat OAuth login variables:
@@ -198,6 +204,9 @@ DATABASE_URL
 REDIS_URL
 JWT_ACCESS_SECRET
 JWT_REFRESH_SECRET
+ADMIN_EMAIL
+ADMIN_PASSWORD
+ADMIN_COOKIE_SECRET
 CORS_ORIGIN
 ```
 
@@ -209,6 +218,7 @@ CORS_ORIGIN
 - Global prefix: `/api`.
 - Versioning: NestJS URI versioning，默认版本 `1`。
 - Health check: `GET /api/v1/health`.
+- Embedded admin panel: `GET /admin`, powered by AdminJS and protected by `ADMIN_EMAIL` / `ADMIN_PASSWORD`. The current resource set is read-only.
 - Request id: returned in `X-Request-Id` and available for server-side log correlation.
 - Auth e2e baseline passes for register / login / refresh / account / logout.
 - Cache manager is global. When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; when `REDIS_URL` is absent, it falls back to in-memory cache.
