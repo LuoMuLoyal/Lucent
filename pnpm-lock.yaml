@@ -10,12 +10,6 @@ importers:
       '@adminjs/express':
         specifier: ^6.1.1
         version: 6.1.1(adminjs@7.8.17(@types/babel__core@7.20.5)(@types/react@19.2.15))(express-formidable@1.2.0)(express-session@1.19.0)(express@5.2.1)(tslib@2.8.1)
-      '@adminjs/nestjs':
-        specifier: ^7.0.0
-        version: 7.0.0(@nestjs/common@11.1.23(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.23)(adminjs@7.8.17(@types/babel__core@7.20.5)(@types/react@19.2.15))(rxjs@7.8.2)
-      '@adminjs/prisma':
-        specifier: 5.0.4
-        version: 5.0.4(@prisma/client@7.8.0(prisma@7.8.0(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(typescript@5.9.3))(adminjs@7.8.17(@types/babel__core@7.20.5)(@types/react@19.2.15))
       '@nestjs/cache-manager':
         specifier: ^3.1.2
         version: 3.1.2(@nestjs/common@11.1.23(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.23)(cache-manager@7.2.8)(keyv@5.6.0)(rxjs@7.8.2)
@@ -143,6 +137,9 @@ importers:
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.6
+      '@types/express-session':
+        specifier: ^1.19.0
+        version: 1.19.0
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
@@ -240,26 +237,6 @@ packages:
       express-formidable: ^1.2.0
       express-session: '>=1.17.3'
       tslib: ^2.5.0
-
-  '@adminjs/nestjs@7.0.0':
-    resolution:
-      {
-        integrity: sha512-JsQpuUiwPL8MaxU7DafefBkexp4Xkttcq3eEZ+EBtEebEX1OPGSP7MVgS133Td1p3d2l8EU4yDaUPiEFnoKRtg==,
-      }
-    peerDependencies:
-      '@nestjs/common': '>=9.0.5'
-      '@nestjs/core': '>=9.0.5'
-      adminjs: ^7.4.0
-      rxjs: ^7.1.0
-
-  '@adminjs/prisma@5.0.4':
-    resolution:
-      {
-        integrity: sha512-t2ctltIq2t0FZoz0H7J4WWyhLLYXxSRRdSIbcQXdymr3Q2WwLSm3a+cn1wRADRPXfRuXrsTe+3T5KatDYr3/yQ==,
-      }
-    peerDependencies:
-      '@prisma/client': ^5.0.0 || ^6.0.0
-      adminjs: ^7.0.0
 
   '@angular-devkit/core@19.2.24':
     resolution:
@@ -9852,12 +9829,6 @@ packages:
         integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==,
       }
 
-  reflect-metadata@0.1.14:
-    resolution:
-      {
-        integrity: sha512-ZhYeb6nRaXCfhnndflDK8qI6ZQ/YcWZCISRAWICW9XYqMUwjZM9Z0DveWX/ABN01oxSHwVxKQmxeYZSsm0jh5A==,
-      }
-
   reflect-metadata@0.2.2:
     resolution:
       {
@@ -11500,20 +11471,6 @@ snapshots:
       express-formidable: 1.2.0
       express-session: 1.19.0
       tslib: 2.8.1
-
-  '@adminjs/nestjs@7.0.0(@nestjs/common@11.1.23(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.23)(adminjs@7.8.17(@types/babel__core@7.20.5)(@types/react@19.2.15))(rxjs@7.8.2)':
-    dependencies:
-      '@nestjs/common': 11.1.23(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@nestjs/core': 11.1.23(@nestjs/common@11.1.23(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.23)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@types/express-session': 1.19.0
-      adminjs: 7.8.17(@types/babel__core@7.20.5)(@types/react@19.2.15)
-      reflect-metadata: 0.1.14
-      rxjs: 7.8.2
-
-  '@adminjs/prisma@5.0.4(@prisma/client@7.8.0(prisma@7.8.0(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(typescript@5.9.3))(adminjs@7.8.17(@types/babel__core@7.20.5)(@types/react@19.2.15))':
-    dependencies:
-      '@prisma/client': 7.8.0(prisma@7.8.0(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(typescript@5.9.3)
-      adminjs: 7.8.17(@types/babel__core@7.20.5)(@types/react@19.2.15)
 
   '@angular-devkit/core@19.2.24(chokidar@4.0.3)':
     dependencies:
@@ -17843,8 +17800,6 @@ snapshots:
   redux@4.2.1:
     dependencies:
       '@babel/runtime': 7.29.7
-
-  reflect-metadata@0.1.14: {}
 
   reflect-metadata@0.2.2: {}
 

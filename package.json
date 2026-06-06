@@ -45,8 +45,6 @@
   },
   "dependencies": {
     "@adminjs/express": "^6.1.1",
-    "@adminjs/nestjs": "^7.0.0",
-    "@adminjs/prisma": "5.0.4",
     "@nestjs/cache-manager": "^3.1.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
@@ -91,6 +89,7 @@
     "@swc/core": "^1.15.40",
     "@swc/jest": "^0.2.39",
     "@types/express": "^5.0.0",
+    "@types/express-session": "^1.19.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^8.0.0",
