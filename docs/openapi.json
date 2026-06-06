@@ -1415,6 +1415,43 @@
         ]
       }
     },
+    "/api/v1/me/daily-records/attachments/images/presign-upload": {
+      "post": {
+        "operationId": "DailyRecordsController_createImageUpload_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDailyRecordImageUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordImageUploadResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a Tencent COS signed URL for daily record image upload",
+        "tags": [
+          "Daily Records"
+        ]
+      }
+    },
     "/api/v1/me/daily-records/{id}": {
       "get": {
         "operationId": "DailyRecordsController_get_v1",
@@ -4150,6 +4187,98 @@
           "data"
         ]
       },
+      "CreateDailyRecordImageUploadDto": {
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "description": "Image MIME content type.",
+            "example": "image/jpeg"
+          },
+          "sizeBytes": {
+            "type": "number",
+            "description": "File size in bytes.",
+            "example": 1234567
+          },
+          "fileName": {
+            "type": "string",
+            "description": "Original file name.",
+            "example": "breakfast.jpg"
+          }
+        },
+        "required": [
+          "contentType",
+          "sizeBytes"
+        ]
+      },
+      "DailyRecordImageUploadDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "example": "tencent-cos"
+          },
+          "bucket": {
+            "type": "string",
+            "example": "lucent-1250000000"
+          },
+          "objectKey": {
+            "type": "string",
+            "example": "daily-records/user-id/2026/06/06/generated-id.jpg"
+          },
+          "uploadUrl": {
+            "type": "string",
+            "description": "Signed PUT URL for direct COS upload."
+          },
+          "headers": {
+            "type": "object",
+            "description": "Headers that must be sent with the PUT upload."
+          },
+          "publicUrl": {
+            "type": "object",
+            "description": "Optional public/CDN URL when TENCENT_COS_PUBLIC_BASE_URL is configured."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "Signed URL expiry timestamp (ISO 8601)."
+          },
+          "maxSizeBytes": {
+            "type": "number",
+            "description": "Maximum accepted upload size in bytes."
+          }
+        },
+        "required": [
+          "provider",
+          "bucket",
+          "objectKey",
+          "uploadUrl",
+          "headers",
+          "publicUrl",
+          "expiresAt",
+          "maxSizeBytes"
+        ]
+      },
+      "DailyRecordImageUploadResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordImageUploadDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
       "DailyRecordResponseDto": {
         "type": "object",
         "properties": {
@@ -4193,7 +4322,7 @@
           },
           "provider": {
             "type": "object",
-            "description": "Storage provider, e.g. s3/oss/cos/r2."
+            "description": "Storage provider, currently tencent-cos."
           },
           "fileName": {
             "type": "object",

@@ -15,4 +15,7 @@ export enum ConfigKey {
 
   /** OAuth provider configuration */
   OAuth = 'oauth',
+
+  /** Tencent Cloud COS upload configuration */
+  TencentCos = 'tencentCos',
 }

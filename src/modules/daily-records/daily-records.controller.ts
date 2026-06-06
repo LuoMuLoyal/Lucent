@@ -27,13 +27,19 @@ import {
   DailyRecordListResponseDto,
   DailyRecordSummaryResponseDto,
   DailyRecordResponseDto,
+  CreateDailyRecordImageUploadDto,
+  DailyRecordImageUploadResponseDto,
 } from './dto';
+import { DailyRecordImageUploadService } from './daily-record-image-upload.service';
 import { DailyRecordsService } from './daily-records.service';
 
 @ApiTags('Daily Records')
 @Controller('me/daily-records')
 export class DailyRecordsController {
-  constructor(private readonly dailyRecordsService: DailyRecordsService) {}
+  constructor(
+    private readonly dailyRecordsService: DailyRecordsService,
+    private readonly imageUploadService: DailyRecordImageUploadService,
+  ) {}
 
   @Get()
   @UseGuards(JwtAuthGuard)
@@ -69,6 +75,21 @@ export class DailyRecordsController {
   @ApiResponse({ status: 200, type: DailyRecordSummaryResponseDto })
   async summary(@CurrentUser() user: UserPayload, @Query('date') date: string) {
     const result = await this.dailyRecordsService.summary(user.sub, date);
+    return successEnvelope(result);
+  }
+
+  @Post('attachments/images/presign-upload')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Create a Tencent COS signed URL for daily record image upload',
+  })
+  @ApiResponse({ status: 201, type: DailyRecordImageUploadResponseDto })
+  createImageUpload(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: CreateDailyRecordImageUploadDto,
+  ) {
+    const result = this.imageUploadService.createPresignedUpload(user.sub, dto);
     return successEnvelope(result);
   }
 

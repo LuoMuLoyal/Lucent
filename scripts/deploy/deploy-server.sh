@@ -62,18 +62,6 @@ wait_for_service() {
   return 1
 }
 
-rollback_app() {
-  if [ -z "${PREVIOUS_LUCENT_IMAGE:-}" ] || [ "$PREVIOUS_LUCENT_IMAGE" = "$LUCENT_IMAGE" ]; then
-    echo "No previous app image available for rollback." >&2
-    return 1
-  fi
-
-  echo "Rolling back app to $PREVIOUS_LUCENT_IMAGE..."
-  write_image_env "$PREVIOUS_LUCENT_IMAGE" "$POSTGRES_IMAGE" "$REDIS_IMAGE"
-  compose up -d --no-deps app
-  wait_for_service app
-}
-
 require_env LUCENT_IMAGE
 require_env POSTGRES_IMAGE
 require_env REDIS_IMAGE
@@ -84,11 +72,6 @@ require_env REGISTRY_PASSWORD
 if [ ! -f .env.production ]; then
   echo ".env.production is missing in $(pwd)." >&2
   exit 1
-fi
-
-PREVIOUS_LUCENT_IMAGE=''
-if [ -f .deploy-image.env ]; then
-  PREVIOUS_LUCENT_IMAGE="$(sed -n 's/^LUCENT_IMAGE=//p' .deploy-image.env | tail -n 1)"
 fi
 
 write_image_env "$LUCENT_IMAGE" "$POSTGRES_IMAGE" "$REDIS_IMAGE"
@@ -102,7 +85,6 @@ wait_for_service redis
 compose up -d --no-deps app
 
 if ! wait_for_service app; then
-  rollback_app || true
   exit 1
 fi
 

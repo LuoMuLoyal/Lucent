@@ -1,6 +1,6 @@
 # Tencent Cloud CVM + TCR CI/CD 操作说明
 
-Last updated: 2026-06-01
+Last updated: 2026-06-06
 
 这份说明对应当前 Lucent 仓库里的 CI/CD 实现：
 
@@ -9,6 +9,7 @@ Last updated: 2026-06-01
 - 服务器不需要在部署时访问 GitHub
 - 服务器也不需要访问 Docker Hub
 - 当前 workflow 对业务镜像使用普通 `docker build` + `docker push`，不走 Docker Buildx 的 attestation / manifest 导出路径
+- 当前 workflow 只推送并部署业务镜像的 `latest` tag，不再额外维护 `sha-<commit>` tag；部署失败后不会自动回滚到上一版镜像
 
 ## 先说结论
 
@@ -164,6 +165,21 @@ MAIL_PORT=587
 MAIL_FROM=noreply@example.com
 MAIL_USER=your_email@example.com
 MAIL_PASS=your_password
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=replace_with_strong_admin_password
+ADMIN_COOKIE_SECRET=replace_with_at_least_32_chars_admin_cookie_secret
+WECHAT_WEB_APP_ID=
+WECHAT_WEB_APP_SECRET=
+WECHAT_WEB_REDIRECT_URI=https://your-domain.example/api/v1/auth/oauth/wechat-web/callback
+WECHAT_MOBILE_APP_ID=
+WECHAT_MOBILE_APP_SECRET=
+TENCENT_COS_SECRET_ID=
+TENCENT_COS_SECRET_KEY=
+TENCENT_COS_BUCKET=
+TENCENT_COS_REGION=ap-guangzhou
+TENCENT_COS_PUBLIC_BASE_URL=
+TENCENT_COS_UPLOAD_EXPIRES_SECONDS=600
+TENCENT_COS_MAX_UPLOAD_BYTES=10485760
 LOG_LEVEL=info
 EOF
 ```
@@ -175,6 +191,17 @@ EOF
 - `JWT_REFRESH_SECRET`
 - `MAIL_*`
 - `AI_*`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- `ADMIN_COOKIE_SECRET`
+
+如果要启用日常记录图片上传，还要配置腾讯 COS：
+
+- `TENCENT_COS_SECRET_ID`
+- `TENCENT_COS_SECRET_KEY`
+- `TENCENT_COS_BUCKET`
+- `TENCENT_COS_REGION`
+- `TENCENT_COS_PUBLIC_BASE_URL` 可选，填 CDN 或公开访问域名时，接口会返回可保存的 `publicUrl`
 
 ## 第 5 步：先在服务器上手工验证一次 TCR 登录和拉取
 
@@ -242,6 +269,8 @@ curl http://127.0.0.1:3000/api/v1/health
 ```
 
 如果一切正常，健康检查应该返回 200。
+
+注意：当前部署只使用 `latest` tag。失败时需要手工重新推送一个可用的 `latest`，或临时修改服务器 `.deploy-image.env` 里的 `LUCENT_IMAGE` 指向你明确知道可用的镜像 tag。
 
 ## 第 7 步：开放服务器端口和域名
 

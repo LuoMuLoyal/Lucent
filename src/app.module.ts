@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { appConfig } from './config/app.config';
 import { jwtConfig } from './config/jwt.config';
 import { oauthConfig } from './config/oauth.config';
+import { tencentCosConfig } from './config/tencent-cos.config';
 import { getEnvFilePaths } from './config/env-file-paths';
 import { validateEnvironment } from './config/environment.validation';
 import { AuthModule } from './modules/auth/auth.module';
@@ -25,7 +26,7 @@ import { AccountModule } from './modules/account/account.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: getEnvFilePaths(),
-      load: [appConfig, jwtConfig, oauthConfig],
+      load: [appConfig, jwtConfig, oauthConfig, tencentCosConfig],
       validate: validateEnvironment,
     }),
     CacheModule.registerAsync({
