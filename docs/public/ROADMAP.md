@@ -1,6 +1,6 @@
 # Luminous Roadmap
 
-Last updated: 2026-05-30
+Last updated: 2026-06-06
 
 ## Current Reality
 
@@ -47,5 +47,9 @@ Milestones:
 - Women's health
 - Family collaboration
 - Exploratory hardware and skin-photo workflows
+
+## Active Contracts
+
+- `reminder-contract.md` — notification/reminder boundary: local vs backend, planned API surface, migration path. No push delivery (FCM/APNs) in scope.
 
 Boundary: no diagnosis, no doctor replacement, no fabricated medicine facts.
