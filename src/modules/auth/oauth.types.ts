@@ -4,6 +4,7 @@ export const OAUTH_PROVIDER_WECHAT_WEB = 'wechat_web';
 export const OAUTH_PROVIDER_WECHAT_MOBILE = 'wechat_mobile';
 
 // TODO(auth-oauth): add more providers such as Apple or Google when product scope requires them.
+// blocked: each provider needs platform developer credentials (Apple Developer Program, Google Cloud Console) and app review.
 export type OAuthProvider =
   | typeof OAUTH_PROVIDER_WECHAT_WEB
   | typeof OAUTH_PROVIDER_WECHAT_MOBILE;
