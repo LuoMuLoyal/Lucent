@@ -63,6 +63,7 @@
     "joi": "^18.2.1",
     "keyv": "^5.6.0",
     "nest-winston": "^1.10.2",
+    "nestjs-dj-admin": "^0.1.10",
     "nestjs-i18n": "^10.8.4",
     "nodemailer": "^8.0.9",
     "passport": "^0.7.0",
