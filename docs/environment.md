@@ -1,12 +1,10 @@
-# Environment
+# Lucent Environment
 
-Last updated: 2026-06-06
+Last updated: 2026-06-08
 
-Lucent uses `@nestjs/config` with validated environment variables.
+This file records Lucent runtime configuration, local stacks, scripts, and required variables. Tencent CVM/TCR deployment steps live in `tencent-cloud-cicd.md`.
 
-## Files
-
-每个环境使用一个独立的 `.env.<NODE_ENV>` 文件，所有变量（含公共）集中在一个文件中。
+## Env Files
 
 Runtime files are local only and must not be committed:
 
@@ -25,7 +23,7 @@ Tracked templates:
 .env.production.example
 ```
 
-Loading order is environment-specific（优先级从高到低）：
+Loading order, highest priority first:
 
 ```text
 .env.<NODE_ENV>.local
@@ -33,188 +31,46 @@ Loading order is environment-specific（优先级从高到低）：
 .env
 ```
 
-Prisma CLI uses the same resolution order through `prisma.config.ts`, so `NODE_ENV=test` and `NODE_ENV=production` target the expected database automatically.
+Prisma CLI uses the same resolution order through `prisma.config.ts`.
+
+## Local Baseline
+
+- Development DB: `postgres/postgres@127.0.0.1:15432/lucent`
+- Test/e2e DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`
+- Redis: `redis://127.0.0.1:6379`
+- Global prefix: `/api`
+- URI versioning default: `1`
+- Health check: `GET /api/v1/health`
+- Admin panel: `GET /admin`
+
+Start local infrastructure:
+
+```bash
+pnpm dev:stack:up
+pnpm db:migrate:all
+pnpm start:dev
+```
 
 ## Scripts
 
-- `pnpm start` and `pnpm start:dev` run with `NODE_ENV=development`.
-- `pnpm start:prod` runs the built app with `NODE_ENV=production`.
-- `pnpm test` runs with `NODE_ENV=test`.
-- `pnpm test:ci` runs unit tests with `NODE_ENV=test` and `--runInBand` for GitHub Actions.
-- `pnpm test:e2e` runs with `NODE_ENV=test` and `NODE_OPTIONS=--experimental-vm-modules` for Prisma 7 generated client compatibility.
-- `pnpm test:e2e:ci` runs e2e tests with the same test env plus `--runInBand` for GitHub Actions.
-- Prisma commands should be run with an explicit `NODE_ENV` when they are not targeting development. Example: `NODE_ENV=test pnpm exec prisma migrate deploy`.
-- `pnpm export:openapi` builds Lucent first, then exports `docs/openapi.json` from `dist` so Prisma generated imports resolve correctly. The export script disables `REDIS_URL` inside that process so docs generation does not start Redis-backed cache or BullMQ connections.
-- i18n type generation only writes `src/generated/i18n.generated.ts` when Lucent is running from the source tree in `NODE_ENV=development`; compiled `dist` runtime and `pnpm export:openapi` no longer attempt to write or read `dist/generated/i18n.generated.ts`.
-- `pnpm dev:stack:up` starts the local development stack from `docker-compose.dev.yml`.
-- `pnpm db:migrate:all` runs Prisma generate plus migrate deploy for both the development and test databases.
-- `pnpm import:medicine:all` runs the default medicine knowledge import sequence against `NODE_ENV=development`.
-- `scripts/dev/import-medicine-datasets.ps1` accepts `-Command`, `-SourcePath`, `-Limit`, `-BatchSize`, `-SourceVersion`, and `-WithHash` for repeatable smoke or full imports.
-- Local development expects `postgres/postgres@127.0.0.1:15432/lucent`.
-- Local e2e expects `lucent/lucent_dev@127.0.0.1:5432/lucent`.
+| Command                         | Purpose                                             |
+| ------------------------------- | --------------------------------------------------- |
+| `pnpm start` / `pnpm start:dev` | Development runtime with `NODE_ENV=development`     |
+| `pnpm start:prod`               | Built production runtime with `NODE_ENV=production` |
+| `pnpm test`                     | Unit tests with `NODE_ENV=test`                     |
+| `pnpm test:ci`                  | Unit tests in CI with `--runInBand`                 |
+| `pnpm test:e2e`                 | E2E tests with Prisma 7 VM-module compatibility     |
+| `pnpm test:e2e:ci`              | E2E tests in CI with `--runInBand`                  |
+| `pnpm export:openapi`           | Build then export `docs/openapi.json` from `dist`   |
+| `pnpm import:medicine:all`      | Default medicine knowledge import sequence          |
 
-## GitHub Actions CI/CD
-
-This repo includes `.github/workflows/deploy-server.yml` as the full Lucent CI/CD pipeline.
-
-If you are deploying to a Tencent Cloud CVM, read `tencent-cloud-cicd.md` together with this file. That guide is the operator-facing runbook for the current registry and server workflow.
-
-### Pipeline shape
-
-- `pull_request` / `push`
-  - start PostgreSQL 18 + Redis 8 in GitHub Actions
-  - run `pnpm exec prisma generate`
-  - run `pnpm exec prisma migrate deploy`
-  - run `pnpm lint:check`
-  - run `pnpm build`
-  - run `pnpm test:ci`
-  - run `pnpm test:e2e:ci`
-- `push` to `main`
-  - build the production Docker image on the GitHub-hosted `ubuntu-latest` runner with plain `docker build`
-  - push only the `latest` tag to the configured registry with plain `docker push`
-  - SSH to the server
-  - sync `docker-compose.yml` and `scripts/deploy/deploy-server.sh` to the server over SSH
-  - write `.deploy-image.env`
-  - `docker compose pull postgres redis app`
-  - keep PostgreSQL / Redis data volumes, recreate containers from the synced compose file
-  - wait for Docker health checks; rollback is manual because the workflow no longer keeps a separate `sha-<commit>` image tag
-- GitHub-hosted JavaScript actions are forced onto the Node 24 runtime via `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` so the workflow no longer depends on the deprecated Node 20 actions runtime.
-- The workflow intentionally avoids Docker Buildx / OCI attestation export because Tencent TCR can stall on the final manifest push path.
-- Production still expects fixed registry tags for PostgreSQL and Redis: `<registry>/<namespace>/<image-name>-postgres:18-alpine` and `<registry>/<namespace>/<image-name>-redis:8-alpine`. Seed those two images into the target registry once before the first deployment.
-
-### Expected server shape
-
-- a writable deployment directory on the server
-- Docker Engine + Docker Compose plugin installed
-- `.env.production` stored in the repo root on the server
-- outbound access from the server to:
-  - your container registry
-
-For mainland China servers, the target registry should be a registry that your server can access reliably, such as Tencent TCR or Alibaba Cloud ACR. Do not leave production on `ghcr.io` if the server cannot pull from it.
-
-### Required GitHub secrets
-
-- `SERVER_HOST`
-- `SERVER_PORT`
-- `SERVER_USER`
-- `SERVER_SSH_KEY`
-- `SERVER_KNOWN_HOSTS`
-- `REGISTRY_USERNAME`
-- `REGISTRY_PASSWORD`
-
-`REGISTRY_PASSWORD` should be able to push from GitHub Actions and pull on the server. For GHCR, use a PAT with at least `read:packages` and `write:packages`.
-
-### Required GitHub variables
-
-- `SERVER_APP_DIR`
-  Example: `/opt/lucent`
-
-### Optional GitHub variables
-
-- `REGISTRY_HOST`
-  Default: `ghcr.io`
-- `REGISTRY_NAMESPACE`
-  Default: lowercased `github.repository_owner`
-- `REGISTRY_IMAGE_NAME`
-  Default: lowercased repository name
-
-Recommended mainland setup:
-
-- all runtime images pulled from the same domestic registry
-- server only needs outbound access to that registry, not to GitHub or Docker Hub
-- for Tencent Cloud CVM + GitHub-hosted Actions, prefer `TCR Individual` first; see `tencent-cloud-cicd.md`
-
-### First-time server bootstrap
+Run Prisma commands with explicit `NODE_ENV` when not targeting development, for example:
 
 ```bash
-mkdir -p /opt/lucent
-cd /opt/lucent
-cat > .env.production <<'EOF'
-NODE_ENV=production
-HOST=0.0.0.0
-PORT=3000
-CORS_ORIGIN=https://your-domain.example
-DATABASE_URL=postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public
-REDIS_URL=redis://redis:6379
-JWT_ACCESS_TTL=15m
-JWT_REFRESH_TTL=14d
-JWT_ACCESS_SECRET=replace_with_strong_access_secret
-JWT_REFRESH_SECRET=replace_with_strong_refresh_secret
-AI_PROVIDER=openai-compatible
-AI_API_KEY=
-AI_BASE_URL=
-AI_TEXT_MODEL=
-AI_VISION_MODEL=
-MAIL_DRIVER=smtp
-MAIL_HOST=smtp.example.com
-MAIL_PORT=587
-MAIL_FROM=noreply@example.com
-MAIL_USER=your_email@example.com
-MAIL_PASS=your_password
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=replace_with_strong_admin_password
-ADMIN_COOKIE_SECRET=replace_with_at_least_32_chars_admin_cookie_secret
-WECHAT_WEB_APP_ID=
-WECHAT_WEB_APP_SECRET=
-WECHAT_WEB_REDIRECT_URI=https://your-domain.example/api/v1/auth/oauth/wechat-web/callback
-WECHAT_MOBILE_APP_ID=
-WECHAT_MOBILE_APP_SECRET=
-TENCENT_COS_SECRET_ID=
-TENCENT_COS_SECRET_KEY=
-TENCENT_COS_BUCKET=
-TENCENT_COS_REGION=ap-guangzhou
-TENCENT_COS_PUBLIC_BASE_URL=
-TENCENT_COS_UPLOAD_EXPIRES_SECONDS=600
-TENCENT_COS_MAX_UPLOAD_BYTES=10485760
-LOG_LEVEL=info
-EOF
+NODE_ENV=test pnpm exec prisma migrate deploy
 ```
 
-Then edit `.env.production`, especially:
-
-- `JWT_ACCESS_SECRET`
-- `JWT_REFRESH_SECRET`
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
-- `ADMIN_COOKIE_SECRET`
-- `CORS_ORIGIN`
-
-Optional WeChat OAuth login variables:
-
-- `WECHAT_WEB_APP_ID`
-- `WECHAT_WEB_APP_SECRET`
-- `WECHAT_WEB_REDIRECT_URI`
-- `WECHAT_MOBILE_APP_ID`
-- `WECHAT_MOBILE_APP_SECRET`
-
-When these are empty, Lucent still starts normally and the WeChat OAuth endpoints report the provider as not configured.
-
-Optional Tencent COS image upload variables:
-
-- `TENCENT_COS_SECRET_ID`
-- `TENCENT_COS_SECRET_KEY`
-- `TENCENT_COS_BUCKET`
-- `TENCENT_COS_REGION`
-- `TENCENT_COS_PUBLIC_BASE_URL`
-- `TENCENT_COS_UPLOAD_EXPIRES_SECONDS`
-- `TENCENT_COS_MAX_UPLOAD_BYTES`
-
-When all required Tencent COS variables are empty, Lucent still starts normally and the daily-record image upload signing endpoint returns COS as not configured. If any required Tencent COS variable is set, all of `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and `TENCENT_COS_REGION` must be set.
-
-`WECHAT_WEB_REDIRECT_URI` should point at Lucent's browser callback endpoint, for example `https://your-domain.example/api/v1/auth/oauth/wechat-web/callback`. Desktop clients pass a temporary loopback `callbackUri` to `POST /api/v1/auth/oauth/wechat-web/authorize`; Lucent stores that URI in OAuth state and the browser callback redirects back to it after WeChat returns `code` and `state`. Web clients may pass `https://<trusted-origin>/login/oauth/wechat`; the origin must be explicitly listed in `CORS_ORIGIN`. Loopback callbacks must use `http://127.0.0.1:<port>` / `localhost:<port>` / `[::1]:<port>`.
-
-In the default single-server compose deployment, `DATABASE_URL` and `REDIS_URL` are pinned to the local `postgres` / `redis` containers by `docker-compose.yml`. If you want to use external services instead, update both `.env.production` and `docker-compose.yml`.
-
-### Runtime files on the server
-
-- `.env.production`
-- `.deploy-image.env`
-- `docker-compose.yml`
-- `scripts/deploy/deploy-server.sh`
-
-Only `.env.production` and `.deploy-image.env` are runtime-local and must not be committed.
-
-## Production Rules
+## Required Production Variables
 
 Production startup requires:
 
@@ -229,22 +85,66 @@ ADMIN_COOKIE_SECRET
 CORS_ORIGIN
 ```
 
-`CORS_ORIGIN=*` is allowed for local development but rejected in production.
+`CORS_ORIGIN=*` is accepted for local development but rejected in production.
 
-## Current Baseline
+## Optional Integrations
 
-- Compiler: Nest CLI SWC builder with type checking enabled.
-- Global prefix: `/api`.
-- Versioning: NestJS URI versioning，默认版本 `1`。
-- Health check: `GET /api/v1/health`.
-- Embedded admin panel: `GET /admin`, powered by AdminJS and protected by `ADMIN_EMAIL` / `ADMIN_PASSWORD`. The current resource set is read-only.
-- Daily-record image uploads use Tencent COS presigned PUT URLs from `POST /api/v1/me/daily-records/attachments/images/presign-upload`; clients upload directly to COS and then store returned `provider`, `bucket`, `objectKey`, and optional `publicUrl` in daily-record attachment metadata.
-- Request id: returned in `X-Request-Id` and available for server-side log correlation.
-- Auth e2e baseline passes for register / login / refresh / account / logout.
-- Cache manager is global. When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; when `REDIS_URL` is absent, it falls back to in-memory cache.
-- Mail delivery uses BullMQ when `REDIS_URL` is set: `MailService` enqueues jobs to `lucent-mail`, and an in-process worker sends through the configured log/smtp transport with retry/backoff. Without `REDIS_URL`, mail is sent immediately.
-- Auth transient state uses scoped cache prefixes: `vcode:*` for email verification codes/cooldowns/client limits and `auth:login-failure:*` for login failure buckets. Keys store opaque values or hashed identifiers rather than raw passwords/tokens.
-- WeChat Web OAuth state uses `auth:oauth-state:wechat_web:*` keys with a 10 minute TTL. Desktop Web OAuth state may include a loopback callback URI used only for the browser-to-app redirect. WeChat accounts may not expose email, so `users.email` is nullable; email/password flows still require an email in their DTOs. Web and mobile WeChat identities are stored as separate providers and linked by `provider_union_id` when WeChat returns `unionid`.
-- Medicine knowledge reads currently use service-layer cache keys under the `medicines:` prefix. Search cache TTL is 5 minutes; detail cache TTL is 15 minutes.
-- Frontend may send `x-bypass-cache: true` (also accepts `1`, `yes`, or `no-cache`) on medicines read requests to bypass cache for that request only.
-- Medicine import scripts scan Redis for medicines cache entries under the active Keyv namespace and invalidate the matching logical `medicines:*` keys after import when `REDIS_URL` is configured.
+WeChat OAuth:
+
+```text
+WECHAT_WEB_APP_ID
+WECHAT_WEB_APP_SECRET
+WECHAT_WEB_REDIRECT_URI
+WECHAT_MOBILE_APP_ID
+WECHAT_MOBILE_APP_SECRET
+```
+
+Daily-record image uploads through Tencent COS:
+
+```text
+TENCENT_COS_SECRET_ID
+TENCENT_COS_SECRET_KEY
+TENCENT_COS_BUCKET
+TENCENT_COS_REGION
+TENCENT_COS_PUBLIC_BASE_URL
+TENCENT_COS_UPLOAD_EXPIRES_SECONDS
+TENCENT_COS_MAX_UPLOAD_BYTES
+```
+
+If any required COS credential is set, all of `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and `TENCENT_COS_REGION` must be set.
+
+Mail:
+
+```text
+MAIL_DRIVER
+MAIL_HOST
+MAIL_PORT
+MAIL_FROM
+MAIL_USER
+MAIL_PASS
+```
+
+AI provider configuration:
+
+```text
+AI_PROVIDER
+AI_API_KEY
+AI_BASE_URL
+AI_TEXT_MODEL
+AI_VISION_MODEL
+```
+
+## Runtime Notes
+
+- `pnpm export:openapi` disables `REDIS_URL` inside the export process so docs generation does not start Redis-backed cache or BullMQ connections.
+- i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
+- When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; without it, cache falls back to memory.
+- Mail delivery uses BullMQ when `REDIS_URL` is set and immediate send when Redis is absent.
+- WeChat Web OAuth state is cached for 10 minutes. Desktop login may include a loopback callback URI in OAuth state.
+- Daily-record image uploads use presigned Tencent COS PUT URLs; clients upload directly to COS, then save returned attachment metadata on the daily record.
+- Medicine search cache TTL is 5 minutes; medicine detail cache TTL is 15 minutes.
+- Frontend reads may send `x-bypass-cache: true` to bypass medicine read cache for one request.
+
+## CI/CD Boundary
+
+`.github/workflows/deploy-server.yml` owns the CI/CD pipeline shape. For Tencent Cloud setup, registry variables, server bootstrap, and first deployment checks, use `tencent-cloud-cicd.md`.

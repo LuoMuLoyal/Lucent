@@ -10,6 +10,7 @@ Lucent is the NestJS backend for Luminous. New backend work happens here; `Lumin
 - Database model: [prisma/schema.prisma](prisma/schema.prisma).
 - Runtime configuration: [docs/environment.md](docs/environment.md).
 - Medicine data imports: [docs/public/data-sources.md](docs/public/data-sources.md).
+- Product direction: [../Luminous/docs/Product_Vision.md](../Luminous/docs/Product_Vision.md).
 
 Hand-written endpoint mocks and commit-style changelogs are intentionally not maintained. Regenerate OpenAPI when API code changes:
 
@@ -78,6 +79,5 @@ Active docs:
 - [docs/tencent-cloud-cicd.md](docs/tencent-cloud-cicd.md)
 - [docs/openapi.json](docs/openapi.json)
 - [docs/public/data-sources.md](docs/public/data-sources.md)
-- [docs/public/ROADMAP.md](docs/public/ROADMAP.md)
 - [docs/public/reminder-contract.md](docs/public/reminder-contract.md)
 - [docs/public/environment-contract.md](docs/public/environment-contract.md)
