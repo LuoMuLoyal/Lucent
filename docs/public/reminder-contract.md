@@ -9,7 +9,7 @@ Lucent's notification system is split into two layers with a clear ownership bou
 **Device-local layer** — owned by Luminous, no backend involvement:
 
 - System notification permission request and status
-- Local notification preference toggles (medication reminders, health alerts, activity nudges)
+- Local notification preference toggles (medication reminders, health alerts, weekly summaries)
 - Local-only scheduled notifications (triggered by on-device timer, not by Lucent)
 - Push token / FCM / APNs registration (future, not yet scoped)
 
@@ -22,15 +22,15 @@ Lucent's notification system is split into two layers with a clear ownership bou
 
 ## Current Reality
 
-| Capability                       | Status                                                                                            |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Local notification permission    | Luminous `NotificationPermissionService` reads system state                                       |
-| Local preference toggles         | Persisted in `SharedPreferences`, three toggles (medication, health, activity)                    |
-| Backend reminder schedule        | Implemented schedule-only medicine reminders: Prisma model + `/api/v1/me/medicine-reminders` CRUD |
-| Backend notification preferences | Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example only       |
-| Push delivery (FCM/APNs)         | Not implemented — no credentials, no infrastructure                                               |
-| Reminder delivery log            | Not implemented                                                                                   |
-| Notification content templates   | Not implemented                                                                                   |
+| Capability                       | Status                                                                                                |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Local notification permission    | Luminous `NotificationPermissionService` reads system state                                           |
+| Local preference toggles         | Persisted in `SharedPreferences`, three toggles (medication reminders, health alerts, weekly summary) |
+| Backend reminder schedule        | Implemented schedule-only medicine reminders: Prisma model + `/api/v1/me/medicine-reminders` CRUD     |
+| Backend notification preferences | Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example only           |
+| Push delivery (FCM/APNs)         | Not implemented — no credentials, no infrastructure                                                   |
+| Reminder delivery log            | Not implemented                                                                                       |
+| Notification content templates   | Not implemented                                                                                       |
 
 ## Planned API Surface
 
@@ -43,7 +43,7 @@ UserNotificationPreference {
   userId           String   @id
   medicationEnabled  Boolean  @default(true)
   healthAlertEnabled Boolean  @default(false)
-  activityNudgeEnabled Boolean @default(false)
+  weeklySummaryEnabled Boolean @default(false)
   preferredStartHour  Int?     // 0-23, local device time
   preferredEndHour    Int?     // 0-23, local device time
   quietWeekends       Boolean  @default(false)

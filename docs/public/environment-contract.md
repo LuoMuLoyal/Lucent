@@ -1,14 +1,13 @@
 # Environment Snapshot Contract
 
-Last updated: 2026-06-06
+Last updated: 2026-06-08
 
 ## Summary
 
 This contract defines the Lucent API for environment data (pollen, UV, air quality)
-that powers the More → Environment section and Today → Environment card.
-This is the first real-contract path for the More module, selected because it
-requires no external platform credentials (data can be seeded from static
-reference tables or optional free-tier APIs).
+that can support contextual Today or Mine surfaces. Luminous does not currently
+surface environment data in the MVP mobile UI; frontend wiring is deferred until
+a concrete Today/Mine product job is ready.
 
 ## Boundary
 
@@ -113,9 +112,8 @@ The initial implementation uses static seasonal reference tables bundled with Lu
 These tables are stored as JSON or TypeScript constants in Lucent's environment
 module — no database migration required for Phase A.
 
-When `dataSource` is `'static'`, the frontend should display a note that
-data is approximate and not real-time. The Lumi card on Today already shows
-a "预览" badge; the More environment section will show a "参考值" / "Reference" label.
+When `dataSource` is `'static'`, any frontend surface must label the data as
+approximate/reference data rather than real-time conditions.
 
 ## Explicit Non-Goals
 
@@ -134,7 +132,8 @@ a "预览" badge; the More environment section will show a "参考值" / "Refere
 
 ## Luminous Integration Notes
 
-- Currently More → Environment renders static mock data from `MoreDashboard.environment`.
-- Luminous should create an `EnvironmentRepository` that calls `GET /api/v1/environment/snapshot`.
-- When `dataSource` is `'static'`, the frontend should show a "参考值" badge (similar to Today's "预览" badge).
-- When the API is unavailable, fall back to the existing static mock dashboard.
+- Do not reintroduce a standalone More tab or generic utility hub for environment data.
+- Future Luminous wiring should create an `EnvironmentRepository` that calls `GET /api/v1/environment/snapshot`.
+- Valid frontend targets are contextual Today signals or Mine/campus-service support entries after the matching user job is explicit.
+- When `dataSource` is `'static'`, show a visible reference/static label.
+- When the API is unavailable, keep the surrounding page usable and label any fallback as mock/static.
