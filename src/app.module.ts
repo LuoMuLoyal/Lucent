@@ -18,6 +18,7 @@ import { I18nModule } from './i18n/i18n.module';
 import { MedicinesModule } from './modules/medicines/medicines.module';
 import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from './modules/medicine-dose-logs/medicine-dose-logs.module';
+import { MedicineRemindersModule } from './modules/medicine-reminders/medicine-reminders.module';
 import { UserHealthContextModule } from './modules/user-health-context/user-health-context.module';
 import { AccountModule } from './modules/account/account.module';
 import { EnvironmentModule } from './modules/environment/environment.module';
@@ -44,6 +45,7 @@ import { EnvironmentModule } from './modules/environment/environment.module';
     UserHealthContextModule,
     DailyRecordsModule,
     MedicineDoseLogsModule,
+    MedicineRemindersModule,
     EnvironmentModule,
   ],
   controllers: [AppController],

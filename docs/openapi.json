@@ -1704,6 +1704,151 @@
         ]
       }
     },
+    "/api/v1/me/medicine-reminders": {
+      "get": {
+        "operationId": "MedicineRemindersController_list_v1",
+        "parameters": [
+          {
+            "name": "activeOnly",
+            "required": false,
+            "in": "query",
+            "description": "Set to true to return active reminders only.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List medicine reminder schedules",
+        "tags": [
+          "Medicine Reminders"
+        ]
+      },
+      "post": {
+        "operationId": "MedicineRemindersController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMedicineReminderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a medicine reminder schedule",
+        "tags": [
+          "Medicine Reminders"
+        ]
+      }
+    },
+    "/api/v1/me/medicine-reminders/{id}": {
+      "patch": {
+        "operationId": "MedicineRemindersController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMedicineReminderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a medicine reminder schedule",
+        "tags": [
+          "Medicine Reminders"
+        ]
+      },
+      "delete": {
+        "operationId": "MedicineRemindersController_delete_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete a medicine reminder schedule",
+        "tags": [
+          "Medicine Reminders"
+        ]
+      }
+    },
     "/api/v1/environment/snapshot": {
       "get": {
         "operationId": "EnvironmentController_getSnapshot_v1",
@@ -4659,6 +4804,207 @@
           "note": {
             "type": "object",
             "nullable": true
+          }
+        }
+      },
+      "MedicineReminderItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Reminder id."
+          },
+          "currentMedicineId": {
+            "type": "object",
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "type": "object",
+            "description": "Reminder label."
+          },
+          "scheduledHour": {
+            "type": "number",
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "number",
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "description": "Weekday numbers 0-6. Null means every day.",
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "type": "object",
+            "description": "User note."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "scheduledHour",
+          "scheduledMinute",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "MedicineReminderListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineReminderItemDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "MedicineReminderListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/MedicineReminderListDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "CreateMedicineReminderDto": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "type": "object",
+            "description": "Reminder label."
+          },
+          "scheduledHour": {
+            "type": "number",
+            "description": "Scheduled local hour, 0-23.",
+            "example": 8
+          },
+          "scheduledMinute": {
+            "type": "number",
+            "description": "Scheduled local minute, 0-59.",
+            "example": 30
+          },
+          "daysOfWeek": {
+            "description": "Weekday numbers 0-6, where null means every day.",
+            "nullable": true,
+            "example": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active.",
+            "default": true
+          },
+          "note": {
+            "type": "object",
+            "description": "User note."
+          }
+        },
+        "required": [
+          "scheduledHour",
+          "scheduledMinute"
+        ]
+      },
+      "MedicineReminderResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/MedicineReminderItemDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "UpdateMedicineReminderDto": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "object",
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "type": "object",
+            "description": "Reminder label."
+          },
+          "scheduledHour": {
+            "type": "number",
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "number",
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "description": "Weekday numbers 0-6, where null means every day.",
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "type": "object",
+            "description": "User note."
           }
         }
       },
