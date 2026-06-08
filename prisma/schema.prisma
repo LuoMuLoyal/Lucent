@@ -122,6 +122,7 @@ model User {
   allergies              UserAllergy[]
   conditions             UserCondition[]
   currentMedicines       UserCurrentMedicine[]
+  medicineReminders      UserMedicineReminder[]
   dailyRecords           UserDailyRecord[]
   dailyRecordAttachments UserDailyRecordAttachment[]
   doseLogs               UserMedicineDoseLog[]
@@ -267,10 +268,33 @@ model UserCurrentMedicine {
   updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   doseLogs      UserMedicineDoseLog[]
+  reminders     UserMedicineReminder[]
 
   @@index([userId, isCurrent])
   @@index([userId, source])
   @@map("user_current_medicines")
+}
+
+model UserMedicineReminder {
+  id                String               @id @default(uuid())
+  userId            String               @map("user_id")
+  currentMedicineId String?              @map("current_medicine_id")
+  label             String?
+  scheduledHour     Int                  @map("scheduled_hour")
+  scheduledMinute   Int                  @map("scheduled_minute")
+  daysOfWeek        Json?                @map("days_of_week") @db.JsonB
+  isActive          Boolean              @default(true) @map("is_active")
+  note              String?
+  deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz(3)
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isActive])
+  @@index([userId, currentMedicineId])
+  @@index([userId, deletedAt])
+  @@map("user_medicine_reminders")
 }
 
 enum DoseLogStatus {
