@@ -392,6 +392,7 @@ export const ModelName = {
   UserCondition: 'UserCondition',
   UserCurrentMedicine: 'UserCurrentMedicine',
   UserMedicineReminder: 'UserMedicineReminder',
+  UserReminderDelivery: 'UserReminderDelivery',
   UserMedicineDoseLog: 'UserMedicineDoseLog',
   UserDailyRecord: 'UserDailyRecord',
   UserDailyRecordAttachment: 'UserDailyRecordAttachment',
@@ -416,7 +417,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget"
+    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1083,6 +1084,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserMedicineReminderCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserMedicineReminderCountAggregateOutputType> | number
+        }
+      }
+    }
+    UserReminderDelivery: {
+      payload: Prisma.$UserReminderDeliveryPayload<ExtArgs>
+      fields: Prisma.UserReminderDeliveryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserReminderDeliveryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserReminderDeliveryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload>
+        }
+        findFirst: {
+          args: Prisma.UserReminderDeliveryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserReminderDeliveryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload>
+        }
+        findMany: {
+          args: Prisma.UserReminderDeliveryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload>[]
+        }
+        create: {
+          args: Prisma.UserReminderDeliveryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload>
+        }
+        createMany: {
+          args: Prisma.UserReminderDeliveryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserReminderDeliveryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload>[]
+        }
+        delete: {
+          args: Prisma.UserReminderDeliveryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload>
+        }
+        update: {
+          args: Prisma.UserReminderDeliveryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserReminderDeliveryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserReminderDeliveryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserReminderDeliveryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserReminderDeliveryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserReminderDeliveryPayload>
+        }
+        aggregate: {
+          args: Prisma.UserReminderDeliveryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserReminderDelivery>
+        }
+        groupBy: {
+          args: Prisma.UserReminderDeliveryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserReminderDeliveryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserReminderDeliveryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserReminderDeliveryCountAggregateOutputType> | number
         }
       }
     }
@@ -1946,6 +2021,8 @@ export const UserMedicineReminderScalarFieldEnum = {
   scheduledHour: 'scheduledHour',
   scheduledMinute: 'scheduledMinute',
   daysOfWeek: 'daysOfWeek',
+  startDate: 'startDate',
+  endDate: 'endDate',
   isActive: 'isActive',
   note: 'note',
   deletedAt: 'deletedAt',
@@ -1954,6 +2031,22 @@ export const UserMedicineReminderScalarFieldEnum = {
 } as const
 
 export type UserMedicineReminderScalarFieldEnum = (typeof UserMedicineReminderScalarFieldEnum)[keyof typeof UserMedicineReminderScalarFieldEnum]
+
+
+export const UserReminderDeliveryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  reminderId: 'reminderId',
+  deviceId: 'deviceId',
+  channel: 'channel',
+  status: 'status',
+  scheduledFor: 'scheduledFor',
+  deliveredAt: 'deliveredAt',
+  errorMessage: 'errorMessage',
+  createdAt: 'createdAt'
+} as const
+
+export type UserReminderDeliveryScalarFieldEnum = (typeof UserReminderDeliveryScalarFieldEnum)[keyof typeof UserReminderDeliveryScalarFieldEnum]
 
 
 export const UserMedicineDoseLogScalarFieldEnum = {
@@ -2624,6 +2717,7 @@ export type GlobalOmitConfig = {
   userCondition?: Prisma.UserConditionOmit
   userCurrentMedicine?: Prisma.UserCurrentMedicineOmit
   userMedicineReminder?: Prisma.UserMedicineReminderOmit
+  userReminderDelivery?: Prisma.UserReminderDeliveryOmit
   userMedicineDoseLog?: Prisma.UserMedicineDoseLogOmit
   userDailyRecord?: Prisma.UserDailyRecordOmit
   userDailyRecordAttachment?: Prisma.UserDailyRecordAttachmentOmit

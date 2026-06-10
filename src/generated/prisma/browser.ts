@@ -62,6 +62,11 @@ export type UserCurrentMedicine = Prisma.UserCurrentMedicineModel
  */
 export type UserMedicineReminder = Prisma.UserMedicineReminderModel
 /**
+ * Model UserReminderDelivery
+ *
+ */
+export type UserReminderDelivery = Prisma.UserReminderDeliveryModel
+/**
  * Model UserMedicineDoseLog
  * 
  */
