@@ -22,6 +22,9 @@ import { MedicineRemindersModule } from './modules/medicine-reminders/medicine-r
 import { UserHealthContextModule } from './modules/user-health-context/user-health-context.module';
 import { AccountModule } from './modules/account/account.module';
 import { EnvironmentModule } from './modules/environment/environment.module';
+import { UserSettingsModule } from './modules/user-settings/user-settings.module';
+import { SupportResourcesModule } from './modules/support-resources/support-resources.module';
+import { DataExportModule } from './modules/data-export/data-export.module';
 
 @Module({
   imports: [
@@ -47,6 +50,9 @@ import { EnvironmentModule } from './modules/environment/environment.module';
     MedicineDoseLogsModule,
     MedicineRemindersModule,
     EnvironmentModule,
+    UserSettingsModule,
+    SupportResourcesModule,
+    DataExportModule,
   ],
   controllers: [AppController],
   providers: [AppService],
