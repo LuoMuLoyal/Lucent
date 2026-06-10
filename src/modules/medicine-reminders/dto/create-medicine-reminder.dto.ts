@@ -4,6 +4,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsDateString,
   IsInt,
   IsOptional,
   IsString,
@@ -51,6 +52,24 @@ export class CreateMedicineReminderDto {
   @Min(0, { each: true })
   @Max(6, { each: true })
   daysOfWeek?: number[] | null;
+
+  @ApiPropertyOptional({
+    description: 'Date in YYYY-MM-DD format when the reminder starts.',
+    nullable: true,
+    example: '2026-06-09',
+  })
+  @IsOptional()
+  @IsDateString()
+  startDate?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Date in YYYY-MM-DD format when the reminder ends.',
+    nullable: true,
+    example: '2026-06-30',
+  })
+  @IsOptional()
+  @IsDateString()
+  endDate?: string | null;
 
   @ApiPropertyOptional({
     description: 'Whether this reminder is active.',

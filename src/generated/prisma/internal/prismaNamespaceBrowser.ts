@@ -59,6 +59,7 @@ export const ModelName = {
   UserCondition: 'UserCondition',
   UserCurrentMedicine: 'UserCurrentMedicine',
   UserMedicineReminder: 'UserMedicineReminder',
+  UserReminderDelivery: 'UserReminderDelivery',
   UserMedicineDoseLog: 'UserMedicineDoseLog',
   UserDailyRecord: 'UserDailyRecord',
   UserDailyRecordAttachment: 'UserDailyRecordAttachment',
@@ -241,6 +242,8 @@ export const UserMedicineReminderScalarFieldEnum = {
   scheduledHour: 'scheduledHour',
   scheduledMinute: 'scheduledMinute',
   daysOfWeek: 'daysOfWeek',
+  startDate: 'startDate',
+  endDate: 'endDate',
   isActive: 'isActive',
   note: 'note',
   deletedAt: 'deletedAt',
@@ -249,6 +252,22 @@ export const UserMedicineReminderScalarFieldEnum = {
 } as const
 
 export type UserMedicineReminderScalarFieldEnum = (typeof UserMedicineReminderScalarFieldEnum)[keyof typeof UserMedicineReminderScalarFieldEnum]
+
+
+export const UserReminderDeliveryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  reminderId: 'reminderId',
+  deviceId: 'deviceId',
+  channel: 'channel',
+  status: 'status',
+  scheduledFor: 'scheduledFor',
+  deliveredAt: 'deliveredAt',
+  errorMessage: 'errorMessage',
+  createdAt: 'createdAt'
+} as const
+
+export type UserReminderDeliveryScalarFieldEnum = (typeof UserReminderDeliveryScalarFieldEnum)[keyof typeof UserReminderDeliveryScalarFieldEnum]
 
 
 export const UserMedicineDoseLogScalarFieldEnum = {

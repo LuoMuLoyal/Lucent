@@ -24,6 +24,18 @@ class MedicineReminderItemDto {
   })
   daysOfWeek!: number[] | null;
 
+  @ApiPropertyOptional({
+    description: 'Date in YYYY-MM-DD format when the reminder starts.',
+    nullable: true,
+  })
+  startDate!: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Date in YYYY-MM-DD format when the reminder ends.',
+    nullable: true,
+  })
+  endDate!: string | null;
+
   @ApiProperty({ description: 'Whether this reminder is active.' })
   isActive!: boolean;
 

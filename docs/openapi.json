@@ -1849,6 +1849,54 @@
         ]
       }
     },
+    "/api/v1/me/reminder-deliveries": {
+      "get": {
+        "operationId": "ReminderDeliveriesController_list_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Optional scheduled date filter in YYYY-MM-DD format.",
+            "schema": {
+              "example": "2026-06-10",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum rows to return. Clamped to 1-100.",
+            "schema": {
+              "example": 20,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDeliveryListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List reminder delivery audit logs",
+        "tags": [
+          "Reminder Deliveries"
+        ]
+      }
+    },
     "/api/v1/environment/snapshot": {
       "get": {
         "operationId": "EnvironmentController_getSnapshot_v1",
@@ -4838,6 +4886,16 @@
               "type": "number"
             }
           },
+          "startDate": {
+            "type": "object",
+            "description": "Date in YYYY-MM-DD format when the reminder starts.",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "object",
+            "description": "Date in YYYY-MM-DD format when the reminder ends.",
+            "nullable": true
+          },
           "isActive": {
             "type": "boolean",
             "description": "Whether this reminder is active."
@@ -4935,6 +4993,18 @@
               "type": "number"
             }
           },
+          "startDate": {
+            "type": "object",
+            "description": "Date in YYYY-MM-DD format when the reminder starts.",
+            "nullable": true,
+            "example": "2026-06-09"
+          },
+          "endDate": {
+            "type": "object",
+            "description": "Date in YYYY-MM-DD format when the reminder ends.",
+            "nullable": true,
+            "example": "2026-06-30"
+          },
           "isActive": {
             "type": "boolean",
             "description": "Whether this reminder is active.",
@@ -4998,6 +5068,16 @@
               "type": "number"
             }
           },
+          "startDate": {
+            "type": "object",
+            "description": "Date in YYYY-MM-DD format when the reminder starts. Use null to clear.",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "object",
+            "description": "Date in YYYY-MM-DD format when the reminder ends. Use null to clear.",
+            "nullable": true
+          },
           "isActive": {
             "type": "boolean",
             "description": "Whether this reminder is active."
@@ -5007,6 +5087,91 @@
             "description": "User note."
           }
         }
+      },
+      "ReminderDeliveryItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Delivery log id."
+          },
+          "reminderId": {
+            "type": "object",
+            "description": "Linked medicine reminder id."
+          },
+          "deviceId": {
+            "type": "object",
+            "description": "Target device id."
+          },
+          "channel": {
+            "type": "string",
+            "description": "Delivery channel.",
+            "example": "local"
+          },
+          "status": {
+            "type": "string",
+            "description": "Delivery status.",
+            "example": "scheduled"
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled delivery time (ISO 8601)."
+          },
+          "deliveredAt": {
+            "type": "object",
+            "description": "Actual delivery time (ISO 8601)."
+          },
+          "errorMessage": {
+            "type": "object",
+            "description": "Failure reason, if any."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "channel",
+          "status",
+          "scheduledFor",
+          "createdAt"
+        ]
+      },
+      "ReminderDeliveryListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReminderDeliveryItemDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "ReminderDeliveryListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReminderDeliveryListDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
       },
       "EnvironmentDataSource": {
         "type": "string",

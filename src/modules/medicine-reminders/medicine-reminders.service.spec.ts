@@ -16,6 +16,8 @@ function reminderRecord(overrides: Record<string, unknown> = {}) {
     scheduledHour: 8,
     scheduledMinute: 30,
     daysOfWeek: [1, 3, 5],
+    startDate: null,
+    endDate: null,
     isActive: true,
     note: 'After breakfast',
     deletedAt: null,
@@ -42,6 +44,9 @@ describe('MedicineRemindersService', () => {
               create: jest.fn(),
               update: jest.fn(),
             },
+            userReminderDelivery: {
+              findMany: jest.fn(),
+            },
             userCurrentMedicine: {
               findFirst: jest.fn(),
             },
@@ -62,6 +67,8 @@ describe('MedicineRemindersService', () => {
       reminderRecord({
         label: 'Morning dose',
         daysOfWeek: [1, 3, 5],
+        startDate: new Date('2026-06-10T00:00:00.000Z'),
+        endDate: new Date('2026-06-20T00:00:00.000Z'),
         note: 'After breakfast',
       }),
     );
@@ -72,6 +79,8 @@ describe('MedicineRemindersService', () => {
       scheduledHour: 8,
       scheduledMinute: 30,
       daysOfWeek: [5, 1, 3, 1],
+      startDate: '2026-06-10',
+      endDate: '2026-06-20',
       note: ' After breakfast ',
     });
 
@@ -83,6 +92,8 @@ describe('MedicineRemindersService', () => {
         scheduledHour: 8,
         scheduledMinute: 30,
         daysOfWeek: [1, 3, 5],
+        startDate: new Date('2026-06-10T00:00:00.000Z'),
+        endDate: new Date('2026-06-20T00:00:00.000Z'),
         isActive: true,
         note: 'After breakfast',
       },
@@ -94,6 +105,8 @@ describe('MedicineRemindersService', () => {
       scheduledHour: 8,
       scheduledMinute: 30,
       daysOfWeek: [1, 3, 5],
+      startDate: '2026-06-10',
+      endDate: '2026-06-20',
       isActive: true,
       note: 'After breakfast',
       createdAt: '2026-06-08T12:00:00.000Z',
@@ -173,6 +186,8 @@ describe('MedicineRemindersService', () => {
   it('should update fields and clear the linked medicine when null is sent', async () => {
     (prisma.userMedicineReminder.findFirst as jest.Mock).mockResolvedValue({
       userId: 'user-1',
+      startDate: null,
+      endDate: null,
     });
     (prisma.userMedicineReminder.update as jest.Mock).mockResolvedValue(
       reminderRecord({
@@ -180,6 +195,8 @@ describe('MedicineRemindersService', () => {
         scheduledHour: 21,
         scheduledMinute: 5,
         daysOfWeek: null,
+        startDate: new Date('2026-06-09T00:00:00.000Z'),
+        endDate: new Date('2026-06-18T00:00:00.000Z'),
         isActive: false,
       }),
     );
@@ -189,6 +206,8 @@ describe('MedicineRemindersService', () => {
       scheduledHour: 21,
       scheduledMinute: 5,
       daysOfWeek: null,
+      startDate: '2026-06-09',
+      endDate: '2026-06-18',
       isActive: false,
     });
 
@@ -199,14 +218,29 @@ describe('MedicineRemindersService', () => {
         scheduledHour: 21,
         scheduledMinute: 5,
         daysOfWeek: Prisma.JsonNull,
+        startDate: new Date('2026-06-09T00:00:00.000Z'),
+        endDate: new Date('2026-06-18T00:00:00.000Z'),
         isActive: false,
       },
     });
   });
 
+  it('should reject an end date before the start date', async () => {
+    await expect(
+      service.create('user-1', {
+        scheduledHour: 8,
+        scheduledMinute: 0,
+        startDate: '2026-06-20',
+        endDate: '2026-06-10',
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
   it('should soft-delete reminders', async () => {
     (prisma.userMedicineReminder.findFirst as jest.Mock).mockResolvedValue({
       userId: 'user-1',
+      startDate: null,
+      endDate: null,
     });
 
     await service.delete('user-1', 'reminder-1');
@@ -225,5 +259,49 @@ describe('MedicineRemindersService', () => {
     await expect(
       service.update('user-1', 'reminder-1', { scheduledHour: 10 }),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('should list delivery logs for a date with a capped limit', async () => {
+    const scheduledFor = new Date('2026-06-10T08:00:00.000Z');
+    const deliveredAt = new Date('2026-06-10T08:00:10.000Z');
+    (prisma.userReminderDelivery.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: 'delivery-1',
+        userId: 'user-1',
+        reminderId: 'reminder-1',
+        deviceId: 'device-1',
+        channel: 'local',
+        status: 'delivered',
+        scheduledFor,
+        deliveredAt,
+        errorMessage: null,
+        createdAt: now,
+      },
+    ]);
+
+    const result = await service.listDeliveries('user-1', '2026-06-10', 200);
+
+    expect(prisma.userReminderDelivery.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        scheduledFor: {
+          gte: new Date('2026-06-10T00:00:00.000Z'),
+          lt: new Date('2026-06-11T00:00:00.000Z'),
+        },
+      },
+      orderBy: [{ scheduledFor: 'desc' }, { createdAt: 'desc' }],
+      take: 100,
+    });
+    expect(result.items[0]).toMatchObject({
+      id: 'delivery-1',
+      reminderId: 'reminder-1',
+      deviceId: 'device-1',
+      channel: 'local',
+      status: 'delivered',
+      scheduledFor: '2026-06-10T08:00:00.000Z',
+      deliveredAt: '2026-06-10T08:00:10.000Z',
+      errorMessage: null,
+      createdAt: '2026-06-08T12:00:00.000Z',
+    });
   });
 });

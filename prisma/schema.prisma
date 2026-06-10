@@ -123,6 +123,7 @@ model User {
   conditions             UserCondition[]
   currentMedicines       UserCurrentMedicine[]
   medicineReminders      UserMedicineReminder[]
+  reminderDeliveries     UserReminderDelivery[]
   dailyRecords           UserDailyRecord[]
   dailyRecordAttachments UserDailyRecordAttachment[]
   doseLogs               UserMedicineDoseLog[]
@@ -283,6 +284,8 @@ model UserMedicineReminder {
   scheduledHour     Int                  @map("scheduled_hour")
   scheduledMinute   Int                  @map("scheduled_minute")
   daysOfWeek        Json?                @map("days_of_week") @db.JsonB
+  startDate         DateTime?            @map("start_date") @db.Date
+  endDate           DateTime?            @map("end_date") @db.Date
   isActive          Boolean              @default(true) @map("is_active")
   note              String?
   deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz(3)
@@ -290,11 +293,33 @@ model UserMedicineReminder {
   updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
+  deliveries        UserReminderDelivery[]
 
   @@index([userId, isActive])
   @@index([userId, currentMedicineId])
   @@index([userId, deletedAt])
+  @@index([userId, startDate, endDate])
   @@map("user_medicine_reminders")
+}
+
+model UserReminderDelivery {
+  id           String                @id @default(uuid())
+  userId       String                @map("user_id")
+  reminderId   String?               @map("reminder_id")
+  deviceId     String?               @map("device_id")
+  channel      String
+  status       String
+  scheduledFor DateTime              @map("scheduled_for") @db.Timestamptz(3)
+  deliveredAt  DateTime?             @map("delivered_at") @db.Timestamptz(3)
+  errorMessage String?               @map("error_message")
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminder     UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, scheduledFor])
+  @@index([userId, reminderId])
+  @@index([userId, channel, status])
+  @@map("user_reminder_deliveries")
 }
 
 enum DoseLogStatus {

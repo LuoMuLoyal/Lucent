@@ -1,6 +1,6 @@
 # Reminder / Notification Contract
 
-Last updated: 2026-06-08
+Last updated: 2026-06-10
 
 ## Boundary
 
@@ -22,15 +22,15 @@ Lucent's notification system is split into two layers with a clear ownership bou
 
 ## Current Reality
 
-| Capability                       | Status                                                                                                |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Local notification permission    | Luminous `NotificationPermissionService` reads system state                                           |
-| Local preference toggles         | Persisted in `SharedPreferences`, three toggles (medication reminders, health alerts, weekly summary) |
-| Backend reminder schedule        | Implemented schedule-only medicine reminders: Prisma model + `/api/v1/me/medicine-reminders` CRUD     |
-| Backend notification preferences | Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example only           |
-| Push delivery (FCM/APNs)         | Not implemented — no credentials, no infrastructure                                                   |
-| Reminder delivery log            | Not implemented                                                                                       |
-| Notification content templates   | Not implemented                                                                                       |
+| Capability                       | Status                                                                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Local notification permission    | Luminous `NotificationPermissionService` reads system state                                                                           |
+| Local preference toggles         | Persisted in `SharedPreferences`, three toggles (medication reminders, health alerts, weekly summary)                                 |
+| Backend reminder schedule        | Implemented schedule-only medicine reminders with optional start/end date window: Prisma model + `/api/v1/me/medicine-reminders` CRUD |
+| Backend notification preferences | Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example only                                           |
+| Push delivery (FCM/APNs)         | Not implemented — no credentials, no infrastructure                                                                                   |
+| Reminder delivery log            | Implemented model + read-only `/api/v1/me/reminder-deliveries`; no worker writes rows yet                                             |
+| Notification content templates   | Not implemented                                                                                                                       |
 
 ## Planned API Surface
 
@@ -81,6 +81,8 @@ UserMedicineReminder {
   scheduledHour    Int      // 0-23
   scheduledMinute  Int      // 0-59
   daysOfWeek       Json?    // [0,1,2,3,4,5,6] or null = every day
+  startDate        DateTime?
+  endDate          DateTime?
   isActive         Boolean  @default(true)
   note             String?
   deletedAt        DateTime?
@@ -102,10 +104,12 @@ UserMedicineReminder {
 
 - `daysOfWeek = null` means every day; otherwise weekday numbers are `0-6` with Sunday as `0`.
 - Delete is a soft delete: `deletedAt` is set and `isActive` becomes `false`.
-- Luminous reads active reminders for Medicine and Today next-dose display.
+- Luminous reads active reminders for Medicine and Today next-dose display. It filters reminders by `startDate` / `endDate` when evaluating a target date.
 - Medication inventory/refill tracking is intentionally out of scope.
 
 ### 3. Reminder Delivery Log (read-only, audit)
+
+**Status:** implemented as read-only storage/API. No Lucent worker writes delivery rows yet, and no SMS/push/local delivery is implied by this table.
 
 **Model:** `UserReminderDelivery` (new Prisma model)
 
@@ -148,7 +152,7 @@ UserReminderDelivery {
 2. **Phase B (Task 11):** Bridge local notification UX to system permission state; keep prefs device-local.
 3. **Phase C (future):** Add `UserNotificationPreference` model + API; Luminous syncs prefs to backend.
 4. **Phase D (done on 2026-06-08):** Add `UserMedicineReminder` model + CRUD API; Luminous reads reminder schedules.
-5. **Phase E (future):** Luminous creates/edits reminders in UI and uses local schedule + on-device notification triggers based on backend schedules.
-6. **Phase F (future):** Push delivery infrastructure (FCM/APNs) + delivery worker + delivery log.
+5. **Phase E (done on 2026-06-10):** Luminous creates/edits reminder schedules, supports optional start/end dates, stores local sound preference, shows SMS as unavailable, and displays the backend read-only delivery log.
+6. **Phase F (future):** On-device notification scheduling from backend schedules, followed later by push delivery infrastructure (FCM/APNs), worker writes, and delivery-log population.
 
 At every phase, Luminous remains the notification display layer; Lucent owns the schedule data.
