@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-08
 
-This directory keeps backend runtime, deployment, generated-contract, and shared data-contract documentation for Lucent.
+This directory keeps backend runtime, deployment, generated-contract, and shared data-contract documentation for Lucent. If a complex backend task needs a live execution plan, put it under `../plans/` instead of `docs/`.
 
 ## Document Boundaries
 
@@ -32,4 +32,5 @@ Product direction is owned by workspace path `Luminous/docs/Product_Vision.md`.
 
 - Do not maintain hand-written endpoint docs or API mock documents.
 - Do not edit `openapi.json` manually.
+- Active repo-local execution plans belong in `Lucent/plans/`; move durable decisions into the owning docs after completion, then delete the plan.
 - Keep old implementation plans out of active docs after their decisions move into the owning document.

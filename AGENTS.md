@@ -20,6 +20,7 @@
 ## Working Rules
 
 - API contract changed: run `pnpm export:openapi`; do not maintain hand-written endpoint docs.
+- Active multi-step backend task plans belong in `plans/*.md`, not in `docs/` and not in the workspace root.
 - Env, Docker, import flow, or local commands changed: update `docs/environment.md` and `README.md`.
 - Medicine import or source strategy changed: update `docs/public/data-sources.md`.
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby working code.
