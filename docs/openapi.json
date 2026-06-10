@@ -1943,6 +1943,181 @@
           "Environment"
         ]
       }
+    },
+    "/api/v1/me/settings": {
+      "get": {
+        "operationId": "UserSettingsController_getSettings_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettingsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get authenticated user settings",
+        "tags": [
+          "User Settings"
+        ]
+      },
+      "patch": {
+        "operationId": "UserSettingsController_updateSettings_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettingsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update authenticated user settings",
+        "tags": [
+          "User Settings"
+        ]
+      }
+    },
+    "/api/v1/public/support-resources": {
+      "get": {
+        "operationId": "SupportResourcesController_getResources_v1",
+        "parameters": [
+          {
+            "name": "scope",
+            "required": false,
+            "in": "query",
+            "description": "Filter by scope: 'campus', 'help', 'about'. Default: all.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "campus",
+                "help",
+                "about"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportResourceListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get static support resource entries",
+        "tags": [
+          "Support Resources"
+        ]
+      }
+    },
+    "/api/v1/public/app-info": {
+      "get": {
+        "operationId": "SupportResourcesController_getAppInfo_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppInfoResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get application metadata",
+        "tags": [
+          "Support Resources"
+        ]
+      }
+    },
+    "/api/v1/me/data-export-requests": {
+      "post": {
+        "operationId": "DataExportController_createRequest_v1",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataExportRequestResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a new data export request",
+        "tags": [
+          "Data Export"
+        ]
+      }
+    },
+    "/api/v1/me/data-export-requests/latest": {
+      "get": {
+        "operationId": "DataExportController_getLatestRequest_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataExportLatestResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get the latest data export request",
+        "tags": [
+          "Data Export"
+        ]
+      }
     }
   },
   "info": {
@@ -5378,6 +5553,346 @@
           },
           "data": {
             "$ref": "#/components/schemas/EnvironmentSnapshotDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "UserSettingsDataDto": {
+        "type": "object",
+        "properties": {
+          "aiSummariesEnabled": {
+            "type": "boolean",
+            "description": "Allow AI-generated summaries and advice."
+          },
+          "dataSharingConsent": {
+            "type": "boolean",
+            "description": "Consent to share anonymized data for research."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp of last update.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "aiSummariesEnabled",
+          "dataSharingConsent",
+          "updatedAt"
+        ]
+      },
+      "UserSettingsResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserSettingsDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "UpdateUserSettingsDto": {
+        "type": "object",
+        "properties": {
+          "aiSummariesEnabled": {
+            "type": "boolean",
+            "description": "Allow AI-generated summaries and advice."
+          },
+          "dataSharingConsent": {
+            "type": "boolean",
+            "description": "Consent to share anonymized data for research."
+          }
+        }
+      },
+      "SupportResourceScope": {
+        "type": "string",
+        "enum": [
+          "campus",
+          "help",
+          "about"
+        ]
+      },
+      "SupportResourceActionType": {
+        "type": "string",
+        "enum": [
+          "url",
+          "phone",
+          "internal"
+        ]
+      },
+      "SupportResourceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "campus-hospital"
+          },
+          "scope": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SupportResourceScope"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "example": "Campus Hospital"
+          },
+          "titleKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtitleKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "actionUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "actionType": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SupportResourceActionType"
+              }
+            ]
+          },
+          "available": {
+            "type": "boolean",
+            "description": "Whether the resource is currently available."
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "title",
+          "available"
+        ]
+      },
+      "SupportResourceListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportResourceDto"
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp of last reference data revision."
+          }
+        },
+        "required": [
+          "items",
+          "updatedAt"
+        ]
+      },
+      "SupportResourceListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/SupportResourceListDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "AppInfoDataDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "lucent"
+          },
+          "version": {
+            "type": "string",
+            "example": "0.0.1"
+          },
+          "description": {
+            "type": "string",
+            "example": ""
+          },
+          "buildDate": {
+            "type": "string",
+            "description": "ISO-8601 build/publish timestamp."
+          },
+          "minClientVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "supportEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "privacyPolicyUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "termsOfServiceUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "version",
+          "description",
+          "buildDate"
+        ]
+      },
+      "AppInfoResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/AppInfoDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "DataExportStatus": {
+        "type": "string",
+        "enum": [
+          "requested",
+          "processing",
+          "completed",
+          "failed",
+          "unavailable"
+        ]
+      },
+      "DataExportRequestDataDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique request identifier."
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataExportStatus"
+              }
+            ]
+          },
+          "requestedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when the request was created."
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "downloadUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "requestedAt"
+        ]
+      },
+      "DataExportRequestResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DataExportRequestDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "DataExportLatestResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataExportRequestDataDto"
+              }
+            ]
           }
         },
         "required": [

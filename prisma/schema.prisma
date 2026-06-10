@@ -127,6 +127,8 @@ model User {
   dailyRecords           UserDailyRecord[]
   dailyRecordAttachments UserDailyRecordAttachment[]
   doseLogs               UserMedicineDoseLog[]
+  settings               UserSetting[]
+  dataExportRequests     DataExportRequest[]
 
   @@index([email])
   @@index([status])
@@ -595,4 +597,33 @@ model DrugbankDrugTarget {
   @@unique([drugbankId, targetId, relationKind])
   @@index([targetId])
   @@map("drugbank_drug_targets")
+}
+
+model UserSetting {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  key       String
+  value     Json?    @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId])
+  @@map("user_settings")
+}
+
+model DataExportRequest {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  status       String    @default("requested")
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz(3)
+  downloadUrl  String?   @map("download_url")
+  errorMessage String?   @map("error_message")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("data_export_requests")
 }
