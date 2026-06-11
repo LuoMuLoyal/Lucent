@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
 import { appConfig } from './config/app.config';
+import { aiConfig } from './config/ai.config';
 import { jwtConfig } from './config/jwt.config';
 import { oauthConfig } from './config/oauth.config';
 import { tencentCosConfig } from './config/tencent-cos.config';
@@ -32,7 +33,7 @@ import { TestingSupportModule } from './modules/testing-support/testing-support.
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: getEnvFilePaths(),
-      load: [appConfig, jwtConfig, oauthConfig, tencentCosConfig],
+      load: [appConfig, aiConfig, jwtConfig, oauthConfig, tencentCosConfig],
       validate: validateEnvironment,
     }),
     CacheModule.registerAsync({

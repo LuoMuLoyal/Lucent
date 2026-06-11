@@ -7,6 +7,9 @@ export enum ConfigKey {
   /** Application-level configuration (host, port, cors, etc.) */
   App = 'app',
 
+  /** AI provider and model role configuration */
+  Ai = 'ai',
+
   /** JWT configuration */
   Jwt = 'jwt',
 

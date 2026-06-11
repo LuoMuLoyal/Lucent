@@ -29,4 +29,56 @@ describe('validateEnvironment', () => {
       }),
     ).toThrow('ADMIN_EMAIL');
   });
+
+  it('accepts complete AI role configurations', () => {
+    const config = validateEnvironment({
+      [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+      [EnvKey.AI_PROVIDER]: 'openai-compatible',
+      [EnvKey.AI_ANALYSIS_API_KEY]: 'analysis-key',
+      [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://analysis.example.com/v1',
+      [EnvKey.AI_ANALYSIS_MODEL]: 'analysis-model',
+      [EnvKey.AI_VISION_API_KEY]: 'vision-key',
+      [EnvKey.AI_VISION_BASE_URL]: 'https://vision.example.com/v1',
+      [EnvKey.AI_VISION_MODEL]: 'vision-model',
+      [EnvKey.AI_LANGUAGE_API_KEY]: 'language-key',
+      [EnvKey.AI_LANGUAGE_BASE_URL]: 'https://language.example.com/v1',
+      [EnvKey.AI_LANGUAGE_MODEL]: 'language-model',
+      [EnvKey.AI_CHAT_API_KEY]: 'chat-key',
+      [EnvKey.AI_CHAT_BASE_URL]: 'https://chat.example.com/v1',
+      [EnvKey.AI_CHAT_MODEL]: 'chat-model',
+      [EnvKey.AI_CHAT_COMPRESSION_API_KEY]: 'compression-key',
+      [EnvKey.AI_CHAT_COMPRESSION_BASE_URL]:
+        'https://compression.example.com/v1',
+      [EnvKey.AI_CHAT_COMPRESSION_MODEL]: 'compression-model',
+      [EnvKey.AI_EMBEDDING_API_KEY]: 'embedding-key',
+      [EnvKey.AI_EMBEDDING_BASE_URL]: 'https://embedding.example.com/v1',
+      [EnvKey.AI_EMBEDDING_MODEL]: 'embedding-model',
+    });
+
+    expect(config[EnvKey.AI_PROVIDER]).toBe('openai-compatible');
+    expect(config[EnvKey.AI_ANALYSIS_MODEL]).toBe('analysis-model');
+    expect(config[EnvKey.AI_EMBEDDING_MODEL]).toBe('embedding-model');
+  });
+
+  it('rejects incomplete AI role configurations', () => {
+    expect(() =>
+      validateEnvironment({
+        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+        [EnvKey.AI_PROVIDER]: 'openai-compatible',
+        [EnvKey.AI_CHAT_API_KEY]: 'chat-key',
+        [EnvKey.AI_CHAT_MODEL]: 'chat-model',
+      }),
+    ).toThrow('Incomplete AI chat configuration');
+  });
+
+  it('requires AI_PROVIDER when any AI role is configured', () => {
+    expect(() =>
+      validateEnvironment({
+        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+        [EnvKey.AI_ANALYSIS_API_KEY]: 'analysis-key',
+        [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://analysis.example.com/v1',
+        [EnvKey.AI_ANALYSIS_MODEL]: 'analysis-model',
+      }),
+    ).toThrow('AI_PROVIDER is required');
+  });
 });
