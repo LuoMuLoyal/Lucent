@@ -22,15 +22,15 @@ Lucent's notification system is split into two layers with a clear ownership bou
 
 ## Current Reality
 
-| Capability                       | Status                                                                                                                                |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Local notification permission    | Luminous `NotificationPermissionService` reads system state                                                                           |
-| Local preference toggles         | Persisted in `SharedPreferences`, three toggles (medication reminders, health alerts, weekly summary)                                 |
-| Backend reminder schedule        | Implemented schedule-only medicine reminders with optional start/end date window: Prisma model + `/api/v1/me/medicine-reminders` CRUD |
-| Backend notification preferences | Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example only                                           |
-| Push delivery (FCM/APNs)         | Not implemented — no credentials, no infrastructure                                                                                   |
-| Reminder delivery log            | Implemented model + read-only `/api/v1/me/reminder-deliveries`; no worker writes rows yet                                             |
-| Notification content templates   | Not implemented                                                                                                                       |
+| Capability                       | Status                                                                                                                                  |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Local notification permission    | Luminous `NotificationPermissionService` reads system state                                                                             |
+| Local preference toggles         | Persisted in `SharedPreferences`, three toggles (medication reminders, health alerts, weekly summary)                                   |
+| Backend reminder schedule        | Implemented schedule-only medicine reminders with optional start/end date window: Prisma model + `/api/v1/user/medicine-reminders` CRUD |
+| Backend notification preferences | Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example only                                             |
+| Push delivery (FCM/APNs)         | Not implemented — no credentials, no infrastructure                                                                                     |
+| Reminder delivery log            | Implemented model + read-only `/api/v1/user/reminder-deliveries`; no worker writes rows yet                                             |
+| Notification content templates   | Not implemented                                                                                                                         |
 
 ## Planned API Surface
 
@@ -54,10 +54,10 @@ UserNotificationPreference {
 
 **API endpoints:**
 
-| Method  | Path                                  | Description        |
-| ------- | ------------------------------------- | ------------------ |
-| `GET`   | `/api/v1/me/notification-preferences` | Read preferences   |
-| `PATCH` | `/api/v1/me/notification-preferences` | Update preferences |
+| Method  | Path                                    | Description        |
+| ------- | --------------------------------------- | ------------------ |
+| `GET`   | `/api/v1/user/notification-preferences` | Read preferences   |
+| `PATCH` | `/api/v1/user/notification-preferences` | Update preferences |
 
 **Notes:**
 
@@ -93,12 +93,12 @@ UserMedicineReminder {
 
 **API endpoints:**
 
-| Method   | Path                                | Description     |
-| -------- | ----------------------------------- | --------------- |
-| `GET`    | `/api/v1/me/medicine-reminders`     | List reminders  |
-| `POST`   | `/api/v1/me/medicine-reminders`     | Create reminder |
-| `PATCH`  | `/api/v1/me/medicine-reminders/:id` | Update reminder |
-| `DELETE` | `/api/v1/me/medicine-reminders/:id` | Delete reminder |
+| Method   | Path                                  | Description     |
+| -------- | ------------------------------------- | --------------- |
+| `GET`    | `/api/v1/user/medicine-reminders`     | List reminders  |
+| `POST`   | `/api/v1/user/medicine-reminders`     | Create reminder |
+| `PATCH`  | `/api/v1/user/medicine-reminders/:id` | Update reminder |
+| `DELETE` | `/api/v1/user/medicine-reminders/:id` | Delete reminder |
 
 **Notes:**
 
@@ -130,9 +130,9 @@ UserReminderDelivery {
 
 **API endpoint:**
 
-| Method | Path                                          | Description       |
-| ------ | --------------------------------------------- | ----------------- |
-| `GET`  | `/api/v1/me/reminder-deliveries?date=&limit=` | Read delivery log |
+| Method | Path                                            | Description       |
+| ------ | ----------------------------------------------- | ----------------- |
+| `GET`  | `/api/v1/user/reminder-deliveries?date=&limit=` | Read delivery log |
 
 ## Explicit Non-Goals
 

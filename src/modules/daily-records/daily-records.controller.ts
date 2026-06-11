@@ -34,7 +34,7 @@ import { DailyRecordImageUploadService } from './daily-record-image-upload.servi
 import { DailyRecordsService } from './daily-records.service';
 
 @ApiTags('Daily Records')
-@Controller('me/daily-records')
+@Controller('user/daily-records')
 export class DailyRecordsController {
   constructor(
     private readonly dailyRecordsService: DailyRecordsService,

@@ -34,7 +34,7 @@ import {
 import { UserHealthContextService } from './user-health-context.service';
 
 @ApiTags('User Health Context')
-@Controller('me/health-context')
+@Controller('user/health-context')
 export class UserHealthContextController {
   constructor(
     private readonly userHealthContextService: UserHealthContextService,
@@ -45,7 +45,7 @@ export class UserHealthContextController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get the current user health context aggregate' })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
-  async getMeHealthContext(@CurrentUser() user: UserPayload) {
+  async getUserHealthContext(@CurrentUser() user: UserPayload) {
     const healthContext = await this.userHealthContextService.getForUser(
       user.sub,
     );
@@ -61,7 +61,7 @@ export class UserHealthContextController {
   })
   @ApiBody({ type: UpdateHealthContextProfileDto })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
-  async updateMeHealthContextProfile(
+  async updateUserHealthContextProfile(
     @CurrentUser() user: UserPayload,
     @Body() dto: UpdateHealthContextProfileDto,
   ) {

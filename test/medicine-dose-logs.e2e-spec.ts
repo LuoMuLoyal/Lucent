@@ -19,7 +19,7 @@ import {
 } from '../src/generated/prisma/client';
 import { ConfigKey } from '../src/config/config-keys.enum';
 
-const BASE_PATH = '/api/v1/me/medicine-dose-logs';
+const BASE_PATH = '/api/v1/user/medicine-dose-logs';
 const AUTH_HEADER = 'Authorization';
 const BEARER = 'Bearer';
 

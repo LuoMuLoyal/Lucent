@@ -41,8 +41,8 @@ public support resources, app metadata, and data-export request status.
 **Endpoints:**
 
 ```text
-GET  /api/v1/me/settings
-PATCH /api/v1/me/settings
+GET  /api/v1/user/settings
+PATCH /api/v1/user/settings
 ```
 
 Both require authentication (`Bearer` token).
@@ -137,8 +137,8 @@ Values are read from config or package.json at startup — no database.
 **Endpoints:**
 
 ```text
-POST /api/v1/me/data-export-requests
-GET  /api/v1/me/data-export-requests/latest
+POST /api/v1/user/data-export-requests
+GET  /api/v1/user/data-export-requests/latest
 ```
 
 Both require authentication.
@@ -214,8 +214,8 @@ model DataExportRequest {
 
 - Mine campus services should read from `GET /api/v1/public/support-resources?scope=campus`
   instead of hardcoded entries.
-- Settings privacy rows should read from `GET /api/v1/me/settings` and write
-  through `PATCH /api/v1/me/settings`.
+- Settings privacy rows should read from `GET /api/v1/user/settings` and write
+  through `PATCH /api/v1/user/settings`.
 - Settings reminder summary rows should read from device notification controller
   state, not from hardcoded "Enabled" labels.
 - Export row should POST to create a request and show the status from GET.

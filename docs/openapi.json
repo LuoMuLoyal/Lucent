@@ -861,9 +861,9 @@
         ]
       }
     },
-    "/api/v1/me/health-context": {
+    "/api/v1/user/health-context": {
       "get": {
-        "operationId": "UserHealthContextController_getMeHealthContext_v1",
+        "operationId": "UserHealthContextController_getUserHealthContext_v1",
         "parameters": [],
         "responses": {
           "200": {
@@ -888,9 +888,9 @@
         ]
       }
     },
-    "/api/v1/me/health-context/profile": {
+    "/api/v1/user/health-context/profile": {
       "patch": {
-        "operationId": "UserHealthContextController_updateMeHealthContextProfile_v1",
+        "operationId": "UserHealthContextController_updateUserHealthContextProfile_v1",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -925,7 +925,7 @@
         ]
       }
     },
-    "/api/v1/me/health-context/allergies": {
+    "/api/v1/user/health-context/allergies": {
       "post": {
         "operationId": "UserHealthContextController_createAllergy_v1",
         "parameters": [],
@@ -962,7 +962,7 @@
         ]
       }
     },
-    "/api/v1/me/health-context/allergies/{id}": {
+    "/api/v1/user/health-context/allergies/{id}": {
       "patch": {
         "operationId": "UserHealthContextController_updateAllergy_v1",
         "parameters": [
@@ -1044,7 +1044,7 @@
         ]
       }
     },
-    "/api/v1/me/health-context/conditions": {
+    "/api/v1/user/health-context/conditions": {
       "post": {
         "operationId": "UserHealthContextController_createCondition_v1",
         "parameters": [],
@@ -1081,7 +1081,7 @@
         ]
       }
     },
-    "/api/v1/me/health-context/conditions/{id}": {
+    "/api/v1/user/health-context/conditions/{id}": {
       "patch": {
         "operationId": "UserHealthContextController_updateCondition_v1",
         "parameters": [
@@ -1163,7 +1163,7 @@
         ]
       }
     },
-    "/api/v1/me/health-context/current-medicines": {
+    "/api/v1/user/health-context/current-medicines": {
       "post": {
         "operationId": "UserHealthContextController_createCurrentMedicine_v1",
         "parameters": [],
@@ -1200,7 +1200,7 @@
         ]
       }
     },
-    "/api/v1/me/health-context/current-medicines/{id}": {
+    "/api/v1/user/health-context/current-medicines/{id}": {
       "patch": {
         "operationId": "UserHealthContextController_updateCurrentMedicine_v1",
         "parameters": [
@@ -1282,7 +1282,7 @@
         ]
       }
     },
-    "/api/v1/me/daily-records": {
+    "/api/v1/user/daily-records": {
       "get": {
         "operationId": "DailyRecordsController_list_v1",
         "parameters": [
@@ -1378,7 +1378,7 @@
         ]
       }
     },
-    "/api/v1/me/daily-records/summary": {
+    "/api/v1/user/daily-records/summary": {
       "get": {
         "operationId": "DailyRecordsController_summary_v1",
         "parameters": [
@@ -1415,7 +1415,7 @@
         ]
       }
     },
-    "/api/v1/me/daily-records/attachments/images/presign-upload": {
+    "/api/v1/user/daily-records/attachments/images/presign-upload": {
       "post": {
         "operationId": "DailyRecordsController_createImageUpload_v1",
         "parameters": [],
@@ -1452,7 +1452,7 @@
         ]
       }
     },
-    "/api/v1/me/daily-records/{id}": {
+    "/api/v1/user/daily-records/{id}": {
       "get": {
         "operationId": "DailyRecordsController_get_v1",
         "parameters": [
@@ -1559,7 +1559,7 @@
         ]
       }
     },
-    "/api/v1/me/medicine-dose-logs": {
+    "/api/v1/user/medicine-dose-logs": {
       "get": {
         "operationId": "MedicineDoseLogsController_list_v1",
         "parameters": [
@@ -1631,7 +1631,7 @@
         ]
       }
     },
-    "/api/v1/me/medicine-dose-logs/{id}": {
+    "/api/v1/user/medicine-dose-logs/{id}": {
       "patch": {
         "operationId": "MedicineDoseLogsController_update_v1",
         "parameters": [
@@ -1704,7 +1704,7 @@
         ]
       }
     },
-    "/api/v1/me/medicine-reminders": {
+    "/api/v1/user/medicine-reminders": {
       "get": {
         "operationId": "MedicineRemindersController_list_v1",
         "parameters": [
@@ -1776,7 +1776,7 @@
         ]
       }
     },
-    "/api/v1/me/medicine-reminders/{id}": {
+    "/api/v1/user/medicine-reminders/{id}": {
       "patch": {
         "operationId": "MedicineRemindersController_update_v1",
         "parameters": [
@@ -1849,7 +1849,7 @@
         ]
       }
     },
-    "/api/v1/me/reminder-deliveries": {
+    "/api/v1/user/reminder-deliveries": {
       "get": {
         "operationId": "ReminderDeliveriesController_list_v1",
         "parameters": [
@@ -1944,7 +1944,7 @@
         ]
       }
     },
-    "/api/v1/me/settings": {
+    "/api/v1/user/settings": {
       "get": {
         "operationId": "UserSettingsController_getSettings_v1",
         "parameters": [],
@@ -2065,7 +2065,7 @@
         ]
       }
     },
-    "/api/v1/me/data-export-requests": {
+    "/api/v1/user/data-export-requests": {
       "post": {
         "operationId": "DataExportController_createRequest_v1",
         "parameters": [],
@@ -2092,7 +2092,7 @@
         ]
       }
     },
-    "/api/v1/me/data-export-requests/latest": {
+    "/api/v1/user/data-export-requests/latest": {
       "get": {
         "operationId": "DataExportController_getLatestRequest_v1",
         "parameters": [],

@@ -65,7 +65,7 @@ interface HealthContextData {
   }>;
 }
 
-const HEALTH_CONTEXT_PATH = '/api/v1/me/health-context';
+const HEALTH_CONTEXT_PATH = '/api/v1/user/health-context';
 const AUTHORIZATION_HEADER = 'Authorization';
 const BEARER_AUTH_SCHEME = 'Bearer';
 const TEST_EMAIL_DOMAIN = 'example.com';
