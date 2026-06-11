@@ -26,6 +26,7 @@ pnpm export:openapi
 - Passport JWT
 - WeChat Web / Mobile OAuth login
 - OpenAPI-generated client/docs
+- LangChain-based AI integration foundation
 
 ## Local Development
 
@@ -55,6 +56,11 @@ file before exposing it.
 Daily-record image uploads are signed by Lucent for Tencent COS. Configure
 `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and
 `TENCENT_COS_REGION` to enable `POST /api/v1/user/daily-records/attachments/images/presign-upload`.
+
+AI runtime configuration is role-based and OpenAI-compatible only. Configure
+`AI_PROVIDER=openai-compatible`, then give each role its own
+`BASE_URL` / `API_KEY` / `MODEL`, including analysis, vision, language,
+chat, chat compression, and embedding. See [docs/environment.md](docs/environment.md).
 
 Local database layout:
 

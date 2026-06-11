@@ -1,6 +1,6 @@
 # Lucent Environment
 
-Last updated: 2026-06-08
+Last updated: 2026-06-11
 
 This file records Lucent runtime configuration, local stacks, scripts, and required variables. Tencent CVM/TCR deployment steps live in `tencent-cloud-cicd.md`.
 
@@ -129,11 +129,39 @@ AI provider configuration:
 
 ```text
 AI_PROVIDER
-AI_API_KEY
-AI_BASE_URL
-AI_TEXT_MODEL
+AI_ANALYSIS_API_KEY
+AI_ANALYSIS_BASE_URL
+AI_ANALYSIS_MODEL
+AI_VISION_API_KEY
+AI_VISION_BASE_URL
 AI_VISION_MODEL
+AI_LANGUAGE_API_KEY
+AI_LANGUAGE_BASE_URL
+AI_LANGUAGE_MODEL
+AI_CHAT_API_KEY
+AI_CHAT_BASE_URL
+AI_CHAT_MODEL
+AI_CHAT_COMPRESSION_API_KEY
+AI_CHAT_COMPRESSION_BASE_URL
+AI_CHAT_COMPRESSION_MODEL
+AI_EMBEDDING_API_KEY
+AI_EMBEDDING_BASE_URL
+AI_EMBEDDING_MODEL
 ```
+
+`AI_PROVIDER` currently supports only `openai-compatible`.
+
+Each role is independent. If a role is configured, that role must provide all of
+`BASE_URL`, `API_KEY`, and `MODEL`. Partial role configuration is rejected at startup.
+
+Recommended role split:
+
+- `AI_ANALYSIS_MODEL`: 今日分析、周报、月报等长文本分析生成
+- `AI_VISION_MODEL`: 食物图片识别、睡眠检测截图理解等视觉入口
+- `AI_LANGUAGE_MODEL`: 自然语言记一笔、口语化结构提取
+- `AI_CHAT_MODEL`: 轻聊天页的主对话模型
+- `AI_CHAT_COMPRESSION_MODEL`: 长对话摘要、压缩历史上下文的低成本模型
+- `AI_EMBEDDING_MODEL`: RAG 检索向量化、知识库分片索引和查询向量生成
 
 ## Runtime Notes
 
