@@ -15,7 +15,7 @@ import { PrismaService } from '../src/prisma/prisma.service';
 import { DailyRecordKind, UserStatus } from '../src/generated/prisma/client';
 import { ConfigKey } from '../src/config/config-keys.enum';
 
-const BASE_PATH = '/api/v1/me/daily-records';
+const BASE_PATH = '/api/v1/user/daily-records';
 const AUTH_HEADER = 'Authorization';
 const BEARER = 'Bearer';
 

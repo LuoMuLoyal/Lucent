@@ -26,7 +26,7 @@ import {
 @ApiTags('Data Export')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
-@Controller('me/data-export-requests')
+@Controller('user/data-export-requests')
 export class DataExportController {
   constructor(private readonly exportService: DataExportService) {}
 

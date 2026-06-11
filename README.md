@@ -43,7 +43,7 @@ file before exposing it.
 
 Daily-record image uploads are signed by Lucent for Tencent COS. Configure
 `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and
-`TENCENT_COS_REGION` to enable `POST /api/v1/me/daily-records/attachments/images/presign-upload`.
+`TENCENT_COS_REGION` to enable `POST /api/v1/user/daily-records/attachments/images/presign-upload`.
 
 Local database layout:
 
