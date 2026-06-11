@@ -53,16 +53,17 @@ pnpm start:dev
 
 ## Scripts
 
-| Command                         | Purpose                                             |
-| ------------------------------- | --------------------------------------------------- |
-| `pnpm start` / `pnpm start:dev` | Development runtime with `NODE_ENV=development`     |
-| `pnpm start:prod`               | Built production runtime with `NODE_ENV=production` |
-| `pnpm test`                     | Unit tests with `NODE_ENV=test`                     |
-| `pnpm test:ci`                  | Unit tests in CI with `--runInBand`                 |
-| `pnpm test:e2e`                 | E2E tests with Prisma 7 VM-module compatibility     |
-| `pnpm test:e2e:ci`              | E2E tests in CI with `--runInBand`                  |
-| `pnpm export:openapi`           | Build then export `docs/openapi.json` from `dist`   |
-| `pnpm import:medicine:all`      | Default medicine knowledge import sequence          |
+| Command                         | Purpose                                                       |
+| ------------------------------- | ------------------------------------------------------------- |
+| `pnpm start` / `pnpm start:dev` | Development runtime with `NODE_ENV=development`               |
+| `pnpm start:test:dev`           | Test runtime with `NODE_ENV=test` for full-stack lane support |
+| `pnpm start:prod`               | Built production runtime with `NODE_ENV=production`           |
+| `pnpm test`                     | Unit tests with `NODE_ENV=test`                               |
+| `pnpm test:ci`                  | Unit tests in CI with `--runInBand`                           |
+| `pnpm test:e2e`                 | E2E tests with Prisma 7 VM-module compatibility               |
+| `pnpm test:e2e:ci`              | E2E tests in CI with `--runInBand`                            |
+| `pnpm export:openapi`           | Build then export `docs/openapi.json` from `dist`             |
+| `pnpm import:medicine:all`      | Default medicine knowledge import sequence                    |
 
 Run Prisma commands with explicit `NODE_ENV` when not targeting development, for example:
 
@@ -144,6 +145,7 @@ AI_VISION_MODEL
 - Daily-record image uploads use presigned Tencent COS PUT URLs; clients upload directly to COS, then save returned attachment metadata on the daily record.
 - Medicine search cache TTL is 5 minutes; medicine detail cache TTL is 15 minutes.
 - Frontend reads may send `x-bypass-cache: true` to bypass medicine read cache for one request.
+- `POST /api/v1/testing/fullstack-e2e/record-lane/prepare` exists only when Lucent runs with `NODE_ENV=test`. It is intentionally absent from normal development and production runtime, and is meant only to repair a dedicated full-stack test user plus clear that user's daily-record slice for one target date.
 
 ## CI/CD Boundary
 

@@ -36,6 +36,17 @@ pnpm db:migrate:all
 pnpm start:dev
 ```
 
+For the mobile full-stack E2E lane, run Lucent against the test database so
+the test-only support route is available:
+
+```bash
+pnpm start:test:dev
+```
+
+That runtime enables `POST /api/v1/testing/fullstack-e2e/record-lane/prepare`,
+which repairs a dedicated password-login test user and clears that user's daily
+records for one target date before the Flutter lane starts.
+
 The embedded AdminJS panel is available at `/admin`. In local development the
 template credentials are `admin@lucent.local` / `admin12345`; override
 `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_COOKIE_SECRET` in your local env
