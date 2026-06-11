@@ -25,6 +25,7 @@ import { EnvironmentModule } from './modules/environment/environment.module';
 import { UserSettingsModule } from './modules/user-settings/user-settings.module';
 import { SupportResourcesModule } from './modules/support-resources/support-resources.module';
 import { DataExportModule } from './modules/data-export/data-export.module';
+import { TestingSupportModule } from './modules/testing-support/testing-support.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { DataExportModule } from './modules/data-export/data-export.module';
     UserSettingsModule,
     SupportResourcesModule,
     DataExportModule,
+    ...(process.env['NODE_ENV'] === 'test' ? [TestingSupportModule] : []),
   ],
   controllers: [AppController],
   providers: [AppService],
