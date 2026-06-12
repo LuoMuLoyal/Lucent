@@ -1,47 +1,98 @@
 import { ReportsService } from './reports.service';
 import { REPORT_RANGE_LAST_7_DAYS } from './dto';
+import type { ReportsComputationService } from './reports-computation.service';
+import type { ReportsContextService } from './reports-context.service';
 
 describe('ReportsService', () => {
-  it('builds a dashboard with real medication and water aggregates', async () => {
-    const service = new ReportsService({
-      userSetting: {
-        findFirst: jest.fn().mockResolvedValue({ value: true }),
-      },
-      userMedicineDoseLog: {
-        findMany: jest.fn().mockResolvedValue([
+  it('builds a dashboard from facts and computed presentation', async () => {
+    const contextService = {
+      build: jest.fn().mockResolvedValue({
+        range: REPORT_RANGE_LAST_7_DAYS,
+        startDate: new Date('2026-06-06T00:00:00.000Z'),
+        endDate: new Date('2026-06-12T00:00:00.000Z'),
+        generatedAt: '2026-06-12T08:00:00.000Z',
+        aiSummaryEnabled: true,
+        medicationSeries: [50, 100, 0, 0, 0, 0, 0],
+        waterSeries: [1.5, 0, 0, 0, 0, 0, 0],
+        sleepSeries: [0, 0, 0, 0, 0, 0, 0],
+      }),
+    } as unknown as ReportsContextService;
+    const computationService = {
+      compute: jest.fn().mockReturnValue({
+        score: {
+          value: 61,
+          maxValue: 100,
+          status: 'needs_attention',
+          summary: '本周报告数据已更新。',
+        },
+        metrics: [
           {
-            scheduledFor: new Date('2026-06-06T00:00:00.000Z'),
-            status: 'taken',
+            kind: 'medication',
+            value: '75',
+            unit: '%',
+            status: 'stable',
+            delta: '+25%',
+            direction: 'up',
+            sparkline: [50, 100, 0, 0, 0, 0, 0],
           },
           {
-            scheduledFor: new Date('2026-06-06T00:00:00.000Z'),
-            status: 'missed',
-          },
-          {
-            scheduledFor: new Date('2026-06-07T00:00:00.000Z'),
-            status: 'taken',
-          },
-        ]),
-      },
-      userDailyRecord: {
-        findMany: jest.fn().mockResolvedValue([
-          {
-            occurredAt: new Date('2026-06-06T00:00:00.000Z'),
             kind: 'water',
-            value: '500',
-            unit: 'ml',
-          },
-          {
-            occurredAt: new Date('2026-06-06T00:00:00.000Z'),
-            kind: 'water',
-            value: '1.0',
+            value: '0.2',
             unit: 'L',
+            status: 'needs_attention',
+            delta: '-1.3',
+            direction: 'down',
+            sparkline: [1.5, 0, 0, 0, 0, 0, 0],
           },
-        ]),
-      },
-    } as never);
-
-    jest.useFakeTimers().setSystemTime(new Date('2026-06-12T08:00:00.000Z'));
+          {
+            kind: 'sleep',
+            value: '--',
+            unit: 'h',
+            status: 'insufficient_data',
+            delta: '--',
+            direction: 'flat',
+            sparkline: [0, 0, 0, 0, 0, 0, 0],
+          },
+        ],
+        trends: [
+          {
+            kind: 'medication',
+            unit: '%',
+            currentValue: '75',
+            values: [50, 100, 0, 0, 0, 0, 0],
+          },
+          {
+            kind: 'water',
+            unit: 'L',
+            currentValue: '0.2',
+            values: [1.5, 0, 0, 0, 0, 0, 0],
+          },
+          {
+            kind: 'sleep',
+            unit: 'h',
+            currentValue: '--',
+            values: [0, 0, 0, 0, 0, 0, 0],
+          },
+        ],
+        findings: [
+          {
+            kind: 'sleep',
+            title: '睡眠数据不足',
+            body: '当前还没有稳定的睡眠合同数据，暂不展示真实睡眠趋势。',
+          },
+        ],
+        patterns: [
+          {
+            kind: 'sleep',
+            title: '睡眠趋势',
+            status: 'insufficient_data',
+            body: '睡眠合同尚未接入真实持久化数据，当前仅保留缺失状态。',
+            sparkline: [0, 0, 0, 0, 0, 0, 0],
+          },
+        ],
+      }),
+    } as unknown as ReportsComputationService;
+    const service = new ReportsService(contextService, computationService);
 
     const dashboard = await service.getDashboard('u1', {
       range: REPORT_RANGE_LAST_7_DAYS,
@@ -55,7 +106,9 @@ describe('ReportsService', () => {
     expect(dashboard.aiSummaryEnabled).toBe(true);
     expect(dashboard.trends[1]?.values[0]).toBe(1.5);
     expect(dashboard.findings.length).toBeGreaterThan(0);
-
-    jest.useRealTimers();
+    expect(contextService.build).toHaveBeenCalledWith('u1', {
+      range: REPORT_RANGE_LAST_7_DAYS,
+    });
+    expect(computationService.compute).toHaveBeenCalled();
   });
 });
