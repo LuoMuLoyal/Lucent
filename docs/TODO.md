@@ -9,6 +9,11 @@ Keep durable implementation context in the owning code comments when the TODO is
 
 - Audit Lucent for remaining user-visible AI hardcoded copy outside the Today analysis i18n path.
 - Define one shared locale-aware prompt/copy helper for future weekly summary, monthly summary, candidate-record NLP, and screenshot-analysis modules.
+- Keep AI feature boundaries explicit:
+  - business use-case service owns auth/settings gate, data aggregation, policy fallback, and response shaping
+  - copy service owns locale normalization plus localized prompt/fallback copy
+  - generator service owns one feature-specific LLM invocation shape
+  - `llm-runtime` owns provider/model construction only
 - Decide the execution boundary for future AI workflows:
   - keep bounded linear pipelines for single-purpose flows
   - introduce a tool-capable orchestrator only when branching, retrieval, or multi-step tool use becomes real
