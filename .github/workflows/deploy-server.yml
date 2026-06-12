@@ -29,6 +29,9 @@ jobs:
       JWT_REFRESH_TTL: 14d
       MAIL_DRIVER: log
       MAIL_FROM: noreply@example.com
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: ci_admin_password
+      ADMIN_COOKIE_SECRET: ci_admin_cookie_secret_32chars_plus
       LOG_LEVEL: error
     services:
       postgres:
