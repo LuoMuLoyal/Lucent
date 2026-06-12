@@ -1,0 +1,23 @@
+{
+  "service_unavailable": "今日 AI 分析服务尚未配置",
+  "summaries_disabled": "该用户已关闭 AI 总结",
+  "fallback": {
+    "action_label": "查看今日记录",
+    "confidence_note": "仅基于今日已记录数据生成，不构成诊断或治疗建议。",
+    "summary_default": "今日记录已更新，可先根据已记录事项继续补全今天的数据。",
+    "summary_medication_and_hydration": "今日还有 {medicationPending} 项用药待确认，饮水也还差 {waterRemaining} 次。",
+    "summary_medication_only": "今日记录主要集中在用药，还有 {medicationPending} 项待确认。",
+    "summary_hydration_only": "今日饮水记录还没达标，还差 {waterRemaining} 次可以补齐。",
+    "bullet_medication_pending": "还有 {medicationPending} 项今日用药待确认，先核对是否已经服用。",
+    "bullet_medication_done": "今日已记录的用药状态较完整，继续保持即可。",
+    "bullet_hydration_pending": "今日饮水仍未达目标，建议再补 {waterRemaining} 次记录。",
+    "bullet_hydration_done": "今日饮水记录已达到目标，可以继续按当前节奏保持。",
+    "bullet_sleep_missing": "今天还没有真实睡眠数据，今晚记录后总结会更完整。"
+  },
+  "prompt": {
+    "user_intro": "请基于提供的 JSON 事实生成一段简短的{languageLabel}总结。",
+    "tone": "语气保持平静、具体，不要做诊断。",
+    "action_label_hint": "actionLabel 应尽量贴近“{actionLabel}”。",
+    "facts_label": "事实 JSON："
+  }
+}
