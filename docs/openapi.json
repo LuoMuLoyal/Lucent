@@ -1985,6 +1985,43 @@
         ]
       }
     },
+    "/api/v1/user/today-analysis/generate": {
+      "post": {
+        "operationId": "TodayAnalysisController_generate_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateTodayAnalysisDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayAnalysisResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Generate authenticated user today AI analysis",
+        "tags": [
+          "Today Analysis"
+        ]
+      }
+    },
     "/api/v1/user/settings": {
       "get": {
         "operationId": "UserSettingsController_getSettings_v1",
@@ -5858,6 +5895,92 @@
           },
           "data": {
             "$ref": "#/components/schemas/ReportDashboardDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "GenerateTodayAnalysisDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted.",
+            "example": "2026-06-12"
+          }
+        }
+      },
+      "TodayAnalysisBulletDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "medication",
+              "hydration",
+              "sleep",
+              "general"
+            ]
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ]
+      },
+      "TodayAnalysisDataDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TodayAnalysisBulletDto"
+            }
+          },
+          "actionLabel": {
+            "type": "string"
+          },
+          "confidenceNote": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "generatedAt",
+          "summary",
+          "bullets",
+          "actionLabel",
+          "confidenceNote"
+        ]
+      },
+      "TodayAnalysisResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/TodayAnalysisDataDto"
           }
         },
         "required": [

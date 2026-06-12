@@ -28,6 +28,8 @@ import { UserSettingsModule } from './modules/user-settings/user-settings.module
 import { SupportResourcesModule } from './modules/support-resources/support-resources.module';
 import { DataExportModule } from './modules/data-export/data-export.module';
 import { TestingSupportModule } from './modules/testing-support/testing-support.module';
+import { LlmRuntimeModule } from './modules/llm-runtime/llm-runtime.module';
+import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module';
 
 @Module({
   imports: [
@@ -54,6 +56,8 @@ import { TestingSupportModule } from './modules/testing-support/testing-support.
     MedicineRemindersModule,
     EnvironmentModule,
     ReportsModule,
+    LlmRuntimeModule,
+    TodayAnalysisModule,
     UserSettingsModule,
     SupportResourcesModule,
     DataExportModule,

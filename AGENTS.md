@@ -23,6 +23,7 @@
 - Active multi-step backend task plans belong in `plans/*.md`, not in `docs/` and not in the workspace root.
 - Env, Docker, import flow, or local commands changed: update `docs/environment.md` and `README.md`.
 - Medicine import or source strategy changed: update `docs/public/data-sources.md`.
+- For localized backend copy, keep `AcceptLanguageResolver + I18nService` as the default path. Use `@I18nLang()` only when a controller/service flow must explicitly branch on the resolved locale and pass that locale deeper into AI/prompt/runtime code.
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby working code.
 
 ## Known Gotchas
