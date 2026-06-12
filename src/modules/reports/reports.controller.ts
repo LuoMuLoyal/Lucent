@@ -36,9 +36,10 @@ export class ReportsController {
   async getDashboard(
     @CurrentUser() user: UserPayload,
     @Query() query: ReportDashboardQueryDto,
+    @I18nLang() language: string,
   ) {
     return successEnvelope(
-      await this.reportsService.getDashboard(user.sub, query),
+      await this.reportsService.getDashboard(user.sub, query, language),
     );
   }
 

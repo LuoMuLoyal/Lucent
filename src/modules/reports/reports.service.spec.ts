@@ -94,9 +94,11 @@ describe('ReportsService', () => {
     } as unknown as ReportsComputationService;
     const service = new ReportsService(contextService, computationService);
 
-    const dashboard = await service.getDashboard('u1', {
-      range: REPORT_RANGE_LAST_7_DAYS,
-    });
+    const dashboard = await service.getDashboard(
+      'u1',
+      { range: REPORT_RANGE_LAST_7_DAYS },
+      'en',
+    );
 
     expect(dashboard.range).toBe(REPORT_RANGE_LAST_7_DAYS);
     expect(dashboard.metrics).toHaveLength(3);
@@ -109,6 +111,9 @@ describe('ReportsService', () => {
     expect(contextService.build).toHaveBeenCalledWith('u1', {
       range: REPORT_RANGE_LAST_7_DAYS,
     });
-    expect(computationService.compute).toHaveBeenCalled();
+    expect(computationService.compute).toHaveBeenCalledWith(
+      expect.anything(),
+      'en',
+    );
   });
 });

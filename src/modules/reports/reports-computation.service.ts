@@ -12,7 +12,10 @@ import { ReportsPresenterService } from './reports-presenter.service';
 export class ReportsComputationService {
   constructor(private readonly presenter: ReportsPresenterService) {}
 
-  compute(facts: ReportDashboardFacts): ReportDashboardComputed {
+  compute(
+    facts: ReportDashboardFacts,
+    locale: string,
+  ): ReportDashboardComputed {
     const medicationMetric = this.buildMedicationMetric(facts.medicationSeries);
     const waterMetric = this.buildWaterMetric(facts.waterSeries);
     const sleepMetric = this.buildSleepMetric(facts.sleepSeries);
@@ -20,7 +23,7 @@ export class ReportsComputationService {
 
     return {
       metrics,
-      score: this.presenter.buildScore(this.buildScoreStatus(metrics)),
+      score: this.presenter.buildScore(this.buildScoreStatus(metrics), locale),
       trends: [
         {
           kind: 'medication',
@@ -41,16 +44,22 @@ export class ReportsComputationService {
           values: facts.sleepSeries,
         },
       ],
-      findings: this.presenter.buildFindings({
-        medicationSeries: facts.medicationSeries,
-        waterSeries: facts.waterSeries,
-        sleepStatus: sleepMetric.status,
-      }),
-      patterns: this.presenter.buildPatterns({
-        medicationSeries: facts.medicationSeries,
-        waterSeries: facts.waterSeries,
-        sleepSeries: facts.sleepSeries,
-      }),
+      findings: this.presenter.buildFindings(
+        {
+          medicationSeries: facts.medicationSeries,
+          waterSeries: facts.waterSeries,
+          sleepStatus: sleepMetric.status,
+        },
+        locale,
+      ),
+      patterns: this.presenter.buildPatterns(
+        {
+          medicationSeries: facts.medicationSeries,
+          waterSeries: facts.waterSeries,
+          sleepSeries: facts.sleepSeries,
+        },
+        locale,
+      ),
     };
   }
 

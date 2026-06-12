@@ -1,0 +1,26 @@
+{
+  "findings": {
+    "hydration_low_title": "Hydration still low",
+    "hydration_low_body": "{lowWaterDays} of the last 7 days had water intake below 1.5 L.",
+    "medication_stable_title": "Medication adherence is stable",
+    "medication_stable_body": "{strongDays} of the last 7 days reached at least 80% medication completion.",
+    "sleep_insufficient_title": "Not enough sleep data",
+    "sleep_insufficient_body": "There is no stable sleep contract data yet, so real sleep trends are not shown."
+  },
+  "patterns": {
+    "medication_title": "Medication adherence",
+    "medication_body_good": "This week shows medication plan activity. Keep the current rhythm.",
+    "medication_body_insufficient": "There is not enough medication plan data to judge adherence trends.",
+    "hydration_title": "Hydration trend",
+    "hydration_body_stable": "Hydration had some consistency this week. Keep reinforcing the habit.",
+    "hydration_body_attention": "Hydration was not consistent enough over the last 7 days. Try to stabilize daily water intake first.",
+    "sleep_title": "Sleep trend",
+    "sleep_body_insufficient": "Sleep contract data is not persisted yet; only the missing state is kept."
+  },
+  "score": {
+    "part_medication_good": "Medication completion was stable",
+    "part_hydration_attention": "Hydration still has room to improve",
+    "part_sleep_insufficient": "Sleep data is not sufficient yet",
+    "default_summary": "This week's report data has been updated."
+  }
+}

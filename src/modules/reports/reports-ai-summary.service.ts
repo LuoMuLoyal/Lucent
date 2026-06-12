@@ -47,7 +47,7 @@ export class ReportsAiSummaryService {
     const query: ReportDashboardQueryDto =
       dto.range === undefined ? {} : { range: dto.range };
     const facts = await this.reportsContextService.build(userId, query);
-    const computed = this.reportsComputationService.compute(facts);
+    const computed = this.reportsComputationService.compute(facts, locale);
     const context = this.reportsAiSummaryContextService.build(facts, computed);
 
     if (!this.reportsAiSummaryGeneratorService.hasAnalysisModel()) {
