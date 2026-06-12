@@ -40,5 +40,5 @@ Keep durable implementation context in the owning code comments when the TODO is
 
 ## Config / Hardening
 
-- Remove code-level fallback JWT/admin secrets and move dev defaults to env templates only.
-- Align `testing-support` password hashing with the shared `ARGON2_OPTIONS`.
+- JWT/admin secrets now come from env files only.
+- `testing-support` now reuses the shared `ARGON2_OPTIONS`.

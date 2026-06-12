@@ -31,10 +31,8 @@ function parseTtl(raw: string | undefined, defaultSeconds: number): number {
 }
 
 export const jwtConfig = registerAs(ConfigKey.Jwt, () => ({
-  accessSecret:
-    process.env[EnvKey.JWT_ACCESS_SECRET] ?? 'dev_access_secret_change_me',
-  refreshSecret:
-    process.env[EnvKey.JWT_REFRESH_SECRET] ?? 'dev_refresh_secret_change_me',
+  accessSecret: process.env[EnvKey.JWT_ACCESS_SECRET] as string,
+  refreshSecret: process.env[EnvKey.JWT_REFRESH_SECRET] as string,
   accessTtl: parseTtl(process.env[EnvKey.JWT_ACCESS_TTL], 2 * 3600), // default 2h
   refreshTtl: parseTtl(process.env[EnvKey.JWT_REFRESH_TTL], 30 * 86400), // default 30d
 }));

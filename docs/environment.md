@@ -1,6 +1,6 @@
 # Lucent Environment
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 
 This file records Lucent runtime configuration, local stacks, scripts, and required variables. Tencent CVM/TCR deployment steps live in `tencent-cloud-cicd.md`.
 
@@ -87,6 +87,10 @@ CORS_ORIGIN
 ```
 
 `CORS_ORIGIN=*` is accepted for local development but rejected in production.
+
+JWT and admin secrets are required in every runtime now; keep them in the env
+files, not in code defaults. The checked-in dev/test templates already provide
+local values.
 
 ## Optional Integrations
 

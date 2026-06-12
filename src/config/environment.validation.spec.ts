@@ -2,14 +2,19 @@ import { EnvKey } from './env-keys.enum';
 import { NodeEnvironment, validateEnvironment } from './environment.validation';
 
 describe('validateEnvironment', () => {
-  it('applies local admin defaults outside production', () => {
+  it('keeps explicit local config values outside production', () => {
     const config = validateEnvironment({
       [EnvKey.NODE_ENV]: NodeEnvironment.Development,
       [EnvKey.DATABASE_URL]:
         'postgresql://postgres:postgres@127.0.0.1:15432/lucent?schema=public',
+      [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
+      [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
+      [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
+      [EnvKey.ADMIN_PASSWORD]: 'admin12345',
+      [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
     });
 
-    expect(config[EnvKey.ADMIN_EMAIL]).toBe('admin@lucent.local');
+    expect(config[EnvKey.ADMIN_EMAIL]).toBe('admin@example.com');
     expect(config[EnvKey.ADMIN_PASSWORD]).toBe('admin12345');
     expect(config[EnvKey.ADMIN_COOKIE_SECRET]).toBe(
       'dev_lucent_admin_cookie_secret_32_chars',
@@ -33,6 +38,11 @@ describe('validateEnvironment', () => {
   it('accepts complete AI role configurations', () => {
     const config = validateEnvironment({
       [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+      [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
+      [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
+      [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
+      [EnvKey.ADMIN_PASSWORD]: 'admin12345',
+      [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
       [EnvKey.AI_PROVIDER]: 'openai-compatible',
       [EnvKey.AI_ANALYSIS_API_KEY]: 'analysis-key',
       [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://analysis.example.com/v1',
@@ -64,6 +74,11 @@ describe('validateEnvironment', () => {
     expect(() =>
       validateEnvironment({
         [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+        [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
+        [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
+        [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
+        [EnvKey.ADMIN_PASSWORD]: 'admin12345',
+        [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
         [EnvKey.AI_PROVIDER]: 'openai-compatible',
         [EnvKey.AI_CHAT_API_KEY]: 'chat-key',
         [EnvKey.AI_CHAT_MODEL]: 'chat-model',
@@ -75,6 +90,11 @@ describe('validateEnvironment', () => {
     expect(() =>
       validateEnvironment({
         [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+        [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
+        [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
+        [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
+        [EnvKey.ADMIN_PASSWORD]: 'admin12345',
+        [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
         [EnvKey.AI_ANALYSIS_API_KEY]: 'analysis-key',
         [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://analysis.example.com/v1',
         [EnvKey.AI_ANALYSIS_MODEL]: 'analysis-model',

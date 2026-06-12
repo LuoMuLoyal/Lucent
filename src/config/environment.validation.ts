@@ -14,8 +14,8 @@ export interface EnvironmentVariables {
   [EnvKey.CORS_ORIGIN]: string;
   [EnvKey.DATABASE_URL]?: string;
   [EnvKey.REDIS_URL]?: string;
-  [EnvKey.JWT_ACCESS_SECRET]?: string;
-  [EnvKey.JWT_REFRESH_SECRET]?: string;
+  [EnvKey.JWT_ACCESS_SECRET]: string;
+  [EnvKey.JWT_REFRESH_SECRET]: string;
   [EnvKey.JWT_ACCESS_TTL]?: string;
   [EnvKey.JWT_REFRESH_TTL]?: string;
   [EnvKey.ADMIN_EMAIL]: string;
@@ -80,27 +80,15 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.REDIS_URL]: Joi.string()
     .uri({ scheme: ['redis', 'rediss'] })
     .optional(),
-  [EnvKey.JWT_ACCESS_SECRET]: Joi.string().optional(),
-  [EnvKey.JWT_REFRESH_SECRET]: Joi.string().optional(),
+  [EnvKey.JWT_ACCESS_SECRET]: Joi.string().required(),
+  [EnvKey.JWT_REFRESH_SECRET]: Joi.string().required(),
   [EnvKey.JWT_ACCESS_TTL]: Joi.string().optional(),
   [EnvKey.JWT_REFRESH_TTL]: Joi.string().optional(),
-  [EnvKey.ADMIN_EMAIL]: Joi.when(EnvKey.NODE_ENV, {
-    is: NodeEnvironment.Production,
-    then: Joi.string().email().required(),
-    otherwise: Joi.string().email().default('admin@lucent.local'),
-  }),
-  [EnvKey.ADMIN_PASSWORD]: Joi.when(EnvKey.NODE_ENV, {
-    is: NodeEnvironment.Production,
-    then: Joi.string().min(8).required(),
-    otherwise: Joi.string().min(8).default('admin12345'),
-  }),
-  [EnvKey.ADMIN_COOKIE_SECRET]: Joi.when(EnvKey.NODE_ENV, {
-    is: NodeEnvironment.Production,
-    then: Joi.string().min(32).required(),
-    otherwise: Joi.string()
-      .min(32)
-      .default('dev_lucent_admin_cookie_secret_32_chars'),
-  }),
+  [EnvKey.ADMIN_EMAIL]: Joi.string()
+    .email({ tlds: { allow: false } })
+    .required(),
+  [EnvKey.ADMIN_PASSWORD]: Joi.string().min(8).required(),
+  [EnvKey.ADMIN_COOKIE_SECRET]: Joi.string().min(32).required(),
   [EnvKey.AI_PROVIDER]: Joi.string()
     .valid('openai-compatible')
     .allow('')
