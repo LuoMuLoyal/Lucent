@@ -1,58 +1,33 @@
-import COS from 'cos-nodejs-sdk-v5';
 import {
   BadRequestException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
 import type { TencentCosConfig } from '../../config/tencent-cos.config';
+import type { DailyRecordImageUploadRuntime } from './daily-record-image-upload.runtime';
 import { DailyRecordImageUploadService } from './daily-record-image-upload.service';
-
-jest.mock('cos-nodejs-sdk-v5');
-
-const mockGetObjectUrl = jest.fn<string, [COS.GetObjectUrlParams]>();
-const MockCos = COS as unknown as jest.Mock;
 
 describe('DailyRecordImageUploadService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    MockCos.mockImplementation(() => ({
-      getObjectUrl: mockGetObjectUrl,
-    }));
-    mockGetObjectUrl.mockReturnValue('https://signed-upload.example.com');
   });
 
   it('should create a Tencent COS signed upload URL', () => {
-    const service = new DailyRecordImageUploadService(
-      configService(testConfig()) as ConfigService,
-    );
+    const runtime = runtimeDouble(testConfig());
+    const service = new DailyRecordImageUploadService(runtime);
+    const expectedObjectKeyPattern =
+      /^daily-records\/user-1\/\d{4}\/\d{2}\/\d{2}\/[0-9a-f-]+\.jpg$/;
 
     const result = service.createPresignedUpload('user-1', {
       contentType: 'image/jpeg',
       sizeBytes: 1234,
       fileName: 'breakfast.jpeg',
     });
+    const signedPutArgs = runtime.createSignedPutUrl.mock.calls[0]?.[0];
 
-    expect(MockCos).toHaveBeenCalledWith({
-      SecretId: 'secret-id',
-      SecretKey: 'secret-key',
-    });
-    const signedParams = mockGetObjectUrl.mock.calls[0]?.[0];
-    if (signedParams == null) {
-      throw new Error('Expected getObjectUrl to be called');
-    }
-    expect(signedParams).toMatchObject({
-      Bucket: 'lucent-1250000000',
-      Region: 'ap-guangzhou',
-      Method: 'PUT',
-      Sign: true,
-      Expires: 600,
-      Headers: {
-        'Content-Type': 'image/jpeg',
-      },
-    });
-    expect(signedParams.Key).toMatch(
-      /^daily-records\/user-1\/\d{4}\/\d{2}\/\d{2}\/[0-9a-f-]+\.jpg$/,
-    );
+    expect(runtime.createSignedPutUrl).toHaveBeenCalledTimes(1);
+    expect(signedPutArgs).toBeDefined();
+    expect(signedPutArgs?.contentType).toBe('image/jpeg');
+    expect(signedPutArgs?.objectKey).toMatch(expectedObjectKeyPattern);
     expect(result.provider).toBe('tencent-cos');
     expect(result.bucket).toBe('lucent-1250000000');
     expect(result.uploadUrl).toBe('https://signed-upload.example.com');
@@ -64,7 +39,7 @@ describe('DailyRecordImageUploadService', () => {
 
   it('should reject unsupported content types', () => {
     const service = new DailyRecordImageUploadService(
-      configService(testConfig()) as ConfigService,
+      runtimeDouble(testConfig()),
     );
 
     expect(() =>
@@ -77,7 +52,7 @@ describe('DailyRecordImageUploadService', () => {
 
   it('should reject images larger than configured limit', () => {
     const service = new DailyRecordImageUploadService(
-      configService({ ...testConfig(), maxUploadBytes: 1000 }) as ConfigService,
+      runtimeDouble({ ...testConfig(), maxUploadBytes: 1000 }),
     );
 
     expect(() =>
@@ -90,7 +65,7 @@ describe('DailyRecordImageUploadService', () => {
 
   it('should fail when Tencent COS is not configured', () => {
     const service = new DailyRecordImageUploadService(
-      configService({ ...testConfig(), secretId: '' }) as ConfigService,
+      runtimeDouble({ ...testConfig(), secretId: '' }),
     );
 
     expect(() =>
@@ -114,15 +89,18 @@ function testConfig(): TencentCosConfig {
   };
 }
 
-function configService(
+function runtimeDouble(
   config: TencentCosConfig,
-): Pick<ConfigService, 'getOrThrow'> {
-  return {
-    getOrThrow: jest.fn((key: string) => {
-      if (key !== 'tencentCos') {
-        throw new Error(`Unexpected config key: ${key}`);
-      }
-      return config;
-    }),
+): jest.Mocked<DailyRecordImageUploadRuntime> {
+  const runtime: Pick<
+    jest.Mocked<DailyRecordImageUploadRuntime>,
+    'getConfig' | 'createSignedPutUrl'
+  > = {
+    getConfig: jest.fn().mockReturnValue(config),
+    createSignedPutUrl: jest
+      .fn()
+      .mockReturnValue('https://signed-upload.example.com'),
   };
+
+  return runtime as jest.Mocked<DailyRecordImageUploadRuntime>;
 }

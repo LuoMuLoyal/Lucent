@@ -18,6 +18,13 @@ Keep durable implementation context in the owning code comments when the TODO is
   - keep bounded linear pipelines for single-purpose flows
   - introduce a tool-capable orchestrator only when branching, retrieval, or multi-step tool use becomes real
 
+## Module Boundaries
+
+- Split report copy/presentation shaping out of `src/modules/reports/reports.service.ts`.
+  Current issue: one service owns query aggregation, metric scoring, trend/pattern derivation, and user-visible zh-CN copy.
+- Extract Tencent COS runtime wiring from `src/modules/daily-records/daily-record-image-upload.service.ts`.
+  Current issue: one service owns config loading, SDK construction, provider availability checks, upload policy validation, and response shaping.
+
 ## Auth / Security
 
 - Add optional 2FA challenge verification before issuing tokens.

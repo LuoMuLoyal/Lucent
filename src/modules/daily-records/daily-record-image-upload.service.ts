@@ -1,16 +1,13 @@
-import COS from 'cos-nodejs-sdk-v5';
 import {
   BadRequestException,
   Injectable,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { ResultCode } from '../../common/api-envelope';
-import { ConfigKey } from '../../config/config-keys.enum';
-import type { TencentCosConfig } from '../../config/tencent-cos.config';
 import type { CreateDailyRecordImageUploadDto } from './dto';
+import { DailyRecordImageUploadRuntime } from './daily-record-image-upload.runtime';
 
 const PROVIDER = 'tencent-cos';
 const ALLOWED_IMAGE_TYPES = new Set([
@@ -22,20 +19,10 @@ const ALLOWED_IMAGE_TYPES = new Set([
 
 @Injectable()
 export class DailyRecordImageUploadService {
-  private readonly cos: COS;
-  private readonly config: TencentCosConfig;
-
-  constructor(configService: ConfigService) {
-    this.config = configService.getOrThrow<TencentCosConfig>(
-      ConfigKey.TencentCos,
-    );
-    this.cos = new COS({
-      SecretId: this.config.secretId,
-      SecretKey: this.config.secretKey,
-    });
-  }
+  constructor(private readonly runtime: DailyRecordImageUploadRuntime) {}
 
   createPresignedUpload(userId: string, dto: CreateDailyRecordImageUploadDto) {
+    const config = this.runtime.getConfig();
     this.assertConfigured();
 
     const contentType = dto.contentType.trim().toLowerCase();
@@ -46,10 +33,10 @@ export class DailyRecordImageUploadService {
       });
     }
 
-    if (dto.sizeBytes > this.config.maxUploadBytes) {
+    if (dto.sizeBytes > config.maxUploadBytes) {
       throw new BadRequestException({
         code: ResultCode.BAD_REQUEST,
-        message: `Image upload size exceeds ${String(this.config.maxUploadBytes)} bytes`,
+        message: `Image upload size exceeds ${String(config.maxUploadBytes)} bytes`,
       });
     }
 
@@ -57,37 +44,33 @@ export class DailyRecordImageUploadService {
     const headers = {
       'Content-Type': contentType,
     };
-    const uploadUrl = this.cos.getObjectUrl({
-      Bucket: this.config.bucket,
-      Region: this.config.region,
-      Key: objectKey,
-      Method: 'PUT',
-      Sign: true,
-      Expires: this.config.uploadExpiresSeconds,
-      Headers: headers,
+    const uploadUrl = this.runtime.createSignedPutUrl({
+      objectKey,
+      contentType,
     });
     const expiresAt = new Date(
-      Date.now() + this.config.uploadExpiresSeconds * 1000,
+      Date.now() + config.uploadExpiresSeconds * 1000,
     ).toISOString();
 
     return {
       provider: PROVIDER,
-      bucket: this.config.bucket,
+      bucket: config.bucket,
       objectKey,
       uploadUrl,
       headers,
       publicUrl: this.createPublicUrl(objectKey),
       expiresAt,
-      maxSizeBytes: this.config.maxUploadBytes,
+      maxSizeBytes: config.maxUploadBytes,
     };
   }
 
   private assertConfigured(): void {
+    const config = this.runtime.getConfig();
     if (
-      !this.config.secretId ||
-      !this.config.secretKey ||
-      !this.config.bucket ||
-      !this.config.region
+      !config.secretId ||
+      !config.secretKey ||
+      !config.bucket ||
+      !config.region
     ) {
       throw new ServiceUnavailableException({
         code: ResultCode.EXTERNAL_SERVICE_ERROR,
@@ -134,7 +117,7 @@ export class DailyRecordImageUploadService {
   }
 
   private createPublicUrl(objectKey: string): string | null {
-    const baseUrl = this.config.publicBaseUrl.trim();
+    const baseUrl = this.runtime.getConfig().publicBaseUrl.trim();
     if (!baseUrl) {
       return null;
     }
