@@ -46,15 +46,18 @@ describe('ReportsController', () => {
       await controller.getDashboard(
         { sub: 'u1', email: 'a@b.c' },
         { range: REPORT_RANGE_LAST_7_DAYS },
+        'en',
       ),
     ).toEqual({
       code: ResultCode.SUCCESS,
       message: '',
       data: dashboard,
     });
-    expect(service.getDashboard).toHaveBeenCalledWith('u1', {
-      range: REPORT_RANGE_LAST_7_DAYS,
-    });
+    expect(service.getDashboard).toHaveBeenCalledWith(
+      'u1',
+      { range: REPORT_RANGE_LAST_7_DAYS },
+      'en',
+    );
   });
 
   it('should return weekly summary envelope', async () => {

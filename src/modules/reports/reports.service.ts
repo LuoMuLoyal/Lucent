@@ -13,9 +13,10 @@ export class ReportsService {
   async getDashboard(
     userId: string,
     query: ReportDashboardQueryDto,
+    locale: string,
   ): Promise<ReportDashboardDataDto> {
     const facts = await this.contextService.build(userId, query);
-    const computed = this.computationService.compute(facts);
+    const computed = this.computationService.compute(facts, locale);
 
     return {
       range: facts.range,

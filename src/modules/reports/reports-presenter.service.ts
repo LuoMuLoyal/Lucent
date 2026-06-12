@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import type {
   ReportDashboardDataDto,
   ReportFindingDto,
@@ -8,7 +9,12 @@ import type { MetricStatus } from './reports.types';
 
 @Injectable()
 export class ReportsPresenterService {
-  buildScore(statuses: MetricStatus[]): ReportDashboardDataDto['score'] {
+  constructor(private readonly i18n: I18nService) {}
+
+  buildScore(
+    statuses: MetricStatus[],
+    locale: string,
+  ): ReportDashboardDataDto['score'] {
     const scoreParts = statuses.map((status) => {
       switch (status) {
         case 'good':
@@ -41,15 +47,18 @@ export class ReportsPresenterService {
       value,
       maxValue: 100,
       status,
-      summary: this.buildScoreSummary(statuses),
+      summary: this.buildScoreSummary(statuses, locale),
     };
   }
 
-  buildFindings(input: {
-    medicationSeries: number[];
-    waterSeries: number[];
-    sleepStatus: MetricStatus;
-  }): ReportFindingDto[] {
+  buildFindings(
+    input: {
+      medicationSeries: number[];
+      waterSeries: number[];
+      sleepStatus: MetricStatus;
+    },
+    locale: string,
+  ): ReportFindingDto[] {
     const findings: ReportFindingDto[] = [];
 
     const lowWaterDays = input.waterSeries.filter(
@@ -58,8 +67,13 @@ export class ReportsPresenterService {
     if (lowWaterDays >= 4) {
       findings.push({
         kind: 'hydration',
-        title: '饮水仍偏少',
-        body: `近 7 天中有 ${String(lowWaterDays)} 天饮水低于 1.5L。`,
+        title: this.i18n.t('reports-dashboard.findings.hydration_low_title', {
+          lang: locale,
+        }),
+        body: this.i18n.t('reports-dashboard.findings.hydration_low_body', {
+          lang: locale,
+          args: { lowWaterDays: String(lowWaterDays) },
+        }),
       });
     }
 
@@ -69,78 +83,129 @@ export class ReportsPresenterService {
     if (medicationStrongDays >= 5) {
       findings.push({
         kind: 'medication',
-        title: '用药执行较稳定',
-        body: `近 7 天中有 ${String(medicationStrongDays)} 天用药完成率达到 80% 以上。`,
+        title: this.i18n.t(
+          'reports-dashboard.findings.medication_stable_title',
+          { lang: locale },
+        ),
+        body: this.i18n.t('reports-dashboard.findings.medication_stable_body', {
+          lang: locale,
+          args: { strongDays: String(medicationStrongDays) },
+        }),
       });
     }
 
     if (input.sleepStatus === 'insufficient_data') {
       findings.push({
         kind: 'sleep',
-        title: '睡眠数据不足',
-        body: '当前还没有稳定的睡眠合同数据，暂不展示真实睡眠趋势。',
+        title: this.i18n.t(
+          'reports-dashboard.findings.sleep_insufficient_title',
+          { lang: locale },
+        ),
+        body: this.i18n.t(
+          'reports-dashboard.findings.sleep_insufficient_body',
+          { lang: locale },
+        ),
       });
     }
 
     return findings.slice(0, 3);
   }
 
-  buildPatterns(input: {
-    medicationSeries: number[];
-    waterSeries: number[];
-    sleepSeries: number[];
-  }): ReportPatternDto[] {
+  buildPatterns(
+    input: {
+      medicationSeries: number[];
+      waterSeries: number[];
+      sleepSeries: number[];
+    },
+    locale: string,
+  ): ReportPatternDto[] {
+    const medicationActive = input.medicationSeries.some((value) => value > 0);
+    const waterGood =
+      input.waterSeries.filter((value) => value >= 1.5).length >= 4;
+
     return [
       {
         kind: 'medication',
-        title: '用药依从性',
-        status: input.medicationSeries.some((value) => value > 0)
-          ? 'good'
-          : 'insufficient_data',
-        body: input.medicationSeries.some((value) => value > 0)
-          ? '本周可见用药计划执行情况，适合继续保持固定节奏。'
-          : '当前暂无足够用药计划数据来判断依从性趋势。',
+        title: this.i18n.t('reports-dashboard.patterns.medication_title', {
+          lang: locale,
+        }),
+        status: medicationActive ? 'good' : 'insufficient_data',
+        body: medicationActive
+          ? this.i18n.t('reports-dashboard.patterns.medication_body_good', {
+              lang: locale,
+            })
+          : this.i18n.t(
+              'reports-dashboard.patterns.medication_body_insufficient',
+              { lang: locale },
+            ),
         sparkline: input.medicationSeries,
       },
       {
         kind: 'hydration',
-        title: '饮水趋势',
-        status:
-          input.waterSeries.filter((value) => value >= 1.5).length >= 4
-            ? 'stable'
-            : 'needs_attention',
-        body:
-          input.waterSeries.filter((value) => value >= 1.5).length >= 4
-            ? '本周饮水有一定连续性，但仍建议继续巩固。'
-            : '近 7 天饮水连续性不足，建议先稳定日常补水节奏。',
+        title: this.i18n.t('reports-dashboard.patterns.hydration_title', {
+          lang: locale,
+        }),
+        status: waterGood ? 'stable' : 'needs_attention',
+        body: waterGood
+          ? this.i18n.t('reports-dashboard.patterns.hydration_body_stable', {
+              lang: locale,
+            })
+          : this.i18n.t('reports-dashboard.patterns.hydration_body_attention', {
+              lang: locale,
+            }),
         sparkline: input.waterSeries,
       },
       {
         kind: 'sleep',
-        title: '睡眠趋势',
+        title: this.i18n.t('reports-dashboard.patterns.sleep_title', {
+          lang: locale,
+        }),
         status: 'insufficient_data',
-        body: '睡眠合同尚未接入真实持久化数据，当前仅保留缺失状态。',
+        body: this.i18n.t(
+          'reports-dashboard.patterns.sleep_body_insufficient',
+          { lang: locale },
+        ),
         sparkline: input.sleepSeries,
       },
     ];
   }
 
-  private buildScoreSummary(statuses: MetricStatus[]): string {
+  private buildScoreSummary(statuses: MetricStatus[], locale: string): string {
     const medicationStatus = statuses[0];
     const waterStatus = statuses[1];
     const sleepStatus = statuses[2];
     const parts: string[] = [];
 
     if (medicationStatus === 'good') {
-      parts.push('本周用药完成较稳');
+      parts.push(
+        this.i18n.t('reports-dashboard.score.part_medication_good', {
+          lang: locale,
+        }),
+      );
     }
     if (waterStatus === 'needs_attention') {
-      parts.push('饮水仍有提升空间');
+      parts.push(
+        this.i18n.t('reports-dashboard.score.part_hydration_attention', {
+          lang: locale,
+        }),
+      );
     }
     if (sleepStatus === 'insufficient_data') {
-      parts.push('睡眠数据暂不足');
+      parts.push(
+        this.i18n.t('reports-dashboard.score.part_sleep_insufficient', {
+          lang: locale,
+        }),
+      );
     }
 
-    return parts.length > 0 ? `${parts.join('，')}。` : '本周报告数据已更新。';
+    if (parts.length > 0) {
+      const separator = locale.startsWith('zh') ? '，' : ', ';
+      const ending = locale.startsWith('zh') ? '。' : '.';
+      return parts.join(separator) + ending;
+    }
+
+    return this.i18n.t('reports-dashboard.score.default_summary', {
+      lang: locale,
+    });
   }
 }
