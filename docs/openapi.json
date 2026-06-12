@@ -1944,6 +1944,47 @@
         ]
       }
     },
+    "/api/v1/user/reports/dashboard": {
+      "get": {
+        "operationId": "ReportsController_getDashboard_v1",
+        "parameters": [
+          {
+            "name": "range",
+            "required": false,
+            "in": "query",
+            "description": "Supported report aggregation range.",
+            "schema": {
+              "default": "last_7_days",
+              "type": "string",
+              "enum": [
+                "last_7_days"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportDashboardResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get authenticated user report dashboard",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
     "/api/v1/user/settings": {
       "get": {
         "operationId": "UserSettingsController_getSettings_v1",
@@ -5553,6 +5594,270 @@
           },
           "data": {
             "$ref": "#/components/schemas/EnvironmentSnapshotDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "ReportDashboardScoreDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "maxValue": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "good",
+              "stable",
+              "needs_attention",
+              "insufficient_data"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "maxValue",
+          "status",
+          "summary"
+        ]
+      },
+      "ReportMetricDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "medication",
+              "water",
+              "sleep"
+            ]
+          },
+          "value": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "good",
+              "stable",
+              "needs_attention",
+              "insufficient_data"
+            ]
+          },
+          "delta": {
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down",
+              "flat"
+            ]
+          },
+          "sparkline": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "value",
+          "unit",
+          "status",
+          "delta",
+          "direction",
+          "sparkline"
+        ]
+      },
+      "ReportTrendDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "medication",
+              "water",
+              "sleep"
+            ]
+          },
+          "unit": {
+            "type": "string"
+          },
+          "currentValue": {
+            "type": "string"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "unit",
+          "currentValue",
+          "values"
+        ]
+      },
+      "ReportFindingDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "medication",
+              "hydration",
+              "sleep",
+              "general"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "body"
+        ]
+      },
+      "ReportPatternDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "medication",
+              "hydration",
+              "sleep",
+              "general"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "good",
+              "stable",
+              "needs_attention",
+              "insufficient_data"
+            ]
+          },
+          "body": {
+            "type": "string"
+          },
+          "sparkline": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "title",
+          "status",
+          "body",
+          "sparkline"
+        ]
+      },
+      "ReportDashboardDataDto": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "last_7_days"
+            ]
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "score": {
+            "$ref": "#/components/schemas/ReportDashboardScoreDto"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportMetricDto"
+            }
+          },
+          "trends": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportTrendDto"
+            }
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportFindingDto"
+            }
+          },
+          "patterns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportPatternDto"
+            }
+          },
+          "aiSummaryEnabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "range",
+          "startDate",
+          "endDate",
+          "generatedAt",
+          "score",
+          "metrics",
+          "trends",
+          "findings",
+          "patterns",
+          "aiSummaryEnabled"
+        ]
+      },
+      "ReportDashboardResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReportDashboardDataDto"
           }
         },
         "required": [
