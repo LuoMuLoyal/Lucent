@@ -1985,6 +1985,43 @@
         ]
       }
     },
+    "/api/v1/user/reports/weekly-summary/generate": {
+      "post": {
+        "operationId": "ReportsController_generateWeeklySummary_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateReportWeeklySummaryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportWeeklySummaryResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Generate authenticated user weekly AI summary for report",
+        "tags": [
+          "Reports"
+        ]
+      }
+    },
     "/api/v1/user/today-analysis/generate": {
       "post": {
         "operationId": "TodayAnalysisController_generate_v1",
@@ -5895,6 +5932,105 @@
           },
           "data": {
             "$ref": "#/components/schemas/ReportDashboardDataDto"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "data"
+        ]
+      },
+      "GenerateReportWeeklySummaryDto": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "last_7_days"
+            ],
+            "description": "Supported weekly summary aggregation range."
+          }
+        }
+      },
+      "ReportWeeklySummaryBulletDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "medication",
+              "hydration",
+              "sleep",
+              "general"
+            ]
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ]
+      },
+      "ReportWeeklySummaryDataDto": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "last_7_days"
+            ]
+          },
+          "startDate": {
+            "type": "string"
+          },
+          "endDate": {
+            "type": "string"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportWeeklySummaryBulletDto"
+            }
+          },
+          "actionLabel": {
+            "type": "string"
+          },
+          "confidenceNote": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "range",
+          "startDate",
+          "endDate",
+          "generatedAt",
+          "summary",
+          "bullets",
+          "actionLabel",
+          "confidenceNote"
+        ]
+      },
+      "ReportWeeklySummaryResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReportWeeklySummaryDataDto"
           }
         },
         "required": [
