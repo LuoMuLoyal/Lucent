@@ -5,6 +5,8 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { DailyRecordKind } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { DailyRecordsGuardService } from './daily-records-guard.service';
+import { DailyRecordsMapperService } from './daily-records-mapper.service';
 import { DailyRecordsService } from './daily-records.service';
 
 const mockUserId = 'user-uuid-1';
@@ -17,6 +19,8 @@ describe('DailyRecordsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DailyRecordsService,
+        DailyRecordsGuardService,
+        DailyRecordsMapperService,
         {
           provide: PrismaService,
           useValue: {

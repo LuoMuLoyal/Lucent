@@ -1,60 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import {
-  DailyRecordAttachmentKind,
-  DailyRecordKind,
-  Prisma,
-} from '../../generated/prisma/client';
-import { ResultCode } from '../../common/api-envelope';
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import type {
-  CreateDailyRecordDto,
-  DailyRecordAttachmentInputDto,
-  UpdateDailyRecordDto,
-} from './dto';
-
-type DailyRecordAttachmentShape = {
-  id: string;
-  kind: DailyRecordAttachmentKind;
-  objectKey: string;
-  bucket: string | null;
-  provider: string | null;
-  fileName: string | null;
-  contentType: string | null;
-  sizeBytes: number | null;
-  width: number | null;
-  height: number | null;
-  publicUrl: string | null;
-  createdAt: Date;
-};
-
-type DailyRecordShape = {
-  id: string;
-  kind: DailyRecordKind;
-  occurredAt: Date;
-  title: string | null;
-  value: string | null;
-  unit: string | null;
-  note: string | null;
-  source: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  attachments?: DailyRecordAttachmentShape[];
-};
-
-type DailyRecordDbClient = Pick<
-  PrismaService,
-  'userDailyRecord' | 'userDailyRecordAttachment'
->;
-
-const dailyRecordWithAttachments = {
-  attachments: {
-    orderBy: { createdAt: Prisma.SortOrder.asc },
-  },
-} satisfies Prisma.UserDailyRecordInclude;
+import type { CreateDailyRecordDto, UpdateDailyRecordDto } from './dto';
+import { DailyRecordsGuardService } from './daily-records-guard.service';
+import { DailyRecordsMapperService } from './daily-records-mapper.service';
+import {
+  dailyRecordWithAttachments,
+  type DailyRecordDbClient,
+} from './daily-records.types';
 
 @Injectable()
 export class DailyRecordsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly guardService: DailyRecordsGuardService,
+    private readonly mapperService: DailyRecordsMapperService,
+  ) {}
 
   async list(
     userId: string,
@@ -85,7 +46,7 @@ export class DailyRecordsService {
     ]);
 
     return {
-      items: items.map((r) => this.toItem(r)),
+      items: items.map((record) => this.mapperService.toItem(record)),
       total,
     };
   }
@@ -106,7 +67,7 @@ export class DailyRecordsService {
           },
         });
         await tx.userDailyRecordAttachment.createMany({
-          data: this.toAttachmentCreateManyData(
+          data: this.mapperService.toAttachmentCreateManyData(
             userId,
             record.id,
             createAttachments,
@@ -129,7 +90,7 @@ export class DailyRecordsService {
       include: dailyRecordWithAttachments,
     });
 
-    return this.toItem(record);
+    return this.mapperService.toItem(record);
   }
 
   async get(userId: string, id: string) {
@@ -137,21 +98,21 @@ export class DailyRecordsService {
   }
 
   async update(userId: string, id: string, dto: UpdateDailyRecordDto) {
-    await this.ensureOwnedByUser(userId, id);
+    await this.guardService.ensureOwnedByUser(userId, id);
 
     const updateAttachments = dto.attachments;
     if (updateAttachments !== undefined) {
       return this.prisma.$transaction(async (tx) => {
         await tx.userDailyRecord.update({
           where: { id },
-          data: this.toRecordUpdateData(dto),
+          data: this.mapperService.toRecordUpdateData(dto),
         });
         await tx.userDailyRecordAttachment.deleteMany({
           where: { userId, recordId: id },
         });
         if (updateAttachments.length > 0) {
           await tx.userDailyRecordAttachment.createMany({
-            data: this.toAttachmentCreateManyData(
+            data: this.mapperService.toAttachmentCreateManyData(
               userId,
               id,
               updateAttachments,
@@ -164,40 +125,15 @@ export class DailyRecordsService {
 
     const record = await this.prisma.userDailyRecord.update({
       where: { id },
-      data: this.toRecordUpdateData(dto),
+      data: this.mapperService.toRecordUpdateData(dto),
       include: dailyRecordWithAttachments,
     });
 
-    return this.toItem(record);
-  }
-
-  private toRecordUpdateData(dto: UpdateDailyRecordDto) {
-    const data: Prisma.UserDailyRecordUpdateInput = {};
-
-    if (dto.kind !== undefined) {
-      data.kind = dto.kind;
-    }
-    if (dto.occurredAt !== undefined) {
-      data.occurredAt = new Date(`${dto.occurredAt}T00:00:00.000Z`);
-    }
-    if (dto.title !== undefined) {
-      data.title = dto.title?.trim() ?? null;
-    }
-    if (dto.value !== undefined) {
-      data.value = dto.value?.trim() ?? null;
-    }
-    if (dto.unit !== undefined) {
-      data.unit = dto.unit?.trim() ?? null;
-    }
-    if (dto.note !== undefined) {
-      data.note = dto.note?.trim() ?? null;
-    }
-
-    return data;
+    return this.mapperService.toItem(record);
   }
 
   async delete(userId: string, id: string) {
-    await this.ensureOwnedByUser(userId, id);
+    await this.guardService.ensureOwnedByUser(userId, id);
 
     await this.prisma.userDailyRecord.update({
       where: { id },
@@ -216,42 +152,7 @@ export class DailyRecordsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const byKind = new Map<string, typeof records>();
-    for (const r of records) {
-      const list = byKind.get(r.kind) ?? [];
-      list.push(r);
-      byKind.set(r.kind, list);
-    }
-
-    return {
-      summaries: Array.from(byKind.entries()).map(([kind, items]) => ({
-        kind,
-        count: items.length,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        latest: items.length > 0 ? this.toItem(items[0]!) : null,
-      })),
-    };
-  }
-
-  private toAttachmentCreateManyData(
-    userId: string,
-    recordId: string,
-    attachments: DailyRecordAttachmentInputDto[],
-  ) {
-    return attachments.map((attachment) => ({
-      userId,
-      recordId,
-      kind: attachment.kind ?? DailyRecordAttachmentKind.image,
-      objectKey: attachment.objectKey.trim(),
-      bucket: attachment.bucket?.trim() ?? null,
-      provider: attachment.provider?.trim() ?? null,
-      fileName: attachment.fileName?.trim() ?? null,
-      contentType: attachment.contentType?.trim() ?? null,
-      sizeBytes: attachment.sizeBytes ?? null,
-      width: attachment.width ?? null,
-      height: attachment.height ?? null,
-      publicUrl: attachment.publicUrl?.trim() ?? null,
-    }));
+    return this.mapperService.toSummaries(records);
   }
 
   private async getItemFromDb(
@@ -265,55 +166,9 @@ export class DailyRecordsService {
     });
 
     if (record == null) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: 'Record not found',
-      });
+      this.guardService.throwRecordNotFound();
     }
 
-    return this.toItem(record);
-  }
-
-  private toItem(record: DailyRecordShape) {
-    return {
-      id: record.id,
-      kind: record.kind,
-      occurredAt: record.occurredAt.toISOString().slice(0, 10),
-      title: record.title,
-      value: record.value,
-      unit: record.unit,
-      note: record.note,
-      source: record.source,
-      attachments: (record.attachments ?? []).map((attachment) => ({
-        id: attachment.id,
-        kind: attachment.kind,
-        objectKey: attachment.objectKey,
-        bucket: attachment.bucket,
-        provider: attachment.provider,
-        fileName: attachment.fileName,
-        contentType: attachment.contentType,
-        sizeBytes: attachment.sizeBytes,
-        width: attachment.width,
-        height: attachment.height,
-        publicUrl: attachment.publicUrl,
-        createdAt: attachment.createdAt.toISOString(),
-      })),
-      createdAt: record.createdAt.toISOString(),
-      updatedAt: record.updatedAt.toISOString(),
-    };
-  }
-
-  private async ensureOwnedByUser(userId: string, id: string) {
-    const record = await this.prisma.userDailyRecord.findFirst({
-      where: { id, deletedAt: null },
-      select: { userId: true },
-    });
-
-    if (!record || record.userId !== userId) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: 'Record not found',
-      });
-    }
+    return this.mapperService.toItem(record);
   }
 }
