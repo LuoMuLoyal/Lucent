@@ -16,6 +16,8 @@ import {
 } from '../../generated/prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { UserHealthContextGuardService } from './user-health-context-guard.service';
+import { UserHealthContextMapperService } from './user-health-context-mapper.service';
 import { UserHealthContextService } from './user-health-context.service';
 import { ResultCode } from '../../common/api-envelope';
 import { I18nService } from 'nestjs-i18n';
@@ -42,6 +44,8 @@ describe('UserHealthContextService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserHealthContextService,
+        UserHealthContextGuardService,
+        UserHealthContextMapperService,
         {
           provide: PrismaService,
           useValue: {
