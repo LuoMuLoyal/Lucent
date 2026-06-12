@@ -1,0 +1,23 @@
+{
+  "service_unavailable": "Weekly report AI summary is not configured",
+  "summaries_disabled": "AI summaries are disabled for this user",
+  "fallback": {
+    "action_label": "View report",
+    "confidence_note": "Generated only from the last 7 days of recorded data. This is not a diagnosis or treatment advice.",
+    "summary_default": "This week's records were updated. You can keep strengthening the daily routine based on what is already logged.",
+    "summary_needs_attention": "Medication completion was about {medicationValue}% this week and average water intake was about {waterValue}L, so a few basic habits are still worth tightening up.",
+    "summary_stable": "Medication records looked fairly steady this week, and hydration also showed some continuity. Keeping the current rhythm is reasonable.",
+    "bullet_medication_tracked": "{medicationTrackedDays} of the last 7 days contain medication records, with current completion performance around {medicationValue}%.",
+    "bullet_medication_missing": "There are not enough medication records across the last 7 days yet. The weekly summary will be more reliable after more logging.",
+    "bullet_hydration_tracked": "Average water intake was about {waterValue}L across the last 7 days, and a few lower days are still worth tightening up.",
+    "bullet_hydration_missing": "There are not enough water records across the last 7 days yet. Start with logging the daily hydration rhythm more consistently.",
+    "bullet_sleep_tracked": "{sleepTrackedDays} of the last 7 days already contain sleep data. Keeping that continuity will make the report more useful.",
+    "bullet_sleep_missing": "Real sleep data is still missing, so the weekly summary remains incomplete."
+  },
+  "prompt": {
+    "user_intro": "Generate a brief {languageLabel} weekly summary for the supplied JSON facts.",
+    "tone": "Keep the tone calm, concrete, and non-diagnostic.",
+    "action_label_hint": "The actionLabel should stay close to \"{actionLabel}\".",
+    "facts_label": "Facts JSON:"
+  }
+}
