@@ -4,6 +4,7 @@ import type { Cache } from 'cache-manager';
 import * as argon2 from 'argon2';
 import { createHash } from 'node:crypto';
 
+import { ARGON2_OPTIONS } from '../auth/argon2-options';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../generated/prisma/client';
 import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';
@@ -36,7 +37,7 @@ export class TestingSupportService {
   ): Promise<PrepareFullstackRecordLaneResult> {
     const email = dto.email.trim().toLowerCase();
     const nickname = dto.nickname?.trim() || DEFAULT_RECORD_LANE_NICKNAME;
-    const passwordHash = await argon2.hash(dto.password);
+    const passwordHash = await argon2.hash(dto.password, ARGON2_OPTIONS);
 
     const result = await this.prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findFirst({

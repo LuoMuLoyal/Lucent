@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TestingSupportService } from './testing-support.service';
+import { ARGON2_OPTIONS } from '../auth/argon2-options';
 
 jest.mock('argon2', () => ({
   hash: jest.fn(),
@@ -79,6 +80,7 @@ describe('TestingSupportService', () => {
       nickname: 'Record Lane User',
     });
 
+    expect(argon2.hash).toHaveBeenCalledWith('RecordLane123', ARGON2_OPTIONS);
     expect(prisma.user.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         email: 'recordlane@example.com',
@@ -125,6 +127,7 @@ describe('TestingSupportService', () => {
       nickname: 'Record Lane User',
     });
 
+    expect(argon2.hash).toHaveBeenCalledWith('RecordLane123', ARGON2_OPTIONS);
     expect(prisma.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: expect.objectContaining({

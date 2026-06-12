@@ -14,6 +14,7 @@ import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 import { createHash, randomBytes } from 'node:crypto';
 
+import { ARGON2_OPTIONS } from './argon2-options';
 import { ConfigKey } from '../../config/config-keys.enum';
 import { PrismaService } from '../../prisma/prisma.service';
 import { User, UserStatus } from '../../generated/prisma/client';
@@ -47,14 +48,6 @@ import {
 const LOGIN_RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
 const LOGIN_RATE_LIMIT_MAX = 10;
 const LOGIN_RATE_LIMIT_LOCKOUT = 60 * 60 * 1000; // 1 hour
-
-// Argon2id options (recommended by OWASP 2024)
-const ARGON2_OPTIONS: argon2.Options = {
-  type: argon2.argon2id,
-  memoryCost: 19456, // 19 MiB
-  timeCost: 2,
-  parallelism: 1,
-};
 
 export interface TokenPair {
   accessToken: string;
