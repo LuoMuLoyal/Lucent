@@ -20,10 +20,8 @@ Keep durable implementation context in the owning code comments when the TODO is
 
 ## Module Boundaries
 
-- Split report copy/presentation shaping out of `src/modules/reports/reports.service.ts`.
-  Current issue: one service owns query aggregation, metric scoring, trend/pattern derivation, and user-visible zh-CN copy.
-- Extract Tencent COS runtime wiring from `src/modules/daily-records/daily-record-image-upload.service.ts`.
-  Current issue: one service owns config loading, SDK construction, provider availability checks, upload policy validation, and response shaping.
+- Split `src/modules/user-health-context/user-health-context.service.ts` further if the write-side keeps growing.
+  Current status: response mapping and ownership guards are now separated, but profile/allergy/condition/current-medicine write normalization still lives in one orchestration service.
 
 ## Auth / Security
 

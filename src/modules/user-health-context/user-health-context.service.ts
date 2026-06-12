@@ -13,48 +13,17 @@ import type {
   UpdateHealthContextConditionDto,
   UpdateHealthContextProfileDto,
 } from './dto';
-
-const CORE_PROFILE_FIELDS = [
-  'birthDate',
-  'sexAtBirth',
-  'heightCm',
-  'unitSystem',
-] as const;
-
-const userHealthContextInclude = {
-  profile: true,
-  allergies: {
-    where: {
-      isActive: true,
-    },
-    orderBy: {
-      updatedAt: 'desc',
-    },
-  },
-  conditions: {
-    orderBy: {
-      updatedAt: 'desc',
-    },
-  },
-  currentMedicines: {
-    where: {
-      isCurrent: true,
-    },
-    orderBy: {
-      updatedAt: 'desc',
-    },
-  },
-} satisfies Prisma.UserInclude;
-
-type UserHealthContextRecord = Prisma.UserGetPayload<{
-  include: typeof userHealthContextInclude;
-}>;
+import { UserHealthContextGuardService } from './user-health-context-guard.service';
+import { UserHealthContextMapperService } from './user-health-context-mapper.service';
+import { userHealthContextInclude } from './user-health-context.types';
 
 @Injectable()
 export class UserHealthContextService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
+    private readonly guardService: UserHealthContextGuardService,
+    private readonly mapperService: UserHealthContextMapperService,
   ) {}
 
   async getForUser(userId: string): Promise<HealthContextResponseData> {
@@ -73,26 +42,28 @@ export class UserHealthContextService {
       });
     }
 
-    return this.toHealthContextResponse(user);
+    return this.mapperService.toResponse(user);
   }
 
   async updateProfile(
     userId: string,
     dto: UpdateHealthContextProfileDto,
   ): Promise<HealthContextResponseData> {
-    await this.ensureActiveUserExists(userId);
+    await this.guardService.ensureActiveUserExists(userId);
 
     const updateData: Prisma.UserProfileUpdateInput = {};
     const createData: Prisma.UserProfileUncheckedCreateInput = { userId };
 
     if (dto.locale !== undefined) {
-      const locale = this.normalizePreferenceString(dto.locale);
+      const locale = this.mapperService.normalizePreferenceString(dto.locale);
       updateData.locale = locale;
       createData.locale = locale;
     }
 
     if (dto.timezone !== undefined) {
-      const timezone = this.normalizePreferenceString(dto.timezone);
+      const timezone = this.mapperService.normalizePreferenceString(
+        dto.timezone,
+      );
       updateData.timezone = timezone;
       createData.timezone = timezone;
     }
@@ -103,9 +74,7 @@ export class UserHealthContextService {
     }
 
     if (dto.birthDate !== undefined) {
-      const date = dto.birthDate
-        ? new Date(`${dto.birthDate}T00:00:00.000Z`)
-        : null;
+      const date = this.mapperService.dateOnlyStringToUtcDate(dto.birthDate);
       updateData.birthDate = date;
       createData.birthDate = date;
     }
@@ -131,7 +100,7 @@ export class UserHealthContextService {
     }
 
     if (dto.bloodType !== undefined) {
-      const blood = this.normalizePreferenceString(dto.bloodType);
+      const blood = this.mapperService.normalizePreferenceString(dto.bloodType);
       updateData.bloodType = blood;
       createData.bloodType = blood;
     }
@@ -172,7 +141,7 @@ export class UserHealthContextService {
     userId: string,
     dto: CreateHealthContextAllergyDto,
   ): Promise<HealthContextResponseData> {
-    await this.ensureActiveUserExists(userId);
+    await this.guardService.ensureActiveUserExists(userId);
 
     await this.prisma.userAllergy.create({
       data: {
@@ -194,7 +163,7 @@ export class UserHealthContextService {
     allergyId: string,
     dto: UpdateHealthContextAllergyDto,
   ): Promise<HealthContextResponseData> {
-    await this.ensureAllergyOwnedByUser(userId, allergyId);
+    await this.guardService.ensureAllergyOwnedByUser(userId, allergyId);
 
     const data: Prisma.UserAllergyUpdateInput = {};
 
@@ -232,7 +201,7 @@ export class UserHealthContextService {
     userId: string,
     allergyId: string,
   ): Promise<HealthContextResponseData> {
-    await this.ensureAllergyOwnedByUser(userId, allergyId);
+    await this.guardService.ensureAllergyOwnedByUser(userId, allergyId);
 
     await this.prisma.userAllergy.update({
       where: { id: allergyId },
@@ -248,14 +217,14 @@ export class UserHealthContextService {
     userId: string,
     dto: CreateHealthContextConditionDto,
   ): Promise<HealthContextResponseData> {
-    await this.ensureActiveUserExists(userId);
+    await this.guardService.ensureActiveUserExists(userId);
 
     const createData: Prisma.UserConditionCreateInput = {
       user: { connect: { id: userId } },
       label: dto.label.trim(),
-      diagnosedAt: dto.diagnosedAt
-        ? new Date(`${dto.diagnosedAt}T00:00:00.000Z`)
-        : null,
+      diagnosedAt: this.mapperService.dateOnlyStringToUtcDate(
+        dto.diagnosedAt ?? null,
+      ),
       note: dto.note?.trim() ?? null,
     };
 
@@ -273,7 +242,7 @@ export class UserHealthContextService {
     conditionId: string,
     dto: UpdateHealthContextConditionDto,
   ): Promise<HealthContextResponseData> {
-    await this.ensureConditionOwnedByUser(userId, conditionId);
+    await this.guardService.ensureConditionOwnedByUser(userId, conditionId);
 
     const data: Prisma.UserConditionUpdateInput = {};
 
@@ -284,9 +253,9 @@ export class UserHealthContextService {
       data.status = dto.status;
     }
     if (dto.diagnosedAt !== undefined) {
-      data.diagnosedAt = dto.diagnosedAt
-        ? new Date(`${dto.diagnosedAt}T00:00:00.000Z`)
-        : null;
+      data.diagnosedAt = this.mapperService.dateOnlyStringToUtcDate(
+        dto.diagnosedAt,
+      );
     }
     if (dto.note !== undefined) {
       data.note = dto.note?.trim() ?? null;
@@ -304,17 +273,10 @@ export class UserHealthContextService {
     userId: string,
     conditionId: string,
   ): Promise<HealthContextResponseData> {
-    await this.ensureConditionOwnedByUser(userId, conditionId);
+    await this.guardService.ensureConditionOwnedByUser(userId, conditionId);
 
     const resolvedAt = new Date();
-    // normalise to date-only
-    const resolvedDate = new Date(
-      Date.UTC(
-        resolvedAt.getUTCFullYear(),
-        resolvedAt.getUTCMonth(),
-        resolvedAt.getUTCDate(),
-      ),
-    );
+    const resolvedDate = this.mapperService.toUtcDateOnly(resolvedAt);
 
     // Only set resolvedAt when it is missing.
     const current = await this.prisma.userCondition.findUnique({
@@ -339,7 +301,7 @@ export class UserHealthContextService {
     userId: string,
     dto: CreateCurrentMedicineDto,
   ): Promise<HealthContextResponseData> {
-    await this.ensureActiveUserExists(userId);
+    await this.guardService.ensureActiveUserExists(userId);
 
     const sourceRefId =
       dto.source === MedicineSource.manual ? null : (dto.sourceRefId ?? null);
@@ -353,10 +315,12 @@ export class UserHealthContextService {
         strengthText: dto.strengthText?.trim() ?? null,
         doseText: dto.doseText?.trim() ?? null,
         route: dto.route?.trim() ?? null,
-        startedAt: dto.startedAt
-          ? new Date(`${dto.startedAt}T00:00:00.000Z`)
-          : null,
-        endedAt: dto.endedAt ? new Date(`${dto.endedAt}T00:00:00.000Z`) : null,
+        startedAt: this.mapperService.dateOnlyStringToUtcDate(
+          dto.startedAt ?? null,
+        ),
+        endedAt: this.mapperService.dateOnlyStringToUtcDate(
+          dto.endedAt ?? null,
+        ),
         note: dto.note?.trim() ?? null,
       },
     });
@@ -369,7 +333,10 @@ export class UserHealthContextService {
     medicineId: string,
     dto: UpdateCurrentMedicineDto,
   ): Promise<HealthContextResponseData> {
-    await this.ensureCurrentMedicineOwnedByUser(userId, medicineId);
+    await this.guardService.ensureCurrentMedicineOwnedByUser(
+      userId,
+      medicineId,
+    );
 
     const data: Prisma.UserCurrentMedicineUpdateInput = {};
 
@@ -392,14 +359,12 @@ export class UserHealthContextService {
       data.route = dto.route?.trim() ?? null;
     }
     if (dto.startedAt !== undefined) {
-      data.startedAt = dto.startedAt
-        ? new Date(`${dto.startedAt}T00:00:00.000Z`)
-        : null;
+      data.startedAt = this.mapperService.dateOnlyStringToUtcDate(
+        dto.startedAt,
+      );
     }
     if (dto.endedAt !== undefined) {
-      data.endedAt = dto.endedAt
-        ? new Date(`${dto.endedAt}T00:00:00.000Z`)
-        : null;
+      data.endedAt = this.mapperService.dateOnlyStringToUtcDate(dto.endedAt);
     }
     if (dto.note !== undefined) {
       data.note = dto.note?.trim() ?? null;
@@ -420,16 +385,13 @@ export class UserHealthContextService {
     userId: string,
     medicineId: string,
   ): Promise<HealthContextResponseData> {
-    await this.ensureCurrentMedicineOwnedByUser(userId, medicineId);
+    await this.guardService.ensureCurrentMedicineOwnedByUser(
+      userId,
+      medicineId,
+    );
 
     const endedAt = new Date();
-    const endedDate = new Date(
-      Date.UTC(
-        endedAt.getUTCFullYear(),
-        endedAt.getUTCMonth(),
-        endedAt.getUTCDate(),
-      ),
-    );
+    const endedDate = this.mapperService.toUtcDateOnly(endedAt);
 
     // Only set endedAt when it is missing.
     const current = await this.prisma.userCurrentMedicine.findUnique({
@@ -446,207 +408,5 @@ export class UserHealthContextService {
     });
 
     return this.getForUser(userId);
-  }
-
-  // ── Ownership guards ──
-
-  private async ensureAllergyOwnedByUser(
-    userId: string,
-    allergyId: string,
-  ): Promise<void> {
-    const allergy = await this.prisma.userAllergy.findUnique({
-      where: { id: allergyId },
-      select: { userId: true },
-    });
-
-    if (!allergy || allergy.userId !== userId) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: this.i18n.t('auth.user_not_found'),
-      });
-    }
-  }
-
-  private async ensureConditionOwnedByUser(
-    userId: string,
-    conditionId: string,
-  ): Promise<void> {
-    const condition = await this.prisma.userCondition.findUnique({
-      where: { id: conditionId },
-      select: { userId: true },
-    });
-
-    if (!condition || condition.userId !== userId) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: this.i18n.t('auth.user_not_found'),
-      });
-    }
-  }
-
-  private async ensureCurrentMedicineOwnedByUser(
-    userId: string,
-    medicineId: string,
-  ): Promise<void> {
-    const medicine = await this.prisma.userCurrentMedicine.findUnique({
-      where: { id: medicineId },
-      select: { userId: true },
-    });
-
-    if (!medicine || medicine.userId !== userId) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: this.i18n.t('auth.user_not_found'),
-      });
-    }
-  }
-
-  // ── Response mapping ──
-
-  private toHealthContextResponse(
-    user: UserHealthContextRecord,
-  ): HealthContextResponseData {
-    const profile = {
-      birthDate: this.formatDateOnly(user.profile?.birthDate ?? null),
-      sexAtBirth: user.profile?.sexAtBirth ?? null,
-      heightCm: user.profile?.heightCm ?? null,
-      pregnancyState: user.profile?.pregnancyState ?? null,
-      lactationState: user.profile?.lactationState ?? null,
-      bloodType: user.profile?.bloodType ?? null,
-      locale: user.profile?.locale ?? null,
-      timezone: user.profile?.timezone ?? null,
-      unitSystem: user.profile?.unitSystem ?? null,
-      onboardingCompletedAt: this.formatDateTime(
-        user.profile?.onboardingCompletedAt ?? null,
-      ),
-      extras: user.profile?.extras ?? null,
-    };
-
-    const allergies = user.allergies.map((allergy) => ({
-      id: allergy.id,
-      kind: allergy.kind,
-      label: allergy.label,
-      reaction: allergy.reaction,
-      severity: allergy.severity,
-      isActive: allergy.isActive,
-      note: allergy.note,
-      extras: allergy.extras,
-      recordedAt: this.formatDateTime(allergy.recordedAt),
-      createdAt: allergy.createdAt.toISOString(),
-      updatedAt: allergy.updatedAt.toISOString(),
-    }));
-
-    const conditions = user.conditions.map((condition) => ({
-      id: condition.id,
-      label: condition.label,
-      status: condition.status,
-      diagnosedAt: this.formatDateOnly(condition.diagnosedAt),
-      resolvedAt: this.formatDateOnly(condition.resolvedAt),
-      note: condition.note,
-      extras: condition.extras,
-      createdAt: condition.createdAt.toISOString(),
-      updatedAt: condition.updatedAt.toISOString(),
-    }));
-
-    const currentMedicines = user.currentMedicines.map((medicine) => ({
-      id: medicine.id,
-      source: medicine.source,
-      sourceRefId: medicine.sourceRefId,
-      displayName: medicine.displayName,
-      strengthText: medicine.strengthText,
-      doseText: medicine.doseText,
-      route: medicine.route,
-      startedAt: this.formatDateOnly(medicine.startedAt),
-      endedAt: this.formatDateOnly(medicine.endedAt),
-      isCurrent: medicine.isCurrent,
-      note: medicine.note,
-      sourcePayload: medicine.sourcePayload,
-      createdAt: medicine.createdAt.toISOString(),
-      updatedAt: medicine.updatedAt.toISOString(),
-    }));
-
-    return {
-      summary: {
-        age: this.calculateAge(user.profile?.birthDate ?? null),
-        onboardingCompleted: profile.onboardingCompletedAt !== null,
-        activeAllergyCount: allergies.length,
-        conditionCount: conditions.length,
-        currentMedicineCount: currentMedicines.length,
-        missingCoreProfileFields: this.getMissingCoreProfileFields(profile),
-      },
-      profile,
-      allergies,
-      conditions,
-      currentMedicines,
-    };
-  }
-
-  private getMissingCoreProfileFields(profile: {
-    birthDate: string | null;
-    sexAtBirth: string | null;
-    heightCm: number | null;
-    unitSystem: string | null;
-  }): string[] {
-    return CORE_PROFILE_FIELDS.filter((field) => profile[field] === null);
-  }
-
-  private calculateAge(birthDate: Date | null): number | null {
-    if (!birthDate) {
-      return null;
-    }
-
-    const today = new Date();
-    let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
-
-    const hasHadBirthdayThisYear =
-      today.getUTCMonth() > birthDate.getUTCMonth() ||
-      (today.getUTCMonth() === birthDate.getUTCMonth() &&
-        today.getUTCDate() >= birthDate.getUTCDate());
-
-    if (!hasHadBirthdayThisYear) {
-      age -= 1;
-    }
-
-    return Math.max(age, 0);
-  }
-
-  private formatDateOnly(value: Date | null): string | null {
-    if (!value) {
-      return null;
-    }
-
-    return value.toISOString().slice(0, 10);
-  }
-
-  private formatDateTime(value: Date | null): string | null {
-    return value?.toISOString() ?? null;
-  }
-
-  private async ensureActiveUserExists(userId: string): Promise<void> {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        id: userId,
-        deletedAt: null,
-      },
-      select: {
-        id: true,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: this.i18n.t('auth.user_not_found'),
-      });
-    }
-  }
-
-  private normalizePreferenceString(value: string | null): string | null {
-    if (value == null) {
-      return null;
-    }
-
-    const normalized = value.trim();
-    return normalized.length == 0 ? null : normalized;
   }
 }
