@@ -1,3 +1,7 @@
+import {
+  buildAiUserPrompt,
+  type AiPromptCopy,
+} from '../../../common/ai/ai-copy';
 import type { ReportsAiSummaryContext } from '../reports-ai-summary-context.service';
 
 export function buildReportSummarySystemPrompt(): string {
@@ -14,22 +18,11 @@ export function buildReportSummarySystemPrompt(): string {
   ].join(' ');
 }
 
-export interface ReportSummaryPromptCopy {
-  userIntro: string;
-  tone: string;
-  actionLabelHint: string;
-  factsLabel: string;
-}
+export type ReportSummaryPromptCopy = AiPromptCopy;
 
 export function buildReportSummaryUserPrompt(
   context: ReportsAiSummaryContext,
   copy: ReportSummaryPromptCopy,
 ): string {
-  return [
-    copy.userIntro,
-    copy.tone,
-    copy.actionLabelHint,
-    copy.factsLabel,
-    JSON.stringify(context),
-  ].join('\n');
+  return buildAiUserPrompt(context, copy);
 }
