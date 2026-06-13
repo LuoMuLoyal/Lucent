@@ -41,7 +41,15 @@ For the mobile full-stack E2E lane, run Lucent against the test database so
 the test-only support route is available:
 
 ```bash
+cp .env.test.example .env.test
 pnpm start:test:dev
+```
+
+Or use the local helper that starts the test runtime in a hidden PowerShell
+window and waits for `GET /api/v1/health`:
+
+```bash
+powershell -ExecutionPolicy Bypass -File scripts/dev/start-test-runtime.ps1
 ```
 
 That runtime enables `POST /api/v1/testing/fullstack-e2e/record-lane/prepare`,
