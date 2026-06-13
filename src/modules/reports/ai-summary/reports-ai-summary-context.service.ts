@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type {
   ReportDashboardComputed,
   ReportDashboardFacts,
-} from './reports.types';
+} from '../dashboard/reports.types';
 
 export interface ReportsAiSummaryContext {
   range: ReportDashboardFacts['range'];

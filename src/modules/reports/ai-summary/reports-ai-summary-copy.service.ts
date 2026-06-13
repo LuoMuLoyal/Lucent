@@ -4,11 +4,11 @@ import {
   buildLocalizedAiPromptCopy,
   resolveAiLocale,
   translateAiScopedCopy,
-} from '../../common/ai/ai-copy';
+} from '../../../common/ai/ai-copy';
 import type { ReportsAiSummaryContext } from './reports-ai-summary-context.service';
-import { REPORT_RANGE_LAST_30_DAYS } from './dto';
-import type { ReportSummaryStructuredOutput } from './schemas/report-summary.schema';
-import type { ReportSummaryPromptCopy } from './prompts/report-summary.prompt';
+import { REPORT_RANGE_LAST_30_DAYS } from '../dto';
+import type { ReportSummaryStructuredOutput } from './report-summary.schema';
+import type { ReportSummaryPromptCopy } from './report-summary.prompt';
 
 const REPORTS_AI_SUMMARY_COPY_SCOPE = 'reports-ai-summary';
 

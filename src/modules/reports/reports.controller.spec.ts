@@ -6,9 +6,9 @@ import {
   type ReportDashboardDataDto,
   type ReportSummaryDataDto,
 } from './dto';
-import { ReportsAiSummaryService } from './reports-ai-summary.service';
+import { ReportsAiSummaryService } from './ai-summary/reports-ai-summary.service';
 import { ReportsController } from './reports.controller';
-import { ReportsService } from './reports.service';
+import { ReportsService } from './dashboard/reports.service';
 
 describe('ReportsController', () => {
   let controller: ReportsController;

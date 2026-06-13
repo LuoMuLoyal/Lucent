@@ -5,7 +5,7 @@ import type {
   ReportFindingDto,
   ReportPatternDto,
   ReportRange,
-} from './dto';
+} from '../dto';
 import type { MetricStatus } from './reports.types';
 
 @Injectable()

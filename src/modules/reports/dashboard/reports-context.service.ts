@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { DoseLogStatus } from '../../generated/prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { DoseLogStatus } from '../../../generated/prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
   type ReportDashboardQueryDto,
-} from './dto';
+} from '../dto';
 import type { ReportDashboardFacts } from './reports.types';
 
 @Injectable()

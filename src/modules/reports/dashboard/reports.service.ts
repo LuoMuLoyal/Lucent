@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { ReportDashboardDataDto, ReportDashboardQueryDto } from './dto';
+import type { ReportDashboardDataDto, ReportDashboardQueryDto } from '../dto';
 import { ReportsComputationService } from './reports-computation.service';
 import { ReportsContextService } from './reports-context.service';
 

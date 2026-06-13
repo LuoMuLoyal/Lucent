@@ -4,7 +4,7 @@ import type {
   ReportPatternDto,
   ReportRange,
   ReportTrendDto,
-} from './dto';
+} from '../dto';
 
 export type MetricStatus =
   | 'good'

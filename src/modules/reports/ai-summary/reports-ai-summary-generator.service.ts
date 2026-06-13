@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { LlmRuntimeService } from '../llm-runtime/llm-runtime.service';
+import { LlmRuntimeService } from '../../llm-runtime/llm-runtime.service';
 import {
   buildReportSummarySystemPrompt,
   buildReportSummaryUserPrompt,
   type ReportSummaryPromptCopy,
-} from './prompts/report-summary.prompt';
+} from './report-summary.prompt';
 import type { ReportsAiSummaryContext } from './reports-ai-summary-context.service';
 import {
   reportSummarySchema,
   type ReportSummaryStructuredOutput,
-} from './schemas/report-summary.schema';
+} from './report-summary.schema';
 
 @Injectable()
 export class ReportsAiSummaryGeneratorService {
