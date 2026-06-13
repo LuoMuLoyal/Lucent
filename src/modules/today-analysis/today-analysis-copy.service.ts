@@ -1,59 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
+import {
+  buildLocalizedAiPromptCopy,
+  resolveAiLocale,
+  translateAiScopedCopy,
+} from '../../common/ai/ai-copy';
 import type { TodayAnalysisContext } from './today-analysis-context.service';
 import type { TodayAnalysisStructuredOutput } from './schemas/today-analysis.schema';
 import type { TodayAnalysisPromptCopy } from './prompts/today-analysis.prompt';
+
+const TODAY_ANALYSIS_COPY_SCOPE = 'today-analysis';
 
 @Injectable()
 export class TodayAnalysisCopyService {
   constructor(private readonly i18n: I18nService) {}
 
   resolveLocale(language: string | undefined): string {
-    const normalized = language?.trim().toLowerCase() ?? '';
-    if (normalized.startsWith('zh')) {
-      return 'zh-CN';
-    }
-    return 'en';
+    return resolveAiLocale(language);
   }
 
   serviceUnavailable(locale: string): string {
-    return this.i18n.t('today-analysis.service_unavailable', {
-      lang: locale,
-    });
+    return this.t(locale, 'service_unavailable');
   }
 
   summariesDisabled(locale: string): string {
-    return this.i18n.t('today-analysis.summaries_disabled', {
-      lang: locale,
-    });
+    return this.t(locale, 'summaries_disabled');
   }
 
   buildPromptCopy(locale: string): TodayAnalysisPromptCopy {
-    const actionLabel = this.i18n.t('today-analysis.fallback.action_label', {
-      lang: locale,
-    });
-    const languageLabel = locale === 'zh-CN' ? '中文' : 'English';
-
-    return {
-      userIntro: this.i18n.t('today-analysis.prompt.user_intro', {
-        lang: locale,
-        args: {
-          languageLabel,
-        },
-      }),
-      tone: this.i18n.t('today-analysis.prompt.tone', {
-        lang: locale,
-      }),
-      actionLabelHint: this.i18n.t('today-analysis.prompt.action_label_hint', {
-        lang: locale,
-        args: {
-          actionLabel,
-        },
-      }),
-      factsLabel: this.i18n.t('today-analysis.prompt.facts_label', {
-        lang: locale,
-      }),
-    };
+    return buildLocalizedAiPromptCopy(
+      this.i18n,
+      TODAY_ANALYSIS_COPY_SCOPE,
+      locale,
+    );
   }
 
   buildFallback(
@@ -62,43 +41,22 @@ export class TodayAnalysisCopyService {
   ): TodayAnalysisStructuredOutput {
     const medicationPending = context.medication.pendingCount;
     const waterRemaining = context.water.remainingCount;
-    const actionLabel = this.i18n.t('today-analysis.fallback.action_label', {
-      lang: locale,
-    });
-    const confidenceNote = this.i18n.t(
-      'today-analysis.fallback.confidence_note',
-      {
-        lang: locale,
-      },
-    );
+    const actionLabel = this.t(locale, 'fallback.action_label');
+    const confidenceNote = this.t(locale, 'fallback.confidence_note');
 
-    let summary = this.i18n.t('today-analysis.fallback.summary_default', {
-      lang: locale,
-    });
+    let summary = this.t(locale, 'fallback.summary_default');
     if (medicationPending > 0 && waterRemaining > 0) {
-      summary = this.i18n.t(
-        'today-analysis.fallback.summary_medication_and_hydration',
-        {
-          lang: locale,
-          args: {
-            medicationPending,
-            waterRemaining,
-          },
-        },
-      );
+      summary = this.t(locale, 'fallback.summary_medication_and_hydration', {
+        medicationPending,
+        waterRemaining,
+      });
     } else if (medicationPending > 0) {
-      summary = this.i18n.t('today-analysis.fallback.summary_medication_only', {
-        lang: locale,
-        args: {
-          medicationPending,
-        },
+      summary = this.t(locale, 'fallback.summary_medication_only', {
+        medicationPending,
       });
     } else if (waterRemaining > 0) {
-      summary = this.i18n.t('today-analysis.fallback.summary_hydration_only', {
-        lang: locale,
-        args: {
-          waterRemaining,
-        },
+      summary = this.t(locale, 'fallback.summary_hydration_only', {
+        waterRemaining,
       });
     }
 
@@ -109,45 +67,41 @@ export class TodayAnalysisCopyService {
           kind: 'medication',
           text:
             medicationPending > 0
-              ? this.i18n.t(
-                  'today-analysis.fallback.bullet_medication_pending',
-                  {
-                    lang: locale,
-                    args: {
-                      medicationPending,
-                    },
-                  },
-                )
-              : this.i18n.t('today-analysis.fallback.bullet_medication_done', {
-                  lang: locale,
-                }),
+              ? this.t(locale, 'fallback.bullet_medication_pending', {
+                  medicationPending,
+                })
+              : this.t(locale, 'fallback.bullet_medication_done'),
         },
         {
           kind: 'hydration',
           text:
             waterRemaining > 0
-              ? this.i18n.t(
-                  'today-analysis.fallback.bullet_hydration_pending',
-                  {
-                    lang: locale,
-                    args: {
-                      waterRemaining,
-                    },
-                  },
-                )
-              : this.i18n.t('today-analysis.fallback.bullet_hydration_done', {
-                  lang: locale,
-                }),
+              ? this.t(locale, 'fallback.bullet_hydration_pending', {
+                  waterRemaining,
+                })
+              : this.t(locale, 'fallback.bullet_hydration_done'),
         },
         {
           kind: 'sleep',
-          text: this.i18n.t('today-analysis.fallback.bullet_sleep_missing', {
-            lang: locale,
-          }),
+          text: this.t(locale, 'fallback.bullet_sleep_missing'),
         },
       ],
       actionLabel,
       confidenceNote,
     };
+  }
+
+  private t(
+    locale: string,
+    key: string,
+    args?: Record<string, string | number>,
+  ): string {
+    return translateAiScopedCopy(
+      this.i18n,
+      TODAY_ANALYSIS_COPY_SCOPE,
+      locale,
+      key,
+      args,
+    );
   }
 }

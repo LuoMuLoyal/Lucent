@@ -1,3 +1,7 @@
+import {
+  buildAiUserPrompt,
+  type AiPromptCopy,
+} from '../../../common/ai/ai-copy';
 import type { TodayAnalysisContext } from '../today-analysis-context.service';
 
 export function buildTodayAnalysisSystemPrompt(): string {
@@ -14,22 +18,11 @@ export function buildTodayAnalysisSystemPrompt(): string {
   ].join(' ');
 }
 
-export interface TodayAnalysisPromptCopy {
-  userIntro: string;
-  tone: string;
-  actionLabelHint: string;
-  factsLabel: string;
-}
+export type TodayAnalysisPromptCopy = AiPromptCopy;
 
 export function buildTodayAnalysisUserPrompt(
   context: TodayAnalysisContext,
   copy: TodayAnalysisPromptCopy,
 ): string {
-  return [
-    copy.userIntro,
-    copy.tone,
-    copy.actionLabelHint,
-    copy.factsLabel,
-    JSON.stringify(context),
-  ].join('\n');
+  return buildAiUserPrompt(context, copy);
 }

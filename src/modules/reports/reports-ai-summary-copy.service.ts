@@ -1,66 +1,39 @@
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
+import {
+  buildLocalizedAiPromptCopy,
+  resolveAiLocale,
+  translateAiScopedCopy,
+} from '../../common/ai/ai-copy';
 import type { ReportsAiSummaryContext } from './reports-ai-summary-context.service';
 import { REPORT_RANGE_LAST_30_DAYS } from './dto';
 import type { ReportSummaryStructuredOutput } from './schemas/report-summary.schema';
 import type { ReportSummaryPromptCopy } from './prompts/report-summary.prompt';
+
+const REPORTS_AI_SUMMARY_COPY_SCOPE = 'reports-ai-summary';
 
 @Injectable()
 export class ReportsAiSummaryCopyService {
   constructor(private readonly i18n: I18nService) {}
 
   resolveLocale(language: string | undefined): string {
-    const normalized = language?.trim().toLowerCase() ?? '';
-    if (normalized.startsWith('zh')) {
-      return 'zh-CN';
-    }
-    return 'en';
+    return resolveAiLocale(language);
   }
 
   serviceUnavailable(locale: string): string {
-    return this.i18n.t('reports-ai-summary.service_unavailable', {
-      lang: locale,
-    });
+    return this.t(locale, 'service_unavailable');
   }
 
   summariesDisabled(locale: string): string {
-    return this.i18n.t('reports-ai-summary.summaries_disabled', {
-      lang: locale,
-    });
+    return this.t(locale, 'summaries_disabled');
   }
 
   buildPromptCopy(locale: string): ReportSummaryPromptCopy {
-    const actionLabel = this.i18n.t(
-      'reports-ai-summary.fallback.action_label',
-      {
-        lang: locale,
-      },
+    return buildLocalizedAiPromptCopy(
+      this.i18n,
+      REPORTS_AI_SUMMARY_COPY_SCOPE,
+      locale,
     );
-    const languageLabel = locale === 'zh-CN' ? '中文' : 'English';
-
-    return {
-      userIntro: this.i18n.t('reports-ai-summary.prompt.user_intro', {
-        lang: locale,
-        args: {
-          languageLabel,
-        },
-      }),
-      tone: this.i18n.t('reports-ai-summary.prompt.tone', {
-        lang: locale,
-      }),
-      actionLabelHint: this.i18n.t(
-        'reports-ai-summary.prompt.action_label_hint',
-        {
-          lang: locale,
-          args: {
-            actionLabel,
-          },
-        },
-      ),
-      factsLabel: this.i18n.t('reports-ai-summary.prompt.facts_label', {
-        lang: locale,
-      }),
-    };
   }
 
   buildFallback(
@@ -76,49 +49,27 @@ export class ReportsAiSummaryCopyService {
     const sleepTrackedDays = context.dataQuality.sleepTrackedDays;
     const medicationTrackedDays = context.dataQuality.medicationTrackedDays;
     const waterTrackedDays = context.dataQuality.waterTrackedDays;
-    const actionLabel = this.i18n.t(
-      'reports-ai-summary.fallback.action_label',
-      {
-        lang: locale,
-      },
-    );
-    const confidenceNote = this.i18n.t(
-      'reports-ai-summary.fallback.confidence_note',
-      {
-        lang: locale,
-        args: {
-          dayCount: String(this.dayCount(context.range)),
-        },
-      },
-    );
+    const dayCount = this.dayCount(context.range);
+    const actionLabel = this.t(locale, 'fallback.action_label');
+    const confidenceNote = this.t(locale, 'fallback.confidence_note', {
+      dayCount,
+    });
 
-    let summary = this.i18n.t('reports-ai-summary.fallback.summary_default', {
-      lang: locale,
-      args: {
-        dayCount: String(this.dayCount(context.range)),
-      },
+    let summary = this.t(locale, 'fallback.summary_default', {
+      dayCount,
     });
     if (
       medicationMetric?.status === 'needs_attention' ||
       waterMetric?.status === 'needs_attention'
     ) {
-      summary = this.i18n.t(
-        'reports-ai-summary.fallback.summary_needs_attention',
-        {
-          lang: locale,
-          args: {
-            dayCount: String(this.dayCount(context.range)),
-            medicationValue: medicationMetric?.value ?? '--',
-            waterValue: waterMetric?.value ?? '--',
-          },
-        },
-      );
+      summary = this.t(locale, 'fallback.summary_needs_attention', {
+        dayCount,
+        medicationValue: medicationMetric?.value ?? '--',
+        waterValue: waterMetric?.value ?? '--',
+      });
     } else if (medicationMetric?.status === 'good') {
-      summary = this.i18n.t('reports-ai-summary.fallback.summary_stable', {
-        lang: locale,
-        args: {
-          dayCount: String(this.dayCount(context.range)),
-        },
+      summary = this.t(locale, 'fallback.summary_stable', {
+        dayCount,
       });
     }
 
@@ -127,48 +78,42 @@ export class ReportsAiSummaryCopyService {
       bullets: [
         {
           kind: 'medication',
-          text: this.i18n.t(
+          text: this.t(
+            locale,
             medicationTrackedDays > 0
-              ? 'reports-ai-summary.fallback.bullet_medication_tracked'
-              : 'reports-ai-summary.fallback.bullet_medication_missing',
+              ? 'fallback.bullet_medication_tracked'
+              : 'fallback.bullet_medication_missing',
             {
-              lang: locale,
-              args: {
-                dayCount: String(this.dayCount(context.range)),
-                medicationTrackedDays,
-                medicationValue: medicationMetric?.value ?? '--',
-              },
+              dayCount,
+              medicationTrackedDays,
+              medicationValue: medicationMetric?.value ?? '--',
             },
           ),
         },
         {
           kind: 'hydration',
-          text: this.i18n.t(
+          text: this.t(
+            locale,
             waterTrackedDays > 0
-              ? 'reports-ai-summary.fallback.bullet_hydration_tracked'
-              : 'reports-ai-summary.fallback.bullet_hydration_missing',
+              ? 'fallback.bullet_hydration_tracked'
+              : 'fallback.bullet_hydration_missing',
             {
-              lang: locale,
-              args: {
-                dayCount: String(this.dayCount(context.range)),
-                waterTrackedDays,
-                waterValue: waterMetric?.value ?? '--',
-              },
+              dayCount,
+              waterTrackedDays,
+              waterValue: waterMetric?.value ?? '--',
             },
           ),
         },
         {
           kind: 'sleep',
-          text: this.i18n.t(
+          text: this.t(
+            locale,
             sleepTrackedDays > 0
-              ? 'reports-ai-summary.fallback.bullet_sleep_tracked'
-              : 'reports-ai-summary.fallback.bullet_sleep_missing',
+              ? 'fallback.bullet_sleep_tracked'
+              : 'fallback.bullet_sleep_missing',
             {
-              lang: locale,
-              args: {
-                dayCount: String(this.dayCount(context.range)),
-                sleepTrackedDays,
-              },
+              dayCount,
+              sleepTrackedDays,
             },
           ),
         },
@@ -176,6 +121,20 @@ export class ReportsAiSummaryCopyService {
       actionLabel,
       confidenceNote,
     };
+  }
+
+  private t(
+    locale: string,
+    key: string,
+    args?: Record<string, string | number>,
+  ): string {
+    return translateAiScopedCopy(
+      this.i18n,
+      REPORTS_AI_SUMMARY_COPY_SCOPE,
+      locale,
+      key,
+      args,
+    );
   }
 
   private dayCount(range: ReportsAiSummaryContext['range']): number {
