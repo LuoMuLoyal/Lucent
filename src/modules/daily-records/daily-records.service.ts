@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { DailyRecordKind, Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateDailyRecordDto, UpdateDailyRecordDto } from './dto';
 import { DailyRecordsGuardService } from './daily-records-guard.service';
@@ -52,6 +52,8 @@ export class DailyRecordsService {
   }
 
   async create(userId: string, dto: CreateDailyRecordDto) {
+    this.ensureValidSleepPayload(dto.kind, dto.payload);
+
     const createAttachments = dto.attachments;
 
     const baseData = {
@@ -98,7 +100,8 @@ export class DailyRecordsService {
   }
 
   async update(userId: string, id: string, dto: UpdateDailyRecordDto) {
-    await this.guardService.ensureOwnedByUser(userId, id);
+    const existing = await this.guardService.ensureOwnedByUser(userId, id);
+    this.ensureValidSleepFinalState(dto, existing);
 
     const updateAttachments = dto.attachments;
     if (updateAttachments !== undefined) {
@@ -153,6 +156,46 @@ export class DailyRecordsService {
     });
 
     return this.mapperService.toSummaries(records);
+  }
+
+  private ensureValidSleepPayload(
+    kind: string,
+    payload: Record<string, unknown> | undefined,
+  ) {
+    if (kind !== DailyRecordKind.sleep) return;
+    if (payload == null || typeof payload['durationMinutes'] !== 'number') {
+      throw new BadRequestException(
+        'Sleep records require payload.durationMinutes as a positive number.',
+      );
+    }
+    if (payload['durationMinutes'] <= 0) {
+      throw new BadRequestException(
+        'Sleep payload.durationMinutes must be a positive number.',
+      );
+    }
+  }
+
+  private ensureValidSleepFinalState(
+    dto: UpdateDailyRecordDto,
+    existing: { kind: DailyRecordKind; payload: unknown },
+  ) {
+    const finalKind = dto.kind !== undefined ? dto.kind : existing.kind;
+    if (finalKind !== DailyRecordKind.sleep) return;
+
+    const rawPayload =
+      dto.payload !== undefined ? dto.payload : existing.payload;
+    const payload = rawPayload as Record<string, unknown> | null;
+
+    if (payload == null || typeof payload['durationMinutes'] !== 'number') {
+      throw new BadRequestException(
+        'Sleep records require payload.durationMinutes as a positive number.',
+      );
+    }
+    if (payload['durationMinutes'] <= 0) {
+      throw new BadRequestException(
+        'Sleep payload.durationMinutes must be a positive number.',
+      );
+    }
   }
 
   private async getItemFromDb(

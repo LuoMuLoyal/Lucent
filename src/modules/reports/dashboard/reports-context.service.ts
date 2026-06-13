@@ -56,7 +56,7 @@ export class ReportsContextService {
           unit: true,
           payload: true,
         },
-        orderBy: { occurredAt: 'asc' },
+        orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
       }),
     ]);
 
