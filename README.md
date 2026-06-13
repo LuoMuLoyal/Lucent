@@ -79,6 +79,28 @@ Local database layout:
 - test / e2e DB: `lucent/lucent_dev@127.0.0.1:5432/lucent`
 - Redis: `redis://127.0.0.1:6379`
 
+## Runtime Probes
+
+- `GET /api/v1/health`
+  - compatibility alias for existing readiness checks
+  - returns `200` when critical dependencies are ready, `503` otherwise
+- `GET /api/v1/health/live`
+  - cheap liveness probe for process survival only
+- `GET /api/v1/health/ready`
+  - readiness probe for PostgreSQL plus Redis when `REDIS_URL` is configured
+- `GET /api/v1/health/deep`
+  - detailed dependency probe with timings and error text
+- `GET /metrics`
+  - Prometheus text exposition endpoint
+  - intentionally outside `/api` and outside the normal API envelope
+
+Recommended use:
+
+- container liveness: `/api/v1/health/live`
+- container readiness / deployment gate: `/api/v1/health/ready`
+- manual diagnosis: `/api/v1/health/deep`
+- monitoring scrape: `/metrics`
+
 ## Verification
 
 ```bash

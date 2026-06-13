@@ -1,6 +1,6 @@
 # Lucent Environment
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 This file records Lucent runtime configuration, local stacks, scripts, and required variables. Tencent CVM/TCR deployment steps live in `tencent-cloud-cicd.md`.
 
@@ -42,7 +42,12 @@ explicit resolution order above. There is no root `.env` fallback anymore.
 - Redis: `redis://127.0.0.1:6379`
 - Global prefix: `/api`
 - URI versioning default: `1`
-- Health check: `GET /api/v1/health`
+- Runtime probes:
+  - `GET /api/v1/health` readiness alias
+  - `GET /api/v1/health/live` liveness
+  - `GET /api/v1/health/ready` readiness
+  - `GET /api/v1/health/deep` diagnostic dependency probe
+  - `GET /metrics` Prometheus text metrics
 - Admin panel: `GET /admin`
 
 Start local infrastructure:
@@ -180,6 +185,11 @@ Recommended role split:
 
 ## Runtime Notes
 
+- `GET /api/v1/health` is a readiness alias, not a pure liveness check. It returns dependency detail in the normal API envelope and uses HTTP `503` when a critical dependency is down.
+- `GET /api/v1/health/live` stays cheap and process-only; use it for container liveness probes.
+- `GET /api/v1/health/ready` checks PostgreSQL plus Redis when `REDIS_URL` is configured. Without `REDIS_URL`, cache health reports `memory` fallback and remains non-critical.
+- `GET /api/v1/health/deep` keeps the same dependency checks but includes more explicit probe detail for diagnosis.
+- `GET /metrics` exposes Prometheus text format directly, stays outside `/api`, and is not wrapped by the `{ code, message, data }` envelope.
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect during app startup so contract generation does not require a live DB connection.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
 - When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; without it, cache falls back to memory.

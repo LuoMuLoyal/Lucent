@@ -15,6 +15,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { CacheConfigService } from './config/cache.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { MetricsController } from './metrics.controller';
 import { I18nModule } from './i18n/i18n.module';
 import { MedicinesModule } from './modules/medicines/medicines.module';
 import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
@@ -63,7 +64,7 @@ import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.mod
     DataExportModule,
     ...(process.env['NODE_ENV'] === 'test' ? [TestingSupportModule] : []),
   ],
-  controllers: [AppController],
+  controllers: [AppController, MetricsController],
   providers: [AppService],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration

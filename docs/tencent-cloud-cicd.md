@@ -1,6 +1,6 @@
 # Tencent Cloud CVM + TCR CI/CD 操作说明
 
-Last updated: 2026-06-11
+Last updated: 2026-06-13
 
 这份说明对应当前 Lucent 仓库里的 CI/CD 实现：
 
@@ -283,6 +283,19 @@ curl http://127.0.0.1:3000/api/v1/health
 ```
 
 如果一切正常，健康检查应该返回 200。
+
+更适合当前分层探针的检查方式是：
+
+```bash
+curl http://127.0.0.1:3000/api/v1/health/live
+curl http://127.0.0.1:3000/api/v1/health/ready
+curl http://127.0.0.1:3000/metrics
+```
+
+- `/api/v1/health/live` 用于判断进程是否还活着
+- `/api/v1/health/ready` 用于部署后依赖是否真正可用
+- `/metrics` 用于 Prometheus 抓取
+- `/api/v1/health/deep` 只适合人工诊断，不适合作为高频监控抓取端点
 
 注意：当前部署只使用 `latest` tag。失败时需要手工重新推送一个可用的 `latest`，或临时修改服务器 `.deploy-image.env` 里的 `LUCENT_IMAGE` 指向你明确知道可用的镜像 tag。
 
