@@ -97,6 +97,7 @@ enum DailyRecordKind {
   symptom
   activity
   note
+  sleep
 }
 
 enum DailyRecordAttachmentKind {

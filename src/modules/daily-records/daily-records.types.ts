@@ -28,6 +28,7 @@ export type DailyRecordShape = {
   value: string | null;
   unit: string | null;
   note: string | null;
+  payload: Prisma.JsonValue | null;
   source: string | null;
   createdAt: Date;
   updatedAt: Date;

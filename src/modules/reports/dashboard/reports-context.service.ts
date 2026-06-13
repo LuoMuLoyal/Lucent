@@ -54,6 +54,7 @@ export class ReportsContextService {
           kind: true,
           value: true,
           unit: true,
+          payload: true,
         },
         orderBy: { occurredAt: 'asc' },
       }),
@@ -71,7 +72,7 @@ export class ReportsContextService {
         endDate,
       ),
       waterSeries: this.buildWaterSeries(dailyRecords, startDate, endDate),
-      sleepSeries: this.buildSleepSeries(startDate, endDate),
+      sleepSeries: this.buildSleepSeries(dailyRecords, startDate, endDate),
     };
   }
 
@@ -137,8 +138,39 @@ export class ReportsContextService {
     });
   }
 
-  private buildSleepSeries(startDate: Date, endDate: Date): number[] {
-    return this.eachDay(startDate, endDate).map(() => 0);
+  private buildSleepSeries(
+    dailyRecords: Array<{
+      occurredAt: Date;
+      kind: string;
+      payload: unknown;
+    }>,
+    startDate: Date,
+    endDate: Date,
+  ): number[] {
+    const durationByDay = new Map<string, number>();
+
+    for (const record of dailyRecords) {
+      if (record.kind !== 'sleep') {
+        continue;
+      }
+
+      const payload = record.payload as Record<string, unknown> | null;
+      if (payload == null || typeof payload['durationMinutes'] !== 'number') {
+        continue;
+      }
+
+      const hours = Number((payload['durationMinutes'] / 60).toFixed(1));
+      if (hours <= 0) {
+        continue;
+      }
+
+      const day = this.toDateString(record.occurredAt);
+      durationByDay.set(day, hours);
+    }
+
+    return this.eachDay(startDate, endDate).map((date) => {
+      return durationByDay.get(this.toDateString(date)) ?? 0;
+    });
   }
 
   private parseWaterLiters(

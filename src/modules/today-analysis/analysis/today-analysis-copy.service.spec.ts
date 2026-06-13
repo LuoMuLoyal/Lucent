@@ -50,6 +50,13 @@ describe('TodayAnalysisCopyService', () => {
         recentRecords: [],
         sleep: {
           status: 'insufficient_data',
+          durationMinutes: null,
+          quality: null,
+          startAt: null,
+          endAt: null,
+          deepMinutes: null,
+          lightMinutes: null,
+          remMinutes: null,
         },
         lowRiskContext: {
           activeAllergyCount: 0,

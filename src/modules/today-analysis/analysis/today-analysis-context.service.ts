@@ -15,6 +15,7 @@ type DailyRecordShape = {
   value: string | null;
   unit: string | null;
   note: string | null;
+  payload: unknown;
   createdAt: Date;
 };
 
@@ -55,7 +56,14 @@ export interface TodayAnalysisContext {
     createdAt: string;
   }>;
   sleep: {
-    status: 'insufficient_data';
+    status: 'ok' | 'insufficient_data';
+    durationMinutes: number | null;
+    quality: string | null;
+    startAt: string | null;
+    endAt: string | null;
+    deepMinutes: number | null;
+    lightMinutes: number | null;
+    remMinutes: number | null;
   };
   lowRiskContext: {
     activeAllergyCount: number;
@@ -134,6 +142,7 @@ export class TodayAnalysisContextService {
           value: true,
           unit: true,
           note: true,
+          payload: true,
           createdAt: true,
         },
         orderBy: [{ createdAt: 'desc' }],
@@ -176,6 +185,7 @@ export class TodayAnalysisContextService {
     const recentRecords = dailyRecords
       .slice(0, MAX_RECENT_RECORDS)
       .map((record) => this.toRecentRecord(record));
+    const sleepData = this.buildSleepContext(dailyRecords);
 
     return {
       date,
@@ -204,9 +214,7 @@ export class TodayAnalysisContextService {
       },
       recordSummary,
       recentRecords,
-      sleep: {
-        status: 'insufficient_data',
-      },
+      sleep: sleepData,
       lowRiskContext: {
         activeAllergyCount,
         currentMedicineCount: currentMedicines.length,
@@ -224,6 +232,76 @@ export class TodayAnalysisContextService {
       kind,
       count,
     }));
+  }
+
+  private buildSleepContext(dailyRecords: DailyRecordShape[]): {
+    status: 'ok' | 'insufficient_data';
+    durationMinutes: number | null;
+    quality: string | null;
+    startAt: string | null;
+    endAt: string | null;
+    deepMinutes: number | null;
+    lightMinutes: number | null;
+    remMinutes: number | null;
+  } {
+    const emptyResult = {
+      status: 'insufficient_data' as const,
+      durationMinutes: null,
+      quality: null,
+      startAt: null,
+      endAt: null,
+      deepMinutes: null,
+      lightMinutes: null,
+      remMinutes: null,
+    };
+
+    const sleepRecord = dailyRecords.find(
+      (record) => record.kind === ('sleep' as DailyRecordKind),
+    );
+
+    if (sleepRecord == null) {
+      return emptyResult;
+    }
+
+    const payload = sleepRecord.payload as Record<string, unknown> | null;
+    if (payload == null) {
+      return emptyResult;
+    }
+
+    const durationMinutes =
+      typeof payload['durationMinutes'] === 'number'
+        ? payload['durationMinutes']
+        : null;
+    const quality =
+      typeof payload['quality'] === 'string' ? payload['quality'] : null;
+    const startAt =
+      typeof payload['startAt'] === 'string' ? payload['startAt'] : null;
+    const endAt =
+      typeof payload['endAt'] === 'string' ? payload['endAt'] : null;
+    const deepMinutes =
+      typeof payload['deepMinutes'] === 'number'
+        ? payload['deepMinutes']
+        : null;
+    const lightMinutes =
+      typeof payload['lightMinutes'] === 'number'
+        ? payload['lightMinutes']
+        : null;
+    const remMinutes =
+      typeof payload['remMinutes'] === 'number' ? payload['remMinutes'] : null;
+
+    return {
+      status:
+        durationMinutes != null && durationMinutes > 0
+          ? 'ok'
+          : 'insufficient_data',
+      durationMinutes,
+      quality,
+      startAt,
+      endAt,
+      deepMinutes,
+      lightMinutes,
+      remMinutes,
+    };
   }
 
   private toRecentRecord(record: DailyRecordShape) {

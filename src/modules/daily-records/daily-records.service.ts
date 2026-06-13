@@ -53,18 +53,26 @@ export class DailyRecordsService {
 
   async create(userId: string, dto: CreateDailyRecordDto) {
     const createAttachments = dto.attachments;
+
+    const baseData = {
+      userId,
+      kind: dto.kind,
+      occurredAt: new Date(`${dto.occurredAt}T00:00:00.000Z`),
+      title: dto.title?.trim() ?? null,
+      value: dto.value?.trim() ?? null,
+      unit: dto.unit?.trim() ?? null,
+      note: dto.note?.trim() ?? null,
+    };
+
+    const payloadField =
+      dto.payload === undefined
+        ? {}
+        : { payload: dto.payload as Prisma.InputJsonValue };
+
     if (createAttachments !== undefined && createAttachments.length > 0) {
       return this.prisma.$transaction(async (tx) => {
         const record = await tx.userDailyRecord.create({
-          data: {
-            userId,
-            kind: dto.kind,
-            occurredAt: new Date(`${dto.occurredAt}T00:00:00.000Z`),
-            title: dto.title?.trim() ?? null,
-            value: dto.value?.trim() ?? null,
-            unit: dto.unit?.trim() ?? null,
-            note: dto.note?.trim() ?? null,
-          },
+          data: { ...baseData, ...payloadField },
         });
         await tx.userDailyRecordAttachment.createMany({
           data: this.mapperService.toAttachmentCreateManyData(
@@ -78,15 +86,7 @@ export class DailyRecordsService {
     }
 
     const record = await this.prisma.userDailyRecord.create({
-      data: {
-        userId,
-        kind: dto.kind,
-        occurredAt: new Date(`${dto.occurredAt}T00:00:00.000Z`),
-        title: dto.title?.trim() ?? null,
-        value: dto.value?.trim() ?? null,
-        unit: dto.unit?.trim() ?? null,
-        note: dto.note?.trim() ?? null,
-      },
+      data: { ...baseData, ...payloadField },
       include: dailyRecordWithAttachments,
     });
 
