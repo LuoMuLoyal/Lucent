@@ -1,4 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  REPORT_SUPPORTED_RANGES,
+  type ReportRange,
+} from './report-dashboard-query.dto';
 
 export class ReportDashboardScoreDto {
   @ApiProperty()
@@ -97,9 +101,9 @@ export class ReportPatternDto {
 
 export class ReportDashboardDataDto {
   @ApiProperty({
-    enum: ['last_7_days'],
+    enum: REPORT_SUPPORTED_RANGES,
   })
-  range!: 'last_7_days';
+  range!: ReportRange;
 
   @ApiProperty()
   startDate!: string;

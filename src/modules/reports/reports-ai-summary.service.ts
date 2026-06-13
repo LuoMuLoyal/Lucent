@@ -7,9 +7,9 @@ import {
 import { ResultCode } from '../../common/api-envelope';
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
-  GenerateReportWeeklySummaryDto,
+  GenerateReportSummaryDto,
   ReportDashboardQueryDto,
-  ReportWeeklySummaryDataDto,
+  ReportSummaryDataDto,
 } from './dto';
 import {
   ReportsAiSummaryContextService,
@@ -20,7 +20,7 @@ import { ReportsAiSummaryGeneratorService } from './reports-ai-summary-generator
 import { ReportsAiSummaryPolicyService } from './reports-ai-summary-policy.service';
 import { ReportsComputationService } from './reports-computation.service';
 import { ReportsContextService } from './reports-context.service';
-import type { ReportWeeklySummaryStructuredOutput } from './schemas/report-weekly-summary.schema';
+import type { ReportSummaryStructuredOutput } from './schemas/report-summary.schema';
 
 @Injectable()
 export class ReportsAiSummaryService {
@@ -38,9 +38,9 @@ export class ReportsAiSummaryService {
 
   async generate(
     userId: string,
-    dto: GenerateReportWeeklySummaryDto,
+    dto: GenerateReportSummaryDto,
     language: string,
-  ): Promise<ReportWeeklySummaryDataDto> {
+  ): Promise<ReportSummaryDataDto> {
     const locale = this.reportsAiSummaryCopyService.resolveLocale(language);
     await this.assertAiSummariesEnabled(userId, locale);
 
@@ -96,7 +96,7 @@ export class ReportsAiSummaryService {
   private async generateStructuredOutput(
     context: ReportsAiSummaryContext,
     locale: string,
-  ): Promise<ReportWeeklySummaryStructuredOutput> {
+  ): Promise<ReportSummaryStructuredOutput> {
     try {
       const raw = await this.invokeModel(context, locale);
       if (this.reportsAiSummaryPolicyService.isSafe(raw)) {
@@ -104,12 +104,12 @@ export class ReportsAiSummaryService {
       }
 
       this.logger.warn(
-        `Weekly report summary policy rejected model output for ${context.startDate}..${context.endDate}; falling back`,
+        `Report summary policy rejected model output for ${context.startDate}..${context.endDate}; falling back`,
       );
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.logger.warn(
-        `Weekly report summary generation failed for ${context.startDate}..${context.endDate}; falling back: ${reason}`,
+        `Report summary generation failed for ${context.startDate}..${context.endDate}; falling back: ${reason}`,
       );
     }
 
@@ -119,7 +119,7 @@ export class ReportsAiSummaryService {
   private async invokeModel(
     context: ReportsAiSummaryContext,
     locale: string,
-  ): Promise<ReportWeeklySummaryStructuredOutput> {
+  ): Promise<ReportSummaryStructuredOutput> {
     return this.reportsAiSummaryGeneratorService.generate(
       context,
       this.reportsAiSummaryCopyService.buildPromptCopy(locale),

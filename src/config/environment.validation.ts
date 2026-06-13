@@ -62,6 +62,7 @@ export interface EnvironmentVariables {
   [EnvKey.TENCENT_COS_PUBLIC_BASE_URL]?: string;
   [EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS]?: number;
   [EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]?: number;
+  [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]?: string;
 }
 
 const optionalString = Joi.string().allow('').optional();
@@ -143,6 +144,9 @@ const envSchema = Joi.object<EnvironmentVariables>({
     .min(1)
     .max(50_000_000)
     .default(10_485_760),
+  [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]: Joi.string()
+    .valid('true', 'false')
+    .optional(),
 });
 
 const AI_ROLE_GROUPS = [

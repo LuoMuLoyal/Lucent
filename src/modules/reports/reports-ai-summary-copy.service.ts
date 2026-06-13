@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import type { ReportsAiSummaryContext } from './reports-ai-summary-context.service';
-import type { ReportWeeklySummaryStructuredOutput } from './schemas/report-weekly-summary.schema';
-import type { ReportWeeklySummaryPromptCopy } from './prompts/report-weekly-summary.prompt';
+import { REPORT_RANGE_LAST_30_DAYS } from './dto';
+import type { ReportSummaryStructuredOutput } from './schemas/report-summary.schema';
+import type { ReportSummaryPromptCopy } from './prompts/report-summary.prompt';
 
 @Injectable()
 export class ReportsAiSummaryCopyService {
@@ -28,7 +29,7 @@ export class ReportsAiSummaryCopyService {
     });
   }
 
-  buildPromptCopy(locale: string): ReportWeeklySummaryPromptCopy {
+  buildPromptCopy(locale: string): ReportSummaryPromptCopy {
     const actionLabel = this.i18n.t(
       'reports-ai-summary.fallback.action_label',
       {
@@ -65,7 +66,7 @@ export class ReportsAiSummaryCopyService {
   buildFallback(
     context: ReportsAiSummaryContext,
     locale: string,
-  ): ReportWeeklySummaryStructuredOutput {
+  ): ReportSummaryStructuredOutput {
     const medicationMetric = context.metrics.find(
       (metric) => metric.kind === 'medication',
     );
@@ -85,11 +86,17 @@ export class ReportsAiSummaryCopyService {
       'reports-ai-summary.fallback.confidence_note',
       {
         lang: locale,
+        args: {
+          dayCount: String(this.dayCount(context.range)),
+        },
       },
     );
 
     let summary = this.i18n.t('reports-ai-summary.fallback.summary_default', {
       lang: locale,
+      args: {
+        dayCount: String(this.dayCount(context.range)),
+      },
     });
     if (
       medicationMetric?.status === 'needs_attention' ||
@@ -100,6 +107,7 @@ export class ReportsAiSummaryCopyService {
         {
           lang: locale,
           args: {
+            dayCount: String(this.dayCount(context.range)),
             medicationValue: medicationMetric?.value ?? '--',
             waterValue: waterMetric?.value ?? '--',
           },
@@ -108,6 +116,9 @@ export class ReportsAiSummaryCopyService {
     } else if (medicationMetric?.status === 'good') {
       summary = this.i18n.t('reports-ai-summary.fallback.summary_stable', {
         lang: locale,
+        args: {
+          dayCount: String(this.dayCount(context.range)),
+        },
       });
     }
 
@@ -123,6 +134,7 @@ export class ReportsAiSummaryCopyService {
             {
               lang: locale,
               args: {
+                dayCount: String(this.dayCount(context.range)),
                 medicationTrackedDays,
                 medicationValue: medicationMetric?.value ?? '--',
               },
@@ -138,6 +150,7 @@ export class ReportsAiSummaryCopyService {
             {
               lang: locale,
               args: {
+                dayCount: String(this.dayCount(context.range)),
                 waterTrackedDays,
                 waterValue: waterMetric?.value ?? '--',
               },
@@ -153,6 +166,7 @@ export class ReportsAiSummaryCopyService {
             {
               lang: locale,
               args: {
+                dayCount: String(this.dayCount(context.range)),
                 sleepTrackedDays,
               },
             },
@@ -162,5 +176,9 @@ export class ReportsAiSummaryCopyService {
       actionLabel,
       confidenceNote,
     };
+  }
+
+  private dayCount(range: ReportsAiSummaryContext['range']): number {
+    return range === REPORT_RANGE_LAST_30_DAYS ? 30 : 7;
   }
 }

@@ -1,6 +1,6 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { LlmRuntimeService } from '../llm-runtime/llm-runtime.service';
-import { REPORT_RANGE_LAST_7_DAYS } from './dto';
+import { REPORT_RANGE_LAST_30_DAYS } from './dto';
 import { ReportsAiSummaryGeneratorService } from './reports-ai-summary-generator.service';
 
 describe('ReportsAiSummaryGeneratorService', () => {
@@ -23,8 +23,8 @@ describe('ReportsAiSummaryGeneratorService', () => {
 
     const result = await service.generate(
       {
-        range: REPORT_RANGE_LAST_7_DAYS,
-        startDate: '2026-06-06',
+        range: REPORT_RANGE_LAST_30_DAYS,
+        startDate: '2026-05-14',
         endDate: '2026-06-12',
         generatedAt: '2026-06-12T08:00:00.000Z',
         score: {
@@ -59,13 +59,13 @@ describe('ReportsAiSummaryGeneratorService', () => {
           },
         ],
         series: {
-          medication: [100, 50, 100, 0, 100, 50, 100],
-          water: [1.8, 1.4, 1.7, 1.2, 1.6, 1.1, 1.5],
-          sleep: [0, 0, 0, 0, 0, 0, 0],
+          medication: Array<number>(30).fill(80),
+          water: Array<number>(30).fill(1.6),
+          sleep: Array<number>(30).fill(0),
         },
         dataQuality: {
-          medicationTrackedDays: 6,
-          waterTrackedDays: 7,
+          medicationTrackedDays: 30,
+          waterTrackedDays: 30,
           sleepTrackedDays: 0,
         },
       },

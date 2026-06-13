@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { ReportWeeklySummaryStructuredOutput } from './schemas/report-weekly-summary.schema';
+import type { ReportSummaryStructuredOutput } from './schemas/report-summary.schema';
 
 const FORBIDDEN_PATTERNS = [
   /诊断/u,
@@ -28,7 +28,7 @@ const FORBIDDEN_PATTERNS = [
 
 @Injectable()
 export class ReportsAiSummaryPolicyService {
-  isSafe(output: ReportWeeklySummaryStructuredOutput): boolean {
+  isSafe(output: ReportSummaryStructuredOutput): boolean {
     const texts = [
       output.summary,
       ...output.bullets.map((bullet) => bullet.text),

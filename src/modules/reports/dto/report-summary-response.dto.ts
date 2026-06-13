@@ -1,7 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { REPORT_RANGE_LAST_7_DAYS } from './report-dashboard-query.dto';
+import {
+  REPORT_SUPPORTED_RANGES,
+  type ReportRange,
+} from './report-dashboard-query.dto';
 
-export class ReportWeeklySummaryBulletDto {
+export class ReportSummaryBulletDto {
   @ApiProperty({
     enum: ['medication', 'hydration', 'sleep', 'general'],
   })
@@ -11,11 +14,11 @@ export class ReportWeeklySummaryBulletDto {
   text!: string;
 }
 
-export class ReportWeeklySummaryDataDto {
+export class ReportSummaryDataDto {
   @ApiProperty({
-    enum: [REPORT_RANGE_LAST_7_DAYS],
+    enum: REPORT_SUPPORTED_RANGES,
   })
-  range!: 'last_7_days';
+  range!: ReportRange;
 
   @ApiProperty()
   startDate!: string;
@@ -29,8 +32,8 @@ export class ReportWeeklySummaryDataDto {
   @ApiProperty()
   summary!: string;
 
-  @ApiProperty({ type: () => ReportWeeklySummaryBulletDto, isArray: true })
-  bullets!: ReportWeeklySummaryBulletDto[];
+  @ApiProperty({ type: () => ReportSummaryBulletDto, isArray: true })
+  bullets!: ReportSummaryBulletDto[];
 
   @ApiProperty()
   actionLabel!: string;
@@ -39,13 +42,13 @@ export class ReportWeeklySummaryDataDto {
   confidenceNote!: string;
 }
 
-export class ReportWeeklySummaryResponseDto {
+export class ReportSummaryResponseDto {
   @ApiProperty({ example: 0 })
   code!: number;
 
   @ApiProperty({ example: '' })
   message!: string;
 
-  @ApiProperty({ type: () => ReportWeeklySummaryDataDto })
-  data!: ReportWeeklySummaryDataDto;
+  @ApiProperty({ type: () => ReportSummaryDataDto })
+  data!: ReportSummaryDataDto;
 }

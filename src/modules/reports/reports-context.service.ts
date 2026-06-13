@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { DoseLogStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { REPORT_RANGE_LAST_7_DAYS, type ReportDashboardQueryDto } from './dto';
+import {
+  REPORT_RANGE_LAST_30_DAYS,
+  REPORT_RANGE_LAST_7_DAYS,
+  type ReportDashboardQueryDto,
+} from './dto';
 import type { ReportDashboardFacts } from './reports.types';
 
 @Injectable()
@@ -14,8 +18,7 @@ export class ReportsContextService {
   ): Promise<ReportDashboardFacts> {
     const range = query.range ?? REPORT_RANGE_LAST_7_DAYS;
     const endDate = this.todayUtc();
-    const startDate = new Date(endDate);
-    startDate.setUTCDate(startDate.getUTCDate() - 6);
+    const startDate = this.resolveStartDate(endDate, range);
 
     const [settings, doseLogs, dailyRecords] = await Promise.all([
       this.prisma.userSetting.findFirst({
@@ -181,5 +184,15 @@ export class ReportsContextService {
 
   private toDateString(date: Date): string {
     return date.toISOString().slice(0, 10);
+  }
+
+  private resolveStartDate(
+    endDate: Date,
+    range: ReportDashboardFacts['range'],
+  ): Date {
+    const startDate = new Date(endDate);
+    const days = range === REPORT_RANGE_LAST_30_DAYS ? 30 : 7;
+    startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
+    return startDate;
   }
 }

@@ -5,10 +5,10 @@ import {
   type ReportRange,
 } from './report-dashboard-query.dto';
 
-export class GenerateReportWeeklySummaryDto {
+export class GenerateReportSummaryDto {
   @ApiPropertyOptional({
     enum: REPORT_SUPPORTED_RANGES,
-    description: 'Supported weekly summary aggregation range.',
+    description: 'Supported report summary aggregation range.',
   })
   @IsOptional()
   @IsIn(REPORT_SUPPORTED_RANGES)

@@ -46,6 +46,7 @@ export class ReportsComputationService {
       ],
       findings: this.presenter.buildFindings(
         {
+          range: facts.range,
           medicationSeries: facts.medicationSeries,
           waterSeries: facts.waterSeries,
           sleepStatus: sleepMetric.status,
@@ -54,6 +55,7 @@ export class ReportsComputationService {
       ),
       patterns: this.presenter.buildPatterns(
         {
+          range: facts.range,
           medicationSeries: facts.medicationSeries,
           waterSeries: facts.waterSeries,
           sleepSeries: facts.sleepSeries,

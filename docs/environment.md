@@ -169,7 +169,7 @@ Recommended role split:
 
 ## Runtime Notes
 
-- `pnpm export:openapi` disables `REDIS_URL` inside the export process so docs generation does not start Redis-backed cache or BullMQ connections.
+- `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect during app startup so contract generation does not require a live DB connection.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
 - When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; without it, cache falls back to memory.
 - Mail delivery uses BullMQ when `REDIS_URL` is set and immediate send when Redis is absent.

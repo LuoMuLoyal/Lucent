@@ -6,6 +6,7 @@ const { SwaggerModule } = require('@nestjs/swagger');
 
 async function main() {
   delete process.env.REDIS_URL;
+  process.env.OPENAPI_EXPORT_SKIP_DB_CONNECT = 'true';
 
   const { AppModule } = require('../dist/app.module.js');
   const { setupApp } = require('../dist/setup-app.js');
