@@ -36,6 +36,14 @@ const mockUserBase = {
   updatedAt: new Date('2026-05-28T00:00:00Z'),
 };
 
+function expectDefined<T>(value: T | undefined, message: string): T {
+  expect(value).toBeDefined();
+  if (value === undefined) {
+    throw new Error(message);
+  }
+  return value;
+}
+
 describe('UserHealthContextService', () => {
   let service: UserHealthContextService;
   let prismaService: jest.Mocked<PrismaService>;
@@ -262,7 +270,10 @@ describe('UserHealthContextService', () => {
       onboardingCompletedAt: '2026-05-01T08:00:00.000Z',
       extras: { preferredReminderHour: 9 },
     });
-    expect(result.allergies[0]).toEqual({
+    expect(result.allergies).toHaveLength(1);
+    expect(
+      expectDefined(result.allergies[0], 'Expected first allergy'),
+    ).toEqual({
       id: 'allergy-1',
       kind: UserAllergyKind.drug,
       label: 'Penicillin',
@@ -275,7 +286,10 @@ describe('UserHealthContextService', () => {
       createdAt: '2026-05-20T09:00:00.000Z',
       updatedAt: '2026-05-21T09:00:00.000Z',
     });
-    expect(result.conditions[0]).toEqual({
+    expect(result.conditions).toHaveLength(1);
+    expect(
+      expectDefined(result.conditions[0], 'Expected first condition'),
+    ).toEqual({
       id: 'condition-1',
       label: 'Asthma',
       status: UserConditionStatus.active,
@@ -286,7 +300,13 @@ describe('UserHealthContextService', () => {
       createdAt: '2024-02-01T00:00:00.000Z',
       updatedAt: '2026-05-18T00:00:00.000Z',
     });
-    expect(result.currentMedicines[0]).toEqual({
+    expect(result.currentMedicines).toHaveLength(1);
+    expect(
+      expectDefined(
+        result.currentMedicines[0],
+        'Expected first current medicine',
+      ),
+    ).toEqual({
       id: 'medicine-1',
       source: MedicineSource.drugbank,
       sourceRefId: 'DB01050',
@@ -663,7 +683,9 @@ describe('UserHealthContextService', () => {
       },
     });
     expect(result.allergies).toHaveLength(1);
-    expect(result.allergies[0].label).toBe('Penicillin');
+    expect(
+      expectDefined(result.allergies[0], 'Expected first allergy').label,
+    ).toBe('Penicillin');
   });
 
   it('should update an allergy and return the refreshed aggregate', async () => {
@@ -709,7 +731,9 @@ describe('UserHealthContextService', () => {
         reaction: null,
       }),
     });
-    expect(result.allergies[0].label).toBe('Penicillin Updated');
+    expect(
+      expectDefined(result.allergies[0], 'Expected updated allergy').label,
+    ).toBe('Penicillin Updated');
   });
 
   it('should soft-delete an allergy (set isActive=false)', async () => {
@@ -786,7 +810,9 @@ describe('UserHealthContextService', () => {
       },
     });
     expect(result.conditions).toHaveLength(1);
-    expect(result.conditions[0].label).toBe('Asthma');
+    expect(
+      expectDefined(result.conditions[0], 'Expected first condition').label,
+    ).toBe('Asthma');
   });
 
   it('should update a condition and return the refreshed aggregate', async () => {
@@ -828,8 +854,12 @@ describe('UserHealthContextService', () => {
         diagnosedAt: null,
       }),
     });
-    expect(result.conditions[0].label).toBe('Asthma Updated');
-    expect(result.conditions[0].status).toBe(UserConditionStatus.suspected);
+    const updatedCondition = expectDefined(
+      result.conditions[0],
+      'Expected updated condition',
+    );
+    expect(updatedCondition.label).toBe('Asthma Updated');
+    expect(updatedCondition.status).toBe(UserConditionStatus.suspected);
   });
 
   it('should soft-resolve a condition (set status=resolved)', async () => {
@@ -868,7 +898,9 @@ describe('UserHealthContextService', () => {
         resolvedAt: new Date('2026-06-03T00:00:00.000Z'),
       },
     });
-    expect(result.conditions[0].status).toBe(UserConditionStatus.resolved);
+    expect(
+      expectDefined(result.conditions[0], 'Expected resolved condition').status,
+    ).toBe(UserConditionStatus.resolved);
   });
 
   it('should throw NotFoundException when updating a foreign condition', async () => {
@@ -935,7 +967,12 @@ describe('UserHealthContextService', () => {
       }),
     });
     expect(result.currentMedicines).toHaveLength(1);
-    expect(result.currentMedicines[0].displayName).toBe('Ibuprofen');
+    expect(
+      expectDefined(
+        result.currentMedicines[0],
+        'Expected first current medicine',
+      ).displayName,
+    ).toBe('Ibuprofen');
   });
 
   it('should create a manual current medicine without sourceRefId', async () => {
@@ -979,8 +1016,12 @@ describe('UserHealthContextService', () => {
         displayName: 'Vitamin D',
       }),
     });
-    expect(result.currentMedicines[0].source).toBe(MedicineSource.manual);
-    expect(result.currentMedicines[0].sourceRefId).toBeNull();
+    const createdCurrentMedicine = expectDefined(
+      result.currentMedicines[0],
+      'Expected created current medicine',
+    );
+    expect(createdCurrentMedicine.source).toBe(MedicineSource.manual);
+    expect(createdCurrentMedicine.sourceRefId).toBeNull();
   });
 
   it('should update a current medicine', async () => {
@@ -1031,7 +1072,12 @@ describe('UserHealthContextService', () => {
         note: 'Updated note',
       }),
     });
-    expect(result.currentMedicines[0].displayName).toBe('Ibuprofen Updated');
+    expect(
+      expectDefined(
+        result.currentMedicines[0],
+        'Expected updated current medicine',
+      ).displayName,
+    ).toBe('Ibuprofen Updated');
   });
 
   it('should soft-delete a current medicine (set isCurrent=false)', async () => {

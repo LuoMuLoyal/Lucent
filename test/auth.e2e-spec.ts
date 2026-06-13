@@ -115,9 +115,12 @@ function uniqueEmail(): string {
 }
 
 let clientIpSeq = 0;
+const clientIpSeed = (Date.now() ^ process.pid) >>> 0;
 function uniqueClientIp(): string {
   clientIpSeq += 1;
-  return `198.51.100.${String(clientIpSeq)}`;
+  const thirdOctet = ((clientIpSeed + Math.floor(clientIpSeq / 250)) % 250) + 1;
+  const fourthOctet = ((clientIpSeed + clientIpSeq) % 250) + 1;
+  return `198.51.${String(thirdOctet)}.${String(fourthOctet)}`;
 }
 
 /** Assert envelope.data is not null and return typed data. */
@@ -214,17 +217,36 @@ describe('Auth API (e2e)', () => {
     scene: AuthScene,
     email: string,
   ): Promise<string> {
-    await request(app.getHttpServer())
-      .post(AUTH_PATH.sendVerificationCode)
-      .set('x-forwarded-for', uniqueClientIp())
-      .send({ email, scene })
-      .expect(200);
+    await sendVerificationCodeRequest(email, scene);
 
     const code = await getVerificationCode(scene, email);
     return expectDefined(
       code,
       `Verification code was not cached for ${scene}:${email}`,
     );
+  }
+
+  async function sendVerificationCodeRequest(
+    email: string,
+    scene: AuthScene,
+    clientIp = uniqueClientIp(),
+  ) {
+    await request(app.getHttpServer())
+      .post(AUTH_PATH.sendVerificationCode)
+      .set('x-forwarded-for', clientIp)
+      .send({ email, scene })
+      .expect(200);
+  }
+
+  async function forgotPasswordRequest(
+    email: string,
+    clientIp = uniqueClientIp(),
+  ) {
+    return request(app.getHttpServer())
+      .post(AUTH_PATH.forgotPassword)
+      .set('x-forwarded-for', clientIp)
+      .send({ email })
+      .expect(200);
   }
 
   async function seedVerificationCode(
@@ -362,10 +384,7 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
 
       // Send verification code (login scene)
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.sendVerificationCode)
-        .send({ email, scene: AUTH_SCENE.login })
-        .expect(200);
+      await sendVerificationCodeRequest(email, AUTH_SCENE.login);
 
       // Get code from cache
       const code = expectDefined(
@@ -509,6 +528,7 @@ describe('Auth API (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
+        .set('x-forwarded-for', uniqueClientIp())
         .send({ email, scene: AUTH_SCENE.register })
         .expect(200);
 
@@ -525,14 +545,17 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
 
       // First send
+      const clientIp = uniqueClientIp();
       await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
+        .set('x-forwarded-for', clientIp)
         .send({ email, scene: AUTH_SCENE.login })
         .expect(200);
 
       // Second send within cooldown
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
+        .set('x-forwarded-for', clientIp)
         .send({ email, scene: AUTH_SCENE.login })
         .expect(400);
 
@@ -541,7 +564,7 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should rate limit repeated requests from the same client', async () => {
-      const clientIp = '203.0.113.10';
+      const clientIp = uniqueClientIp();
 
       for (
         let index = 0;
@@ -609,10 +632,7 @@ describe('Auth API (e2e)', () => {
     it('should send reset code for existing email', async () => {
       const { email } = await registerUser();
 
-      const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.forgotPassword)
-        .send({ email })
-        .expect(200);
+      const res = await forgotPasswordRequest(email);
 
       const body = res.body as ApiEnvelope<{
         cooldown: number;
@@ -622,10 +642,7 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should return success even for non-existent email (anti-enumeration)', async () => {
-      const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.forgotPassword)
-        .send({ email: UNKNOWN_RESET_EMAIL })
-        .expect(200);
+      const res = await forgotPasswordRequest(UNKNOWN_RESET_EMAIL);
 
       const body = res.body as ApiEnvelope<{
         cooldown: number;
@@ -644,10 +661,7 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
 
       // Send forgot-password code
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.forgotPassword)
-        .send({ email })
-        .expect(200);
+      await forgotPasswordRequest(email);
 
       const code = expectDefined(
         await getVerificationCode(AUTH_SCENE.resetPassword, email),
@@ -815,10 +829,7 @@ describe('Auth API (e2e)', () => {
       const { tokens } = await registerUser();
       const newEmail = uniqueEmail();
 
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.sendVerificationCode)
-        .send({ email: newEmail, scene: AUTH_SCENE.changeEmail })
-        .expect(200);
+      await sendVerificationCodeRequest(newEmail, AUTH_SCENE.changeEmail);
 
       const code = expectDefined(
         await getVerificationCode(AUTH_SCENE.changeEmail, newEmail),
@@ -872,10 +883,7 @@ describe('Auth API (e2e)', () => {
           `${localPart.toUpperCase()}@${domain.toUpperCase()}`,
       );
 
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.sendVerificationCode)
-        .send({ email: mixedCaseEmail, scene: AUTH_SCENE.changeEmail })
-        .expect(200);
+      await sendVerificationCodeRequest(mixedCaseEmail, AUTH_SCENE.changeEmail);
 
       const code = expectDefined(
         await getVerificationCode(AUTH_SCENE.changeEmail, normalizedEmail),

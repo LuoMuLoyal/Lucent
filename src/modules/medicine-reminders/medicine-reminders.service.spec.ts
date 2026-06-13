@@ -162,7 +162,7 @@ describe('MedicineRemindersService', () => {
         { createdAt: 'asc' },
       ],
     });
-    expect(result.items[0].daysOfWeek).toEqual([2, 4]);
+    expect(result.items[0]?.daysOfWeek).toEqual([2, 4]);
   });
 
   it('should reject empty weekdays', async () => {

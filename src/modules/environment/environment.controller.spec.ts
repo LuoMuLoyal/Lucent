@@ -49,7 +49,7 @@ describe('EnvironmentController', () => {
     });
     service.getSnapshot.mockReturnValue(snapshot);
 
-    expect(controller.getSnapshot(query).data.regionHint).toBe(
+    expect(controller.getSnapshot(query).data?.regionHint).toBe(
       'China temperate latitude band',
     );
     expect(service.getSnapshot).toHaveBeenCalledWith(query);

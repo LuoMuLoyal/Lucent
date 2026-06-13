@@ -8,6 +8,18 @@ import type { TodayAnalysisContextService } from './today-analysis-context.servi
 import type { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
 import { TodayAnalysisPolicyService } from './today-analysis-policy.service';
 import { TodayAnalysisService } from './today-analysis.service';
+import type { TodayAnalysisStructuredOutput } from './today-analysis.schema';
+
+function invokeModelSpy(service: TodayAnalysisService) {
+  return jest.spyOn(
+    service as unknown as {
+      invokeModel: (
+        ...args: unknown[]
+      ) => Promise<TodayAnalysisStructuredOutput>;
+    },
+    'invokeModel',
+  );
+}
 
 describe('TodayAnalysisService', () => {
   const baseConfig: AiConfig = {
@@ -67,9 +79,7 @@ describe('TodayAnalysisService', () => {
       confidenceNote: '仅基于今日已记录数据生成，不构成诊断或治疗建议。',
     };
 
-    jest
-      .spyOn(service as never, 'invokeModel')
-      .mockResolvedValue(modelOutput as never);
+    invokeModelSpy(service).mockResolvedValue(modelOutput);
 
     const result = await service.generate(
       'u1',
@@ -83,7 +93,7 @@ describe('TodayAnalysisService', () => {
 
   it('falls back when policy rejects the model output', async () => {
     const service = createService();
-    jest.spyOn(service as never, 'invokeModel').mockResolvedValue({
+    invokeModelSpy(service).mockResolvedValue({
       summary: '建议停药并调整剂量。',
       bullets: [
         {
@@ -97,7 +107,7 @@ describe('TodayAnalysisService', () => {
       ],
       actionLabel: '查看今日记录',
       confidenceNote: '仅供参考。',
-    } as never);
+    });
 
     const result = await service.generate(
       'u1',
@@ -111,9 +121,7 @@ describe('TodayAnalysisService', () => {
 
   it('falls back when the model invocation throws', async () => {
     const service = createService();
-    jest
-      .spyOn(service as never, 'invokeModel')
-      .mockRejectedValue(new Error('model failed'));
+    invokeModelSpy(service).mockRejectedValue(new Error('model failed'));
 
     const result = await service.generate(
       'u1',
@@ -129,9 +137,7 @@ describe('TodayAnalysisService', () => {
 
   it('falls back in English when requested language is English', async () => {
     const service = createService();
-    jest
-      .spyOn(service as never, 'invokeModel')
-      .mockRejectedValue(new Error('model failed'));
+    invokeModelSpy(service).mockRejectedValue(new Error('model failed'));
 
     const result = await service.generate(
       'u1',

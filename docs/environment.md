@@ -55,6 +55,7 @@ pnpm start:dev
 
 | Command                         | Purpose                                                       |
 | ------------------------------- | ------------------------------------------------------------- |
+| `pnpm typecheck`                | Full TypeScript check for `src/`, `*.spec.ts`, and `test/`    |
 | `pnpm start` / `pnpm start:dev` | Development runtime with `NODE_ENV=development`               |
 | `pnpm start:test:dev`           | Test runtime with `NODE_ENV=test` for full-stack lane support |
 | `pnpm start:prod`               | Built production runtime with `NODE_ENV=production`           |
