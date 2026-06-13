@@ -1,9 +1,18 @@
 import { lastValueFrom, of } from 'rxjs';
 import { ApiEnvelopeInterceptor } from './api-envelope.interceptor';
 import { ResultCode } from '../api-envelope';
+import { SKIP_API_ENVELOPE_KEY } from './skip-api-envelope.decorator';
 
-function createMockExecutionContext() {
-  return {} as never;
+function createMockExecutionContext(handler?: object, targetClass?: object) {
+  const effectiveHandler = handler ?? function handler() {};
+  function EffectiveClass() {
+    return undefined;
+  }
+  const effectiveClass = targetClass ?? EffectiveClass;
+  return {
+    getHandler: () => effectiveHandler,
+    getClass: () => effectiveClass,
+  } as never;
 }
 
 function createMockCallHandler(data: unknown) {
@@ -109,5 +118,19 @@ describe('ApiEnvelopeInterceptor', () => {
       message: '',
       data: [1, 2, 3],
     });
+  });
+
+  it('should skip envelope wrapping when the handler is marked to bypass it', async () => {
+    const handler = {};
+    Reflect.defineMetadata(SKIP_API_ENVELOPE_KEY, true, handler);
+
+    const result = await lastValueFrom(
+      interceptor.intercept(
+        createMockExecutionContext(handler),
+        createMockCallHandler('plain-text'),
+      ),
+    );
+
+    expect(result).toBe('plain-text');
   });
 });
