@@ -410,4 +410,89 @@ describe('DailyRecordsService', () => {
       NotFoundException,
     );
   });
+
+  describe('sleep records', () => {
+    it('should create a sleep record with valid payload (wake-date convention)', async () => {
+      const sleepPayload = {
+        durationMinutes: 450,
+        startAt: '2026-06-12T23:00:00.000Z',
+        endAt: '2026-06-13T06:30:00.000Z',
+        quality: 'good',
+      };
+      (prisma.userDailyRecord.create as jest.Mock).mockResolvedValue({
+        id: 'rs1',
+        kind: 'sleep',
+        occurredAt: new Date('2026-06-13'), // wake date
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: sleepPayload,
+        source: 'manual',
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.create(mockUserId, {
+        kind: DailyRecordKind.sleep,
+        occurredAt: '2026-06-13', // wake date
+        payload: sleepPayload,
+      });
+
+      expect(result.kind).toBe('sleep');
+      expect(prisma.userDailyRecord.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            occurredAt: new Date('2026-06-13T00:00:00.000Z'),
+            payload: sleepPayload,
+          }),
+        }),
+      );
+    });
+
+    it('should reject a sleep record without durationMinutes', async () => {
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.sleep,
+          occurredAt: '2026-06-13',
+          payload: { quality: 'good' },
+        }),
+      ).rejects.toThrow(/durationMinutes/);
+    });
+
+    it('should reject a sleep record with zero durationMinutes', async () => {
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.sleep,
+          occurredAt: '2026-06-13',
+          payload: { durationMinutes: 0 },
+        }),
+      ).rejects.toThrow(/positive number/);
+    });
+
+    it('should reject a sleep record with negative durationMinutes', async () => {
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.sleep,
+          occurredAt: '2026-06-13',
+          payload: { durationMinutes: -30 },
+        }),
+      ).rejects.toThrow(/positive number/);
+    });
+
+    it('should validate sleep payload on update', async () => {
+      (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+        userId: mockUserId,
+        kind: 'sleep',
+        payload: { durationMinutes: 420 },
+      });
+
+      await expect(
+        service.update(mockUserId, 'rs1', {
+          payload: { durationMinutes: 0 },
+        }),
+      ).rejects.toThrow(/positive number/);
+    });
+  });
 });

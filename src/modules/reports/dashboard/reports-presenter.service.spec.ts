@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import type { I18nService } from 'nestjs-i18n';
 import { ReportsPresenterService } from './reports-presenter.service';
 
@@ -26,13 +27,22 @@ function createMockI18n(): I18nService {
       'Hydration was not consistent enough over the last {dayCount} days. Try to stabilize daily water intake first.',
     'reports-dashboard.patterns.sleep_title': 'Sleep trend',
     'reports-dashboard.patterns.sleep_body_insufficient':
-      'Sleep contract data is not persisted yet; only the missing state is kept.',
+      'Not enough sleep data in this period to assess a trend.',
+    'reports-dashboard.patterns.sleep_body_good':
+      'Sleep averaged {avgHours}h over the last {dayCount} days — a healthy duration. Keep the consistent rhythm.',
+    'reports-dashboard.patterns.sleep_body_stable':
+      'Sleep averaged {avgHours}h over the last {dayCount} days. Duration is acceptable but could be more consistent.',
+    'reports-dashboard.patterns.sleep_body_attention':
+      'Sleep averaged only {avgHours}h over the last {dayCount} days. Consider adjusting bedtime to improve rest.',
     'reports-dashboard.score.part_medication_good':
       'Medication completion was stable',
     'reports-dashboard.score.part_hydration_attention':
       'Hydration still has room to improve',
     'reports-dashboard.score.part_sleep_insufficient':
       'Sleep data is not sufficient yet',
+    'reports-dashboard.score.part_sleep_good': 'Sleep duration was healthy',
+    'reports-dashboard.score.part_sleep_attention':
+      'Sleep duration needs improvement',
     'reports-dashboard.score.default_summary':
       'The report data has been updated.',
   };
@@ -104,5 +114,51 @@ describe('ReportsPresenterService', () => {
     const score = service.buildScore(['stable', 'stable', 'stable'], 'en');
 
     expect(score.summary).toBe('The report data has been updated.');
+  });
+
+  it('builds sleep pattern with real data when series has values', () => {
+    const patterns = service.buildPatterns(
+      {
+        range: 'last_7_days',
+        medicationSeries: [0, 0, 0, 0, 0, 0, 0],
+        waterSeries: [0, 0, 0, 0, 0, 0, 0],
+        sleepSeries: [7.5, 8.0, 6.5, 7.0, 8.0, 7.5, 7.0],
+      },
+      'en',
+    );
+
+    const sleepPattern = patterns.find((p) => p.kind === 'sleep')!;
+    expect(sleepPattern.status).toBe('good');
+    expect(sleepPattern.body).toContain('7.4');
+    expect(sleepPattern.body).toContain('7');
+  });
+
+  it('sleep pattern falls back to insufficient when series is all zero', () => {
+    const patterns = service.buildPatterns(
+      {
+        range: 'last_7_days',
+        medicationSeries: [0, 0, 0, 0, 0, 0, 0],
+        waterSeries: [0, 0, 0, 0, 0, 0, 0],
+        sleepSeries: [0, 0, 0, 0, 0, 0, 0],
+      },
+      'en',
+    );
+
+    const sleepPattern = patterns.find((p) => p.kind === 'sleep')!;
+    expect(sleepPattern.status).toBe('insufficient_data');
+    expect(sleepPattern.body).toContain('Not enough sleep data');
+  });
+
+  it('sleep score summary includes good/attention parts when data exists', () => {
+    const goodScore = service.buildScore(['stable', 'stable', 'good'], 'en');
+    expect(goodScore.summary).toContain('Sleep duration was healthy');
+
+    const attentionScore = service.buildScore(
+      ['stable', 'stable', 'needs_attention'],
+      'en',
+    );
+    expect(attentionScore.summary).toContain(
+      'Sleep duration needs improvement',
+    );
   });
 });

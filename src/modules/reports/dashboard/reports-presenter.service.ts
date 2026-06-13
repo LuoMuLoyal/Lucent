@@ -175,14 +175,49 @@ export class ReportsPresenterService {
         title: this.i18n.t('reports-dashboard.patterns.sleep_title', {
           lang: locale,
         }),
-        status: 'insufficient_data',
-        body: this.i18n.t(
-          'reports-dashboard.patterns.sleep_body_insufficient',
-          { lang: locale },
+        status: this.sleepPatternStatus(input.sleepSeries),
+        body: this.buildSleepPatternBody(
+          input.sleepSeries,
+          input.range,
+          locale,
         ),
         sparkline: input.sleepSeries,
       },
     ];
+  }
+
+  private sleepPatternStatus(sleepSeries: number[]): MetricStatus {
+    const nonZeroDays = sleepSeries.filter((value) => value > 0);
+    if (nonZeroDays.length === 0) return 'insufficient_data';
+    const avg = nonZeroDays.reduce((sum, v) => sum + v, 0) / nonZeroDays.length;
+    if (avg >= 7) return 'good';
+    if (avg >= 5) return 'stable';
+    return 'needs_attention';
+  }
+
+  private buildSleepPatternBody(
+    sleepSeries: number[],
+    range: ReportRange,
+    locale: string,
+  ): string {
+    const status = this.sleepPatternStatus(sleepSeries);
+    if (status === 'insufficient_data') {
+      return this.i18n.t('reports-dashboard.patterns.sleep_body_insufficient', {
+        lang: locale,
+      });
+    }
+    const nonZeroDays = sleepSeries.filter((v) => v > 0);
+    const avg = (
+      nonZeroDays.reduce((sum, v) => sum + v, 0) / nonZeroDays.length
+    ).toFixed(1);
+    const bodyKey = `reports-dashboard.patterns.sleep_body_${status}`;
+    return this.i18n.t(bodyKey, {
+      lang: locale,
+      args: {
+        avgHours: avg,
+        dayCount: String(this.dayCount(range)),
+      },
+    });
   }
 
   private buildScoreSummary(statuses: MetricStatus[], locale: string): string {
@@ -208,6 +243,18 @@ export class ReportsPresenterService {
     if (sleepStatus === 'insufficient_data') {
       parts.push(
         this.i18n.t('reports-dashboard.score.part_sleep_insufficient', {
+          lang: locale,
+        }),
+      );
+    } else if (sleepStatus === 'good') {
+      parts.push(
+        this.i18n.t('reports-dashboard.score.part_sleep_good', {
+          lang: locale,
+        }),
+      );
+    } else if (sleepStatus === 'needs_attention') {
+      parts.push(
+        this.i18n.t('reports-dashboard.score.part_sleep_attention', {
           lang: locale,
         }),
       );
