@@ -10,8 +10,8 @@ import { successEnvelope } from '../../common/api-envelope';
 import { type UserPayload } from '../auth/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TodayAnalysisService } from './analysis/today-analysis.service';
 import { GenerateTodayAnalysisDto, TodayAnalysisResponseDto } from './dto';
-import { TodayAnalysisService } from './today-analysis.service';
 
 @ApiTags('Today Analysis')
 @ApiBearerAuth('access-token')

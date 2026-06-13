@@ -2,7 +2,7 @@ import {
   ForbiddenException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { AiConfig } from '../../config/ai.config';
+import type { AiConfig } from '../../../config/ai.config';
 import type { TodayAnalysisCopyService } from './today-analysis-copy.service';
 import type { TodayAnalysisContextService } from './today-analysis-context.service';
 import type { TodayAnalysisGeneratorService } from './today-analysis-generator.service';

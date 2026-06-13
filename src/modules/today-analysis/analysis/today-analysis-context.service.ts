@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import {
   DoseLogStatus,
   type DailyRecordKind,
-} from '../../generated/prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+} from '../../../generated/prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 const DEFAULT_WATER_TARGET_COUNT = 8;
 const MAX_RECENT_RECORDS = 8;
