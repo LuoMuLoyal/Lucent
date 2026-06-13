@@ -1,5 +1,5 @@
 import { ReportsService } from './reports.service';
-import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from './dto';
+import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from '../dto';
 import type { ReportsComputationService } from './reports-computation.service';
 import type { ReportsContextService } from './reports-context.service';
 

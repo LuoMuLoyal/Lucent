@@ -2,7 +2,7 @@ import {
   buildAiUserPrompt,
   type AiPromptCopy,
 } from '../../../common/ai/ai-copy';
-import type { ReportsAiSummaryContext } from '../reports-ai-summary-context.service';
+import type { ReportsAiSummaryContext } from './reports-ai-summary-context.service';
 
 export function buildReportSummarySystemPrompt(): string {
   return [

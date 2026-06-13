@@ -2,15 +2,15 @@ import {
   ForbiddenException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { AiConfig } from '../../config/ai.config';
-import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from './dto';
+import type { AiConfig } from '../../../config/ai.config';
+import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from '../dto';
 import type { ReportsAiSummaryContextService } from './reports-ai-summary-context.service';
 import type { ReportsAiSummaryCopyService } from './reports-ai-summary-copy.service';
 import type { ReportsAiSummaryGeneratorService } from './reports-ai-summary-generator.service';
 import { ReportsAiSummaryPolicyService } from './reports-ai-summary-policy.service';
 import { ReportsAiSummaryService } from './reports-ai-summary.service';
-import type { ReportsComputationService } from './reports-computation.service';
-import type { ReportsContextService } from './reports-context.service';
+import type { ReportsComputationService } from '../dashboard/reports-computation.service';
+import type { ReportsContextService } from '../dashboard/reports-context.service';
 
 describe('ReportsAiSummaryService', () => {
   const baseConfig: AiConfig = {

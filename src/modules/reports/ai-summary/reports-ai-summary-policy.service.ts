@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { ReportSummaryStructuredOutput } from './schemas/report-summary.schema';
+import type { ReportSummaryStructuredOutput } from './report-summary.schema';
 
 const FORBIDDEN_PATTERNS = [
   /诊断/u,

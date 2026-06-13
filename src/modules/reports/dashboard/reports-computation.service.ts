@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { ReportMetricDto } from './dto';
+import type { ReportMetricDto } from '../dto';
 import type {
   MetricDirection,
   MetricStatus,

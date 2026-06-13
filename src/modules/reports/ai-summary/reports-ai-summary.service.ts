@@ -4,13 +4,13 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { ResultCode } from '../../common/api-envelope';
-import { PrismaService } from '../../prisma/prisma.service';
+import { ResultCode } from '../../../common/api-envelope';
+import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   GenerateReportSummaryDto,
   ReportDashboardQueryDto,
   ReportSummaryDataDto,
-} from './dto';
+} from '../dto';
 import {
   ReportsAiSummaryContextService,
   type ReportsAiSummaryContext,
@@ -18,9 +18,9 @@ import {
 import { ReportsAiSummaryCopyService } from './reports-ai-summary-copy.service';
 import { ReportsAiSummaryGeneratorService } from './reports-ai-summary-generator.service';
 import { ReportsAiSummaryPolicyService } from './reports-ai-summary-policy.service';
-import { ReportsComputationService } from './reports-computation.service';
-import { ReportsContextService } from './reports-context.service';
-import type { ReportSummaryStructuredOutput } from './schemas/report-summary.schema';
+import { ReportsComputationService } from '../dashboard/reports-computation.service';
+import { ReportsContextService } from '../dashboard/reports-context.service';
+import type { ReportSummaryStructuredOutput } from './report-summary.schema';
 
 @Injectable()
 export class ReportsAiSummaryService {

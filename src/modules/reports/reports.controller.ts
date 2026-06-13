@@ -17,8 +17,8 @@ import {
   ReportDashboardResponseDto,
   ReportSummaryResponseDto,
 } from './dto';
-import { ReportsAiSummaryService } from './reports-ai-summary.service';
-import { ReportsService } from './reports.service';
+import { ReportsAiSummaryService } from './ai-summary/reports-ai-summary.service';
+import { ReportsService } from './dashboard/reports.service';
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')
