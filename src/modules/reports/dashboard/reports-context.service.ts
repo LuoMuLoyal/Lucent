@@ -138,6 +138,8 @@ export class ReportsContextService {
     });
   }
 
+  // Sleep date convention: `occurredAt` is the wake date. Each data point
+  // in the sleep series represents the sleep the user woke up on that day.
   private buildSleepSeries(
     dailyRecords: Array<{
       occurredAt: Date;

@@ -15,12 +15,17 @@
     "hydration_body_stable": "近 {dayCount} 天饮水有一定连续性，但仍建议继续巩固。",
     "hydration_body_attention": "近 {dayCount} 天饮水连续性不足，建议先稳定日常补水节奏。",
     "sleep_title": "睡眠趋势",
-    "sleep_body_insufficient": "睡眠合同尚未接入真实持久化数据，当前仅保留缺失状态。"
+    "sleep_body_good": "近 {dayCount} 天平均睡眠 {avgHours} 小时，时长较健康，继续保持固定作息。",
+    "sleep_body_stable": "近 {dayCount} 天平均睡眠 {avgHours} 小时，时长尚可，但可提升规律性。",
+    "sleep_body_attention": "近 {dayCount} 天平均睡眠仅 {avgHours} 小时，建议调整入睡时间以改善休息。",
+    "sleep_body_insufficient": "当前周期内睡眠数据不足，暂无法评估趋势。"
   },
   "score": {
     "part_medication_good": "本周用药完成较稳",
     "part_hydration_attention": "饮水仍有提升空间",
     "part_sleep_insufficient": "睡眠数据暂不足",
+    "part_sleep_good": "睡眠时长较健康",
+    "part_sleep_attention": "睡眠时长需改善",
     "default_summary": "报告数据已更新。"
   }
 }

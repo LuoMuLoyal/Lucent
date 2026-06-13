@@ -157,4 +157,72 @@ describe('ReportsService', () => {
       range: REPORT_RANGE_LAST_30_DAYS,
     });
   });
+
+  it('propagates sleep trend data through the dashboard', async () => {
+    const sleepSeries = [7.5, 8.0, 6.5, 7.0, 8.0, 7.5, 7.0];
+    const contextService = {
+      build: jest.fn().mockResolvedValue({
+        range: REPORT_RANGE_LAST_7_DAYS,
+        startDate: new Date('2026-06-06T00:00:00.000Z'),
+        endDate: new Date('2026-06-12T00:00:00.000Z'),
+        generatedAt: '2026-06-12T08:00:00.000Z',
+        aiSummaryEnabled: false,
+        medicationSeries: Array(7).fill(0),
+        waterSeries: Array(7).fill(0),
+        sleepSeries,
+      }),
+    } as unknown as ReportsContextService;
+    const computationService = {
+      compute: jest.fn().mockReturnValue({
+        score: {
+          value: 70,
+          maxValue: 100,
+          status: 'stable',
+          summary: 'Sleep was healthy.',
+        },
+        metrics: [
+          {
+            kind: 'sleep',
+            value: '7.4',
+            unit: 'h',
+            status: 'good',
+            delta: '-0.5',
+            direction: 'down',
+            sparkline: sleepSeries,
+          },
+        ],
+        trends: [
+          {
+            kind: 'sleep',
+            unit: 'h',
+            currentValue: '7.4',
+            values: sleepSeries,
+          },
+        ],
+        findings: [],
+        patterns: [
+          {
+            kind: 'sleep',
+            title: 'Sleep trend',
+            status: 'good',
+            body: 'Sleep averaged 7.4h over the last 7 days.',
+            sparkline: sleepSeries,
+          },
+        ],
+      }),
+    } as unknown as ReportsComputationService;
+    const service = new ReportsService(contextService, computationService);
+
+    const dashboard = await service.getDashboard(
+      'u1',
+      { range: REPORT_RANGE_LAST_7_DAYS },
+      'en',
+    );
+
+    expect(dashboard.trends).toHaveLength(1);
+    expect(dashboard.trends[0]?.kind).toBe('sleep');
+    expect(dashboard.trends[0]?.values).toEqual(sleepSeries);
+    expect(dashboard.metrics[0]?.status).toBe('good');
+    expect(dashboard.patterns[0]?.status).toBe('good');
+  });
 });

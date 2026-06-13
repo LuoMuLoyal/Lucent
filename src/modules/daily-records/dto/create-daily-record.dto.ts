@@ -20,7 +20,8 @@ export class CreateDailyRecordDto {
   kind!: DailyRecordKind;
 
   @ApiProperty({
-    description: 'Date in YYYY-MM-DD format.',
+    description:
+      'Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep).',
     example: '2026-06-04',
   })
   @IsDateString()
@@ -52,7 +53,7 @@ export class CreateDailyRecordDto {
 
   @ApiPropertyOptional({
     description:
-      'Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }.',
+      'Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. endAt is an ISO 8601 timestamp whose date component matches occurredAt (wake date). startAt is the bedtime ISO 8601 timestamp and may fall on the day before occurredAt for cross-midnight sleep.',
   })
   @IsOptional()
   @IsObject()

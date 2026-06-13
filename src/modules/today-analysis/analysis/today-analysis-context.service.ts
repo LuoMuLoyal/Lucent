@@ -234,6 +234,9 @@ export class TodayAnalysisContextService {
     }));
   }
 
+  // Sleep date convention: a sleep record's `occurredAt` is the wake date
+  // (the morning the user wakes up). Querying by `occurredAt = day` returns
+  // the sleep the user woke up on that calendar day.
   private buildSleepContext(dailyRecords: DailyRecordShape[]): {
     status: 'ok' | 'insufficient_data';
     durationMinutes: number | null;
