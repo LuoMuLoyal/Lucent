@@ -1,9 +1,9 @@
 {
   "findings": {
     "hydration_low_title": "饮水仍偏少",
-    "hydration_low_body": "近 7 天中有 {lowWaterDays} 天饮水低于 1.5L。",
+    "hydration_low_body": "近 {dayCount} 天中有 {lowWaterDays} 天饮水低于 1.5L。",
     "medication_stable_title": "用药执行较稳定",
-    "medication_stable_body": "近 7 天中有 {strongDays} 天用药完成率达到 80% 以上。",
+    "medication_stable_body": "近 {dayCount} 天中有 {strongDays} 天用药完成率达到 80% 以上。",
     "sleep_insufficient_title": "睡眠数据不足",
     "sleep_insufficient_body": "当前还没有稳定的睡眠合同数据，暂不展示真实睡眠趋势。"
   },
@@ -12,8 +12,8 @@
     "medication_body_good": "本周可见用药计划执行情况，适合继续保持固定节奏。",
     "medication_body_insufficient": "当前暂无足够用药计划数据来判断依从性趋势。",
     "hydration_title": "饮水趋势",
-    "hydration_body_stable": "本周饮水有一定连续性，但仍建议继续巩固。",
-    "hydration_body_attention": "近 7 天饮水连续性不足，建议先稳定日常补水节奏。",
+    "hydration_body_stable": "近 {dayCount} 天饮水有一定连续性，但仍建议继续巩固。",
+    "hydration_body_attention": "近 {dayCount} 天饮水连续性不足，建议先稳定日常补水节奏。",
     "sleep_title": "睡眠趋势",
     "sleep_body_insufficient": "睡眠合同尚未接入真实持久化数据，当前仅保留缺失状态。"
   },
@@ -21,6 +21,6 @@
     "part_medication_good": "本周用药完成较稳",
     "part_hydration_attention": "饮水仍有提升空间",
     "part_sleep_insufficient": "睡眠数据暂不足",
-    "default_summary": "本周报告数据已更新。"
+    "default_summary": "报告数据已更新。"
   }
 }

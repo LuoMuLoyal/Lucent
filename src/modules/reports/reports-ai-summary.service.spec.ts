@@ -3,7 +3,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { AiConfig } from '../../config/ai.config';
-import { REPORT_RANGE_LAST_7_DAYS } from './dto';
+import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from './dto';
 import type { ReportsAiSummaryContextService } from './reports-ai-summary-context.service';
 import type { ReportsAiSummaryCopyService } from './reports-ai-summary-copy.service';
 import type { ReportsAiSummaryGeneratorService } from './reports-ai-summary-generator.service';
@@ -255,9 +255,53 @@ describe('ReportsAiSummaryService', () => {
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
+  it('passes 30-day range through and returns monthly fallback copy', async () => {
+    const service = createService({
+      facts: {
+        ...baseFacts,
+        range: REPORT_RANGE_LAST_30_DAYS,
+        startDate: new Date('2026-05-14T00:00:00.000Z'),
+        medicationSeries: Array<number>(30).fill(100),
+        waterSeries: Array<number>(30).fill(1.6),
+        sleepSeries: Array<number>(30).fill(0),
+      },
+      context: {
+        ...baseAiContext,
+        range: REPORT_RANGE_LAST_30_DAYS,
+        startDate: '2026-05-14',
+        series: {
+          medication: Array<number>(30).fill(100),
+          water: Array<number>(30).fill(1.6),
+          sleep: Array<number>(30).fill(0),
+        },
+        dataQuality: {
+          medicationTrackedDays: 30,
+          waterTrackedDays: 30,
+          sleepTrackedDays: 0,
+        },
+      },
+    });
+
+    jest
+      .spyOn(service as never, 'invokeModel')
+      .mockRejectedValue(new Error('model failed'));
+
+    const result = await service.generate(
+      'u1',
+      { range: REPORT_RANGE_LAST_30_DAYS },
+      'zh-CN',
+    );
+
+    expect(result.range).toBe(REPORT_RANGE_LAST_30_DAYS);
+    expect(result.startDate).toBe('2026-05-14');
+    expect(result.confidenceNote).toContain('近 30 天');
+  });
+
   function createService(options?: {
     userSettingValue?: boolean;
     config?: AiConfig;
+    facts?: typeof baseFacts;
+    context?: typeof baseAiContext;
   }) {
     const prisma = {
       userSetting: {
@@ -268,13 +312,13 @@ describe('ReportsAiSummaryService', () => {
     };
 
     const reportsContextService = {
-      build: jest.fn().mockResolvedValue(baseFacts),
+      build: jest.fn().mockResolvedValue(options?.facts ?? baseFacts),
     } as unknown as ReportsContextService;
     const reportsComputationService = {
       compute: jest.fn().mockReturnValue(baseComputed),
     } as unknown as ReportsComputationService;
     const reportsAiSummaryContextService = {
-      build: jest.fn().mockReturnValue(baseAiContext),
+      build: jest.fn().mockReturnValue(options?.context ?? baseAiContext),
     } as unknown as ReportsAiSummaryContextService;
     const reportsAiSummaryCopyService = {
       resolveLocale: jest.fn((language: string | undefined) => {
@@ -294,8 +338,8 @@ describe('ReportsAiSummaryService', () => {
       buildPromptCopy: jest.fn((locale: string) => ({
         userIntro:
           locale === 'zh-CN'
-            ? '请基于提供的 JSON 事实生成一段简短的中文周报总结。'
-            : 'Generate a brief English weekly summary for the supplied JSON facts.',
+            ? '请基于提供的 JSON 事实生成一段简短的中文报告总结。'
+            : 'Generate a brief English report summary for the supplied JSON facts.',
         tone:
           locale === 'zh-CN'
             ? '语气保持平静、具体，不要做诊断。'
@@ -308,50 +352,60 @@ describe('ReportsAiSummaryService', () => {
       })),
       buildFallback: jest.fn(
         (context: typeof baseAiContext, locale: string) => {
+          const dayLabel =
+            context.range === REPORT_RANGE_LAST_30_DAYS ? '30' : '7';
           if (locale === 'zh-CN') {
             return {
               summary:
-                '本周记录已更新，饮水和用药可以继续按当前节奏补稳，睡眠数据仍待补充。',
+                context.range === REPORT_RANGE_LAST_30_DAYS
+                  ? '本月记录已更新，饮水和用药可以继续按当前节奏补稳，睡眠数据仍待补充。'
+                  : '本周记录已更新，饮水和用药可以继续按当前节奏补稳，睡眠数据仍待补充。',
               bullets: [
                 {
                   kind: 'medication' as const,
-                  text: `近 7 天里有 ${String(context.dataQuality.medicationTrackedDays)} 天有用药记录，可继续保持固定节奏。`,
+                  text: `近 ${dayLabel} 天里有 ${String(context.dataQuality.medicationTrackedDays)} 天有用药记录，可继续保持固定节奏。`,
                 },
                 {
                   kind: 'hydration' as const,
-                  text: `近 7 天饮水均值约 ${context.metrics[1]?.value ?? '--'}L，仍建议把偏低的几天补齐。`,
+                  text: `近 ${dayLabel} 天饮水均值约 ${context.metrics[1]?.value ?? '--'}L，仍建议把偏低的几天补齐。`,
                 },
                 {
                   kind: 'sleep' as const,
-                  text: '当前仍缺少真实睡眠数据，补上后周报会更完整。',
+                  text:
+                    context.range === REPORT_RANGE_LAST_30_DAYS
+                      ? '当前仍缺少真实睡眠数据，补上后月报会更完整。'
+                      : '当前仍缺少真实睡眠数据，补上后周报会更完整。',
                 },
               ],
               actionLabel: '查看报告',
-              confidenceNote:
-                '仅基于近 7 天已记录数据生成，不构成诊断或治疗建议。',
+              confidenceNote: `仅基于近 ${dayLabel} 天已记录数据生成，不构成诊断或治疗建议。`,
             };
           }
 
           return {
             summary:
-              'This week has enough records to review medication and hydration, while sleep data is still missing.',
+              context.range === REPORT_RANGE_LAST_30_DAYS
+                ? 'This month has enough records to review medication and hydration, while sleep data is still missing.'
+                : 'This week has enough records to review medication and hydration, while sleep data is still missing.',
             bullets: [
               {
                 kind: 'medication' as const,
-                text: `${String(context.dataQuality.medicationTrackedDays)} of the last 7 days contain medication records. Keep the current rhythm steady.`,
+                text: '${String(context.dataQuality.medicationTrackedDays)} of the last $dayLabel days contain medication records. Keep the current rhythm steady.',
               },
               {
                 kind: 'hydration' as const,
-                text: `Average water intake was about ${context.metrics[1]?.value ?? '--'}L across the last 7 days, and a few lower days are still worth filling in.`,
+                text: `Average water intake was about ${context.metrics[1]?.value ?? '--'}L across the last ${dayLabel} days, and a few lower days are still worth filling in.`,
               },
               {
                 kind: 'sleep' as const,
-                text: 'Sleep data is still missing, so the weekly summary remains limited.',
+                text:
+                  context.range === REPORT_RANGE_LAST_30_DAYS
+                    ? 'Sleep data is still missing, so the monthly summary remains limited.'
+                    : 'Sleep data is still missing, so the weekly summary remains limited.',
               },
             ],
             actionLabel: 'View report',
-            confidenceNote:
-              'Generated only from the last 7 days of recorded data. This is not a diagnosis or treatment advice.',
+            confidenceNote: `Generated only from the last ${dayLabel} days of recorded data. This is not a diagnosis or treatment advice.`,
           };
         },
       ),

@@ -1957,7 +1957,8 @@
               "default": "last_7_days",
               "type": "string",
               "enum": [
-                "last_7_days"
+                "last_7_days",
+                "last_30_days"
               ]
             }
           }
@@ -1985,16 +1986,16 @@
         ]
       }
     },
-    "/api/v1/user/reports/weekly-summary/generate": {
+    "/api/v1/user/reports/summary/generate": {
       "post": {
-        "operationId": "ReportsController_generateWeeklySummary_v1",
+        "operationId": "ReportsController_generateSummary_v1",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GenerateReportWeeklySummaryDto"
+                "$ref": "#/components/schemas/GenerateReportSummaryDto"
               }
             }
           }
@@ -2005,7 +2006,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReportWeeklySummaryResponseDto"
+                  "$ref": "#/components/schemas/ReportSummaryResponseDto"
                 }
               }
             }
@@ -2016,7 +2017,7 @@
             "access-token": []
           }
         ],
-        "summary": "Generate authenticated user weekly AI summary for report",
+        "summary": "Generate authenticated user AI summary for report",
         "tags": [
           "Reports"
         ]
@@ -5863,7 +5864,8 @@
           "range": {
             "type": "string",
             "enum": [
-              "last_7_days"
+              "last_7_days",
+              "last_30_days"
             ]
           },
           "startDate": {
@@ -5940,19 +5942,20 @@
           "data"
         ]
       },
-      "GenerateReportWeeklySummaryDto": {
+      "GenerateReportSummaryDto": {
         "type": "object",
         "properties": {
           "range": {
             "type": "string",
             "enum": [
-              "last_7_days"
+              "last_7_days",
+              "last_30_days"
             ],
-            "description": "Supported weekly summary aggregation range."
+            "description": "Supported report summary aggregation range."
           }
         }
       },
-      "ReportWeeklySummaryBulletDto": {
+      "ReportSummaryBulletDto": {
         "type": "object",
         "properties": {
           "kind": {
@@ -5973,13 +5976,14 @@
           "text"
         ]
       },
-      "ReportWeeklySummaryDataDto": {
+      "ReportSummaryDataDto": {
         "type": "object",
         "properties": {
           "range": {
             "type": "string",
             "enum": [
-              "last_7_days"
+              "last_7_days",
+              "last_30_days"
             ]
           },
           "startDate": {
@@ -5997,7 +6001,7 @@
           "bullets": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ReportWeeklySummaryBulletDto"
+              "$ref": "#/components/schemas/ReportSummaryBulletDto"
             }
           },
           "actionLabel": {
@@ -6018,7 +6022,7 @@
           "confidenceNote"
         ]
       },
-      "ReportWeeklySummaryResponseDto": {
+      "ReportSummaryResponseDto": {
         "type": "object",
         "properties": {
           "code": {
@@ -6030,7 +6034,7 @@
             "example": ""
           },
           "data": {
-            "$ref": "#/components/schemas/ReportWeeklySummaryDataDto"
+            "$ref": "#/components/schemas/ReportSummaryDataDto"
           }
         },
         "required": [

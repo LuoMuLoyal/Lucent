@@ -2,15 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { LlmRuntimeService } from '../llm-runtime/llm-runtime.service';
 import {
-  buildReportWeeklySummarySystemPrompt,
-  buildReportWeeklySummaryUserPrompt,
-  type ReportWeeklySummaryPromptCopy,
-} from './prompts/report-weekly-summary.prompt';
+  buildReportSummarySystemPrompt,
+  buildReportSummaryUserPrompt,
+  type ReportSummaryPromptCopy,
+} from './prompts/report-summary.prompt';
 import type { ReportsAiSummaryContext } from './reports-ai-summary-context.service';
 import {
-  reportWeeklySummarySchema,
-  type ReportWeeklySummaryStructuredOutput,
-} from './schemas/report-weekly-summary.schema';
+  reportSummarySchema,
+  type ReportSummaryStructuredOutput,
+} from './schemas/report-summary.schema';
 
 @Injectable()
 export class ReportsAiSummaryGeneratorService {
@@ -22,23 +22,23 @@ export class ReportsAiSummaryGeneratorService {
 
   async generate(
     context: ReportsAiSummaryContext,
-    promptCopy: ReportWeeklySummaryPromptCopy,
-  ): Promise<ReportWeeklySummaryStructuredOutput> {
+    promptCopy: ReportSummaryPromptCopy,
+  ): Promise<ReportSummaryStructuredOutput> {
     const model = this.llmRuntimeService
       .createChatModel('analysis', {
         timeout: 10_000,
         temperature: 0.2,
         maxRetries: 0,
       })
-      .withStructuredOutput(reportWeeklySummarySchema, {
-        name: 'ReportWeeklySummary',
+      .withStructuredOutput(reportSummarySchema, {
+        name: 'ReportSummary',
         method: 'functionCalling',
         strict: true,
       });
 
     return model.invoke([
-      new SystemMessage(buildReportWeeklySummarySystemPrompt()),
-      new HumanMessage(buildReportWeeklySummaryUserPrompt(context, promptCopy)),
+      new SystemMessage(buildReportSummarySystemPrompt()),
+      new HumanMessage(buildReportSummaryUserPrompt(context, promptCopy)),
     ]);
   }
 }

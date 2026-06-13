@@ -5,11 +5,11 @@ function createMockI18n(): I18nService {
   const en: Record<string, string> = {
     'reports-dashboard.findings.hydration_low_title': 'Hydration still low',
     'reports-dashboard.findings.hydration_low_body':
-      '{lowWaterDays} of the last 7 days had water intake below 1.5 L.',
+      '{lowWaterDays} of the last {dayCount} days had water intake below 1.5 L.',
     'reports-dashboard.findings.medication_stable_title':
       'Medication adherence is stable',
     'reports-dashboard.findings.medication_stable_body':
-      '{strongDays} of the last 7 days reached at least 80% medication completion.',
+      '{strongDays} of the last {dayCount} days reached at least 80% medication completion.',
     'reports-dashboard.findings.sleep_insufficient_title':
       'Not enough sleep data',
     'reports-dashboard.findings.sleep_insufficient_body':
@@ -23,7 +23,7 @@ function createMockI18n(): I18nService {
     'reports-dashboard.patterns.hydration_body_stable':
       'Hydration had some consistency this week. Keep reinforcing the habit.',
     'reports-dashboard.patterns.hydration_body_attention':
-      'Hydration was not consistent enough over the last 7 days. Try to stabilize daily water intake first.',
+      'Hydration was not consistent enough over the last {dayCount} days. Try to stabilize daily water intake first.',
     'reports-dashboard.patterns.sleep_title': 'Sleep trend',
     'reports-dashboard.patterns.sleep_body_insufficient':
       'Sleep contract data is not persisted yet; only the missing state is kept.',
@@ -34,7 +34,7 @@ function createMockI18n(): I18nService {
     'reports-dashboard.score.part_sleep_insufficient':
       'Sleep data is not sufficient yet',
     'reports-dashboard.score.default_summary':
-      "This week's report data has been updated.",
+      'The report data has been updated.',
   };
   return {
     t: (key: string, opts?: { args?: Record<string, string> }) => {
@@ -67,6 +67,7 @@ describe('ReportsPresenterService', () => {
   it('builds findings and patterns from computed series', () => {
     const findings = service.buildFindings(
       {
+        range: 'last_7_days',
         medicationSeries: [80, 90, 85, 90, 88, 0, 0],
         waterSeries: [1.0, 1.2, 1.1, 1.3, 1.4, 1.8, 2.0],
         sleepStatus: 'insufficient_data',
@@ -75,6 +76,7 @@ describe('ReportsPresenterService', () => {
     );
     const patterns = service.buildPatterns(
       {
+        range: 'last_7_days',
         medicationSeries: [80, 90, 85, 90, 88, 0, 0],
         waterSeries: [1.0, 1.2, 1.1, 1.3, 1.4, 1.8, 2.0],
         sleepSeries: [0, 0, 0, 0, 0, 0, 0],
@@ -101,6 +103,6 @@ describe('ReportsPresenterService', () => {
   it('returns default summary when no conditions match', () => {
     const score = service.buildScore(['stable', 'stable', 'stable'], 'en');
 
-    expect(score.summary).toBe("This week's report data has been updated.");
+    expect(score.summary).toBe('The report data has been updated.');
   });
 });

@@ -1,5 +1,5 @@
 import { ReportsService } from './reports.service';
-import { REPORT_RANGE_LAST_7_DAYS } from './dto';
+import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from './dto';
 import type { ReportsComputationService } from './reports-computation.service';
 import type { ReportsContextService } from './reports-context.service';
 
@@ -115,5 +115,46 @@ describe('ReportsService', () => {
       expect.anything(),
       'en',
     );
+  });
+
+  it('passes 30-day range through to the context service', async () => {
+    const contextService = {
+      build: jest.fn().mockResolvedValue({
+        range: REPORT_RANGE_LAST_30_DAYS,
+        startDate: new Date('2026-05-14T00:00:00.000Z'),
+        endDate: new Date('2026-06-12T00:00:00.000Z'),
+        generatedAt: '2026-06-12T08:00:00.000Z',
+        aiSummaryEnabled: true,
+        medicationSeries: Array(30).fill(100),
+        waterSeries: Array(30).fill(1.8),
+        sleepSeries: Array(30).fill(0),
+      }),
+    } as unknown as ReportsContextService;
+    const computationService = {
+      compute: jest.fn().mockReturnValue({
+        score: {
+          value: 88,
+          maxValue: 100,
+          status: 'good',
+          summary: '报告数据已更新。',
+        },
+        metrics: [],
+        trends: [],
+        findings: [],
+        patterns: [],
+      }),
+    } as unknown as ReportsComputationService;
+    const service = new ReportsService(contextService, computationService);
+
+    const dashboard = await service.getDashboard(
+      'u1',
+      { range: REPORT_RANGE_LAST_30_DAYS },
+      'zh-CN',
+    );
+
+    expect(dashboard.range).toBe(REPORT_RANGE_LAST_30_DAYS);
+    expect(contextService.build).toHaveBeenCalledWith('u1', {
+      range: REPORT_RANGE_LAST_30_DAYS,
+    });
   });
 });

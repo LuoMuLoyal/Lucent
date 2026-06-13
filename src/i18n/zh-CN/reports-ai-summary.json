@@ -1,21 +1,21 @@
 {
-  "service_unavailable": "周报 AI 总结服务尚未配置",
+  "service_unavailable": "报告 AI 总结服务尚未配置",
   "summaries_disabled": "该用户已关闭 AI 总结",
   "fallback": {
     "action_label": "查看报告",
-    "confidence_note": "仅基于近 7 天已记录数据生成，不构成诊断或治疗建议。",
-    "summary_default": "本周记录已更新，可先根据已有记录继续补稳日常节奏。",
-    "summary_needs_attention": "本周用药完成率约为 {medicationValue}%，饮水均值约为 {waterValue}L，仍有一些基础习惯值得继续补稳。",
-    "summary_stable": "本周用药记录整体较稳，饮水也有一定连续性，可以继续按当前节奏保持。",
-    "bullet_medication_tracked": "近 7 天里有 {medicationTrackedDays} 天有用药记录，当前完成表现约为 {medicationValue}%。",
-    "bullet_medication_missing": "近 7 天还没有足够的用药记录，后续补记后周报会更稳定。",
-    "bullet_hydration_tracked": "近 7 天饮水均值约 {waterValue}L，建议继续把偏低的几天补稳。",
-    "bullet_hydration_missing": "近 7 天还缺少足够的饮水记录，先把日常补水节奏记录起来会更有参考价值。",
-    "bullet_sleep_tracked": "近 7 天已有 {sleepTrackedDays} 天睡眠数据，后续可以继续保持记录连续性。",
-    "bullet_sleep_missing": "当前仍缺少真实睡眠数据，补上后周报会更完整。"
+    "confidence_note": "仅基于近 {dayCount} 天已记录数据生成，不构成诊断或治疗建议。",
+    "summary_default": "近 {dayCount} 天记录已更新，可先根据已有记录继续补稳日常节奏。",
+    "summary_needs_attention": "近 {dayCount} 天用药完成率约为 {medicationValue}%，饮水均值约为 {waterValue}L，仍有一些基础习惯值得继续补稳。",
+    "summary_stable": "近 {dayCount} 天用药记录整体较稳，饮水也有一定连续性，可以继续按当前节奏保持。",
+    "bullet_medication_tracked": "近 {dayCount} 天里有 {medicationTrackedDays} 天有用药记录，当前完成表现约为 {medicationValue}%。",
+    "bullet_medication_missing": "近 {dayCount} 天还没有足够的用药记录，后续补记后总结会更稳定。",
+    "bullet_hydration_tracked": "近 {dayCount} 天饮水均值约 {waterValue}L，建议继续把偏低的几天补稳。",
+    "bullet_hydration_missing": "近 {dayCount} 天还缺少足够的饮水记录，先把日常补水节奏记录起来会更有参考价值。",
+    "bullet_sleep_tracked": "近 {dayCount} 天已有 {sleepTrackedDays} 天睡眠数据，后续可以继续保持记录连续性。",
+    "bullet_sleep_missing": "当前仍缺少真实睡眠数据，补上后总结会更完整。"
   },
   "prompt": {
-    "user_intro": "请基于提供的 JSON 事实生成一段简短的{languageLabel}周报总结。",
+    "user_intro": "请基于提供的 JSON 事实生成一段简短的{languageLabel}报告总结。",
     "tone": "语气保持平静、具体，不要做诊断。",
     "action_label_hint": "actionLabel 应尽量贴近“{actionLabel}”。",
     "facts_label": "事实 JSON："

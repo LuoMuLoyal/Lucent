@@ -12,10 +12,10 @@ import { type UserPayload } from '../auth/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
-  GenerateReportWeeklySummaryDto,
+  GenerateReportSummaryDto,
   ReportDashboardQueryDto,
   ReportDashboardResponseDto,
-  ReportWeeklySummaryResponseDto,
+  ReportSummaryResponseDto,
 } from './dto';
 import { ReportsAiSummaryService } from './reports-ai-summary.service';
 import { ReportsService } from './reports.service';
@@ -43,14 +43,14 @@ export class ReportsController {
     );
   }
 
-  @Post('weekly-summary/generate')
+  @Post('summary/generate')
   @ApiOperation({
-    summary: 'Generate authenticated user weekly AI summary for report',
+    summary: 'Generate authenticated user AI summary for report',
   })
-  @ApiResponse({ status: 200, type: ReportWeeklySummaryResponseDto })
-  async generateWeeklySummary(
+  @ApiResponse({ status: 200, type: ReportSummaryResponseDto })
+  async generateSummary(
     @CurrentUser() user: UserPayload,
-    @Body() dto: GenerateReportWeeklySummaryDto,
+    @Body() dto: GenerateReportSummaryDto,
     @I18nLang() language: string,
   ) {
     return successEnvelope(

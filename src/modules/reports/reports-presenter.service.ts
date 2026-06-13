@@ -4,6 +4,7 @@ import type {
   ReportDashboardDataDto,
   ReportFindingDto,
   ReportPatternDto,
+  ReportRange,
 } from './dto';
 import type { MetricStatus } from './reports.types';
 
@@ -53,6 +54,7 @@ export class ReportsPresenterService {
 
   buildFindings(
     input: {
+      range: ReportRange;
       medicationSeries: number[];
       waterSeries: number[];
       sleepStatus: MetricStatus;
@@ -72,7 +74,10 @@ export class ReportsPresenterService {
         }),
         body: this.i18n.t('reports-dashboard.findings.hydration_low_body', {
           lang: locale,
-          args: { lowWaterDays: String(lowWaterDays) },
+          args: {
+            lowWaterDays: String(lowWaterDays),
+            dayCount: String(this.dayCount(input.range)),
+          },
         }),
       });
     }
@@ -89,7 +94,10 @@ export class ReportsPresenterService {
         ),
         body: this.i18n.t('reports-dashboard.findings.medication_stable_body', {
           lang: locale,
-          args: { strongDays: String(medicationStrongDays) },
+          args: {
+            strongDays: String(medicationStrongDays),
+            dayCount: String(this.dayCount(input.range)),
+          },
         }),
       });
     }
@@ -113,6 +121,7 @@ export class ReportsPresenterService {
 
   buildPatterns(
     input: {
+      range: ReportRange;
       medicationSeries: number[];
       waterSeries: number[];
       sleepSeries: number[];
@@ -149,9 +158,15 @@ export class ReportsPresenterService {
         body: waterGood
           ? this.i18n.t('reports-dashboard.patterns.hydration_body_stable', {
               lang: locale,
+              args: {
+                dayCount: String(this.dayCount(input.range)),
+              },
             })
           : this.i18n.t('reports-dashboard.patterns.hydration_body_attention', {
               lang: locale,
+              args: {
+                dayCount: String(this.dayCount(input.range)),
+              },
             }),
         sparkline: input.waterSeries,
       },
@@ -207,5 +222,9 @@ export class ReportsPresenterService {
     return this.i18n.t('reports-dashboard.score.default_summary', {
       lang: locale,
     });
+  }
+
+  private dayCount(range: ReportRange): number {
+    return range === 'last_30_days' ? 30 : 7;
   }
 }

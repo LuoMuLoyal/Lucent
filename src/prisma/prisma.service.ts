@@ -21,6 +21,9 @@ export class PrismaService
   }
 
   async onModuleInit() {
+    if (process.env[EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT] === 'true') {
+      return;
+    }
     await this.$connect();
   }
 

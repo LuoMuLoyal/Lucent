@@ -1,8 +1,8 @@
 import type { ReportsAiSummaryContext } from '../reports-ai-summary-context.service';
 
-export function buildReportWeeklySummarySystemPrompt(): string {
+export function buildReportSummarySystemPrompt(): string {
   return [
-    'You are generating a low-risk weekly health summary for a university student.',
+    'You are generating a low-risk health report summary for a university student.',
     'Use only the supplied JSON facts.',
     'Do not invent missing data.',
     'Do not diagnose diseases.',
@@ -14,16 +14,16 @@ export function buildReportWeeklySummarySystemPrompt(): string {
   ].join(' ');
 }
 
-export interface ReportWeeklySummaryPromptCopy {
+export interface ReportSummaryPromptCopy {
   userIntro: string;
   tone: string;
   actionLabelHint: string;
   factsLabel: string;
 }
 
-export function buildReportWeeklySummaryUserPrompt(
+export function buildReportSummaryUserPrompt(
   context: ReportsAiSummaryContext,
-  copy: ReportWeeklySummaryPromptCopy,
+  copy: ReportSummaryPromptCopy,
 ): string {
   return [
     copy.userIntro,
