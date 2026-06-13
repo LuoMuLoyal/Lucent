@@ -15,6 +15,10 @@ const mockOAuthConfig: OAuthConfig = {
     appSecret: 'wechat-secret',
     redirectUri: 'https://app.example.com/oauth/wechat/callback',
   },
+  wechatMobile: {
+    appId: 'wechat-mobile-app-id',
+    appSecret: 'wechat-mobile-secret',
+  },
 };
 
 describe('WechatWebOAuthProvider', () => {
@@ -62,6 +66,10 @@ describe('WechatWebOAuthProvider', () => {
         appId: '',
         appSecret: '',
         redirectUri: '',
+      },
+      wechatMobile: {
+        appId: 'wechat-mobile-app-id',
+        appSecret: 'wechat-mobile-secret',
       },
     });
 

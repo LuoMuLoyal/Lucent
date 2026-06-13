@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any, @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
@@ -28,6 +28,20 @@ function uniqueEmail(): string {
 
 function bearer(token: string): string {
   return `${BEARER} ${token}`;
+}
+
+function expectDefined<T>(value: T | undefined | null, message: string): T {
+  expect(value).toBeDefined();
+  expect(value).not.toBeNull();
+  if (value == null) {
+    throw new Error(message);
+  }
+  return value;
+}
+
+function expectData<T>(body: ApiEnvelope<T>): T {
+  expect(body.data).not.toBeNull();
+  return expectDefined(body.data, 'Expected envelope data');
 }
 
 describe('Daily Records API (e2e)', () => {
@@ -94,7 +108,10 @@ describe('Daily Records API (e2e)', () => {
         status: UserStatus.active,
       },
     });
-    const token = await createAccessToken(user.id, user.email);
+    const token = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     // Create
     await request(app.getHttpServer())
@@ -115,12 +132,13 @@ describe('Daily Records API (e2e)', () => {
       .expect(200);
 
     const listBody = listRes.body as ApiEnvelope<{
-      items: any[];
+      items: Array<{ value: string | null }>;
       total: number;
     }>;
     expect(listBody.code).toBe(ResultCode.SUCCESS);
-    expect(listBody.data!.items).toHaveLength(1);
-    expect(listBody.data!.items[0].value).toBe('3');
+    const listData = expectData(listBody);
+    expect(listData.items).toHaveLength(1);
+    expect(listData.items[0]?.value).toBe('3');
   });
 
   it('should update a record and clear nullable fields', async () => {
@@ -132,7 +150,10 @@ describe('Daily Records API (e2e)', () => {
         status: UserStatus.active,
       },
     });
-    const token = await createAccessToken(user.id, user.email);
+    const token = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const createRes = await request(app.getHttpServer())
       .post(BASE_PATH)
@@ -144,7 +165,7 @@ describe('Daily Records API (e2e)', () => {
       })
       .expect(201);
 
-    const id = (createRes.body as ApiEnvelope<{ id: string }>).data!.id;
+    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
 
     // Clear note
     await request(app.getHttpServer())
@@ -168,7 +189,10 @@ describe('Daily Records API (e2e)', () => {
         status: UserStatus.active,
       },
     });
-    const token = await createAccessToken(user.id, user.email);
+    const token = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const createRes = await request(app.getHttpServer())
       .post(BASE_PATH)
@@ -193,13 +217,19 @@ describe('Daily Records API (e2e)', () => {
       })
       .expect(201);
 
-    const created = createRes.body as ApiEnvelope<{
-      id: string;
-      attachments: any[];
-    }>;
-    const id = created.data!.id;
-    expect(created.data!.attachments).toHaveLength(1);
-    expect(created.data!.attachments[0].objectKey).toBe(
+    const created = expectData(
+      createRes.body as ApiEnvelope<{
+        id: string;
+        attachments: Array<{
+          objectKey: string;
+          provider: string;
+          publicUrl: string | null;
+        }>;
+      }>,
+    );
+    const id = created.id;
+    expect(created.attachments).toHaveLength(1);
+    expect(created.attachments[0]?.objectKey).toBe(
       `daily-records/${user.id}/breakfast.jpg`,
     );
 
@@ -208,9 +238,13 @@ describe('Daily Records API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const detail = detailRes.body as ApiEnvelope<{ attachments: any[] }>;
-    expect(detail.data!.attachments[0].provider).toBe('tencent-cos');
-    expect(detail.data!.attachments[0].publicUrl).toBe(
+    const detail = expectData(
+      detailRes.body as ApiEnvelope<{
+        attachments: Array<{ provider: string; publicUrl: string | null }>;
+      }>,
+    );
+    expect(detail.attachments[0]?.provider).toBe('tencent-cos');
+    expect(detail.attachments[0]?.publicUrl).toBe(
       'https://cdn.example.com/breakfast.jpg',
     );
 
@@ -235,7 +269,10 @@ describe('Daily Records API (e2e)', () => {
         status: UserStatus.active,
       },
     });
-    const token = await createAccessToken(user.id, user.email);
+    const token = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const createRes = await request(app.getHttpServer())
       .post(BASE_PATH)
@@ -243,7 +280,7 @@ describe('Daily Records API (e2e)', () => {
       .send({ kind: DailyRecordKind.note, occurredAt: '2026-06-04' })
       .expect(201);
 
-    const id = (createRes.body as ApiEnvelope<{ id: string }>).data!.id;
+    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
 
     await request(app.getHttpServer())
       .delete(`${BASE_PATH}/${id}`)
@@ -256,11 +293,13 @@ describe('Daily Records API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const listBody = listRes.body as ApiEnvelope<{
-      items: any[];
-      total: number;
-    }>;
-    expect(listBody.data!.items).toHaveLength(0);
+    const listBody = expectData(
+      listRes.body as ApiEnvelope<{
+        items: unknown[];
+        total: number;
+      }>,
+    );
+    expect(listBody.items).toHaveLength(0);
   });
 
   it('should return summary by kind', async () => {
@@ -272,7 +311,10 @@ describe('Daily Records API (e2e)', () => {
         status: UserStatus.active,
       },
     });
-    const token = await createAccessToken(user.id, user.email);
+    const token = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     await request(app.getHttpServer())
       .post(BASE_PATH)
@@ -299,8 +341,8 @@ describe('Daily Records API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const body = res.body as ApiEnvelope<{ summaries: any[] }>;
-    expect(body.data!.summaries).toHaveLength(2);
+    const body = expectData(res.body as ApiEnvelope<{ summaries: unknown[] }>);
+    expect(body.summaries).toHaveLength(2);
   });
 
   it('should return 404 for foreign record', async () => {
@@ -312,7 +354,10 @@ describe('Daily Records API (e2e)', () => {
         status: UserStatus.active,
       },
     });
-    const token1 = await createAccessToken(user1.id, user1.email);
+    const token1 = await createAccessToken(
+      user1.id,
+      expectDefined(user1.email, 'Expected user email'),
+    );
 
     const createRes = await request(app.getHttpServer())
       .post(BASE_PATH)
@@ -320,7 +365,7 @@ describe('Daily Records API (e2e)', () => {
       .send({ kind: DailyRecordKind.note, occurredAt: '2026-06-04' })
       .expect(201);
 
-    const id = (createRes.body as ApiEnvelope<{ id: string }>).data!.id;
+    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
 
     const email2 = uniqueEmail();
     const user2 = await prisma.user.create({
@@ -330,7 +375,10 @@ describe('Daily Records API (e2e)', () => {
         status: UserStatus.active,
       },
     });
-    const token2 = await createAccessToken(user2.id, user2.email);
+    const token2 = await createAccessToken(
+      user2.id,
+      expectDefined(user2.email, 'Expected user email'),
+    );
 
     await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)

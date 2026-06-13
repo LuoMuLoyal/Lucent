@@ -50,18 +50,22 @@ interface HealthContextData {
     label: string;
     kind: UserAllergyKind;
     severity: UserAllergySeverity | null;
+    isActive: boolean;
   }>;
   conditions: Array<{
     id: string;
     label: string;
     status: UserConditionStatus;
     diagnosedAt: string | null;
+    resolvedAt: string | null;
   }>;
   currentMedicines: Array<{
     id: string;
     displayName: string;
     source: MedicineSource;
     startedAt: string | null;
+    isCurrent: boolean;
+    strengthText: string | null;
   }>;
 }
 
@@ -84,6 +88,15 @@ function uniqueEmail(): string {
 function expectData<T>(body: ApiEnvelope<T>): T {
   expect(body.data).not.toBeNull();
   return body.data as T;
+}
+
+function expectDefined<T>(value: T | undefined | null, message: string): T {
+  expect(value).toBeDefined();
+  expect(value).not.toBeNull();
+  if (value == null) {
+    throw new Error(message);
+  }
+  return value;
 }
 
 describe('User Health Context API (e2e)', () => {
@@ -221,7 +234,10 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .get(HEALTH_CONTEXT_PATH)
@@ -307,7 +323,10 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
@@ -368,7 +387,10 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
@@ -407,7 +429,10 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
@@ -448,7 +473,10 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
@@ -467,7 +495,10 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
@@ -492,7 +523,10 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
@@ -513,7 +547,10 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .post(`${HEALTH_CONTEXT_PATH}/allergies`)
@@ -533,9 +570,14 @@ describe('User Health Context API (e2e)', () => {
 
     const data = expectData(body);
     expect(data.summary.activeAllergyCount).toBe(1);
-    expect(data.allergies[0].label).toBe('Penicillin');
-    expect(data.allergies[0].kind).toBe(UserAllergyKind.drug);
-    expect(data.allergies[0].isActive).toBe(true);
+    expect(data.allergies).toHaveLength(1);
+    const firstAllergy = expectDefined(
+      data.allergies[0],
+      'Expected first allergy',
+    );
+    expect(firstAllergy.label).toBe('Penicillin');
+    expect(firstAllergy.kind).toBe(UserAllergyKind.drug);
+    expect(firstAllergy.isActive).toBe(true);
 
     // Verify persistence
     const stored = await prisma.userAllergy.findFirstOrThrow({
@@ -565,7 +607,10 @@ describe('User Health Context API (e2e)', () => {
     const allergy = await prisma.userAllergy.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/allergies/${allergy.id}`)
@@ -574,8 +619,13 @@ describe('User Health Context API (e2e)', () => {
       .expect(200);
 
     const data = expectData(response.body as ApiEnvelope<HealthContextData>);
-    expect(data.allergies[0].label).toBe('Penicillin G');
-    expect(data.allergies[0].severity).toBe(UserAllergySeverity.severe);
+    expect(data.allergies).toHaveLength(1);
+    const updatedAllergy = expectDefined(
+      data.allergies[0],
+      'Expected updated allergy',
+    );
+    expect(updatedAllergy.label).toBe('Penicillin G');
+    expect(updatedAllergy.severity).toBe(UserAllergySeverity.severe);
   });
 
   it('should soft-delete an allergy', async () => {
@@ -597,7 +647,10 @@ describe('User Health Context API (e2e)', () => {
     const allergy = await prisma.userAllergy.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .delete(`${HEALTH_CONTEXT_PATH}/allergies/${allergy.id}`)
@@ -640,7 +693,10 @@ describe('User Health Context API (e2e)', () => {
     const allergy = await prisma.userAllergy.findFirstOrThrow({
       where: { userId: user1.id },
     });
-    const accessToken = await createAccessToken(user2.id, user2.email);
+    const accessToken = await createAccessToken(
+      user2.id,
+      expectDefined(user2.email, 'Expected user email'),
+    );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/allergies/${allergy.id}`)
@@ -661,7 +717,10 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .post(`${HEALTH_CONTEXT_PATH}/conditions`)
@@ -679,9 +738,14 @@ describe('User Health Context API (e2e)', () => {
 
     const data = expectData(body);
     expect(data.summary.conditionCount).toBe(1);
-    expect(data.conditions[0].label).toBe('Asthma');
-    expect(data.conditions[0].status).toBe(UserConditionStatus.active);
-    expect(data.conditions[0].diagnosedAt).toBe('2024-02-01');
+    expect(data.conditions).toHaveLength(1);
+    const firstCondition = expectDefined(
+      data.conditions[0],
+      'Expected first condition',
+    );
+    expect(firstCondition.label).toBe('Asthma');
+    expect(firstCondition.status).toBe(UserConditionStatus.active);
+    expect(firstCondition.diagnosedAt).toBe('2024-02-01');
 
     // Verify persistence
     const stored = await prisma.userCondition.findFirstOrThrow({
@@ -711,7 +775,10 @@ describe('User Health Context API (e2e)', () => {
     const condition = await prisma.userCondition.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/conditions/${condition.id}`)
@@ -723,8 +790,13 @@ describe('User Health Context API (e2e)', () => {
       .expect(200);
 
     const data = expectData(response.body as ApiEnvelope<HealthContextData>);
-    expect(data.conditions[0].label).toBe('Asthma Updated');
-    expect(data.conditions[0].status).toBe(UserConditionStatus.suspected);
+    expect(data.conditions).toHaveLength(1);
+    const updatedCondition = expectDefined(
+      data.conditions[0],
+      'Expected updated condition',
+    );
+    expect(updatedCondition.label).toBe('Asthma Updated');
+    expect(updatedCondition.status).toBe(UserConditionStatus.suspected);
   });
 
   it('should soft-resolve a condition', async () => {
@@ -746,7 +818,10 @@ describe('User Health Context API (e2e)', () => {
     const condition = await prisma.userCondition.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .delete(`${HEALTH_CONTEXT_PATH}/conditions/${condition.id}`)
@@ -754,8 +829,13 @@ describe('User Health Context API (e2e)', () => {
       .expect(200);
 
     const data = expectData(response.body as ApiEnvelope<HealthContextData>);
-    expect(data.conditions[0].status).toBe(UserConditionStatus.resolved);
-    expect(data.conditions[0].resolvedAt).not.toBeNull();
+    expect(data.conditions).toHaveLength(1);
+    const resolvedCondition = expectDefined(
+      data.conditions[0],
+      'Expected resolved condition',
+    );
+    expect(resolvedCondition.status).toBe(UserConditionStatus.resolved);
+    expect(resolvedCondition.resolvedAt).not.toBeNull();
 
     // Verify persistence
     const stored = await prisma.userCondition.findUniqueOrThrow({
@@ -790,7 +870,10 @@ describe('User Health Context API (e2e)', () => {
     const condition = await prisma.userCondition.findFirstOrThrow({
       where: { userId: user1.id },
     });
-    const accessToken = await createAccessToken(user2.id, user2.email);
+    const accessToken = await createAccessToken(
+      user2.id,
+      expectDefined(user2.email, 'Expected user email'),
+    );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/conditions/${condition.id}`)
@@ -811,7 +894,10 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .post(`${HEALTH_CONTEXT_PATH}/current-medicines`)
@@ -832,9 +918,14 @@ describe('User Health Context API (e2e)', () => {
 
     const data = expectData(body);
     expect(data.summary.currentMedicineCount).toBe(1);
-    expect(data.currentMedicines[0].displayName).toBe('Ibuprofen');
-    expect(data.currentMedicines[0].source).toBe(MedicineSource.drugbank);
-    expect(data.currentMedicines[0].isCurrent).toBe(true);
+    expect(data.currentMedicines).toHaveLength(1);
+    const firstCurrentMedicine = expectDefined(
+      data.currentMedicines[0],
+      'Expected first current medicine',
+    );
+    expect(firstCurrentMedicine.displayName).toBe('Ibuprofen');
+    expect(firstCurrentMedicine.source).toBe(MedicineSource.drugbank);
+    expect(firstCurrentMedicine.isCurrent).toBe(true);
   });
 
   it('should update a current medicine', async () => {
@@ -857,7 +948,10 @@ describe('User Health Context API (e2e)', () => {
     const medicine = await prisma.userCurrentMedicine.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/current-medicines/${medicine.id}`)
@@ -866,8 +960,13 @@ describe('User Health Context API (e2e)', () => {
       .expect(200);
 
     const data = expectData(response.body as ApiEnvelope<HealthContextData>);
-    expect(data.currentMedicines[0].displayName).toBe('Ibuprofen G');
-    expect(data.currentMedicines[0].strengthText).toBe('400 mg');
+    expect(data.currentMedicines).toHaveLength(1);
+    const updatedCurrentMedicine = expectDefined(
+      data.currentMedicines[0],
+      'Expected updated current medicine',
+    );
+    expect(updatedCurrentMedicine.displayName).toBe('Ibuprofen G');
+    expect(updatedCurrentMedicine.strengthText).toBe('400 mg');
   });
 
   it('should soft-delete a current medicine', async () => {
@@ -889,7 +988,10 @@ describe('User Health Context API (e2e)', () => {
     const medicine = await prisma.userCurrentMedicine.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(user.id, user.email);
+    const accessToken = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
 
     const response = await request(app.getHttpServer())
       .delete(`${HEALTH_CONTEXT_PATH}/current-medicines/${medicine.id}`)
@@ -935,7 +1037,10 @@ describe('User Health Context API (e2e)', () => {
     const medicine = await prisma.userCurrentMedicine.findFirstOrThrow({
       where: { userId: user1.id },
     });
-    const accessToken = await createAccessToken(user2.id, user2.email);
+    const accessToken = await createAccessToken(
+      user2.id,
+      expectDefined(user2.email, 'Expected user email'),
+    );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/current-medicines/${medicine.id}`)

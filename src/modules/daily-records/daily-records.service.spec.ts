@@ -71,7 +71,7 @@ describe('DailyRecordsService', () => {
 
     expect(result.items).toHaveLength(1);
     expect(result.total).toBe(1);
-    expect(result.items[0].kind).toBe('water');
+    expect(result.items[0]?.kind).toBe('water');
   });
 
   it('should create a record', async () => {

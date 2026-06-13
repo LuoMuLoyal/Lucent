@@ -2,9 +2,32 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
+import type { CacheManagerStore } from 'cache-manager';
 import Keyv from 'keyv';
 import { KeyvAdapter } from 'cache-manager';
 import { MedicinesCacheAdminService } from './medicines-cache-admin.service';
+
+function createCacheStoreMock(overrides?: {
+  keys?: () => Promise<string[]>;
+}): CacheManagerStore {
+  const store: CacheManagerStore = {
+    name: 'mock-store',
+    get: jest.fn(),
+    mget: jest.fn(),
+    set: jest.fn(),
+    mset: jest.fn(),
+    del: jest.fn(),
+    mdel: jest.fn(),
+    ttl: jest.fn(),
+    keys: jest.fn().mockResolvedValue([]),
+    disconnect: jest.fn(),
+    reset: jest.fn(),
+  };
+  if (overrides?.keys) {
+    store.keys = overrides.keys;
+  }
+  return store;
+}
 
 describe('MedicinesCacheAdminService', () => {
   let service: MedicinesCacheAdminService;
@@ -29,7 +52,7 @@ describe('MedicinesCacheAdminService', () => {
   });
 
   it('removes all medicines cache keys from Keyv-backed stores', async () => {
-    const firstRawStore = {
+    const firstRawStore = createCacheStoreMock({
       keys: jest
         .fn()
         .mockResolvedValue([
@@ -37,28 +60,12 @@ describe('MedicinesCacheAdminService', () => {
           'keyv:medicines:detail:drugbank:DB01050',
           'keyv:auth:verification:test@example.com',
         ]),
-      get: jest.fn(),
-      mget: jest.fn(),
-      set: jest.fn(),
-      mset: jest.fn(),
-      del: jest.fn(),
-      mdel: jest.fn(),
-      ttl: jest.fn(),
-      reset: jest.fn(),
-    };
-    const secondRawStore = {
+    });
+    const secondRawStore = createCacheStoreMock({
       keys: jest
         .fn()
         .mockResolvedValue(['keyv:medicines:detail:cn:cn_ibuprofen_capsule']),
-      get: jest.fn(),
-      mget: jest.fn(),
-      set: jest.fn(),
-      mset: jest.fn(),
-      del: jest.fn(),
-      mdel: jest.fn(),
-      ttl: jest.fn(),
-      reset: jest.fn(),
-    };
+    });
     cache.stores = [
       new Keyv({ store: new KeyvAdapter(firstRawStore) }),
       new Keyv({ store: new KeyvAdapter(secondRawStore) }),
@@ -84,16 +91,7 @@ describe('MedicinesCacheAdminService', () => {
   it('returns zero when the wrapped store does not expose keys', async () => {
     cache.stores = [
       new Keyv({
-        store: new KeyvAdapter({
-          get: jest.fn(),
-          mget: jest.fn(),
-          set: jest.fn(),
-          mset: jest.fn(),
-          del: jest.fn(),
-          mdel: jest.fn(),
-          ttl: jest.fn(),
-          reset: jest.fn(),
-        }),
+        store: new KeyvAdapter(createCacheStoreMock()),
       }),
     ] as typeof cache.stores;
 
@@ -104,22 +102,15 @@ describe('MedicinesCacheAdminService', () => {
   it('keeps working when the raw store returns unprefixed keys', async () => {
     cache.stores = [
       new Keyv({
-        namespace: undefined,
-        store: new KeyvAdapter({
-          keys: jest
-            .fn()
-            .mockResolvedValue([
-              'medicines:search:cn:%E5%B8%83%E6%B4%9B%E8%8A%AC:1:20',
-            ]),
-          get: jest.fn(),
-          mget: jest.fn(),
-          set: jest.fn(),
-          mset: jest.fn(),
-          del: jest.fn(),
-          mdel: jest.fn(),
-          ttl: jest.fn(),
-          reset: jest.fn(),
-        }),
+        store: new KeyvAdapter(
+          createCacheStoreMock({
+            keys: jest
+              .fn()
+              .mockResolvedValue([
+                'medicines:search:cn:%E5%B8%83%E6%B4%9B%E8%8A%AC:1:20',
+              ]),
+          }),
+        ),
       }),
     ] as typeof cache.stores;
     cache.del.mockResolvedValue(true);

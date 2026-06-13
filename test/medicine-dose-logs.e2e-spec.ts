@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any, @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
@@ -32,6 +32,20 @@ function uniqueEmail(): string {
 
 function bearer(token: string): string {
   return `${BEARER} ${token}`;
+}
+
+function expectDefined<T>(value: T | undefined | null, message: string): T {
+  expect(value).toBeDefined();
+  expect(value).not.toBeNull();
+  if (value == null) {
+    throw new Error(message);
+  }
+  return value;
+}
+
+function expectData<T>(body: ApiEnvelope<T>): T {
+  expect(body.data).not.toBeNull();
+  return expectDefined(body.data, 'Expected envelope data');
 }
 
 describe('Medicine Dose Logs API (e2e)', () => {
@@ -95,7 +109,10 @@ describe('Medicine Dose Logs API (e2e)', () => {
         status: UserStatus.active,
       },
     });
-    const token = await createAccessToken(user.id, user.email);
+    const token = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
     return { user, token };
   }
 
@@ -135,18 +152,22 @@ describe('Medicine Dose Logs API (e2e)', () => {
       status: DoseLogStatus;
     }>;
     expect(createBody.code).toBe(ResultCode.SUCCESS);
-    expect(createBody.data!.currentMedicineId).toBe(medicine.id);
-    expect(createBody.data!.status).toBe(DoseLogStatus.taken);
+    const created = expectData(createBody);
+    expect(created.currentMedicineId).toBe(medicine.id);
+    expect(created.status).toBe(DoseLogStatus.taken);
 
     const listRes = await request(app.getHttpServer())
       .get(`${BASE_PATH}?date=2026-06-04`)
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const listBody = listRes.body as ApiEnvelope<{ items: any[] }>;
-    expect(listBody.code).toBe(ResultCode.SUCCESS);
-    expect(listBody.data!.items).toHaveLength(1);
-    expect(listBody.data!.items[0].id).toBe(createBody.data!.id);
+    const listEnvelope = listRes.body as ApiEnvelope<{
+      items: Array<{ id: string }>;
+    }>;
+    expect(listEnvelope.code).toBe(ResultCode.SUCCESS);
+    const listBody = expectData(listEnvelope);
+    expect(listBody.items).toHaveLength(1);
+    expect(listBody.items[0]?.id).toBe(created.id);
   });
 
   it('should reject dose logs linked to another user medicine', async () => {
@@ -181,7 +202,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       })
       .expect(201);
 
-    const id = (createRes.body as ApiEnvelope<{ id: string }>).data!.id;
+    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
 
     const updateRes = await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)
@@ -189,14 +210,16 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .send({ status: DoseLogStatus.skipped })
       .expect(200);
 
-    const body = updateRes.body as ApiEnvelope<{
-      status: DoseLogStatus;
-      doseText: string | null;
-      note: string | null;
-    }>;
-    expect(body.data!.status).toBe(DoseLogStatus.skipped);
-    expect(body.data!.doseText).toBe('1 tablet');
-    expect(body.data!.note).toBe('keep this note');
+    const body = expectData(
+      updateRes.body as ApiEnvelope<{
+        status: DoseLogStatus;
+        doseText: string | null;
+        note: string | null;
+      }>,
+    );
+    expect(body.status).toBe(DoseLogStatus.skipped);
+    expect(body.doseText).toBe('1 tablet');
+    expect(body.note).toBe('keep this note');
   });
 
   it('should clear nullable fields when null is sent', async () => {
@@ -215,7 +238,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       })
       .expect(201);
 
-    const id = (createRes.body as ApiEnvelope<{ id: string }>).data!.id;
+    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
 
     await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)
@@ -242,7 +265,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       })
       .expect(201);
 
-    const id = (createRes.body as ApiEnvelope<{ id: string }>).data!.id;
+    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
 
     await request(app.getHttpServer())
       .delete(`${BASE_PATH}/${id}`)
@@ -254,8 +277,8 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .expect(200);
 
-    const body = listRes.body as ApiEnvelope<{ items: any[] }>;
-    expect(body.data!.items).toHaveLength(0);
+    const body = expectData(listRes.body as ApiEnvelope<{ items: unknown[] }>);
+    expect(body.items).toHaveLength(0);
   });
 
   it('should return 404 for foreign dose-log updates', async () => {
@@ -271,7 +294,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       })
       .expect(201);
 
-    const id = (createRes.body as ApiEnvelope<{ id: string }>).data!.id;
+    const id = expectData(createRes.body as ApiEnvelope<{ id: string }>).id;
 
     await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)
