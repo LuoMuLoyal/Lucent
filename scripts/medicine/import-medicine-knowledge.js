@@ -328,7 +328,6 @@ function loadEnvironment() {
     path: path.join(REPO_ROOT, `.env.${nodeEnv}`),
     override: true,
   });
-  dotenv.config({ path: path.join(REPO_ROOT, '.env') });
 
   return nodeEnv;
 }

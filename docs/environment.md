@@ -14,12 +14,14 @@ Runtime files are local only and must not be committed:
 .env.test
 .env.development.local
 .env.production.local
+.env.test.local
 ```
 
 Tracked templates:
 
 ```text
 .env.development.example
+.env.test.example
 .env.production.example
 ```
 
@@ -28,10 +30,10 @@ Loading order, highest priority first:
 ```text
 .env.<NODE_ENV>.local
 .env.<NODE_ENV>
-.env
 ```
 
-Prisma CLI uses the same resolution order through `prisma.config.ts`.
+Lucent runtime, Prisma CLI, and medicine import scripts all use the same
+explicit resolution order above. There is no root `.env` fallback anymore.
 
 ## Local Baseline
 
@@ -65,6 +67,14 @@ pnpm start:dev
 | `pnpm test:e2e:ci`              | E2E tests in CI with `--runInBand`                            |
 | `pnpm export:openapi`           | Build then export `docs/openapi.json` from `dist`             |
 | `pnpm import:medicine:all`      | Default medicine knowledge import sequence                    |
+
+Local helper scripts:
+
+- `powershell -ExecutionPolicy Bypass -File scripts/dev/start-test-runtime.ps1`
+  starts `pnpm start:test:dev` in a hidden PowerShell window, reuses the
+  existing `.runtime-test.log`, and waits for `GET /api/v1/health`.
+- `powershell -ExecutionPolicy Bypass -File scripts/dev/stop-test-runtime.ps1`
+  stops the Lucent test runtime started for the mobile full-stack lane.
 
 Run Prisma commands with explicit `NODE_ENV` when not targeting development, for example:
 

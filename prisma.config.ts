@@ -15,7 +15,6 @@ dotenv.config({
   path: path.resolve(__dirname, `.env.${nodeEnv}`),
   override: true,
 });
-dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
