@@ -4,10 +4,10 @@ import {
   buildLocalizedAiPromptCopy,
   resolveAiLocale,
   translateAiScopedCopy,
-} from '../../common/ai/ai-copy';
+} from '../../../common/ai/ai-copy';
 import type { TodayAnalysisContext } from './today-analysis-context.service';
-import type { TodayAnalysisStructuredOutput } from './schemas/today-analysis.schema';
-import type { TodayAnalysisPromptCopy } from './prompts/today-analysis.prompt';
+import type { TodayAnalysisStructuredOutput } from './today-analysis.schema';
+import type { TodayAnalysisPromptCopy } from './today-analysis.prompt';
 
 const TODAY_ANALYSIS_COPY_SCOPE = 'today-analysis';
 

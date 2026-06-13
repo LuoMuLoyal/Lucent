@@ -4,9 +4,9 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { ResultCode } from '../../common/api-envelope';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from './dto';
+import { ResultCode } from '../../../common/api-envelope';
+import { PrismaService } from '../../../prisma/prisma.service';
+import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from '../dto';
 import { TodayAnalysisCopyService } from './today-analysis-copy.service';
 import {
   TodayAnalysisContextService,
@@ -14,7 +14,7 @@ import {
 } from './today-analysis-context.service';
 import { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
 import { TodayAnalysisPolicyService } from './today-analysis-policy.service';
-import type { TodayAnalysisStructuredOutput } from './schemas/today-analysis.schema';
+import type { TodayAnalysisStructuredOutput } from './today-analysis.schema';
 
 @Injectable()
 export class TodayAnalysisService {

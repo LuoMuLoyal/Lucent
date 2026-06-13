@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { TodayAnalysisStructuredOutput } from './schemas/today-analysis.schema';
+import type { TodayAnalysisStructuredOutput } from './today-analysis.schema';
 
 const FORBIDDEN_PATTERNS = [
   /诊断/u,

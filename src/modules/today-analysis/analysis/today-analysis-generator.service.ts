@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { LlmRuntimeService } from '../llm-runtime/llm-runtime.service';
+import { LlmRuntimeService } from '../../llm-runtime/llm-runtime.service';
 import {
   buildTodayAnalysisSystemPrompt,
   buildTodayAnalysisUserPrompt,
   type TodayAnalysisPromptCopy,
-} from './prompts/today-analysis.prompt';
+} from './today-analysis.prompt';
 import {
   todayAnalysisSchema,
   type TodayAnalysisStructuredOutput,
-} from './schemas/today-analysis.schema';
+} from './today-analysis.schema';
 import type { TodayAnalysisContext } from './today-analysis-context.service';
 
 @Injectable()

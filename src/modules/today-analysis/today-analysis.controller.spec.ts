@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
+import { TodayAnalysisService } from './analysis/today-analysis.service';
 import type { TodayAnalysisDataDto } from './dto';
 import { TodayAnalysisController } from './today-analysis.controller';
-import { TodayAnalysisService } from './today-analysis.service';
 
 describe('TodayAnalysisController', () => {
   let controller: TodayAnalysisController;

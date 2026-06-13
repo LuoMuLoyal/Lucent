@@ -2,7 +2,7 @@ import {
   buildAiUserPrompt,
   type AiPromptCopy,
 } from '../../../common/ai/ai-copy';
-import type { TodayAnalysisContext } from '../today-analysis-context.service';
+import type { TodayAnalysisContext } from './today-analysis-context.service';
 
 export function buildTodayAnalysisSystemPrompt(): string {
   return [
