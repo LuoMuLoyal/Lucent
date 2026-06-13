@@ -74,6 +74,7 @@ Local database layout:
 ## Verification
 
 ```bash
+pnpm typecheck
 pnpm lint:check
 pnpm build
 pnpm test:ci
@@ -81,7 +82,7 @@ pnpm test:e2e:ci
 pnpm export:openapi
 ```
 
-Use narrower commands while iterating, then run the relevant broader checks before finishing a backend change.
+Use narrower commands while iterating, then run the relevant broader checks before finishing a backend change. `pnpm build` does not type-check `**/*spec.ts` or `test/`; use `pnpm typecheck` when you need full TypeScript coverage for unit/e2e test files.
 
 ## Source Layout
 

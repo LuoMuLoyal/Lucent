@@ -25,6 +25,7 @@
 - Medicine import or source strategy changed: update `docs/public/data-sources.md`.
 - For localized backend copy, keep `AcceptLanguageResolver + I18nService` as the default path. Use `@I18nLang()` only when a controller/service flow must explicitly branch on the resolved locale and pass that locale deeper into AI/prompt/runtime code.
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby working code.
+- Use `pnpm typecheck` when you need TypeScript to validate spec and e2e files too; `pnpm build` excludes `**/*spec.ts` and `test/`.
 
 ## Known Gotchas
 
