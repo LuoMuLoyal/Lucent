@@ -33,7 +33,16 @@ describe('TodayAnalysisGeneratorService', () => {
         },
         recordSummary: [],
         recentRecords: [],
-        sleep: { status: 'insufficient_data' },
+        sleep: {
+          status: 'insufficient_data',
+          durationMinutes: null,
+          quality: null,
+          startAt: null,
+          endAt: null,
+          deepMinutes: null,
+          lightMinutes: null,
+          remMinutes: null,
+        },
         lowRiskContext: {
           activeAllergyCount: 0,
           currentMedicineCount: 2,

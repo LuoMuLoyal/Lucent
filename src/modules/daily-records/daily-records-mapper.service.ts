@@ -32,6 +32,12 @@ export class DailyRecordsMapperService {
     if (dto.note !== undefined) {
       data.note = dto.note?.trim() ?? null;
     }
+    if (dto.payload !== undefined) {
+      data.payload =
+        dto.payload === null
+          ? Prisma.DbNull
+          : (dto.payload as Prisma.InputJsonValue);
+    }
 
     return data;
   }
@@ -67,6 +73,7 @@ export class DailyRecordsMapperService {
       unit: record.unit,
       note: record.note,
       source: record.source,
+      payload: (record.payload as Record<string, unknown> | null) ?? null,
       attachments: (record.attachments ?? []).map((attachment) => ({
         id: attachment.id,
         kind: attachment.kind,

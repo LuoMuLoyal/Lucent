@@ -31,6 +31,12 @@ export class DailyRecordItemDto {
   @ApiPropertyOptional({ description: 'Source.', example: 'manual' })
   source?: string | null;
 
+  @ApiPropertyOptional({
+    description:
+      'Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }.',
+  })
+  payload?: Record<string, unknown> | null;
+
   @ApiProperty({ type: () => DailyRecordAttachmentDto, isArray: true })
   attachments!: DailyRecordAttachmentDto[];
 

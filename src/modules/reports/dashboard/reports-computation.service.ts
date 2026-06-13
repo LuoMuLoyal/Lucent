@@ -123,13 +123,39 @@ export class ReportsComputationService {
   }
 
   private buildSleepMetric(series: number[]): ReportMetricDto {
+    const nonZeroDays = series.filter((value) => value > 0);
+    if (nonZeroDays.length === 0) {
+      return {
+        kind: 'sleep',
+        value: '--',
+        unit: 'h',
+        status: 'insufficient_data',
+        delta: '--',
+        direction: 'flat',
+        sparkline: series,
+      };
+    }
+
+    const average =
+      nonZeroDays.reduce((sum, value) => sum + value, 0) / nonZeroDays.length;
+    const roundedAverage = Number(average.toFixed(1));
+    const status: MetricStatus =
+      roundedAverage >= 7
+        ? 'good'
+        : roundedAverage >= 5
+          ? 'stable'
+          : 'needs_attention';
+
     return {
       kind: 'sleep',
-      value: '--',
+      value: roundedAverage.toFixed(1),
       unit: 'h',
-      status: 'insufficient_data',
-      delta: '--',
-      direction: 'flat',
+      status,
+      delta: this.deltaNumber(series[0] ?? roundedAverage, roundedAverage, 1),
+      direction: this.compareDirection(
+        series[0] ?? roundedAverage,
+        roundedAverage,
+      ),
       sparkline: series,
     };
   }

@@ -4,6 +4,7 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -48,6 +49,14 @@ export class CreateDailyRecordDto {
   @IsString()
   @MaxLength(1000)
   note?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }.',
+  })
+  @IsOptional()
+  @IsObject()
+  payload?: Record<string, unknown>;
 
   @ApiPropertyOptional({
     type: () => DailyRecordAttachmentInputDto,

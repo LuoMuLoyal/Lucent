@@ -4,6 +4,7 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -62,6 +63,15 @@ export class UpdateDailyRecordDto {
   @IsString()
   @MaxLength(1000)
   note?: string | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Structured payload for kind-specific data. Use null to clear.',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsObject()
+  payload?: Record<string, unknown> | null;
 
   @ApiPropertyOptional({
     type: () => DailyRecordAttachmentInputDto,
