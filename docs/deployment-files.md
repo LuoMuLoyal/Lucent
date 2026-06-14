@@ -2,70 +2,75 @@
 
 Last updated: 2026-06-14
 
-这份文档只回答一个问题：部署 Lucent 时，哪些文件需要你手工准备，哪些文件会由仓库和 CI 自动同步。
+这份文档只记录部署相关文件和目录归属，不写执行步骤。
 
-## 手工准备
-
-服务器目录默认是 `/opt/lucent`。
-
-必须手工创建：
+## 目录边界
 
 ```text
-/opt/lucent/.env.production
-/opt/lucent/certs/fullchain.pem
-/opt/lucent/certs/privkey.pem
+/opt/lucent/app
+/opt/lucent/runtime
+```
+
+- `/opt/lucent/app`
+  - 服务器上的 Lucent git 仓库 checkout
+  - 通过 `git pull --ff-only` 更新
+  - 保存 tracked 代码、`docker-compose.yml`、`monitoring/**`、部署脚本
+- `/opt/lucent/runtime`
+  - 服务器本地运行时目录
+  - 只放不应进 git 的本地配置与证书
+
+## 服务器本地必须存在
+
+```text
+/opt/lucent/runtime/.env.production
+/opt/lucent/runtime/nginx/nginx.conf
+/opt/lucent/runtime/certs/fullchain.pem
+/opt/lucent/runtime/certs/privkey.pem
 ```
 
 说明：
 
-- `.env.production` 是生产运行配置
-- `fullchain.pem` / `privkey.pem` 是 Nginx HTTPS 证书
-- 这三个文件都不应由 Git 管理
+- `.env.production` 是生产环境变量
+- `nginx/nginx.conf` 是服务器实际启用的 Nginx 配置
+- `certs/*` 是 HTTPS 证书
 
-建议手工创建：
+这些都不由 Git 管理，也不应由 CI 自动覆盖。
 
-```text
-/opt/lucent/certs/
-```
-
-## CI 自动同步
-
-每次 `deploy-server.yml` 部署时，会同步这些仓库文件到服务器：
+## 仓库内自带并随 git 更新
 
 ```text
-docker-compose.yml
-scripts/deploy/deploy-server.sh
-monitoring/**
-deploy/nginx/**
+/opt/lucent/app/docker-compose.yml
+/opt/lucent/app/scripts/deploy/deploy-server.sh
+/opt/lucent/app/monitoring/prometheus/prometheus.yml
+/opt/lucent/app/monitoring/grafana/provisioning/**
+/opt/lucent/app/monitoring/grafana/dashboards/**
+/opt/lucent/app/monitoring/synthetic-checker/synthetic-checker.mjs
+/opt/lucent/app/deploy/nginx/nginx.conf
 ```
 
 说明：
 
-- `monitoring/**` 包含 Prometheus、Grafana provisioning、默认 dashboard、synthetic checker
-- `deploy/nginx/**` 包含 Nginx 模板配置
+- `deploy/nginx/nginx.conf` 只是仓库里的基线示例，用来拷贝出运行时版本
+- `monitoring/**` 是受版本控制的部署资产，不属于 runtime 目录
 
 ## 部署时自动生成
 
-部署脚本运行后会在服务器目录生成：
+部署脚本会写入：
 
 ```text
-/opt/lucent/.deploy-image.env
+/opt/lucent/runtime/.deploy-image.env
 ```
 
-这个文件记录当前发版使用的镜像引用：
+用途：
 
-- `LUCENT_IMAGE`
-- `POSTGRES_IMAGE`
-- `REDIS_IMAGE`
-- `PROMETHEUS_IMAGE`
-- `GRAFANA_IMAGE`
-- `NGINX_IMAGE`
+- 记录当前部署使用的镜像引用
+- 供 `docker compose --env-file /opt/lucent/runtime/.deploy-image.env ...` 使用
 
-不要手工长期维护它；它应由部署脚本覆盖写入。
+这个文件不应手工长期维护；它应该由部署脚本覆盖生成。
 
-## 运行时卷
+## Docker 持久化数据
 
-`docker compose` 会创建这些数据卷：
+Compose 数据卷：
 
 ```text
 lucent_pgdata
@@ -74,21 +79,4 @@ lucent_prometheusdata
 lucent_grafanadata
 ```
 
-这几个卷是运行期数据，不属于 Git 仓库，也不属于手工配置文件。
-
-## 最小核对清单
-
-部署前确认：
-
-1. `.env.production` 已填写完整
-2. `NGINX_SERVER_NAME`、`NGINX_SSL_CERT_PATH`、`NGINX_SSL_KEY_PATH` 已正确填写
-3. 证书文件路径存在且 Nginx 容器可读
-4. `GF_SECURITY_ADMIN_PASSWORD` 已配置
-5. 如果要启用 synthetic check，`SYNTHETIC_LOGIN_EMAIL` / `SYNTHETIC_LOGIN_PASSWORD` 已配置
-
-部署后确认：
-
-1. `docker compose --env-file .deploy-image.env ps`
-2. `curl http://127.0.0.1:3000/api/v1/health/ready`
-3. `curl http://127.0.0.1:9090/api/v1/targets`
-4. `curl https://<your-domain>/api/v1/health/ready`
+这些是运行期数据，不属于 git 仓库，也不属于手工维护的配置文件。

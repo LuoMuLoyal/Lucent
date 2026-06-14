@@ -36,7 +36,7 @@ services:
     image: ${LUCENT_IMAGE:?LUCENT_IMAGE is required}
     restart: unless-stopped
     env_file:
-      - .env.production
+      - ${LUCENT_RUNTIME_DIR:?LUCENT_RUNTIME_DIR is required}/.env.production
     environment:
       DATABASE_URL: postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public
       REDIS_URL: redis://redis:6379
@@ -65,7 +65,7 @@ services:
     image: ${LUCENT_IMAGE:?LUCENT_IMAGE is required}
     restart: unless-stopped
     env_file:
-      - .env.production
+      - ${LUCENT_RUNTIME_DIR:?LUCENT_RUNTIME_DIR is required}/.env.production
     environment:
       SYNTHETIC_TARGET_BASE_URL: http://app:3000
       SYNTHETIC_METRICS_PORT: 9101
@@ -109,10 +109,7 @@ services:
     image: ${GRAFANA_IMAGE:?GRAFANA_IMAGE is required}
     restart: unless-stopped
     env_file:
-      - .env.production
-    environment:
-      GF_SERVER_HTTP_PORT: 3000
-      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      - ${LUCENT_RUNTIME_DIR:?LUCENT_RUNTIME_DIR is required}/.env.production
     ports:
       - '127.0.0.1:3001:3000'
     volumes:
@@ -126,17 +123,12 @@ services:
   nginx:
     image: ${NGINX_IMAGE:?NGINX_IMAGE is required}
     restart: unless-stopped
-    env_file:
-      - .env.production
-    environment:
-      NGINX_ENVSUBST_TEMPLATE_DIR: /etc/nginx/templates
-      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
     ports:
       - '80:80'
       - '443:443'
     volumes:
-      - ./deploy/nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
-      - ./certs:/etc/nginx/certs:ro
+      - ${LUCENT_RUNTIME_DIR:?LUCENT_RUNTIME_DIR is required}/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ${LUCENT_RUNTIME_DIR:?LUCENT_RUNTIME_DIR is required}/certs:/etc/nginx/certs:ro
     depends_on:
       app:
         condition: service_healthy

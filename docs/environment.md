@@ -95,7 +95,7 @@ NODE_ENV=test pnpm exec prisma migrate deploy
 
 ## Required Production Variables
 
-Production startup requires:
+Lucent app runtime in production requires:
 
 ```text
 DATABASE_URL
@@ -106,10 +106,12 @@ ADMIN_EMAIL
 ADMIN_PASSWORD
 ADMIN_COOKIE_SECRET
 CORS_ORIGIN
+```
+
+Production compose stack also expects:
+
+```text
 GF_SECURITY_ADMIN_PASSWORD
-NGINX_SERVER_NAME
-NGINX_SSL_CERT_PATH
-NGINX_SSL_KEY_PATH
 ```
 
 `CORS_ORIGIN=*` is accepted for local development but rejected in production.
@@ -220,12 +222,15 @@ SYNTHETIC_HTTP_TIMEOUT_MS
 - `GET /metrics` exposes Prometheus text format directly, stays outside `/api`, and is not wrapped by the `{ code, message, data }` envelope.
 - Production compose also runs:
   - `prometheus`, scraping `app:3000/metrics` and `synthetic-monitor:9101/metrics`
-  - `grafana`, provisioning the default datasource and dashboard from `monitoring/grafana/**`
+  - `grafana`, provisioning the default datasource and dashboard from repo path `monitoring/grafana/**`
   - `synthetic-monitor`, executing real `auth_login` and `account_profile` checks on a timer
   - `nginx`, terminating TLS and proxying public traffic to `app:3000`
 - Production deploy writes `PROMETHEUS_IMAGE` and `GRAFANA_IMAGE` into `.deploy-image.env`
   beside the app/database/cache image refs, so the server can pull the full stack
   from the configured registry without depending on Docker Hub.
+- Production deploy now expects a split layout:
+  - app repo at `/opt/lucent/app`
+  - server-local runtime files at `/opt/lucent/runtime`
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect during app startup so contract generation does not require a live DB connection.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
 - When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; without it, cache falls back to memory.

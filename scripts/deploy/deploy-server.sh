@@ -11,25 +11,8 @@ require_env() {
   fi
 }
 
-require_env_file_key() {
-  variable_name="$1"
-
-  if ! grep -Eq "^${variable_name}=.+" .env.production; then
-    echo "Missing required key in .env.production: $variable_name" >&2
-    exit 1
-  fi
-}
-
-warn_if_env_file_key_missing() {
-  variable_name="$1"
-
-  if ! grep -Eq "^${variable_name}=.+" .env.production; then
-    echo "Warning: $variable_name is not set in .env.production; related synthetic checks will stay unconfigured." >&2
-  fi
-}
-
 compose() {
-  docker compose --env-file .deploy-image.env "$@"
+  docker compose --env-file "$LUCENT_RUNTIME_DIR/.deploy-image.env" "$@"
 }
 
 write_image_env() {
@@ -40,7 +23,7 @@ write_image_env() {
   grafana_image_ref="$5"
   nginx_image_ref="$6"
 
-  cat > .deploy-image.env <<EOF
+  cat > "$LUCENT_RUNTIME_DIR/.deploy-image.env" <<EOF
 LUCENT_IMAGE=$app_image_ref
 POSTGRES_IMAGE=$postgres_image_ref
 REDIS_IMAGE=$redis_image_ref
@@ -95,23 +78,41 @@ require_env REDIS_IMAGE
 require_env PROMETHEUS_IMAGE
 require_env GRAFANA_IMAGE
 require_env NGINX_IMAGE
+require_env LUCENT_RUNTIME_DIR
 require_env REGISTRY_HOST
 require_env REGISTRY_USERNAME
 require_env REGISTRY_PASSWORD
 
-if [ ! -f .env.production ]; then
-  echo ".env.production is missing in $(pwd)." >&2
+if [ ! -f "$LUCENT_RUNTIME_DIR/.env.production" ]; then
+  echo "$LUCENT_RUNTIME_DIR/.env.production is missing." >&2
   exit 1
 fi
 
+require_env_file_key() {
+  variable_name="$1"
+
+  if ! grep -Eq "^${variable_name}=.+" "$LUCENT_RUNTIME_DIR/.env.production"; then
+    echo "Missing required key in $LUCENT_RUNTIME_DIR/.env.production: $variable_name" >&2
+    exit 1
+  fi
+}
+
+warn_if_env_file_key_missing() {
+  variable_name="$1"
+
+  if ! grep -Eq "^${variable_name}=.+" "$LUCENT_RUNTIME_DIR/.env.production"; then
+    echo "Warning: $variable_name is not set in $LUCENT_RUNTIME_DIR/.env.production; related synthetic checks will stay unconfigured." >&2
+  fi
+}
+
 require_env_file_key GF_SECURITY_ADMIN_PASSWORD
-require_env_file_key NGINX_SERVER_NAME
-require_env_file_key NGINX_SSL_CERT_PATH
-require_env_file_key NGINX_SSL_KEY_PATH
 warn_if_env_file_key_missing SYNTHETIC_LOGIN_EMAIL
 warn_if_env_file_key_missing SYNTHETIC_LOGIN_PASSWORD
 
+mkdir -p "$LUCENT_RUNTIME_DIR"
 write_image_env "$LUCENT_IMAGE" "$POSTGRES_IMAGE" "$REDIS_IMAGE" "$PROMETHEUS_IMAGE" "$GRAFANA_IMAGE" "$NGINX_IMAGE"
+
+export LUCENT_RUNTIME_DIR
 
 printf '%s\n' "$REGISTRY_PASSWORD" | docker login "$REGISTRY_HOST" -u "$REGISTRY_USERNAME" --password-stdin
 

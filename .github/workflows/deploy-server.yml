@@ -206,6 +206,7 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       SERVER_APP_DIR: ${{ vars.SERVER_APP_DIR }}
+      LUCENT_RUNTIME_DIR: ${{ vars.LUCENT_RUNTIME_DIR }}
       LUCENT_IMAGE: ${{ needs.docker.outputs.image_ref }}
       POSTGRES_IMAGE: ${{ needs.docker.outputs.postgres_image_ref }}
       REDIS_IMAGE: ${{ needs.docker.outputs.redis_image_ref }}
@@ -223,29 +224,16 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           printf '%s\n' "${{ secrets.SERVER_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
 
-      - name: Sync deployment files to server
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$SERVER_APP_DIR"
-
-          ssh -p "${{ secrets.SERVER_PORT }}" "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "mkdir -p '$SERVER_APP_DIR/scripts/deploy' '$SERVER_APP_DIR/monitoring' '$SERVER_APP_DIR/deploy/nginx'"
-
-          tar czf - docker-compose.yml scripts/deploy/deploy-server.sh monitoring deploy/nginx | \
-            ssh -p "${{ secrets.SERVER_PORT }}" "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-              "tar xzf - -C '$SERVER_APP_DIR'"
-
-          ssh -p "${{ secrets.SERVER_PORT }}" "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "chmod +x '$SERVER_APP_DIR/scripts/deploy/deploy-server.sh'"
-
       - name: Deploy on server
         shell: bash
         run: |
           set -euo pipefail
+          test -n "$SERVER_APP_DIR"
+          test -n "$LUCENT_RUNTIME_DIR"
           password_b64="$(printf '%s' "$REGISTRY_PASSWORD" | base64 -w0)"
-          printf -v remote_env 'SERVER_APP_DIR=%q LUCENT_IMAGE=%q POSTGRES_IMAGE=%q REDIS_IMAGE=%q PROMETHEUS_IMAGE=%q GRAFANA_IMAGE=%q NGINX_IMAGE=%q REGISTRY_HOST=%q REGISTRY_USERNAME=%q REGISTRY_PASSWORD_B64=%q' \
+          printf -v remote_env 'SERVER_APP_DIR=%q LUCENT_RUNTIME_DIR=%q LUCENT_IMAGE=%q POSTGRES_IMAGE=%q REDIS_IMAGE=%q PROMETHEUS_IMAGE=%q GRAFANA_IMAGE=%q NGINX_IMAGE=%q REGISTRY_HOST=%q REGISTRY_USERNAME=%q REGISTRY_PASSWORD_B64=%q' \
             "$SERVER_APP_DIR" \
+            "$LUCENT_RUNTIME_DIR" \
             "$LUCENT_IMAGE" \
             "$POSTGRES_IMAGE" \
             "$REDIS_IMAGE" \
@@ -261,5 +249,6 @@ jobs:
           set -eu
           export REGISTRY_PASSWORD="$(printf '%s' "$REGISTRY_PASSWORD_B64" | base64 -d)"
           cd "$SERVER_APP_DIR"
+          git pull --ff-only
           sh scripts/deploy/deploy-server.sh
           EOF
