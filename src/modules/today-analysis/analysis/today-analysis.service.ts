@@ -15,6 +15,13 @@ import {
 import { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
 import { TodayAnalysisPolicyService } from './today-analysis-policy.service';
 import type { TodayAnalysisStructuredOutput } from './today-analysis.schema';
+import type { StreamSummaryEvent } from '../../../common/stream-summary';
+
+interface PreparedTodayAnalysis {
+  locale: string;
+  context: TodayAnalysisContext;
+  generatedAt: string;
+}
 
 @Injectable()
 export class TodayAnalysisService {
@@ -33,30 +40,29 @@ export class TodayAnalysisService {
     dto: GenerateTodayAnalysisDto,
     language: string,
   ): Promise<TodayAnalysisDataDto> {
-    const locale = this.copyService.resolveLocale(language);
-    await this.assertAiSummariesEnabled(userId, locale);
+    const prepared = await this.prepare(userId, dto, language);
+    const output = await this.generateStructuredOutput(
+      prepared.context,
+      prepared.locale,
+    );
 
-    const date = dto.date ?? this.todayUtcDateString();
-    const context = await this.contextService.build(userId, date);
-    const generatedAt = new Date().toISOString();
+    return this.toDataDto(prepared, output);
+  }
 
-    if (!this.generatorService.hasAnalysisModel()) {
-      throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
-        message: this.copyService.serviceUnavailable(locale),
-      });
-    }
+  async generateStream(
+    userId: string,
+    dto: GenerateTodayAnalysisDto,
+    language: string,
+    onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
+  ): Promise<TodayAnalysisDataDto> {
+    const prepared = await this.prepare(userId, dto, language);
+    const output = await this.generateStructuredOutputStream(
+      prepared.context,
+      prepared.locale,
+      onSummary,
+    );
 
-    const output = await this.generateStructuredOutput(context, locale);
-
-    return {
-      date,
-      generatedAt,
-      summary: output.summary,
-      bullets: output.bullets,
-      actionLabel: output.actionLabel,
-      confidenceNote: output.confidenceNote,
-    };
+    return this.toDataDto(prepared, output);
   }
 
   private async assertAiSummariesEnabled(
@@ -104,6 +110,40 @@ export class TodayAnalysisService {
     return this.copyService.buildFallback(context, locale);
   }
 
+  private async generateStructuredOutputStream(
+    context: TodayAnalysisContext,
+    locale: string,
+    onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
+  ): Promise<TodayAnalysisStructuredOutput> {
+    try {
+      const raw = await this.generatorService.generateStream(
+        context,
+        this.copyService.buildPromptCopy(locale),
+        async (summary) => {
+          if (!this.policyService.isSafeSummaryText(summary)) {
+            return;
+          }
+          await onSummary({ summary });
+        },
+      );
+
+      if (this.policyService.isSafe(raw)) {
+        return raw;
+      }
+
+      this.logger.warn(
+        `Today analysis policy rejected streamed model output for ${context.date}; falling back`,
+      );
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Today analysis streamed generation failed for ${context.date}; falling back: ${reason}`,
+      );
+    }
+
+    return this.copyService.buildFallback(context, locale);
+  }
+
   private async invokeModel(
     context: TodayAnalysisContext,
     locale: string,
@@ -112,6 +152,46 @@ export class TodayAnalysisService {
       context,
       this.copyService.buildPromptCopy(locale),
     );
+  }
+
+  private async prepare(
+    userId: string,
+    dto: GenerateTodayAnalysisDto,
+    language: string,
+  ): Promise<PreparedTodayAnalysis> {
+    const locale = this.copyService.resolveLocale(language);
+    await this.assertAiSummariesEnabled(userId, locale);
+
+    const date = dto.date ?? this.todayUtcDateString();
+    const context = await this.contextService.build(userId, date);
+    const generatedAt = new Date().toISOString();
+
+    if (!this.generatorService.hasAnalysisModel()) {
+      throw new ServiceUnavailableException({
+        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        message: this.copyService.serviceUnavailable(locale),
+      });
+    }
+
+    return {
+      locale,
+      context,
+      generatedAt,
+    };
+  }
+
+  private toDataDto(
+    prepared: PreparedTodayAnalysis,
+    output: TodayAnalysisStructuredOutput,
+  ): TodayAnalysisDataDto {
+    return {
+      date: prepared.context.date,
+      generatedAt: prepared.generatedAt,
+      summary: output.summary,
+      bullets: output.bullets,
+      actionLabel: output.actionLabel,
+      confidenceNote: output.confidenceNote,
+    };
   }
 
   private todayUtcDateString(): string {

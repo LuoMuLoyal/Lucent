@@ -75,6 +75,16 @@ chat, chat compression, and embedding. See [docs/environment.md](docs/environmen
 `AI_LANGUAGE_MODEL` now powers `POST /api/v1/user/daily-records/candidate-records/generate`,
 which converts one natural-language note into user-confirmed candidate daily records
 without writing directly into the final daily-record table.
+Today and Report AI summaries now also expose SSE variants:
+
+- `POST /api/v1/user/today-analysis/generate/stream`
+- `POST /api/v1/user/reports/summary/generate/stream`
+
+They stream safe partial `summary` text first, then finish with the final structured payload.
+
+If the OpenAI-compatible base URL targets DeepSeek, Lucent now disables
+DeepSeek `thinking` mode automatically for these streaming tool-use flows so
+`tool_choice` requests can complete normally.
 
 Production compose now also includes a same-host monitoring stack:
 
