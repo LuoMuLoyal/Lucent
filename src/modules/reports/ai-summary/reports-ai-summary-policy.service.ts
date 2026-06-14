@@ -37,6 +37,10 @@ export class ReportsAiSummaryPolicyService {
     return texts.every((text) => this.isSafeText(text));
   }
 
+  isSafeSummaryText(text: string): boolean {
+    return text.trim().length > 0 && this.isSafeText(text);
+  }
+
   private isSafeText(text: string): boolean {
     return !FORBIDDEN_PATTERNS.some((pattern) => pattern.test(text));
   }

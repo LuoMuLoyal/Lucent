@@ -190,6 +190,10 @@ AI_EMBEDDING_MODEL
 Each role is independent. If a role is configured, that role must provide all of
 `BASE_URL`, `API_KEY`, and `MODEL`. Partial role configuration is rejected at startup.
 
+DeepSeek compatibility note:
+
+- When an AI role points to `https://api.deepseek.com`, Lucent now disables DeepSeek `thinking` mode for LangChain OpenAI-compatible chat runtime creation so Today/Report streaming tool-use requests do not fail on `tool_choice`.
+
 Recommended role split:
 
 - `AI_ANALYSIS_MODEL`: 今日分析、周报、月报等长文本分析生成

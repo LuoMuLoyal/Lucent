@@ -65,7 +65,7 @@ export class ReportsContextService {
       startDate,
       endDate,
       generatedAt: new Date().toISOString(),
-      aiSummaryEnabled: settings?.value === true,
+      aiSummaryEnabled: settings?.value !== false,
       medicationSeries: this.buildMedicationSeries(
         doseLogs,
         startDate,

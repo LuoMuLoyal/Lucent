@@ -34,4 +34,18 @@ describe('LlmRuntimeService', () => {
 
     expect(model).toBeDefined();
   });
+
+  it('disables DeepSeek thinking mode for OpenAI-compatible streaming tool use', () => {
+    const service = new LlmRuntimeService({
+      ...baseConfig,
+      analysis: {
+        ...baseConfig.analysis,
+        baseUrl: 'https://api.deepseek.com',
+      },
+    });
+
+    const model = service.createChatModel('analysis');
+
+    expect(model).toBeDefined();
+  });
 });

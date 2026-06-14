@@ -21,6 +21,12 @@ import { ReportsAiSummaryPolicyService } from './reports-ai-summary-policy.servi
 import { ReportsComputationService } from '../dashboard/reports-computation.service';
 import { ReportsContextService } from '../dashboard/reports-context.service';
 import type { ReportSummaryStructuredOutput } from './report-summary.schema';
+import type { StreamSummaryEvent } from '../../../common/stream-summary';
+
+interface PreparedReportSummary {
+  locale: string;
+  context: ReportsAiSummaryContext;
+}
 
 @Injectable()
 export class ReportsAiSummaryService {
@@ -41,34 +47,29 @@ export class ReportsAiSummaryService {
     dto: GenerateReportSummaryDto,
     language: string,
   ): Promise<ReportSummaryDataDto> {
-    const locale = this.reportsAiSummaryCopyService.resolveLocale(language);
-    await this.assertAiSummariesEnabled(userId, locale);
+    const prepared = await this.prepare(userId, dto, language);
+    const output = await this.generateStructuredOutput(
+      prepared.context,
+      prepared.locale,
+    );
 
-    const query: ReportDashboardQueryDto =
-      dto.range === undefined ? {} : { range: dto.range };
-    const facts = await this.reportsContextService.build(userId, query);
-    const computed = this.reportsComputationService.compute(facts, locale);
-    const context = this.reportsAiSummaryContextService.build(facts, computed);
+    return this.toDataDto(prepared.context, output);
+  }
 
-    if (!this.reportsAiSummaryGeneratorService.hasAnalysisModel()) {
-      throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
-        message: this.reportsAiSummaryCopyService.serviceUnavailable(locale),
-      });
-    }
+  async generateStream(
+    userId: string,
+    dto: GenerateReportSummaryDto,
+    language: string,
+    onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
+  ): Promise<ReportSummaryDataDto> {
+    const prepared = await this.prepare(userId, dto, language);
+    const output = await this.generateStructuredOutputStream(
+      prepared.context,
+      prepared.locale,
+      onSummary,
+    );
 
-    const output = await this.generateStructuredOutput(context, locale);
-
-    return {
-      range: context.range,
-      startDate: context.startDate,
-      endDate: context.endDate,
-      generatedAt: context.generatedAt,
-      summary: output.summary,
-      bullets: output.bullets,
-      actionLabel: output.actionLabel,
-      confidenceNote: output.confidenceNote,
-    };
+    return this.toDataDto(prepared.context, output);
   }
 
   private async assertAiSummariesEnabled(
@@ -116,6 +117,40 @@ export class ReportsAiSummaryService {
     return this.reportsAiSummaryCopyService.buildFallback(context, locale);
   }
 
+  private async generateStructuredOutputStream(
+    context: ReportsAiSummaryContext,
+    locale: string,
+    onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
+  ): Promise<ReportSummaryStructuredOutput> {
+    try {
+      const raw = await this.reportsAiSummaryGeneratorService.generateStream(
+        context,
+        this.reportsAiSummaryCopyService.buildPromptCopy(locale),
+        async (summary) => {
+          if (!this.reportsAiSummaryPolicyService.isSafeSummaryText(summary)) {
+            return;
+          }
+          await onSummary({ summary });
+        },
+      );
+
+      if (this.reportsAiSummaryPolicyService.isSafe(raw)) {
+        return raw;
+      }
+
+      this.logger.warn(
+        `Report summary policy rejected streamed model output for ${context.startDate}..${context.endDate}; falling back`,
+      );
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Report summary streamed generation failed for ${context.startDate}..${context.endDate}; falling back: ${reason}`,
+      );
+    }
+
+    return this.reportsAiSummaryCopyService.buildFallback(context, locale);
+  }
+
   private async invokeModel(
     context: ReportsAiSummaryContext,
     locale: string,
@@ -124,5 +159,48 @@ export class ReportsAiSummaryService {
       context,
       this.reportsAiSummaryCopyService.buildPromptCopy(locale),
     );
+  }
+
+  private async prepare(
+    userId: string,
+    dto: GenerateReportSummaryDto,
+    language: string,
+  ): Promise<PreparedReportSummary> {
+    const locale = this.reportsAiSummaryCopyService.resolveLocale(language);
+    await this.assertAiSummariesEnabled(userId, locale);
+
+    const query: ReportDashboardQueryDto =
+      dto.range === undefined ? {} : { range: dto.range };
+    const facts = await this.reportsContextService.build(userId, query);
+    const computed = this.reportsComputationService.compute(facts, locale);
+    const context = this.reportsAiSummaryContextService.build(facts, computed);
+
+    if (!this.reportsAiSummaryGeneratorService.hasAnalysisModel()) {
+      throw new ServiceUnavailableException({
+        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        message: this.reportsAiSummaryCopyService.serviceUnavailable(locale),
+      });
+    }
+
+    return {
+      locale,
+      context,
+    };
+  }
+
+  private toDataDto(
+    context: ReportsAiSummaryContext,
+    output: ReportSummaryStructuredOutput,
+  ): ReportSummaryDataDto {
+    return {
+      range: context.range,
+      startDate: context.startDate,
+      endDate: context.endDate,
+      generatedAt: context.generatedAt,
+      summary: output.summary,
+      bullets: output.bullets,
+      actionLabel: output.actionLabel,
+      confidenceNote: output.confidenceNote,
+    };
   }
 }

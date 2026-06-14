@@ -39,6 +39,17 @@ export class LlmRuntimeService {
       },
     };
 
+    if (
+      this.config.provider === 'openai-compatible' &&
+      roleConfig.baseUrl?.includes('api.deepseek.com')
+    ) {
+      fields.modelKwargs = {
+        thinking: {
+          type: 'disabled',
+        },
+      };
+    }
+
     if (options?.timeout !== undefined) {
       fields.timeout = options.timeout;
     }
