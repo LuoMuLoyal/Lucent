@@ -1,6 +1,6 @@
 # Lucent Environment
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 This file records Lucent runtime configuration, local stacks, scripts, and required variables. Tencent CVM/TCR deployment steps live in `tencent-cloud-cicd.md`.
 
@@ -48,6 +48,12 @@ explicit resolution order above. There is no root `.env` fallback anymore.
   - `GET /api/v1/health/ready` readiness
   - `GET /api/v1/health/deep` diagnostic dependency probe
   - `GET /metrics` Prometheus text metrics
+- Same-host monitoring ports:
+  - Prometheus: `127.0.0.1:9090`
+  - Grafana: `127.0.0.1:3001`
+- Public reverse proxy ports:
+  - Nginx HTTP redirect: `80`
+  - Nginx HTTPS entrypoint: `443`
 - Admin panel: `GET /admin`
 
 Start local infrastructure:
@@ -100,6 +106,10 @@ ADMIN_EMAIL
 ADMIN_PASSWORD
 ADMIN_COOKIE_SECRET
 CORS_ORIGIN
+GF_SECURITY_ADMIN_PASSWORD
+NGINX_SERVER_NAME
+NGINX_SSL_CERT_PATH
+NGINX_SSL_KEY_PATH
 ```
 
 `CORS_ORIGIN=*` is accepted for local development but rejected in production.
@@ -107,6 +117,10 @@ CORS_ORIGIN
 JWT and admin secrets are required in every runtime now; keep them in the env
 files, not in code defaults. The checked-in dev/test templates already provide
 local values.
+
+Grafana admin username defaults to `GF_SECURITY_ADMIN_USER=admin` in the
+template; production should still set a strong
+`GF_SECURITY_ADMIN_PASSWORD`.
 
 ## Optional Integrations
 
@@ -183,6 +197,20 @@ Recommended role split:
 - `AI_CHAT_COMPRESSION_MODEL`: 长对话摘要、压缩历史上下文的低成本模型
 - `AI_EMBEDDING_MODEL`: RAG 检索向量化、知识库分片索引和查询向量生成
 
+Synthetic monitoring:
+
+```text
+SYNTHETIC_LOGIN_EMAIL
+SYNTHETIC_LOGIN_PASSWORD
+SYNTHETIC_CHECK_INTERVAL_MS
+SYNTHETIC_HTTP_TIMEOUT_MS
+```
+
+- `SYNTHETIC_LOGIN_EMAIL` / `SYNTHETIC_LOGIN_PASSWORD` are optional but strongly recommended for production monitoring.
+- Use a dedicated low-privilege real user account, not the admin account.
+- When credentials are absent, the synthetic exporter stays up and exposes
+  `configured=0` for those checks instead of crashing.
+
 ## Runtime Notes
 
 - `GET /api/v1/health` is a readiness alias, not a pure liveness check. It returns dependency detail in the normal API envelope and uses HTTP `503` when a critical dependency is down.
@@ -190,6 +218,14 @@ Recommended role split:
 - `GET /api/v1/health/ready` checks PostgreSQL plus Redis when `REDIS_URL` is configured. Without `REDIS_URL`, cache health reports `memory` fallback and remains non-critical.
 - `GET /api/v1/health/deep` keeps the same dependency checks but includes more explicit probe detail for diagnosis.
 - `GET /metrics` exposes Prometheus text format directly, stays outside `/api`, and is not wrapped by the `{ code, message, data }` envelope.
+- Production compose also runs:
+  - `prometheus`, scraping `app:3000/metrics` and `synthetic-monitor:9101/metrics`
+  - `grafana`, provisioning the default datasource and dashboard from `monitoring/grafana/**`
+  - `synthetic-monitor`, executing real `auth_login` and `account_profile` checks on a timer
+  - `nginx`, terminating TLS and proxying public traffic to `app:3000`
+- Production deploy writes `PROMETHEUS_IMAGE` and `GRAFANA_IMAGE` into `.deploy-image.env`
+  beside the app/database/cache image refs, so the server can pull the full stack
+  from the configured registry without depending on Docker Hub.
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect during app startup so contract generation does not require a live DB connection.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
 - When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; without it, cache falls back to memory.

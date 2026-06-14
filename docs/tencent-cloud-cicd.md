@@ -1,6 +1,6 @@
 # Tencent Cloud CVM + TCR CI/CD 操作说明
 
-Last updated: 2026-06-13
+Last updated: 2026-06-14
 
 这份说明对应当前 Lucent 仓库里的 CI/CD 实现：
 
@@ -9,7 +9,7 @@ Last updated: 2026-06-13
 - 服务器不需要在部署时访问 GitHub
 - 服务器也不需要访问 Docker Hub
 - 当前 workflow 对业务镜像使用普通 `docker build` + `docker push`，不走 Docker Buildx 的 attestation / manifest 导出路径
-- 当前 workflow 只推送并部署业务镜像的 `latest` tag，不再额外维护 `sha-<commit>` tag；部署失败后不会自动回滚到上一版镜像
+- 当前 workflow 会推送并部署业务镜像的 `latest` tag，同时自动镜像 Prometheus / Grafana 运行镜像；不再额外维护 `sha-<commit>` tag，部署失败后也不会自动回滚到上一版镜像
 
 ## 先说结论
 
@@ -136,8 +136,16 @@ docker login ccr.ccs.tencentyun.com --username=<你的腾讯云账号ID>
 
 ```bash
 sudo mkdir -p /opt/lucent
+sudo mkdir -p /opt/lucent/certs
 sudo chown -R "$USER":"$USER" /opt/lucent
 cd /opt/lucent
+```
+
+然后把证书文件放到：
+
+```text
+/opt/lucent/certs/fullchain.pem
+/opt/lucent/certs/privkey.pem
 ```
 
 然后创建生产环境文件：
@@ -148,6 +156,9 @@ NODE_ENV=production
 HOST=0.0.0.0
 PORT=3000
 CORS_ORIGIN=https://your-domain.example
+NGINX_SERVER_NAME=api.your-domain.example
+NGINX_SSL_CERT_PATH=/etc/nginx/certs/fullchain.pem
+NGINX_SSL_KEY_PATH=/etc/nginx/certs/privkey.pem
 DATABASE_URL=postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public
 REDIS_URL=redis://redis:6379
 JWT_ACCESS_TTL=15m
@@ -194,6 +205,12 @@ TENCENT_COS_REGION=ap-guangzhou
 TENCENT_COS_PUBLIC_BASE_URL=
 TENCENT_COS_UPLOAD_EXPIRES_SECONDS=600
 TENCENT_COS_MAX_UPLOAD_BYTES=10485760
+GF_SECURITY_ADMIN_USER=admin
+GF_SECURITY_ADMIN_PASSWORD=replace_with_strong_grafana_password
+SYNTHETIC_LOGIN_EMAIL=
+SYNTHETIC_LOGIN_PASSWORD=
+SYNTHETIC_CHECK_INTERVAL_MS=60000
+SYNTHETIC_HTTP_TIMEOUT_MS=10000
 LOG_LEVEL=info
 EOF
 ```
@@ -201,6 +218,7 @@ EOF
 必须改掉这些值：
 
 - `CORS_ORIGIN`
+- `NGINX_SERVER_NAME`
 - `JWT_ACCESS_SECRET`
 - `JWT_REFRESH_SECRET`
 - `MAIL_*`
@@ -216,6 +234,13 @@ EOF
 - `TENCENT_COS_BUCKET`
 - `TENCENT_COS_REGION`
 - `TENCENT_COS_PUBLIC_BASE_URL` 可选，填 CDN 或公开访问域名时，接口会返回可保存的 `publicUrl`
+
+如果要让 synthetic check 真正监控登录和鉴权链路，还要额外准备一个真实的低权限账号：
+
+- `SYNTHETIC_LOGIN_EMAIL`
+- `SYNTHETIC_LOGIN_PASSWORD`
+
+不要复用 `/admin` 账号，也不要给 synthetic 用户额外权限。
 
 ## 第 5 步：先在服务器上手工验证一次 TCR 登录和拉取
 
@@ -233,7 +258,7 @@ docker login ccr.ccs.tencentyun.com --username '<你的腾讯云账号ID>'
 docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent:latest
 ```
 
-当前仓库的生产 compose 会固定使用这两个基础镜像标签：
+当前仓库的生产 compose 会固定使用这两个数据基础镜像标签：
 
 - `ccr.ccs.tencentyun.com/<namespace>/lucent-postgres:18-alpine`
 - `ccr.ccs.tencentyun.com/<namespace>/lucent-redis:8-alpine`
@@ -259,6 +284,15 @@ docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent-postgres:18-alpine
 docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent-redis:8-alpine
 ```
 
+监控栈使用的两个镜像会由当前 workflow 自动同步到同一命名空间：
+
+- `ccr.ccs.tencentyun.com/<你的namespace>/lucent-prometheus:v3.12.0`
+- `ccr.ccs.tencentyun.com/<你的namespace>/lucent-grafana:13.0.2`
+
+Nginx 运行镜像也会由当前 workflow 自动同步：
+
+- `ccr.ccs.tencentyun.com/<你的namespace>/lucent-nginx:1.29.1-alpine`
+
 ## 第 6 步：触发首个部署
 
 当 GitHub Secrets / Variables 都配好以后：
@@ -272,6 +306,11 @@ docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent-redis:8-alpine
 - `.deploy-image.env`
 - `docker-compose.yml`
 - `scripts/deploy/deploy-server.sh`
+- `monitoring/prometheus/prometheus.yml`
+- `monitoring/grafana/provisioning/*`
+- `monitoring/grafana/dashboards/lucent-overview.json`
+- `monitoring/synthetic-checker/synthetic-checker.mjs`
+- `deploy/nginx/nginx.conf.template`
 
 然后在服务器上检查：
 
@@ -290,12 +329,25 @@ curl http://127.0.0.1:3000/api/v1/health
 curl http://127.0.0.1:3000/api/v1/health/live
 curl http://127.0.0.1:3000/api/v1/health/ready
 curl http://127.0.0.1:3000/metrics
+curl http://127.0.0.1:9090/api/v1/targets
+curl http://127.0.0.1:3001/api/health
+curl -k https://your-domain.example/nginx-health
+curl -k https://your-domain.example/api/v1/health/ready
 ```
 
 - `/api/v1/health/live` 用于判断进程是否还活着
 - `/api/v1/health/ready` 用于部署后依赖是否真正可用
 - `/metrics` 用于 Prometheus 抓取
 - `/api/v1/health/deep` 只适合人工诊断，不适合作为高频监控抓取端点
+- `127.0.0.1:9090` 是 Prometheus
+- `127.0.0.1:3001` 是 Grafana；默认只绑定到宿主机 loopback，不直接对公网开放
+- `https://your-domain.example` 应该先进入 Nginx，再转发到 Lucent
+
+部署后的最小监控核对项：
+
+- Prometheus targets 里应看到 `prometheus`、`lucent-app`、`lucent-synthetic`
+- Grafana 首次打开就应有 `Lucent / Lucent Overview` 默认面板
+- 如果配置了 synthetic 账号，面板中的 `Synthetic Login` 和 `Synthetic Account` 应该变成绿色
 
 注意：当前部署只使用 `latest` tag。失败时需要手工重新推送一个可用的 `latest`，或临时修改服务器 `.deploy-image.env` 里的 `LUCENT_IMAGE` 指向你明确知道可用的镜像 tag。
 
@@ -304,12 +356,9 @@ curl http://127.0.0.1:3000/metrics
 腾讯云控制台里至少确认这些：
 
 - CVM 安全组放行 `22`
-- CVM 安全组放行 `3000`，或者只放行你前面反代要用的端口
-
-如果你前面还要挂 Nginx / Caddy 反向代理和 HTTPS：
-
-- 反代监听 `80/443`
-- Lucent 容器继续只监听宿主机 `3000`
+- CVM 安全组放行 `80`
+- CVM 安全组放行 `443`
+- `3000`、`9090`、`3001` 建议不要对公网放行
 
 ## 常见问题
 

@@ -10,6 +10,7 @@ This directory keeps backend runtime, deployment, generated-contract, and shared
 | ---------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------- |
 | `environment.md`                   | Runtime config, local stacks, required variables, command behavior                   | Tencent Cloud step-by-step deployment |
 | `tencent-cloud-cicd.md`            | Tencent CVM/TCR deployment runbook                                                   | General env variable explanations     |
+| `deployment-files.md`              | Deployment-time file inventory: what must be created locally vs synced automatically | Step-by-step Tencent operations       |
 | `openapi.json`                     | Generated API contract from `pnpm export:openapi`                                    | Manual edits                          |
 | `public/data-sources.md`           | Medicine source/import strategy and table mapping                                    | Product roadmap                       |
 | `public/reminder-contract.md`      | Reminder/notification backend-vs-device boundary                                     | UI implementation details             |
@@ -25,6 +26,7 @@ Product direction is owned by workspace path `Luminous/docs/Product_Vision.md`.
 | -------------------------------------------------------------- | ----------------------------------------------------------- |
 | Environment variables, local Docker, scripts, runtime baseline | `environment.md` and root `README.md`                       |
 | Tencent Cloud deployment procedure                             | `tencent-cloud-cicd.md`                                     |
+| Deployment file inventory / server-local cert and env files    | `deployment-files.md`                                       |
 | Medicine import behavior or source-table strategy              | `public/data-sources.md`                                    |
 | Reminder schedule/preference contract                          | `public/reminder-contract.md`                               |
 | Environment snapshot contract                                  | `public/environment-contract.md`                            |
