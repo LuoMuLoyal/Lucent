@@ -73,6 +73,24 @@ AI runtime configuration is role-based and OpenAI-compatible only. Configure
 `BASE_URL` / `API_KEY` / `MODEL`, including analysis, vision, language,
 chat, chat compression, and embedding. See [docs/environment.md](docs/environment.md).
 
+Production compose now also includes a same-host monitoring stack:
+
+- Prometheus on `127.0.0.1:9090`
+- Grafana on `127.0.0.1:3001`
+- a synthetic exporter on `synthetic-monitor:9101` inside the compose network
+
+Grafana provisions the Lucent Prometheus datasource and a default
+`Lucent Overview` dashboard automatically at startup.
+Monitoring images are mirrored into the same registry path used for app
+deploys, so the server keeps pulling from your configured registry instead of
+Docker Hub.
+
+Production compose also includes an Nginx reverse proxy:
+
+- `80` redirects to `443`
+- `443` proxies to `app:3000`
+- TLS certificates are mounted from server-local `./certs`
+
 Local database layout:
 
 - development DB: `postgres/postgres@127.0.0.1:15432/lucent`
@@ -100,6 +118,16 @@ Recommended use:
 - container readiness / deployment gate: `/api/v1/health/ready`
 - manual diagnosis: `/api/v1/health/deep`
 - monitoring scrape: `/metrics`
+
+Synthetic monitoring:
+
+- `auth_login`
+  - real `POST /api/v1/auth/login` with configured synthetic user credentials
+- `account_profile`
+  - real `GET /api/v1/account` with the access token returned by `auth_login`
+
+These checks are exported as Prometheus metrics by the `synthetic-monitor`
+sidecar and show up in the default Grafana dashboard.
 
 ## Verification
 

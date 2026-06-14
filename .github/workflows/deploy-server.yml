@@ -111,6 +111,9 @@ jobs:
       image_ref: ${{ steps.meta.outputs.image_ref }}
       postgres_image_ref: ${{ steps.meta.outputs.postgres_image_ref }}
       redis_image_ref: ${{ steps.meta.outputs.redis_image_ref }}
+      prometheus_image_ref: ${{ steps.meta.outputs.prometheus_image_ref }}
+      grafana_image_ref: ${{ steps.meta.outputs.grafana_image_ref }}
+      nginx_image_ref: ${{ steps.meta.outputs.nginx_image_ref }}
       registry_host: ${{ steps.meta.outputs.registry_host }}
     steps:
       - name: Checkout
@@ -132,6 +135,12 @@ jobs:
           postgres_image_ref="${postgres_image_repo}:18-alpine"
           redis_image_repo="${registry_host}/${namespace}/${image_name}-redis"
           redis_image_ref="${redis_image_repo}:8-alpine"
+          prometheus_image_repo="${registry_host}/${namespace}/${image_name}-prometheus"
+          prometheus_image_ref="${prometheus_image_repo}:v3.12.0"
+          grafana_image_repo="${registry_host}/${namespace}/${image_name}-grafana"
+          grafana_image_ref="${grafana_image_repo}:13.0.2"
+          nginx_image_repo="${registry_host}/${namespace}/${image_name}-nginx"
+          nginx_image_ref="${nginx_image_repo}:1.29.1-alpine"
 
           {
             echo "registry_host=${registry_host}"
@@ -141,6 +150,12 @@ jobs:
             echo "postgres_image_ref=${postgres_image_ref}"
             echo "redis_image_repo=${redis_image_repo}"
             echo "redis_image_ref=${redis_image_ref}"
+            echo "prometheus_image_repo=${prometheus_image_repo}"
+            echo "prometheus_image_ref=${prometheus_image_ref}"
+            echo "grafana_image_repo=${grafana_image_repo}"
+            echo "grafana_image_ref=${grafana_image_ref}"
+            echo "nginx_image_repo=${nginx_image_repo}"
+            echo "nginx_image_ref=${nginx_image_ref}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Login to registry
@@ -165,6 +180,23 @@ jobs:
           set -euo pipefail
           docker push "${{ steps.meta.outputs.image_ref }}"
 
+      - name: Mirror monitoring base images
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker pull prom/prometheus:v3.12.0
+          docker tag prom/prometheus:v3.12.0 "${{ steps.meta.outputs.prometheus_image_ref }}"
+          docker push "${{ steps.meta.outputs.prometheus_image_ref }}"
+
+          docker pull grafana/grafana-oss:13.0.2
+          docker tag grafana/grafana-oss:13.0.2 "${{ steps.meta.outputs.grafana_image_ref }}"
+          docker push "${{ steps.meta.outputs.grafana_image_ref }}"
+
+          docker pull nginx:1.29.1-alpine
+          docker tag nginx:1.29.1-alpine "${{ steps.meta.outputs.nginx_image_ref }}"
+          docker push "${{ steps.meta.outputs.nginx_image_ref }}"
+
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
@@ -177,6 +209,9 @@ jobs:
       LUCENT_IMAGE: ${{ needs.docker.outputs.image_ref }}
       POSTGRES_IMAGE: ${{ needs.docker.outputs.postgres_image_ref }}
       REDIS_IMAGE: ${{ needs.docker.outputs.redis_image_ref }}
+      PROMETHEUS_IMAGE: ${{ needs.docker.outputs.prometheus_image_ref }}
+      GRAFANA_IMAGE: ${{ needs.docker.outputs.grafana_image_ref }}
+      NGINX_IMAGE: ${{ needs.docker.outputs.nginx_image_ref }}
       REGISTRY_HOST: ${{ needs.docker.outputs.registry_host }}
       REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
@@ -195,9 +230,9 @@ jobs:
           test -n "$SERVER_APP_DIR"
 
           ssh -p "${{ secrets.SERVER_PORT }}" "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "mkdir -p '$SERVER_APP_DIR/scripts/deploy'"
+            "mkdir -p '$SERVER_APP_DIR/scripts/deploy' '$SERVER_APP_DIR/monitoring' '$SERVER_APP_DIR/deploy/nginx'"
 
-          tar czf - docker-compose.yml scripts/deploy/deploy-server.sh | \
+          tar czf - docker-compose.yml scripts/deploy/deploy-server.sh monitoring deploy/nginx | \
             ssh -p "${{ secrets.SERVER_PORT }}" "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
               "tar xzf - -C '$SERVER_APP_DIR'"
 
@@ -209,11 +244,14 @@ jobs:
         run: |
           set -euo pipefail
           password_b64="$(printf '%s' "$REGISTRY_PASSWORD" | base64 -w0)"
-          printf -v remote_env 'SERVER_APP_DIR=%q LUCENT_IMAGE=%q POSTGRES_IMAGE=%q REDIS_IMAGE=%q REGISTRY_HOST=%q REGISTRY_USERNAME=%q REGISTRY_PASSWORD_B64=%q' \
+          printf -v remote_env 'SERVER_APP_DIR=%q LUCENT_IMAGE=%q POSTGRES_IMAGE=%q REDIS_IMAGE=%q PROMETHEUS_IMAGE=%q GRAFANA_IMAGE=%q NGINX_IMAGE=%q REGISTRY_HOST=%q REGISTRY_USERNAME=%q REGISTRY_PASSWORD_B64=%q' \
             "$SERVER_APP_DIR" \
             "$LUCENT_IMAGE" \
             "$POSTGRES_IMAGE" \
             "$REDIS_IMAGE" \
+            "$PROMETHEUS_IMAGE" \
+            "$GRAFANA_IMAGE" \
+            "$NGINX_IMAGE" \
             "$REGISTRY_HOST" \
             "$REGISTRY_USERNAME" \
             "$password_b64"
