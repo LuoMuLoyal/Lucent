@@ -1,0 +1,15 @@
+{
+  "service_unavailable": "自然语言记录解析服务尚未配置",
+  "confirmation_hint": "这些只是候选记录，确认后再保存到今日记录中。",
+  "fallback": {
+    "action_label": "确认候选记录",
+    "note_title": "导入的备注候选",
+    "note_rationale": "这段内容暂时无法安全结构化，先保留为备注候选。"
+  },
+  "prompt": {
+    "user_intro": "请把提供的{languageLabel}健康记录文本转换成候选日常记录。",
+    "tone": "保持字面、低风险，不要做超出文本事实的医疗推断。",
+    "action_label_hint": "这里不需要生成 UI actionLabel，只输出结构化候选记录即可。",
+    "facts_label": "候选记录生成事实 JSON："
+  }
+}

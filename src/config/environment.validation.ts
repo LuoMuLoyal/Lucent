@@ -255,7 +255,12 @@ function assertTencentCosEnvironment(config: EnvironmentVariables): void {
     EnvKey.TENCENT_COS_BUCKET,
     EnvKey.TENCENT_COS_REGION,
   ] as const;
-  const hasAnyTencentCosConfig = requiredKeys.some((key) =>
+  const triggerKeys = [
+    EnvKey.TENCENT_COS_SECRET_ID,
+    EnvKey.TENCENT_COS_SECRET_KEY,
+    EnvKey.TENCENT_COS_BUCKET,
+  ] as const;
+  const hasAnyTencentCosConfig = triggerKeys.some((key) =>
     (config[key] ?? '').trim(),
   );
 

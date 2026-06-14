@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -29,15 +30,20 @@ import {
   DailyRecordResponseDto,
   CreateDailyRecordImageUploadDto,
   DailyRecordImageUploadResponseDto,
+  DailyRecordCandidateResponseDto,
+  GenerateDailyRecordCandidatesDto,
 } from './dto';
+import { DailyRecordCandidatesService } from './daily-record-candidates.service';
 import { DailyRecordImageUploadService } from './daily-record-image-upload.service';
 import { DailyRecordsService } from './daily-records.service';
+import { I18nLang } from 'nestjs-i18n';
 
 @ApiTags('Daily Records')
 @Controller('user/daily-records')
 export class DailyRecordsController {
   constructor(
     private readonly dailyRecordsService: DailyRecordsService,
+    private readonly dailyRecordCandidatesService: DailyRecordCandidatesService,
     private readonly imageUploadService: DailyRecordImageUploadService,
   ) {}
 
@@ -90,6 +96,26 @@ export class DailyRecordsController {
     @Body() dto: CreateDailyRecordImageUploadDto,
   ) {
     const result = this.imageUploadService.createPresignedUpload(user.sub, dto);
+    return successEnvelope(result);
+  }
+
+  @Post('candidate-records/generate')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Generate AI candidate daily records from a natural-language note',
+  })
+  @ApiResponse({ status: 200, type: DailyRecordCandidateResponseDto })
+  async generateCandidates(
+    @CurrentUser() _user: UserPayload,
+    @Body() dto: GenerateDailyRecordCandidatesDto,
+    @I18nLang() language: string,
+  ) {
+    const result = await this.dailyRecordCandidatesService.generate(
+      dto,
+      language,
+    );
     return successEnvelope(result);
   }
 

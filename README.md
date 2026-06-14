@@ -72,6 +72,9 @@ AI runtime configuration is role-based and OpenAI-compatible only. Configure
 `AI_PROVIDER=openai-compatible`, then give each role its own
 `BASE_URL` / `API_KEY` / `MODEL`, including analysis, vision, language,
 chat, chat compression, and embedding. See [docs/environment.md](docs/environment.md).
+`AI_LANGUAGE_MODEL` now powers `POST /api/v1/user/daily-records/candidate-records/generate`,
+which converts one natural-language note into user-confirmed candidate daily records
+without writing directly into the final daily-record table.
 
 Production compose now also includes a same-host monitoring stack:
 

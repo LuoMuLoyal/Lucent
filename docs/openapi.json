@@ -1466,6 +1466,41 @@
         "tags": ["Daily Records"]
       }
     },
+    "/api/v1/user/daily-records/candidate-records/generate": {
+      "post": {
+        "operationId": "DailyRecordsController_generateCandidates_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateDailyRecordCandidatesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordCandidateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Generate AI candidate daily records from a natural-language note",
+        "tags": ["Daily Records"]
+      }
+    },
     "/api/v1/user/daily-records/{id}": {
       "get": {
         "operationId": "DailyRecordsController_get_v1",
@@ -4719,6 +4754,124 @@
           },
           "data": {
             "$ref": "#/components/schemas/DailyRecordImageUploadDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "GenerateDailyRecordCandidatesDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Natural-language note to be parsed into candidate daily records.",
+            "example": "今天头疼，早上喝了两杯水，中午吃了面，昨晚只睡了6小时。"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Wake date in YYYY-MM-DD format used as the candidate record date baseline.",
+            "example": "2026-06-14"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "Optional user timezone hint used only for interpretation wording. No server timezone conversion is persisted.",
+            "example": "Asia/Shanghai"
+          }
+        },
+        "required": ["text", "occurredAt"]
+      },
+      "DailyRecordCandidateKind": {
+        "type": "string",
+        "enum": ["water", "meal", "symptom", "note", "sleep"]
+      },
+      "DailyRecordCandidateItemDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordCandidateKind"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Candidate occurred date in YYYY-MM-DD format.",
+            "example": "2026-06-14"
+          },
+          "title": {
+            "type": "object",
+            "description": "Short candidate title.",
+            "nullable": true
+          },
+          "value": {
+            "type": "object",
+            "description": "Candidate measured value.",
+            "nullable": true
+          },
+          "unit": {
+            "type": "object",
+            "description": "Candidate unit.",
+            "nullable": true
+          },
+          "note": {
+            "type": "object",
+            "description": "Candidate free-text note.",
+            "nullable": true
+          },
+          "payload": {
+            "type": "object",
+            "description": "Structured candidate payload. For sleep, this may include durationMinutes and optional timing hints.",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Human-readable reason showing which phrase or fact led to this candidate.",
+            "example": "Detected headache symptom from “今天头疼”."
+          }
+        },
+        "required": ["kind", "occurredAt", "rationale"]
+      },
+      "DailyRecordCandidateDataDto": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string",
+            "description": "Normalized parse locale.",
+            "example": "zh-CN"
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when candidates were generated.",
+            "example": "2026-06-14T10:20:30.000Z"
+          },
+          "confirmationHint": {
+            "type": "string",
+            "description": "Short UI hint telling the client that these are candidates, not saved records.",
+            "example": "Review these candidates before saving them to your daily records."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordCandidateItemDto"
+            }
+          }
+        },
+        "required": ["locale", "generatedAt", "confirmationHint", "items"]
+      },
+      "DailyRecordCandidateResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordCandidateDataDto"
           }
         },
         "required": ["code", "message", "data"]

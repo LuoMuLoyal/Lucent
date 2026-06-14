@@ -101,4 +101,33 @@ describe('validateEnvironment', () => {
       }),
     ).toThrow('AI_PROVIDER is required');
   });
+
+  it('allows default COS region alone without treating COS as configured', () => {
+    const config = validateEnvironment({
+      [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+      [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
+      [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
+      [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
+      [EnvKey.ADMIN_PASSWORD]: 'admin12345',
+      [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+      [EnvKey.TENCENT_COS_REGION]: 'ap-guangzhou',
+    });
+
+    expect(config[EnvKey.TENCENT_COS_REGION]).toBe('ap-guangzhou');
+  });
+
+  it('still rejects partial COS credentials when upload config really starts', () => {
+    expect(() =>
+      validateEnvironment({
+        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+        [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
+        [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
+        [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
+        [EnvKey.ADMIN_PASSWORD]: 'admin12345',
+        [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+        [EnvKey.TENCENT_COS_BUCKET]: 'lucent-dev',
+        [EnvKey.TENCENT_COS_REGION]: 'ap-guangzhou',
+      }),
+    ).toThrow('Incomplete Tencent COS environment variables');
+  });
 });

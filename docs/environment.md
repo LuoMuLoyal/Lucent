@@ -148,7 +148,7 @@ TENCENT_COS_UPLOAD_EXPIRES_SECONDS
 TENCENT_COS_MAX_UPLOAD_BYTES
 ```
 
-If any required COS credential is set, all of `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and `TENCENT_COS_REGION` must be set.
+`TENCENT_COS_REGION` may keep its default template value alone. COS is treated as truly configured only after at least one of `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, or `TENCENT_COS_BUCKET` is set; from that point, all of `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and `TENCENT_COS_REGION` must be set together.
 
 Mail:
 
