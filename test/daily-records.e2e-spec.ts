@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions */
 
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
+import {
+  ServiceUnavailableException,
+  type INestApplication,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
@@ -11,6 +14,7 @@ import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/setup-app';
 import { ResultCode } from '../src/common/api-envelope';
 import type { ApiEnvelope } from '../src/common/api-envelope';
+import { DailyRecordCandidatesService } from '../src/modules/daily-records/daily-record-candidates.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { DailyRecordKind, UserStatus } from '../src/generated/prisma/client';
 import { ConfigKey } from '../src/config/config-keys.enum';
@@ -49,11 +53,19 @@ describe('Daily Records API (e2e)', () => {
   let prisma: PrismaService;
   let jwtService: JwtService;
   let configService: ConfigService;
+  let candidateService: jest.Mocked<DailyRecordCandidatesService>;
 
   beforeAll(async () => {
+    const candidateServiceMock = {
+      generate: jest.fn(),
+    };
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(DailyRecordCandidatesService)
+      .useValue(candidateServiceMock)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     setupApp(app, app.get(ConfigService));
@@ -62,6 +74,7 @@ describe('Daily Records API (e2e)', () => {
     prisma = app.get(PrismaService);
     jwtService = app.get(JwtService);
     configService = app.get(ConfigService);
+    candidateService = moduleFixture.get(DailyRecordCandidatesService);
 
     await prisma.userDailyRecordAttachment.deleteMany();
     await prisma.userDailyRecord.deleteMany();
@@ -81,6 +94,10 @@ describe('Daily Records API (e2e)', () => {
     await prisma.userSession.deleteMany();
     await prisma.user.deleteMany();
     await app.close();
+  });
+
+  beforeEach(() => {
+    candidateService.generate.mockReset();
   });
 
   async function createAccessToken(userId: string, email: string) {
@@ -391,5 +408,111 @@ describe('Daily Records API (e2e)', () => {
     await request(app.getHttpServer())
       .get(`${BASE_PATH}?date=2026-06-04`)
       .expect(401);
+  });
+
+  it('should return 503 for candidate generation when AI language model is not configured', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+    const token = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
+
+    candidateService.generate.mockRejectedValueOnce(
+      new ServiceUnavailableException({
+        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        message: '自然语言记录解析服务尚未配置',
+      }),
+    );
+
+    const response = await request(app.getHttpServer())
+      .post(`${BASE_PATH}/candidate-records/generate`)
+      .set(AUTH_HEADER, bearer(token))
+      .send({
+        text: '今天头疼，早上喝了两杯水。',
+        occurredAt: '2026-06-14',
+      })
+      .expect(503);
+
+    const body = response.body as ApiEnvelope;
+    expect(body.code).toBe(ResultCode.EXTERNAL_SERVICE_ERROR);
+  });
+
+  it('should return generated candidate records', async () => {
+    const email = uniqueEmail();
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash: '$argon2id$mock',
+        status: UserStatus.active,
+      },
+    });
+    const token = await createAccessToken(
+      user.id,
+      expectDefined(user.email, 'Expected user email'),
+    );
+
+    candidateService.generate.mockResolvedValueOnce({
+      locale: 'zh-CN',
+      generatedAt: '2026-06-14T10:20:30.000Z',
+      confirmationHint: '这些只是候选记录，确认后再保存到今日记录中。',
+      items: [
+        {
+          kind: 'symptom',
+          occurredAt: '2026-06-14',
+          title: '头痛',
+          value: null,
+          unit: null,
+          note: '今天头疼',
+          payload: null,
+          rationale: 'Detected symptom from “今天头疼”.',
+        },
+        {
+          kind: 'water',
+          occurredAt: '2026-06-14',
+          title: null,
+          value: '2',
+          unit: 'cups',
+          note: null,
+          payload: null,
+          rationale: 'Detected water intake from “喝了两杯水”.',
+        },
+      ],
+    });
+
+    const response = await request(app.getHttpServer())
+      .post(`${BASE_PATH}/candidate-records/generate`)
+      .set(AUTH_HEADER, bearer(token))
+      .set('Accept-Language', 'zh-CN')
+      .send({
+        text: '今天头疼，早上喝了两杯水。',
+        occurredAt: '2026-06-14',
+      })
+      .expect(200);
+
+    const body = response.body as ApiEnvelope<{
+      locale: string;
+      confirmationHint: string;
+      items: Array<{ kind: string }>;
+    }>;
+    expect(body.code).toBe(ResultCode.SUCCESS);
+    expect(body.message).toBe('');
+    const data = expectData(body);
+    expect(data.locale).toBe('zh-CN');
+    expect(data.items).toHaveLength(2);
+    expect(data.items[0]?.kind).toBe('symptom');
+    expect(candidateService.generate.mock.calls).toContainEqual([
+      {
+        text: '今天头疼，早上喝了两杯水。',
+        occurredAt: '2026-06-14',
+      },
+      'zh-CN',
+    ]);
   });
 });

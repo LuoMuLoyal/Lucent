@@ -1,6 +1,6 @@
 # Lucent TODO
 
-Last updated: 2026-06-12
+Last updated: 2026-06-14
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to one branch or security check, but do not scatter project-level follow-up lists across changelogs or random docs.
@@ -8,7 +8,7 @@ Keep durable implementation context in the owning code comments when the TODO is
 ## AI / LLM Runtime
 
 - ~~Audit Lucent for remaining user-visible AI hardcoded copy outside the Today analysis i18n path.~~ Done 2026-06-12: `reports-presenter.service.ts` was the only gap; findings/patterns/score-summary now go through `reports-dashboard.*` i18n keys, and `getDashboard` passes `@I18nLang()` locale through the service chain.
-- Define one shared locale-aware prompt/copy helper for future weekly summary, monthly summary, candidate-record NLP, and screenshot-analysis modules.
+- Re-evaluate whether the existing shared locale-aware prompt/copy helper remains enough once screenshot-analysis or multi-step AI flows arrive.
 - Keep AI feature boundaries explicit:
   - business use-case service owns auth/settings gate, data aggregation, policy fallback, and response shaping
   - copy service owns locale normalization plus localized prompt/fallback copy

@@ -1,0 +1,15 @@
+{
+  "service_unavailable": "Natural-language record parsing is not configured",
+  "confirmation_hint": "Review these candidates before saving them to your daily records.",
+  "fallback": {
+    "action_label": "Review candidates",
+    "note_title": "Imported note candidate",
+    "note_rationale": "The note could not be safely structured, so it is kept as a note candidate."
+  },
+  "prompt": {
+    "user_intro": "Convert the supplied {languageLabel} health note into candidate daily records.",
+    "tone": "Stay literal, low-risk, and avoid unsupported medical inference.",
+    "action_label_hint": "No UI action label is needed; focus on structured candidate records only.",
+    "facts_label": "Candidate generation facts JSON:"
+  }
+}
