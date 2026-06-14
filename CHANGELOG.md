@@ -1,6 +1,22 @@
 # Lucent Changelog
 
-Last updated: 2026-06-08
+Last updated: 2026-06-14
+
+## 2026-06-14
+
+### Repo + Runtime Deployment Split
+
+- Switched server deployment to a split layout: tracked app repo at `/opt/lucent/app`, server-local runtime files at `/opt/lucent/runtime`.
+- Updated compose and deploy workflow so the server now `git pull --ff-only`, then reads env/certs/Nginx runtime files from `/opt/lucent/runtime`.
+- Removed the old template-driven Nginx deploy path and replaced it with a concrete repo baseline config at `deploy/nginx/nginx.conf`.
+- Stopped treating monitoring assets as runtime-local files; Prometheus, Grafana provisioning, and synthetic checker assets now stay under tracked repo path `monitoring/**`.
+
+### Deployment Docs Boundary Cleanup
+
+- Added `docs/deployment-checklist.md` for executable deployment and go-live verification steps only.
+- Narrowed `docs/tencent-cloud-cicd.md` to Tencent Cloud / TCR workflow setup and deploy-chain behavior only.
+- Narrowed `docs/deployment-files.md` to file ownership and directory boundaries only.
+- Removed stale Nginx env fields from production env docs and templates so runtime config now reflects the real compose/deploy model.
 
 ## 2026-06-12
 

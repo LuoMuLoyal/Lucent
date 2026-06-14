@@ -89,7 +89,7 @@ Production compose also includes an Nginx reverse proxy:
 
 - `80` redirects to `443`
 - `443` proxies to `app:3000`
-- TLS certificates are mounted from server-local `./certs`
+- TLS certificates and Nginx config are mounted from the server-local runtime directory
 
 Local database layout:
 
@@ -156,6 +156,7 @@ Active docs:
 
 - [docs/environment.md](docs/environment.md)
 - [docs/tencent-cloud-cicd.md](docs/tencent-cloud-cicd.md)
+- [docs/deployment-checklist.md](docs/deployment-checklist.md)
 - [docs/openapi.json](docs/openapi.json)
 - [docs/public/data-sources.md](docs/public/data-sources.md)
 - [docs/public/reminder-contract.md](docs/public/reminder-contract.md)

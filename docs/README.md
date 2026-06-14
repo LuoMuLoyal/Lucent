@@ -1,22 +1,23 @@
 # Lucent Docs
 
-Last updated: 2026-06-08
+Last updated: 2026-06-14
 
 This directory keeps backend runtime, deployment, generated-contract, and shared data-contract documentation for Lucent. If a complex backend task needs a live execution plan, put it under `../plans/` instead of `docs/`.
 
 ## Document Boundaries
 
-| Document                           | Responsibility                                                                       | Do not put here                       |
-| ---------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------- |
-| `environment.md`                   | Runtime config, local stacks, required variables, command behavior                   | Tencent Cloud step-by-step deployment |
-| `tencent-cloud-cicd.md`            | Tencent CVM/TCR deployment runbook                                                   | General env variable explanations     |
-| `deployment-files.md`              | Deployment-time file inventory: what must be created locally vs synced automatically | Step-by-step Tencent operations       |
-| `openapi.json`                     | Generated API contract from `pnpm export:openapi`                                    | Manual edits                          |
-| `public/data-sources.md`           | Medicine source/import strategy and table mapping                                    | Product roadmap                       |
-| `public/reminder-contract.md`      | Reminder/notification backend-vs-device boundary                                     | UI implementation details             |
-| `public/environment-contract.md`   | Environment snapshot API boundary                                                    | More-tab or generic utility plans     |
-| `public/mine-settings-contract.md` | Mine/Settings API boundary (user settings, support resources, app info, data export) | UI implementation details             |
-| `TODO.md`                          | Active deferred backend follow-up items                                              | Historical changelog narrative        |
+| Document                           | Responsibility                                                                       | Do not put here                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------- |
+| `environment.md`                   | Runtime config, local stacks, required variables, command behavior                   | Tencent Cloud step-by-step deployment  |
+| `tencent-cloud-cicd.md`            | Tencent CVM/TCR deployment runbook                                                   | General env variable explanations      |
+| `deployment-checklist.md`          | Executable deployment checklist and go-live verification steps                       | Variable definitions or file ownership |
+| `deployment-files.md`              | Deployment-time file inventory: what must be created locally vs synced automatically | Step-by-step Tencent operations        |
+| `openapi.json`                     | Generated API contract from `pnpm export:openapi`                                    | Manual edits                           |
+| `public/data-sources.md`           | Medicine source/import strategy and table mapping                                    | Product roadmap                        |
+| `public/reminder-contract.md`      | Reminder/notification backend-vs-device boundary                                     | UI implementation details              |
+| `public/environment-contract.md`   | Environment snapshot API boundary                                                    | More-tab or generic utility plans      |
+| `public/mine-settings-contract.md` | Mine/Settings API boundary (user settings, support resources, app info, data export) | UI implementation details              |
+| `TODO.md`                          | Active deferred backend follow-up items                                              | Historical changelog narrative         |
 
 Product direction is owned by workspace path `Luminous/docs/Product_Vision.md`.
 
@@ -26,6 +27,7 @@ Product direction is owned by workspace path `Luminous/docs/Product_Vision.md`.
 | -------------------------------------------------------------- | ----------------------------------------------------------- |
 | Environment variables, local Docker, scripts, runtime baseline | `environment.md` and root `README.md`                       |
 | Tencent Cloud deployment procedure                             | `tencent-cloud-cicd.md`                                     |
+| Deployment execution / go-live checklist                       | `deployment-checklist.md`                                   |
 | Deployment file inventory / server-local cert and env files    | `deployment-files.md`                                       |
 | Medicine import behavior or source-table strategy              | `public/data-sources.md`                                    |
 | Reminder schedule/preference contract                          | `public/reminder-contract.md`                               |
