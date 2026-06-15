@@ -1,8 +1,8 @@
-# Tencent Cloud CVM + TCR CI/CD 操作说明
+# Tencent Cloud CVM + Gitee Go CI/CD 操作说明
 
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 
-这份文档只说明腾讯云这条部署链路怎么接通，不重复解释运行时变量，也不替代部署执行清单。
+这份文档只说明当前推荐的部署链路，不重复解释运行时变量，也不替代部署执行清单。
 
 - 运行时变量与本地命令：`environment.md`
 - 部署文件归属：`deployment-files.md`
@@ -10,68 +10,30 @@ Last updated: 2026-06-14
 
 ## 当前部署模型
 
-- GitHub Actions 负责 `lint`、`typecheck`、`build`、tests、业务镜像构建与推送
-- 腾讯云 CVM 负责：
+- GitHub Actions 负责代码校验：
+  - `lint`
+  - `typecheck`
+  - `build`
+  - unit tests
+  - e2e tests
+- GitHub 仓库是主仓库。
+- Gitee 仓库是镜像仓库。
+- 服务器负责：
   - `git pull --ff-only`
-  - 登录镜像仓库
-  - `docker compose pull` 和 `docker compose up`
-- 代码仓库在服务器：
-  - `/opt/lucent/app`
-- 服务器本地运行时文件在：
-  - `/opt/lucent/runtime`
+  - `docker compose pull`
+  - `docker compose build app`
+  - `sh scripts/deploy/deploy-server.sh`
+- Gitee Go 的职责应该只是触发服务器执行这套已有脚本，而不是再维护一套平行部署逻辑。
 
-当前 workflow 已不再通过 SSH 打包上传 tracked 文件到服务器。
+## 为什么改成这套
 
-## TCR 选择
+这是判断，不是云厂商官方原话。
 
-当前更适合先用 `TCR Individual`。
+理由很直接：
 
-这是判断，不是腾讯云官方原话。理由很直接：
-
-- 当前 CI 是 GitHub 官方托管 runner
-- 先跑通公网 push / pull 比先上更复杂的实例网络控制更重要
-- 对单机 CVM + GitHub Actions 来说，`TCR Individual` 配置更少
-
-后面如果你改成自托管 runner、私网拉取、或者要更细权限控制，再考虑迁到 `TCR Enterprise`。
-
-## TCR 初始化
-
-在腾讯云控制台按这个顺序做：
-
-1. 进入 `腾讯云容器镜像服务 TCR`
-2. 选择 `广州`
-3. 打开 `TCR Individual Edition`
-4. 执行 `Initialize Password`
-5. 创建 namespace
-
-登录仓库时：
-
-```bash
-docker login ccr.ccs.tencentyun.com --username=<你的腾讯云账号ID>
-```
-
-- `username` 是腾讯云 `Account ID`
-- `password` 是 TCR 初始化密码
-
-## GitHub 仓库配置
-
-### Secrets
-
-- `REGISTRY_USERNAME`
-- `REGISTRY_PASSWORD`
-- `SERVER_HOST`
-- `SERVER_PORT`
-- `SERVER_USER`
-- `SERVER_SSH_KEY`
-- `SERVER_KNOWN_HOSTS`
-
-### Variables
-
-- `SERVER_APP_DIR=/opt/lucent/app`
-- `LUCENT_RUNTIME_DIR=/opt/lucent/runtime`
-- `REGISTRY_HOST=ccr.ccs.tencentyun.com`
-- `REGISTRY_NAMESPACE=<your-namespace>`
-- `REGISTRY_IMAGE_NAME=lucent`
+- 你已经明确想要服务器直接访问外网。
+- 服务器能直接访问 GitHub/Gitee、Docker Hub、npm registry 后，继续维护“CI 构建镜像并推送，再服务器只 pull”这套链路没有明显收益。
+- 当前项目还有 Nginx、证书、`.env.production`、监控资产这类服务器本地文件；把部署边界收敛成“仓库代码 + 服务器运行时目录”更简单，也更不容易错。
 
 ## 服务器前提
 
@@ -81,63 +43,85 @@ docker login ccr.ccs.tencentyun.com --username=<你的腾讯云账号ID>
 2. 能进入 `/opt/lucent/app`
 3. 能执行 `git pull --ff-only`
 4. 能执行 `docker compose`
-5. 能读取 `/opt/lucent/runtime/.env.production`
-6. 能读取 `/opt/lucent/runtime/nginx/nginx.conf`
-7. 能读取 `/opt/lucent/runtime/certs/*`
+5. 能访问外网，至少包括：
+   - GitHub 或 Gitee
+   - Docker Hub
+   - npm registry
+6. 能读取 `/opt/lucent/runtime/.env.production`
+7. 能读取 `/opt/lucent/runtime/nginx/nginx.conf`
+8. 能读取 `/opt/lucent/runtime/certs/*`
 
-## 当前镜像约定
+## 仓库布局
 
-业务镜像：
+代码仓库在服务器：
 
-- `ccr.ccs.tencentyun.com/<namespace>/lucent:latest`
+- `/opt/lucent/app`
 
-基础镜像：
+服务器本地运行时文件在：
 
-- `ccr.ccs.tencentyun.com/<namespace>/lucent-postgres:18-alpine`
-- `ccr.ccs.tencentyun.com/<namespace>/lucent-redis:8-alpine`
+- `/opt/lucent/runtime`
 
-监控与反代镜像：
+其中：
 
-- `ccr.ccs.tencentyun.com/<namespace>/lucent-prometheus:v3.12.0`
-- `ccr.ccs.tencentyun.com/<namespace>/lucent-grafana:13.0.2`
-- `ccr.ccs.tencentyun.com/<namespace>/lucent-nginx:1.29.1-alpine`
+- `/opt/lucent/app` 通过 `git pull --ff-only` 更新
+- `/opt/lucent/runtime` 只放本地配置、证书和环境变量，不进 git
 
-说明：
+## GitHub 与 Gitee 边界
 
-- `latest` 是当前业务镜像发布入口
-- `prometheus`、`grafana`、`nginx` 会由 workflow 自动 mirror 到同一 registry
-- `postgres`、`redis` 需要你首次手工同步一次
+GitHub：
 
-## 部署链路
+- 保留 `.github/workflows/lucent-ci.yml`
+- 只做校验，不直接 SSH 部署
 
-当前 `deploy-server.yml` 的部署阶段做的是：
+Gitee：
 
-1. CI 组装镜像引用
-2. SSH 到服务器
-3. 在 `/opt/lucent/app` 执行 `git pull --ff-only`
-4. 调 `scripts/deploy/deploy-server.sh`
-5. 由部署脚本：
-   - 校验 `/opt/lucent/runtime/.env.production`
-   - 生成 `/opt/lucent/runtime/.deploy-image.env`
-   - `docker login`
-   - `docker compose pull`
-   - 启动 `postgres`、`redis`、`app`
-   - 再启动 `synthetic-monitor`、`prometheus`、`grafana`、`nginx`
+- 镜像 GitHub 仓库
+- 触发 Gitee Go 或其他服务器侧 runner
 
-## 首次部署前必须手工做的事
+建议做法：
 
-1. 先把 `postgres:18-alpine` 和 `redis:8-alpine` 手工同步到你的 TCR namespace
-2. 先在服务器手工验证一次：
+1. 先在 Gitee 里导入 GitHub 仓库
+2. 打开后续同步更新
+3. 让 Gitee Go 在服务器主机组上执行：
 
 ```bash
-docker login ccr.ccs.tencentyun.com --username '<tencent-account-id>'
-docker pull ccr.ccs.tencentyun.com/<namespace>/lucent-postgres:18-alpine
-docker pull ccr.ccs.tencentyun.com/<namespace>/lucent-redis:8-alpine
+cd /opt/lucent/app
+git pull --ff-only
+export LUCENT_RUNTIME_DIR=/opt/lucent/runtime
+sh scripts/deploy/deploy-server.sh
 ```
 
-3. 准备好 `/opt/lucent/app` 仓库 checkout 和 `/opt/lucent/runtime` 目录
+不要同时保留 GitHub 直连 SSH 部署和 Gitee Go 主机组部署两套主链路。
 
-具体执行顺序看 `deployment-checklist.md`。
+## 部署脚本当前行为
+
+`scripts/deploy/deploy-server.sh` 当前会：
+
+1. 校验 `LUCENT_RUNTIME_DIR`
+2. 校验 `/opt/lucent/runtime/.env.production`
+3. 校验 `GF_SECURITY_ADMIN_PASSWORD`
+4. 提醒 synthetic 账号是否缺失
+5. `docker compose pull postgres redis prometheus grafana nginx`
+6. `docker compose build app`
+7. 启动 `postgres`、`redis`
+8. 等待数据库和缓存健康
+9. 启动 `app`
+10. 启动 `synthetic-monitor`、`prometheus`、`grafana`、`nginx`
+
+## 首次接通建议
+
+1. 先手工在服务器上跑通一次：
+
+```bash
+cd /opt/lucent/app
+git pull --ff-only
+export LUCENT_RUNTIME_DIR=/opt/lucent/runtime
+sh scripts/deploy/deploy-server.sh
+```
+
+2. 手工跑通后，再把完全相同的命令搬进 Gitee Go。
+
+别反过来。先让 Gitee Go 接管一个你本地都没验证过的部署命令，只会放大排查成本。
 
 ## 安全组建议
 
@@ -155,36 +139,41 @@ docker pull ccr.ccs.tencentyun.com/<namespace>/lucent-redis:8-alpine
 
 ## 常见故障定位
 
-### GitHub Actions push 失败
+### `git pull` 失败
 
 优先核对：
 
-- `REGISTRY_HOST`
-- `REGISTRY_NAMESPACE`
-- `REGISTRY_USERNAME`
-- TCR 密码是否正确
+- 服务器出网
+- 仓库地址
+- SSH key 或访问令牌
+- 当前 checkout 分支
 
-### 服务器 pull 失败
-
-优先核对：
-
-- 服务器上 `docker login` 是否成功
-- 对应镜像是否已经存在于目标 namespace
-- 服务器能否访问 `ccr.ccs.tencentyun.com`
-
-### 服务器 deploy 失败
+### `docker compose pull` 失败
 
 优先核对：
 
-- 服务器上 `git pull --ff-only` 是否正常
-- `/opt/lucent/runtime/.env.production` 是否存在
-- `/opt/lucent/runtime/nginx/nginx.conf` 是否存在
-- `GF_SECURITY_ADMIN_PASSWORD` 是否已配置
+- 服务器能否访问 Docker Hub
+- Docker 守护进程是否正常
+- DNS / 代理 / 防火墙
+
+### `docker compose build app` 失败
+
+优先核对：
+
+- 服务器能否访问 npm registry
+- Node / Docker 磁盘空间是否足够
+- `pnpm-lock.yaml` 是否与仓库内容匹配
+
+### 应用起来了但页面不通
+
+优先核对：
+
+- `docker compose logs --tail=200 app`
+- `docker compose logs --tail=200 nginx`
+- `/opt/lucent/runtime/nginx/nginx.conf`
+- `/opt/lucent/runtime/certs/*`
 
 ## 官方参考
 
-- Tencent Cloud: [TCR Individual Getting Started](https://www.tencentcloud.com/document/product/1051/45257)
-- Tencent Cloud: [Upload Docker Images to Tencent Container Image Repository (TCR)](https://www.tencentcloud.com/document/product/1234/61495)
-- Tencent Cloud: [Creating an Enterprise Edition Instance](https://www.tencentcloud.com/document/product/1051/35486)
-- Tencent Cloud: [Network Access Control Overview](https://www.tencentcloud.com/document/product/1051/35490)
-- Tencent Cloud: [Private Network Access Control](https://www.tencentcloud.com/document/product/1051/35492)
+- Gitee Help: [帮助中心](https://help.gitee.com/)
+- Tencent Cloud: [CVM Documentation](https://www.tencentcloud.com/document/product/213)

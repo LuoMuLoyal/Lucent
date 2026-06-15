@@ -1,6 +1,6 @@
 # Lucent Environment
 
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 
 This file records Lucent runtime configuration, local stacks, scripts, and required variables. Tencent CVM/TCR deployment steps live in `tencent-cloud-cicd.md`.
 
@@ -230,12 +230,12 @@ SYNTHETIC_HTTP_TIMEOUT_MS
   - `grafana`, provisioning the default datasource and dashboard from repo path `monitoring/grafana/**`
   - `synthetic-monitor`, executing real `auth_login` and `account_profile` checks on a timer
   - `nginx`, terminating TLS and proxying public traffic to `app:3000`
-- Production deploy writes `PROMETHEUS_IMAGE` and `GRAFANA_IMAGE` into `.deploy-image.env`
-  beside the app/database/cache image refs, so the server can pull the full stack
-  from the configured registry without depending on Docker Hub.
 - Production deploy now expects a split layout:
   - app repo at `/opt/lucent/app`
   - server-local runtime files at `/opt/lucent/runtime`
+- Server-side deploy now uses the repo-local `docker-compose.yml` directly:
+  - public base images are pulled on the server host
+  - the Lucent app image is built locally on the server from the checked-out repo
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect during app startup so contract generation does not require a live DB connection.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
 - When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; without it, cache falls back to memory.
@@ -249,4 +249,4 @@ SYNTHETIC_HTTP_TIMEOUT_MS
 
 ## CI/CD Boundary
 
-`.github/workflows/deploy-server.yml` owns the CI/CD pipeline shape. For Tencent Cloud setup, registry variables, server bootstrap, and first deployment checks, use `tencent-cloud-cicd.md`.
+`.github/workflows/lucent-ci.yml` owns GitHub-side validation only. For server bootstrap, Gitee/Gitee Go mirroring direction, and production deployment checks, use `tencent-cloud-cicd.md`.

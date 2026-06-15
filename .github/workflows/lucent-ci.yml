@@ -1,0 +1,97 @@
+name: lucent-ci
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+
+concurrency:
+  group: lucent-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      HUSKY: 0
+      NODE_ENV: test
+      HOST: 0.0.0.0
+      PORT: 3000
+      CORS_ORIGIN: http://127.0.0.1:3000
+      DATABASE_URL: postgresql://lucent:lucent_dev@127.0.0.1:5432/lucent?schema=public
+      REDIS_URL: redis://127.0.0.1:6379
+      JWT_ACCESS_SECRET: ci_access_secret
+      JWT_REFRESH_SECRET: ci_refresh_secret
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_TTL: 14d
+      MAIL_DRIVER: log
+      MAIL_FROM: noreply@example.com
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: ci_admin_password
+      ADMIN_COOKIE_SECRET: ci_admin_cookie_secret_32chars_plus
+      LOG_LEVEL: error
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: lucent
+          POSTGRES_PASSWORD: lucent_dev
+          POSTGRES_DB: lucent
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lucent -d lucent"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Apply test migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Lint
+        run: pnpm lint:check
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Unit tests
+        run: pnpm test:ci
+
+      - name: E2E tests
+        run: pnpm test:e2e:ci
