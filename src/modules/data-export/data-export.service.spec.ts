@@ -119,128 +119,217 @@ describe('DataExportService', () => {
     expect(result.errorMessage).toBe('report failed');
     expect(storageService.uploadPdf).not.toHaveBeenCalled();
   });
+
+  it('completes a monthly pdf export with last_30_days range', async () => {
+    const prisma = prismaDouble();
+    const reportsService = {
+      getDashboard: jest.fn().mockResolvedValue(sampleReport()),
+    } as unknown as ReportsService;
+    const storageService = {
+      isConfigured: jest.fn().mockReturnValue(true),
+      createDownloadUrl: jest
+        .fn()
+        .mockReturnValue('https://download.example.com/monthly.pdf'),
+      uploadPdf: jest.fn().mockResolvedValue({
+        objectKey: 'exports/user-1/2026/06/15/monthly.pdf',
+        bucket: 'lucent-1250000000',
+        provider: 'tencent-cos',
+        fileSizeBytes: 3072,
+      }),
+    } as unknown as DataExportStorageService;
+    const pdfService = {
+      buildHospitalPdf: jest.fn(),
+      buildMonthlyPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
+      buildPrintPdf: jest.fn(),
+    } as unknown as ReportExportPdfService;
+    const service = new DataExportService(
+      prisma,
+      reportsService,
+      storageService,
+      pdfService,
+    );
+
+    const result = await service.createRequest(
+      'user-1',
+      { kind: 'monthly', format: 'pdf', range: 'last_7_days' },
+      'zh-CN',
+    );
+
+    expect(result.status).toBe('completed');
+    expect(result.range).toBe('last_30_days');
+    expect(result.fileName).toMatch(
+      /^lumos-monthly-last_30_days-\d{4}-\d{2}-\d{2}\.pdf$/,
+    );
+    expect(reportsService.getDashboard).toHaveBeenCalledWith(
+      'user-1',
+      { range: 'last_30_days' },
+      'zh-CN',
+    );
+    expect(pdfService.buildMonthlyPdf).toHaveBeenCalledTimes(1);
+    expect(pdfService.buildHospitalPdf).not.toHaveBeenCalled();
+  });
+
+  it('completes a print pdf export', async () => {
+    const prisma = prismaDouble();
+    const reportsService = {
+      getDashboard: jest.fn().mockResolvedValue(sampleReport()),
+    } as unknown as ReportsService;
+    const storageService = {
+      isConfigured: jest.fn().mockReturnValue(true),
+      createDownloadUrl: jest
+        .fn()
+        .mockReturnValue('https://download.example.com/print.pdf'),
+      uploadPdf: jest.fn().mockResolvedValue({
+        objectKey: 'exports/user-1/2026/06/15/print.pdf',
+        bucket: 'lucent-1250000000',
+        provider: 'tencent-cos',
+        fileSizeBytes: 2560,
+      }),
+    } as unknown as DataExportStorageService;
+    const pdfService = {
+      buildHospitalPdf: jest.fn(),
+      buildMonthlyPdf: jest.fn(),
+      buildPrintPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
+    } as unknown as ReportExportPdfService;
+    const service = new DataExportService(
+      prisma,
+      reportsService,
+      storageService,
+      pdfService,
+    );
+
+    const result = await service.createRequest(
+      'user-1',
+      { kind: 'print', format: 'pdf', range: 'last_7_days' },
+      'en',
+    );
+
+    expect(result.status).toBe('completed');
+    expect(result.fileName).toMatch(
+      /^lumos-print-last_7_days-\d{4}-\d{2}-\d{2}\.pdf$/,
+    );
+    expect(pdfService.buildPrintPdf).toHaveBeenCalledTimes(1);
+  });
+
+  it('stores the normalized monthly range on the created request row', async () => {
+    const prisma = prismaDouble();
+    const reportsService = {
+      getDashboard: jest.fn().mockResolvedValue(sampleReport()),
+    } as unknown as ReportsService;
+    const storageService = {
+      isConfigured: jest.fn().mockReturnValue(true),
+      createDownloadUrl: jest
+        .fn()
+        .mockReturnValue('https://download.example.com/monthly.pdf'),
+      uploadPdf: jest.fn().mockResolvedValue({
+        objectKey: 'exports/user-1/2026/06/15/monthly.pdf',
+        bucket: 'lucent-1250000000',
+        provider: 'tencent-cos',
+        fileSizeBytes: 3072,
+      }),
+    } as unknown as DataExportStorageService;
+    const pdfService = {
+      buildHospitalPdf: jest.fn(),
+      buildMonthlyPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
+      buildPrintPdf: jest.fn(),
+    } as unknown as ReportExportPdfService;
+    const service = new DataExportService(
+      prisma,
+      reportsService,
+      storageService,
+      pdfService,
+    );
+
+    await service.createRequest(
+      'user-1',
+      { kind: 'monthly', format: 'pdf', range: 'last_7_days' },
+      'zh-CN',
+    );
+
+    const lastCreateData = (
+      prisma as unknown as {
+        __lastCreateData: () => Record<string, unknown> | null;
+      }
+    ).__lastCreateData();
+    expect(lastCreateData).toBeDefined();
+    if (!lastCreateData) {
+      throw new Error('Expected createRequest to persist a request row');
+    }
+
+    expect(lastCreateData['kind']).toBe('monthly');
+    expect(lastCreateData['range']).toBe('last_30_days');
+  });
 });
 
 function prismaDouble(): jest.Mocked<PrismaService> {
   const createdAt = new Date('2026-06-15T09:30:00.000Z');
 
-  const rows = {
-    requested: {
-      id: 'export-1',
-      userId: 'user-1',
-      kind: 'hospital',
-      format: 'pdf',
-      range: 'last_7_days',
-      status: 'requested',
-      objectKey: null,
-      bucket: null,
-      provider: null,
-      fileName: null,
-      fileSizeBytes: null,
-      completedAt: null,
-      downloadUrl: null,
-      errorMessage: null,
-      createdAt,
-      updatedAt: createdAt,
-    },
-    processing: {
-      id: 'export-1',
-      userId: 'user-1',
-      kind: 'hospital',
-      format: 'pdf',
-      range: 'last_7_days',
-      status: 'processing',
-      objectKey: null,
-      bucket: null,
-      provider: null,
-      fileName: null,
-      fileSizeBytes: null,
-      completedAt: null,
-      downloadUrl: null,
-      errorMessage: null,
-      createdAt,
-      updatedAt: createdAt,
-    },
-    unavailable: {
-      id: 'export-1',
-      userId: 'user-1',
-      kind: 'hospital',
-      format: 'pdf',
-      range: 'last_7_days',
-      status: 'unavailable',
-      objectKey: null,
-      bucket: null,
-      provider: null,
-      fileName: null,
-      fileSizeBytes: null,
-      completedAt: null,
-      downloadUrl: null,
-      errorMessage: 'Tencent COS export storage is not configured',
-      createdAt,
-      updatedAt: createdAt,
-    },
-    completed: {
-      id: 'export-1',
-      userId: 'user-1',
-      kind: 'hospital',
-      format: 'pdf',
-      range: 'last_7_days',
-      status: 'completed',
-      objectKey: 'exports/user-1/2026/06/15/export.pdf',
-      bucket: 'lucent-1250000000',
-      provider: 'tencent-cos',
-      fileName: 'lumos-hospital-last_7_days-2026-06-15.pdf',
-      fileSizeBytes: 2048,
-      completedAt: new Date('2026-06-15T09:31:00.000Z'),
-      downloadUrl: null,
-      errorMessage: null,
-      createdAt,
-      updatedAt: createdAt,
-    },
-    failed: {
-      id: 'export-1',
-      userId: 'user-1',
-      kind: 'hospital',
-      format: 'pdf',
-      range: 'last_7_days',
-      status: 'failed',
-      objectKey: null,
-      bucket: null,
-      provider: null,
-      fileName: null,
-      fileSizeBytes: null,
-      completedAt: null,
-      downloadUrl: null,
-      errorMessage: 'report failed',
-      createdAt,
-      updatedAt: createdAt,
-    },
-  };
+  const makeRow = (
+    overrides: Partial<{
+      kind: string;
+      range: string;
+      status: string;
+      fileName: string | null;
+      fileSizeBytes: number | null;
+      errorMessage: string | null;
+      objectKey: string | null;
+      bucket: string | null;
+      provider: string | null;
+      downloadUrl: string | null;
+    }> = {},
+  ) => ({
+    id: 'export-1',
+    userId: 'user-1',
+    kind: overrides.kind ?? 'hospital',
+    format: 'pdf',
+    range: overrides.range ?? 'last_7_days',
+    status: overrides.status ?? 'requested',
+    objectKey: overrides.objectKey ?? null,
+    bucket: overrides.bucket ?? null,
+    provider: overrides.provider ?? null,
+    fileName: overrides.fileName ?? null,
+    fileSizeBytes: overrides.fileSizeBytes ?? null,
+    completedAt:
+      overrides.status === 'completed'
+        ? new Date('2026-06-15T09:31:00.000Z')
+        : null,
+    downloadUrl: overrides.downloadUrl ?? null,
+    errorMessage: overrides.errorMessage ?? null,
+    createdAt,
+    updatedAt: createdAt,
+  });
+
+  let currentRow = makeRow();
+  let lastCreateData: Record<string, unknown> | null = null;
+
+  const create = jest
+    .fn()
+    .mockImplementation(({ data }: { data: Record<string, unknown> }) => {
+      lastCreateData = data;
+      currentRow = { ...currentRow, ...data };
+      return currentRow;
+    });
 
   const update = jest
     .fn()
-    .mockImplementation(({ data }: { data: { status?: string } }) => {
-      switch (data.status) {
-        case 'unavailable':
-          return rows.unavailable;
-        case 'processing':
-          return rows.processing;
-        case 'completed':
-          return rows.completed;
-        case 'failed':
-          return rows.failed;
-        default:
-          return rows.requested;
-      }
+    .mockImplementation(({ data }: { data: Record<string, unknown> }) => {
+      currentRow = { ...currentRow, ...data };
+      return currentRow;
     });
 
-  return {
+  const prisma = {
     dataExportRequest: {
-      create: jest.fn().mockResolvedValue(rows.requested),
+      create,
       update,
       findFirst: jest.fn(),
     },
   } as unknown as jest.Mocked<PrismaService>;
+
+  Object.defineProperty(prisma, '__lastCreateData', {
+    value: () => lastCreateData,
+  });
+
+  return prisma;
 }
 
 function sampleReport() {

@@ -25,11 +25,8 @@ Keep durable implementation context in the owning code comments when the TODO is
 
 ## Report Export
 
-- The first real report export flow now covers only `hospital + pdf + last_7_days`.
 - Extend report export into:
-  - distinct `monthly` and `print` payloads
   - optional async worker execution instead of request-thread generation
-  - frontend wiring from Report export cards, not only Mine/Settings status
   - stronger locale/layout polish for the PDF template if hospital-facing formatting becomes a product requirement
 
 ## Auth / Security
