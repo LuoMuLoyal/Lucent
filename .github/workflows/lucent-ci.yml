@@ -87,6 +87,9 @@ jobs:
       - name: Type check
         run: pnpm typecheck
 
+      - name: Validate deploy assets
+        run: pnpm deploy:assets:check
+
       - name: Build
         run: pnpm build
 

@@ -4,6 +4,12 @@ Last updated: 2026-06-14
 
 ## 2026-06-14
 
+### GitHub Actions Pure Artifact Deployment
+
+- Replaced the old Gitee Go deployment path with GitHub Actions CD plus Tencent TCR image push.
+- Removed the server-side git checkout requirement; production now deploys from `/opt/lucent/releases/<git-sha>` and a `/opt/lucent/releases/current` pointer.
+- Added remote deploy-asset sync workflow and updated docs/checklists to the new server layout.
+
 ### Repo + Runtime Deployment Split
 
 - Switched server deployment to a split layout: tracked app repo at `/opt/lucent/app`, server-local runtime files at `/opt/lucent/runtime`.

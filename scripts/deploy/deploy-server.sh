@@ -12,7 +12,12 @@ require_env() {
 }
 
 compose() {
-  docker compose --env-file "$LUCENT_RUNTIME_DIR/.deploy-image.env" "$@"
+  docker compose \
+    --project-name lucent \
+    --project-directory "$LUCENT_DEPLOY_DIR" \
+    -f "$LUCENT_DEPLOY_DIR/docker-compose.yml" \
+    --env-file "$LUCENT_RUNTIME_DIR/.deploy-image.env" \
+    "$@"
 }
 
 write_image_env() {
@@ -72,6 +77,7 @@ wait_for_service() {
   return 1
 }
 
+require_env LUCENT_DEPLOY_DIR
 require_env LUCENT_RUNTIME_DIR
 require_env LUCENT_IMAGE
 require_env POSTGRES_IMAGE
@@ -79,6 +85,11 @@ require_env REDIS_IMAGE
 require_env PROMETHEUS_IMAGE
 require_env GRAFANA_IMAGE
 require_env NGINX_IMAGE
+
+if [ ! -f "$LUCENT_DEPLOY_DIR/docker-compose.yml" ]; then
+  echo "$LUCENT_DEPLOY_DIR/docker-compose.yml is missing." >&2
+  exit 1
+fi
 
 if [ ! -f "$LUCENT_RUNTIME_DIR/.env.production" ]; then
   echo "$LUCENT_RUNTIME_DIR/.env.production is missing." >&2

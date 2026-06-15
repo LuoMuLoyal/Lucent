@@ -114,6 +114,18 @@ Production compose stack also expects:
 GF_SECURITY_ADMIN_PASSWORD
 ```
 
+GitHub Actions production deploy also requires repository/environment secrets outside `.env.production`:
+
+```text
+TCR_USERNAME
+TCR_PASSWORD
+DEPLOY_HOST
+DEPLOY_PORT
+DEPLOY_USER
+DEPLOY_SSH_KEY
+DEPLOY_SSH_KNOWN_HOSTS
+```
+
 `CORS_ORIGIN=*` is accepted for local development but rejected in production.
 
 JWT and admin secrets are required in every runtime now; keep them in the env
@@ -231,9 +243,10 @@ SYNTHETIC_HTTP_TIMEOUT_MS
   - `synthetic-monitor`, executing real `auth_login` and `account_profile` checks on a timer
   - `nginx`, terminating TLS and proxying public traffic to `app:3000`
 - Production deploy now expects a split layout:
-  - app repo at `/opt/lucent/app`
+  - deploy assets at `/opt/lucent/releases/<git-sha>`
+  - stable deploy pointer at `/opt/lucent/releases/current`
   - server-local runtime files at `/opt/lucent/runtime`
-- Server-side deploy uses the repo-local `docker-compose.yml` plus
+- Server-side deploy uses `/opt/lucent/releases/current/docker-compose.yml` plus
   `/opt/lucent/runtime/.deploy-image.env`:
   - public service images can still come from explicit image refs
   - the Lucent app container runs from the CI-built image pushed to the registry
@@ -250,4 +263,4 @@ SYNTHETIC_HTTP_TIMEOUT_MS
 
 ## CI/CD Boundary
 
-`.github/workflows/lucent-ci.yml` owns GitHub-side validation only. `.workflow/MasterPipeline.yml` owns the Gitee Go CD path. For server bootstrap, mirroring direction, and production deployment checks, use `tencent-cloud-cicd.md`.
+`.github/workflows/lucent-ci.yml` owns GitHub-side validation. `.github/workflows/lucent-cd.yml` owns production image build, TCR push, deploy-asset upload, and remote deployment. For server bootstrap and production deployment checks, use `tencent-cloud-cicd.md`.

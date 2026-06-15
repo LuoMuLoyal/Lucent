@@ -16,6 +16,7 @@
     "start:prod": "cross-env NODE_ENV=production node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"src/generated/**\" --fix",
     "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"src/generated/**\" --max-warnings=0",
+    "deploy:assets:check": "node scripts/deploy/validate-deploy-assets.mjs",
     "dev:stack:up": "powershell -ExecutionPolicy Bypass -File scripts/dev/up-local-stack.ps1",
     "dev:stack:down": "powershell -ExecutionPolicy Bypass -File scripts/dev/down-local-stack.ps1",
     "db:migrate:dev": "cross-env NODE_ENV=development pnpm exec prisma migrate deploy",
