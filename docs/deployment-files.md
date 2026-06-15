@@ -1,6 +1,6 @@
 # Lucent Deployment Files
 
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 
 这份文档只记录部署相关文件和目录归属，不写执行步骤。
 
@@ -52,21 +52,6 @@ Last updated: 2026-06-14
 
 - `deploy/nginx/nginx.conf` 只是仓库里的基线示例，用来拷贝出运行时版本
 - `monitoring/**` 是受版本控制的部署资产，不属于 runtime 目录
-
-## 部署时自动生成
-
-部署脚本会写入：
-
-```text
-/opt/lucent/runtime/.deploy-image.env
-```
-
-用途：
-
-- 记录当前部署使用的镜像引用
-- 供 `docker compose --env-file /opt/lucent/runtime/.deploy-image.env ...` 使用
-
-这个文件不应手工长期维护；它应该由部署脚本覆盖生成。
 
 ## Docker 持久化数据
 

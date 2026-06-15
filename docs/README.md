@@ -9,7 +9,7 @@ This directory keeps backend runtime, deployment, generated-contract, and shared
 | Document                           | Responsibility                                                                       | Do not put here                        |
 | ---------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------- |
 | `environment.md`                   | Runtime config, local stacks, required variables, command behavior                   | Tencent Cloud step-by-step deployment  |
-| `tencent-cloud-cicd.md`            | Tencent CVM/TCR deployment runbook                                                   | General env variable explanations      |
+| `tencent-cloud-cicd.md`            | Tencent CVM deployment and Gitee Go mirroring/deploy runbook                         | General env variable explanations      |
 | `deployment-checklist.md`          | Executable deployment checklist and go-live verification steps                       | Variable definitions or file ownership |
 | `deployment-files.md`              | Deployment-time file inventory: what must be created locally vs synced automatically | Step-by-step Tencent operations        |
 | `openapi.json`                     | Generated API contract from `pnpm export:openapi`                                    | Manual edits                           |

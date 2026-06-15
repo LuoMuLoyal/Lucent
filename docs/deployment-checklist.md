@@ -1,6 +1,6 @@
 # Lucent Deployment Checklist
 
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 
 这份文档只保留执行清单。变量解释看 `environment.md`，文件归属看 `deployment-files.md`，腾讯云/TCR 账号与仓库配置看 `tencent-cloud-cicd.md`。
 
@@ -52,48 +52,48 @@ git pull --ff-only
    - COS：`TENCENT_COS_*`
    - synthetic check：`SYNTHETIC_LOGIN_EMAIL`、`SYNTHETIC_LOGIN_PASSWORD`
 
-## 镜像仓库准备
+## 仓库与流水线准备
 
-1. 在 GitHub 仓库配置：
-   - Secrets：`REGISTRY_USERNAME`、`REGISTRY_PASSWORD`、`SERVER_HOST`、`SERVER_PORT`、`SERVER_USER`、`SERVER_SSH_KEY`、`SERVER_KNOWN_HOSTS`
-   - Variables：`SERVER_APP_DIR=/opt/lucent/app`、`LUCENT_RUNTIME_DIR=/opt/lucent/runtime`、`REGISTRY_HOST`、`REGISTRY_NAMESPACE`、`REGISTRY_IMAGE_NAME`
-2. 在服务器手工验证仓库登录：
-
-```bash
-docker login ccr.ccs.tencentyun.com --username '<tencent-account-id>'
-```
-
-3. 首次部署前，先手工同步基础镜像到你的 registry：
-
-```bash
-docker pull postgres:18-alpine
-docker tag postgres:18-alpine ccr.ccs.tencentyun.com/<namespace>/lucent-postgres:18-alpine
-docker push ccr.ccs.tencentyun.com/<namespace>/lucent-postgres:18-alpine
-
-docker pull redis:8-alpine
-docker tag redis:8-alpine ccr.ccs.tencentyun.com/<namespace>/lucent-redis:8-alpine
-docker push ccr.ccs.tencentyun.com/<namespace>/lucent-redis:8-alpine
-```
-
-4. 在服务器验证基础镜像可拉取：
-
-```bash
-docker pull ccr.ccs.tencentyun.com/<namespace>/lucent-postgres:18-alpine
-docker pull ccr.ccs.tencentyun.com/<namespace>/lucent-redis:8-alpine
-```
-
-## 首次部署执行
-
-1. push 到 `main`，或者手工触发 GitHub Actions 里的 `lucent-ci-cd`。
-2. 等 deploy job 完成后，在服务器检查：
+1. 保持服务器可以访问外网，至少能访问：
+   - GitHub 或 Gitee 仓库地址
+   - Docker Hub
+   - npm registry
+2. 在服务器确认仓库 checkout 正常：
 
 ```bash
 cd /opt/lucent/app
-docker compose --env-file /opt/lucent/runtime/.deploy-image.env ps
-docker compose --env-file /opt/lucent/runtime/.deploy-image.env logs --tail=100 app
+git pull --ff-only
 ```
 
-3. 核对容器内与宿主机探针：
+3. GitHub 侧只保留校验型 workflow：
+   - `.github/workflows/lucent-ci.yml`
+4. 如果要接 Gitee Go：
+   - 先把 GitHub 仓库镜像到 Gitee
+   - 再让 Gitee Go 在服务器主机组执行 `/opt/lucent/app/scripts/deploy/deploy-server.sh`
+   - 不要再并行保留 GitHub 直连 SSH 部署这条旧主线
+
+## 首次部署执行
+
+1. 在服务器上执行：
+
+```bash
+cd /opt/lucent/app
+git pull --ff-only
+export LUCENT_RUNTIME_DIR=/opt/lucent/runtime
+sh scripts/deploy/deploy-server.sh
+```
+
+2. 或者让 Gitee Go 在服务器主机组执行同样三步。
+3. 等部署完成后，在服务器检查：
+
+```bash
+cd /opt/lucent/app
+export LUCENT_RUNTIME_DIR=/opt/lucent/runtime
+docker compose ps
+docker compose logs --tail=100 app
+```
+
+4. 核对容器内与宿主机探针：
 
 ```bash
 curl http://127.0.0.1:3000/api/v1/health/live
@@ -105,7 +105,7 @@ curl -k https://your-domain.example/nginx-health
 curl -k https://your-domain.example/api/v1/health/ready
 ```
 
-4. 最低通过标准：
+5. 最低通过标准：
    - `app`、`postgres`、`redis`、`prometheus`、`grafana`、`nginx` 容器都在运行
    - `/api/v1/health/ready` 返回 200
    - `/metrics` 可抓
@@ -152,7 +152,7 @@ curl http://127.0.0.1:9090/api/v1/targets
 
 ## 失败时先查
 
-1. 应用没起来：`docker compose --env-file /opt/lucent/runtime/.deploy-image.env logs --tail=200 app`
-2. 反代异常：`docker compose --env-file /opt/lucent/runtime/.deploy-image.env logs --tail=200 nginx`
+1. 应用没起来：`docker compose logs --tail=200 app`
+2. 反代异常：`docker compose logs --tail=200 nginx`
 3. 监控没起来：分别看 `prometheus`、`grafana`、`synthetic-monitor` 日志
-4. 镜像拉取失败：先在服务器重跑 `docker login` 和 `docker pull`
+4. 公网依赖拉取失败：先查服务器出网、DNS、代理和 Docker Hub 连通性

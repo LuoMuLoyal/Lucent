@@ -94,9 +94,6 @@ Production compose now also includes a same-host monitoring stack:
 
 Grafana provisions the Lucent Prometheus datasource and a default
 `Lucent Overview` dashboard automatically at startup.
-Monitoring images are mirrored into the same registry path used for app
-deploys, so the server keeps pulling from your configured registry instead of
-Docker Hub.
 
 Production compose also includes an Nginx reverse proxy:
 
@@ -160,6 +157,24 @@ Use narrower commands while iterating, then run the relevant broader checks befo
 - `src/modules/` contains business feature modules: auth, account, user, health context, daily records, dose logs, medicines.
 - Top-level `src/` keeps app bootstrap and infrastructure/runtime support: `common`, `config`, `generated`, `i18n`, `mail`, `prisma`.
 - `scripts/` contains local dev, OpenAPI export, deployment, and medicine import helpers.
+
+## Deployment Model
+
+- GitHub Actions now owns validation only:
+  - `lint`
+  - `typecheck`
+  - `build`
+  - unit tests
+  - e2e tests
+- Deployment is expected to run on the server host after the server can access the public internet:
+  - `git pull --ff-only`
+  - `docker compose pull` for public base images
+  - `docker compose build app`
+  - `sh scripts/deploy/deploy-server.sh`
+- The intended production automation direction is:
+  - GitHub repository stays the source repo
+  - Gitee mirrors the repo
+  - Gitee Go or another server-side runner executes the same server-local deployment script
 
 ## Docs
 

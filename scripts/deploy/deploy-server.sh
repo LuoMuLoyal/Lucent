@@ -12,25 +12,7 @@ require_env() {
 }
 
 compose() {
-  docker compose --env-file "$LUCENT_RUNTIME_DIR/.deploy-image.env" "$@"
-}
-
-write_image_env() {
-  app_image_ref="$1"
-  postgres_image_ref="$2"
-  redis_image_ref="$3"
-  prometheus_image_ref="$4"
-  grafana_image_ref="$5"
-  nginx_image_ref="$6"
-
-  cat > "$LUCENT_RUNTIME_DIR/.deploy-image.env" <<EOF
-LUCENT_IMAGE=$app_image_ref
-POSTGRES_IMAGE=$postgres_image_ref
-REDIS_IMAGE=$redis_image_ref
-PROMETHEUS_IMAGE=$prometheus_image_ref
-GRAFANA_IMAGE=$grafana_image_ref
-NGINX_IMAGE=$nginx_image_ref
-EOF
+  docker compose "$@"
 }
 
 wait_for_service() {
@@ -72,16 +54,7 @@ wait_for_service() {
   return 1
 }
 
-require_env LUCENT_IMAGE
-require_env POSTGRES_IMAGE
-require_env REDIS_IMAGE
-require_env PROMETHEUS_IMAGE
-require_env GRAFANA_IMAGE
-require_env NGINX_IMAGE
 require_env LUCENT_RUNTIME_DIR
-require_env REGISTRY_HOST
-require_env REGISTRY_USERNAME
-require_env REGISTRY_PASSWORD
 
 if [ ! -f "$LUCENT_RUNTIME_DIR/.env.production" ]; then
   echo "$LUCENT_RUNTIME_DIR/.env.production is missing." >&2
@@ -110,13 +83,9 @@ warn_if_env_file_key_missing SYNTHETIC_LOGIN_EMAIL
 warn_if_env_file_key_missing SYNTHETIC_LOGIN_PASSWORD
 
 mkdir -p "$LUCENT_RUNTIME_DIR"
-write_image_env "$LUCENT_IMAGE" "$POSTGRES_IMAGE" "$REDIS_IMAGE" "$PROMETHEUS_IMAGE" "$GRAFANA_IMAGE" "$NGINX_IMAGE"
-
 export LUCENT_RUNTIME_DIR
-
-printf '%s\n' "$REGISTRY_PASSWORD" | docker login "$REGISTRY_HOST" -u "$REGISTRY_USERNAME" --password-stdin
-
-compose pull postgres redis app
+compose pull postgres redis prometheus grafana nginx
+compose build app
 compose up -d postgres redis
 wait_for_service postgres
 wait_for_service redis
@@ -126,7 +95,6 @@ if ! wait_for_service app; then
   exit 1
 fi
 
-compose pull synthetic-monitor prometheus grafana nginx
 compose up -d synthetic-monitor prometheus grafana nginx
 wait_for_service synthetic-monitor
 wait_for_service prometheus
