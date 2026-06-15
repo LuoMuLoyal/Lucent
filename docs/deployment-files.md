@@ -7,14 +7,15 @@ Last updated: 2026-06-15
 ## 目录边界
 
 ```text
-/opt/lucent/app
+/opt/lucent/releases
 /opt/lucent/runtime
 ```
 
-- `/opt/lucent/app`
-  - 服务器上的 Lucent git 仓库 checkout
-  - 通过 `git pull --ff-only` 更新
-  - 保存 tracked 代码、`docker-compose.yml`、`monitoring/**`、部署脚本
+- `/opt/lucent/releases`
+  - 服务器上的部署资产目录
+  - 由 GitHub Actions 通过 SSH 上传
+  - 保存每次发版的 `docker-compose.yml`、`monitoring/**`、部署脚本和 Nginx 基线示例
+  - `current` 软链接指向当前启用版本
 - `/opt/lucent/runtime`
   - 服务器本地运行时目录
   - 只放不应进 git 的本地配置与证书
@@ -36,22 +37,23 @@ Last updated: 2026-06-15
 
 这些都不由 Git 管理，也不应由 CI 自动覆盖。
 
-## 仓库内自带并随 git 更新
+## 由 GitHub Actions 上传到服务器
 
 ```text
-/opt/lucent/app/docker-compose.yml
-/opt/lucent/app/scripts/deploy/deploy-server.sh
-/opt/lucent/app/monitoring/prometheus/prometheus.yml
-/opt/lucent/app/monitoring/grafana/provisioning/**
-/opt/lucent/app/monitoring/grafana/dashboards/**
-/opt/lucent/app/monitoring/synthetic-checker/synthetic-checker.mjs
-/opt/lucent/app/deploy/nginx/nginx.conf
+/opt/lucent/releases/<git-sha>/docker-compose.yml
+/opt/lucent/releases/<git-sha>/scripts/deploy/deploy-server.sh
+/opt/lucent/releases/<git-sha>/scripts/deploy/sync-deploy-assets.sh
+/opt/lucent/releases/<git-sha>/monitoring/prometheus/prometheus.yml
+/opt/lucent/releases/<git-sha>/monitoring/grafana/provisioning/**
+/opt/lucent/releases/<git-sha>/monitoring/grafana/dashboards/**
+/opt/lucent/releases/<git-sha>/monitoring/synthetic-checker/synthetic-checker.mjs
+/opt/lucent/releases/<git-sha>/deploy/nginx/nginx.conf
 ```
 
 说明：
 
 - `deploy/nginx/nginx.conf` 只是仓库里的基线示例，用来拷贝出运行时版本
-- `monitoring/**` 是受版本控制的部署资产，不属于 runtime 目录
+- `monitoring/**` 是受版本控制的部署资产，但在服务器上以 release 资产形式存在，不属于 runtime 目录
 
 ## Docker 持久化数据
 

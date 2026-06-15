@@ -166,22 +166,23 @@ Use narrower commands while iterating, then run the relevant broader checks befo
 
 ## Deployment Model
 
-- GitHub Actions owns validation only:
+- GitHub Actions owns validation:
   - `lint`
   - `typecheck`
   - `build`
   - unit tests
   - e2e tests
-- Gitee Go owns CD:
+- GitHub Actions also owns CD:
   - build the Lucent Docker image
   - push the image to Tencent TCR
-  - run the server-side deploy script on the host group
-- The server still keeps a repo checkout, but only to sync deployment assets:
-  - `docker-compose.yml`
-  - monitoring files
-  - deploy scripts
-  - Nginx baseline config
-- The app itself is deployed from the pushed image, not built on the server.
+  - upload deploy assets to the server over SSH
+  - run the server-side deploy script remotely
+- The server does not keep a git checkout.
+- The server keeps:
+  - release assets under `/opt/lucent/releases/<git-sha>`
+  - a stable `/opt/lucent/releases/current` pointer
+  - server-local runtime files under `/opt/lucent/runtime`
+- The app itself is always deployed from the pushed image, not built on the server.
 
 ## Docs
 

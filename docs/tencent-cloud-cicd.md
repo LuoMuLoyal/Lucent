@@ -1,4 +1,4 @@
-# Tencent Cloud CVM + TCR + Gitee Go CI/CD 操作说明
+# Tencent Cloud CVM + TCR + GitHub Actions CI/CD 操作说明
 
 Last updated: 2026-06-15
 
@@ -16,20 +16,20 @@ Last updated: 2026-06-15
   - `build`
   - unit tests
   - e2e tests
-- Gitee 仓库镜像 GitHub 仓库。
-- Gitee Go 负责：
-  - 用仓库里的 `.workflow/MasterPipeline.yml` 构建 Lucent 镜像
+- GitHub Actions 负责：
+  - 用仓库里的 `.github/workflows/lucent-cd.yml` 构建 Lucent 镜像
   - 推送镜像到腾讯云 TCR
-  - 在服务器主机组执行部署脚本
+  - 通过 SSH 上传部署资产到服务器
+  - 在服务器上执行部署脚本
 - 服务器负责：
-  - `git pull --ff-only` 同步部署编排和监控资产
   - `docker compose pull`
   - `docker compose up`
 
-这就是你最终选定的混合方案：
+这就是你最终选定的纯制品方案：
 
 - 应用从 CI 产出的镜像部署
-- 服务器保留 git checkout，只同步 compose、monitoring、deploy 脚本等受版本控制资产
+- 服务器不保留 git checkout
+- compose、monitoring、deploy 脚本等部署资产由 GitHub Actions 上传
 
 ## 为什么是这套
 
@@ -39,7 +39,7 @@ Last updated: 2026-06-15
 
 1. 应用镜像由 CI 构建，回滚和复现都更稳
 2. 生产机不负责编译应用，压力更小
-3. 服务器仍保留 git checkout，部署脚本、监控文件、Nginx 基线配置可以随仓库同步
+3. 服务器不需要安装 Node、pnpm 或保留源码 checkout
 4. 本地运行时文件继续留在 `/opt/lucent/runtime`，不会被仓库覆盖
 
 ## TCR 角色
@@ -65,22 +65,18 @@ GitHub：
 
 - 代码主仓库
 - 校验入口：`.github/workflows/lucent-ci.yml`
-
-Gitee：
-
-- 镜像仓库
-- CD 入口：`.workflow/MasterPipeline.yml`
+- CD 入口：`.github/workflows/lucent-cd.yml`
 
 服务器：
 
-- 代码目录：`/opt/lucent/app`
+- release 目录：`/opt/lucent/releases`
 - 运行时目录：`/opt/lucent/runtime`
 
-## Gitee Go 需要的关键变量
+## GitHub Actions CD 关键变量
 
-`.workflow/MasterPipeline.yml` 当前使用这些变量：
+`.github/workflows/lucent-cd.yml` 当前使用这些变量：
 
-- `SERVER_APP_DIR`
+- `SERVER_RELEASES_DIR`
 - `LUCENT_RUNTIME_DIR`
 - `REGISTRY_HOST`
 - `REGISTRY_NAMESPACE`
@@ -94,25 +90,22 @@ Gitee：
 其中：
 
 - `REGISTRY_HOST` 指向 TCR 地址，例如 `ccr.ccs.tencentyun.com`
-- `REGISTRY_NAMESPACE` 是你的命名空间
+- `REGISTRY_NAMESPACE` 是你的命名空间，当前为 `lucent`
 - `REGISTRY_IMAGE_NAME` 建议固定为 `lucent`
 
-`build@docker` 构建完成后会产出 `GITEE_DOCKER_IMAGE`，部署阶段直接把它当成 `LUCENT_IMAGE` 传给服务器脚本。
+workflow 会把当前 commit SHA 作为 release id 和镜像 tag，并额外推送一个 `latest` tag。
 
 ## 服务器前提
 
 部署用户需要满足：
 
 1. 能 SSH 登录服务器
-2. 能进入 `/opt/lucent/app`
-3. 能执行 `git pull --ff-only`
-4. 能执行 `docker compose`
-5. 能访问：
-   - Gitee 仓库
-   - TCR
-6. 能读取 `/opt/lucent/runtime/.env.production`
-7. 能读取 `/opt/lucent/runtime/nginx/nginx.conf`
-8. 能读取 `/opt/lucent/runtime/certs/*`
+2. 能写入 `/opt/lucent/releases`
+3. 能执行 `docker compose`
+4. 能访问 TCR
+5. 能读取 `/opt/lucent/runtime/.env.production`
+6. 能读取 `/opt/lucent/runtime/nginx/nginx.conf`
+7. 能读取 `/opt/lucent/runtime/certs/*`
 
 ## 当前部署脚本边界
 
@@ -121,30 +114,43 @@ Gitee：
 - `scripts/deploy/deploy-server.sh`
   - 真正执行 compose pull/up
   - 根据传入镜像引用写 `.deploy-image.env`
-- `scripts/deploy/deploy-server-from-image.sh`
-  - 先 `git pull --ff-only`
-  - 再把镜像变量传给 `deploy-server.sh`
+- `scripts/deploy/sync-deploy-assets.sh`
+  - 把某次 release 目录切换成 `/opt/lucent/releases/current`
 
-Gitee Go 主机组执行的是后者。
+GitHub Actions 先上传 release 目录，再在服务器顺序执行这两个脚本。
 
-## `.workflow/MasterPipeline.yml` 当前职责
+## `.github/workflows/lucent-cd.yml` 当前职责
 
 1. `checkout`
-2. `build@docker`
+2. Docker Buildx
    - 构建 Lucent 镜像
    - 推送到 TCR
-   - 产出 `GITEE_DOCKER_IMAGE`
-3. `shell@agent`
-   - 在服务器上执行 `scripts/deploy/deploy-server-from-image.sh`
+3. SSH 上传：
+   - `docker-compose.yml`
+   - `monitoring/**`
+   - `scripts/deploy/**`
+   - `deploy/nginx/nginx.conf`
+4. 远程执行：
+   - `scripts/deploy/sync-deploy-assets.sh`
+   - `scripts/deploy/deploy-server.sh`
 
 ## 首次接通建议
 
-1. 先确认 Gitee 仓库已经正确镜像 GitHub 仓库
+1. 先确认 GitHub repository 的 `production` environment 已经配置好这些 secrets：
+   - `TCR_USERNAME`
+   - `TCR_PASSWORD`
+   - `DEPLOY_HOST`
+   - `DEPLOY_PORT`
+   - `DEPLOY_USER`
+   - `DEPLOY_SSH_KEY`
+   - `DEPLOY_SSH_KNOWN_HOSTS`
 2. 先确认服务器上手工执行以下命令能成功：
 
 ```bash
-cd /opt/lucent/app
-git pull --ff-only
+export LUCENT_RELEASES_DIR=/opt/lucent/releases
+export LUCENT_RELEASE_ID=manual-test
+sh /opt/lucent/releases/manual-test/scripts/deploy/sync-deploy-assets.sh
+export LUCENT_DEPLOY_DIR=/opt/lucent/releases/current
 export LUCENT_RUNTIME_DIR=/opt/lucent/runtime
 export LUCENT_IMAGE=<a-real-tcr-image>
 export POSTGRES_IMAGE=postgres:18-alpine
@@ -152,10 +158,10 @@ export REDIS_IMAGE=redis:8-alpine
 export PROMETHEUS_IMAGE=prom/prometheus:v3.12.0
 export GRAFANA_IMAGE=grafana/grafana-oss:13.0.2
 export NGINX_IMAGE=nginx:1.29.1-alpine
-sh scripts/deploy/deploy-server.sh
+sh /opt/lucent/releases/current/scripts/deploy/deploy-server.sh
 ```
 
-3. 手工跑通后，再触发 Gitee Go
+3. 手工跑通后，再触发 GitHub Actions `lucent-cd`
 
 ## 安全组建议
 
@@ -173,23 +179,23 @@ sh scripts/deploy/deploy-server.sh
 
 ## 常见故障定位
 
-### Gitee Go 构建失败
+### GitHub Actions 构建失败
 
 优先核对：
 
 - `REGISTRY_HOST`
 - `REGISTRY_NAMESPACE`
-- Gitee Go 的镜像仓库凭证
+- GitHub `production` environment 中的 TCR 凭证
 - `Dockerfile`
 
 ### 服务器部署失败
 
 优先核对：
 
-- `git pull --ff-only` 是否正常
+- `/opt/lucent/releases/current` 是否已经切到本次 release
 - `/opt/lucent/runtime/.env.production` 是否存在
 - `.deploy-image.env` 是否已写入
-- `docker compose --env-file /opt/lucent/runtime/.deploy-image.env logs --tail=200 app`
+- `docker compose --project-name lucent --project-directory /opt/lucent/releases/current -f /opt/lucent/releases/current/docker-compose.yml --env-file /opt/lucent/runtime/.deploy-image.env logs --tail=200 app`
 
 ### 服务器拉镜像失败
 
@@ -203,4 +209,4 @@ sh scripts/deploy/deploy-server.sh
 
 - Docker Docs: [Image digests](https://docs.docker.com/dhi/core-concepts/digests/)
 - Tencent Cloud: [TCR Documentation](https://www.tencentcloud.com/document/product/1141)
-- Gitee Help: [Gitee Go](https://help.gitee.com/gitee-go/)
+- GitHub Docs: [Publishing Docker images](https://docs.github.com/actions/guides/publishing-docker-images)
