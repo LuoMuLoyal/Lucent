@@ -12,7 +12,25 @@ require_env() {
 }
 
 compose() {
-  docker compose "$@"
+  docker compose --env-file "$LUCENT_RUNTIME_DIR/.deploy-image.env" "$@"
+}
+
+write_image_env() {
+  app_image_ref="$1"
+  postgres_image_ref="$2"
+  redis_image_ref="$3"
+  prometheus_image_ref="$4"
+  grafana_image_ref="$5"
+  nginx_image_ref="$6"
+
+  cat > "$LUCENT_RUNTIME_DIR/.deploy-image.env" <<EOF
+LUCENT_IMAGE=$app_image_ref
+POSTGRES_IMAGE=$postgres_image_ref
+REDIS_IMAGE=$redis_image_ref
+PROMETHEUS_IMAGE=$prometheus_image_ref
+GRAFANA_IMAGE=$grafana_image_ref
+NGINX_IMAGE=$nginx_image_ref
+EOF
 }
 
 wait_for_service() {
@@ -55,6 +73,12 @@ wait_for_service() {
 }
 
 require_env LUCENT_RUNTIME_DIR
+require_env LUCENT_IMAGE
+require_env POSTGRES_IMAGE
+require_env REDIS_IMAGE
+require_env PROMETHEUS_IMAGE
+require_env GRAFANA_IMAGE
+require_env NGINX_IMAGE
 
 if [ ! -f "$LUCENT_RUNTIME_DIR/.env.production" ]; then
   echo "$LUCENT_RUNTIME_DIR/.env.production is missing." >&2
@@ -83,9 +107,16 @@ warn_if_env_file_key_missing SYNTHETIC_LOGIN_EMAIL
 warn_if_env_file_key_missing SYNTHETIC_LOGIN_PASSWORD
 
 mkdir -p "$LUCENT_RUNTIME_DIR"
+write_image_env \
+  "$LUCENT_IMAGE" \
+  "$POSTGRES_IMAGE" \
+  "$REDIS_IMAGE" \
+  "$PROMETHEUS_IMAGE" \
+  "$GRAFANA_IMAGE" \
+  "$NGINX_IMAGE"
 export LUCENT_RUNTIME_DIR
 compose pull postgres redis prometheus grafana nginx
-compose build app
+compose pull app
 compose up -d postgres redis
 wait_for_service postgres
 wait_for_service redis

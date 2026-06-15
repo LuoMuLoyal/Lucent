@@ -55,6 +55,21 @@ Last updated: 2026-06-15
 
 ## Docker 持久化数据
 
+## 部署时自动生成
+
+部署脚本会写入：
+
+```text
+/opt/lucent/runtime/.deploy-image.env
+```
+
+用途：
+
+- 记录当前部署使用的镜像引用
+- 供 `docker compose --env-file /opt/lucent/runtime/.deploy-image.env ...` 使用
+
+这个文件不应手工长期维护；它应该由部署脚本覆盖生成。
+
 Compose 数据卷：
 
 ```text
