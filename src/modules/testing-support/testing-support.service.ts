@@ -13,7 +13,11 @@ const DEFAULT_RECORD_LANE_NICKNAME = 'E2E Record Lane';
 
 type TestingSupportDbClient = Pick<
   PrismaService,
-  'user' | 'userDailyRecord' | 'userDailyRecordAttachment' | 'userSession'
+  | 'user'
+  | 'userDailyRecord'
+  | 'userDailyRecordAttachment'
+  | 'userSession'
+  | 'userSetting'
 >;
 
 export interface PrepareFullstackRecordLaneResult {
@@ -79,6 +83,23 @@ export class TestingSupportService {
         user.id,
         dto.date,
       );
+
+      await tx.userSetting.upsert({
+        where: {
+          userId_key: {
+            userId: user.id,
+            key: 'aiSummariesEnabled',
+          },
+        },
+        create: {
+          userId: user.id,
+          key: 'aiSummariesEnabled',
+          value: true,
+        },
+        update: {
+          value: true,
+        },
+      });
 
       await tx.userSession.deleteMany({
         where: { userId: user.id },

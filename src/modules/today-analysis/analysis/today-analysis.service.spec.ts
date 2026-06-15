@@ -1,7 +1,4 @@
-import {
-  ForbiddenException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import type { AiConfig } from '../../../config/ai.config';
 import type { TodayAnalysisCopyService } from './today-analysis-copy.service';
 import type { TodayAnalysisContextService } from './today-analysis-context.service';
@@ -152,6 +149,70 @@ describe('TodayAnalysisService', () => {
     expect(result.bullets[2]?.text).toContain('sleep data');
   });
 
+  it('streams fallback summary when analysis model config is missing', async () => {
+    const service = createService({
+      config: {
+        ...baseConfig,
+        analysis: {
+          apiKey: null,
+          baseUrl: null,
+          model: null,
+        },
+      },
+    });
+    const summaries: string[] = [];
+
+    const result = await service.generateStream(
+      'u1',
+      { date: '2026-06-12' },
+      'zh-CN',
+      ({ summary }) => {
+        summaries.push(summary);
+      },
+    );
+
+    expect(summaries).toEqual([result.summary]);
+  });
+
+  it('streams final summary when the model emits no partial summary', async () => {
+    const service = createService();
+    const summaries: string[] = [];
+    const generatorService = (
+      service as unknown as {
+        generatorService: {
+          generateStream: jest.Mock;
+        };
+      }
+    ).generatorService;
+
+    generatorService.generateStream.mockResolvedValue({
+      summary: '今日记录整体稳定，晚些时候继续补水即可。',
+      bullets: [
+        {
+          kind: 'medication',
+          text: '今日用药记录基本完整。',
+        },
+        {
+          kind: 'hydration',
+          text: '饮水还可以再补 1 到 2 次。',
+        },
+      ],
+      actionLabel: '查看今日记录',
+      confidenceNote: '仅基于今日已记录数据生成，不构成诊断或治疗建议。',
+    });
+
+    const result = await service.generateStream(
+      'u1',
+      { date: '2026-06-12' },
+      'zh-CN',
+      ({ summary }) => {
+        summaries.push(summary);
+      },
+    );
+
+    expect(summaries).toEqual([result.summary]);
+  });
+
   it('rejects when ai summaries are disabled by user setting', async () => {
     const service = createService({
       userSettingValue: false,
@@ -162,7 +223,7 @@ describe('TodayAnalysisService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('rejects when analysis model config is missing', async () => {
+  it('falls back when analysis model config is missing', async () => {
     const service = createService({
       config: {
         ...baseConfig,
@@ -174,9 +235,14 @@ describe('TodayAnalysisService', () => {
       },
     });
 
-    await expect(
-      service.generate('u1', { date: '2026-06-12' }, 'zh-CN'),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    const result = await service.generate(
+      'u1',
+      { date: '2026-06-12' },
+      'zh-CN',
+    );
+
+    expect(result.summary).toContain('今日');
+    expect(result.actionLabel).toBe('查看今日记录');
   });
 
   function createService(options?: {
@@ -287,6 +353,7 @@ describe('TodayAnalysisService', () => {
           (options?.config ?? baseConfig).analysis.model != null,
         ),
       generate: jest.fn(),
+      generateStream: jest.fn(),
     } as unknown as TodayAnalysisGeneratorService;
 
     return new TodayAnalysisService(

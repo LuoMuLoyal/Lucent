@@ -18,9 +18,9 @@ export const STATIC_SUPPORT_RESOURCES: SupportResourceDto[] = [
     subtitle: 'On-campus medical services',
     subtitleKey: 'mineCampusHospitalSubtitle',
     icon: 'local_hospital',
-    actionUrl: null,
-    actionType: null,
-    available: false,
+    actionUrl: 'https://www.pku.edu.cn/hospital/',
+    actionType: 'url',
+    available: true,
   },
   {
     id: 'campus-support',
@@ -42,9 +42,9 @@ export const STATIC_SUPPORT_RESOURCES: SupportResourceDto[] = [
     subtitle: 'On-campus pharmacy services',
     subtitleKey: 'mineCampusPharmacySubtitle',
     icon: 'medical_services',
-    actionUrl: null,
-    actionType: null,
-    available: false,
+    actionUrl: 'https://www.pku.edu.cn/pharmacy/',
+    actionType: 'url',
+    available: true,
   },
   {
     id: 'campus-emergency',
@@ -54,9 +54,9 @@ export const STATIC_SUPPORT_RESOURCES: SupportResourceDto[] = [
     subtitle: 'Campus emergency services',
     subtitleKey: 'mineCampusEmergencySubtitle',
     icon: 'emergency',
-    actionUrl: null,
-    actionType: null,
-    available: false,
+    actionUrl: 'tel:120',
+    actionType: 'phone',
+    available: true,
   },
 
   // ── Help scope ─────────────────────────────────────────────

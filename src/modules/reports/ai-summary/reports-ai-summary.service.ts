@@ -1,9 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  Logger,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ResultCode } from '../../../common/api-envelope';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type {
@@ -98,6 +93,13 @@ export class ReportsAiSummaryService {
     context: ReportsAiSummaryContext,
     locale: string,
   ): Promise<ReportSummaryStructuredOutput> {
+    if (!this.reportsAiSummaryGeneratorService.hasAnalysisModel()) {
+      this.logger.warn(
+        `Report summary model is not configured for ${context.startDate}..${context.endDate}; falling back`,
+      );
+      return this.reportsAiSummaryCopyService.buildFallback(context, locale);
+    }
+
     try {
       const raw = await this.invokeModel(context, locale);
       if (this.reportsAiSummaryPolicyService.isSafe(raw)) {
@@ -122,6 +124,20 @@ export class ReportsAiSummaryService {
     locale: string,
     onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
   ): Promise<ReportSummaryStructuredOutput> {
+    if (!this.reportsAiSummaryGeneratorService.hasAnalysisModel()) {
+      this.logger.warn(
+        `Report summary model is not configured for ${context.startDate}..${context.endDate}; falling back`,
+      );
+      const fallback = this.reportsAiSummaryCopyService.buildFallback(
+        context,
+        locale,
+      );
+      await this.emitGuaranteedSummary(fallback.summary, false, onSummary);
+      return fallback;
+    }
+
+    let emittedSummary = false;
+
     try {
       const raw = await this.reportsAiSummaryGeneratorService.generateStream(
         context,
@@ -130,11 +146,17 @@ export class ReportsAiSummaryService {
           if (!this.reportsAiSummaryPolicyService.isSafeSummaryText(summary)) {
             return;
           }
+          emittedSummary = true;
           await onSummary({ summary });
         },
       );
 
       if (this.reportsAiSummaryPolicyService.isSafe(raw)) {
+        await this.emitGuaranteedSummary(
+          raw.summary,
+          emittedSummary,
+          onSummary,
+        );
         return raw;
       }
 
@@ -148,7 +170,16 @@ export class ReportsAiSummaryService {
       );
     }
 
-    return this.reportsAiSummaryCopyService.buildFallback(context, locale);
+    const fallback = this.reportsAiSummaryCopyService.buildFallback(
+      context,
+      locale,
+    );
+    await this.emitGuaranteedSummary(
+      fallback.summary,
+      emittedSummary,
+      onSummary,
+    );
+    return fallback;
   }
 
   private async invokeModel(
@@ -175,17 +206,22 @@ export class ReportsAiSummaryService {
     const computed = this.reportsComputationService.compute(facts, locale);
     const context = this.reportsAiSummaryContextService.build(facts, computed);
 
-    if (!this.reportsAiSummaryGeneratorService.hasAnalysisModel()) {
-      throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
-        message: this.reportsAiSummaryCopyService.serviceUnavailable(locale),
-      });
-    }
-
     return {
       locale,
       context,
     };
+  }
+
+  private async emitGuaranteedSummary(
+    summary: string,
+    alreadyEmitted: boolean,
+    onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
+  ): Promise<void> {
+    if (alreadyEmitted || summary.trim().length == 0) {
+      return;
+    }
+
+    await onSummary({ summary });
   }
 
   private toDataDto(

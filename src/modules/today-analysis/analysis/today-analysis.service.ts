@@ -1,9 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  Logger,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ResultCode } from '../../../common/api-envelope';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from '../dto';
@@ -91,6 +86,13 @@ export class TodayAnalysisService {
     context: TodayAnalysisContext,
     locale: string,
   ): Promise<TodayAnalysisStructuredOutput> {
+    if (!this.generatorService.hasAnalysisModel()) {
+      this.logger.warn(
+        `Today analysis model is not configured for ${context.date}; falling back`,
+      );
+      return this.copyService.buildFallback(context, locale);
+    }
+
     try {
       const raw = await this.invokeModel(context, locale);
       if (this.policyService.isSafe(raw)) {
@@ -115,6 +117,17 @@ export class TodayAnalysisService {
     locale: string,
     onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
   ): Promise<TodayAnalysisStructuredOutput> {
+    if (!this.generatorService.hasAnalysisModel()) {
+      this.logger.warn(
+        `Today analysis model is not configured for ${context.date}; falling back`,
+      );
+      const fallback = this.copyService.buildFallback(context, locale);
+      await this.emitGuaranteedSummary(fallback.summary, false, onSummary);
+      return fallback;
+    }
+
+    let emittedSummary = false;
+
     try {
       const raw = await this.generatorService.generateStream(
         context,
@@ -123,11 +136,17 @@ export class TodayAnalysisService {
           if (!this.policyService.isSafeSummaryText(summary)) {
             return;
           }
+          emittedSummary = true;
           await onSummary({ summary });
         },
       );
 
       if (this.policyService.isSafe(raw)) {
+        await this.emitGuaranteedSummary(
+          raw.summary,
+          emittedSummary,
+          onSummary,
+        );
         return raw;
       }
 
@@ -141,7 +160,13 @@ export class TodayAnalysisService {
       );
     }
 
-    return this.copyService.buildFallback(context, locale);
+    const fallback = this.copyService.buildFallback(context, locale);
+    await this.emitGuaranteedSummary(
+      fallback.summary,
+      emittedSummary,
+      onSummary,
+    );
+    return fallback;
   }
 
   private async invokeModel(
@@ -166,18 +191,23 @@ export class TodayAnalysisService {
     const context = await this.contextService.build(userId, date);
     const generatedAt = new Date().toISOString();
 
-    if (!this.generatorService.hasAnalysisModel()) {
-      throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
-        message: this.copyService.serviceUnavailable(locale),
-      });
-    }
-
     return {
       locale,
       context,
       generatedAt,
     };
+  }
+
+  private async emitGuaranteedSummary(
+    summary: string,
+    alreadyEmitted: boolean,
+    onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
+  ): Promise<void> {
+    if (alreadyEmitted || summary.trim().length === 0) {
+      return;
+    }
+
+    await onSummary({ summary });
   }
 
   private toDataDto(
