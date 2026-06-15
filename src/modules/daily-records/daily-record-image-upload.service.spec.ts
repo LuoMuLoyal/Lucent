@@ -86,6 +86,7 @@ function testConfig(): TencentCosConfig {
     publicBaseUrl: 'https://cdn.example.com/',
     uploadExpiresSeconds: 600,
     maxUploadBytes: 10_485_760,
+    downloadExpiresSeconds: 600,
   };
 }
 

@@ -1,6 +1,6 @@
 # Mine And Settings Contract
 
-Last updated: 2026-06-10
+Last updated: 2026-06-15
 
 ## Summary
 
@@ -32,7 +32,7 @@ public support resources, app metadata, and data-export request status.
 | Campus hospital / pharmacy / etc. | Server | Static reference data served from Lucent       |
 | Help / FAQ content                | Server | Static reference data served from Lucent       |
 | App about metadata                | Server | Read from package/config, not hardcoded client |
-| Data export request               | Server | Request/status only, no file generation yet    |
+| Data export request               | Server | Status plus first real report-PDF export flow  |
 
 ## API Surface
 
@@ -143,10 +143,20 @@ GET  /api/v1/user/data-export-requests/latest
 
 Both require authentication.
 
+**POST Body:**
+
+```typescript
+interface CreateDataExportRequestDto {
+  kind?: 'hospital' | 'monthly' | 'print'; // current real flow: hospital
+  format?: 'pdf'; // only pdf is supported right now
+  range?: 'last_7_days' | 'last_30_days'; // current real flow uses last_7_days
+}
+```
+
 **POST Response (201):** `{ code: 0, data: DataExportRequestDto }`
 
-Creates a new export request. Returns immediately with status `requested`.
-No file generation is implemented in this phase.
+Lucent persists the request row first, then tries to generate the export immediately.
+The first real implementation is `hospital + pdf + last_7_days`.
 
 **GET Response:** `{ code: 0, data: DataExportRequestDto | null }`
 
@@ -156,17 +166,29 @@ if none exists.
 ```typescript
 interface DataExportRequestDto {
   id: string;
+  kind: 'hospital' | 'monthly' | 'print';
+  format: 'pdf';
+  range: 'last_7_days' | 'last_30_days';
   status: 'requested' | 'processing' | 'completed' | 'failed' | 'unavailable';
   requestedAt: string; // ISO-8601
   completedAt: string | null;
-  downloadUrl: string | null; // null until completed
+  downloadUrl: string | null; // short-lived signed GET URL when completed
+  fileName: string | null;
+  fileSizeBytes: number | null;
   errorMessage: string | null;
 }
 ```
 
-**Current behavior:** POST always creates a row with status `requested`.
-The status stays `requested` until a future worker picks it up. GET returns
-the latest row. No real archive generation is in scope.
+**Current behavior:**
+
+- If Tencent COS export storage is not configured, POST still creates a row but
+  returns status `unavailable`.
+- If the export succeeds, Lucent uploads the PDF to COS, stores object metadata,
+  and GET returns a short-lived signed download URL.
+- `downloadUrl` should be treated as ephemeral; clients should refresh latest
+  status before downloading again instead of caching the URL permanently.
+- `monthly` and `print` remain reserved values for future flows; they are not
+  implemented as distinct export payloads yet.
 
 ## Prisma Models
 
@@ -186,24 +208,33 @@ model UserSetting {
 }
 
 model DataExportRequest {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  status      String   @default("requested")
-  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
-  downloadUrl String?  @map("download_url")
-  errorMessage String? @map("error_message")
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  kind          String
+  format        String
+  range         String
+  status        String    @default("requested")
+  objectKey     String?   @map("object_key")
+  bucket        String?
+  provider      String?
+  fileName      String?   @map("file_name")
+  fileSizeBytes Int?      @map("file_size_bytes")
+  completedAt   DateTime? @map("completed_at") @db.Timestamptz(3)
+  downloadUrl   String?   @map("download_url")
+  errorMessage  String?   @map("error_message")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([userId, kind, createdAt])
   @@map("data_export_requests")
 }
 ```
 
 ## Explicit Non-Goals
 
-1. **No real data export file generation.** Status tracking only.
+1. **No docx export.** PDF only in the current slice.
 2. **No paid external services** (counseling hotlines with paid APIs, etc.).
 3. **No server-owned notification permission.** OS permission stays device-local.
 4. **No server-owned theme/language preference.** Theme stays device-local;
@@ -218,7 +249,8 @@ model DataExportRequest {
   through `PATCH /api/v1/user/settings`.
 - Settings reminder summary rows should read from device notification controller
   state, not from hardcoded "Enabled" labels.
-- Export row should POST to create a request and show the status from GET.
+- Export row should POST the desired export kind/format/range and show the latest status from GET.
+- Report export UI should refresh latest status before opening a previously shown `downloadUrl`, because signed URLs expire.
 - Help/about rows should read from `GET /api/v1/public/support-resources?scope=help`
   and `GET /api/v1/public/app-info`.
 - Signed-out state must not call protected settings APIs; keep those rows

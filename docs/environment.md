@@ -146,6 +146,7 @@ TENCENT_COS_REGION
 TENCENT_COS_PUBLIC_BASE_URL
 TENCENT_COS_UPLOAD_EXPIRES_SECONDS
 TENCENT_COS_MAX_UPLOAD_BYTES
+TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS
 ```
 
 `TENCENT_COS_REGION` may keep its default template value alone. COS is treated as truly configured only after at least one of `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, or `TENCENT_COS_BUCKET` is set; from that point, all of `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and `TENCENT_COS_REGION` must be set together.
@@ -241,6 +242,7 @@ SYNTHETIC_HTTP_TIMEOUT_MS
 - Mail delivery uses BullMQ when `REDIS_URL` is set and immediate send when Redis is absent.
 - WeChat Web OAuth state is cached for 10 minutes. Desktop login may include a loopback callback URI in OAuth state.
 - Daily-record image uploads use presigned Tencent COS PUT URLs; clients upload directly to COS, then save returned attachment metadata on the daily record.
+- Report PDF exports also reuse Tencent COS. Lucent uploads the generated PDF from the server side, stores the COS object key in `data_export_requests`, and returns a short-lived signed GET URL through the latest export status API.
 - Medicine search cache TTL is 5 minutes; medicine detail cache TTL is 15 minutes.
 - Frontend reads may send `x-bypass-cache: true` to bypass medicine read cache for one request.
 - `POST /api/v1/testing/fullstack-e2e/record-lane/prepare` exists only when Lucent runs with `NODE_ENV=test`. It is intentionally absent from normal development and production runtime, and is meant only to repair a dedicated full-stack test user plus clear that user's daily-record slice for one target date.

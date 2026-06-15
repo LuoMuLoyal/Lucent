@@ -2257,6 +2257,16 @@
       "post": {
         "operationId": "DataExportController_createRequest_v1",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDataExportRequestDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "",
@@ -6316,6 +6326,41 @@
         },
         "required": ["code", "message", "data"]
       },
+      "CreateDataExportRequestDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["hospital", "monthly", "print"],
+            "default": "hospital",
+            "description": "Requested export kind."
+          },
+          "format": {
+            "type": "string",
+            "enum": ["pdf"],
+            "default": "pdf",
+            "description": "Requested export format."
+          },
+          "range": {
+            "type": "string",
+            "enum": ["last_7_days", "last_30_days"],
+            "default": "last_7_days",
+            "description": "Requested report range."
+          }
+        }
+      },
+      "DataExportKind": {
+        "type": "string",
+        "enum": ["hospital", "monthly", "print"]
+      },
+      "DataExportFormat": {
+        "type": "string",
+        "enum": ["pdf"]
+      },
+      "DataExportRange": {
+        "type": "string",
+        "enum": ["last_7_days", "last_30_days"]
+      },
       "DataExportStatus": {
         "type": "string",
         "enum": [
@@ -6332,6 +6377,27 @@
           "id": {
             "type": "string",
             "description": "Unique request identifier."
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataExportKind"
+              }
+            ]
+          },
+          "format": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataExportFormat"
+              }
+            ]
+          },
+          "range": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataExportRange"
+              }
+            ]
           },
           "status": {
             "allOf": [
@@ -6352,12 +6418,20 @@
             "type": "string",
             "nullable": true
           },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSizeBytes": {
+            "type": "number",
+            "nullable": true
+          },
           "errorMessage": {
             "type": "string",
             "nullable": true
           }
         },
-        "required": ["id", "status", "requestedAt"]
+        "required": ["id", "kind", "format", "range", "status", "requestedAt"]
       },
       "DataExportRequestResponseDto": {
         "type": "object",

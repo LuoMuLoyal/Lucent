@@ -2,7 +2,10 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import { DataExportController } from './data-export.controller';
 import { DataExportService } from './data-export.service';
-import type { DataExportRequestDataDto } from './dto';
+import type {
+  CreateDataExportRequestDto,
+  DataExportRequestDataDto,
+} from './dto';
 
 describe('DataExportController', () => {
   let controller: DataExportController;
@@ -29,16 +32,25 @@ describe('DataExportController', () => {
   it('should create a data export request', async () => {
     const exportReq = makeExportRequest();
     service.createRequest.mockResolvedValue(exportReq);
+    const dto: CreateDataExportRequestDto = {
+      kind: 'hospital',
+      format: 'pdf',
+      range: 'last_7_days',
+    };
 
-    const result = await controller.createRequest({
-      sub: 'u1',
-      email: 'a@b.c',
-    });
+    const result = await controller.createRequest(
+      {
+        sub: 'u1',
+        email: 'a@b.c',
+      },
+      dto,
+      'zh-CN',
+    );
 
     expect(result.code).toBe(ResultCode.SUCCESS);
     expect(result.data).toBeDefined();
     expect(result.data?.status).toBe('requested');
-    expect(service.createRequest).toHaveBeenCalledWith('u1');
+    expect(service.createRequest).toHaveBeenCalledWith('u1', dto, 'zh-CN');
   });
 
   it('should return the latest export request', async () => {
@@ -74,10 +86,15 @@ function makeExportRequest(
 ): DataExportRequestDataDto {
   return {
     id: 'export-1',
+    kind: 'hospital',
+    format: 'pdf',
+    range: 'last_7_days',
     status: 'requested',
     requestedAt: '2026-06-10T00:00:00.000Z',
     completedAt: null,
     downloadUrl: null,
+    fileName: null,
+    fileSizeBytes: null,
     errorMessage: null,
     ...overrides,
   };

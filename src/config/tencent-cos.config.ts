@@ -10,6 +10,7 @@ export interface TencentCosConfig {
   publicBaseUrl: string;
   uploadExpiresSeconds: number;
   maxUploadBytes: number;
+  downloadExpiresSeconds: number;
 }
 
 export const tencentCosConfig = registerAs(
@@ -25,6 +26,9 @@ export const tencentCosConfig = registerAs(
     ),
     maxUploadBytes: Number(
       process.env[EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES] ?? 10_485_760,
+    ),
+    downloadExpiresSeconds: Number(
+      process.env[EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS] ?? 600,
     ),
   }),
 );
