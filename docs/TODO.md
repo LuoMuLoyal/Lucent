@@ -1,6 +1,6 @@
 # Lucent TODO
 
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to one branch or security check, but do not scatter project-level follow-up lists across changelogs or random docs.
@@ -22,6 +22,15 @@ Keep durable implementation context in the owning code comments when the TODO is
 
 - Split `src/modules/user-health-context/user-health-context.service.ts` further if the write-side keeps growing.
   Current status: response mapping and ownership guards are now separated, but profile/allergy/condition/current-medicine write normalization still lives in one orchestration service.
+
+## Report Export
+
+- The first real report export flow now covers only `hospital + pdf + last_7_days`.
+- Extend report export into:
+  - distinct `monthly` and `print` payloads
+  - optional async worker execution instead of request-thread generation
+  - frontend wiring from Report export cards, not only Mine/Settings status
+  - stronger locale/layout polish for the PDF template if hospital-facing formatting becomes a product requirement
 
 ## Auth / Security
 
