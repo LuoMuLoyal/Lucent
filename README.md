@@ -160,21 +160,22 @@ Use narrower commands while iterating, then run the relevant broader checks befo
 
 ## Deployment Model
 
-- GitHub Actions now owns validation only:
+- GitHub Actions owns validation only:
   - `lint`
   - `typecheck`
   - `build`
   - unit tests
   - e2e tests
-- Deployment is expected to run on the server host after the server can access the public internet:
-  - `git pull --ff-only`
-  - `docker compose pull` for public base images
-  - `docker compose build app`
-  - `sh scripts/deploy/deploy-server.sh`
-- The intended production automation direction is:
-  - GitHub repository stays the source repo
-  - Gitee mirrors the repo
-  - Gitee Go or another server-side runner executes the same server-local deployment script
+- Gitee Go owns CD:
+  - build the Lucent Docker image
+  - push the image to Tencent TCR
+  - run the server-side deploy script on the host group
+- The server still keeps a repo checkout, but only to sync deployment assets:
+  - `docker-compose.yml`
+  - monitoring files
+  - deploy scripts
+  - Nginx baseline config
+- The app itself is deployed from the pushed image, not built on the server.
 
 ## Docs
 

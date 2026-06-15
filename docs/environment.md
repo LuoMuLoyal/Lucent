@@ -233,9 +233,10 @@ SYNTHETIC_HTTP_TIMEOUT_MS
 - Production deploy now expects a split layout:
   - app repo at `/opt/lucent/app`
   - server-local runtime files at `/opt/lucent/runtime`
-- Server-side deploy now uses the repo-local `docker-compose.yml` directly:
-  - public base images are pulled on the server host
-  - the Lucent app image is built locally on the server from the checked-out repo
+- Server-side deploy uses the repo-local `docker-compose.yml` plus
+  `/opt/lucent/runtime/.deploy-image.env`:
+  - public service images can still come from explicit image refs
+  - the Lucent app container runs from the CI-built image pushed to the registry
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect during app startup so contract generation does not require a live DB connection.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
 - When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; without it, cache falls back to memory.
@@ -249,4 +250,4 @@ SYNTHETIC_HTTP_TIMEOUT_MS
 
 ## CI/CD Boundary
 
-`.github/workflows/lucent-ci.yml` owns GitHub-side validation only. For server bootstrap, Gitee/Gitee Go mirroring direction, and production deployment checks, use `tencent-cloud-cicd.md`.
+`.github/workflows/lucent-ci.yml` owns GitHub-side validation only. `.workflow/MasterPipeline.yml` owns the Gitee Go CD path. For server bootstrap, mirroring direction, and production deployment checks, use `tencent-cloud-cicd.md`.

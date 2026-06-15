@@ -1,7 +1,7 @@
 services:
   # ── PostgreSQL ───────────────────────────────────────────────
   postgres:
-    image: postgres:18-alpine
+    image: ${POSTGRES_IMAGE:-postgres:18-alpine}
     restart: unless-stopped
     environment:
       POSTGRES_USER: lucent
@@ -19,7 +19,7 @@ services:
 
   # ── Redis ────────────────────────────────────────────────────
   redis:
-    image: redis:8-alpine
+    image: ${REDIS_IMAGE:-redis:8-alpine}
     restart: unless-stopped
     ports:
       - '6379:6379'
@@ -33,9 +33,7 @@ services:
 
   # ── Lucent App ───────────────────────────────────────────────
   app:
-    image: lucent-app:local
-    build:
-      context: .
+    image: ${LUCENT_IMAGE:?LUCENT_IMAGE is required}
     restart: unless-stopped
     env_file:
       - ${LUCENT_RUNTIME_DIR:?LUCENT_RUNTIME_DIR is required}/.env.production
@@ -64,7 +62,7 @@ services:
       start_period: 20s
 
   synthetic-monitor:
-    image: lucent-app:local
+    image: ${LUCENT_IMAGE:?LUCENT_IMAGE is required}
     restart: unless-stopped
     env_file:
       - ${LUCENT_RUNTIME_DIR:?LUCENT_RUNTIME_DIR is required}/.env.production
@@ -89,7 +87,7 @@ services:
       start_period: 5s
 
   prometheus:
-    image: prom/prometheus:v3.12.0
+    image: ${PROMETHEUS_IMAGE:?PROMETHEUS_IMAGE is required}
     restart: unless-stopped
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -108,7 +106,7 @@ services:
         condition: service_healthy
 
   grafana:
-    image: grafana/grafana-oss:13.0.2
+    image: ${GRAFANA_IMAGE:?GRAFANA_IMAGE is required}
     restart: unless-stopped
     env_file:
       - ${LUCENT_RUNTIME_DIR:?LUCENT_RUNTIME_DIR is required}/.env.production
@@ -123,7 +121,7 @@ services:
         condition: service_started
 
   nginx:
-    image: nginx:1.29.1-alpine
+    image: ${NGINX_IMAGE:?NGINX_IMAGE is required}
     restart: unless-stopped
     ports:
       - '80:80'

@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 
-这份文档只保留执行清单。变量解释看 `environment.md`，文件归属看 `deployment-files.md`，腾讯云/TCR 账号与仓库配置看 `tencent-cloud-cicd.md`。
+这份文档只保留执行清单。变量解释看 `environment.md`，文件归属看 `deployment-files.md`，腾讯云/TCR/Gitee Go 配置看 `tencent-cloud-cicd.md`。
 
 ## 首次服务器准备
 
@@ -55,9 +55,8 @@ git pull --ff-only
 ## 仓库与流水线准备
 
 1. 保持服务器可以访问外网，至少能访问：
-   - GitHub 或 Gitee 仓库地址
-   - Docker Hub
-   - npm registry
+   - Gitee 仓库地址
+   - 腾讯云镜像仓库 TCR
 2. 在服务器确认仓库 checkout 正常：
 
 ```bash
@@ -67,33 +66,38 @@ git pull --ff-only
 
 3. GitHub 侧只保留校验型 workflow：
    - `.github/workflows/lucent-ci.yml`
-4. 如果要接 Gitee Go：
+4. Gitee 侧：
    - 先把 GitHub 仓库镜像到 Gitee
-   - 再让 Gitee Go 在服务器主机组执行 `/opt/lucent/app/scripts/deploy/deploy-server.sh`
-   - 不要再并行保留 GitHub 直连 SSH 部署这条旧主线
+   - 使用仓库内 `.workflow/MasterPipeline.yml`
+   - 在 Gitee Go 主机组执行镜像部署，不要再并行保留 GitHub 直连 SSH 部署
 
 ## 首次部署执行
 
-1. 在服务器上执行：
+1. 在 Gitee Go 里触发 `.workflow/MasterPipeline.yml`，或者先手工模拟同样环境变量后在服务器执行：
 
 ```bash
 cd /opt/lucent/app
 git pull --ff-only
 export LUCENT_RUNTIME_DIR=/opt/lucent/runtime
+export LUCENT_IMAGE=<tcr-app-image>
+export POSTGRES_IMAGE=postgres:18-alpine
+export REDIS_IMAGE=redis:8-alpine
+export PROMETHEUS_IMAGE=prom/prometheus:v3.12.0
+export GRAFANA_IMAGE=grafana/grafana-oss:13.0.2
+export NGINX_IMAGE=nginx:1.29.1-alpine
 sh scripts/deploy/deploy-server.sh
 ```
 
-2. 或者让 Gitee Go 在服务器主机组执行同样三步。
-3. 等部署完成后，在服务器检查：
+2. 等部署完成后，在服务器检查：
 
 ```bash
 cd /opt/lucent/app
 export LUCENT_RUNTIME_DIR=/opt/lucent/runtime
-docker compose ps
-docker compose logs --tail=100 app
+docker compose --env-file /opt/lucent/runtime/.deploy-image.env ps
+docker compose --env-file /opt/lucent/runtime/.deploy-image.env logs --tail=100 app
 ```
 
-4. 核对容器内与宿主机探针：
+3. 核对容器内与宿主机探针：
 
 ```bash
 curl http://127.0.0.1:3000/api/v1/health/live
@@ -105,7 +109,7 @@ curl -k https://your-domain.example/nginx-health
 curl -k https://your-domain.example/api/v1/health/ready
 ```
 
-5. 最低通过标准：
+4. 最低通过标准：
    - `app`、`postgres`、`redis`、`prometheus`、`grafana`、`nginx` 容器都在运行
    - `/api/v1/health/ready` 返回 200
    - `/metrics` 可抓
@@ -152,7 +156,7 @@ curl http://127.0.0.1:9090/api/v1/targets
 
 ## 失败时先查
 
-1. 应用没起来：`docker compose logs --tail=200 app`
-2. 反代异常：`docker compose logs --tail=200 nginx`
+1. 应用没起来：`docker compose --env-file /opt/lucent/runtime/.deploy-image.env logs --tail=200 app`
+2. 反代异常：`docker compose --env-file /opt/lucent/runtime/.deploy-image.env logs --tail=200 nginx`
 3. 监控没起来：分别看 `prometheus`、`grafana`、`synthetic-monitor` 日志
-4. 公网依赖拉取失败：先查服务器出网、DNS、代理和 Docker Hub 连通性
+4. 镜像拉取失败：先查服务器出网、DNS、代理和 TCR 连通性
