@@ -8,8 +8,10 @@ import {
 } from './dto';
 import { DataExportStorageService } from './data-export-storage.service';
 import { ReportExportPdfService } from './report-export-pdf.service';
+import type { ReportDashboardDataDto } from '../reports/dto';
 
 const DEFAULT_EXPORT_RANGE = 'last_7_days';
+const MONTHLY_EXPORT_RANGE = 'last_30_days';
 
 @Injectable()
 export class DataExportService {
@@ -27,14 +29,16 @@ export class DataExportService {
   ): Promise<DataExportRequestDataDto> {
     const kind = dto.kind ?? 'hospital';
     const format = dto.format ?? 'pdf';
-    const range = dto.range ?? DEFAULT_EXPORT_RANGE;
+    const requestedRange = dto.range ?? DEFAULT_EXPORT_RANGE;
+    const effectiveRange =
+      kind === 'monthly' ? MONTHLY_EXPORT_RANGE : requestedRange;
 
     const created = await this.prisma.dataExportRequest.create({
       data: {
         userId,
         kind,
         format,
-        range,
+        range: effectiveRange,
         status: 'requested',
       },
     });
@@ -62,14 +66,11 @@ export class DataExportService {
     try {
       const report = await this.reportsService.getDashboard(
         userId,
-        { range },
+        { range: effectiveRange },
         language,
       );
-      const pdf = await this.reportExportPdfService.buildHospitalPdf({
-        locale: language,
-        report,
-      });
-      const fileName = this.createFileName(kind, range);
+      const pdf = await this._buildPdfForKind(kind, language, report);
+      const fileName = this.createFileName(kind, effectiveRange);
       const uploaded = await this.storageService.uploadPdf({
         userId,
         fileName,
@@ -101,6 +102,30 @@ export class DataExportService {
       });
 
       return this.toDto(failed);
+    }
+  }
+
+  private async _buildPdfForKind(
+    kind: string,
+    language: string,
+    report: ReportDashboardDataDto,
+  ): Promise<Buffer> {
+    switch (kind) {
+      case 'monthly':
+        return this.reportExportPdfService.buildMonthlyPdf({
+          locale: language,
+          report,
+        });
+      case 'print':
+        return this.reportExportPdfService.buildPrintPdf({
+          locale: language,
+          report,
+        });
+      default:
+        return this.reportExportPdfService.buildHospitalPdf({
+          locale: language,
+          report,
+        });
     }
   }
 

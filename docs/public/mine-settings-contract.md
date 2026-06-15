@@ -147,16 +147,20 @@ Both require authentication.
 
 ```typescript
 interface CreateDataExportRequestDto {
-  kind?: 'hospital' | 'monthly' | 'print'; // current real flow: hospital
+  kind?: 'hospital' | 'monthly' | 'print';
   format?: 'pdf'; // only pdf is supported right now
-  range?: 'last_7_days' | 'last_30_days'; // current real flow uses last_7_days
+  range?: 'last_7_days' | 'last_30_days';
 }
 ```
 
 **POST Response (201):** `{ code: 0, data: DataExportRequestDto }`
 
 Lucent persists the request row first, then tries to generate the export immediately.
-The first real implementation is `hospital + pdf + last_7_days`.
+Current real implementations are:
+
+- `hospital + pdf + last_7_days`
+- `monthly + pdf + last_30_days`
+- `print + pdf + last_7_days`
 
 **GET Response:** `{ code: 0, data: DataExportRequestDto | null }`
 
@@ -187,8 +191,7 @@ interface DataExportRequestDto {
   and GET returns a short-lived signed download URL.
 - `downloadUrl` should be treated as ephemeral; clients should refresh latest
   status before downloading again instead of caching the URL permanently.
-- `monthly` and `print` remain reserved values for future flows; they are not
-  implemented as distinct export payloads yet.
+- `monthly` requests are normalized to `last_30_days` before Lucent stores and generates the export, even if the caller passes another range value.
 
 ## Prisma Models
 

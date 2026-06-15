@@ -6,6 +6,13 @@ import type { ReportDashboardDataDto } from '../reports/dto';
 
 const FONT_PATH =
   require.resolve('@fontpkg/source-han-sans-sc-vf/SourceHanSansSC-VF.otf');
+const PAGE_WIDTH = 595.28;
+const PAGE_HEIGHT = 841.89;
+const MARGIN_X = 48;
+const TOP_Y = 790;
+const BOTTOM_Y = 64;
+
+type EmbeddedFont = Awaited<ReturnType<PDFDocument['embedFont']>>;
 
 @Injectable()
 export class ReportExportPdfService {
@@ -13,6 +20,43 @@ export class ReportExportPdfService {
     locale: string;
     report: ReportDashboardDataDto;
   }): Promise<Buffer> {
+    const isZh = input.locale.toLowerCase().startsWith('zh');
+    return this._buildPdf(
+      isZh ? 'Lumos 医疗就诊报告' : 'Lumos Hospital Report',
+      input.report,
+      isZh,
+    );
+  }
+
+  async buildMonthlyPdf(input: {
+    locale: string;
+    report: ReportDashboardDataDto;
+  }): Promise<Buffer> {
+    const isZh = input.locale.toLowerCase().startsWith('zh');
+    return this._buildPdf(
+      isZh ? 'Lumos 月度报告' : 'Lumos Monthly Report',
+      input.report,
+      isZh,
+    );
+  }
+
+  async buildPrintPdf(input: {
+    locale: string;
+    report: ReportDashboardDataDto;
+  }): Promise<Buffer> {
+    const isZh = input.locale.toLowerCase().startsWith('zh');
+    return this._buildPdf(
+      isZh ? 'Lumos 打印报告' : 'Lumos Print Report',
+      input.report,
+      isZh,
+    );
+  }
+
+  private async _buildPdf(
+    title: string,
+    report: ReportDashboardDataDto,
+    isZh: boolean,
+  ): Promise<Buffer> {
     const pdf = await PDFDocument.create();
     pdf.registerFontkit(fontkit);
 
@@ -22,144 +66,100 @@ export class ReportExportPdfService {
     ]);
     const cjkFont = await pdf.embedFont(fontBytes, { subset: true });
 
-    const page = pdf.addPage([595.28, 841.89]);
-    const marginX = 48;
-    let cursorY = 790;
+    const context = this.createPageContext(pdf, cjkFont);
 
-    const isZh = input.locale.toLowerCase().startsWith('zh');
-    const title = isZh ? 'Lumos 医疗就诊报告' : 'Lumos Hospital Report';
     const summaryLabel = isZh ? '概览' : 'Overview';
     const metricsLabel = isZh ? '关键指标' : 'Key Metrics';
     const findingsLabel = isZh ? '发现' : 'Findings';
     const patternsLabel = isZh ? '模式' : 'Patterns';
 
-    page.drawText(title, {
-      x: marginX,
-      y: cursorY,
+    context.page.drawText(title, {
+      x: MARGIN_X,
+      y: context.cursorY,
       size: 24,
       font: cjkFont,
       color: rgb(0.1, 0.16, 0.24),
     });
-    cursorY -= 26;
+    context.cursorY -= 26;
 
-    page.drawText(
-      `${isZh ? '统计范围' : 'Range'}: ${input.report.startDate} ~ ${input.report.endDate}`,
+    this.ensureSpace(context, 1);
+    context.page.drawText(
+      `${isZh ? '统计范围' : 'Range'}: ${report.startDate} ~ ${report.endDate}`,
       {
-        x: marginX,
-        y: cursorY,
+        x: MARGIN_X,
+        y: context.cursorY,
         size: 11,
         font: cjkFont,
         color: rgb(0.35, 0.4, 0.48),
       },
     );
-    cursorY -= 16;
+    context.cursorY -= 16;
 
-    page.drawText(
-      `${isZh ? '生成时间' : 'Generated at'}: ${input.report.generatedAt}`,
+    this.ensureSpace(context, 1);
+    context.page.drawText(
+      `${isZh ? '生成时间' : 'Generated at'}: ${report.generatedAt}`,
       {
-        x: marginX,
-        y: cursorY,
+        x: MARGIN_X,
+        y: context.cursorY,
         size: 11,
         font: regularFont,
         color: rgb(0.35, 0.4, 0.48),
       },
     );
-    cursorY -= 30;
+    context.cursorY -= 30;
 
-    cursorY = this.drawSectionTitle(
-      page,
-      summaryLabel,
-      marginX,
-      cursorY,
-      cjkFont,
-    );
-    cursorY = this.drawWrappedText(
-      page,
-      `${isZh ? '健康评分' : 'Health score'}: ${String(input.report.score.value)}/${String(input.report.score.maxValue)} (${input.report.score.status})`,
-      marginX,
-      cursorY,
+    this.drawSectionTitle(context, summaryLabel);
+    this.drawWrappedText(
+      context,
+      `${isZh ? '健康评分' : 'Health score'}: ${String(report.score.value)}/${String(report.score.maxValue)} (${report.score.status})`,
       11,
       cjkFont,
       500,
     );
-    cursorY = this.drawWrappedText(
-      page,
-      input.report.score.summary,
-      marginX,
-      cursorY,
-      11,
-      cjkFont,
-      500,
-    );
-    cursorY -= 8;
+    this.drawWrappedText(context, report.score.summary, 11, cjkFont, 500);
+    context.cursorY -= 8;
 
-    cursorY = this.drawSectionTitle(
-      page,
-      metricsLabel,
-      marginX,
-      cursorY,
-      cjkFont,
-    );
-    for (const metric of input.report.metrics) {
-      cursorY = this.drawWrappedText(
-        page,
+    this.drawSectionTitle(context, metricsLabel);
+    for (const metric of report.metrics) {
+      this.drawWrappedText(
+        context,
         `${this.metricLabel(metric.kind, isZh)}: ${metric.value}${metric.unit} | ${this.statusLabel(metric.status, isZh)} | ${isZh ? '变化' : 'Delta'} ${metric.delta}`,
-        marginX,
-        cursorY,
         11,
         cjkFont,
         500,
       );
     }
-    cursorY -= 8;
+    context.cursorY -= 8;
 
-    cursorY = this.drawSectionTitle(
-      page,
-      findingsLabel,
-      marginX,
-      cursorY,
-      cjkFont,
-    );
-    if (input.report.findings.length === 0) {
-      cursorY = this.drawWrappedText(
-        page,
+    this.drawSectionTitle(context, findingsLabel);
+    if (report.findings.length === 0) {
+      this.drawWrappedText(
+        context,
         isZh
           ? '当前没有额外重点发现。'
           : 'No additional findings for this range.',
-        marginX,
-        cursorY,
         11,
         cjkFont,
         500,
       );
     } else {
-      for (const finding of input.report.findings) {
-        cursorY = this.drawWrappedText(
-          page,
+      for (const finding of report.findings) {
+        this.drawWrappedText(
+          context,
           `- ${finding.title}: ${finding.body}`,
-          marginX,
-          cursorY,
           11,
           cjkFont,
           500,
         );
       }
     }
-    cursorY -= 8;
+    context.cursorY -= 8;
 
-    cursorY = this.drawSectionTitle(
-      page,
-      patternsLabel,
-      marginX,
-      cursorY,
-      cjkFont,
-    );
-    for (const pattern of input.report.patterns) {
-      cursorY = this.drawWrappedText(
-        page,
+    this.drawSectionTitle(context, patternsLabel);
+    for (const pattern of report.patterns) {
+      this.drawWrappedText(
+        context,
         `- ${pattern.title}: ${pattern.body}`,
-        marginX,
-        cursorY,
         11,
         cjkFont,
         500,
@@ -169,8 +169,8 @@ export class ReportExportPdfService {
     const disclaimer = isZh
       ? '说明：本报告用于自我管理与就诊辅助，不替代医生诊断。'
       : 'Note: This report supports self-management and visits, and does not replace medical diagnosis.';
-    page.drawText(disclaimer, {
-      x: marginX,
+    context.page.drawText(disclaimer, {
+      x: MARGIN_X,
       y: 40,
       size: 9,
       font: cjkFont,
@@ -181,49 +181,83 @@ export class ReportExportPdfService {
     return Buffer.from(bytes);
   }
 
+  private createPageContext(pdf: PDFDocument, cjkFont: EmbeddedFont) {
+    return {
+      pdf,
+      cjkFont,
+      page: pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]),
+      cursorY: TOP_Y,
+    };
+  }
+
+  private ensureSpace(
+    context: {
+      pdf: PDFDocument;
+      cjkFont: EmbeddedFont;
+      page: ReturnType<PDFDocument['addPage']>;
+      cursorY: number;
+    },
+    lineCount: number,
+    extraPadding = 0,
+  ): void {
+    const neededHeight = lineCount * 15 + extraPadding;
+    if (context.cursorY - neededHeight >= BOTTOM_Y) {
+      return;
+    }
+
+    context.page = context.pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+    context.cursorY = TOP_Y;
+  }
+
   private drawSectionTitle(
-    page: ReturnType<PDFDocument['addPage']>,
+    context: {
+      pdf: PDFDocument;
+      cjkFont: EmbeddedFont;
+      page: ReturnType<PDFDocument['addPage']>;
+      cursorY: number;
+    },
     title: string,
-    x: number,
-    y: number,
-    font: Awaited<ReturnType<PDFDocument['embedFont']>>,
-  ): number {
-    page.drawText(title, {
-      x,
-      y,
+  ): void {
+    this.ensureSpace(context, 1, 6);
+    context.page.drawText(title, {
+      x: MARGIN_X,
+      y: context.cursorY,
       size: 14,
-      font,
+      font: context.cjkFont,
       color: rgb(0.15, 0.22, 0.32),
     });
-    return y - 20;
+    context.cursorY -= 20;
   }
 
   private drawWrappedText(
-    page: ReturnType<PDFDocument['addPage']>,
+    context: {
+      pdf: PDFDocument;
+      cjkFont: EmbeddedFont;
+      page: ReturnType<PDFDocument['addPage']>;
+      cursorY: number;
+    },
     text: string,
-    x: number,
-    y: number,
     size: number,
-    font: Awaited<ReturnType<PDFDocument['embedFont']>>,
+    font: EmbeddedFont,
     maxWidth: number,
-  ): number {
+  ): void {
     const lines = this.wrapText(text, font, size, maxWidth);
     for (const line of lines) {
-      page.drawText(line, {
-        x,
-        y,
+      this.ensureSpace(context, 1);
+      context.page.drawText(line, {
+        x: MARGIN_X,
+        y: context.cursorY,
         size,
         font,
         color: rgb(0.22, 0.27, 0.33),
       });
-      y -= 15;
+      context.cursorY -= 15;
     }
-    return y;
   }
 
   private wrapText(
     text: string,
-    font: Awaited<ReturnType<PDFDocument['embedFont']>>,
+    font: EmbeddedFont,
     size: number,
     maxWidth: number,
   ): string[] {
