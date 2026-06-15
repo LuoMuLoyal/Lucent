@@ -53,8 +53,9 @@ powershell -ExecutionPolicy Bypass -File scripts/dev/start-test-runtime.ps1
 ```
 
 That runtime enables `POST /api/v1/testing/fullstack-e2e/record-lane/prepare`,
-which repairs a dedicated password-login test user and clears that user's daily
-records for one target date before the Flutter lane starts.
+which repairs a dedicated password-login test user, resets that user's AI
+summary toggle to enabled, and clears that user's daily records for one target
+date before the Flutter lane starts.
 
 The embedded AdminJS panel is available at `/admin`. In local development the
 template credentials are `admin@lucent.local` / `admin12345`; override
@@ -81,6 +82,11 @@ Today and Report AI summaries now also expose SSE variants:
 - `POST /api/v1/user/reports/summary/generate/stream`
 
 They stream safe partial `summary` text first, then finish with the final structured payload.
+
+If the current runtime does not provide an `analysis` model config, these Today
+and Report AI summary endpoints now fall back to deterministic copy instead of
+failing, so the local full-stack E2E lane remains repeatable without live model
+credentials.
 
 If the OpenAI-compatible base URL targets DeepSeek, Lucent now disables
 DeepSeek `thinking` mode automatically for these streaming tool-use flows so

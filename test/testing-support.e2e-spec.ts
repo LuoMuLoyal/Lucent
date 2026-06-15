@@ -15,6 +15,7 @@ import { DailyRecordKind } from '../src/generated/prisma/client';
 const TESTING_PATH = '/api/v1/testing/fullstack-e2e/record-lane/prepare';
 const LOGIN_PATH = '/api/v1/auth/login';
 const DAILY_RECORDS_PATH = '/api/v1/user/daily-records';
+const USER_SETTINGS_PATH = '/api/v1/user/settings';
 const AUTHORIZATION_HEADER = 'Authorization';
 const BEARER = 'Bearer';
 
@@ -110,6 +111,19 @@ describe('Testing Support API (e2e)', () => {
       })
       .expect(201);
 
+    const disableAiRes = await request(app.getHttpServer())
+      .patch(USER_SETTINGS_PATH)
+      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .send({ aiSummariesEnabled: false })
+      .expect(200);
+
+    const disableAiBody = disableAiRes.body as ApiEnvelope<{
+      aiSummariesEnabled: boolean;
+      dataSharingConsent: boolean;
+      updatedAt: string | null;
+    }>;
+    expect(expectData(disableAiBody).aiSummariesEnabled).toBe(false);
+
     const createdListRes = await request(app.getHttpServer())
       .get(`${DAILY_RECORDS_PATH}?date=${TEST_DATE}`)
       .set(AUTHORIZATION_HEADER, bearer(accessToken))
@@ -160,5 +174,17 @@ describe('Testing Support API (e2e)', () => {
       total: number;
     }>;
     expect(expectData(resetListBody).items).toHaveLength(0);
+
+    const resetSettingsRes = await request(app.getHttpServer())
+      .get(USER_SETTINGS_PATH)
+      .set(AUTHORIZATION_HEADER, bearer(refreshedAccessToken))
+      .expect(200);
+
+    const resetSettingsBody = resetSettingsRes.body as ApiEnvelope<{
+      aiSummariesEnabled: boolean;
+      dataSharingConsent: boolean;
+      updatedAt: string | null;
+    }>;
+    expect(expectData(resetSettingsBody).aiSummariesEnabled).toBe(true);
   });
 });

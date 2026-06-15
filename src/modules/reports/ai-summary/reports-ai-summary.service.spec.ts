@@ -1,7 +1,4 @@
-import {
-  ForbiddenException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import type { AiConfig } from '../../../config/ai.config';
 import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from '../dto';
 import type { ReportsAiSummaryContextService } from './reports-ai-summary-context.service';
@@ -244,7 +241,7 @@ describe('ReportsAiSummaryService', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('rejects when analysis model config is missing', async () => {
+  it('falls back when analysis model config is missing', async () => {
     const service = createService({
       config: {
         ...baseConfig,
@@ -256,9 +253,14 @@ describe('ReportsAiSummaryService', () => {
       },
     });
 
-    await expect(
-      service.generate('u1', { range: REPORT_RANGE_LAST_7_DAYS }, 'zh-CN'),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    const result = await service.generate(
+      'u1',
+      { range: REPORT_RANGE_LAST_7_DAYS },
+      'zh-CN',
+    );
+
+    expect(result.summary).toContain('本周');
+    expect(result.actionLabel).toBe('查看报告');
   });
 
   it('passes 30-day range through and returns monthly fallback copy', async () => {
