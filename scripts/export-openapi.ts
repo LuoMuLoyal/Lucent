@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 const { NestFactory } = require('@nestjs/core');
 const { ConfigService } = require('@nestjs/config');
 const { SwaggerModule } = require('@nestjs/swagger');
@@ -8,8 +9,15 @@ async function main() {
   delete process.env.REDIS_URL;
   process.env.OPENAPI_EXPORT_SKIP_DB_CONNECT = 'true';
 
-  const { AppModule } = await import('../dist/app.module.js');
-  const { setupApp } = await import('../dist/setup-app.js');
+  const appModulePath = pathToFileURL(
+    path.resolve(__dirname, '..', 'dist', 'app.module.js'),
+  ).href;
+  const setupAppPath = pathToFileURL(
+    path.resolve(__dirname, '..', 'dist', 'setup-app.js'),
+  ).href;
+
+  const { AppModule } = await import(appModulePath);
+  const { setupApp } = await import(setupAppPath);
 
   const app = await NestFactory.create(AppModule, { logger: false });
   setupApp(app, app.get(ConfigService));
