@@ -184,8 +184,8 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 
 export type UserGroupByOutputType = {
   id: string
-  email: string
-  passwordHash: string
+  email: string | null
+  passwordHash: string | null
   nickname: string | null
   avatar: string | null
   status: $Enums.UserStatus
@@ -219,8 +219,8 @@ export type UserWhereInput = {
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   id?: Prisma.StringFilter<"User"> | string
-  email?: Prisma.StringFilter<"User"> | string
-  passwordHash?: Prisma.StringFilter<"User"> | string
+  email?: Prisma.StringNullableFilter<"User"> | string | null
+  passwordHash?: Prisma.StringNullableFilter<"User"> | string | null
   nickname?: Prisma.StringNullableFilter<"User"> | string | null
   avatar?: Prisma.StringNullableFilter<"User"> | string | null
   status?: Prisma.EnumUserStatusFilter<"User"> | $Enums.UserStatus
@@ -230,17 +230,25 @@ export type UserWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   profile?: Prisma.XOR<Prisma.UserProfileNullableScalarRelationFilter, Prisma.UserProfileWhereInput> | null
+  identities?: Prisma.UserIdentityListRelationFilter
   sessions?: Prisma.UserSessionListRelationFilter
   devices?: Prisma.UserDeviceListRelationFilter
   allergies?: Prisma.UserAllergyListRelationFilter
   conditions?: Prisma.UserConditionListRelationFilter
   currentMedicines?: Prisma.UserCurrentMedicineListRelationFilter
+  medicineReminders?: Prisma.UserMedicineReminderListRelationFilter
+  reminderDeliveries?: Prisma.UserReminderDeliveryListRelationFilter
+  dailyRecords?: Prisma.UserDailyRecordListRelationFilter
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentListRelationFilter
+  doseLogs?: Prisma.UserMedicineDoseLogListRelationFilter
+  settings?: Prisma.UserSettingListRelationFilter
+  dataExportRequests?: Prisma.DataExportRequestListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  email?: Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
+  passwordHash?: Prisma.SortOrderInput | Prisma.SortOrder
   nickname?: Prisma.SortOrderInput | Prisma.SortOrder
   avatar?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -250,11 +258,19 @@ export type UserOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   profile?: Prisma.UserProfileOrderByWithRelationInput
+  identities?: Prisma.UserIdentityOrderByRelationAggregateInput
   sessions?: Prisma.UserSessionOrderByRelationAggregateInput
   devices?: Prisma.UserDeviceOrderByRelationAggregateInput
   allergies?: Prisma.UserAllergyOrderByRelationAggregateInput
   conditions?: Prisma.UserConditionOrderByRelationAggregateInput
   currentMedicines?: Prisma.UserCurrentMedicineOrderByRelationAggregateInput
+  medicineReminders?: Prisma.UserMedicineReminderOrderByRelationAggregateInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryOrderByRelationAggregateInput
+  dailyRecords?: Prisma.UserDailyRecordOrderByRelationAggregateInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentOrderByRelationAggregateInput
+  doseLogs?: Prisma.UserMedicineDoseLogOrderByRelationAggregateInput
+  settings?: Prisma.UserSettingOrderByRelationAggregateInput
+  dataExportRequests?: Prisma.DataExportRequestOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -262,8 +278,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
   OR?: Prisma.UserWhereInput[]
   NOT?: Prisma.UserWhereInput | Prisma.UserWhereInput[]
-  email?: Prisma.StringFilter<"User"> | string
-  passwordHash?: Prisma.StringFilter<"User"> | string
+  email?: Prisma.StringNullableFilter<"User"> | string | null
+  passwordHash?: Prisma.StringNullableFilter<"User"> | string | null
   nickname?: Prisma.StringNullableFilter<"User"> | string | null
   avatar?: Prisma.StringNullableFilter<"User"> | string | null
   status?: Prisma.EnumUserStatusFilter<"User"> | $Enums.UserStatus
@@ -273,17 +289,25 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   profile?: Prisma.XOR<Prisma.UserProfileNullableScalarRelationFilter, Prisma.UserProfileWhereInput> | null
+  identities?: Prisma.UserIdentityListRelationFilter
   sessions?: Prisma.UserSessionListRelationFilter
   devices?: Prisma.UserDeviceListRelationFilter
   allergies?: Prisma.UserAllergyListRelationFilter
   conditions?: Prisma.UserConditionListRelationFilter
   currentMedicines?: Prisma.UserCurrentMedicineListRelationFilter
+  medicineReminders?: Prisma.UserMedicineReminderListRelationFilter
+  reminderDeliveries?: Prisma.UserReminderDeliveryListRelationFilter
+  dailyRecords?: Prisma.UserDailyRecordListRelationFilter
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentListRelationFilter
+  doseLogs?: Prisma.UserMedicineDoseLogListRelationFilter
+  settings?: Prisma.UserSettingListRelationFilter
+  dataExportRequests?: Prisma.DataExportRequestListRelationFilter
 }, "id">
 
 export type UserOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  email?: Prisma.SortOrder
-  passwordHash?: Prisma.SortOrder
+  email?: Prisma.SortOrderInput | Prisma.SortOrder
+  passwordHash?: Prisma.SortOrderInput | Prisma.SortOrder
   nickname?: Prisma.SortOrderInput | Prisma.SortOrder
   avatar?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
@@ -302,8 +326,8 @@ export type UserScalarWhereWithAggregatesInput = {
   OR?: Prisma.UserScalarWhereWithAggregatesInput[]
   NOT?: Prisma.UserScalarWhereWithAggregatesInput | Prisma.UserScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"User"> | string
-  email?: Prisma.StringWithAggregatesFilter<"User"> | string
-  passwordHash?: Prisma.StringWithAggregatesFilter<"User"> | string
+  email?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  passwordHash?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   nickname?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   avatar?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   status?: Prisma.EnumUserStatusWithAggregatesFilter<"User"> | $Enums.UserStatus
@@ -316,8 +340,8 @@ export type UserScalarWhereWithAggregatesInput = {
 
 export type UserCreateInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -327,17 +351,25 @@ export type UserCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
   sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -347,17 +379,25 @@ export type UserUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -367,17 +407,25 @@ export type UserUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -387,17 +435,25 @@ export type UserUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -410,8 +466,8 @@ export type UserCreateManyInput = {
 
 export type UserUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -424,8 +480,8 @@ export type UserUpdateManyMutationInput = {
 
 export type UserUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -501,6 +557,20 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
 
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
+}
+
+export type UserCreateNestedOneWithoutIdentitiesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutIdentitiesInput, Prisma.UserUncheckedCreateWithoutIdentitiesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutIdentitiesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutIdentitiesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutIdentitiesInput, Prisma.UserUncheckedCreateWithoutIdentitiesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutIdentitiesInput
+  upsert?: Prisma.UserUpsertWithoutIdentitiesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutIdentitiesInput, Prisma.UserUpdateWithoutIdentitiesInput>, Prisma.UserUncheckedUpdateWithoutIdentitiesInput>
 }
 
 export type UserCreateNestedOneWithoutProfileInput = {
@@ -587,10 +657,108 @@ export type UserUpdateOneRequiredWithoutCurrentMedicinesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutCurrentMedicinesInput, Prisma.UserUpdateWithoutCurrentMedicinesInput>, Prisma.UserUncheckedUpdateWithoutCurrentMedicinesInput>
 }
 
-export type UserCreateWithoutProfileInput = {
+export type UserCreateNestedOneWithoutMedicineRemindersInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMedicineRemindersInput, Prisma.UserUncheckedCreateWithoutMedicineRemindersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMedicineRemindersInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutMedicineRemindersNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMedicineRemindersInput, Prisma.UserUncheckedCreateWithoutMedicineRemindersInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMedicineRemindersInput
+  upsert?: Prisma.UserUpsertWithoutMedicineRemindersInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMedicineRemindersInput, Prisma.UserUpdateWithoutMedicineRemindersInput>, Prisma.UserUncheckedUpdateWithoutMedicineRemindersInput>
+}
+
+export type UserCreateNestedOneWithoutReminderDeliveriesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReminderDeliveriesInput, Prisma.UserUncheckedCreateWithoutReminderDeliveriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReminderDeliveriesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutReminderDeliveriesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutReminderDeliveriesInput, Prisma.UserUncheckedCreateWithoutReminderDeliveriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutReminderDeliveriesInput
+  upsert?: Prisma.UserUpsertWithoutReminderDeliveriesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutReminderDeliveriesInput, Prisma.UserUpdateWithoutReminderDeliveriesInput>, Prisma.UserUncheckedUpdateWithoutReminderDeliveriesInput>
+}
+
+export type UserCreateNestedOneWithoutDoseLogsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDoseLogsInput, Prisma.UserUncheckedCreateWithoutDoseLogsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDoseLogsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutDoseLogsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDoseLogsInput, Prisma.UserUncheckedCreateWithoutDoseLogsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDoseLogsInput
+  upsert?: Prisma.UserUpsertWithoutDoseLogsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDoseLogsInput, Prisma.UserUpdateWithoutDoseLogsInput>, Prisma.UserUncheckedUpdateWithoutDoseLogsInput>
+}
+
+export type UserCreateNestedOneWithoutDailyRecordsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDailyRecordsInput, Prisma.UserUncheckedCreateWithoutDailyRecordsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDailyRecordsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutDailyRecordsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDailyRecordsInput, Prisma.UserUncheckedCreateWithoutDailyRecordsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDailyRecordsInput
+  upsert?: Prisma.UserUpsertWithoutDailyRecordsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDailyRecordsInput, Prisma.UserUpdateWithoutDailyRecordsInput>, Prisma.UserUncheckedUpdateWithoutDailyRecordsInput>
+}
+
+export type UserCreateNestedOneWithoutDailyRecordAttachmentsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDailyRecordAttachmentsInput, Prisma.UserUncheckedCreateWithoutDailyRecordAttachmentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDailyRecordAttachmentsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutDailyRecordAttachmentsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDailyRecordAttachmentsInput, Prisma.UserUncheckedCreateWithoutDailyRecordAttachmentsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDailyRecordAttachmentsInput
+  upsert?: Prisma.UserUpsertWithoutDailyRecordAttachmentsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDailyRecordAttachmentsInput, Prisma.UserUpdateWithoutDailyRecordAttachmentsInput>, Prisma.UserUncheckedUpdateWithoutDailyRecordAttachmentsInput>
+}
+
+export type UserCreateNestedOneWithoutSettingsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSettingsInput, Prisma.UserUncheckedCreateWithoutSettingsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSettingsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutSettingsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutSettingsInput, Prisma.UserUncheckedCreateWithoutSettingsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutSettingsInput
+  upsert?: Prisma.UserUpsertWithoutSettingsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutSettingsInput, Prisma.UserUpdateWithoutSettingsInput>, Prisma.UserUncheckedUpdateWithoutSettingsInput>
+}
+
+export type UserCreateNestedOneWithoutDataExportRequestsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDataExportRequestsInput, Prisma.UserUncheckedCreateWithoutDataExportRequestsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDataExportRequestsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutDataExportRequestsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutDataExportRequestsInput, Prisma.UserUncheckedCreateWithoutDataExportRequestsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutDataExportRequestsInput
+  upsert?: Prisma.UserUpsertWithoutDataExportRequestsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutDataExportRequestsInput, Prisma.UserUpdateWithoutDataExportRequestsInput>, Prisma.UserUncheckedUpdateWithoutDataExportRequestsInput>
+}
+
+export type UserCreateWithoutIdentitiesInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -599,17 +767,25 @@ export type UserCreateWithoutProfileInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
   sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
 }
 
-export type UserUncheckedCreateWithoutProfileInput = {
+export type UserUncheckedCreateWithoutIdentitiesInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -618,11 +794,143 @@ export type UserUncheckedCreateWithoutProfileInput = {
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
   sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutIdentitiesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutIdentitiesInput, Prisma.UserUncheckedCreateWithoutIdentitiesInput>
+}
+
+export type UserUpsertWithoutIdentitiesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutIdentitiesInput, Prisma.UserUncheckedUpdateWithoutIdentitiesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutIdentitiesInput, Prisma.UserUncheckedCreateWithoutIdentitiesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutIdentitiesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutIdentitiesInput, Prisma.UserUncheckedUpdateWithoutIdentitiesInput>
+}
+
+export type UserUpdateWithoutIdentitiesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutIdentitiesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutProfileInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutProfileInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProfileInput = {
@@ -643,8 +951,8 @@ export type UserUpdateToOneWithWhereWithoutProfileInput = {
 
 export type UserUpdateWithoutProfileInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -653,17 +961,25 @@ export type UserUpdateWithoutProfileInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProfileInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -672,17 +988,25 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSessionsInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -692,16 +1016,24 @@ export type UserCreateWithoutSessionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -711,10 +1043,18 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -735,8 +1075,8 @@ export type UserUpdateToOneWithWhereWithoutSessionsInput = {
 
 export type UserUpdateWithoutSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -746,16 +1086,24 @@ export type UserUpdateWithoutSessionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -765,16 +1113,24 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDevicesInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -784,16 +1140,24 @@ export type UserCreateWithoutDevicesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
   sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDevicesInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -803,10 +1167,18 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDevicesInput = {
@@ -827,8 +1199,8 @@ export type UserUpdateToOneWithWhereWithoutDevicesInput = {
 
 export type UserUpdateWithoutDevicesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -838,16 +1210,24 @@ export type UserUpdateWithoutDevicesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDevicesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -857,16 +1237,24 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAllergiesInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -876,16 +1264,24 @@ export type UserCreateWithoutAllergiesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
   sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAllergiesInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -895,10 +1291,18 @@ export type UserUncheckedCreateWithoutAllergiesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAllergiesInput = {
@@ -919,8 +1323,8 @@ export type UserUpdateToOneWithWhereWithoutAllergiesInput = {
 
 export type UserUpdateWithoutAllergiesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -930,16 +1334,24 @@ export type UserUpdateWithoutAllergiesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAllergiesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -949,16 +1361,24 @@ export type UserUncheckedUpdateWithoutAllergiesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutConditionsInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -968,16 +1388,24 @@ export type UserCreateWithoutConditionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
   sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutConditionsInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -987,10 +1415,18 @@ export type UserUncheckedCreateWithoutConditionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutConditionsInput = {
@@ -1011,8 +1447,8 @@ export type UserUpdateToOneWithWhereWithoutConditionsInput = {
 
 export type UserUpdateWithoutConditionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -1022,16 +1458,24 @@ export type UserUpdateWithoutConditionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutConditionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -1041,16 +1485,24 @@ export type UserUncheckedUpdateWithoutConditionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
   currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCurrentMedicinesInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -1060,16 +1512,24 @@ export type UserCreateWithoutCurrentMedicinesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
   sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCurrentMedicinesInput = {
   id?: string
-  email: string
-  passwordHash: string
+  email?: string | null
+  passwordHash?: string | null
   nickname?: string | null
   avatar?: string | null
   status?: $Enums.UserStatus
@@ -1079,10 +1539,18 @@ export type UserUncheckedCreateWithoutCurrentMedicinesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
   devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
   allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
   conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCurrentMedicinesInput = {
@@ -1103,8 +1571,8 @@ export type UserUpdateToOneWithWhereWithoutCurrentMedicinesInput = {
 
 export type UserUpdateWithoutCurrentMedicinesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -1114,16 +1582,24 @@ export type UserUpdateWithoutCurrentMedicinesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCurrentMedicinesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  email?: Prisma.StringFieldUpdateOperationsInput | string
-  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
@@ -1133,10 +1609,886 @@ export type UserUncheckedUpdateWithoutCurrentMedicinesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
   allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
   conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutMedicineRemindersInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutMedicineRemindersInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutMedicineRemindersInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutMedicineRemindersInput, Prisma.UserUncheckedCreateWithoutMedicineRemindersInput>
+}
+
+export type UserUpsertWithoutMedicineRemindersInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutMedicineRemindersInput, Prisma.UserUncheckedUpdateWithoutMedicineRemindersInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutMedicineRemindersInput, Prisma.UserUncheckedCreateWithoutMedicineRemindersInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutMedicineRemindersInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutMedicineRemindersInput, Prisma.UserUncheckedUpdateWithoutMedicineRemindersInput>
+}
+
+export type UserUpdateWithoutMedicineRemindersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutMedicineRemindersInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutReminderDeliveriesInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutReminderDeliveriesInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutReminderDeliveriesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutReminderDeliveriesInput, Prisma.UserUncheckedCreateWithoutReminderDeliveriesInput>
+}
+
+export type UserUpsertWithoutReminderDeliveriesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutReminderDeliveriesInput, Prisma.UserUncheckedUpdateWithoutReminderDeliveriesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutReminderDeliveriesInput, Prisma.UserUncheckedCreateWithoutReminderDeliveriesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutReminderDeliveriesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutReminderDeliveriesInput, Prisma.UserUncheckedUpdateWithoutReminderDeliveriesInput>
+}
+
+export type UserUpdateWithoutReminderDeliveriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutReminderDeliveriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutDoseLogsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutDoseLogsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutDoseLogsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDoseLogsInput, Prisma.UserUncheckedCreateWithoutDoseLogsInput>
+}
+
+export type UserUpsertWithoutDoseLogsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDoseLogsInput, Prisma.UserUncheckedUpdateWithoutDoseLogsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDoseLogsInput, Prisma.UserUncheckedCreateWithoutDoseLogsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDoseLogsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDoseLogsInput, Prisma.UserUncheckedUpdateWithoutDoseLogsInput>
+}
+
+export type UserUpdateWithoutDoseLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDoseLogsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutDailyRecordsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutDailyRecordsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutDailyRecordsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDailyRecordsInput, Prisma.UserUncheckedCreateWithoutDailyRecordsInput>
+}
+
+export type UserUpsertWithoutDailyRecordsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDailyRecordsInput, Prisma.UserUncheckedUpdateWithoutDailyRecordsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDailyRecordsInput, Prisma.UserUncheckedCreateWithoutDailyRecordsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDailyRecordsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDailyRecordsInput, Prisma.UserUncheckedUpdateWithoutDailyRecordsInput>
+}
+
+export type UserUpdateWithoutDailyRecordsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDailyRecordsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutDailyRecordAttachmentsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutDailyRecordAttachmentsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutDailyRecordAttachmentsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDailyRecordAttachmentsInput, Prisma.UserUncheckedCreateWithoutDailyRecordAttachmentsInput>
+}
+
+export type UserUpsertWithoutDailyRecordAttachmentsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDailyRecordAttachmentsInput, Prisma.UserUncheckedUpdateWithoutDailyRecordAttachmentsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDailyRecordAttachmentsInput, Prisma.UserUncheckedCreateWithoutDailyRecordAttachmentsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDailyRecordAttachmentsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDailyRecordAttachmentsInput, Prisma.UserUncheckedUpdateWithoutDailyRecordAttachmentsInput>
+}
+
+export type UserUpdateWithoutDailyRecordAttachmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDailyRecordAttachmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutSettingsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutSettingsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutSettingsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutSettingsInput, Prisma.UserUncheckedCreateWithoutSettingsInput>
+}
+
+export type UserUpsertWithoutSettingsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutSettingsInput, Prisma.UserUncheckedUpdateWithoutSettingsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutSettingsInput, Prisma.UserUncheckedCreateWithoutSettingsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutSettingsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutSettingsInput, Prisma.UserUncheckedUpdateWithoutSettingsInput>
+}
+
+export type UserUpdateWithoutSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutSettingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutDataExportRequestsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutDataExportRequestsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutDataExportRequestsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutDataExportRequestsInput, Prisma.UserUncheckedCreateWithoutDataExportRequestsInput>
+}
+
+export type UserUpsertWithoutDataExportRequestsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutDataExportRequestsInput, Prisma.UserUncheckedUpdateWithoutDataExportRequestsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutDataExportRequestsInput, Prisma.UserUncheckedCreateWithoutDataExportRequestsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutDataExportRequestsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutDataExportRequestsInput, Prisma.UserUncheckedUpdateWithoutDataExportRequestsInput>
+}
+
+export type UserUpdateWithoutDataExportRequestsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutDataExportRequestsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -1145,19 +2497,35 @@ export type UserUncheckedUpdateWithoutCurrentMedicinesInput = {
  */
 
 export type UserCountOutputType = {
+  identities: number
   sessions: number
   devices: number
   allergies: number
   conditions: number
   currentMedicines: number
+  medicineReminders: number
+  reminderDeliveries: number
+  dailyRecords: number
+  dailyRecordAttachments: number
+  doseLogs: number
+  settings: number
+  dataExportRequests: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  identities?: boolean | UserCountOutputTypeCountIdentitiesArgs
   sessions?: boolean | UserCountOutputTypeCountSessionsArgs
   devices?: boolean | UserCountOutputTypeCountDevicesArgs
   allergies?: boolean | UserCountOutputTypeCountAllergiesArgs
   conditions?: boolean | UserCountOutputTypeCountConditionsArgs
   currentMedicines?: boolean | UserCountOutputTypeCountCurrentMedicinesArgs
+  medicineReminders?: boolean | UserCountOutputTypeCountMedicineRemindersArgs
+  reminderDeliveries?: boolean | UserCountOutputTypeCountReminderDeliveriesArgs
+  dailyRecords?: boolean | UserCountOutputTypeCountDailyRecordsArgs
+  dailyRecordAttachments?: boolean | UserCountOutputTypeCountDailyRecordAttachmentsArgs
+  doseLogs?: boolean | UserCountOutputTypeCountDoseLogsArgs
+  settings?: boolean | UserCountOutputTypeCountSettingsArgs
+  dataExportRequests?: boolean | UserCountOutputTypeCountDataExportRequestsArgs
 }
 
 /**
@@ -1168,6 +2536,13 @@ export type UserCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
    * Select specific fields to fetch from the UserCountOutputType
    */
   select?: Prisma.UserCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountIdentitiesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserIdentityWhereInput
 }
 
 /**
@@ -1205,6 +2580,55 @@ export type UserCountOutputTypeCountCurrentMedicinesArgs<ExtArgs extends runtime
   where?: Prisma.UserCurrentMedicineWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountMedicineRemindersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserMedicineReminderWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountReminderDeliveriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserReminderDeliveryWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDailyRecordsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserDailyRecordWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDailyRecordAttachmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserDailyRecordAttachmentWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDoseLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserMedicineDoseLogWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountSettingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserSettingWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountDataExportRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.DataExportRequestWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1219,11 +2643,19 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   createdAt?: boolean
   updatedAt?: boolean
   profile?: boolean | Prisma.User$profileArgs<ExtArgs>
+  identities?: boolean | Prisma.User$identitiesArgs<ExtArgs>
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   devices?: boolean | Prisma.User$devicesArgs<ExtArgs>
   allergies?: boolean | Prisma.User$allergiesArgs<ExtArgs>
   conditions?: boolean | Prisma.User$conditionsArgs<ExtArgs>
   currentMedicines?: boolean | Prisma.User$currentMedicinesArgs<ExtArgs>
+  medicineReminders?: boolean | Prisma.User$medicineRemindersArgs<ExtArgs>
+  reminderDeliveries?: boolean | Prisma.User$reminderDeliveriesArgs<ExtArgs>
+  dailyRecords?: boolean | Prisma.User$dailyRecordsArgs<ExtArgs>
+  dailyRecordAttachments?: boolean | Prisma.User$dailyRecordAttachmentsArgs<ExtArgs>
+  doseLogs?: boolean | Prisma.User$doseLogsArgs<ExtArgs>
+  settings?: boolean | Prisma.User$settingsArgs<ExtArgs>
+  dataExportRequests?: boolean | Prisma.User$dataExportRequestsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1272,11 +2704,19 @@ export type UserSelectScalar = {
 export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "passwordHash" | "nickname" | "avatar" | "status" | "emailVerifiedAt" | "lastLoginAt" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   profile?: boolean | Prisma.User$profileArgs<ExtArgs>
+  identities?: boolean | Prisma.User$identitiesArgs<ExtArgs>
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   devices?: boolean | Prisma.User$devicesArgs<ExtArgs>
   allergies?: boolean | Prisma.User$allergiesArgs<ExtArgs>
   conditions?: boolean | Prisma.User$conditionsArgs<ExtArgs>
   currentMedicines?: boolean | Prisma.User$currentMedicinesArgs<ExtArgs>
+  medicineReminders?: boolean | Prisma.User$medicineRemindersArgs<ExtArgs>
+  reminderDeliveries?: boolean | Prisma.User$reminderDeliveriesArgs<ExtArgs>
+  dailyRecords?: boolean | Prisma.User$dailyRecordsArgs<ExtArgs>
+  dailyRecordAttachments?: boolean | Prisma.User$dailyRecordAttachmentsArgs<ExtArgs>
+  doseLogs?: boolean | Prisma.User$doseLogsArgs<ExtArgs>
+  settings?: boolean | Prisma.User$settingsArgs<ExtArgs>
+  dataExportRequests?: boolean | Prisma.User$dataExportRequestsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1286,16 +2726,24 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   name: "User"
   objects: {
     profile: Prisma.$UserProfilePayload<ExtArgs> | null
+    identities: Prisma.$UserIdentityPayload<ExtArgs>[]
     sessions: Prisma.$UserSessionPayload<ExtArgs>[]
     devices: Prisma.$UserDevicePayload<ExtArgs>[]
     allergies: Prisma.$UserAllergyPayload<ExtArgs>[]
     conditions: Prisma.$UserConditionPayload<ExtArgs>[]
     currentMedicines: Prisma.$UserCurrentMedicinePayload<ExtArgs>[]
+    medicineReminders: Prisma.$UserMedicineReminderPayload<ExtArgs>[]
+    reminderDeliveries: Prisma.$UserReminderDeliveryPayload<ExtArgs>[]
+    dailyRecords: Prisma.$UserDailyRecordPayload<ExtArgs>[]
+    dailyRecordAttachments: Prisma.$UserDailyRecordAttachmentPayload<ExtArgs>[]
+    doseLogs: Prisma.$UserMedicineDoseLogPayload<ExtArgs>[]
+    settings: Prisma.$UserSettingPayload<ExtArgs>[]
+    dataExportRequests: Prisma.$DataExportRequestPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    email: string
-    passwordHash: string
+    email: string | null
+    passwordHash: string | null
     nickname: string | null
     avatar: string | null
     status: $Enums.UserStatus
@@ -1699,11 +3147,19 @@ readonly fields: UserFieldRefs;
 export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   profile<T extends Prisma.User$profileArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$profileArgs<ExtArgs>>): Prisma.Prisma__UserProfileClient<runtime.Types.Result.GetResult<Prisma.$UserProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  identities<T extends Prisma.User$identitiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$identitiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserIdentityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sessions<T extends Prisma.User$sessionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   devices<T extends Prisma.User$devicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$devicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserDevicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   allergies<T extends Prisma.User$allergiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$allergiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserAllergyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   conditions<T extends Prisma.User$conditionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$conditionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserConditionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   currentMedicines<T extends Prisma.User$currentMedicinesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$currentMedicinesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserCurrentMedicinePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  medicineReminders<T extends Prisma.User$medicineRemindersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$medicineRemindersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserMedicineReminderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  reminderDeliveries<T extends Prisma.User$reminderDeliveriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$reminderDeliveriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserReminderDeliveryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  dailyRecords<T extends Prisma.User$dailyRecordsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$dailyRecordsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserDailyRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  dailyRecordAttachments<T extends Prisma.User$dailyRecordAttachmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$dailyRecordAttachmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserDailyRecordAttachmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  doseLogs<T extends Prisma.User$doseLogsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$doseLogsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserMedicineDoseLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  settings<T extends Prisma.User$settingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$settingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserSettingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  dataExportRequests<T extends Prisma.User$dataExportRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$dataExportRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DataExportRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1967,7 +3423,7 @@ export type UserCreateArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs
   /**
    * The data needed to create a User.
    */
-  data: Prisma.XOR<Prisma.UserCreateInput, Prisma.UserUncheckedCreateInput>
+  data?: Prisma.XOR<Prisma.UserCreateInput, Prisma.UserUncheckedCreateInput>
 }
 
 /**
@@ -2156,6 +3612,30 @@ export type User$profileArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
 }
 
 /**
+ * User.identities
+ */
+export type User$identitiesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserIdentity
+   */
+  select?: Prisma.UserIdentitySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserIdentity
+   */
+  omit?: Prisma.UserIdentityOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserIdentityInclude<ExtArgs> | null
+  where?: Prisma.UserIdentityWhereInput
+  orderBy?: Prisma.UserIdentityOrderByWithRelationInput | Prisma.UserIdentityOrderByWithRelationInput[]
+  cursor?: Prisma.UserIdentityWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserIdentityScalarFieldEnum | Prisma.UserIdentityScalarFieldEnum[]
+}
+
+/**
  * User.sessions
  */
 export type User$sessionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2273,6 +3753,174 @@ export type User$currentMedicinesArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   distinct?: Prisma.UserCurrentMedicineScalarFieldEnum | Prisma.UserCurrentMedicineScalarFieldEnum[]
+}
+
+/**
+ * User.medicineReminders
+ */
+export type User$medicineRemindersArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserMedicineReminder
+   */
+  select?: Prisma.UserMedicineReminderSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserMedicineReminder
+   */
+  omit?: Prisma.UserMedicineReminderOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserMedicineReminderInclude<ExtArgs> | null
+  where?: Prisma.UserMedicineReminderWhereInput
+  orderBy?: Prisma.UserMedicineReminderOrderByWithRelationInput | Prisma.UserMedicineReminderOrderByWithRelationInput[]
+  cursor?: Prisma.UserMedicineReminderWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserMedicineReminderScalarFieldEnum | Prisma.UserMedicineReminderScalarFieldEnum[]
+}
+
+/**
+ * User.reminderDeliveries
+ */
+export type User$reminderDeliveriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserReminderDelivery
+   */
+  select?: Prisma.UserReminderDeliverySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserReminderDelivery
+   */
+  omit?: Prisma.UserReminderDeliveryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserReminderDeliveryInclude<ExtArgs> | null
+  where?: Prisma.UserReminderDeliveryWhereInput
+  orderBy?: Prisma.UserReminderDeliveryOrderByWithRelationInput | Prisma.UserReminderDeliveryOrderByWithRelationInput[]
+  cursor?: Prisma.UserReminderDeliveryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserReminderDeliveryScalarFieldEnum | Prisma.UserReminderDeliveryScalarFieldEnum[]
+}
+
+/**
+ * User.dailyRecords
+ */
+export type User$dailyRecordsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserDailyRecord
+   */
+  select?: Prisma.UserDailyRecordSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserDailyRecord
+   */
+  omit?: Prisma.UserDailyRecordOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserDailyRecordInclude<ExtArgs> | null
+  where?: Prisma.UserDailyRecordWhereInput
+  orderBy?: Prisma.UserDailyRecordOrderByWithRelationInput | Prisma.UserDailyRecordOrderByWithRelationInput[]
+  cursor?: Prisma.UserDailyRecordWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserDailyRecordScalarFieldEnum | Prisma.UserDailyRecordScalarFieldEnum[]
+}
+
+/**
+ * User.dailyRecordAttachments
+ */
+export type User$dailyRecordAttachmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserDailyRecordAttachment
+   */
+  select?: Prisma.UserDailyRecordAttachmentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserDailyRecordAttachment
+   */
+  omit?: Prisma.UserDailyRecordAttachmentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserDailyRecordAttachmentInclude<ExtArgs> | null
+  where?: Prisma.UserDailyRecordAttachmentWhereInput
+  orderBy?: Prisma.UserDailyRecordAttachmentOrderByWithRelationInput | Prisma.UserDailyRecordAttachmentOrderByWithRelationInput[]
+  cursor?: Prisma.UserDailyRecordAttachmentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserDailyRecordAttachmentScalarFieldEnum | Prisma.UserDailyRecordAttachmentScalarFieldEnum[]
+}
+
+/**
+ * User.doseLogs
+ */
+export type User$doseLogsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserMedicineDoseLog
+   */
+  select?: Prisma.UserMedicineDoseLogSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserMedicineDoseLog
+   */
+  omit?: Prisma.UserMedicineDoseLogOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserMedicineDoseLogInclude<ExtArgs> | null
+  where?: Prisma.UserMedicineDoseLogWhereInput
+  orderBy?: Prisma.UserMedicineDoseLogOrderByWithRelationInput | Prisma.UserMedicineDoseLogOrderByWithRelationInput[]
+  cursor?: Prisma.UserMedicineDoseLogWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserMedicineDoseLogScalarFieldEnum | Prisma.UserMedicineDoseLogScalarFieldEnum[]
+}
+
+/**
+ * User.settings
+ */
+export type User$settingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserSetting
+   */
+  select?: Prisma.UserSettingSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserSetting
+   */
+  omit?: Prisma.UserSettingOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserSettingInclude<ExtArgs> | null
+  where?: Prisma.UserSettingWhereInput
+  orderBy?: Prisma.UserSettingOrderByWithRelationInput | Prisma.UserSettingOrderByWithRelationInput[]
+  cursor?: Prisma.UserSettingWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserSettingScalarFieldEnum | Prisma.UserSettingScalarFieldEnum[]
+}
+
+/**
+ * User.dataExportRequests
+ */
+export type User$dataExportRequestsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the DataExportRequest
+   */
+  select?: Prisma.DataExportRequestSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the DataExportRequest
+   */
+  omit?: Prisma.DataExportRequestOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DataExportRequestInclude<ExtArgs> | null
+  where?: Prisma.DataExportRequestWhereInput
+  orderBy?: Prisma.DataExportRequestOrderByWithRelationInput | Prisma.DataExportRequestOrderByWithRelationInput[]
+  cursor?: Prisma.DataExportRequestWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.DataExportRequestScalarFieldEnum | Prisma.DataExportRequestScalarFieldEnum[]
 }
 
 /**

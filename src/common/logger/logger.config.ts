@@ -43,7 +43,9 @@ export function createWinstonLoggerOptions(
         : winston.format.combine(
             winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
             nestWinstonUtilities.format.nestLike('Lucent', {
-              colors: true,
+              colors:
+                (process.stdout as unknown as { isTTY?: boolean }).isTTY ===
+                true,
               prettyPrint: true,
             }),
           ),

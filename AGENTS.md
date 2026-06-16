@@ -19,12 +19,13 @@
 
 ## Working Rules
 
-- Backend behavior changed: update `CHANGELOG.md`.
-- API contract changed: update `docs/public/api-contract.md`, and update `docs/auth-api-mock.md` plus OpenAPI when auth contract changed.
+- API contract changed: run `pnpm export:openapi`; do not maintain hand-written endpoint docs.
+- Active multi-step backend task plans belong in `plans/*.md`, not in `docs/` and not in the workspace root.
 - Env, Docker, import flow, or local commands changed: update `docs/environment.md` and `README.md`.
 - Medicine import or source strategy changed: update `docs/public/data-sources.md`.
-- `docs/auth-implementation-plan.md` and `docs/migration-roadmap.md` are reference only, not current status docs.
+- For localized backend copy, keep `AcceptLanguageResolver + I18nService` as the default path. Use `@I18nLang()` only when a controller/service flow must explicitly branch on the resolved locale and pass that locale deeper into AI/prompt/runtime code.
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby working code.
+- Use `pnpm typecheck` when you need TypeScript to validate spec and e2e files too; `pnpm build` excludes `**/*spec.ts` and `test/`.
 
 ## Known Gotchas
 

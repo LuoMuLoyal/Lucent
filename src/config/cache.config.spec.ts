@@ -4,6 +4,26 @@ import { redisStore } from 'cache-manager-ioredis-yet';
 import Keyv from 'keyv';
 import { CacheConfigService } from './cache.config';
 
+type RedisStoreMock = Awaited<ReturnType<typeof redisStore>>;
+
+function createRedisStoreMock(): RedisStoreMock {
+  return {
+    get: jest.fn(),
+    mget: jest.fn(),
+    set: jest.fn(),
+    mset: jest.fn(),
+    del: jest.fn(),
+    mdel: jest.fn(),
+    ttl: jest.fn(),
+    keys: jest.fn(),
+    disconnect: jest.fn(),
+    isCacheable: jest.fn().mockReturnValue(true),
+    client: {
+      disconnect: jest.fn(),
+    },
+  } as unknown as RedisStoreMock;
+}
+
 jest.mock('cache-manager-ioredis-yet', () => ({
   redisStore: jest.fn(),
 }));
@@ -27,20 +47,8 @@ describe('CacheConfigService', () => {
   });
 
   it('builds a redis-backed Keyv store from REDIS_URL', async () => {
-    const mockStore = {
-      get: jest.fn(),
-      mget: jest.fn(),
-      set: jest.fn(),
-      mset: jest.fn(),
-      del: jest.fn(),
-      mdel: jest.fn(),
-      ttl: jest.fn(),
-      keys: jest.fn(),
-      disconnect: jest.fn(),
-    };
-    redisStoreMock.mockResolvedValue(
-      mockStore as Awaited<ReturnType<typeof redisStore>>,
-    );
+    const mockStore = createRedisStoreMock();
+    redisStoreMock.mockResolvedValue(mockStore);
 
     const service = new CacheConfigService({
       get: jest.fn().mockImplementation((key: string) => {
@@ -78,17 +86,7 @@ describe('CacheConfigService', () => {
   });
 
   it('enables tls for rediss URLs', async () => {
-    redisStoreMock.mockResolvedValue({
-      get: jest.fn(),
-      mget: jest.fn(),
-      set: jest.fn(),
-      mset: jest.fn(),
-      del: jest.fn(),
-      mdel: jest.fn(),
-      ttl: jest.fn(),
-      keys: jest.fn(),
-      disconnect: jest.fn(),
-    } as Awaited<ReturnType<typeof redisStore>>);
+    redisStoreMock.mockResolvedValue(createRedisStoreMock());
 
     const service = new CacheConfigService({
       get: jest.fn().mockReturnValue('rediss://secure-cache.internal'),

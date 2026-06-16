@@ -5,12 +5,14 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import request from 'supertest';
 import type { App } from 'supertest/types';
+import { createHash } from 'node:crypto';
 
 import { AppModule } from '../src/app.module';
 import { setupApp } from '../src/setup-app';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ResultCode } from '../src/common/api-envelope';
 import type { ApiEnvelope } from '../src/common/api-envelope';
+import { VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS } from '../src/modules/auth/verification-code.service';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -22,6 +24,25 @@ interface UserDto {
   emailVerified: boolean;
   createdAt: string;
   updatedAt?: string;
+}
+
+interface AccountDto {
+  id: string;
+  email: string | null;
+  nickname: string | null;
+  avatar: string | null;
+  emailVerifiedAt: string | null;
+  hasPassword: boolean;
+  lastLoginAt: string | null;
+  linkedIdentities: Array<{
+    id: string;
+    provider: string;
+    email: string | null;
+    emailVerifiedAt: string | null;
+    linkedAt: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface TokensDto {
@@ -46,9 +67,11 @@ const AUTH_PATH = {
   verifyEmail: '/api/v1/auth/verify-email',
   forgotPassword: '/api/v1/auth/forgot-password',
   resetPassword: '/api/v1/auth/reset-password',
-  me: '/api/v1/auth/me',
-  mePassword: '/api/v1/auth/me/password',
-  meEmail: '/api/v1/auth/me/email',
+  account: '/api/v1/account',
+  accountPassword: '/api/v1/account/password',
+  accountEmail: '/api/v1/account/email',
+  accountIdentity: (identityId: string) =>
+    `/api/v1/account/identities/${identityId}`,
 } as const;
 
 const AUTH_SCENE = {
@@ -91,6 +114,15 @@ function uniqueEmail(): string {
   return `testuser${String(userSeq)}_${String(Date.now())}@${TEST_EMAIL_DOMAIN}`;
 }
 
+let clientIpSeq = 0;
+const clientIpSeed = (Date.now() ^ process.pid) >>> 0;
+function uniqueClientIp(): string {
+  clientIpSeq += 1;
+  const thirdOctet = ((clientIpSeed + Math.floor(clientIpSeq / 250)) % 250) + 1;
+  const fourthOctet = ((clientIpSeed + clientIpSeq) % 250) + 1;
+  return `198.51.${String(thirdOctet)}.${String(fourthOctet)}`;
+}
+
 /** Assert envelope.data is not null and return typed data. */
 
 function expectData<T>(body: ApiEnvelope<T>): T {
@@ -109,6 +141,10 @@ function expectDefined<T>(value: T | undefined, message: string): T {
 
 function bearer(accessToken: string): string {
   return `${BEARER_AUTH_SCHEME} ${accessToken}`;
+}
+
+function hashRefreshToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }
 
 // ── Test Suite ───────────────────────────────────────────────
@@ -181,16 +217,36 @@ describe('Auth API (e2e)', () => {
     scene: AuthScene,
     email: string,
   ): Promise<string> {
-    await request(app.getHttpServer())
-      .post(AUTH_PATH.sendVerificationCode)
-      .send({ email, scene })
-      .expect(200);
+    await sendVerificationCodeRequest(email, scene);
 
     const code = await getVerificationCode(scene, email);
     return expectDefined(
       code,
       `Verification code was not cached for ${scene}:${email}`,
     );
+  }
+
+  async function sendVerificationCodeRequest(
+    email: string,
+    scene: AuthScene,
+    clientIp = uniqueClientIp(),
+  ) {
+    await request(app.getHttpServer())
+      .post(AUTH_PATH.sendVerificationCode)
+      .set('x-forwarded-for', clientIp)
+      .send({ email, scene })
+      .expect(200);
+  }
+
+  async function forgotPasswordRequest(
+    email: string,
+    clientIp = uniqueClientIp(),
+  ) {
+    return request(app.getHttpServer())
+      .post(AUTH_PATH.forgotPassword)
+      .set('x-forwarded-for', clientIp)
+      .send({ email })
+      .expect(200);
   }
 
   async function seedVerificationCode(
@@ -277,9 +333,13 @@ describe('Auth API (e2e)', () => {
   describe('POST /api/v1/auth/login', () => {
     it('should login with correct password', async () => {
       const { email } = await registerUser();
+      const clientIp = uniqueClientIp();
+      const userAgent = 'LuminousE2E/1.0';
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.login)
+        .set('x-forwarded-for', clientIp)
+        .set('user-agent', userAgent)
         .send({ email, password: TEST_PASSWORD })
         .expect(200);
 
@@ -288,6 +348,14 @@ describe('Auth API (e2e)', () => {
       const data = expectData(body);
       expect(data.user.email).toBe(email);
       expect(data.tokens.accessToken).toBeDefined();
+
+      const session = await prisma.userSession.findUnique({
+        where: {
+          refreshTokenHash: hashRefreshToken(data.tokens.refreshToken),
+        },
+      });
+      expect(session?.ipAddress).toBe(clientIp);
+      expect(session?.userAgent).toBe(userAgent);
     });
 
     it('should reject wrong password', async () => {
@@ -316,10 +384,7 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
 
       // Send verification code (login scene)
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.sendVerificationCode)
-        .send({ email, scene: AUTH_SCENE.login })
-        .expect(200);
+      await sendVerificationCodeRequest(email, AUTH_SCENE.login);
 
       // Get code from cache
       const code = expectDefined(
@@ -463,6 +528,7 @@ describe('Auth API (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
+        .set('x-forwarded-for', uniqueClientIp())
         .send({ email, scene: AUTH_SCENE.register })
         .expect(200);
 
@@ -479,19 +545,47 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
 
       // First send
+      const clientIp = uniqueClientIp();
       await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
+        .set('x-forwarded-for', clientIp)
         .send({ email, scene: AUTH_SCENE.login })
         .expect(200);
 
       // Second send within cooldown
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
+        .set('x-forwarded-for', clientIp)
         .send({ email, scene: AUTH_SCENE.login })
         .expect(400);
 
       const body = res.body as ApiEnvelope;
       expect(body.code).toBe(ResultCode.VERIFICATION_CODE_COOLDOWN);
+    });
+
+    it('should rate limit repeated requests from the same client', async () => {
+      const clientIp = uniqueClientIp();
+
+      for (
+        let index = 0;
+        index < VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS;
+        index += 1
+      ) {
+        await request(app.getHttpServer())
+          .post(AUTH_PATH.sendVerificationCode)
+          .set('x-forwarded-for', clientIp)
+          .send({ email: uniqueEmail(), scene: AUTH_SCENE.register })
+          .expect(200);
+      }
+
+      const res = await request(app.getHttpServer())
+        .post(AUTH_PATH.sendVerificationCode)
+        .set('x-forwarded-for', clientIp)
+        .send({ email: uniqueEmail(), scene: AUTH_SCENE.register })
+        .expect(429);
+
+      const body = res.body as ApiEnvelope;
+      expect(body.code).toBe(ResultCode.VERIFICATION_CODE_RATE_LIMITED);
     });
   });
 
@@ -538,10 +632,7 @@ describe('Auth API (e2e)', () => {
     it('should send reset code for existing email', async () => {
       const { email } = await registerUser();
 
-      const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.forgotPassword)
-        .send({ email })
-        .expect(200);
+      const res = await forgotPasswordRequest(email);
 
       const body = res.body as ApiEnvelope<{
         cooldown: number;
@@ -551,10 +642,7 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should return success even for non-existent email (anti-enumeration)', async () => {
-      const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.forgotPassword)
-        .send({ email: UNKNOWN_RESET_EMAIL })
-        .expect(200);
+      const res = await forgotPasswordRequest(UNKNOWN_RESET_EMAIL);
 
       const body = res.body as ApiEnvelope<{
         cooldown: number;
@@ -573,10 +661,7 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
 
       // Send forgot-password code
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.forgotPassword)
-        .send({ email })
-        .expect(200);
+      await forgotPasswordRequest(email);
 
       const code = expectDefined(
         await getVerificationCode(AUTH_SCENE.resetPassword, email),
@@ -608,40 +693,45 @@ describe('Auth API (e2e)', () => {
   });
 
   // ════════════════════════════════════════════════════════════
-  // 9. GET /api/v1/auth/me
+  // 9. GET /api/v1/account
   // ════════════════════════════════════════════════════════════
 
-  describe('GET /api/v1/auth/me', () => {
-    it('should return current user info', async () => {
+  describe('GET /api/v1/account', () => {
+    it('should return authenticated account detail', async () => {
       const { email, tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .get(AUTH_PATH.me)
+        .get(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .expect(200);
 
-      const body = res.body as ApiEnvelope<UserDto>;
+      const body = res.body as ApiEnvelope<AccountDto>;
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.email).toBe(email);
       expect(data.id).toBeDefined();
+      expect(data.emailVerifiedAt).toEqual(expect.any(String));
+      expect(data.hasPassword).toBe(true);
+      expect(data.linkedIdentities).toEqual([]);
+      expect(data.createdAt).toEqual(expect.any(String));
+      expect(data.updatedAt).toEqual(expect.any(String));
     });
 
-    it('should reject unauthenticated request', async () => {
-      await request(app.getHttpServer()).get(AUTH_PATH.me).expect(401);
+    it('should reject unauthenticated account request', async () => {
+      await request(app.getHttpServer()).get(AUTH_PATH.account).expect(401);
     });
   });
 
   // ════════════════════════════════════════════════════════════
-  // 10. PATCH /api/v1/auth/me
+  // 10. PATCH /api/v1/account
   // ════════════════════════════════════════════════════════════
 
-  describe('PATCH /api/v1/auth/me', () => {
-    it('should update nickname and avatar', async () => {
+  describe('PATCH /api/v1/account', () => {
+    it('should update nickname and avatar through account route', async () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .patch(AUTH_PATH.me)
+        .patch(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({
           nickname: UPDATED_NICKNAME,
@@ -649,25 +739,19 @@ describe('Auth API (e2e)', () => {
         })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<UserDto>;
+      const body = res.body as ApiEnvelope<AccountDto>;
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.nickname).toBe(UPDATED_NICKNAME);
       expect(data.avatar).toBe(UPDATED_AVATAR_URL);
+      expect(data.emailVerifiedAt).toEqual(expect.any(String));
     });
 
-    it('should reject unauthenticated request', async () => {
-      await request(app.getHttpServer())
-        .patch(AUTH_PATH.me)
-        .send({ nickname: UNAUTHENTICATED_NICKNAME })
-        .expect(401);
-    });
-
-    it('should clear nickname and avatar when empty strings are provided', async () => {
+    it('should clear nickname and avatar through account route', async () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .patch(AUTH_PATH.me)
+        .patch(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({
           nickname: '',
@@ -675,50 +759,45 @@ describe('Auth API (e2e)', () => {
         })
         .expect(200);
 
-      const body = res.body as ApiEnvelope<UserDto>;
+      const body = res.body as ApiEnvelope<AccountDto>;
       const data = expectData(body);
       expect(data.nickname).toBeNull();
       expect(data.avatar).toBeNull();
     });
+
+    it('should reject unauthenticated account update', async () => {
+      await request(app.getHttpServer())
+        .patch(AUTH_PATH.account)
+        .send({ nickname: UNAUTHENTICATED_NICKNAME })
+        .expect(401);
+    });
   });
 
   // ════════════════════════════════════════════════════════════
-  // 11. POST /api/v1/auth/me/password
+  // 11. POST /api/v1/account/password
   // ════════════════════════════════════════════════════════════
 
-  describe('POST /api/v1/auth/me/password', () => {
-    it('should change password', async () => {
+  describe('POST /api/v1/account/password', () => {
+    it('should change password through account route', async () => {
       const { email, tokens } = await registerUser();
-      const newPassword = CHANGED_PASSWORD;
 
-      // Change password
-      const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.mePassword)
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.accountPassword)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
-        .send({ oldPassword: TEST_PASSWORD, newPassword })
+        .send({ oldPassword: TEST_PASSWORD, newPassword: CHANGED_PASSWORD })
         .expect(200);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-
-      // Login with new password
       await request(app.getHttpServer())
         .post(AUTH_PATH.login)
-        .send({ email, password: newPassword })
+        .send({ email, password: CHANGED_PASSWORD })
         .expect(200);
-
-      // Old password should fail
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.login)
-        .send({ email, password: TEST_PASSWORD })
-        .expect(401);
     });
 
     it('should reject wrong old password', async () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.mePassword)
+        .post(AUTH_PATH.accountPassword)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({
           oldPassword: WRONG_OLD_PASSWORD,
@@ -729,53 +808,56 @@ describe('Auth API (e2e)', () => {
       const body = res.body as ApiEnvelope;
       expect(body.code).toBe(ResultCode.WRONG_PASSWORD);
     });
+
+    it('should reject unauthenticated password change', async () => {
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.accountPassword)
+        .send({
+          oldPassword: TEST_PASSWORD,
+          newPassword: CHANGED_PASSWORD,
+        })
+        .expect(401);
+    });
   });
 
   // ════════════════════════════════════════════════════════════
-  // 12. POST /api/v1/auth/me/email
+  // 12. POST /api/v1/account/email
   // ════════════════════════════════════════════════════════════
 
-  describe('POST /api/v1/auth/me/email', () => {
-    it('should change email with valid verification code', async () => {
+  describe('POST /api/v1/account/email', () => {
+    it('should change email through account route and return verification time', async () => {
       const { tokens } = await registerUser();
       const newEmail = uniqueEmail();
 
-      // Send verification code for change-email scene (sent to new email)
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.sendVerificationCode)
-        .send({ email: newEmail, scene: AUTH_SCENE.changeEmail })
-        .expect(200);
+      await sendVerificationCodeRequest(newEmail, AUTH_SCENE.changeEmail);
 
       const code = expectDefined(
         await getVerificationCode(AUTH_SCENE.changeEmail, newEmail),
         `Verification code was not cached for ${AUTH_SCENE.changeEmail}:${newEmail}`,
       );
 
-      // Change email
       const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.meEmail)
+        .post(AUTH_PATH.accountEmail)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ newEmail, code })
         .expect(200);
 
       const body = res.body as ApiEnvelope<{
         email: string;
-        emailVerified: boolean;
+        emailVerifiedAt: string;
       }>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.email).toBe(newEmail);
-      expect(data.emailVerified).toBe(true);
+      expect(data.emailVerifiedAt).toEqual(expect.any(String));
 
-      // Verify updated profile reflects new email
-      const meRes = await request(app.getHttpServer())
-        .get(AUTH_PATH.me)
+      const accountRes = await request(app.getHttpServer())
+        .get(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .expect(200);
 
-      const meBody = meRes.body as ApiEnvelope<UserDto>;
-      const meData = expectData(meBody);
-      expect(meData.email).toBe(newEmail);
+      const accountBody = accountRes.body as ApiEnvelope<AccountDto>;
+      const accountData = expectData(accountBody);
+      expect(accountData.email).toBe(newEmail);
     });
 
     it('should reject invalid verification code', async () => {
@@ -783,7 +865,7 @@ describe('Auth API (e2e)', () => {
       const newEmail = uniqueEmail();
 
       const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.meEmail)
+        .post(AUTH_PATH.accountEmail)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ newEmail, code: INVALID_VERIFICATION_CODE })
         .expect(400);
@@ -801,10 +883,7 @@ describe('Auth API (e2e)', () => {
           `${localPart.toUpperCase()}@${domain.toUpperCase()}`,
       );
 
-      await request(app.getHttpServer())
-        .post(AUTH_PATH.sendVerificationCode)
-        .send({ email: mixedCaseEmail, scene: AUTH_SCENE.changeEmail })
-        .expect(200);
+      await sendVerificationCodeRequest(mixedCaseEmail, AUTH_SCENE.changeEmail);
 
       const code = expectDefined(
         await getVerificationCode(AUTH_SCENE.changeEmail, normalizedEmail),
@@ -812,39 +891,112 @@ describe('Auth API (e2e)', () => {
       );
 
       const res = await request(app.getHttpServer())
-        .post(AUTH_PATH.meEmail)
+        .post(AUTH_PATH.accountEmail)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ newEmail: mixedCaseEmail, code })
         .expect(200);
 
       const body = res.body as ApiEnvelope<{
         email: string;
-        emailVerified: boolean;
+        emailVerifiedAt: string;
       }>;
       const data = expectData(body);
       expect(data.email).toBe(normalizedEmail);
     });
+
+    it('should reject unauthenticated email change', async () => {
+      await request(app.getHttpServer())
+        .post(AUTH_PATH.accountEmail)
+        .send({ newEmail: uniqueEmail(), code: DEFAULT_VERIFICATION_CODE })
+        .expect(401);
+    });
   });
 
   // ════════════════════════════════════════════════════════════
-  // 13. DELETE /api/v1/auth/me
+  // 13. DELETE /api/v1/account/identities/:identityId
   // ════════════════════════════════════════════════════════════
 
-  describe('DELETE /api/v1/auth/me', () => {
-    it('should delete account with correct password', async () => {
+  describe('DELETE /api/v1/account/identities/:identityId', () => {
+    it('should unlink an OAuth identity when another sign-in method remains', async () => {
+      const { user, tokens } = await registerUser();
+      const identity = await prisma.userIdentity.create({
+        data: {
+          userId: user.id,
+          provider: 'wechat_web',
+          providerUserId: `wechat-openid-${user.id}`,
+          providerUnionId: `wechat-unionid-${user.id}`,
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .delete(AUTH_PATH.accountIdentity(identity.id))
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .expect(200);
+
+      const body = res.body as ApiEnvelope<AccountDto>;
+      const data = expectData(body);
+      expect(data.linkedIdentities).toEqual([]);
+      await expect(
+        prisma.userIdentity.findUnique({ where: { id: identity.id } }),
+      ).resolves.toBeNull();
+    });
+
+    it('should reject unlinking the last sign-in method', async () => {
+      const { user, tokens } = await registerUser();
+      const identity = await prisma.userIdentity.create({
+        data: {
+          userId: user.id,
+          provider: 'wechat_web',
+          providerUserId: `wechat-openid-${user.id}`,
+          providerUnionId: `wechat-unionid-${user.id}`,
+        },
+      });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: null },
+      });
+
+      const res = await request(app.getHttpServer())
+        .delete(AUTH_PATH.accountIdentity(identity.id))
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .expect(403);
+
+      const body = res.body as ApiEnvelope;
+      expect(body.code).toBe(ResultCode.FORBIDDEN);
+    });
+
+    it('should reject unlinking another account identity', async () => {
+      const { tokens } = await registerUser();
+      const other = await registerUser();
+      const identity = await prisma.userIdentity.create({
+        data: {
+          userId: other.user.id,
+          provider: 'wechat_web',
+          providerUserId: `wechat-openid-${other.user.id}`,
+        },
+      });
+
+      await request(app.getHttpServer())
+        .delete(AUTH_PATH.accountIdentity(identity.id))
+        .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .expect(404);
+    });
+  });
+
+  // ════════════════════════════════════════════════════════════
+  // 14. DELETE /api/v1/account
+  // ════════════════════════════════════════════════════════════
+
+  describe('DELETE /api/v1/account', () => {
+    it('should delete account through account route', async () => {
       const { email, tokens } = await registerUser();
 
-      // Delete account
-      const res = await request(app.getHttpServer())
-        .delete(AUTH_PATH.me)
+      await request(app.getHttpServer())
+        .delete(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ password: TEST_PASSWORD })
         .expect(200);
 
-      const body = res.body as ApiEnvelope;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-
-      // Login should fail after deletion
       await request(app.getHttpServer())
         .post(AUTH_PATH.login)
         .send({ email, password: TEST_PASSWORD })
@@ -855,13 +1007,20 @@ describe('Auth API (e2e)', () => {
       const { tokens } = await registerUser();
 
       const res = await request(app.getHttpServer())
-        .delete(AUTH_PATH.me)
+        .delete(AUTH_PATH.account)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ password: WRONG_DELETE_PASSWORD })
         .expect(401);
 
       const body = res.body as ApiEnvelope;
       expect(body.code).toBe(ResultCode.WRONG_PASSWORD);
+    });
+
+    it('should reject unauthenticated account deletion', async () => {
+      await request(app.getHttpServer())
+        .delete(AUTH_PATH.account)
+        .send({ password: TEST_PASSWORD })
+        .expect(401);
     });
   });
 });

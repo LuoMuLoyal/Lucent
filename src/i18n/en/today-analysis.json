@@ -1,0 +1,23 @@
+{
+  "service_unavailable": "Today AI analysis is not configured",
+  "summaries_disabled": "AI summaries are disabled for this user",
+  "fallback": {
+    "action_label": "View today",
+    "confidence_note": "Generated only from today's recorded data. This is not a diagnosis or treatment advice.",
+    "summary_default": "Today's records were updated. Continue filling in today's data based on what is already logged.",
+    "summary_medication_and_hydration": "{medicationPending} medication items still need confirmation, and {waterRemaining} water check-ins are still missing today.",
+    "summary_medication_only": "Today's records are mainly about medication, and {medicationPending} items still need confirmation.",
+    "summary_hydration_only": "Today's water records have not reached the goal yet. {waterRemaining} more check-ins can complete it.",
+    "bullet_medication_pending": "{medicationPending} medication items still need confirmation today. Check first whether they were already taken.",
+    "bullet_medication_done": "Today's medication status is recorded relatively completely. Keep the current pace.",
+    "bullet_hydration_pending": "Today's water records are still below the goal. Add {waterRemaining} more check-ins when possible.",
+    "bullet_hydration_done": "Today's water records have reached the goal. You can keep the current pace.",
+    "bullet_sleep_missing": "There is no real sleep data yet today. Logging tonight will make the summary more complete."
+  },
+  "prompt": {
+    "user_intro": "Generate a brief {languageLabel} summary for the supplied JSON facts.",
+    "tone": "Keep the tone calm, concrete, and non-diagnostic.",
+    "action_label_hint": "The actionLabel should stay close to \"{actionLabel}\".",
+    "facts_label": "Facts JSON:"
+  }
+}

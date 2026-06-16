@@ -3,6 +3,7 @@ import type { INestApplication, ValidationError } from '@nestjs/common';
 import {
   BadRequestException,
   Logger,
+  RequestMethod,
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
@@ -32,7 +33,9 @@ export function setupApp(
     next();
   });
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'metrics', method: RequestMethod.GET }],
+  });
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',

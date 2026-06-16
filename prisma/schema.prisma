@@ -89,28 +89,71 @@ enum MedicineSource {
   manual
 }
 
+enum DailyRecordKind {
+  water
+  meal
+  vital
+  mood
+  symptom
+  activity
+  note
+  sleep
+}
+
+enum DailyRecordAttachmentKind {
+  image
+}
+
 model User {
-  id               String                @id @default(uuid())
-  email            String
-  passwordHash     String                @map("password_hash") // argon2 hashed
-  nickname         String?
-  avatar           String?
-  status           UserStatus            @default(active)
-  emailVerifiedAt  DateTime?             @map("email_verified_at") @db.Timestamptz(3)
-  lastLoginAt      DateTime?             @map("last_login_at") @db.Timestamptz(3)
-  deletedAt        DateTime?             @map("deleted_at") @db.Timestamptz(3)
-  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  profile          UserProfile?
-  sessions         UserSession[]
-  devices          UserDevice[]
-  allergies        UserAllergy[]
-  conditions       UserCondition[]
-  currentMedicines UserCurrentMedicine[]
+  id                     String                      @id @default(uuid())
+  email                  String?
+  passwordHash           String?                     @map("password_hash") // argon2 hashed for local accounts
+  nickname               String?
+  avatar                 String?
+  status                 UserStatus                  @default(active)
+  emailVerifiedAt        DateTime?                   @map("email_verified_at") @db.Timestamptz(3)
+  lastLoginAt            DateTime?                   @map("last_login_at") @db.Timestamptz(3)
+  deletedAt              DateTime?                   @map("deleted_at") @db.Timestamptz(3)
+  createdAt              DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  profile                UserProfile?
+  identities             UserIdentity[]
+  sessions               UserSession[]
+  devices                UserDevice[]
+  allergies              UserAllergy[]
+  conditions             UserCondition[]
+  currentMedicines       UserCurrentMedicine[]
+  medicineReminders      UserMedicineReminder[]
+  reminderDeliveries     UserReminderDelivery[]
+  dailyRecords           UserDailyRecord[]
+  dailyRecordAttachments UserDailyRecordAttachment[]
+  doseLogs               UserMedicineDoseLog[]
+  settings               UserSetting[]
+  dataExportRequests     DataExportRequest[]
 
   @@index([email])
   @@index([status])
   @@map("users")
+}
+
+model UserIdentity {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  provider        String
+  providerUserId  String    @map("provider_user_id")
+  providerUnionId String?   @map("provider_union_id")
+  email           String?
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  rawProfile      Json?     @map("raw_profile") @db.JsonB
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@index([providerUnionId])
+  @@index([email])
+  @@map("user_identities")
 }
 
 model UserProfile {
@@ -212,26 +255,148 @@ model UserCondition {
 }
 
 model UserCurrentMedicine {
-  id            String         @id @default(uuid())
-  userId        String         @map("user_id")
+  id            String                @id @default(uuid())
+  userId        String                @map("user_id")
   source        MedicineSource
-  sourceRefId   String?        @map("source_ref_id")
-  displayName   String         @map("display_name")
-  strengthText  String?        @map("strength_text")
-  doseText      String?        @map("dose_text")
+  sourceRefId   String?               @map("source_ref_id")
+  displayName   String                @map("display_name")
+  strengthText  String?               @map("strength_text")
+  doseText      String?               @map("dose_text")
   route         String?
-  startedAt     DateTime?      @map("started_at") @db.Date
-  endedAt       DateTime?      @map("ended_at") @db.Date
-  isCurrent     Boolean        @default(true) @map("is_current")
+  startedAt     DateTime?             @map("started_at") @db.Date
+  endedAt       DateTime?             @map("ended_at") @db.Date
+  isCurrent     Boolean               @default(true) @map("is_current")
   note          String?
-  sourcePayload Json?          @map("source_payload") @db.JsonB
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourcePayload Json?                 @map("source_payload") @db.JsonB
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doseLogs      UserMedicineDoseLog[]
+  reminders     UserMedicineReminder[]
 
   @@index([userId, isCurrent])
   @@index([userId, source])
   @@map("user_current_medicines")
+}
+
+model UserMedicineReminder {
+  id                String               @id @default(uuid())
+  userId            String               @map("user_id")
+  currentMedicineId String?              @map("current_medicine_id")
+  label             String?
+  scheduledHour     Int                  @map("scheduled_hour")
+  scheduledMinute   Int                  @map("scheduled_minute")
+  daysOfWeek        Json?                @map("days_of_week") @db.JsonB
+  startDate         DateTime?            @map("start_date") @db.Date
+  endDate           DateTime?            @map("end_date") @db.Date
+  isActive          Boolean              @default(true) @map("is_active")
+  note              String?
+  deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz(3)
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
+  deliveries        UserReminderDelivery[]
+
+  @@index([userId, isActive])
+  @@index([userId, currentMedicineId])
+  @@index([userId, deletedAt])
+  @@index([userId, startDate, endDate])
+  @@map("user_medicine_reminders")
+}
+
+model UserReminderDelivery {
+  id           String                @id @default(uuid())
+  userId       String                @map("user_id")
+  reminderId   String?               @map("reminder_id")
+  deviceId     String?               @map("device_id")
+  channel      String
+  status       String
+  scheduledFor DateTime              @map("scheduled_for") @db.Timestamptz(3)
+  deliveredAt  DateTime?             @map("delivered_at") @db.Timestamptz(3)
+  errorMessage String?               @map("error_message")
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminder     UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, scheduledFor])
+  @@index([userId, reminderId])
+  @@index([userId, channel, status])
+  @@map("user_reminder_deliveries")
+}
+
+enum DoseLogStatus {
+  taken
+  skipped
+  missed
+  planned
+}
+
+model UserMedicineDoseLog {
+  id                String               @id @default(uuid())
+  userId            String               @map("user_id")
+  currentMedicineId String?              @map("current_medicine_id")
+  status            DoseLogStatus        @default(planned)
+  scheduledFor      DateTime             @map("scheduled_for") @db.Date
+  takenAt           DateTime?            @map("taken_at") @db.Timestamptz(3)
+  doseText          String?
+  note              String?
+  source            String?              @default("manual")
+  deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz(3)
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
+
+  @@index([userId, scheduledFor])
+  @@index([userId, currentMedicineId])
+  @@index([userId, deletedAt])
+  @@map("user_medicine_dose_logs")
+}
+
+model UserDailyRecord {
+  id          String                      @id @default(uuid())
+  userId      String                      @map("user_id")
+  kind        DailyRecordKind
+  occurredAt  DateTime                    @map("occurred_at") @db.Date
+  title       String?
+  value       String?
+  unit        String?
+  note        String?
+  payload     Json?                       @db.JsonB
+  source      String?                     @default("manual")
+  deletedAt   DateTime?                   @map("deleted_at") @db.Timestamptz(3)
+  createdAt   DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user        User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments UserDailyRecordAttachment[]
+
+  @@index([userId, occurredAt])
+  @@index([userId, kind])
+  @@index([userId, deletedAt])
+  @@map("user_daily_records")
+}
+
+model UserDailyRecordAttachment {
+  id          String                    @id @default(uuid())
+  userId      String                    @map("user_id")
+  recordId    String                    @map("record_id")
+  kind        DailyRecordAttachmentKind @default(image)
+  objectKey   String                    @map("object_key")
+  bucket      String?
+  provider    String?
+  fileName    String?                   @map("file_name")
+  contentType String?                   @map("content_type")
+  sizeBytes   Int?                      @map("size_bytes")
+  width       Int?
+  height      Int?
+  publicUrl   String?                   @map("public_url")
+  createdAt   DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  record      UserDailyRecord           @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordId])
+  @@map("user_daily_record_attachments")
 }
 
 model DrugSourceImport {
@@ -433,4 +598,42 @@ model DrugbankDrugTarget {
   @@unique([drugbankId, targetId, relationKind])
   @@index([targetId])
   @@map("drugbank_drug_targets")
+}
+
+model UserSetting {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  key       String
+  value     Json?    @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId])
+  @@map("user_settings")
+}
+
+model DataExportRequest {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  kind         String
+  format       String
+  range        String
+  status       String    @default("requested")
+  objectKey    String?   @map("object_key")
+  bucket       String?
+  provider     String?
+  fileName     String?   @map("file_name")
+  fileSizeBytes Int?     @map("file_size_bytes")
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz(3)
+  downloadUrl  String?   @map("download_url")
+  errorMessage String?   @map("error_message")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, kind, createdAt])
+  @@map("data_export_requests")
 }

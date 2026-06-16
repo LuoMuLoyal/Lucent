@@ -120,3 +120,34 @@ export const MedicineSource = {
 } as const
 
 export type MedicineSource = (typeof MedicineSource)[keyof typeof MedicineSource]
+
+
+export const DailyRecordKind = {
+  water: 'water',
+  meal: 'meal',
+  vital: 'vital',
+  mood: 'mood',
+  symptom: 'symptom',
+  activity: 'activity',
+  note: 'note',
+  sleep: 'sleep'
+} as const
+
+export type DailyRecordKind = (typeof DailyRecordKind)[keyof typeof DailyRecordKind]
+
+
+export const DailyRecordAttachmentKind = {
+  image: 'image'
+} as const
+
+export type DailyRecordAttachmentKind = (typeof DailyRecordAttachmentKind)[keyof typeof DailyRecordAttachmentKind]
+
+
+export const DoseLogStatus = {
+  taken: 'taken',
+  skipped: 'skipped',
+  missed: 'missed',
+  planned: 'planned'
+} as const
+
+export type DoseLogStatus = (typeof DoseLogStatus)[keyof typeof DoseLogStatus]

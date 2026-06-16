@@ -4,6 +4,7 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { AppModule } from './app.module';
 import { setupApp } from './setup-app';
 import { ConfigKey } from './config/config-keys.enum';
+import { registerAdminPanel } from './admin/adminjs.setup';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +12,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   setupApp(app, configService);
+  await registerAdminPanel(app, configService);
 
   const host = configService.getOrThrow<string>(`${ConfigKey.App}.host`);
   const port = configService.getOrThrow<number>(`${ConfigKey.App}.port`);

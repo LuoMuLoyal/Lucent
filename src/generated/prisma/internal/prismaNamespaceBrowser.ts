@@ -51,18 +51,26 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
+  UserIdentity: 'UserIdentity',
   UserProfile: 'UserProfile',
   UserSession: 'UserSession',
   UserDevice: 'UserDevice',
   UserAllergy: 'UserAllergy',
   UserCondition: 'UserCondition',
   UserCurrentMedicine: 'UserCurrentMedicine',
+  UserMedicineReminder: 'UserMedicineReminder',
+  UserReminderDelivery: 'UserReminderDelivery',
+  UserMedicineDoseLog: 'UserMedicineDoseLog',
+  UserDailyRecord: 'UserDailyRecord',
+  UserDailyRecordAttachment: 'UserDailyRecordAttachment',
   DrugSourceImport: 'DrugSourceImport',
   CnMedicineProduct: 'CnMedicineProduct',
   DrugbankDrug: 'DrugbankDrug',
   DrugbankExternalLink: 'DrugbankExternalLink',
   DrugbankTarget: 'DrugbankTarget',
-  DrugbankDrugTarget: 'DrugbankDrugTarget'
+  DrugbankDrugTarget: 'DrugbankDrugTarget',
+  UserSetting: 'UserSetting',
+  DataExportRequest: 'DataExportRequest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -96,6 +104,22 @@ export const UserScalarFieldEnum = {
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const UserIdentityScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  provider: 'provider',
+  providerUserId: 'providerUserId',
+  providerUnionId: 'providerUnionId',
+  email: 'email',
+  emailVerifiedAt: 'emailVerifiedAt',
+  rawProfile: 'rawProfile',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserIdentityScalarFieldEnum = (typeof UserIdentityScalarFieldEnum)[keyof typeof UserIdentityScalarFieldEnum]
 
 
 export const UserProfileScalarFieldEnum = {
@@ -210,6 +234,99 @@ export const UserCurrentMedicineScalarFieldEnum = {
 } as const
 
 export type UserCurrentMedicineScalarFieldEnum = (typeof UserCurrentMedicineScalarFieldEnum)[keyof typeof UserCurrentMedicineScalarFieldEnum]
+
+
+export const UserMedicineReminderScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  currentMedicineId: 'currentMedicineId',
+  label: 'label',
+  scheduledHour: 'scheduledHour',
+  scheduledMinute: 'scheduledMinute',
+  daysOfWeek: 'daysOfWeek',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  isActive: 'isActive',
+  note: 'note',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserMedicineReminderScalarFieldEnum = (typeof UserMedicineReminderScalarFieldEnum)[keyof typeof UserMedicineReminderScalarFieldEnum]
+
+
+export const UserReminderDeliveryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  reminderId: 'reminderId',
+  deviceId: 'deviceId',
+  channel: 'channel',
+  status: 'status',
+  scheduledFor: 'scheduledFor',
+  deliveredAt: 'deliveredAt',
+  errorMessage: 'errorMessage',
+  createdAt: 'createdAt'
+} as const
+
+export type UserReminderDeliveryScalarFieldEnum = (typeof UserReminderDeliveryScalarFieldEnum)[keyof typeof UserReminderDeliveryScalarFieldEnum]
+
+
+export const UserMedicineDoseLogScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  currentMedicineId: 'currentMedicineId',
+  status: 'status',
+  scheduledFor: 'scheduledFor',
+  takenAt: 'takenAt',
+  doseText: 'doseText',
+  note: 'note',
+  source: 'source',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserMedicineDoseLogScalarFieldEnum = (typeof UserMedicineDoseLogScalarFieldEnum)[keyof typeof UserMedicineDoseLogScalarFieldEnum]
+
+
+export const UserDailyRecordScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  kind: 'kind',
+  occurredAt: 'occurredAt',
+  title: 'title',
+  value: 'value',
+  unit: 'unit',
+  note: 'note',
+  payload: 'payload',
+  source: 'source',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserDailyRecordScalarFieldEnum = (typeof UserDailyRecordScalarFieldEnum)[keyof typeof UserDailyRecordScalarFieldEnum]
+
+
+export const UserDailyRecordAttachmentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  recordId: 'recordId',
+  kind: 'kind',
+  objectKey: 'objectKey',
+  bucket: 'bucket',
+  provider: 'provider',
+  fileName: 'fileName',
+  contentType: 'contentType',
+  sizeBytes: 'sizeBytes',
+  width: 'width',
+  height: 'height',
+  publicUrl: 'publicUrl',
+  createdAt: 'createdAt'
+} as const
+
+export type UserDailyRecordAttachmentScalarFieldEnum = (typeof UserDailyRecordAttachmentScalarFieldEnum)[keyof typeof UserDailyRecordAttachmentScalarFieldEnum]
 
 
 export const DrugSourceImportScalarFieldEnum = {
@@ -383,6 +500,40 @@ export const DrugbankDrugTargetScalarFieldEnum = {
 } as const
 
 export type DrugbankDrugTargetScalarFieldEnum = (typeof DrugbankDrugTargetScalarFieldEnum)[keyof typeof DrugbankDrugTargetScalarFieldEnum]
+
+
+export const UserSettingScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  key: 'key',
+  value: 'value',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserSettingScalarFieldEnum = (typeof UserSettingScalarFieldEnum)[keyof typeof UserSettingScalarFieldEnum]
+
+
+export const DataExportRequestScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  kind: 'kind',
+  format: 'format',
+  range: 'range',
+  status: 'status',
+  objectKey: 'objectKey',
+  bucket: 'bucket',
+  provider: 'provider',
+  fileName: 'fileName',
+  fileSizeBytes: 'fileSizeBytes',
+  completedAt: 'completedAt',
+  downloadUrl: 'downloadUrl',
+  errorMessage: 'errorMessage',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type DataExportRequestScalarFieldEnum = (typeof DataExportRequestScalarFieldEnum)[keyof typeof DataExportRequestScalarFieldEnum]
 
 
 export const SortOrder = {

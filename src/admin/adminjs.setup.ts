@@ -1,0 +1,474 @@
+import type { INestApplication } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
+import type { NextFunction, Request, Response, Router } from 'express';
+import { createReadStream } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
+import { extname } from 'node:path';
+import type AdminJSDefault from 'adminjs';
+import type {
+  BaseDatabase,
+  BaseResource,
+  ResourceOptions,
+  ResourceWithOptions,
+} from 'adminjs';
+import { PrismaService } from '../prisma/prisma.service';
+
+const ADMIN_ROOT_PATH = '/admin';
+const SCHEMA_PATH = 'prisma/schema.prisma';
+const ADMIN_EMAIL_KEY = 'ADMIN_EMAIL';
+const ADMIN_PASSWORD_KEY = 'ADMIN_PASSWORD';
+const ADMIN_COOKIE_SECRET_KEY = 'ADMIN_COOKIE_SECRET';
+const NODE_ENV_KEY = 'NODE_ENV';
+
+type DynamicImport = <T>(specifier: string) => Promise<T>;
+// eslint-disable-next-line @typescript-eslint/no-implied-eval -- SWC compiles normal dynamic import to require() in this CJS build.
+const dynamicImport = new Function(
+  'specifier',
+  'return import(specifier)',
+) as DynamicImport;
+
+type AdminJSConstructor = typeof AdminJSDefault;
+
+interface AdminJsModule {
+  default: AdminJSConstructor;
+  Router: {
+    assets: AdminAsset[];
+  };
+}
+
+interface AdminJsExpressModule {
+  buildAuthenticatedRouter: (
+    admin: AdminJSDefault,
+    auth: {
+      cookieName: string;
+      cookiePassword: string;
+      authenticate: (email: string, password: string) => AdminUser | null;
+    },
+    predefinedRouter: null,
+    sessionOptions: {
+      resave: boolean;
+      saveUninitialized: boolean;
+      secret: string;
+      name: string;
+      cookie: {
+        httpOnly: boolean;
+        sameSite: 'lax';
+        secure: boolean;
+      };
+    },
+  ) => Router;
+}
+
+interface AdminJsPrismaModule {
+  Database: typeof BaseDatabase;
+  Resource: typeof BaseResource;
+  getModelByName: (name: string, clientModule?: PrismaClientModule) => unknown;
+}
+
+interface PrismaInternalsModule {
+  default: {
+    getDMMF: (options: {
+      datamodel: Array<[path: string, schema: string]>;
+    }) => Promise<unknown>;
+  };
+}
+
+interface PrismaClientModule {
+  Prisma: {
+    dmmf: unknown;
+  };
+}
+
+interface AdminUser {
+  email: string;
+}
+
+interface AdminAsset {
+  path: string;
+  src: string;
+}
+
+interface AdminResourceConfig {
+  modelName: string;
+  navigation: string;
+  listProperties: string[];
+  showProperties: string[];
+  filterProperties: string[];
+  titleProperty?: string;
+  sort?: ResourceOptions['sort'];
+  hiddenProperties?: string[];
+}
+
+const readOnlyActions = {
+  new: { isAccessible: false, isVisible: false },
+  edit: { isAccessible: false, isVisible: false },
+  delete: { isAccessible: false, isVisible: false },
+  bulkDelete: { isAccessible: false, isVisible: false },
+} satisfies ResourceOptions['actions'];
+
+const adminResources: AdminResourceConfig[] = [
+  {
+    modelName: 'User',
+    navigation: 'Users',
+    listProperties: ['id', 'email', 'nickname', 'status', 'createdAt'],
+    showProperties: [
+      'id',
+      'email',
+      'nickname',
+      'avatar',
+      'status',
+      'emailVerifiedAt',
+      'lastLoginAt',
+      'deletedAt',
+      'createdAt',
+      'updatedAt',
+    ],
+    filterProperties: ['email', 'nickname', 'status', 'createdAt'],
+    titleProperty: 'email',
+    sort: { sortBy: 'createdAt', direction: 'desc' },
+    hiddenProperties: ['passwordHash'],
+  },
+  {
+    modelName: 'UserProfile',
+    navigation: 'Users',
+    listProperties: ['userId', 'sexAtBirth', 'heightCm', 'bloodType', 'locale'],
+    showProperties: [
+      'userId',
+      'birthDate',
+      'sexAtBirth',
+      'heightCm',
+      'pregnancyState',
+      'lactationState',
+      'bloodType',
+      'locale',
+      'timezone',
+      'unitSystem',
+      'onboardingCompletedAt',
+      'extras',
+      'createdAt',
+      'updatedAt',
+    ],
+    filterProperties: ['userId', 'sexAtBirth', 'bloodType', 'locale'],
+    titleProperty: 'userId',
+  },
+  {
+    modelName: 'DrugbankDrug',
+    navigation: 'Medicine Knowledge',
+    listProperties: ['drugbankId', 'name', 'drugType', 'casNumber'],
+    showProperties: [
+      'drugbankId',
+      'name',
+      'drugType',
+      'casNumber',
+      'unii',
+      'state',
+      'groups',
+      'indication',
+      'mechanismOfAction',
+      'createdAt',
+      'updatedAt',
+    ],
+    filterProperties: ['drugbankId', 'name', 'drugType', 'casNumber'],
+    titleProperty: 'name',
+  },
+  {
+    modelName: 'CnMedicineProduct',
+    navigation: 'Medicine Knowledge',
+    listProperties: [
+      'id',
+      'name',
+      'manufacturer',
+      'approvalNumber',
+      'drugType',
+      'mainCategory',
+    ],
+    showProperties: [
+      'id',
+      'sourceName',
+      'name',
+      'manufacturer',
+      'approvalNumber',
+      'drugType',
+      'mainCategory',
+      'subcategory',
+      'brandName',
+      'ingredients',
+      'indications',
+      'dosage',
+      'sourceUrl',
+      'createdAt',
+      'updatedAt',
+    ],
+    filterProperties: [
+      'name',
+      'manufacturer',
+      'approvalNumber',
+      'drugType',
+      'mainCategory',
+    ],
+    titleProperty: 'name',
+  },
+  {
+    modelName: 'UserDailyRecord',
+    navigation: 'Health Records',
+    listProperties: ['id', 'userId', 'kind', 'occurredAt', 'title', 'value'],
+    showProperties: [
+      'id',
+      'userId',
+      'kind',
+      'occurredAt',
+      'title',
+      'value',
+      'unit',
+      'note',
+      'payload',
+      'source',
+      'deletedAt',
+      'createdAt',
+      'updatedAt',
+    ],
+    filterProperties: ['userId', 'kind', 'occurredAt', 'deletedAt'],
+    sort: { sortBy: 'occurredAt', direction: 'desc' },
+  },
+  {
+    modelName: 'UserDailyRecordAttachment',
+    navigation: 'Health Records',
+    listProperties: [
+      'id',
+      'userId',
+      'recordId',
+      'kind',
+      'provider',
+      'objectKey',
+    ],
+    showProperties: [
+      'id',
+      'userId',
+      'recordId',
+      'kind',
+      'objectKey',
+      'bucket',
+      'provider',
+      'fileName',
+      'contentType',
+      'sizeBytes',
+      'width',
+      'height',
+      'publicUrl',
+      'createdAt',
+    ],
+    filterProperties: ['userId', 'recordId', 'kind', 'provider'],
+    sort: { sortBy: 'createdAt', direction: 'desc' },
+  },
+  {
+    modelName: 'UserMedicineDoseLog',
+    navigation: 'Health Records',
+    listProperties: [
+      'id',
+      'userId',
+      'status',
+      'scheduledFor',
+      'currentMedicineId',
+    ],
+    showProperties: [
+      'id',
+      'userId',
+      'currentMedicineId',
+      'status',
+      'scheduledFor',
+      'takenAt',
+      'doseText',
+      'note',
+      'source',
+      'deletedAt',
+      'createdAt',
+      'updatedAt',
+    ],
+    filterProperties: ['userId', 'status', 'scheduledFor', 'currentMedicineId'],
+    sort: { sortBy: 'scheduledFor', direction: 'desc' },
+  },
+];
+
+export async function registerAdminPanel(
+  app: INestApplication,
+  configService: ConfigService,
+): Promise<void> {
+  const [adminJsModule, adminExpressModule, adminPrismaModule] =
+    await Promise.all([
+      dynamicImport<AdminJsModule>('adminjs'),
+      dynamicImport<AdminJsExpressModule>('@adminjs/express'),
+      dynamicImport<AdminJsPrismaModule>('@sergiyiva/adminjs-prisma'),
+    ]);
+
+  const AdminJS = adminJsModule.default;
+  const { buildAuthenticatedRouter } = adminExpressModule;
+  const { Database, Resource, getModelByName } = adminPrismaModule;
+
+  AdminJS.registerAdapter({ Database, Resource });
+
+  const prisma = app.get(PrismaService);
+  const clientModule = await buildPrismaClientModule();
+  const resources = buildResources(getModelByName, prisma, clientModule);
+  const admin = new AdminJS({
+    rootPath: ADMIN_ROOT_PATH,
+    branding: {
+      companyName: 'Lucent Admin',
+      withMadeWithLove: false,
+    },
+    resources,
+  });
+
+  const adminEmail = configService.getOrThrow<string>(ADMIN_EMAIL_KEY);
+  const adminPassword = configService.getOrThrow<string>(ADMIN_PASSWORD_KEY);
+  const cookieSecret = configService.getOrThrow<string>(
+    ADMIN_COOKIE_SECRET_KEY,
+  );
+  const isProduction = configService.get<string>(NODE_ENV_KEY) === 'production';
+
+  const router = buildAuthenticatedRouter(
+    admin,
+    {
+      cookieName: 'lucent-admin',
+      cookiePassword: cookieSecret,
+      authenticate: (email, password) =>
+        email === adminEmail && password === adminPassword
+          ? { email: adminEmail }
+          : null,
+    },
+    null,
+    {
+      resave: false,
+      saveUninitialized: false,
+      secret: cookieSecret,
+      name: 'lucent-admin',
+      cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProduction,
+      },
+    },
+  );
+
+  registerAdminStaticAssets(
+    app,
+    admin.options.rootPath,
+    adminJsModule.Router.assets,
+  );
+  app.use(admin.options.rootPath, router);
+}
+
+function registerAdminStaticAssets(
+  app: INestApplication,
+  rootPath: string,
+  assets: AdminAsset[],
+): void {
+  assets.forEach((asset) => {
+    app.use(
+      `${rootPath}${asset.path}`,
+      (req: Request, res: Response, next: NextFunction) => {
+        void sendAdminStaticAsset(req, res, asset).catch((error: unknown) => {
+          next(error instanceof Error ? error : new Error(String(error)));
+        });
+      },
+    );
+  });
+}
+
+async function sendAdminStaticAsset(
+  req: Request,
+  res: Response,
+  asset: AdminAsset,
+): Promise<void> {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.sendStatus(405);
+    return;
+  }
+
+  const assetStats = await stat(asset.src);
+  res.type(extname(asset.src));
+  res.setHeader('Content-Length', String(assetStats.size));
+
+  if (req.method === 'HEAD') {
+    res.end();
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const stream = createReadStream(asset.src);
+    stream.on('error', reject);
+    stream.on('end', resolve);
+    stream.pipe(res);
+  });
+}
+
+async function buildPrismaClientModule(): Promise<PrismaClientModule> {
+  const prismaInternals =
+    await dynamicImport<PrismaInternalsModule>('@prisma/internals');
+  const schema = await readFile(SCHEMA_PATH, 'utf8');
+  const dmmf = await prismaInternals.default.getDMMF({
+    datamodel: [[SCHEMA_PATH, schema]],
+  });
+
+  return {
+    Prisma: { dmmf },
+  };
+}
+
+function buildResources(
+  getModelByName: AdminJsPrismaModule['getModelByName'],
+  prisma: PrismaService,
+  clientModule: PrismaClientModule,
+): ResourceWithOptions[] {
+  return adminResources.map((resourceConfig) =>
+    buildResource(resourceConfig, getModelByName, prisma, clientModule),
+  );
+}
+
+function buildResource(
+  resourceConfig: AdminResourceConfig,
+  getModelByName: AdminJsPrismaModule['getModelByName'],
+  prisma: PrismaService,
+  clientModule: PrismaClientModule,
+): ResourceWithOptions {
+  const options: ResourceOptions = {
+    id: resourceConfig.modelName,
+    navigation: resourceConfig.navigation,
+    listProperties: resourceConfig.listProperties,
+    showProperties: resourceConfig.showProperties,
+    filterProperties: resourceConfig.filterProperties,
+    actions: readOnlyActions,
+  };
+
+  if (resourceConfig.titleProperty !== undefined) {
+    options.titleProperty = resourceConfig.titleProperty;
+  }
+  if (resourceConfig.sort !== undefined) {
+    options.sort = resourceConfig.sort;
+  }
+  if (
+    resourceConfig.hiddenProperties !== undefined &&
+    resourceConfig.hiddenProperties.length > 0
+  ) {
+    options.properties = buildPropertyOptions(resourceConfig.hiddenProperties);
+  }
+
+  return {
+    resource: {
+      model: getModelByName(resourceConfig.modelName, clientModule),
+      client: prisma,
+      clientModule,
+    },
+    options,
+  };
+}
+
+function buildPropertyOptions(
+  hiddenProperties: string[],
+): NonNullable<ResourceOptions['properties']> {
+  return Object.fromEntries(
+    hiddenProperties.map((property) => [
+      property,
+      { isVisible: false, isDisabled: true },
+    ]),
+  );
+}

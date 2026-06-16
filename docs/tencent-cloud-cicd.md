@@ -1,323 +1,212 @@
-# Tencent Cloud CVM + TCR CI/CD 操作说明
+# Tencent Cloud CVM + TCR + GitHub Actions CI/CD 操作说明
 
-Last updated: 2026-06-01
+Last updated: 2026-06-15
 
-这份说明对应当前 Lucent 仓库里的 CI/CD 实现：
+这份文档只说明当前最终推荐的部署链路，不重复解释运行时变量，也不替代部署执行清单。
 
-- GitHub Actions 负责 `lint` / `build` / tests / 远程部署
-- 腾讯云广州 CVM 只负责拉取镜像和运行容器
-- 服务器不需要在部署时访问 GitHub
-- 服务器也不需要访问 Docker Hub
-- Lucent / PostgreSQL / Redis 镜像由你手工推送到 TCR，GitHub Actions 只消费你已经推好的镜像标签
+- 运行时变量与本地命令：`environment.md`
+- 部署文件归属：`deployment-files.md`
+- 实际上线核对步骤：`deployment-checklist.md`
 
-## 先说结论
+## 当前最终部署模型
 
-对你现在这套组合，我推荐先用 `TCR Individual`，不是先上 `TCR Enterprise 私网版`。
+- GitHub Actions 负责校验：
+  - `lint`
+  - `typecheck`
+  - `build`
+  - unit tests
+  - e2e tests
+- GitHub Actions 负责：
+  - 用仓库里的 `.github/workflows/lucent-cd.yml` 构建 Lucent 镜像
+  - 推送镜像到腾讯云 TCR
+  - 通过 SSH 上传部署资产到服务器
+  - 在服务器上执行部署脚本
+- 服务器负责：
+  - `docker compose pull`
+  - `docker compose up`
 
-这是判断，不是腾讯云官方原话。理由很具体：
+这就是你最终选定的纯制品方案：
 
-- 当前仓库使用的是 GitHub 官方托管 runner，不是你自己机器上的 self-hosted runner。
-- TCR Enterprise 新实例默认关闭公网和私网访问入口；如果要让 GitHub-hosted runner 推镜像，就必须额外解决公网访问控制问题。
-- TCR Individual 对当前这种“小型单机 + GitHub Actions + 国内服务器拉取”的路径更直接，配置更少，先跑通更重要。
+- 应用从 CI 产出的镜像部署
+- 服务器不保留 git checkout
+- compose、monitoring、deploy 脚本等部署资产由 GitHub Actions 上传
 
-等你后面要上更细粒度权限、私网拉取、TKE 或自托管 runner，再迁到 TCR Enterprise。
+## 为什么是这套
 
-## 方案选择
+这是判断，不是云厂商官方原话。
 
-### 推荐路径：TCR Individual
+理由：
 
-适合你当前场景：
+1. 应用镜像由 CI 构建，回滚和复现都更稳
+2. 生产机不负责编译应用，压力更小
+3. 服务器不需要安装 Node、pnpm 或保留源码 checkout
+4. 本地运行时文件继续留在 `/opt/lucent/runtime`，不会被仓库覆盖
 
-- 一台腾讯云广州 CVM
-- GitHub Actions 官方托管 runner
-- 目标是先把 Lucent 稳定部署起来
+## TCR 角色
 
-优点：
+TCR 在这里的职责是：
 
-- GitHub Actions 可以直接推镜像到腾讯云仓库
-- CVM 可以直接从腾讯云仓库拉镜像
-- 不需要为 GitHub-hosted runner 设计公网白名单
+- 保存 Lucent 应用镜像
+- 给服务器提供稳定拉取来源
 
-代价：
+基础镜像目前仍可直接使用公开镜像：
 
-- 是共享实例，不是独占实例
-- namespace 名字需要全局唯一
+- `postgres:18-alpine`
+- `redis:8-alpine`
+- `prom/prometheus:v3.12.0`
+- `grafana/grafana-oss:13.0.2`
+- `nginx:1.29.1-alpine`
 
-### 升级路径：TCR Enterprise
+如果后面你希望进一步收口供应链，再把这些公共镜像也 mirror 到 TCR。
 
-适合后续这些情况：
+## 仓库边界
 
-- 你准备上自托管 GitHub runner
-- 你希望用私网拉镜像
-- 你要做 namespace 级权限、service account、审计和更严格的访问控制
+GitHub：
 
-当前不建议你先走这条路，除非你明确准备同时处理 runner 网络入口问题。
+- 代码主仓库
+- 校验入口：`.github/workflows/lucent-ci.yml`
+- CD 入口：`.github/workflows/lucent-cd.yml`
 
-## 第 1 步：开通 TCR Individual
+服务器：
 
-按腾讯云官方文档，TCR Individual 初始化和 push/pull 入口在广州可用，创建后要先初始化密码，再创建 namespace。
+- release 目录：`/opt/lucent/releases`
+- 运行时目录：`/opt/lucent/runtime`
 
-你在控制台里按这个顺序做：
+## GitHub Actions CD 关键变量
 
-1. 登录腾讯云控制台，进入 `腾讯云容器镜像服务 TCR`
-2. 进入 `实例管理`
-3. 选择 `广州`
-4. 找到 `TCR Individual Edition` 页签
-5. 点击 `Initialize Password`
-6. 设置一个专门给仓库登录用的密码
-7. 点击 `Log In to Instance`
+`.github/workflows/lucent-cd.yml` 当前使用这些变量：
 
-然后创建 namespace：
-
-1. 左侧进入 `Namespace`
-2. 顶部选择 `TCR Individual Instance`
-3. 点击 `Create`
-4. namespace 建议用短小、稳定、全小写的名字，例如 `lumoslucent`
-
-注意：
-
-- namespace 在 TCR Individual 里要全局唯一，撞名就换一个。
-- 你不一定要先手工建 repository；腾讯云官方文档说明，push 首个镜像时会自动创建对应 repository。
-
-## 第 2 步：拿到登录信息
-
-TCR Individual 官方登录方式是：
-
-```bash
-docker login ccr.ccs.tencentyun.com --username=<你的腾讯云账号ID>
-```
-
-这里：
-
-- `username` 不是邮箱，也不是昵称，而是腾讯云账号 ID
-- `password` 就是你刚才初始化 TCR Individual 时设置的密码
-
-如果你不知道账号 ID：
-
-1. 进入腾讯云控制台右上角账号信息
-2. 找到 `Account ID`
-
-## 第 3 步：在 GitHub 仓库里配置 Secrets / Variables
-
-按当前仓库的 workflow，你需要这些配置。
-
-### GitHub Secrets
-
-- `REGISTRY_USERNAME`
-  - 值：腾讯云 `Account ID`
-- `REGISTRY_PASSWORD`
-  - 值：TCR Individual 初始化时设置的密码
-- `SERVER_HOST`
-  - 值：你的广州 CVM 公网 IP
-- `SERVER_PORT`
-  - 值：通常是 `22`
-- `SERVER_USER`
-  - 值：例如 `root` 或你自己的 sudo 用户
-- `SERVER_SSH_KEY`
-  - 值：用于 SSH 登录服务器的私钥内容
-- `SERVER_KNOWN_HOSTS`
-  - 值：`ssh-keyscan -p 22 <server_ip>` 的输出
-
-### GitHub Variables
-
-- `SERVER_APP_DIR`
-  - 推荐：`/opt/lucent`
+- `SERVER_RELEASES_DIR`
+- `LUCENT_RUNTIME_DIR`
 - `REGISTRY_HOST`
-  - 固定写：`ccr.ccs.tencentyun.com`
 - `REGISTRY_NAMESPACE`
-  - 值：你刚创建的 TCR namespace，例如 `lumoslucent`
 - `REGISTRY_IMAGE_NAME`
-  - 推荐：`lucent`
+- `POSTGRES_IMAGE`
+- `REDIS_IMAGE`
+- `PROMETHEUS_IMAGE`
+- `GRAFANA_IMAGE`
+- `NGINX_IMAGE`
 
-## 第 4 步：初始化服务器目录
+其中：
 
-先 SSH 登录你的腾讯云 CVM，然后执行：
+- `REGISTRY_HOST` 指向 TCR 地址，例如 `ccr.ccs.tencentyun.com`
+- `REGISTRY_NAMESPACE` 是你的命名空间，当前为 `lucent`
+- `REGISTRY_IMAGE_NAME` 建议固定为 `lucent`
 
-```bash
-sudo mkdir -p /opt/lucent
-sudo chown -R "$USER":"$USER" /opt/lucent
-cd /opt/lucent
-```
+workflow 会把当前 commit SHA 作为 release id 和镜像 tag，并额外推送一个 `latest` tag。
 
-然后创建生产环境文件：
+## 服务器前提
 
-```bash
-cat > .env.production <<'EOF'
-NODE_ENV=production
-HOST=0.0.0.0
-PORT=3000
-CORS_ORIGIN=https://your-domain.example
-DATABASE_URL=postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public
-REDIS_URL=redis://redis:6379
-JWT_ACCESS_TTL=15m
-JWT_REFRESH_TTL=14d
-JWT_ACCESS_SECRET=replace_with_strong_access_secret
-JWT_REFRESH_SECRET=replace_with_strong_refresh_secret
-AI_PROVIDER=openai-compatible
-AI_API_KEY=
-AI_BASE_URL=
-AI_TEXT_MODEL=
-AI_VISION_MODEL=
-MAIL_DRIVER=smtp
-MAIL_HOST=smtp.example.com
-MAIL_PORT=587
-MAIL_FROM=noreply@example.com
-MAIL_USER=your_email@example.com
-MAIL_PASS=your_password
-LOG_LEVEL=info
-EOF
-```
+部署用户需要满足：
 
-必须改掉这些值：
+1. 能 SSH 登录服务器
+2. 能写入 `/opt/lucent/releases`
+3. 能执行 `docker compose`
+4. 能访问 TCR
+5. 能读取 `/opt/lucent/runtime/.env.production`
+6. 能读取 `/opt/lucent/runtime/nginx/nginx.conf`
+7. 能读取 `/opt/lucent/runtime/certs/*`
 
-- `CORS_ORIGIN`
-- `JWT_ACCESS_SECRET`
-- `JWT_REFRESH_SECRET`
-- `MAIL_*`
-- `AI_*`
+## 当前部署脚本边界
 
-## 第 5 步：先在服务器上手工验证一次 TCR 登录和拉取
+部署实际落在两个脚本：
 
-这一步不要跳。先确认服务器和腾讯云仓库之间是通的。
-
-```bash
-docker login ccr.ccs.tencentyun.com --username '<你的腾讯云账号ID>'
-```
-
-输入你初始化 TCR Individual 时设置的密码。
-
-如果登录成功，再做一个手工拉取检查。第一次仓库里还没 Lucent 镜像时，你可以等首个 GitHub Actions 成功后再拉：
-
-```bash
-docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent:latest
-```
-
-当前仓库的生产 compose 会固定使用这两个基础镜像标签：
-
-- `ccr.ccs.tencentyun.com/<namespace>/lucent-postgres:18-alpine`
-- `ccr.ccs.tencentyun.com/<namespace>/lucent-redis:8-alpine`
-
-它们不再由每次发版的 GitHub Actions 自动同步。你需要在首个部署前手工同步一次，然后再验证拉取。
-
-推荐在你本地开发机或一台网络比 GitHub Runner 更稳定的机器上执行：
-
-```bash
-docker pull postgres:18-alpine
-docker tag postgres:18-alpine ccr.ccs.tencentyun.com/<你的namespace>/lucent-postgres:18-alpine
-docker push ccr.ccs.tencentyun.com/<你的namespace>/lucent-postgres:18-alpine
-
-docker pull redis:8-alpine
-docker tag redis:8-alpine ccr.ccs.tencentyun.com/<你的namespace>/lucent-redis:8-alpine
-docker push ccr.ccs.tencentyun.com/<你的namespace>/lucent-redis:8-alpine
-```
-
-同步完以后，再在服务器上验证：
-
-```bash
-docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent-postgres:18-alpine
-docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent-redis:8-alpine
-```
-
-## 第 6 步：触发首个部署
-
-当 GitHub Secrets / Variables 都配好以后：
-
-1. push 到 `main`
-2. 或者在 GitHub Actions 页面手工触发 `lucent-ci-cd`
-
-首个成功部署后，服务器目录里会出现这些文件：
-
-- `.env.production`
-- `.deploy-image.env`
-- `docker-compose.yml`
 - `scripts/deploy/deploy-server.sh`
+  - 真正执行 compose pull/up
+  - 根据传入镜像引用写 `.deploy-image.env`
+- `scripts/deploy/sync-deploy-assets.sh`
+  - 把某次 release 目录切换成 `/opt/lucent/releases/current`
 
-然后在服务器上检查：
+GitHub Actions 先上传 release 目录，再在服务器顺序执行这两个脚本。
 
-```bash
-cd /opt/lucent
-docker compose --env-file .deploy-image.env ps
-docker compose --env-file .deploy-image.env logs --tail=100 app
-curl http://127.0.0.1:3000/api/v1/health
-```
+## `.github/workflows/lucent-cd.yml` 当前职责
 
-如果一切正常，健康检查应该返回 200。
+1. `checkout`
+2. Docker Buildx
+   - 构建 Lucent 镜像
+   - 推送到 TCR
+3. SSH 上传：
+   - `docker-compose.yml`
+   - `monitoring/**`
+   - `scripts/deploy/**`
+   - `deploy/nginx/nginx.conf`
+4. 远程执行：
+   - `scripts/deploy/sync-deploy-assets.sh`
+   - `scripts/deploy/deploy-server.sh`
 
-## 第 7 步：开放服务器端口和域名
+## 首次接通建议
 
-腾讯云控制台里至少确认这些：
-
-- CVM 安全组放行 `22`
-- CVM 安全组放行 `3000`，或者只放行你前面反代要用的端口
-
-如果你前面还要挂 Nginx / Caddy 反向代理和 HTTPS：
-
-- 反代监听 `80/443`
-- Lucent 容器继续只监听宿主机 `3000`
-
-## 常见问题
-
-### 1. `docker login` 成功，但 GitHub Actions push 失败
-
-先核对三件事：
-
-- `REGISTRY_HOST` 是否是 `ccr.ccs.tencentyun.com`
-- `REGISTRY_NAMESPACE` 是否就是你在 TCR 里创建的 namespace
-- `REGISTRY_USERNAME` 是否真的是腾讯云 `Account ID`
-
-### 2. 服务器能 SSH，但部署时 pull 失败
-
-通常是：
-
-- TCR 密码填错
-- namespace 写错
-- 仓库还没被首次 push 自动创建
-
-先在服务器手工执行：
+1. 先确认 GitHub repository 的 `production` environment 已经配置好这些 secrets：
+   - `TCR_USERNAME`
+   - `TCR_PASSWORD`
+   - `DEPLOY_HOST`
+   - `DEPLOY_PORT`
+   - `DEPLOY_USER`
+   - `DEPLOY_SSH_KEY`
+   - `DEPLOY_SSH_KNOWN_HOSTS`
+2. 先确认服务器上手工执行以下命令能成功：
 
 ```bash
-docker login ccr.ccs.tencentyun.com --username '<你的腾讯云账号ID>'
-docker pull ccr.ccs.tencentyun.com/<你的namespace>/lucent:latest
+export LUCENT_RELEASES_DIR=/opt/lucent/releases
+export LUCENT_RELEASE_ID=manual-test
+sh /opt/lucent/releases/manual-test/scripts/deploy/sync-deploy-assets.sh
+export LUCENT_DEPLOY_DIR=/opt/lucent/releases/current
+export LUCENT_RUNTIME_DIR=/opt/lucent/runtime
+export LUCENT_IMAGE=<a-real-tcr-image>
+export POSTGRES_IMAGE=postgres:18-alpine
+export REDIS_IMAGE=redis:8-alpine
+export PROMETHEUS_IMAGE=prom/prometheus:v3.12.0
+export GRAFANA_IMAGE=grafana/grafana-oss:13.0.2
+export NGINX_IMAGE=nginx:1.29.1-alpine
+sh /opt/lucent/releases/current/scripts/deploy/deploy-server.sh
 ```
 
-### 3. 为什么不直接让服务器自己 `git pull`
+3. 手工跑通后，再触发 GitHub Actions `lucent-cd`
 
-因为你最开始遇到的问题就是国内服务器访问外网不稳定。当前仓库已经改成：
+## 安全组建议
 
-- GitHub Actions 构建镜像
-- GitHub Actions 把部署文件通过 SSH 传到服务器
-- 服务器只从腾讯云镜像仓库拉镜像
+至少对公网放行：
 
-基础镜像不再放在每次发版的热路径里，否则你会继续被 GitHub Runner 到 Docker Hub / TCR 的链路波动拖住。
+- `22`
+- `80`
+- `443`
 
-这样服务器不再依赖 GitHub，也不再依赖 Docker Hub。
+不要对公网放行：
 
-### 4. 什么时候再升级到 TCR Enterprise
+- `3000`
+- `9090`
+- `3001`
 
-建议等下面任一条件满足时再切：
+## 常见故障定位
 
-- 你要用私网拉取镜像
-- 你要自托管 GitHub runner
-- 你要 namespace 级别的读写权限控制
-- 你要 service account 管理 CI/CD 凭证
+### GitHub Actions 构建失败
 
-## 企业版升级说明
+优先核对：
 
-如果你以后切到 TCR Enterprise，要记住两个关键差异：
+- `REGISTRY_HOST`
+- `REGISTRY_NAMESPACE`
+- GitHub `production` environment 中的 TCR 凭证
+- `Dockerfile`
 
-1. 新实例默认关闭公网和私网访问入口，不会天然允许外部 push/pull。
-2. 私网拉取需要 VPC + Private DNS，并把实例和目标 VPC 建立 private network access linkage。
+### 服务器部署失败
 
-这条路径更适合：
+优先核对：
 
-- 腾讯云同地域 VPC 内的 CVM / TKE
-- 自托管 runner
-- 需要更严格权限边界的生产环境
+- `/opt/lucent/releases/current` 是否已经切到本次 release
+- `/opt/lucent/runtime/.env.production` 是否存在
+- `.deploy-image.env` 是否已写入
+- `docker compose --project-name lucent --project-directory /opt/lucent/releases/current -f /opt/lucent/releases/current/docker-compose.yml --env-file /opt/lucent/runtime/.deploy-image.env logs --tail=200 app`
 
-## 官方参考
+### 服务器拉镜像失败
 
-- Tencent Cloud: [TCR Individual Getting Started](https://www.tencentcloud.com/document/product/1051/45257)
-- Tencent Cloud: [Upload Docker Images to Tencent Container Image Repository (TCR)](https://www.tencentcloud.com/document/product/1234/61495)
-- Tencent Cloud: [Creating an Enterprise Edition Instance](https://www.tencentcloud.com/document/product/1051/35486)
-- Tencent Cloud: [Network Access Control Overview](https://www.tencentcloud.com/document/product/1051/35490)
-- Tencent Cloud: [Private Network Access Control](https://www.tencentcloud.com/document/product/1051/35492)
+优先核对：
+
+- 服务器能否访问 TCR
+- 镜像是否已经成功推送
+- 镜像标签是否与 `LUCENT_IMAGE` 一致
+
+## 参考
+
+- Docker Docs: [Image digests](https://docs.docker.com/dhi/core-concepts/digests/)
+- Tencent Cloud: [TCR Documentation](https://www.tencentcloud.com/document/product/1141)
+- GitHub Docs: [Publishing Docker images](https://docs.github.com/actions/guides/publishing-docker-images)

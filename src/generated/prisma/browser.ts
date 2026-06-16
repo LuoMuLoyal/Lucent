@@ -22,6 +22,11 @@ export * from './enums.js';
  */
 export type User = Prisma.UserModel
 /**
+ * Model UserIdentity
+ * 
+ */
+export type UserIdentity = Prisma.UserIdentityModel
+/**
  * Model UserProfile
  * 
  */
@@ -52,6 +57,31 @@ export type UserCondition = Prisma.UserConditionModel
  */
 export type UserCurrentMedicine = Prisma.UserCurrentMedicineModel
 /**
+ * Model UserMedicineReminder
+ * 
+ */
+export type UserMedicineReminder = Prisma.UserMedicineReminderModel
+/**
+ * Model UserReminderDelivery
+ * 
+ */
+export type UserReminderDelivery = Prisma.UserReminderDeliveryModel
+/**
+ * Model UserMedicineDoseLog
+ * 
+ */
+export type UserMedicineDoseLog = Prisma.UserMedicineDoseLogModel
+/**
+ * Model UserDailyRecord
+ * 
+ */
+export type UserDailyRecord = Prisma.UserDailyRecordModel
+/**
+ * Model UserDailyRecordAttachment
+ * 
+ */
+export type UserDailyRecordAttachment = Prisma.UserDailyRecordAttachmentModel
+/**
  * Model DrugSourceImport
  * 
  */
@@ -81,3 +111,13 @@ export type DrugbankTarget = Prisma.DrugbankTargetModel
  * 
  */
 export type DrugbankDrugTarget = Prisma.DrugbankDrugTargetModel
+/**
+ * Model UserSetting
+ * 
+ */
+export type UserSetting = Prisma.UserSettingModel
+/**
+ * Model DataExportRequest
+ * 
+ */
+export type DataExportRequest = Prisma.DataExportRequestModel

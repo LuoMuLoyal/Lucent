@@ -1,0 +1,14 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsIn, IsOptional, IsString } from 'class-validator';
+import { SUPPORT_RESOURCE_SCOPES } from './support-resources-response.dto';
+
+export class SupportResourcesQueryDto {
+  @ApiPropertyOptional({
+    description: "Filter by scope: 'campus', 'help', 'about'. Default: all.",
+    enum: SUPPORT_RESOURCE_SCOPES,
+  })
+  @IsOptional()
+  @IsString()
+  @IsIn([...SUPPORT_RESOURCE_SCOPES])
+  scope?: string;
+}
