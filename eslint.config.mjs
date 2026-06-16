@@ -9,6 +9,8 @@ export default tseslint.config(
     ignores: [
       'eslint.config.mjs',
       'commitlint.config.mjs',
+      'deploy/**/*.ts',
+      'scripts/**/*.ts',
       'scripts/**/*.js',
     ],
   },

@@ -383,7 +383,10 @@ function stripNamespacePrefix(key, namespacePrefix) {
 async function listMedicineCacheKeys(store, namespace = 'keyv') {
   const namespacePrefix = namespace ? `${namespace}:` : null;
   const patterns = namespacePrefix
-    ? [`${namespacePrefix}${MEDICINES_CACHE_KEY_PREFIX}:*`, `${MEDICINES_CACHE_KEY_PREFIX}:*`]
+    ? [
+        `${namespacePrefix}${MEDICINES_CACHE_KEY_PREFIX}:*`,
+        `${MEDICINES_CACHE_KEY_PREFIX}:*`,
+      ]
     : [`${MEDICINES_CACHE_KEY_PREFIX}:*`];
   const matchedKeys = [];
 
@@ -423,7 +426,7 @@ async function invalidateMedicineCache() {
 
 function printUsage() {
   console.log(`Usage:
-  node scripts/medicine/import-medicine-knowledge.js <command> [options]
+  node scripts/medicine/import-medicine-knowledge.ts <command> [options]
 
 Commands:
   cn-products

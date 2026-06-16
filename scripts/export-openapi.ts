@@ -8,8 +8,8 @@ async function main() {
   delete process.env.REDIS_URL;
   process.env.OPENAPI_EXPORT_SKIP_DB_CONNECT = 'true';
 
-  const { AppModule } = require('../dist/app.module.js');
-  const { setupApp } = require('../dist/setup-app.js');
+  const { AppModule } = await import('../dist/app.module.js');
+  const { setupApp } = await import('../dist/setup-app.js');
 
   const app = await NestFactory.create(AppModule, { logger: false });
   setupApp(app, app.get(ConfigService));
@@ -39,7 +39,7 @@ async function main() {
   await app.close();
 }
 
-main().catch((error) => {
+void main().catch((error) => {
   console.error('Export failed:', error);
   process.exit(1);
 });

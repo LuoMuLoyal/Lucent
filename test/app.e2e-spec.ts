@@ -8,7 +8,6 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppController } from './../src/app.controller';
 import { AppService } from './../src/app.service';
-import { MetricsController } from './../src/metrics.controller';
 import { PrismaService } from './../src/prisma/prisma.service';
 import { setupApp } from './../src/setup-app';
 
@@ -32,7 +31,7 @@ describe('Lucent API (e2e)', () => {
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      controllers: [AppController, MetricsController, TestEchoController],
+      controllers: [AppController, TestEchoController],
       providers: [
         AppService,
         {
@@ -111,20 +110,6 @@ describe('Lucent API (e2e)', () => {
             },
           },
         });
-      });
-  });
-
-  it('/metrics (GET) returns plain Prometheus text without API envelope', () => {
-    return request(app.getHttpServer())
-      .get('/metrics')
-      .expect(200)
-      .expect('Content-Type', /text\/plain/)
-      .expect((response) => {
-        expect(response.text).toContain('# HELP lucent_build_info');
-        expect(response.text).toContain(
-          'lucent_health_status{probe="ready"} 1',
-        );
-        expect(response.body).toEqual({});
       });
   });
 

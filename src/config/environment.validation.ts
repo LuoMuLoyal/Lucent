@@ -75,7 +75,7 @@ const envSchema = Joi.object<EnvironmentVariables>({
     .default(NodeEnvironment.Development),
   [EnvKey.HOST]: Joi.string().default('0.0.0.0'),
   [EnvKey.PORT]: Joi.number().integer().min(1).default(3000),
-  [EnvKey.CORS_ORIGIN]: Joi.string().default('*'),
+  [EnvKey.CORS_ORIGIN]: Joi.string().allow('').default('*'),
   [EnvKey.DATABASE_URL]: Joi.string()
     .uri({ scheme: ['postgres', 'postgresql'] })
     .optional(),
@@ -248,9 +248,9 @@ function assertProductionEnvironment(config: EnvironmentVariables): void {
     );
   }
 
-  const corsOrigin = config[EnvKey.CORS_ORIGIN];
-  if (!corsOrigin || corsOrigin.trim() === '*') {
-    throw new Error('CORS_ORIGIN must be explicit in production (not *)');
+  const corsOrigin = config[EnvKey.CORS_ORIGIN].trim();
+  if (corsOrigin === '*') {
+    throw new Error('CORS_ORIGIN must not be * in production');
   }
 }
 

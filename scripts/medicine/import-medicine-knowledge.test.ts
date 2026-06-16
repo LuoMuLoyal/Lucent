@@ -4,7 +4,7 @@ const test = require('node:test');
 const {
   listMedicineCacheKeys,
   stripNamespacePrefix,
-} = require('./import-medicine-knowledge.js');
+} = require('./import-medicine-knowledge.ts');
 
 test('stripNamespacePrefix removes the expected prefix only once', () => {
   assert.equal(
@@ -80,5 +80,7 @@ test('listMedicineCacheKeys supports stores without a namespace prefix', async (
 
   const keys = await listMedicineCacheKeys(store, undefined);
 
-  assert.deepEqual(keys, ['medicines:search:cn:%E5%B8%83%E6%B4%9B%E8%8A%AC:1:20']);
+  assert.deepEqual(keys, [
+    'medicines:search:cn:%E5%B8%83%E6%B4%9B%E8%8A%AC:1:20',
+  ]);
 });

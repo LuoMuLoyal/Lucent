@@ -32,8 +32,8 @@ pnpm export:openapi
 
 ```bash
 pnpm install
-pnpm dev:stack:up
-pnpm db:migrate:all
+pnpm dev:stack
+pnpm db:migrate
 pnpm start:dev
 ```
 
@@ -45,11 +45,11 @@ cp .env.test.example .env.test
 pnpm start:test:dev
 ```
 
-Or use the local helper that starts the test runtime in a hidden PowerShell
-window and waits for `GET /api/v1/health`:
+Or use the local helper that starts the test runtime in the background and
+waits for `GET /api/v1/health`:
 
 ```bash
-powershell -ExecutionPolicy Bypass -File scripts/dev/start-test-runtime.ps1
+pnpm test:runtime:start
 ```
 
 That runtime enables `POST /api/v1/testing/fullstack-e2e/record-lane/prepare`,
@@ -92,15 +92,6 @@ If the OpenAI-compatible base URL targets DeepSeek, Lucent now disables
 DeepSeek `thinking` mode automatically for these streaming tool-use flows so
 `tool_choice` requests can complete normally.
 
-Production compose now also includes a same-host monitoring stack:
-
-- Prometheus on `127.0.0.1:9090`
-- Grafana on `127.0.0.1:3001`
-- a synthetic exporter on `synthetic-monitor:9101` inside the compose network
-
-Grafana provisions the Lucent Prometheus datasource and a default
-`Lucent Overview` dashboard automatically at startup.
-
 Production compose also includes an Nginx reverse proxy:
 
 - `80` redirects to `443`
@@ -124,45 +115,26 @@ Local database layout:
   - readiness probe for PostgreSQL plus Redis when `REDIS_URL` is configured
 - `GET /api/v1/health/deep`
   - detailed dependency probe with timings and error text
-- `GET /metrics`
-  - Prometheus text exposition endpoint
-  - intentionally outside `/api` and outside the normal API envelope
-
-Recommended use:
+    Recommended use:
 
 - container liveness: `/api/v1/health/live`
 - container readiness / deployment gate: `/api/v1/health/ready`
 - manual diagnosis: `/api/v1/health/deep`
-- monitoring scrape: `/metrics`
-
-Synthetic monitoring:
-
-- `auth_login`
-  - real `POST /api/v1/auth/login` with configured synthetic user credentials
-- `account_profile`
-  - real `GET /api/v1/account` with the access token returned by `auth_login`
-
-These checks are exported as Prometheus metrics by the `synthetic-monitor`
-sidecar and show up in the default Grafana dashboard.
 
 ## Verification
 
 ```bash
-pnpm typecheck
-pnpm lint:check
-pnpm build
-pnpm test:ci
-pnpm test:e2e:ci
-pnpm export:openapi
+pnpm check
 ```
 
-Use narrower commands while iterating, then run the relevant broader checks before finishing a backend change. `pnpm build` does not type-check `**/*spec.ts` or `test/`; use `pnpm typecheck` when you need full TypeScript coverage for unit/e2e test files.
+Use narrower commands while iterating, then run `pnpm check` before finishing a backend change. `pnpm build` does not type-check `**/*spec.ts` or `test/`; use `pnpm typecheck` when you need full TypeScript coverage for unit/e2e test files. Repo helper scripts under `scripts/` and deploy CLIs under `deploy/` use their own lighter TS projects; validate them with `pnpm typecheck:tools`.
 
 ## Source Layout
 
 - `src/modules/` contains business feature modules: auth, account, user, health context, daily records, dose logs, medicines.
 - Top-level `src/` keeps app bootstrap and infrastructure/runtime support: `common`, `config`, `generated`, `i18n`, `mail`, `prisma`.
-- `scripts/` contains local dev, OpenAPI export, deployment, and medicine import helpers.
+- `scripts/` contains a small set of local helpers for test runtime, deployment, OpenAPI export, and medicine import.
+- `deploy/` contains production deployment assets: compose file, remote deploy CLI, and Nginx config.
 
 ## Deployment Model
 
@@ -175,13 +147,12 @@ Use narrower commands while iterating, then run the relevant broader checks befo
 - GitHub Actions also owns CD:
   - build the Lucent Docker image
   - push the image to Tencent TCR
-  - upload deploy assets to the server over SSH
-  - run the server-side deploy script remotely
+  - upload the app deploy directory to the server over SSH
+  - run one server-side deploy script remotely
 - The server does not keep a git checkout.
 - The server keeps:
-  - release assets under `/opt/lucent/releases/<git-sha>`
-  - a stable `/opt/lucent/releases/current` pointer
-  - server-local runtime files under `/opt/lucent/runtime`
+  - app files under `/opt/lucent/app`
+  - local runtime files and data under `/opt/lucent/server`
 - The app itself is always deployed from the pushed image, not built on the server.
 
 ## Docs
@@ -191,8 +162,7 @@ Start with [docs/README.md](docs/README.md).
 Active docs:
 
 - [docs/environment.md](docs/environment.md)
-- [docs/tencent-cloud-cicd.md](docs/tencent-cloud-cicd.md)
-- [docs/deployment-checklist.md](docs/deployment-checklist.md)
+- [docs/deployment.md](docs/deployment.md)
 - [docs/openapi.json](docs/openapi.json)
 - [docs/public/data-sources.md](docs/public/data-sources.md)
 - [docs/public/reminder-contract.md](docs/public/reminder-contract.md)

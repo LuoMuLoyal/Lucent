@@ -1,7 +1,7 @@
 # ── Build stage ──────────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 
 WORKDIR /app
 
@@ -22,15 +22,16 @@ RUN pnpm exec prisma generate
 RUN pnpm run build
 
 # ── Production stage ─────────────────────────────────────────────
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 
 WORKDIR /app
 
-# 安装全部依赖（含 prisma CLI，entrypoint 需要运行 migrate deploy）
+# 先基于完整依赖剪出生产依赖，避免最终镜像带上整套 devDependencies
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --ignore-scripts
+COPY --from=builder /app/node_modules ./node_modules
+RUN pnpm prune --prod
 
 # 从 builder 拷贝编译产物（含 dist/i18n/ 翻译文件）
 COPY --from=builder /app/dist ./dist
