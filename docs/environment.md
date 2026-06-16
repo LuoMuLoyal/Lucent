@@ -217,6 +217,7 @@ Recommended role split:
 - Production PostgreSQL now follows the PostgreSQL 18 container layout and mounts `/opt/lucent/server/data/postgresql` to container path `/var/lib/postgresql`, not the legacy `/var/lib/postgresql/data`.
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect during app startup so contract generation does not require a live DB connection.
 - Production image must include `prisma.config.ts` together with `prisma/schema.prisma`; Prisma 7 `migrate deploy` reads the datasource URL from that config file inside the container.
+- AdminJS bundles its frontend assets at runtime during Nest bootstrap. Required Babel plugins for that bundle path must stay in production dependencies, not only devDependencies, or `/admin` startup can fail even after the container is already running app bootstrap code.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
 - When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; without it, cache falls back to memory.
 - Mail delivery uses BullMQ when `REDIS_URL` is set and immediate send when Redis is absent.
