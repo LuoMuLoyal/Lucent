@@ -89,7 +89,7 @@ GitHub：
 
 其中：
 
-- `REGISTRY_HOST` 指向 TCR 地址，例如 `ccr.ccs.tencentyun.com`
+- `REGISTRY_HOST` 指向 TCR 地址，当前使用香港地域 `hkccr.ccs.tencentyun.com`
 - `REGISTRY_NAMESPACE` 是你的命名空间，当前为 `lucent`
 - `REGISTRY_IMAGE_NAME` 建议固定为 `lucent`
 
