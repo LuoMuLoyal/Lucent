@@ -84,6 +84,9 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
           tags: |
             ${{ steps.release.outputs.image_ref }}
             ${{ env.REGISTRY_HOST }}/${{ env.REGISTRY_NAMESPACE }}/${{ env.REGISTRY_IMAGE_NAME }}:latest
