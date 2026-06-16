@@ -251,6 +251,7 @@ SYNTHETIC_HTTP_TIMEOUT_MS
   - public service images can still come from explicit image refs
   - the Lucent app container runs from the CI-built image pushed to the registry
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect during app startup so contract generation does not require a live DB connection.
+- Production image must include `prisma.config.ts` together with `prisma/schema.prisma`; Prisma 7 `migrate deploy` reads the datasource URL from that config file inside the container.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
 - When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; without it, cache falls back to memory.
 - Mail delivery uses BullMQ when `REDIS_URL` is set and immediate send when Redis is absent.

@@ -11,6 +11,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # 拷贝源码 & 配置文件
 COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
 COPY tsconfig.json tsconfig.build.json .swcrc nest-cli.json ./
 COPY src ./src
 
@@ -39,6 +40,7 @@ COPY --from=builder /app/src/generated/prisma ./src/generated/prisma
 
 # 拷贝 Prisma schema（用于 migrate）
 COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
 
 # 拷贝入口脚本
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
