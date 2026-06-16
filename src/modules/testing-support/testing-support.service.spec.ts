@@ -50,6 +50,9 @@ describe('TestingSupportService', () => {
             userSession: {
               deleteMany: jest.fn(),
             },
+            userSetting: {
+              upsert: jest.fn(),
+            },
           },
         },
       ],
@@ -92,6 +95,22 @@ describe('TestingSupportService', () => {
     });
     expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
+    });
+    expect(prisma.userSetting.upsert).toHaveBeenCalledWith({
+      where: {
+        userId_key: {
+          userId: 'user-1',
+          key: 'aiSummariesEnabled',
+        },
+      },
+      create: {
+        userId: 'user-1',
+        key: 'aiSummariesEnabled',
+        value: true,
+      },
+      update: {
+        value: true,
+      },
     });
     expect(result).toEqual({
       createdUser: true,
@@ -152,6 +171,22 @@ describe('TestingSupportService', () => {
       where: {
         userId: 'user-1',
         id: { in: ['record-1', 'record-2'] },
+      },
+    });
+    expect(prisma.userSetting.upsert).toHaveBeenCalledWith({
+      where: {
+        userId_key: {
+          userId: 'user-1',
+          key: 'aiSummariesEnabled',
+        },
+      },
+      create: {
+        userId: 'user-1',
+        key: 'aiSummariesEnabled',
+        value: true,
+      },
+      update: {
+        value: true,
       },
     });
     expect(result.clearedRecordCount).toBe(2);
