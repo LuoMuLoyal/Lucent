@@ -23,7 +23,7 @@ Last updated: 2026-06-16
   - 只放服务器本地文件
   - `.env.production`
   - `certs/*`
-  - `data/postgres`
+  - `data/postgresql`
   - `data/redis`
   - `logs/app`
   - `logs/nginx`
@@ -37,9 +37,17 @@ Last updated: 2026-06-16
 ```bash
 mkdir -p /opt/lucent/app
 mkdir -p /opt/lucent/server/certs
-mkdir -p /opt/lucent/server/data/postgres
+mkdir -p /opt/lucent/server/data/postgresql
 mkdir -p /opt/lucent/server/data/redis
 ```
+
+PostgreSQL 18 注意事项：
+
+- 生产 compose 现在把宿主机目录挂到容器内 `/var/lib/postgresql`
+- 不再使用旧的 `/var/lib/postgresql/data` 挂载方式
+- `postgres:18` 会在挂载目录里自行创建版本化子目录
+
+首次部署时，确保服务器上存在空目录 `/opt/lucent/server/data/postgresql` 即可。
 
 然后把这些本地文件放好：
 
