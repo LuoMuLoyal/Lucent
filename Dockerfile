@@ -31,7 +31,7 @@ WORKDIR /app
 # 先基于完整依赖剪出生产依赖，避免最终镜像带上整套 devDependencies
 COPY package.json pnpm-lock.yaml ./
 COPY --from=builder /app/node_modules ./node_modules
-RUN pnpm prune --prod
+RUN pnpm prune --prod --ignore-scripts
 
 # 从 builder 拷贝编译产物（含 dist/i18n/ 翻译文件）
 COPY --from=builder /app/dist ./dist
