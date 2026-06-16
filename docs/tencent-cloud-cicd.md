@@ -125,6 +125,7 @@ GitHub Actions 先上传 release 目录，再在服务器顺序执行这两个�
 2. Docker Buildx
    - 构建 Lucent 镜像
    - 推送到 TCR
+   - 当前显式关闭 provenance / SBOM attestation，并固定 `linux/amd64`，避免部分 TCR 场景在推送 OCI attestation / manifest list 时卡住
 3. SSH 上传：
    - `docker-compose.yml`
    - `monitoring/**`
@@ -187,6 +188,14 @@ sh /opt/lucent/releases/current/scripts/deploy/deploy-server.sh
 - `REGISTRY_NAMESPACE`
 - GitHub `production` environment 中的 TCR 凭证
 - `Dockerfile`
+
+如果日志停在 `Build and push Lucent image` 且已经出现：
+
+- `exporting attestation manifest`
+- `exporting manifest list`
+- `pushing layers`
+
+优先怀疑不是登录失败，而是 registry 对 buildx 默认 attestation / image index 输出兼容性差。当前 workflow 已关闭 `provenance`、`sbom` 并固定单平台推送来规避这一类问题。
 
 ### 服务器部署失败
 
