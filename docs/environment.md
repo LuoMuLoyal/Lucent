@@ -214,6 +214,7 @@ Recommended role split:
   - app files at `/opt/lucent/app`
   - local runtime files at `/opt/lucent/server`
 - Server-side deploy uses `/opt/lucent/app/deploy/docker-compose.yml` and `/opt/lucent/app/.env.compose`.
+- Production PostgreSQL now follows the PostgreSQL 18 container layout and mounts `/opt/lucent/server/data/postgresql` to container path `/var/lib/postgresql`, not the legacy `/var/lib/postgresql/data`.
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect during app startup so contract generation does not require a live DB connection.
 - Production image must include `prisma.config.ts` together with `prisma/schema.prisma`; Prisma 7 `migrate deploy` reads the datasource URL from that config file inside the container.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
