@@ -35,6 +35,40 @@ describe('validateEnvironment', () => {
     ).toThrow('ADMIN_EMAIL');
   });
 
+  it('allows empty CORS_ORIGIN in production for app-only deployments', () => {
+    const config = validateEnvironment({
+      [EnvKey.NODE_ENV]: NodeEnvironment.Production,
+      [EnvKey.DATABASE_URL]:
+        'postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public',
+      [EnvKey.REDIS_URL]: 'redis://redis:6379',
+      [EnvKey.JWT_ACCESS_SECRET]: 'access-secret',
+      [EnvKey.JWT_REFRESH_SECRET]: 'refresh-secret',
+      [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
+      [EnvKey.ADMIN_PASSWORD]: 'admin12345',
+      [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+      [EnvKey.CORS_ORIGIN]: '',
+    });
+
+    expect(config[EnvKey.CORS_ORIGIN]).toBe('');
+  });
+
+  it('still rejects wildcard CORS_ORIGIN in production', () => {
+    expect(() =>
+      validateEnvironment({
+        [EnvKey.NODE_ENV]: NodeEnvironment.Production,
+        [EnvKey.DATABASE_URL]:
+          'postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public',
+        [EnvKey.REDIS_URL]: 'redis://redis:6379',
+        [EnvKey.JWT_ACCESS_SECRET]: 'access-secret',
+        [EnvKey.JWT_REFRESH_SECRET]: 'refresh-secret',
+        [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
+        [EnvKey.ADMIN_PASSWORD]: 'admin12345',
+        [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+        [EnvKey.CORS_ORIGIN]: '*',
+      }),
+    ).toThrow('CORS_ORIGIN must not be * in production');
+  });
+
   it('accepts complete AI role configurations', () => {
     const config = validateEnvironment({
       [EnvKey.NODE_ENV]: NodeEnvironment.Development,

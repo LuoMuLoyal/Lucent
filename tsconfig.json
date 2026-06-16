@@ -27,5 +27,6 @@
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true
-  }
+  },
+  "exclude": ["node_modules", "dist", "scripts", "deploy"]
 }

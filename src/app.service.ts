@@ -48,48 +48,6 @@ export class AppService {
     return this.buildProbe('deep', components);
   }
 
-  async getMetrics(): Promise<string> {
-    const readyProbe = await this.getReadyHealth();
-    const app = readyProbe.app;
-    const lines = [
-      '# HELP lucent_build_info Static information about the Lucent process.',
-      '# TYPE lucent_build_info gauge',
-      `lucent_build_info{service="lucent",env="${this.escapeLabelValue(app.env)}"} 1`,
-      '# HELP lucent_process_uptime_seconds Uptime of the Lucent process in seconds.',
-      '# TYPE lucent_process_uptime_seconds gauge',
-      `lucent_process_uptime_seconds ${app.uptimeSeconds.toFixed(3)}`,
-      '# HELP lucent_process_resident_memory_bytes Resident memory usage in bytes.',
-      '# TYPE lucent_process_resident_memory_bytes gauge',
-      `lucent_process_resident_memory_bytes ${String(app.memoryRssBytes)}`,
-      '# HELP lucent_process_heap_used_bytes V8 heap memory in use in bytes.',
-      '# TYPE lucent_process_heap_used_bytes gauge',
-      `lucent_process_heap_used_bytes ${String(app.memoryHeapUsedBytes)}`,
-      '# HELP lucent_health_status Current Lucent health status by probe.',
-      '# TYPE lucent_health_status gauge',
-      `lucent_health_status{probe="ready"} ${readyProbe.status === 'ok' ? '1' : '0'}`,
-      '# HELP lucent_dependency_up Dependency availability by component.',
-      '# TYPE lucent_dependency_up gauge',
-      '# HELP lucent_dependency_probe_duration_milliseconds Dependency probe duration in milliseconds.',
-      '# TYPE lucent_dependency_probe_duration_milliseconds gauge',
-    ];
-
-    for (const component of readyProbe.components) {
-      const backend =
-        typeof component.details?.['backend'] === 'string'
-          ? component.details['backend']
-          : 'n/a';
-      const labels = `{dependency="${this.escapeLabelValue(component.name)}",critical="${component.critical ? 'true' : 'false'}",backend="${this.escapeLabelValue(backend)}"}`;
-      lines.push(
-        `lucent_dependency_up${labels} ${component.status === 'up' ? '1' : '0'}`,
-      );
-      lines.push(
-        `lucent_dependency_probe_duration_milliseconds${labels} ${String(component.durationMs)}`,
-      );
-    }
-
-    return `${lines.join('\n')}\n`;
-  }
-
   isHealthy(probe: HealthProbeDto): boolean {
     return probe.status === 'ok';
   }
@@ -275,12 +233,5 @@ export class AppService {
     }
 
     return String(error);
-  }
-
-  private escapeLabelValue(value: string): string {
-    return value
-      .replace(/\\/g, '\\\\')
-      .replace(/\n/g, '\\n')
-      .replace(/"/g, '\\"');
   }
 }

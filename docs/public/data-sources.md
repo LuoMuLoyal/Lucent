@@ -29,8 +29,8 @@ This directory is not tracked by Git and must not be packaged into Flutter.
 
 Recommended local preparation:
 
-1. `pnpm dev:stack:up`
-2. `pnpm db:migrate:all`
+1. `pnpm dev:stack`
+2. `pnpm db:migrate`
 3. `pip install -r scripts/medicine/requirements.txt` if the Chinese source is still `.xlsx`
 
 Default scripted import order:
@@ -56,7 +56,7 @@ Why this order:
 Smoke-test example:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/dev/import-medicine-datasets.ps1 -Limit 20 -WithHash
+node scripts/dev/import-medicine-datasets.ts --limit 20 --with-hash
 ```
 
 Useful options:

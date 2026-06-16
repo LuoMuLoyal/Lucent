@@ -162,17 +162,4 @@ describe('AppService', () => {
       ]),
     );
   });
-
-  it('renders Prometheus-compatible metrics text', async () => {
-    prisma.$queryRawUnsafe.mockResolvedValue([{}]);
-
-    const metrics = await service.getMetrics();
-
-    expect(metrics).toContain('# HELP lucent_build_info');
-    expect(metrics).toContain('# TYPE lucent_health_status gauge');
-    expect(metrics).toContain('lucent_health_status{probe="ready"} 1');
-    expect(metrics).toContain(
-      'lucent_dependency_up{dependency="database",critical="true",backend="n/a"} 1',
-    );
-  });
 });

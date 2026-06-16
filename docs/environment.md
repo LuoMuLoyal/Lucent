@@ -1,8 +1,8 @@
 # Lucent Environment
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
-This file records Lucent runtime configuration, local stacks, scripts, and required variables. Tencent CVM/TCR deployment steps live in `tencent-cloud-cicd.md`.
+This file records Lucent runtime configuration, local stacks, scripts, and required variables. Production deployment steps live in `deployment.md`.
 
 ## Env Files
 
@@ -47,10 +47,6 @@ explicit resolution order above. There is no root `.env` fallback anymore.
   - `GET /api/v1/health/live` liveness
   - `GET /api/v1/health/ready` readiness
   - `GET /api/v1/health/deep` diagnostic dependency probe
-  - `GET /metrics` Prometheus text metrics
-- Same-host monitoring ports:
-  - Prometheus: `127.0.0.1:9090`
-  - Grafana: `127.0.0.1:3001`
 - Public reverse proxy ports:
   - Nginx HTTP redirect: `80`
   - Nginx HTTPS entrypoint: `443`
@@ -59,33 +55,35 @@ explicit resolution order above. There is no root `.env` fallback anymore.
 Start local infrastructure:
 
 ```bash
-pnpm dev:stack:up
-pnpm db:migrate:all
+pnpm dev:stack
+pnpm db:migrate
 pnpm start:dev
 ```
 
 ## Scripts
 
-| Command                         | Purpose                                                       |
-| ------------------------------- | ------------------------------------------------------------- |
-| `pnpm typecheck`                | Full TypeScript check for `src/`, `*.spec.ts`, and `test/`    |
-| `pnpm start` / `pnpm start:dev` | Development runtime with `NODE_ENV=development`               |
-| `pnpm start:test:dev`           | Test runtime with `NODE_ENV=test` for full-stack lane support |
-| `pnpm start:prod`               | Built production runtime with `NODE_ENV=production`           |
-| `pnpm test`                     | Unit tests with `NODE_ENV=test`                               |
-| `pnpm test:ci`                  | Unit tests in CI with `--runInBand`                           |
-| `pnpm test:e2e`                 | E2E tests with Prisma 7 VM-module compatibility               |
-| `pnpm test:e2e:ci`              | E2E tests in CI with `--runInBand`                            |
-| `pnpm export:openapi`           | Build then export `docs/openapi.json` from `dist`             |
-| `pnpm import:medicine:all`      | Default medicine knowledge import sequence                    |
+| Command                         | Purpose                                                                        |
+| ------------------------------- | ------------------------------------------------------------------------------ |
+| `pnpm typecheck`                | Full TypeScript check for app/runtime code in `src/`, `*.spec.ts`, and `test/` |
+| `pnpm typecheck:tools`          | TypeScript check for repo helper scripts in `scripts/` and `deploy/`           |
+| `pnpm check`                    | One-command validation: lint, typecheck, build, unit, e2e                      |
+| `pnpm start` / `pnpm start:dev` | Development runtime with `NODE_ENV=development`                                |
+| `pnpm start:test:dev`           | Test runtime with `NODE_ENV=test` for full-stack lane support                  |
+| `pnpm start:prod`               | Built production runtime with `NODE_ENV=production`                            |
+| `pnpm test`                     | Unit tests with `NODE_ENV=test`                                                |
+| `pnpm test:ci`                  | Unit tests in CI with `--runInBand`                                            |
+| `pnpm test:e2e`                 | E2E tests with Prisma 7 VM-module compatibility                                |
+| `pnpm test:e2e:ci`              | E2E tests in CI with `--runInBand`                                             |
+| `pnpm export:openapi`           | Build then export `docs/openapi.json` from `dist`                              |
+| `pnpm import:medicine:all`      | Default medicine knowledge import sequence                                     |
 
 Local helper scripts:
 
-- `powershell -ExecutionPolicy Bypass -File scripts/dev/start-test-runtime.ps1`
-  starts `pnpm start:test:dev` in a hidden PowerShell window, reuses the
-  existing `.runtime-test.log`, and waits for `GET /api/v1/health`.
-- `powershell -ExecutionPolicy Bypass -File scripts/dev/stop-test-runtime.ps1`
-  stops the Lucent test runtime started for the mobile full-stack lane.
+- `pnpm test:runtime:start`
+  starts `pnpm start:test:dev` in the background, writes `.runtime-test.pid`
+  plus `.runtime-test.log`, and waits for `GET /api/v1/health`.
+- `pnpm test:runtime:stop`
+  stops the Lucent test runtime tracked by `.runtime-test.pid`.
 
 Run Prisma commands with explicit `NODE_ENV` when not targeting development, for example:
 
@@ -105,13 +103,6 @@ JWT_REFRESH_SECRET
 ADMIN_EMAIL
 ADMIN_PASSWORD
 ADMIN_COOKIE_SECRET
-CORS_ORIGIN
-```
-
-Production compose stack also expects:
-
-```text
-GF_SECURITY_ADMIN_PASSWORD
 ```
 
 GitHub Actions production deploy also requires repository/environment secrets outside `.env.production`:
@@ -126,15 +117,11 @@ DEPLOY_SSH_KEY
 DEPLOY_SSH_KNOWN_HOSTS
 ```
 
-`CORS_ORIGIN=*` is accepted for local development but rejected in production.
+`CORS_ORIGIN` may be left empty for App-only production deployments with no browser cross-origin traffic. If you do expose browser clients from another origin, set it explicitly.
 
 JWT and admin secrets are required in every runtime now; keep them in the env
 files, not in code defaults. The checked-in dev/test templates already provide
 local values.
-
-Grafana admin username defaults to `GF_SECURITY_ADMIN_USER=admin` in the
-template; production should still set a strong
-`GF_SECURITY_ADMIN_PASSWORD`.
 
 ## Optional Integrations
 
@@ -216,40 +203,17 @@ Recommended role split:
 - `AI_CHAT_COMPRESSION_MODEL`: 长对话摘要、压缩历史上下文的低成本模型
 - `AI_EMBEDDING_MODEL`: RAG 检索向量化、知识库分片索引和查询向量生成
 
-Synthetic monitoring:
-
-```text
-SYNTHETIC_LOGIN_EMAIL
-SYNTHETIC_LOGIN_PASSWORD
-SYNTHETIC_CHECK_INTERVAL_MS
-SYNTHETIC_HTTP_TIMEOUT_MS
-```
-
-- `SYNTHETIC_LOGIN_EMAIL` / `SYNTHETIC_LOGIN_PASSWORD` are optional but strongly recommended for production monitoring.
-- Use a dedicated low-privilege real user account, not the admin account.
-- When credentials are absent, the synthetic exporter stays up and exposes
-  `configured=0` for those checks instead of crashing.
-
 ## Runtime Notes
 
 - `GET /api/v1/health` is a readiness alias, not a pure liveness check. It returns dependency detail in the normal API envelope and uses HTTP `503` when a critical dependency is down.
 - `GET /api/v1/health/live` stays cheap and process-only; use it for container liveness probes.
 - `GET /api/v1/health/ready` checks PostgreSQL plus Redis when `REDIS_URL` is configured. Without `REDIS_URL`, cache health reports `memory` fallback and remains non-critical.
 - `GET /api/v1/health/deep` keeps the same dependency checks but includes more explicit probe detail for diagnosis.
-- `GET /metrics` exposes Prometheus text format directly, stays outside `/api`, and is not wrapped by the `{ code, message, data }` envelope.
-- Production compose also runs:
-  - `prometheus`, scraping `app:3000/metrics` and `synthetic-monitor:9101/metrics`
-  - `grafana`, provisioning the default datasource and dashboard from repo path `monitoring/grafana/**`
-  - `synthetic-monitor`, executing real `auth_login` and `account_profile` checks on a timer
-  - `nginx`, terminating TLS and proxying public traffic to `app:3000`
-- Production deploy now expects a split layout:
-  - deploy assets at `/opt/lucent/releases/<git-sha>`
-  - stable deploy pointer at `/opt/lucent/releases/current`
-  - server-local runtime files at `/opt/lucent/runtime`
-- Server-side deploy uses `/opt/lucent/releases/current/docker-compose.yml` plus
-  `/opt/lucent/runtime/.deploy-image.env`:
-  - public service images can still come from explicit image refs
-  - the Lucent app container runs from the CI-built image pushed to the registry
+- Production compose only runs `postgres`, `redis`, `app`, and `nginx`.
+- Production deploy now uses a simple two-directory layout:
+  - app files at `/opt/lucent/app`
+  - local runtime files at `/opt/lucent/server`
+- Server-side deploy uses `/opt/lucent/app/deploy/docker-compose.yml` and `/opt/lucent/app/.env.compose`.
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect during app startup so contract generation does not require a live DB connection.
 - Production image must include `prisma.config.ts` together with `prisma/schema.prisma`; Prisma 7 `migrate deploy` reads the datasource URL from that config file inside the container.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development runtime.
@@ -264,4 +228,4 @@ SYNTHETIC_HTTP_TIMEOUT_MS
 
 ## CI/CD Boundary
 
-`.github/workflows/lucent-ci.yml` owns GitHub-side validation. `.github/workflows/lucent-cd.yml` owns production image build, TCR push, deploy-asset upload, and remote deployment. For server bootstrap and production deployment checks, use `tencent-cloud-cicd.md`.
+`.github/workflows/lucent-ci.yml` owns GitHub-side validation. `.github/workflows/lucent-cd.yml` owns production image build, TCR push, deploy-asset upload, and remote deployment. For server bootstrap and production deployment checks, use `deployment.md`.
