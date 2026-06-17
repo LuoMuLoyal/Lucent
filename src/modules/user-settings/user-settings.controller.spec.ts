@@ -63,6 +63,13 @@ function makeSettings(
   return {
     aiSummariesEnabled: true,
     dataSharingConsent: false,
+    aiChatEnabled: true,
+    aiChatContext: {
+      healthProfile: true,
+      dailyRecords: true,
+      sleepRecords: true,
+      currentMedicines: true,
+    },
     updatedAt: '2026-06-10T00:00:00.000Z',
     ...overrides,
   };

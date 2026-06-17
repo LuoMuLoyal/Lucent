@@ -11,6 +11,7 @@ import { TodayAnalysisGeneratorService } from './today-analysis-generator.servic
 import { TodayAnalysisPolicyService } from './today-analysis-policy.service';
 import type { TodayAnalysisStructuredOutput } from './today-analysis.schema';
 import type { StreamSummaryEvent } from '../../../common/stream-summary';
+import { USER_SETTING_KEYS } from '../../user-settings/user-settings.constants';
 
 interface PreparedTodayAnalysis {
   locale: string;
@@ -67,7 +68,7 @@ export class TodayAnalysisService {
     const setting = await this.prisma.userSetting.findFirst({
       where: {
         userId,
-        key: 'aiSummariesEnabled',
+        key: USER_SETTING_KEYS.aiSummariesEnabled,
       },
       select: {
         value: true,

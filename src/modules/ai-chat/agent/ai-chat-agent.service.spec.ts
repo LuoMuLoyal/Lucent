@@ -13,7 +13,9 @@ describe('AiChatAgentService', () => {
 
     expect(service.hasChatModel()).toBe(true);
     expect(service.describeFoundation()).toEqual({
+      phase: 'foundation',
       chatModelConfigured: true,
+      interactiveChatReady: false,
       langGraphReady: true,
       ragEnabled: false,
       graphNodeNames: ['prepare_context', 'respond'],
@@ -23,6 +25,7 @@ describe('AiChatAgentService', () => {
         'recent_sleep_summary',
         'current_medicines',
       ],
+      implementedToolNames: [],
       contextSources: [
         'health_profile',
         'daily_records',

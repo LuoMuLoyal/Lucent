@@ -17,6 +17,7 @@ import { ReportsComputationService } from '../dashboard/reports-computation.serv
 import { ReportsContextService } from '../dashboard/reports-context.service';
 import type { ReportSummaryStructuredOutput } from './report-summary.schema';
 import type { StreamSummaryEvent } from '../../../common/stream-summary';
+import { USER_SETTING_KEYS } from '../../user-settings/user-settings.constants';
 
 interface PreparedReportSummary {
   locale: string;
@@ -74,7 +75,7 @@ export class ReportsAiSummaryService {
     const setting = await this.prisma.userSetting.findFirst({
       where: {
         userId,
-        key: 'aiSummariesEnabled',
+        key: USER_SETTING_KEYS.aiSummariesEnabled,
       },
       select: {
         value: true,

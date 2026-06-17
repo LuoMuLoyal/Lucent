@@ -1,6 +1,6 @@
 # Mine And Settings Contract
 
-Last updated: 2026-06-15
+Last updated: 2026-06-17
 
 ## Summary
 
@@ -53,6 +53,13 @@ Both require authentication (`Bearer` token).
 interface UserSettingsDto {
   aiSummariesEnabled: boolean; // allow AI-generated summaries/advice
   dataSharingConsent: boolean; // consent to share anonymized data for research
+  aiChatEnabled: boolean; // allow the user to use the AI chat feature
+  aiChatContext: {
+    healthProfile: boolean; // allow AI chat to read profile/allergies/conditions
+    dailyRecords: boolean; // allow AI chat to read recent daily records
+    sleepRecords: boolean; // allow AI chat to read sleep records/summaries
+    currentMedicines: boolean; // allow AI chat to read medicine-box/current medicines
+  };
   updatedAt: string; // ISO-8601
 }
 ```
@@ -63,6 +70,13 @@ interface UserSettingsDto {
 interface UpdateUserSettingsDto {
   aiSummariesEnabled?: boolean;
   dataSharingConsent?: boolean;
+  aiChatEnabled?: boolean;
+  aiChatContext?: {
+    healthProfile?: boolean;
+    dailyRecords?: boolean;
+    sleepRecords?: boolean;
+    currentMedicines?: boolean;
+  };
 }
 ```
 
@@ -250,6 +264,8 @@ model DataExportRequest {
   instead of hardcoded entries.
 - Settings privacy rows should read from `GET /api/v1/user/settings` and write
   through `PATCH /api/v1/user/settings`.
+- AI chat settings UI should also treat `GET /api/v1/user/ai-chat/capabilities`
+  as the server source of truth for what is merely permitted vs truly executable.
 - Settings reminder summary rows should read from device notification controller
   state, not from hardcoded "Enabled" labels.
 - Export row should POST the desired export kind/format/range and show the latest status from GET.

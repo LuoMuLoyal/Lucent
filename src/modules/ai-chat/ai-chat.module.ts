@@ -1,10 +1,14 @@
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
+import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { AiChatAgentService } from './agent/ai-chat-agent.service';
+import { AiChatController } from './ai-chat.controller';
 import { AiChatService } from './ai-chat.service';
 
 @Module({
-  imports: [LlmRuntimeModule],
+  imports: [AuthModule, LlmRuntimeModule, UserSettingsModule],
+  controllers: [AiChatController],
   providers: [AiChatAgentService, AiChatService],
   exports: [AiChatAgentService, AiChatService],
 })

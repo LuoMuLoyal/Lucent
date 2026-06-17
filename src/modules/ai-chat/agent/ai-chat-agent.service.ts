@@ -26,11 +26,14 @@ export class AiChatAgentService {
 
   describeFoundation(): AiChatFoundationCapabilities {
     return {
+      phase: 'foundation',
       chatModelConfigured: this.hasChatModel(),
+      interactiveChatReady: false,
       langGraphReady: true,
       ragEnabled: false,
       graphNodeNames: AI_CHAT_FOUNDATION_NODE_NAMES,
       toolNames: AI_CHAT_TOOL_NAMES,
+      implementedToolNames: [],
       contextSources: AI_CHAT_CONTEXT_SOURCES,
     };
   }

@@ -8,6 +8,7 @@ import { ARGON2_OPTIONS } from '../auth/argon2-options';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../generated/prisma/client';
 import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';
+import { listDefaultBooleanUserSettings } from '../user-settings/user-settings.constants';
 
 const DEFAULT_RECORD_LANE_NICKNAME = 'E2E Record Lane';
 
@@ -84,22 +85,24 @@ export class TestingSupportService {
         dto.date,
       );
 
-      await tx.userSetting.upsert({
-        where: {
-          userId_key: {
-            userId: user.id,
-            key: 'aiSummariesEnabled',
+      for (const setting of listDefaultBooleanUserSettings()) {
+        await tx.userSetting.upsert({
+          where: {
+            userId_key: {
+              userId: user.id,
+              key: setting.key,
+            },
           },
-        },
-        create: {
-          userId: user.id,
-          key: 'aiSummariesEnabled',
-          value: true,
-        },
-        update: {
-          value: true,
-        },
-      });
+          create: {
+            userId: user.id,
+            key: setting.key,
+            value: setting.value,
+          },
+          update: {
+            value: setting.value,
+          },
+        });
+      }
 
       await tx.userSession.deleteMany({
         where: { userId: user.id },

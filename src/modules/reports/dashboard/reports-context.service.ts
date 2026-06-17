@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DoseLogStatus } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { USER_SETTING_KEYS } from '../../user-settings/user-settings.constants';
 import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
@@ -22,7 +23,7 @@ export class ReportsContextService {
 
     const [settings, doseLogs, dailyRecords] = await Promise.all([
       this.prisma.userSetting.findFirst({
-        where: { userId, key: 'aiSummariesEnabled' },
+        where: { userId, key: USER_SETTING_KEYS.aiSummariesEnabled },
         select: { value: true },
       }),
       this.prisma.userMedicineDoseLog.findMany({

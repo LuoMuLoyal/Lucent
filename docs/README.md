@@ -15,6 +15,7 @@ This directory keeps backend runtime, deployment, generated-contract, and shared
 | `public/reminder-contract.md`      | Reminder/notification backend-vs-device boundary                                     | UI implementation details             |
 | `public/environment-contract.md`   | Environment snapshot API boundary                                                    | More-tab or generic utility plans     |
 | `public/mine-settings-contract.md` | Mine/Settings API boundary (user settings, support resources, app info, data export) | UI implementation details             |
+| `public/ai-chat-contract.md`       | AI chat capability/permission boundary and rollout truth                             | Prompt drafts or temporary plans      |
 | `TODO.md`                          | Active deferred backend follow-up items                                              | Historical changelog narrative        |
 
 Product direction is owned by workspace path `Luminous/docs/Product_Vision.md`.
@@ -30,6 +31,7 @@ Product direction is owned by workspace path `Luminous/docs/Product_Vision.md`.
 | Reminder schedule/preference contract                          | `public/reminder-contract.md`                               |
 | Environment snapshot contract                                  | `public/environment-contract.md`                            |
 | Mine/Settings contract                                         | `public/mine-settings-contract.md`                          |
+| AI chat capability / permission contract                       | `public/ai-chat-contract.md`                                |
 | Deferred backend follow-up list                                | `TODO.md`                                                   |
 | Lucent API code                                                | Run `pnpm export:openapi` and keep `openapi.json` generated |
 
