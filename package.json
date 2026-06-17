@@ -44,6 +44,7 @@
     "@babel/plugin-syntax-import-assertions": "7.29.7",
     "@fontpkg/source-han-sans-sc-vf": "^2.5.3",
     "@langchain/core": "1.1.48",
+    "@langchain/langgraph": "1.4.2",
     "@langchain/openai": "1.4.7",
     "@nestjs/cache-manager": "^3.1.2",
     "@nestjs/common": "^11.0.1",

@@ -26,7 +26,7 @@ pnpm export:openapi
 - Passport JWT
 - WeChat Web / Mobile OAuth login
 - OpenAPI-generated client/docs
-- LangChain-based AI integration foundation
+- LangChain / LangGraph-based AI integration foundation
 
 ## Local Development
 
