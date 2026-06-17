@@ -4,25 +4,27 @@ Last updated: 2026-06-17
 
 ## Summary
 
-This contract defines the first backend-visible AI chat foundation that Luminous
-can rely on before a real end-user chat conversation route ships.
+This contract defines the first real backend-visible AI chat surface that
+Luminous can rely on.
 
 The current contract is intentionally about:
 
 - capability discovery
 - permission discovery
 - rollout truthfulness
+- bounded streaming chat execution
 
-It is not yet a real chat-message execution contract.
+It is not yet a tool-executing or RAG-enabled chat contract.
 
 ## Boundary
 
-- **Lucent provides:** the authoritative AI chat foundation status, user-level chat
-  permissions, declared tool inventory, and whether each tool is actually usable.
-- **Luminous consumes:** feature gating, settings UI, and future chat-page behavior
+- **Lucent provides:** the authoritative AI chat foundation status, user-level
+  chat permissions, declared tool inventory, whether each tool is actually
+  usable, and one authenticated SSE chat reply route.
+- **Luminous consumes:** feature gating, settings UI, and chat-page behavior
   based on server truth instead of client guesses.
-- **Lucent does not yet provide:** a real message-send or response-stream route in
-  this contract step.
+- **Lucent does not yet provide:** real server-side tool execution, RAG, or
+  multi-turn persisted memory in this contract step.
 
 ## API Surface
 
@@ -76,6 +78,68 @@ interface AiChatToolCapabilityDto {
 }
 ```
 
+### 2. AI Chat Stream
+
+**Endpoint:** `POST /api/v1/user/ai-chat/messages/stream`
+
+Authenticated (`Bearer` token). Transport is SSE.
+
+**Request body:**
+
+```typescript
+interface StreamAiChatMessagesDto {
+  messages: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
+}
+```
+
+Rules:
+
+- `messages.length` is currently bounded to `1..20`
+- each `content` is currently bounded to `1..8000` characters
+- the last message must be a `user` message
+- `system` messages are not accepted from the client
+
+**SSE events:**
+
+```typescript
+type AiChatStreamEvent =
+  | {
+      event: 'chunk';
+      data: { content: string };
+    }
+  | {
+      event: 'result';
+      data: {
+        role: 'assistant';
+        content: string;
+        usedTools: string[];
+        generatedAt: string;
+      };
+    }
+  | {
+      event: 'error';
+      data: {
+        message: string;
+        code?: number;
+        statusCode?: number;
+      };
+    }
+  | {
+      event: 'done';
+      data: {};
+    };
+```
+
+Current behavior:
+
+- Lucent streams plain assistant text chunks first
+- then emits one final assistant message payload
+- then emits `done`
+- if the request cannot proceed, Lucent emits `error` and closes the stream
+
 ## Relationship To User Settings
 
 AI chat permissions are persisted through `GET/PATCH /api/v1/user/settings`.
@@ -100,20 +164,25 @@ Capabilities combine:
 - current server foundation state
 - model/runtime availability
 - declared tool implementation state
+- stream-route readiness
 
 ## Current Truth
 
 - The orchestration foundation uses LangGraph.
-- The recommended future transport is SSE.
+- The active transport is SSE.
 - Markdown output is expected and should be rendered faithfully by the client.
 - RAG is not enabled yet.
-- Tool inventory is declared, but actual tool execution is not yet exposed as a
-  real interactive chat route in this contract step.
+- Tool inventory is declared and permission-aware, but actual server-side tool
+  execution is not yet wired into the interactive chat route.
+- The current stream route is still a bounded assistant reply path, not a full
+  agent runtime.
 
 ## Explicit Non-Goals
 
-1. No real chat send/stream endpoint yet.
-2. No leaflet RAG yet.
-3. No pgvector dependency yet.
-4. No client-side authority over tool availability.
-5. No AI-based medicine-risk judgment beyond the reviewed existing rule engine.
+1. No leaflet RAG yet.
+2. No pgvector dependency yet.
+3. No client-side authority over tool availability.
+4. No AI-based medicine-risk judgment beyond the reviewed existing rule engine.
+5. No persisted multi-turn memory yet.
+6. No real server-side tool invocation yet, even though the permission/policy
+   boundary is already exposed.

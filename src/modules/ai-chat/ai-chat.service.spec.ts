@@ -1,5 +1,11 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { UserSettingsService } from '../user-settings/user-settings.service';
 import type { AiChatAgentService } from './agent/ai-chat-agent.service';
+import type { AiChatPolicyService } from './ai-chat-policy.service';
 import { AiChatService } from './ai-chat.service';
 
 describe('AiChatService', () => {
@@ -8,7 +14,7 @@ describe('AiChatService', () => {
       describeFoundation: jest.fn().mockReturnValue({
         phase: 'foundation',
         chatModelConfigured: true,
-        interactiveChatReady: false,
+        interactiveChatReady: true,
         langGraphReady: true,
         ragEnabled: false,
         graphNodeNames: ['prepare_context', 'respond'],
@@ -43,11 +49,46 @@ describe('AiChatService', () => {
       }),
     } as unknown as UserSettingsService;
 
-    const service = new AiChatService(aiChatAgentService, userSettingsService);
+    const aiChatPolicyService = {
+      evaluate: jest.fn().mockReturnValue({
+        interactiveChatReady: false,
+        enabledContextSources: ['health_profile', 'sleep_records'],
+        contextPermittedToolNames: [
+          'health_context_snapshot',
+          'recent_sleep_summary',
+        ],
+        executableToolNames: [],
+        toolCapabilities: [
+          {
+            name: 'health_context_snapshot',
+            requiredContextSources: ['health_profile'],
+            permittedByUser: true,
+            implemented: false,
+            enabled: false,
+            disabledReason: 'not_implemented',
+          },
+          {
+            name: 'recent_daily_records',
+            requiredContextSources: ['daily_records'],
+            permittedByUser: false,
+            implemented: false,
+            enabled: false,
+            disabledReason: 'context_disabled',
+          },
+        ],
+      }),
+    } as unknown as AiChatPolicyService;
+
+    const service = new AiChatService(
+      aiChatAgentService,
+      userSettingsService,
+      aiChatPolicyService,
+    );
     const capabilities = await service.getCapabilities('user-1');
 
     expect(capabilities.phase).toBe('foundation');
     expect(capabilities.aiChatEnabled).toBe(true);
+    expect(capabilities.interactiveChatReady).toBe(false);
     expect(capabilities.tools).toEqual([
       {
         name: 'health_context_snapshot',
@@ -65,22 +106,277 @@ describe('AiChatService', () => {
         enabled: false,
         disabledReason: 'context_disabled',
       },
-      {
-        name: 'recent_sleep_summary',
-        requiredContextSources: ['sleep_records'],
-        permittedByUser: true,
-        implemented: false,
-        enabled: false,
-        disabledReason: 'not_implemented',
-      },
-      {
-        name: 'current_medicines',
-        requiredContextSources: ['current_medicines'],
-        permittedByUser: true,
-        implemented: false,
-        enabled: false,
-        disabledReason: 'not_implemented',
-      },
     ]);
+  });
+
+  it('streams a chat reply with executable tools only', async () => {
+    const planConversation = jest.fn().mockResolvedValue({
+      allowedTools: ['health_context_snapshot', 'recent_daily_records'],
+      route: 'respond',
+    });
+    const generateStream = jest.fn().mockResolvedValue({
+      content: 'Hello there',
+      usedToolNames: [],
+    });
+
+    const aiChatAgentService = {
+      describeFoundation: jest.fn().mockReturnValue({
+        phase: 'foundation',
+        chatModelConfigured: true,
+        interactiveChatReady: true,
+        langGraphReady: true,
+        ragEnabled: false,
+        graphNodeNames: ['prepare_context', 'respond'],
+        toolNames: [
+          'health_context_snapshot',
+          'recent_daily_records',
+          'recent_sleep_summary',
+          'current_medicines',
+        ],
+        implementedToolNames: ['health_context_snapshot'],
+        contextSources: [
+          'health_profile',
+          'daily_records',
+          'sleep_records',
+          'current_medicines',
+        ],
+      }),
+      planConversation,
+      generateStream,
+    } as unknown as AiChatAgentService;
+
+    const userSettingsService = {
+      getSettings: jest.fn().mockResolvedValue({
+        aiSummariesEnabled: true,
+        dataSharingConsent: false,
+        aiChatEnabled: true,
+        aiChatContext: {
+          healthProfile: true,
+          dailyRecords: false,
+          sleepRecords: true,
+          currentMedicines: true,
+        },
+        updatedAt: '2026-06-17T12:00:00.000Z',
+      }),
+    } as unknown as UserSettingsService;
+
+    const aiChatPolicyService = {
+      evaluate: jest.fn().mockReturnValue({
+        interactiveChatReady: true,
+        enabledContextSources: ['health_profile', 'sleep_records'],
+        contextPermittedToolNames: [
+          'health_context_snapshot',
+          'recent_sleep_summary',
+        ],
+        executableToolNames: ['health_context_snapshot'],
+        toolCapabilities: [],
+      }),
+    } as unknown as AiChatPolicyService;
+
+    const service = new AiChatService(
+      aiChatAgentService,
+      userSettingsService,
+      aiChatPolicyService,
+    );
+    const onChunk = jest.fn();
+
+    const result = await service.streamMessages(
+      'user-1',
+      {
+        messages: [
+          { role: 'assistant', content: 'Earlier summary' },
+          { role: 'user', content: 'What should I do next?' },
+        ],
+      },
+      'en-US',
+      onChunk,
+    );
+
+    expect(result.role).toBe('assistant');
+    expect(result.content).toBe('Hello there');
+    expect(planConversation).toHaveBeenCalledWith({
+      userId: 'user-1',
+      userMessage: 'What should I do next?',
+      locale: 'en',
+      enabledContextSources: ['health_profile', 'sleep_records'],
+    });
+    expect(generateStream).toHaveBeenCalledWith(
+      {
+        locale: 'en',
+        messages: [
+          { role: 'assistant', content: 'Earlier summary' },
+          { role: 'user', content: 'What should I do next?' },
+        ],
+        allowedTools: ['health_context_snapshot'],
+      },
+      onChunk,
+    );
+  });
+
+  it('rejects when chat is disabled by user settings', async () => {
+    const aiChatAgentService = {
+      describeFoundation: jest.fn().mockReturnValue({
+        phase: 'foundation',
+        chatModelConfigured: true,
+        interactiveChatReady: true,
+        langGraphReady: true,
+        ragEnabled: false,
+        graphNodeNames: ['prepare_context', 'respond'],
+        toolNames: [],
+        implementedToolNames: [],
+        contextSources: [],
+      }),
+    } as unknown as AiChatAgentService;
+
+    const userSettingsService = {
+      getSettings: jest.fn().mockResolvedValue({
+        aiSummariesEnabled: true,
+        dataSharingConsent: false,
+        aiChatEnabled: false,
+        aiChatContext: {
+          healthProfile: true,
+          dailyRecords: true,
+          sleepRecords: true,
+          currentMedicines: true,
+        },
+        updatedAt: '2026-06-17T12:00:00.000Z',
+      }),
+    } as unknown as UserSettingsService;
+
+    const aiChatPolicyService = {
+      evaluate: jest.fn().mockReturnValue({
+        interactiveChatReady: false,
+        enabledContextSources: [
+          'health_profile',
+          'daily_records',
+          'sleep_records',
+          'current_medicines',
+        ],
+        contextPermittedToolNames: [],
+        executableToolNames: [],
+        toolCapabilities: [],
+      }),
+    } as unknown as AiChatPolicyService;
+
+    const service = new AiChatService(
+      aiChatAgentService,
+      userSettingsService,
+      aiChatPolicyService,
+    );
+
+    await expect(
+      service.streamMessages(
+        'user-1',
+        {
+          messages: [{ role: 'user', content: 'Hi' }],
+        },
+        'zh-CN',
+        jest.fn(),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('rejects when chat model is not configured', async () => {
+    const aiChatAgentService = {
+      describeFoundation: jest.fn().mockReturnValue({
+        phase: 'foundation',
+        chatModelConfigured: false,
+        interactiveChatReady: false,
+        langGraphReady: true,
+        ragEnabled: false,
+        graphNodeNames: ['prepare_context', 'respond'],
+        toolNames: [],
+        implementedToolNames: [],
+        contextSources: [],
+      }),
+    } as unknown as AiChatAgentService;
+
+    const userSettingsService = {
+      getSettings: jest.fn().mockResolvedValue({
+        aiSummariesEnabled: true,
+        dataSharingConsent: false,
+        aiChatEnabled: true,
+        aiChatContext: {
+          healthProfile: true,
+          dailyRecords: true,
+          sleepRecords: true,
+          currentMedicines: true,
+        },
+        updatedAt: '2026-06-17T12:00:00.000Z',
+      }),
+    } as unknown as UserSettingsService;
+
+    const aiChatPolicyService = {
+      evaluate: jest.fn().mockReturnValue({
+        interactiveChatReady: false,
+        enabledContextSources: [
+          'health_profile',
+          'daily_records',
+          'sleep_records',
+          'current_medicines',
+        ],
+        contextPermittedToolNames: [],
+        executableToolNames: [],
+        toolCapabilities: [],
+      }),
+    } as unknown as AiChatPolicyService;
+
+    const service = new AiChatService(
+      aiChatAgentService,
+      userSettingsService,
+      aiChatPolicyService,
+    );
+
+    await expect(
+      service.streamMessages(
+        'user-1',
+        {
+          messages: [{ role: 'user', content: 'Hi' }],
+        },
+        'en-US',
+        jest.fn(),
+      ),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it('rejects when the last message is not a user message', async () => {
+    const aiChatAgentService = {
+      describeFoundation: jest.fn().mockReturnValue({
+        phase: 'foundation',
+        chatModelConfigured: true,
+        interactiveChatReady: true,
+        langGraphReady: true,
+        ragEnabled: false,
+        graphNodeNames: ['prepare_context', 'respond'],
+        toolNames: [],
+        implementedToolNames: [],
+        contextSources: [],
+      }),
+    } as unknown as AiChatAgentService;
+
+    const userSettingsService = {
+      getSettings: jest.fn(),
+    } as unknown as UserSettingsService;
+
+    const aiChatPolicyService = {
+      evaluate: jest.fn(),
+    } as unknown as AiChatPolicyService;
+
+    const service = new AiChatService(
+      aiChatAgentService,
+      userSettingsService,
+      aiChatPolicyService,
+    );
+
+    await expect(
+      service.streamMessages(
+        'user-1',
+        {
+          messages: [{ role: 'assistant', content: 'Hi' }],
+        },
+        'zh-CN',
+        jest.fn(),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

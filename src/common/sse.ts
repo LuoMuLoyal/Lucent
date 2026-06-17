@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 
-export type SseEventName = 'summary' | 'result' | 'error' | 'done';
+export type SseEventName = 'summary' | 'chunk' | 'result' | 'error' | 'done';
 
 export interface SseMessage<T = unknown> {
   event: SseEventName;

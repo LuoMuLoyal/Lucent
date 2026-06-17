@@ -1,3 +1,4 @@
+import { AIMessageChunk } from '@langchain/core/messages';
 import type { LlmRuntimeService } from '../../llm-runtime/llm-runtime.service';
 import { AiChatAgentService } from './ai-chat-agent.service';
 
@@ -15,7 +16,7 @@ describe('AiChatAgentService', () => {
     expect(service.describeFoundation()).toEqual({
       phase: 'foundation',
       chatModelConfigured: true,
-      interactiveChatReady: false,
+      interactiveChatReady: true,
       langGraphReady: true,
       ragEnabled: false,
       graphNodeNames: ['prepare_context', 'respond'],
@@ -33,5 +34,39 @@ describe('AiChatAgentService', () => {
         'current_medicines',
       ],
     });
+  });
+
+  it('streams assistant chunks into one final message', async () => {
+    async function* buildStream() {
+      await Promise.resolve();
+      yield new AIMessageChunk({ content: 'Hello' });
+      yield new AIMessageChunk({ content: ' world' });
+    }
+
+    const llmRuntimeService = {
+      hasRoleConfig: jest.fn().mockReturnValue(true),
+      createChatModel: jest.fn().mockReturnValue({
+        stream: jest.fn().mockResolvedValue(buildStream()),
+      }),
+    } as unknown as LlmRuntimeService;
+
+    const service = new AiChatAgentService(llmRuntimeService);
+    const onChunk = jest.fn();
+
+    const result = await service.generateStream(
+      {
+        locale: 'en',
+        messages: [{ role: 'user', content: 'Hi' }],
+        allowedTools: [],
+      },
+      onChunk,
+    );
+
+    expect(result).toEqual({
+      content: 'Hello world',
+      usedToolNames: [],
+    });
+    expect(onChunk).toHaveBeenNthCalledWith(1, { content: 'Hello' });
+    expect(onChunk).toHaveBeenNthCalledWith(2, { content: ' world' });
   });
 });

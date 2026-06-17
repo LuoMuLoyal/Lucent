@@ -1,16 +1,48 @@
 import type {
   AiChatContextSource,
+  AiChatToolDisabledReason,
   AiChatToolName,
 } from './tools/ai-chat-tool.types';
 
 export interface AiChatFoundationCapabilities {
   phase: 'foundation';
   chatModelConfigured: boolean;
-  interactiveChatReady: false;
-  langGraphReady: true;
-  ragEnabled: false;
+  interactiveChatReady: boolean;
+  langGraphReady: boolean;
+  ragEnabled: boolean;
   graphNodeNames: readonly string[];
   toolNames: readonly AiChatToolName[];
   implementedToolNames: readonly AiChatToolName[];
   contextSources: readonly AiChatContextSource[];
+}
+
+export interface AiChatToolCapabilitySnapshot {
+  name: AiChatToolName;
+  requiredContextSources: AiChatContextSource[];
+  permittedByUser: boolean;
+  implemented: boolean;
+  enabled: boolean;
+  disabledReason: AiChatToolDisabledReason | null;
+}
+
+export interface AiChatPolicySnapshot {
+  interactiveChatReady: boolean;
+  enabledContextSources: AiChatContextSource[];
+  contextPermittedToolNames: AiChatToolName[];
+  executableToolNames: AiChatToolName[];
+  toolCapabilities: AiChatToolCapabilitySnapshot[];
+}
+
+export interface AiChatConversationMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AiChatStreamChunkEvent {
+  content: string;
+}
+
+export interface AiChatAssistantMessageResult {
+  content: string;
+  usedToolNames: AiChatToolName[];
 }
