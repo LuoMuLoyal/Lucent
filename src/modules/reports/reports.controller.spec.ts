@@ -6,7 +6,7 @@ import {
   type ReportDashboardDataDto,
   type ReportSummaryDataDto,
 } from './dto';
-import { ReportsAiSummaryService } from './ai-summary/reports-ai-summary.service';
+import { ReportsAiSummaryService } from './services/reports-ai-summary.service';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './dashboard/reports.service';
 

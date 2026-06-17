@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
-import { TodayAnalysisService } from './analysis/today-analysis.service';
+import { TodayAnalysisService } from './services/today-analysis.service';
 import type { TodayAnalysisDataDto } from './dto';
 import { TodayAnalysisController } from './today-analysis.controller';
 

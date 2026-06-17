@@ -30,7 +30,7 @@ import {
   ReportSummaryResponseDto,
   ReportSummaryStreamResultDto,
 } from './dto';
-import { ReportsAiSummaryService } from './ai-summary/reports-ai-summary.service';
+import { ReportsAiSummaryService } from './services/reports-ai-summary.service';
 import { ReportsService } from './dashboard/reports.service';
 
 @ApiTags('Reports')

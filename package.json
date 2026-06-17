@@ -31,12 +31,12 @@
     "db:migrate": "pnpm exec prisma generate && cross-env NODE_ENV=development pnpm exec prisma migrate deploy && cross-env NODE_ENV=test pnpm exec prisma migrate deploy",
     "test:runtime:start": "node scripts/dev/start-test-runtime.ts",
     "test:runtime:stop": "node scripts/dev/stop-test-runtime.ts",
-    "import:medicine:all": "node scripts/dev/import-medicine-datasets.ts",
+    "import:medicine:all": "node scripts/import/medicine/import-medicine-datasets.ts",
     "test": "cross-env NODE_ENV=test jest",
     "test:ci": "cross-env NODE_ENV=test jest --runInBand",
     "test:e2e": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json",
     "test:e2e:ci": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand",
-    "export:openapi": "pnpm build && cross-env NODE_ENV=development node scripts/export-openapi.ts",
+    "export:openapi": "pnpm build && cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
     "prepare": "husky"
   },
   "dependencies": {

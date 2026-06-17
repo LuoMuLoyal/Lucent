@@ -139,8 +139,17 @@ LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLI
 
 - `src/modules/` contains business feature modules: auth, account, user, health context, daily records, dose logs, medicines.
 - Top-level `src/` keeps app bootstrap and infrastructure/runtime support: `common`, `config`, `generated`, `i18n`, `mail`, `prisma`.
-- `scripts/` contains a small set of local helpers for test runtime, deployment, OpenAPI export, and medicine import.
+- `scripts/` contains a small set of local helpers grouped by purpose:
+  - `scripts/dev/` for local runtime helpers
+  - `scripts/contract/` for contract export helpers
+  - `scripts/import/medicine/` for medicine data import helpers and Python parsers
 - `deploy/` contains production deployment assets: compose file, remote deploy CLI, and Nginx config.
+- `test/e2e/` groups e2e specs by feature instead of keeping every suite flat at `test/`.
+- AI-oriented modules now use a clearer inner split when the capability is larger than plain DTO/controller code:
+  - `prompts/`
+  - `schemas/`
+  - `services/`
+  - plus module-specific folders such as `agent/` or `tools/` when needed
 
 ## Deployment Model
 

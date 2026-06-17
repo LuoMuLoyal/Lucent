@@ -31,7 +31,7 @@ Recommended local preparation:
 
 1. `pnpm dev:stack`
 2. `pnpm db:migrate`
-3. `pip install -r scripts/medicine/requirements.txt` if the Chinese source is still `.xlsx`
+3. `pip install -r scripts/import/medicine/requirements.txt` if the Chinese source is still `.xlsx`
 
 Default scripted import order:
 
@@ -56,7 +56,7 @@ Why this order:
 Smoke-test example:
 
 ```powershell
-node scripts/dev/import-medicine-datasets.ts --limit 20 --with-hash
+node scripts/import/medicine/import-medicine-datasets.ts --limit 20 --with-hash
 ```
 
 Useful options:
@@ -72,7 +72,7 @@ Import batches are deduplicated by the target table conflict key before upsert. 
 
 Chinese source note:
 
-- `scripts/medicine/parsers/cn_products.py` supports both `.xlsx` and `.csv`.
+- `scripts/import/medicine/parsers/cn_products.py` supports both `.xlsx` and `.csv`.
 - If `openpyxl` is not available, export `FullDrugDetail.xlsx` sheet `总的` to CSV and pass `--source` / `-Command cn-products` with that CSV path.
 
 ## Medicine Data Strategy

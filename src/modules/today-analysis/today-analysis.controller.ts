@@ -20,7 +20,7 @@ import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.dec
 import { type UserPayload } from '../auth/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TodayAnalysisService } from './analysis/today-analysis.service';
+import { TodayAnalysisService } from './services/today-analysis.service';
 import {
   GenerateTodayAnalysisDto,
   TodayAnalysisResponseDto,

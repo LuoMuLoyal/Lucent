@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
-import { TodayAnalysisCopyService } from './analysis/today-analysis-copy.service';
+import { TodayAnalysisCopyService } from './services/today-analysis-copy.service';
 import { TodayAnalysisController } from './today-analysis.controller';
-import { TodayAnalysisContextService } from './analysis/today-analysis-context.service';
-import { TodayAnalysisGeneratorService } from './analysis/today-analysis-generator.service';
-import { TodayAnalysisPolicyService } from './analysis/today-analysis-policy.service';
-import { TodayAnalysisService } from './analysis/today-analysis.service';
+import { TodayAnalysisContextService } from './services/today-analysis-context.service';
+import { TodayAnalysisGeneratorService } from './services/today-analysis-generator.service';
+import { TodayAnalysisPolicyService } from './services/today-analysis-policy.service';
+import { TodayAnalysisService } from './services/today-analysis.service';
 
 @Module({
   imports: [LlmRuntimeModule],

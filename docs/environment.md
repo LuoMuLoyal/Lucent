@@ -78,6 +78,13 @@ pnpm start:dev
 | `pnpm import:medicine:all`      | Default medicine knowledge import sequence                                     |
 | `pnpm deploy:smoke`             | Post-deploy smoke check for running services and health endpoints              |
 
+Repo helper layout:
+
+- `scripts/dev/`: local runtime helpers such as test runtime start/stop and local stack bootstrap
+- `scripts/contract/`: contract export helpers such as OpenAPI generation
+- `scripts/import/medicine/`: medicine import entrypoints, fixtures, and Python parsers
+- `test/e2e/`: feature-grouped e2e suites
+
 Local helper scripts:
 
 - `pnpm test:runtime:start`
