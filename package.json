@@ -23,6 +23,7 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"src/generated/**\" --fix",
     "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"src/generated/**\" --max-warnings=0",
     "deploy:assets:check": "node deploy/validate-assets.ts",
+    "deploy:smoke": "node deploy/post-deploy-smoke.ts",
     "deploy:server": "node deploy/deploy-server.ts",
     "dev:stack": "node scripts/dev/up-local-stack.ts",
     "db:migrate:dev": "cross-env NODE_ENV=development pnpm exec prisma migrate deploy",

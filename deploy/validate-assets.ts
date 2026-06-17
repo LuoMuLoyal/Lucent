@@ -6,6 +6,7 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 const requiredPaths = [
   'deploy/docker-compose.yml',
   'deploy/deploy-server.ts',
+  'deploy/post-deploy-smoke.ts',
   'deploy/nginx/nginx.conf',
 ];
 

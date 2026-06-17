@@ -1,6 +1,6 @@
 # Lucent Deployment
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
 这份文档只保留当前简化后的生产部署模型。
 
@@ -17,6 +17,7 @@ Last updated: 2026-06-16
   - 由 GitHub Actions 覆盖上传
   - 包含 `deploy/docker-compose.yml`
   - 包含 `deploy/deploy-server.ts`
+  - 包含 `deploy/post-deploy-smoke.ts`
   - 包含 `deploy/validate-assets.ts`
   - 包含 `deploy/nginx/nginx.conf`
 - `/opt/lucent/server`
@@ -98,6 +99,49 @@ curl -k https://your-domain.example/api/v1/health/ready
 - `app`、`postgres`、`redis`、`nginx` 四个容器在运行
 - `/api/v1/health/ready` 返回 `200`
 - Nginx 能正常反代 HTTPS 请求
+
+## 部署后 Smoke Checklist
+
+进入服务器应用目录后，优先跑统一脚本，而不是手工记命令：
+
+```bash
+cd /opt/lucent/app
+LUCENT_APP_DIR=/opt/lucent/app \
+LUCENT_SERVER_DIR=/opt/lucent/server \
+LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain \
+pnpm deploy:smoke
+```
+
+这个脚本会检查：
+
+- `app / postgres / redis / nginx` 四个 compose service 都在 `running`
+- `http://127.0.0.1:3000/api/v1/health`
+- `http://127.0.0.1:3000/api/v1/health/live`
+- `http://127.0.0.1:3000/api/v1/health/ready`
+- 如果设置了 `LUCENT_PUBLIC_BASE_URL`，再检查一次公网 `https://.../api/v1/health/ready`
+
+如果你当前只有 IP 自签名证书，也可以这样跑：
+
+```bash
+cd /opt/lucent/app
+LUCENT_APP_DIR=/opt/lucent/app \
+LUCENT_SERVER_DIR=/opt/lucent/server \
+LUCENT_PUBLIC_BASE_URL=https://106.52.105.88 \
+pnpm deploy:smoke
+```
+
+脚本内部已经对公网检查使用 `curl -k`，不会因为自签名证书直接失败。
+
+## 演示前最低人工核查
+
+Smoke 通过后，再做一次人工核查：
+
+1. 打开移动端，确认 demo 账号能登录
+2. 确认 Today 可触发 AI 总结
+3. 确认 Medicine 风险检查页能打开
+4. 确认 Report 至少一条 PDF 导出请求能成功
+
+这部分前端基线见 `../Luminous/docs/MVP_Demo_Baseline.md`。
 
 ## GitHub Secrets
 

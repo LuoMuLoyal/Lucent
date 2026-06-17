@@ -129,6 +129,12 @@ pnpm check
 
 Use narrower commands while iterating, then run `pnpm check` before finishing a backend change. `pnpm build` does not type-check `**/*spec.ts` or `test/`; use `pnpm typecheck` when you need full TypeScript coverage for unit/e2e test files. Repo helper scripts under `scripts/` and deploy CLIs under `deploy/` use their own lighter TS projects; validate them with `pnpm typecheck:tools`.
 
+For deployed-MVP smoke after CD or manual server updates:
+
+```bash
+LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain pnpm deploy:smoke
+```
+
 ## Source Layout
 
 - `src/modules/` contains business feature modules: auth, account, user, health context, daily records, dose logs, medicines.

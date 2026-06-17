@@ -27,7 +27,7 @@ Keep durable implementation context in the owning code comments when the TODO is
 
 - Extend report export into:
   - optional async worker execution instead of request-thread generation
-  - stronger locale/layout polish for the PDF template if hospital-facing formatting becomes a product requirement
+  - richer structured sections or chart blocks if doctor-facing readability needs more than the current text-first PDF template
 
 ## Auth / Security
 

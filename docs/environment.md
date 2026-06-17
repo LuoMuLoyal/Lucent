@@ -1,6 +1,6 @@
 # Lucent Environment
 
-Last updated: 2026-06-16
+Last updated: 2026-06-17
 
 This file records Lucent runtime configuration, local stacks, scripts, and required variables. Production deployment steps live in `deployment.md`.
 
@@ -76,6 +76,7 @@ pnpm start:dev
 | `pnpm test:e2e:ci`              | E2E tests in CI with `--runInBand`                                             |
 | `pnpm export:openapi`           | Build then export `docs/openapi.json` from `dist`                              |
 | `pnpm import:medicine:all`      | Default medicine knowledge import sequence                                     |
+| `pnpm deploy:smoke`             | Post-deploy smoke check for running services and health endpoints              |
 
 Local helper scripts:
 
@@ -224,6 +225,7 @@ Recommended role split:
 - WeChat Web OAuth state is cached for 10 minutes. Desktop login may include a loopback callback URI in OAuth state.
 - Daily-record image uploads use presigned Tencent COS PUT URLs; clients upload directly to COS, then save returned attachment metadata on the daily record.
 - Report PDF exports also reuse Tencent COS. Lucent uploads the generated PDF from the server side, stores the COS object key in `data_export_requests`, and returns a short-lived signed GET URL through the latest export status API.
+- Generated report PDFs now include repeated page header/footer chrome, page numbers, and PDF metadata so exported files are usable outside the app as standalone documents.
 - Medicine search cache TTL is 5 minutes; medicine detail cache TTL is 15 minutes.
 - Frontend reads may send `x-bypass-cache: true` to bypass medicine read cache for one request.
 - `POST /api/v1/testing/fullstack-e2e/record-lane/prepare` exists only when Lucent runs with `NODE_ENV=test`. It is intentionally absent from normal development and production runtime, and is meant only to repair a dedicated full-stack test user plus clear that user's daily-record slice for one target date.
