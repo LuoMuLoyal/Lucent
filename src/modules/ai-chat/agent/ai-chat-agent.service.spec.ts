@@ -26,7 +26,12 @@ describe('AiChatAgentService', () => {
         'recent_sleep_summary',
         'current_medicines',
       ],
-      implementedToolNames: [],
+      implementedToolNames: [
+        'health_context_snapshot',
+        'recent_daily_records',
+        'recent_sleep_summary',
+        'current_medicines',
+      ],
       contextSources: [
         'health_profile',
         'daily_records',
@@ -58,6 +63,7 @@ describe('AiChatAgentService', () => {
         locale: 'en',
         messages: [{ role: 'user', content: 'Hi' }],
         allowedTools: [],
+        toolResults: [],
       },
       onChunk,
     );

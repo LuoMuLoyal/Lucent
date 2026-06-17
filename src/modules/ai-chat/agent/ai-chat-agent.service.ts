@@ -11,6 +11,7 @@ import type {
   AiChatAssistantMessageResult,
   AiChatConversationMessage,
   AiChatStreamChunkEvent,
+  AiChatToolExecutionResult,
 } from '../ai-chat.types';
 import {
   AI_CHAT_CONTEXT_SOURCES,
@@ -61,6 +62,7 @@ export class AiChatAgentService {
       locale: string;
       messages: AiChatConversationMessage[];
       allowedTools: readonly AiChatToolName[];
+      toolResults: readonly AiChatToolExecutionResult[];
     },
     onChunk: (event: AiChatStreamChunkEvent) => void | Promise<void>,
   ): Promise<AiChatAssistantMessageResult> {
@@ -69,7 +71,7 @@ export class AiChatAgentService {
       CHAT_MODEL_OPTIONS,
     );
     const stream = await model.stream(
-      this.buildMessages(input.messages, input.allowedTools),
+      this.buildMessages(input.messages, input.allowedTools, input.toolResults),
     );
 
     let content = '';
@@ -108,7 +110,7 @@ export class AiChatAgentService {
       ragEnabled: false,
       graphNodeNames: AI_CHAT_FOUNDATION_NODE_NAMES,
       toolNames: AI_CHAT_TOOL_NAMES,
-      implementedToolNames: [],
+      implementedToolNames: AI_CHAT_TOOL_NAMES,
       contextSources: AI_CHAT_CONTEXT_SOURCES,
     };
   }
@@ -116,6 +118,7 @@ export class AiChatAgentService {
   private buildMessages(
     messages: AiChatConversationMessage[],
     allowedTools: readonly AiChatToolName[],
+    _toolResults: readonly AiChatToolExecutionResult[],
   ) {
     return [
       new SystemMessage(buildAiChatSystemPrompt(allowedTools)),

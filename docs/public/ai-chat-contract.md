@@ -14,7 +14,7 @@ The current contract is intentionally about:
 - rollout truthfulness
 - bounded streaming chat execution
 
-It is not yet a tool-executing or RAG-enabled chat contract.
+It is not yet a free-form tool-calling or RAG-enabled chat contract.
 
 ## Boundary
 
@@ -23,8 +23,8 @@ It is not yet a tool-executing or RAG-enabled chat contract.
   usable, and one authenticated SSE chat reply route.
 - **Luminous consumes:** feature gating, settings UI, and chat-page behavior
   based on server truth instead of client guesses.
-- **Lucent does not yet provide:** real server-side tool execution, RAG, or
-  multi-turn persisted memory in this contract step.
+- **Lucent does not yet provide:** free-form model-driven tool calling, RAG,
+  or multi-turn persisted memory in this contract step.
 
 ## API Surface
 
@@ -135,6 +135,8 @@ type AiChatStreamEvent =
 
 Current behavior:
 
+- Lucent may execute a small server-approved tool subset before generation
+- those tool results are injected server-side into the model context
 - Lucent streams plain assistant text chunks first
 - then emits one final assistant message payload
 - then emits `done`
@@ -172,10 +174,10 @@ Capabilities combine:
 - The active transport is SSE.
 - Markdown output is expected and should be rendered faithfully by the client.
 - RAG is not enabled yet.
-- Tool inventory is declared and permission-aware, but actual server-side tool
-  execution is not yet wired into the interactive chat route.
+- Tool inventory is declared and permission-aware, and a small server-approved
+  subset is now executed before generation.
 - The current stream route is still a bounded assistant reply path, not a full
-  agent runtime.
+  model-driven tool-calling agent runtime.
 
 ## Explicit Non-Goals
 
@@ -184,5 +186,4 @@ Capabilities combine:
 3. No client-side authority over tool availability.
 4. No AI-based medicine-risk judgment beyond the reviewed existing rule engine.
 5. No persisted multi-turn memory yet.
-6. No real server-side tool invocation yet, even though the permission/policy
-   boundary is already exposed.
+6. No free-form model-driven tool invocation loop yet.

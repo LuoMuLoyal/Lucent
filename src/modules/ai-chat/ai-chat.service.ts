@@ -14,6 +14,8 @@ import type { AiChatFoundationCapabilities } from './ai-chat.types';
 import { AiChatAgentService } from './agent/ai-chat-agent.service';
 import { UserSettingsService } from '../user-settings/user-settings.service';
 import { AiChatPolicyService } from './ai-chat-policy.service';
+import { AiChatToolContextService } from './tools/ai-chat-tool-context.service';
+import { AiChatToolExecutor } from './tools/ai-chat-tool.executor';
 import type {
   AiChatConversationMessage,
   AiChatStreamChunkEvent,
@@ -25,6 +27,8 @@ export class AiChatService {
     private readonly aiChatAgentService: AiChatAgentService,
     private readonly userSettingsService: UserSettingsService,
     private readonly aiChatPolicyService: AiChatPolicyService,
+    private readonly aiChatToolExecutor: AiChatToolExecutor,
+    private readonly aiChatToolContextService: AiChatToolContextService,
   ) {}
 
   getFoundationCapabilities(): AiChatFoundationCapabilities {
@@ -86,14 +90,20 @@ export class AiChatService {
       locale,
       enabledContextSources: policy.enabledContextSources,
     });
-    const executableTools = plan.allowedTools.filter((toolName) =>
+    const executableTools = plan.selectedTools.filter((toolName) =>
       policy.executableToolNames.includes(toolName),
+    );
+    const toolResults = await this.aiChatToolExecutor.executeMany(
+      userId,
+      locale,
+      executableTools,
     );
     const result = await this.aiChatAgentService.generateStream(
       {
         locale,
-        messages,
+        messages: this.appendToolContextMessage(messages, toolResults),
         allowedTools: executableTools,
+        toolResults,
       },
       onChunk,
     );
@@ -113,6 +123,28 @@ export class AiChatService {
       role: message.role,
       content: message.content.trim(),
     }));
+  }
+
+  private appendToolContextMessage(
+    messages: AiChatConversationMessage[],
+    toolResults: Parameters<
+      AiChatToolContextService['buildToolContextBlock']
+    >[0],
+  ): AiChatConversationMessage[] {
+    const contextBlock =
+      this.aiChatToolContextService.buildToolContextBlock(toolResults);
+
+    if (contextBlock.length === 0) {
+      return messages;
+    }
+
+    return [
+      {
+        role: 'user',
+        content: contextBlock,
+      },
+      ...messages,
+    ];
   }
 
   private readLastUserMessage(

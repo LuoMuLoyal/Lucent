@@ -6,6 +6,8 @@ import {
 import type { UserSettingsService } from '../user-settings/user-settings.service';
 import type { AiChatAgentService } from './agent/ai-chat-agent.service';
 import type { AiChatPolicyService } from './ai-chat-policy.service';
+import type { AiChatToolContextService } from './tools/ai-chat-tool-context.service';
+import type { AiChatToolExecutor } from './tools/ai-chat-tool.executor';
 import { AiChatService } from './ai-chat.service';
 
 describe('AiChatService', () => {
@@ -78,11 +80,19 @@ describe('AiChatService', () => {
         ],
       }),
     } as unknown as AiChatPolicyService;
+    const aiChatToolExecutor = {
+      executeMany: jest.fn(),
+    } as unknown as AiChatToolExecutor;
+    const aiChatToolContextService = {
+      buildToolContextBlock: jest.fn().mockReturnValue(''),
+    } as unknown as AiChatToolContextService;
 
     const service = new AiChatService(
       aiChatAgentService,
       userSettingsService,
       aiChatPolicyService,
+      aiChatToolExecutor,
+      aiChatToolContextService,
     );
     const capabilities = await service.getCapabilities('user-1');
 
@@ -112,6 +122,7 @@ describe('AiChatService', () => {
   it('streams a chat reply with executable tools only', async () => {
     const planConversation = jest.fn().mockResolvedValue({
       allowedTools: ['health_context_snapshot', 'recent_daily_records'],
+      selectedTools: ['health_context_snapshot'],
       route: 'respond',
     });
     const generateStream = jest.fn().mockResolvedValue({
@@ -172,11 +183,28 @@ describe('AiChatService', () => {
         toolCapabilities: [],
       }),
     } as unknown as AiChatPolicyService;
+    const aiChatToolExecutor = {
+      executeMany: jest.fn().mockResolvedValue([
+        {
+          name: 'health_context_snapshot',
+          data: { summary: { activeAllergyCount: 1 } },
+        },
+      ]),
+    } as unknown as AiChatToolExecutor;
+    const aiChatToolContextService = {
+      buildToolContextBlock: jest
+        .fn()
+        .mockReturnValue(
+          'Server-approved user context tool results:\n- health_context_snapshot: {"summary":{"activeAllergyCount":1}}',
+        ),
+    } as unknown as AiChatToolContextService;
 
     const service = new AiChatService(
       aiChatAgentService,
       userSettingsService,
       aiChatPolicyService,
+      aiChatToolExecutor,
+      aiChatToolContextService,
     );
     const onChunk = jest.fn();
 
@@ -200,14 +228,30 @@ describe('AiChatService', () => {
       locale: 'en',
       enabledContextSources: ['health_profile', 'sleep_records'],
     });
+    expect(aiChatToolExecutor.executeMany).toHaveBeenCalledWith(
+      'user-1',
+      'en',
+      ['health_context_snapshot'],
+    );
     expect(generateStream).toHaveBeenCalledWith(
       {
         locale: 'en',
         messages: [
+          {
+            role: 'user',
+            content:
+              'Server-approved user context tool results:\n- health_context_snapshot: {"summary":{"activeAllergyCount":1}}',
+          },
           { role: 'assistant', content: 'Earlier summary' },
           { role: 'user', content: 'What should I do next?' },
         ],
         allowedTools: ['health_context_snapshot'],
+        toolResults: [
+          {
+            name: 'health_context_snapshot',
+            data: { summary: { activeAllergyCount: 1 } },
+          },
+        ],
       },
       onChunk,
     );
@@ -257,11 +301,19 @@ describe('AiChatService', () => {
         toolCapabilities: [],
       }),
     } as unknown as AiChatPolicyService;
+    const aiChatToolExecutor = {
+      executeMany: jest.fn(),
+    } as unknown as AiChatToolExecutor;
+    const aiChatToolContextService = {
+      buildToolContextBlock: jest.fn().mockReturnValue(''),
+    } as unknown as AiChatToolContextService;
 
     const service = new AiChatService(
       aiChatAgentService,
       userSettingsService,
       aiChatPolicyService,
+      aiChatToolExecutor,
+      aiChatToolContextService,
     );
 
     await expect(
@@ -320,11 +372,19 @@ describe('AiChatService', () => {
         toolCapabilities: [],
       }),
     } as unknown as AiChatPolicyService;
+    const aiChatToolExecutor = {
+      executeMany: jest.fn(),
+    } as unknown as AiChatToolExecutor;
+    const aiChatToolContextService = {
+      buildToolContextBlock: jest.fn().mockReturnValue(''),
+    } as unknown as AiChatToolContextService;
 
     const service = new AiChatService(
       aiChatAgentService,
       userSettingsService,
       aiChatPolicyService,
+      aiChatToolExecutor,
+      aiChatToolContextService,
     );
 
     await expect(
@@ -361,11 +421,19 @@ describe('AiChatService', () => {
     const aiChatPolicyService = {
       evaluate: jest.fn(),
     } as unknown as AiChatPolicyService;
+    const aiChatToolExecutor = {
+      executeMany: jest.fn(),
+    } as unknown as AiChatToolExecutor;
+    const aiChatToolContextService = {
+      buildToolContextBlock: jest.fn().mockReturnValue(''),
+    } as unknown as AiChatToolContextService;
 
     const service = new AiChatService(
       aiChatAgentService,
       userSettingsService,
       aiChatPolicyService,
+      aiChatToolExecutor,
+      aiChatToolContextService,
     );
 
     await expect(

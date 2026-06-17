@@ -46,3 +46,8 @@ export interface AiChatAssistantMessageResult {
   content: string;
   usedToolNames: AiChatToolName[];
 }
+
+export interface AiChatToolExecutionResult {
+  name: AiChatToolName;
+  data: Record<string, unknown>;
+}
