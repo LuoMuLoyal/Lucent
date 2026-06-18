@@ -17,10 +17,10 @@ Keep durable implementation context in the owning code comments when the TODO is
 - Decide the execution boundary for future AI workflows:
   - keep bounded linear pipelines for single-purpose flows
   - introduce a tool-capable orchestrator only when branching, retrieval, or multi-step tool use becomes real
-- AI chat phase 1 now uses a restricted LangGraph foundation:
+- Assistant phase 1 now uses a restricted LangGraph foundation:
   - keep tool availability enforced server-side
   - keep latest-conversation persistence intentionally narrow before expanding to multi-conversation management
-  - keep leaflet RAG / pgvector deferred until the base chat contract is stable
+  - keep leaflet RAG / pgvector deferred until the base assistant contract is stable
 
 ## Module Boundaries
 

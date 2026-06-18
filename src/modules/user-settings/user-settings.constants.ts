@@ -1,25 +1,25 @@
 export const USER_SETTING_KEYS = {
   aiSummariesEnabled: 'aiSummariesEnabled',
   dataSharingConsent: 'dataSharingConsent',
-  aiChatEnabled: 'aiChatEnabled',
-  aiChatMemoryEnabled: 'aiChatMemoryEnabled',
+  assistantEnabled: 'assistantEnabled',
+  assistantMemoryEnabled: 'assistantMemoryEnabled',
 } as const;
 
-export const AI_CHAT_CONTEXT_SETTING_KEYS = {
-  healthProfile: 'aiChatContext.healthProfile',
-  dailyRecords: 'aiChatContext.dailyRecords',
-  sleepRecords: 'aiChatContext.sleepRecords',
-  currentMedicines: 'aiChatContext.currentMedicines',
+export const ASSISTANT_CONTEXT_SETTING_KEYS = {
+  healthProfile: 'assistantContext.healthProfile',
+  dailyRecords: 'assistantContext.dailyRecords',
+  sleepRecords: 'assistantContext.sleepRecords',
+  currentMedicines: 'assistantContext.currentMedicines',
 } as const;
 
 export const USER_SETTINGS_DEFAULTS = {
   aiSummariesEnabled: true,
   dataSharingConsent: false,
-  aiChatEnabled: true,
-  aiChatMemoryEnabled: false,
+  assistantEnabled: true,
+  assistantMemoryEnabled: false,
 } as const;
 
-export const AI_CHAT_CONTEXT_DEFAULTS = {
+export const ASSISTANT_CONTEXT_DEFAULTS = {
   healthProfile: true,
   dailyRecords: true,
   sleepRecords: true,
@@ -36,20 +36,20 @@ export function listDefaultBooleanUserSettings(): Array<{
       value: USER_SETTINGS_DEFAULTS.aiSummariesEnabled,
     },
     {
-      key: USER_SETTING_KEYS.aiChatEnabled,
-      value: USER_SETTINGS_DEFAULTS.aiChatEnabled,
+      key: USER_SETTING_KEYS.assistantEnabled,
+      value: USER_SETTINGS_DEFAULTS.assistantEnabled,
     },
     {
-      key: USER_SETTING_KEYS.aiChatMemoryEnabled,
-      value: USER_SETTINGS_DEFAULTS.aiChatMemoryEnabled,
+      key: USER_SETTING_KEYS.assistantMemoryEnabled,
+      value: USER_SETTINGS_DEFAULTS.assistantMemoryEnabled,
     },
     ...(
-      Object.entries(AI_CHAT_CONTEXT_SETTING_KEYS) as Array<
-        [keyof typeof AI_CHAT_CONTEXT_SETTING_KEYS, string]
+      Object.entries(ASSISTANT_CONTEXT_SETTING_KEYS) as Array<
+        [keyof typeof ASSISTANT_CONTEXT_SETTING_KEYS, string]
       >
     ).map(([field, key]) => ({
       key,
-      value: AI_CHAT_CONTEXT_DEFAULTS[field],
+      value: ASSISTANT_CONTEXT_DEFAULTS[field],
     })),
   ];
 }

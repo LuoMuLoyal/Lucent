@@ -122,17 +122,17 @@ export type UserSetting = Prisma.UserSettingModel
  */
 export type DataExportRequest = Prisma.DataExportRequestModel
 /**
- * Model AiChatConversation
+ * Model AssistantConversation
  * 
  */
-export type AiChatConversation = Prisma.AiChatConversationModel
+export type AssistantConversation = Prisma.AssistantConversationModel
 /**
- * Model AiChatMessage
+ * Model AssistantMessage
  * 
  */
-export type AiChatMessage = Prisma.AiChatMessageModel
+export type AssistantMessage = Prisma.AssistantMessageModel
 /**
- * Model AiSummaryHistory
+ * Model AssistantSummaryHistory
  * 
  */
-export type AiSummaryHistory = Prisma.AiSummaryHistoryModel
+export type AssistantSummaryHistory = Prisma.AssistantSummaryHistoryModel

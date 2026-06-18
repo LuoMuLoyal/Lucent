@@ -1,25 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class AiChatContextSettingsDto {
+export class AssistantContextSettingsDto {
   @ApiProperty({
     description:
-      'Whether AI chat may read stored health profile, allergies, and conditions.',
+      'Whether the assistant may read stored health profile, allergies, and conditions.',
   })
   healthProfile!: boolean;
 
   @ApiProperty({
-    description: 'Whether AI chat may read recent daily records.',
+    description: 'Whether the assistant may read recent daily records.',
   })
   dailyRecords!: boolean;
 
   @ApiProperty({
-    description: 'Whether AI chat may read sleep records and summaries.',
+    description: 'Whether the assistant may read sleep records and summaries.',
   })
   sleepRecords!: boolean;
 
   @ApiProperty({
     description:
-      'Whether AI chat may read current medicines and medicine-box data.',
+      'Whether the assistant may read current medicines and medicine-box data.',
   })
   currentMedicines!: boolean;
 }
@@ -34,21 +34,21 @@ export class UserSettingsDataDto {
   dataSharingConsent!: boolean;
 
   @ApiProperty({
-    description: 'Allow the authenticated user to use the AI chat feature.',
+    description: 'Allow the authenticated user to use the assistant feature.',
   })
-  aiChatEnabled!: boolean;
+  assistantEnabled!: boolean;
 
   @ApiProperty({
     description:
-      'Allow AI chat to reuse persisted assistant history as cross-conversation memory.',
+      'Allow the assistant to reuse persisted conversation history as cross-conversation memory.',
   })
-  aiChatMemoryEnabled!: boolean;
+  assistantMemoryEnabled!: boolean;
 
   @ApiProperty({
-    description: 'Fine-grained AI chat context permissions.',
-    type: () => AiChatContextSettingsDto,
+    description: 'Fine-grained assistant context permissions.',
+    type: () => AssistantContextSettingsDto,
   })
-  aiChatContext!: AiChatContextSettingsDto;
+  assistantContext!: AssistantContextSettingsDto;
 
   @ApiProperty({
     type: String,

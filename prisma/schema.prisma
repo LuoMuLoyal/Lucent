@@ -104,12 +104,12 @@ enum DailyRecordAttachmentKind {
   image
 }
 
-enum AiChatConversationStatus {
+enum AssistantConversationStatus {
   active
   archived
 }
 
-enum AiChatMessageRole {
+enum AssistantMessageRole {
   user
   assistant
 }
@@ -145,9 +145,9 @@ model User {
   doseLogs               UserMedicineDoseLog[]
   settings               UserSetting[]
   dataExportRequests     DataExportRequest[]
-  aiChatConversations    AiChatConversation[]
-  aiChatMessages         AiChatMessage[]
-  aiSummaryHistories     AiSummaryHistory[]
+  assistantConversations AssistantConversation[]
+  assistantMessages      AssistantMessage[]
+  assistantSummaryHistories AssistantSummaryHistory[]
 
   @@index([email])
   @@index([status])
@@ -656,41 +656,41 @@ model DataExportRequest {
   @@map("data_export_requests")
 }
 
-model AiChatConversation {
+model AssistantConversation {
   id            String                   @id @default(uuid())
   userId        String                   @map("user_id")
   title         String?
-  status        AiChatConversationStatus @default(active)
+  status        AssistantConversationStatus @default(active)
   lastMessageAt DateTime?                @map("last_message_at") @db.Timestamptz(3)
   createdAt     DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages      AiChatMessage[]
+  messages      AssistantMessage[]
 
   @@index([userId, updatedAt])
   @@index([userId, lastMessageAt])
   @@index([userId, status, updatedAt])
-  @@map("ai_chat_conversations")
+  @@map("assistant_conversations")
 }
 
-model AiChatMessage {
+model AssistantMessage {
   id             String            @id @default(uuid())
   conversationId String            @map("conversation_id")
   userId         String            @map("user_id")
-  role           AiChatMessageRole
+  role           AssistantMessageRole
   content        String
   usedTools      Json?             @map("used_tools") @db.JsonB
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  conversation   AiChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation   AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([conversationId, createdAt])
   @@index([userId, createdAt])
-  @@map("ai_chat_messages")
+  @@map("assistant_messages")
 }
 
-model AiSummaryHistory {
+model AssistantSummaryHistory {
   id             String               @id @default(uuid())
   userId         String               @map("user_id")
   kind           AiSummaryHistoryKind
@@ -712,5 +712,5 @@ model AiSummaryHistory {
   @@index([userId, kind, generatedAt])
   @@index([userId, date])
   @@index([userId, rangeKey, generatedAt])
-  @@map("ai_summary_histories")
+  @@map("assistant_summary_histories")
 }

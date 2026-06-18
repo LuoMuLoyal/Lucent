@@ -71,9 +71,9 @@ export const ModelName = {
   DrugbankDrugTarget: 'DrugbankDrugTarget',
   UserSetting: 'UserSetting',
   DataExportRequest: 'DataExportRequest',
-  AiChatConversation: 'AiChatConversation',
-  AiChatMessage: 'AiChatMessage',
-  AiSummaryHistory: 'AiSummaryHistory'
+  AssistantConversation: 'AssistantConversation',
+  AssistantMessage: 'AssistantMessage',
+  AssistantSummaryHistory: 'AssistantSummaryHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -539,7 +539,7 @@ export const DataExportRequestScalarFieldEnum = {
 export type DataExportRequestScalarFieldEnum = (typeof DataExportRequestScalarFieldEnum)[keyof typeof DataExportRequestScalarFieldEnum]
 
 
-export const AiChatConversationScalarFieldEnum = {
+export const AssistantConversationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   title: 'title',
@@ -549,10 +549,10 @@ export const AiChatConversationScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type AiChatConversationScalarFieldEnum = (typeof AiChatConversationScalarFieldEnum)[keyof typeof AiChatConversationScalarFieldEnum]
+export type AssistantConversationScalarFieldEnum = (typeof AssistantConversationScalarFieldEnum)[keyof typeof AssistantConversationScalarFieldEnum]
 
 
-export const AiChatMessageScalarFieldEnum = {
+export const AssistantMessageScalarFieldEnum = {
   id: 'id',
   conversationId: 'conversationId',
   userId: 'userId',
@@ -563,10 +563,10 @@ export const AiChatMessageScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type AiChatMessageScalarFieldEnum = (typeof AiChatMessageScalarFieldEnum)[keyof typeof AiChatMessageScalarFieldEnum]
+export type AssistantMessageScalarFieldEnum = (typeof AssistantMessageScalarFieldEnum)[keyof typeof AssistantMessageScalarFieldEnum]
 
 
-export const AiSummaryHistoryScalarFieldEnum = {
+export const AssistantSummaryHistoryScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   kind: 'kind',
@@ -584,7 +584,7 @@ export const AiSummaryHistoryScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type AiSummaryHistoryScalarFieldEnum = (typeof AiSummaryHistoryScalarFieldEnum)[keyof typeof AiSummaryHistoryScalarFieldEnum]
+export type AssistantSummaryHistoryScalarFieldEnum = (typeof AssistantSummaryHistoryScalarFieldEnum)[keyof typeof AssistantSummaryHistoryScalarFieldEnum]
 
 
 export const SortOrder = {

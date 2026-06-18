@@ -96,7 +96,7 @@ describe('TestingSupportService', () => {
     expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
     });
-    expect(prisma.userSetting.upsert).toHaveBeenCalledTimes(6);
+    expect(prisma.userSetting.upsert).toHaveBeenCalledTimes(7);
     expect(prisma.userSetting.upsert).toHaveBeenCalledWith({
       where: {
         userId_key: {
@@ -117,12 +117,12 @@ describe('TestingSupportService', () => {
       where: {
         userId_key: {
           userId: 'user-1',
-          key: 'aiChatEnabled',
+          key: 'assistantEnabled',
         },
       },
       create: {
         userId: 'user-1',
-        key: 'aiChatEnabled',
+        key: 'assistantEnabled',
         value: true,
       },
       update: {
@@ -190,7 +190,7 @@ describe('TestingSupportService', () => {
         id: { in: ['record-1', 'record-2'] },
       },
     });
-    expect(prisma.userSetting.upsert).toHaveBeenCalledTimes(6);
+    expect(prisma.userSetting.upsert).toHaveBeenCalledTimes(7);
     expect(prisma.userSetting.upsert).toHaveBeenCalledWith({
       where: {
         userId_key: {
@@ -211,12 +211,12 @@ describe('TestingSupportService', () => {
       where: {
         userId_key: {
           userId: 'user-1',
-          key: 'aiChatEnabled',
+          key: 'assistantEnabled',
         },
       },
       create: {
         userId: 'user-1',
-        key: 'aiChatEnabled',
+        key: 'assistantEnabled',
         value: true,
       },
       update: {

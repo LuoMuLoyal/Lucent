@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ResultCode } from '../../../common/api-envelope';
-import { AiSummaryHistoryService } from '../../ai-chat/ai-summary-history.service';
+import { HistoricalAiSummaryService } from '../../assistant/historical-ai-summary.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from '../dto';
 import { TodayAnalysisCopyService } from './today-analysis-copy.service';
@@ -26,7 +26,7 @@ export class TodayAnalysisService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly aiSummaryHistoryService: AiSummaryHistoryService,
+    private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
     private readonly contextService: TodayAnalysisContextService,
     private readonly policyService: TodayAnalysisPolicyService,
     private readonly copyService: TodayAnalysisCopyService,

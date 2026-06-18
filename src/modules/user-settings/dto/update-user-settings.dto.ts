@@ -3,24 +3,24 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
 import { ValidateNested } from 'class-validator';
 
-export class UpdateAiChatContextSettingsDto {
+export class UpdateAssistantContextSettingsDto {
   @ApiPropertyOptional({
     description:
-      'Allow AI chat to read stored health profile, allergies, and conditions.',
+      'Allow the assistant to read stored health profile, allergies, and conditions.',
   })
   @IsOptional()
   @IsBoolean()
   healthProfile?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Allow AI chat to read recent daily records.',
+    description: 'Allow the assistant to read recent daily records.',
   })
   @IsOptional()
   @IsBoolean()
   dailyRecords?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Allow AI chat to read sleep records and summaries.',
+    description: 'Allow the assistant to read sleep records and summaries.',
   })
   @IsOptional()
   @IsBoolean()
@@ -28,7 +28,7 @@ export class UpdateAiChatContextSettingsDto {
 
   @ApiPropertyOptional({
     description:
-      'Allow AI chat to read current medicines and medicine-box data.',
+      'Allow the assistant to read current medicines and medicine-box data.',
   })
   @IsOptional()
   @IsBoolean()
@@ -51,26 +51,26 @@ export class UpdateUserSettingsDto {
   dataSharingConsent?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Allow the authenticated user to use the AI chat feature.',
+    description: 'Allow the authenticated user to use the assistant feature.',
   })
   @IsOptional()
   @IsBoolean()
-  aiChatEnabled?: boolean;
+  assistantEnabled?: boolean;
 
   @ApiPropertyOptional({
     description:
-      'Allow AI chat to reuse persisted assistant history as cross-conversation memory.',
+      'Allow the assistant to reuse persisted conversation history as cross-conversation memory.',
   })
   @IsOptional()
   @IsBoolean()
-  aiChatMemoryEnabled?: boolean;
+  assistantMemoryEnabled?: boolean;
 
   @ApiPropertyOptional({
-    description: 'Fine-grained permissions for what AI chat may read.',
-    type: () => UpdateAiChatContextSettingsDto,
+    description: 'Fine-grained permissions for what the assistant may read.',
+    type: () => UpdateAssistantContextSettingsDto,
   })
   @IsOptional()
   @ValidateNested()
-  @Type(() => UpdateAiChatContextSettingsDto)
-  aiChatContext?: UpdateAiChatContextSettingsDto;
+  @Type(() => UpdateAssistantContextSettingsDto)
+  assistantContext?: UpdateAssistantContextSettingsDto;
 }

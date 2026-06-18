@@ -63,9 +63,9 @@ function makeSettings(
   return {
     aiSummariesEnabled: true,
     dataSharingConsent: false,
-    aiChatEnabled: true,
-    aiChatMemoryEnabled: false,
-    aiChatContext: {
+    assistantEnabled: true,
+    assistantMemoryEnabled: false,
+    assistantContext: {
       healthProfile: true,
       dailyRecords: true,
       sleepRecords: true,

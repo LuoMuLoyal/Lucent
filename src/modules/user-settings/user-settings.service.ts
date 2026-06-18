@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { UpdateUserSettingsDto, UserSettingsDataDto } from './dto';
 import {
-  AI_CHAT_CONTEXT_DEFAULTS,
-  AI_CHAT_CONTEXT_SETTING_KEYS,
+  ASSISTANT_CONTEXT_DEFAULTS,
+  ASSISTANT_CONTEXT_SETTING_KEYS,
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
 } from './user-settings.constants';
@@ -36,36 +36,36 @@ export class UserSettingsService {
         USER_SETTING_KEYS.dataSharingConsent,
         USER_SETTINGS_DEFAULTS.dataSharingConsent,
       ),
-      aiChatEnabled: this.readBool(
+      assistantEnabled: this.readBool(
         map,
-        USER_SETTING_KEYS.aiChatEnabled,
-        USER_SETTINGS_DEFAULTS.aiChatEnabled,
+        USER_SETTING_KEYS.assistantEnabled,
+        USER_SETTINGS_DEFAULTS.assistantEnabled,
       ),
-      aiChatMemoryEnabled: this.readBool(
+      assistantMemoryEnabled: this.readBool(
         map,
-        USER_SETTING_KEYS.aiChatMemoryEnabled,
-        USER_SETTINGS_DEFAULTS.aiChatMemoryEnabled,
+        USER_SETTING_KEYS.assistantMemoryEnabled,
+        USER_SETTINGS_DEFAULTS.assistantMemoryEnabled,
       ),
-      aiChatContext: {
+      assistantContext: {
         healthProfile: this.readBool(
           map,
-          AI_CHAT_CONTEXT_SETTING_KEYS.healthProfile,
-          AI_CHAT_CONTEXT_DEFAULTS.healthProfile,
+          ASSISTANT_CONTEXT_SETTING_KEYS.healthProfile,
+          ASSISTANT_CONTEXT_DEFAULTS.healthProfile,
         ),
         dailyRecords: this.readBool(
           map,
-          AI_CHAT_CONTEXT_SETTING_KEYS.dailyRecords,
-          AI_CHAT_CONTEXT_DEFAULTS.dailyRecords,
+          ASSISTANT_CONTEXT_SETTING_KEYS.dailyRecords,
+          ASSISTANT_CONTEXT_DEFAULTS.dailyRecords,
         ),
         sleepRecords: this.readBool(
           map,
-          AI_CHAT_CONTEXT_SETTING_KEYS.sleepRecords,
-          AI_CHAT_CONTEXT_DEFAULTS.sleepRecords,
+          ASSISTANT_CONTEXT_SETTING_KEYS.sleepRecords,
+          ASSISTANT_CONTEXT_DEFAULTS.sleepRecords,
         ),
         currentMedicines: this.readBool(
           map,
-          AI_CHAT_CONTEXT_SETTING_KEYS.currentMedicines,
-          AI_CHAT_CONTEXT_DEFAULTS.currentMedicines,
+          ASSISTANT_CONTEXT_SETTING_KEYS.currentMedicines,
+          ASSISTANT_CONTEXT_DEFAULTS.currentMedicines,
         ),
       },
       updatedAt: latest ? latest.updatedAt.toISOString() : null,
@@ -89,41 +89,41 @@ export class UserSettingsService {
         value: dto.dataSharingConsent,
       });
     }
-    if (dto.aiChatEnabled !== undefined) {
+    if (dto.assistantEnabled !== undefined) {
       upserts.push({
-        key: USER_SETTING_KEYS.aiChatEnabled,
-        value: dto.aiChatEnabled,
+        key: USER_SETTING_KEYS.assistantEnabled,
+        value: dto.assistantEnabled,
       });
     }
-    if (dto.aiChatMemoryEnabled !== undefined) {
+    if (dto.assistantMemoryEnabled !== undefined) {
       upserts.push({
-        key: USER_SETTING_KEYS.aiChatMemoryEnabled,
-        value: dto.aiChatMemoryEnabled,
+        key: USER_SETTING_KEYS.assistantMemoryEnabled,
+        value: dto.assistantMemoryEnabled,
       });
     }
 
-    if (dto.aiChatContext?.healthProfile !== undefined) {
+    if (dto.assistantContext?.healthProfile !== undefined) {
       upserts.push({
-        key: AI_CHAT_CONTEXT_SETTING_KEYS.healthProfile,
-        value: dto.aiChatContext.healthProfile,
+        key: ASSISTANT_CONTEXT_SETTING_KEYS.healthProfile,
+        value: dto.assistantContext.healthProfile,
       });
     }
-    if (dto.aiChatContext?.dailyRecords !== undefined) {
+    if (dto.assistantContext?.dailyRecords !== undefined) {
       upserts.push({
-        key: AI_CHAT_CONTEXT_SETTING_KEYS.dailyRecords,
-        value: dto.aiChatContext.dailyRecords,
+        key: ASSISTANT_CONTEXT_SETTING_KEYS.dailyRecords,
+        value: dto.assistantContext.dailyRecords,
       });
     }
-    if (dto.aiChatContext?.sleepRecords !== undefined) {
+    if (dto.assistantContext?.sleepRecords !== undefined) {
       upserts.push({
-        key: AI_CHAT_CONTEXT_SETTING_KEYS.sleepRecords,
-        value: dto.aiChatContext.sleepRecords,
+        key: ASSISTANT_CONTEXT_SETTING_KEYS.sleepRecords,
+        value: dto.assistantContext.sleepRecords,
       });
     }
-    if (dto.aiChatContext?.currentMedicines !== undefined) {
+    if (dto.assistantContext?.currentMedicines !== undefined) {
       upserts.push({
-        key: AI_CHAT_CONTEXT_SETTING_KEYS.currentMedicines,
-        value: dto.aiChatContext.currentMedicines,
+        key: ASSISTANT_CONTEXT_SETTING_KEYS.currentMedicines,
+        value: dto.assistantContext.currentMedicines,
       });
     }
 

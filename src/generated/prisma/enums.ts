@@ -143,20 +143,20 @@ export const DailyRecordAttachmentKind = {
 export type DailyRecordAttachmentKind = (typeof DailyRecordAttachmentKind)[keyof typeof DailyRecordAttachmentKind]
 
 
-export const AiChatConversationStatus = {
+export const AssistantConversationStatus = {
   active: 'active',
   archived: 'archived'
 } as const
 
-export type AiChatConversationStatus = (typeof AiChatConversationStatus)[keyof typeof AiChatConversationStatus]
+export type AssistantConversationStatus = (typeof AssistantConversationStatus)[keyof typeof AssistantConversationStatus]
 
 
-export const AiChatMessageRole = {
+export const AssistantMessageRole = {
   user: 'user',
   assistant: 'assistant'
 } as const
 
-export type AiChatMessageRole = (typeof AiChatMessageRole)[keyof typeof AiChatMessageRole]
+export type AssistantMessageRole = (typeof AssistantMessageRole)[keyof typeof AssistantMessageRole]
 
 
 export const AiSummaryHistoryKind = {

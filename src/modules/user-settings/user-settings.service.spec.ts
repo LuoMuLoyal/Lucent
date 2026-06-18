@@ -15,9 +15,9 @@ describe('UserSettingsService', () => {
     await expect(service.getSettings('user-1')).resolves.toEqual({
       aiSummariesEnabled: true,
       dataSharingConsent: false,
-      aiChatEnabled: true,
-      aiChatMemoryEnabled: false,
-      aiChatContext: {
+      assistantEnabled: true,
+      assistantMemoryEnabled: false,
+      assistantContext: {
         healthProfile: true,
         dailyRecords: true,
         sleepRecords: true,
@@ -27,22 +27,22 @@ describe('UserSettingsService', () => {
     });
   });
 
-  it('merges stored ai-chat settings and nested context permissions', async () => {
+  it('merges stored assistant setting keys and nested context permissions', async () => {
     const prisma = {
       userSetting: {
         findMany: jest.fn().mockResolvedValue([
           {
-            key: 'aiChatMemoryEnabled',
+            key: 'assistantMemoryEnabled',
             value: true,
             updatedAt: new Date('2026-06-17T11:00:00.000Z'),
           },
           {
-            key: 'aiChatContext.sleepRecords',
+            key: 'assistantContext.sleepRecords',
             value: false,
             updatedAt: new Date('2026-06-17T10:00:00.000Z'),
           },
           {
-            key: 'aiChatEnabled',
+            key: 'assistantEnabled',
             value: false,
             updatedAt: new Date('2026-06-17T09:00:00.000Z'),
           },
@@ -61,9 +61,9 @@ describe('UserSettingsService', () => {
     await expect(service.getSettings('user-1')).resolves.toEqual({
       aiSummariesEnabled: true,
       dataSharingConsent: true,
-      aiChatEnabled: false,
-      aiChatMemoryEnabled: true,
-      aiChatContext: {
+      assistantEnabled: false,
+      assistantMemoryEnabled: true,
+      assistantContext: {
         healthProfile: true,
         dailyRecords: true,
         sleepRecords: false,
@@ -73,7 +73,7 @@ describe('UserSettingsService', () => {
     });
   });
 
-  it('upserts ai-chat fields and nested context toggles', async () => {
+  it('upserts assistant setting keys and nested context toggles', async () => {
     const upsert = jest.fn().mockResolvedValue(undefined);
     const prisma = {
       userSetting: {
@@ -85,9 +85,9 @@ describe('UserSettingsService', () => {
     const service = new UserSettingsService(prisma);
 
     await service.updateSettings('user-1', {
-      aiChatEnabled: false,
-      aiChatMemoryEnabled: true,
-      aiChatContext: {
+      assistantEnabled: false,
+      assistantMemoryEnabled: true,
+      assistantContext: {
         healthProfile: false,
         sleepRecords: false,
       },
@@ -96,11 +96,11 @@ describe('UserSettingsService', () => {
     expect(upsert).toHaveBeenCalledTimes(4);
     expect(upsert).toHaveBeenCalledWith({
       where: {
-        userId_key: { userId: 'user-1', key: 'aiChatEnabled' },
+        userId_key: { userId: 'user-1', key: 'assistantEnabled' },
       },
       create: {
         userId: 'user-1',
-        key: 'aiChatEnabled',
+        key: 'assistantEnabled',
         value: false,
       },
       update: {
@@ -109,11 +109,11 @@ describe('UserSettingsService', () => {
     });
     expect(upsert).toHaveBeenCalledWith({
       where: {
-        userId_key: { userId: 'user-1', key: 'aiChatMemoryEnabled' },
+        userId_key: { userId: 'user-1', key: 'assistantMemoryEnabled' },
       },
       create: {
         userId: 'user-1',
-        key: 'aiChatMemoryEnabled',
+        key: 'assistantMemoryEnabled',
         value: true,
       },
       update: {
@@ -122,11 +122,11 @@ describe('UserSettingsService', () => {
     });
     expect(upsert).toHaveBeenCalledWith({
       where: {
-        userId_key: { userId: 'user-1', key: 'aiChatContext.healthProfile' },
+        userId_key: { userId: 'user-1', key: 'assistantContext.healthProfile' },
       },
       create: {
         userId: 'user-1',
-        key: 'aiChatContext.healthProfile',
+        key: 'assistantContext.healthProfile',
         value: false,
       },
       update: {
@@ -135,11 +135,11 @@ describe('UserSettingsService', () => {
     });
     expect(upsert).toHaveBeenCalledWith({
       where: {
-        userId_key: { userId: 'user-1', key: 'aiChatContext.sleepRecords' },
+        userId_key: { userId: 'user-1', key: 'assistantContext.sleepRecords' },
       },
       create: {
         userId: 'user-1',
-        key: 'aiChatContext.sleepRecords',
+        key: 'assistantContext.sleepRecords',
         value: false,
       },
       update: {

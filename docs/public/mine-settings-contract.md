@@ -53,13 +53,13 @@ Both require authentication (`Bearer` token).
 interface UserSettingsDto {
   aiSummariesEnabled: boolean; // allow AI-generated summaries/advice
   dataSharingConsent: boolean; // consent to share anonymized data for research
-  aiChatEnabled: boolean; // allow the user to use the AI chat feature
-  aiChatMemoryEnabled: boolean; // allow cross-conversation AI memory reuse
-  aiChatContext: {
-    healthProfile: boolean; // allow AI chat to read profile/allergies/conditions
-    dailyRecords: boolean; // allow AI chat to read recent daily records
-    sleepRecords: boolean; // allow AI chat to read sleep records/summaries
-    currentMedicines: boolean; // allow AI chat to read medicine-box/current medicines
+  assistantEnabled: boolean; // allow the user to use the assistant feature
+  assistantMemoryEnabled: boolean; // allow cross-conversation assistant memory reuse
+  assistantContext: {
+    healthProfile: boolean; // allow the assistant to read profile/allergies/conditions
+    dailyRecords: boolean; // allow the assistant to read recent daily records
+    sleepRecords: boolean; // allow the assistant to read sleep records/summaries
+    currentMedicines: boolean; // allow the assistant to read medicine-box/current medicines
   };
   updatedAt: string; // ISO-8601
 }
@@ -71,9 +71,9 @@ interface UserSettingsDto {
 interface UpdateUserSettingsDto {
   aiSummariesEnabled?: boolean;
   dataSharingConsent?: boolean;
-  aiChatEnabled?: boolean;
-  aiChatMemoryEnabled?: boolean;
-  aiChatContext?: {
+  assistantEnabled?: boolean;
+  assistantMemoryEnabled?: boolean;
+  assistantContext?: {
     healthProfile?: boolean;
     dailyRecords?: boolean;
     sleepRecords?: boolean;
@@ -86,6 +86,17 @@ Partial update; omitted fields are not changed. Returns the full `UserSettingsDt
 after the update.
 
 **Storage:** `UserSetting` Prisma model — one row per user per setting key.
+
+Assistant-related persisted keys now use:
+
+```text
+assistantEnabled
+assistantMemoryEnabled
+assistantContext.healthProfile
+assistantContext.dailyRecords
+assistantContext.sleepRecords
+assistantContext.currentMedicines
+```
 
 ### 2. Support Resources
 
@@ -266,10 +277,10 @@ model DataExportRequest {
   instead of hardcoded entries.
 - Settings privacy rows should read from `GET /api/v1/user/settings` and write
   through `PATCH /api/v1/user/settings`.
-- AI chat settings UI should also treat `GET /api/v1/user/ai-chat/capabilities`
+- Assistant settings UI should also treat `GET /api/v1/user/assistant/capabilities`
   as the server source of truth for what is merely permitted vs truly executable.
-- `aiChatEnabled` and `aiChatMemoryEnabled` are intentionally separate:
-  turning on chat does not imply cross-conversation memory reuse.
+- `assistantEnabled` and `assistantMemoryEnabled` are intentionally separate:
+  turning on the assistant does not imply cross-conversation memory reuse.
 - Settings reminder summary rows should read from device notification controller
   state, not from hardcoded "Enabled" labels.
 - Export row should POST the desired export kind/format/range and show the latest status from GET.

@@ -30,7 +30,7 @@ import { DataExportModule } from './modules/data-export/data-export.module';
 import { TestingSupportModule } from './modules/testing-support/testing-support.module';
 import { LlmRuntimeModule } from './modules/llm-runtime/llm-runtime.module';
 import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module';
-import { AiChatModule } from './modules/ai-chat/ai-chat.module';
+import { AssistantModule } from './modules/assistant/assistant.module';
 
 @Module({
   imports: [
@@ -58,7 +58,7 @@ import { AiChatModule } from './modules/ai-chat/ai-chat.module';
     EnvironmentModule,
     ReportsModule,
     LlmRuntimeModule,
-    AiChatModule,
+    AssistantModule,
     TodayAnalysisModule,
     UserSettingsModule,
     SupportResourcesModule,

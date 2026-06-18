@@ -404,9 +404,9 @@ export const ModelName = {
   DrugbankDrugTarget: 'DrugbankDrugTarget',
   UserSetting: 'UserSetting',
   DataExportRequest: 'DataExportRequest',
-  AiChatConversation: 'AiChatConversation',
-  AiChatMessage: 'AiChatMessage',
-  AiSummaryHistory: 'AiSummaryHistory'
+  AssistantConversation: 'AssistantConversation',
+  AssistantMessage: 'AssistantMessage',
+  AssistantSummaryHistory: 'AssistantSummaryHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -422,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "aiChatConversation" | "aiChatMessage" | "aiSummaryHistory"
+    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1980,225 +1980,225 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    AiChatConversation: {
-      payload: Prisma.$AiChatConversationPayload<ExtArgs>
-      fields: Prisma.AiChatConversationFieldRefs
+    AssistantConversation: {
+      payload: Prisma.$AssistantConversationPayload<ExtArgs>
+      fields: Prisma.AssistantConversationFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.AiChatConversationFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload> | null
+          args: Prisma.AssistantConversationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.AiChatConversationFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload>
+          args: Prisma.AssistantConversationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload>
         }
         findFirst: {
-          args: Prisma.AiChatConversationFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload> | null
+          args: Prisma.AssistantConversationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.AiChatConversationFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload>
+          args: Prisma.AssistantConversationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload>
         }
         findMany: {
-          args: Prisma.AiChatConversationFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload>[]
+          args: Prisma.AssistantConversationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload>[]
         }
         create: {
-          args: Prisma.AiChatConversationCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload>
+          args: Prisma.AssistantConversationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload>
         }
         createMany: {
-          args: Prisma.AiChatConversationCreateManyArgs<ExtArgs>
+          args: Prisma.AssistantConversationCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.AiChatConversationCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload>[]
+          args: Prisma.AssistantConversationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload>[]
         }
         delete: {
-          args: Prisma.AiChatConversationDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload>
+          args: Prisma.AssistantConversationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload>
         }
         update: {
-          args: Prisma.AiChatConversationUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload>
+          args: Prisma.AssistantConversationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload>
         }
         deleteMany: {
-          args: Prisma.AiChatConversationDeleteManyArgs<ExtArgs>
+          args: Prisma.AssistantConversationDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.AiChatConversationUpdateManyArgs<ExtArgs>
+          args: Prisma.AssistantConversationUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.AiChatConversationUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload>[]
+          args: Prisma.AssistantConversationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload>[]
         }
         upsert: {
-          args: Prisma.AiChatConversationUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatConversationPayload>
+          args: Prisma.AssistantConversationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantConversationPayload>
         }
         aggregate: {
-          args: Prisma.AiChatConversationAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAiChatConversation>
+          args: Prisma.AssistantConversationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAssistantConversation>
         }
         groupBy: {
-          args: Prisma.AiChatConversationGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AiChatConversationGroupByOutputType>[]
+          args: Prisma.AssistantConversationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssistantConversationGroupByOutputType>[]
         }
         count: {
-          args: Prisma.AiChatConversationCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AiChatConversationCountAggregateOutputType> | number
+          args: Prisma.AssistantConversationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssistantConversationCountAggregateOutputType> | number
         }
       }
     }
-    AiChatMessage: {
-      payload: Prisma.$AiChatMessagePayload<ExtArgs>
-      fields: Prisma.AiChatMessageFieldRefs
+    AssistantMessage: {
+      payload: Prisma.$AssistantMessagePayload<ExtArgs>
+      fields: Prisma.AssistantMessageFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.AiChatMessageFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload> | null
+          args: Prisma.AssistantMessageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.AiChatMessageFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+          args: Prisma.AssistantMessageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload>
         }
         findFirst: {
-          args: Prisma.AiChatMessageFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload> | null
+          args: Prisma.AssistantMessageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.AiChatMessageFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+          args: Prisma.AssistantMessageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload>
         }
         findMany: {
-          args: Prisma.AiChatMessageFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>[]
+          args: Prisma.AssistantMessageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload>[]
         }
         create: {
-          args: Prisma.AiChatMessageCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+          args: Prisma.AssistantMessageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload>
         }
         createMany: {
-          args: Prisma.AiChatMessageCreateManyArgs<ExtArgs>
+          args: Prisma.AssistantMessageCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.AiChatMessageCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>[]
+          args: Prisma.AssistantMessageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload>[]
         }
         delete: {
-          args: Prisma.AiChatMessageDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+          args: Prisma.AssistantMessageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload>
         }
         update: {
-          args: Prisma.AiChatMessageUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+          args: Prisma.AssistantMessageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload>
         }
         deleteMany: {
-          args: Prisma.AiChatMessageDeleteManyArgs<ExtArgs>
+          args: Prisma.AssistantMessageDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.AiChatMessageUpdateManyArgs<ExtArgs>
+          args: Prisma.AssistantMessageUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.AiChatMessageUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>[]
+          args: Prisma.AssistantMessageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload>[]
         }
         upsert: {
-          args: Prisma.AiChatMessageUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiChatMessagePayload>
+          args: Prisma.AssistantMessageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantMessagePayload>
         }
         aggregate: {
-          args: Prisma.AiChatMessageAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAiChatMessage>
+          args: Prisma.AssistantMessageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAssistantMessage>
         }
         groupBy: {
-          args: Prisma.AiChatMessageGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AiChatMessageGroupByOutputType>[]
+          args: Prisma.AssistantMessageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssistantMessageGroupByOutputType>[]
         }
         count: {
-          args: Prisma.AiChatMessageCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AiChatMessageCountAggregateOutputType> | number
+          args: Prisma.AssistantMessageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssistantMessageCountAggregateOutputType> | number
         }
       }
     }
-    AiSummaryHistory: {
-      payload: Prisma.$AiSummaryHistoryPayload<ExtArgs>
-      fields: Prisma.AiSummaryHistoryFieldRefs
+    AssistantSummaryHistory: {
+      payload: Prisma.$AssistantSummaryHistoryPayload<ExtArgs>
+      fields: Prisma.AssistantSummaryHistoryFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.AiSummaryHistoryFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload> | null
+          args: Prisma.AssistantSummaryHistoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.AiSummaryHistoryFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+          args: Prisma.AssistantSummaryHistoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload>
         }
         findFirst: {
-          args: Prisma.AiSummaryHistoryFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload> | null
+          args: Prisma.AssistantSummaryHistoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.AiSummaryHistoryFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+          args: Prisma.AssistantSummaryHistoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload>
         }
         findMany: {
-          args: Prisma.AiSummaryHistoryFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>[]
+          args: Prisma.AssistantSummaryHistoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload>[]
         }
         create: {
-          args: Prisma.AiSummaryHistoryCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+          args: Prisma.AssistantSummaryHistoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload>
         }
         createMany: {
-          args: Prisma.AiSummaryHistoryCreateManyArgs<ExtArgs>
+          args: Prisma.AssistantSummaryHistoryCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.AiSummaryHistoryCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>[]
+          args: Prisma.AssistantSummaryHistoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload>[]
         }
         delete: {
-          args: Prisma.AiSummaryHistoryDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+          args: Prisma.AssistantSummaryHistoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload>
         }
         update: {
-          args: Prisma.AiSummaryHistoryUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+          args: Prisma.AssistantSummaryHistoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload>
         }
         deleteMany: {
-          args: Prisma.AiSummaryHistoryDeleteManyArgs<ExtArgs>
+          args: Prisma.AssistantSummaryHistoryDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.AiSummaryHistoryUpdateManyArgs<ExtArgs>
+          args: Prisma.AssistantSummaryHistoryUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.AiSummaryHistoryUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>[]
+          args: Prisma.AssistantSummaryHistoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload>[]
         }
         upsert: {
-          args: Prisma.AiSummaryHistoryUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+          args: Prisma.AssistantSummaryHistoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AssistantSummaryHistoryPayload>
         }
         aggregate: {
-          args: Prisma.AiSummaryHistoryAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateAiSummaryHistory>
+          args: Prisma.AssistantSummaryHistoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAssistantSummaryHistory>
         }
         groupBy: {
-          args: Prisma.AiSummaryHistoryGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AiSummaryHistoryGroupByOutputType>[]
+          args: Prisma.AssistantSummaryHistoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssistantSummaryHistoryGroupByOutputType>[]
         }
         count: {
-          args: Prisma.AiSummaryHistoryCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AiSummaryHistoryCountAggregateOutputType> | number
+          args: Prisma.AssistantSummaryHistoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AssistantSummaryHistoryCountAggregateOutputType> | number
         }
       }
     }
@@ -2688,7 +2688,7 @@ export const DataExportRequestScalarFieldEnum = {
 export type DataExportRequestScalarFieldEnum = (typeof DataExportRequestScalarFieldEnum)[keyof typeof DataExportRequestScalarFieldEnum]
 
 
-export const AiChatConversationScalarFieldEnum = {
+export const AssistantConversationScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   title: 'title',
@@ -2698,10 +2698,10 @@ export const AiChatConversationScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type AiChatConversationScalarFieldEnum = (typeof AiChatConversationScalarFieldEnum)[keyof typeof AiChatConversationScalarFieldEnum]
+export type AssistantConversationScalarFieldEnum = (typeof AssistantConversationScalarFieldEnum)[keyof typeof AssistantConversationScalarFieldEnum]
 
 
-export const AiChatMessageScalarFieldEnum = {
+export const AssistantMessageScalarFieldEnum = {
   id: 'id',
   conversationId: 'conversationId',
   userId: 'userId',
@@ -2712,10 +2712,10 @@ export const AiChatMessageScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type AiChatMessageScalarFieldEnum = (typeof AiChatMessageScalarFieldEnum)[keyof typeof AiChatMessageScalarFieldEnum]
+export type AssistantMessageScalarFieldEnum = (typeof AssistantMessageScalarFieldEnum)[keyof typeof AssistantMessageScalarFieldEnum]
 
 
-export const AiSummaryHistoryScalarFieldEnum = {
+export const AssistantSummaryHistoryScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   kind: 'kind',
@@ -2733,7 +2733,7 @@ export const AiSummaryHistoryScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type AiSummaryHistoryScalarFieldEnum = (typeof AiSummaryHistoryScalarFieldEnum)[keyof typeof AiSummaryHistoryScalarFieldEnum]
+export type AssistantSummaryHistoryScalarFieldEnum = (typeof AssistantSummaryHistoryScalarFieldEnum)[keyof typeof AssistantSummaryHistoryScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -3050,30 +3050,30 @@ export type ListEnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel> = Field
 
 
 /**
- * Reference to a field of type 'AiChatConversationStatus'
+ * Reference to a field of type 'AssistantConversationStatus'
  */
-export type EnumAiChatConversationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiChatConversationStatus'>
+export type EnumAssistantConversationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistantConversationStatus'>
     
 
 
 /**
- * Reference to a field of type 'AiChatConversationStatus[]'
+ * Reference to a field of type 'AssistantConversationStatus[]'
  */
-export type ListEnumAiChatConversationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiChatConversationStatus[]'>
+export type ListEnumAssistantConversationStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistantConversationStatus[]'>
     
 
 
 /**
- * Reference to a field of type 'AiChatMessageRole'
+ * Reference to a field of type 'AssistantMessageRole'
  */
-export type EnumAiChatMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiChatMessageRole'>
+export type EnumAssistantMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistantMessageRole'>
     
 
 
 /**
- * Reference to a field of type 'AiChatMessageRole[]'
+ * Reference to a field of type 'AssistantMessageRole[]'
  */
-export type ListEnumAiChatMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiChatMessageRole[]'>
+export type ListEnumAssistantMessageRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AssistantMessageRole[]'>
     
 
 
@@ -3235,9 +3235,9 @@ export type GlobalOmitConfig = {
   drugbankDrugTarget?: Prisma.DrugbankDrugTargetOmit
   userSetting?: Prisma.UserSettingOmit
   dataExportRequest?: Prisma.DataExportRequestOmit
-  aiChatConversation?: Prisma.AiChatConversationOmit
-  aiChatMessage?: Prisma.AiChatMessageOmit
-  aiSummaryHistory?: Prisma.AiSummaryHistoryOmit
+  assistantConversation?: Prisma.AssistantConversationOmit
+  assistantMessage?: Prisma.AssistantMessageOmit
+  assistantSummaryHistory?: Prisma.AssistantSummaryHistoryOmit
 }
 
 /* Types for Logging */

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AiChatModule } from '../ai-chat/ai-chat.module';
+import { AssistantModule } from '../assistant/assistant.module';
 import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
 import { ReportsAiSummaryContextService } from './services/reports-ai-summary-context.service';
 import { ReportsAiSummaryCopyService } from './services/reports-ai-summary-copy.service';
@@ -13,7 +13,7 @@ import { ReportsService } from './dashboard/reports.service';
 import { ReportsController } from './reports.controller';
 
 @Module({
-  imports: [LlmRuntimeModule, AiChatModule],
+  imports: [LlmRuntimeModule, AssistantModule],
   controllers: [ReportsController],
   providers: [
     ReportsAiSummaryContextService,
