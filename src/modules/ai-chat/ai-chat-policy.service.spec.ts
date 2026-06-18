@@ -16,6 +16,8 @@ describe('AiChatPolicyService', () => {
           'get_today_records',
           'get_records_by_date',
           'get_records_by_range',
+          'get_today_summary_by_date',
+          'get_report_summary_by_range',
           'get_recent_today_summaries',
           'get_recent_report_summaries',
           'get_user_profile',
@@ -31,6 +33,8 @@ describe('AiChatPolicyService', () => {
           'get_today_records',
           'get_records_by_date',
           'get_records_by_range',
+          'get_today_summary_by_date',
+          'get_report_summary_by_range',
           'get_recent_today_summaries',
           'get_recent_report_summaries',
           'get_user_profile',
@@ -71,6 +75,8 @@ describe('AiChatPolicyService', () => {
       'current_medicines',
     ]);
     expect(policy.contextPermittedToolNames).toEqual([
+      'get_today_summary_by_date',
+      'get_report_summary_by_range',
       'get_recent_today_summaries',
       'get_recent_report_summaries',
       'get_user_profile',
@@ -81,6 +87,8 @@ describe('AiChatPolicyService', () => {
       'propose_update_user_settings',
     ]);
     expect(policy.executableToolNames).toEqual([
+      'get_today_summary_by_date',
+      'get_report_summary_by_range',
       'get_recent_today_summaries',
       'get_recent_report_summaries',
       'get_user_profile',
@@ -114,6 +122,22 @@ describe('AiChatPolicyService', () => {
         implemented: true,
         enabled: false,
         disabledReason: 'context_disabled',
+      },
+      {
+        name: 'get_today_summary_by_date',
+        requiredContextSources: [],
+        permittedByUser: true,
+        implemented: true,
+        enabled: true,
+        disabledReason: null,
+      },
+      {
+        name: 'get_report_summary_by_range',
+        requiredContextSources: [],
+        permittedByUser: true,
+        implemented: true,
+        enabled: true,
+        disabledReason: null,
       },
       {
         name: 'get_recent_today_summaries',

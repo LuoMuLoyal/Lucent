@@ -77,6 +77,25 @@ const TOOL_KEYWORD_RULES: Record<AiChatToolName, RegExp[]> = {
     /上周/,
     /近一周/,
   ],
+  get_today_summary_by_date: [
+    /今天总结/,
+    /当日总结/,
+    /那天总结/,
+    /某天总结/,
+    /today summary/i,
+    /today analysis/i,
+  ],
+  get_report_summary_by_range: [
+    /周报/,
+    /月报/,
+    /报告总结/,
+    /报告分析/,
+    /7天报告/,
+    /30天报告/,
+    /last 7 days report/i,
+    /last 30 days report/i,
+    /report summary/i,
+  ],
   get_recent_today_summaries: [
     /今天总结/,
     /today summary/i,
@@ -244,6 +263,11 @@ export function selectRelevantToolsForMessage(
       toolName === 'get_records_by_date' ||
       toolName === 'get_records_by_range',
   );
+  const summaryPointTools = allowedTools.filter(
+    (toolName) =>
+      toolName === 'get_today_summary_by_date' ||
+      toolName === 'get_report_summary_by_range',
+  );
   const sleepTools = allowedTools.filter(
     (toolName) => toolName === 'get_sleep_summary_by_range',
   );
@@ -253,6 +277,19 @@ export function selectRelevantToolsForMessage(
   );
 
   if (matched.length > 0) {
+    if (
+      summaryPointTools.includes('get_today_summary_by_date') &&
+      /今天总结|当日总结|today summary|today analysis/i.test(userMessage) &&
+      /(昨天|前天|\b\d{4}-\d{2}-\d{2}\b|\d{1,2}月\d{1,2}日)/.test(userMessage)
+    ) {
+      return ['get_today_summary_by_date'];
+    }
+    if (
+      summaryPointTools.includes('get_report_summary_by_range') &&
+      /周报|月报|报告总结|报告分析|report summary/i.test(userMessage)
+    ) {
+      return ['get_report_summary_by_range'];
+    }
     const withRangeFallback: AiChatToolName[] =
       matched.includes('get_records_by_range') &&
       broadRecordTools.includes('get_records_by_range')

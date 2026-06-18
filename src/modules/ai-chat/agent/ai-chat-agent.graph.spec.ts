@@ -15,6 +15,22 @@ describe('AiChatFoundationGraph', () => {
     ).toEqual(['get_sleep_summary_by_range']);
   });
 
+  it('selects point summary tools for dated history questions', () => {
+    expect(
+      selectRelevantToolsForMessage('看看 2026-06-17 的 today summary', [
+        'get_recent_today_summaries',
+        'get_today_summary_by_date',
+      ]),
+    ).toEqual(['get_today_summary_by_date']);
+
+    expect(
+      selectRelevantToolsForMessage('帮我看上次月报总结', [
+        'get_recent_report_summaries',
+        'get_report_summary_by_range',
+      ]),
+    ).toEqual(['get_report_summary_by_range']);
+  });
+
   it('selects write-intent tools from save-style messages', () => {
     expect(
       selectRelevantToolsForMessage('帮我记一下今天喝了 300ml 水', [
@@ -29,6 +45,8 @@ describe('AiChatFoundationGraph', () => {
     expect(
       selectAllowedToolsForContextSources(['health_profile', 'sleep_records']),
     ).toEqual([
+      'get_today_summary_by_date',
+      'get_report_summary_by_range',
       'get_recent_today_summaries',
       'get_recent_report_summaries',
       'get_user_profile',
@@ -51,6 +69,8 @@ describe('AiChatFoundationGraph', () => {
     });
 
     expect(result.allowedTools).toEqual([
+      'get_today_summary_by_date',
+      'get_report_summary_by_range',
       'get_recent_today_summaries',
       'get_recent_report_summaries',
       'get_user_profile',

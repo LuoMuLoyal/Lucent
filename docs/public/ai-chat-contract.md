@@ -43,6 +43,8 @@ Current implemented tool inventory:
 - `get_today_records`
 - `get_records_by_date`
 - `get_records_by_range`
+- `get_today_summary_by_date`
+- `get_report_summary_by_range`
 - `get_recent_today_summaries`
 - `get_recent_report_summaries`
 - `get_user_profile`
@@ -94,6 +96,8 @@ interface AiChatToolCapabilityDto {
     | 'get_today_records'
     | 'get_records_by_date'
     | 'get_records_by_range'
+    | 'get_today_summary_by_date'
+    | 'get_report_summary_by_range'
     | 'get_recent_today_summaries'
     | 'get_recent_report_summaries'
     | 'get_user_profile'
@@ -432,7 +436,81 @@ interface GetRecordsByRangeToolResult {
 }
 ```
 
-#### 4. `get_recent_today_summaries`
+#### 4. `get_today_summary_by_date`
+
+Purpose:
+
+- fetch one persisted Today AI summary for one concrete date
+
+Input:
+
+```typescript
+interface GetTodaySummaryByDateToolInput {
+  date: string; // YYYY-MM-DD
+}
+```
+
+Output:
+
+```typescript
+interface GetTodaySummaryByDateToolResult {
+  date: string;
+  found: boolean;
+  summary: {
+    date: string | null;
+    generatedAt: string;
+    summary: string;
+    bullets: Array<{
+      kind: string;
+      text: string;
+    }>;
+    actionLabel: string;
+    confidenceNote: string;
+  } | null;
+}
+```
+
+#### 5. `get_report_summary_by_range`
+
+Purpose:
+
+- fetch one persisted Report AI summary for one concrete server-bounded range
+
+Input:
+
+```typescript
+interface GetReportSummaryByRangeToolInput {
+  range?: 'last_7_days' | 'last_30_days';
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
+}
+```
+
+Output:
+
+```typescript
+interface GetReportSummaryByRangeToolResult {
+  rangeKey: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  found: boolean;
+  summary: {
+    rangeKey: string | null;
+    startDate: string | null;
+    endDate: string | null;
+    generatedAt: string;
+    summary: string;
+    bullets: Array<{
+      kind: string;
+      text: string;
+    }>;
+    actionLabel: string;
+    confidenceNote: string;
+  } | null;
+}
+```
+
+#### 6. `get_recent_today_summaries`
 
 Purpose:
 
@@ -465,7 +543,7 @@ interface GetRecentTodaySummariesToolResult {
 }
 ```
 
-#### 5. `get_recent_report_summaries`
+#### 7. `get_recent_report_summaries`
 
 Purpose:
 
@@ -500,7 +578,7 @@ interface GetRecentReportSummariesToolResult {
 }
 ```
 
-#### 6. `get_user_profile`
+#### 8. `get_user_profile`
 
 Purpose:
 
@@ -529,7 +607,7 @@ interface GetUserProfileToolResult {
 }
 ```
 
-#### 7. `get_user_settings`
+#### 9. `get_user_settings`
 
 Purpose:
 
@@ -561,7 +639,7 @@ interface GetUserSettingsToolResult {
 }
 ```
 
-#### 8. `get_current_medicines`
+#### 10. `get_current_medicines`
 
 Purpose:
 
@@ -591,7 +669,7 @@ interface GetCurrentMedicinesToolResult {
 }
 ```
 
-#### 9. `get_sleep_summary_by_range`
+#### 11. `get_sleep_summary_by_range`
 
 Purpose:
 
@@ -857,6 +935,8 @@ Current backend behavior is intentionally conservative:
     derive a non-empty update draft
 - `propose_delete_daily_record`
   - emits a proposal only when Lucent can match one concrete target record
+- update/delete target matching now prefers explicit kind plus value/title/note
+  hints before falling back to the newest candidate on the selected day
 - `propose_update_user_settings`
   - emits a proposal only when Lucent can derive at least one explicit setting
     change

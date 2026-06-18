@@ -6,6 +6,11 @@ import { UserHealthContextService } from '../../user-health-context/user-health-
 import { DailyRecordCandidatesService } from '../../daily-records/daily-record-candidates.service';
 import { DailyRecordsService } from '../../daily-records/daily-records.service';
 import { MedicineRemindersService } from '../../medicine-reminders/medicine-reminders.service';
+import {
+  REPORT_RANGE_LAST_30_DAYS,
+  REPORT_RANGE_LAST_7_DAYS,
+  type ReportRange,
+} from '../../reports/dto/report-dashboard-query.dto';
 import { UserSettingsService } from '../../user-settings/user-settings.service';
 import type {
   AiChatCreateDailyRecordProposalPayload,
@@ -34,6 +39,8 @@ type ToolRecordItem = {
   note: string | null;
   tags: string[];
   payload: Record<string, unknown> | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 };
 @Injectable()
 export class AiChatToolExecutor {
@@ -75,6 +82,16 @@ export class AiChatToolExecutor {
         return {
           name: toolName,
           data: await this.buildRecordsByRange(context),
+        };
+      case 'get_today_summary_by_date':
+        return {
+          name: toolName,
+          data: await this.buildTodaySummaryByDate(context),
+        };
+      case 'get_report_summary_by_range':
+        return {
+          name: toolName,
+          data: await this.buildReportSummaryByRange(context),
         };
       case 'get_recent_today_summaries':
         return {
@@ -194,6 +211,45 @@ export class AiChatToolExecutor {
     return {
       summaries,
       total: summaries.length,
+    };
+  }
+  private async buildTodaySummaryByDate(
+    context: AiChatToolExecutionContext,
+  ): Promise<Record<string, unknown>> {
+    const date =
+      this.extractSingleDate(context.userMessage) ?? this.todayDateString();
+    const summary =
+      await this.aiSummaryHistoryService.getLatestTodaySummaryByDate(
+        context.userId,
+        date,
+      );
+    return {
+      date,
+      summary,
+      found: summary != null,
+    };
+  }
+  private async buildReportSummaryByRange(
+    context: AiChatToolExecutionContext,
+  ): Promise<Record<string, unknown>> {
+    const rangeKey = this.extractReportRangeKey(context.userMessage);
+    const range = this.extractDateRange(context.userMessage);
+    const summary =
+      await this.aiSummaryHistoryService.getLatestReportSummaryByRange(
+        context.userId,
+        rangeKey != null
+          ? { rangeKey }
+          : {
+              startDate: range.startDate,
+              endDate: range.endDate,
+            },
+      );
+    return {
+      rangeKey,
+      startDate: rangeKey == null ? range.startDate : null,
+      endDate: rangeKey == null ? range.endDate : null,
+      summary,
+      found: summary != null,
     };
   }
   private async buildUserProfile(
@@ -595,6 +651,8 @@ export class AiChatToolExecutor {
         note: item.note ?? null,
         tags: [],
         payload: item.payload ?? null,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
       }));
   }
   private canReadSleep(context: AiChatToolExecutionContext): boolean {
@@ -609,10 +667,25 @@ export class AiChatToolExecutor {
       includeSleep: true,
     });
     const kindHint = this.extractDailyRecordKindHint(context.userMessage);
-    if (kindHint != null) {
-      return records.find((record) => record.kind === kindHint) ?? null;
-    }
-    return records[0] ?? null;
+    const numericHint = this.extractNumericHint(context.userMessage);
+    const titleHint = this.extractQuotedOrTailHint(context.userMessage);
+    const noteHint = this.extractNoteHint(context.userMessage);
+
+    const ranked = records
+      .map((record, index) => ({
+        record,
+        score: this.scoreMutationTarget(record, {
+          kindHint,
+          numericHint,
+          titleHint,
+          noteHint,
+          index,
+        }),
+      }))
+      .filter((item) => item.score > 0)
+      .sort((left, right) => right.score - left.score);
+
+    return ranked[0]?.record ?? records[0] ?? null;
   }
   private extractDailyRecordKindHint(userMessage: string): string | null {
     if (/喝水|饮水|water/i.test(userMessage)) {
@@ -647,7 +720,7 @@ export class AiChatToolExecutor {
       /(?:备注|note|改成|改为|更新为)\s*[:：]?\s*(.+)$/i,
     );
     if (noteMatch?.[1] != null) {
-      draft.note = noteMatch[1].trim();
+      draft.note = noteMatch[1].trim().replace(/^(?:改成|改为|更新为)\s*/i, '');
     }
     const titleMatch = userMessage.match(/(?:标题|title)\s*[:：]?\s*(.+)$/i);
     if (titleMatch?.[1] != null) {
@@ -893,16 +966,75 @@ export class AiChatToolExecutor {
     }
     return normalized.length > 0 ? normalized : null;
   }
+  private extractReportRangeKey(userMessage: string): ReportRange | null {
+    if (/30天|月报|last 30 days/i.test(userMessage)) {
+      return REPORT_RANGE_LAST_30_DAYS;
+    }
+    if (/7天|周报|last 7 days/i.test(userMessage)) {
+      return REPORT_RANGE_LAST_7_DAYS;
+    }
+    return null;
+  }
+  private extractNumericHint(userMessage: string): string | null {
+    const match = userMessage.match(
+      /\b(\d+(?:\.\d+)?)\s*(ml|毫升|cup|cups|杯|次)?/i,
+    );
+    return match?.[1] != null ? match[1].trim() : null;
+  }
+  private extractQuotedOrTailHint(userMessage: string): string | null {
+    const quoted = userMessage.match(/["“](.+?)["”]/);
+    if (quoted?.[1] != null) {
+      return quoted[1].trim();
+    }
+    const tail = userMessage.match(
+      /(?:标题|title|那条|这条)\s*[:：]?\s*(.+)$/i,
+    );
+    return tail?.[1] != null ? tail[1].trim() : null;
+  }
+  private extractNoteHint(userMessage: string): string | null {
+    const noteMatch = userMessage.match(
+      /(?:备注|note|内容|content)\s*[:：]?\s*(.+)$/i,
+    );
+    return noteMatch?.[1] != null ? noteMatch[1].trim() : null;
+  }
+  private scoreMutationTarget(
+    record: ToolRecordItem,
+    input: {
+      kindHint: string | null;
+      numericHint: string | null;
+      titleHint: string | null;
+      noteHint: string | null;
+      index: number;
+    },
+  ): number {
+    let score = 1;
+    if (input.kindHint != null) {
+      if (record.kind !== input.kindHint) {
+        return 0;
+      }
+      score += 10;
+    }
+    if (input.numericHint != null && record.value === input.numericHint) {
+      score += 6;
+    }
+    if (
+      input.titleHint != null &&
+      record.title != null &&
+      record.title.includes(input.titleHint)
+    ) {
+      score += 8;
+    }
+    if (
+      input.noteHint != null &&
+      record.note != null &&
+      record.note.includes(input.noteHint)
+    ) {
+      score += 8;
+    }
+    score += Math.max(0, 3 - input.index);
+    return score;
+  }
   private extractSingleDate(userMessage: string): string | null {
-    if (/今天|today/i.test(userMessage)) {
-      return this.todayDateString();
-    }
-    if (/昨天/.test(userMessage)) {
-      return this.offsetDateString(-1);
-    }
-    if (/前天/.test(userMessage)) {
-      return this.offsetDateString(-2);
-    }
     const iso = userMessage.match(/\b(\d{4}-\d{2}-\d{2})\b/);
     if (iso?.[1] != null) {
       return iso[1];
@@ -913,6 +1045,15 @@ export class AiChatToolExecutor {
       const month = Number(chinese[1]);
       const day = Number(chinese[2]);
       return this.makeDateString(year, month, day);
+    }
+    if (/今天|today/i.test(userMessage)) {
+      return this.todayDateString();
+    }
+    if (/昨天/.test(userMessage)) {
+      return this.offsetDateString(-1);
+    }
+    if (/前天/.test(userMessage)) {
+      return this.offsetDateString(-2);
     }
     return null;
   }

@@ -4,6 +4,7 @@ import {
   type Prisma,
 } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import type { ReportRange } from '../reports/dto/report-dashboard-query.dto';
 
 type SummaryBullet = {
   kind: string;
@@ -84,6 +85,45 @@ export class AiSummaryHistoryService {
     }));
   }
 
+  async getLatestTodaySummaryByDate(userId: string, date: string) {
+    const row = await this.prisma.aiSummaryHistory.findFirst({
+      where: {
+        userId,
+        kind: AiSummaryHistoryKind.today,
+        date: this.parseDate(date),
+      },
+      orderBy: [{ generatedAt: 'desc' }],
+    });
+
+    return row == null ? null : this.toTodaySummary(row);
+  }
+
+  async getLatestReportSummaryByRange(
+    userId: string,
+    input: {
+      rangeKey?: ReportRange | null;
+      startDate?: string | null;
+      endDate?: string | null;
+    },
+  ) {
+    const row = await this.prisma.aiSummaryHistory.findFirst({
+      where: {
+        userId,
+        kind: AiSummaryHistoryKind.report,
+        ...(input.rangeKey != null ? { rangeKey: input.rangeKey } : {}),
+        ...(input.startDate != null
+          ? { startDate: this.parseDate(input.startDate) }
+          : {}),
+        ...(input.endDate != null
+          ? { endDate: this.parseDate(input.endDate) }
+          : {}),
+      },
+      orderBy: [{ generatedAt: 'desc' }],
+    });
+
+    return row == null ? null : this.toReportSummary(row);
+  }
+
   private toUpsertData(
     input: PersistSummaryInput,
   ): Prisma.AiSummaryHistoryUncheckedCreateInput {
@@ -103,6 +143,46 @@ export class AiSummaryHistoryService {
       bullets: input.bullets,
       actionLabel: input.actionLabel,
       confidenceNote: input.confidenceNote,
+    };
+  }
+
+  private toTodaySummary(row: {
+    date: Date | null;
+    generatedAt: Date;
+    summary: string;
+    bullets: unknown;
+    actionLabel: string;
+    confidenceNote: string;
+  }) {
+    return {
+      date: row.date?.toISOString().slice(0, 10) ?? null,
+      generatedAt: row.generatedAt.toISOString(),
+      summary: row.summary,
+      bullets: this.readBullets(row.bullets),
+      actionLabel: row.actionLabel,
+      confidenceNote: row.confidenceNote,
+    };
+  }
+
+  private toReportSummary(row: {
+    rangeKey: string | null;
+    startDate: Date | null;
+    endDate: Date | null;
+    generatedAt: Date;
+    summary: string;
+    bullets: unknown;
+    actionLabel: string;
+    confidenceNote: string;
+  }) {
+    return {
+      rangeKey: row.rangeKey,
+      startDate: row.startDate?.toISOString().slice(0, 10) ?? null,
+      endDate: row.endDate?.toISOString().slice(0, 10) ?? null,
+      generatedAt: row.generatedAt.toISOString(),
+      summary: row.summary,
+      bullets: this.readBullets(row.bullets),
+      actionLabel: row.actionLabel,
+      confidenceNote: row.confidenceNote,
     };
   }
 
