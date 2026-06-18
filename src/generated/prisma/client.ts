@@ -153,3 +153,8 @@ export type AiChatConversation = Prisma.AiChatConversationModel
  * 
  */
 export type AiChatMessage = Prisma.AiChatMessageModel
+/**
+ * Model AiSummaryHistory
+ * 
+ */
+export type AiSummaryHistory = Prisma.AiSummaryHistoryModel

@@ -9,6 +9,7 @@ import { AiChatAgentService } from './agent/ai-chat-agent.service';
 import { AiChatConversationService } from './ai-chat-conversation.service';
 import { AiChatController } from './ai-chat.controller';
 import { AiChatPolicyService } from './ai-chat-policy.service';
+import { AiSummaryHistoryService } from './ai-summary-history.service';
 import { AiChatService } from './ai-chat.service';
 import { AiChatToolContextService, AiChatToolExecutor } from './tools';
 
@@ -26,11 +27,17 @@ import { AiChatToolContextService, AiChatToolExecutor } from './tools';
     AiChatAgentService,
     AiChatConversationService,
     AiChatPolicyService,
+    AiSummaryHistoryService,
     AiChatToolContextService,
     AiChatToolExecutor,
     AiChatService,
   ],
-  exports: [AiChatAgentService, AiChatPolicyService, AiChatService],
+  exports: [
+    AiChatAgentService,
+    AiChatPolicyService,
+    AiSummaryHistoryService,
+    AiChatService,
+  ],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class AiChatModule {}

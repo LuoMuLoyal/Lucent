@@ -405,7 +405,8 @@ export const ModelName = {
   UserSetting: 'UserSetting',
   DataExportRequest: 'DataExportRequest',
   AiChatConversation: 'AiChatConversation',
-  AiChatMessage: 'AiChatMessage'
+  AiChatMessage: 'AiChatMessage',
+  AiSummaryHistory: 'AiSummaryHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -421,7 +422,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "aiChatConversation" | "aiChatMessage"
+    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "aiChatConversation" | "aiChatMessage" | "aiSummaryHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2127,6 +2128,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AiSummaryHistory: {
+      payload: Prisma.$AiSummaryHistoryPayload<ExtArgs>
+      fields: Prisma.AiSummaryHistoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AiSummaryHistoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AiSummaryHistoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+        }
+        findFirst: {
+          args: Prisma.AiSummaryHistoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AiSummaryHistoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+        }
+        findMany: {
+          args: Prisma.AiSummaryHistoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>[]
+        }
+        create: {
+          args: Prisma.AiSummaryHistoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+        }
+        createMany: {
+          args: Prisma.AiSummaryHistoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AiSummaryHistoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>[]
+        }
+        delete: {
+          args: Prisma.AiSummaryHistoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+        }
+        update: {
+          args: Prisma.AiSummaryHistoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.AiSummaryHistoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AiSummaryHistoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AiSummaryHistoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.AiSummaryHistoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AiSummaryHistoryPayload>
+        }
+        aggregate: {
+          args: Prisma.AiSummaryHistoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAiSummaryHistory>
+        }
+        groupBy: {
+          args: Prisma.AiSummaryHistoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiSummaryHistoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AiSummaryHistoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AiSummaryHistoryCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2640,6 +2715,27 @@ export const AiChatMessageScalarFieldEnum = {
 export type AiChatMessageScalarFieldEnum = (typeof AiChatMessageScalarFieldEnum)[keyof typeof AiChatMessageScalarFieldEnum]
 
 
+export const AiSummaryHistoryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  kind: 'kind',
+  scopeKey: 'scopeKey',
+  date: 'date',
+  rangeKey: 'rangeKey',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  generatedAt: 'generatedAt',
+  summary: 'summary',
+  bullets: 'bullets',
+  actionLabel: 'actionLabel',
+  confidenceNote: 'confidenceNote',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiSummaryHistoryScalarFieldEnum = (typeof AiSummaryHistoryScalarFieldEnum)[keyof typeof AiSummaryHistoryScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2654,6 +2750,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {
@@ -2975,6 +3078,20 @@ export type ListEnumAiChatMessageRoleFieldRefInput<$PrismaModel> = FieldRefInput
 
 
 /**
+ * Reference to a field of type 'AiSummaryHistoryKind'
+ */
+export type EnumAiSummaryHistoryKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiSummaryHistoryKind'>
+    
+
+
+/**
+ * Reference to a field of type 'AiSummaryHistoryKind[]'
+ */
+export type ListEnumAiSummaryHistoryKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AiSummaryHistoryKind[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -3120,6 +3237,7 @@ export type GlobalOmitConfig = {
   dataExportRequest?: Prisma.DataExportRequestOmit
   aiChatConversation?: Prisma.AiChatConversationOmit
   aiChatMessage?: Prisma.AiChatMessageOmit
+  aiSummaryHistory?: Prisma.AiSummaryHistoryOmit
 }
 
 /* Types for Logging */

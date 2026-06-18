@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AiChatModule } from '../ai-chat/ai-chat.module';
 import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
 import { TodayAnalysisCopyService } from './services/today-analysis-copy.service';
 import { TodayAnalysisController } from './today-analysis.controller';
@@ -8,7 +9,7 @@ import { TodayAnalysisPolicyService } from './services/today-analysis-policy.ser
 import { TodayAnalysisService } from './services/today-analysis.service';
 
 @Module({
-  imports: [LlmRuntimeModule],
+  imports: [LlmRuntimeModule, AiChatModule],
   controllers: [TodayAnalysisController],
   providers: [
     TodayAnalysisCopyService,

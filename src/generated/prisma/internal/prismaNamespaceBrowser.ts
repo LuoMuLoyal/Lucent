@@ -72,7 +72,8 @@ export const ModelName = {
   UserSetting: 'UserSetting',
   DataExportRequest: 'DataExportRequest',
   AiChatConversation: 'AiChatConversation',
-  AiChatMessage: 'AiChatMessage'
+  AiChatMessage: 'AiChatMessage',
+  AiSummaryHistory: 'AiSummaryHistory'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -565,6 +566,27 @@ export const AiChatMessageScalarFieldEnum = {
 export type AiChatMessageScalarFieldEnum = (typeof AiChatMessageScalarFieldEnum)[keyof typeof AiChatMessageScalarFieldEnum]
 
 
+export const AiSummaryHistoryScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  kind: 'kind',
+  scopeKey: 'scopeKey',
+  date: 'date',
+  rangeKey: 'rangeKey',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  generatedAt: 'generatedAt',
+  summary: 'summary',
+  bullets: 'bullets',
+  actionLabel: 'actionLabel',
+  confidenceNote: 'confidenceNote',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiSummaryHistoryScalarFieldEnum = (typeof AiSummaryHistoryScalarFieldEnum)[keyof typeof AiSummaryHistoryScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -579,6 +601,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const QueryMode = {

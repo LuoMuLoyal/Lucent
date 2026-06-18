@@ -51,6 +51,7 @@ describe('AiChatController', () => {
     service.getCapabilities.mockResolvedValue({
       phase: 'foundation',
       aiChatEnabled: true,
+      aiChatMemoryEnabled: false,
       aiChatContext: {
         healthProfile: true,
         dailyRecords: true,
@@ -76,6 +77,7 @@ describe('AiChatController', () => {
       data: {
         phase: 'foundation',
         aiChatEnabled: true,
+        aiChatMemoryEnabled: false,
         aiChatContext: {
           healthProfile: true,
           dailyRecords: true,

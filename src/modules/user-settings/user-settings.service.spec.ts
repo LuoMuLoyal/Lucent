@@ -16,6 +16,7 @@ describe('UserSettingsService', () => {
       aiSummariesEnabled: true,
       dataSharingConsent: false,
       aiChatEnabled: true,
+      aiChatMemoryEnabled: false,
       aiChatContext: {
         healthProfile: true,
         dailyRecords: true,
@@ -30,6 +31,11 @@ describe('UserSettingsService', () => {
     const prisma = {
       userSetting: {
         findMany: jest.fn().mockResolvedValue([
+          {
+            key: 'aiChatMemoryEnabled',
+            value: true,
+            updatedAt: new Date('2026-06-17T11:00:00.000Z'),
+          },
           {
             key: 'aiChatContext.sleepRecords',
             value: false,
@@ -56,13 +62,14 @@ describe('UserSettingsService', () => {
       aiSummariesEnabled: true,
       dataSharingConsent: true,
       aiChatEnabled: false,
+      aiChatMemoryEnabled: true,
       aiChatContext: {
         healthProfile: true,
         dailyRecords: true,
         sleepRecords: false,
         currentMedicines: true,
       },
-      updatedAt: '2026-06-17T10:00:00.000Z',
+      updatedAt: '2026-06-17T11:00:00.000Z',
     });
   });
 
@@ -79,13 +86,14 @@ describe('UserSettingsService', () => {
 
     await service.updateSettings('user-1', {
       aiChatEnabled: false,
+      aiChatMemoryEnabled: true,
       aiChatContext: {
         healthProfile: false,
         sleepRecords: false,
       },
     });
 
-    expect(upsert).toHaveBeenCalledTimes(3);
+    expect(upsert).toHaveBeenCalledTimes(4);
     expect(upsert).toHaveBeenCalledWith({
       where: {
         userId_key: { userId: 'user-1', key: 'aiChatEnabled' },
@@ -97,6 +105,19 @@ describe('UserSettingsService', () => {
       },
       update: {
         value: false,
+      },
+    });
+    expect(upsert).toHaveBeenCalledWith({
+      where: {
+        userId_key: { userId: 'user-1', key: 'aiChatMemoryEnabled' },
+      },
+      create: {
+        userId: 'user-1',
+        key: 'aiChatMemoryEnabled',
+        value: true,
+      },
+      update: {
+        value: true,
       },
     });
     expect(upsert).toHaveBeenCalledWith({

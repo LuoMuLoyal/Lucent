@@ -260,6 +260,9 @@ describe('TodayAnalysisService', () => {
     const contextService = {
       build: jest.fn().mockResolvedValue(baseContext),
     } as unknown as TodayAnalysisContextService;
+    const aiSummaryHistoryService = {
+      save: jest.fn().mockResolvedValue(undefined),
+    };
 
     const policyService = new TodayAnalysisPolicyService();
     const copyService = {
@@ -358,6 +361,7 @@ describe('TodayAnalysisService', () => {
 
     return new TodayAnalysisService(
       prisma as never,
+      aiSummaryHistoryService as never,
       contextService,
       policyService,
       copyService,

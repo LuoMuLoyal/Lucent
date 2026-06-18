@@ -114,6 +114,11 @@ enum AiChatMessageRole {
   assistant
 }
 
+enum AiSummaryHistoryKind {
+  today
+  report
+}
+
 model User {
   id                     String                      @id @default(uuid())
   email                  String?
@@ -142,6 +147,7 @@ model User {
   dataExportRequests     DataExportRequest[]
   aiChatConversations    AiChatConversation[]
   aiChatMessages         AiChatMessage[]
+  aiSummaryHistories     AiSummaryHistory[]
 
   @@index([email])
   @@index([status])
@@ -682,4 +688,29 @@ model AiChatMessage {
   @@index([conversationId, createdAt])
   @@index([userId, createdAt])
   @@map("ai_chat_messages")
+}
+
+model AiSummaryHistory {
+  id             String               @id @default(uuid())
+  userId         String               @map("user_id")
+  kind           AiSummaryHistoryKind
+  scopeKey       String               @map("scope_key")
+  date           DateTime?            @db.Date
+  rangeKey       String?              @map("range_key")
+  startDate      DateTime?            @map("start_date") @db.Date
+  endDate        DateTime?            @map("end_date") @db.Date
+  generatedAt    DateTime             @map("generated_at") @db.Timestamptz(3)
+  summary        String
+  bullets        Json                 @db.JsonB
+  actionLabel    String               @map("action_label")
+  confidenceNote String               @map("confidence_note")
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, scopeKey])
+  @@index([userId, kind, generatedAt])
+  @@index([userId, date])
+  @@index([userId, rangeKey, generatedAt])
+  @@map("ai_summary_histories")
 }

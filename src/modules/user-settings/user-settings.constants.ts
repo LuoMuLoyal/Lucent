@@ -2,6 +2,7 @@ export const USER_SETTING_KEYS = {
   aiSummariesEnabled: 'aiSummariesEnabled',
   dataSharingConsent: 'dataSharingConsent',
   aiChatEnabled: 'aiChatEnabled',
+  aiChatMemoryEnabled: 'aiChatMemoryEnabled',
 } as const;
 
 export const AI_CHAT_CONTEXT_SETTING_KEYS = {
@@ -15,6 +16,7 @@ export const USER_SETTINGS_DEFAULTS = {
   aiSummariesEnabled: true,
   dataSharingConsent: false,
   aiChatEnabled: true,
+  aiChatMemoryEnabled: false,
 } as const;
 
 export const AI_CHAT_CONTEXT_DEFAULTS = {
@@ -36,6 +38,10 @@ export function listDefaultBooleanUserSettings(): Array<{
     {
       key: USER_SETTING_KEYS.aiChatEnabled,
       value: USER_SETTINGS_DEFAULTS.aiChatEnabled,
+    },
+    {
+      key: USER_SETTING_KEYS.aiChatMemoryEnabled,
+      value: USER_SETTINGS_DEFAULTS.aiChatMemoryEnabled,
     },
     ...(
       Object.entries(AI_CHAT_CONTEXT_SETTING_KEYS) as Array<

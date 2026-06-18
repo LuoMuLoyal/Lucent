@@ -159,6 +159,14 @@ export const AiChatMessageRole = {
 export type AiChatMessageRole = (typeof AiChatMessageRole)[keyof typeof AiChatMessageRole]
 
 
+export const AiSummaryHistoryKind = {
+  today: 'today',
+  report: 'report'
+} as const
+
+export type AiSummaryHistoryKind = (typeof AiSummaryHistoryKind)[keyof typeof AiSummaryHistoryKind]
+
+
 export const DoseLogStatus = {
   taken: 'taken',
   skipped: 'skipped',

@@ -245,6 +245,7 @@ export type UserWhereInput = {
   dataExportRequests?: Prisma.DataExportRequestListRelationFilter
   aiChatConversations?: Prisma.AiChatConversationListRelationFilter
   aiChatMessages?: Prisma.AiChatMessageListRelationFilter
+  aiSummaryHistories?: Prisma.AiSummaryHistoryListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -275,6 +276,7 @@ export type UserOrderByWithRelationInput = {
   dataExportRequests?: Prisma.DataExportRequestOrderByRelationAggregateInput
   aiChatConversations?: Prisma.AiChatConversationOrderByRelationAggregateInput
   aiChatMessages?: Prisma.AiChatMessageOrderByRelationAggregateInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -308,6 +310,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   dataExportRequests?: Prisma.DataExportRequestListRelationFilter
   aiChatConversations?: Prisma.AiChatConversationListRelationFilter
   aiChatMessages?: Prisma.AiChatMessageListRelationFilter
+  aiSummaryHistories?: Prisma.AiSummaryHistoryListRelationFilter
 }, "id">
 
 export type UserOrderByWithAggregationInput = {
@@ -372,6 +375,7 @@ export type UserCreateInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -402,6 +406,7 @@ export type UserUncheckedCreateInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -432,6 +437,7 @@ export type UserUpdateInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -462,6 +468,7 @@ export type UserUncheckedUpdateInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -797,6 +804,20 @@ export type UserUpdateOneRequiredWithoutAiChatMessagesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAiChatMessagesInput, Prisma.UserUpdateWithoutAiChatMessagesInput>, Prisma.UserUncheckedUpdateWithoutAiChatMessagesInput>
 }
 
+export type UserCreateNestedOneWithoutAiSummaryHistoriesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAiSummaryHistoriesInput, Prisma.UserUncheckedCreateWithoutAiSummaryHistoriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAiSummaryHistoriesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutAiSummaryHistoriesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutAiSummaryHistoriesInput, Prisma.UserUncheckedCreateWithoutAiSummaryHistoriesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutAiSummaryHistoriesInput
+  upsert?: Prisma.UserUpsertWithoutAiSummaryHistoriesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAiSummaryHistoriesInput, Prisma.UserUpdateWithoutAiSummaryHistoriesInput>, Prisma.UserUncheckedUpdateWithoutAiSummaryHistoriesInput>
+}
+
 export type UserCreateWithoutIdentitiesInput = {
   id?: string
   email?: string | null
@@ -824,6 +845,7 @@ export type UserCreateWithoutIdentitiesInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutIdentitiesInput = {
@@ -853,6 +875,7 @@ export type UserUncheckedCreateWithoutIdentitiesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutIdentitiesInput = {
@@ -898,6 +921,7 @@ export type UserUpdateWithoutIdentitiesInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutIdentitiesInput = {
@@ -927,6 +951,7 @@ export type UserUncheckedUpdateWithoutIdentitiesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutProfileInput = {
@@ -956,6 +981,7 @@ export type UserCreateWithoutProfileInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutProfileInput = {
@@ -985,6 +1011,7 @@ export type UserUncheckedCreateWithoutProfileInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProfileInput = {
@@ -1030,6 +1057,7 @@ export type UserUpdateWithoutProfileInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProfileInput = {
@@ -1059,6 +1087,7 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSessionsInput = {
@@ -1088,6 +1117,7 @@ export type UserCreateWithoutSessionsInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -1117,6 +1147,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -1162,6 +1193,7 @@ export type UserUpdateWithoutSessionsInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1191,6 +1223,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDevicesInput = {
@@ -1220,6 +1253,7 @@ export type UserCreateWithoutDevicesInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDevicesInput = {
@@ -1249,6 +1283,7 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDevicesInput = {
@@ -1294,6 +1329,7 @@ export type UserUpdateWithoutDevicesInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDevicesInput = {
@@ -1323,6 +1359,7 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAllergiesInput = {
@@ -1352,6 +1389,7 @@ export type UserCreateWithoutAllergiesInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAllergiesInput = {
@@ -1381,6 +1419,7 @@ export type UserUncheckedCreateWithoutAllergiesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAllergiesInput = {
@@ -1426,6 +1465,7 @@ export type UserUpdateWithoutAllergiesInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAllergiesInput = {
@@ -1455,6 +1495,7 @@ export type UserUncheckedUpdateWithoutAllergiesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutConditionsInput = {
@@ -1484,6 +1525,7 @@ export type UserCreateWithoutConditionsInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutConditionsInput = {
@@ -1513,6 +1555,7 @@ export type UserUncheckedCreateWithoutConditionsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutConditionsInput = {
@@ -1558,6 +1601,7 @@ export type UserUpdateWithoutConditionsInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutConditionsInput = {
@@ -1587,6 +1631,7 @@ export type UserUncheckedUpdateWithoutConditionsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCurrentMedicinesInput = {
@@ -1616,6 +1661,7 @@ export type UserCreateWithoutCurrentMedicinesInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCurrentMedicinesInput = {
@@ -1645,6 +1691,7 @@ export type UserUncheckedCreateWithoutCurrentMedicinesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCurrentMedicinesInput = {
@@ -1690,6 +1737,7 @@ export type UserUpdateWithoutCurrentMedicinesInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCurrentMedicinesInput = {
@@ -1719,6 +1767,7 @@ export type UserUncheckedUpdateWithoutCurrentMedicinesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMedicineRemindersInput = {
@@ -1748,6 +1797,7 @@ export type UserCreateWithoutMedicineRemindersInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMedicineRemindersInput = {
@@ -1777,6 +1827,7 @@ export type UserUncheckedCreateWithoutMedicineRemindersInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMedicineRemindersInput = {
@@ -1822,6 +1873,7 @@ export type UserUpdateWithoutMedicineRemindersInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMedicineRemindersInput = {
@@ -1851,6 +1903,7 @@ export type UserUncheckedUpdateWithoutMedicineRemindersInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutReminderDeliveriesInput = {
@@ -1880,6 +1933,7 @@ export type UserCreateWithoutReminderDeliveriesInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutReminderDeliveriesInput = {
@@ -1909,6 +1963,7 @@ export type UserUncheckedCreateWithoutReminderDeliveriesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutReminderDeliveriesInput = {
@@ -1954,6 +2009,7 @@ export type UserUpdateWithoutReminderDeliveriesInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutReminderDeliveriesInput = {
@@ -1983,6 +2039,7 @@ export type UserUncheckedUpdateWithoutReminderDeliveriesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDoseLogsInput = {
@@ -2012,6 +2069,7 @@ export type UserCreateWithoutDoseLogsInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDoseLogsInput = {
@@ -2041,6 +2099,7 @@ export type UserUncheckedCreateWithoutDoseLogsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDoseLogsInput = {
@@ -2086,6 +2145,7 @@ export type UserUpdateWithoutDoseLogsInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDoseLogsInput = {
@@ -2115,6 +2175,7 @@ export type UserUncheckedUpdateWithoutDoseLogsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDailyRecordsInput = {
@@ -2144,6 +2205,7 @@ export type UserCreateWithoutDailyRecordsInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDailyRecordsInput = {
@@ -2173,6 +2235,7 @@ export type UserUncheckedCreateWithoutDailyRecordsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDailyRecordsInput = {
@@ -2218,6 +2281,7 @@ export type UserUpdateWithoutDailyRecordsInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDailyRecordsInput = {
@@ -2247,6 +2311,7 @@ export type UserUncheckedUpdateWithoutDailyRecordsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDailyRecordAttachmentsInput = {
@@ -2276,6 +2341,7 @@ export type UserCreateWithoutDailyRecordAttachmentsInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDailyRecordAttachmentsInput = {
@@ -2305,6 +2371,7 @@ export type UserUncheckedCreateWithoutDailyRecordAttachmentsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDailyRecordAttachmentsInput = {
@@ -2350,6 +2417,7 @@ export type UserUpdateWithoutDailyRecordAttachmentsInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDailyRecordAttachmentsInput = {
@@ -2379,6 +2447,7 @@ export type UserUncheckedUpdateWithoutDailyRecordAttachmentsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSettingsInput = {
@@ -2408,6 +2477,7 @@ export type UserCreateWithoutSettingsInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSettingsInput = {
@@ -2437,6 +2507,7 @@ export type UserUncheckedCreateWithoutSettingsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSettingsInput = {
@@ -2482,6 +2553,7 @@ export type UserUpdateWithoutSettingsInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSettingsInput = {
@@ -2511,6 +2583,7 @@ export type UserUncheckedUpdateWithoutSettingsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDataExportRequestsInput = {
@@ -2540,6 +2613,7 @@ export type UserCreateWithoutDataExportRequestsInput = {
   settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDataExportRequestsInput = {
@@ -2569,6 +2643,7 @@ export type UserUncheckedCreateWithoutDataExportRequestsInput = {
   settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDataExportRequestsInput = {
@@ -2614,6 +2689,7 @@ export type UserUpdateWithoutDataExportRequestsInput = {
   settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDataExportRequestsInput = {
@@ -2643,6 +2719,7 @@ export type UserUncheckedUpdateWithoutDataExportRequestsInput = {
   settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAiChatConversationsInput = {
@@ -2672,6 +2749,7 @@ export type UserCreateWithoutAiChatConversationsInput = {
   settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAiChatConversationsInput = {
@@ -2701,6 +2779,7 @@ export type UserUncheckedCreateWithoutAiChatConversationsInput = {
   settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAiChatConversationsInput = {
@@ -2746,6 +2825,7 @@ export type UserUpdateWithoutAiChatConversationsInput = {
   settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAiChatConversationsInput = {
@@ -2775,6 +2855,7 @@ export type UserUncheckedUpdateWithoutAiChatConversationsInput = {
   settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAiChatMessagesInput = {
@@ -2804,6 +2885,7 @@ export type UserCreateWithoutAiChatMessagesInput = {
   settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAiChatMessagesInput = {
@@ -2833,6 +2915,7 @@ export type UserUncheckedCreateWithoutAiChatMessagesInput = {
   settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAiChatMessagesInput = {
@@ -2878,6 +2961,7 @@ export type UserUpdateWithoutAiChatMessagesInput = {
   settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAiChatMessagesInput = {
@@ -2907,6 +2991,143 @@ export type UserUncheckedUpdateWithoutAiChatMessagesInput = {
   settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
+  aiSummaryHistories?: Prisma.AiSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutAiSummaryHistoriesInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
+  aiChatConversations?: Prisma.AiChatConversationCreateNestedManyWithoutUserInput
+  aiChatMessages?: Prisma.AiChatMessageCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutAiSummaryHistoriesInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
+  aiChatConversations?: Prisma.AiChatConversationUncheckedCreateNestedManyWithoutUserInput
+  aiChatMessages?: Prisma.AiChatMessageUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutAiSummaryHistoriesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutAiSummaryHistoriesInput, Prisma.UserUncheckedCreateWithoutAiSummaryHistoriesInput>
+}
+
+export type UserUpsertWithoutAiSummaryHistoriesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutAiSummaryHistoriesInput, Prisma.UserUncheckedUpdateWithoutAiSummaryHistoriesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutAiSummaryHistoriesInput, Prisma.UserUncheckedCreateWithoutAiSummaryHistoriesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutAiSummaryHistoriesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutAiSummaryHistoriesInput, Prisma.UserUncheckedUpdateWithoutAiSummaryHistoriesInput>
+}
+
+export type UserUpdateWithoutAiSummaryHistoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
+  aiChatConversations?: Prisma.AiChatConversationUpdateManyWithoutUserNestedInput
+  aiChatMessages?: Prisma.AiChatMessageUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutAiSummaryHistoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
+  aiChatConversations?: Prisma.AiChatConversationUncheckedUpdateManyWithoutUserNestedInput
+  aiChatMessages?: Prisma.AiChatMessageUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -2930,6 +3151,7 @@ export type UserCountOutputType = {
   dataExportRequests: number
   aiChatConversations: number
   aiChatMessages: number
+  aiSummaryHistories: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2948,6 +3170,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   dataExportRequests?: boolean | UserCountOutputTypeCountDataExportRequestsArgs
   aiChatConversations?: boolean | UserCountOutputTypeCountAiChatConversationsArgs
   aiChatMessages?: boolean | UserCountOutputTypeCountAiChatMessagesArgs
+  aiSummaryHistories?: boolean | UserCountOutputTypeCountAiSummaryHistoriesArgs
 }
 
 /**
@@ -3065,6 +3288,13 @@ export type UserCountOutputTypeCountAiChatMessagesArgs<ExtArgs extends runtime.T
   where?: Prisma.AiChatMessageWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountAiSummaryHistoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AiSummaryHistoryWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -3094,6 +3324,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   dataExportRequests?: boolean | Prisma.User$dataExportRequestsArgs<ExtArgs>
   aiChatConversations?: boolean | Prisma.User$aiChatConversationsArgs<ExtArgs>
   aiChatMessages?: boolean | Prisma.User$aiChatMessagesArgs<ExtArgs>
+  aiSummaryHistories?: boolean | Prisma.User$aiSummaryHistoriesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -3157,6 +3388,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   dataExportRequests?: boolean | Prisma.User$dataExportRequestsArgs<ExtArgs>
   aiChatConversations?: boolean | Prisma.User$aiChatConversationsArgs<ExtArgs>
   aiChatMessages?: boolean | Prisma.User$aiChatMessagesArgs<ExtArgs>
+  aiSummaryHistories?: boolean | Prisma.User$aiSummaryHistoriesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -3181,6 +3413,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     dataExportRequests: Prisma.$DataExportRequestPayload<ExtArgs>[]
     aiChatConversations: Prisma.$AiChatConversationPayload<ExtArgs>[]
     aiChatMessages: Prisma.$AiChatMessagePayload<ExtArgs>[]
+    aiSummaryHistories: Prisma.$AiSummaryHistoryPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3604,6 +3837,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   dataExportRequests<T extends Prisma.User$dataExportRequestsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$dataExportRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DataExportRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiChatConversations<T extends Prisma.User$aiChatConversationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$aiChatConversationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiChatConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   aiChatMessages<T extends Prisma.User$aiChatMessagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$aiChatMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiChatMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  aiSummaryHistories<T extends Prisma.User$aiSummaryHistoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$aiSummaryHistoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AiSummaryHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4413,6 +4647,30 @@ export type User$aiChatMessagesArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.AiChatMessageScalarFieldEnum | Prisma.AiChatMessageScalarFieldEnum[]
+}
+
+/**
+ * User.aiSummaryHistories
+ */
+export type User$aiSummaryHistoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AiSummaryHistory
+   */
+  select?: Prisma.AiSummaryHistorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AiSummaryHistory
+   */
+  omit?: Prisma.AiSummaryHistoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AiSummaryHistoryInclude<ExtArgs> | null
+  where?: Prisma.AiSummaryHistoryWhereInput
+  orderBy?: Prisma.AiSummaryHistoryOrderByWithRelationInput | Prisma.AiSummaryHistoryOrderByWithRelationInput[]
+  cursor?: Prisma.AiSummaryHistoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AiSummaryHistoryScalarFieldEnum | Prisma.AiSummaryHistoryScalarFieldEnum[]
 }
 
 /**

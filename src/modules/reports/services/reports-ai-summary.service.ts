@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ResultCode } from '../../../common/api-envelope';
+import { AiSummaryHistoryService } from '../../ai-chat/ai-summary-history.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   GenerateReportSummaryDto,
@@ -30,6 +31,7 @@ export class ReportsAiSummaryService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly aiSummaryHistoryService: AiSummaryHistoryService,
     private readonly reportsContextService: ReportsContextService,
     private readonly reportsComputationService: ReportsComputationService,
     private readonly reportsAiSummaryContextService: ReportsAiSummaryContextService,
@@ -48,8 +50,9 @@ export class ReportsAiSummaryService {
       prepared.context,
       prepared.locale,
     );
-
-    return this.toDataDto(prepared.context, output);
+    const data = this.toDataDto(prepared.context, output);
+    await this.persistSummary(userId, data);
+    return data;
   }
 
   async generateStream(
@@ -64,8 +67,9 @@ export class ReportsAiSummaryService {
       prepared.locale,
       onSummary,
     );
-
-    return this.toDataDto(prepared.context, output);
+    const data = this.toDataDto(prepared.context, output);
+    await this.persistSummary(userId, data);
+    return data;
   }
 
   private async assertAiSummariesEnabled(
@@ -239,5 +243,24 @@ export class ReportsAiSummaryService {
       actionLabel: output.actionLabel,
       confidenceNote: output.confidenceNote,
     };
+  }
+
+  private async persistSummary(
+    userId: string,
+    data: ReportSummaryDataDto,
+  ): Promise<void> {
+    await this.aiSummaryHistoryService.save({
+      userId,
+      kind: 'report',
+      scopeKey: `report:${data.range}:${data.startDate}:${data.endDate}`,
+      rangeKey: data.range,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      generatedAt: data.generatedAt,
+      summary: data.summary,
+      bullets: data.bullets,
+      actionLabel: data.actionLabel,
+      confidenceNote: data.confidenceNote,
+    });
   }
 }

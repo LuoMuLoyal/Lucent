@@ -41,6 +41,11 @@ export class UserSettingsService {
         USER_SETTING_KEYS.aiChatEnabled,
         USER_SETTINGS_DEFAULTS.aiChatEnabled,
       ),
+      aiChatMemoryEnabled: this.readBool(
+        map,
+        USER_SETTING_KEYS.aiChatMemoryEnabled,
+        USER_SETTINGS_DEFAULTS.aiChatMemoryEnabled,
+      ),
       aiChatContext: {
         healthProfile: this.readBool(
           map,
@@ -88,6 +93,12 @@ export class UserSettingsService {
       upserts.push({
         key: USER_SETTING_KEYS.aiChatEnabled,
         value: dto.aiChatEnabled,
+      });
+    }
+    if (dto.aiChatMemoryEnabled !== undefined) {
+      upserts.push({
+        key: USER_SETTING_KEYS.aiChatMemoryEnabled,
+        value: dto.aiChatMemoryEnabled,
       });
     }
 

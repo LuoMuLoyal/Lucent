@@ -8,17 +8,23 @@ describe('AiChatFoundationGraph', () => {
   it('selects relevant tools from the user message', () => {
     expect(
       selectRelevantToolsForMessage('最近睡眠怎么样', [
-        'health_context_snapshot',
-        'recent_sleep_summary',
-        'current_medicines',
+        'get_user_profile',
+        'get_sleep_summary_by_range',
+        'get_current_medicines',
       ]),
-    ).toEqual(['recent_sleep_summary']);
+    ).toEqual(['get_sleep_summary_by_range']);
   });
 
   it('derives allowed tools from enabled context sources', async () => {
     expect(
       selectAllowedToolsForContextSources(['health_profile', 'sleep_records']),
-    ).toEqual(['health_context_snapshot', 'recent_sleep_summary']);
+    ).toEqual([
+      'get_recent_today_summaries',
+      'get_recent_report_summaries',
+      'get_user_profile',
+      'get_user_settings',
+      'get_sleep_summary_by_range',
+    ]);
 
     const graph = buildAiChatFoundationGraph();
     const result = await graph.invoke({
@@ -33,11 +39,14 @@ describe('AiChatFoundationGraph', () => {
     });
 
     expect(result.allowedTools).toEqual([
-      'health_context_snapshot',
-      'recent_sleep_summary',
-      'current_medicines',
+      'get_recent_today_summaries',
+      'get_recent_report_summaries',
+      'get_user_profile',
+      'get_user_settings',
+      'get_current_medicines',
+      'get_sleep_summary_by_range',
     ]);
-    expect(result.selectedTools).toEqual(['recent_sleep_summary']);
+    expect(result.selectedTools).toEqual(['get_sleep_summary_by_range']);
     expect(result.route).toBe('respond');
   });
 });

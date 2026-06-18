@@ -77,3 +77,11 @@ export interface AiChatToolExecutionResult {
   name: AiChatToolName;
   data: Record<string, unknown>;
 }
+
+export interface AiChatToolExecutionContext {
+  userId: string;
+  locale: 'zh-CN' | 'en';
+  userMessage: string;
+  enabledContextSources: readonly AiChatContextSource[];
+  memoryEnabled: boolean;
+}

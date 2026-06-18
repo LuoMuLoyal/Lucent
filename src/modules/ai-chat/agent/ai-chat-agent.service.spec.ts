@@ -21,16 +21,26 @@ describe('AiChatAgentService', () => {
       ragEnabled: false,
       graphNodeNames: ['prepare_context', 'respond'],
       toolNames: [
-        'health_context_snapshot',
-        'recent_daily_records',
-        'recent_sleep_summary',
-        'current_medicines',
+        'get_today_records',
+        'get_records_by_date',
+        'get_records_by_range',
+        'get_recent_today_summaries',
+        'get_recent_report_summaries',
+        'get_user_profile',
+        'get_user_settings',
+        'get_current_medicines',
+        'get_sleep_summary_by_range',
       ],
       implementedToolNames: [
-        'health_context_snapshot',
-        'recent_daily_records',
-        'recent_sleep_summary',
-        'current_medicines',
+        'get_today_records',
+        'get_records_by_date',
+        'get_records_by_range',
+        'get_recent_today_summaries',
+        'get_recent_report_summaries',
+        'get_user_profile',
+        'get_user_settings',
+        'get_current_medicines',
+        'get_sleep_summary_by_range',
       ],
       contextSources: [
         'health_profile',
@@ -62,10 +72,10 @@ describe('AiChatAgentService', () => {
       {
         locale: 'en',
         messages: [{ role: 'user', content: 'Hi' }],
-        allowedTools: ['health_context_snapshot'],
+        allowedTools: ['get_user_profile'],
         toolResults: [
           {
-            name: 'health_context_snapshot',
+            name: 'get_user_profile',
             data: { summary: { activeAllergyCount: 1 } },
           },
         ],
@@ -75,7 +85,7 @@ describe('AiChatAgentService', () => {
 
     expect(result).toEqual({
       content: 'Hello world',
-      usedToolNames: ['health_context_snapshot'],
+      usedToolNames: ['get_user_profile'],
     });
     expect(onChunk).toHaveBeenNthCalledWith(1, { content: 'Hello' });
     expect(onChunk).toHaveBeenNthCalledWith(2, { content: ' world' });

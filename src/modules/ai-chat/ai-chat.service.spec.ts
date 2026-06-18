@@ -17,6 +17,7 @@ function conversationServiceDouble() {
     getLatestConversation: jest.fn(),
     openConversation: jest.fn(),
     clearLatestConversation: jest.fn(),
+    buildMemoryBlock: jest.fn().mockResolvedValue(''),
     persistAssistantTurn: jest.fn(),
   } as unknown as AiChatConversationService;
 }
@@ -32,10 +33,15 @@ describe('AiChatService', () => {
         ragEnabled: false,
         graphNodeNames: ['prepare_context', 'respond'],
         toolNames: [
-          'health_context_snapshot',
-          'recent_daily_records',
-          'recent_sleep_summary',
-          'current_medicines',
+          'get_today_records',
+          'get_records_by_date',
+          'get_records_by_range',
+          'get_recent_today_summaries',
+          'get_recent_report_summaries',
+          'get_user_profile',
+          'get_user_settings',
+          'get_current_medicines',
+          'get_sleep_summary_by_range',
         ],
         implementedToolNames: [],
         contextSources: [
@@ -52,6 +58,7 @@ describe('AiChatService', () => {
         aiSummariesEnabled: true,
         dataSharingConsent: false,
         aiChatEnabled: true,
+        aiChatMemoryEnabled: false,
         aiChatContext: {
           healthProfile: true,
           dailyRecords: false,
@@ -67,13 +74,16 @@ describe('AiChatService', () => {
         interactiveChatReady: false,
         enabledContextSources: ['health_profile', 'sleep_records'],
         contextPermittedToolNames: [
-          'health_context_snapshot',
-          'recent_sleep_summary',
+          'get_recent_today_summaries',
+          'get_recent_report_summaries',
+          'get_user_profile',
+          'get_user_settings',
+          'get_sleep_summary_by_range',
         ],
         executableToolNames: [],
         toolCapabilities: [
           {
-            name: 'health_context_snapshot',
+            name: 'get_user_profile',
             requiredContextSources: ['health_profile'],
             permittedByUser: true,
             implemented: false,
@@ -81,7 +91,7 @@ describe('AiChatService', () => {
             disabledReason: 'not_implemented',
           },
           {
-            name: 'recent_daily_records',
+            name: 'get_today_records',
             requiredContextSources: ['daily_records'],
             permittedByUser: false,
             implemented: false,
@@ -114,7 +124,7 @@ describe('AiChatService', () => {
     expect(capabilities.interactiveChatReady).toBe(false);
     expect(capabilities.tools).toEqual([
       {
-        name: 'health_context_snapshot',
+        name: 'get_user_profile',
         requiredContextSources: ['health_profile'],
         permittedByUser: true,
         implemented: false,
@@ -122,7 +132,7 @@ describe('AiChatService', () => {
         disabledReason: 'not_implemented',
       },
       {
-        name: 'recent_daily_records',
+        name: 'get_today_records',
         requiredContextSources: ['daily_records'],
         permittedByUser: false,
         implemented: false,
@@ -134,13 +144,13 @@ describe('AiChatService', () => {
 
   it('streams a chat reply with executable tools only', async () => {
     const planConversation = jest.fn().mockResolvedValue({
-      allowedTools: ['health_context_snapshot', 'recent_daily_records'],
-      selectedTools: ['health_context_snapshot'],
+      allowedTools: ['get_user_profile', 'get_sleep_summary_by_range'],
+      selectedTools: ['get_user_profile'],
       route: 'respond',
     });
     const generateStream = jest.fn().mockResolvedValue({
       content: 'Hello there',
-      usedToolNames: ['health_context_snapshot'],
+      usedToolNames: ['get_user_profile'],
     });
 
     const aiChatAgentService = {
@@ -152,12 +162,17 @@ describe('AiChatService', () => {
         ragEnabled: false,
         graphNodeNames: ['prepare_context', 'respond'],
         toolNames: [
-          'health_context_snapshot',
-          'recent_daily_records',
-          'recent_sleep_summary',
-          'current_medicines',
+          'get_today_records',
+          'get_records_by_date',
+          'get_records_by_range',
+          'get_recent_today_summaries',
+          'get_recent_report_summaries',
+          'get_user_profile',
+          'get_user_settings',
+          'get_current_medicines',
+          'get_sleep_summary_by_range',
         ],
-        implementedToolNames: ['health_context_snapshot'],
+        implementedToolNames: ['get_user_profile'],
         contextSources: [
           'health_profile',
           'daily_records',
@@ -174,6 +189,7 @@ describe('AiChatService', () => {
         aiSummariesEnabled: true,
         dataSharingConsent: false,
         aiChatEnabled: true,
+        aiChatMemoryEnabled: false,
         aiChatContext: {
           healthProfile: true,
           dailyRecords: false,
@@ -189,17 +205,20 @@ describe('AiChatService', () => {
         interactiveChatReady: true,
         enabledContextSources: ['health_profile', 'sleep_records'],
         contextPermittedToolNames: [
-          'health_context_snapshot',
-          'recent_sleep_summary',
+          'get_recent_today_summaries',
+          'get_recent_report_summaries',
+          'get_user_profile',
+          'get_user_settings',
+          'get_sleep_summary_by_range',
         ],
-        executableToolNames: ['health_context_snapshot'],
+        executableToolNames: ['get_user_profile'],
         toolCapabilities: [],
       }),
     } as unknown as AiChatPolicyService;
     const aiChatToolExecutor = {
       executeMany: jest.fn().mockResolvedValue([
         {
-          name: 'health_context_snapshot',
+          name: 'get_user_profile',
           data: { summary: { activeAllergyCount: 1 } },
         },
       ]),
@@ -208,7 +227,7 @@ describe('AiChatService', () => {
       buildToolContextBlock: jest
         .fn()
         .mockReturnValue(
-          'Server-approved user context tool results:\n- health_context_snapshot: {"summary":{"activeAllergyCount":1}}',
+          'Server-approved user context tool results:\n- get_user_profile: {"summary":{"activeAllergyCount":1}}',
         ),
     } as unknown as AiChatToolContextService;
     const aiChatConversationService = {
@@ -252,7 +271,7 @@ describe('AiChatService', () => {
     expect(result.role).toBe('assistant');
     expect(result.conversationId).toBe('conversation-1');
     expect(result.content).toBe('Hello there');
-    expect(result.usedTools).toEqual(['health_context_snapshot']);
+    expect(result.usedTools).toEqual(['get_user_profile']);
     expect(planConversation).toHaveBeenCalledWith({
       userId: 'user-1',
       userMessage: 'What should I do next?',
@@ -260,9 +279,14 @@ describe('AiChatService', () => {
       enabledContextSources: ['health_profile', 'sleep_records'],
     });
     expect(aiChatToolExecutor.executeMany).toHaveBeenCalledWith(
-      'user-1',
-      'en',
-      ['health_context_snapshot'],
+      {
+        userId: 'user-1',
+        locale: 'en',
+        userMessage: 'What should I do next?',
+        enabledContextSources: ['health_profile', 'sleep_records'],
+        memoryEnabled: false,
+      },
+      ['get_user_profile'],
     );
     expect(generateStream).toHaveBeenCalledWith(
       {
@@ -271,15 +295,15 @@ describe('AiChatService', () => {
           {
             role: 'user',
             content:
-              'Server-approved user context tool results:\n- health_context_snapshot: {"summary":{"activeAllergyCount":1}}',
+              'Server-approved user context tool results:\n- get_user_profile: {"summary":{"activeAllergyCount":1}}',
           },
           { role: 'assistant', content: 'Earlier summary' },
           { role: 'user', content: 'What should I do next?' },
         ],
-        allowedTools: ['health_context_snapshot'],
+        allowedTools: ['get_user_profile'],
         toolResults: [
           {
-            name: 'health_context_snapshot',
+            name: 'get_user_profile',
             data: { summary: { activeAllergyCount: 1 } },
           },
         ],
@@ -294,8 +318,119 @@ describe('AiChatService', () => {
           { role: 'user', content: 'What should I do next?' },
         ],
         assistantContent: 'Hello there',
-        usedTools: ['health_context_snapshot'],
+        usedTools: ['get_user_profile'],
       },
+    );
+  });
+
+  it('injects persisted memory only when memory is enabled for a new conversation', async () => {
+    const generateStream = jest.fn().mockResolvedValue({
+      content: 'Memory-aware reply',
+      usedToolNames: [],
+    });
+    const aiChatAgentService = {
+      describeFoundation: jest.fn().mockReturnValue({
+        phase: 'foundation',
+        chatModelConfigured: true,
+        interactiveChatReady: true,
+        langGraphReady: true,
+        ragEnabled: false,
+        graphNodeNames: ['prepare_context', 'respond'],
+        toolNames: [],
+        implementedToolNames: [],
+        contextSources: [],
+      }),
+      planConversation: jest.fn().mockResolvedValue({
+        allowedTools: [],
+        selectedTools: [],
+        route: 'respond',
+      }),
+      generateStream,
+    } as unknown as AiChatAgentService;
+    const userSettingsService = {
+      getSettings: jest.fn().mockResolvedValue({
+        aiSummariesEnabled: true,
+        dataSharingConsent: false,
+        aiChatEnabled: true,
+        aiChatMemoryEnabled: true,
+        aiChatContext: {
+          healthProfile: false,
+          dailyRecords: false,
+          sleepRecords: false,
+          currentMedicines: false,
+        },
+        updatedAt: '2026-06-18T12:00:00.000Z',
+      }),
+    } as unknown as UserSettingsService;
+    const aiChatPolicyService = {
+      evaluate: jest.fn().mockReturnValue({
+        interactiveChatReady: true,
+        enabledContextSources: [],
+        contextPermittedToolNames: [],
+        executableToolNames: [],
+        toolCapabilities: [],
+      }),
+    } as unknown as AiChatPolicyService;
+    const aiChatToolExecutor = {
+      executeMany: jest.fn().mockResolvedValue([]),
+    } as unknown as AiChatToolExecutor;
+    const aiChatToolContextService = {
+      buildToolContextBlock: jest.fn().mockReturnValue(''),
+    } as unknown as AiChatToolContextService;
+    const aiChatConversationService = conversationServiceDouble();
+    aiChatConversationService.buildMemoryBlock = jest
+      .fn()
+      .mockResolvedValue(
+        'Persisted cross-conversation memory is enabled for this user.',
+      );
+    aiChatConversationService.persistAssistantTurn = jest
+      .fn()
+      .mockResolvedValue({
+        id: 'conversation-memory',
+        title: 'Need continuity',
+        status: 'active',
+        messages: [],
+        lastMessageAt: '2026-06-18T12:01:00.000Z',
+        createdAt: '2026-06-18T12:01:00.000Z',
+        updatedAt: '2026-06-18T12:01:00.000Z',
+      });
+
+    const service = new AiChatService(
+      aiChatAgentService,
+      userSettingsService,
+      aiChatPolicyService,
+      aiChatToolExecutor,
+      aiChatToolContextService,
+      aiChatConversationService,
+    );
+
+    await service.streamMessages(
+      'user-1',
+      {
+        messages: [{ role: 'user', content: 'Need continuity' }],
+      },
+      'en-US',
+      jest.fn(),
+    );
+
+    expect(aiChatConversationService.buildMemoryBlock).toHaveBeenCalledWith(
+      'user-1',
+    );
+    expect(generateStream).toHaveBeenCalledWith(
+      {
+        locale: 'en',
+        messages: [
+          {
+            role: 'user',
+            content:
+              'Persisted cross-conversation memory is enabled for this user.',
+          },
+          { role: 'user', content: 'Need continuity' },
+        ],
+        allowedTools: [],
+        toolResults: [],
+      },
+      expect.any(Function),
     );
   });
 
@@ -319,6 +454,7 @@ describe('AiChatService', () => {
         aiSummariesEnabled: true,
         dataSharingConsent: false,
         aiChatEnabled: false,
+        aiChatMemoryEnabled: false,
         aiChatContext: {
           healthProfile: true,
           dailyRecords: true,
@@ -392,6 +528,7 @@ describe('AiChatService', () => {
         aiSummariesEnabled: true,
         dataSharingConsent: false,
         aiChatEnabled: true,
+        aiChatMemoryEnabled: false,
         aiChatContext: {
           healthProfile: true,
           dailyRecords: true,

@@ -64,6 +64,7 @@ function makeSettings(
     aiSummariesEnabled: true,
     dataSharingConsent: false,
     aiChatEnabled: true,
+    aiChatMemoryEnabled: false,
     aiChatContext: {
       healthProfile: true,
       dailyRecords: true,

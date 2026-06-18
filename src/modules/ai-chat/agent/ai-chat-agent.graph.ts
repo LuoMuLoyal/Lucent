@@ -49,7 +49,50 @@ export function selectAllowedToolsForContextSources(
 }
 
 const TOOL_KEYWORD_RULES: Record<AiChatToolName, RegExp[]> = {
-  health_context_snapshot: [
+  get_today_records: [
+    /今天/,
+    /today/i,
+    /今日/,
+    /刚刚/,
+    /刚才/,
+    /今天.*记录/,
+    /today.*record/i,
+  ],
+  get_records_by_date: [
+    /昨天/,
+    /前天/,
+    /\b\d{4}-\d{2}-\d{2}\b/,
+    /\d{1,2}月\d{1,2}日/,
+    /哪天/,
+    /某天/,
+    /on\s+\d{4}-\d{2}-\d{2}/i,
+  ],
+  get_records_by_range: [
+    /最近/,
+    /近\s*\d+\s*天/,
+    /从.*到.*/,
+    /between/i,
+    /range/i,
+    /这周/,
+    /上周/,
+    /近一周/,
+  ],
+  get_recent_today_summaries: [
+    /今天总结/,
+    /today summary/i,
+    /历史总结/,
+    /之前总结/,
+    /today analysis/i,
+  ],
+  get_recent_report_summaries: [
+    /报告总结/,
+    /周报总结/,
+    /月报总结/,
+    /report summary/i,
+    /weekly summary/i,
+    /monthly summary/i,
+  ],
+  get_user_profile: [
     /过敏/,
     /allerg/i,
     /病史/,
@@ -62,35 +105,21 @@ const TOOL_KEYWORD_RULES: Record<AiChatToolName, RegExp[]> = {
     /lactat/i,
     /血型/,
     /blood type/i,
+    /身高/,
+    /height/i,
+    /年龄/,
+    /age/i,
   ],
-  recent_daily_records: [
-    /记录/,
-    /record/i,
-    /today/i,
-    /今天/,
-    /昨天/,
-    /recent/i,
-    /最近/,
-    /饮水/,
-    /喝水/,
-    /water/i,
-    /meal/i,
-    /吃饭/,
-    /symptom/i,
-    /症状/,
-    /note/i,
-    /日志/,
+  get_user_settings: [
+    /设置/,
+    /权限/,
+    /开关/,
+    /setting/i,
+    /permission/i,
+    /toggle/i,
+    /enabled/i,
   ],
-  recent_sleep_summary: [
-    /睡眠/,
-    /睡得/,
-    /失眠/,
-    /作息/,
-    /sleep/i,
-    /rest/i,
-    /insomnia/i,
-  ],
-  current_medicines: [
+  get_current_medicines: [
     /药/,
     /用药/,
     /吃药/,
@@ -104,7 +133,32 @@ const TOOL_KEYWORD_RULES: Record<AiChatToolName, RegExp[]> = {
     /pill/i,
     /reminder/i,
   ],
+  get_sleep_summary_by_range: [
+    /睡眠/,
+    /睡得/,
+    /失眠/,
+    /作息/,
+    /sleep/i,
+    /rest/i,
+    /insomnia/i,
+    /近几天睡眠/,
+    /最近睡眠/,
+  ],
 };
+
+const BROAD_RECORD_QUERY_RULES = [
+  /记录/,
+  /record/i,
+  /日志/,
+  /饮水/,
+  /喝水/,
+  /water/i,
+  /meal/i,
+  /吃饭/,
+  /symptom/i,
+  /症状/,
+  /note/i,
+] as const;
 
 const BROAD_PERSONALIZED_QUERY_RULES = [
   /最近/,
@@ -124,12 +178,42 @@ export function selectRelevantToolsForMessage(
   userMessage: string,
   allowedTools: readonly AiChatToolName[],
 ): AiChatToolName[] {
+  const broadRecordTools = allowedTools.filter(
+    (toolName) =>
+      toolName === 'get_today_records' ||
+      toolName === 'get_records_by_date' ||
+      toolName === 'get_records_by_range',
+  );
+  const sleepTools = allowedTools.filter(
+    (toolName) => toolName === 'get_sleep_summary_by_range',
+  );
+
   const matched = allowedTools.filter((toolName) =>
     TOOL_KEYWORD_RULES[toolName].some((rule) => rule.test(userMessage)),
   );
 
   if (matched.length > 0) {
-    return matched;
+    const withRangeFallback: AiChatToolName[] =
+      matched.includes('get_records_by_range') &&
+      broadRecordTools.includes('get_records_by_range')
+        ? [...new Set<AiChatToolName>([...matched, 'get_records_by_range'])]
+        : matched;
+    return withRangeFallback;
+  }
+
+  if (
+    broadRecordTools.length > 0 &&
+    BROAD_RECORD_QUERY_RULES.some((rule) => rule.test(userMessage))
+  ) {
+    if (broadRecordTools.includes('get_today_records')) {
+      return ['get_today_records'];
+    }
+    const firstTool = broadRecordTools[0];
+    return firstTool == null ? [] : [firstTool];
+  }
+
+  if (sleepTools.length > 0 && /睡|sleep|rest|insomnia/i.test(userMessage)) {
+    return ['get_sleep_summary_by_range'];
   }
 
   if (

@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ResultCode } from '../../../common/api-envelope';
+import { AiSummaryHistoryService } from '../../ai-chat/ai-summary-history.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from '../dto';
 import { TodayAnalysisCopyService } from './today-analysis-copy.service';
@@ -25,6 +26,7 @@ export class TodayAnalysisService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly aiSummaryHistoryService: AiSummaryHistoryService,
     private readonly contextService: TodayAnalysisContextService,
     private readonly policyService: TodayAnalysisPolicyService,
     private readonly copyService: TodayAnalysisCopyService,
@@ -41,8 +43,9 @@ export class TodayAnalysisService {
       prepared.context,
       prepared.locale,
     );
-
-    return this.toDataDto(prepared, output);
+    const data = this.toDataDto(prepared, output);
+    await this.persistSummary(userId, data);
+    return data;
   }
 
   async generateStream(
@@ -57,8 +60,9 @@ export class TodayAnalysisService {
       prepared.locale,
       onSummary,
     );
-
-    return this.toDataDto(prepared, output);
+    const data = this.toDataDto(prepared, output);
+    await this.persistSummary(userId, data);
+    return data;
   }
 
   private async assertAiSummariesEnabled(
@@ -232,5 +236,22 @@ export class TodayAnalysisService {
     )
       .toISOString()
       .slice(0, 10);
+  }
+
+  private async persistSummary(
+    userId: string,
+    data: TodayAnalysisDataDto,
+  ): Promise<void> {
+    await this.aiSummaryHistoryService.save({
+      userId,
+      kind: 'today',
+      scopeKey: `today:${data.date}`,
+      date: data.date,
+      generatedAt: data.generatedAt,
+      summary: data.summary,
+      bullets: data.bullets,
+      actionLabel: data.actionLabel,
+      confidenceNote: data.confidenceNote,
+    });
   }
 }

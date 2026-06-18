@@ -21,6 +21,7 @@ import { AiChatConversationService } from './ai-chat-conversation.service';
 import type {
   AiChatConversationMessage,
   AiChatStreamChunkEvent,
+  AiChatToolExecutionContext,
 } from './ai-chat.types';
 
 @Injectable()
@@ -46,6 +47,7 @@ export class AiChatService {
     return {
       phase: foundation.phase,
       aiChatEnabled: settings.aiChatEnabled,
+      aiChatMemoryEnabled: settings.aiChatMemoryEnabled,
       aiChatContext: settings.aiChatContext,
       chatModelConfigured: foundation.chatModelConfigured,
       interactiveChatReady: policy.interactiveChatReady,
@@ -131,14 +133,24 @@ export class AiChatService {
       policy.executableToolNames.includes(toolName),
     );
     const toolResults = await this.aiChatToolExecutor.executeMany(
-      userId,
-      locale,
+      {
+        userId,
+        locale,
+        userMessage: lastUserMessage,
+        enabledContextSources: policy.enabledContextSources,
+        memoryEnabled: settings.aiChatMemoryEnabled,
+      } satisfies AiChatToolExecutionContext,
       executableTools,
     );
     const result = await this.aiChatAgentService.generateStream(
       {
         locale,
-        messages: this.appendToolContextMessage(messages, toolResults),
+        messages: await this.buildGenerationMessages(
+          userId,
+          messages,
+          toolResults,
+          settings.aiChatMemoryEnabled,
+        ),
         allowedTools: executableTools,
         toolResults,
       },
@@ -190,6 +202,34 @@ export class AiChatService {
       },
       ...messages,
     ];
+  }
+
+  private async buildGenerationMessages(
+    userId: string,
+    messages: AiChatConversationMessage[],
+    toolResults: Parameters<
+      AiChatToolContextService['buildToolContextBlock']
+    >[0],
+    memoryEnabled: boolean,
+  ): Promise<AiChatConversationMessage[]> {
+    const output: AiChatConversationMessage[] = [];
+
+    if (memoryEnabled && this.isNewConversation(messages)) {
+      const memoryBlock =
+        await this.aiChatConversationService.buildMemoryBlock(userId);
+      if (memoryBlock.length > 0) {
+        output.push({
+          role: 'user',
+          content: memoryBlock,
+        });
+      }
+    }
+
+    return [...output, ...this.appendToolContextMessage(messages, toolResults)];
+  }
+
+  private isNewConversation(messages: AiChatConversationMessage[]): boolean {
+    return messages.filter((message) => message.role === 'user').length <= 1;
   }
 
   private readLastUserMessage(

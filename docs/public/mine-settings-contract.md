@@ -1,6 +1,6 @@
 # Mine And Settings Contract
 
-Last updated: 2026-06-17
+Last updated: 2026-06-18
 
 ## Summary
 
@@ -54,6 +54,7 @@ interface UserSettingsDto {
   aiSummariesEnabled: boolean; // allow AI-generated summaries/advice
   dataSharingConsent: boolean; // consent to share anonymized data for research
   aiChatEnabled: boolean; // allow the user to use the AI chat feature
+  aiChatMemoryEnabled: boolean; // allow cross-conversation AI memory reuse
   aiChatContext: {
     healthProfile: boolean; // allow AI chat to read profile/allergies/conditions
     dailyRecords: boolean; // allow AI chat to read recent daily records
@@ -71,6 +72,7 @@ interface UpdateUserSettingsDto {
   aiSummariesEnabled?: boolean;
   dataSharingConsent?: boolean;
   aiChatEnabled?: boolean;
+  aiChatMemoryEnabled?: boolean;
   aiChatContext?: {
     healthProfile?: boolean;
     dailyRecords?: boolean;
@@ -266,6 +268,8 @@ model DataExportRequest {
   through `PATCH /api/v1/user/settings`.
 - AI chat settings UI should also treat `GET /api/v1/user/ai-chat/capabilities`
   as the server source of truth for what is merely permitted vs truly executable.
+- `aiChatEnabled` and `aiChatMemoryEnabled` are intentionally separate:
+  turning on chat does not imply cross-conversation memory reuse.
 - Settings reminder summary rows should read from device notification controller
   state, not from hardcoded "Enabled" labels.
 - Export row should POST the desired export kind/format/range and show the latest status from GET.

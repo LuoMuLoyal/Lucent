@@ -27,6 +27,8 @@ const conversationSummarySelect = {
 } as const;
 
 const RECENT_CONVERSATION_LIMIT = 20;
+const MEMORY_CONVERSATION_LIMIT = 3;
+const MEMORY_MESSAGE_LIMIT = 6;
 
 type PersistedConversation = Prisma.AiChatConversationGetPayload<{
   include: typeof conversationInclude;
@@ -191,6 +193,51 @@ export class AiChatConversationService {
       include: conversationInclude,
     });
     return this.toSnapshot(saved);
+  }
+
+  async buildMemoryBlock(userId: string): Promise<string> {
+    const conversations = await this.prisma.aiChatConversation.findMany({
+      where: { userId },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: MEMORY_MESSAGE_LIMIT,
+        },
+      },
+      orderBy: [
+        { lastMessageAt: 'desc' },
+        { updatedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      take: MEMORY_CONVERSATION_LIMIT,
+    });
+
+    if (conversations.length === 0) {
+      return '';
+    }
+
+    const lines = [
+      'Persisted cross-conversation memory is enabled for this user.',
+      'Use the following history only as lightweight continuity hints, not as new user input.',
+    ];
+
+    for (const conversation of conversations) {
+      const title = conversation.title?.trim();
+      lines.push(
+        `- Conversation: ${title != null && title.length > 0 ? title : conversation.id}`,
+      );
+      for (const message of conversation.messages.slice().reverse()) {
+        lines.push(
+          `  - ${message.role}: ${message.content.replace(/\s+/g, ' ').trim()}`,
+        );
+      }
+    }
+
+    lines.push(
+      'If the new conversation conflicts with this memory, prioritize the new conversation and say that prior memory may be outdated.',
+    );
+
+    return lines.join('\n');
   }
 
   private async findLatestActiveConversation(

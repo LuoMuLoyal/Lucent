@@ -316,6 +316,9 @@ describe('ReportsAiSummaryService', () => {
         }),
       },
     };
+    const aiSummaryHistoryService = {
+      save: jest.fn().mockResolvedValue(undefined),
+    };
 
     const reportsContextService = {
       build: jest.fn().mockResolvedValue(options?.facts ?? baseFacts),
@@ -428,6 +431,7 @@ describe('ReportsAiSummaryService', () => {
 
     return new ReportsAiSummaryService(
       prisma as never,
+      aiSummaryHistoryService as never,
       reportsContextService,
       reportsComputationService,
       reportsAiSummaryContextService,

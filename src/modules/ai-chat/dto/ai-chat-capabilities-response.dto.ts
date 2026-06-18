@@ -65,6 +65,12 @@ export class AiChatCapabilitiesDataDto {
   aiChatEnabled!: boolean;
 
   @ApiProperty({
+    description:
+      'Whether cross-conversation assistant memory reuse is enabled for this user.',
+  })
+  aiChatMemoryEnabled!: boolean;
+
+  @ApiProperty({
     description: 'Fine-grained AI chat context permissions from user settings.',
     type: () => AiChatContextSettingsDto,
   })

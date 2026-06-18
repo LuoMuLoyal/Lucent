@@ -39,6 +39,12 @@ export class UserSettingsDataDto {
   aiChatEnabled!: boolean;
 
   @ApiProperty({
+    description:
+      'Allow AI chat to reuse persisted assistant history as cross-conversation memory.',
+  })
+  aiChatMemoryEnabled!: boolean;
+
+  @ApiProperty({
     description: 'Fine-grained AI chat context permissions.',
     type: () => AiChatContextSettingsDto,
   })
