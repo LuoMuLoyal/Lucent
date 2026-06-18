@@ -13,7 +13,9 @@ import { AiChatService } from './ai-chat.service';
 
 function conversationServiceDouble() {
   return {
+    listRecentConversations: jest.fn(),
     getLatestConversation: jest.fn(),
+    openConversation: jest.fn(),
     clearLatestConversation: jest.fn(),
     persistAssistantTurn: jest.fn(),
   } as unknown as AiChatConversationService;
@@ -210,7 +212,9 @@ describe('AiChatService', () => {
         ),
     } as unknown as AiChatToolContextService;
     const aiChatConversationService = {
+      listRecentConversations: jest.fn(),
       getLatestConversation: jest.fn(),
+      openConversation: jest.fn(),
       clearLatestConversation: jest.fn(),
       persistAssistantTurn: jest.fn().mockResolvedValue({
         id: 'conversation-1',
@@ -560,6 +564,16 @@ describe('AiChatService', () => {
       buildToolContextBlock: jest.fn(),
     } as unknown as AiChatToolContextService;
     const aiChatConversationService = {
+      listRecentConversations: jest.fn().mockResolvedValue([
+        {
+          id: 'conversation-2',
+          title: '今天头痛正常吗？',
+          status: 'active',
+          lastMessageAt: '2026-06-18T11:00:00.000Z',
+          createdAt: '2026-06-18T10:55:00.000Z',
+          updatedAt: '2026-06-18T11:00:00.000Z',
+        },
+      ]),
       getLatestConversation: jest.fn().mockResolvedValue({
         id: 'conversation-1',
         title: '最近睡眠怎样？',
@@ -575,6 +589,22 @@ describe('AiChatService', () => {
         lastMessageAt: '2026-06-18T10:00:00.000Z',
         createdAt: '2026-06-18T10:00:00.000Z',
         updatedAt: '2026-06-18T10:00:00.000Z',
+      }),
+      openConversation: jest.fn().mockResolvedValue({
+        id: 'conversation-2',
+        title: '今天头痛正常吗？',
+        status: 'active',
+        messages: [
+          {
+            role: 'user',
+            content: '今天头痛正常吗？',
+            usedTools: [],
+            createdAt: '2026-06-18T11:00:00.000Z',
+          },
+        ],
+        lastMessageAt: '2026-06-18T11:00:00.000Z',
+        createdAt: '2026-06-18T10:55:00.000Z',
+        updatedAt: '2026-06-18T11:05:00.000Z',
       }),
       clearLatestConversation: jest.fn().mockResolvedValue({
         id: 'conversation-1',
@@ -597,6 +627,16 @@ describe('AiChatService', () => {
       aiChatConversationService,
     );
 
+    await expect(service.listRecentConversations('user-1')).resolves.toEqual([
+      {
+        id: 'conversation-2',
+        title: '今天头痛正常吗？',
+        status: 'active',
+        lastMessageAt: '2026-06-18T11:00:00.000Z',
+        createdAt: '2026-06-18T10:55:00.000Z',
+        updatedAt: '2026-06-18T11:00:00.000Z',
+      },
+    ]);
     await expect(service.getLatestConversation('user-1')).resolves.toEqual({
       id: 'conversation-1',
       title: '最近睡眠怎样？',
@@ -612,6 +652,24 @@ describe('AiChatService', () => {
       lastMessageAt: '2026-06-18T10:00:00.000Z',
       createdAt: '2026-06-18T10:00:00.000Z',
       updatedAt: '2026-06-18T10:00:00.000Z',
+    });
+    await expect(
+      service.openConversation('user-1', 'conversation-2'),
+    ).resolves.toEqual({
+      id: 'conversation-2',
+      title: '今天头痛正常吗？',
+      status: 'active',
+      messages: [
+        {
+          role: 'user',
+          content: '今天头痛正常吗？',
+          usedTools: [],
+          createdAt: '2026-06-18T11:00:00.000Z',
+        },
+      ],
+      lastMessageAt: '2026-06-18T11:00:00.000Z',
+      createdAt: '2026-06-18T10:55:00.000Z',
+      updatedAt: '2026-06-18T11:05:00.000Z',
     });
     await expect(service.clearLatestConversation('user-1')).resolves.toEqual({
       cleared: true,

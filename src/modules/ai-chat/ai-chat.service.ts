@@ -67,6 +67,20 @@ export class AiChatService {
     return conversation == null ? null : conversation;
   }
 
+  async listRecentConversations(userId: string) {
+    return this.aiChatConversationService.listRecentConversations(userId);
+  }
+
+  async openConversation(
+    userId: string,
+    conversationId: string,
+  ): Promise<AiChatConversationDataDto> {
+    return this.aiChatConversationService.openConversation(
+      userId,
+      conversationId,
+    );
+  }
+
   async clearLatestConversation(userId: string): Promise<{
     cleared: boolean;
     archivedConversationId: string | null;

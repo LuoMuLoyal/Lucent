@@ -55,6 +55,15 @@ export interface AiChatConversationSnapshot {
   updatedAt: string;
 }
 
+export interface AiChatConversationSummary {
+  id: string;
+  title: string | null;
+  status: 'active' | 'archived';
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AiChatStreamChunkEvent {
   content: string;
 }

@@ -77,8 +77,7 @@ export class AiChatConversationResponseDto {
   @ApiProperty({
     type: () => AiChatConversationDataDto,
     nullable: true,
-    description:
-      'Latest persisted conversation for the authenticated user, or null when none exists yet.',
+    description: 'Persisted conversation payload, or null when none exists.',
   })
   data!: AiChatConversationDataDto | null;
 }

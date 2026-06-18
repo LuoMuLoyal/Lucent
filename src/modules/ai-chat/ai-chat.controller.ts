@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Param,
   Post,
   Res,
   UseGuards,
@@ -24,6 +25,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AiChatService } from './ai-chat.service';
 import {
   AiChatCapabilitiesResponseDto,
+  AiChatConversationListResponseDto,
   AiChatConversationResponseDto,
   AiChatStreamResultDto,
   StreamAiChatMessagesDto,
@@ -45,6 +47,17 @@ export class AiChatController {
     return successEnvelope(await this.aiChatService.getCapabilities(user.sub));
   }
 
+  @Get('conversations')
+  @ApiOperation({
+    summary: 'List recent persisted AI chat conversations for the user',
+  })
+  @ApiResponse({ status: 200, type: AiChatConversationListResponseDto })
+  async listRecentConversations(@CurrentUser() user: UserPayload) {
+    return successEnvelope(
+      await this.aiChatService.listRecentConversations(user.sub),
+    );
+  }
+
   @Get('latest')
   @ApiOperation({
     summary: 'Get the authenticated user latest persisted AI chat conversation',
@@ -53,6 +66,21 @@ export class AiChatController {
   async getLatestConversation(@CurrentUser() user: UserPayload) {
     return successEnvelope(
       await this.aiChatService.getLatestConversation(user.sub),
+    );
+  }
+
+  @Post('conversations/:conversationId/open')
+  @ApiOperation({
+    summary:
+      'Activate one persisted AI chat conversation and return its full history',
+  })
+  @ApiResponse({ status: 200, type: AiChatConversationResponseDto })
+  async openConversation(
+    @CurrentUser() user: UserPayload,
+    @Param('conversationId') conversationId: string,
+  ) {
+    return successEnvelope(
+      await this.aiChatService.openConversation(user.sub, conversationId),
     );
   }
 

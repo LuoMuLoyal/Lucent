@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { ResultCode } from '../../common/api-envelope';
 import {
   AiChatConversationStatus,
   type Prisma,
@@ -7,6 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import type {
   AiChatConversationMessage,
   AiChatConversationSnapshot,
+  AiChatConversationSummary,
 } from './ai-chat.types';
 
 const conversationInclude = {
@@ -15,8 +17,23 @@ const conversationInclude = {
   },
 } as const;
 
+const conversationSummarySelect = {
+  id: true,
+  title: true,
+  status: true,
+  lastMessageAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+const RECENT_CONVERSATION_LIMIT = 20;
+
 type PersistedConversation = Prisma.AiChatConversationGetPayload<{
   include: typeof conversationInclude;
+}>;
+
+type PersistedConversationSummary = Prisma.AiChatConversationGetPayload<{
+  select: typeof conversationSummarySelect;
 }>;
 
 @Injectable()
@@ -28,6 +45,63 @@ export class AiChatConversationService {
   ): Promise<AiChatConversationSnapshot | null> {
     const conversation = await this.findLatestActiveConversation(userId);
     return conversation == null ? null : this.toSnapshot(conversation);
+  }
+
+  async listRecentConversations(
+    userId: string,
+  ): Promise<AiChatConversationSummary[]> {
+    const conversations = await this.prisma.aiChatConversation.findMany({
+      where: { userId },
+      select: conversationSummarySelect,
+      orderBy: [
+        { lastMessageAt: 'desc' },
+        { updatedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      take: RECENT_CONVERSATION_LIMIT,
+    });
+
+    return conversations.map((conversation) => this.toSummary(conversation));
+  }
+
+  async openConversation(
+    userId: string,
+    conversationId: string,
+  ): Promise<AiChatConversationSnapshot> {
+    const conversation = await this.prisma.aiChatConversation.findFirst({
+      where: { id: conversationId, userId },
+      include: conversationInclude,
+    });
+
+    if (conversation == null) {
+      throw new NotFoundException({
+        code: ResultCode.NOT_FOUND,
+        message: 'AI chat conversation not found',
+      });
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.aiChatConversation.updateMany({
+        where: {
+          userId,
+          status: AiChatConversationStatus.active,
+          id: { not: conversationId },
+        },
+        data: { status: AiChatConversationStatus.archived },
+      });
+
+      await tx.aiChatConversation.update({
+        where: { id: conversationId },
+        data: { status: AiChatConversationStatus.active },
+      });
+    });
+
+    const opened = await this.prisma.aiChatConversation.findUniqueOrThrow({
+      where: { id: conversationId },
+      include: conversationInclude,
+    });
+
+    return this.toSnapshot(opened);
   }
 
   async clearLatestConversation(
@@ -203,6 +277,19 @@ export class AiChatConversationService {
         usedTools: this.readUsedTools(message.usedTools),
         createdAt: message.createdAt.toISOString(),
       })),
+      lastMessageAt: conversation.lastMessageAt?.toISOString() ?? null,
+      createdAt: conversation.createdAt.toISOString(),
+      updatedAt: conversation.updatedAt.toISOString(),
+    };
+  }
+
+  private toSummary(
+    conversation: PersistedConversationSummary,
+  ): AiChatConversationSummary {
+    return {
+      id: conversation.id,
+      title: conversation.title,
+      status: conversation.status,
       lastMessageAt: conversation.lastMessageAt?.toISOString() ?? null,
       createdAt: conversation.createdAt.toISOString(),
       updatedAt: conversation.updatedAt.toISOString(),

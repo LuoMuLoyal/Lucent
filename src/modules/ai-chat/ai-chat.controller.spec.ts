@@ -32,7 +32,9 @@ describe('AiChatController', () => {
           provide: AiChatService,
           useValue: {
             getCapabilities: jest.fn(),
+            listRecentConversations: jest.fn(),
             getLatestConversation: jest.fn(),
+            openConversation: jest.fn(),
             clearLatestConversation: jest.fn(),
             getFoundationCapabilities: jest.fn(),
             streamMessages: jest.fn(),
@@ -92,6 +94,53 @@ describe('AiChatController', () => {
       },
     });
     expect(service.getCapabilities).toHaveBeenCalledWith('u1');
+  });
+
+  it('returns the recent persisted conversation list envelope', async () => {
+    service.listRecentConversations.mockResolvedValue([
+      {
+        id: 'conversation-2',
+        title: '最近睡眠怎样？',
+        status: 'active',
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T09:55:00.000Z',
+        updatedAt: '2026-06-18T10:00:00.000Z',
+      },
+      {
+        id: 'conversation-1',
+        title: '昨天头痛是为什么？',
+        status: 'archived',
+        lastMessageAt: '2026-06-17T10:00:00.000Z',
+        createdAt: '2026-06-17T09:55:00.000Z',
+        updatedAt: '2026-06-17T10:00:00.000Z',
+      },
+    ]);
+
+    await expect(
+      controller.listRecentConversations({ sub: 'u1', email: 'a@b.c' }),
+    ).resolves.toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: [
+        {
+          id: 'conversation-2',
+          title: '最近睡眠怎样？',
+          status: 'active',
+          lastMessageAt: '2026-06-18T10:00:00.000Z',
+          createdAt: '2026-06-18T09:55:00.000Z',
+          updatedAt: '2026-06-18T10:00:00.000Z',
+        },
+        {
+          id: 'conversation-1',
+          title: '昨天头痛是为什么？',
+          status: 'archived',
+          lastMessageAt: '2026-06-17T10:00:00.000Z',
+          createdAt: '2026-06-17T09:55:00.000Z',
+          updatedAt: '2026-06-17T10:00:00.000Z',
+        },
+      ],
+    });
+    expect(service.listRecentConversations).toHaveBeenCalledWith('u1');
   });
 
   it('streams chunk, result, and done SSE events', async () => {
@@ -182,6 +231,55 @@ describe('AiChatController', () => {
       },
     });
     expect(service.getLatestConversation).toHaveBeenCalledWith('u1');
+  });
+
+  it('opens one persisted conversation envelope', async () => {
+    service.openConversation.mockResolvedValue({
+      id: 'conversation-1',
+      title: '最近睡眠怎样？',
+      status: 'active',
+      messages: [
+        {
+          role: 'user',
+          content: '最近睡眠怎样？',
+          usedTools: [],
+          createdAt: '2026-06-18T10:00:00.000Z',
+        },
+      ],
+      lastMessageAt: '2026-06-18T10:00:00.000Z',
+      createdAt: '2026-06-18T10:00:00.000Z',
+      updatedAt: '2026-06-18T10:05:00.000Z',
+    });
+
+    await expect(
+      controller.openConversation(
+        { sub: 'u1', email: 'a@b.c' },
+        'conversation-1',
+      ),
+    ).resolves.toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: {
+        id: 'conversation-1',
+        title: '最近睡眠怎样？',
+        status: 'active',
+        messages: [
+          {
+            role: 'user',
+            content: '最近睡眠怎样？',
+            usedTools: [],
+            createdAt: '2026-06-18T10:00:00.000Z',
+          },
+        ],
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T10:00:00.000Z',
+        updatedAt: '2026-06-18T10:05:00.000Z',
+      },
+    });
+    expect(service.openConversation).toHaveBeenCalledWith(
+      'u1',
+      'conversation-1',
+    );
   });
 
   it('clears the latest persisted conversation envelope', async () => {
