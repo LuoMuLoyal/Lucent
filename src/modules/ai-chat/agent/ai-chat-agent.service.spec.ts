@@ -62,15 +62,20 @@ describe('AiChatAgentService', () => {
       {
         locale: 'en',
         messages: [{ role: 'user', content: 'Hi' }],
-        allowedTools: [],
-        toolResults: [],
+        allowedTools: ['health_context_snapshot'],
+        toolResults: [
+          {
+            name: 'health_context_snapshot',
+            data: { summary: { activeAllergyCount: 1 } },
+          },
+        ],
       },
       onChunk,
     );
 
     expect(result).toEqual({
       content: 'Hello world',
-      usedToolNames: [],
+      usedToolNames: ['health_context_snapshot'],
     });
     expect(onChunk).toHaveBeenNthCalledWith(1, { content: 'Hello' });
     expect(onChunk).toHaveBeenNthCalledWith(2, { content: ' world' });

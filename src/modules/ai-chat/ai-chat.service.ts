@@ -152,7 +152,7 @@ export class AiChatService {
     locale: 'zh-CN' | 'en',
   ): string {
     const last = messages.at(-1);
-    if (last?.role === 'user') {
+    if (last?.role === 'user' && last.content.length > 0) {
       return last.content;
     }
 
@@ -181,7 +181,7 @@ export class AiChatService {
 
   private invalidConversationMessage(locale: 'zh-CN' | 'en'): string {
     return locale === 'zh-CN'
-      ? '聊天消息列表的最后一条必须是用户消息'
-      : 'The last chat message must be a user message.';
+      ? '聊天消息列表的最后一条必须是非空的用户消息'
+      : 'The last chat message must be a non-empty user message.';
   }
 }

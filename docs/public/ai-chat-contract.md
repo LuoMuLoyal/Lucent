@@ -99,7 +99,8 @@ Rules:
 
 - `messages.length` is currently bounded to `1..20`
 - each `content` is currently bounded to `1..8000` characters
-- the last message must be a `user` message
+- each `content` must remain non-empty after trimming
+- the last message must be a non-empty `user` message
 - `system` messages are not accepted from the client
 
 **SSE events:**

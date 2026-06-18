@@ -127,7 +127,7 @@ describe('AiChatService', () => {
     });
     const generateStream = jest.fn().mockResolvedValue({
       content: 'Hello there',
-      usedToolNames: [],
+      usedToolNames: ['health_context_snapshot'],
     });
 
     const aiChatAgentService = {
@@ -222,6 +222,7 @@ describe('AiChatService', () => {
 
     expect(result.role).toBe('assistant');
     expect(result.content).toBe('Hello there');
+    expect(result.usedTools).toEqual(['health_context_snapshot']);
     expect(planConversation).toHaveBeenCalledWith({
       userId: 'user-1',
       userMessage: 'What should I do next?',
@@ -443,6 +444,55 @@ describe('AiChatService', () => {
           messages: [{ role: 'assistant', content: 'Hi' }],
         },
         'zh-CN',
+        jest.fn(),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects when the last user message is blank after trimming', async () => {
+    const aiChatAgentService = {
+      describeFoundation: jest.fn().mockReturnValue({
+        phase: 'foundation',
+        chatModelConfigured: true,
+        interactiveChatReady: true,
+        langGraphReady: true,
+        ragEnabled: false,
+        graphNodeNames: ['prepare_context', 'respond'],
+        toolNames: [],
+        implementedToolNames: [],
+        contextSources: [],
+      }),
+    } as unknown as AiChatAgentService;
+
+    const userSettingsService = {
+      getSettings: jest.fn(),
+    } as unknown as UserSettingsService;
+
+    const aiChatPolicyService = {
+      evaluate: jest.fn(),
+    } as unknown as AiChatPolicyService;
+    const aiChatToolExecutor = {
+      executeMany: jest.fn(),
+    } as unknown as AiChatToolExecutor;
+    const aiChatToolContextService = {
+      buildToolContextBlock: jest.fn().mockReturnValue(''),
+    } as unknown as AiChatToolContextService;
+
+    const service = new AiChatService(
+      aiChatAgentService,
+      userSettingsService,
+      aiChatPolicyService,
+      aiChatToolExecutor,
+      aiChatToolContextService,
+    );
+
+    await expect(
+      service.streamMessages(
+        'user-1',
+        {
+          messages: [{ role: 'user', content: '   ' }],
+        },
+        'en-US',
         jest.fn(),
       ),
     ).rejects.toBeInstanceOf(BadRequestException);

@@ -97,7 +97,7 @@ export class AiChatAgentService {
 
     return {
       content: finalContent,
-      usedToolNames: [],
+      usedToolNames: input.toolResults.map((result) => result.name),
     };
   }
 
