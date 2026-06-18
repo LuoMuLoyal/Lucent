@@ -1,6 +1,6 @@
 # AI Chat Contract
 
-Last updated: 2026-06-17
+Last updated: 2026-06-18
 
 ## Summary
 
@@ -13,6 +13,7 @@ The current contract is intentionally about:
 - permission discovery
 - rollout truthfulness
 - bounded streaming chat execution
+- latest-conversation persistence and restore
 
 It is not yet a free-form tool-calling or RAG-enabled chat contract.
 
@@ -20,11 +21,13 @@ It is not yet a free-form tool-calling or RAG-enabled chat contract.
 
 - **Lucent provides:** the authoritative AI chat foundation status, user-level
   chat permissions, declared tool inventory, whether each tool is actually
-  usable, and one authenticated SSE chat reply route.
+  usable, latest-conversation persistence/restore/clear behavior, and one
+  authenticated SSE chat reply route.
 - **Luminous consumes:** feature gating, settings UI, and chat-page behavior
   based on server truth instead of client guesses.
 - **Lucent does not yet provide:** free-form model-driven tool calling, RAG,
-  or multi-turn persisted memory in this contract step.
+  multi-conversation management, or retrieval-backed long-memory compression in
+  this contract step.
 
 ## API Surface
 
@@ -114,6 +117,7 @@ type AiChatStreamEvent =
   | {
       event: 'result';
       data: {
+        conversationId: string;
         role: 'assistant';
         content: string;
         usedTools: string[];
@@ -140,8 +144,65 @@ Current behavior:
 - those tool results are injected server-side into the model context
 - Lucent streams plain assistant text chunks first
 - then emits one final assistant message payload
+- and persists the completed user/assistant turn into the latest active
+  conversation
 - then emits `done`
 - if the request cannot proceed, Lucent emits `error` and closes the stream
+
+### 3. Latest Persisted Conversation
+
+**Endpoint:** `GET /api/v1/user/ai-chat/latest`
+
+Authenticated (`Bearer` token).
+
+**Response:** `{ code: 0, data: AiChatConversationDto | null }`
+
+```typescript
+interface AiChatConversationDto {
+  id: string;
+  title: string | null;
+  status: 'active' | 'archived';
+  messages: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+    usedTools: string[];
+    createdAt: string;
+  }>;
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+Current behavior:
+
+- Lucent returns the authenticated user's latest `active` conversation only
+- `data` is `null` when the user has no active persisted conversation yet
+- messages are ordered chronologically
+
+### 4. Clear Latest Active Conversation
+
+**Endpoint:** `POST /api/v1/user/ai-chat/latest/clear`
+
+Authenticated (`Bearer` token).
+
+**Response:**
+
+```typescript
+{
+  code: 0;
+  message: '';
+  data: {
+    cleared: boolean;
+    archivedConversationId: string | null;
+  }
+}
+```
+
+Current behavior:
+
+- this archives the latest `active` conversation instead of deleting rows
+- `cleared: false` means there was no active conversation to archive
 
 ## Relationship To User Settings
 
@@ -179,6 +240,8 @@ Capabilities combine:
   subset is now executed before generation.
 - The current stream route is still a bounded assistant reply path, not a full
   model-driven tool-calling agent runtime.
+- Conversation persistence is now real, but currently bounded to latest-session
+  restore/continue/clear rather than a multi-thread chat product surface.
 
 ## Explicit Non-Goals
 
@@ -186,5 +249,5 @@ Capabilities combine:
 2. No pgvector dependency yet.
 3. No client-side authority over tool availability.
 4. No AI-based medicine-risk judgment beyond the reviewed existing rule engine.
-5. No persisted multi-turn memory yet.
+5. No multi-conversation browser, search, or rename/archive management UI contract yet.
 6. No free-form model-driven tool invocation loop yet.

@@ -9,6 +9,11 @@ export class AiChatStreamChunkDto {
 
 export class AiChatMessageDataDto {
   @ApiProperty({
+    description: 'Persisted conversation identifier for this assistant reply.',
+  })
+  conversationId!: string;
+
+  @ApiProperty({
     example: 'assistant',
     description: 'Final assistant role for the generated reply.',
   })

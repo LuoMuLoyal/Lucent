@@ -8,12 +8,13 @@ const { SwaggerModule } = require('@nestjs/swagger');
 async function main() {
   delete process.env.REDIS_URL;
   process.env.OPENAPI_EXPORT_SKIP_DB_CONNECT = 'true';
+  const repoRoot = path.resolve(__dirname, '..', '..');
 
   const appModulePath = pathToFileURL(
-    path.resolve(__dirname, '..', 'dist', 'app.module.js'),
+    path.resolve(repoRoot, 'dist', 'app.module.js'),
   ).href;
   const setupAppPath = pathToFileURL(
-    path.resolve(__dirname, '..', 'dist', 'setup-app.js'),
+    path.resolve(repoRoot, 'dist', 'setup-app.js'),
   ).href;
 
   const { AppModule } = await import(appModulePath);
@@ -31,7 +32,7 @@ async function main() {
     },
   });
 
-  const outputPath = path.resolve(__dirname, '..', 'docs', 'openapi.json');
+  const outputPath = path.resolve(repoRoot, 'docs', 'openapi.json');
   fs.writeFileSync(
     outputPath,
     `${JSON.stringify(document, null, 2)}\n`,

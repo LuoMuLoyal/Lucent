@@ -38,6 +38,23 @@ export interface AiChatConversationMessage {
   content: string;
 }
 
+export interface AiChatConversationSnapshotMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  usedTools: string[];
+  createdAt: string;
+}
+
+export interface AiChatConversationSnapshot {
+  id: string;
+  title: string | null;
+  status: 'active' | 'archived';
+  messages: AiChatConversationSnapshotMessage[];
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AiChatStreamChunkEvent {
   content: string;
 }

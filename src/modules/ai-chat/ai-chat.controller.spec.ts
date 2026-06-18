@@ -32,6 +32,8 @@ describe('AiChatController', () => {
           provide: AiChatService,
           useValue: {
             getCapabilities: jest.fn(),
+            getLatestConversation: jest.fn(),
+            clearLatestConversation: jest.fn(),
             getFoundationCapabilities: jest.fn(),
             streamMessages: jest.fn(),
           },
@@ -99,6 +101,7 @@ describe('AiChatController', () => {
       async (_userId, _dto, _language, onChunk) => {
         await onChunk({ content: 'Hello' });
         return {
+          conversationId: 'conversation-1',
           role: 'assistant',
           content: 'Hello there',
           usedTools: [],
@@ -124,6 +127,7 @@ describe('AiChatController', () => {
     expect(writeSseEvent).toHaveBeenNthCalledWith(2, response, {
       event: 'result',
       data: {
+        conversationId: 'conversation-1',
         role: 'assistant',
         content: 'Hello there',
         usedTools: [],
@@ -135,6 +139,68 @@ describe('AiChatController', () => {
       data: {},
     });
     expect(endSse).toHaveBeenCalledWith(response);
+  });
+
+  it('returns the latest persisted conversation envelope', async () => {
+    service.getLatestConversation.mockResolvedValue({
+      id: 'conversation-1',
+      title: '最近睡眠怎样？',
+      status: 'active',
+      messages: [
+        {
+          role: 'user',
+          content: '最近睡眠怎样？',
+          usedTools: [],
+          createdAt: '2026-06-18T10:00:00.000Z',
+        },
+      ],
+      lastMessageAt: '2026-06-18T10:00:00.000Z',
+      createdAt: '2026-06-18T10:00:00.000Z',
+      updatedAt: '2026-06-18T10:00:00.000Z',
+    });
+
+    await expect(
+      controller.getLatestConversation({ sub: 'u1', email: 'a@b.c' }),
+    ).resolves.toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: {
+        id: 'conversation-1',
+        title: '最近睡眠怎样？',
+        status: 'active',
+        messages: [
+          {
+            role: 'user',
+            content: '最近睡眠怎样？',
+            usedTools: [],
+            createdAt: '2026-06-18T10:00:00.000Z',
+          },
+        ],
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T10:00:00.000Z',
+        updatedAt: '2026-06-18T10:00:00.000Z',
+      },
+    });
+    expect(service.getLatestConversation).toHaveBeenCalledWith('u1');
+  });
+
+  it('clears the latest persisted conversation envelope', async () => {
+    service.clearLatestConversation.mockResolvedValue({
+      cleared: true,
+      archivedConversationId: 'conversation-1',
+    });
+
+    await expect(
+      controller.clearLatestConversation({ sub: 'u1', email: 'a@b.c' }),
+    ).resolves.toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: {
+        cleared: true,
+        archivedConversationId: 'conversation-1',
+      },
+    });
+    expect(service.clearLatestConversation).toHaveBeenCalledWith('u1');
   });
 
   it('streams an error SSE event when service throws', async () => {

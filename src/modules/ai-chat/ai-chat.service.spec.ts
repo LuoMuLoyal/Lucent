@@ -5,10 +5,19 @@ import {
 } from '@nestjs/common';
 import type { UserSettingsService } from '../user-settings/user-settings.service';
 import type { AiChatAgentService } from './agent/ai-chat-agent.service';
+import type { AiChatConversationService } from './ai-chat-conversation.service';
 import type { AiChatPolicyService } from './ai-chat-policy.service';
 import type { AiChatToolContextService } from './tools/ai-chat-tool-context.service';
 import type { AiChatToolExecutor } from './tools/ai-chat-tool.executor';
 import { AiChatService } from './ai-chat.service';
+
+function conversationServiceDouble() {
+  return {
+    getLatestConversation: jest.fn(),
+    clearLatestConversation: jest.fn(),
+    persistAssistantTurn: jest.fn(),
+  } as unknown as AiChatConversationService;
+}
 
 describe('AiChatService', () => {
   it('combines user permissions with system foundation status', async () => {
@@ -86,6 +95,7 @@ describe('AiChatService', () => {
     const aiChatToolContextService = {
       buildToolContextBlock: jest.fn().mockReturnValue(''),
     } as unknown as AiChatToolContextService;
+    const aiChatConversationService = conversationServiceDouble();
 
     const service = new AiChatService(
       aiChatAgentService,
@@ -93,6 +103,7 @@ describe('AiChatService', () => {
       aiChatPolicyService,
       aiChatToolExecutor,
       aiChatToolContextService,
+      aiChatConversationService,
     );
     const capabilities = await service.getCapabilities('user-1');
 
@@ -198,6 +209,19 @@ describe('AiChatService', () => {
           'Server-approved user context tool results:\n- health_context_snapshot: {"summary":{"activeAllergyCount":1}}',
         ),
     } as unknown as AiChatToolContextService;
+    const aiChatConversationService = {
+      getLatestConversation: jest.fn(),
+      clearLatestConversation: jest.fn(),
+      persistAssistantTurn: jest.fn().mockResolvedValue({
+        id: 'conversation-1',
+        title: 'What should I do next?',
+        status: 'active',
+        messages: [],
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T10:00:00.000Z',
+        updatedAt: '2026-06-18T10:00:00.000Z',
+      }),
+    } as unknown as AiChatConversationService;
 
     const service = new AiChatService(
       aiChatAgentService,
@@ -205,6 +229,7 @@ describe('AiChatService', () => {
       aiChatPolicyService,
       aiChatToolExecutor,
       aiChatToolContextService,
+      aiChatConversationService,
     );
     const onChunk = jest.fn();
 
@@ -221,6 +246,7 @@ describe('AiChatService', () => {
     );
 
     expect(result.role).toBe('assistant');
+    expect(result.conversationId).toBe('conversation-1');
     expect(result.content).toBe('Hello there');
     expect(result.usedTools).toEqual(['health_context_snapshot']);
     expect(planConversation).toHaveBeenCalledWith({
@@ -255,6 +281,17 @@ describe('AiChatService', () => {
         ],
       },
       onChunk,
+    );
+    expect(aiChatConversationService.persistAssistantTurn).toHaveBeenCalledWith(
+      {
+        userId: 'user-1',
+        messages: [
+          { role: 'assistant', content: 'Earlier summary' },
+          { role: 'user', content: 'What should I do next?' },
+        ],
+        assistantContent: 'Hello there',
+        usedTools: ['health_context_snapshot'],
+      },
     );
   });
 
@@ -308,6 +345,7 @@ describe('AiChatService', () => {
     const aiChatToolContextService = {
       buildToolContextBlock: jest.fn().mockReturnValue(''),
     } as unknown as AiChatToolContextService;
+    const aiChatConversationService = conversationServiceDouble();
 
     const service = new AiChatService(
       aiChatAgentService,
@@ -315,6 +353,7 @@ describe('AiChatService', () => {
       aiChatPolicyService,
       aiChatToolExecutor,
       aiChatToolContextService,
+      aiChatConversationService,
     );
 
     await expect(
@@ -379,6 +418,7 @@ describe('AiChatService', () => {
     const aiChatToolContextService = {
       buildToolContextBlock: jest.fn().mockReturnValue(''),
     } as unknown as AiChatToolContextService;
+    const aiChatConversationService = conversationServiceDouble();
 
     const service = new AiChatService(
       aiChatAgentService,
@@ -386,6 +426,7 @@ describe('AiChatService', () => {
       aiChatPolicyService,
       aiChatToolExecutor,
       aiChatToolContextService,
+      aiChatConversationService,
     );
 
     await expect(
@@ -428,6 +469,7 @@ describe('AiChatService', () => {
     const aiChatToolContextService = {
       buildToolContextBlock: jest.fn().mockReturnValue(''),
     } as unknown as AiChatToolContextService;
+    const aiChatConversationService = conversationServiceDouble();
 
     const service = new AiChatService(
       aiChatAgentService,
@@ -435,6 +477,7 @@ describe('AiChatService', () => {
       aiChatPolicyService,
       aiChatToolExecutor,
       aiChatToolContextService,
+      aiChatConversationService,
     );
 
     await expect(
@@ -477,6 +520,7 @@ describe('AiChatService', () => {
     const aiChatToolContextService = {
       buildToolContextBlock: jest.fn().mockReturnValue(''),
     } as unknown as AiChatToolContextService;
+    const aiChatConversationService = conversationServiceDouble();
 
     const service = new AiChatService(
       aiChatAgentService,
@@ -484,6 +528,7 @@ describe('AiChatService', () => {
       aiChatPolicyService,
       aiChatToolExecutor,
       aiChatToolContextService,
+      aiChatConversationService,
     );
 
     await expect(
@@ -496,5 +541,81 @@ describe('AiChatService', () => {
         jest.fn(),
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('returns and clears the latest persisted conversation', async () => {
+    const aiChatAgentService = {
+      describeFoundation: jest.fn(),
+    } as unknown as AiChatAgentService;
+    const userSettingsService = {
+      getSettings: jest.fn(),
+    } as unknown as UserSettingsService;
+    const aiChatPolicyService = {
+      evaluate: jest.fn(),
+    } as unknown as AiChatPolicyService;
+    const aiChatToolExecutor = {
+      executeMany: jest.fn(),
+    } as unknown as AiChatToolExecutor;
+    const aiChatToolContextService = {
+      buildToolContextBlock: jest.fn(),
+    } as unknown as AiChatToolContextService;
+    const aiChatConversationService = {
+      getLatestConversation: jest.fn().mockResolvedValue({
+        id: 'conversation-1',
+        title: '最近睡眠怎样？',
+        status: 'active',
+        messages: [
+          {
+            role: 'user',
+            content: '最近睡眠怎样？',
+            usedTools: [],
+            createdAt: '2026-06-18T10:00:00.000Z',
+          },
+        ],
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T10:00:00.000Z',
+        updatedAt: '2026-06-18T10:00:00.000Z',
+      }),
+      clearLatestConversation: jest.fn().mockResolvedValue({
+        id: 'conversation-1',
+        title: '最近睡眠怎样？',
+        status: 'archived',
+        messages: [],
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T10:00:00.000Z',
+        updatedAt: '2026-06-18T10:05:00.000Z',
+      }),
+      persistAssistantTurn: jest.fn(),
+    } as unknown as AiChatConversationService;
+
+    const service = new AiChatService(
+      aiChatAgentService,
+      userSettingsService,
+      aiChatPolicyService,
+      aiChatToolExecutor,
+      aiChatToolContextService,
+      aiChatConversationService,
+    );
+
+    await expect(service.getLatestConversation('user-1')).resolves.toEqual({
+      id: 'conversation-1',
+      title: '最近睡眠怎样？',
+      status: 'active',
+      messages: [
+        {
+          role: 'user',
+          content: '最近睡眠怎样？',
+          usedTools: [],
+          createdAt: '2026-06-18T10:00:00.000Z',
+        },
+      ],
+      lastMessageAt: '2026-06-18T10:00:00.000Z',
+      createdAt: '2026-06-18T10:00:00.000Z',
+      updatedAt: '2026-06-18T10:00:00.000Z',
+    });
+    await expect(service.clearLatestConversation('user-1')).resolves.toEqual({
+      cleared: true,
+      archivedConversationId: 'conversation-1',
+    });
   });
 });

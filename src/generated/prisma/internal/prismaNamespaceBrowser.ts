@@ -70,7 +70,9 @@ export const ModelName = {
   DrugbankTarget: 'DrugbankTarget',
   DrugbankDrugTarget: 'DrugbankDrugTarget',
   UserSetting: 'UserSetting',
-  DataExportRequest: 'DataExportRequest'
+  DataExportRequest: 'DataExportRequest',
+  AiChatConversation: 'AiChatConversation',
+  AiChatMessage: 'AiChatMessage'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -534,6 +536,33 @@ export const DataExportRequestScalarFieldEnum = {
 } as const
 
 export type DataExportRequestScalarFieldEnum = (typeof DataExportRequestScalarFieldEnum)[keyof typeof DataExportRequestScalarFieldEnum]
+
+
+export const AiChatConversationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  title: 'title',
+  status: 'status',
+  lastMessageAt: 'lastMessageAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiChatConversationScalarFieldEnum = (typeof AiChatConversationScalarFieldEnum)[keyof typeof AiChatConversationScalarFieldEnum]
+
+
+export const AiChatMessageScalarFieldEnum = {
+  id: 'id',
+  conversationId: 'conversationId',
+  userId: 'userId',
+  role: 'role',
+  content: 'content',
+  usedTools: 'usedTools',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AiChatMessageScalarFieldEnum = (typeof AiChatMessageScalarFieldEnum)[keyof typeof AiChatMessageScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -24,6 +24,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AiChatService } from './ai-chat.service';
 import {
   AiChatCapabilitiesResponseDto,
+  AiChatConversationResponseDto,
   AiChatStreamResultDto,
   StreamAiChatMessagesDto,
 } from './dto';
@@ -42,6 +43,48 @@ export class AiChatController {
   @ApiResponse({ status: 200, type: AiChatCapabilitiesResponseDto })
   async getCapabilities(@CurrentUser() user: UserPayload) {
     return successEnvelope(await this.aiChatService.getCapabilities(user.sub));
+  }
+
+  @Get('latest')
+  @ApiOperation({
+    summary: 'Get the authenticated user latest persisted AI chat conversation',
+  })
+  @ApiResponse({ status: 200, type: AiChatConversationResponseDto })
+  async getLatestConversation(@CurrentUser() user: UserPayload) {
+    return successEnvelope(
+      await this.aiChatService.getLatestConversation(user.sub),
+    );
+  }
+
+  @Post('latest/clear')
+  @ApiOperation({
+    summary:
+      'Archive the authenticated user latest active AI chat conversation',
+  })
+  @ApiResponse({
+    status: 200,
+    schema: {
+      properties: {
+        code: { type: 'number', example: 0 },
+        message: { type: 'string', example: '' },
+        data: {
+          type: 'object',
+          properties: {
+            cleared: { type: 'boolean', example: true },
+            archivedConversationId: {
+              type: 'string',
+              nullable: true,
+              example: 'conversation-id',
+            },
+          },
+        },
+      },
+    },
+  })
+  async clearLatestConversation(@CurrentUser() user: UserPayload) {
+    return successEnvelope(
+      await this.aiChatService.clearLatestConversation(user.sub),
+    );
   }
 
   @Post('messages/stream')

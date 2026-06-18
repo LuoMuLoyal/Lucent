@@ -7,6 +7,7 @@ import {
 import { ResultCode } from '../../common/api-envelope';
 import type {
   AiChatCapabilitiesDataDto,
+  AiChatConversationDataDto,
   AiChatMessageDataDto,
   StreamAiChatMessagesDto,
 } from './dto';
@@ -16,6 +17,7 @@ import { UserSettingsService } from '../user-settings/user-settings.service';
 import { AiChatPolicyService } from './ai-chat-policy.service';
 import { AiChatToolContextService } from './tools/ai-chat-tool-context.service';
 import { AiChatToolExecutor } from './tools/ai-chat-tool.executor';
+import { AiChatConversationService } from './ai-chat-conversation.service';
 import type {
   AiChatConversationMessage,
   AiChatStreamChunkEvent,
@@ -29,6 +31,7 @@ export class AiChatService {
     private readonly aiChatPolicyService: AiChatPolicyService,
     private readonly aiChatToolExecutor: AiChatToolExecutor,
     private readonly aiChatToolContextService: AiChatToolContextService,
+    private readonly aiChatConversationService: AiChatConversationService,
   ) {}
 
   getFoundationCapabilities(): AiChatFoundationCapabilities {
@@ -53,6 +56,26 @@ export class AiChatService {
       ragEnabled: foundation.ragEnabled,
       tools: policy.toolCapabilities,
       updatedAt: settings.updatedAt,
+    };
+  }
+
+  async getLatestConversation(
+    userId: string,
+  ): Promise<AiChatConversationDataDto | null> {
+    const conversation =
+      await this.aiChatConversationService.getLatestConversation(userId);
+    return conversation == null ? null : conversation;
+  }
+
+  async clearLatestConversation(userId: string): Promise<{
+    cleared: boolean;
+    archivedConversationId: string | null;
+  }> {
+    const archived =
+      await this.aiChatConversationService.clearLatestConversation(userId);
+    return {
+      cleared: archived != null,
+      archivedConversationId: archived?.id ?? null,
     };
   }
 
@@ -107,8 +130,16 @@ export class AiChatService {
       },
       onChunk,
     );
+    const conversation =
+      await this.aiChatConversationService.persistAssistantTurn({
+        userId,
+        messages,
+        assistantContent: result.content,
+        usedTools: result.usedToolNames,
+      });
 
     return {
+      conversationId: conversation.id,
       role: 'assistant',
       content: result.content,
       generatedAt: new Date().toISOString(),

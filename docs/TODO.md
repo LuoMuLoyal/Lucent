@@ -1,6 +1,6 @@
 # Lucent TODO
 
-Last updated: 2026-06-15
+Last updated: 2026-06-18
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to one branch or security check, but do not scatter project-level follow-up lists across changelogs or random docs.
@@ -19,7 +19,7 @@ Keep durable implementation context in the owning code comments when the TODO is
   - introduce a tool-capable orchestrator only when branching, retrieval, or multi-step tool use becomes real
 - AI chat phase 1 now uses a restricted LangGraph foundation:
   - keep tool availability enforced server-side
-  - expand user settings before exposing real chat-context permissions
+  - keep latest-conversation persistence intentionally narrow before expanding to multi-conversation management
   - keep leaflet RAG / pgvector deferred until the base chat contract is stable
 
 ## Module Boundaries

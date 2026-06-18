@@ -507,6 +507,40 @@ export type EnumDailyRecordAttachmentKindWithAggregatesFilter<$PrismaModel = nev
   _max?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
 }
 
+export type EnumAiChatConversationStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiChatConversationStatus | Prisma.EnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AiChatConversationStatus[] | Prisma.ListEnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiChatConversationStatus[] | Prisma.ListEnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiChatConversationStatusFilter<$PrismaModel> | $Enums.AiChatConversationStatus
+}
+
+export type EnumAiChatConversationStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiChatConversationStatus | Prisma.EnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AiChatConversationStatus[] | Prisma.ListEnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiChatConversationStatus[] | Prisma.ListEnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiChatConversationStatusWithAggregatesFilter<$PrismaModel> | $Enums.AiChatConversationStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAiChatConversationStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAiChatConversationStatusFilter<$PrismaModel>
+}
+
+export type EnumAiChatMessageRoleFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiChatMessageRole | Prisma.EnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  in?: $Enums.AiChatMessageRole[] | Prisma.ListEnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiChatMessageRole[] | Prisma.ListEnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiChatMessageRoleFilter<$PrismaModel> | $Enums.AiChatMessageRole
+}
+
+export type EnumAiChatMessageRoleWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiChatMessageRole | Prisma.EnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  in?: $Enums.AiChatMessageRole[] | Prisma.ListEnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiChatMessageRole[] | Prisma.ListEnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiChatMessageRoleWithAggregatesFilter<$PrismaModel> | $Enums.AiChatMessageRole
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAiChatMessageRoleFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAiChatMessageRoleFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -985,6 +1019,40 @@ export type NestedEnumDailyRecordAttachmentKindWithAggregatesFilter<$PrismaModel
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
   _max?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
+}
+
+export type NestedEnumAiChatConversationStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiChatConversationStatus | Prisma.EnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AiChatConversationStatus[] | Prisma.ListEnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiChatConversationStatus[] | Prisma.ListEnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiChatConversationStatusFilter<$PrismaModel> | $Enums.AiChatConversationStatus
+}
+
+export type NestedEnumAiChatConversationStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiChatConversationStatus | Prisma.EnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AiChatConversationStatus[] | Prisma.ListEnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiChatConversationStatus[] | Prisma.ListEnumAiChatConversationStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiChatConversationStatusWithAggregatesFilter<$PrismaModel> | $Enums.AiChatConversationStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAiChatConversationStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAiChatConversationStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumAiChatMessageRoleFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiChatMessageRole | Prisma.EnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  in?: $Enums.AiChatMessageRole[] | Prisma.ListEnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiChatMessageRole[] | Prisma.ListEnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiChatMessageRoleFilter<$PrismaModel> | $Enums.AiChatMessageRole
+}
+
+export type NestedEnumAiChatMessageRoleWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AiChatMessageRole | Prisma.EnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  in?: $Enums.AiChatMessageRole[] | Prisma.ListEnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AiChatMessageRole[] | Prisma.ListEnumAiChatMessageRoleFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAiChatMessageRoleWithAggregatesFilter<$PrismaModel> | $Enums.AiChatMessageRole
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAiChatMessageRoleFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAiChatMessageRoleFilter<$PrismaModel>
 }
 
 

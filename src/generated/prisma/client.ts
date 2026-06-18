@@ -143,3 +143,13 @@ export type UserSetting = Prisma.UserSettingModel
  * 
  */
 export type DataExportRequest = Prisma.DataExportRequestModel
+/**
+ * Model AiChatConversation
+ * 
+ */
+export type AiChatConversation = Prisma.AiChatConversationModel
+/**
+ * Model AiChatMessage
+ * 
+ */
+export type AiChatMessage = Prisma.AiChatMessageModel

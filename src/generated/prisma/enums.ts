@@ -143,6 +143,22 @@ export const DailyRecordAttachmentKind = {
 export type DailyRecordAttachmentKind = (typeof DailyRecordAttachmentKind)[keyof typeof DailyRecordAttachmentKind]
 
 
+export const AiChatConversationStatus = {
+  active: 'active',
+  archived: 'archived'
+} as const
+
+export type AiChatConversationStatus = (typeof AiChatConversationStatus)[keyof typeof AiChatConversationStatus]
+
+
+export const AiChatMessageRole = {
+  user: 'user',
+  assistant: 'assistant'
+} as const
+
+export type AiChatMessageRole = (typeof AiChatMessageRole)[keyof typeof AiChatMessageRole]
+
+
 export const DoseLogStatus = {
   taken: 'taken',
   skipped: 'skipped',

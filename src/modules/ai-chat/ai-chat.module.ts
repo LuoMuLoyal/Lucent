@@ -6,6 +6,7 @@ import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminder
 import { UserHealthContextModule } from '../user-health-context/user-health-context.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { AiChatAgentService } from './agent/ai-chat-agent.service';
+import { AiChatConversationService } from './ai-chat-conversation.service';
 import { AiChatController } from './ai-chat.controller';
 import { AiChatPolicyService } from './ai-chat-policy.service';
 import { AiChatService } from './ai-chat.service';
@@ -23,6 +24,7 @@ import { AiChatToolContextService, AiChatToolExecutor } from './tools';
   controllers: [AiChatController],
   providers: [
     AiChatAgentService,
+    AiChatConversationService,
     AiChatPolicyService,
     AiChatToolContextService,
     AiChatToolExecutor,
