@@ -30,6 +30,10 @@ describe('AiChatAgentService', () => {
         'get_user_settings',
         'get_current_medicines',
         'get_sleep_summary_by_range',
+        'propose_create_daily_record',
+        'propose_update_daily_record',
+        'propose_delete_daily_record',
+        'propose_update_user_settings',
       ],
       implementedToolNames: [
         'get_today_records',
@@ -41,6 +45,10 @@ describe('AiChatAgentService', () => {
         'get_user_settings',
         'get_current_medicines',
         'get_sleep_summary_by_range',
+        'propose_create_daily_record',
+        'propose_update_daily_record',
+        'propose_delete_daily_record',
+        'propose_update_user_settings',
       ],
       contextSources: [
         'health_profile',

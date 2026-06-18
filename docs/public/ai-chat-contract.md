@@ -19,8 +19,9 @@ The current contract is intentionally about:
 
 It is not yet a free-form tool-calling or RAG-enabled chat contract.
 
-The next planned extension is also now defined here, but anything marked
-`planned / not implemented yet` is not current runtime truth.
+The next extension is now partially live as a proposal-only mutation layer.
+Anything still marked `planned / not implemented yet` is not current runtime
+truth.
 
 ## Boundary
 
@@ -48,6 +49,10 @@ Current implemented tool inventory:
 - `get_user_settings`
 - `get_current_medicines`
 - `get_sleep_summary_by_range`
+- `propose_create_daily_record`
+- `propose_update_daily_record`
+- `propose_delete_daily_record`
+- `propose_update_user_settings`
 
 This is still a bounded pre-generation tool layer, not a free-form
 multi-step tool loop.
@@ -151,6 +156,7 @@ type AiChatStreamEvent =
         content: string;
         usedTools: string[];
         generatedAt: string;
+        proposedActions?: AiChatProposedActionDto[];
       };
     }
   | {
@@ -173,6 +179,7 @@ Current behavior:
 - those tool results are injected server-side into the model context
 - Lucent streams plain assistant text chunks first
 - then emits one final assistant message payload
+- the final payload may also include proposal-only write intents
 - and persists the completed user/assistant turn into the latest active
   conversation
 - then emits `done`
@@ -325,12 +332,13 @@ Capabilities combine:
   persisted conversations exist for restore/list/open, while cross-conversation
   memory reuse is optional and controlled by `aiChatMemoryEnabled`.
 
-## Current Read Tools + Planned Write Intent
+## Current Read Tools + Proposal-Only Write Intent
 
 Status:
 
 - read tools below are implemented in the current bounded runtime
-- write-intent pieces below are planned, not implemented yet
+- write-intent tools below are also implemented, but they only emit proposals
+  and never write directly
 
 This slice expands assistant usefulness without introducing autonomous writes.
 
@@ -643,9 +651,9 @@ Notes:
 - client product copy may present `note` as “custom”
 - `payload` keeps structured kind-specific detail such as sleep fields
 
-### Planned Write-Intent Tools
+### Current Write-Intent Tools
 
-Status: planned, not implemented yet.
+Status: implemented as proposal emitters only.
 
 Write-intent tools do not write data. They only return structured proposals.
 
@@ -704,9 +712,9 @@ interface ProposeUpdateUserSettingsToolInput {
 }
 ```
 
-### Planned Final SSE Result Extension
+### Current Final SSE Result Extension
 
-Status: planned, not implemented yet.
+Status: implemented.
 
 The final `result` event may later include assistant proposals:
 
@@ -799,7 +807,8 @@ interface UpdateUserSettingsProposalPayload {
 
 ### Frontend Confirmation Card Protocol
 
-Status: planned, not implemented yet.
+Status: required by the contract; frontend execution may still roll out in
+steps, but proposals are already part of the backend result payload.
 
 The frontend should treat every `AiChatProposedActionDto` as:
 
@@ -831,9 +840,34 @@ Execution rule:
 Initial frontend mapping guidance:
 
 - `create_daily_record` -> Record create/quick-confirm flow
-- `update_daily_record` -> Record edit flow prefilled from proposal draft
-- `delete_daily_record` -> existing delete confirmation flow
+- `update_daily_record` -> existing record update flow using `recordId` + draft
+- `delete_daily_record` -> existing record delete confirmation flow using
+  `recordId`
 - `update_user_settings` -> Settings confirmation/update flow
+
+### First-Slice Proposal Rules
+
+Current backend behavior is intentionally conservative:
+
+- `propose_create_daily_record`
+  - uses the existing candidate-record generation path
+  - if no candidate can be derived, no proposal is emitted
+- `propose_update_daily_record`
+  - emits a proposal only when Lucent can match one concrete target record and
+    derive a non-empty update draft
+- `propose_delete_daily_record`
+  - emits a proposal only when Lucent can match one concrete target record
+- `propose_update_user_settings`
+  - emits a proposal only when Lucent can derive at least one explicit setting
+    change
+
+Implication:
+
+- the assistant may still answer normally without any proposal when the write
+  target is ambiguous
+- “implemented” in capabilities means the server supports the proposal tool and
+  may emit a proposal when the message is specific enough; it does not mean the
+  server will always produce a mutation draft
 
 ## Explicit Non-Goals
 

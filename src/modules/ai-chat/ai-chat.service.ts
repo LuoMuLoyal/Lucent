@@ -170,6 +170,9 @@ export class AiChatService {
       content: result.content,
       generatedAt: new Date().toISOString(),
       usedTools: result.usedToolNames,
+      proposedActions: toolResults.flatMap(
+        (toolResult) => toolResult.proposedActions ?? [],
+      ),
     };
   }
 

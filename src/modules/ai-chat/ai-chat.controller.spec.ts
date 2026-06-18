@@ -157,6 +157,36 @@ describe('AiChatController', () => {
           content: 'Hello there',
           usedTools: [],
           generatedAt: '2026-06-17T12:00:00.000Z',
+          proposedActions: [
+            {
+              id: 'proposal-create-1',
+              type: 'create_daily_record',
+              status: 'proposed',
+              confirmationRequired: true,
+              title: 'Save this record',
+              summary: 'Ready to save one water record.',
+              reason: 'Detected water intake.',
+              previewFields: [
+                {
+                  label: 'Kind',
+                  value: 'water',
+                },
+              ],
+              payloadVersion: 1,
+              payload: {
+                type: 'create_daily_record',
+                draft: {
+                  kind: 'water',
+                  occurredAt: '2026-06-18',
+                  title: null,
+                  value: '300',
+                  unit: 'ml',
+                  note: null,
+                  payload: null,
+                },
+              },
+            },
+          ],
         };
       },
     );
@@ -183,6 +213,36 @@ describe('AiChatController', () => {
         content: 'Hello there',
         usedTools: [],
         generatedAt: '2026-06-17T12:00:00.000Z',
+        proposedActions: [
+          {
+            id: 'proposal-create-1',
+            type: 'create_daily_record',
+            status: 'proposed',
+            confirmationRequired: true,
+            title: 'Save this record',
+            summary: 'Ready to save one water record.',
+            reason: 'Detected water intake.',
+            previewFields: [
+              {
+                label: 'Kind',
+                value: 'water',
+              },
+            ],
+            payloadVersion: 1,
+            payload: {
+              type: 'create_daily_record',
+              draft: {
+                kind: 'water',
+                occurredAt: '2026-06-18',
+                title: null,
+                value: '300',
+                unit: 'ml',
+                note: null,
+                payload: null,
+              },
+            },
+          },
+        ],
       },
     });
     expect(writeSseEvent).toHaveBeenNthCalledWith(3, response, {

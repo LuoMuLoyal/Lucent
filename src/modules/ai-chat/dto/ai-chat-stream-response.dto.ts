@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { AiChatProposedActionDto } from './ai-chat-proposed-action.dto';
 
 export class AiChatStreamChunkDto {
   @ApiProperty({
@@ -36,6 +37,15 @@ export class AiChatMessageDataDto {
     description: 'ISO-8601 timestamp for the final assistant reply.',
   })
   generatedAt!: string;
+
+  @ApiProperty({
+    type: () => AiChatProposedActionDto,
+    isArray: true,
+    required: false,
+    description:
+      'Optional proposal-only write intents that still require explicit client confirmation.',
+  })
+  proposedActions?: AiChatProposedActionDto[];
 }
 
 export class AiChatStreamResultDto {

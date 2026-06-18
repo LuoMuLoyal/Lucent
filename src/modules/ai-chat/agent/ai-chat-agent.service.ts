@@ -15,6 +15,7 @@ import type {
 } from '../ai-chat.types';
 import {
   AI_CHAT_CONTEXT_SOURCES,
+  AI_CHAT_IMPLEMENTED_TOOL_NAMES,
   AI_CHAT_TOOL_NAMES,
 } from '../tools/ai-chat-tool.types';
 import type {
@@ -110,7 +111,7 @@ export class AiChatAgentService {
       ragEnabled: false,
       graphNodeNames: AI_CHAT_FOUNDATION_NODE_NAMES,
       toolNames: AI_CHAT_TOOL_NAMES,
-      implementedToolNames: AI_CHAT_TOOL_NAMES,
+      implementedToolNames: AI_CHAT_IMPLEMENTED_TOOL_NAMES,
       contextSources: AI_CHAT_CONTEXT_SOURCES,
     };
   }

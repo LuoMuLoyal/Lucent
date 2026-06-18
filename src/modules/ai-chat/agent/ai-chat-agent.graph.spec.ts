@@ -15,6 +15,16 @@ describe('AiChatFoundationGraph', () => {
     ).toEqual(['get_sleep_summary_by_range']);
   });
 
+  it('selects write-intent tools from save-style messages', () => {
+    expect(
+      selectRelevantToolsForMessage('帮我记一下今天喝了 300ml 水', [
+        'get_today_records',
+        'propose_create_daily_record',
+        'propose_update_user_settings',
+      ]),
+    ).toEqual(['get_today_records', 'propose_create_daily_record']);
+  });
+
   it('derives allowed tools from enabled context sources', async () => {
     expect(
       selectAllowedToolsForContextSources(['health_profile', 'sleep_records']),
@@ -24,6 +34,8 @@ describe('AiChatFoundationGraph', () => {
       'get_user_profile',
       'get_user_settings',
       'get_sleep_summary_by_range',
+      'propose_create_daily_record',
+      'propose_update_user_settings',
     ]);
 
     const graph = buildAiChatFoundationGraph();
@@ -45,6 +57,8 @@ describe('AiChatFoundationGraph', () => {
       'get_user_settings',
       'get_current_medicines',
       'get_sleep_summary_by_range',
+      'propose_create_daily_record',
+      'propose_update_user_settings',
     ]);
     expect(result.selectedTools).toEqual(['get_sleep_summary_by_range']);
     expect(result.route).toBe('respond');

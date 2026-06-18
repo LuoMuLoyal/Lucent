@@ -73,9 +73,81 @@ export interface AiChatAssistantMessageResult {
   usedToolNames: AiChatToolName[];
 }
 
+export interface AiChatProposalPreviewField {
+  label: string;
+  value: string;
+}
+
+export interface AiChatCreateDailyRecordProposalPayload {
+  type: 'create_daily_record';
+  draft: {
+    kind: 'water' | 'meal' | 'symptom' | 'note' | 'sleep';
+    occurredAt: string;
+    title: string | null;
+    value: string | null;
+    unit: string | null;
+    note: string | null;
+    payload: Record<string, unknown> | null;
+  };
+}
+
+export interface AiChatUpdateDailyRecordProposalPayload {
+  type: 'update_daily_record';
+  recordId: string;
+  draft: {
+    occurredAt?: string | null;
+    title?: string | null;
+    value?: string | null;
+    unit?: string | null;
+    note?: string | null;
+    payload?: Record<string, unknown> | null;
+  };
+}
+
+export interface AiChatDeleteDailyRecordProposalPayload {
+  type: 'delete_daily_record';
+  recordId: string;
+}
+
+export interface AiChatUpdateUserSettingsProposalPayload {
+  type: 'update_user_settings';
+  draft: {
+    aiChatEnabled?: boolean;
+    aiChatMemoryEnabled?: boolean;
+    aiChatContext?: {
+      healthProfile?: boolean;
+      dailyRecords?: boolean;
+      sleepRecords?: boolean;
+      currentMedicines?: boolean;
+    };
+  };
+}
+
+export interface AiChatProposedAction {
+  id: string;
+  type:
+    | 'create_daily_record'
+    | 'update_daily_record'
+    | 'delete_daily_record'
+    | 'update_user_settings';
+  status: 'proposed';
+  confirmationRequired: true;
+  title: string;
+  summary: string;
+  reason: string | null;
+  previewFields: AiChatProposalPreviewField[];
+  payloadVersion: 1;
+  payload:
+    | AiChatCreateDailyRecordProposalPayload
+    | AiChatUpdateDailyRecordProposalPayload
+    | AiChatDeleteDailyRecordProposalPayload
+    | AiChatUpdateUserSettingsProposalPayload;
+}
+
 export interface AiChatToolExecutionResult {
   name: AiChatToolName;
   data: Record<string, unknown>;
+  proposedActions?: AiChatProposedAction[];
 }
 
 export interface AiChatToolExecutionContext {

@@ -17,9 +17,28 @@ export const AI_CHAT_TOOL_NAMES = [
   'get_user_settings',
   'get_current_medicines',
   'get_sleep_summary_by_range',
+  'propose_create_daily_record',
+  'propose_update_daily_record',
+  'propose_delete_daily_record',
+  'propose_update_user_settings',
 ] as const;
 
 export type AiChatToolName = (typeof AI_CHAT_TOOL_NAMES)[number];
+
+export const AI_CHAT_READ_TOOL_NAMES = [
+  'get_today_records',
+  'get_records_by_date',
+  'get_records_by_range',
+  'get_recent_today_summaries',
+  'get_recent_report_summaries',
+  'get_user_profile',
+  'get_user_settings',
+  'get_current_medicines',
+  'get_sleep_summary_by_range',
+] as const satisfies readonly AiChatToolName[];
+
+export const AI_CHAT_IMPLEMENTED_TOOL_NAMES =
+  AI_CHAT_TOOL_NAMES satisfies readonly AiChatToolName[];
 
 export const AI_CHAT_TOOL_DISABLED_REASONS = [
   'chat_disabled',
@@ -41,4 +60,8 @@ export const AI_CHAT_TOOL_SOURCE_MAP = {
   get_user_settings: [],
   get_current_medicines: ['current_medicines'],
   get_sleep_summary_by_range: ['sleep_records'],
+  propose_create_daily_record: [],
+  propose_update_daily_record: ['daily_records'],
+  propose_delete_daily_record: ['daily_records'],
+  propose_update_user_settings: [],
 } as const satisfies Record<AiChatToolName, readonly AiChatContextSource[]>;

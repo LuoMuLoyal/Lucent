@@ -25,7 +25,7 @@ import { DailyRecordsService } from './daily-records.service';
     DailyRecordImageUploadRuntime,
     DailyRecordImageUploadService,
   ],
-  exports: [DailyRecordsService],
+  exports: [DailyRecordsService, DailyRecordCandidatesService],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class DailyRecordsModule {}

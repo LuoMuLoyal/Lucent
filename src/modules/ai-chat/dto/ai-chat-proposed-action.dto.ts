@@ -1,0 +1,60 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+
+class AiChatPreviewFieldDto {
+  @ApiProperty()
+  label!: string;
+
+  @ApiProperty()
+  value!: string;
+}
+
+export class AiChatProposedActionDto {
+  @ApiProperty({
+    description:
+      'Ephemeral proposal identifier for this streamed assistant result.',
+  })
+  id!: string;
+
+  @ApiProperty({
+    enum: [
+      'create_daily_record',
+      'update_daily_record',
+      'delete_daily_record',
+      'update_user_settings',
+    ],
+  })
+  type!:
+    | 'create_daily_record'
+    | 'update_daily_record'
+    | 'delete_daily_record'
+    | 'update_user_settings';
+
+  @ApiProperty({ example: 'proposed' })
+  status!: 'proposed';
+
+  @ApiProperty({ example: true })
+  confirmationRequired!: true;
+
+  @ApiProperty()
+  title!: string;
+
+  @ApiProperty()
+  summary!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  reason!: string | null;
+
+  @ApiProperty({ type: () => AiChatPreviewFieldDto, isArray: true })
+  previewFields!: AiChatPreviewFieldDto[];
+
+  @ApiProperty({ example: 1 })
+  payloadVersion!: 1;
+
+  @ApiProperty({
+    type: 'object',
+    additionalProperties: true,
+    description:
+      'Structured proposal payload. Shape depends on action type and must be confirmed by the client before any real write happens.',
+  })
+  payload!: unknown;
+}

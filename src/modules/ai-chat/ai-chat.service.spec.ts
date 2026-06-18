@@ -42,6 +42,10 @@ describe('AiChatService', () => {
           'get_user_settings',
           'get_current_medicines',
           'get_sleep_summary_by_range',
+          'propose_create_daily_record',
+          'propose_update_daily_record',
+          'propose_delete_daily_record',
+          'propose_update_user_settings',
         ],
         implementedToolNames: [],
         contextSources: [
@@ -144,8 +148,12 @@ describe('AiChatService', () => {
 
   it('streams a chat reply with executable tools only', async () => {
     const planConversation = jest.fn().mockResolvedValue({
-      allowedTools: ['get_user_profile', 'get_sleep_summary_by_range'],
-      selectedTools: ['get_user_profile'],
+      allowedTools: [
+        'get_user_profile',
+        'get_sleep_summary_by_range',
+        'propose_create_daily_record',
+      ],
+      selectedTools: ['get_user_profile', 'propose_create_daily_record'],
       route: 'respond',
     });
     const generateStream = jest.fn().mockResolvedValue({
@@ -171,8 +179,15 @@ describe('AiChatService', () => {
           'get_user_settings',
           'get_current_medicines',
           'get_sleep_summary_by_range',
+          'propose_create_daily_record',
+          'propose_update_daily_record',
+          'propose_delete_daily_record',
+          'propose_update_user_settings',
         ],
-        implementedToolNames: ['get_user_profile'],
+        implementedToolNames: [
+          'get_user_profile',
+          'propose_create_daily_record',
+        ],
         contextSources: [
           'health_profile',
           'daily_records',
@@ -210,8 +225,13 @@ describe('AiChatService', () => {
           'get_user_profile',
           'get_user_settings',
           'get_sleep_summary_by_range',
+          'propose_create_daily_record',
+          'propose_update_user_settings',
         ],
-        executableToolNames: ['get_user_profile'],
+        executableToolNames: [
+          'get_user_profile',
+          'propose_create_daily_record',
+        ],
         toolCapabilities: [],
       }),
     } as unknown as AiChatPolicyService;
@@ -220,6 +240,42 @@ describe('AiChatService', () => {
         {
           name: 'get_user_profile',
           data: { summary: { activeAllergyCount: 1 } },
+        },
+        {
+          name: 'propose_create_daily_record',
+          data: {
+            confirmationHint: 'Review before saving.',
+          },
+          proposedActions: [
+            {
+              id: 'proposal-create-1',
+              type: 'create_daily_record',
+              status: 'proposed',
+              confirmationRequired: true,
+              title: 'Save this record',
+              summary: 'Ready to save one water record.',
+              reason: 'Detected water intake.',
+              previewFields: [
+                {
+                  label: 'Kind',
+                  value: 'water',
+                },
+              ],
+              payloadVersion: 1,
+              payload: {
+                type: 'create_daily_record',
+                draft: {
+                  kind: 'water',
+                  occurredAt: '2026-06-18',
+                  title: null,
+                  value: '300',
+                  unit: 'ml',
+                  note: null,
+                  payload: null,
+                },
+              },
+            },
+          ],
         },
       ]),
     } as unknown as AiChatToolExecutor;
@@ -272,6 +328,36 @@ describe('AiChatService', () => {
     expect(result.conversationId).toBe('conversation-1');
     expect(result.content).toBe('Hello there');
     expect(result.usedTools).toEqual(['get_user_profile']);
+    expect(result.proposedActions).toEqual([
+      {
+        id: 'proposal-create-1',
+        type: 'create_daily_record',
+        status: 'proposed',
+        confirmationRequired: true,
+        title: 'Save this record',
+        summary: 'Ready to save one water record.',
+        reason: 'Detected water intake.',
+        previewFields: [
+          {
+            label: 'Kind',
+            value: 'water',
+          },
+        ],
+        payloadVersion: 1,
+        payload: {
+          type: 'create_daily_record',
+          draft: {
+            kind: 'water',
+            occurredAt: '2026-06-18',
+            title: null,
+            value: '300',
+            unit: 'ml',
+            note: null,
+            payload: null,
+          },
+        },
+      },
+    ]);
     expect(planConversation).toHaveBeenCalledWith({
       userId: 'user-1',
       userMessage: 'What should I do next?',
@@ -286,7 +372,7 @@ describe('AiChatService', () => {
         enabledContextSources: ['health_profile', 'sleep_records'],
         memoryEnabled: false,
       },
-      ['get_user_profile'],
+      ['get_user_profile', 'propose_create_daily_record'],
     );
     expect(generateStream).toHaveBeenCalledWith(
       {
@@ -300,11 +386,47 @@ describe('AiChatService', () => {
           { role: 'assistant', content: 'Earlier summary' },
           { role: 'user', content: 'What should I do next?' },
         ],
-        allowedTools: ['get_user_profile'],
+        allowedTools: ['get_user_profile', 'propose_create_daily_record'],
         toolResults: [
           {
             name: 'get_user_profile',
             data: { summary: { activeAllergyCount: 1 } },
+          },
+          {
+            name: 'propose_create_daily_record',
+            data: {
+              confirmationHint: 'Review before saving.',
+            },
+            proposedActions: [
+              {
+                id: 'proposal-create-1',
+                type: 'create_daily_record',
+                status: 'proposed',
+                confirmationRequired: true,
+                title: 'Save this record',
+                summary: 'Ready to save one water record.',
+                reason: 'Detected water intake.',
+                previewFields: [
+                  {
+                    label: 'Kind',
+                    value: 'water',
+                  },
+                ],
+                payloadVersion: 1,
+                payload: {
+                  type: 'create_daily_record',
+                  draft: {
+                    kind: 'water',
+                    occurredAt: '2026-06-18',
+                    title: null,
+                    value: '300',
+                    unit: 'ml',
+                    note: null,
+                    payload: null,
+                  },
+                },
+              },
+            ],
           },
         ],
       },

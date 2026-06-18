@@ -144,6 +144,44 @@ const TOOL_KEYWORD_RULES: Record<AiChatToolName, RegExp[]> = {
     /近几天睡眠/,
     /最近睡眠/,
   ],
+  propose_create_daily_record: [
+    /帮我记/,
+    /记一下/,
+    /记录一下/,
+    /添加记录/,
+    /新增记录/,
+    /save this/i,
+    /log this/i,
+    /record this/i,
+    /add a record/i,
+  ],
+  propose_update_daily_record: [
+    /修改记录/,
+    /更新记录/,
+    /改一下记录/,
+    /edit record/i,
+    /update record/i,
+    /change record/i,
+  ],
+  propose_delete_daily_record: [
+    /删除记录/,
+    /删掉记录/,
+    /去掉记录/,
+    /delete record/i,
+    /remove record/i,
+  ],
+  propose_update_user_settings: [
+    /打开.*ai/,
+    /关闭.*ai/,
+    /打开.*记忆/,
+    /关闭.*记忆/,
+    /打开.*权限/,
+    /关闭.*权限/,
+    /turn on/i,
+    /turn off/i,
+    /enable/i,
+    /disable/i,
+  ],
 };
 
 const BROAD_RECORD_QUERY_RULES = [
@@ -174,6 +212,28 @@ const BROAD_PERSONALIZED_QUERY_RULES = [
   /how am i/i,
 ] as const;
 
+const WRITE_INTENT_RULES = [
+  /帮我记/,
+  /记一下/,
+  /记录一下/,
+  /添加/,
+  /新增/,
+  /修改/,
+  /更新/,
+  /删除/,
+  /删掉/,
+  /save/i,
+  /log/i,
+  /record/i,
+  /update/i,
+  /delete/i,
+  /remove/i,
+  /turn on/i,
+  /turn off/i,
+  /enable/i,
+  /disable/i,
+] as const;
+
 export function selectRelevantToolsForMessage(
   userMessage: string,
   allowedTools: readonly AiChatToolName[],
@@ -199,6 +259,16 @@ export function selectRelevantToolsForMessage(
         ? [...new Set<AiChatToolName>([...matched, 'get_records_by_range'])]
         : matched;
     return withRangeFallback;
+  }
+
+  const writeTools = allowedTools.filter((toolName) =>
+    toolName.startsWith('propose_'),
+  );
+  if (
+    writeTools.length > 0 &&
+    WRITE_INTENT_RULES.some((rule) => rule.test(userMessage))
+  ) {
+    return writeTools;
   }
 
   if (

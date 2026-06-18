@@ -1,5 +1,6 @@
 export * from './ai-chat-capabilities-response.dto';
 export * from './ai-chat-conversation-list-response.dto';
 export * from './ai-chat-conversation-response.dto';
+export * from './ai-chat-proposed-action.dto';
 export * from './ai-chat-stream-response.dto';
 export * from './stream-ai-chat-messages.dto';
