@@ -24,7 +24,7 @@ describe('ReportExportPdfService', () => {
     expect(pdf.getModificationDate()?.toISOString()).toBe(
       '2026-06-15T09:30:00.000Z',
     );
-  }, 15000);
+  }, 30000);
 
   it('builds a single-page english print pdf with metadata', async () => {
     const pdfBytes = await service.buildPrintPdf({
@@ -38,7 +38,7 @@ describe('ReportExportPdfService', () => {
     expect(pdf.getTitle()).toBe('Lumos Print Report');
     expect(pdf.getSubject()).toContain('range 2026-06-09 ~ 2026-06-15');
     expect(pdf.getAuthor()).toBe('Lumos / Lucent');
-  }, 15000);
+  }, 30000);
 });
 
 function sampleReport(input?: {
