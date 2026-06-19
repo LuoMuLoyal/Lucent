@@ -208,6 +208,7 @@ interface AssistantReadResultEnvelope {
 Rules:
 
 - `query` records the exact resolved date/range/profile scope the server used
+- `query.matchedBy` uses stable semantic tags such as `explicit_iso_date`, `relative_today`, `explicit_date_range`, and `relative_last_n_days` instead of echoing raw user text
 - `coverage` must say whether the answer is complete, partial, or empty
 - `ambiguities` must surface defaulted dates/ranges instead of silently hiding them
 - range reads stay bounded; current record/sleep range tools cap at 14 days

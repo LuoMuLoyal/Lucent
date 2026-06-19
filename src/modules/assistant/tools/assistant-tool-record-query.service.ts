@@ -2,11 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DailyRecordKind } from '../../../generated/prisma/client';
 import { DailyRecordsService } from '../../daily-records/daily-records.service';
 import type { AssistantToolExecutionContext } from '../assistant.types';
-import {
-  makeDateString,
-  offsetDateString,
-  todayDateString,
-} from './assistant-tool-date-resolver';
+import { resolveSingleDate } from './assistant-tool-date-resolver';
 import type {
   ToolMutationHints,
   ToolMutationRankedRecord,
@@ -220,56 +216,7 @@ export class AssistantToolRecordQueryService {
       defaultAmbiguity: string;
     },
   ): ToolSingleDateResolution {
-    const iso = userMessage.match(/\b(\d{4}-\d{2}-\d{2})\b/);
-    if (iso?.[1] != null) {
-      return {
-        date: iso[1],
-        matchedBy: ['explicit_iso_date'],
-        ambiguities: [],
-      };
-    }
-
-    const chinese = userMessage.match(/(\d{1,2})月(\d{1,2})日/);
-    if (chinese?.[1] != null && chinese[2] != null) {
-      const year = new Date().getUTCFullYear();
-      const month = Number(chinese[1]);
-      const day = Number(chinese[2]);
-      return {
-        date: makeDateString(year, month, day),
-        matchedBy: ['explicit_month_day'],
-        ambiguities: [],
-      };
-    }
-
-    if (/今天|today/i.test(userMessage)) {
-      return {
-        date: todayDateString(),
-        matchedBy: ['relative_today'],
-        ambiguities: [],
-      };
-    }
-
-    if (/昨天|yesterday/i.test(userMessage)) {
-      return {
-        date: offsetDateString(-1),
-        matchedBy: ['relative_yesterday'],
-        ambiguities: [],
-      };
-    }
-
-    if (/前天/.test(userMessage)) {
-      return {
-        date: offsetDateString(-2),
-        matchedBy: ['relative_day_before_yesterday'],
-        ambiguities: [],
-      };
-    }
-
-    return {
-      date: input.fallbackDate,
-      matchedBy: ['default_today'],
-      ambiguities: [input.defaultAmbiguity],
-    };
+    return resolveSingleDate(userMessage, input);
   }
 
   private rankMutationTarget(

@@ -51,30 +51,42 @@ export function resolveSingleDate(
       day = parseInt(g2, 10);
     }
     const date = makeDateString(year, month, day);
-    return { date, matchedBy: [match[0]], ambiguities: [] };
+    const matchedBy =
+      g3 != null && g3.length === 4
+        ? ['explicit_slash_date']
+        : g3 != null
+          ? ['explicit_iso_date']
+          : pattern.source.includes('月')
+            ? ['explicit_month_day']
+            : ['explicit_month_day_slash'];
+    return { date, matchedBy, ambiguities: [] };
   }
 
   if (/今天|today/i.test(userMessage)) {
-    return { date: todayDateString(), matchedBy: ['today'], ambiguities: [] };
+    return {
+      date: todayDateString(),
+      matchedBy: ['relative_today'],
+      ambiguities: [],
+    };
   }
   if (/昨天|yesterday/i.test(userMessage)) {
     return {
       date: offsetDateString(-1),
-      matchedBy: ['yesterday'],
+      matchedBy: ['relative_yesterday'],
       ambiguities: [],
     };
   }
   if (/前天|the day before yesterday/i.test(userMessage)) {
     return {
       date: offsetDateString(-2),
-      matchedBy: ['the day before yesterday'],
+      matchedBy: ['relative_day_before_yesterday'],
       ambiguities: [],
     };
   }
 
   return {
     date: opts.fallbackDate,
-    matchedBy: [],
+    matchedBy: ['default_today'],
     ambiguities: [opts.defaultAmbiguity],
   };
 }
@@ -103,7 +115,7 @@ export function resolveDateRange(userMessage: string): ToolRangeResolution {
         return {
           startDate,
           endDate,
-          matchedBy: [match[0]],
+          matchedBy: ['explicit_date_range'],
           ambiguities: [
             REQUEST_RANGE_CAP_MESSAGE(requestedDays, MAX_RANGE_DAYS),
           ],
@@ -114,7 +126,7 @@ export function resolveDateRange(userMessage: string): ToolRangeResolution {
       return {
         startDate,
         endDate,
-        matchedBy: [match[0]],
+        matchedBy: ['explicit_date_range'],
         ambiguities: [],
         truncated: false,
         requestedDays,
@@ -129,7 +141,7 @@ export function resolveDateRange(userMessage: string): ToolRangeResolution {
       return {
         startDate,
         endDate,
-        matchedBy: [match[0]],
+        matchedBy: ['relative_last_n_days'],
         ambiguities: [REQUEST_RANGE_CAP_MESSAGE(days, MAX_RANGE_DAYS)],
         truncated: true,
         requestedDays: days,
@@ -138,7 +150,7 @@ export function resolveDateRange(userMessage: string): ToolRangeResolution {
     return {
       startDate: offsetDateString(-(days - 1)),
       endDate: todayDateString(),
-      matchedBy: [match[0]],
+      matchedBy: ['relative_last_n_days'],
       ambiguities: [],
       truncated: false,
       requestedDays: days,
@@ -148,7 +160,7 @@ export function resolveDateRange(userMessage: string): ToolRangeResolution {
   return {
     startDate: offsetDateString(-(DEFAULT_RANGE_DAYS - 1)),
     endDate: todayDateString(),
-    matchedBy: [],
+    matchedBy: ['default_last_7_days'],
     ambiguities: [DEFAULT_RANGE_FALLBACK_MESSAGE(DEFAULT_RANGE_DAYS)],
     truncated: false,
     requestedDays: DEFAULT_RANGE_DAYS,
@@ -162,7 +174,11 @@ export function resolveReportRangeFromKey(
   return {
     startDate: offsetDateString(-(days - 1)),
     endDate: todayDateString(),
-    matchedBy: [rangeKey],
+    matchedBy: [
+      rangeKey === REPORT_RANGE_LAST_30_DAYS
+        ? 'report_range_last_30_days'
+        : 'report_range_last_7_days',
+    ],
     ambiguities: [],
     truncated: false,
     requestedDays: days,

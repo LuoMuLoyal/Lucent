@@ -6,6 +6,15 @@ import { AssistantToolRecordQueryService } from './assistant-tool-record-query.s
 import { AssistantToolService } from './assistant-tool.service';
 
 describe('AssistantToolService', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-06-19T12:00:00.000Z'));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   function buildContext(
     overrides?: Partial<AssistantToolExecutionContext>,
   ): AssistantToolExecutionContext {
@@ -97,7 +106,7 @@ describe('AssistantToolService', () => {
       data: {
         query: {
           date: '2026-06-17',
-          matchedBy: ['2026-06-17'],
+          matchedBy: ['explicit_iso_date'],
         },
         result: {
           summary: {
