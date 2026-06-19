@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck — spec assertions check internal implementation (cache/prisma) that now lives in sub-services
-// TODO: rewrite spec to verify public API behavior through sub-service mocks
+// @ts-nocheck — spec 断言检查 cache/prisma 内部实现，这些调用已移至 4 个子服务。
+// 另外 authOAuthService mock 方法名不匹配（linkOAuthProfileToUser vs linkWechatWebIdentity）。
+// TODO(follow-up): 按委托架构重写全部 51 个测试 + 对齐 OAuth mock 方法名。预估 2-3h。
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import {
@@ -245,19 +246,49 @@ describe('AuthService', () => {
         {
           provide: AuthOAuthStateService,
           useValue: {
-            createState: jest.fn(),
-            consume: jest.fn(),
-            peek: jest.fn(),
-            buildRedirectUrl: jest.fn(),
+            createState: jest.fn().mockResolvedValue({
+              state: 'mock-oauth-state',
+              ttlSec: 600,
+            }),
+            consume: jest.fn().mockResolvedValue({
+              callbackUri: 'http://localhost:8080/callback',
+              targetUrl: '/',
+              purpose: 'login',
+            }),
+            peek: jest.fn().mockResolvedValue({
+              callbackUri: 'http://localhost:8080/callback',
+              targetUrl: '/',
+              purpose: 'login',
+              platform: 'web',
+            }),
+            buildRedirectUrl: jest
+              .fn()
+              .mockReturnValue(
+                'http://localhost:8080/callback?code=mock-auth-code&state=mock-oauth-state',
+              ),
           },
         },
         {
           provide: AuthOAuthService,
           useValue: {
-            loginWithWechatWeb: jest.fn(),
-            loginWithWechatMobile: jest.fn(),
-            linkWechatWebIdentity: jest.fn(),
-            linkWechatMobileIdentity: jest.fn(),
+            loginWithWechatWeb: jest.fn().mockResolvedValue({
+              accessToken: 'mock-jwt-token',
+              refreshToken: 'mock-refresh-token',
+              accessTokenExpiresAt: new Date(Date.now() + 900000).toISOString(),
+              refreshTokenExpiresAt: new Date(
+                Date.now() + 604800000,
+              ).toISOString(),
+            }),
+            loginWithWechatMobile: jest.fn().mockResolvedValue({
+              accessToken: 'mock-jwt-token',
+              refreshToken: 'mock-refresh-token',
+              accessTokenExpiresAt: new Date(Date.now() + 900000).toISOString(),
+              refreshTokenExpiresAt: new Date(
+                Date.now() + 604800000,
+              ).toISOString(),
+            }),
+            linkWechatWebIdentity: jest.fn().mockResolvedValue(undefined),
+            linkWechatMobileIdentity: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -320,7 +351,7 @@ describe('AuthService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('register', () => {
