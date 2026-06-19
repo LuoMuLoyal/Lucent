@@ -98,7 +98,9 @@ export class ReportExportPdfService {
     const cjkFont = await pdf.embedFont(fontBytes, { subset: false });
     this.applyMetadata(pdf, title, kind, report, isZh);
 
-    const headerSubtitle = `${isZh ? '统计范围' : 'Range'}: ${report.startDate} ~ ${report.endDate}`;
+    const headerSubtitle = isZh
+      ? `统计范围：${report.startDate} ~ ${report.endDate}  ·  生成时间：${report.generatedAt}`
+      : `Range: ${report.startDate} ~ ${report.endDate}  ·  Generated at: ${report.generatedAt}`;
     const footerNote = isZh
       ? '说明：本报告用于自我管理与就诊辅助，不替代医生诊断。'
       : 'Note: This report supports self-management and visits, and does not replace medical diagnosis.';
