@@ -269,6 +269,24 @@ describe('AssistantService', () => {
                   value: 'water',
                 },
               ],
+              target: {
+                kind: 'daily_record_draft',
+                label: '2026-06-18 water 300 ml',
+                matchedBy: ['relative_today'],
+                snapshot: {
+                  kind: 'water',
+                  occurredAt: '2026-06-18',
+                  title: null,
+                  value: '300',
+                  unit: 'ml',
+                  note: null,
+                  payload: null,
+                },
+              },
+              constraints: [
+                'Must be confirmed by you before any write happens.',
+              ],
+              expiresAt: '2026-06-18T10:15:00.000Z',
               payloadVersion: 1,
               payload: {
                 type: 'create_daily_record',
@@ -351,6 +369,22 @@ describe('AssistantService', () => {
             value: 'water',
           },
         ],
+        target: {
+          kind: 'daily_record_draft',
+          label: '2026-06-18 water 300 ml',
+          matchedBy: ['relative_today'],
+          snapshot: {
+            kind: 'water',
+            occurredAt: '2026-06-18',
+            title: null,
+            value: '300',
+            unit: 'ml',
+            note: null,
+            payload: null,
+          },
+        },
+        constraints: ['Must be confirmed by you before any write happens.'],
+        expiresAt: '2026-06-18T10:15:00.000Z',
         payloadVersion: 1,
         payload: {
           type: 'create_daily_record',
@@ -420,6 +454,24 @@ describe('AssistantService', () => {
                     value: 'water',
                   },
                 ],
+                target: {
+                  kind: 'daily_record_draft',
+                  label: '2026-06-18 water 300 ml',
+                  matchedBy: ['relative_today'],
+                  snapshot: {
+                    kind: 'water',
+                    occurredAt: '2026-06-18',
+                    title: null,
+                    value: '300',
+                    unit: 'ml',
+                    note: null,
+                    payload: null,
+                  },
+                },
+                constraints: [
+                  'Must be confirmed by you before any write happens.',
+                ],
+                expiresAt: '2026-06-18T10:15:00.000Z',
                 payloadVersion: 1,
                 payload: {
                   type: 'create_daily_record',

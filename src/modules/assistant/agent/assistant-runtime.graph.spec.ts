@@ -29,6 +29,20 @@ describe('AssistantFoundationGraph', () => {
         'get_report_summary_by_range',
       ]),
     ).toEqual(['get_report_summary_by_range']);
+
+    expect(
+      selectRelevantToolsForMessage('给我看看历史 Today AI 总结', [
+        'get_recent_today_summaries',
+        'get_today_summary_by_date',
+      ]),
+    ).toEqual(['get_recent_today_summaries']);
+
+    expect(
+      selectRelevantToolsForMessage('给我看看历史 Report AI 总结', [
+        'get_recent_report_summaries',
+        'get_report_summary_by_range',
+      ]),
+    ).toEqual(['get_recent_report_summaries']);
   });
 
   it('selects write-intent tools from save-style messages', () => {
@@ -39,6 +53,22 @@ describe('AssistantFoundationGraph', () => {
         'propose_update_user_settings',
       ]),
     ).toEqual(['get_today_records', 'propose_create_daily_record']);
+
+    expect(
+      selectRelevantToolsForMessage('把今天那条 300ml 饮水记录备注改一下', [
+        'get_today_records',
+        'propose_create_daily_record',
+        'propose_update_daily_record',
+        'propose_update_user_settings',
+      ]),
+    ).toEqual(['propose_update_daily_record']);
+
+    expect(
+      selectRelevantToolsForMessage('把 assistant memory 关掉', [
+        'propose_update_daily_record',
+        'propose_update_user_settings',
+      ]),
+    ).toEqual(['propose_update_user_settings']);
   });
 
   it('derives allowed tools from enabled context sources', async () => {

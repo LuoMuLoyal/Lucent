@@ -73,6 +73,44 @@ export interface AssistantMessageResult {
   usedToolNames: AssistantToolName[];
 }
 
+export type AssistantReadCoverageStatus = 'complete' | 'partial' | 'empty';
+export type AssistantReadConfidenceLevel = 'high' | 'medium' | 'low';
+
+export interface AssistantReadCoverage {
+  status: AssistantReadCoverageStatus;
+  reason: string | null;
+  omittedContextSources?: AssistantContextSource[];
+  omittedKinds?: string[];
+}
+
+export interface AssistantReadTimeRange {
+  timezone: 'UTC';
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface AssistantReadSourceMeta {
+  tool: AssistantToolName;
+  generatedAt: string;
+  tables: string[];
+}
+
+export interface AssistantReadConfidence {
+  level: AssistantReadConfidenceLevel;
+  reason: string;
+}
+
+export interface AssistantReadResultEnvelope {
+  [key: string]: unknown;
+  query: Record<string, unknown>;
+  result: Record<string, unknown>;
+  coverage: AssistantReadCoverage;
+  timeRange: AssistantReadTimeRange;
+  source: AssistantReadSourceMeta;
+  confidence: AssistantReadConfidence;
+  ambiguities: string[];
+}
+
 export interface AssistantProposalPreviewField {
   label: string;
   value: string;
@@ -123,6 +161,15 @@ export interface AssistantUpdateUserSettingsProposalPayload {
   };
 }
 
+export interface AssistantProposalTarget {
+  kind: 'daily_record' | 'user_settings' | 'daily_record_draft';
+  label: string;
+  recordId?: string;
+  settingKeys?: string[];
+  matchedBy?: string[];
+  snapshot?: Record<string, unknown>;
+}
+
 export interface AssistantProposedAction {
   id: string;
   type:
@@ -136,6 +183,9 @@ export interface AssistantProposedAction {
   summary: string;
   reason: string | null;
   previewFields: AssistantProposalPreviewField[];
+  target: AssistantProposalTarget;
+  constraints: string[];
+  expiresAt: string;
   payloadVersion: 1;
   payload:
     | AssistantCreateDailyRecordProposalPayload

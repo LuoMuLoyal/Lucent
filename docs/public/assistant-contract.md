@@ -1,6 +1,6 @@
 # Assistant Contract
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 ## Summary
 
@@ -170,6 +170,88 @@ Proposal rules:
 - frontend must render it as confirmable UI
 - confirm path must route back into existing product write flows
 - assistant itself is not allowed to write the database directly through this contract
+
+## Read Result Envelope
+
+Current read tools now return a consistent server-owned envelope before the model sees them:
+
+```ts
+interface AssistantReadResultEnvelope {
+  query: Record<string, unknown>;
+  result: Record<string, unknown>;
+  coverage: {
+    status: 'complete' | 'partial' | 'empty';
+    reason: string | null;
+    omittedContextSources?: Array<
+      'health_profile' | 'daily_records' | 'sleep_records' | 'current_medicines'
+    >;
+    omittedKinds?: string[];
+  };
+  timeRange: {
+    timezone: 'UTC';
+    startDate: string | null;
+    endDate: string | null;
+  };
+  source: {
+    tool: AssistantToolName;
+    generatedAt: string;
+    tables: string[];
+  };
+  confidence: {
+    level: 'high' | 'medium' | 'low';
+    reason: string;
+  };
+  ambiguities: string[];
+}
+```
+
+Rules:
+
+- `query` records the exact resolved date/range/profile scope the server used
+- `coverage` must say whether the answer is complete, partial, or empty
+- `ambiguities` must surface defaulted dates/ranges instead of silently hiding them
+- range reads stay bounded; current record/sleep range tools cap at 14 days
+- mutation-target matching is allowed to refuse proposal generation instead of guessing
+
+## Proposal Shape
+
+Current assistant proposals now carry explicit target and constraint metadata:
+
+```ts
+interface AssistantProposedActionDto {
+  id: string;
+  type:
+    | 'create_daily_record'
+    | 'update_daily_record'
+    | 'delete_daily_record'
+    | 'update_user_settings';
+  status: 'proposed';
+  confirmationRequired: true;
+  title: string;
+  summary: string;
+  reason: string | null;
+  previewFields: Array<{ label: string; value: string }>;
+  target: {
+    kind: 'daily_record' | 'daily_record_draft' | 'user_settings';
+    label: string;
+    recordId?: string;
+    settingKeys?: string[];
+    matchedBy?: string[];
+    snapshot?: Record<string, unknown>;
+  };
+  constraints: string[];
+  expiresAt: string;
+  payloadVersion: 1;
+  payload: unknown;
+}
+```
+
+Additional rules:
+
+- `target` identifies exactly what the proposal is about
+- `constraints` is user-facing guardrail text for confirmation UI
+- `expiresAt` marks proposal staleness; frontend should treat proposals as snapshots, not permanent write tickets
+- update/delete proposals are intentionally withheld unless one record can be matched with high enough certainty
 
 ## Runtime Truth
 

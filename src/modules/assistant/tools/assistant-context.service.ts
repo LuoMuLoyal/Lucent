@@ -13,11 +13,29 @@ export class AssistantContextService {
     const lines = ['Server-approved user context tool results:'];
 
     for (const result of results) {
-      lines.push(`- ${result.name}: ${JSON.stringify(result.data)}`);
+      lines.push(`- tool: ${result.name}`);
+      lines.push(`  data: ${JSON.stringify(result.data)}`);
+      if ((result.proposedActions?.length ?? 0) > 0) {
+        lines.push(
+          `  proposedActions: ${JSON.stringify(
+            result.proposedActions?.map((proposal) => ({
+              id: proposal.id,
+              type: proposal.type,
+              title: proposal.title,
+              summary: proposal.summary,
+              reason: proposal.reason,
+              target: proposal.target,
+              constraints: proposal.constraints,
+              expiresAt: proposal.expiresAt,
+              payloadVersion: proposal.payloadVersion,
+            })),
+          )}`,
+        );
+      }
     }
 
     lines.push(
-      'Use these facts only as provided. If they are incomplete, say so directly.',
+      'Use these facts only as provided. Respect coverage, confidence, ambiguities, and proposal-only boundaries exactly.',
     );
 
     return lines.join('\n');

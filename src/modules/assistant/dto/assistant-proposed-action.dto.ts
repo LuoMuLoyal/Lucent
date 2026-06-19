@@ -8,6 +8,32 @@ class AssistantPreviewFieldDto {
   value!: string;
 }
 
+class AssistantProposalTargetDto {
+  @ApiProperty({
+    enum: ['daily_record', 'user_settings', 'daily_record_draft'],
+  })
+  kind!: 'daily_record' | 'user_settings' | 'daily_record_draft';
+
+  @ApiProperty()
+  label!: string;
+
+  @ApiPropertyOptional({ nullable: true })
+  recordId?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  settingKeys?: string[];
+
+  @ApiPropertyOptional({ type: [String] })
+  matchedBy?: string[];
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: true,
+    nullable: true,
+  })
+  snapshot?: Record<string, unknown>;
+}
+
 export class AssistantProposedActionDto {
   @ApiProperty({
     description:
@@ -46,6 +72,17 @@ export class AssistantProposedActionDto {
 
   @ApiProperty({ type: () => AssistantPreviewFieldDto, isArray: true })
   previewFields!: AssistantPreviewFieldDto[];
+
+  @ApiProperty({ type: () => AssistantProposalTargetDto })
+  target!: AssistantProposalTargetDto;
+
+  @ApiProperty({ type: [String] })
+  constraints!: string[];
+
+  @ApiProperty({
+    description: 'ISO-8601 expiry timestamp for this proposal snapshot.',
+  })
+  expiresAt!: string;
 
   @ApiProperty({ example: 1 })
   payloadVersion!: 1;

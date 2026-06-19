@@ -1,6 +1,7 @@
 import { AIMessageChunk } from '@langchain/core/messages';
 import type { LlmRuntimeService } from '../../llm-runtime/llm-runtime.service';
 import { AssistantRuntimeService } from './assistant-runtime.service';
+import { buildAssistantSystemPrompt } from '../prompts/assistant-system.prompt';
 
 describe('AssistantRuntimeService', () => {
   it('describes the phase-1 backend foundation', () => {
@@ -101,5 +102,21 @@ describe('AssistantRuntimeService', () => {
     });
     expect(onChunk).toHaveBeenNthCalledWith(1, { content: 'Hello' });
     expect(onChunk).toHaveBeenNthCalledWith(2, { content: ' world' });
+  });
+
+  it('documents the tightened read/proposal rules in the system prompt', () => {
+    const prompt = buildAssistantSystemPrompt([
+      'get_recent_today_summaries',
+      'propose_update_daily_record',
+    ]);
+
+    expect(prompt).toContain(
+      'coverage, timeRange, source, confidence, and ambiguities',
+    );
+    expect(prompt).toContain(
+      'Historical AI summaries mean persisted Today/Report summaries',
+    );
+    expect(prompt).toContain('Proposal tools do not perform writes');
+    expect(prompt).toContain('refusal to guess the write target');
   });
 });

@@ -101,12 +101,22 @@ const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /today summary/i,
     /历史总结/,
     /之前总结/,
+    /历史.*today/i,
+    /之前.*today/i,
+    /history.*today/i,
+    /today ai summary/i,
     /today analysis/i,
   ],
   get_recent_report_summaries: [
     /报告总结/,
     /周报总结/,
     /月报总结/,
+    /历史.*报告/,
+    /之前.*报告/,
+    /历史.*report/i,
+    /之前.*report/i,
+    /history.*report/i,
+    /report ai summary/i,
     /report summary/i,
     /weekly summary/i,
     /monthly summary/i,
@@ -178,6 +188,12 @@ const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /修改记录/,
     /更新记录/,
     /改一下记录/,
+    /记录.*改一下/,
+    /记录.*修改/,
+    /备注.*改一下/,
+    /备注.*修改/,
+    /title.*update/i,
+    /note.*update/i,
     /edit record/i,
     /update record/i,
     /change record/i,
@@ -186,16 +202,22 @@ const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /删除记录/,
     /删掉记录/,
     /去掉记录/,
+    /记录.*删除/,
+    /记录.*删掉/,
     /delete record/i,
     /remove record/i,
   ],
   propose_update_user_settings: [
     /打开.*ai/,
     /关闭.*ai/,
+    /关掉.*ai/,
     /打开.*记忆/,
     /关闭.*记忆/,
+    /关掉.*记忆/,
     /打开.*权限/,
     /关闭.*权限/,
+    /关掉.*权限/,
+    /assistant memory/i,
     /turn on/i,
     /turn off/i,
     /enable/i,
@@ -241,6 +263,7 @@ const WRITE_INTENT_RULES = [
   /更新/,
   /删除/,
   /删掉/,
+  /关掉/,
   /save/i,
   /log/i,
   /record/i,
@@ -257,6 +280,7 @@ export function selectRelevantToolsForMessage(
   userMessage: string,
   allowedTools: readonly AssistantToolName[],
 ): AssistantToolName[] {
+  const normalized = userMessage.toLowerCase();
   const broadRecordTools = allowedTools.filter(
     (toolName) =>
       toolName === 'get_today_records' ||
@@ -277,6 +301,31 @@ export function selectRelevantToolsForMessage(
   );
 
   if (matched.length > 0) {
+    const matchedReadTools = matched.filter(
+      (toolName) => !toolName.startsWith('propose_'),
+    );
+    const matchedWriteTools = matched.filter((toolName) =>
+      toolName.startsWith('propose_'),
+    );
+
+    if (
+      /历史.*today|历史.*总结|之前.*today|以前.*today|past today|recent today/i.test(
+        userMessage,
+      ) &&
+      matchedReadTools.includes('get_recent_today_summaries')
+    ) {
+      return ['get_recent_today_summaries'];
+    }
+
+    if (
+      /历史.*报告|之前.*报告|以前.*报告|past report|recent report|weekly summary|monthly summary/i.test(
+        userMessage,
+      ) &&
+      matchedReadTools.includes('get_recent_report_summaries')
+    ) {
+      return ['get_recent_report_summaries'];
+    }
+
     if (
       summaryPointTools.includes('get_today_summary_by_date') &&
       /今天总结|当日总结|today summary|today analysis/i.test(userMessage) &&
@@ -290,11 +339,47 @@ export function selectRelevantToolsForMessage(
     ) {
       return ['get_report_summary_by_range'];
     }
+
+    if (matchedWriteTools.length > 0) {
+      if (
+        /删|删除|remove|delete/.test(normalized) &&
+        matchedWriteTools.includes('propose_delete_daily_record')
+      ) {
+        return ['propose_delete_daily_record'];
+      }
+      if (/改|修改|更新|edit|update|change/.test(normalized)) {
+        if (matchedWriteTools.includes('propose_update_user_settings')) {
+          return ['propose_update_user_settings'];
+        }
+        if (matchedWriteTools.includes('propose_update_daily_record')) {
+          return ['propose_update_daily_record'];
+        }
+      }
+      if (
+        matchedWriteTools.includes('propose_create_daily_record') &&
+        /记|记录|添加|新增|save|log|record|add/.test(normalized)
+      ) {
+        const selected: AssistantToolName[] = [];
+        if (broadRecordTools.includes('get_today_records')) {
+          selected.push('get_today_records');
+        }
+        selected.push('propose_create_daily_record');
+        return selected;
+      }
+      const firstMatchedWriteTool = matchedWriteTools[0];
+      return firstMatchedWriteTool == null ? [] : [firstMatchedWriteTool];
+    }
+
     const withRangeFallback: AssistantToolName[] =
-      matched.includes('get_records_by_range') &&
+      matchedReadTools.includes('get_records_by_range') &&
       broadRecordTools.includes('get_records_by_range')
-        ? [...new Set<AssistantToolName>([...matched, 'get_records_by_range'])]
-        : matched;
+        ? [
+            ...new Set<AssistantToolName>([
+              ...matchedReadTools,
+              'get_records_by_range',
+            ]),
+          ]
+        : matchedReadTools;
     return withRangeFallback;
   }
 
@@ -305,7 +390,42 @@ export function selectRelevantToolsForMessage(
     writeTools.length > 0 &&
     WRITE_INTENT_RULES.some((rule) => rule.test(userMessage))
   ) {
-    return writeTools;
+    if (/删|删除|remove|delete/.test(normalized)) {
+      return writeTools.includes('propose_delete_daily_record')
+        ? ['propose_delete_daily_record']
+        : [];
+    }
+    if (
+      /设置|权限|开关|记忆|ai|setting|permission|toggle|memory/.test(normalized)
+    ) {
+      return writeTools.includes('propose_update_user_settings')
+        ? ['propose_update_user_settings']
+        : [];
+    }
+    if (/改|修改|更新|edit|update|change/.test(normalized)) {
+      return writeTools.includes('propose_update_daily_record')
+        ? ['propose_update_daily_record']
+        : [];
+    }
+    if (
+      writeTools.includes('propose_create_daily_record') &&
+      /记|记录|添加|新增|save|log|record|add/.test(normalized)
+    ) {
+      const selected: AssistantToolName[] = [];
+      if (broadRecordTools.includes('get_today_records')) {
+        selected.push('get_today_records');
+      }
+      selected.push('propose_create_daily_record');
+      return selected;
+    }
+    return [];
+  }
+
+  if (
+    broadRecordTools.length > 0 &&
+    /改|修改|更新|edit|update|change|删|删除|remove|delete/.test(normalized)
+  ) {
+    return [];
   }
 
   if (
