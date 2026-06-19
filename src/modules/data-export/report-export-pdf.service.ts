@@ -3,19 +3,28 @@ import { Injectable } from '@nestjs/common';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
 import type { ReportDashboardDataDto } from '../reports/dto';
+import {
+  kindLabel,
+  metricLabel,
+  statusLabel,
+  statusPalette,
+} from './report-pdf.theme';
+import {
+  BOTTOM_Y,
+  CONTENT_WIDTH,
+  HEADER_TOP_Y,
+  MARGIN_X,
+  PAGE_HEIGHT,
+  PAGE_WIDTH,
+  TOP_Y,
+} from './report-pdf.constants';
 
 const FONT_PATH =
   require.resolve('@fontpkg/source-han-sans-sc-vf/SourceHanSansSC-VF.otf');
-const PAGE_WIDTH = 595.28;
-const PAGE_HEIGHT = 841.89;
-const MARGIN_X = 48;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_X * 2;
-const HEADER_TOP_Y = 804;
+// Page layout constants from report-pdf.constants
 const HEADER_RULE_Y = 772;
-const TOP_Y = 748;
 const FOOTER_RULE_Y = 70;
 const FOOTER_TEXT_Y = 52;
-const BOTTOM_Y = 96;
 
 type ReportPdfKind = 'hospital' | 'monthly' | 'print';
 
@@ -95,7 +104,7 @@ export class ReportExportPdfService {
     const pageNumberLabel = isZh
       ? '第 {{page}} / {{total}} 页'
       : 'Page {{page}} / {{total}}';
-    const kindLabel = this.kindLabel(kind, isZh);
+    const kindLabelText = kindLabel(kind, isZh);
     const context = this.createPageContext({
       pdf,
       cjkFont,
@@ -103,7 +112,7 @@ export class ReportExportPdfService {
       headerSubtitle,
       footerNote,
       pageNumberLabel,
-      kindLabel,
+      kindLabel: kindLabelText,
     });
 
     const summaryLabel = isZh ? '概览' : 'Overview';
@@ -112,7 +121,7 @@ export class ReportExportPdfService {
     const patternsLabel = isZh ? '模式' : 'Patterns';
 
     this.ensureSpace(context, 1);
-    context.page.drawText(kindLabel, {
+    context.page.drawText(kindLabelText, {
       x: MARGIN_X,
       y: context.cursorY,
       size: 11,
@@ -193,13 +202,13 @@ export class ReportExportPdfService {
         isZh ? '需优先关注' : 'Needs Attention First',
       );
       for (const pattern of attentionPatterns) {
-        const palette = this.statusPalette(pattern.status);
+        const palette = statusPalette(pattern.status);
         this.drawInsightBlock(context, {
           title: pattern.title,
           body: pattern.body,
           accentColor: palette.accent,
           backgroundColor: palette.fill,
-          badgeText: this.statusLabel(pattern.status, isZh),
+          badgeText: statusLabel(pattern.status, isZh),
           badgeColor: palette.text,
         });
       }
@@ -208,13 +217,13 @@ export class ReportExportPdfService {
     if (otherPatterns.length > 0) {
       this.drawSubsectionTitle(context, isZh ? '其余模式' : 'Other Patterns');
       for (const pattern of otherPatterns) {
-        const palette = this.statusPalette(pattern.status);
+        const palette = statusPalette(pattern.status);
         this.drawInsightBlock(context, {
           title: pattern.title,
           body: pattern.body,
           accentColor: palette.accent,
           backgroundColor: palette.fill,
-          badgeText: this.statusLabel(pattern.status, isZh),
+          badgeText: statusLabel(pattern.status, isZh),
           badgeColor: palette.text,
         });
       }
@@ -233,10 +242,10 @@ export class ReportExportPdfService {
     report: ReportDashboardDataDto,
     isZh: boolean,
   ): void {
-    const kindLabel = this.kindLabel(kind, isZh);
+    const kindLabelText = kindLabel(kind, isZh);
     const subject = isZh
-      ? `${kindLabel}，统计范围 ${report.startDate} ~ ${report.endDate}`
-      : `${kindLabel}, range ${report.startDate} ~ ${report.endDate}`;
+      ? `${kindLabelText}，统计范围 ${report.startDate} ~ ${report.endDate}`
+      : `${kindLabelText}, range ${report.startDate} ~ ${report.endDate}`;
     const generatedAt = new Date(report.generatedAt);
 
     pdf.setTitle(title, { showInWindowTitleBar: true });
@@ -337,7 +346,7 @@ export class ReportExportPdfService {
     report: ReportDashboardDataDto,
     isZh: boolean,
   ): void {
-    const palette = this.statusPalette(report.score.status);
+    const palette = statusPalette(report.score.status);
     const summaryLines = this.wrapText(
       report.score.summary,
       context.cjkFont,
@@ -367,7 +376,7 @@ export class ReportExportPdfService {
 
     const scoreLabel = isZh ? '健康评分' : 'Health score';
     const scoreValue = `${String(report.score.value)} / ${String(report.score.maxValue)}`;
-    const statusText = this.statusLabel(report.score.status, isZh);
+    const statusText = statusLabel(report.score.status, isZh);
     const valueWidth = context.cjkFont.widthOfTextAtSize(scoreValue, 22);
     const valueX = PAGE_WIDTH - MARGIN_X - 16 - valueWidth;
 
@@ -413,7 +422,7 @@ export class ReportExportPdfService {
     metric: ReportDashboardDataDto['metrics'][number],
     isZh: boolean,
   ): void {
-    const palette = this.statusPalette(metric.status);
+    const palette = statusPalette(metric.status);
     const boxHeight = 56;
     this.ensureHeight(context, boxHeight);
 
@@ -428,8 +437,8 @@ export class ReportExportPdfService {
       borderWidth: 0.8,
     });
 
-    const label = this.metricLabel(metric.kind, isZh);
-    const statusText = this.statusLabel(metric.status, isZh);
+    const label = metricLabel(metric.kind, isZh);
+    const statusText = statusLabel(metric.status, isZh);
     const valueText = `${metric.value}${metric.unit}`;
     const deltaText = `${isZh ? '变化' : 'Delta'} ${metric.delta}`;
     const statusWidth = context.cjkFont.widthOfTextAtSize(statusText, 10);
@@ -632,87 +641,6 @@ export class ReportExportPdfService {
         font: context.cjkFont,
         color: rgb(0.45, 0.49, 0.55),
       });
-    }
-  }
-
-  private kindLabel(kind: ReportPdfKind, isZh: boolean): string {
-    switch (kind) {
-      case 'hospital':
-        return isZh ? '导出类型：医疗就诊报告' : 'Export type: Hospital report';
-      case 'monthly':
-        return isZh ? '导出类型：月度报告' : 'Export type: Monthly report';
-      case 'print':
-        return isZh ? '导出类型：打印报告' : 'Export type: Print report';
-    }
-  }
-
-  private statusPalette(
-    status: ReportDashboardDataDto['metrics'][number]['status'],
-  ): {
-    fill: PdfColor;
-    border: PdfColor;
-    accent: PdfColor;
-    text: PdfColor;
-  } {
-    switch (status) {
-      case 'good':
-        return {
-          fill: rgb(0.94, 0.98, 0.95),
-          border: rgb(0.78, 0.9, 0.81),
-          accent: rgb(0.19, 0.55, 0.33),
-          text: rgb(0.19, 0.55, 0.33),
-        };
-      case 'stable':
-        return {
-          fill: rgb(0.95, 0.97, 0.99),
-          border: rgb(0.82, 0.88, 0.94),
-          accent: rgb(0.26, 0.44, 0.67),
-          text: rgb(0.26, 0.44, 0.67),
-        };
-      case 'needs_attention':
-        return {
-          fill: rgb(1, 0.96, 0.94),
-          border: rgb(0.95, 0.84, 0.78),
-          accent: rgb(0.76, 0.33, 0.18),
-          text: rgb(0.76, 0.33, 0.18),
-        };
-      case 'insufficient_data':
-        return {
-          fill: rgb(0.97, 0.97, 0.97),
-          border: rgb(0.86, 0.86, 0.86),
-          accent: rgb(0.47, 0.47, 0.47),
-          text: rgb(0.47, 0.47, 0.47),
-        };
-    }
-  }
-
-  private metricLabel(
-    kind: ReportDashboardDataDto['metrics'][number]['kind'],
-    isZh: boolean,
-  ): string {
-    switch (kind) {
-      case 'medication':
-        return isZh ? '服药完成度' : 'Medication adherence';
-      case 'water':
-        return isZh ? '饮水' : 'Hydration';
-      case 'sleep':
-        return isZh ? '睡眠' : 'Sleep';
-    }
-  }
-
-  private statusLabel(
-    status: ReportDashboardDataDto['metrics'][number]['status'],
-    isZh: boolean,
-  ): string {
-    switch (status) {
-      case 'good':
-        return isZh ? '良好' : 'Good';
-      case 'stable':
-        return isZh ? '稳定' : 'Stable';
-      case 'needs_attention':
-        return isZh ? '需关注' : 'Needs attention';
-      case 'insufficient_data':
-        return isZh ? '数据不足' : 'Insufficient data';
     }
   }
 }

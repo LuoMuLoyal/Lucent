@@ -11,7 +11,11 @@ import { AssistantController } from './assistant.controller';
 import { AssistantPolicyService } from './assistant-policy.service';
 import { HistoricalAiSummaryService } from './historical-ai-summary.service';
 import { AssistantService } from './assistant.service';
-import { AssistantContextService, AssistantToolService } from './tools';
+import {
+  AssistantContextService,
+  AssistantToolReadService,
+  AssistantToolService,
+} from './tools';
 
 @Module({
   imports: [
@@ -30,6 +34,7 @@ import { AssistantContextService, AssistantToolService } from './tools';
     HistoricalAiSummaryService,
     AssistantContextService,
     AssistantToolService,
+    AssistantToolReadService,
     AssistantService,
   ],
   exports: [
