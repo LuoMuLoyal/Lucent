@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck — spec needs rewrite for delegated sub-service architecture
+// @ts-nocheck — spec assertions check internal implementation (cache/prisma) that now lives in sub-services
+// TODO: rewrite spec to verify public API behavior through sub-service mocks
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import {
@@ -206,7 +207,7 @@ describe('AuthService', () => {
         {
           provide: AuthRateLimitService,
           useValue: {
-            checkLoginRateLimit: jest.fn(),
+            checkLoginRateLimit: jest.fn().mockResolvedValue(undefined),
             recordLoginFailure: jest.fn(),
             clearLoginFailures: jest.fn(),
           },
@@ -214,14 +215,31 @@ describe('AuthService', () => {
         {
           provide: AuthTokenService,
           useValue: {
-            generateTokenPair: jest.fn(),
-            refresh: jest.fn(),
+            generateTokenPair: jest.fn().mockResolvedValue({
+              accessToken: 'mock-jwt-token',
+              refreshToken: 'mock-refresh-token',
+              accessTokenExpiresAt: new Date(Date.now() + 900000).toISOString(),
+              refreshTokenExpiresAt: new Date(
+                Date.now() + 604800000,
+              ).toISOString(),
+            }),
+            refresh: jest
+              .fn()
+              .mockRejectedValue(new Error('REFRESH_TOKEN_INVALID')),
             revoke: jest.fn(),
             revokeAll: jest.fn(),
             revokeById: jest.fn(),
             listSessions: jest.fn(),
-            hashRefreshToken: jest.fn(),
-            normalizeEmail: jest.fn(),
+            hashRefreshToken: jest
+              .fn()
+              .mockImplementation((token: string) =>
+                createHash('sha256').update(token).digest('hex'),
+              ),
+            normalizeEmail: jest
+              .fn()
+              .mockImplementation((email: string) =>
+                email.trim().toLowerCase(),
+              ),
           },
         },
         {
