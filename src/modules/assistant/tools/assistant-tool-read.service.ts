@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DailyRecordKind } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { DailyRecordsService } from '../../daily-records/daily-records.service';
 import { MedicineRemindersService } from '../../medicine-reminders/medicine-reminders.service';
 import { UserHealthContextService } from '../../user-health-context/user-health-context.service';
 import { UserSettingsService } from '../../user-settings/user-settings.service';
@@ -13,7 +11,6 @@ import type {
 import {
   DEFAULT_HISTORY_LIMIT,
   MAX_RANGE_DAYS,
-  type ToolRecordItem,
 } from './assistant-tool.constants';
 import {
   enumerateDates,
@@ -29,6 +26,11 @@ import {
   buildReadConfidence,
   buildReadEnvelope,
 } from './assistant-tool-presenters';
+import { AssistantToolRecordQueryService } from './assistant-tool-record-query.service';
+import {
+  describeReminderFrequency,
+  mapSleepQuality,
+} from './assistant-tool-read-helpers';
 
 @Injectable()
 export class AssistantToolReadService {
@@ -37,8 +39,8 @@ export class AssistantToolReadService {
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
     private readonly userHealthContextService: UserHealthContextService,
     private readonly medicineRemindersService: MedicineRemindersService,
-    private readonly dailyRecordsService: DailyRecordsService,
     private readonly userSettingsService: UserSettingsService,
+    private readonly recordQueryService: AssistantToolRecordQueryService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -49,9 +51,11 @@ export class AssistantToolReadService {
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
     const date = todayDateString();
-    const records = await this.listToolRecords(context.userId, date, {
-      includeSleep: this.canReadSleep(context),
-    });
+    const records = await this.recordQueryService.listToolRecords(
+      context.userId,
+      date,
+      { includeSleep: this.canReadSleep(context) },
+    );
     return buildReadEnvelope({
       toolName: 'get_today_records',
       query: { date, mode: 'today' },
@@ -78,7 +82,7 @@ export class AssistantToolReadService {
       defaultAmbiguity:
         'No explicit date detected, so the lookup defaulted to today.',
     });
-    const records = await this.listToolRecords(
+    const records = await this.recordQueryService.listToolRecords(
       context.userId,
       dateResolution.date,
       { includeSleep: this.canReadSleep(context) },
@@ -122,9 +126,11 @@ export class AssistantToolReadService {
     );
     const days = await Promise.all(
       dates.map(async (date) => {
-        const records = await this.listToolRecords(context.userId, date, {
-          includeSleep: this.canReadSleep(context),
-        });
+        const records = await this.recordQueryService.listToolRecords(
+          context.userId,
+          date,
+          { includeSleep: this.canReadSleep(context) },
+        );
         return { date, records, total: records.length };
       }),
     );
@@ -454,10 +460,11 @@ export class AssistantToolReadService {
     );
     const entries = await Promise.all(
       dates.map(async (date) => {
-        const records = await this.listToolRecords(context.userId, date, {
-          includeSleep: true,
-          sleepOnly: true,
-        });
+        const records = await this.recordQueryService.listToolRecords(
+          context.userId,
+          date,
+          { includeSleep: true, sleepOnly: true },
+        );
         const latest = records[0] ?? null;
         const payload = latest?.payload ?? null;
         const durationMinutes =
@@ -547,85 +554,7 @@ export class AssistantToolReadService {
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Shared helpers
-  // ---------------------------------------------------------------------------
-
-  async listToolRecords(
-    userId: string,
-    date: string,
-    options: { includeSleep: boolean; sleepOnly?: boolean },
-  ): Promise<ToolRecordItem[]> {
-    const result = await this.dailyRecordsService.list(
-      userId,
-      date,
-      undefined,
-      1,
-      100,
-    );
-    return result.items
-      .filter((item) => {
-        if (options.sleepOnly) return item.kind === DailyRecordKind.sleep;
-        if (!options.includeSleep && item.kind === DailyRecordKind.sleep)
-          return false;
-        return true;
-      })
-      .map((item) => ({
-        id: item.id,
-        kind: item.kind,
-        occurredAt: item.occurredAt,
-        title: item.title ?? null,
-        value: item.value ?? null,
-        unit: item.unit ?? null,
-        note: item.note ?? null,
-        tags: [],
-        payload: item.payload ?? null,
-        createdAt: item.createdAt,
-        updatedAt: item.updatedAt,
-      }));
-  }
-
   canReadSleep(context: AssistantToolExecutionContext): boolean {
     return context.enabledContextSources.includes('sleep_records');
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Private utility functions (not injected)
-// ---------------------------------------------------------------------------
-
-function describeReminderFrequency(
-  reminders: Array<{
-    daysOfWeek?: unknown;
-    scheduledHour: number;
-    scheduledMinute: number;
-  }>,
-): string | null {
-  if (reminders.length === 0) return null;
-  const first = reminders[0];
-  if (first == null) return null;
-  const daily =
-    Array.isArray(first.daysOfWeek) && first.daysOfWeek.length > 0
-      ? `${String(first.daysOfWeek.length)} days/week`
-      : 'daily';
-  const times = reminders
-    .map(
-      (item) =>
-        `${item.scheduledHour.toString().padStart(2, '0')}:${item.scheduledMinute.toString().padStart(2, '0')}`,
-    )
-    .join(', ');
-  return `${daily} @ ${times}`;
-}
-
-function mapSleepQuality(value: string | null): number | null {
-  switch (value) {
-    case 'poor':
-      return 1;
-    case 'fair':
-      return 2;
-    case 'good':
-      return 3;
-    default:
-      return null;
   }
 }

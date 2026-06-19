@@ -8,6 +8,7 @@ import { AuthController } from './auth.controller';
 import { AuthRateLimitService } from './auth-rate-limit.service';
 import { AuthTokenService } from './auth-token.service';
 import { AuthOAuthStateService } from './auth-oauth-state.service';
+import { AuthOAuthService } from './auth-oauth.service';
 import { VerificationCodeService } from './verification-code.service';
 import { WechatMobileOAuthProvider } from './wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
@@ -25,6 +26,7 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
     AuthRateLimitService,
     AuthTokenService,
     AuthOAuthStateService,
+    AuthOAuthService,
     JwtAccessStrategy,
     VerificationCodeService,
     WechatMobileOAuthProvider,

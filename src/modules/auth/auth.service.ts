@@ -1,21 +1,13 @@
 import {
-  BadRequestException,
   ConflictException,
-  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
-import { createHash, randomBytes } from 'node:crypto';
 
 import { ARGON2_OPTIONS } from './argon2-options';
-import { ConfigKey } from '../../config/config-keys.enum';
 import { PrismaService } from '../../prisma/prisma.service';
 import { User, UserStatus } from '../../generated/prisma/client';
 import { UserService } from '../user/user.service';
@@ -37,74 +29,35 @@ import {
 } from './dto/oauth.dto';
 import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
 import { WechatMobileOAuthProvider } from './wechat-mobile-oauth.provider';
+import { type OAuthAuthorizeResult, type OAuthProfile } from './oauth.types';
 import {
-  OAUTH_PROVIDER_WECHAT_WEB,
-  type OAuthProvider,
-  type OAuthAuthorizeResult,
-  type OAuthProfile,
-} from './oauth.types';
+  AuthOAuthStateService,
+  type OAuthStateEntry,
+} from './auth-oauth-state.service';
+import {
+  AuthTokenService,
+  type AuthRequestContext,
+  type TokenPair,
+} from './auth-token.service';
+import { AuthRateLimitService } from './auth-rate-limit.service';
+import { AuthOAuthService } from './auth-oauth.service';
 
-// Login rate limiting
-const LOGIN_RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-const LOGIN_RATE_LIMIT_MAX = 10;
-const LOGIN_RATE_LIMIT_LOCKOUT = 60 * 60 * 1000; // 1 hour
-
-export interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
-  accessTokenExpiresAt: string;
-  refreshTokenExpiresAt: string;
-}
-
-export interface UserPayload {
-  sub: string;
-  email: string | null;
-}
-
-export interface AuthRequestContext {
-  ipAddress?: string;
-  userAgent?: string;
-}
-
-interface JwtConfigShape {
-  accessSecret: string;
-  refreshSecret: string;
-  accessTtl: number; // seconds
-  refreshTtl: number; // seconds
-}
-
-interface LoginFailureBucket {
-  count: number;
-  resetAt: number;
-  lockedUntil?: number;
-}
-
-interface OAuthStateEntry {
-  provider: typeof OAUTH_PROVIDER_WECHAT_WEB;
-  purpose: 'login' | 'link';
-  callbackUri?: string;
-}
-
-const OAUTH_STATE_TTL = 10 * 60 * 1000;
-const OAUTH_STATE_TTL_SEC = OAUTH_STATE_TTL / 1000;
+export type { AuthRequestContext, UserPayload } from './auth-token.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly wechatWebOAuthProvider: WechatWebOAuthProvider,
     private readonly wechatMobileOAuthProvider: WechatMobileOAuthProvider,
     private readonly i18n: I18nService,
+    private readonly authRateLimitService: AuthRateLimitService,
+    private readonly authTokenService: AuthTokenService,
+    private readonly authOAuthStateService: AuthOAuthStateService,
+    private readonly authOAuthService: AuthOAuthService,
   ) {}
-
-  private get jwtConfig(): JwtConfigShape {
-    return this.configService.getOrThrow<JwtConfigShape>(ConfigKey.Jwt);
-  }
 
   // ── Registration ─────────────────────────────────────────────
 
@@ -134,7 +87,7 @@ export class AuthService {
       profile: { create: {} },
     });
 
-    const tokens = await this.generateTokenPair(user, context);
+    const tokens = await this.authTokenService.generateTokenPair(user, context);
     return { user, ...tokens };
   }
 
@@ -145,12 +98,12 @@ export class AuthService {
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
     const email = this.normalizeEmail(dto.email);
-    await this.checkLoginRateLimit(email);
+    await this.authRateLimitService.checkLoginRateLimit(email);
 
     const user = await this.userService.findByEmail(email);
 
     if (!user) {
-      await this.recordLoginFailure(email);
+      await this.authRateLimitService.recordLoginFailure(email);
       throw new UnauthorizedException({
         code: ResultCode.UNAUTHORIZED,
         message: this.i18n.t('auth.email_or_password_wrong'),
@@ -162,7 +115,7 @@ export class AuthService {
     const hasPassword = password !== undefined;
     const hasCode = code !== undefined;
     if (hasPassword === hasCode) {
-      await this.recordLoginFailure(email);
+      await this.authRateLimitService.recordLoginFailure(email);
       throw new UnauthorizedException({
         code: ResultCode.UNAUTHORIZED,
         message: this.i18n.t('auth.email_or_password_wrong'),
@@ -172,7 +125,7 @@ export class AuthService {
     // Password-based login
     if (hasPassword) {
       if (!user.passwordHash) {
-        await this.recordLoginFailure(email);
+        await this.authRateLimitService.recordLoginFailure(email);
         throw new UnauthorizedException({
           code: ResultCode.UNAUTHORIZED,
           message: this.i18n.t('auth.email_or_password_wrong'),
@@ -181,7 +134,7 @@ export class AuthService {
 
       const valid = await argon2.verify(user.passwordHash, password);
       if (!valid) {
-        await this.recordLoginFailure(email);
+        await this.authRateLimitService.recordLoginFailure(email);
         throw new UnauthorizedException({
           code: ResultCode.UNAUTHORIZED,
           message: this.i18n.t('auth.email_or_password_wrong'),
@@ -196,7 +149,7 @@ export class AuthService {
     // TODO(auth-security): add optional 2FA challenge verification before issuing tokens.
     // blocked: requires product decision on 2FA method (TOTP/SMS/email) and UX for setup/recovery flows.
 
-    await this.clearLoginFailures(email);
+    await this.authRateLimitService.clearLoginFailures(email);
 
     const now = new Date();
     const updatedUser = await this.userService.update(user.id, {
@@ -204,7 +157,10 @@ export class AuthService {
       status: UserStatus.active,
     });
 
-    const tokens = await this.generateTokenPair(updatedUser, context);
+    const tokens = await this.authTokenService.generateTokenPair(
+      updatedUser,
+      context,
+    );
     return { user: updatedUser, ...tokens };
   }
 
@@ -214,43 +170,24 @@ export class AuthService {
     refreshToken: string,
     context?: AuthRequestContext,
   ): Promise<TokenPair> {
-    const refreshTokenHash = this.hashRefreshToken(refreshToken);
-    const record = await this.prisma.userSession.findUnique({
-      where: { refreshTokenHash },
-      include: { user: true },
-    });
-
-    if (!record || record.expiresAt < new Date() || record.revokedAt !== null) {
+    try {
+      return await this.authTokenService.refresh(refreshToken, context);
+    } catch {
       throw new UnauthorizedException({
         code: ResultCode.REFRESH_TOKEN_INVALID,
         message: this.i18n.t('auth.refresh_token_invalid'),
       });
     }
-
-    // Delete the old refresh token (rotation)
-    await this.prisma.userSession.delete({
-      where: { id: record.id },
-    });
-
-    return this.generateTokenPair(record.user, context);
   }
 
   // ── Logout ───────────────────────────────────────────────────
 
   async logout(userId: string, refreshToken: string): Promise<void> {
-    // Refresh tokens are stored as SHA-256 hashes so DB reads cannot replay them.
-    await this.prisma.userSession.deleteMany({
-      where: {
-        userId,
-        refreshTokenHash: this.hashRefreshToken(refreshToken),
-      },
-    });
+    await this.authTokenService.revoke(userId, refreshToken);
   }
 
   async logoutAll(userId: string): Promise<void> {
-    await this.prisma.userSession.deleteMany({
-      where: { userId },
-    });
+    await this.authTokenService.revokeAll(userId);
   }
   // TODO(auth-session): expose device/session management so users can review and revoke individual sessions.
   // blocked: requires session-list API + UI, device fingerprinting strategy, and revoke-by-id endpoint.
@@ -420,54 +357,38 @@ export class AuthService {
     purpose: OAuthStateEntry['purpose'],
     dto?: OAuthAuthorizeDto,
   ): Promise<OAuthAuthorizeResult> {
-    const state = randomBytes(24).toString('base64url');
-    const callbackUri = this.normalizeOAuthCallbackUri(
-      dto?.callbackUri,
+    const { state, ttlSec } = await this.authOAuthStateService.createState(
       purpose,
+      dto?.callbackUri,
     );
-    await this.cache.set(
-      this.oauthStateKey(OAUTH_PROVIDER_WECHAT_WEB, state),
-      {
-        provider: OAUTH_PROVIDER_WECHAT_WEB,
-        purpose,
-        ...(callbackUri !== undefined && { callbackUri }),
-      },
-      OAUTH_STATE_TTL,
-    );
+    const entry = await this.authOAuthStateService.peek(state);
 
     return {
       authorizeUrl: this.wechatWebOAuthProvider.buildAuthorizeUrl(state),
       state,
-      expiresIn: OAUTH_STATE_TTL_SEC,
-      ...(callbackUri !== undefined && { callbackUri }),
+      expiresIn: ttlSec,
+      ...(entry.callbackUri !== undefined && {
+        callbackUri: entry.callbackUri,
+      }),
     };
   }
 
   async resolveWechatWebCallbackRedirect(
     dto: OAuthCallbackDto,
   ): Promise<string> {
-    const entry = await this.peekOAuthState(
-      OAUTH_PROVIDER_WECHAT_WEB,
+    const entry = await this.authOAuthStateService.peek(dto.state);
+    return this.authOAuthStateService.buildRedirectUrl(
+      entry,
+      dto.code,
       dto.state,
     );
-    if (entry.callbackUri === undefined) {
-      throw new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
-        message: this.i18n.t('auth.oauth_callback_uri_missing'),
-      });
-    }
-
-    const redirectUrl = new URL(entry.callbackUri);
-    redirectUrl.searchParams.set('code', dto.code);
-    redirectUrl.searchParams.set('state', dto.state);
-    return redirectUrl.toString();
   }
 
   async loginWithWechatWeb(
     dto: OAuthCallbackDto,
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
-    await this.consumeOAuthState(OAUTH_PROVIDER_WECHAT_WEB, dto.state, 'login');
+    await this.authOAuthStateService.consume(dto.state, 'login');
     const profile = await this.wechatWebOAuthProvider.fetchProfile(dto.code);
     return this.loginWithOAuthProfile(profile, context);
   }
@@ -485,9 +406,9 @@ export class AuthService {
     dto: OAuthCallbackDto,
   ): Promise<void> {
     await this.getActiveUser(userId);
-    await this.consumeOAuthState(OAUTH_PROVIDER_WECHAT_WEB, dto.state, 'link');
+    await this.authOAuthStateService.consume(dto.state, 'link');
     const profile = await this.wechatWebOAuthProvider.fetchProfile(dto.code);
-    await this.linkOAuthProfileToUser(userId, profile);
+    await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
   }
 
   async linkWechatMobileIdentity(
@@ -496,422 +417,28 @@ export class AuthService {
   ): Promise<void> {
     await this.getActiveUser(userId);
     const profile = await this.wechatMobileOAuthProvider.fetchProfile(dto.code);
-    await this.linkOAuthProfileToUser(userId, profile);
-  }
-
-  // ── Private Helpers ──────────────────────────────────────────
-
-  private async generateTokenPair(
-    user: User,
-    context?: AuthRequestContext,
-  ): Promise<TokenPair> {
-    const config = this.jwtConfig;
-
-    const payload: UserPayload = { sub: user.id, email: user.email };
-
-    const accessTokenId = randomBytes(16).toString('hex');
-    const refreshToken = randomBytes(32).toString('hex');
-    const refreshTokenHash = this.hashRefreshToken(refreshToken);
-
-    const now = Date.now();
-    const accessTokenExpiresInMs = config.accessTtl * 1000;
-    const refreshTokenExpiresInMs = config.refreshTtl * 1000;
-
-    const accessToken = await this.jwtService.signAsync(payload, {
-      secret: config.accessSecret,
-      expiresIn: config.accessTtl,
-      algorithm: 'HS512',
-      jwtid: accessTokenId,
-    });
-
-    // Persist only the hash of the refresh token; the plaintext token is returned once.
-    await this.prisma.userSession.create({
-      data: {
-        refreshTokenHash,
-        expiresAt: new Date(now + refreshTokenExpiresInMs),
-        lastUsedAt: new Date(now),
-        ...this.getSessionContextData(context),
-        user: { connect: { id: user.id } },
-      },
-    });
-
-    return {
-      accessToken,
-      refreshToken,
-      accessTokenExpiresAt: new Date(
-        now + accessTokenExpiresInMs,
-      ).toISOString(),
-      refreshTokenExpiresAt: new Date(
-        now + refreshTokenExpiresInMs,
-      ).toISOString(),
-    };
+    await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
   }
 
   private normalizeEmail(email: string): string {
     return email.trim().toLowerCase();
   }
 
-  private hashRefreshToken(token: string): string {
-    return createHash('sha256').update(token).digest('hex');
-  }
-
   private async loginWithOAuthProfile(
     profile: OAuthProfile,
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
-    const user = await this.findOrCreateOAuthUser(profile);
-
-    const now = new Date();
-    const updatedUser = await this.userService.update(user.id, {
-      lastLoginAt: now,
-      status: UserStatus.active,
-      ...(profile.nickname !== undefined && { nickname: profile.nickname }),
-      ...(profile.avatar !== undefined && { avatar: profile.avatar }),
-    });
-
-    const tokens = await this.generateTokenPair(updatedUser, context);
+    const user = await this.authOAuthService.findOrCreateOAuthUser(profile);
+    const updatedUser = await this.authOAuthService.updateOAuthLoginUser(
+      user,
+      profile,
+    );
+    const tokens = await this.authTokenService.generateTokenPair(
+      updatedUser,
+      context,
+    );
     // TODO(auth-audit): emit security notifications for new OAuth logins and newly linked identities.
     // blocked: requires email/notification delivery infrastructure and user-facing notification preference model.
     return { user: updatedUser, ...tokens };
-  }
-
-  private async findOrCreateOAuthUser(profile: OAuthProfile): Promise<User> {
-    const linkedUser = await this.userService.findByIdentity(
-      profile.provider,
-      profile.providerUserId,
-    );
-    if (linkedUser) {
-      return linkedUser;
-    }
-
-    if (profile.unionId) {
-      const existingUnionUser = await this.userService.findByProviderUnionId(
-        profile.unionId,
-      );
-      if (existingUnionUser) {
-        await this.linkOAuthIdentity(existingUnionUser.id, profile);
-        return existingUnionUser;
-      }
-    }
-
-    if (profile.email) {
-      const existingUser = await this.userService.findByEmail(
-        this.normalizeEmail(profile.email),
-      );
-      if (existingUser) {
-        await this.linkOAuthIdentity(existingUser.id, profile);
-        return existingUser;
-      }
-    }
-
-    return this.userService.createOAuthUser({
-      ...(profile.email !== undefined && {
-        email:
-          profile.email === null ? null : this.normalizeEmail(profile.email),
-      }),
-      ...(profile.nickname !== undefined && { nickname: profile.nickname }),
-      ...(profile.avatar !== undefined && { avatar: profile.avatar }),
-      ...(profile.emailVerifiedAt !== undefined && {
-        emailVerifiedAt: profile.emailVerifiedAt,
-      }),
-      identity: {
-        provider: profile.provider,
-        providerUserId: profile.providerUserId,
-        ...(profile.unionId !== undefined && {
-          providerUnionId: profile.unionId,
-        }),
-        ...(profile.email !== undefined && {
-          email:
-            profile.email === null ? null : this.normalizeEmail(profile.email),
-        }),
-        ...(profile.emailVerifiedAt !== undefined && {
-          emailVerifiedAt: profile.emailVerifiedAt,
-        }),
-        ...(profile.rawProfile !== undefined && {
-          rawProfile: profile.rawProfile,
-        }),
-      },
-    });
-  }
-
-  private async linkOAuthIdentity(
-    userId: string,
-    profile: OAuthProfile,
-  ): Promise<void> {
-    await this.userService.linkIdentity(userId, {
-      provider: profile.provider,
-      providerUserId: profile.providerUserId,
-      ...(profile.unionId !== undefined && {
-        providerUnionId: profile.unionId,
-      }),
-      ...(profile.email !== undefined && {
-        email:
-          profile.email === null ? null : this.normalizeEmail(profile.email),
-      }),
-      ...(profile.emailVerifiedAt !== undefined && {
-        emailVerifiedAt: profile.emailVerifiedAt,
-      }),
-      ...(profile.rawProfile !== undefined && {
-        rawProfile: profile.rawProfile,
-      }),
-    });
-  }
-
-  private async linkOAuthProfileToUser(
-    userId: string,
-    profile: OAuthProfile,
-  ): Promise<void> {
-    const linkedUser = await this.userService.findByIdentity(
-      profile.provider,
-      profile.providerUserId,
-    );
-    if (linkedUser) {
-      if (linkedUser.id !== userId) {
-        throw new ConflictException({
-          code: ResultCode.CONFLICT,
-          message: this.i18n.t('auth.oauth_identity_in_use'),
-        });
-      }
-      return;
-    }
-
-    if (profile.unionId) {
-      const unionUser = await this.userService.findByProviderUnionId(
-        profile.unionId,
-      );
-      if (unionUser && unionUser.id !== userId) {
-        throw new ConflictException({
-          code: ResultCode.CONFLICT,
-          message: this.i18n.t('auth.oauth_identity_in_use'),
-        });
-      }
-    }
-
-    await this.linkOAuthIdentity(userId, profile);
-  }
-
-  private async consumeOAuthState(
-    provider: typeof OAUTH_PROVIDER_WECHAT_WEB,
-    state: string,
-    purpose: OAuthStateEntry['purpose'],
-  ): Promise<OAuthStateEntry> {
-    const key = this.oauthStateKey(provider, state);
-    const entry = await this.cache.get<OAuthStateEntry>(key);
-    await this.cache.del(key);
-
-    if (!this.isValidOAuthStateEntry(entry, provider, purpose)) {
-      throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
-        message: this.i18n.t('auth.oauth_state_invalid'),
-      });
-    }
-
-    return entry;
-  }
-
-  private async peekOAuthState(
-    provider: typeof OAUTH_PROVIDER_WECHAT_WEB,
-    state: string,
-  ): Promise<OAuthStateEntry> {
-    const entry = await this.cache.get<OAuthStateEntry>(
-      this.oauthStateKey(provider, state),
-    );
-
-    if (!this.isValidOAuthStateEntry(entry, provider)) {
-      throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
-        message: this.i18n.t('auth.oauth_state_invalid'),
-      });
-    }
-
-    return entry;
-  }
-
-  private oauthStateKey(provider: OAuthProvider, state: string): string {
-    const digest = createHash('sha256').update(state).digest('hex');
-    return `auth:oauth-state:${provider}:${digest}`;
-  }
-
-  private isValidOAuthStateEntry(
-    entry: unknown,
-    provider: typeof OAUTH_PROVIDER_WECHAT_WEB,
-    purpose?: OAuthStateEntry['purpose'],
-  ): entry is OAuthStateEntry {
-    if (typeof entry !== 'object' || entry === null) {
-      return false;
-    }
-
-    const candidate = entry as Partial<OAuthStateEntry>;
-    return (
-      candidate.provider === provider &&
-      (candidate.purpose === 'login' || candidate.purpose === 'link') &&
-      (purpose === undefined || candidate.purpose === purpose) &&
-      (candidate.callbackUri === undefined ||
-        typeof candidate.callbackUri === 'string')
-    );
-  }
-
-  private normalizeOAuthCallbackUri(
-    callbackUri: string | undefined,
-    purpose: OAuthStateEntry['purpose'],
-  ): string | undefined {
-    const trimmed = callbackUri?.trim();
-    if (!trimmed) {
-      return undefined;
-    }
-
-    let parsed: URL;
-    try {
-      parsed = new URL(trimmed);
-    } catch {
-      throw this.invalidOAuthCallbackUri();
-    }
-
-    const hostname = parsed.hostname.toLowerCase();
-    const isLoopbackHost =
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '[::1]' ||
-      hostname === '::1';
-
-    if (parsed.username.length > 0 || parsed.password.length > 0) {
-      throw this.invalidOAuthCallbackUri();
-    }
-
-    if (isLoopbackHost) {
-      if (
-        parsed.protocol !== 'http:' ||
-        parsed.port.length === 0 ||
-        parsed.hash.length > 0
-      ) {
-        throw this.invalidOAuthCallbackUri();
-      }
-
-      parsed.search = '';
-      return parsed.toString();
-    }
-
-    if (
-      parsed.protocol !== 'https:' ||
-      parsed.pathname !== this.getWebOAuthCallbackPath(purpose) ||
-      parsed.hash.length > 0 ||
-      !this.isTrustedWebOAuthCallbackOrigin(parsed.origin)
-    ) {
-      throw this.invalidOAuthCallbackUri();
-    }
-
-    parsed.search = '';
-    return parsed.toString();
-  }
-
-  private getWebOAuthCallbackPath(purpose: OAuthStateEntry['purpose']): string {
-    return purpose === 'login'
-      ? '/login/oauth/wechat'
-      : '/account/oauth/wechat';
-  }
-
-  private isTrustedWebOAuthCallbackOrigin(origin: string): boolean {
-    const corsOrigin = this.configService.get<boolean | string[]>(
-      `${ConfigKey.App}.corsOrigin`,
-      false,
-    );
-
-    return Array.isArray(corsOrigin) && corsOrigin.includes(origin);
-  }
-
-  private invalidOAuthCallbackUri(): BadRequestException {
-    return new BadRequestException({
-      code: ResultCode.BAD_REQUEST,
-      message: this.i18n.t('auth.oauth_callback_uri_invalid'),
-    });
-  }
-
-  private getSessionContextData(context: AuthRequestContext | undefined): {
-    ipAddress?: string;
-    userAgent?: string;
-  } {
-    return {
-      ...(context?.ipAddress !== undefined && { ipAddress: context.ipAddress }),
-      ...(context?.userAgent !== undefined && { userAgent: context.userAgent }),
-    };
-  }
-
-  // ── Login Rate Limiting ─────────────────────────────────────
-
-  private async checkLoginRateLimit(email: string): Promise<void> {
-    const key = this.loginFailureKey(email);
-    const entry = await this.cache.get<LoginFailureBucket>(key);
-    if (!entry) return;
-
-    if (entry.lockedUntil && entry.lockedUntil > Date.now()) {
-      const minutes = Math.ceil((entry.lockedUntil - Date.now()) / 60_000);
-      throw new UnauthorizedException({
-        code: ResultCode.LOGIN_RATE_LIMITED,
-        message: this.i18n.t('auth.login_rate_limited', {
-          args: { minutes },
-        }),
-      });
-    }
-
-    if (!this.isValidLoginFailureBucket(entry) || entry.resetAt <= Date.now()) {
-      await this.cache.del(key);
-    }
-  }
-
-  private async recordLoginFailure(email: string): Promise<void> {
-    const key = this.loginFailureKey(email);
-    const now = Date.now();
-    const entry = await this.cache.get<LoginFailureBucket>(key);
-
-    if (
-      !this.isValidLoginFailureBucket(entry) ||
-      entry.resetAt <= now ||
-      entry.lockedUntil !== undefined
-    ) {
-      await this.cache.set(
-        key,
-        { count: 1, resetAt: now + LOGIN_RATE_LIMIT_WINDOW },
-        LOGIN_RATE_LIMIT_WINDOW,
-      );
-      return;
-    }
-
-    const next: LoginFailureBucket = {
-      count: entry.count + 1,
-      resetAt: entry.resetAt,
-      ...(entry.count + 1 >= LOGIN_RATE_LIMIT_MAX && {
-        lockedUntil: now + LOGIN_RATE_LIMIT_LOCKOUT,
-      }),
-    };
-    const ttl = Math.max(
-      next.resetAt - now,
-      (next.lockedUntil ?? next.resetAt) - now,
-    );
-    await this.cache.set(key, next, ttl);
-  }
-
-  private async clearLoginFailures(email: string): Promise<void> {
-    await this.cache.del(this.loginFailureKey(email));
-  }
-
-  private loginFailureKey(email: string): string {
-    const digest = createHash('sha256').update(email).digest('hex');
-    return `auth:login-failure:${digest}`;
-  }
-
-  private isValidLoginFailureBucket(
-    bucket: unknown,
-  ): bucket is LoginFailureBucket {
-    if (typeof bucket !== 'object' || bucket === null) {
-      return false;
-    }
-
-    const candidate = bucket as Partial<LoginFailureBucket>;
-    return (
-      typeof candidate.count === 'number' &&
-      typeof candidate.resetAt === 'number' &&
-      (candidate.lockedUntil === undefined ||
-        typeof candidate.lockedUntil === 'number')
-    );
   }
 }

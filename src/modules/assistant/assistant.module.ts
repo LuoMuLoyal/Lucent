@@ -13,7 +13,9 @@ import { HistoricalAiSummaryService } from './historical-ai-summary.service';
 import { AssistantService } from './assistant.service';
 import {
   AssistantContextService,
+  AssistantToolProposalService,
   AssistantToolReadService,
+  AssistantToolRecordQueryService,
   AssistantToolService,
 } from './tools';
 
@@ -33,6 +35,8 @@ import {
     AssistantPolicyService,
     HistoricalAiSummaryService,
     AssistantContextService,
+    AssistantToolRecordQueryService,
+    AssistantToolProposalService,
     AssistantToolService,
     AssistantToolReadService,
     AssistantService,
