@@ -8,15 +8,11 @@ Keep durable implementation context in the owning code comments when the TODO is
 ## AI / LLM Runtime
 
 - ~~Audit Lucent for remaining user-visible AI hardcoded copy outside the Today analysis i18n path.~~ Done 2026-06-12: `reports-presenter.service.ts` was the only gap; findings/patterns/score-summary now go through `reports-dashboard.*` i18n keys, and `getDashboard` passes `@I18nLang()` locale through the service chain.
-- Re-evaluate whether the existing shared locale-aware prompt/copy helper remains enough once screenshot-analysis or multi-step AI flows arrive.
-- Keep AI feature boundaries explicit:
-  - business use-case service owns auth/settings gate, data aggregation, policy fallback, and response shaping
-  - copy service owns locale normalization plus localized prompt/fallback copy
-  - generator service owns one feature-specific LLM invocation shape
-  - `llm-runtime` owns provider/model construction only
-- Decide the execution boundary for future AI workflows:
-  - keep bounded linear pipelines for single-purpose flows
-  - introduce a tool-capable orchestrator only when branching, retrieval, or multi-step tool use becomes real
+- ✅ AI boundary confirmed (2026-07-01): see `plans/2026-07-01-ai-boundary-confirmation.md`
+  - Monthly report → bounded linear (same as Today/Report weekly)
+  - Agent (LangGraph) restricted to Assistant; do not retro-fit bounded flows
+  - Shared `StructuredAnalysisGenerator<T>` extraction deferred until monthly report proves the pattern
+  - Four-layer boundary confirmed: business-use-case → copy → generator → llm-runtime
 - Assistant phase 1 now uses a restricted LangGraph foundation:
   - keep tool availability enforced server-side
   - keep latest-conversation persistence intentionally narrow before expanding to multi-conversation management
