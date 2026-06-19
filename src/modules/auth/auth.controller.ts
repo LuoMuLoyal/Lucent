@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
   Res,
@@ -24,6 +26,7 @@ import { successEnvelope } from '../../common/api-envelope';
 import { getRequestClientIp } from '../../common/request/client-ip';
 import { VERIFICATION_CODE_COOLDOWN_SEC } from './verification-code.service';
 import { AuthService } from './auth.service';
+import { AuthTokenService } from './auth-token.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthRequestContext, UserPayload } from './auth.service';
@@ -56,7 +59,10 @@ import {
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly authTokenService: AuthTokenService,
+  ) {}
 
   // ── 1. POST /api/v1/auth/register ──────────────────────────────
 
@@ -220,6 +226,33 @@ export class AuthController {
   @ApiResponse({ status: 200, type: SuccessResponseDto })
   async logout(@CurrentUser() user: UserPayload, @Body() dto: LogoutDto) {
     await this.authService.logout(user.sub, dto.refreshToken);
+    return successEnvelope(null);
+  }
+
+  // ── 3b. GET /api/v1/auth/sessions ──────────────────────────────
+
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '列出当前用户的活跃会话' })
+  async listSessions(@CurrentUser() user: UserPayload) {
+    const sessions = await this.authTokenService.listSessions(user.sub);
+    return successEnvelope(sessions);
+  }
+
+  // ── 3c. DELETE /api/v1/auth/sessions/:sessionId ────────────────
+
+  @Delete('sessions/:sessionId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '撤销指定会话' })
+  async revokeSession(
+    @CurrentUser() user: UserPayload,
+    @Param('sessionId') sessionId: string,
+  ) {
+    await this.authTokenService.revokeById(user.sub, sessionId);
     return successEnvelope(null);
   }
 

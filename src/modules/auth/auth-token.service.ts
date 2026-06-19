@@ -114,6 +114,48 @@ export class AuthTokenService {
     await this.prisma.userSession.deleteMany({ where: { userId } });
   }
 
+  async revokeById(userId: string, sessionId: string): Promise<void> {
+    const record = await this.prisma.userSession.findUnique({
+      where: { id: sessionId },
+    });
+    if (!record || record.userId !== userId) {
+      throw new Error('SESSION_NOT_FOUND');
+    }
+    await this.prisma.userSession.update({
+      where: { id: sessionId },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  async listSessions(userId: string): Promise<
+    Array<{
+      id: string;
+      deviceType: string | null;
+      deviceName: string | null;
+      platform: string | null;
+      lastUsedAt: string | null;
+      createdAt: string;
+      expiresAt: string;
+      isCurrent: boolean;
+    }>
+  > {
+    const now = new Date();
+    const records = await this.prisma.userSession.findMany({
+      where: { userId, revokedAt: null, expiresAt: { gt: now } },
+      orderBy: { lastUsedAt: 'desc' },
+    });
+    return records.map((record) => ({
+      id: record.id,
+      deviceType: record.deviceType,
+      deviceName: record.deviceName,
+      platform: record.platform,
+      lastUsedAt: record.lastUsedAt?.toISOString() ?? null,
+      createdAt: record.createdAt.toISOString(),
+      expiresAt: record.expiresAt.toISOString(),
+      isCurrent: false,
+    }));
+  }
+
   hashRefreshToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
