@@ -145,10 +145,10 @@ describe('AssistantToolService', () => {
     if (firstResult == null) {
       throw new Error('expected first tool result');
     }
+    const source = firstResult.data['source'] as Record<string, unknown> | null;
     expect(
-      typeof firstResult.data['source'] === 'object' &&
-        firstResult.data['source'] != null
-        ? firstResult.data['source']['generatedAt']
+      source != null && typeof source['generatedAt'] === 'string'
+        ? source['generatedAt']
         : null,
     ).toEqual(expect.any(String));
   });

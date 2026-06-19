@@ -23,79 +23,23 @@ import type {
   AssistantUpdateUserSettingsProposalPayload,
 } from '../assistant.types';
 import type { AssistantToolName } from './assistant-tool.types';
-
-const DEFAULT_RANGE_DAYS = 7;
-const MAX_RANGE_DAYS = 14;
-const DEFAULT_HISTORY_LIMIT = 10;
-const DEFAULT_PROPOSAL_DATE_OFFSET_DAYS = 0;
-const PROPOSAL_TTL_MINUTES = 15;
-
-type ToolDateRange = {
-  startDate: string;
-  endDate: string;
-};
-
-type ToolRecordItem = {
-  id: string;
-  kind: string;
-  occurredAt: string;
-  title: string | null;
-  value: string | null;
-  unit: string | null;
-  note: string | null;
-  tags: string[];
-  payload: Record<string, unknown> | null;
-  createdAt: string | null;
-  updatedAt: string | null;
-};
-
-type ToolSingleDateResolution = {
-  date: string;
-  matchedBy: string[];
-  ambiguities: string[];
-};
-
-type ToolRangeResolution = ToolDateRange & {
-  matchedBy: string[];
-  ambiguities: string[];
-  truncated: boolean;
-  requestedDays: number | null;
-};
-
-const REQUEST_RANGE_CAP_MESSAGE = (
-  requestedDays: number,
-  maxRangeDays: number,
-) =>
-  `Requested ${String(requestedDays)} days, but range reads are capped at ${String(maxRangeDays)} days.`;
-
-const DEFAULT_RANGE_FALLBACK_MESSAGE = (defaultRangeDays: number) =>
-  `No explicit range detected, so the lookup defaulted to the last ${String(defaultRangeDays)} days.`;
-
-const RANGE_TRUNCATED_MESSAGE = (maxRangeDays: number) =>
-  `Requested range exceeded ${String(maxRangeDays)} days and was truncated.`;
-
-type ToolMutationHints = {
-  kindHint: string | null;
-  numericHint: string | null;
-  titleHint: string | null;
-  noteHint: string | null;
-};
-
-type ToolMutationRankedRecord = {
-  record: ToolRecordItem;
-  score: number;
-  matchedBy: string[];
-};
-
-type ToolMutationTargetMatch = {
-  date: string;
-  record: ToolRecordItem | null;
-  matchedBy: string[];
-  ambiguities: string[];
-  reason: string;
-  confidence: AssistantReadConfidence;
-  candidateCount: number;
-};
+import {
+  DEFAULT_RANGE_DAYS,
+  DEFAULT_HISTORY_LIMIT,
+  DEFAULT_PROPOSAL_DATE_OFFSET_DAYS,
+  MAX_RANGE_DAYS,
+  PROPOSAL_TTL_MINUTES,
+  RANGE_TRUNCATED_MESSAGE,
+  REQUEST_RANGE_CAP_MESSAGE,
+  DEFAULT_RANGE_FALLBACK_MESSAGE,
+  type ToolDateRange,
+  type ToolMutationHints,
+  type ToolMutationRankedRecord,
+  type ToolMutationTargetMatch,
+  type ToolRangeResolution,
+  type ToolRecordItem,
+  type ToolSingleDateResolution,
+} from './assistant-tool.constants';
 
 @Injectable()
 export class AssistantToolService {
