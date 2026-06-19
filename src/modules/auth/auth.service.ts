@@ -308,22 +308,43 @@ export class AuthService {
 
   async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
     const user = await this.getActiveUser(userId);
-    if (!user.passwordHash) {
-      // TODO(auth-password): allow OAuth-only accounts to delete only after a fresh linked-identity verification.
-      // blocked: depends on set-password flow above; OAuth-only users currently cannot prove account ownership for deletion.
-      throw new UnauthorizedException({
-        code: ResultCode.WRONG_PASSWORD,
-        message: this.i18n.t('auth.password_wrong'),
+
+    if (dto.password) {
+      // Password-based verification
+      if (!user.passwordHash) {
+        throw new UnauthorizedException({
+          code: ResultCode.WRONG_PASSWORD,
+          message: this.i18n.t('auth.use_code_for_oauth_account_deletion'),
+        });
+      }
+      const valid = await argon2.verify(user.passwordHash, dto.password);
+      if (!valid) {
+        throw new UnauthorizedException({
+          code: ResultCode.WRONG_PASSWORD,
+          message: this.i18n.t('auth.password_wrong'),
+        });
+      }
+    } else if (dto.code) {
+      // Email-code-based verification (OAuth-only users)
+      const email = user.email ? this.normalizeEmail(user.email) : null;
+      if (!email) {
+        throw new BadRequestException({
+          code: ResultCode.BAD_REQUEST,
+          message: this.i18n.t('auth.email_required_for_delete_account'),
+        });
+      }
+      await this.verificationCodeService.verify(
+        email,
+        dto.code,
+        'delete-account',
+      );
+    } else {
+      throw new BadRequestException({
+        code: ResultCode.BAD_REQUEST,
+        message: this.i18n.t('auth.provide_password_or_code_for_deletion'),
       });
     }
 
-    const valid = await argon2.verify(user.passwordHash, dto.password);
-    if (!valid) {
-      throw new UnauthorizedException({
-        code: ResultCode.WRONG_PASSWORD,
-        message: this.i18n.t('auth.password_wrong'),
-      });
-    }
     // Revoke all tokens then soft-delete
     await this.logoutAll(userId);
     await this.prisma.user.update({

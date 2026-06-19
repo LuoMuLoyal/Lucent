@@ -751,7 +751,7 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should reject account deletion when the user has no local password', async () => {
+    it('should reject password-based deletion for OAuth-only users', async () => {
       userService.findById.mockResolvedValue({
         ...mockUser,
         passwordHash: null,
@@ -760,6 +760,45 @@ describe('AuthService', () => {
       await expect(
         service.deleteAccount('user-uuid-1', { password: 'any' }),
       ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should soft-delete OAuth-only user via email code verification', async () => {
+      const oauthUser = {
+        ...mockUser,
+        email: 'test@example.com',
+        passwordHash: null,
+      };
+      userService.findById.mockResolvedValue(oauthUser);
+
+      await service.deleteAccount('user-uuid-1', { code: '123456' });
+
+      expect(verificationCodeService.verify).toHaveBeenCalledWith(
+        'test@example.com',
+        '123456',
+        'delete-account',
+      );
+      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
+      expect(prismaService.user.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw when OAuth-only user has no email for code deletion', async () => {
+      userService.findById.mockResolvedValue({
+        ...mockUser,
+        email: null,
+        passwordHash: null,
+      });
+
+      await expect(
+        service.deleteAccount('user-uuid-1', { code: '123456' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw when neither password nor code is provided', async () => {
+      userService.findById.mockResolvedValue(mockUser);
+
+      await expect(service.deleteAccount('user-uuid-1', {})).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
