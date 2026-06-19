@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { UserHealthContextController } from './user-health-context.controller';
 import { UserHealthContextGuardService } from './user-health-context-guard.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
+import { UserHealthContextProfileWriteService } from './user-health-context-profile-write.service';
 import { UserHealthContextService } from './user-health-context.service';
 
 @Module({
@@ -9,6 +10,7 @@ import { UserHealthContextService } from './user-health-context.service';
   providers: [
     UserHealthContextGuardService,
     UserHealthContextMapperService,
+    UserHealthContextProfileWriteService,
     UserHealthContextService,
   ],
   exports: [UserHealthContextService],

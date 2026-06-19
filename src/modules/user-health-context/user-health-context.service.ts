@@ -15,6 +15,7 @@ import type {
 } from './dto';
 import { UserHealthContextGuardService } from './user-health-context-guard.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
+import { UserHealthContextProfileWriteService } from './user-health-context-profile-write.service';
 import { userHealthContextInclude } from './user-health-context.types';
 
 @Injectable()
@@ -24,6 +25,7 @@ export class UserHealthContextService {
     private readonly i18n: I18nService,
     private readonly guardService: UserHealthContextGuardService,
     private readonly mapperService: UserHealthContextMapperService,
+    private readonly profileWriteService: UserHealthContextProfileWriteService,
   ) {}
 
   async getForUser(userId: string): Promise<HealthContextResponseData> {
@@ -49,89 +51,7 @@ export class UserHealthContextService {
     userId: string,
     dto: UpdateHealthContextProfileDto,
   ): Promise<HealthContextResponseData> {
-    await this.guardService.ensureActiveUserExists(userId);
-
-    const updateData: Prisma.UserProfileUpdateInput = {};
-    const createData: Prisma.UserProfileUncheckedCreateInput = { userId };
-
-    if (dto.locale !== undefined) {
-      const locale = this.mapperService.normalizePreferenceString(dto.locale);
-      updateData.locale = locale;
-      createData.locale = locale;
-    }
-
-    if (dto.timezone !== undefined) {
-      const timezone = this.mapperService.normalizePreferenceString(
-        dto.timezone,
-      );
-      updateData.timezone = timezone;
-      createData.timezone = timezone;
-    }
-
-    if (dto.unitSystem !== undefined) {
-      updateData.unitSystem = dto.unitSystem;
-      createData.unitSystem = dto.unitSystem;
-    }
-
-    if (dto.birthDate !== undefined) {
-      const date = this.mapperService.dateOnlyStringToUtcDate(dto.birthDate);
-      updateData.birthDate = date;
-      createData.birthDate = date;
-    }
-
-    if (dto.sexAtBirth !== undefined) {
-      updateData.sexAtBirth = dto.sexAtBirth;
-      createData.sexAtBirth = dto.sexAtBirth;
-    }
-
-    if (dto.heightCm !== undefined) {
-      updateData.heightCm = dto.heightCm;
-      createData.heightCm = dto.heightCm;
-    }
-
-    if (dto.pregnancyState !== undefined) {
-      updateData.pregnancyState = dto.pregnancyState;
-      createData.pregnancyState = dto.pregnancyState;
-    }
-
-    if (dto.lactationState !== undefined) {
-      updateData.lactationState = dto.lactationState;
-      createData.lactationState = dto.lactationState;
-    }
-
-    if (dto.bloodType !== undefined) {
-      const blood = this.mapperService.normalizePreferenceString(dto.bloodType);
-      updateData.bloodType = blood;
-      createData.bloodType = blood;
-    }
-
-    if (dto.onboardingCompleted !== undefined) {
-      if (dto.onboardingCompleted) {
-        // Set onboardingCompletedAt only when it is missing.
-        // We cannot read-and-check atomically in a single upsert,
-        // so we first fetch the current value.
-        const current = await this.prisma.userProfile.findUnique({
-          where: { userId },
-          select: { onboardingCompletedAt: true },
-        });
-        if (!current?.onboardingCompletedAt) {
-          const completedAt = new Date();
-          updateData.onboardingCompletedAt = completedAt;
-          createData.onboardingCompletedAt = completedAt;
-        }
-      } else {
-        updateData.onboardingCompletedAt = null;
-      }
-    }
-
-    if (Object.keys(updateData).length > 0) {
-      await this.prisma.userProfile.upsert({
-        where: { userId },
-        create: createData,
-        update: updateData,
-      });
-    }
-
+    await this.profileWriteService.upsertProfile(userId, dto);
     return this.getForUser(userId);
   }
 

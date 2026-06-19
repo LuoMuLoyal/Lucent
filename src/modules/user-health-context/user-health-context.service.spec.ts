@@ -18,6 +18,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserHealthContextGuardService } from './user-health-context-guard.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
+import { UserHealthContextProfileWriteService } from './user-health-context-profile-write.service';
 import { UserHealthContextService } from './user-health-context.service';
 import { ResultCode } from '../../common/api-envelope';
 import { I18nService } from 'nestjs-i18n';
@@ -54,6 +55,7 @@ describe('UserHealthContextService', () => {
         UserHealthContextService,
         UserHealthContextGuardService,
         UserHealthContextMapperService,
+        UserHealthContextProfileWriteService,
         {
           provide: PrismaService,
           useValue: {
