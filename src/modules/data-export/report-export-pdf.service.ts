@@ -18,6 +18,7 @@ import {
   PAGE_WIDTH,
   TOP_Y,
 } from './report-pdf.constants';
+import type { ReportMetricDto } from '../reports/dto';
 
 const FONT_PATH =
   require.resolve('@fontpkg/source-han-sans-sc-vf/SourceHanSansSC-VF.otf');
@@ -158,9 +159,8 @@ export class ReportExportPdfService {
     context.cursorY -= 10;
 
     this.drawSectionTitle(context, metricsLabel);
-    const metrics = report.metrics;
-    if (metrics.length > 0) {
-      this.drawMetricsGrid(context, metrics, isZh);
+    if (report.metrics.length > 0) {
+      this.drawMetricsGrid(context, report.metrics, isZh);
     }
     context.cursorY -= 8;
 
@@ -430,7 +430,7 @@ export class ReportExportPdfService {
 
   private drawMetricsGrid(
     context: PageContext,
-    metrics: NonNullable<ReportDashboardDataDto['metrics'][number]>[],
+    metrics: ReportMetricDto[],
     isZh: boolean,
   ): void {
     const cols = 2;
@@ -463,7 +463,7 @@ export class ReportExportPdfService {
 
   private drawCompactMetricCard(
     context: PageContext,
-    metric: NonNullable<ReportDashboardDataDto['metrics'][number]>,
+    metric: ReportMetricDto,
     isZh: boolean,
     x: number,
     y: number,
