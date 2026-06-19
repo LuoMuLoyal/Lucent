@@ -24,6 +24,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChangeEmailDto } from '../auth/dto/change-email.dto';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
+import { SetPasswordDto } from '../auth/dto/set-password.dto';
 import { DeleteAccountDto } from '../auth/dto/delete-account.dto';
 import {
   OAuthAuthorizeResponseDto,
@@ -79,6 +80,21 @@ export class AccountController {
     @Body() dto: ChangePasswordDto,
   ) {
     await this.authService.changePassword(user.sub, dto);
+    return successEnvelope(null);
+  }
+
+  @Post('set-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Set initial password for OAuth-only account using email verification',
+  })
+  @ApiResponse({ status: 200, type: SuccessResponseDto })
+  async setPassword(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: SetPasswordDto,
+  ) {
+    await this.authService.setPassword(user.sub, dto);
     return successEnvelope(null);
   }
 

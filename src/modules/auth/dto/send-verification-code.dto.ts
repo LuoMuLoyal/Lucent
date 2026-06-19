@@ -6,6 +6,7 @@ export const VERIFICATION_SCENES = [
   'login',
   'reset-password',
   'change-email',
+  'set-password',
 ] as const;
 
 export type VerificationScene = (typeof VERIFICATION_SCENES)[number];

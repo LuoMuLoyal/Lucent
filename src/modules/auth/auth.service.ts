@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -18,6 +19,7 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { SetPasswordDto } from './dto/set-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { SendVerificationCodeDto } from './dto/send-verification-code.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
@@ -208,11 +210,9 @@ export class AuthService {
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     const user = await this.getActiveUser(userId);
     if (!user.passwordHash) {
-      // TODO(auth-password): add a dedicated set-password flow for OAuth-only accounts.
-      // blocked: requires security review — OAuth-only users have no existing credential to verify identity before setting a password.
       throw new UnauthorizedException({
         code: ResultCode.WRONG_PASSWORD,
-        message: this.i18n.t('auth.current_password_wrong'),
+        message: this.i18n.t('auth.use_set_password_for_oauth_account'),
       });
     }
 
@@ -225,7 +225,59 @@ export class AuthService {
     }
     const passwordHash = await argon2.hash(dto.newPassword, ARGON2_OPTIONS);
     await this.userService.update(userId, { passwordHash });
-    // Invalidate all sessions
+    await this.logoutAll(userId);
+  }
+
+  async setPassword(userId: string, dto: SetPasswordDto): Promise<void> {
+    const user = await this.getActiveUser(userId);
+    if (user.passwordHash) {
+      throw new ConflictException({
+        code: ResultCode.CONFLICT,
+        message: this.i18n.t('auth.password_already_set'),
+      });
+    }
+
+    // Determine target email: use provided email or existing user email
+    const targetEmail = dto.email
+      ? this.normalizeEmail(dto.email)
+      : user.email
+        ? this.normalizeEmail(user.email)
+        : null;
+
+    if (!targetEmail) {
+      throw new BadRequestException({
+        code: ResultCode.BAD_REQUEST,
+        message: this.i18n.t('auth.email_required_for_set_password'),
+      });
+    }
+
+    // Verify the email code (scene: 'set-password')
+    await this.verificationCodeService.verify(
+      targetEmail,
+      dto.code,
+      'set-password',
+    );
+
+    // If the user didn't have an email before, bind and verify the new one
+    if (!user.email) {
+      const existingUser = await this.userService.findByEmail(targetEmail);
+      if (existingUser && existingUser.id !== userId) {
+        throw new ConflictException({
+          code: ResultCode.CONFLICT,
+          message: this.i18n.t('auth.email_in_use'),
+        });
+      }
+      await this.userService.update(userId, {
+        email: targetEmail,
+        emailVerifiedAt: new Date(),
+      });
+    }
+
+    // Hash and save password
+    const passwordHash = await argon2.hash(dto.password, ARGON2_OPTIONS);
+    await this.userService.update(userId, { passwordHash });
+
+    // Invalidate all sessions (security best practice after setting credential)
     await this.logoutAll(userId);
   }
 

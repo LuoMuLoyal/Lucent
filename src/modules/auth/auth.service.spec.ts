@@ -1,6 +1,7 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import {
+  BadRequestException,
   ConflictException,
   NotFoundException,
   UnauthorizedException,
@@ -567,6 +568,118 @@ describe('AuthService', () => {
           newPassword: 'NewPassword123!',
         }),
       ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('setPassword', () => {
+    it('should set password for OAuth-only user with existing email', async () => {
+      const oauthUser = {
+        ...mockUser,
+        email: 'test@example.com',
+        passwordHash: null,
+      };
+      userService.findById.mockResolvedValue(oauthUser);
+      (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$set');
+
+      await service.setPassword('user-uuid-1', {
+        code: '123456',
+        password: 'NewPassw0rd',
+      });
+
+      expect(verificationCodeService.verify).toHaveBeenCalledWith(
+        'test@example.com',
+        '123456',
+        'set-password',
+      );
+      expect(argon2.hash).toHaveBeenCalled();
+      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
+        passwordHash: '$argon2id$set',
+      });
+      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
+    });
+
+    it('should bind email and set password for OAuth-only user without email', async () => {
+      const oauthUser = { ...mockUser, email: null, passwordHash: null };
+      userService.findById.mockResolvedValue(oauthUser);
+      userService.findByEmail.mockResolvedValue(null);
+      (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$set');
+
+      await service.setPassword('user-uuid-1', {
+        email: 'new@example.com',
+        code: '123456',
+        password: 'NewPassw0rd',
+      });
+
+      expect(verificationCodeService.verify).toHaveBeenCalledWith(
+        'new@example.com',
+        '123456',
+        'set-password',
+      );
+      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
+        email: 'new@example.com',
+        emailVerifiedAt: expect.any(Date) as Date,
+      });
+      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
+    });
+
+    it('should throw if user already has a password', async () => {
+      userService.findById.mockResolvedValue(mockUser);
+
+      await expect(
+        service.setPassword('user-uuid-1', {
+          code: '123456',
+          password: 'NewPassw0rd',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should throw if user has no email and none is provided', async () => {
+      userService.findById.mockResolvedValue({
+        ...mockUser,
+        email: null,
+        passwordHash: null,
+      });
+
+      await expect(
+        service.setPassword('user-uuid-1', {
+          code: '123456',
+          password: 'NewPassw0rd',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw if the provided email is already in use', async () => {
+      const oauthUser = { ...mockUser, email: null, passwordHash: null };
+      userService.findById.mockResolvedValue(oauthUser);
+      userService.findByEmail.mockResolvedValue({
+        ...mockUser,
+        id: 'other-user',
+      });
+
+      await expect(
+        service.setPassword('user-uuid-1', {
+          email: 'test@example.com',
+          code: '123456',
+          password: 'NewPassw0rd',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should revoke all sessions after setting password', async () => {
+      const oauthUser = {
+        ...mockUser,
+        email: 'test@example.com',
+        passwordHash: null,
+      };
+      userService.findById.mockResolvedValue(oauthUser);
+      (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$set');
+
+      await service.setPassword('user-uuid-1', {
+        code: '123456',
+        password: 'NewPassw0rd',
+      });
+
+      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
     });
   });
 
