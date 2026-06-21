@@ -24,6 +24,7 @@ export type DailyRecordShape = {
   id: string;
   kind: DailyRecordKind;
   occurredAt: Date;
+  occurredTime: string | null;
   title: string | null;
   value: string | null;
   unit: string | null;

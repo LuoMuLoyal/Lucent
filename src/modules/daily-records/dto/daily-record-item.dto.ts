@@ -16,6 +16,13 @@ export class DailyRecordItemDto {
   })
   occurredAt!: string;
 
+  @ApiPropertyOptional({
+    description: 'Time in HH:mm 24-hour format when available.',
+    example: '09:45',
+    nullable: true,
+  })
+  occurredTime?: string | null;
+
   @ApiPropertyOptional({ description: 'Short label.' })
   title?: string | null;
 

@@ -132,11 +132,12 @@ export class TestingSupportService {
     userId: string,
     date: string,
   ): Promise<number> {
+    const targetDay = new Date(`${date}T00:00:00.000Z`);
     const recordIds = (
       await tx.userDailyRecord.findMany({
         where: {
           userId,
-          occurredAt: new Date(`${date}T00:00:00.000Z`),
+          occurredAt: targetDay,
         },
         select: { id: true },
       })

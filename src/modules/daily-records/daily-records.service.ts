@@ -38,7 +38,10 @@ export class DailyRecordsService {
       this.prisma.userDailyRecord.findMany({
         where,
         include: dailyRecordWithAttachments,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [
+          { occurredTime: { sort: 'desc', nulls: 'last' } },
+          { createdAt: 'desc' },
+        ],
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
@@ -60,6 +63,7 @@ export class DailyRecordsService {
       userId,
       kind: dto.kind,
       occurredAt: new Date(`${dto.occurredAt}T00:00:00.000Z`),
+      occurredTime: dto.occurredTime?.trim() ?? null,
       title: dto.title?.trim() ?? null,
       value: dto.value?.trim() ?? null,
       unit: dto.unit?.trim() ?? null,
@@ -152,7 +156,10 @@ export class DailyRecordsService {
         deletedAt: null,
       },
       include: dailyRecordWithAttachments,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { occurredTime: { sort: 'desc', nulls: 'last' } },
+        { createdAt: 'desc' },
+      ],
     });
 
     return this.mapperService.toSummaries(records);

@@ -11,6 +11,7 @@ const MAX_CURRENT_MEDICINE_NAMES = 5;
 
 type DailyRecordShape = {
   kind: DailyRecordKind;
+  occurredTime: string | null;
   title: string | null;
   value: string | null;
   unit: string | null;
@@ -138,6 +139,7 @@ export class TodayAnalysisContextService {
         },
         select: {
           kind: true,
+          occurredTime: true,
           title: true,
           value: true,
           unit: true,

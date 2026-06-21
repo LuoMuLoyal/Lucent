@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsObject,
   IsOptional,
+  Matches,
   IsString,
   MaxLength,
   ValidateNested,
@@ -27,6 +28,16 @@ export class UpdateDailyRecordDto {
   @IsOptional()
   @IsDateString()
   occurredAt?: string;
+
+  @ApiPropertyOptional({
+    description: 'Time in HH:mm 24-hour format. Use null to clear.',
+    example: '09:45',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/)
+  occurredTime?: string | null;
 
   @ApiPropertyOptional({
     description: 'Short label. Use null to clear.',

@@ -377,6 +377,7 @@ model UserDailyRecord {
   userId      String                      @map("user_id")
   kind        DailyRecordKind
   occurredAt  DateTime                    @map("occurred_at") @db.Date
+  occurredTime String?                    @map("occurred_time") @db.VarChar(5)
   title       String?
   value       String?
   unit        String?
@@ -390,6 +391,7 @@ model UserDailyRecord {
   attachments UserDailyRecordAttachment[]
 
   @@index([userId, occurredAt])
+  @@index([userId, occurredAt, occurredTime])
   @@index([userId, kind])
   @@index([userId, deletedAt])
   @@map("user_daily_records")

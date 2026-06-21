@@ -28,6 +28,7 @@ export type UserDailyRecordMinAggregateOutputType = {
   userId: string | null
   kind: $Enums.DailyRecordKind | null
   occurredAt: Date | null
+  occurredTime: string | null
   title: string | null
   value: string | null
   unit: string | null
@@ -43,6 +44,7 @@ export type UserDailyRecordMaxAggregateOutputType = {
   userId: string | null
   kind: $Enums.DailyRecordKind | null
   occurredAt: Date | null
+  occurredTime: string | null
   title: string | null
   value: string | null
   unit: string | null
@@ -58,6 +60,7 @@ export type UserDailyRecordCountAggregateOutputType = {
   userId: number
   kind: number
   occurredAt: number
+  occurredTime: number
   title: number
   value: number
   unit: number
@@ -76,6 +79,7 @@ export type UserDailyRecordMinAggregateInputType = {
   userId?: true
   kind?: true
   occurredAt?: true
+  occurredTime?: true
   title?: true
   value?: true
   unit?: true
@@ -91,6 +95,7 @@ export type UserDailyRecordMaxAggregateInputType = {
   userId?: true
   kind?: true
   occurredAt?: true
+  occurredTime?: true
   title?: true
   value?: true
   unit?: true
@@ -106,6 +111,7 @@ export type UserDailyRecordCountAggregateInputType = {
   userId?: true
   kind?: true
   occurredAt?: true
+  occurredTime?: true
   title?: true
   value?: true
   unit?: true
@@ -195,6 +201,7 @@ export type UserDailyRecordGroupByOutputType = {
   userId: string
   kind: $Enums.DailyRecordKind
   occurredAt: Date
+  occurredTime: string | null
   title: string | null
   value: string | null
   unit: string | null
@@ -232,6 +239,7 @@ export type UserDailyRecordWhereInput = {
   userId?: Prisma.StringFilter<"UserDailyRecord"> | string
   kind?: Prisma.EnumDailyRecordKindFilter<"UserDailyRecord"> | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFilter<"UserDailyRecord"> | Date | string
+  occurredTime?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   title?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   value?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   unit?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
@@ -250,6 +258,7 @@ export type UserDailyRecordOrderByWithRelationInput = {
   userId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   occurredAt?: Prisma.SortOrder
+  occurredTime?: Prisma.SortOrderInput | Prisma.SortOrder
   title?: Prisma.SortOrderInput | Prisma.SortOrder
   value?: Prisma.SortOrderInput | Prisma.SortOrder
   unit?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -271,6 +280,7 @@ export type UserDailyRecordWhereUniqueInput = Prisma.AtLeast<{
   userId?: Prisma.StringFilter<"UserDailyRecord"> | string
   kind?: Prisma.EnumDailyRecordKindFilter<"UserDailyRecord"> | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFilter<"UserDailyRecord"> | Date | string
+  occurredTime?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   title?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   value?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   unit?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
@@ -289,6 +299,7 @@ export type UserDailyRecordOrderByWithAggregationInput = {
   userId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   occurredAt?: Prisma.SortOrder
+  occurredTime?: Prisma.SortOrderInput | Prisma.SortOrder
   title?: Prisma.SortOrderInput | Prisma.SortOrder
   value?: Prisma.SortOrderInput | Prisma.SortOrder
   unit?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -311,6 +322,7 @@ export type UserDailyRecordScalarWhereWithAggregatesInput = {
   userId?: Prisma.StringWithAggregatesFilter<"UserDailyRecord"> | string
   kind?: Prisma.EnumDailyRecordKindWithAggregatesFilter<"UserDailyRecord"> | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeWithAggregatesFilter<"UserDailyRecord"> | Date | string
+  occurredTime?: Prisma.StringNullableWithAggregatesFilter<"UserDailyRecord"> | string | null
   title?: Prisma.StringNullableWithAggregatesFilter<"UserDailyRecord"> | string | null
   value?: Prisma.StringNullableWithAggregatesFilter<"UserDailyRecord"> | string | null
   unit?: Prisma.StringNullableWithAggregatesFilter<"UserDailyRecord"> | string | null
@@ -326,6 +338,7 @@ export type UserDailyRecordCreateInput = {
   id?: string
   kind: $Enums.DailyRecordKind
   occurredAt: Date | string
+  occurredTime?: string | null
   title?: string | null
   value?: string | null
   unit?: string | null
@@ -344,6 +357,7 @@ export type UserDailyRecordUncheckedCreateInput = {
   userId: string
   kind: $Enums.DailyRecordKind
   occurredAt: Date | string
+  occurredTime?: string | null
   title?: string | null
   value?: string | null
   unit?: string | null
@@ -360,6 +374,7 @@ export type UserDailyRecordUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kind?: Prisma.EnumDailyRecordKindFieldUpdateOperationsInput | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  occurredTime?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -378,6 +393,7 @@ export type UserDailyRecordUncheckedUpdateInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   kind?: Prisma.EnumDailyRecordKindFieldUpdateOperationsInput | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  occurredTime?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -395,6 +411,7 @@ export type UserDailyRecordCreateManyInput = {
   userId: string
   kind: $Enums.DailyRecordKind
   occurredAt: Date | string
+  occurredTime?: string | null
   title?: string | null
   value?: string | null
   unit?: string | null
@@ -410,6 +427,7 @@ export type UserDailyRecordUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kind?: Prisma.EnumDailyRecordKindFieldUpdateOperationsInput | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  occurredTime?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -426,6 +444,7 @@ export type UserDailyRecordUncheckedUpdateManyInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   kind?: Prisma.EnumDailyRecordKindFieldUpdateOperationsInput | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  occurredTime?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -452,6 +471,7 @@ export type UserDailyRecordCountOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   occurredAt?: Prisma.SortOrder
+  occurredTime?: Prisma.SortOrder
   title?: Prisma.SortOrder
   value?: Prisma.SortOrder
   unit?: Prisma.SortOrder
@@ -468,6 +488,7 @@ export type UserDailyRecordMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   occurredAt?: Prisma.SortOrder
+  occurredTime?: Prisma.SortOrder
   title?: Prisma.SortOrder
   value?: Prisma.SortOrder
   unit?: Prisma.SortOrder
@@ -483,6 +504,7 @@ export type UserDailyRecordMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   kind?: Prisma.SortOrder
   occurredAt?: Prisma.SortOrder
+  occurredTime?: Prisma.SortOrder
   title?: Prisma.SortOrder
   value?: Prisma.SortOrder
   unit?: Prisma.SortOrder
@@ -562,6 +584,7 @@ export type UserDailyRecordCreateWithoutUserInput = {
   id?: string
   kind: $Enums.DailyRecordKind
   occurredAt: Date | string
+  occurredTime?: string | null
   title?: string | null
   value?: string | null
   unit?: string | null
@@ -578,6 +601,7 @@ export type UserDailyRecordUncheckedCreateWithoutUserInput = {
   id?: string
   kind: $Enums.DailyRecordKind
   occurredAt: Date | string
+  occurredTime?: string | null
   title?: string | null
   value?: string | null
   unit?: string | null
@@ -624,6 +648,7 @@ export type UserDailyRecordScalarWhereInput = {
   userId?: Prisma.StringFilter<"UserDailyRecord"> | string
   kind?: Prisma.EnumDailyRecordKindFilter<"UserDailyRecord"> | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFilter<"UserDailyRecord"> | Date | string
+  occurredTime?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   title?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   value?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   unit?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
@@ -639,6 +664,7 @@ export type UserDailyRecordCreateWithoutAttachmentsInput = {
   id?: string
   kind: $Enums.DailyRecordKind
   occurredAt: Date | string
+  occurredTime?: string | null
   title?: string | null
   value?: string | null
   unit?: string | null
@@ -656,6 +682,7 @@ export type UserDailyRecordUncheckedCreateWithoutAttachmentsInput = {
   userId: string
   kind: $Enums.DailyRecordKind
   occurredAt: Date | string
+  occurredTime?: string | null
   title?: string | null
   value?: string | null
   unit?: string | null
@@ -687,6 +714,7 @@ export type UserDailyRecordUpdateWithoutAttachmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kind?: Prisma.EnumDailyRecordKindFieldUpdateOperationsInput | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  occurredTime?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -704,6 +732,7 @@ export type UserDailyRecordUncheckedUpdateWithoutAttachmentsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   kind?: Prisma.EnumDailyRecordKindFieldUpdateOperationsInput | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  occurredTime?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -719,6 +748,7 @@ export type UserDailyRecordCreateManyUserInput = {
   id?: string
   kind: $Enums.DailyRecordKind
   occurredAt: Date | string
+  occurredTime?: string | null
   title?: string | null
   value?: string | null
   unit?: string | null
@@ -734,6 +764,7 @@ export type UserDailyRecordUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kind?: Prisma.EnumDailyRecordKindFieldUpdateOperationsInput | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  occurredTime?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -750,6 +781,7 @@ export type UserDailyRecordUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kind?: Prisma.EnumDailyRecordKindFieldUpdateOperationsInput | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  occurredTime?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -766,6 +798,7 @@ export type UserDailyRecordUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   kind?: Prisma.EnumDailyRecordKindFieldUpdateOperationsInput | $Enums.DailyRecordKind
   occurredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  occurredTime?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   title?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   value?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   unit?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -813,6 +846,7 @@ export type UserDailyRecordSelect<ExtArgs extends runtime.Types.Extensions.Inter
   userId?: boolean
   kind?: boolean
   occurredAt?: boolean
+  occurredTime?: boolean
   title?: boolean
   value?: boolean
   unit?: boolean
@@ -832,6 +866,7 @@ export type UserDailyRecordSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   userId?: boolean
   kind?: boolean
   occurredAt?: boolean
+  occurredTime?: boolean
   title?: boolean
   value?: boolean
   unit?: boolean
@@ -849,6 +884,7 @@ export type UserDailyRecordSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   userId?: boolean
   kind?: boolean
   occurredAt?: boolean
+  occurredTime?: boolean
   title?: boolean
   value?: boolean
   unit?: boolean
@@ -866,6 +902,7 @@ export type UserDailyRecordSelectScalar = {
   userId?: boolean
   kind?: boolean
   occurredAt?: boolean
+  occurredTime?: boolean
   title?: boolean
   value?: boolean
   unit?: boolean
@@ -877,7 +914,7 @@ export type UserDailyRecordSelectScalar = {
   updatedAt?: boolean
 }
 
-export type UserDailyRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "kind" | "occurredAt" | "title" | "value" | "unit" | "note" | "payload" | "source" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["userDailyRecord"]>
+export type UserDailyRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "kind" | "occurredAt" | "occurredTime" | "title" | "value" | "unit" | "note" | "payload" | "source" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["userDailyRecord"]>
 export type UserDailyRecordInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   attachments?: boolean | Prisma.UserDailyRecord$attachmentsArgs<ExtArgs>
@@ -901,6 +938,7 @@ export type $UserDailyRecordPayload<ExtArgs extends runtime.Types.Extensions.Int
     userId: string
     kind: $Enums.DailyRecordKind
     occurredAt: Date
+    occurredTime: string | null
     title: string | null
     value: string | null
     unit: string | null
@@ -1339,6 +1377,7 @@ export interface UserDailyRecordFieldRefs {
   readonly userId: Prisma.FieldRef<"UserDailyRecord", 'String'>
   readonly kind: Prisma.FieldRef<"UserDailyRecord", 'DailyRecordKind'>
   readonly occurredAt: Prisma.FieldRef<"UserDailyRecord", 'DateTime'>
+  readonly occurredTime: Prisma.FieldRef<"UserDailyRecord", 'String'>
   readonly title: Prisma.FieldRef<"UserDailyRecord", 'String'>
   readonly value: Prisma.FieldRef<"UserDailyRecord", 'String'>
   readonly unit: Prisma.FieldRef<"UserDailyRecord", 'String'>

@@ -2447,6 +2447,7 @@ export const UserDailyRecordScalarFieldEnum = {
   userId: 'userId',
   kind: 'kind',
   occurredAt: 'occurredAt',
+  occurredTime: 'occurredTime',
   title: 'title',
   value: 'value',
   unit: 'unit',

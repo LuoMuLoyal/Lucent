@@ -96,6 +96,13 @@ describe('TestingSupportService', () => {
     expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
     });
+    expect(prisma.userDailyRecord.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        occurredAt: new Date('2026-06-12T00:00:00.000Z'),
+      },
+      select: { id: true },
+    });
     expect(prisma.userSetting.upsert).toHaveBeenCalledTimes(7);
     expect(prisma.userSetting.upsert).toHaveBeenCalledWith({
       where: {
@@ -189,6 +196,13 @@ describe('TestingSupportService', () => {
         userId: 'user-1',
         id: { in: ['record-1', 'record-2'] },
       },
+    });
+    expect(prisma.userDailyRecord.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        occurredAt: new Date('2026-06-12T00:00:00.000Z'),
+      },
+      select: { id: true },
     });
     expect(prisma.userSetting.upsert).toHaveBeenCalledTimes(7);
     expect(prisma.userSetting.upsert).toHaveBeenCalledWith({

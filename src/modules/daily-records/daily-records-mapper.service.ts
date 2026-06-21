@@ -20,6 +20,9 @@ export class DailyRecordsMapperService {
     if (dto.occurredAt !== undefined) {
       data.occurredAt = new Date(`${dto.occurredAt}T00:00:00.000Z`);
     }
+    if (dto.occurredTime !== undefined) {
+      data.occurredTime = dto.occurredTime?.trim() ?? null;
+    }
     if (dto.title !== undefined) {
       data.title = dto.title?.trim() ?? null;
     }
@@ -68,6 +71,7 @@ export class DailyRecordsMapperService {
       id: record.id,
       kind: record.kind,
       occurredAt: record.occurredAt.toISOString().slice(0, 10),
+      occurredTime: record.occurredTime,
       title: record.title,
       value: record.value,
       unit: record.unit,

@@ -217,6 +217,7 @@ const adminResources: AdminResourceConfig[] = [
       'userId',
       'kind',
       'occurredAt',
+      'occurredTime',
       'title',
       'value',
       'unit',

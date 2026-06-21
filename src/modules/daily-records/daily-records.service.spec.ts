@@ -55,6 +55,7 @@ describe('DailyRecordsService', () => {
         id: 'r1',
         kind: 'water',
         occurredAt: new Date('2026-06-04'),
+        occurredTime: '09:45',
         title: null,
         value: '3',
         unit: 'cups',
@@ -72,6 +73,7 @@ describe('DailyRecordsService', () => {
     expect(result.items).toHaveLength(1);
     expect(result.total).toBe(1);
     expect(result.items[0]?.kind).toBe('water');
+    expect(result.items[0]?.occurredTime).toBe('09:45');
   });
 
   it('should create a record', async () => {
@@ -79,6 +81,7 @@ describe('DailyRecordsService', () => {
       id: 'r1',
       kind: 'mood',
       occurredAt: new Date('2026-06-04'),
+      occurredTime: '14:20',
       title: null,
       value: null,
       unit: null,
@@ -92,11 +95,13 @@ describe('DailyRecordsService', () => {
     const result = await service.create(mockUserId, {
       kind: DailyRecordKind.mood,
       occurredAt: '2026-06-04',
+      occurredTime: '14:20',
       note: 'good',
     });
 
     expect(result.kind).toBe('mood');
     expect(result.note).toBe('good');
+    expect(result.occurredTime).toBe('14:20');
   });
 
   it('should update a record with partial fields', async () => {
@@ -107,6 +112,7 @@ describe('DailyRecordsService', () => {
       id: 'r1',
       kind: 'mood',
       occurredAt: new Date('2026-06-04'),
+      occurredTime: null,
       title: null,
       value: null,
       unit: null,
@@ -135,6 +141,7 @@ describe('DailyRecordsService', () => {
       id: 'r1',
       kind: 'water',
       occurredAt: new Date('2026-06-04'),
+      occurredTime: null,
       title: null,
       value: null,
       unit: null,
@@ -159,6 +166,7 @@ describe('DailyRecordsService', () => {
       id: 'r1',
       kind: 'meal',
       occurredAt: new Date('2026-06-04'),
+      occurredTime: '08:30',
       title: 'Breakfast',
       value: null,
       unit: null,
@@ -177,6 +185,7 @@ describe('DailyRecordsService', () => {
       id: 'r1',
       kind: 'meal',
       occurredAt: new Date('2026-06-04'),
+      occurredTime: '08:30',
       title: 'Breakfast',
       value: null,
       unit: null,
@@ -254,6 +263,7 @@ describe('DailyRecordsService', () => {
         id: 'r1',
         kind: 'meal',
         occurredAt: new Date('2026-06-04'),
+        occurredTime: '13:40',
         title: null,
         value: null,
         unit: null,
@@ -282,6 +292,7 @@ describe('DailyRecordsService', () => {
       id: 'r1',
       kind: 'meal',
       occurredAt: new Date('2026-06-04'),
+      occurredTime: '13:40',
       title: null,
       value: null,
       unit: null,
@@ -356,6 +367,7 @@ describe('DailyRecordsService', () => {
         id: 'r1',
         kind: 'water',
         occurredAt: new Date('2026-06-04'),
+        occurredTime: '10:10',
         title: null,
         value: '3',
         unit: 'cups',
@@ -369,6 +381,7 @@ describe('DailyRecordsService', () => {
         id: 'r2',
         kind: 'water',
         occurredAt: new Date('2026-06-04'),
+        occurredTime: '09:00',
         title: null,
         value: '2',
         unit: 'cups',
@@ -382,6 +395,7 @@ describe('DailyRecordsService', () => {
         id: 'r3',
         kind: 'mood',
         occurredAt: new Date('2026-06-04'),
+        occurredTime: '20:30',
         title: null,
         value: null,
         unit: null,
@@ -411,6 +425,38 @@ describe('DailyRecordsService', () => {
     );
   });
 
+  it('should update occurredTime when provided', async () => {
+    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+      userId: mockUserId,
+      kind: 'water',
+      payload: null,
+    });
+    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({
+      id: 'r-time-2',
+      kind: 'water',
+      occurredAt: new Date('2026-06-04'),
+      occurredTime: '21:05',
+      title: null,
+      value: '250',
+      unit: 'ml',
+      note: null,
+      source: 'manual',
+      attachments: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.update(mockUserId, 'r-time-2', {
+      occurredTime: '21:05',
+    });
+
+    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
+      where: { id: 'r-time-2' },
+      data: { occurredTime: '21:05' },
+      include: { attachments: { orderBy: { createdAt: 'asc' } } },
+    });
+  });
+
   describe('sleep records', () => {
     it('should create a sleep record with valid payload (wake-date convention)', async () => {
       const sleepPayload = {
@@ -423,6 +469,7 @@ describe('DailyRecordsService', () => {
         id: 'rs1',
         kind: 'sleep',
         occurredAt: new Date('2026-06-13'), // wake date
+        occurredTime: '07:10',
         title: null,
         value: null,
         unit: null,
@@ -437,6 +484,7 @@ describe('DailyRecordsService', () => {
       const result = await service.create(mockUserId, {
         kind: DailyRecordKind.sleep,
         occurredAt: '2026-06-13', // wake date
+        occurredTime: '07:10',
         payload: sleepPayload,
       });
 
@@ -445,6 +493,7 @@ describe('DailyRecordsService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             occurredAt: new Date('2026-06-13T00:00:00.000Z'),
+            occurredTime: '07:10',
             payload: sleepPayload,
           }),
         }),
