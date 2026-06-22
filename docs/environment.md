@@ -1,6 +1,6 @@
 # Lucent Environment
 
-Last updated: 2026-06-17
+Last updated: 2026-06-22
 
 This file records Lucent runtime configuration, local stacks, scripts, and required variables. Production deployment steps live in `deployment.md`.
 
@@ -88,8 +88,11 @@ Repo helper layout:
 Local helper scripts:
 
 - `pnpm test:runtime:start`
+  first applies pending Prisma migrations against the `NODE_ENV=test` database,
   starts `pnpm start:test:dev` in the background, writes `.runtime-test.pid`
-  plus `.runtime-test.log`, and waits for `GET /api/v1/health`.
+  plus `.runtime-test.log`, and waits for `GET /api/v1/health`. The helper now
+  uses a platform-specific `pnpm` executable (`pnpm.cmd` on Windows) so the
+  full-stack lane can start correctly from PowerShell on Windows workstations.
 - `pnpm test:runtime:stop`
   stops the Lucent test runtime tracked by `.runtime-test.pid`.
 

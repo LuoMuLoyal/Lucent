@@ -1,8 +1,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const PID_FILE = path.join(REPO_ROOT, '.runtime-test.pid');
+const IS_WINDOWS = process.platform === 'win32';
 
 function main() {
   if (!fs.existsSync(PID_FILE)) {
@@ -18,8 +20,8 @@ function main() {
   }
 
   try {
-    process.kill(pid, 'SIGTERM');
-    console.log(`Stopped process ${String(pid)}.`);
+    stopProcessTree(pid);
+    console.log(`Stopped process tree rooted at ${String(pid)}.`);
   } catch (error) {
     console.warn(
       `Failed to stop process ${String(pid)}: ${error instanceof Error ? error.message : String(error)}`,
@@ -27,6 +29,25 @@ function main() {
   } finally {
     fs.rmSync(PID_FILE, { force: true });
   }
+}
+
+function stopProcessTree(pid) {
+  if (IS_WINDOWS) {
+    const result = spawnSync('taskkill', ['/pid', String(pid), '/t', '/f'], {
+      stdio: 'ignore',
+      windowsHide: true,
+    });
+
+    if (result.status !== 0) {
+      throw new Error(
+        `taskkill exited with code ${String(result.status ?? 1)}`,
+      );
+    }
+
+    return;
+  }
+
+  process.kill(-pid, 'SIGTERM');
 }
 
 main();

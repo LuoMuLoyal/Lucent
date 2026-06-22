@@ -52,7 +52,8 @@ waits for `GET /api/v1/health`:
 pnpm test:runtime:start
 ```
 
-That runtime enables `POST /api/v1/testing/fullstack-e2e/record-lane/prepare`,
+That helper first runs `prisma migrate deploy` against the test database, then
+starts the runtime. The runtime enables `POST /api/v1/testing/fullstack-e2e/record-lane/prepare`,
 which repairs a dedicated password-login test user, resets that user's AI
 summary toggle to enabled, and clears that user's daily records for one target
 date before the Flutter lane starts.
