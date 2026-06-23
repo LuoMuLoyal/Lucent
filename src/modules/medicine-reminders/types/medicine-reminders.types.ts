@@ -1,12 +1,10 @@
-import type { Prisma } from '../../generated/prisma/client';
-
 export type MedicineReminderRecord = {
   id: string;
   currentMedicineId: string | null;
   label: string | null;
   scheduledHour: number;
   scheduledMinute: number;
-  daysOfWeek: Prisma.JsonValue | null;
+  daysOfWeek: unknown;
   startDate: Date | null;
   endDate: Date | null;
   isActive: boolean;

@@ -2,7 +2,7 @@ import type {
   AssistantContextSource,
   AssistantToolDisabledReason,
   AssistantToolName,
-} from './tools/assistant-tool.types';
+} from '../tools/assistant-tool.types';
 
 export interface AssistantRuntimeCapabilities {
   phase: 'foundation';

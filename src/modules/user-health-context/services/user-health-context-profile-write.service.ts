@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { UpdateHealthContextProfileDto } from './dto';
-import { UserHealthContextGuardService } from './user-health-context-guard.service';
+import { Prisma } from '../../../generated/prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
+import type { UpdateHealthContextProfileDto } from '../dto';
+import { UserHealthContextGuardService } from '../guards/user-health-context-guard.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
 
 @Injectable()

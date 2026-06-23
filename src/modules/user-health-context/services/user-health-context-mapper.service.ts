@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import type { HealthContextResponseData } from './dto';
+import type { HealthContextResponseData } from '../dto';
 import {
   CORE_PROFILE_FIELDS,
   type UserHealthContextRecord,
-} from './user-health-context.types';
+} from '../types/user-health-context.types';
 
 @Injectable()
 export class UserHealthContextMapperService {
@@ -80,7 +80,7 @@ export class UserHealthContextMapperService {
       allergies,
       conditions,
       currentMedicines,
-    };
+    } as HealthContextResponseData;
   }
 
   normalizePreferenceString(value: string | null): string | null {

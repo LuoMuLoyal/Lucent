@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import type { UserSettingsDataDto } from '../user-settings/dto';
-import { selectAllowedToolsForContextSources } from './agent/assistant-runtime.graph';
+import type { UserSettingsDataDto } from '../../user-settings/dto';
+import { selectAllowedToolsForContextSources } from '../agent/assistant-runtime.graph';
 import type {
   AssistantRuntimeCapabilities,
   AssistantPolicySnapshot,
   AssistantToolCapabilitySnapshot,
-} from './assistant.types';
+} from '../types/assistant.types';
 import {
   ASSISTANT_CONTEXT_SOURCES,
   ASSISTANT_TOOL_NAMES,
@@ -13,7 +13,7 @@ import {
   type AssistantContextSource,
   type AssistantToolDisabledReason,
   type AssistantToolName,
-} from './tools/assistant-tool.types';
+} from '../tools/assistant-tool.types';
 
 @Injectable()
 export class AssistantPolicyService {

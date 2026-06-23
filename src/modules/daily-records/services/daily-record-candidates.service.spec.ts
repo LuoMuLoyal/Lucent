@@ -58,7 +58,7 @@ describe('DailyRecordCandidatesService', () => {
     hasLanguageModel?: boolean;
     generateImpl?: jest.Mock;
   }) {
-    const copyService: DailyRecordCandidatesCopyService = {
+    const copyService = {
       resolveLocale: jest.fn((language: string | undefined) => {
         const normalized = language?.trim().toLowerCase() ?? '';
         return normalized.startsWith('zh') ? 'zh-CN' : 'en';
@@ -107,9 +107,9 @@ describe('DailyRecordCandidatesService', () => {
           ],
         }),
       ),
-    };
+    } as unknown as DailyRecordCandidatesCopyService;
 
-    const generatorService: DailyRecordCandidatesGeneratorService = {
+    const generatorService = {
       hasLanguageModel: jest
         .fn()
         .mockReturnValue(options?.hasLanguageModel ?? true),
@@ -139,7 +139,7 @@ describe('DailyRecordCandidatesService', () => {
             },
           ],
         }),
-    };
+    } as unknown as DailyRecordCandidatesGeneratorService;
 
     return new DailyRecordCandidatesService(copyService, generatorService);
   }

@@ -6,7 +6,7 @@ import {
   ASSISTANT_CONTEXT_SETTING_KEYS,
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
-} from './user-settings.constants';
+} from './config/user-settings.constants';
 
 @Injectable()
 export class UserSettingsService {

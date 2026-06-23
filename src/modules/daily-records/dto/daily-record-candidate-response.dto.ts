@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DAILY_RECORD_CANDIDATE_KINDS } from '../daily-record-candidates.schema';
+import { DAILY_RECORD_CANDIDATE_KINDS } from '../schemas/daily-record-candidates.schema';
 
 export type DailyRecordCandidateKind =
   (typeof DAILY_RECORD_CANDIDATE_KINDS)[number];

@@ -6,10 +6,10 @@ import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminder
 import { UserHealthContextModule } from '../user-health-context/user-health-context.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { AssistantRuntimeService } from './agent/assistant-runtime.service';
-import { AssistantConversationService } from './assistant-conversation.service';
+import { AssistantConversationService } from './services/assistant-conversation.service';
 import { AssistantController } from './assistant.controller';
-import { AssistantPolicyService } from './assistant-policy.service';
-import { HistoricalAiSummaryService } from './historical-ai-summary.service';
+import { AssistantPolicyService } from './services/assistant-policy.service';
+import { HistoricalAiSummaryService } from './services/historical-ai-summary.service';
 import { AssistantService } from './assistant.service';
 import {
   AssistantContextService,

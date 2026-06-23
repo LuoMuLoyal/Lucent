@@ -4,7 +4,7 @@ import type {
   AssistantReadResultEnvelope,
   AssistantUpdateDailyRecordProposalPayload,
   AssistantUpdateUserSettingsProposalPayload,
-} from '../assistant.types';
+} from '../types/assistant.types';
 import type { AssistantToolName } from './assistant-tool.types';
 import { DailyRecordKind } from '../../../generated/prisma/client';
 import {

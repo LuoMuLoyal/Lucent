@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ResultCode } from '../../../common/api-envelope';
-import { HistoricalAiSummaryService } from '../../assistant/historical-ai-summary.service';
+import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   GenerateReportSummaryDto,
@@ -18,7 +18,7 @@ import { ReportsComputationService } from '../dashboard/reports-computation.serv
 import { ReportsContextService } from '../dashboard/reports-context.service';
 import type { ReportSummaryStructuredOutput } from '../schemas/report-summary.schema';
 import type { StreamSummaryEvent } from '../../../common/stream-summary';
-import { USER_SETTING_KEYS } from '../../user-settings/user-settings.constants';
+import { USER_SETTING_KEYS } from '../../user-settings/config/user-settings.constants';
 
 interface PreparedReportSummary {
   locale: string;

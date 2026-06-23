@@ -1,8 +1,8 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { UserHealthContextProfileWriteService } from './user-health-context-profile-write.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { UserHealthContextGuardService } from './user-health-context-guard.service';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { UserHealthContextGuardService } from '../guards/user-health-context-guard.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
 
 describe('UserHealthContextProfileWriteService', () => {

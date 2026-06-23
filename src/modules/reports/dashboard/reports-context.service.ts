@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DoseLogStatus } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { USER_SETTING_KEYS } from '../../user-settings/user-settings.constants';
+import { USER_SETTING_KEYS } from '../../user-settings/config/user-settings.constants';
 import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,

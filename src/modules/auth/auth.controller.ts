@@ -29,9 +29,9 @@ import {
   formatDateTime,
   toEmailVerified,
 } from '../../common/utils/date-time.utils';
-import { VERIFICATION_CODE_COOLDOWN_SEC } from './verification-code.service';
+import { VERIFICATION_CODE_COOLDOWN_SEC } from './services/verification-code.service';
 import { AuthService } from './auth.service';
-import { AuthTokenService } from './auth-token.service';
+import { AuthTokenService } from './services/auth-token.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AuthRequestContext, UserPayload } from './auth.service';
@@ -242,7 +242,6 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '列出当前用户的活跃会话' })
   async listSessions(@CurrentUser() user: UserPayload) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const sessions = await this.authTokenService.listSessions(user.sub);
     return successEnvelope(sessions);
   }
@@ -258,7 +257,6 @@ export class AuthController {
     @CurrentUser() user: UserPayload,
     @Param('sessionId') sessionId: string,
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     await this.authTokenService.revokeById(user.sub, sessionId);
     return successEnvelope(null);
   }
@@ -297,12 +295,11 @@ export class AuthController {
       dto,
       getRequestClientIp(request),
     );
-    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
     return successEnvelope({
       cooldown: VERIFICATION_CODE_COOLDOWN_SEC,
       message: result.message,
     });
-    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
   }
 
   // ── 6. POST /api/v1/auth/verify-email ──────────────────────────
@@ -331,12 +328,11 @@ export class AuthController {
       dto,
       getRequestClientIp(request),
     );
-    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
     return successEnvelope({
       cooldown: VERIFICATION_CODE_COOLDOWN_SEC,
       message: result.message,
     });
-    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
   }
 
   // ── 8. POST /api/v1/auth/reset-password ────────────────────────

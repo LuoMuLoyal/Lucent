@@ -33,8 +33,8 @@ import {
   DailyRecordCandidateResponseDto,
   GenerateDailyRecordCandidatesDto,
 } from './dto';
-import { DailyRecordCandidatesService } from './daily-record-candidates.service';
-import { DailyRecordImageUploadService } from './daily-record-image-upload.service';
+import { DailyRecordCandidatesService } from './services/daily-record-candidates.service';
+import { DailyRecordImageUploadService } from './services/daily-record-image-upload.service';
 import { DailyRecordsService } from './daily-records.service';
 import { I18nLang } from 'nestjs-i18n';
 

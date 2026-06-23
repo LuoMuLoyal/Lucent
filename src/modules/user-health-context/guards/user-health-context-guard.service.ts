@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../common/api-envelope';
-import { PrismaService } from '../../prisma/prisma.service';
+import { ResultCode } from '../../../common/api-envelope';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
 export class UserHealthContextGuardService {

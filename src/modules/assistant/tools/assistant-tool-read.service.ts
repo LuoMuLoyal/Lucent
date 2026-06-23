@@ -3,11 +3,11 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { MedicineRemindersService } from '../../medicine-reminders/medicine-reminders.service';
 import { UserHealthContextService } from '../../user-health-context/user-health-context.service';
 import { UserSettingsService } from '../../user-settings/user-settings.service';
-import { HistoricalAiSummaryService } from '../historical-ai-summary.service';
+import { HistoricalAiSummaryService } from '../services/historical-ai-summary.service';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../assistant.types';
+} from '../types/assistant.types';
 import {
   DEFAULT_HISTORY_LIMIT,
   MAX_RANGE_DAYS,

@@ -1,15 +1,15 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client';
-import { ResultCode } from '../../common/api-envelope';
+import { Prisma } from '../../../generated/prisma/client';
+import { ResultCode } from '../../../common/api-envelope';
 import type {
   CreateMedicineReminderDto,
   UpdateMedicineReminderDto,
-} from './dto';
+} from '../dto';
 import type {
   MedicineReminderRecord,
   OwnedMedicineReminderRecord,
   ReminderDeliveryRecord,
-} from './medicine-reminders.types';
+} from '../types/medicine-reminders.types';
 
 @Injectable()
 export class MedicineRemindersMapperService {
@@ -155,7 +155,7 @@ export class MedicineRemindersMapperService {
     return unique;
   }
 
-  private parseDaysOfWeek(value: Prisma.JsonValue | null) {
+  private parseDaysOfWeek(value: unknown) {
     if (!Array.isArray(value)) {
       return null;
     }

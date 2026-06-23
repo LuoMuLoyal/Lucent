@@ -1,5 +1,5 @@
 import { DailyRecordKind } from '../../../generated/prisma/client';
-import type { AssistantToolExecutionContext } from '../assistant.types';
+import type { AssistantToolExecutionContext } from '../types/assistant.types';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';
 import { AssistantToolRecordQueryService } from './assistant-tool-record-query.service';

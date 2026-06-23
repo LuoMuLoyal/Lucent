@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ResultCode } from '../../common/api-envelope';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { OwnedMedicineReminderRecord } from './medicine-reminders.types';
+import { ResultCode } from '../../../common/api-envelope';
+import { PrismaService } from '../../../prisma/prisma.service';
+import type { OwnedMedicineReminderRecord } from '../types/medicine-reminders.types';
 
 @Injectable()
 export class MedicineRemindersGuardService {

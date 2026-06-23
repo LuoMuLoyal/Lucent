@@ -4,8 +4,8 @@ import type {
   CreateMedicineReminderDto,
   UpdateMedicineReminderDto,
 } from './dto';
-import { MedicineRemindersGuardService } from './medicine-reminders-guard.service';
-import { MedicineRemindersMapperService } from './medicine-reminders-mapper.service';
+import { MedicineRemindersGuardService } from './guards/medicine-reminders-guard.service';
+import { MedicineRemindersMapperService } from './services/medicine-reminders-mapper.service';
 
 @Injectable()
 export class MedicineRemindersService {

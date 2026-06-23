@@ -1,4 +1,4 @@
-import type { AssistantReadConfidence } from '../assistant.types';
+import type { AssistantReadConfidence } from '../types/assistant.types';
 
 // ---------------------------------------------------------------------------
 // Numerical constants

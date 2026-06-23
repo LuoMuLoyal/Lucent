@@ -6,7 +6,7 @@ import type {
   AssistantToolExecutionResult,
   AssistantUpdateDailyRecordProposalPayload,
   AssistantUpdateUserSettingsProposalPayload,
-} from '../assistant.types';
+} from '../types/assistant.types';
 import type { AssistantToolName } from './assistant-tool.types';
 import { AssistantToolRecordQueryService } from './assistant-tool-record-query.service';
 import {
@@ -64,7 +64,7 @@ export class AssistantToolProposalService {
         },
       };
     }
-    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
     const payload: AssistantCreateDailyRecordProposalPayload = {
       type: 'create_daily_record',
       draft: {
@@ -77,7 +77,7 @@ export class AssistantToolProposalService {
         payload: first.payload,
       },
     };
-    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
+
     return {
       name: toolName,
       data: {

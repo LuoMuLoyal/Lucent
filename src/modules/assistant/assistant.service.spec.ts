@@ -5,8 +5,8 @@ import {
 } from '@nestjs/common';
 import type { UserSettingsService } from '../user-settings/user-settings.service';
 import type { AssistantRuntimeService } from './agent/assistant-runtime.service';
-import type { AssistantConversationService } from './assistant-conversation.service';
-import type { AssistantPolicyService } from './assistant-policy.service';
+import type { AssistantConversationService } from './services/assistant-conversation.service';
+import type { AssistantPolicyService } from './services/assistant-policy.service';
 import type { AssistantContextService } from './tools/assistant-context.service';
 import type { AssistantToolService } from './tools/assistant-tool.service';
 import { AssistantService } from './assistant.service';

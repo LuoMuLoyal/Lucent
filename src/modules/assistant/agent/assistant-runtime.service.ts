@@ -6,13 +6,13 @@ import {
   SystemMessage,
 } from '@langchain/core/messages';
 import { LlmRuntimeService } from '../../llm-runtime/llm-runtime.service';
-import type { AssistantRuntimeCapabilities } from '../assistant.types';
+import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
 import type {
   AssistantMessageResult,
   AssistantConversationMessage,
   AssistantStreamChunkEvent,
   AssistantToolExecutionResult,
-} from '../assistant.types';
+} from '../types/assistant.types';
 import {
   ASSISTANT_CONTEXT_SOURCES,
   ASSISTANT_IMPLEMENTED_TOOL_NAMES,

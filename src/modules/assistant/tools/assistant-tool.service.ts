@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type {
   AssistantToolExecutionContext,
   AssistantToolExecutionResult,
-} from '../assistant.types';
+} from '../types/assistant.types';
 import type { AssistantToolName } from './assistant-tool.types';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';

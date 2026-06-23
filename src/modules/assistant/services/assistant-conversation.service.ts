@@ -1,15 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ResultCode } from '../../common/api-envelope';
-import {
-  AssistantConversationStatus,
-  type Prisma,
-} from '../../generated/prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { ResultCode } from '../../../common/api-envelope';
+import { AssistantConversationStatus } from '../../../generated/prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   AssistantConversationMessage,
   AssistantConversationSnapshot,
   AssistantConversationSummary,
-} from './assistant.types';
+} from '../types/assistant.types';
 
 const conversationInclude = {
   messages: {
@@ -30,13 +27,35 @@ const RECENT_CONVERSATION_LIMIT = 20;
 const MEMORY_CONVERSATION_LIMIT = 3;
 const MEMORY_MESSAGE_LIMIT = 6;
 
-type PersistedConversation = Prisma.AssistantConversationGetPayload<{
-  include: typeof conversationInclude;
-}>;
+type PersistedMessage = {
+  id: string;
+  conversationId: string;
+  userId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  usedTools: unknown;
+  createdAt: Date;
+};
 
-type PersistedConversationSummary = Prisma.AssistantConversationGetPayload<{
-  select: typeof conversationSummarySelect;
-}>;
+type PersistedConversation = {
+  id: string;
+  userId: string;
+  title: string | null;
+  status: AssistantConversationStatus;
+  lastMessageAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  messages: PersistedMessage[];
+};
+
+type PersistedConversationSummary = {
+  id: string;
+  title: string | null;
+  status: AssistantConversationStatus;
+  lastMessageAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 @Injectable()
 export class AssistantConversationService {
@@ -52,7 +71,7 @@ export class AssistantConversationService {
   async listRecentConversations(
     userId: string,
   ): Promise<AssistantConversationSummary[]> {
-    const conversations = await this.prisma.assistantConversation.findMany({
+    const conversations = (await this.prisma.assistantConversation.findMany({
       where: { userId },
       select: conversationSummarySelect,
       orderBy: [
@@ -61,7 +80,7 @@ export class AssistantConversationService {
         { createdAt: 'desc' },
       ],
       take: RECENT_CONVERSATION_LIMIT,
-    });
+    })) as PersistedConversationSummary[];
 
     return conversations.map((conversation) => this.toSummary(conversation));
   }
@@ -70,10 +89,10 @@ export class AssistantConversationService {
     userId: string,
     conversationId: string,
   ): Promise<AssistantConversationSnapshot> {
-    const conversation = await this.prisma.assistantConversation.findFirst({
+    const conversation = (await this.prisma.assistantConversation.findFirst({
       where: { id: conversationId, userId },
       include: conversationInclude,
-    });
+    })) as PersistedConversation | null;
 
     if (conversation == null) {
       throw new NotFoundException({
@@ -98,10 +117,10 @@ export class AssistantConversationService {
       });
     });
 
-    const opened = await this.prisma.assistantConversation.findUniqueOrThrow({
+    const opened = (await this.prisma.assistantConversation.findUniqueOrThrow({
       where: { id: conversationId },
       include: conversationInclude,
-    });
+    })) as PersistedConversation;
 
     return this.toSnapshot(opened);
   }
@@ -114,11 +133,11 @@ export class AssistantConversationService {
       return null;
     }
 
-    const archived = await this.prisma.assistantConversation.update({
+    const archived = (await this.prisma.assistantConversation.update({
       where: { id: conversation.id },
       data: { status: AssistantConversationStatus.archived },
       include: conversationInclude,
-    });
+    })) as PersistedConversation;
 
     return this.toSnapshot(archived);
   }
@@ -188,15 +207,15 @@ export class AssistantConversationService {
       });
     });
 
-    const saved = await this.prisma.assistantConversation.findUniqueOrThrow({
+    const saved = (await this.prisma.assistantConversation.findUniqueOrThrow({
       where: { id: conversation.id },
       include: conversationInclude,
-    });
+    })) as PersistedConversation;
     return this.toSnapshot(saved);
   }
 
   async buildMemoryBlock(userId: string): Promise<string> {
-    const conversations = await this.prisma.assistantConversation.findMany({
+    const conversations = (await this.prisma.assistantConversation.findMany({
       where: { userId },
       include: {
         messages: {
@@ -210,7 +229,7 @@ export class AssistantConversationService {
         { createdAt: 'desc' },
       ],
       take: MEMORY_CONVERSATION_LIMIT,
-    });
+    })) as PersistedConversation[];
 
     if (conversations.length === 0) {
       return '';

@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import {
   AiSummaryHistoryKind,
   type Prisma,
-} from '../../generated/prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { ReportRange } from '../reports/dto/report-dashboard-query.dto';
+} from '../../../generated/prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
+import type { ReportRange } from '../../reports/dto/report-dashboard-query.dto';
 
 type SummaryBullet = {
   kind: string;

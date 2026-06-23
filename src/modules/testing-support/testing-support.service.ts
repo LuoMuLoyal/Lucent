@@ -8,7 +8,7 @@ import { ARGON2_OPTIONS } from '../auth/config/argon2-options';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../generated/prisma/client';
 import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';
-import { listDefaultBooleanUserSettings } from '../user-settings/user-settings.constants';
+import { listDefaultBooleanUserSettings } from '../user-settings/config/user-settings.constants';
 
 const DEFAULT_RECORD_LANE_NICKNAME = 'E2E Record Lane';
 

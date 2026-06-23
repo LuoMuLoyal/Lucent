@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { DailyRecordKind } from '../../../generated/prisma/client';
 import { DailyRecordsService } from '../../daily-records/daily-records.service';
-import type { AssistantToolExecutionContext } from '../assistant.types';
+import type { AssistantToolExecutionContext } from '../types/assistant.types';
 import { resolveSingleDate } from './assistant-tool-date-resolver';
 import type {
   ToolMutationHints,

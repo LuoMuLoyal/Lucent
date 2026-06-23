@@ -14,7 +14,7 @@ import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
 import { ResultCode } from '../../../src/common/api-envelope';
 import type { ApiEnvelope } from '../../../src/common/api-envelope';
-import { DailyRecordCandidatesService } from '../../../src/modules/daily-records/daily-record-candidates.service';
+import { DailyRecordCandidatesService } from '../../../src/modules/daily-records/services/daily-record-candidates.service';
 import { PrismaService } from '../../../src/prisma/prisma.service';
 import {
   DailyRecordKind,

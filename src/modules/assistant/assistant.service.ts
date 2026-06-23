@@ -11,18 +11,18 @@ import type {
   AssistantMessageDataDto,
   StreamAssistantMessagesDto,
 } from './dto';
-import type { AssistantRuntimeCapabilities } from './assistant.types';
+import type { AssistantRuntimeCapabilities } from './types/assistant.types';
 import { AssistantRuntimeService } from './agent/assistant-runtime.service';
 import { UserSettingsService } from '../user-settings/user-settings.service';
-import { AssistantPolicyService } from './assistant-policy.service';
+import { AssistantPolicyService } from './services/assistant-policy.service';
 import { AssistantContextService } from './tools/assistant-context.service';
 import { AssistantToolService } from './tools/assistant-tool.service';
-import { AssistantConversationService } from './assistant-conversation.service';
+import { AssistantConversationService } from './services/assistant-conversation.service';
 import type {
   AssistantConversationMessage,
   AssistantStreamChunkEvent,
   AssistantToolExecutionContext,
-} from './assistant.types';
+} from './types/assistant.types';
 
 @Injectable()
 export class AssistantService {

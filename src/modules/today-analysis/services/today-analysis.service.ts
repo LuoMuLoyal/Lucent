@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { ResultCode } from '../../../common/api-envelope';
-import { HistoricalAiSummaryService } from '../../assistant/historical-ai-summary.service';
+import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from '../dto';
 import { TodayAnalysisCopyService } from './today-analysis-copy.service';
@@ -12,7 +12,7 @@ import { TodayAnalysisGeneratorService } from './today-analysis-generator.servic
 import { TodayAnalysisPolicyService } from './today-analysis-policy.service';
 import type { TodayAnalysisStructuredOutput } from '../schemas/today-analysis.schema';
 import type { StreamSummaryEvent } from '../../../common/stream-summary';
-import { USER_SETTING_KEYS } from '../../user-settings/user-settings.constants';
+import { USER_SETTING_KEYS } from '../../user-settings/config/user-settings.constants';
 
 interface PreparedTodayAnalysis {
   locale: string;
