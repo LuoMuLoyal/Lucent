@@ -4,7 +4,7 @@ import type { Cache } from 'cache-manager';
 import * as argon2 from 'argon2';
 import { createHash } from 'node:crypto';
 
-import { ARGON2_OPTIONS } from '../auth/argon2-options';
+import { ARGON2_OPTIONS } from '../auth/config/argon2-options';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserStatus } from '../../generated/prisma/client';
 import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';

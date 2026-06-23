@@ -8,11 +8,11 @@ import {
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
-import { ARGON2_OPTIONS } from './argon2-options';
+import { ARGON2_OPTIONS } from './config/argon2-options';
 import { PrismaService } from '../../prisma/prisma.service';
 import { User, UserStatus } from '../../generated/prisma/client';
 import { UserService } from '../user/user.service';
-import { VerificationCodeService } from './verification-code.service';
+import { VerificationCodeService } from './services/verification-code.service';
 import { ResultCode } from '../../common/api-envelope';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -29,22 +29,28 @@ import {
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
 } from './dto/oauth.dto';
-import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
-import { WechatMobileOAuthProvider } from './wechat-mobile-oauth.provider';
-import { type OAuthAuthorizeResult, type OAuthProfile } from './oauth.types';
+import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
+import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
+import {
+  type OAuthAuthorizeResult,
+  type OAuthProfile,
+} from './types/oauth.types';
 import {
   AuthOAuthStateService,
   type OAuthStateEntry,
-} from './auth-oauth-state.service';
+} from './services/auth-oauth-state.service';
 import {
   AuthTokenService,
   type AuthRequestContext,
   type TokenPair,
-} from './auth-token.service';
-import { AuthRateLimitService } from './auth-rate-limit.service';
-import { AuthOAuthService } from './auth-oauth.service';
+} from './services/auth-token.service';
+import { AuthRateLimitService } from './services/auth-rate-limit.service';
+import { AuthOAuthService } from './services/auth-oauth.service';
 
-export type { AuthRequestContext, UserPayload } from './auth-token.service';
+export type {
+  AuthRequestContext,
+  UserPayload,
+} from './services/auth-token.service';
 
 @Injectable()
 export class AuthService {

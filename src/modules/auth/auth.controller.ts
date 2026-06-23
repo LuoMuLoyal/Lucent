@@ -24,6 +24,11 @@ import type { Request, Response } from 'express';
 
 import { successEnvelope } from '../../common/api-envelope';
 import { getRequestClientIp } from '../../common/request/client-ip';
+import {
+  calculateExpiresIn,
+  formatDateTime,
+  toEmailVerified,
+} from '../../common/utils/date-time.utils';
 import { VERIFICATION_CODE_COOLDOWN_SEC } from './verification-code.service';
 import { AuthService } from './auth.service';
 import { AuthTokenService } from './auth-token.service';
@@ -80,14 +85,14 @@ export class AuthController {
         id: result.user.id,
         email: result.user.email,
         nickname: result.user.nickname,
-        emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
-        emailVerifiedAt: this.formatDateTime(result.user.emailVerifiedAt),
+        emailVerified: toEmailVerified(result.user.emailVerifiedAt),
+        emailVerifiedAt: formatDateTime(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
       },
       tokens: {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
-        expiresIn: this.calculateExpiresIn(result.accessTokenExpiresAt),
+        expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
       },
     });
   }
@@ -109,15 +114,15 @@ export class AuthController {
         email: result.user.email,
         nickname: result.user.nickname,
         avatar: result.user.avatar,
-        emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
-        emailVerifiedAt: this.formatDateTime(result.user.emailVerifiedAt),
+        emailVerified: toEmailVerified(result.user.emailVerifiedAt),
+        emailVerifiedAt: formatDateTime(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
         updatedAt: result.user.updatedAt.toISOString(),
       },
       tokens: {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
-        expiresIn: this.calculateExpiresIn(result.accessTokenExpiresAt),
+        expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
       },
     });
   }
@@ -154,15 +159,15 @@ export class AuthController {
         email: result.user.email,
         nickname: result.user.nickname,
         avatar: result.user.avatar,
-        emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
-        emailVerifiedAt: this.formatDateTime(result.user.emailVerifiedAt),
+        emailVerified: toEmailVerified(result.user.emailVerifiedAt),
+        emailVerifiedAt: formatDateTime(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
         updatedAt: result.user.updatedAt.toISOString(),
       },
       tokens: {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
-        expiresIn: this.calculateExpiresIn(result.accessTokenExpiresAt),
+        expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
       },
     });
   }
@@ -203,15 +208,15 @@ export class AuthController {
         email: result.user.email,
         nickname: result.user.nickname,
         avatar: result.user.avatar,
-        emailVerified: this.toEmailVerified(result.user.emailVerifiedAt),
-        emailVerifiedAt: this.formatDateTime(result.user.emailVerifiedAt),
+        emailVerified: toEmailVerified(result.user.emailVerifiedAt),
+        emailVerifiedAt: formatDateTime(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
         updatedAt: result.user.updatedAt.toISOString(),
       },
       tokens: {
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
-        expiresIn: this.calculateExpiresIn(result.accessTokenExpiresAt),
+        expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
       },
     });
   }
@@ -237,6 +242,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '列出当前用户的活跃会话' })
   async listSessions(@CurrentUser() user: UserPayload) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const sessions = await this.authTokenService.listSessions(user.sub);
     return successEnvelope(sessions);
   }
@@ -252,6 +258,7 @@ export class AuthController {
     @CurrentUser() user: UserPayload,
     @Param('sessionId') sessionId: string,
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     await this.authTokenService.revokeById(user.sub, sessionId);
     return successEnvelope(null);
   }
@@ -271,7 +278,7 @@ export class AuthController {
     return successEnvelope({
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
-      expiresIn: this.calculateExpiresIn(result.accessTokenExpiresAt),
+      expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
     });
   }
 
@@ -290,10 +297,12 @@ export class AuthController {
       dto,
       getRequestClientIp(request),
     );
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
     return successEnvelope({
       cooldown: VERIFICATION_CODE_COOLDOWN_SEC,
       message: result.message,
     });
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
   }
 
   // ── 6. POST /api/v1/auth/verify-email ──────────────────────────
@@ -322,10 +331,12 @@ export class AuthController {
       dto,
       getRequestClientIp(request),
     );
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
     return successEnvelope({
       cooldown: VERIFICATION_CODE_COOLDOWN_SEC,
       message: result.message,
     });
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
   }
 
   // ── 8. POST /api/v1/auth/reset-password ────────────────────────
@@ -337,21 +348,6 @@ export class AuthController {
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto);
     return successEnvelope(null);
-  }
-
-  // ── Helpers ────────────────────────────────────────────────────
-
-  private calculateExpiresIn(expiresAtIso: string): number {
-    const diff = new Date(expiresAtIso).getTime() - Date.now();
-    return Math.max(0, Math.ceil(diff / 1000));
-  }
-
-  private toEmailVerified(emailVerifiedAt: Date | null): boolean {
-    return emailVerifiedAt !== null;
-  }
-
-  private formatDateTime(value: Date | null): string | null {
-    return value?.toISOString() ?? null;
   }
 
   private getAuthRequestContext(request: Request): AuthRequestContext {

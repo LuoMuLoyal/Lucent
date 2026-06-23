@@ -16,7 +16,7 @@ Keep durable implementation context in the owning code comments when the TODO is
 - Assistant phase 1 now uses a restricted LangGraph foundation:
   - keep tool availability enforced server-side
   - keep latest-conversation persistence intentionally narrow before expanding to multi-conversation management
-  - keep leaflet RAG / pgvector deferred until the base assistant contract is stable
+  - base assistant contract is now stable enough to start a bounded leaflet-RAG planning slice; keep actual implementation restricted to assistant-only retrieval and do not let it replace the medicine safety rule engine
 
 ## Module Boundaries
 

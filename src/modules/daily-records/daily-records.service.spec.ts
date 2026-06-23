@@ -5,8 +5,8 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { DailyRecordKind } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { DailyRecordsGuardService } from './daily-records-guard.service';
-import { DailyRecordsMapperService } from './daily-records-mapper.service';
+import { DailyRecordsGuardService } from './guards/daily-records-guard.service';
+import { DailyRecordsMapperService } from './services/daily-records-mapper.service';
 import { DailyRecordsService } from './daily-records.service';
 
 const mockUserId = 'user-uuid-1';

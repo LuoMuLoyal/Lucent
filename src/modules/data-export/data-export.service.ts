@@ -6,8 +6,8 @@ import {
   type CreateDataExportRequestDto,
   type DataExportRequestDataDto,
 } from './dto';
-import { DataExportStorageService } from './data-export-storage.service';
-import { ReportExportPdfService } from './report-export-pdf.service';
+import { DataExportStorageService } from './services/data-export-storage.service';
+import { ReportExportPdfService } from './services/report-export-pdf.service';
 import type { ReportDashboardDataDto } from '../reports/dto';
 
 const DEFAULT_EXPORT_RANGE = 'last_7_days';

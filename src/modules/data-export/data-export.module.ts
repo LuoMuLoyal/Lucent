@@ -2,11 +2,11 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from '../auth/auth.module';
 import { ReportsModule } from '../reports/reports.module';
-import { DataExportCosRuntime } from './data-export-cos.runtime';
+import { DataExportCosRuntime } from './config/data-export-cos.runtime';
 import { DataExportController } from './data-export.controller';
 import { DataExportService } from './data-export.service';
-import { DataExportStorageService } from './data-export-storage.service';
-import { ReportExportPdfService } from './report-export-pdf.service';
+import { DataExportStorageService } from './services/data-export-storage.service';
+import { ReportExportPdfService } from './services/report-export-pdf.service';
 
 @Module({
   imports: [AuthModule, ReportsModule],

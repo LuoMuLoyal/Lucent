@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DailyRecordCandidatesService } from '../../daily-records/daily-record-candidates.service';
+import { DailyRecordCandidatesService } from '../../daily-records/services/daily-record-candidates.service';
 import type {
   AssistantCreateDailyRecordProposalPayload,
   AssistantToolExecutionContext,
@@ -64,6 +64,7 @@ export class AssistantToolProposalService {
         },
       };
     }
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment */
     const payload: AssistantCreateDailyRecordProposalPayload = {
       type: 'create_daily_record',
       draft: {
@@ -76,6 +77,7 @@ export class AssistantToolProposalService {
         payload: first.payload,
       },
     };
+    /* eslint-enable @typescript-eslint/no-unsafe-assignment */
     return {
       name: toolName,
       data: {

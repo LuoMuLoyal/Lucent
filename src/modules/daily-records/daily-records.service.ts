@@ -2,12 +2,12 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { DailyRecordKind, Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateDailyRecordDto, UpdateDailyRecordDto } from './dto';
-import { DailyRecordsGuardService } from './daily-records-guard.service';
-import { DailyRecordsMapperService } from './daily-records-mapper.service';
+import { DailyRecordsGuardService } from './guards/daily-records-guard.service';
+import { DailyRecordsMapperService } from './services/daily-records-mapper.service';
 import {
   dailyRecordWithAttachments,
   type DailyRecordDbClient,
-} from './daily-records.types';
+} from './types/daily-records.types';
 
 @Injectable()
 export class DailyRecordsService {

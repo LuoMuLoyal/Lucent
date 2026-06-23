@@ -14,18 +14,18 @@ import * as argon2 from 'argon2';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserService } from '../user/user.service';
-import { VerificationCodeService } from './verification-code.service';
-import { AuthRateLimitService } from './auth-rate-limit.service';
-import { AuthTokenService } from './auth-token.service';
-import { AuthOAuthStateService } from './auth-oauth-state.service';
-import { AuthOAuthService } from './auth-oauth.service';
+import { VerificationCodeService } from './services/verification-code.service';
+import { AuthRateLimitService } from './services/auth-rate-limit.service';
+import { AuthTokenService } from './services/auth-token.service';
+import { AuthOAuthStateService } from './services/auth-oauth-state.service';
+import { AuthOAuthService } from './services/auth-oauth.service';
 import { UserStatus } from '../../generated/prisma/client';
-import { WechatMobileOAuthProvider } from './wechat-mobile-oauth.provider';
-import { WechatWebOAuthProvider } from './wechat-web-oauth.provider';
+import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
+import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
 import {
   OAUTH_PROVIDER_WECHAT_MOBILE,
   OAUTH_PROVIDER_WECHAT_WEB,
-} from './oauth.types';
+} from './types/oauth.types';
 
 jest.mock('argon2', () => ({
   argon2id: 2,

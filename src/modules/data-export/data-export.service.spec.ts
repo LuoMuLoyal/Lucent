@@ -1,8 +1,8 @@
 import type { PrismaService } from '../../prisma/prisma.service';
 import type { ReportsService } from '../reports/dashboard/reports.service';
 import { DataExportService } from './data-export.service';
-import type { DataExportStorageService } from './data-export-storage.service';
-import type { ReportExportPdfService } from './report-export-pdf.service';
+import type { DataExportStorageService } from './services/data-export-storage.service';
+import type { ReportExportPdfService } from './services/report-export-pdf.service';
 
 describe('DataExportService', () => {
   it('marks the request unavailable when COS storage is not configured', async () => {
