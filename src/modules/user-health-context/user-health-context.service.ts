@@ -16,10 +16,7 @@ import type {
 import { UserHealthContextGuardService } from './guards/user-health-context-guard.service';
 import { UserHealthContextMapperService } from './services/user-health-context-mapper.service';
 import { UserHealthContextProfileWriteService } from './services/user-health-context-profile-write.service';
-import {
-  userHealthContextInclude,
-  type UserHealthContextRecord,
-} from './types/user-health-context.types';
+import { userHealthContextInclude } from './types/user-health-context.types';
 
 @Injectable()
 export class UserHealthContextService {
@@ -32,13 +29,13 @@ export class UserHealthContextService {
   ) {}
 
   async getForUser(userId: string): Promise<HealthContextResponseData> {
-    const user = (await this.prisma.user.findFirst({
+    const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
         deletedAt: null,
       },
       include: userHealthContextInclude,
-    })) as UserHealthContextRecord | null;
+    });
 
     if (!user) {
       throw new NotFoundException({

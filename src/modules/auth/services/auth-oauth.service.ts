@@ -65,7 +65,6 @@ export class AuthOAuthService {
           emailVerifiedAt: profile.emailVerifiedAt,
         }),
         ...(profile.rawProfile !== undefined && {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           rawProfile: profile.rawProfile,
         }),
       },
@@ -132,7 +131,6 @@ export class AuthOAuthService {
         emailVerifiedAt: profile.emailVerifiedAt,
       }),
       ...(profile.rawProfile !== undefined && {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         rawProfile: profile.rawProfile,
       }),
     });

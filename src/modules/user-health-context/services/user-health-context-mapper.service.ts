@@ -80,7 +80,7 @@ export class UserHealthContextMapperService {
       allergies,
       conditions,
       currentMedicines,
-    } as HealthContextResponseData;
+    };
   }
 
   normalizePreferenceString(value: string | null): string | null {

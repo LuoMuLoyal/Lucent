@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   DoseLogStatus,
   type DailyRecordKind,
+  type Prisma,
 } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -9,26 +10,36 @@ const DEFAULT_WATER_TARGET_COUNT = 8;
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;
 
-type DailyRecordShape = {
-  kind: DailyRecordKind;
-  occurredTime: string | null;
-  title: string | null;
-  value: string | null;
-  unit: string | null;
-  note: string | null;
-  payload: unknown;
-  createdAt: Date;
-};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const dailyRecordSelect = {
+  kind: true,
+  occurredTime: true,
+  title: true,
+  value: true,
+  unit: true,
+  note: true,
+  payload: true,
+  createdAt: true,
+} satisfies Prisma.UserDailyRecordSelect;
 
-type ReminderShape = {
-  currentMedicineId: string | null;
-  scheduledHour: number;
-  scheduledMinute: number;
-  daysOfWeek: unknown;
-  startDate: Date | null;
-  endDate: Date | null;
-  createdAt: Date;
-};
+type DailyRecordShape = Prisma.UserDailyRecordGetPayload<{
+  select: typeof dailyRecordSelect;
+}>;
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const reminderSelect = {
+  currentMedicineId: true,
+  scheduledHour: true,
+  scheduledMinute: true,
+  daysOfWeek: true,
+  startDate: true,
+  endDate: true,
+  createdAt: true,
+} satisfies Prisma.UserMedicineReminderSelect;
+
+type ReminderShape = Prisma.UserMedicineReminderGetPayload<{
+  select: typeof reminderSelect;
+}>;
 
 export interface TodayAnalysisContext {
   date: string;

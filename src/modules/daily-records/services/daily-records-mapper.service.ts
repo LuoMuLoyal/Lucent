@@ -77,8 +77,8 @@ export class DailyRecordsMapperService {
       unit: record.unit,
       note: record.note,
       source: record.source,
-      payload: (record.payload as Record<string, unknown> | null) ?? null,
-      attachments: (record.attachments ?? []).map((attachment) => ({
+      payload: record.payload as Record<string, unknown> | null,
+      attachments: record.attachments.map((attachment) => ({
         id: attachment.id,
         kind: attachment.kind,
         objectKey: attachment.objectKey,

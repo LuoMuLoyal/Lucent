@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { DataExportRequest } from '../../generated/prisma/client';
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ReportsService } from '../reports/dashboard/reports.service';
 import {
@@ -12,6 +12,25 @@ import type { ReportDashboardDataDto } from '../reports/dto';
 
 const DEFAULT_EXPORT_RANGE = 'last_7_days';
 const MONTHLY_EXPORT_RANGE = 'last_30_days';
+
+const dataExportSelect = {
+  id: true,
+  kind: true,
+  format: true,
+  range: true,
+  status: true,
+  createdAt: true,
+  completedAt: true,
+  downloadUrl: true,
+  objectKey: true,
+  fileName: true,
+  fileSizeBytes: true,
+  errorMessage: true,
+} satisfies Prisma.DataExportRequestSelect;
+
+type DataExportRequestRow = Prisma.DataExportRequestGetPayload<{
+  select: typeof dataExportSelect;
+}>;
 
 @Injectable()
 export class DataExportService {
@@ -133,6 +152,7 @@ export class DataExportService {
     userId: string,
   ): Promise<DataExportRequestDataDto | null> {
     const row = await this.prisma.dataExportRequest.findFirst({
+      select: dataExportSelect,
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
@@ -140,13 +160,13 @@ export class DataExportService {
     return row ? this.toDto(row) : null;
   }
 
-  private toDto(row: DataExportRequest): DataExportRequestDataDto {
+  private toDto(row: DataExportRequestRow): DataExportRequestDataDto {
     return {
       id: row.id,
-      kind: row.kind as DataExportRequestDataDto['kind'],
-      format: row.format as DataExportRequestDataDto['format'],
-      range: row.range as DataExportRequestDataDto['range'],
-      status: row.status as DataExportRequestDataDto['status'],
+      kind: row.kind,
+      format: row.format,
+      range: row.range,
+      status: row.status,
       requestedAt: row.createdAt.toISOString(),
       completedAt: row.completedAt?.toISOString() ?? null,
       downloadUrl:
@@ -154,7 +174,7 @@ export class DataExportService {
       fileName: row.fileName,
       fileSizeBytes: row.fileSizeBytes,
       errorMessage: row.errorMessage,
-    };
+    } as DataExportRequestDataDto;
   }
 
   private createFileName(
