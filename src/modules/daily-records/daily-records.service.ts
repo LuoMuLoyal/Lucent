@@ -28,11 +28,8 @@ export class DailyRecordsService {
       userId,
       occurredAt: new Date(`${date}T00:00:00.000Z`),
       deletedAt: null,
+      ...(kind != null ? { kind: kind as DailyRecordKind } : {}),
     };
-
-    if (kind != null) {
-      (where as Record<string, unknown>)['kind'] = kind;
-    }
 
     const [items, total] = await Promise.all([
       this.prisma.userDailyRecord.findMany({

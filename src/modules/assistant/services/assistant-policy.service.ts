@@ -54,9 +54,9 @@ export class AssistantPolicyService {
     settings: UserSettingsDataDto,
     contextPermittedToolNames: readonly AssistantToolName[],
   ): AssistantToolCapabilitySnapshot {
-    const requiredContextSources = [
+    const requiredContextSources: AssistantContextSource[] = [
       ...ASSISTANT_TOOL_SOURCE_MAP[toolName],
-    ] as AssistantContextSource[];
+    ];
     const permittedByUser =
       settings.assistantEnabled && contextPermittedToolNames.includes(toolName);
     const implemented = foundation.implementedToolNames.includes(toolName);
