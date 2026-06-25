@@ -1,7 +1,7 @@
 import {
-  buildAiUserPrompt,
-  type AiPromptCopy,
-} from '../../../common/ai/ai-copy';
+  buildUserPrompt,
+  type PromptCopy,
+} from '../../../common/localized-copy/localized-copy';
 import type { ReportsAiSummaryContext } from '../services/reports-ai-summary-context.service';
 
 export function buildReportSummarySystemPrompt(): string {
@@ -18,11 +18,11 @@ export function buildReportSummarySystemPrompt(): string {
   ].join(' ');
 }
 
-export type ReportSummaryPromptCopy = AiPromptCopy;
+export type ReportSummaryPromptCopy = PromptCopy;
 
 export function buildReportSummaryUserPrompt(
   context: ReportsAiSummaryContext,
   copy: ReportSummaryPromptCopy,
 ): string {
-  return buildAiUserPrompt(context, copy);
+  return buildUserPrompt(context, copy);
 }

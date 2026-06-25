@@ -1,5 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsVerificationCode } from '../../../common/validators/auth.decorators';
 
 export class DeleteAccountDto {
   @ApiPropertyOptional({
@@ -15,8 +16,6 @@ export class DeleteAccountDto {
     description: '邮箱验证码（OAuth-only 用户使用此方式确认注销）',
     example: '123456',
   })
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty({ message: '验证码不能为空' })
+  @IsVerificationCode({ optional: true, exactLength: false })
   code?: string;
 }

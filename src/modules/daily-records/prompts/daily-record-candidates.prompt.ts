@@ -1,7 +1,7 @@
 import {
-  buildAiUserPrompt,
-  type AiPromptCopy,
-} from '../../../common/ai/ai-copy';
+  buildUserPrompt,
+  type PromptCopy,
+} from '../../../common/localized-copy/localized-copy';
 
 export function buildDailyRecordCandidatesSystemPrompt(): string {
   return [
@@ -20,11 +20,11 @@ export function buildDailyRecordCandidatesSystemPrompt(): string {
   ].join(' ');
 }
 
-export type DailyRecordCandidatesPromptCopy = AiPromptCopy;
+export type DailyRecordCandidatesPromptCopy = PromptCopy;
 
 export function buildDailyRecordCandidatesUserPrompt(
   context: unknown,
   copy: DailyRecordCandidatesPromptCopy,
 ): string {
-  return buildAiUserPrompt(context, copy);
+  return buildUserPrompt(context, copy);
 }

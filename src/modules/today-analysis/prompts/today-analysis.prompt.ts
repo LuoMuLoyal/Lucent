@@ -1,7 +1,7 @@
 import {
-  buildAiUserPrompt,
-  type AiPromptCopy,
-} from '../../../common/ai/ai-copy';
+  buildUserPrompt,
+  type PromptCopy,
+} from '../../../common/localized-copy/localized-copy';
 import type { TodayAnalysisContext } from '../services/today-analysis-context.service';
 
 export function buildTodayAnalysisSystemPrompt(): string {
@@ -18,11 +18,11 @@ export function buildTodayAnalysisSystemPrompt(): string {
   ].join(' ');
 }
 
-export type TodayAnalysisPromptCopy = AiPromptCopy;
+export type TodayAnalysisPromptCopy = PromptCopy;
 
 export function buildTodayAnalysisUserPrompt(
   context: TodayAnalysisContext,
   copy: TodayAnalysisPromptCopy,
 ): string {
-  return buildAiUserPrompt(context, copy);
+  return buildUserPrompt(context, copy);
 }

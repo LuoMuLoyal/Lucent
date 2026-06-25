@@ -1,15 +1,15 @@
 import type { I18nService } from 'nestjs-i18n';
 
-export interface AiPromptCopy {
+export interface PromptCopy {
   userIntro: string;
   tone: string;
   actionLabelHint: string;
   factsLabel: string;
 }
 
-type AiCopyArgs = Record<string, string | number>;
+type ScopedCopyArgs = Record<string, string | number>;
 
-export function resolveAiLocale(language: string | undefined): string {
+export function resolveLocale(language: string | undefined): string {
   const normalized = language?.trim().toLowerCase() ?? '';
   if (normalized.startsWith('zh')) {
     return 'zh-CN';
@@ -18,12 +18,12 @@ export function resolveAiLocale(language: string | undefined): string {
   return 'en';
 }
 
-export function buildLocalizedAiPromptCopy(
+export function buildLocalizedPromptCopy(
   i18n: I18nService,
   scope: string,
   locale: string,
-): AiPromptCopy {
-  const actionLabel = translateAiScopedCopy(
+): PromptCopy {
+  const actionLabel = translateScopedCopy(
     i18n,
     scope,
     locale,
@@ -31,11 +31,11 @@ export function buildLocalizedAiPromptCopy(
   );
 
   return {
-    userIntro: translateAiScopedCopy(i18n, scope, locale, 'prompt.user_intro', {
+    userIntro: translateScopedCopy(i18n, scope, locale, 'prompt.user_intro', {
       languageLabel: locale === 'zh-CN' ? '中文' : 'English',
     }),
-    tone: translateAiScopedCopy(i18n, scope, locale, 'prompt.tone'),
-    actionLabelHint: translateAiScopedCopy(
+    tone: translateScopedCopy(i18n, scope, locale, 'prompt.tone'),
+    actionLabelHint: translateScopedCopy(
       i18n,
       scope,
       locale,
@@ -44,19 +44,11 @@ export function buildLocalizedAiPromptCopy(
         actionLabel,
       },
     ),
-    factsLabel: translateAiScopedCopy(
-      i18n,
-      scope,
-      locale,
-      'prompt.facts_label',
-    ),
+    factsLabel: translateScopedCopy(i18n, scope, locale, 'prompt.facts_label'),
   };
 }
 
-export function buildAiUserPrompt(
-  context: unknown,
-  copy: AiPromptCopy,
-): string {
+export function buildUserPrompt(context: unknown, copy: PromptCopy): string {
   return [
     copy.userIntro,
     copy.tone,
@@ -66,12 +58,12 @@ export function buildAiUserPrompt(
   ].join('\n');
 }
 
-export function translateAiScopedCopy(
+export function translateScopedCopy(
   i18n: I18nService,
   scope: string,
   locale: string,
   key: string,
-  args?: AiCopyArgs,
+  args?: ScopedCopyArgs,
 ): string {
   if (args === undefined) {
     return i18n.t(`${scope}.${key}`, {

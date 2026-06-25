@@ -1,38 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
-import {
-  buildLocalizedAiPromptCopy,
-  resolveAiLocale,
-  translateAiScopedCopy,
-} from '../../../common/ai/ai-copy';
+import { LocalizedCopyService } from '../../../common/localized-copy/localized-copy.service';
 import type { TodayAnalysisContext } from './today-analysis-context.service';
 import type { TodayAnalysisStructuredOutput } from '../schemas/today-analysis.schema';
 import type { TodayAnalysisPromptCopy } from '../prompts/today-analysis.prompt';
 
-const TODAY_ANALYSIS_COPY_SCOPE = 'today-analysis';
-
 @Injectable()
-export class TodayAnalysisCopyService {
-  constructor(private readonly i18n: I18nService) {}
-
-  resolveLocale(language: string | undefined): string {
-    return resolveAiLocale(language);
-  }
-
-  serviceUnavailable(locale: string): string {
-    return this.t(locale, 'service_unavailable');
-  }
+export class TodayAnalysisCopyService extends LocalizedCopyService<TodayAnalysisPromptCopy> {
+  protected readonly scope = 'today-analysis';
 
   summariesDisabled(locale: string): string {
     return this.t(locale, 'summaries_disabled');
-  }
-
-  buildPromptCopy(locale: string): TodayAnalysisPromptCopy {
-    return buildLocalizedAiPromptCopy(
-      this.i18n,
-      TODAY_ANALYSIS_COPY_SCOPE,
-      locale,
-    );
   }
 
   buildFallback(
@@ -89,19 +66,5 @@ export class TodayAnalysisCopyService {
       actionLabel,
       confidenceNote,
     };
-  }
-
-  private t(
-    locale: string,
-    key: string,
-    args?: Record<string, string | number>,
-  ): string {
-    return translateAiScopedCopy(
-      this.i18n,
-      TODAY_ANALYSIS_COPY_SCOPE,
-      locale,
-      key,
-      args,
-    );
   }
 }

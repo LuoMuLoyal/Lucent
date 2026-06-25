@@ -1,39 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
-import {
-  buildLocalizedAiPromptCopy,
-  resolveAiLocale,
-  translateAiScopedCopy,
-} from '../../../common/ai/ai-copy';
+import { LocalizedCopyService } from '../../../common/localized-copy/localized-copy.service';
 import type { ReportsAiSummaryContext } from './reports-ai-summary-context.service';
 import { REPORT_RANGE_LAST_30_DAYS } from '../dto';
 import type { ReportSummaryStructuredOutput } from '../schemas/report-summary.schema';
 import type { ReportSummaryPromptCopy } from '../prompts/report-summary.prompt';
 
-const REPORTS_AI_SUMMARY_COPY_SCOPE = 'reports-ai-summary';
-
 @Injectable()
-export class ReportsAiSummaryCopyService {
-  constructor(private readonly i18n: I18nService) {}
-
-  resolveLocale(language: string | undefined): string {
-    return resolveAiLocale(language);
-  }
-
-  serviceUnavailable(locale: string): string {
-    return this.t(locale, 'service_unavailable');
-  }
+export class ReportsAiSummaryCopyService extends LocalizedCopyService<ReportSummaryPromptCopy> {
+  protected readonly scope = 'reports-ai-summary';
 
   summariesDisabled(locale: string): string {
     return this.t(locale, 'summaries_disabled');
-  }
-
-  buildPromptCopy(locale: string): ReportSummaryPromptCopy {
-    return buildLocalizedAiPromptCopy(
-      this.i18n,
-      REPORTS_AI_SUMMARY_COPY_SCOPE,
-      locale,
-    );
   }
 
   buildFallback(
@@ -121,20 +98,6 @@ export class ReportsAiSummaryCopyService {
       actionLabel,
       confidenceNote,
     };
-  }
-
-  private t(
-    locale: string,
-    key: string,
-    args?: Record<string, string | number>,
-  ): string {
-    return translateAiScopedCopy(
-      this.i18n,
-      REPORTS_AI_SUMMARY_COPY_SCOPE,
-      locale,
-      key,
-      args,
-    );
   }
 
   private dayCount(range: ReportsAiSummaryContext['range']): number {

@@ -1,5 +1,4 @@
 import {
-  IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -7,19 +6,16 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import {
+  IsEmailAddress,
+  IsStrongPassword,
+} from '../../../common/validators/auth.decorators';
 
 export class PrepareFullstackRecordLaneDto {
-  @IsEmail({}, { message: '邮箱格式不正确' })
-  @IsNotEmpty({ message: '邮箱不能为空' })
+  @IsEmailAddress()
   email!: string;
 
-  @IsString()
-  @IsNotEmpty({ message: '密码不能为空' })
-  @MinLength(8, { message: '密码至少 8 个字符' })
-  @MaxLength(32, { message: '密码最多 32 个字符' })
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/, {
-    message: '密码必须包含大写字母、小写字母和数字',
-  })
+  @IsStrongPassword()
   password!: string;
 
   @IsString()
