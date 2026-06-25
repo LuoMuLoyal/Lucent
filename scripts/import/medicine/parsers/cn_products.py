@@ -50,7 +50,7 @@ def to_record(row_number: int, row: dict[str, Any]) -> dict[str, Any] | None:
 
     record = {
         "id": product_id,
-        "source_name": "full_drug_detail",
+        "source_name": "chinese_drug_data_master",
         "source_row_number": row_number,
         "name": name,
         "image_url": normalize_text(row.get("image_url")),
@@ -118,10 +118,17 @@ def iter_xlsx_rows(source_path: str) -> Iterator[tuple[int, dict[str, Any]]]:
 
     workbook = load_workbook(source_path, read_only=True)
 
-    if "总的" not in workbook.sheetnames:
-        raise SystemExit("Expected sheet '总的' was not found in the workbook")
+    # Prefer the enriched master sheet; fall back to the legacy raw sheet.
+    if "ProductsEnriched" in workbook.sheetnames:
+        sheet_name = "ProductsEnriched"
+    elif "总的" in workbook.sheetnames:
+        sheet_name = "总的"
+    else:
+        raise SystemExit(
+            "Expected sheet 'ProductsEnriched' or '总的' was not found in the workbook"
+        )
 
-    worksheet = workbook["总的"]
+    worksheet = workbook[sheet_name]
     worksheet_rows = worksheet.iter_rows(values_only=True)
     header = next(worksheet_rows, None)
     if header is None:

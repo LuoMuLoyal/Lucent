@@ -17,9 +17,9 @@ const MEDICINES_CACHE_KEY_PREFIX = 'medicines';
 const COMMANDS = {
   'cn-products': {
     parser: path.join(__dirname, 'parsers', 'cn_products.py'),
-    defaultSourcePath: path.join(DATA_ROOT, 'FullDrugDetail.xlsx'),
+    defaultSourcePath: path.join(DATA_ROOT, 'ChineseDrugData_Master.xlsx'),
     sourceKey: 'cn_products',
-    sourceName: 'full_drug_detail',
+    sourceName: 'chinese_drug_data_master',
     tableName: 'cn_medicine_products',
     columns: [
       'id',
