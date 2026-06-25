@@ -1,3 +1,5 @@
+import { nonDeleted } from '../../../common/utils/prisma.helpers';
+import { formatDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import { DoseLogStatus } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -29,7 +31,7 @@ export class ReportsContextService {
       this.prisma.userMedicineDoseLog.findMany({
         where: {
           userId,
-          deletedAt: null,
+          ...nonDeleted,
           scheduledFor: {
             gte: startDate,
             lte: endDate,
@@ -44,7 +46,7 @@ export class ReportsContextService {
       this.prisma.userDailyRecord.findMany({
         where: {
           userId,
-          deletedAt: null,
+          ...nonDeleted,
           occurredAt: {
             gte: startDate,
             lte: endDate,
@@ -218,7 +220,7 @@ export class ReportsContextService {
   }
 
   private toDateString(date: Date): string {
-    return date.toISOString().slice(0, 10);
+    return formatDateOnly(date);
   }
 
   private resolveStartDate(

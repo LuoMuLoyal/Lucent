@@ -1,3 +1,4 @@
+import { nonDeleted } from '../../common/utils/prisma.helpers';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
@@ -19,7 +20,7 @@ export class MedicineRemindersService {
     const items = await this.prisma.userMedicineReminder.findMany({
       where: {
         userId,
-        deletedAt: null,
+        ...nonDeleted,
         ...(activeOnly ? { isActive: true } : {}),
       },
       orderBy: [

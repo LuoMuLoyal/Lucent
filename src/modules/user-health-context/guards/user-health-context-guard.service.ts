@@ -1,3 +1,4 @@
+import { nonDeleted } from '../../../common/utils/prisma.helpers';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { ResultCode } from '../../../common/api-envelope';
@@ -14,7 +15,7 @@ export class UserHealthContextGuardService {
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        deletedAt: null,
+        ...nonDeleted,
       },
       select: {
         id: true,

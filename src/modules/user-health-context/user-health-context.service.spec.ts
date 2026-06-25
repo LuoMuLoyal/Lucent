@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
+import { nonDeleted } from '../../common/utils/prisma.helpers';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
@@ -32,7 +33,7 @@ const mockUserBase = {
   status: UserStatus.active,
   emailVerifiedAt: new Date('2026-01-01T00:00:00Z'),
   lastLoginAt: new Date('2026-05-28T00:00:00Z'),
-  deletedAt: null,
+  ...nonDeleted,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-05-28T00:00:00Z'),
 };

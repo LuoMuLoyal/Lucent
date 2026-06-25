@@ -1,3 +1,6 @@
+import { normalizeNullableText } from '../../../common/utils/string.utils';
+import { formatDateOnly } from '../../../common/utils/date-time.utils';
+import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import type {
   DailyRecordAttachmentInputDto,
@@ -18,22 +21,22 @@ export class DailyRecordsMapperService {
       data.kind = dto.kind;
     }
     if (dto.occurredAt !== undefined) {
-      data.occurredAt = new Date(`${dto.occurredAt}T00:00:00.000Z`);
+      data.occurredAt = parseDateOnly(dto.occurredAt);
     }
     if (dto.occurredTime !== undefined) {
-      data.occurredTime = dto.occurredTime?.trim() ?? null;
+      data.occurredTime = normalizeNullableText(dto.occurredTime);
     }
     if (dto.title !== undefined) {
-      data.title = dto.title?.trim() ?? null;
+      data.title = normalizeNullableText(dto.title);
     }
     if (dto.value !== undefined) {
-      data.value = dto.value?.trim() ?? null;
+      data.value = normalizeNullableText(dto.value);
     }
     if (dto.unit !== undefined) {
-      data.unit = dto.unit?.trim() ?? null;
+      data.unit = normalizeNullableText(dto.unit);
     }
     if (dto.note !== undefined) {
-      data.note = dto.note?.trim() ?? null;
+      data.note = normalizeNullableText(dto.note);
     }
     if (dto.payload !== undefined) {
       data.payload =
@@ -55,14 +58,14 @@ export class DailyRecordsMapperService {
       recordId,
       kind: attachment.kind ?? DailyRecordAttachmentKind.image,
       objectKey: attachment.objectKey.trim(),
-      bucket: attachment.bucket?.trim() ?? null,
-      provider: attachment.provider?.trim() ?? null,
-      fileName: attachment.fileName?.trim() ?? null,
-      contentType: attachment.contentType?.trim() ?? null,
+      bucket: normalizeNullableText(attachment.bucket),
+      provider: normalizeNullableText(attachment.provider),
+      fileName: normalizeNullableText(attachment.fileName),
+      contentType: normalizeNullableText(attachment.contentType),
       sizeBytes: attachment.sizeBytes ?? null,
       width: attachment.width ?? null,
       height: attachment.height ?? null,
-      publicUrl: attachment.publicUrl?.trim() ?? null,
+      publicUrl: normalizeNullableText(attachment.publicUrl),
     }));
   }
 
@@ -70,7 +73,7 @@ export class DailyRecordsMapperService {
     return {
       id: record.id,
       kind: record.kind,
-      occurredAt: record.occurredAt.toISOString().slice(0, 10),
+      occurredAt: formatDateOnly(record.occurredAt),
       occurredTime: record.occurredTime,
       title: record.title,
       value: record.value,

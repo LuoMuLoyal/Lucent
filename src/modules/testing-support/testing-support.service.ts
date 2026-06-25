@@ -1,3 +1,4 @@
+import { parseDateOnly } from '../../common/utils/date-time.utils';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
@@ -132,7 +133,7 @@ export class TestingSupportService {
     userId: string,
     date: string,
   ): Promise<number> {
-    const targetDay = new Date(`${date}T00:00:00.000Z`);
+    const targetDay = parseDateOnly(date);
     const recordIds = (
       await tx.userDailyRecord.findMany({
         where: {

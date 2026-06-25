@@ -1,3 +1,4 @@
+import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { UserHealthContextProfileWriteService } from './user-health-context-profile-write.service';
@@ -31,13 +32,10 @@ describe('UserHealthContextProfileWriteService', () => {
         {
           provide: UserHealthContextMapperService,
           useValue: {
-            normalizePreferenceString: jest
-              .fn()
-              .mockImplementation((v: string) => v.trim().toLowerCase()),
             dateOnlyStringToUtcDate: jest
               .fn()
               .mockImplementation((v: string | null) =>
-                v ? new Date(`${v}T00:00:00.000Z`) : null,
+                v ? parseDateOnly(v) : null,
               ),
           },
         },
@@ -58,8 +56,8 @@ describe('UserHealthContextProfileWriteService', () => {
 
       expect(prisma.userProfile.upsert).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
-        create: expect.objectContaining({ locale: 'zh-cn' }) as object,
-        update: expect.objectContaining({ locale: 'zh-cn' }) as object,
+        create: expect.objectContaining({ locale: 'zh-CN' }) as object,
+        update: expect.objectContaining({ locale: 'zh-CN' }) as object,
       });
     });
 

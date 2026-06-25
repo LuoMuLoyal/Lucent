@@ -1,3 +1,4 @@
+import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -23,15 +24,13 @@ export class UserHealthContextProfileWriteService {
     const createData: Prisma.UserProfileUncheckedCreateInput = { userId };
 
     if (dto.locale !== undefined) {
-      const locale = this.mapperService.normalizePreferenceString(dto.locale);
+      const locale = normalizeNullableText(dto.locale);
       updateData.locale = locale;
       createData.locale = locale;
     }
 
     if (dto.timezone !== undefined) {
-      const timezone = this.mapperService.normalizePreferenceString(
-        dto.timezone,
-      );
+      const timezone = normalizeNullableText(dto.timezone);
       updateData.timezone = timezone;
       createData.timezone = timezone;
     }
@@ -68,7 +67,7 @@ export class UserHealthContextProfileWriteService {
     }
 
     if (dto.bloodType !== undefined) {
-      const blood = this.mapperService.normalizePreferenceString(dto.bloodType);
+      const blood = normalizeNullableText(dto.bloodType);
       updateData.bloodType = blood;
       createData.bloodType = blood;
     }

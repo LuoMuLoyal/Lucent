@@ -1,3 +1,5 @@
+import { formatDateOnly } from '../../../common/utils/date-time.utils';
+import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import {
   AiSummaryHistoryKind,
@@ -54,7 +56,7 @@ export class HistoricalAiSummaryService {
     });
 
     return rows.map((row) => ({
-      date: row.date?.toISOString().slice(0, 10) ?? null,
+      date: formatDateOnly(row.date),
       generatedAt: row.generatedAt.toISOString(),
       summary: row.summary,
       bullets: this.readBullets(row.bullets),
@@ -75,8 +77,8 @@ export class HistoricalAiSummaryService {
 
     return rows.map((row) => ({
       rangeKey: row.rangeKey,
-      startDate: row.startDate?.toISOString().slice(0, 10) ?? null,
-      endDate: row.endDate?.toISOString().slice(0, 10) ?? null,
+      startDate: formatDateOnly(row.startDate),
+      endDate: formatDateOnly(row.endDate),
       generatedAt: row.generatedAt.toISOString(),
       summary: row.summary,
       bullets: this.readBullets(row.bullets),
@@ -155,7 +157,7 @@ export class HistoricalAiSummaryService {
     confidenceNote: string;
   }) {
     return {
-      date: row.date?.toISOString().slice(0, 10) ?? null,
+      date: formatDateOnly(row.date),
       generatedAt: row.generatedAt.toISOString(),
       summary: row.summary,
       bullets: this.readBullets(row.bullets),
@@ -176,8 +178,8 @@ export class HistoricalAiSummaryService {
   }) {
     return {
       rangeKey: row.rangeKey,
-      startDate: row.startDate?.toISOString().slice(0, 10) ?? null,
-      endDate: row.endDate?.toISOString().slice(0, 10) ?? null,
+      startDate: formatDateOnly(row.startDate),
+      endDate: formatDateOnly(row.endDate),
       generatedAt: row.generatedAt.toISOString(),
       summary: row.summary,
       bullets: this.readBullets(row.bullets),
@@ -190,7 +192,7 @@ export class HistoricalAiSummaryService {
     if (value == null || value.trim().length === 0) {
       return null;
     }
-    return new Date(`${value}T00:00:00.000Z`);
+    return parseDateOnly(value);
   }
 
   private readBullets(raw: unknown): SummaryBullet[] {

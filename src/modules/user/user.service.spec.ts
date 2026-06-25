@@ -1,3 +1,4 @@
+import { nonDeleted } from '../../common/utils/prisma.helpers';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { UserStatus } from '../../generated/prisma/client';
@@ -14,7 +15,7 @@ const mockUser = {
   status: UserStatus.active,
   emailVerifiedAt: null,
   lastLoginAt: null,
-  deletedAt: null,
+  ...nonDeleted,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-01T00:00:00Z'),
 };

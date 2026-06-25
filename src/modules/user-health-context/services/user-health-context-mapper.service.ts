@@ -1,3 +1,5 @@
+import { formatDateOnly } from '../../../common/utils/date-time.utils';
+import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import type { HealthContextResponseData } from '../dto';
 import {
@@ -83,17 +85,8 @@ export class UserHealthContextMapperService {
     };
   }
 
-  normalizePreferenceString(value: string | null): string | null {
-    if (value == null) {
-      return null;
-    }
-
-    const normalized = value.trim();
-    return normalized.length === 0 ? null : normalized;
-  }
-
   dateOnlyStringToUtcDate(value: string | null): Date | null {
-    return value ? new Date(`${value}T00:00:00.000Z`) : null;
+    return value ? parseDateOnly(value) : null;
   }
 
   toUtcDateOnly(date: Date): Date {
@@ -136,7 +129,7 @@ export class UserHealthContextMapperService {
       return null;
     }
 
-    return value.toISOString().slice(0, 10);
+    return formatDateOnly(value);
   }
 
   private formatDateTime(value: Date | null): string | null {

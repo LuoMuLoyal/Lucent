@@ -1,3 +1,4 @@
+import { formatDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import type { ReportDashboardDataDto, ReportDashboardQueryDto } from '../dto';
 import { ReportsComputationService } from './reports-computation.service';
@@ -20,8 +21,8 @@ export class ReportsService {
 
     return {
       range: facts.range,
-      startDate: facts.startDate.toISOString().slice(0, 10),
-      endDate: facts.endDate.toISOString().slice(0, 10),
+      startDate: formatDateOnly(facts.startDate),
+      endDate: formatDateOnly(facts.endDate),
       generatedAt: facts.generatedAt,
       score: computed.score,
       metrics: computed.metrics,

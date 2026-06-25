@@ -1,3 +1,6 @@
+import { nonDeleted } from '../../common/utils/prisma.helpers';
+import { normalizeNullableText } from '../../common/utils/string.utils';
+import { parseDateOnly } from '../../common/utils/date-time.utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { DailyRecordKind, Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -26,8 +29,8 @@ export class DailyRecordsService {
   ) {
     const where: Prisma.UserDailyRecordWhereInput = {
       userId,
-      occurredAt: new Date(`${date}T00:00:00.000Z`),
-      deletedAt: null,
+      occurredAt: parseDateOnly(date),
+      ...nonDeleted,
       ...(kind != null ? { kind: kind as DailyRecordKind } : {}),
     };
 
@@ -59,12 +62,12 @@ export class DailyRecordsService {
     const baseData = {
       userId,
       kind: dto.kind,
-      occurredAt: new Date(`${dto.occurredAt}T00:00:00.000Z`),
-      occurredTime: dto.occurredTime?.trim() ?? null,
-      title: dto.title?.trim() ?? null,
-      value: dto.value?.trim() ?? null,
-      unit: dto.unit?.trim() ?? null,
-      note: dto.note?.trim() ?? null,
+      occurredAt: parseDateOnly(dto.occurredAt),
+      occurredTime: normalizeNullableText(dto.occurredTime),
+      title: normalizeNullableText(dto.title),
+      value: normalizeNullableText(dto.value),
+      unit: normalizeNullableText(dto.unit),
+      note: normalizeNullableText(dto.note),
     };
 
     const payloadField =
@@ -149,8 +152,8 @@ export class DailyRecordsService {
     const records = await this.prisma.userDailyRecord.findMany({
       where: {
         userId,
-        occurredAt: new Date(`${date}T00:00:00.000Z`),
-        deletedAt: null,
+        occurredAt: parseDateOnly(date),
+        ...nonDeleted,
       },
       include: dailyRecordWithAttachments,
       orderBy: [

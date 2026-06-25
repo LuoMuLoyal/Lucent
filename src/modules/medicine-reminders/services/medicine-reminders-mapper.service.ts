@@ -1,3 +1,6 @@
+import { normalizeNullableText } from '../../../common/utils/string.utils';
+import { formatDateOnly } from '../../../common/utils/date-time.utils';
+import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { ResultCode } from '../../../common/api-envelope';
@@ -21,14 +24,14 @@ export class MedicineRemindersMapperService {
     return {
       userId,
       currentMedicineId: dto.currentMedicineId ?? null,
-      label: this.normalizeNullableText(dto.label),
+      label: normalizeNullableText(dto.label),
       scheduledHour: dto.scheduledHour,
       scheduledMinute: dto.scheduledMinute,
       daysOfWeek: this.normalizeDaysOfWeek(dto.daysOfWeek),
       startDate,
       endDate,
       isActive: dto.isActive ?? true,
-      note: this.normalizeNullableText(dto.note),
+      note: normalizeNullableText(dto.note),
     } satisfies Prisma.UserMedicineReminderUncheckedCreateInput;
   }
 
@@ -44,7 +47,7 @@ export class MedicineRemindersMapperService {
         : { disconnect: true };
     }
     if (dto.label !== undefined) {
-      data.label = this.normalizeNullableText(dto.label);
+      data.label = normalizeNullableText(dto.label);
     }
     if (dto.scheduledHour !== undefined) {
       data.scheduledHour = dto.scheduledHour;
@@ -76,7 +79,7 @@ export class MedicineRemindersMapperService {
       data.isActive = dto.isActive;
     }
     if (dto.note !== undefined) {
-      data.note = this.normalizeNullableText(dto.note);
+      data.note = normalizeNullableText(dto.note);
     }
 
     return data;
@@ -107,8 +110,8 @@ export class MedicineRemindersMapperService {
       scheduledHour: record.scheduledHour,
       scheduledMinute: record.scheduledMinute,
       daysOfWeek: this.parseDaysOfWeek(record.daysOfWeek),
-      startDate: record.startDate?.toISOString().slice(0, 10) ?? null,
-      endDate: record.endDate?.toISOString().slice(0, 10) ?? null,
+      startDate: formatDateOnly(record.startDate),
+      endDate: formatDateOnly(record.endDate),
       isActive: record.isActive,
       note: record.note,
       createdAt: record.createdAt.toISOString(),
@@ -128,15 +131,6 @@ export class MedicineRemindersMapperService {
       errorMessage: record.errorMessage,
       createdAt: record.createdAt.toISOString(),
     };
-  }
-
-  private normalizeNullableText(value: string | null | undefined) {
-    if (value == null) {
-      return null;
-    }
-
-    const trimmed = value.trim();
-    return trimmed.length === 0 ? null : trimmed;
   }
 
   private normalizeDaysOfWeek(value: number[] | null | undefined) {
@@ -172,7 +166,7 @@ export class MedicineRemindersMapperService {
   }
 
   private parseRequiredDate(value: string) {
-    const parsed = new Date(`${value}T00:00:00.000Z`);
+    const parsed = parseDateOnly(value);
     if (Number.isNaN(parsed.getTime())) {
       throw new BadRequestException({
         code: ResultCode.BAD_REQUEST,

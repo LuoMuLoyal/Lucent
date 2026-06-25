@@ -1,3 +1,5 @@
+import { nonDeleted } from '../../common/utils/prisma.helpers';
+import { normalizeNullableText } from '../../common/utils/string.utils';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { MedicineSource, Prisma } from '../../generated/prisma/client';
@@ -32,7 +34,7 @@ export class UserHealthContextService {
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        deletedAt: null,
+        ...nonDeleted,
       },
       include: userHealthContextInclude,
     });
@@ -68,9 +70,9 @@ export class UserHealthContextService {
         userId,
         kind: dto.kind,
         label: dto.label.trim(),
-        reaction: dto.reaction?.trim() ?? null,
+        reaction: normalizeNullableText(dto.reaction),
         severity: dto.severity ?? null,
-        note: dto.note?.trim() ?? null,
+        note: normalizeNullableText(dto.note),
         recordedAt: dto.recordedAt ? new Date(dto.recordedAt) : null,
       },
     });
@@ -94,13 +96,13 @@ export class UserHealthContextService {
       data.label = dto.label.trim();
     }
     if (dto.reaction !== undefined) {
-      data.reaction = dto.reaction?.trim() ?? null;
+      data.reaction = normalizeNullableText(dto.reaction);
     }
     if (dto.severity !== undefined) {
       data.severity = dto.severity;
     }
     if (dto.note !== undefined) {
-      data.note = dto.note?.trim() ?? null;
+      data.note = normalizeNullableText(dto.note);
     }
     if (dto.recordedAt !== undefined) {
       data.recordedAt = dto.recordedAt ? new Date(dto.recordedAt) : null;
@@ -145,7 +147,7 @@ export class UserHealthContextService {
       diagnosedAt: this.mapperService.dateOnlyStringToUtcDate(
         dto.diagnosedAt ?? null,
       ),
-      note: dto.note?.trim() ?? null,
+      note: normalizeNullableText(dto.note),
     };
 
     if (dto.status !== undefined) {
@@ -178,7 +180,7 @@ export class UserHealthContextService {
       );
     }
     if (dto.note !== undefined) {
-      data.note = dto.note?.trim() ?? null;
+      data.note = normalizeNullableText(dto.note);
     }
 
     await this.prisma.userCondition.update({
@@ -232,16 +234,16 @@ export class UserHealthContextService {
         source: dto.source,
         sourceRefId,
         displayName: dto.displayName.trim(),
-        strengthText: dto.strengthText?.trim() ?? null,
-        doseText: dto.doseText?.trim() ?? null,
-        route: dto.route?.trim() ?? null,
+        strengthText: normalizeNullableText(dto.strengthText),
+        doseText: normalizeNullableText(dto.doseText),
+        route: normalizeNullableText(dto.route),
         startedAt: this.mapperService.dateOnlyStringToUtcDate(
           dto.startedAt ?? null,
         ),
         endedAt: this.mapperService.dateOnlyStringToUtcDate(
           dto.endedAt ?? null,
         ),
-        note: dto.note?.trim() ?? null,
+        note: normalizeNullableText(dto.note),
       },
     });
 
@@ -264,19 +266,19 @@ export class UserHealthContextService {
       data.source = dto.source;
     }
     if (dto.sourceRefId !== undefined) {
-      data.sourceRefId = dto.sourceRefId?.trim() ?? null;
+      data.sourceRefId = normalizeNullableText(dto.sourceRefId);
     }
     if (dto.displayName !== undefined) {
       data.displayName = dto.displayName.trim();
     }
     if (dto.strengthText !== undefined) {
-      data.strengthText = dto.strengthText?.trim() ?? null;
+      data.strengthText = normalizeNullableText(dto.strengthText);
     }
     if (dto.doseText !== undefined) {
-      data.doseText = dto.doseText?.trim() ?? null;
+      data.doseText = normalizeNullableText(dto.doseText);
     }
     if (dto.route !== undefined) {
-      data.route = dto.route?.trim() ?? null;
+      data.route = normalizeNullableText(dto.route);
     }
     if (dto.startedAt !== undefined) {
       data.startedAt = this.mapperService.dateOnlyStringToUtcDate(
@@ -287,7 +289,7 @@ export class UserHealthContextService {
       data.endedAt = this.mapperService.dateOnlyStringToUtcDate(dto.endedAt);
     }
     if (dto.note !== undefined) {
-      data.note = dto.note?.trim() ?? null;
+      data.note = normalizeNullableText(dto.note);
     }
     if (dto.isCurrent !== undefined) {
       data.isCurrent = dto.isCurrent;

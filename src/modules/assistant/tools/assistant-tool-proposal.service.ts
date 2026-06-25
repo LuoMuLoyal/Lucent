@@ -1,3 +1,4 @@
+import { formatDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import { DailyRecordCandidatesService } from '../../daily-records/services/daily-record-candidates.service';
 import type {
@@ -514,7 +515,7 @@ export class AssistantToolProposalService {
   }
 
   private todayDateString(): string {
-    return new Date().toISOString().slice(0, 10);
+    return formatDateOnly(new Date());
   }
 
   private offsetDateString(offsetDays: number): string {
@@ -526,6 +527,6 @@ export class AssistantToolProposalService {
         now.getUTCDate() + offsetDays,
       ),
     );
-    return shifted.toISOString().slice(0, 10);
+    return formatDateOnly(shifted);
   }
 }

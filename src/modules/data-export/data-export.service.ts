@@ -1,3 +1,4 @@
+import { formatDateOnly } from '../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -181,7 +182,7 @@ export class DataExportService {
     kind: CreateDataExportRequestDto['kind'],
     range: CreateDataExportRequestDto['range'],
   ): string {
-    const date = new Date().toISOString().slice(0, 10);
+    const date = formatDateOnly(new Date());
     return `lumos-${kind ?? 'hospital'}-${range ?? DEFAULT_EXPORT_RANGE}-${date}.pdf`;
   }
 

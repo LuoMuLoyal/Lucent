@@ -1,3 +1,5 @@
+import { formatDateOnly } from '../../../common/utils/date-time.utils';
+import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import {
   DEFAULT_RANGE_DAYS,
   DEFAULT_RANGE_FALLBACK_MESSAGE,
@@ -205,8 +207,7 @@ export function normalizeRange(
 export function diffDaysInclusive(startDate: string, endDate: string): number {
   return (
     Math.floor(
-      (new Date(`${endDate}T00:00:00.000Z`).getTime() -
-        new Date(`${startDate}T00:00:00.000Z`).getTime()) /
+      (parseDateOnly(endDate).getTime() - parseDateOnly(startDate).getTime()) /
         86400000,
     ) + 1
   );
@@ -218,8 +219,8 @@ export function enumerateDates(
   maxDays = Number.POSITIVE_INFINITY,
 ): string[] {
   const dates: string[] = [];
-  const start = new Date(`${startDate}T00:00:00.000Z`);
-  const end = new Date(`${endDate}T00:00:00.000Z`);
+  const start = parseDateOnly(startDate);
+  const end = parseDateOnly(endDate);
   for (
     let cursor = start, index = 0;
     cursor.getTime() <= end.getTime() && index < maxDays;
@@ -232,13 +233,13 @@ export function enumerateDates(
     ),
       index += 1
   ) {
-    dates.push(cursor.toISOString().slice(0, 10));
+    dates.push(formatDateOnly(cursor));
   }
   return dates;
 }
 
 export function todayDateString(): string {
-  return new Date().toISOString().slice(0, 10);
+  return formatDateOnly(new Date());
 }
 
 export function offsetDateString(offsetDays: number): string {
@@ -250,7 +251,7 @@ export function offsetDateString(offsetDays: number): string {
       now.getUTCDate() + offsetDays,
     ),
   );
-  return shifted.toISOString().slice(0, 10);
+  return formatDateOnly(shifted);
 }
 
 export function makeDateString(
@@ -258,5 +259,5 @@ export function makeDateString(
   month: number,
   day: number,
 ): string {
-  return new Date(Date.UTC(year, month - 1, day)).toISOString().slice(0, 10);
+  return formatDateOnly(new Date(Date.UTC(year, month - 1, day)));
 }

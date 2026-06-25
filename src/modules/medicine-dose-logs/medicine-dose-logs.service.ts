@@ -1,3 +1,7 @@
+import { nonDeleted } from '../../common/utils/prisma.helpers';
+import { normalizeNullableText } from '../../common/utils/string.utils';
+import { formatDateOnly } from '../../common/utils/date-time.utils';
+import { parseDateOnly } from '../../common/utils/date-time.utils';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client';
 import { ResultCode } from '../../common/api-envelope';
@@ -11,8 +15,8 @@ export class MedicineDoseLogsService {
   async list(userId: string, date: string) {
     const where: Prisma.UserMedicineDoseLogWhereInput = {
       userId,
-      scheduledFor: new Date(`${date}T00:00:00.000Z`),
-      deletedAt: null,
+      scheduledFor: parseDateOnly(date),
+      ...nonDeleted,
     };
     const items = await this.prisma.userMedicineDoseLog.findMany({
       where,
@@ -39,9 +43,9 @@ export class MedicineDoseLogsService {
         userId,
         currentMedicineId: dto.currentMedicineId ?? null,
         status: dto.status,
-        scheduledFor: new Date(`${dto.scheduledFor}T00:00:00.000Z`),
-        doseText: dto.doseText?.trim() ?? null,
-        note: dto.note?.trim() ?? null,
+        scheduledFor: parseDateOnly(dto.scheduledFor),
+        doseText: normalizeNullableText(dto.doseText),
+        note: normalizeNullableText(dto.note),
       },
     });
     return this.toItem(record);
@@ -52,8 +56,8 @@ export class MedicineDoseLogsService {
     const data: Prisma.UserMedicineDoseLogUpdateInput = {};
     if (dto.status !== undefined) data.status = dto.status;
     if (dto.doseText !== undefined)
-      data.doseText = dto.doseText?.trim() ?? null;
-    if (dto.note !== undefined) data.note = dto.note?.trim() ?? null;
+      data.doseText = normalizeNullableText(dto.doseText);
+    if (dto.note !== undefined) data.note = normalizeNullableText(dto.note);
     const record = await this.prisma.userMedicineDoseLog.update({
       where: { id },
       data,
@@ -74,7 +78,7 @@ export class MedicineDoseLogsService {
       id: r.id,
       currentMedicineId: r.currentMedicineId,
       status: r.status,
-      scheduledFor: r.scheduledFor.toISOString().slice(0, 10),
+      scheduledFor: formatDateOnly(r.scheduledFor),
       doseText: r.doseText,
       note: r.note,
       source: r.source,

@@ -1,3 +1,5 @@
+import { nonDeleted } from '../../../common/utils/prisma.helpers';
+import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import {
   DoseLogStatus,
@@ -114,7 +116,7 @@ export class TodayAnalysisContextService {
         where: {
           userId,
           isActive: true,
-          deletedAt: null,
+          ...nonDeleted,
         },
         select: {
           currentMedicineId: true,
@@ -134,7 +136,7 @@ export class TodayAnalysisContextService {
       this.prisma.userMedicineDoseLog.findMany({
         where: {
           userId,
-          deletedAt: null,
+          ...nonDeleted,
           scheduledFor: day,
         },
         select: {
@@ -145,7 +147,7 @@ export class TodayAnalysisContextService {
       this.prisma.userDailyRecord.findMany({
         where: {
           userId,
-          deletedAt: null,
+          ...nonDeleted,
           occurredAt: day,
         },
         select: {
@@ -378,6 +380,6 @@ export class TodayAnalysisContextService {
   }
 
   private parseDate(date: string): Date {
-    return new Date(`${date}T00:00:00.000Z`);
+    return parseDateOnly(date);
   }
 }

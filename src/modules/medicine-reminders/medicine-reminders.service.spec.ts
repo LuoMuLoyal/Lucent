@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { nonDeleted } from '../../common/utils/prisma.helpers';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { Prisma } from '../../generated/prisma/client';
@@ -22,7 +23,7 @@ function reminderRecord(overrides: Record<string, unknown> = {}) {
     endDate: null,
     isActive: true,
     note: 'After breakfast',
-    deletedAt: null,
+    ...nonDeleted,
     createdAt: now,
     updatedAt: now,
     ...overrides,
@@ -153,7 +154,7 @@ describe('MedicineRemindersService', () => {
     expect(prisma.userMedicineReminder.findMany).toHaveBeenCalledWith({
       where: {
         userId: 'user-1',
-        deletedAt: null,
+        ...nonDeleted,
         isActive: true,
       },
       orderBy: [
