@@ -1,5 +1,6 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { ResultCode } from '../../../common/api-envelope';
+import { forbidden } from '../../../common/utils/api-errors';
+import { Injectable, Logger } from '@nestjs/common';
+
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from '../dto';
@@ -80,10 +81,7 @@ export class TodayAnalysisService {
     });
 
     if (setting?.value === false) {
-      throw new ForbiddenException({
-        code: ResultCode.FORBIDDEN,
-        message: this.copyService.summariesDisabled(locale),
-      });
+      forbidden(this.copyService.summariesDisabled(locale));
     }
   }
 

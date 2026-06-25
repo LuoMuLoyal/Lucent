@@ -67,6 +67,7 @@ describe('MedicineRemindersService', () => {
   it('should create a reminder with normalized text and weekdays', async () => {
     (prisma.userCurrentMedicine.findFirst as jest.Mock).mockResolvedValue({
       id: 'medicine-1',
+      userId: 'user-1',
     });
     (prisma.userMedicineReminder.create as jest.Mock).mockResolvedValue(
       reminderRecord({

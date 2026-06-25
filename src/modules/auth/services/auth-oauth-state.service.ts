@@ -1,9 +1,5 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { badRequest, unauthorized } from '../../../common/utils/api-errors';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
@@ -61,10 +57,7 @@ export class AuthOAuthStateService {
     const entry = await this.cache.get<OAuthStateEntry>(key);
     await this.cache.del(key);
     if (!this.isValidEntry(entry, purpose)) {
-      throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
-        message: this.i18n.t('auth.oauth_state_invalid'),
-      });
+      unauthorized(this.i18n.t('auth.oauth_state_invalid'));
     }
     return entry;
   }
@@ -74,10 +67,7 @@ export class AuthOAuthStateService {
       this.stateKey(OAUTH_PROVIDER_WECHAT_WEB, state),
     );
     if (!this.isValidEntry(entry)) {
-      throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
-        message: this.i18n.t('auth.oauth_state_invalid'),
-      });
+      unauthorized(this.i18n.t('auth.oauth_state_invalid'));
     }
     return entry;
   }
@@ -88,10 +78,7 @@ export class AuthOAuthStateService {
     state: string,
   ): string {
     if (entry.callbackUri === undefined) {
-      throw new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
-        message: this.i18n.t('auth.oauth_callback_uri_missing'),
-      });
+      badRequest(this.i18n.t('auth.oauth_callback_uri_missing'));
     }
     const redirect = new URL(entry.callbackUri);
     redirect.searchParams.set('code', code);

@@ -1,10 +1,11 @@
+import { notFound } from '../../common/utils/api-errors';
 import { nonDeleted } from '../../common/utils/prisma.helpers';
 import { normalizeNullableText } from '../../common/utils/string.utils';
 import { formatDateOnly } from '../../common/utils/date-time.utils';
 import { parseDateOnly } from '../../common/utils/date-time.utils';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
 import { Prisma } from '../../generated/prisma/client';
-import { ResultCode } from '../../common/api-envelope';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateDoseLogDto, UpdateDoseLogDto } from './dto';
 
@@ -32,10 +33,7 @@ export class MedicineDoseLogsService {
         select: { userId: true },
       });
       if (!med || med.userId !== userId) {
-        throw new NotFoundException({
-          code: ResultCode.NOT_FOUND,
-          message: 'Medicine not found',
-        });
+        notFound('Medicine not found');
       }
     }
     const record = await this.prisma.userMedicineDoseLog.create({
@@ -92,10 +90,6 @@ export class MedicineDoseLogsService {
       where: { id },
       select: { userId: true },
     });
-    if (!r || r.userId !== userId)
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: 'Not found',
-      });
+    if (!r || r.userId !== userId) notFound('Not found');
   }
 }

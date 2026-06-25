@@ -1,3 +1,4 @@
+import { unauthorized } from '../../../common/utils/api-errors';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { I18nContext } from 'nestjs-i18n';
@@ -30,12 +31,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     if (err || !user) {
-      throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
-        message:
-          i18n?.t('auth.access_token_invalid') ??
+      unauthorized(
+        i18n?.t('auth.access_token_invalid') ??
           'Invalid or missing access token',
-      });
+      );
     }
 
     return user;

@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ResultCode } from '../../../common/api-envelope';
+import { Injectable } from '@nestjs/common';
+import { ensureOwnedByUser } from '../../../common/utils/prisma-ownership.helper';
+
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { OwnedMedicineReminderRecord } from '../types/medicine-reminders.types';
 
@@ -17,12 +18,10 @@ export class MedicineRemindersGuardService {
 
     const medicine = await this.prisma.userCurrentMedicine.findFirst({
       where: { id: currentMedicineId, userId, isCurrent: true },
-      select: { id: true },
+      select: { id: true, userId: true },
     });
 
-    if (medicine == null) {
-      this.throwMedicineNotFound();
-    }
+    ensureOwnedByUser(medicine, userId, 'Medicine not found');
   }
 
   async ensureOwnedByUser(
@@ -34,24 +33,8 @@ export class MedicineRemindersGuardService {
       select: { userId: true, startDate: true, endDate: true },
     });
 
-    if (!reminder || reminder.userId !== userId) {
-      this.throwReminderNotFound();
-    }
+    ensureOwnedByUser(reminder, userId, 'Reminder not found');
 
     return reminder;
-  }
-
-  private throwMedicineNotFound(): never {
-    throw new NotFoundException({
-      code: ResultCode.NOT_FOUND,
-      message: 'Medicine not found',
-    });
-  }
-
-  private throwReminderNotFound(): never {
-    throw new NotFoundException({
-      code: ResultCode.NOT_FOUND,
-      message: 'Reminder not found',
-    });
   }
 }

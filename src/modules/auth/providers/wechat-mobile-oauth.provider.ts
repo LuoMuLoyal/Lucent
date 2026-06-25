@@ -1,9 +1,9 @@
+import { unauthorized } from '../../../common/utils/api-errors';
 import {
   Injectable,
   Logger,
   OnModuleInit,
   ServiceUnavailableException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
@@ -144,10 +144,7 @@ export class WechatMobileOAuthProvider implements OnModuleInit {
 
     const payload = (await response.json()) as T | WechatErrorResponse;
     if (this.isWechatError(payload)) {
-      throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
-        message: this.i18n.t('auth.oauth_code_invalid'),
-      });
+      unauthorized(this.i18n.t('auth.oauth_code_invalid'));
     }
 
     return payload;

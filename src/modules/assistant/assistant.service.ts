@@ -1,9 +1,5 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { badRequest, forbidden } from '../../common/utils/api-errors';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ResultCode } from '../../common/api-envelope';
 import type {
   AssistantCapabilitiesDataDto,
@@ -110,10 +106,7 @@ export class AssistantService {
     const policy = this.assistantPolicyService.evaluate(foundation, settings);
 
     if (!settings.assistantEnabled) {
-      throw new ForbiddenException({
-        code: ResultCode.FORBIDDEN,
-        message: this.chatDisabledMessage(locale),
-      });
+      forbidden(this.chatDisabledMessage(locale));
     }
 
     if (!foundation.chatModelConfigured) {
@@ -244,10 +237,7 @@ export class AssistantService {
       return last.content;
     }
 
-    throw new BadRequestException({
-      code: ResultCode.BAD_REQUEST,
-      message: this.invalidConversationMessage(locale),
-    });
+    badRequest(this.invalidConversationMessage(locale));
   }
 
   private resolveLocale(language: string): 'zh-CN' | 'en' {

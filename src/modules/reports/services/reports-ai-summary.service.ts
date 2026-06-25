@@ -1,5 +1,6 @@
-import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { ResultCode } from '../../../common/api-envelope';
+import { forbidden } from '../../../common/utils/api-errors';
+import { Injectable, Logger } from '@nestjs/common';
+
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type {
@@ -87,10 +88,7 @@ export class ReportsAiSummaryService {
     });
 
     if (setting?.value === false) {
-      throw new ForbiddenException({
-        code: ResultCode.FORBIDDEN,
-        message: this.reportsAiSummaryCopyService.summariesDisabled(locale),
-      });
+      forbidden(this.reportsAiSummaryCopyService.summariesDisabled(locale));
     }
   }
 

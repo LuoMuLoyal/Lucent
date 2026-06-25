@@ -1,10 +1,10 @@
 import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+  notFound,
+  badRequest,
+  unauthorized,
+  conflict,
+} from '../../common/utils/api-errors';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
@@ -76,10 +76,7 @@ export class AuthService {
     const email = this.normalizeEmail(dto.email);
     const exists = await this.userService.findByEmail(email);
     if (exists) {
-      throw new ConflictException({
-        code: ResultCode.CONFLICT,
-        message: this.i18n.t('auth.email_already_registered'),
-      });
+      conflict(this.i18n.t('auth.email_already_registered'));
     }
 
     await this.verificationCodeService.verify(email, dto.code, 'register');
@@ -112,10 +109,7 @@ export class AuthService {
 
     if (!user) {
       await this.authRateLimitService.recordLoginFailure(email);
-      throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
-        message: this.i18n.t('auth.email_or_password_wrong'),
-      });
+      unauthorized(this.i18n.t('auth.email_or_password_wrong'));
     }
 
     const password = dto.password;
@@ -124,29 +118,20 @@ export class AuthService {
     const hasCode = code !== undefined;
     if (hasPassword === hasCode) {
       await this.authRateLimitService.recordLoginFailure(email);
-      throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
-        message: this.i18n.t('auth.email_or_password_wrong'),
-      });
+      unauthorized(this.i18n.t('auth.email_or_password_wrong'));
     }
 
     // Password-based login
     if (hasPassword) {
       if (!user.passwordHash) {
         await this.authRateLimitService.recordLoginFailure(email);
-        throw new UnauthorizedException({
-          code: ResultCode.UNAUTHORIZED,
-          message: this.i18n.t('auth.email_or_password_wrong'),
-        });
+        unauthorized(this.i18n.t('auth.email_or_password_wrong'));
       }
 
       const valid = await argon2.verify(user.passwordHash, password);
       if (!valid) {
         await this.authRateLimitService.recordLoginFailure(email);
-        throw new UnauthorizedException({
-          code: ResultCode.UNAUTHORIZED,
-          message: this.i18n.t('auth.email_or_password_wrong'),
-        });
+        unauthorized(this.i18n.t('auth.email_or_password_wrong'));
       }
     }
 
@@ -205,10 +190,7 @@ export class AuthService {
   async getActiveUser(userId: string): Promise<User> {
     const user = await this.userService.findById(userId);
     if (!user) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: this.i18n.t('auth.user_not_found'),
-      });
+      notFound(this.i18n.t('auth.user_not_found'));
     }
     return user;
   }
@@ -237,10 +219,7 @@ export class AuthService {
   async setPassword(userId: string, dto: SetPasswordDto): Promise<void> {
     const user = await this.getActiveUser(userId);
     if (user.passwordHash) {
-      throw new ConflictException({
-        code: ResultCode.CONFLICT,
-        message: this.i18n.t('auth.password_already_set'),
-      });
+      conflict(this.i18n.t('auth.password_already_set'));
     }
 
     // Determine target email: use provided email or existing user email
@@ -251,10 +230,7 @@ export class AuthService {
         : null;
 
     if (!targetEmail) {
-      throw new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
-        message: this.i18n.t('auth.email_required_for_set_password'),
-      });
+      badRequest(this.i18n.t('auth.email_required_for_set_password'));
     }
 
     // Verify the email code (scene: 'set-password')
@@ -268,10 +244,7 @@ export class AuthService {
     if (!user.email) {
       const existingUser = await this.userService.findByEmail(targetEmail);
       if (existingUser && existingUser.id !== userId) {
-        throw new ConflictException({
-          code: ResultCode.CONFLICT,
-          message: this.i18n.t('auth.email_in_use'),
-        });
+        conflict(this.i18n.t('auth.email_in_use'));
       }
       await this.userService.update(userId, {
         email: targetEmail,
@@ -293,10 +266,7 @@ export class AuthService {
 
     const exists = await this.userService.findByEmail(newEmail);
     if (exists) {
-      throw new ConflictException({
-        code: ResultCode.CONFLICT,
-        message: this.i18n.t('auth.email_in_use'),
-      });
+      conflict(this.i18n.t('auth.email_in_use'));
     }
 
     // 校验发往新邮箱的验证码，确认新邮箱归属。
@@ -334,10 +304,7 @@ export class AuthService {
       // Email-code-based verification (OAuth-only users)
       const email = user.email ? this.normalizeEmail(user.email) : null;
       if (!email) {
-        throw new BadRequestException({
-          code: ResultCode.BAD_REQUEST,
-          message: this.i18n.t('auth.email_required_for_delete_account'),
-        });
+        badRequest(this.i18n.t('auth.email_required_for_delete_account'));
       }
       await this.verificationCodeService.verify(
         email,
@@ -345,10 +312,7 @@ export class AuthService {
         'delete-account',
       );
     } else {
-      throw new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
-        message: this.i18n.t('auth.provide_password_or_code_for_deletion'),
-      });
+      badRequest(this.i18n.t('auth.provide_password_or_code_for_deletion'));
     }
 
     // Revoke all tokens then soft-delete
@@ -404,10 +368,7 @@ export class AuthService {
     );
     const user = await this.userService.findByEmail(email);
     if (!user) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: this.i18n.t('auth.user_not_found'),
-      });
+      notFound(this.i18n.t('auth.user_not_found'));
     }
     const passwordHash = await argon2.hash(dto.password, ARGON2_OPTIONS);
     await this.prisma.user.update({

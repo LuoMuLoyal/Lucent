@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { ResultCode } from '../../../common/api-envelope';
+import { notFound } from '../../../common/utils/api-errors';
+import { Injectable } from '@nestjs/common';
+
 import {
   AssistantConversationStatus,
   Prisma,
@@ -80,10 +81,7 @@ export class AssistantConversationService {
     });
 
     if (conversation == null) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: 'Assistant conversation not found',
-      });
+      notFound('Assistant conversation not found');
     }
 
     await this.prisma.$transaction(async (tx) => {

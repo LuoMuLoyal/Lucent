@@ -1,10 +1,6 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { notFound, badRequest } from '../../common/utils/api-errors';
+import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../common/api-envelope';
 import type {
   MedicineDetailDataDto,
   MedicineDetailQueryDto,
@@ -80,10 +76,7 @@ export class MedicinesService {
     );
 
     if (!detail) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: this.i18n.t('medicine.not_found'),
-      });
+      notFound(this.i18n.t('medicine.not_found'));
     }
 
     return detail;
@@ -98,9 +91,6 @@ export class MedicinesService {
       return source;
     }
 
-    throw new BadRequestException({
-      code: ResultCode.BAD_REQUEST,
-      message: this.i18n.t('medicine.source_invalid'),
-    });
+    badRequest(this.i18n.t('medicine.source_invalid'));
   }
 }

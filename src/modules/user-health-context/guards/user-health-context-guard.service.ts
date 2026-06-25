@@ -1,7 +1,9 @@
+import { ensureOwnedByUser } from '../../../common/utils/prisma-ownership.helper';
+import { notFound } from '../../../common/utils/api-errors';
 import { nonDeleted } from '../../../common/utils/prisma.helpers';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../../common/api-envelope';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
@@ -36,9 +38,7 @@ export class UserHealthContextGuardService {
       select: { userId: true },
     });
 
-    if (!allergy || allergy.userId !== userId) {
-      this.throwUserNotFound();
-    }
+    ensureOwnedByUser(allergy, userId, this.i18n.t('auth.user_not_found'));
   }
 
   async ensureConditionOwnedByUser(
@@ -50,9 +50,7 @@ export class UserHealthContextGuardService {
       select: { userId: true },
     });
 
-    if (!condition || condition.userId !== userId) {
-      this.throwUserNotFound();
-    }
+    ensureOwnedByUser(condition, userId, this.i18n.t('auth.user_not_found'));
   }
 
   async ensureCurrentMedicineOwnedByUser(
@@ -64,15 +62,10 @@ export class UserHealthContextGuardService {
       select: { userId: true },
     });
 
-    if (!medicine || medicine.userId !== userId) {
-      this.throwUserNotFound();
-    }
+    ensureOwnedByUser(medicine, userId, this.i18n.t('auth.user_not_found'));
   }
 
   private throwUserNotFound(): never {
-    throw new NotFoundException({
-      code: ResultCode.NOT_FOUND,
-      message: this.i18n.t('auth.user_not_found'),
-    });
+    notFound(this.i18n.t('auth.user_not_found'));
   }
 }

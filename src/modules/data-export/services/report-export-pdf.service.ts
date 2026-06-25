@@ -15,9 +15,8 @@ import {
   PAGE_WIDTH,
   TOP_Y,
 } from '../config/report-pdf.constants';
+import type { EmbeddedFont, PageContext } from '../config/report-pdf.constants';
 import {
-  type EmbeddedFont,
-  type PageContext,
   ensureSpace,
   drawSectionTitle,
   drawWrappedText,

@@ -1,10 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { unauthorized } from '../../../common/utils/api-errors';
+import { Injectable } from '@nestjs/common';
+
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { ConfigKey } from '../../../config/config-keys.enum';
-import { ResultCode } from '../../../common/api-envelope';
 import { UserPayload } from '../auth.service';
 
 interface JwtConfigShape {
@@ -36,10 +37,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
    */
   validate(payload: UserPayload): UserPayload {
     if (!payload.sub) {
-      throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
-        message: '无效的 access token',
-      });
+      unauthorized('无效的 access token');
     }
     return payload;
   }

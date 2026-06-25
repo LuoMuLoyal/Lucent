@@ -1,7 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { conflict } from '../../../common/utils/api-errors';
+import { Injectable } from '@nestjs/common';
+
 import { I18nService } from 'nestjs-i18n';
 import { User, UserStatus } from '../../../generated/prisma/client';
-import { ResultCode } from '../../../common/api-envelope';
 import { UserService } from '../../user/user.service';
 import type { OAuthProfile } from '../types/oauth.types';
 
@@ -90,10 +91,7 @@ export class AuthOAuthService {
     );
     if (linkedUser) {
       if (linkedUser.id !== userId) {
-        throw new ConflictException({
-          code: ResultCode.CONFLICT,
-          message: this.i18n.t('auth.oauth_identity_in_use'),
-        });
+        conflict(this.i18n.t('auth.oauth_identity_in_use'));
       }
       return;
     }
@@ -103,10 +101,7 @@ export class AuthOAuthService {
         profile.unionId,
       );
       if (unionUser && unionUser.id !== userId) {
-        throw new ConflictException({
-          code: ResultCode.CONFLICT,
-          message: this.i18n.t('auth.oauth_identity_in_use'),
-        });
+        conflict(this.i18n.t('auth.oauth_identity_in_use'));
       }
     }
 

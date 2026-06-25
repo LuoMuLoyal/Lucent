@@ -1,9 +1,10 @@
+import { badRequest } from '../../../common/utils/api-errors';
 import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { formatDateOnly } from '../../../common/utils/date-time.utils';
 import { parseDateOnly } from '../../../common/utils/date-time.utils';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
 import { Prisma } from '../../../generated/prisma/client';
-import { ResultCode } from '../../../common/api-envelope';
 import type {
   CreateMedicineReminderDto,
   UpdateMedicineReminderDto,
@@ -140,10 +141,7 @@ export class MedicineRemindersMapperService {
 
     const unique = Array.from(new Set(value)).sort((a, b) => a - b);
     if (unique.length === 0) {
-      throw new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
-        message: 'daysOfWeek must not be empty',
-      });
+      badRequest('daysOfWeek must not be empty');
     }
 
     return unique;
@@ -168,10 +166,7 @@ export class MedicineRemindersMapperService {
   private parseRequiredDate(value: string) {
     const parsed = parseDateOnly(value);
     if (Number.isNaN(parsed.getTime())) {
-      throw new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
-        message: 'Invalid date',
-      });
+      badRequest('Invalid date');
     }
 
     return parsed;
@@ -179,10 +174,7 @@ export class MedicineRemindersMapperService {
 
   private assertValidDateWindow(startDate: Date | null, endDate: Date | null) {
     if (startDate != null && endDate != null && endDate < startDate) {
-      throw new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
-        message: 'endDate must not be before startDate',
-      });
+      badRequest('endDate must not be before startDate');
     }
   }
 }

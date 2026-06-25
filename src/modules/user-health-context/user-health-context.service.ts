@@ -1,9 +1,10 @@
+import { notFound } from '../../common/utils/api-errors';
 import { nonDeleted } from '../../common/utils/prisma.helpers';
 import { normalizeNullableText } from '../../common/utils/string.utils';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
 import { I18nService } from 'nestjs-i18n';
 import { MedicineSource, Prisma } from '../../generated/prisma/client';
-import { ResultCode } from '../../common/api-envelope';
 import { PrismaService } from '../../prisma/prisma.service';
 import type {
   CreateCurrentMedicineDto,
@@ -40,10 +41,7 @@ export class UserHealthContextService {
     });
 
     if (!user) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: this.i18n.t('auth.user_not_found'),
-      });
+      notFound(this.i18n.t('auth.user_not_found'));
     }
 
     return this.mapperService.toResponse(user);

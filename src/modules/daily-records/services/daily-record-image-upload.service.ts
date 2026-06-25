@@ -1,8 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { badRequest } from '../../../common/utils/api-errors';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { ResultCode } from '../../../common/api-envelope';
@@ -27,17 +24,13 @@ export class DailyRecordImageUploadService {
 
     const contentType = dto.contentType.trim().toLowerCase();
     if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
-      throw new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
-        message: 'Only jpeg, png, webp, or gif images can be uploaded',
-      });
+      badRequest('Only jpeg, png, webp, or gif images can be uploaded');
     }
 
     if (dto.sizeBytes > config.maxUploadBytes) {
-      throw new BadRequestException({
-        code: ResultCode.BAD_REQUEST,
-        message: `Image upload size exceeds ${String(config.maxUploadBytes)} bytes`,
-      });
+      badRequest(
+        `Image upload size exceeds ${String(config.maxUploadBytes)} bytes`,
+      );
     }
 
     const objectKey = this.createObjectKey(userId, dto.fileName, contentType);

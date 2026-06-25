@@ -1,10 +1,6 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { notFound, forbidden } from '../../common/utils/api-errors';
+import { Injectable } from '@nestjs/common';
 
-import { ResultCode } from '../../common/api-envelope';
 import { PrismaService } from '../../prisma/prisma.service';
 import { User, UserIdentity } from '../../generated/prisma/client';
 import { AccountDto } from './dto/account-response.dto';
@@ -46,17 +42,11 @@ export class AccountService {
     const user = await this.getActiveAccountUser(userId);
     const identity = user.identities.find((item) => item.id === identityId);
     if (!identity) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: 'Account identity not found',
-      });
+      notFound('Account identity not found');
     }
 
     if (user.passwordHash === null && user.identities.length <= 1) {
-      throw new ForbiddenException({
-        code: ResultCode.FORBIDDEN,
-        message: 'Cannot unlink the last sign-in method',
-      });
+      forbidden('Cannot unlink the last sign-in method');
     }
 
     await this.prisma.userIdentity.delete({ where: { id: identityId } });
@@ -70,10 +60,7 @@ export class AccountService {
     });
 
     if (!user) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: 'User not found',
-      });
+      notFound('User not found');
     }
 
     return user;

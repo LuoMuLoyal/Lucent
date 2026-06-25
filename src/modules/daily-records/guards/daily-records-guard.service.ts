@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { notFound } from '../../../common/utils/api-errors';
+import { Injectable } from '@nestjs/common';
+
 import type { DailyRecordKind } from '../../../generated/prisma/client';
-import { ResultCode } from '../../../common/api-envelope';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 export type OwnedRecordSnapshot = {
@@ -22,19 +23,13 @@ export class DailyRecordsGuardService {
     });
 
     if (!record || record.userId !== userId) {
-      throw new NotFoundException({
-        code: ResultCode.NOT_FOUND,
-        message: 'Record not found',
-      });
+      notFound('Record not found');
     }
 
     return { kind: record.kind, payload: record.payload };
   }
 
   throwRecordNotFound(): never {
-    throw new NotFoundException({
-      code: ResultCode.NOT_FOUND,
-      message: 'Record not found',
-    });
+    notFound('Record not found');
   }
 }

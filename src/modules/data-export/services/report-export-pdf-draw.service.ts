@@ -1,8 +1,9 @@
-import type { PDFDocument } from 'pdf-lib';
 import { rgb } from 'pdf-lib';
 import {
   BOTTOM_Y,
   CONTENT_WIDTH,
+  FOOTER_RULE_Y,
+  FOOTER_TEXT_Y,
   HEADER_RULE_Y,
   HEADER_TOP_Y,
   MARGIN_X,
@@ -10,6 +11,7 @@ import {
   PAGE_WIDTH,
   TOP_Y,
 } from '../config/report-pdf.constants';
+import type { EmbeddedFont, PageContext } from '../config/report-pdf.constants';
 import { statusLabel, statusPalette } from '../config/report-pdf.theme';
 import { metricLabel } from '../config/report-pdf.theme';
 import type {
@@ -17,24 +19,7 @@ import type {
   ReportMetricDto,
 } from '../../reports/dto';
 
-const FOOTER_RULE_Y = 70;
-const FOOTER_TEXT_Y = 52;
-
-export type EmbeddedFont = Awaited<ReturnType<PDFDocument['embedFont']>>;
-export type PdfPage = ReturnType<PDFDocument['addPage']>;
 export type PdfColor = ReturnType<typeof rgb>;
-
-export type PageContext = {
-  pdf: PDFDocument;
-  cjkFont: EmbeddedFont;
-  page: PdfPage;
-  cursorY: number;
-  title: string;
-  headerSubtitle: string;
-  footerNote: string;
-  pageNumberLabel: string;
-  kindLabel: string;
-};
 
 export function ensureHeight(context: PageContext, height: number): void {
   if (context.cursorY - height >= BOTTOM_Y) return;
