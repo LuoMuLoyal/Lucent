@@ -65,6 +65,9 @@ export const ModelName = {
   UserDailyRecordAttachment: 'UserDailyRecordAttachment',
   DrugSourceImport: 'DrugSourceImport',
   CnMedicineProduct: 'CnMedicineProduct',
+  CnMedicineLeaflet: 'CnMedicineLeaflet',
+  CnMedicineProductLeafletLink: 'CnMedicineProductLeafletLink',
+  MedicineLeafletChunk: 'MedicineLeafletChunk',
   DrugbankDrug: 'DrugbankDrug',
   DrugbankExternalLink: 'DrugbankExternalLink',
   DrugbankTarget: 'DrugbankTarget',
@@ -395,6 +398,82 @@ export const CnMedicineProductScalarFieldEnum = {
 } as const
 
 export type CnMedicineProductScalarFieldEnum = (typeof CnMedicineProductScalarFieldEnum)[keyof typeof CnMedicineProductScalarFieldEnum]
+
+
+export const CnMedicineLeafletScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  instructionId: 'instructionId',
+  sourceFile: 'sourceFile',
+  sourceRow: 'sourceRow',
+  title: 'title',
+  titleUrl: 'titleUrl',
+  numberRaw: 'numberRaw',
+  summary: 'summary',
+  genericName: 'genericName',
+  brandName: 'brandName',
+  pinyin: 'pinyin',
+  approvalRaw: 'approvalRaw',
+  approvalCodes: 'approvalCodes',
+  approvalConflict: 'approvalConflict',
+  drugCategory: 'drugCategory',
+  manufacturer: 'manufacturer',
+  drugNature: 'drugNature',
+  relatedDiseases: 'relatedDiseases',
+  properties: 'properties',
+  ingredients: 'ingredients',
+  indications: 'indications',
+  packageSpec: 'packageSpec',
+  adverseReactions: 'adverseReactions',
+  dosage: 'dosage',
+  contraindications: 'contraindications',
+  precautions: 'precautions',
+  pregnancyLactation: 'pregnancyLactation',
+  pediatricUse: 'pediatricUse',
+  geriatricUse: 'geriatricUse',
+  drugInteractions: 'drugInteractions',
+  pharmacologyToxicology: 'pharmacologyToxicology',
+  pharmacokinetics: 'pharmacokinetics',
+  storage: 'storage',
+  validityPeriod: 'validityPeriod',
+  mergeNotes: 'mergeNotes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CnMedicineLeafletScalarFieldEnum = (typeof CnMedicineLeafletScalarFieldEnum)[keyof typeof CnMedicineLeafletScalarFieldEnum]
+
+
+export const CnMedicineProductLeafletLinkScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  productId: 'productId',
+  leafletId: 'leafletId',
+  approvalCode: 'approvalCode',
+  matchScore: 'matchScore',
+  isBestMatch: 'isBestMatch',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CnMedicineProductLeafletLinkScalarFieldEnum = (typeof CnMedicineProductLeafletLinkScalarFieldEnum)[keyof typeof CnMedicineProductLeafletLinkScalarFieldEnum]
+
+
+export const MedicineLeafletChunkScalarFieldEnum = {
+  id: 'id',
+  sourceKind: 'sourceKind',
+  leafletId: 'leafletId',
+  sourceField: 'sourceField',
+  chunkText: 'chunkText',
+  chunkIndex: 'chunkIndex',
+  tokenCount: 'tokenCount',
+  sourceVersion: 'sourceVersion',
+  sourceHash: 'sourceHash',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MedicineLeafletChunkScalarFieldEnum = (typeof MedicineLeafletChunkScalarFieldEnum)[keyof typeof MedicineLeafletChunkScalarFieldEnum]
 
 
 export const DrugbankDrugScalarFieldEnum = {

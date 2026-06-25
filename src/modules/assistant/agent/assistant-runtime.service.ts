@@ -22,6 +22,7 @@ import type {
   AssistantContextSource,
   AssistantToolName,
 } from '../tools/assistant-tool.types';
+import { AssistantToolLeafletReadService } from '../tools/assistant-tool-leaflet-read.service';
 import { buildAssistantSystemPrompt } from '../prompts/assistant-system.prompt';
 import {
   ASSISTANT_RUNTIME_NODE_NAMES,
@@ -39,7 +40,10 @@ const CHAT_MODEL_OPTIONS = {
 export class AssistantRuntimeService {
   private readonly foundationGraph = buildAssistantRuntimeGraph();
 
-  constructor(private readonly llmRuntimeService: LlmRuntimeService) {}
+  constructor(
+    private readonly llmRuntimeService: LlmRuntimeService,
+    private readonly leafletReadService: AssistantToolLeafletReadService,
+  ) {}
 
   hasChatModel(): boolean {
     return this.llmRuntimeService.hasRoleConfig('chat');
@@ -102,13 +106,15 @@ export class AssistantRuntimeService {
     };
   }
 
-  describeFoundation(): AssistantRuntimeCapabilities {
+  async describeFoundation(): Promise<AssistantRuntimeCapabilities> {
+    const chatModelConfigured = this.hasChatModel();
+    const hasChunks = await this.leafletReadService.hasIndexedChunks();
     return {
       phase: 'foundation',
-      chatModelConfigured: this.hasChatModel(),
-      interactiveChatReady: this.hasChatModel(),
+      chatModelConfigured,
+      interactiveChatReady: chatModelConfigured,
       langGraphReady: true,
-      ragEnabled: false,
+      ragEnabled: chatModelConfigured && hasChunks,
       graphNodeNames: ASSISTANT_RUNTIME_NODE_NAMES,
       toolNames: ASSISTANT_TOOL_NAMES,
       implementedToolNames: ASSISTANT_IMPLEMENTED_TOOL_NAMES,

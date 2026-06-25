@@ -10,7 +10,7 @@ describe('AssistantPolicyService', () => {
         chatModelConfigured: true,
         interactiveChatReady: true,
         langGraphReady: true,
-        ragEnabled: false,
+        ragEnabled: true,
         graphNodeNames: ['prepare_context', 'respond'],
         toolNames: [
           'get_today_records',
@@ -24,6 +24,7 @@ describe('AssistantPolicyService', () => {
           'get_user_settings',
           'get_current_medicines',
           'get_sleep_summary_by_range',
+          'get_medicine_leaflet_context',
           'propose_create_daily_record',
           'propose_update_daily_record',
           'propose_delete_daily_record',
@@ -41,6 +42,7 @@ describe('AssistantPolicyService', () => {
           'get_user_settings',
           'get_current_medicines',
           'get_sleep_summary_by_range',
+          'get_medicine_leaflet_context',
           'propose_create_daily_record',
           'propose_update_daily_record',
           'propose_delete_daily_record',
@@ -83,6 +85,7 @@ describe('AssistantPolicyService', () => {
       'get_user_settings',
       'get_current_medicines',
       'get_sleep_summary_by_range',
+      'get_medicine_leaflet_context',
       'propose_create_daily_record',
       'propose_update_user_settings',
     ]);
@@ -95,6 +98,7 @@ describe('AssistantPolicyService', () => {
       'get_user_settings',
       'get_current_medicines',
       'get_sleep_summary_by_range',
+      'get_medicine_leaflet_context',
       'propose_create_daily_record',
       'propose_update_user_settings',
     ]);
@@ -182,6 +186,14 @@ describe('AssistantPolicyService', () => {
       {
         name: 'get_sleep_summary_by_range',
         requiredContextSources: ['sleep_records'],
+        permittedByUser: true,
+        implemented: true,
+        enabled: true,
+        disabledReason: null,
+      },
+      {
+        name: 'get_medicine_leaflet_context',
+        requiredContextSources: [],
         permittedByUser: true,
         implemented: true,
         enabled: true,

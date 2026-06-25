@@ -1080,5 +1080,6 @@ module.exports = {
   invalidateMedicineCache,
   listMedicineCacheKeys,
   redisStoreFromUrl,
+  stableUuid,
   stripNamespacePrefix,
 };

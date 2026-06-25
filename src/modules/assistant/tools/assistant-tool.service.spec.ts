@@ -1,5 +1,6 @@
 import { DailyRecordKind } from '../../../generated/prisma/client';
 import type { AssistantToolExecutionContext } from '../types/assistant.types';
+import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.service';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';
 import { AssistantToolRecordQueryService } from './assistant-tool-record-query.service';
@@ -66,7 +67,12 @@ describe('AssistantToolService', () => {
       dailyRecordCandidatesService as never,
       recordQueryService,
     );
-    const service = new AssistantToolService(readService, proposalService);
+    const leafletReadService = new AssistantToolLeafletReadService({} as never);
+    const service = new AssistantToolService(
+      readService,
+      leafletReadService,
+      proposalService,
+    );
 
     return {
       service,

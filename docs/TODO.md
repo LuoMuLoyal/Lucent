@@ -16,6 +16,11 @@ Keep durable implementation context in the owning code comments when the TODO is
   - optional async worker execution instead of request-thread generation
   - richer structured sections or chart blocks if doctor-facing readability needs more than the current text-first PDF template
 
+## Assistant RAG
+
+- `get_medicine_leaflet_context` is implemented with keyword product matching and fixed-size chunk retrieval. Future iterations may add relevance ranking, vector/semantic search, or chunk re-ranking when retrieval quality needs improvement.
+  Source context: `src/modules/assistant/tools/assistant-tool-leaflet-read.service.ts`, `scripts/import/medicine/rebuild-leaflet-index.ts`
+
 ## Auth / Security
 
 - Add optional 2FA challenge verification before issuing tokens.

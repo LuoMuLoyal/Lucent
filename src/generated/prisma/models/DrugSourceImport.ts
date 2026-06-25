@@ -300,6 +300,8 @@ export type DrugSourceImportWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"DrugSourceImport"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DrugSourceImport"> | Date | string
   cnProducts?: Prisma.CnMedicineProductListRelationFilter
+  cnLeaflets?: Prisma.CnMedicineLeafletListRelationFilter
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkListRelationFilter
   drugbankDrugs?: Prisma.DrugbankDrugListRelationFilter
   drugbankLinks?: Prisma.DrugbankExternalLinkListRelationFilter
   drugbankTargets?: Prisma.DrugbankTargetListRelationFilter
@@ -322,6 +324,8 @@ export type DrugSourceImportOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   cnProducts?: Prisma.CnMedicineProductOrderByRelationAggregateInput
+  cnLeaflets?: Prisma.CnMedicineLeafletOrderByRelationAggregateInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkOrderByRelationAggregateInput
   drugbankDrugs?: Prisma.DrugbankDrugOrderByRelationAggregateInput
   drugbankLinks?: Prisma.DrugbankExternalLinkOrderByRelationAggregateInput
   drugbankTargets?: Prisma.DrugbankTargetOrderByRelationAggregateInput
@@ -347,6 +351,8 @@ export type DrugSourceImportWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"DrugSourceImport"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"DrugSourceImport"> | Date | string
   cnProducts?: Prisma.CnMedicineProductListRelationFilter
+  cnLeaflets?: Prisma.CnMedicineLeafletListRelationFilter
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkListRelationFilter
   drugbankDrugs?: Prisma.DrugbankDrugListRelationFilter
   drugbankLinks?: Prisma.DrugbankExternalLinkListRelationFilter
   drugbankTargets?: Prisma.DrugbankTargetListRelationFilter
@@ -413,6 +419,8 @@ export type DrugSourceImportCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cnProducts?: Prisma.CnMedicineProductCreateNestedManyWithoutImportRunInput
+  cnLeaflets?: Prisma.CnMedicineLeafletCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkCreateNestedManyWithoutImportRunInput
   drugbankDrugs?: Prisma.DrugbankDrugCreateNestedManyWithoutImportRunInput
   drugbankLinks?: Prisma.DrugbankExternalLinkCreateNestedManyWithoutImportRunInput
   drugbankTargets?: Prisma.DrugbankTargetCreateNestedManyWithoutImportRunInput
@@ -435,6 +443,8 @@ export type DrugSourceImportUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cnProducts?: Prisma.CnMedicineProductUncheckedCreateNestedManyWithoutImportRunInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedCreateNestedManyWithoutImportRunInput
   drugbankDrugs?: Prisma.DrugbankDrugUncheckedCreateNestedManyWithoutImportRunInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedCreateNestedManyWithoutImportRunInput
   drugbankTargets?: Prisma.DrugbankTargetUncheckedCreateNestedManyWithoutImportRunInput
@@ -457,6 +467,8 @@ export type DrugSourceImportUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cnProducts?: Prisma.CnMedicineProductUpdateManyWithoutImportRunNestedInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUpdateManyWithoutImportRunNestedInput
   drugbankDrugs?: Prisma.DrugbankDrugUpdateManyWithoutImportRunNestedInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUpdateManyWithoutImportRunNestedInput
   drugbankTargets?: Prisma.DrugbankTargetUpdateManyWithoutImportRunNestedInput
@@ -479,6 +491,8 @@ export type DrugSourceImportUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cnProducts?: Prisma.CnMedicineProductUncheckedUpdateManyWithoutImportRunNestedInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankDrugs?: Prisma.DrugbankDrugUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankTargets?: Prisma.DrugbankTargetUncheckedUpdateManyWithoutImportRunNestedInput
@@ -623,6 +637,38 @@ export type DrugSourceImportUpdateOneWithoutCnProductsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.DrugSourceImportUpdateToOneWithWhereWithoutCnProductsInput, Prisma.DrugSourceImportUpdateWithoutCnProductsInput>, Prisma.DrugSourceImportUncheckedUpdateWithoutCnProductsInput>
 }
 
+export type DrugSourceImportCreateNestedOneWithoutCnLeafletsInput = {
+  create?: Prisma.XOR<Prisma.DrugSourceImportCreateWithoutCnLeafletsInput, Prisma.DrugSourceImportUncheckedCreateWithoutCnLeafletsInput>
+  connectOrCreate?: Prisma.DrugSourceImportCreateOrConnectWithoutCnLeafletsInput
+  connect?: Prisma.DrugSourceImportWhereUniqueInput
+}
+
+export type DrugSourceImportUpdateOneWithoutCnLeafletsNestedInput = {
+  create?: Prisma.XOR<Prisma.DrugSourceImportCreateWithoutCnLeafletsInput, Prisma.DrugSourceImportUncheckedCreateWithoutCnLeafletsInput>
+  connectOrCreate?: Prisma.DrugSourceImportCreateOrConnectWithoutCnLeafletsInput
+  upsert?: Prisma.DrugSourceImportUpsertWithoutCnLeafletsInput
+  disconnect?: Prisma.DrugSourceImportWhereInput | boolean
+  delete?: Prisma.DrugSourceImportWhereInput | boolean
+  connect?: Prisma.DrugSourceImportWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DrugSourceImportUpdateToOneWithWhereWithoutCnLeafletsInput, Prisma.DrugSourceImportUpdateWithoutCnLeafletsInput>, Prisma.DrugSourceImportUncheckedUpdateWithoutCnLeafletsInput>
+}
+
+export type DrugSourceImportCreateNestedOneWithoutCnProductLeafletLinksInput = {
+  create?: Prisma.XOR<Prisma.DrugSourceImportCreateWithoutCnProductLeafletLinksInput, Prisma.DrugSourceImportUncheckedCreateWithoutCnProductLeafletLinksInput>
+  connectOrCreate?: Prisma.DrugSourceImportCreateOrConnectWithoutCnProductLeafletLinksInput
+  connect?: Prisma.DrugSourceImportWhereUniqueInput
+}
+
+export type DrugSourceImportUpdateOneWithoutCnProductLeafletLinksNestedInput = {
+  create?: Prisma.XOR<Prisma.DrugSourceImportCreateWithoutCnProductLeafletLinksInput, Prisma.DrugSourceImportUncheckedCreateWithoutCnProductLeafletLinksInput>
+  connectOrCreate?: Prisma.DrugSourceImportCreateOrConnectWithoutCnProductLeafletLinksInput
+  upsert?: Prisma.DrugSourceImportUpsertWithoutCnProductLeafletLinksInput
+  disconnect?: Prisma.DrugSourceImportWhereInput | boolean
+  delete?: Prisma.DrugSourceImportWhereInput | boolean
+  connect?: Prisma.DrugSourceImportWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DrugSourceImportUpdateToOneWithWhereWithoutCnProductLeafletLinksInput, Prisma.DrugSourceImportUpdateWithoutCnProductLeafletLinksInput>, Prisma.DrugSourceImportUncheckedUpdateWithoutCnProductLeafletLinksInput>
+}
+
 export type DrugSourceImportCreateNestedOneWithoutDrugbankDrugsInput = {
   create?: Prisma.XOR<Prisma.DrugSourceImportCreateWithoutDrugbankDrugsInput, Prisma.DrugSourceImportUncheckedCreateWithoutDrugbankDrugsInput>
   connectOrCreate?: Prisma.DrugSourceImportCreateOrConnectWithoutDrugbankDrugsInput
@@ -687,6 +733,8 @@ export type DrugSourceImportCreateWithoutCnProductsInput = {
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cnLeaflets?: Prisma.CnMedicineLeafletCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkCreateNestedManyWithoutImportRunInput
   drugbankDrugs?: Prisma.DrugbankDrugCreateNestedManyWithoutImportRunInput
   drugbankLinks?: Prisma.DrugbankExternalLinkCreateNestedManyWithoutImportRunInput
   drugbankTargets?: Prisma.DrugbankTargetCreateNestedManyWithoutImportRunInput
@@ -708,6 +756,8 @@ export type DrugSourceImportUncheckedCreateWithoutCnProductsInput = {
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedCreateNestedManyWithoutImportRunInput
   drugbankDrugs?: Prisma.DrugbankDrugUncheckedCreateNestedManyWithoutImportRunInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedCreateNestedManyWithoutImportRunInput
   drugbankTargets?: Prisma.DrugbankTargetUncheckedCreateNestedManyWithoutImportRunInput
@@ -745,6 +795,8 @@ export type DrugSourceImportUpdateWithoutCnProductsInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cnLeaflets?: Prisma.CnMedicineLeafletUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUpdateManyWithoutImportRunNestedInput
   drugbankDrugs?: Prisma.DrugbankDrugUpdateManyWithoutImportRunNestedInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUpdateManyWithoutImportRunNestedInput
   drugbankTargets?: Prisma.DrugbankTargetUpdateManyWithoutImportRunNestedInput
@@ -766,6 +818,224 @@ export type DrugSourceImportUncheckedUpdateWithoutCnProductsInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedUpdateManyWithoutImportRunNestedInput
+  drugbankDrugs?: Prisma.DrugbankDrugUncheckedUpdateManyWithoutImportRunNestedInput
+  drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedUpdateManyWithoutImportRunNestedInput
+  drugbankTargets?: Prisma.DrugbankTargetUncheckedUpdateManyWithoutImportRunNestedInput
+}
+
+export type DrugSourceImportCreateWithoutCnLeafletsInput = {
+  id?: string
+  sourceKey: string
+  sourceName: string
+  sourceVersion?: string | null
+  sourceFileName?: string | null
+  sourceFileHash?: string | null
+  sourceExportedAt?: Date | string | null
+  status?: string
+  rawRowCount?: number | null
+  importedRowCount?: number | null
+  rejectedRowCount?: number | null
+  rejectionSummary?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  note?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cnProducts?: Prisma.CnMedicineProductCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkCreateNestedManyWithoutImportRunInput
+  drugbankDrugs?: Prisma.DrugbankDrugCreateNestedManyWithoutImportRunInput
+  drugbankLinks?: Prisma.DrugbankExternalLinkCreateNestedManyWithoutImportRunInput
+  drugbankTargets?: Prisma.DrugbankTargetCreateNestedManyWithoutImportRunInput
+}
+
+export type DrugSourceImportUncheckedCreateWithoutCnLeafletsInput = {
+  id?: string
+  sourceKey: string
+  sourceName: string
+  sourceVersion?: string | null
+  sourceFileName?: string | null
+  sourceFileHash?: string | null
+  sourceExportedAt?: Date | string | null
+  status?: string
+  rawRowCount?: number | null
+  importedRowCount?: number | null
+  rejectedRowCount?: number | null
+  rejectionSummary?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  note?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cnProducts?: Prisma.CnMedicineProductUncheckedCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedCreateNestedManyWithoutImportRunInput
+  drugbankDrugs?: Prisma.DrugbankDrugUncheckedCreateNestedManyWithoutImportRunInput
+  drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedCreateNestedManyWithoutImportRunInput
+  drugbankTargets?: Prisma.DrugbankTargetUncheckedCreateNestedManyWithoutImportRunInput
+}
+
+export type DrugSourceImportCreateOrConnectWithoutCnLeafletsInput = {
+  where: Prisma.DrugSourceImportWhereUniqueInput
+  create: Prisma.XOR<Prisma.DrugSourceImportCreateWithoutCnLeafletsInput, Prisma.DrugSourceImportUncheckedCreateWithoutCnLeafletsInput>
+}
+
+export type DrugSourceImportUpsertWithoutCnLeafletsInput = {
+  update: Prisma.XOR<Prisma.DrugSourceImportUpdateWithoutCnLeafletsInput, Prisma.DrugSourceImportUncheckedUpdateWithoutCnLeafletsInput>
+  create: Prisma.XOR<Prisma.DrugSourceImportCreateWithoutCnLeafletsInput, Prisma.DrugSourceImportUncheckedCreateWithoutCnLeafletsInput>
+  where?: Prisma.DrugSourceImportWhereInput
+}
+
+export type DrugSourceImportUpdateToOneWithWhereWithoutCnLeafletsInput = {
+  where?: Prisma.DrugSourceImportWhereInput
+  data: Prisma.XOR<Prisma.DrugSourceImportUpdateWithoutCnLeafletsInput, Prisma.DrugSourceImportUncheckedUpdateWithoutCnLeafletsInput>
+}
+
+export type DrugSourceImportUpdateWithoutCnLeafletsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceName?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceExportedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  rawRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  importedRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rejectedRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rejectionSummary?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cnProducts?: Prisma.CnMedicineProductUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUpdateManyWithoutImportRunNestedInput
+  drugbankDrugs?: Prisma.DrugbankDrugUpdateManyWithoutImportRunNestedInput
+  drugbankLinks?: Prisma.DrugbankExternalLinkUpdateManyWithoutImportRunNestedInput
+  drugbankTargets?: Prisma.DrugbankTargetUpdateManyWithoutImportRunNestedInput
+}
+
+export type DrugSourceImportUncheckedUpdateWithoutCnLeafletsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceName?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceExportedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  rawRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  importedRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rejectedRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rejectionSummary?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cnProducts?: Prisma.CnMedicineProductUncheckedUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedUpdateManyWithoutImportRunNestedInput
+  drugbankDrugs?: Prisma.DrugbankDrugUncheckedUpdateManyWithoutImportRunNestedInput
+  drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedUpdateManyWithoutImportRunNestedInput
+  drugbankTargets?: Prisma.DrugbankTargetUncheckedUpdateManyWithoutImportRunNestedInput
+}
+
+export type DrugSourceImportCreateWithoutCnProductLeafletLinksInput = {
+  id?: string
+  sourceKey: string
+  sourceName: string
+  sourceVersion?: string | null
+  sourceFileName?: string | null
+  sourceFileHash?: string | null
+  sourceExportedAt?: Date | string | null
+  status?: string
+  rawRowCount?: number | null
+  importedRowCount?: number | null
+  rejectedRowCount?: number | null
+  rejectionSummary?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  note?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cnProducts?: Prisma.CnMedicineProductCreateNestedManyWithoutImportRunInput
+  cnLeaflets?: Prisma.CnMedicineLeafletCreateNestedManyWithoutImportRunInput
+  drugbankDrugs?: Prisma.DrugbankDrugCreateNestedManyWithoutImportRunInput
+  drugbankLinks?: Prisma.DrugbankExternalLinkCreateNestedManyWithoutImportRunInput
+  drugbankTargets?: Prisma.DrugbankTargetCreateNestedManyWithoutImportRunInput
+}
+
+export type DrugSourceImportUncheckedCreateWithoutCnProductLeafletLinksInput = {
+  id?: string
+  sourceKey: string
+  sourceName: string
+  sourceVersion?: string | null
+  sourceFileName?: string | null
+  sourceFileHash?: string | null
+  sourceExportedAt?: Date | string | null
+  status?: string
+  rawRowCount?: number | null
+  importedRowCount?: number | null
+  rejectedRowCount?: number | null
+  rejectionSummary?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  note?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cnProducts?: Prisma.CnMedicineProductUncheckedCreateNestedManyWithoutImportRunInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedCreateNestedManyWithoutImportRunInput
+  drugbankDrugs?: Prisma.DrugbankDrugUncheckedCreateNestedManyWithoutImportRunInput
+  drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedCreateNestedManyWithoutImportRunInput
+  drugbankTargets?: Prisma.DrugbankTargetUncheckedCreateNestedManyWithoutImportRunInput
+}
+
+export type DrugSourceImportCreateOrConnectWithoutCnProductLeafletLinksInput = {
+  where: Prisma.DrugSourceImportWhereUniqueInput
+  create: Prisma.XOR<Prisma.DrugSourceImportCreateWithoutCnProductLeafletLinksInput, Prisma.DrugSourceImportUncheckedCreateWithoutCnProductLeafletLinksInput>
+}
+
+export type DrugSourceImportUpsertWithoutCnProductLeafletLinksInput = {
+  update: Prisma.XOR<Prisma.DrugSourceImportUpdateWithoutCnProductLeafletLinksInput, Prisma.DrugSourceImportUncheckedUpdateWithoutCnProductLeafletLinksInput>
+  create: Prisma.XOR<Prisma.DrugSourceImportCreateWithoutCnProductLeafletLinksInput, Prisma.DrugSourceImportUncheckedCreateWithoutCnProductLeafletLinksInput>
+  where?: Prisma.DrugSourceImportWhereInput
+}
+
+export type DrugSourceImportUpdateToOneWithWhereWithoutCnProductLeafletLinksInput = {
+  where?: Prisma.DrugSourceImportWhereInput
+  data: Prisma.XOR<Prisma.DrugSourceImportUpdateWithoutCnProductLeafletLinksInput, Prisma.DrugSourceImportUncheckedUpdateWithoutCnProductLeafletLinksInput>
+}
+
+export type DrugSourceImportUpdateWithoutCnProductLeafletLinksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceName?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceExportedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  rawRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  importedRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rejectedRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rejectionSummary?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cnProducts?: Prisma.CnMedicineProductUpdateManyWithoutImportRunNestedInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUpdateManyWithoutImportRunNestedInput
+  drugbankDrugs?: Prisma.DrugbankDrugUpdateManyWithoutImportRunNestedInput
+  drugbankLinks?: Prisma.DrugbankExternalLinkUpdateManyWithoutImportRunNestedInput
+  drugbankTargets?: Prisma.DrugbankTargetUpdateManyWithoutImportRunNestedInput
+}
+
+export type DrugSourceImportUncheckedUpdateWithoutCnProductLeafletLinksInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceKey?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceName?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceFileHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourceExportedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  rawRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  importedRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rejectedRowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  rejectionSummary?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cnProducts?: Prisma.CnMedicineProductUncheckedUpdateManyWithoutImportRunNestedInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankDrugs?: Prisma.DrugbankDrugUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankTargets?: Prisma.DrugbankTargetUncheckedUpdateManyWithoutImportRunNestedInput
@@ -788,6 +1058,8 @@ export type DrugSourceImportCreateWithoutDrugbankDrugsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cnProducts?: Prisma.CnMedicineProductCreateNestedManyWithoutImportRunInput
+  cnLeaflets?: Prisma.CnMedicineLeafletCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkCreateNestedManyWithoutImportRunInput
   drugbankLinks?: Prisma.DrugbankExternalLinkCreateNestedManyWithoutImportRunInput
   drugbankTargets?: Prisma.DrugbankTargetCreateNestedManyWithoutImportRunInput
 }
@@ -809,6 +1081,8 @@ export type DrugSourceImportUncheckedCreateWithoutDrugbankDrugsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cnProducts?: Prisma.CnMedicineProductUncheckedCreateNestedManyWithoutImportRunInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedCreateNestedManyWithoutImportRunInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedCreateNestedManyWithoutImportRunInput
   drugbankTargets?: Prisma.DrugbankTargetUncheckedCreateNestedManyWithoutImportRunInput
 }
@@ -846,6 +1120,8 @@ export type DrugSourceImportUpdateWithoutDrugbankDrugsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cnProducts?: Prisma.CnMedicineProductUpdateManyWithoutImportRunNestedInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUpdateManyWithoutImportRunNestedInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUpdateManyWithoutImportRunNestedInput
   drugbankTargets?: Prisma.DrugbankTargetUpdateManyWithoutImportRunNestedInput
 }
@@ -867,6 +1143,8 @@ export type DrugSourceImportUncheckedUpdateWithoutDrugbankDrugsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cnProducts?: Prisma.CnMedicineProductUncheckedUpdateManyWithoutImportRunNestedInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankTargets?: Prisma.DrugbankTargetUncheckedUpdateManyWithoutImportRunNestedInput
 }
@@ -888,6 +1166,8 @@ export type DrugSourceImportCreateWithoutDrugbankLinksInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cnProducts?: Prisma.CnMedicineProductCreateNestedManyWithoutImportRunInput
+  cnLeaflets?: Prisma.CnMedicineLeafletCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkCreateNestedManyWithoutImportRunInput
   drugbankDrugs?: Prisma.DrugbankDrugCreateNestedManyWithoutImportRunInput
   drugbankTargets?: Prisma.DrugbankTargetCreateNestedManyWithoutImportRunInput
 }
@@ -909,6 +1189,8 @@ export type DrugSourceImportUncheckedCreateWithoutDrugbankLinksInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cnProducts?: Prisma.CnMedicineProductUncheckedCreateNestedManyWithoutImportRunInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedCreateNestedManyWithoutImportRunInput
   drugbankDrugs?: Prisma.DrugbankDrugUncheckedCreateNestedManyWithoutImportRunInput
   drugbankTargets?: Prisma.DrugbankTargetUncheckedCreateNestedManyWithoutImportRunInput
 }
@@ -946,6 +1228,8 @@ export type DrugSourceImportUpdateWithoutDrugbankLinksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cnProducts?: Prisma.CnMedicineProductUpdateManyWithoutImportRunNestedInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUpdateManyWithoutImportRunNestedInput
   drugbankDrugs?: Prisma.DrugbankDrugUpdateManyWithoutImportRunNestedInput
   drugbankTargets?: Prisma.DrugbankTargetUpdateManyWithoutImportRunNestedInput
 }
@@ -967,6 +1251,8 @@ export type DrugSourceImportUncheckedUpdateWithoutDrugbankLinksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cnProducts?: Prisma.CnMedicineProductUncheckedUpdateManyWithoutImportRunNestedInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankDrugs?: Prisma.DrugbankDrugUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankTargets?: Prisma.DrugbankTargetUncheckedUpdateManyWithoutImportRunNestedInput
 }
@@ -988,6 +1274,8 @@ export type DrugSourceImportCreateWithoutDrugbankTargetsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cnProducts?: Prisma.CnMedicineProductCreateNestedManyWithoutImportRunInput
+  cnLeaflets?: Prisma.CnMedicineLeafletCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkCreateNestedManyWithoutImportRunInput
   drugbankDrugs?: Prisma.DrugbankDrugCreateNestedManyWithoutImportRunInput
   drugbankLinks?: Prisma.DrugbankExternalLinkCreateNestedManyWithoutImportRunInput
 }
@@ -1009,6 +1297,8 @@ export type DrugSourceImportUncheckedCreateWithoutDrugbankTargetsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   cnProducts?: Prisma.CnMedicineProductUncheckedCreateNestedManyWithoutImportRunInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedCreateNestedManyWithoutImportRunInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedCreateNestedManyWithoutImportRunInput
   drugbankDrugs?: Prisma.DrugbankDrugUncheckedCreateNestedManyWithoutImportRunInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedCreateNestedManyWithoutImportRunInput
 }
@@ -1046,6 +1336,8 @@ export type DrugSourceImportUpdateWithoutDrugbankTargetsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cnProducts?: Prisma.CnMedicineProductUpdateManyWithoutImportRunNestedInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUpdateManyWithoutImportRunNestedInput
   drugbankDrugs?: Prisma.DrugbankDrugUpdateManyWithoutImportRunNestedInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUpdateManyWithoutImportRunNestedInput
 }
@@ -1067,6 +1359,8 @@ export type DrugSourceImportUncheckedUpdateWithoutDrugbankTargetsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cnProducts?: Prisma.CnMedicineProductUncheckedUpdateManyWithoutImportRunNestedInput
+  cnLeaflets?: Prisma.CnMedicineLeafletUncheckedUpdateManyWithoutImportRunNestedInput
+  cnProductLeafletLinks?: Prisma.CnMedicineProductLeafletLinkUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankDrugs?: Prisma.DrugbankDrugUncheckedUpdateManyWithoutImportRunNestedInput
   drugbankLinks?: Prisma.DrugbankExternalLinkUncheckedUpdateManyWithoutImportRunNestedInput
 }
@@ -1078,6 +1372,8 @@ export type DrugSourceImportUncheckedUpdateWithoutDrugbankTargetsInput = {
 
 export type DrugSourceImportCountOutputType = {
   cnProducts: number
+  cnLeaflets: number
+  cnProductLeafletLinks: number
   drugbankDrugs: number
   drugbankLinks: number
   drugbankTargets: number
@@ -1085,6 +1381,8 @@ export type DrugSourceImportCountOutputType = {
 
 export type DrugSourceImportCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   cnProducts?: boolean | DrugSourceImportCountOutputTypeCountCnProductsArgs
+  cnLeaflets?: boolean | DrugSourceImportCountOutputTypeCountCnLeafletsArgs
+  cnProductLeafletLinks?: boolean | DrugSourceImportCountOutputTypeCountCnProductLeafletLinksArgs
   drugbankDrugs?: boolean | DrugSourceImportCountOutputTypeCountDrugbankDrugsArgs
   drugbankLinks?: boolean | DrugSourceImportCountOutputTypeCountDrugbankLinksArgs
   drugbankTargets?: boolean | DrugSourceImportCountOutputTypeCountDrugbankTargetsArgs
@@ -1105,6 +1403,20 @@ export type DrugSourceImportCountOutputTypeDefaultArgs<ExtArgs extends runtime.T
  */
 export type DrugSourceImportCountOutputTypeCountCnProductsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.CnMedicineProductWhereInput
+}
+
+/**
+ * DrugSourceImportCountOutputType without action
+ */
+export type DrugSourceImportCountOutputTypeCountCnLeafletsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CnMedicineLeafletWhereInput
+}
+
+/**
+ * DrugSourceImportCountOutputType without action
+ */
+export type DrugSourceImportCountOutputTypeCountCnProductLeafletLinksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.CnMedicineProductLeafletLinkWhereInput
 }
 
 /**
@@ -1146,6 +1458,8 @@ export type DrugSourceImportSelect<ExtArgs extends runtime.Types.Extensions.Inte
   createdAt?: boolean
   updatedAt?: boolean
   cnProducts?: boolean | Prisma.DrugSourceImport$cnProductsArgs<ExtArgs>
+  cnLeaflets?: boolean | Prisma.DrugSourceImport$cnLeafletsArgs<ExtArgs>
+  cnProductLeafletLinks?: boolean | Prisma.DrugSourceImport$cnProductLeafletLinksArgs<ExtArgs>
   drugbankDrugs?: boolean | Prisma.DrugSourceImport$drugbankDrugsArgs<ExtArgs>
   drugbankLinks?: boolean | Prisma.DrugSourceImport$drugbankLinksArgs<ExtArgs>
   drugbankTargets?: boolean | Prisma.DrugSourceImport$drugbankTargetsArgs<ExtArgs>
@@ -1209,6 +1523,8 @@ export type DrugSourceImportSelectScalar = {
 export type DrugSourceImportOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sourceKey" | "sourceName" | "sourceVersion" | "sourceFileName" | "sourceFileHash" | "sourceExportedAt" | "status" | "rawRowCount" | "importedRowCount" | "rejectedRowCount" | "rejectionSummary" | "note" | "createdAt" | "updatedAt", ExtArgs["result"]["drugSourceImport"]>
 export type DrugSourceImportInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   cnProducts?: boolean | Prisma.DrugSourceImport$cnProductsArgs<ExtArgs>
+  cnLeaflets?: boolean | Prisma.DrugSourceImport$cnLeafletsArgs<ExtArgs>
+  cnProductLeafletLinks?: boolean | Prisma.DrugSourceImport$cnProductLeafletLinksArgs<ExtArgs>
   drugbankDrugs?: boolean | Prisma.DrugSourceImport$drugbankDrugsArgs<ExtArgs>
   drugbankLinks?: boolean | Prisma.DrugSourceImport$drugbankLinksArgs<ExtArgs>
   drugbankTargets?: boolean | Prisma.DrugSourceImport$drugbankTargetsArgs<ExtArgs>
@@ -1221,6 +1537,8 @@ export type $DrugSourceImportPayload<ExtArgs extends runtime.Types.Extensions.In
   name: "DrugSourceImport"
   objects: {
     cnProducts: Prisma.$CnMedicineProductPayload<ExtArgs>[]
+    cnLeaflets: Prisma.$CnMedicineLeafletPayload<ExtArgs>[]
+    cnProductLeafletLinks: Prisma.$CnMedicineProductLeafletLinkPayload<ExtArgs>[]
     drugbankDrugs: Prisma.$DrugbankDrugPayload<ExtArgs>[]
     drugbankLinks: Prisma.$DrugbankExternalLinkPayload<ExtArgs>[]
     drugbankTargets: Prisma.$DrugbankTargetPayload<ExtArgs>[]
@@ -1636,6 +1954,8 @@ readonly fields: DrugSourceImportFieldRefs;
 export interface Prisma__DrugSourceImportClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   cnProducts<T extends Prisma.DrugSourceImport$cnProductsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DrugSourceImport$cnProductsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CnMedicineProductPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  cnLeaflets<T extends Prisma.DrugSourceImport$cnLeafletsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DrugSourceImport$cnLeafletsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CnMedicineLeafletPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  cnProductLeafletLinks<T extends Prisma.DrugSourceImport$cnProductLeafletLinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DrugSourceImport$cnProductLeafletLinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CnMedicineProductLeafletLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   drugbankDrugs<T extends Prisma.DrugSourceImport$drugbankDrugsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DrugSourceImport$drugbankDrugsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DrugbankDrugPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   drugbankLinks<T extends Prisma.DrugSourceImport$drugbankLinksArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DrugSourceImport$drugbankLinksArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DrugbankExternalLinkPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   drugbankTargets<T extends Prisma.DrugSourceImport$drugbankTargetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.DrugSourceImport$drugbankTargetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DrugbankTargetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -2097,6 +2417,54 @@ export type DrugSourceImport$cnProductsArgs<ExtArgs extends runtime.Types.Extens
   take?: number
   skip?: number
   distinct?: Prisma.CnMedicineProductScalarFieldEnum | Prisma.CnMedicineProductScalarFieldEnum[]
+}
+
+/**
+ * DrugSourceImport.cnLeaflets
+ */
+export type DrugSourceImport$cnLeafletsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CnMedicineLeaflet
+   */
+  select?: Prisma.CnMedicineLeafletSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CnMedicineLeaflet
+   */
+  omit?: Prisma.CnMedicineLeafletOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CnMedicineLeafletInclude<ExtArgs> | null
+  where?: Prisma.CnMedicineLeafletWhereInput
+  orderBy?: Prisma.CnMedicineLeafletOrderByWithRelationInput | Prisma.CnMedicineLeafletOrderByWithRelationInput[]
+  cursor?: Prisma.CnMedicineLeafletWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CnMedicineLeafletScalarFieldEnum | Prisma.CnMedicineLeafletScalarFieldEnum[]
+}
+
+/**
+ * DrugSourceImport.cnProductLeafletLinks
+ */
+export type DrugSourceImport$cnProductLeafletLinksArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the CnMedicineProductLeafletLink
+   */
+  select?: Prisma.CnMedicineProductLeafletLinkSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the CnMedicineProductLeafletLink
+   */
+  omit?: Prisma.CnMedicineProductLeafletLinkOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CnMedicineProductLeafletLinkInclude<ExtArgs> | null
+  where?: Prisma.CnMedicineProductLeafletLinkWhereInput
+  orderBy?: Prisma.CnMedicineProductLeafletLinkOrderByWithRelationInput | Prisma.CnMedicineProductLeafletLinkOrderByWithRelationInput[]
+  cursor?: Prisma.CnMedicineProductLeafletLinkWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.CnMedicineProductLeafletLinkScalarFieldEnum | Prisma.CnMedicineProductLeafletLinkScalarFieldEnum[]
 }
 
 /**

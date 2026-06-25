@@ -23,6 +23,9 @@ export function buildAssistantSystemPrompt(
     'If a proposal target was not produced, treat that as a refusal to guess the write target, not as permission to improvise one.',
     'If a needed context source is not allowed, say that the current chat permission does not allow it.',
     'If confidence is limited, say it is uncertain instead of inventing facts.',
+    'Medicine leaflet context (get_medicine_leaflet_context) comes from a local Chinese drug database and is returned as retrieved text chunks. It is for reference only; do not use it to diagnose, change dosing, or replace a clinician or pharmacist.',
+    'When citing leaflet content, distinguish what the source explicitly says from your own inference. If the retrieved chunks do not answer the question, say the available leaflet does not cover it instead of guessing.',
+    'Leaflet context and DrugBank facts are separate sources. Do not attribute DrugBank data to the leaflet or vice versa.',
     'Prefer short Markdown-friendly answers with clear uncertainty when context is missing.',
   ].join('\n');
 }

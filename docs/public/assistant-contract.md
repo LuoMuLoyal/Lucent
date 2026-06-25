@@ -19,7 +19,6 @@ Current non-goals:
 
 - free-form tool calling
 - autonomous writes
-- RAG / leaflet retrieval
 - broad conversation management such as rename or delete
 
 ## AI Architecture Boundary
@@ -37,7 +36,7 @@ Implications:
 
 - Do not retro-fit Today/Report bounded linear flows into agent flows "for consistency".
 - `ai-copy.ts` (locale-aware prompt/copy helpers) remains the shared prompt/copy layer; extend it with scenario-specific keys rather than replacing it.
-- RAG, when added, is one assistant read tool — not a replacement for the reviewed medicine safety rule engine and not a mandatory dependency for every assistant reply.
+- `get_medicine_leaflet_context` is the first RAG read tool. It retrieves Chinese drug leaflets as server-owned text chunks. It is not a replacement for the reviewed medicine safety rule engine and not a mandatory dependency for every assistant reply.
 
 ## Public Routes
 
@@ -173,6 +172,15 @@ Rules:
 - `get_user_settings`
 - `get_current_medicines`
 - `get_sleep_summary_by_range`
+- `get_medicine_leaflet_context`
+
+### Medicine leaflet context
+
+`get_medicine_leaflet_context` resolves the user's medicine mention against the local `cn_medicine_products` table, follows `cn_medicine_product_leaflet_links` to `cn_medicine_leaflets`, and returns up to 50 text chunks from `medicine_leaflet_chunks`.
+
+- It requires no specific context source to be permitted, but in practice the graph only selects it when `current_medicines` is enabled or the user explicitly asks about a medicine.
+- If multiple products match, the tool returns partial coverage with a candidate list instead of guessing.
+- The returned chunks are server-owned evidence; the model must not treat them as a diagnosis or dosing instruction and must express uncertainty when the chunks do not answer the question.
 
 ## Current Proposal-Only Write Tools
 
@@ -276,6 +284,6 @@ Additional rules:
 - orchestration foundation is LangGraph
 - streaming transport is SSE
 - markdown output is expected
-- RAG is still off
+- RAG is enabled when `medicine_leaflet_chunks` is populated and the chat model is configured
 - persisted assistant conversations are live
 - cross-conversation memory is optional and controlled by `assistantMemoryEnabled`

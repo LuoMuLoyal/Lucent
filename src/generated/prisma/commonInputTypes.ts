@@ -507,6 +507,19 @@ export type EnumDailyRecordAttachmentKindWithAggregatesFilter<$PrismaModel = nev
   _max?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
 }
 
+export type BoolNullableFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedBoolNullableFilter<$PrismaModel> | boolean | null
+}
+
+export type BoolNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedBoolNullableWithAggregatesFilter<$PrismaModel> | boolean | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedBoolNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedBoolNullableFilter<$PrismaModel>
+}
+
 export type EnumAssistantConversationStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.AssistantConversationStatus | Prisma.EnumAssistantConversationStatusFieldRefInput<$PrismaModel>
   in?: $Enums.AssistantConversationStatus[] | Prisma.ListEnumAssistantConversationStatusFieldRefInput<$PrismaModel>
@@ -1087,6 +1100,19 @@ export type NestedEnumDailyRecordAttachmentKindWithAggregatesFilter<$PrismaModel
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
   _max?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
+}
+
+export type NestedBoolNullableFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedBoolNullableFilter<$PrismaModel> | boolean | null
+}
+
+export type NestedBoolNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedBoolNullableWithAggregatesFilter<$PrismaModel> | boolean | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedBoolNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedBoolNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumAssistantConversationStatusFilter<$PrismaModel = never> = {

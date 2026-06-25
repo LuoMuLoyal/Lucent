@@ -114,6 +114,21 @@ export type DrugSourceImport = Prisma.DrugSourceImportModel
  */
 export type CnMedicineProduct = Prisma.CnMedicineProductModel
 /**
+ * Model CnMedicineLeaflet
+ * 
+ */
+export type CnMedicineLeaflet = Prisma.CnMedicineLeafletModel
+/**
+ * Model CnMedicineProductLeafletLink
+ * 
+ */
+export type CnMedicineProductLeafletLink = Prisma.CnMedicineProductLeafletLinkModel
+/**
+ * Model MedicineLeafletChunk
+ * 
+ */
+export type MedicineLeafletChunk = Prisma.MedicineLeafletChunkModel
+/**
  * Model DrugbankDrug
  * 
  */

@@ -4,6 +4,7 @@ import type {
   AssistantToolExecutionResult,
 } from '../types/assistant.types';
 import type { AssistantToolName } from './assistant-tool.types';
+import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.service';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';
 
@@ -11,6 +12,7 @@ import { AssistantToolReadService } from './assistant-tool-read.service';
 export class AssistantToolService {
   constructor(
     private readonly readService: AssistantToolReadService,
+    private readonly leafletReadService: AssistantToolLeafletReadService,
     private readonly proposalService: AssistantToolProposalService,
   ) {}
 
@@ -84,6 +86,13 @@ export class AssistantToolService {
         return {
           name: toolName,
           data: await this.readService.getSleepSummaryByRange(context),
+        };
+      case 'get_medicine_leaflet_context':
+        return {
+          name: toolName,
+          data: await this.leafletReadService.getMedicineLeafletContext(
+            context,
+          ),
         };
       case 'propose_create_daily_record':
         return this.proposalService.buildCreateDailyRecordProposal(

@@ -398,6 +398,9 @@ export const ModelName = {
   UserDailyRecordAttachment: 'UserDailyRecordAttachment',
   DrugSourceImport: 'DrugSourceImport',
   CnMedicineProduct: 'CnMedicineProduct',
+  CnMedicineLeaflet: 'CnMedicineLeaflet',
+  CnMedicineProductLeafletLink: 'CnMedicineProductLeafletLink',
+  MedicineLeafletChunk: 'MedicineLeafletChunk',
   DrugbankDrug: 'DrugbankDrug',
   DrugbankExternalLink: 'DrugbankExternalLink',
   DrugbankTarget: 'DrugbankTarget',
@@ -422,7 +425,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory"
+    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "cnMedicineLeaflet" | "cnMedicineProductLeafletLink" | "medicineLeafletChunk" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1536,6 +1539,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CnMedicineLeaflet: {
+      payload: Prisma.$CnMedicineLeafletPayload<ExtArgs>
+      fields: Prisma.CnMedicineLeafletFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CnMedicineLeafletFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CnMedicineLeafletFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload>
+        }
+        findFirst: {
+          args: Prisma.CnMedicineLeafletFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CnMedicineLeafletFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload>
+        }
+        findMany: {
+          args: Prisma.CnMedicineLeafletFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload>[]
+        }
+        create: {
+          args: Prisma.CnMedicineLeafletCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload>
+        }
+        createMany: {
+          args: Prisma.CnMedicineLeafletCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CnMedicineLeafletCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload>[]
+        }
+        delete: {
+          args: Prisma.CnMedicineLeafletDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload>
+        }
+        update: {
+          args: Prisma.CnMedicineLeafletUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload>
+        }
+        deleteMany: {
+          args: Prisma.CnMedicineLeafletDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CnMedicineLeafletUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CnMedicineLeafletUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload>[]
+        }
+        upsert: {
+          args: Prisma.CnMedicineLeafletUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineLeafletPayload>
+        }
+        aggregate: {
+          args: Prisma.CnMedicineLeafletAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCnMedicineLeaflet>
+        }
+        groupBy: {
+          args: Prisma.CnMedicineLeafletGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CnMedicineLeafletGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CnMedicineLeafletCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CnMedicineLeafletCountAggregateOutputType> | number
+        }
+      }
+    }
+    CnMedicineProductLeafletLink: {
+      payload: Prisma.$CnMedicineProductLeafletLinkPayload<ExtArgs>
+      fields: Prisma.CnMedicineProductLeafletLinkFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CnMedicineProductLeafletLinkFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CnMedicineProductLeafletLinkFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload>
+        }
+        findFirst: {
+          args: Prisma.CnMedicineProductLeafletLinkFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CnMedicineProductLeafletLinkFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload>
+        }
+        findMany: {
+          args: Prisma.CnMedicineProductLeafletLinkFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload>[]
+        }
+        create: {
+          args: Prisma.CnMedicineProductLeafletLinkCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload>
+        }
+        createMany: {
+          args: Prisma.CnMedicineProductLeafletLinkCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CnMedicineProductLeafletLinkCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload>[]
+        }
+        delete: {
+          args: Prisma.CnMedicineProductLeafletLinkDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload>
+        }
+        update: {
+          args: Prisma.CnMedicineProductLeafletLinkUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload>
+        }
+        deleteMany: {
+          args: Prisma.CnMedicineProductLeafletLinkDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CnMedicineProductLeafletLinkUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CnMedicineProductLeafletLinkUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload>[]
+        }
+        upsert: {
+          args: Prisma.CnMedicineProductLeafletLinkUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CnMedicineProductLeafletLinkPayload>
+        }
+        aggregate: {
+          args: Prisma.CnMedicineProductLeafletLinkAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCnMedicineProductLeafletLink>
+        }
+        groupBy: {
+          args: Prisma.CnMedicineProductLeafletLinkGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CnMedicineProductLeafletLinkGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CnMedicineProductLeafletLinkCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CnMedicineProductLeafletLinkCountAggregateOutputType> | number
+        }
+      }
+    }
+    MedicineLeafletChunk: {
+      payload: Prisma.$MedicineLeafletChunkPayload<ExtArgs>
+      fields: Prisma.MedicineLeafletChunkFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MedicineLeafletChunkFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MedicineLeafletChunkFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload>
+        }
+        findFirst: {
+          args: Prisma.MedicineLeafletChunkFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MedicineLeafletChunkFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload>
+        }
+        findMany: {
+          args: Prisma.MedicineLeafletChunkFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload>[]
+        }
+        create: {
+          args: Prisma.MedicineLeafletChunkCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload>
+        }
+        createMany: {
+          args: Prisma.MedicineLeafletChunkCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MedicineLeafletChunkCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload>[]
+        }
+        delete: {
+          args: Prisma.MedicineLeafletChunkDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload>
+        }
+        update: {
+          args: Prisma.MedicineLeafletChunkUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload>
+        }
+        deleteMany: {
+          args: Prisma.MedicineLeafletChunkDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MedicineLeafletChunkUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MedicineLeafletChunkUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload>[]
+        }
+        upsert: {
+          args: Prisma.MedicineLeafletChunkUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineLeafletChunkPayload>
+        }
+        aggregate: {
+          args: Prisma.MedicineLeafletChunkAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMedicineLeafletChunk>
+        }
+        groupBy: {
+          args: Prisma.MedicineLeafletChunkGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicineLeafletChunkGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MedicineLeafletChunkCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicineLeafletChunkCountAggregateOutputType> | number
+        }
+      }
+    }
     DrugbankDrug: {
       payload: Prisma.$DrugbankDrugPayload<ExtArgs>
       fields: Prisma.DrugbankDrugFieldRefs
@@ -2546,6 +2771,82 @@ export const CnMedicineProductScalarFieldEnum = {
 export type CnMedicineProductScalarFieldEnum = (typeof CnMedicineProductScalarFieldEnum)[keyof typeof CnMedicineProductScalarFieldEnum]
 
 
+export const CnMedicineLeafletScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  instructionId: 'instructionId',
+  sourceFile: 'sourceFile',
+  sourceRow: 'sourceRow',
+  title: 'title',
+  titleUrl: 'titleUrl',
+  numberRaw: 'numberRaw',
+  summary: 'summary',
+  genericName: 'genericName',
+  brandName: 'brandName',
+  pinyin: 'pinyin',
+  approvalRaw: 'approvalRaw',
+  approvalCodes: 'approvalCodes',
+  approvalConflict: 'approvalConflict',
+  drugCategory: 'drugCategory',
+  manufacturer: 'manufacturer',
+  drugNature: 'drugNature',
+  relatedDiseases: 'relatedDiseases',
+  properties: 'properties',
+  ingredients: 'ingredients',
+  indications: 'indications',
+  packageSpec: 'packageSpec',
+  adverseReactions: 'adverseReactions',
+  dosage: 'dosage',
+  contraindications: 'contraindications',
+  precautions: 'precautions',
+  pregnancyLactation: 'pregnancyLactation',
+  pediatricUse: 'pediatricUse',
+  geriatricUse: 'geriatricUse',
+  drugInteractions: 'drugInteractions',
+  pharmacologyToxicology: 'pharmacologyToxicology',
+  pharmacokinetics: 'pharmacokinetics',
+  storage: 'storage',
+  validityPeriod: 'validityPeriod',
+  mergeNotes: 'mergeNotes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CnMedicineLeafletScalarFieldEnum = (typeof CnMedicineLeafletScalarFieldEnum)[keyof typeof CnMedicineLeafletScalarFieldEnum]
+
+
+export const CnMedicineProductLeafletLinkScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  productId: 'productId',
+  leafletId: 'leafletId',
+  approvalCode: 'approvalCode',
+  matchScore: 'matchScore',
+  isBestMatch: 'isBestMatch',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CnMedicineProductLeafletLinkScalarFieldEnum = (typeof CnMedicineProductLeafletLinkScalarFieldEnum)[keyof typeof CnMedicineProductLeafletLinkScalarFieldEnum]
+
+
+export const MedicineLeafletChunkScalarFieldEnum = {
+  id: 'id',
+  sourceKind: 'sourceKind',
+  leafletId: 'leafletId',
+  sourceField: 'sourceField',
+  chunkText: 'chunkText',
+  chunkIndex: 'chunkIndex',
+  tokenCount: 'tokenCount',
+  sourceVersion: 'sourceVersion',
+  sourceHash: 'sourceHash',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MedicineLeafletChunkScalarFieldEnum = (typeof MedicineLeafletChunkScalarFieldEnum)[keyof typeof MedicineLeafletChunkScalarFieldEnum]
+
+
 export const DrugbankDrugScalarFieldEnum = {
   drugbankId: 'drugbankId',
   importRunId: 'importRunId',
@@ -3230,6 +3531,9 @@ export type GlobalOmitConfig = {
   userDailyRecordAttachment?: Prisma.UserDailyRecordAttachmentOmit
   drugSourceImport?: Prisma.DrugSourceImportOmit
   cnMedicineProduct?: Prisma.CnMedicineProductOmit
+  cnMedicineLeaflet?: Prisma.CnMedicineLeafletOmit
+  cnMedicineProductLeafletLink?: Prisma.CnMedicineProductLeafletLinkOmit
+  medicineLeafletChunk?: Prisma.MedicineLeafletChunkOmit
   drugbankDrug?: Prisma.DrugbankDrugOmit
   drugbankExternalLink?: Prisma.DrugbankExternalLinkOmit
   drugbankTarget?: Prisma.DrugbankTargetOmit

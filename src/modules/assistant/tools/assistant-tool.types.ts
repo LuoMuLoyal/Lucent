@@ -19,6 +19,7 @@ export const ASSISTANT_TOOL_NAMES = [
   'get_user_settings',
   'get_current_medicines',
   'get_sleep_summary_by_range',
+  'get_medicine_leaflet_context',
   'propose_create_daily_record',
   'propose_update_daily_record',
   'propose_delete_daily_record',
@@ -39,6 +40,7 @@ export const ASSISTANT_READ_TOOL_NAMES = [
   'get_user_settings',
   'get_current_medicines',
   'get_sleep_summary_by_range',
+  'get_medicine_leaflet_context',
 ] as const satisfies readonly AssistantToolName[];
 
 export const ASSISTANT_IMPLEMENTED_TOOL_NAMES =
@@ -66,6 +68,7 @@ export const ASSISTANT_TOOL_SOURCE_MAP = {
   get_user_settings: [],
   get_current_medicines: ['current_medicines'],
   get_sleep_summary_by_range: ['sleep_records'],
+  get_medicine_leaflet_context: [],
   propose_create_daily_record: [],
   propose_update_daily_record: ['daily_records'],
   propose_delete_daily_record: ['daily_records'],

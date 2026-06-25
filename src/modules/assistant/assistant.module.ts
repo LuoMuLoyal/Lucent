@@ -13,6 +13,7 @@ import { HistoricalAiSummaryService } from './services/historical-ai-summary.ser
 import { AssistantService } from './assistant.service';
 import {
   AssistantContextService,
+  AssistantToolLeafletReadService,
   AssistantToolProposalService,
   AssistantToolReadService,
   AssistantToolRecordQueryService,
@@ -39,6 +40,7 @@ import {
     AssistantToolProposalService,
     AssistantToolService,
     AssistantToolReadService,
+    AssistantToolLeafletReadService,
     AssistantService,
   ],
   exports: [

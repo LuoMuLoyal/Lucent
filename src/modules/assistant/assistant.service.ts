@@ -31,12 +31,12 @@ export class AssistantService {
     private readonly assistantConversationService: AssistantConversationService,
   ) {}
 
-  getFoundationCapabilities(): AssistantRuntimeCapabilities {
+  async getFoundationCapabilities(): Promise<AssistantRuntimeCapabilities> {
     return this.assistantAgentService.describeFoundation();
   }
 
   async getCapabilities(userId: string): Promise<AssistantCapabilitiesDataDto> {
-    const foundation = this.getFoundationCapabilities();
+    const foundation = await this.getFoundationCapabilities();
     const settings = await this.userSettingsService.getSettings(userId);
     const policy = this.assistantPolicyService.evaluate(foundation, settings);
 
@@ -101,7 +101,7 @@ export class AssistantService {
     const messages = this.normalizeConversation(dto);
     const lastUserMessage = this.readLastUserMessage(messages, locale);
 
-    const foundation = this.getFoundationCapabilities();
+    const foundation = await this.getFoundationCapabilities();
     const settings = await this.userSettingsService.getSettings(userId);
     const policy = this.assistantPolicyService.evaluate(foundation, settings);
 

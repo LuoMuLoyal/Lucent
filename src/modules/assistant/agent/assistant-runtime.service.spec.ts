@@ -3,18 +3,29 @@ import type { LlmRuntimeService } from '../../llm-runtime/llm-runtime.service';
 import { AssistantRuntimeService } from './assistant-runtime.service';
 import { buildAssistantSystemPrompt } from '../prompts/assistant-system.prompt';
 
+function buildLeafletService(hasChunks = false) {
+  return {
+    hasIndexedChunks: jest.fn().mockResolvedValue(hasChunks),
+    getMedicineLeafletContext: jest.fn(),
+  };
+}
+
 describe('AssistantRuntimeService', () => {
-  it('describes the phase-1 backend foundation', () => {
+  it('describes the phase-1 backend foundation', async () => {
     const llmRuntimeService = {
       hasRoleConfig: jest
         .fn()
         .mockImplementation((role: string) => role === 'chat'),
     } as unknown as LlmRuntimeService;
 
-    const service = new AssistantRuntimeService(llmRuntimeService);
+    const leafletService = buildLeafletService(false);
+    const service = new AssistantRuntimeService(
+      llmRuntimeService,
+      leafletService as never,
+    );
 
     expect(service.hasChatModel()).toBe(true);
-    expect(service.describeFoundation()).toEqual({
+    expect(await service.describeFoundation()).toEqual({
       phase: 'foundation',
       chatModelConfigured: true,
       interactiveChatReady: true,
@@ -33,6 +44,7 @@ describe('AssistantRuntimeService', () => {
         'get_user_settings',
         'get_current_medicines',
         'get_sleep_summary_by_range',
+        'get_medicine_leaflet_context',
         'propose_create_daily_record',
         'propose_update_daily_record',
         'propose_delete_daily_record',
@@ -50,6 +62,7 @@ describe('AssistantRuntimeService', () => {
         'get_user_settings',
         'get_current_medicines',
         'get_sleep_summary_by_range',
+        'get_medicine_leaflet_context',
         'propose_create_daily_record',
         'propose_update_daily_record',
         'propose_delete_daily_record',
@@ -78,7 +91,11 @@ describe('AssistantRuntimeService', () => {
       }),
     } as unknown as LlmRuntimeService;
 
-    const service = new AssistantRuntimeService(llmRuntimeService);
+    const leafletService = buildLeafletService(false);
+    const service = new AssistantRuntimeService(
+      llmRuntimeService,
+      leafletService as never,
+    );
     const onChunk = jest.fn();
 
     const result = await service.generateStream(
