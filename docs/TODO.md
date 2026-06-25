@@ -8,7 +8,7 @@ Keep durable implementation context in the owning code comments when the TODO is
 ## Module Boundaries
 
 - Split `src/modules/user-health-context/user-health-context.service.ts` further if the write-side keeps growing.
-  Current status: response mapping and ownership guards are now separated, but profile/allergy/condition/current-medicine write normalization still lives in one orchestration service.
+  Current status: profile write is now separated into `UserHealthContextProfileWriteService`, but allergy/condition/current-medicine write normalization still lives in the main orchestration service.
 
 ## Report Export
 
@@ -30,8 +30,3 @@ Keep durable implementation context in the owning code comments when the TODO is
   Source context: `src/modules/auth/auth.service.ts`
 - Add more OAuth providers such as Apple or Google when product scope requires them.
   Source context: `src/modules/auth/oauth.types.ts`
-
-## Config / Hardening
-
-- JWT/admin secrets now come from env files only.
-- `testing-support` now reuses the shared `ARGON2_OPTIONS`.
