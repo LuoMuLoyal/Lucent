@@ -1,4 +1,28 @@
-# Goal
+# Assistant Leaflet RAG Slice Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> `superpowers:subagent-driven-development` (recommended) or
+> `superpowers:executing-plans` to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Define the first bounded Lucent RAG slice for medicine-leaflet
+retrieval as an **assistant-only extra tool**, using a dedicated leaflet table
+derived from the new merged CN master source.
+
+**Architecture:** Keep product metadata in `cn_medicine_products` (from
+`ChineseDrugData_Master.xlsx` sheet `ProductsEnriched`) and canonical leaflet
+text in `cn_medicine_leaflets` (from sheet `InstructionsClean`). Link them
+through `cn_medicine_product_leaflet_links` (from sheet
+`ProductInstructionLinks`). RAG chunks reference leaflets, not denormalized
+product columns, so provenance stays clean and one leaflet can serve multiple
+products.
+
+**Tech Stack:** NestJS 11, Prisma 7, PostgreSQL, optional `pgvector`, Python
+`openpyxl` for source parsing.
+
+---
+
+## Goal
 
 Define the first bounded Lucent RAG slice for medicine-leaflet retrieval as an
 **assistant-only extra tool**, without turning retrieval into the primary
@@ -6,6 +30,31 @@ medicine-safety architecture.
 
 This plan exists so the next backend step is executable after the user finishes
 the upcoming UI/UX pass in Luminous.
+
+## Update Notes (2026-06-25)
+
+The data source layer changed in commits:
+
+- `14a8da3 feat(import,docs): 使用 ChineseDrugData_Master 作为中文药品导入源`
+- `a759ef3 fix(import): 修正药品导入脚本的路径解析`
+
+Impact on this plan:
+
+- The canonical CN source is now `DrugDataBase/ChineseDrugData_Master.xlsx`.
+- It is produced by `DrugDataBase/build_cn_master.py`, which merges
+  `FullDrugDetail.xlsx` (product catalog) with the scraped yaozs leaflets in
+  `药品说明书数据库_医药数据查询/`.
+- The workbook contains multiple sheets:
+  - `ProductsEnriched` -> imported into `cn_medicine_products`.
+  - `InstructionsClean` -> should now be imported into a new
+    `cn_medicine_leaflets` table.
+  - `ProductInstructionLinks` -> should now be imported into a new
+    `cn_medicine_product_leaflet_links` table.
+  - `OrphanInstructions`, `Conflicts`, `DroppedSummary`, `Summary` are kept for
+    diagnostics but not imported in Phase 1.
+- Because of this, the first RAG slice must chunk from `cn_medicine_leaflets`
+  (the derived leaflet table) instead of from the leaflet columns on
+  `cn_medicine_products`.
 
 ## Fixed Product/Architecture Constraints
 
@@ -28,6 +77,8 @@ After this slice:
   available.
 - Retrieved evidence is clearly framed as source-backed explanation material,
   not as an autonomous safety verdict.
+- Retrieval sources from a clean, reproducible leaflet table that is separate
+  from the product catalog table.
 
 ## Explicit Non-Scope
 
@@ -42,14 +93,19 @@ Do not include these in the first RAG slice:
 - no cross-source automatic canonical entity resolution
 - no frontend-first architecture where Luminous calls embedding/retrieval
   services directly
+- no import of `OrphanInstructions` for RAG (keep them for later analysis only)
 
 ## Assumptions
 
 - This is a judgment: the highest-value first use of RAG is assistant
   explanation depth for medicine questions, not direct medicine page rendering.
-- Existing source tables are already enough for a first retrieval slice:
-  `cn_medicine_products` for package-insert text, plus optional later
-  DrugBank-backed scientific enrichment.
+- The merged master workbook provides enough structure for a clean first slice:
+  - `cn_medicine_products` for product metadata and product-to-leaflet matching.
+  - `cn_medicine_leaflets` for canonical instruction text from
+    `InstructionsClean`.
+  - `cn_medicine_product_leaflet_links` for the best product-leaflet matches.
+- Optional later DrugBank-backed scientific enrichment stays out of the first
+  slice.
 - Embedding role config already exists in Lucent env/config and should be
   reused instead of introducing a second embedding configuration path.
 
@@ -59,7 +115,9 @@ Start with **CN leaflet retrieval first**.
 
 Reason:
 
-- Lucent already stores long-form insert fields in `cn_medicine_products`.
+- Lucent now stores canonical leaflet rows in `cn_medicine_leaflets`.
+- `cn_medicine_products` keeps product metadata and links to leaflets through
+  `cn_medicine_product_leaflet_links`.
 - The user-facing explanation value is more direct for regional medicine usage
   questions.
 - It avoids premature cross-source entity matching.
@@ -76,6 +134,7 @@ Lock the retrieval contract before coding:
 - assistant gets **one new read tool**, not a new free-form subsystem
 - tool shape should answer:
   - which medicine/source matched
+  - which leaflet(s) were used
   - which text chunks were retrieved
   - why those chunks were selected
   - what coverage/ambiguity remains
@@ -85,25 +144,37 @@ Lock the retrieval contract before coding:
 
 Decide the first durable storage/index approach.
 
-Preferred starting direction:
+New tables to add:
 
-- add a dedicated Lucent-owned knowledge table for normalized leaflet chunks
-- chunk only reviewed CN insert fields such as:
-  - `indications`
-  - `dosage`
-  - `contraindications`
-  - `precautions`
-  - `pediatric_use`
-  - `geriatric_use`
-  - `pregnancy_lactation`
-  - `adverse_reactions`
-  - `drug_interactions`
-- keep chunk metadata explicit:
-  - source kind
-  - source record id
-  - field name
-  - chunk index
-  - import version/hash
+- `cn_medicine_leaflets`
+  - one row per cleaned yaozs instruction from `InstructionsClean`
+  - keeps source file/row provenance, approval codes, and all leaflet fields
+  - does not duplicate product catalog fields
+- `cn_medicine_product_leaflet_links`
+  - one row per product-leaflet link from `ProductInstructionLinks`
+  - keeps `product_id`, `leaflet_id`, `approval_code`, `match_score`
+  - for the first slice, retrieval can use the best-scoring link per product
+- `medicine_leaflet_chunks`
+  - chunk text from `cn_medicine_leaflets`, not from `cn_medicine_products`
+  - references `cn_medicine_leaflets.id`
+  - keeps chunk metadata:
+    - source kind
+    - leaflet id
+    - field name
+    - chunk index
+    - import version/hash
+
+Chunk only reviewed CN leaflet fields such as:
+
+- `indications`
+- `dosage`
+- `contraindications`
+- `precautions`
+- `pediatric_use`
+- `geriatric_use`
+- `pregnancy_lactation`
+- `adverse_reactions`
+- `drug_interactions`
 
 Open implementation choice to settle during coding:
 
@@ -125,11 +196,30 @@ Do not decide this by aesthetics. Decide it by:
 
 ### Phase 2: Import / Rebuild Pipeline
 
-Add a reproducible indexing path under Lucent-owned tooling.
+Extend the reproducible indexing path under Lucent-owned tooling.
+
+New parser files to create:
+
+- `scripts/import/medicine/parsers/cn_leaflets.py`
+  - reads `ChineseDrugData_Master.xlsx` sheet `InstructionsClean`
+  - emits rows for `cn_medicine_leaflets`
+- `scripts/import/medicine/parsers/cn_product_leaflet_links.py`
+  - reads `ChineseDrugData_Master.xlsx` sheet `ProductInstructionLinks`
+  - emits rows for `cn_medicine_product_leaflet_links`
+
+Update orchestration:
+
+- `scripts/import/medicine/import-medicine-knowledge.ts`
+  - register the two new commands under `COMMANDS`
+  - add `cn-leaflets` and `cn-product-leaflet-links` to the default run order
+- `scripts/import/medicine/import-medicine-datasets.ts`
+  - ensure the new commands are included in `pnpm import:medicine:all`
 
 Expected outputs:
 
-- chunk extraction from `cn_medicine_products`
+- leaflet row extraction from `InstructionsClean`
+- product-leaflet link extraction from `ProductInstructionLinks`
+- chunk extraction from `cn_medicine_leaflets`
 - embedding generation through `AI_EMBEDDING_*`
 - idempotent re-index command
 - import/index run metadata for:
@@ -152,9 +242,11 @@ Add exactly one bounded retrieval tool, for example:
 Tool responsibilities:
 
 - resolve a medicine target from the user query or explicit assistant plan
+- find the linked leaflet(s) through `cn_medicine_product_leaflet_links`
 - retrieve top relevant chunks from indexed CN leaflet data
 - return a server-owned envelope with:
   - target medicine metadata
+  - linked leaflet metadata
   - selected chunks
   - source fields
   - retrieval score/rank metadata
@@ -164,6 +256,7 @@ Tool responsibilities:
 Tool must refuse when:
 
 - no medicine can be matched with enough confidence
+- no leaflet link exists for the matched product
 - retrieval index is unavailable
 - source coverage is empty
 
@@ -204,7 +297,11 @@ Minimum validation must include:
 - `src/modules/assistant/**`
 - `src/config/ai.config.ts`
 - `src/config/environment.validation.ts`
-- `scripts/import/medicine/**`
+- `scripts/import/medicine/import-medicine-knowledge.ts`
+- `scripts/import/medicine/import-medicine-datasets.ts`
+- `scripts/import/medicine/parsers/cn_leaflets.py` (new)
+- `scripts/import/medicine/parsers/cn_product_leaflet_links.py` (new)
+- `scripts/import/medicine/parsers/cn_products.py` (already updated for master)
 - `docs/public/data-sources.md`
 - `docs/public/assistant-contract.md`
 - `docs/environment.md`
@@ -218,13 +315,66 @@ Possible new backend areas:
 
 ## Data Model Sketch
 
-This is a design direction, not locked schema:
+This is a design direction, not locked schema.
+
+```text
+cn_medicine_leaflets
+- id
+- instruction_id           // stable id from InstructionsClean, e.g. YAOZS-000001
+- source_file              // original yaozs workbook name
+- source_row               // original row number
+- title
+- title_url
+- number_raw
+- summary
+- generic_name
+- brand_name
+- pinyin
+- approval_raw
+- approval_codes           // extracted approval codes
+- approval_conflict        // flag when 编号 and 批准文号 disagree
+- drug_category
+- manufacturer
+- drug_nature
+- related_diseases
+- properties
+- ingredients
+- indications
+- package_spec
+- adverse_reactions
+- dosage
+- contraindications
+- precautions
+- pregnancy_lactation
+- pediatric_use
+- geriatric_use
+- drug_interactions
+- pharmacology_toxicology
+- pharmacokinetics
+- storage
+- validity_period
+- merge_notes
+- created_at
+- updated_at
+```
+
+```text
+cn_medicine_product_leaflet_links
+- id
+- product_id               // cn_medicine_products.id
+- leaflet_id               // cn_medicine_leaflets.id
+- approval_code            // code used for the link
+- match_score              // text similarity score
+- is_best_match            // optional, true for the product's chosen leaflet
+- created_at
+- updated_at
+```
 
 ```text
 medicine_leaflet_chunks
 - id
 - source_kind              // cn
-- source_record_id         // cn_medicine_products.id
+- leaflet_id               // cn_medicine_leaflets.id
 - source_field             // contraindications, precautions, ...
 - chunk_text
 - chunk_index
@@ -261,6 +411,7 @@ Example direction:
     medicineQuery: string,
     matchedSource: 'cn',
     matchedRecordId: string | null,
+    matchedLeafletIds: string[],
     matchedBy: string[],
   },
   result: {
@@ -271,7 +422,15 @@ Example direction:
       manufacturer: string | null,
       approvalNumber: string | null,
     },
+    leaflets: Array<{
+      id: string,
+      instructionId: string,
+      genericName: string | null,
+      manufacturer: string | null,
+      approvalCodes: string[],
+    }>,
     chunks: Array<{
+      leafletId: string,
       field: string,
       text: string,
       rank: number,
@@ -285,7 +444,12 @@ Example direction:
   source: {
     tool: 'get_medicine_leaflet_context',
     generatedAt: string,
-    tables: ['cn_medicine_products', 'medicine_leaflet_chunks'],
+    tables: [
+      'cn_medicine_products',
+      'cn_medicine_leaflets',
+      'cn_medicine_product_leaflet_links',
+      'medicine_leaflet_chunks',
+    ],
   },
   confidence: {
     level: 'high' | 'medium' | 'low',
@@ -324,6 +488,9 @@ If env/doc/import strategy changes:
 - No existing medicine safety verdict path depends on retrieval being present.
 - Retrieval failure degrades to “not available / insufficient coverage”, not
   fake confidence.
+- Leaflet data is imported from `InstructionsClean` and linked to products
+  through `ProductInstructionLinks`, not silently merged into product columns
+  for RAG.
 
 ## Exit Criteria Before Starting UI Work
 
@@ -331,9 +498,11 @@ The backend slice is ready to start only when these questions are answered in
 implementation prep:
 
 1. first index strategy: `pgvector` vs lexical-first
-2. first indexed source: confirmed `cn` only
+2. first indexed source: confirmed `cn` only, sourced from `cn_medicine_leaflets`
 3. first tool name and envelope shape
 4. first chunk field list
 5. first local rebuild command
+6. leaflet table schema and import path from `InstructionsClean`
+7. product-leaflet link table schema and import path from `ProductInstructionLinks`
 
 Until those are answered, “start RAG” is still too vague.
