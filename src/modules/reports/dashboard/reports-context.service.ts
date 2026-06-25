@@ -1,7 +1,10 @@
 import { nonDeleted } from '../../../common/utils/prisma.helpers';
 import { formatDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
-import { DoseLogStatus } from '../../../generated/prisma/client';
+import {
+  DoseLogStatus,
+  DailyRecordKind,
+} from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { USER_SETTING_KEYS } from '../../user-settings/config/user-settings.constants';
 import {
@@ -109,7 +112,7 @@ export class ReportsContextService {
   private buildWaterSeries(
     dailyRecords: Array<{
       occurredAt: Date;
-      kind: string;
+      kind: DailyRecordKind;
       value: string | null;
       unit: string | null;
     }>,
@@ -119,7 +122,7 @@ export class ReportsContextService {
     const totalsByDay = new Map<string, number>();
 
     for (const record of dailyRecords) {
-      if (record.kind !== 'water') {
+      if (record.kind !== DailyRecordKind.water) {
         continue;
       }
 
@@ -146,7 +149,7 @@ export class ReportsContextService {
   private buildSleepSeries(
     dailyRecords: Array<{
       occurredAt: Date;
-      kind: string;
+      kind: DailyRecordKind;
       payload: unknown;
     }>,
     startDate: Date,
@@ -155,7 +158,7 @@ export class ReportsContextService {
     const durationByDay = new Map<string, number>();
 
     for (const record of dailyRecords) {
-      if (record.kind !== 'sleep') {
+      if (record.kind !== DailyRecordKind.sleep) {
         continue;
       }
 

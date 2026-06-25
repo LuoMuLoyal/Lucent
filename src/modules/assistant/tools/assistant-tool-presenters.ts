@@ -105,7 +105,7 @@ export function buildProposalExpiryIso(ttlMinutes: number): string {
 // Preview field builders
 export function buildCreateRecordPreviewFields(
   item: {
-    kind: string;
+    kind: DailyRecordKind;
     occurredAt: string;
     title: string | null;
     value: string | null;
@@ -229,7 +229,7 @@ export function contextPreviewLabel(
 // Summary descriptions
 export function describeCreateRecordSummary(
   item: {
-    kind: string;
+    kind: DailyRecordKind;
     occurredAt: string;
     value: string | null;
     unit: string | null;
@@ -244,7 +244,7 @@ export function describeCreateRecordSummary(
 }
 
 export function describeUpdateRecordSummary(
-  target: { kind: string; occurredAt: string },
+  target: { kind: DailyRecordKind; occurredAt: string },
   locale: 'zh-CN' | 'en',
 ): string {
   return locale === 'zh-CN'
@@ -253,7 +253,7 @@ export function describeUpdateRecordSummary(
 }
 
 export function describeDeleteRecordSummary(
-  target: { kind: string; occurredAt: string },
+  target: { kind: DailyRecordKind; occurredAt: string },
   locale: 'zh-CN' | 'en',
 ): string {
   return locale === 'zh-CN'
@@ -263,7 +263,7 @@ export function describeDeleteRecordSummary(
 
 export function describeRecordTargetLabel(
   item: {
-    kind: string;
+    kind: DailyRecordKind;
     occurredAt: string;
     value?: string | null;
     unit?: string | null;

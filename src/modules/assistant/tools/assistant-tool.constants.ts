@@ -1,3 +1,4 @@
+import type { DailyRecordKind } from '../../../generated/prisma/client';
 import type { AssistantReadConfidence } from '../types/assistant.types';
 
 // ---------------------------------------------------------------------------
@@ -37,7 +38,7 @@ export type ToolDateRange = {
 
 export type ToolRecordItem = {
   id: string;
-  kind: string;
+  kind: DailyRecordKind;
   occurredAt: string;
   title: string | null;
   value: string | null;
