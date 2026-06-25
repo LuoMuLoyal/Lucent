@@ -1,5 +1,5 @@
 import { forbidden } from '../../../common/utils/api-errors';
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -203,8 +203,7 @@ export class ReportsAiSummaryService {
     const locale = this.reportsAiSummaryCopyService.resolveLocale(language);
     await this.assertAiSummariesEnabled(userId, locale);
 
-    const query: ReportDashboardQueryDto =
-      dto.range === undefined ? {} : { range: dto.range };
+    const query: ReportDashboardQueryDto = this.toDashboardQuery(dto);
     const facts = await this.reportsContextService.build(userId, query);
     const computed = this.reportsComputationService.compute(facts, locale);
     const context = this.reportsAiSummaryContextService.build(facts, computed);
@@ -213,6 +212,27 @@ export class ReportsAiSummaryService {
       locale,
       context,
     };
+  }
+
+  private toDashboardQuery(
+    dto: GenerateReportSummaryDto,
+  ): ReportDashboardQueryDto {
+    if (dto.range === undefined) {
+      return {};
+    }
+    if (dto.range === 'custom') {
+      if (dto.startDate == null || dto.endDate == null) {
+        throw new BadRequestException(
+          'startDate and endDate are required for custom range summaries.',
+        );
+      }
+      return {
+        range: dto.range,
+        startDate: dto.startDate,
+        endDate: dto.endDate,
+      };
+    }
+    return { range: dto.range };
   }
 
   private async emitGuaranteedSummary(

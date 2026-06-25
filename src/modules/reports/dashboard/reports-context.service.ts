@@ -1,6 +1,9 @@
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { nonDeleted } from '../../../common/utils/prisma.helpers';
-import { formatDateOnly } from '../../../common/utils/date-time.utils';
-import { Injectable } from '@nestjs/common';
+import {
+  formatDateOnly,
+  parseDateOnly,
+} from '../../../common/utils/date-time.utils';
 import {
   DoseLogStatus,
   DailyRecordKind,
@@ -8,6 +11,7 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service';
 import { USER_SETTING_KEYS } from '../../user-settings/config/user-settings.constants';
 import {
+  REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
   type ReportDashboardQueryDto,
@@ -23,8 +27,8 @@ export class ReportsContextService {
     query: ReportDashboardQueryDto,
   ): Promise<ReportDashboardFacts> {
     const range = query.range ?? REPORT_RANGE_LAST_7_DAYS;
-    const endDate = this.todayUtc();
-    const startDate = this.resolveStartDate(endDate, range);
+    const endDate = this.resolveEndDate(range, query);
+    const startDate = this.resolveStartDate(endDate, range, query);
 
     const [settings, doseLogs, dailyRecords] = await Promise.all([
       this.prisma.userSetting.findFirst({
@@ -216,20 +220,52 @@ export class ReportsContextService {
   }
 
   private todayUtc(): Date {
-    const now = new Date();
-    return new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-    );
+    return parseDateOnly(formatDateOnly(new Date()));
   }
 
   private toDateString(date: Date): string {
     return formatDateOnly(date);
   }
 
+  private resolveEndDate(
+    range: ReportDashboardFacts['range'],
+    query: ReportDashboardQueryDto,
+  ): Date {
+    if (range === REPORT_RANGE_CUSTOM) {
+      if (!query.endDate) {
+        throw new BadRequestException(
+          'endDate is required when range is custom.',
+        );
+      }
+      const customEndDate = parseDateOnly(query.endDate);
+      if (customEndDate > this.todayUtc()) {
+        throw new BadRequestException('endDate must not be in the future.');
+      }
+      return customEndDate;
+    }
+    return this.todayUtc();
+  }
+
   private resolveStartDate(
     endDate: Date,
     range: ReportDashboardFacts['range'],
+    query: ReportDashboardQueryDto,
   ): Date {
+    if (range === REPORT_RANGE_CUSTOM) {
+      if (!query.startDate) {
+        throw new BadRequestException(
+          'startDate is required when range is custom.',
+        );
+      }
+      const startDate = parseDateOnly(query.startDate);
+      if (startDate > endDate) {
+        throw new BadRequestException(
+          'startDate must not be later than endDate.',
+        );
+      }
+      return startDate;
+    }
+
     const startDate = new Date(endDate);
     const days = range === REPORT_RANGE_LAST_30_DAYS ? 30 : 7;
     startDate.setUTCDate(startDate.getUTCDate() - (days - 1));

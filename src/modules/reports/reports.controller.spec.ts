@@ -1,6 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import {
+  REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
   type ReportDashboardDataDto,
@@ -57,6 +58,40 @@ describe('ReportsController', () => {
     expect(service.getDashboard).toHaveBeenCalledWith(
       'u1',
       { range: REPORT_RANGE_LAST_7_DAYS },
+      'en',
+    );
+  });
+
+  it('should pass custom range dates to dashboard service', async () => {
+    const dashboard = makeDashboard({
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-01',
+      endDate: '2026-06-10',
+    });
+    service.getDashboard.mockResolvedValue(dashboard);
+
+    expect(
+      await controller.getDashboard(
+        { sub: 'u1', email: 'a@b.c' },
+        {
+          range: REPORT_RANGE_CUSTOM,
+          startDate: '2026-06-01',
+          endDate: '2026-06-10',
+        },
+        'en',
+      ),
+    ).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: dashboard,
+    });
+    expect(service.getDashboard).toHaveBeenCalledWith(
+      'u1',
+      {
+        range: REPORT_RANGE_CUSTOM,
+        startDate: '2026-06-01',
+        endDate: '2026-06-10',
+      },
       'en',
     );
   });
