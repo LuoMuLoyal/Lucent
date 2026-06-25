@@ -13,6 +13,8 @@ const IMPORT_SCRIPT = path.join(
 const VALID_COMMANDS = new Set([
   'all',
   'cn-products',
+  'cn-leaflets',
+  'cn-product-leaflet-links',
   'drugbank-drugs',
   'drugbank-links',
   'drugbank-targets-all',
@@ -59,7 +61,9 @@ function main() {
           'drugbank-links',
           'drugbank-targets-all',
           'drugbank-targets-active',
+          'cn-leaflets',
           'cn-products',
+          'cn-product-leaflet-links',
         ]
       : [command];
 
