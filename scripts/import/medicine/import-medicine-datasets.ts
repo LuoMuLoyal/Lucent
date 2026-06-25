@@ -1,10 +1,11 @@
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const IMPORT_SCRIPT = path.join(
   REPO_ROOT,
   'scripts',
+  'import',
   'medicine',
   'import-medicine-knowledge.ts',
 );

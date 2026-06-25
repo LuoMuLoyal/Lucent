@@ -9,7 +9,7 @@ const { spawn } = require('node:child_process');
 const dotenv = require('dotenv');
 const { Client } = require('pg');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
 const STABLE_ID_NAMESPACE = 'lucent:medicine-import';
 const MEDICINES_CACHE_KEY_PREFIX = 'medicines';
