@@ -1,6 +1,6 @@
 # Assistant Contract
 
-Last updated: 2026-06-19
+Last updated: 2026-06-25
 
 ## Summary
 
@@ -21,6 +21,23 @@ Current non-goals:
 - autonomous writes
 - RAG / leaflet retrieval
 - broad conversation management such as rename or delete
+
+## AI Architecture Boundary
+
+The following boundaries were confirmed on 2026-07-01 and constrain all future AI work:
+
+| Scenario                               | Pattern                   | Rule                                                                                                  |
+| -------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Today / Report weekly / Monthly report | Bounded linear            | Facts → single structured-output generation; reuse locale-aware prompt/copy services                  |
+| Assistant                              | Agent (LangGraph)         | Reserved for multi-turn conversation, tool-calling, branching, and retrieval                          |
+| New AI features                        | Default to bounded linear | Escalate to agent only with a concrete tool-use or multi-step reasoning requirement                   |
+| Shared generator abstraction           | Defer extraction          | Wait until monthly report proves the pattern; do not abstract prematurely across Today/Report/Monthly |
+
+Implications:
+
+- Do not retro-fit Today/Report bounded linear flows into agent flows "for consistency".
+- `ai-copy.ts` (locale-aware prompt/copy helpers) remains the shared prompt/copy layer; extend it with scenario-specific keys rather than replacing it.
+- RAG, when added, is one assistant read tool — not a replacement for the reviewed medicine safety rule engine and not a mandatory dependency for every assistant reply.
 
 ## Public Routes
 
