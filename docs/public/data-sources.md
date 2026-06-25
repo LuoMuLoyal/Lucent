@@ -55,17 +55,22 @@ This runs:
 2. `drugbank-links`
 3. `drugbank-targets-all`
 4. `drugbank-targets-active`
-5. `cn-products`
+5. `cn-leaflets`
+6. `cn-products`
+7. `cn-product-leaflet-links`
 
 Why this order:
 
 - `drugbank_external_links` depends on `drugbank_drugs.drugbank_id`.
 - `drugbank_drug_targets` depends on both imported DrugBank drugs and imported target rows.
-- Chinese products are independent and can run last.
+- `cn_medicine_product_leaflet_links` depends on both `cn_medicine_products` and `cn_medicine_leaflets`, so it runs last.
 
-Chinese source note:
+Chinese source notes:
 
-- The default source for `cn-products` is `../DrugDataBase/ChineseDrugData_Master.xlsx` sheet `ProductsEnriched`.
+- The default source for all CN commands is `../DrugDataBase/ChineseDrugData_Master.xlsx`.
+- `cn-products` reads sheet `ProductsEnriched`.
+- `cn-leaflets` reads sheet `InstructionsClean`.
+- `cn-product-leaflet-links` reads both `ProductsEnriched` (for product id mapping and best-match flag) and `ProductInstructionLinks`.
 - If you need to override, pass `--source <path>` to the import command.
 
 Smoke-test example:
@@ -108,14 +113,17 @@ Do not invent empty columns just to make `cn_medicine_products` and `drugbank_dr
 
 Recommended durable tables after staging:
 
-| Table                     | Purpose                                                                                            |
-| ------------------------- | -------------------------------------------------------------------------------------------------- |
-| `cn_medicine_products`    | One row per Chinese product/specification from `ChineseDrugData_Master.xlsx`.                      |
-| `drugbank_drugs`          | One row per primary DrugBank drug entry from `full database.xml`.                                  |
-| `drugbank_external_links` | External identifiers and consumer links from `drug links.csv` plus XML external identifiers/links. |
-| `drugbank_targets`        | Target/polypeptide rows from `all.csv` or `pharmacologically_active.csv`.                          |
-| `drugbank_drug_targets`   | Many-to-many relationship between DrugBank drugs and target rows.                                  |
-| `drug_source_imports`     | Import run metadata: source name, version/export date, file hash, row counts, rejection summary.   |
+| Table                               | Purpose                                                                                            |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `cn_medicine_products`              | One row per Chinese product/specification from `ChineseDrugData_Master.xlsx`.                      |
+| `cn_medicine_leaflets`              | One row per cleaned yaozs instruction from `ChineseDrugData_Master.xlsx`.                          |
+| `cn_medicine_product_leaflet_links` | Product-to-leaflet links with approval code and match score from `ChineseDrugData_Master.xlsx`.    |
+| `medicine_leaflet_chunks`           | Chunked leaflet text for RAG; empty until the rebuild-leaflet-index pipeline runs.                 |
+| `drugbank_drugs`                    | One row per primary DrugBank drug entry from `full database.xml`.                                  |
+| `drugbank_external_links`           | External identifiers and consumer links from `drug links.csv` plus XML external identifiers/links. |
+| `drugbank_targets`                  | Target/polypeptide rows from `all.csv` or `pharmacologically_active.csv`.                          |
+| `drugbank_drug_targets`             | Many-to-many relationship between DrugBank drugs and target rows.                                  |
+| `drug_source_imports`               | Import run metadata: source name, version/export date, file hash, row counts, rejection summary.   |
 
 These durable tables now exist in Lucent's Prisma schema and migration history, even though the real source data has not been imported yet.
 
@@ -127,14 +135,18 @@ Optional later table:
 
 ## Chinese Source Mapping
 
-Import `ChineseDrugData_Master.xlsx` sheet `ProductsEnriched` into a raw staging table first, then normalize into `cn_medicine_products`.
+Import `ChineseDrugData_Master.xlsx` sheets into Lucent-owned durable tables:
 
-This sheet is produced by `DrugDataBase/build_cn_master.py`, which merges:
+- `ProductsEnriched` -> `cn_medicine_products`
+- `InstructionsClean` -> `cn_medicine_leaflets`
+- `ProductInstructionLinks` -> `cn_medicine_product_leaflet_links`
+
+These sheets are produced by `DrugDataBase/build_cn_master.py`, which merges:
 
 - `FullDrugDetail.xlsx` product catalog fields.
-- The best matched instruction row from `药品说明书数据库_医药数据查询/` (yaozs.com leaflets).
+- The cleaned instruction rows from `药品说明书数据库_医药数据查询/` (yaozs.com leaflets).
 
-Product-level fields come from `FullDrugDetail.xlsx`; instruction-level fields come from the matched yaozs row. When no instruction matches a product, the instruction fields are empty and `best_match_notes` explains why.
+Product-level fields come from `FullDrugDetail.xlsx`; canonical instruction text comes from the cleaned yaozs rows. When no instruction matches a product, the product row still exists in `cn_medicine_products`, but it will have no linked rows in `cn_medicine_product_leaflet_links`.
 
 | XLSX column               | `cn_medicine_products` field | Notes                                                                 |
 | ------------------------- | ---------------------------- | --------------------------------------------------------------------- |
