@@ -435,10 +435,12 @@ model DrugSourceImport {
   note             String?
   createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  cnProducts       CnMedicineProduct[]
-  drugbankDrugs    DrugbankDrug[]
-  drugbankLinks    DrugbankExternalLink[]
-  drugbankTargets  DrugbankTarget[]
+  cnProducts            CnMedicineProduct[]
+  cnLeaflets            CnMedicineLeaflet[]
+  cnProductLeafletLinks CnMedicineProductLeafletLink[]
+  drugbankDrugs         DrugbankDrug[]
+  drugbankLinks         DrugbankExternalLink[]
+  drugbankTargets       DrugbankTarget[]
 
   @@index([sourceKey, createdAt])
   @@map("drug_source_imports")
@@ -482,7 +484,8 @@ model CnMedicineProduct {
   extras                 Json?             @db.JsonB
   createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  importRun              DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  importRun              DrugSourceImport?             @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  leafletLinks           CnMedicineProductLeafletLink[]
 
   @@index([name])
   @@index([approvalNumber])
@@ -491,6 +494,96 @@ model CnMedicineProduct {
   @@index([nationalDrugCode])
   @@index([searchText])
   @@map("cn_medicine_products")
+}
+
+model CnMedicineLeaflet {
+  id                     String                        @id @default(uuid())
+  importRunId            String?                       @map("import_run_id")
+  instructionId          String                        @unique @map("instruction_id")
+  sourceFile             String?                       @map("source_file")
+  sourceRow              Int?                          @map("source_row")
+  title                  String?
+  titleUrl               String?                       @map("title_url")
+  numberRaw              String?                       @map("number_raw")
+  summary                String?
+  genericName            String?                       @map("generic_name")
+  brandName              String?                       @map("brand_name")
+  pinyin                 String?
+  approvalRaw            String?                       @map("approval_raw")
+  approvalCodes          Json?                         @map("approval_codes") @db.JsonB
+  approvalConflict       String?                       @map("approval_conflict")
+  drugCategory           String?                       @map("drug_category")
+  manufacturer           String?
+  drugNature             String?                       @map("drug_nature")
+  relatedDiseases        String?                       @map("related_diseases")
+  properties             String?
+  ingredients            String?
+  indications            String?
+  packageSpec            String?                       @map("package_spec")
+  adverseReactions       String?                       @map("adverse_reactions")
+  dosage                 String?
+  contraindications      String?
+  precautions            String?
+  pregnancyLactation     String?                       @map("pregnancy_lactation")
+  pediatricUse           String?                       @map("pediatric_use")
+  geriatricUse           String?                       @map("geriatric_use")
+  drugInteractions       String?                       @map("drug_interactions")
+  pharmacologyToxicology String?                       @map("pharmacology_toxicology")
+  pharmacokinetics       String?
+  storage                String?
+  validityPeriod         String?                       @map("validity_period")
+  mergeNotes             String?                       @map("merge_notes")
+  createdAt              DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun              DrugSourceImport?             @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  productLinks           CnMedicineProductLeafletLink[]
+  chunks                 MedicineLeafletChunk[]
+
+  @@index([genericName])
+  @@index([manufacturer])
+  @@index([approvalCodes])
+  @@map("cn_medicine_leaflets")
+}
+
+model CnMedicineProductLeafletLink {
+  id              String            @id @default(uuid())
+  importRunId     String?           @map("import_run_id")
+  productId       String            @map("product_id")
+  leafletId       String            @map("leaflet_id")
+  approvalCode    String?           @map("approval_code")
+  matchScore      Int?              @map("match_score")
+  isBestMatch     Boolean?          @map("is_best_match")
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun       DrugSourceImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  product         CnMedicineProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  leaflet         CnMedicineLeaflet @relation(fields: [leafletId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, leafletId])
+  @@index([productId])
+  @@index([leafletId])
+  @@index([approvalCode])
+  @@map("cn_medicine_product_leaflet_links")
+}
+
+model MedicineLeafletChunk {
+  id            String            @id @default(uuid())
+  sourceKind    String            @map("source_kind")
+  leafletId     String            @map("leaflet_id")
+  sourceField   String            @map("source_field")
+  chunkText     String            @map("chunk_text")
+  chunkIndex    Int               @map("chunk_index")
+  tokenCount    Int?              @map("token_count")
+  sourceVersion String?           @map("source_version")
+  sourceHash    String?           @map("source_hash")
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  leaflet       CnMedicineLeaflet @relation(fields: [leafletId], references: [id], onDelete: Cascade)
+
+  @@unique([leafletId, sourceField, chunkIndex])
+  @@index([leafletId])
+  @@index([sourceField])
+  @@map("medicine_leaflet_chunks")
 }
 
 model DrugbankDrug {
