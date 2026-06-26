@@ -27,6 +27,10 @@
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby working code.
 - Use `pnpm typecheck` when you need TypeScript to validate spec and e2e files too; `pnpm build` excludes `**/*spec.ts` and `test/`.
 
+## Working Directory
+
+Work inside `Lucent/` for pure backend changes. When operating from the workspace root, use `git -C Lucent ...` and absolute paths so commands run against this repo, not the workspace root or `Luminous`.
+
 ## Known Gotchas
 
 - NestJS 11 cache module expects `stores`, not legacy `store`. If Redis is enabled, wrap the Redis store as a Keyv-backed store or the cache manager may silently fall back to memory semantics.
