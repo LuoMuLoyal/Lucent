@@ -2,6 +2,7 @@
   "service_unavailable": "Today AI analysis is not configured",
   "summaries_disabled": "AI summaries are disabled for this user",
   "fallback": {
+    "action": "today",
     "action_label": "View today",
     "confidence_note": "Generated only from today's recorded data. This is not a diagnosis or treatment advice.",
     "summary_default": "Today's records were updated. Continue filling in today's data based on what is already logged.",

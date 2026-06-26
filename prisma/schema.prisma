@@ -809,6 +809,7 @@ model AssistantSummaryHistory {
   summary        String
   bullets        Json                 @db.JsonB
   actionLabel    String               @map("action_label")
+  action         String               @map("action")
   confidenceNote String               @map("confidence_note")
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)

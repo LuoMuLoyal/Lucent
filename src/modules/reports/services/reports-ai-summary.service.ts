@@ -259,6 +259,7 @@ export class ReportsAiSummaryService {
       summary: output.summary,
       bullets: output.bullets,
       actionLabel: output.actionLabel,
+      action: output.action,
       confidenceNote: output.confidenceNote,
     };
   }
@@ -278,6 +279,7 @@ export class ReportsAiSummaryService {
       summary: data.summary,
       bullets: data.bullets,
       actionLabel: data.actionLabel,
+      action: data.action,
       confidenceNote: data.confidenceNote,
     });
   }

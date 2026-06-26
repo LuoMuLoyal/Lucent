@@ -35,6 +35,7 @@ export type AssistantSummaryHistoryMinAggregateOutputType = {
   generatedAt: Date | null
   summary: string | null
   actionLabel: string | null
+  action: string | null
   confidenceNote: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -52,6 +53,7 @@ export type AssistantSummaryHistoryMaxAggregateOutputType = {
   generatedAt: Date | null
   summary: string | null
   actionLabel: string | null
+  action: string | null
   confidenceNote: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -70,6 +72,7 @@ export type AssistantSummaryHistoryCountAggregateOutputType = {
   summary: number
   bullets: number
   actionLabel: number
+  action: number
   confidenceNote: number
   createdAt: number
   updatedAt: number
@@ -89,6 +92,7 @@ export type AssistantSummaryHistoryMinAggregateInputType = {
   generatedAt?: true
   summary?: true
   actionLabel?: true
+  action?: true
   confidenceNote?: true
   createdAt?: true
   updatedAt?: true
@@ -106,6 +110,7 @@ export type AssistantSummaryHistoryMaxAggregateInputType = {
   generatedAt?: true
   summary?: true
   actionLabel?: true
+  action?: true
   confidenceNote?: true
   createdAt?: true
   updatedAt?: true
@@ -124,6 +129,7 @@ export type AssistantSummaryHistoryCountAggregateInputType = {
   summary?: true
   bullets?: true
   actionLabel?: true
+  action?: true
   confidenceNote?: true
   createdAt?: true
   updatedAt?: true
@@ -215,6 +221,7 @@ export type AssistantSummaryHistoryGroupByOutputType = {
   summary: string
   bullets: runtime.JsonValue
   actionLabel: string
+  action: string
   confidenceNote: string
   createdAt: Date
   updatedAt: Date
@@ -254,6 +261,7 @@ export type AssistantSummaryHistoryWhereInput = {
   summary?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
   bullets?: Prisma.JsonFilter<"AssistantSummaryHistory">
   actionLabel?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
+  action?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
   confidenceNote?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
   createdAt?: Prisma.DateTimeFilter<"AssistantSummaryHistory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AssistantSummaryHistory"> | Date | string
@@ -273,6 +281,7 @@ export type AssistantSummaryHistoryOrderByWithRelationInput = {
   summary?: Prisma.SortOrder
   bullets?: Prisma.SortOrder
   actionLabel?: Prisma.SortOrder
+  action?: Prisma.SortOrder
   confidenceNote?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -296,6 +305,7 @@ export type AssistantSummaryHistoryWhereUniqueInput = Prisma.AtLeast<{
   summary?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
   bullets?: Prisma.JsonFilter<"AssistantSummaryHistory">
   actionLabel?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
+  action?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
   confidenceNote?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
   createdAt?: Prisma.DateTimeFilter<"AssistantSummaryHistory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AssistantSummaryHistory"> | Date | string
@@ -315,6 +325,7 @@ export type AssistantSummaryHistoryOrderByWithAggregationInput = {
   summary?: Prisma.SortOrder
   bullets?: Prisma.SortOrder
   actionLabel?: Prisma.SortOrder
+  action?: Prisma.SortOrder
   confidenceNote?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -339,6 +350,7 @@ export type AssistantSummaryHistoryScalarWhereWithAggregatesInput = {
   summary?: Prisma.StringWithAggregatesFilter<"AssistantSummaryHistory"> | string
   bullets?: Prisma.JsonWithAggregatesFilter<"AssistantSummaryHistory">
   actionLabel?: Prisma.StringWithAggregatesFilter<"AssistantSummaryHistory"> | string
+  action?: Prisma.StringWithAggregatesFilter<"AssistantSummaryHistory"> | string
   confidenceNote?: Prisma.StringWithAggregatesFilter<"AssistantSummaryHistory"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AssistantSummaryHistory"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AssistantSummaryHistory"> | Date | string
@@ -356,6 +368,7 @@ export type AssistantSummaryHistoryCreateInput = {
   summary: string
   bullets: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel: string
+  action: string
   confidenceNote: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -375,6 +388,7 @@ export type AssistantSummaryHistoryUncheckedCreateInput = {
   summary: string
   bullets: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel: string
+  action: string
   confidenceNote: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -392,6 +406,7 @@ export type AssistantSummaryHistoryUpdateInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   bullets?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  action?: Prisma.StringFieldUpdateOperationsInput | string
   confidenceNote?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -411,6 +426,7 @@ export type AssistantSummaryHistoryUncheckedUpdateInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   bullets?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  action?: Prisma.StringFieldUpdateOperationsInput | string
   confidenceNote?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -429,6 +445,7 @@ export type AssistantSummaryHistoryCreateManyInput = {
   summary: string
   bullets: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel: string
+  action: string
   confidenceNote: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -446,6 +463,7 @@ export type AssistantSummaryHistoryUpdateManyMutationInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   bullets?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  action?: Prisma.StringFieldUpdateOperationsInput | string
   confidenceNote?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -464,6 +482,7 @@ export type AssistantSummaryHistoryUncheckedUpdateManyInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   bullets?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  action?: Prisma.StringFieldUpdateOperationsInput | string
   confidenceNote?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -497,6 +516,7 @@ export type AssistantSummaryHistoryCountOrderByAggregateInput = {
   summary?: Prisma.SortOrder
   bullets?: Prisma.SortOrder
   actionLabel?: Prisma.SortOrder
+  action?: Prisma.SortOrder
   confidenceNote?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -514,6 +534,7 @@ export type AssistantSummaryHistoryMaxOrderByAggregateInput = {
   generatedAt?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   actionLabel?: Prisma.SortOrder
+  action?: Prisma.SortOrder
   confidenceNote?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -531,6 +552,7 @@ export type AssistantSummaryHistoryMinOrderByAggregateInput = {
   generatedAt?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   actionLabel?: Prisma.SortOrder
+  action?: Prisma.SortOrder
   confidenceNote?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -594,6 +616,7 @@ export type AssistantSummaryHistoryCreateWithoutUserInput = {
   summary: string
   bullets: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel: string
+  action: string
   confidenceNote: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -611,6 +634,7 @@ export type AssistantSummaryHistoryUncheckedCreateWithoutUserInput = {
   summary: string
   bullets: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel: string
+  action: string
   confidenceNote: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -658,6 +682,7 @@ export type AssistantSummaryHistoryScalarWhereInput = {
   summary?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
   bullets?: Prisma.JsonFilter<"AssistantSummaryHistory">
   actionLabel?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
+  action?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
   confidenceNote?: Prisma.StringFilter<"AssistantSummaryHistory"> | string
   createdAt?: Prisma.DateTimeFilter<"AssistantSummaryHistory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"AssistantSummaryHistory"> | Date | string
@@ -675,6 +700,7 @@ export type AssistantSummaryHistoryCreateManyUserInput = {
   summary: string
   bullets: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel: string
+  action: string
   confidenceNote: string
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -692,6 +718,7 @@ export type AssistantSummaryHistoryUpdateWithoutUserInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   bullets?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  action?: Prisma.StringFieldUpdateOperationsInput | string
   confidenceNote?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -709,6 +736,7 @@ export type AssistantSummaryHistoryUncheckedUpdateWithoutUserInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   bullets?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  action?: Prisma.StringFieldUpdateOperationsInput | string
   confidenceNote?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -726,6 +754,7 @@ export type AssistantSummaryHistoryUncheckedUpdateManyWithoutUserInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   bullets?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   actionLabel?: Prisma.StringFieldUpdateOperationsInput | string
+  action?: Prisma.StringFieldUpdateOperationsInput | string
   confidenceNote?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -746,6 +775,7 @@ export type AssistantSummaryHistorySelect<ExtArgs extends runtime.Types.Extensio
   summary?: boolean
   bullets?: boolean
   actionLabel?: boolean
+  action?: boolean
   confidenceNote?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -765,6 +795,7 @@ export type AssistantSummaryHistorySelectCreateManyAndReturn<ExtArgs extends run
   summary?: boolean
   bullets?: boolean
   actionLabel?: boolean
+  action?: boolean
   confidenceNote?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -784,6 +815,7 @@ export type AssistantSummaryHistorySelectUpdateManyAndReturn<ExtArgs extends run
   summary?: boolean
   bullets?: boolean
   actionLabel?: boolean
+  action?: boolean
   confidenceNote?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -803,12 +835,13 @@ export type AssistantSummaryHistorySelectScalar = {
   summary?: boolean
   bullets?: boolean
   actionLabel?: boolean
+  action?: boolean
   confidenceNote?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type AssistantSummaryHistoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "kind" | "scopeKey" | "date" | "rangeKey" | "startDate" | "endDate" | "generatedAt" | "summary" | "bullets" | "actionLabel" | "confidenceNote" | "createdAt" | "updatedAt", ExtArgs["result"]["assistantSummaryHistory"]>
+export type AssistantSummaryHistoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "kind" | "scopeKey" | "date" | "rangeKey" | "startDate" | "endDate" | "generatedAt" | "summary" | "bullets" | "actionLabel" | "action" | "confidenceNote" | "createdAt" | "updatedAt", ExtArgs["result"]["assistantSummaryHistory"]>
 export type AssistantSummaryHistoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -837,6 +870,7 @@ export type $AssistantSummaryHistoryPayload<ExtArgs extends runtime.Types.Extens
     summary: string
     bullets: runtime.JsonValue
     actionLabel: string
+    action: string
     confidenceNote: string
     createdAt: Date
     updatedAt: Date
@@ -1276,6 +1310,7 @@ export interface AssistantSummaryHistoryFieldRefs {
   readonly summary: Prisma.FieldRef<"AssistantSummaryHistory", 'String'>
   readonly bullets: Prisma.FieldRef<"AssistantSummaryHistory", 'Json'>
   readonly actionLabel: Prisma.FieldRef<"AssistantSummaryHistory", 'String'>
+  readonly action: Prisma.FieldRef<"AssistantSummaryHistory", 'String'>
   readonly confidenceNote: Prisma.FieldRef<"AssistantSummaryHistory", 'String'>
   readonly createdAt: Prisma.FieldRef<"AssistantSummaryHistory", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"AssistantSummaryHistory", 'DateTime'>

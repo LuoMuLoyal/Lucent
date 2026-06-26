@@ -25,6 +25,7 @@ type PersistSummaryInput = {
   summary: string;
   bullets: SummaryBullet[];
   actionLabel: string;
+  action: string;
   confidenceNote: string;
 };
 
@@ -61,6 +62,7 @@ export class HistoricalAiSummaryService {
       summary: row.summary,
       bullets: this.readBullets(row.bullets),
       actionLabel: row.actionLabel,
+      action: row.action,
       confidenceNote: row.confidenceNote,
     }));
   }
@@ -83,6 +85,7 @@ export class HistoricalAiSummaryService {
       summary: row.summary,
       bullets: this.readBullets(row.bullets),
       actionLabel: row.actionLabel,
+      action: row.action,
       confidenceNote: row.confidenceNote,
     }));
   }
@@ -144,6 +147,7 @@ export class HistoricalAiSummaryService {
       summary: input.summary,
       bullets: input.bullets,
       actionLabel: input.actionLabel,
+      action: input.action,
       confidenceNote: input.confidenceNote,
     };
   }
@@ -154,6 +158,7 @@ export class HistoricalAiSummaryService {
     summary: string;
     bullets: unknown;
     actionLabel: string;
+    action: string;
     confidenceNote: string;
   }) {
     return {
@@ -162,6 +167,7 @@ export class HistoricalAiSummaryService {
       summary: row.summary,
       bullets: this.readBullets(row.bullets),
       actionLabel: row.actionLabel,
+      action: row.action,
       confidenceNote: row.confidenceNote,
     };
   }
@@ -174,6 +180,7 @@ export class HistoricalAiSummaryService {
     summary: string;
     bullets: unknown;
     actionLabel: string;
+    action: string;
     confidenceNote: string;
   }) {
     return {
@@ -184,6 +191,7 @@ export class HistoricalAiSummaryService {
       summary: row.summary,
       bullets: this.readBullets(row.bullets),
       actionLabel: row.actionLabel,
+      action: row.action,
       confidenceNote: row.confidenceNote,
     };
   }

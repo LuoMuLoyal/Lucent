@@ -2,6 +2,7 @@
   "service_unavailable": "报告 AI 总结服务尚未配置",
   "summaries_disabled": "该用户已关闭 AI 总结",
   "fallback": {
+    "action": "today",
     "action_label": "查看报告",
     "confidence_note": "仅基于近 {dayCount} 天已记录数据生成，不构成诊断或治疗建议。",
     "summary_default": "近 {dayCount} 天记录已更新，可先根据已有记录继续补稳日常节奏。",

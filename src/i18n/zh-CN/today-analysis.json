@@ -2,6 +2,7 @@
   "service_unavailable": "今日 AI 分析服务尚未配置",
   "summaries_disabled": "该用户已关闭 AI 总结",
   "fallback": {
+    "action": "today",
     "action_label": "查看今日记录",
     "confidence_note": "仅基于今日已记录数据生成，不构成诊断或治疗建议。",
     "summary_default": "今日记录已更新，可先根据已记录事项继续补全今天的数据。",

@@ -2,6 +2,7 @@
   "service_unavailable": "Report AI summary is not configured",
   "summaries_disabled": "AI summaries are disabled for this user",
   "fallback": {
+    "action": "today",
     "action_label": "View report",
     "confidence_note": "Generated only from the last {dayCount} days of recorded data. This is not a diagnosis or treatment advice.",
     "summary_default": "The last {dayCount} days of records were updated. You can keep strengthening the daily routine based on what is already logged.",

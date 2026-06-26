@@ -39,6 +39,9 @@ export class ReportSummaryDataDto {
   actionLabel!: string;
 
   @ApiProperty()
+  action!: string;
+
+  @ApiProperty()
   confidenceNote!: string;
 }
 

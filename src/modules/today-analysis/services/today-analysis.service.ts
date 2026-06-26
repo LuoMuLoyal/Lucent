@@ -227,6 +227,7 @@ export class TodayAnalysisService {
       summary: output.summary,
       bullets: output.bullets,
       actionLabel: output.actionLabel,
+      action: output.action,
       confidenceNote: output.confidenceNote,
     };
   }
@@ -253,6 +254,7 @@ export class TodayAnalysisService {
       summary: data.summary,
       bullets: data.bullets,
       actionLabel: data.actionLabel,
+      action: data.action,
       confidenceNote: data.confidenceNote,
     });
   }

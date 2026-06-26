@@ -660,6 +660,7 @@ export const AssistantSummaryHistoryScalarFieldEnum = {
   summary: 'summary',
   bullets: 'bullets',
   actionLabel: 'actionLabel',
+  action: 'action',
   confidenceNote: 'confidenceNote',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

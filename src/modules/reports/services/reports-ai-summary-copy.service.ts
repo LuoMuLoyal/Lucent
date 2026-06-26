@@ -28,6 +28,7 @@ export class ReportsAiSummaryCopyService extends LocalizedCopyService<ReportSumm
     const waterTrackedDays = context.dataQuality.waterTrackedDays;
     const dayCount = this.dayCount(context.range);
     const actionLabel = this.t(locale, 'fallback.action_label');
+    const action = this.t(locale, 'fallback.action');
     const confidenceNote = this.t(locale, 'fallback.confidence_note', {
       dayCount,
     });
@@ -96,6 +97,7 @@ export class ReportsAiSummaryCopyService extends LocalizedCopyService<ReportSumm
         },
       ],
       actionLabel,
+      action,
       confidenceNote,
     };
   }

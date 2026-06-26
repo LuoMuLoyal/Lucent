@@ -19,6 +19,7 @@ export const reportSummarySchema = z.object({
     .min(2)
     .max(3),
   actionLabel: z.string().trim().min(1).max(24),
+  action: z.string().trim().min(1).max(24),
   confidenceNote: z.string().trim().min(1).max(96),
 });
 

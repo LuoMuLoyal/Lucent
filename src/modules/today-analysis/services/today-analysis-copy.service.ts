@@ -19,6 +19,7 @@ export class TodayAnalysisCopyService extends LocalizedCopyService<TodayAnalysis
     const medicationPending = context.medication.pendingCount;
     const waterRemaining = context.water.remainingCount;
     const actionLabel = this.t(locale, 'fallback.action_label');
+    const action = this.t(locale, 'fallback.action');
     const confidenceNote = this.t(locale, 'fallback.confidence_note');
 
     let summary = this.t(locale, 'fallback.summary_default');
@@ -64,6 +65,7 @@ export class TodayAnalysisCopyService extends LocalizedCopyService<TodayAnalysis
         },
       ],
       actionLabel,
+      action,
       confidenceNote,
     };
   }

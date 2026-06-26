@@ -27,6 +27,9 @@ export class TodayAnalysisDataDto {
   actionLabel!: string;
 
   @ApiProperty()
+  action!: string;
+
+  @ApiProperty()
   confidenceNote!: string;
 }
 
