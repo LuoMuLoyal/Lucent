@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { ReportsModule } from '../reports/reports.module';
 import { DataExportCosRuntime } from './config/data-export-cos.runtime';
 import { DataExportController } from './data-export.controller';
@@ -9,7 +10,7 @@ import { DataExportStorageService } from './services/data-export-storage.service
 import { ReportExportPdfService } from './services/report-export-pdf.service';
 
 @Module({
-  imports: [AuthModule, ReportsModule],
+  imports: [AuthModule, ReportsModule, NotificationsModule],
   controllers: [DataExportController],
   providers: [
     DataExportCosRuntime,

@@ -409,7 +409,8 @@ export const ModelName = {
   DataExportRequest: 'DataExportRequest',
   AssistantConversation: 'AssistantConversation',
   AssistantMessage: 'AssistantMessage',
-  AssistantSummaryHistory: 'AssistantSummaryHistory'
+  AssistantSummaryHistory: 'AssistantSummaryHistory',
+  UserNotification: 'UserNotification'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -425,7 +426,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "cnMedicineLeaflet" | "cnMedicineProductLeafletLink" | "medicineLeafletChunk" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory"
+    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "cnMedicineLeaflet" | "cnMedicineProductLeafletLink" | "medicineLeafletChunk" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory" | "userNotification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2427,6 +2428,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    UserNotification: {
+      payload: Prisma.$UserNotificationPayload<ExtArgs>
+      fields: Prisma.UserNotificationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.UserNotificationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.UserNotificationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload>
+        }
+        findFirst: {
+          args: Prisma.UserNotificationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.UserNotificationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload>
+        }
+        findMany: {
+          args: Prisma.UserNotificationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload>[]
+        }
+        create: {
+          args: Prisma.UserNotificationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload>
+        }
+        createMany: {
+          args: Prisma.UserNotificationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.UserNotificationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload>[]
+        }
+        delete: {
+          args: Prisma.UserNotificationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload>
+        }
+        update: {
+          args: Prisma.UserNotificationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload>
+        }
+        deleteMany: {
+          args: Prisma.UserNotificationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.UserNotificationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.UserNotificationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload>[]
+        }
+        upsert: {
+          args: Prisma.UserNotificationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$UserNotificationPayload>
+        }
+        aggregate: {
+          args: Prisma.UserNotificationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateUserNotification>
+        }
+        groupBy: {
+          args: Prisma.UserNotificationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserNotificationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.UserNotificationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.UserNotificationCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3038,6 +3113,23 @@ export const AssistantSummaryHistoryScalarFieldEnum = {
 export type AssistantSummaryHistoryScalarFieldEnum = (typeof AssistantSummaryHistoryScalarFieldEnum)[keyof typeof AssistantSummaryHistoryScalarFieldEnum]
 
 
+export const UserNotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  title: 'title',
+  content: 'content',
+  action: 'action',
+  actionPayload: 'actionPayload',
+  isRead: 'isRead',
+  readAt: 'readAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserNotificationScalarFieldEnum = (typeof UserNotificationScalarFieldEnum)[keyof typeof UserNotificationScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -3394,6 +3486,20 @@ export type ListEnumAiSummaryHistoryKindFieldRefInput<$PrismaModel> = FieldRefIn
 
 
 /**
+ * Reference to a field of type 'UserNotificationType'
+ */
+export type EnumUserNotificationTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserNotificationType'>
+    
+
+
+/**
+ * Reference to a field of type 'UserNotificationType[]'
+ */
+export type ListEnumUserNotificationTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserNotificationType[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -3543,6 +3649,7 @@ export type GlobalOmitConfig = {
   assistantConversation?: Prisma.AssistantConversationOmit
   assistantMessage?: Prisma.AssistantMessageOmit
   assistantSummaryHistory?: Prisma.AssistantSummaryHistoryOmit
+  userNotification?: Prisma.UserNotificationOmit
 }
 
 /* Types for Logging */

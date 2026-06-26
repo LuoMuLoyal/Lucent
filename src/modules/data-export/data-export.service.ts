@@ -1,6 +1,7 @@
 import { formatDateOnly } from '../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ReportsService } from '../reports/dashboard/reports.service';
 import {
@@ -40,6 +41,7 @@ export class DataExportService {
     private readonly reportsService: ReportsService,
     private readonly storageService: DataExportStorageService,
     private readonly reportExportPdfService: ReportExportPdfService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createRequest(
@@ -110,6 +112,8 @@ export class DataExportService {
           errorMessage: null,
         },
       });
+
+      await this._notifyExportCompleted(userId, completed);
 
       return this.toDto(completed);
     } catch (error) {
@@ -192,5 +196,28 @@ export class DataExportService {
     }
 
     return 'Failed to generate report export';
+  }
+
+  private async _notifyExportCompleted(
+    userId: string,
+    row: Prisma.DataExportRequestGetPayload<{
+      select: typeof dataExportSelect;
+    }>,
+  ): Promise<void> {
+    try {
+      const kindLabels: Record<string, string> = {
+        hospital: '校医院报告',
+        monthly: '月度报告',
+        print: '打印预览报告',
+      };
+      await this.notificationsService.create(userId, {
+        type: 'report_generated',
+        title: `${kindLabels[row.kind] ?? '报告'}导出成功`,
+        content: `您的${kindLabels[row.kind] ?? '报告'}已生成，可以前往报告页查看。`,
+        action: 'report',
+      });
+    } catch {
+      // Silently fail so notification issues do not break export flow.
+    }
   }
 }

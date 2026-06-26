@@ -151,3 +151,8 @@ export type AssistantMessage = Prisma.AssistantMessageModel
  * 
  */
 export type AssistantSummaryHistory = Prisma.AssistantSummaryHistoryModel
+/**
+ * Model UserNotification
+ * 
+ */
+export type UserNotification = Prisma.UserNotificationModel

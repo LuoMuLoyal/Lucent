@@ -6,6 +6,7 @@ import type { TodayAnalysisGeneratorService } from './today-analysis-generator.s
 import { TodayAnalysisPolicyService } from './today-analysis-policy.service';
 import { TodayAnalysisService } from './today-analysis.service';
 import type { TodayAnalysisStructuredOutput } from '../schemas/today-analysis.schema';
+import type { NotificationsService } from '../../notifications/notifications.service';
 
 function invokeModelSpy(service: TodayAnalysisService) {
   return jest.spyOn(
@@ -359,6 +360,9 @@ describe('TodayAnalysisService', () => {
       generateStream: jest.fn(),
     } as unknown as TodayAnalysisGeneratorService;
 
+    const notificationsService = {
+      create: jest.fn(),
+    } as unknown as NotificationsService;
     return new TodayAnalysisService(
       prisma as never,
       aiSummaryHistoryService as never,
@@ -366,6 +370,7 @@ describe('TodayAnalysisService', () => {
       policyService,
       copyService,
       generatorService,
+      notificationsService,
     );
   }
 });

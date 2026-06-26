@@ -9,6 +9,7 @@ import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
 import { ARGON2_OPTIONS } from './config/argon2-options';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { User, UserStatus } from '../../generated/prisma/client';
 import { UserService } from '../user/user.service';
@@ -65,6 +66,7 @@ export class AuthService {
     private readonly authTokenService: AuthTokenService,
     private readonly authOAuthStateService: AuthOAuthStateService,
     private readonly authOAuthService: AuthOAuthService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ── Registration ─────────────────────────────────────────────
@@ -182,6 +184,19 @@ export class AuthService {
   async logoutAll(userId: string): Promise<void> {
     await this.authTokenService.revokeAll(userId);
   }
+
+  private async _notifyPasswordChanged(userId: string): Promise<void> {
+    try {
+      await this.notificationsService.create(userId, {
+        type: 'password_changed',
+        title: '密码已修改',
+        content: '您的账户密码已成功修改。如非本人操作，请尽快联系客服。',
+        action: '/account',
+      });
+    } catch {
+      // Silently fail so notification issues do not break auth flow.
+    }
+  }
   // TODO(auth-session): expose device/session management so users can review and revoke individual sessions.
   // blocked: requires session-list API + UI, device fingerprinting strategy, and revoke-by-id endpoint.
 
@@ -214,6 +229,7 @@ export class AuthService {
     const passwordHash = await argon2.hash(dto.newPassword, ARGON2_OPTIONS);
     await this.userService.update(userId, { passwordHash });
     await this.logoutAll(userId);
+    await this._notifyPasswordChanged(userId);
   }
 
   async setPassword(userId: string, dto: SetPasswordDto): Promise<void> {
@@ -258,6 +274,7 @@ export class AuthService {
 
     // Invalidate all sessions (security best practice after setting credential)
     await this.logoutAll(userId);
+    await this._notifyPasswordChanged(userId);
   }
 
   async changeEmail(userId: string, dto: ChangeEmailDto): Promise<User> {

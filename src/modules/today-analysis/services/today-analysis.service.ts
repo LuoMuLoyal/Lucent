@@ -2,6 +2,7 @@ import { forbidden } from '../../../common/utils/api-errors';
 import { Injectable, Logger } from '@nestjs/common';
 
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from '../dto';
 import { TodayAnalysisCopyService } from './today-analysis-copy.service';
@@ -32,6 +33,7 @@ export class TodayAnalysisService {
     private readonly policyService: TodayAnalysisPolicyService,
     private readonly copyService: TodayAnalysisCopyService,
     private readonly generatorService: TodayAnalysisGeneratorService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async generate(
@@ -46,6 +48,7 @@ export class TodayAnalysisService {
     );
     const data = this.toDataDto(prepared, output);
     await this.persistSummary(userId, data);
+    await this._notifyTodaySummaryGenerated(userId, data);
     return data;
   }
 
@@ -63,6 +66,7 @@ export class TodayAnalysisService {
     );
     const data = this.toDataDto(prepared, output);
     await this.persistSummary(userId, data);
+    await this._notifyTodaySummaryGenerated(userId, data);
     return data;
   }
 
@@ -251,5 +255,21 @@ export class TodayAnalysisService {
       actionLabel: data.actionLabel,
       confidenceNote: data.confidenceNote,
     });
+  }
+
+  private async _notifyTodaySummaryGenerated(
+    userId: string,
+    data: TodayAnalysisDataDto,
+  ): Promise<void> {
+    try {
+      await this.notificationsService.create(userId, {
+        type: 'ai_today_summary',
+        title: 'AI 今日总结已生成',
+        content: data.summary,
+        action: 'today',
+      });
+    } catch {
+      // Silently fail so notification issues do not break analysis generation.
+    }
   }
 }

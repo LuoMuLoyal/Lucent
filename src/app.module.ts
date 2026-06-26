@@ -27,6 +27,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { UserSettingsModule } from './modules/user-settings/user-settings.module';
 import { SupportResourcesModule } from './modules/support-resources/support-resources.module';
 import { DataExportModule } from './modules/data-export/data-export.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { TestingSupportModule } from './modules/testing-support/testing-support.module';
 import { LlmRuntimeModule } from './modules/llm-runtime/llm-runtime.module';
 import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module';
@@ -63,6 +64,7 @@ import { AssistantModule } from './modules/assistant/assistant.module';
     UserSettingsModule,
     SupportResourcesModule,
     DataExportModule,
+    NotificationsModule,
     ...(process.env['NODE_ENV'] === 'test' ? [TestingSupportModule] : []),
   ],
   controllers: [AppController],

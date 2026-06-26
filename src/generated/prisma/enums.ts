@@ -167,6 +167,19 @@ export const AiSummaryHistoryKind = {
 export type AiSummaryHistoryKind = (typeof AiSummaryHistoryKind)[keyof typeof AiSummaryHistoryKind]
 
 
+export const UserNotificationType = {
+  ai_today_summary: 'ai_today_summary',
+  ai_proactive_suggestion: 'ai_proactive_suggestion',
+  medicine_missed_dose: 'medicine_missed_dose',
+  password_changed: 'password_changed',
+  report_generated: 'report_generated',
+  medicine_reminder: 'medicine_reminder',
+  system_announcement: 'system_announcement'
+} as const
+
+export type UserNotificationType = (typeof UserNotificationType)[keyof typeof UserNotificationType]
+
+
 export const DoseLogStatus = {
   taken: 'taken',
   skipped: 'skipped',

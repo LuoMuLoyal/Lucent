@@ -3,6 +3,7 @@ import type { ReportsService } from '../reports/dashboard/reports.service';
 import { DataExportService } from './data-export.service';
 import type { DataExportStorageService } from './services/data-export-storage.service';
 import type { ReportExportPdfService } from './services/report-export-pdf.service';
+import type { NotificationsService } from '../notifications/notifications.service';
 
 describe('DataExportService', () => {
   it('marks the request unavailable when COS storage is not configured', async () => {
@@ -18,11 +19,15 @@ describe('DataExportService', () => {
     const pdfService = {
       buildHospitalPdf: jest.fn(),
     } as unknown as ReportExportPdfService;
+    const notificationsService = {
+      create: jest.fn(),
+    } as unknown as NotificationsService;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      notificationsService,
     );
 
     const result = await service.createRequest(
@@ -60,11 +65,15 @@ describe('DataExportService', () => {
     const pdfService = {
       buildHospitalPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
     } as unknown as ReportExportPdfService;
+    const notificationsService = {
+      create: jest.fn(),
+    } as unknown as NotificationsService;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      notificationsService,
     );
 
     const result = await service.createRequest(
@@ -102,11 +111,15 @@ describe('DataExportService', () => {
     const pdfService = {
       buildHospitalPdf: jest.fn(),
     } as unknown as ReportExportPdfService;
+    const notificationsService = {
+      create: jest.fn(),
+    } as unknown as NotificationsService;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      notificationsService,
     );
 
     const result = await service.createRequest(
@@ -142,11 +155,15 @@ describe('DataExportService', () => {
       buildMonthlyPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
       buildPrintPdf: jest.fn(),
     } as unknown as ReportExportPdfService;
+    const notificationsService = {
+      create: jest.fn(),
+    } as unknown as NotificationsService;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      notificationsService,
     );
 
     const result = await service.createRequest(
@@ -191,11 +208,15 @@ describe('DataExportService', () => {
       buildMonthlyPdf: jest.fn(),
       buildPrintPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
     } as unknown as ReportExportPdfService;
+    const notificationsService = {
+      create: jest.fn(),
+    } as unknown as NotificationsService;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      notificationsService,
     );
 
     const result = await service.createRequest(
@@ -233,11 +254,15 @@ describe('DataExportService', () => {
       buildMonthlyPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
       buildPrintPdf: jest.fn(),
     } as unknown as ReportExportPdfService;
+    const notificationsService = {
+      create: jest.fn(),
+    } as unknown as NotificationsService;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      notificationsService,
     );
 
     await service.createRequest(

@@ -23,6 +23,7 @@ import { AuthOAuthService } from './services/auth-oauth.service';
 import { UserStatus } from '../../generated/prisma/client';
 import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   OAUTH_PROVIDER_WECHAT_MOBILE,
   OAUTH_PROVIDER_WECHAT_WEB,
@@ -196,6 +197,19 @@ describe('AuthService', () => {
             findOrCreateOAuthUser: jest.fn(),
             updateOAuthLoginUser: jest.fn(),
             linkOAuthProfileToUser: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: NotificationsService,
+          useValue: {
+            create: jest.fn(),
+            findAll: jest.fn(),
+            findOne: jest.fn(),
+            markAsRead: jest.fn(),
+            markAsUnread: jest.fn(),
+            markAllAsRead: jest.fn(),
+            remove: jest.fn(),
+            getUnreadCount: jest.fn(),
           },
         },
       ],

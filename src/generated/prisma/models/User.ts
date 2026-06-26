@@ -246,6 +246,7 @@ export type UserWhereInput = {
   assistantConversations?: Prisma.AssistantConversationListRelationFilter
   assistantMessages?: Prisma.AssistantMessageListRelationFilter
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryListRelationFilter
+  notifications?: Prisma.UserNotificationListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -277,6 +278,7 @@ export type UserOrderByWithRelationInput = {
   assistantConversations?: Prisma.AssistantConversationOrderByRelationAggregateInput
   assistantMessages?: Prisma.AssistantMessageOrderByRelationAggregateInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryOrderByRelationAggregateInput
+  notifications?: Prisma.UserNotificationOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -311,6 +313,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   assistantConversations?: Prisma.AssistantConversationListRelationFilter
   assistantMessages?: Prisma.AssistantMessageListRelationFilter
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryListRelationFilter
+  notifications?: Prisma.UserNotificationListRelationFilter
 }, "id">
 
 export type UserOrderByWithAggregationInput = {
@@ -376,6 +379,7 @@ export type UserCreateInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -407,6 +411,7 @@ export type UserUncheckedCreateInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -438,6 +443,7 @@ export type UserUpdateInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -469,6 +475,7 @@ export type UserUncheckedUpdateInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -818,6 +825,20 @@ export type UserUpdateOneRequiredWithoutAssistantSummaryHistoriesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAssistantSummaryHistoriesInput, Prisma.UserUpdateWithoutAssistantSummaryHistoriesInput>, Prisma.UserUncheckedUpdateWithoutAssistantSummaryHistoriesInput>
 }
 
+export type UserCreateNestedOneWithoutNotificationsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutNotificationsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutNotificationsInput
+  upsert?: Prisma.UserUpsertWithoutNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutNotificationsInput, Prisma.UserUpdateWithoutNotificationsInput>, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+}
+
 export type UserCreateWithoutIdentitiesInput = {
   id?: string
   email?: string | null
@@ -846,6 +867,7 @@ export type UserCreateWithoutIdentitiesInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutIdentitiesInput = {
@@ -876,6 +898,7 @@ export type UserUncheckedCreateWithoutIdentitiesInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutIdentitiesInput = {
@@ -922,6 +945,7 @@ export type UserUpdateWithoutIdentitiesInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutIdentitiesInput = {
@@ -952,6 +976,7 @@ export type UserUncheckedUpdateWithoutIdentitiesInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutProfileInput = {
@@ -982,6 +1007,7 @@ export type UserCreateWithoutProfileInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutProfileInput = {
@@ -1012,6 +1038,7 @@ export type UserUncheckedCreateWithoutProfileInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProfileInput = {
@@ -1058,6 +1085,7 @@ export type UserUpdateWithoutProfileInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProfileInput = {
@@ -1088,6 +1116,7 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSessionsInput = {
@@ -1118,6 +1147,7 @@ export type UserCreateWithoutSessionsInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -1148,6 +1178,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -1194,6 +1225,7 @@ export type UserUpdateWithoutSessionsInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1224,6 +1256,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDevicesInput = {
@@ -1254,6 +1287,7 @@ export type UserCreateWithoutDevicesInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDevicesInput = {
@@ -1284,6 +1318,7 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDevicesInput = {
@@ -1330,6 +1365,7 @@ export type UserUpdateWithoutDevicesInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDevicesInput = {
@@ -1360,6 +1396,7 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAllergiesInput = {
@@ -1390,6 +1427,7 @@ export type UserCreateWithoutAllergiesInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAllergiesInput = {
@@ -1420,6 +1458,7 @@ export type UserUncheckedCreateWithoutAllergiesInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAllergiesInput = {
@@ -1466,6 +1505,7 @@ export type UserUpdateWithoutAllergiesInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAllergiesInput = {
@@ -1496,6 +1536,7 @@ export type UserUncheckedUpdateWithoutAllergiesInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutConditionsInput = {
@@ -1526,6 +1567,7 @@ export type UserCreateWithoutConditionsInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutConditionsInput = {
@@ -1556,6 +1598,7 @@ export type UserUncheckedCreateWithoutConditionsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutConditionsInput = {
@@ -1602,6 +1645,7 @@ export type UserUpdateWithoutConditionsInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutConditionsInput = {
@@ -1632,6 +1676,7 @@ export type UserUncheckedUpdateWithoutConditionsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutCurrentMedicinesInput = {
@@ -1662,6 +1707,7 @@ export type UserCreateWithoutCurrentMedicinesInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutCurrentMedicinesInput = {
@@ -1692,6 +1738,7 @@ export type UserUncheckedCreateWithoutCurrentMedicinesInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutCurrentMedicinesInput = {
@@ -1738,6 +1785,7 @@ export type UserUpdateWithoutCurrentMedicinesInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutCurrentMedicinesInput = {
@@ -1768,6 +1816,7 @@ export type UserUncheckedUpdateWithoutCurrentMedicinesInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutMedicineRemindersInput = {
@@ -1798,6 +1847,7 @@ export type UserCreateWithoutMedicineRemindersInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutMedicineRemindersInput = {
@@ -1828,6 +1878,7 @@ export type UserUncheckedCreateWithoutMedicineRemindersInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutMedicineRemindersInput = {
@@ -1874,6 +1925,7 @@ export type UserUpdateWithoutMedicineRemindersInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMedicineRemindersInput = {
@@ -1904,6 +1956,7 @@ export type UserUncheckedUpdateWithoutMedicineRemindersInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutReminderDeliveriesInput = {
@@ -1934,6 +1987,7 @@ export type UserCreateWithoutReminderDeliveriesInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutReminderDeliveriesInput = {
@@ -1964,6 +2018,7 @@ export type UserUncheckedCreateWithoutReminderDeliveriesInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutReminderDeliveriesInput = {
@@ -2010,6 +2065,7 @@ export type UserUpdateWithoutReminderDeliveriesInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutReminderDeliveriesInput = {
@@ -2040,6 +2096,7 @@ export type UserUncheckedUpdateWithoutReminderDeliveriesInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDoseLogsInput = {
@@ -2070,6 +2127,7 @@ export type UserCreateWithoutDoseLogsInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDoseLogsInput = {
@@ -2100,6 +2158,7 @@ export type UserUncheckedCreateWithoutDoseLogsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDoseLogsInput = {
@@ -2146,6 +2205,7 @@ export type UserUpdateWithoutDoseLogsInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDoseLogsInput = {
@@ -2176,6 +2236,7 @@ export type UserUncheckedUpdateWithoutDoseLogsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDailyRecordsInput = {
@@ -2206,6 +2267,7 @@ export type UserCreateWithoutDailyRecordsInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDailyRecordsInput = {
@@ -2236,6 +2298,7 @@ export type UserUncheckedCreateWithoutDailyRecordsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDailyRecordsInput = {
@@ -2282,6 +2345,7 @@ export type UserUpdateWithoutDailyRecordsInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDailyRecordsInput = {
@@ -2312,6 +2376,7 @@ export type UserUncheckedUpdateWithoutDailyRecordsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDailyRecordAttachmentsInput = {
@@ -2342,6 +2407,7 @@ export type UserCreateWithoutDailyRecordAttachmentsInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDailyRecordAttachmentsInput = {
@@ -2372,6 +2438,7 @@ export type UserUncheckedCreateWithoutDailyRecordAttachmentsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDailyRecordAttachmentsInput = {
@@ -2418,6 +2485,7 @@ export type UserUpdateWithoutDailyRecordAttachmentsInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDailyRecordAttachmentsInput = {
@@ -2448,6 +2516,7 @@ export type UserUncheckedUpdateWithoutDailyRecordAttachmentsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSettingsInput = {
@@ -2478,6 +2547,7 @@ export type UserCreateWithoutSettingsInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSettingsInput = {
@@ -2508,6 +2578,7 @@ export type UserUncheckedCreateWithoutSettingsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSettingsInput = {
@@ -2554,6 +2625,7 @@ export type UserUpdateWithoutSettingsInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSettingsInput = {
@@ -2584,6 +2656,7 @@ export type UserUncheckedUpdateWithoutSettingsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutDataExportRequestsInput = {
@@ -2614,6 +2687,7 @@ export type UserCreateWithoutDataExportRequestsInput = {
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutDataExportRequestsInput = {
@@ -2644,6 +2718,7 @@ export type UserUncheckedCreateWithoutDataExportRequestsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutDataExportRequestsInput = {
@@ -2690,6 +2765,7 @@ export type UserUpdateWithoutDataExportRequestsInput = {
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDataExportRequestsInput = {
@@ -2720,6 +2796,7 @@ export type UserUncheckedUpdateWithoutDataExportRequestsInput = {
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAssistantConversationsInput = {
@@ -2750,6 +2827,7 @@ export type UserCreateWithoutAssistantConversationsInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAssistantConversationsInput = {
@@ -2780,6 +2858,7 @@ export type UserUncheckedCreateWithoutAssistantConversationsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAssistantConversationsInput = {
@@ -2826,6 +2905,7 @@ export type UserUpdateWithoutAssistantConversationsInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssistantConversationsInput = {
@@ -2856,6 +2936,7 @@ export type UserUncheckedUpdateWithoutAssistantConversationsInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAssistantMessagesInput = {
@@ -2886,6 +2967,7 @@ export type UserCreateWithoutAssistantMessagesInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAssistantMessagesInput = {
@@ -2916,6 +2998,7 @@ export type UserUncheckedCreateWithoutAssistantMessagesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAssistantMessagesInput = {
@@ -2962,6 +3045,7 @@ export type UserUpdateWithoutAssistantMessagesInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssistantMessagesInput = {
@@ -2992,6 +3076,7 @@ export type UserUncheckedUpdateWithoutAssistantMessagesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAssistantSummaryHistoriesInput = {
@@ -3022,6 +3107,7 @@ export type UserCreateWithoutAssistantSummaryHistoriesInput = {
   dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
   assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAssistantSummaryHistoriesInput = {
@@ -3052,6 +3138,7 @@ export type UserUncheckedCreateWithoutAssistantSummaryHistoriesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
   assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
   assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.UserNotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAssistantSummaryHistoriesInput = {
@@ -3098,6 +3185,7 @@ export type UserUpdateWithoutAssistantSummaryHistoriesInput = {
   dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
   assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssistantSummaryHistoriesInput = {
@@ -3128,6 +3216,147 @@ export type UserUncheckedUpdateWithoutAssistantSummaryHistoriesInput = {
   dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
   assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
   assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.UserNotificationUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutNotificationsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestCreateNestedManyWithoutUserInput
+  assistantConversations?: Prisma.AssistantConversationCreateNestedManyWithoutUserInput
+  assistantMessages?: Prisma.AssistantMessageCreateNestedManyWithoutUserInput
+  assistantSummaryHistories?: Prisma.AssistantSummaryHistoryCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutNotificationsInput = {
+  id?: string
+  email?: string | null
+  passwordHash?: string | null
+  nickname?: string | null
+  avatar?: string | null
+  status?: $Enums.UserStatus
+  emailVerifiedAt?: Date | string | null
+  lastLoginAt?: Date | string | null
+  deletedAt?: Date | string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  profile?: Prisma.UserProfileUncheckedCreateNestedOneWithoutUserInput
+  identities?: Prisma.UserIdentityUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UserSessionUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.UserDeviceUncheckedCreateNestedManyWithoutUserInput
+  allergies?: Prisma.UserAllergyUncheckedCreateNestedManyWithoutUserInput
+  conditions?: Prisma.UserConditionUncheckedCreateNestedManyWithoutUserInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedCreateNestedManyWithoutUserInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedCreateNestedManyWithoutUserInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedCreateNestedManyWithoutUserInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedCreateNestedManyWithoutUserInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedCreateNestedManyWithoutUserInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedCreateNestedManyWithoutUserInput
+  settings?: Prisma.UserSettingUncheckedCreateNestedManyWithoutUserInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedCreateNestedManyWithoutUserInput
+  assistantConversations?: Prisma.AssistantConversationUncheckedCreateNestedManyWithoutUserInput
+  assistantMessages?: Prisma.AssistantMessageUncheckedCreateNestedManyWithoutUserInput
+  assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutNotificationsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+}
+
+export type UserUpsertWithoutNotificationsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutNotificationsInput, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutNotificationsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutNotificationsInput, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+}
+
+export type UserUpdateWithoutNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUpdateManyWithoutUserNestedInput
+  assistantConversations?: Prisma.AssistantConversationUpdateManyWithoutUserNestedInput
+  assistantMessages?: Prisma.AssistantMessageUpdateManyWithoutUserNestedInput
+  assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  passwordHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  nickname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatar?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  profile?: Prisma.UserProfileUncheckedUpdateOneWithoutUserNestedInput
+  identities?: Prisma.UserIdentityUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UserSessionUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.UserDeviceUncheckedUpdateManyWithoutUserNestedInput
+  allergies?: Prisma.UserAllergyUncheckedUpdateManyWithoutUserNestedInput
+  conditions?: Prisma.UserConditionUncheckedUpdateManyWithoutUserNestedInput
+  currentMedicines?: Prisma.UserCurrentMedicineUncheckedUpdateManyWithoutUserNestedInput
+  medicineReminders?: Prisma.UserMedicineReminderUncheckedUpdateManyWithoutUserNestedInput
+  reminderDeliveries?: Prisma.UserReminderDeliveryUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecords?: Prisma.UserDailyRecordUncheckedUpdateManyWithoutUserNestedInput
+  dailyRecordAttachments?: Prisma.UserDailyRecordAttachmentUncheckedUpdateManyWithoutUserNestedInput
+  doseLogs?: Prisma.UserMedicineDoseLogUncheckedUpdateManyWithoutUserNestedInput
+  settings?: Prisma.UserSettingUncheckedUpdateManyWithoutUserNestedInput
+  dataExportRequests?: Prisma.DataExportRequestUncheckedUpdateManyWithoutUserNestedInput
+  assistantConversations?: Prisma.AssistantConversationUncheckedUpdateManyWithoutUserNestedInput
+  assistantMessages?: Prisma.AssistantMessageUncheckedUpdateManyWithoutUserNestedInput
+  assistantSummaryHistories?: Prisma.AssistantSummaryHistoryUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -3152,6 +3381,7 @@ export type UserCountOutputType = {
   assistantConversations: number
   assistantMessages: number
   assistantSummaryHistories: number
+  notifications: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3171,6 +3401,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   assistantConversations?: boolean | UserCountOutputTypeCountAssistantConversationsArgs
   assistantMessages?: boolean | UserCountOutputTypeCountAssistantMessagesArgs
   assistantSummaryHistories?: boolean | UserCountOutputTypeCountAssistantSummaryHistoriesArgs
+  notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
 }
 
 /**
@@ -3295,6 +3526,13 @@ export type UserCountOutputTypeCountAssistantSummaryHistoriesArgs<ExtArgs extend
   where?: Prisma.AssistantSummaryHistoryWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.UserNotificationWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -3325,6 +3563,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   assistantConversations?: boolean | Prisma.User$assistantConversationsArgs<ExtArgs>
   assistantMessages?: boolean | Prisma.User$assistantMessagesArgs<ExtArgs>
   assistantSummaryHistories?: boolean | Prisma.User$assistantSummaryHistoriesArgs<ExtArgs>
+  notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -3389,6 +3628,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   assistantConversations?: boolean | Prisma.User$assistantConversationsArgs<ExtArgs>
   assistantMessages?: boolean | Prisma.User$assistantMessagesArgs<ExtArgs>
   assistantSummaryHistories?: boolean | Prisma.User$assistantSummaryHistoriesArgs<ExtArgs>
+  notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -3414,6 +3654,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     assistantConversations: Prisma.$AssistantConversationPayload<ExtArgs>[]
     assistantMessages: Prisma.$AssistantMessagePayload<ExtArgs>[]
     assistantSummaryHistories: Prisma.$AssistantSummaryHistoryPayload<ExtArgs>[]
+    notifications: Prisma.$UserNotificationPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3838,6 +4079,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   assistantConversations<T extends Prisma.User$assistantConversationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assistantConversationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssistantConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assistantMessages<T extends Prisma.User$assistantMessagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assistantMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssistantMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assistantSummaryHistories<T extends Prisma.User$assistantSummaryHistoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assistantSummaryHistoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssistantSummaryHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserNotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4671,6 +4913,30 @@ export type User$assistantSummaryHistoriesArgs<ExtArgs extends runtime.Types.Ext
   take?: number
   skip?: number
   distinct?: Prisma.AssistantSummaryHistoryScalarFieldEnum | Prisma.AssistantSummaryHistoryScalarFieldEnum[]
+}
+
+/**
+ * User.notifications
+ */
+export type User$notificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the UserNotification
+   */
+  select?: Prisma.UserNotificationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the UserNotification
+   */
+  omit?: Prisma.UserNotificationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserNotificationInclude<ExtArgs> | null
+  where?: Prisma.UserNotificationWhereInput
+  orderBy?: Prisma.UserNotificationOrderByWithRelationInput | Prisma.UserNotificationOrderByWithRelationInput[]
+  cursor?: Prisma.UserNotificationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.UserNotificationScalarFieldEnum | Prisma.UserNotificationScalarFieldEnum[]
 }
 
 /**

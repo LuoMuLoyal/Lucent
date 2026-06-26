@@ -31,7 +31,7 @@ Keep durable implementation context in the owning code comments when the TODO is
   Source context: `src/modules/auth/auth.service.ts`
 - Allow OAuth-only accounts to delete only after a fresh linked-identity verification.
   Source context: `src/modules/auth/auth.service.ts`
-- Emit security notifications for new OAuth logins and newly linked identities.
+- Emit security notifications for new OAuth logins and newly linked identities. Notification infrastructure (`UserNotification` model + `NotificationsService`) is now in place; this item needs the event hook points only.
   Source context: `src/modules/auth/auth.service.ts`
 - Add more OAuth providers such as Apple or Google when product scope requires them.
   Source context: `src/modules/auth/oauth.types.ts`

@@ -76,7 +76,8 @@ export const ModelName = {
   DataExportRequest: 'DataExportRequest',
   AssistantConversation: 'AssistantConversation',
   AssistantMessage: 'AssistantMessage',
-  AssistantSummaryHistory: 'AssistantSummaryHistory'
+  AssistantSummaryHistory: 'AssistantSummaryHistory',
+  UserNotification: 'UserNotification'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -665,6 +666,23 @@ export const AssistantSummaryHistoryScalarFieldEnum = {
 } as const
 
 export type AssistantSummaryHistoryScalarFieldEnum = (typeof AssistantSummaryHistoryScalarFieldEnum)[keyof typeof AssistantSummaryHistoryScalarFieldEnum]
+
+
+export const UserNotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  title: 'title',
+  content: 'content',
+  action: 'action',
+  actionPayload: 'actionPayload',
+  isRead: 'isRead',
+  readAt: 'readAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserNotificationScalarFieldEnum = (typeof UserNotificationScalarFieldEnum)[keyof typeof UserNotificationScalarFieldEnum]
 
 
 export const SortOrder = {
