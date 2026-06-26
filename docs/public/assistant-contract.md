@@ -73,6 +73,15 @@ Rules:
 - Every bounded-linear AI module must run policy checks on both final output and streamed intermediate summary text.
 - Policy rejection must trigger the fallback copy path, not an empty/error response.
 
+## AI Copy / Localization
+
+All user-visible AI copy must flow through the shared localization layer rather than being hardcoded inline:
+
+- Prompt system/user messages must be built through locale-aware copy services (`LocalizedCopyService` subclasses) and the shared `ai-copy.ts` helpers.
+- Fallback copy returned on model failure or policy rejection must also be retrieved through `copyService.buildFallback()` in the active locale.
+- Do not hardcode Chinese, English, or any other language strings in generator, policy, or service code except for immutable technical identifiers (e.g., tool names, enum keys).
+- Frontend-facing AI messages must use the same locale keys and fallback semantics that the backend copy services produce; do not rephrase or retranslate them in the client.
+
 ## Public Routes
 
 - `GET /api/v1/user/assistant/capabilities`
