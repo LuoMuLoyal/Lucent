@@ -6,6 +6,7 @@ import { TodayAnalysisCopyService } from './services/today-analysis-copy.service
 import { TodayAnalysisController } from './today-analysis.controller';
 import { TodayAnalysisContextService } from './services/today-analysis-context.service';
 import { TodayAnalysisGeneratorService } from './services/today-analysis-generator.service';
+import { AiSafetyPolicyService } from '../../common/ai/ai-safety-policy.service';
 import { TodayAnalysisPolicyService } from './services/today-analysis-policy.service';
 import { TodayAnalysisService } from './services/today-analysis.service';
 
@@ -16,6 +17,7 @@ import { TodayAnalysisService } from './services/today-analysis.service';
     TodayAnalysisCopyService,
     TodayAnalysisContextService,
     TodayAnalysisGeneratorService,
+    AiSafetyPolicyService,
     TodayAnalysisPolicyService,
     TodayAnalysisService,
   ],

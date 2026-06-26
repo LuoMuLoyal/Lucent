@@ -3,6 +3,7 @@ import type { AiConfig } from '../../../config/ai.config';
 import type { TodayAnalysisCopyService } from './today-analysis-copy.service';
 import type { TodayAnalysisContextService } from './today-analysis-context.service';
 import type { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
+import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
 import { TodayAnalysisPolicyService } from './today-analysis-policy.service';
 import { TodayAnalysisService } from './today-analysis.service';
 import type { TodayAnalysisStructuredOutput } from '../schemas/today-analysis.schema';
@@ -267,7 +268,9 @@ describe('TodayAnalysisService', () => {
       save: jest.fn().mockResolvedValue(undefined),
     };
 
-    const policyService = new TodayAnalysisPolicyService();
+    const policyService = new TodayAnalysisPolicyService(
+      new AiSafetyPolicyService(),
+    );
     const copyService = {
       resolveLocale: jest.fn((language: string | undefined) => {
         const normalized = language?.trim().toLowerCase() ?? '';

@@ -4,6 +4,7 @@ import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from '../dto';
 import type { ReportsAiSummaryContextService } from './reports-ai-summary-context.service';
 import type { ReportsAiSummaryCopyService } from './reports-ai-summary-copy.service';
 import type { ReportsAiSummaryGeneratorService } from './reports-ai-summary-generator.service';
+import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
 import { ReportsAiSummaryPolicyService } from './reports-ai-summary-policy.service';
 import { ReportsAiSummaryService } from './reports-ai-summary.service';
 import type { ReportsComputationService } from '../dashboard/reports-computation.service';
@@ -429,7 +430,9 @@ describe('ReportsAiSummaryService', () => {
         ),
       generate: jest.fn(),
     } as unknown as ReportsAiSummaryGeneratorService;
-    const reportsAiSummaryPolicyService = new ReportsAiSummaryPolicyService();
+    const reportsAiSummaryPolicyService = new ReportsAiSummaryPolicyService(
+      new AiSafetyPolicyService(),
+    );
 
     return new ReportsAiSummaryService(
       prisma as never,
