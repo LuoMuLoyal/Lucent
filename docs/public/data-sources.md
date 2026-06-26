@@ -1,6 +1,6 @@
 # Data Sources
 
-Last updated: 2026-06-25
+Last updated: 2026-06-26
 
 ## Target Directory
 
@@ -132,6 +132,34 @@ Optional later table:
 | Table                     | Purpose                                                                                                 |
 | ------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `medicine_source_matches` | Reviewed mapping between `cn_medicine_products` and `drugbank_drugs`, with match method and confidence. |
+
+## RAG Knowledge Sources
+
+Medicine RAG currently uses chunked Chinese package-insert text from `cn_medicine_leaflets`. The chunks are produced by `scripts/import/medicine/rebuild-leaflet-index.ts` and stored in `medicine_leaflet_chunks`. The assistant retrieves them via `get_medicine_leaflet_context`, which first resolves a `cn_medicine_products` row and then reads linked leaflet chunks. This keeps retrieval tied to a concrete, approved product label.
+
+### Evaluated but not-yet-integrated source: 医疗问答数据集
+
+- **Location:** `DrugDataBase/医疗问答数据集一共135万条/数据集/alpaca_zh_demo.json`
+- **Size:** ~1.83 GB, ~1.36 million records
+- **Format:** JSON array of Alpaca-style objects: `{ "id": "DX_N", "instruction": "问题", "output": "回答" }`
+- **Status:** available on disk, not imported into PostgreSQL, not indexed for RAG.
+
+Why it is different from leaflet RAG:
+
+- Leaflets are official package inserts tied to a product; the Q&A set is generic medical question/answer content of unknown provenance.
+- The current retrieval tool is product-first; the Q&A set is open-domain and would need a separate retrieval path (e.g., a `medical_qa_chunks` table + semantic search).
+- Many answers contain diagnosis and treatment recommendations. Using them verbatim would cross the project's medical red line.
+
+**Boundaries if integrated in the future:**
+
+1. **Scope restriction:** only use it for general health education, symptom explanations, and "when to see a doctor" guidance. Exclude diagnosis, prescription, dosage, and treatment plans.
+2. **Content filtering:** pre-filter or tag records; drop or block high-risk categories.
+3. **Disclaimer:** every answer sourced from this dataset must be labeled as reference-only and not a substitute for professional medical advice.
+4. **Human review:** treat the dataset as unverified; do not present it as authoritative.
+5. **Separate table:** do not mix Q&A chunks with leaflet chunks; keep distinct `source_kind` and retrieval logic.
+6. **Legal/compliance review:** confirm with legal/product before enabling user-facing retrieval.
+
+For now, `ChineseDrugData_Master.xlsx` remains the only approved CN source for both structured product lookup and leaflet RAG.
 
 ## Chinese Source Mapping
 

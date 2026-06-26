@@ -1,6 +1,6 @@
 # Lucent TODO
 
-Last updated: 2026-06-25
+Last updated: 2026-06-26
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to one branch or security check, but do not scatter project-level follow-up lists across changelogs or random docs.
@@ -20,6 +20,8 @@ Keep durable implementation context in the owning code comments when the TODO is
 
 - `get_medicine_leaflet_context` is implemented with keyword product matching and fixed-size chunk retrieval. Future iterations may add relevance ranking, vector/semantic search, or chunk re-ranking when retrieval quality needs improvement.
   Source context: `src/modules/assistant/tools/assistant-tool-leaflet-read.service.ts`, `scripts/import/medicine/rebuild-leaflet-index.ts`
+- Evaluate whether to integrate the `alpaca_zh_demo.json` medical Q&A dataset (~1.36M records) as a separate RAG corpus. Before any import, define content filtering, scope boundaries, and compliance review. See `docs/public/data-sources.md` for the current boundaries.
+  Source context: `DrugDataBase/医疗问答数据集一共135万条/数据集/alpaca_zh_demo.json`
 
 ## Auth / Security
 
