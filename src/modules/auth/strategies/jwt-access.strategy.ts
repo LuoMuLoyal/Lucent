@@ -13,6 +13,8 @@ interface JwtConfigShape {
   accessTtl: number;
   refreshSecret: string;
   refreshTtl: number;
+  issuer: string;
+  audience: string;
 }
 
 /**
@@ -28,6 +30,8 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: jwtConfig.accessSecret,
       algorithms: ['HS512'],
+      issuer: jwtConfig.issuer,
+      audience: jwtConfig.audience,
     });
   }
 

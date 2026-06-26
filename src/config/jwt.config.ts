@@ -35,4 +35,6 @@ export const jwtConfig = registerAs(ConfigKey.Jwt, () => ({
   refreshSecret: process.env[EnvKey.JWT_REFRESH_SECRET] as string,
   accessTtl: parseTtl(process.env[EnvKey.JWT_ACCESS_TTL], 2 * 3600), // default 2h
   refreshTtl: parseTtl(process.env[EnvKey.JWT_REFRESH_TTL], 30 * 86400), // default 30d
+  issuer: process.env[EnvKey.JWT_ISSUER] ?? 'lucent-api',
+  audience: process.env[EnvKey.JWT_AUDIENCE] ?? 'luminous-app',
 }));

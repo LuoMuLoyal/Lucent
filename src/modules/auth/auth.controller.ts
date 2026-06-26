@@ -24,6 +24,8 @@ import type { Request, Response } from 'express';
 
 import { successEnvelope } from '../../common/api-envelope';
 import { getRequestClientIp } from '../../common/request/client-ip';
+import { ConfigService } from '@nestjs/config';
+import { ConfigKey } from '../../config/config-keys.enum';
 import {
   calculateExpiresIn,
   formatDateTime,
@@ -67,6 +69,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly authTokenService: AuthTokenService,
+    private readonly configService: ConfigService,
   ) {}
 
   // ── 1. POST /api/v1/auth/register ──────────────────────────────
@@ -293,7 +296,7 @@ export class AuthController {
   ) {
     const result = await this.authService.sendVerificationCode(
       dto,
-      getRequestClientIp(request),
+      getRequestClientIp(request, this.trustProxy),
     );
 
     return successEnvelope({
@@ -326,7 +329,7 @@ export class AuthController {
   ) {
     const result = await this.authService.forgotPassword(
       dto,
-      getRequestClientIp(request),
+      getRequestClientIp(request, this.trustProxy),
     );
 
     return successEnvelope({
@@ -346,11 +349,18 @@ export class AuthController {
     return successEnvelope(null);
   }
 
+  private get trustProxy(): boolean {
+    return this.configService.get<boolean>(
+      `${ConfigKey.App}.trustProxy`,
+      false,
+    );
+  }
+
   private getAuthRequestContext(request: Request): AuthRequestContext {
     const userAgent = request.headers['user-agent'];
 
     return {
-      ipAddress: getRequestClientIp(request),
+      ipAddress: getRequestClientIp(request, this.trustProxy),
       ...(userAgent !== undefined && { userAgent }),
     };
   }

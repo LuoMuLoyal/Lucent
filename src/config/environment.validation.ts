@@ -12,12 +12,15 @@ export interface EnvironmentVariables {
   [EnvKey.HOST]: string;
   [EnvKey.PORT]: number;
   [EnvKey.CORS_ORIGIN]: string;
+  [EnvKey.TRUST_PROXY]?: string;
   [EnvKey.DATABASE_URL]?: string;
   [EnvKey.REDIS_URL]?: string;
   [EnvKey.JWT_ACCESS_SECRET]: string;
   [EnvKey.JWT_REFRESH_SECRET]: string;
   [EnvKey.JWT_ACCESS_TTL]?: string;
   [EnvKey.JWT_REFRESH_TTL]?: string;
+  [EnvKey.JWT_ISSUER]?: string;
+  [EnvKey.JWT_AUDIENCE]?: string;
   [EnvKey.ADMIN_EMAIL]: string;
   [EnvKey.ADMIN_PASSWORD]: string;
   [EnvKey.ADMIN_COOKIE_SECRET]: string;
@@ -75,7 +78,8 @@ const envSchema = Joi.object<EnvironmentVariables>({
     .default(NodeEnvironment.Development),
   [EnvKey.HOST]: Joi.string().default('0.0.0.0'),
   [EnvKey.PORT]: Joi.number().integer().min(1).default(3000),
-  [EnvKey.CORS_ORIGIN]: Joi.string().allow('').default('*'),
+  [EnvKey.CORS_ORIGIN]: Joi.string().allow('').default(''),
+  [EnvKey.TRUST_PROXY]: Joi.string().valid('true', 'false').optional(),
   [EnvKey.DATABASE_URL]: Joi.string()
     .uri({ scheme: ['postgres', 'postgresql'] })
     .optional(),
@@ -86,6 +90,8 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.JWT_REFRESH_SECRET]: Joi.string().required(),
   [EnvKey.JWT_ACCESS_TTL]: Joi.string().optional(),
   [EnvKey.JWT_REFRESH_TTL]: Joi.string().optional(),
+  [EnvKey.JWT_ISSUER]: Joi.string().allow('').optional(),
+  [EnvKey.JWT_AUDIENCE]: Joi.string().allow('').optional(),
   [EnvKey.ADMIN_EMAIL]: Joi.string()
     .email({ tlds: { allow: false } })
     .required(),

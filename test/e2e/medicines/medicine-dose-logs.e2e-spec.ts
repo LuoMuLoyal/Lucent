@@ -89,6 +89,8 @@ describe('Medicine Dose Logs API (e2e)', () => {
     const jwtConfig = configService.getOrThrow<{
       accessSecret: string;
       accessTtl: number;
+      issuer: string;
+      audience: string;
     }>(ConfigKey.Jwt);
 
     return jwtService.signAsync(
@@ -97,6 +99,8 @@ describe('Medicine Dose Logs API (e2e)', () => {
         secret: jwtConfig.accessSecret,
         expiresIn: jwtConfig.accessTtl,
         algorithm: 'HS512',
+        issuer: jwtConfig.issuer,
+        audience: jwtConfig.audience,
       },
     );
   }

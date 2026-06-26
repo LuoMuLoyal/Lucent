@@ -28,6 +28,8 @@ interface JwtConfigShape {
   refreshSecret: string;
   accessTtl: number;
   refreshTtl: number;
+  issuer: string;
+  audience: string;
 }
 
 @Injectable()
@@ -62,6 +64,8 @@ export class AuthTokenService {
       expiresIn: config.accessTtl,
       algorithm: 'HS512',
       jwtid: accessTokenId,
+      issuer: config.issuer,
+      audience: config.audience,
     });
 
     await this.prisma.userSession.create({

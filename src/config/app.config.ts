@@ -22,5 +22,6 @@ export const appConfig = registerAs(ConfigKey.App, () => ({
   env: process.env[EnvKey.NODE_ENV] ?? 'development',
   host: process.env[EnvKey.HOST] ?? '0.0.0.0',
   port: Number(process.env[EnvKey.PORT] ?? 3000),
-  corsOrigin: parseCorsOrigin(process.env[EnvKey.CORS_ORIGIN] ?? '*'),
+  corsOrigin: parseCorsOrigin(process.env[EnvKey.CORS_ORIGIN] ?? ''),
+  trustProxy: process.env[EnvKey.TRUST_PROXY] === 'true',
 }));
