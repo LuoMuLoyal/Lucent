@@ -5,20 +5,18 @@ import type { ReportsAiSummaryContextService } from './reports-ai-summary-contex
 import type { ReportsAiSummaryCopyService } from './reports-ai-summary-copy.service';
 import type { ReportsAiSummaryGeneratorService } from './reports-ai-summary-generator.service';
 import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
-import { ReportsAiSummaryPolicyService } from './reports-ai-summary-policy.service';
 import { ReportsAiSummaryService } from './reports-ai-summary.service';
 import type { ReportsComputationService } from '../dashboard/reports-computation.service';
 import type { ReportsContextService } from '../dashboard/reports-context.service';
-import type { ReportSummaryStructuredOutput } from '../schemas/report-summary.schema';
 
-function invokeModelSpy(service: ReportsAiSummaryService) {
+function modelGenerateSpy(service: ReportsAiSummaryService) {
   return jest.spyOn(
-    service as unknown as {
-      invokeModel: (
-        ...args: unknown[]
-      ) => Promise<ReportSummaryStructuredOutput>;
-    },
-    'invokeModel',
+    (
+      service as unknown as {
+        generatorService: { generate: jest.Mock };
+      }
+    ).generatorService,
+    'generate',
   );
 }
 
@@ -160,7 +158,7 @@ describe('ReportsAiSummaryService', () => {
       confidenceNote: '仅基于近 7 天已记录数据生成，不构成诊断或治疗建议。',
     };
 
-    invokeModelSpy(service).mockResolvedValue(modelOutput);
+    modelGenerateSpy(service).mockResolvedValue(modelOutput);
 
     const result = await service.generate(
       'u1',
@@ -174,7 +172,7 @@ describe('ReportsAiSummaryService', () => {
 
   it('falls back when policy rejects the model output', async () => {
     const service = createService();
-    invokeModelSpy(service).mockResolvedValue({
+    modelGenerateSpy(service).mockResolvedValue({
       summary: '建议停药并调整剂量。',
       bullets: [
         {
@@ -203,7 +201,7 @@ describe('ReportsAiSummaryService', () => {
 
   it('falls back when the model invocation throws', async () => {
     const service = createService();
-    invokeModelSpy(service).mockRejectedValue(new Error('model failed'));
+    modelGenerateSpy(service).mockRejectedValue(new Error('model failed'));
 
     const result = await service.generate(
       'u1',
@@ -219,7 +217,7 @@ describe('ReportsAiSummaryService', () => {
 
   it('falls back in English when requested language is English', async () => {
     const service = createService();
-    invokeModelSpy(service).mockRejectedValue(new Error('model failed'));
+    modelGenerateSpy(service).mockRejectedValue(new Error('model failed'));
 
     const result = await service.generate(
       'u1',
@@ -293,7 +291,7 @@ describe('ReportsAiSummaryService', () => {
       },
     });
 
-    invokeModelSpy(service).mockRejectedValue(new Error('model failed'));
+    modelGenerateSpy(service).mockRejectedValue(new Error('model failed'));
 
     const result = await service.generate(
       'u1',
@@ -430,10 +428,6 @@ describe('ReportsAiSummaryService', () => {
         ),
       generate: jest.fn(),
     } as unknown as ReportsAiSummaryGeneratorService;
-    const reportsAiSummaryPolicyService = new ReportsAiSummaryPolicyService(
-      new AiSafetyPolicyService(),
-    );
-
     return new ReportsAiSummaryService(
       prisma as never,
       aiSummaryHistoryService as never,
@@ -442,7 +436,7 @@ describe('ReportsAiSummaryService', () => {
       reportsAiSummaryContextService,
       reportsAiSummaryCopyService,
       reportsAiSummaryGeneratorService,
-      reportsAiSummaryPolicyService,
+      new AiSafetyPolicyService({ safety: { forbiddenPatterns: [] } } as never),
     );
   }
 });

@@ -4,19 +4,17 @@ import type { TodayAnalysisCopyService } from './today-analysis-copy.service';
 import type { TodayAnalysisContextService } from './today-analysis-context.service';
 import type { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
 import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
-import { TodayAnalysisPolicyService } from './today-analysis-policy.service';
 import { TodayAnalysisService } from './today-analysis.service';
-import type { TodayAnalysisStructuredOutput } from '../schemas/today-analysis.schema';
 import type { NotificationsService } from '../../notifications/notifications.service';
 
-function invokeModelSpy(service: TodayAnalysisService) {
+function modelGenerateSpy(service: TodayAnalysisService) {
   return jest.spyOn(
-    service as unknown as {
-      invokeModel: (
-        ...args: unknown[]
-      ) => Promise<TodayAnalysisStructuredOutput>;
-    },
-    'invokeModel',
+    (
+      service as unknown as {
+        generatorService: { generate: jest.Mock };
+      }
+    ).generatorService,
+    'generate',
   );
 }
 
@@ -79,7 +77,7 @@ describe('TodayAnalysisService', () => {
       confidenceNote: '仅基于今日已记录数据生成，不构成诊断或治疗建议。',
     };
 
-    invokeModelSpy(service).mockResolvedValue(modelOutput);
+    modelGenerateSpy(service).mockResolvedValue(modelOutput);
 
     const result = await service.generate(
       'u1',
@@ -93,7 +91,7 @@ describe('TodayAnalysisService', () => {
 
   it('falls back when policy rejects the model output', async () => {
     const service = createService();
-    invokeModelSpy(service).mockResolvedValue({
+    modelGenerateSpy(service).mockResolvedValue({
       summary: '建议停药并调整剂量。',
       bullets: [
         {
@@ -122,7 +120,7 @@ describe('TodayAnalysisService', () => {
 
   it('falls back when the model invocation throws', async () => {
     const service = createService();
-    invokeModelSpy(service).mockRejectedValue(new Error('model failed'));
+    modelGenerateSpy(service).mockRejectedValue(new Error('model failed'));
 
     const result = await service.generate(
       'u1',
@@ -138,7 +136,7 @@ describe('TodayAnalysisService', () => {
 
   it('falls back in English when requested language is English', async () => {
     const service = createService();
-    invokeModelSpy(service).mockRejectedValue(new Error('model failed'));
+    modelGenerateSpy(service).mockRejectedValue(new Error('model failed'));
 
     const result = await service.generate(
       'u1',
@@ -268,9 +266,6 @@ describe('TodayAnalysisService', () => {
       save: jest.fn().mockResolvedValue(undefined),
     };
 
-    const policyService = new TodayAnalysisPolicyService(
-      new AiSafetyPolicyService(),
-    );
     const copyService = {
       resolveLocale: jest.fn((language: string | undefined) => {
         const normalized = language?.trim().toLowerCase() ?? '';
@@ -372,9 +367,9 @@ describe('TodayAnalysisService', () => {
       prisma as never,
       aiSummaryHistoryService as never,
       contextService,
-      policyService,
       copyService,
       generatorService,
+      new AiSafetyPolicyService({ safety: { forbiddenPatterns: [] } } as never),
       notificationsService,
     );
   }

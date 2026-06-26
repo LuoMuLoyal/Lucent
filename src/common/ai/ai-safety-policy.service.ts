@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { ConfigType } from '@nestjs/config';
+import { aiConfig } from '../../config/ai.config';
 
-const FORBIDDEN_PATTERNS = [
+const DEFAULT_FORBIDDEN_PATTERNS = [
   /诊断/u,
   /确诊/u,
   /停药/u,
@@ -29,10 +31,25 @@ const FORBIDDEN_PATTERNS = [
  * Shared AI content safety policy.
  *
  * Centralizes forbidden-pattern checks so that every AI module applies the
- * same safety rules instead of copy-pasting them.
+ * same safety rules instead of copy-pasting them. Patterns can be overridden
+ * at runtime via the `AI_SAFETY_FORBIDDEN_PATTERNS` environment variable
+ * (comma or newline separated regex strings).
  */
 @Injectable()
 export class AiSafetyPolicyService {
+  private readonly forbiddenPatterns: RegExp[];
+
+  constructor(
+    @Inject(aiConfig.KEY)
+    config: ConfigType<typeof aiConfig>,
+  ) {
+    const configured = config.safety.forbiddenPatterns;
+    this.forbiddenPatterns =
+      configured.length > 0
+        ? configured.map((pattern) => new RegExp(pattern, 'iu'))
+        : DEFAULT_FORBIDDEN_PATTERNS;
+  }
+
   isSafe(texts: string[]): boolean {
     return texts.every((text) => this.isSafeText(text));
   }
@@ -42,6 +59,6 @@ export class AiSafetyPolicyService {
   }
 
   isSafeText(text: string): boolean {
-    return !FORBIDDEN_PATTERNS.some((pattern) => pattern.test(text));
+    return !this.forbiddenPatterns.some((pattern) => pattern.test(text));
   }
 }

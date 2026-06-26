@@ -21,6 +21,10 @@ export interface AiConfig {
   chat: AiRoleConfig;
   chatCompression: AiRoleConfig;
   embedding: AiRoleConfig;
+  safety: {
+    /** Regex strings used by the AI safety policy. */
+    forbiddenPatterns: string[];
+  };
 }
 
 function buildRoleConfig(keys: {
@@ -69,5 +73,19 @@ export const aiConfig = registerAs(
       baseUrl: EnvKey.AI_EMBEDDING_BASE_URL,
       model: EnvKey.AI_EMBEDDING_MODEL,
     }),
+    safety: {
+      forbiddenPatterns: readForbiddenPatterns(),
+    },
   }),
 );
+
+function readForbiddenPatterns(): string[] {
+  const raw = readOptionalEnv(EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS);
+  if (raw == null) {
+    return [];
+  }
+  return raw
+    .split(/[,\n]/u)
+    .map((pattern) => pattern.trim())
+    .filter((pattern) => pattern.length > 0);
+}

@@ -23,20 +23,55 @@ Current non-goals:
 
 ## AI Architecture Boundary
 
-The following boundaries were confirmed on 2026-07-01 and constrain all future AI work:
+The following boundaries constrain all future AI work:
 
-| Scenario                               | Pattern                   | Rule                                                                                                  |
-| -------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Today / Report weekly / Monthly report | Bounded linear            | Facts → single structured-output generation; reuse locale-aware prompt/copy services                  |
-| Assistant                              | Agent (LangGraph)         | Reserved for multi-turn conversation, tool-calling, branching, and retrieval                          |
-| New AI features                        | Default to bounded linear | Escalate to agent only with a concrete tool-use or multi-step reasoning requirement                   |
-| Shared generator abstraction           | Defer extraction          | Wait until monthly report proves the pattern; do not abstract prematurely across Today/Report/Monthly |
+| Scenario                               | Pattern                   | Rule                                                                                                    |
+| -------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Today / Report weekly / Monthly report | Bounded linear            | Facts → single structured-output generation; reuse locale-aware prompt/copy services                    |
+| Assistant                              | Agent (LangGraph)         | Reserved for multi-turn conversation, tool-calling, branching, and retrieval                            |
+| New AI features                        | Default to bounded linear | Escalate to agent only with a concrete tool-use or multi-step reasoning requirement                     |
+| Shared generator/policy/service layer  | Reuse `common/ai`         | Today/Report already share `BaseAiGeneratorService`, `AiSafetyPolicyService`, and `BaseAiSummaryService |
+
+All bounded-linear AI features must follow the layered architecture implemented in `src/common/ai`:
+
+```
+AI Analysis Flow
+├── Context Layer (context.service.ts)    – data collection / context building
+├── Copy Layer    (copy.service.ts)       – locale-aware prompt copy
+├── Generator Layer (base-ai-generator.service.ts) – model call, structured/stream output
+├── Policy Layer  (ai-safety-policy.service.ts)    – content safety checks
+└── Service Layer (base-ai-summary.service.ts)     – orchestration, fallback, persistence
+```
+
+### Rules
+
+- Do not copy-paste a new `PolicyService` or `GeneratorService`. Extend or reuse the shared base classes in `src/common/ai`.
+- New AI analysis modules must implement the `BaseAiSummaryService` template unless they are agent-based.
+- All AI output must pass the shared `AiSafetyPolicyService` before being returned or persisted.
+- Streamed output must also be filtered by `AiSafetyPolicyService.isSafeSummaryText` for every intermediate chunk.
+- When policy rejects output, fall back to the locale-aware `copyService.buildFallback()` result. Do not return empty output or throw.
 
 Implications:
 
 - Do not retro-fit Today/Report bounded linear flows into agent flows "for consistency".
 - `ai-copy.ts` (locale-aware prompt/copy helpers) remains the shared prompt/copy layer; extend it with scenario-specific keys rather than replacing it.
 - `get_medicine_leaflet_context` is the first RAG read tool. It retrieves Chinese drug leaflets as server-owned text chunks. It is not a replacement for the reviewed medicine safety rule engine and not a mandatory dependency for every assistant reply.
+
+## AI Safety Policy
+
+The shared `AiSafetyPolicyService` forbids content that could be interpreted as medical advice:
+
+- Diagnosis, confirmed conditions, or treatment plans.
+- Recommendations to start, stop, increase, decrease, or adjust medication dosage.
+- Prescriptions or curing claims.
+
+Forbidden patterns default to a hardcoded baseline. They can be overridden at runtime via the `AI_SAFETY_FORBIDDEN_PATTERNS` environment variable (comma- or newline-separated regex strings). If the variable is empty or unset, the default baseline is used.
+
+Rules:
+
+- AI output must never contain diagnosis, prescription, dosage adjustment, or treatment-plan wording.
+- Every bounded-linear AI module must run policy checks on both final output and streamed intermediate summary text.
+- Policy rejection must trigger the fallback copy path, not an empty/error response.
 
 ## Public Routes
 

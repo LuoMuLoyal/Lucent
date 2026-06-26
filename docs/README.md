@@ -46,6 +46,7 @@ Product direction and current product state are owned by the workspace path `Lum
 | Environment snapshot contract                                  | `public/environment-contract.md`                                   |
 | Mine/Settings contract                                         | `public/mine-settings-contract.md`                                 |
 | Assistant capability / permission contract                     | `public/assistant-contract.md`                                     |
+| AI generator / policy / service abstraction or safety rules    | `public/assistant-contract.md`                                     |
 | Deferred backend follow-up list                                | `TODO.md`                                                          |
 | Lucent API code                                                | Run `pnpm export:openapi` and keep `openapi.json` generated        |
 | AdminJS panel resources / CRUD permissions                     | `README.md` admin panel paragraph and `src/admin/adminjs.setup.ts` |

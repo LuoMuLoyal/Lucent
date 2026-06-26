@@ -196,6 +196,16 @@ AI_EMBEDDING_BASE_URL
 AI_EMBEDDING_MODEL
 ```
 
+AI safety configuration (optional):
+
+```text
+AI_SAFETY_FORBIDDEN_PATTERNS
+```
+
+- Comma- or newline-separated regex strings used by `AiSafetyPolicyService`.
+- If unset or empty, a hardcoded medical-advice baseline is used.
+- Example: `AI_SAFETY_FORBIDDEN_PATTERNS=诊断,确诊,停药,\bprescription\b`
+
 `AI_PROVIDER` currently supports only `openai-compatible`.
 
 Each role is independent. If a role is configured, that role must provide all of
