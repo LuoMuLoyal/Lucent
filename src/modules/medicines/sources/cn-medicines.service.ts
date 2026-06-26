@@ -23,6 +23,105 @@ interface MedicineSearchCriteria {
   pageSize: number;
 }
 
+const PREGNANCY_KEYWORDS = [
+  '孕',
+  '妊娠',
+  '怀孕',
+  '孕期',
+  '胎儿',
+  '胚胎',
+  '备孕',
+  '产后',
+  'pregnan',
+  'gestat',
+  'fetus',
+  'foetus',
+  'conception',
+  'postpartum',
+];
+
+const LACTATION_KEYWORDS = [
+  '哺乳',
+  '哺乳期',
+  '乳母',
+  '乳汁',
+  '授乳',
+  '喂奶',
+  '母乳',
+  'lactat',
+  'breastfeed',
+  'breast-feeding',
+  'breast feeding',
+  'nursing',
+  'milk',
+];
+
+const SENTENCE_DELIMITER_PATTERN = /([。；;?？!！\n\r])/;
+
+function splitSentences(text: string): string[] {
+  const parts = text.split(SENTENCE_DELIMITER_PATTERN);
+  const sentences: string[] = [];
+  let current = '';
+
+  for (const part of parts) {
+    if (SENTENCE_DELIMITER_PATTERN.test(part)) {
+      current += part;
+      const trimmed = current.trim();
+      if (trimmed.length > 0) {
+        sentences.push(trimmed);
+      }
+      current = '';
+    } else {
+      current += part;
+    }
+  }
+
+  const trimmed = current.trim();
+  if (trimmed.length > 0) {
+    sentences.push(trimmed);
+  }
+
+  return sentences;
+}
+
+function mentionsAny(text: string, keywords: readonly string[]): boolean {
+  const lower = text.toLowerCase();
+  return keywords.some((keyword) => lower.includes(keyword));
+}
+
+function splitPregnancyLactation(text: string | null): {
+  pregnancy: string | null;
+  lactation: string | null;
+} {
+  if (!text || text.trim().length === 0) {
+    return { pregnancy: null, lactation: null };
+  }
+
+  const pregnancyParts: string[] = [];
+  const lactationParts: string[] = [];
+
+  for (const sentence of splitSentences(text)) {
+    const hasPregnancy = mentionsAny(sentence, PREGNANCY_KEYWORDS);
+    const hasLactation = mentionsAny(sentence, LACTATION_KEYWORDS);
+
+    if (hasPregnancy) {
+      pregnancyParts.push(sentence);
+    }
+    if (hasLactation) {
+      lactationParts.push(sentence);
+    }
+  }
+
+  if (pregnancyParts.length === 0 && lactationParts.length === 0) {
+    return { pregnancy: text.trim(), lactation: text.trim() };
+  }
+
+  return {
+    pregnancy: pregnancyParts.length > 0 ? pregnancyParts.join('\n') : null,
+    lactation: lactationParts.length > 0 ? lactationParts.join('\n') : null,
+  };
+}
+
 @Injectable()
 export class CnMedicinesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -58,6 +157,10 @@ export class CnMedicinesService {
       return null;
     }
 
+    const { pregnancy, lactation } = splitPregnancyLactation(
+      row.pregnancyLactation,
+    );
+
     const detail: CnMedicineDetailDto = {
       kind: 'cnProduct',
       approvalNumber: row.approvalNumber,
@@ -74,6 +177,8 @@ export class CnMedicinesService {
       pediatricUse: row.pediatricUse,
       geriatricUse: row.geriatricUse,
       pregnancyLactation: row.pregnancyLactation,
+      pregnancy,
+      lactation,
       pharmacologyToxicology: row.pharmacologyToxicology,
       drugInteractions: row.drugInteractions,
       pharmacokinetics: row.pharmacokinetics,

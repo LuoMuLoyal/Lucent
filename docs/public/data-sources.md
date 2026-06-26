@@ -148,37 +148,37 @@ These sheets are produced by `DrugDataBase/build_cn_master.py`, which merges:
 
 Product-level fields come from `FullDrugDetail.xlsx`; canonical instruction text comes from the cleaned yaozs rows. When no instruction matches a product, the product row still exists in `cn_medicine_products`, but it will have no linked rows in `cn_medicine_product_leaflet_links`.
 
-| XLSX column               | `cn_medicine_products` field | Notes                                                                 |
-| ------------------------- | ---------------------------- | --------------------------------------------------------------------- |
-| `product_name`            | `name`                       | Required search/display name. Keep the original text.                 |
-| `image_url`               | `image_url`                  | Keep source URL; proxy/cache decision remains separate.               |
-| `price`                   | `price_text`                 | Keep as text because values may be empty or non-normalized.           |
-| `package_spec`            | `package_spec`               | Product-specific strength/package text.                               |
-| `approval_number`         | `approval_number`            | Chinese approval number; useful for dedupe and detail display.        |
-| `manufacturer`            | `manufacturer`               | Manufacturer display/filter field.                                    |
-| `drug_type`               | `drug_type`                  | Example: prescription / OTC text.                                     |
-| `main_category`           | `main_category`              | Broad category.                                                       |
-| `subcategory`             | `subcategory`                | Secondary category.                                                   |
-| `detail_url`              | `source_url`                 | Original detail page.                                                 |
-| `brand_name`              | `brand_name`                 | Optional brand/trade name.                                            |
-| `ingredients`             | `ingredients`                | Package insert field.                                                 |
-| `properties`              | `properties`                 | Package insert field.                                                 |
-| `indications`             | `indications`                | Package insert field.                                                 |
-| `dosage`                  | `dosage`                     | Package insert field.                                                 |
-| `adverse_reactions`       | `adverse_reactions`          | Package insert field.                                                 |
-| `contraindications`       | `contraindications`          | Package insert field.                                                 |
-| `precautions`             | `precautions`                | Package insert field.                                                 |
-| `pediatric_use`           | `pediatric_use`              | Package insert field.                                                 |
-| `geriatric_use`           | `geriatric_use`              | Package insert field.                                                 |
-| `pregnancy_lactation`     | `pregnancy_lactation`        | Package insert field.                                                 |
-| `pharmacology_toxicology` | `pharmacology_toxicology`    | Package insert field.                                                 |
-| `drug_interactions`       | `drug_interactions`          | Package insert field.                                                 |
-| `pharmacokinetics`        | `pharmacokinetics`           | Package insert field.                                                 |
-| `overdose`                | `overdose`                   | Kept from `FullDrugDetail`; yaozs source does not provide this field. |
-| `storage`                 | `storage`                    | Enriched from matched yaozs instruction when available.               |
-| `validity_period`         | `validity_period`            | Enriched from matched yaozs instruction when available.               |
-| `barcode`                 | `barcode`                    | Product barcode when present.                                         |
-| `national_drug_code`      | `national_drug_code`         | National drug code when present.                                      |
+| XLSX column               | `cn_medicine_products` field | Notes                                                                               |
+| ------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
+| `product_name`            | `name`                       | Required search/display name. Keep the original text.                               |
+| `image_url`               | `image_url`                  | Keep source URL; proxy/cache decision remains separate.                             |
+| `price`                   | `price_text`                 | Keep as text because values may be empty or non-normalized.                         |
+| `package_spec`            | `package_spec`               | Product-specific strength/package text.                                             |
+| `approval_number`         | `approval_number`            | Chinese approval number; useful for dedupe and detail display.                      |
+| `manufacturer`            | `manufacturer`               | Manufacturer display/filter field.                                                  |
+| `drug_type`               | `drug_type`                  | Example: prescription / OTC text.                                                   |
+| `main_category`           | `main_category`              | Broad category.                                                                     |
+| `subcategory`             | `subcategory`                | Secondary category.                                                                 |
+| `detail_url`              | `source_url`                 | Original detail page.                                                               |
+| `brand_name`              | `brand_name`                 | Optional brand/trade name.                                                          |
+| `ingredients`             | `ingredients`                | Package insert field.                                                               |
+| `properties`              | `properties`                 | Package insert field.                                                               |
+| `indications`             | `indications`                | Package insert field.                                                               |
+| `dosage`                  | `dosage`                     | Package insert field.                                                               |
+| `adverse_reactions`       | `adverse_reactions`          | Package insert field.                                                               |
+| `contraindications`       | `contraindications`          | Package insert field.                                                               |
+| `precautions`             | `precautions`                | Package insert field.                                                               |
+| `pediatric_use`           | `pediatric_use`              | Package insert field.                                                               |
+| `geriatric_use`           | `geriatric_use`              | Package insert field.                                                               |
+| `pregnancy_lactation`     | `pregnancy` + `lactation`    | Package insert field; API splits sentences by context keywords into two DTO fields. |
+| `pharmacology_toxicology` | `pharmacology_toxicology`    | Package insert field.                                                               |
+| `drug_interactions`       | `drug_interactions`          | Package insert field.                                                               |
+| `pharmacokinetics`        | `pharmacokinetics`           | Package insert field.                                                               |
+| `overdose`                | `overdose`                   | Kept from `FullDrugDetail`; yaozs source does not provide this field.               |
+| `storage`                 | `storage`                    | Enriched from matched yaozs instruction when available.                             |
+| `validity_period`         | `validity_period`            | Enriched from matched yaozs instruction when available.                             |
+| `barcode`                 | `barcode`                    | Product barcode when present.                                                       |
+| `national_drug_code`      | `national_drug_code`         | National drug code when present.                                                    |
 
 In `ProductsEnriched`, the standard leaflet columns (`indications`, `dosage`, `contraindications`, `precautions`, `adverse_reactions`, `drug_interactions`, `pharmacology_toxicology`, `pharmacokinetics`, `storage`, `validity_period`, `ingredients`, `properties`) contain the matched yaozs instruction text when a match exists; otherwise they are empty. `overdose` has no yaozs counterpart and remains from `FullDrugDetail`.
 

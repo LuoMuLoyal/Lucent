@@ -148,8 +148,19 @@ export class CnMedicineDetailDto {
   @ApiPropertyOptional({ nullable: true })
   geriatricUse!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({
+    nullable: true,
+    deprecated: true,
+    description:
+      'Deprecated: use pregnancy and lactation fields. Kept for backward compatibility.',
+  })
   pregnancyLactation!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  pregnancy!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  lactation!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
   pharmacologyToxicology!: string | null;
