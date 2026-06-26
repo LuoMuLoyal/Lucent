@@ -4,6 +4,7 @@ import type { NextFunction, Request, Response, Router } from 'express';
 import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { extname } from 'node:path';
+import { getDMMF } from '@prisma/internals';
 import type AdminJSDefault from 'adminjs';
 import type {
   BaseDatabase,
@@ -19,6 +20,22 @@ const ADMIN_EMAIL_KEY = 'ADMIN_EMAIL';
 const ADMIN_PASSWORD_KEY = 'ADMIN_PASSWORD';
 const ADMIN_COOKIE_SECRET_KEY = 'ADMIN_COOKIE_SECRET';
 const NODE_ENV_KEY = 'NODE_ENV';
+
+const DEFAULT_SENSITIVE_FIELDS = new Set([
+  'passwordHash',
+  'refreshTokenHash',
+  'pushToken',
+  'rawProfile',
+]);
+
+const AUTO_TITLE_PROPERTY_CANDIDATES = [
+  'name',
+  'email',
+  'contentZh',
+  'title',
+  'nickname',
+  'id',
+];
 
 type DynamicImport = <T>(specifier: string) => Promise<T>;
 // eslint-disable-next-line @typescript-eslint/no-implied-eval -- SWC compiles normal dynamic import to require() in this CJS build.
@@ -65,17 +82,13 @@ interface AdminJsPrismaModule {
   getModelByName: (name: string, clientModule?: PrismaClientModule) => unknown;
 }
 
-interface PrismaInternalsModule {
-  default: {
-    getDMMF: (options: {
-      datamodel: Array<[path: string, schema: string]>;
-    }) => Promise<unknown>;
-  };
-}
-
-interface PrismaClientModule {
+export interface PrismaClientModule {
   Prisma: {
-    dmmf: unknown;
+    dmmf: {
+      datamodel: {
+        models: PrismaDmmfModel[];
+      };
+    };
   };
 }
 
@@ -88,7 +101,18 @@ interface AdminAsset {
   src: string;
 }
 
-interface AdminResourceConfig {
+interface PrismaDmmfModel {
+  name: string;
+  fields: PrismaDmmfField[];
+}
+
+interface PrismaDmmfField {
+  name: string;
+  kind: 'scalar' | 'object' | 'enum';
+  type: string;
+}
+
+export interface AdminResourceConfig {
   modelName: string;
   navigation: string;
   listProperties: string[];
@@ -101,16 +125,12 @@ interface AdminResourceConfig {
   properties?: ResourceOptions['properties'];
 }
 
-const readOnlyActions = {
-  new: { isAccessible: false, isVisible: false },
-  edit: { isAccessible: false, isVisible: false },
-  delete: { isAccessible: false, isVisible: false },
-  bulkDelete: { isAccessible: false, isVisible: false },
-} satisfies ResourceOptions['actions'];
-
-const adminResources: AdminResourceConfig[] = [
-  {
-    modelName: 'User',
+/**
+ * Manual overrides for well-known models. Any model not listed here is still
+ * discovered automatically from the Prisma DMMF and gets sensible defaults.
+ */
+const coreResourceOverrides: Record<string, Partial<AdminResourceConfig>> = {
+  User: {
     navigation: 'Users',
     listProperties: ['id', 'email', 'nickname', 'status', 'createdAt'],
     showProperties: [
@@ -130,8 +150,7 @@ const adminResources: AdminResourceConfig[] = [
     sort: { sortBy: 'createdAt', direction: 'desc' },
     hiddenProperties: ['passwordHash'],
   },
-  {
-    modelName: 'UserProfile',
+  UserProfile: {
     navigation: 'Users',
     listProperties: ['userId', 'sexAtBirth', 'heightCm', 'bloodType', 'locale'],
     showProperties: [
@@ -153,8 +172,7 @@ const adminResources: AdminResourceConfig[] = [
     filterProperties: ['userId', 'sexAtBirth', 'bloodType', 'locale'],
     titleProperty: 'userId',
   },
-  {
-    modelName: 'DrugbankDrug',
+  DrugbankDrug: {
     navigation: 'Medicine Knowledge',
     listProperties: ['drugbankId', 'name', 'drugType', 'casNumber'],
     showProperties: [
@@ -173,8 +191,7 @@ const adminResources: AdminResourceConfig[] = [
     filterProperties: ['drugbankId', 'name', 'drugType', 'casNumber'],
     titleProperty: 'name',
   },
-  {
-    modelName: 'CnMedicineProduct',
+  CnMedicineProduct: {
     navigation: 'Medicine Knowledge',
     listProperties: [
       'id',
@@ -210,8 +227,7 @@ const adminResources: AdminResourceConfig[] = [
     ],
     titleProperty: 'name',
   },
-  {
-    modelName: 'UserDailyRecord',
+  UserDailyRecord: {
     navigation: 'Health Records',
     listProperties: ['id', 'userId', 'kind', 'occurredAt', 'title', 'value'],
     showProperties: [
@@ -233,8 +249,7 @@ const adminResources: AdminResourceConfig[] = [
     filterProperties: ['userId', 'kind', 'occurredAt', 'deletedAt'],
     sort: { sortBy: 'occurredAt', direction: 'desc' },
   },
-  {
-    modelName: 'UserDailyRecordAttachment',
+  UserDailyRecordAttachment: {
     navigation: 'Health Records',
     listProperties: [
       'id',
@@ -263,8 +278,7 @@ const adminResources: AdminResourceConfig[] = [
     filterProperties: ['userId', 'recordId', 'kind', 'provider'],
     sort: { sortBy: 'createdAt', direction: 'desc' },
   },
-  {
-    modelName: 'UserMedicineDoseLog',
+  UserMedicineDoseLog: {
     navigation: 'Health Records',
     listProperties: [
       'id',
@@ -290,8 +304,7 @@ const adminResources: AdminResourceConfig[] = [
     filterProperties: ['userId', 'status', 'scheduledFor', 'currentMedicineId'],
     sort: { sortBy: 'scheduledFor', direction: 'desc' },
   },
-  {
-    modelName: 'MedicineSafetyTip',
+  MedicineSafetyTip: {
     navigation: 'Medicine Knowledge',
     listProperties: [
       'id',
@@ -330,7 +343,7 @@ const adminResources: AdminResourceConfig[] = [
       },
     },
   },
-];
+};
 
 export async function registerAdminPanel(
   app: INestApplication,
@@ -444,17 +457,95 @@ async function sendAdminStaticAsset(
   });
 }
 
-async function buildPrismaClientModule(): Promise<PrismaClientModule> {
-  const prismaInternals =
-    await dynamicImport<PrismaInternalsModule>('@prisma/internals');
+export async function buildPrismaClientModule(): Promise<PrismaClientModule> {
   const schema = await readFile(SCHEMA_PATH, 'utf8');
-  const dmmf = await prismaInternals.default.getDMMF({
+  const dmmf = await getDMMF({
     datamodel: [[SCHEMA_PATH, schema]],
   });
 
   return {
-    Prisma: { dmmf },
+    Prisma: {
+      dmmf: dmmf as unknown as PrismaClientModule['Prisma']['dmmf'],
+    },
   };
+}
+
+export function generateAdminResourceConfigs(
+  clientModule: PrismaClientModule,
+): AdminResourceConfig[] {
+  const models = getDmmfModels(clientModule);
+
+  return models.map((model) => {
+    const override = coreResourceOverrides[model.name];
+    return buildAdminResourceConfig(model, override);
+  });
+}
+
+function getDmmfModels(clientModule: PrismaClientModule): PrismaDmmfModel[] {
+  const models = clientModule.Prisma.dmmf.datamodel.models;
+  if (!Array.isArray(models)) {
+    throw new Error('Unable to read Prisma DMMF models for AdminJS setup');
+  }
+  return models;
+}
+
+function buildAdminResourceConfig(
+  model: PrismaDmmfModel,
+  override?: Partial<AdminResourceConfig>,
+): AdminResourceConfig {
+  const scalarFields = model.fields.filter((field) => field.kind !== 'object');
+  const scalarFieldNames = scalarFields.map((field) => field.name);
+  const relationFieldNames = model.fields
+    .filter((field) => field.kind === 'object')
+    .map((field) => field.name);
+
+  const sensitiveScalarFields = scalarFieldNames.filter((name) =>
+    DEFAULT_SENSITIVE_FIELDS.has(name),
+  );
+  const hiddenProperties = unique([
+    ...relationFieldNames,
+    ...sensitiveScalarFields,
+    ...(override?.hiddenProperties ?? []),
+  ]);
+  const visibleFieldNames = scalarFieldNames.filter(
+    (name) => !hiddenProperties.includes(name),
+  );
+
+  const titleProperty =
+    override?.titleProperty ?? pickTitleProperty(scalarFieldNames);
+  const sort =
+    override?.sort ??
+    (visibleFieldNames.includes('createdAt')
+      ? { sortBy: 'createdAt', direction: 'desc' as const }
+      : undefined);
+
+  return {
+    modelName: model.name,
+    navigation: override?.navigation ?? model.name,
+    listProperties: override?.listProperties ?? visibleFieldNames.slice(0, 6),
+    showProperties: override?.showProperties ?? visibleFieldNames,
+    filterProperties: override?.filterProperties ?? visibleFieldNames,
+    titleProperty,
+    hiddenProperties,
+    ...(sort !== undefined && { sort }),
+    ...(override?.properties !== undefined && {
+      properties: override.properties,
+    }),
+    ...(override?.readOnly !== undefined && { readOnly: override.readOnly }),
+  };
+}
+
+function pickTitleProperty(fieldNames: string[]): string {
+  for (const candidate of AUTO_TITLE_PROPERTY_CANDIDATES) {
+    if (fieldNames.includes(candidate)) {
+      return candidate;
+    }
+  }
+  return fieldNames[0] ?? 'id';
+}
+
+function unique<T>(values: T[]): T[] {
+  return [...new Set(values)];
 }
 
 function buildResources(
@@ -462,8 +553,10 @@ function buildResources(
   prisma: PrismaService,
   clientModule: PrismaClientModule,
 ): ResourceWithOptions[] {
-  return adminResources.map((resourceConfig) =>
-    buildResource(resourceConfig, getModelByName, prisma, clientModule),
+  const configs = generateAdminResourceConfigs(clientModule);
+
+  return configs.map((config) =>
+    buildResource(config, getModelByName, prisma, clientModule),
   );
 }
 
@@ -479,11 +572,8 @@ function buildResource(
     listProperties: resourceConfig.listProperties,
     showProperties: resourceConfig.showProperties,
     filterProperties: resourceConfig.filterProperties,
+    properties: {},
   };
-
-  if (resourceConfig.readOnly !== false) {
-    options.actions = readOnlyActions;
-  }
 
   if (resourceConfig.titleProperty !== undefined) {
     options.titleProperty = resourceConfig.titleProperty;
@@ -491,14 +581,12 @@ function buildResource(
   if (resourceConfig.sort !== undefined) {
     options.sort = resourceConfig.sort;
   }
+
   if (
     resourceConfig.hiddenProperties !== undefined &&
     resourceConfig.hiddenProperties.length > 0
   ) {
-    options.properties = {
-      ...options.properties,
-      ...buildPropertyOptions(resourceConfig.hiddenProperties),
-    };
+    options.properties = buildPropertyOptions(resourceConfig.hiddenProperties);
   }
 
   if (resourceConfig.properties !== undefined) {

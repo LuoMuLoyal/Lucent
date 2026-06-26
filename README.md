@@ -58,10 +58,12 @@ which repairs a dedicated password-login test user, resets that user's AI
 summary toggle to enabled, and clears that user's daily records for one target
 date before the Flutter lane starts.
 
-The embedded AdminJS panel is available at `/admin`. In local development the
-template credentials are `admin@lucent.local` / `admin12345`; override
-`ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `ADMIN_COOKIE_SECRET` in your local env
-file before exposing it.
+The embedded AdminJS panel is available at `/admin`. Resources are auto-discovered
+from `prisma/schema.prisma`, and all registered models support full CRUD by
+default. Customizations for core models live in `src/admin/adminjs.setup.ts`.
+In local development the template credentials are `admin@lucent.local` /
+`admin12345`; override `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and
+`ADMIN_COOKIE_SECRET` in your local env file before exposing it.
 
 JWT access and refresh secrets also come from the env file now; the dev/test
 templates already include local values.

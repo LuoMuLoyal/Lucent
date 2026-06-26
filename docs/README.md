@@ -18,22 +18,37 @@ This directory keeps the authoritative backend runtime, deployment, generated-co
 | `public/assistant-contract.md`     | Assistant capability/permission boundary and rollout truth                           | Prompt drafts or temporary plans      |
 | `TODO.md`                          | Active deferred backend follow-up items                                              | Historical changelog narrative        |
 
+## Admin Panel
+
+`/admin` is powered by AdminJS with the `@sergiyiva/adminjs-prisma` adapter.
+Resources are generated automatically from `prisma/schema.prisma` at runtime, so
+adding a new Prisma model and regenerating the client is enough to surface it in
+the admin panel. Model-specific overrides (navigation group, list/show/filter
+fields, hidden fields, title property, sort order, enum picklists) are declared
+in `src/admin/adminjs.setup.ts`.
+
+By default every resource supports full CRUD. Sensitive scalar fields such as
+`passwordHash`, `refreshTokenHash`, `pushToken`, and `rawProfile` are hidden,
+and all relation fields are hidden so only foreign-key scalars are exposed in
+forms.
+
 Product direction and current product state are owned by the workspace path `Luminous/docs/`.
 
 ## Update Map
 
-| Change                                                         | Update                                                      |
-| -------------------------------------------------------------- | ----------------------------------------------------------- |
-| Environment variables, local Docker, scripts, runtime baseline | `environment.md` and root `README.md`                       |
-| Production deployment procedure or server directory layout     | `deployment.md`                                             |
-| Production deploy asset layout under repo `deploy/`            | `deployment.md` and root `README.md`                        |
-| Medicine import behavior or source-table strategy              | `public/data-sources.md`                                    |
-| Reminder schedule/preference contract                          | `public/reminder-contract.md`                               |
-| Environment snapshot contract                                  | `public/environment-contract.md`                            |
-| Mine/Settings contract                                         | `public/mine-settings-contract.md`                          |
-| Assistant capability / permission contract                     | `public/assistant-contract.md`                              |
-| Deferred backend follow-up list                                | `TODO.md`                                                   |
-| Lucent API code                                                | Run `pnpm export:openapi` and keep `openapi.json` generated |
+| Change                                                         | Update                                                             |
+| -------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Environment variables, local Docker, scripts, runtime baseline | `environment.md` and root `README.md`                              |
+| Production deployment procedure or server directory layout     | `deployment.md`                                                    |
+| Production deploy asset layout under repo `deploy/`            | `deployment.md` and root `README.md`                               |
+| Medicine import behavior or source-table strategy              | `public/data-sources.md`                                           |
+| Reminder schedule/preference contract                          | `public/reminder-contract.md`                                      |
+| Environment snapshot contract                                  | `public/environment-contract.md`                                   |
+| Mine/Settings contract                                         | `public/mine-settings-contract.md`                                 |
+| Assistant capability / permission contract                     | `public/assistant-contract.md`                                     |
+| Deferred backend follow-up list                                | `TODO.md`                                                          |
+| Lucent API code                                                | Run `pnpm export:openapi` and keep `openapi.json` generated        |
+| AdminJS panel resources / CRUD permissions                     | `README.md` admin panel paragraph and `src/admin/adminjs.setup.ts` |
 
 ## Relationship With `Lumos-docs`
 
