@@ -4,15 +4,18 @@ import {
   ApiHeader,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { I18nLang } from 'nestjs-i18n';
 import { ResultCode, successEnvelope } from '../../common/api-envelope';
 import {
   CnMedicineDetailDto,
   DrugbankMedicineDetailDto,
   MedicineDetailQueryDto,
   MedicineDetailResponseDto,
+  MedicineSafetyTipResponseDto,
   MedicineSearchQueryDto,
   MedicineSearchResponseDto,
 } from './dto';
@@ -24,6 +27,32 @@ import { MedicinesService } from './medicines.service';
 @Controller('medicines')
 export class MedicinesController {
   constructor(private readonly medicinesService: MedicinesService) {}
+
+  @Get('safety-tips')
+  @ApiOperation({ summary: '随机返回用药安全提示' })
+  @ApiQuery({
+    name: 'exclude',
+    required: false,
+    isArray: true,
+    type: String,
+    description: '上一次返回的提示 id 列表，用于相邻两次去重',
+  })
+  @ApiResponse({ status: 200, type: [MedicineSafetyTipResponseDto] })
+  async getSafetyTips(
+    @Query('exclude') exclude?: string | string[],
+    @I18nLang() lang?: string,
+  ) {
+    const normalizedExclude = Array.isArray(exclude)
+      ? exclude
+      : exclude
+        ? [exclude]
+        : [];
+    const tips = await this.medicinesService.getRandomSafetyTips(
+      normalizedExclude,
+      lang,
+    );
+    return successEnvelope(tips);
+  }
 
   @Get()
   @ApiOperation({

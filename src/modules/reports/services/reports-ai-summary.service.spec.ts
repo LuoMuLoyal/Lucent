@@ -155,6 +155,7 @@ describe('ReportsAiSummaryService', () => {
         },
       ],
       actionLabel: '查看报告',
+      action: 'today',
       confidenceNote: '仅基于近 7 天已记录数据生成，不构成诊断或治疗建议。',
     };
 
@@ -185,6 +186,7 @@ describe('ReportsAiSummaryService', () => {
         },
       ],
       actionLabel: '查看报告',
+      action: 'today',
       confidenceNote: '仅供参考。',
     });
 

@@ -8,12 +8,14 @@ import { MedicinesCacheService } from './cache/medicines-cache.service';
 import { CnMedicinesService } from './sources/cn-medicines.service';
 import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
 import { ResultCode } from '../../common/api-envelope';
+import { PrismaService } from '../../prisma/prisma.service';
 
 describe('MedicinesService', () => {
   let service: MedicinesService;
   let drugbankMedicinesService: jest.Mocked<DrugbankMedicinesService>;
   let cnMedicinesService: jest.Mocked<CnMedicinesService>;
   let medicinesCacheService: jest.Mocked<MedicinesCacheService>;
+  let prismaService: jest.Mocked<PrismaService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -46,6 +48,14 @@ describe('MedicinesService', () => {
             t: jest.fn((key: string) => key),
           },
         },
+        {
+          provide: PrismaService,
+          useValue: {
+            medicineSafetyTip: {
+              findMany: jest.fn(),
+            },
+          },
+        },
       ],
     }).compile();
 
@@ -53,7 +63,11 @@ describe('MedicinesService', () => {
     drugbankMedicinesService = module.get(DrugbankMedicinesService);
     cnMedicinesService = module.get(CnMedicinesService);
     medicinesCacheService = module.get(MedicinesCacheService);
+    prismaService = module.get(PrismaService);
   });
+
+  const getSafetyTipsFindManyMock = () =>
+    prismaService.medicineSafetyTip.findMany as jest.Mock;
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -223,5 +237,137 @@ describe('MedicinesService', () => {
       expect.any(Function),
     );
     expect(drugbankMedicinesService.getDetail).toHaveBeenCalledWith('DB01050');
+  });
+
+  describe('getRandomSafetyTips', () => {
+    const tips = [
+      {
+        id: 'id-1',
+        contentZh: '中文 1',
+        contentEn: 'EN 1',
+        category: 'alcohol',
+        sortOrder: 1,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'id-2',
+        contentZh: '中文 2',
+        contentEn: 'EN 2',
+        category: 'caffeine',
+        sortOrder: 2,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'id-3',
+        contentZh: '中文 3',
+        contentEn: 'EN 3',
+        category: 'timing',
+        sortOrder: 3,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'id-4',
+        contentZh: '中文 4',
+        contentEn: 'EN 4',
+        category: 'storage',
+        sortOrder: 4,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'id-5',
+        contentZh: '中文 5',
+        contentEn: 'EN 5',
+        category: 'food',
+        sortOrder: 5,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: 'id-6',
+        contentZh: '中文 6',
+        contentEn: 'EN 6',
+        category: 'pregnancy',
+        sortOrder: 6,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    it('returns up to 4 random active tips in Chinese', async () => {
+      getSafetyTipsFindManyMock().mockResolvedValue(tips);
+
+      const result = await service.getRandomSafetyTips([], 'zh-CN');
+
+      expect(result).toHaveLength(4);
+      expect(result[0]?.text).toMatch(/^中文/);
+      expect(getSafetyTipsFindManyMock()).toHaveBeenCalledWith({
+        where: { isActive: true },
+      });
+    });
+
+    it('returns tips in English when language does not start with zh', async () => {
+      getSafetyTipsFindManyMock().mockResolvedValue(tips);
+
+      const result = await service.getRandomSafetyTips([], 'en');
+
+      expect(result).toHaveLength(4);
+      expect(result[0]?.text).toMatch(/^EN/);
+    });
+
+    it('excludes previously returned tip ids', async () => {
+      getSafetyTipsFindManyMock().mockResolvedValue(tips);
+
+      const result = await service.getRandomSafetyTips([
+        'id-1',
+        'id-2',
+        'id-3',
+        'id-4',
+      ]);
+
+      const returnedIds = result.map((tip) => tip.id);
+      expect(returnedIds).not.toContain('id-1');
+      expect(returnedIds).not.toContain('id-2');
+      expect(returnedIds).not.toContain('id-3');
+      expect(returnedIds).not.toContain('id-4');
+      expect(result).toHaveLength(2);
+    });
+
+    it('returns remaining tips when excluded ids leave fewer than 4', async () => {
+      getSafetyTipsFindManyMock().mockResolvedValue(tips);
+
+      const result = await service.getRandomSafetyTips([
+        'id-1',
+        'id-2',
+        'id-3',
+        'id-4',
+        'id-5',
+      ]);
+
+      const returnedIds = result.map((tip) => tip.id);
+      expect(returnedIds).not.toContain('id-1');
+      expect(returnedIds).not.toContain('id-2');
+      expect(returnedIds).not.toContain('id-3');
+      expect(returnedIds).not.toContain('id-4');
+      expect(returnedIds).not.toContain('id-5');
+      expect(result).toHaveLength(1);
+    });
+
+    it('returns empty array when no active tips exist', async () => {
+      getSafetyTipsFindManyMock().mockResolvedValue([]);
+
+      const result = await service.getRandomSafetyTips([]);
+
+      expect(result).toHaveLength(0);
+    });
   });
 });

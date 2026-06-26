@@ -1,25 +1,30 @@
 import { notFound, badRequest } from '../../common/utils/api-errors';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import type {
-  MedicineDetailDataDto,
-  MedicineDetailQueryDto,
-  MedicineKnowledgeSource,
-  MedicineSearchQueryDto,
-  MedicineSearchResult,
+import { PrismaService } from '../../prisma/prisma.service';
+import {
+  DEFAULT_MEDICINE_SOURCE,
+  MedicineSafetyTipResponseDto,
+  type MedicineDetailDataDto,
+  type MedicineDetailQueryDto,
+  type MedicineKnowledgeSource,
+  type MedicineSearchQueryDto,
+  type MedicineSearchResult,
 } from './dto';
-import { DEFAULT_MEDICINE_SOURCE } from './dto';
 import { MedicinesCacheService } from './cache/medicines-cache.service';
 import { CnMedicinesService } from './sources/cn-medicines.service';
 import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
 
 @Injectable()
 export class MedicinesService {
+  private static readonly SAFETY_TIPS_LIMIT = 4;
+
   constructor(
     private readonly drugbankMedicinesService: DrugbankMedicinesService,
     private readonly cnMedicinesService: CnMedicinesService,
     private readonly medicinesCacheService: MedicinesCacheService,
     private readonly i18n: I18nService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async search(query: MedicineSearchQueryDto): Promise<MedicineSearchResult> {
@@ -80,6 +85,41 @@ export class MedicinesService {
     }
 
     return detail;
+  }
+
+  async getRandomSafetyTips(
+    excludeIds: string[],
+    lang?: string,
+  ): Promise<MedicineSafetyTipResponseDto[]> {
+    const normalizedLang = (lang ?? 'en').toLowerCase();
+    const useChinese = normalizedLang.startsWith('zh');
+
+    const allActiveTips = await this.prisma.medicineSafetyTip.findMany({
+      where: { isActive: true },
+    });
+
+    if (allActiveTips.length === 0) {
+      return [];
+    }
+
+    const excludedIdSet = new Set(excludeIds);
+    const availableTips = allActiveTips.filter(
+      (tip) => !excludedIdSet.has(tip.id),
+    );
+
+    const selected = availableTips.length > 0 ? availableTips : allActiveTips;
+
+    return this.shuffleArray(selected)
+      .slice(0, MedicinesService.SAFETY_TIPS_LIMIT)
+      .map((tip) => ({
+        id: tip.id,
+        text: useChinese ? tip.contentZh : tip.contentEn,
+        category: tip.category,
+      }));
+  }
+
+  private shuffleArray<T>(array: readonly T[]): T[] {
+    return [...array].sort(() => Math.random() - 0.5);
   }
 
   private resolveSource(source: string | undefined): MedicineKnowledgeSource {

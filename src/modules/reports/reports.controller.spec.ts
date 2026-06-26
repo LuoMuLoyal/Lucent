@@ -164,6 +164,7 @@ function makeSummary(
       },
     ],
     actionLabel: '查看报告',
+    action: 'today',
     confidenceNote: '仅基于近 30 天已记录数据生成，不构成诊断或治疗建议。',
     ...overrides,
   };

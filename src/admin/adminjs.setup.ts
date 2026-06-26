@@ -97,6 +97,8 @@ interface AdminResourceConfig {
   titleProperty?: string;
   sort?: ResourceOptions['sort'];
   hiddenProperties?: string[];
+  readOnly?: boolean;
+  properties?: ResourceOptions['properties'];
 }
 
 const readOnlyActions = {
@@ -288,6 +290,46 @@ const adminResources: AdminResourceConfig[] = [
     filterProperties: ['userId', 'status', 'scheduledFor', 'currentMedicineId'],
     sort: { sortBy: 'scheduledFor', direction: 'desc' },
   },
+  {
+    modelName: 'MedicineSafetyTip',
+    navigation: 'Medicine Knowledge',
+    listProperties: [
+      'id',
+      'contentZh',
+      'contentEn',
+      'category',
+      'sortOrder',
+      'isActive',
+    ],
+    showProperties: [
+      'id',
+      'contentZh',
+      'contentEn',
+      'category',
+      'sortOrder',
+      'isActive',
+      'createdAt',
+      'updatedAt',
+    ],
+    filterProperties: ['category', 'isActive'],
+    titleProperty: 'contentZh',
+    sort: { sortBy: 'sortOrder', direction: 'asc' },
+    readOnly: false,
+    properties: {
+      category: {
+        availableValues: [
+          { value: 'alcohol', label: 'alcohol' },
+          { value: 'caffeine', label: 'caffeine' },
+          { value: 'timing', label: 'timing' },
+          { value: 'storage', label: 'storage' },
+          { value: 'food', label: 'food' },
+          { value: 'pregnancy', label: 'pregnancy' },
+          { value: 'allergy', label: 'allergy' },
+          { value: 'driving', label: 'driving' },
+        ],
+      },
+    },
+  },
 ];
 
 export async function registerAdminPanel(
@@ -437,8 +479,11 @@ function buildResource(
     listProperties: resourceConfig.listProperties,
     showProperties: resourceConfig.showProperties,
     filterProperties: resourceConfig.filterProperties,
-    actions: readOnlyActions,
   };
+
+  if (resourceConfig.readOnly !== false) {
+    options.actions = readOnlyActions;
+  }
 
   if (resourceConfig.titleProperty !== undefined) {
     options.titleProperty = resourceConfig.titleProperty;
@@ -450,7 +495,17 @@ function buildResource(
     resourceConfig.hiddenProperties !== undefined &&
     resourceConfig.hiddenProperties.length > 0
   ) {
-    options.properties = buildPropertyOptions(resourceConfig.hiddenProperties);
+    options.properties = {
+      ...options.properties,
+      ...buildPropertyOptions(resourceConfig.hiddenProperties),
+    };
+  }
+
+  if (resourceConfig.properties !== undefined) {
+    options.properties = {
+      ...options.properties,
+      ...resourceConfig.properties,
+    };
   }
 
   return {

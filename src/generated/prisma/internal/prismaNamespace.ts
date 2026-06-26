@@ -410,7 +410,8 @@ export const ModelName = {
   AssistantConversation: 'AssistantConversation',
   AssistantMessage: 'AssistantMessage',
   AssistantSummaryHistory: 'AssistantSummaryHistory',
-  UserNotification: 'UserNotification'
+  UserNotification: 'UserNotification',
+  MedicineSafetyTip: 'MedicineSafetyTip'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -426,7 +427,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "cnMedicineLeaflet" | "cnMedicineProductLeafletLink" | "medicineLeafletChunk" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory" | "userNotification"
+    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "cnMedicineLeaflet" | "cnMedicineProductLeafletLink" | "medicineLeafletChunk" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory" | "userNotification" | "medicineSafetyTip"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2502,6 +2503,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MedicineSafetyTip: {
+      payload: Prisma.$MedicineSafetyTipPayload<ExtArgs>
+      fields: Prisma.MedicineSafetyTipFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MedicineSafetyTipFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MedicineSafetyTipFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload>
+        }
+        findFirst: {
+          args: Prisma.MedicineSafetyTipFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MedicineSafetyTipFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload>
+        }
+        findMany: {
+          args: Prisma.MedicineSafetyTipFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload>[]
+        }
+        create: {
+          args: Prisma.MedicineSafetyTipCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload>
+        }
+        createMany: {
+          args: Prisma.MedicineSafetyTipCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MedicineSafetyTipCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload>[]
+        }
+        delete: {
+          args: Prisma.MedicineSafetyTipDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload>
+        }
+        update: {
+          args: Prisma.MedicineSafetyTipUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload>
+        }
+        deleteMany: {
+          args: Prisma.MedicineSafetyTipDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MedicineSafetyTipUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MedicineSafetyTipUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload>[]
+        }
+        upsert: {
+          args: Prisma.MedicineSafetyTipUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MedicineSafetyTipPayload>
+        }
+        aggregate: {
+          args: Prisma.MedicineSafetyTipAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMedicineSafetyTip>
+        }
+        groupBy: {
+          args: Prisma.MedicineSafetyTipGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicineSafetyTipGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MedicineSafetyTipCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MedicineSafetyTipCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3131,6 +3206,20 @@ export const UserNotificationScalarFieldEnum = {
 export type UserNotificationScalarFieldEnum = (typeof UserNotificationScalarFieldEnum)[keyof typeof UserNotificationScalarFieldEnum]
 
 
+export const MedicineSafetyTipScalarFieldEnum = {
+  id: 'id',
+  contentZh: 'contentZh',
+  contentEn: 'contentEn',
+  category: 'category',
+  sortOrder: 'sortOrder',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MedicineSafetyTipScalarFieldEnum = (typeof MedicineSafetyTipScalarFieldEnum)[keyof typeof MedicineSafetyTipScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -3651,6 +3740,7 @@ export type GlobalOmitConfig = {
   assistantMessage?: Prisma.AssistantMessageOmit
   assistantSummaryHistory?: Prisma.AssistantSummaryHistoryOmit
   userNotification?: Prisma.UserNotificationOmit
+  medicineSafetyTip?: Prisma.MedicineSafetyTipOmit
 }
 
 /* Types for Logging */

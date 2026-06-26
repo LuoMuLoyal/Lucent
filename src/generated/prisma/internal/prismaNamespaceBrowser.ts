@@ -77,7 +77,8 @@ export const ModelName = {
   AssistantConversation: 'AssistantConversation',
   AssistantMessage: 'AssistantMessage',
   AssistantSummaryHistory: 'AssistantSummaryHistory',
-  UserNotification: 'UserNotification'
+  UserNotification: 'UserNotification',
+  MedicineSafetyTip: 'MedicineSafetyTip'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -684,6 +685,20 @@ export const UserNotificationScalarFieldEnum = {
 } as const
 
 export type UserNotificationScalarFieldEnum = (typeof UserNotificationScalarFieldEnum)[keyof typeof UserNotificationScalarFieldEnum]
+
+
+export const MedicineSafetyTipScalarFieldEnum = {
+  id: 'id',
+  contentZh: 'contentZh',
+  contentEn: 'contentEn',
+  category: 'category',
+  sortOrder: 'sortOrder',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MedicineSafetyTipScalarFieldEnum = (typeof MedicineSafetyTipScalarFieldEnum)[keyof typeof MedicineSafetyTipScalarFieldEnum]
 
 
 export const SortOrder = {

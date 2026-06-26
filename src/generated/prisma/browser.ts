@@ -156,3 +156,8 @@ export type AssistantSummaryHistory = Prisma.AssistantSummaryHistoryModel
  * 
  */
 export type UserNotification = Prisma.UserNotificationModel
+/**
+ * Model MedicineSafetyTip
+ * 
+ */
+export type MedicineSafetyTip = Prisma.MedicineSafetyTipModel
