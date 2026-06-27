@@ -1,6 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import { TodayAnalysisService } from './services/today-analysis.service';
+import { TodayRecommendationsService } from './services/today-recommendations.service';
 import type { TodayAnalysisDataDto } from './dto';
 import { TodayAnalysisController } from './today-analysis.controller';
 
@@ -18,6 +19,7 @@ describe('TodayAnalysisController', () => {
             generate: jest.fn(),
           },
         },
+        TodayRecommendationsService,
       ],
     }).compile();
 

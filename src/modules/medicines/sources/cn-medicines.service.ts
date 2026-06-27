@@ -189,6 +189,7 @@ export class CnMedicinesService {
       nationalDrugCode: row.nationalDrugCode,
       sourceUrl: row.sourceUrl,
       imageUrl: row.imageUrl,
+      drugbankIds: this.parseDrugbankIds(row.drugbankIds),
     };
 
     return {
@@ -245,5 +246,16 @@ export class CnMedicinesService {
 
   private toSubtitle(row: CnMedicineProduct): string | null {
     return composeSubtitle(row.packageSpec, row.manufacturer);
+  }
+
+  private parseDrugbankIds(value: unknown): string[] | null {
+    if (!value) return null;
+    if (Array.isArray(value)) {
+      const ids = value
+        .map((item) => (typeof item === 'string' ? item.trim() : ''))
+        .filter((item) => item.length > 0);
+      return ids.length > 0 ? ids : null;
+    }
+    return null;
   }
 }

@@ -1,14 +1,17 @@
 import {
   Body,
   Controller,
+  Get,
   HttpException,
   Post,
+  Query,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -21,10 +24,12 @@ import { type UserPayload } from '../auth/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TodayAnalysisService } from './services/today-analysis.service';
+import { TodayRecommendationsService } from './services/today-recommendations.service';
 import {
   GenerateTodayAnalysisDto,
   TodayAnalysisResponseDto,
   TodayAnalysisStreamResultDto,
+  TodayRecommendationResponseDto,
 } from './dto';
 
 @ApiTags('Today Analysis')
@@ -32,7 +37,10 @@ import {
 @UseGuards(JwtAuthGuard)
 @Controller('user/today-analysis')
 export class TodayAnalysisController {
-  constructor(private readonly todayAnalysisService: TodayAnalysisService) {}
+  constructor(
+    private readonly todayAnalysisService: TodayAnalysisService,
+    private readonly todayRecommendationsService: TodayRecommendationsService,
+  ) {}
 
   @Post('generate')
   @ApiOperation({ summary: 'Generate authenticated user today AI analysis' })
@@ -45,6 +53,37 @@ export class TodayAnalysisController {
     return successEnvelope(
       await this.todayAnalysisService.generate(user.sub, dto, language),
     );
+  }
+
+  @Get('recommendations')
+  @ApiOperation({ summary: '随机返回今日健康推荐' })
+  @ApiQuery({
+    name: 'exclude',
+    required: false,
+    isArray: true,
+    type: String,
+    description: '上一次返回的推荐 id 列表，用于相邻两次去重',
+  })
+  @ApiResponse({
+    status: 200,
+    type: TodayRecommendationResponseDto,
+    isArray: true,
+  })
+  getRecommendations(
+    @Query('exclude') exclude?: string | string[],
+    @I18nLang() lang?: string,
+  ) {
+    const normalizedExclude = Array.isArray(exclude)
+      ? exclude
+      : exclude
+        ? [exclude]
+        : [];
+    const recommendations =
+      this.todayRecommendationsService.getRandomRecommendations(
+        normalizedExclude,
+        lang,
+      );
+    return successEnvelope(recommendations);
   }
 
   @Post('generate/stream')

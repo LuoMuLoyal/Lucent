@@ -8,6 +8,7 @@ import { TodayAnalysisContextService } from './services/today-analysis-context.s
 import { TodayAnalysisGeneratorService } from './services/today-analysis-generator.service';
 import { AiSafetyPolicyService } from '../../common/ai/ai-safety-policy.service';
 import { TodayAnalysisService } from './services/today-analysis.service';
+import { TodayRecommendationsService } from './services/today-recommendations.service';
 
 @Module({
   imports: [LlmRuntimeModule, AssistantModule, NotificationsModule],
@@ -18,6 +19,7 @@ import { TodayAnalysisService } from './services/today-analysis.service';
     TodayAnalysisGeneratorService,
     AiSafetyPolicyService,
     TodayAnalysisService,
+    TodayRecommendationsService,
   ],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
