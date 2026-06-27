@@ -27,10 +27,26 @@ export type AggregateCnMedicineProduct = {
 
 export type CnMedicineProductAvgAggregateOutputType = {
   sourceRowNumber: number | null
+  bestMatchScore: number | null
+  candidateCount: number | null
+  matchQualityOverall: number | null
+  matchQualityApproval: number | null
+  matchQualityName: number | null
+  matchQualityMaker: number | null
+  matchQualityLeaflet: number | null
+  matchQualityPenalty: number | null
 }
 
 export type CnMedicineProductSumAggregateOutputType = {
   sourceRowNumber: number | null
+  bestMatchScore: number | null
+  candidateCount: number | null
+  matchQualityOverall: number | null
+  matchQualityApproval: number | null
+  matchQualityName: number | null
+  matchQualityMaker: number | null
+  matchQualityLeaflet: number | null
+  matchQualityPenalty: number | null
 }
 
 export type CnMedicineProductMinAggregateOutputType = {
@@ -67,6 +83,17 @@ export type CnMedicineProductMinAggregateOutputType = {
   validityPeriod: string | null
   barcode: string | null
   nationalDrugCode: string | null
+  imageUrlCleaned: string | null
+  manufacturerNormalized: string | null
+  bestMatchType: string | null
+  bestMatchScore: number | null
+  candidateCount: number | null
+  matchQualityOverall: number | null
+  matchQualityApproval: number | null
+  matchQualityName: number | null
+  matchQualityMaker: number | null
+  matchQualityLeaflet: number | null
+  matchQualityPenalty: number | null
   searchText: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -106,6 +133,17 @@ export type CnMedicineProductMaxAggregateOutputType = {
   validityPeriod: string | null
   barcode: string | null
   nationalDrugCode: string | null
+  imageUrlCleaned: string | null
+  manufacturerNormalized: string | null
+  bestMatchType: string | null
+  bestMatchScore: number | null
+  candidateCount: number | null
+  matchQualityOverall: number | null
+  matchQualityApproval: number | null
+  matchQualityName: number | null
+  matchQualityMaker: number | null
+  matchQualityLeaflet: number | null
+  matchQualityPenalty: number | null
   searchText: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -145,6 +183,22 @@ export type CnMedicineProductCountAggregateOutputType = {
   validityPeriod: number
   barcode: number
   nationalDrugCode: number
+  imageUrlCleaned: number
+  manufacturerNormalized: number
+  approvalCodes: number
+  bestMatchType: number
+  bestMatchScore: number
+  topCandidateIds: number
+  topCandidateScores: number
+  candidateCount: number
+  matchQualityOverall: number
+  matchQualityApproval: number
+  matchQualityName: number
+  matchQualityMaker: number
+  matchQualityLeaflet: number
+  matchQualityPenalty: number
+  matchQualityNotes: number
+  drugbankIds: number
   searchText: number
   extras: number
   createdAt: number
@@ -155,10 +209,26 @@ export type CnMedicineProductCountAggregateOutputType = {
 
 export type CnMedicineProductAvgAggregateInputType = {
   sourceRowNumber?: true
+  bestMatchScore?: true
+  candidateCount?: true
+  matchQualityOverall?: true
+  matchQualityApproval?: true
+  matchQualityName?: true
+  matchQualityMaker?: true
+  matchQualityLeaflet?: true
+  matchQualityPenalty?: true
 }
 
 export type CnMedicineProductSumAggregateInputType = {
   sourceRowNumber?: true
+  bestMatchScore?: true
+  candidateCount?: true
+  matchQualityOverall?: true
+  matchQualityApproval?: true
+  matchQualityName?: true
+  matchQualityMaker?: true
+  matchQualityLeaflet?: true
+  matchQualityPenalty?: true
 }
 
 export type CnMedicineProductMinAggregateInputType = {
@@ -195,6 +265,17 @@ export type CnMedicineProductMinAggregateInputType = {
   validityPeriod?: true
   barcode?: true
   nationalDrugCode?: true
+  imageUrlCleaned?: true
+  manufacturerNormalized?: true
+  bestMatchType?: true
+  bestMatchScore?: true
+  candidateCount?: true
+  matchQualityOverall?: true
+  matchQualityApproval?: true
+  matchQualityName?: true
+  matchQualityMaker?: true
+  matchQualityLeaflet?: true
+  matchQualityPenalty?: true
   searchText?: true
   createdAt?: true
   updatedAt?: true
@@ -234,6 +315,17 @@ export type CnMedicineProductMaxAggregateInputType = {
   validityPeriod?: true
   barcode?: true
   nationalDrugCode?: true
+  imageUrlCleaned?: true
+  manufacturerNormalized?: true
+  bestMatchType?: true
+  bestMatchScore?: true
+  candidateCount?: true
+  matchQualityOverall?: true
+  matchQualityApproval?: true
+  matchQualityName?: true
+  matchQualityMaker?: true
+  matchQualityLeaflet?: true
+  matchQualityPenalty?: true
   searchText?: true
   createdAt?: true
   updatedAt?: true
@@ -273,6 +365,22 @@ export type CnMedicineProductCountAggregateInputType = {
   validityPeriod?: true
   barcode?: true
   nationalDrugCode?: true
+  imageUrlCleaned?: true
+  manufacturerNormalized?: true
+  approvalCodes?: true
+  bestMatchType?: true
+  bestMatchScore?: true
+  topCandidateIds?: true
+  topCandidateScores?: true
+  candidateCount?: true
+  matchQualityOverall?: true
+  matchQualityApproval?: true
+  matchQualityName?: true
+  matchQualityMaker?: true
+  matchQualityLeaflet?: true
+  matchQualityPenalty?: true
+  matchQualityNotes?: true
+  drugbankIds?: true
   searchText?: true
   extras?: true
   createdAt?: true
@@ -400,6 +508,22 @@ export type CnMedicineProductGroupByOutputType = {
   validityPeriod: string | null
   barcode: string | null
   nationalDrugCode: string | null
+  imageUrlCleaned: string | null
+  manufacturerNormalized: string | null
+  approvalCodes: runtime.JsonValue | null
+  bestMatchType: string | null
+  bestMatchScore: number | null
+  topCandidateIds: runtime.JsonValue | null
+  topCandidateScores: runtime.JsonValue | null
+  candidateCount: number | null
+  matchQualityOverall: number | null
+  matchQualityApproval: number | null
+  matchQualityName: number | null
+  matchQualityMaker: number | null
+  matchQualityLeaflet: number | null
+  matchQualityPenalty: number | null
+  matchQualityNotes: runtime.JsonValue | null
+  drugbankIds: runtime.JsonValue | null
   searchText: string | null
   extras: runtime.JsonValue | null
   createdAt: Date
@@ -463,6 +587,22 @@ export type CnMedicineProductWhereInput = {
   validityPeriod?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   barcode?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   nationalDrugCode?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  imageUrlCleaned?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  manufacturerNormalized?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  approvalCodes?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  bestMatchType?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  bestMatchScore?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  topCandidateIds?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  topCandidateScores?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  candidateCount?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityOverall?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityApproval?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityName?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityMaker?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityLeaflet?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityPenalty?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityNotes?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  drugbankIds?: Prisma.JsonNullableFilter<"CnMedicineProduct">
   searchText?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   extras?: Prisma.JsonNullableFilter<"CnMedicineProduct">
   createdAt?: Prisma.DateTimeFilter<"CnMedicineProduct"> | Date | string
@@ -505,6 +645,22 @@ export type CnMedicineProductOrderByWithRelationInput = {
   validityPeriod?: Prisma.SortOrderInput | Prisma.SortOrder
   barcode?: Prisma.SortOrderInput | Prisma.SortOrder
   nationalDrugCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  imageUrlCleaned?: Prisma.SortOrderInput | Prisma.SortOrder
+  manufacturerNormalized?: Prisma.SortOrderInput | Prisma.SortOrder
+  approvalCodes?: Prisma.SortOrderInput | Prisma.SortOrder
+  bestMatchType?: Prisma.SortOrderInput | Prisma.SortOrder
+  bestMatchScore?: Prisma.SortOrderInput | Prisma.SortOrder
+  topCandidateIds?: Prisma.SortOrderInput | Prisma.SortOrder
+  topCandidateScores?: Prisma.SortOrderInput | Prisma.SortOrder
+  candidateCount?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityOverall?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityApproval?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityName?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityMaker?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityLeaflet?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityPenalty?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  drugbankIds?: Prisma.SortOrderInput | Prisma.SortOrder
   searchText?: Prisma.SortOrderInput | Prisma.SortOrder
   extras?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -550,6 +706,22 @@ export type CnMedicineProductWhereUniqueInput = Prisma.AtLeast<{
   validityPeriod?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   barcode?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   nationalDrugCode?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  imageUrlCleaned?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  manufacturerNormalized?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  approvalCodes?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  bestMatchType?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  bestMatchScore?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  topCandidateIds?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  topCandidateScores?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  candidateCount?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityOverall?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityApproval?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityName?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityMaker?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityLeaflet?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityPenalty?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityNotes?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  drugbankIds?: Prisma.JsonNullableFilter<"CnMedicineProduct">
   searchText?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   extras?: Prisma.JsonNullableFilter<"CnMedicineProduct">
   createdAt?: Prisma.DateTimeFilter<"CnMedicineProduct"> | Date | string
@@ -592,6 +764,22 @@ export type CnMedicineProductOrderByWithAggregationInput = {
   validityPeriod?: Prisma.SortOrderInput | Prisma.SortOrder
   barcode?: Prisma.SortOrderInput | Prisma.SortOrder
   nationalDrugCode?: Prisma.SortOrderInput | Prisma.SortOrder
+  imageUrlCleaned?: Prisma.SortOrderInput | Prisma.SortOrder
+  manufacturerNormalized?: Prisma.SortOrderInput | Prisma.SortOrder
+  approvalCodes?: Prisma.SortOrderInput | Prisma.SortOrder
+  bestMatchType?: Prisma.SortOrderInput | Prisma.SortOrder
+  bestMatchScore?: Prisma.SortOrderInput | Prisma.SortOrder
+  topCandidateIds?: Prisma.SortOrderInput | Prisma.SortOrder
+  topCandidateScores?: Prisma.SortOrderInput | Prisma.SortOrder
+  candidateCount?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityOverall?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityApproval?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityName?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityMaker?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityLeaflet?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityPenalty?: Prisma.SortOrderInput | Prisma.SortOrder
+  matchQualityNotes?: Prisma.SortOrderInput | Prisma.SortOrder
+  drugbankIds?: Prisma.SortOrderInput | Prisma.SortOrder
   searchText?: Prisma.SortOrderInput | Prisma.SortOrder
   extras?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -640,6 +828,22 @@ export type CnMedicineProductScalarWhereWithAggregatesInput = {
   validityPeriod?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
   barcode?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
   nationalDrugCode?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
+  imageUrlCleaned?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
+  manufacturerNormalized?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
+  approvalCodes?: Prisma.JsonNullableWithAggregatesFilter<"CnMedicineProduct">
+  bestMatchType?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
+  bestMatchScore?: Prisma.IntNullableWithAggregatesFilter<"CnMedicineProduct"> | number | null
+  topCandidateIds?: Prisma.JsonNullableWithAggregatesFilter<"CnMedicineProduct">
+  topCandidateScores?: Prisma.JsonNullableWithAggregatesFilter<"CnMedicineProduct">
+  candidateCount?: Prisma.IntNullableWithAggregatesFilter<"CnMedicineProduct"> | number | null
+  matchQualityOverall?: Prisma.IntNullableWithAggregatesFilter<"CnMedicineProduct"> | number | null
+  matchQualityApproval?: Prisma.IntNullableWithAggregatesFilter<"CnMedicineProduct"> | number | null
+  matchQualityName?: Prisma.IntNullableWithAggregatesFilter<"CnMedicineProduct"> | number | null
+  matchQualityMaker?: Prisma.IntNullableWithAggregatesFilter<"CnMedicineProduct"> | number | null
+  matchQualityLeaflet?: Prisma.IntNullableWithAggregatesFilter<"CnMedicineProduct"> | number | null
+  matchQualityPenalty?: Prisma.IntNullableWithAggregatesFilter<"CnMedicineProduct"> | number | null
+  matchQualityNotes?: Prisma.JsonNullableWithAggregatesFilter<"CnMedicineProduct">
+  drugbankIds?: Prisma.JsonNullableWithAggregatesFilter<"CnMedicineProduct">
   searchText?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
   extras?: Prisma.JsonNullableWithAggregatesFilter<"CnMedicineProduct">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"CnMedicineProduct"> | Date | string
@@ -679,6 +883,22 @@ export type CnMedicineProductCreateInput = {
   validityPeriod?: string | null
   barcode?: string | null
   nationalDrugCode?: string | null
+  imageUrlCleaned?: string | null
+  manufacturerNormalized?: string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: string | null
+  bestMatchScore?: number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: number | null
+  matchQualityOverall?: number | null
+  matchQualityApproval?: number | null
+  matchQualityName?: number | null
+  matchQualityMaker?: number | null
+  matchQualityLeaflet?: number | null
+  matchQualityPenalty?: number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -721,6 +941,22 @@ export type CnMedicineProductUncheckedCreateInput = {
   validityPeriod?: string | null
   barcode?: string | null
   nationalDrugCode?: string | null
+  imageUrlCleaned?: string | null
+  manufacturerNormalized?: string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: string | null
+  bestMatchScore?: number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: number | null
+  matchQualityOverall?: number | null
+  matchQualityApproval?: number | null
+  matchQualityName?: number | null
+  matchQualityMaker?: number | null
+  matchQualityLeaflet?: number | null
+  matchQualityPenalty?: number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -761,6 +997,22 @@ export type CnMedicineProductUpdateInput = {
   validityPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nationalDrugCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrlCleaned?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufacturerNormalized?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bestMatchScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityOverall?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityApproval?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityName?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityMaker?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityLeaflet?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -803,6 +1055,22 @@ export type CnMedicineProductUncheckedUpdateInput = {
   validityPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nationalDrugCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrlCleaned?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufacturerNormalized?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bestMatchScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityOverall?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityApproval?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityName?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityMaker?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityLeaflet?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -844,6 +1112,22 @@ export type CnMedicineProductCreateManyInput = {
   validityPeriod?: string | null
   barcode?: string | null
   nationalDrugCode?: string | null
+  imageUrlCleaned?: string | null
+  manufacturerNormalized?: string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: string | null
+  bestMatchScore?: number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: number | null
+  matchQualityOverall?: number | null
+  matchQualityApproval?: number | null
+  matchQualityName?: number | null
+  matchQualityMaker?: number | null
+  matchQualityLeaflet?: number | null
+  matchQualityPenalty?: number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -883,6 +1167,22 @@ export type CnMedicineProductUpdateManyMutationInput = {
   validityPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nationalDrugCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrlCleaned?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufacturerNormalized?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bestMatchScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityOverall?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityApproval?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityName?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityMaker?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityLeaflet?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -923,6 +1223,22 @@ export type CnMedicineProductUncheckedUpdateManyInput = {
   validityPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nationalDrugCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrlCleaned?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufacturerNormalized?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bestMatchScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityOverall?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityApproval?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityName?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityMaker?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityLeaflet?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -973,6 +1289,22 @@ export type CnMedicineProductCountOrderByAggregateInput = {
   validityPeriod?: Prisma.SortOrder
   barcode?: Prisma.SortOrder
   nationalDrugCode?: Prisma.SortOrder
+  imageUrlCleaned?: Prisma.SortOrder
+  manufacturerNormalized?: Prisma.SortOrder
+  approvalCodes?: Prisma.SortOrder
+  bestMatchType?: Prisma.SortOrder
+  bestMatchScore?: Prisma.SortOrder
+  topCandidateIds?: Prisma.SortOrder
+  topCandidateScores?: Prisma.SortOrder
+  candidateCount?: Prisma.SortOrder
+  matchQualityOverall?: Prisma.SortOrder
+  matchQualityApproval?: Prisma.SortOrder
+  matchQualityName?: Prisma.SortOrder
+  matchQualityMaker?: Prisma.SortOrder
+  matchQualityLeaflet?: Prisma.SortOrder
+  matchQualityPenalty?: Prisma.SortOrder
+  matchQualityNotes?: Prisma.SortOrder
+  drugbankIds?: Prisma.SortOrder
   searchText?: Prisma.SortOrder
   extras?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -981,6 +1313,14 @@ export type CnMedicineProductCountOrderByAggregateInput = {
 
 export type CnMedicineProductAvgOrderByAggregateInput = {
   sourceRowNumber?: Prisma.SortOrder
+  bestMatchScore?: Prisma.SortOrder
+  candidateCount?: Prisma.SortOrder
+  matchQualityOverall?: Prisma.SortOrder
+  matchQualityApproval?: Prisma.SortOrder
+  matchQualityName?: Prisma.SortOrder
+  matchQualityMaker?: Prisma.SortOrder
+  matchQualityLeaflet?: Prisma.SortOrder
+  matchQualityPenalty?: Prisma.SortOrder
 }
 
 export type CnMedicineProductMaxOrderByAggregateInput = {
@@ -1017,6 +1357,17 @@ export type CnMedicineProductMaxOrderByAggregateInput = {
   validityPeriod?: Prisma.SortOrder
   barcode?: Prisma.SortOrder
   nationalDrugCode?: Prisma.SortOrder
+  imageUrlCleaned?: Prisma.SortOrder
+  manufacturerNormalized?: Prisma.SortOrder
+  bestMatchType?: Prisma.SortOrder
+  bestMatchScore?: Prisma.SortOrder
+  candidateCount?: Prisma.SortOrder
+  matchQualityOverall?: Prisma.SortOrder
+  matchQualityApproval?: Prisma.SortOrder
+  matchQualityName?: Prisma.SortOrder
+  matchQualityMaker?: Prisma.SortOrder
+  matchQualityLeaflet?: Prisma.SortOrder
+  matchQualityPenalty?: Prisma.SortOrder
   searchText?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -1056,6 +1407,17 @@ export type CnMedicineProductMinOrderByAggregateInput = {
   validityPeriod?: Prisma.SortOrder
   barcode?: Prisma.SortOrder
   nationalDrugCode?: Prisma.SortOrder
+  imageUrlCleaned?: Prisma.SortOrder
+  manufacturerNormalized?: Prisma.SortOrder
+  bestMatchType?: Prisma.SortOrder
+  bestMatchScore?: Prisma.SortOrder
+  candidateCount?: Prisma.SortOrder
+  matchQualityOverall?: Prisma.SortOrder
+  matchQualityApproval?: Prisma.SortOrder
+  matchQualityName?: Prisma.SortOrder
+  matchQualityMaker?: Prisma.SortOrder
+  matchQualityLeaflet?: Prisma.SortOrder
+  matchQualityPenalty?: Prisma.SortOrder
   searchText?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -1063,6 +1425,14 @@ export type CnMedicineProductMinOrderByAggregateInput = {
 
 export type CnMedicineProductSumOrderByAggregateInput = {
   sourceRowNumber?: Prisma.SortOrder
+  bestMatchScore?: Prisma.SortOrder
+  candidateCount?: Prisma.SortOrder
+  matchQualityOverall?: Prisma.SortOrder
+  matchQualityApproval?: Prisma.SortOrder
+  matchQualityName?: Prisma.SortOrder
+  matchQualityMaker?: Prisma.SortOrder
+  matchQualityLeaflet?: Prisma.SortOrder
+  matchQualityPenalty?: Prisma.SortOrder
 }
 
 export type CnMedicineProductScalarRelationFilter = {
@@ -1159,6 +1529,22 @@ export type CnMedicineProductCreateWithoutImportRunInput = {
   validityPeriod?: string | null
   barcode?: string | null
   nationalDrugCode?: string | null
+  imageUrlCleaned?: string | null
+  manufacturerNormalized?: string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: string | null
+  bestMatchScore?: number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: number | null
+  matchQualityOverall?: number | null
+  matchQualityApproval?: number | null
+  matchQualityName?: number | null
+  matchQualityMaker?: number | null
+  matchQualityLeaflet?: number | null
+  matchQualityPenalty?: number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -1199,6 +1585,22 @@ export type CnMedicineProductUncheckedCreateWithoutImportRunInput = {
   validityPeriod?: string | null
   barcode?: string | null
   nationalDrugCode?: string | null
+  imageUrlCleaned?: string | null
+  manufacturerNormalized?: string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: string | null
+  bestMatchScore?: number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: number | null
+  matchQualityOverall?: number | null
+  matchQualityApproval?: number | null
+  matchQualityName?: number | null
+  matchQualityMaker?: number | null
+  matchQualityLeaflet?: number | null
+  matchQualityPenalty?: number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -1269,6 +1671,22 @@ export type CnMedicineProductScalarWhereInput = {
   validityPeriod?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   barcode?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   nationalDrugCode?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  imageUrlCleaned?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  manufacturerNormalized?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  approvalCodes?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  bestMatchType?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
+  bestMatchScore?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  topCandidateIds?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  topCandidateScores?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  candidateCount?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityOverall?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityApproval?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityName?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityMaker?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityLeaflet?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityPenalty?: Prisma.IntNullableFilter<"CnMedicineProduct"> | number | null
+  matchQualityNotes?: Prisma.JsonNullableFilter<"CnMedicineProduct">
+  drugbankIds?: Prisma.JsonNullableFilter<"CnMedicineProduct">
   searchText?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   extras?: Prisma.JsonNullableFilter<"CnMedicineProduct">
   createdAt?: Prisma.DateTimeFilter<"CnMedicineProduct"> | Date | string
@@ -1308,6 +1726,22 @@ export type CnMedicineProductCreateWithoutLeafletLinksInput = {
   validityPeriod?: string | null
   barcode?: string | null
   nationalDrugCode?: string | null
+  imageUrlCleaned?: string | null
+  manufacturerNormalized?: string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: string | null
+  bestMatchScore?: number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: number | null
+  matchQualityOverall?: number | null
+  matchQualityApproval?: number | null
+  matchQualityName?: number | null
+  matchQualityMaker?: number | null
+  matchQualityLeaflet?: number | null
+  matchQualityPenalty?: number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -1349,6 +1783,22 @@ export type CnMedicineProductUncheckedCreateWithoutLeafletLinksInput = {
   validityPeriod?: string | null
   barcode?: string | null
   nationalDrugCode?: string | null
+  imageUrlCleaned?: string | null
+  manufacturerNormalized?: string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: string | null
+  bestMatchScore?: number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: number | null
+  matchQualityOverall?: number | null
+  matchQualityApproval?: number | null
+  matchQualityName?: number | null
+  matchQualityMaker?: number | null
+  matchQualityLeaflet?: number | null
+  matchQualityPenalty?: number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -1404,6 +1854,22 @@ export type CnMedicineProductUpdateWithoutLeafletLinksInput = {
   validityPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nationalDrugCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrlCleaned?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufacturerNormalized?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bestMatchScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityOverall?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityApproval?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityName?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityMaker?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityLeaflet?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1445,6 +1911,22 @@ export type CnMedicineProductUncheckedUpdateWithoutLeafletLinksInput = {
   validityPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nationalDrugCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrlCleaned?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufacturerNormalized?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bestMatchScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityOverall?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityApproval?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityName?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityMaker?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityLeaflet?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1484,6 +1966,22 @@ export type CnMedicineProductCreateManyImportRunInput = {
   validityPeriod?: string | null
   barcode?: string | null
   nationalDrugCode?: string | null
+  imageUrlCleaned?: string | null
+  manufacturerNormalized?: string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: string | null
+  bestMatchScore?: number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: number | null
+  matchQualityOverall?: number | null
+  matchQualityApproval?: number | null
+  matchQualityName?: number | null
+  matchQualityMaker?: number | null
+  matchQualityLeaflet?: number | null
+  matchQualityPenalty?: number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -1523,6 +2021,22 @@ export type CnMedicineProductUpdateWithoutImportRunInput = {
   validityPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nationalDrugCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrlCleaned?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufacturerNormalized?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bestMatchScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityOverall?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityApproval?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityName?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityMaker?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityLeaflet?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1563,6 +2077,22 @@ export type CnMedicineProductUncheckedUpdateWithoutImportRunInput = {
   validityPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nationalDrugCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrlCleaned?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufacturerNormalized?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bestMatchScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityOverall?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityApproval?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityName?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityMaker?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityLeaflet?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1603,6 +2133,22 @@ export type CnMedicineProductUncheckedUpdateManyWithoutImportRunInput = {
   validityPeriod?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   barcode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   nationalDrugCode?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  imageUrlCleaned?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manufacturerNormalized?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  approvalCodes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  bestMatchType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bestMatchScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  topCandidateIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  topCandidateScores?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  candidateCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityOverall?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityApproval?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityName?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityMaker?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityLeaflet?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityPenalty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  matchQualityNotes?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  drugbankIds?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   searchText?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extras?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1674,6 +2220,22 @@ export type CnMedicineProductSelect<ExtArgs extends runtime.Types.Extensions.Int
   validityPeriod?: boolean
   barcode?: boolean
   nationalDrugCode?: boolean
+  imageUrlCleaned?: boolean
+  manufacturerNormalized?: boolean
+  approvalCodes?: boolean
+  bestMatchType?: boolean
+  bestMatchScore?: boolean
+  topCandidateIds?: boolean
+  topCandidateScores?: boolean
+  candidateCount?: boolean
+  matchQualityOverall?: boolean
+  matchQualityApproval?: boolean
+  matchQualityName?: boolean
+  matchQualityMaker?: boolean
+  matchQualityLeaflet?: boolean
+  matchQualityPenalty?: boolean
+  matchQualityNotes?: boolean
+  drugbankIds?: boolean
   searchText?: boolean
   extras?: boolean
   createdAt?: boolean
@@ -1717,6 +2279,22 @@ export type CnMedicineProductSelectCreateManyAndReturn<ExtArgs extends runtime.T
   validityPeriod?: boolean
   barcode?: boolean
   nationalDrugCode?: boolean
+  imageUrlCleaned?: boolean
+  manufacturerNormalized?: boolean
+  approvalCodes?: boolean
+  bestMatchType?: boolean
+  bestMatchScore?: boolean
+  topCandidateIds?: boolean
+  topCandidateScores?: boolean
+  candidateCount?: boolean
+  matchQualityOverall?: boolean
+  matchQualityApproval?: boolean
+  matchQualityName?: boolean
+  matchQualityMaker?: boolean
+  matchQualityLeaflet?: boolean
+  matchQualityPenalty?: boolean
+  matchQualityNotes?: boolean
+  drugbankIds?: boolean
   searchText?: boolean
   extras?: boolean
   createdAt?: boolean
@@ -1758,6 +2336,22 @@ export type CnMedicineProductSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   validityPeriod?: boolean
   barcode?: boolean
   nationalDrugCode?: boolean
+  imageUrlCleaned?: boolean
+  manufacturerNormalized?: boolean
+  approvalCodes?: boolean
+  bestMatchType?: boolean
+  bestMatchScore?: boolean
+  topCandidateIds?: boolean
+  topCandidateScores?: boolean
+  candidateCount?: boolean
+  matchQualityOverall?: boolean
+  matchQualityApproval?: boolean
+  matchQualityName?: boolean
+  matchQualityMaker?: boolean
+  matchQualityLeaflet?: boolean
+  matchQualityPenalty?: boolean
+  matchQualityNotes?: boolean
+  drugbankIds?: boolean
   searchText?: boolean
   extras?: boolean
   createdAt?: boolean
@@ -1799,13 +2393,29 @@ export type CnMedicineProductSelectScalar = {
   validityPeriod?: boolean
   barcode?: boolean
   nationalDrugCode?: boolean
+  imageUrlCleaned?: boolean
+  manufacturerNormalized?: boolean
+  approvalCodes?: boolean
+  bestMatchType?: boolean
+  bestMatchScore?: boolean
+  topCandidateIds?: boolean
+  topCandidateScores?: boolean
+  candidateCount?: boolean
+  matchQualityOverall?: boolean
+  matchQualityApproval?: boolean
+  matchQualityName?: boolean
+  matchQualityMaker?: boolean
+  matchQualityLeaflet?: boolean
+  matchQualityPenalty?: boolean
+  matchQualityNotes?: boolean
+  drugbankIds?: boolean
   searchText?: boolean
   extras?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type CnMedicineProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "importRunId" | "sourceName" | "sourceRowNumber" | "name" | "imageUrl" | "priceText" | "packageSpec" | "approvalNumber" | "manufacturer" | "drugType" | "mainCategory" | "subcategory" | "sourceUrl" | "brandName" | "ingredients" | "properties" | "indications" | "dosage" | "adverseReactions" | "contraindications" | "precautions" | "pediatricUse" | "geriatricUse" | "pregnancyLactation" | "pharmacologyToxicology" | "drugInteractions" | "pharmacokinetics" | "overdose" | "storage" | "validityPeriod" | "barcode" | "nationalDrugCode" | "searchText" | "extras" | "createdAt" | "updatedAt", ExtArgs["result"]["cnMedicineProduct"]>
+export type CnMedicineProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "importRunId" | "sourceName" | "sourceRowNumber" | "name" | "imageUrl" | "priceText" | "packageSpec" | "approvalNumber" | "manufacturer" | "drugType" | "mainCategory" | "subcategory" | "sourceUrl" | "brandName" | "ingredients" | "properties" | "indications" | "dosage" | "adverseReactions" | "contraindications" | "precautions" | "pediatricUse" | "geriatricUse" | "pregnancyLactation" | "pharmacologyToxicology" | "drugInteractions" | "pharmacokinetics" | "overdose" | "storage" | "validityPeriod" | "barcode" | "nationalDrugCode" | "imageUrlCleaned" | "manufacturerNormalized" | "approvalCodes" | "bestMatchType" | "bestMatchScore" | "topCandidateIds" | "topCandidateScores" | "candidateCount" | "matchQualityOverall" | "matchQualityApproval" | "matchQualityName" | "matchQualityMaker" | "matchQualityLeaflet" | "matchQualityPenalty" | "matchQualityNotes" | "drugbankIds" | "searchText" | "extras" | "createdAt" | "updatedAt", ExtArgs["result"]["cnMedicineProduct"]>
 export type CnMedicineProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   importRun?: boolean | Prisma.CnMedicineProduct$importRunArgs<ExtArgs>
   leafletLinks?: boolean | Prisma.CnMedicineProduct$leafletLinksArgs<ExtArgs>
@@ -1858,6 +2468,22 @@ export type $CnMedicineProductPayload<ExtArgs extends runtime.Types.Extensions.I
     validityPeriod: string | null
     barcode: string | null
     nationalDrugCode: string | null
+    imageUrlCleaned: string | null
+    manufacturerNormalized: string | null
+    approvalCodes: runtime.JsonValue | null
+    bestMatchType: string | null
+    bestMatchScore: number | null
+    topCandidateIds: runtime.JsonValue | null
+    topCandidateScores: runtime.JsonValue | null
+    candidateCount: number | null
+    matchQualityOverall: number | null
+    matchQualityApproval: number | null
+    matchQualityName: number | null
+    matchQualityMaker: number | null
+    matchQualityLeaflet: number | null
+    matchQualityPenalty: number | null
+    matchQualityNotes: runtime.JsonValue | null
+    drugbankIds: runtime.JsonValue | null
     searchText: string | null
     extras: runtime.JsonValue | null
     createdAt: Date
@@ -2320,6 +2946,22 @@ export interface CnMedicineProductFieldRefs {
   readonly validityPeriod: Prisma.FieldRef<"CnMedicineProduct", 'String'>
   readonly barcode: Prisma.FieldRef<"CnMedicineProduct", 'String'>
   readonly nationalDrugCode: Prisma.FieldRef<"CnMedicineProduct", 'String'>
+  readonly imageUrlCleaned: Prisma.FieldRef<"CnMedicineProduct", 'String'>
+  readonly manufacturerNormalized: Prisma.FieldRef<"CnMedicineProduct", 'String'>
+  readonly approvalCodes: Prisma.FieldRef<"CnMedicineProduct", 'Json'>
+  readonly bestMatchType: Prisma.FieldRef<"CnMedicineProduct", 'String'>
+  readonly bestMatchScore: Prisma.FieldRef<"CnMedicineProduct", 'Int'>
+  readonly topCandidateIds: Prisma.FieldRef<"CnMedicineProduct", 'Json'>
+  readonly topCandidateScores: Prisma.FieldRef<"CnMedicineProduct", 'Json'>
+  readonly candidateCount: Prisma.FieldRef<"CnMedicineProduct", 'Int'>
+  readonly matchQualityOverall: Prisma.FieldRef<"CnMedicineProduct", 'Int'>
+  readonly matchQualityApproval: Prisma.FieldRef<"CnMedicineProduct", 'Int'>
+  readonly matchQualityName: Prisma.FieldRef<"CnMedicineProduct", 'Int'>
+  readonly matchQualityMaker: Prisma.FieldRef<"CnMedicineProduct", 'Int'>
+  readonly matchQualityLeaflet: Prisma.FieldRef<"CnMedicineProduct", 'Int'>
+  readonly matchQualityPenalty: Prisma.FieldRef<"CnMedicineProduct", 'Int'>
+  readonly matchQualityNotes: Prisma.FieldRef<"CnMedicineProduct", 'Json'>
+  readonly drugbankIds: Prisma.FieldRef<"CnMedicineProduct", 'Json'>
   readonly searchText: Prisma.FieldRef<"CnMedicineProduct", 'String'>
   readonly extras: Prisma.FieldRef<"CnMedicineProduct", 'Json'>
   readonly createdAt: Prisma.FieldRef<"CnMedicineProduct", 'DateTime'>

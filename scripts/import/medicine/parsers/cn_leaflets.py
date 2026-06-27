@@ -30,6 +30,7 @@ INSTRUCTION_FIELDS = [
     "approval_conflict",
     "drug_category",
     "manufacturer",
+    "manufacturer_normalized",
     "drug_nature",
     "related_diseases",
     "properties",
@@ -100,6 +101,7 @@ def to_record(row_number: int, row: dict[str, Any]) -> dict[str, Any] | None:
         "approval_conflict": normalize_text(row.get("approval_conflict")),
         "drug_category": normalize_text(row.get("drug_category")),
         "manufacturer": normalize_text(row.get("manufacturer")),
+        "manufacturer_normalized": normalize_text(row.get("manufacturer_normalized")),
         "drug_nature": normalize_text(row.get("drug_nature")),
         "related_diseases": normalize_text(row.get("related_diseases")),
         "properties": normalize_text(row.get("properties")),
@@ -121,6 +123,7 @@ def to_record(row_number: int, row: dict[str, Any]) -> dict[str, Any] | None:
         "storage": normalize_text(row.get("storage")),
         "validity_period": normalize_text(row.get("validity_period")),
         "merge_notes": normalize_text(row.get("merge_notes")),
+        "dropped_reason": normalize_text(row.get("dropped_reason")),
     }
     return record
 

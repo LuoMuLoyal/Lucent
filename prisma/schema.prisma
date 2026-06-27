@@ -491,6 +491,22 @@ model CnMedicineProduct {
   validityPeriod         String?           @map("validity_period")
   barcode                String?
   nationalDrugCode       String?           @map("national_drug_code")
+  imageUrlCleaned        String?           @map("image_url_cleaned")
+  manufacturerNormalized String?           @map("manufacturer_normalized")
+  approvalCodes          Json?             @map("approval_codes") @db.JsonB
+  bestMatchType          String?           @map("best_match_type")
+  bestMatchScore         Int?              @map("best_match_score")
+  topCandidateIds        Json?             @map("top_candidate_ids") @db.JsonB
+  topCandidateScores     Json?             @map("top_candidate_scores") @db.JsonB
+  candidateCount         Int?              @map("candidate_count")
+  matchQualityOverall    Int?              @map("match_quality_overall")
+  matchQualityApproval   Int?              @map("match_quality_approval")
+  matchQualityName       Int?              @map("match_quality_name")
+  matchQualityMaker      Int?              @map("match_quality_maker")
+  matchQualityLeaflet    Int?              @map("match_quality_leaflet")
+  matchQualityPenalty    Int?              @map("match_quality_penalty")
+  matchQualityNotes      Json?             @map("match_quality_notes") @db.JsonB
+  drugbankIds            Json?             @map("drugbank_ids") @db.JsonB
   searchText             String?           @map("search_text")
   extras                 Json?             @db.JsonB
   createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -501,8 +517,11 @@ model CnMedicineProduct {
   @@index([name])
   @@index([approvalNumber])
   @@index([manufacturer])
+  @@index([manufacturerNormalized])
   @@index([barcode])
   @@index([nationalDrugCode])
+  @@index([bestMatchType])
+  @@index([matchQualityOverall])
   @@index([searchText])
   @@map("cn_medicine_products")
 }
@@ -525,6 +544,7 @@ model CnMedicineLeaflet {
   approvalConflict       String?                       @map("approval_conflict")
   drugCategory           String?                       @map("drug_category")
   manufacturer           String?
+  manufacturerNormalized String?                       @map("manufacturer_normalized")
   drugNature             String?                       @map("drug_nature")
   relatedDiseases        String?                       @map("related_diseases")
   properties             String?
@@ -544,6 +564,7 @@ model CnMedicineLeaflet {
   storage                String?
   validityPeriod         String?                       @map("validity_period")
   mergeNotes             String?                       @map("merge_notes")
+  droppedReason          String?                       @map("dropped_reason")
   createdAt              DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt              DateTime                      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   importRun              DrugSourceImport?             @relation(fields: [importRunId], references: [id], onDelete: SetNull)
@@ -562,6 +583,7 @@ model CnMedicineProductLeafletLink {
   productId       String            @map("product_id")
   leafletId       String            @map("leaflet_id")
   approvalCode    String?           @map("approval_code")
+  matchType       String?           @map("match_type")
   matchScore      Int?              @map("match_score")
   isBestMatch     Boolean?          @map("is_best_match")
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)

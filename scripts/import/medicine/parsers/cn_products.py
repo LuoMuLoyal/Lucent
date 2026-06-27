@@ -20,6 +20,22 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def parse_pipe_list(value: Any) -> list[str]:
+    text = normalize_text(value)
+    if text is None:
+        return []
+    return [item for item in text.split("|") if item]
+
+
+def parse_int_or_none(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def to_record(row_number: int, row: dict[str, Any]) -> dict[str, Any] | None:
     name = normalize_text(row.get("product_name"))
     if name is None:
@@ -88,11 +104,32 @@ def to_record(row_number: int, row: dict[str, Any]) -> dict[str, Any] | None:
                 name,
                 normalize_text(row.get("brand_name")),
                 manufacturer,
+                normalize_text(row.get("manufacturer_normalized")),
                 approval_number,
                 normalize_text(row.get("barcode")),
                 national_drug_code,
             ]
         ),
+        "image_url_cleaned": normalize_text(row.get("image_url_cleaned")),
+        "manufacturer_normalized": normalize_text(row.get("manufacturer_normalized")),
+        "approval_codes": parse_pipe_list(row.get("approval_codes")),
+        "best_match_type": normalize_text(row.get("best_match_type")),
+        "best_match_score": parse_int_or_none(row.get("best_match_score")),
+        "top_candidate_ids": parse_pipe_list(row.get("top_candidate_ids")),
+        "top_candidate_scores": [
+            int(score)
+            for score in parse_pipe_list(row.get("top_candidate_scores"))
+            if score.isdigit()
+        ],
+        "candidate_count": parse_int_or_none(row.get("candidate_count")),
+        "match_quality_overall": parse_int_or_none(row.get("match_quality_overall")),
+        "match_quality_approval": parse_int_or_none(row.get("match_quality_approval")),
+        "match_quality_name": parse_int_or_none(row.get("match_quality_name")),
+        "match_quality_maker": parse_int_or_none(row.get("match_quality_maker")),
+        "match_quality_leaflet": parse_int_or_none(row.get("match_quality_leaflet")),
+        "match_quality_penalty": parse_int_or_none(row.get("match_quality_penalty")),
+        "match_quality_notes": parse_pipe_list(row.get("match_quality_notes")),
+        "drugbank_ids": parse_pipe_list(row.get("drugbank_ids")),
         "extras": None,
     }
     return record
