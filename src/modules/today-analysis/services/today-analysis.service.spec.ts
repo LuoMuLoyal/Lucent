@@ -31,6 +31,7 @@ describe('TodayAnalysisService', () => {
     chat: { apiKey: null, baseUrl: null, model: null },
     chatCompression: { apiKey: null, baseUrl: null, model: null },
     embedding: { apiKey: null, baseUrl: null, model: null },
+    safety: { forbiddenPatterns: [] },
   };
 
   const baseContext = {
