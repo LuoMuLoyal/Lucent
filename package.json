@@ -33,8 +33,10 @@
     "test:runtime:stop": "node scripts/dev/stop-test-runtime.ts",
     "import:medicine:all": "node scripts/import/medicine/import-medicine-datasets.ts",
     "test": "cross-env NODE_ENV=test jest",
+    "test:coverage": "cross-env NODE_ENV=test jest --coverage",
     "test:ci": "cross-env NODE_ENV=test jest --runInBand",
-    "test:e2e": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json",
+    "test:ci:coverage": "cross-env NODE_ENV=test jest --runInBand --coverage",
+    "test:e2e": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand",
     "test:e2e:ci": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand",
     "export:openapi": "pnpm build && cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
     "prepare": "husky"
@@ -155,6 +157,14 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "global": {
+        "branches": 30,
+        "functions": 60,
+        "lines": 60,
+        "statements": 60
+      }
+    },
     "testEnvironment": "node"
   }
 }

@@ -1,0 +1,353 @@
+import { nonDeleted } from '../../common/utils/prisma.helpers';
+import type { TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
+import { UserStatus } from '../../generated/prisma/client';
+
+import { AccountService } from './account.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { ResultCode } from '../../common/api-envelope';
+import type { UpdateAccountDto } from './dto/update-account.dto';
+
+const baseUser = {
+  id: 'user-uuid-1',
+  email: 'test@example.com',
+  passwordHash: '$argon2id$mock',
+  nickname: 'TestUser',
+  avatar: 'https://example.com/avatar.png',
+  status: UserStatus.active,
+  emailVerifiedAt: new Date('2026-01-15T10:30:00.000Z'),
+  lastLoginAt: new Date('2026-06-10T08:00:00.000Z'),
+  ...nonDeleted,
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-06-10T12:00:00.000Z'),
+};
+
+const baseIdentity = {
+  id: 'identity-uuid-1',
+  userId: baseUser.id,
+  provider: 'wechat_web',
+  providerUserId: 'wx-openid-xxx',
+  email: 'wechat-bound@example.com',
+  emailVerifiedAt: new Date('2026-01-15T10:30:00.000Z'),
+  rawProfile: { sub: 'wx-openid-xxx' },
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+};
+
+const secondIdentity = {
+  id: 'identity-uuid-2',
+  userId: baseUser.id,
+  provider: 'google',
+  providerUserId: 'google-sub-yyy',
+  email: 'google-bound@example.com',
+  emailVerifiedAt: null,
+  rawProfile: { sub: 'google-sub-yyy' },
+  createdAt: new Date('2026-02-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-02-01T00:00:00.000Z'),
+};
+
+describe('AccountService', () => {
+  let service: AccountService;
+  let prismaService: jest.Mocked<PrismaService>;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AccountService,
+        {
+          provide: PrismaService,
+          useValue: {
+            user: {
+              findFirst: jest.fn(),
+              update: jest.fn(),
+            },
+            userIdentity: {
+              delete: jest.fn(),
+            },
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get(AccountService);
+    prismaService = module.get(PrismaService);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  describe('getAccount', () => {
+    it('should return the account DTO for an active user', async () => {
+      (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+        ...baseUser,
+        identities: [baseIdentity],
+      });
+
+      const result = await service.getAccount(baseUser.id);
+
+      expect(prismaService.user.findFirst).toHaveBeenCalledWith({
+        where: { id: baseUser.id, deletedAt: null },
+        include: { identities: { orderBy: { createdAt: 'asc' } } },
+      });
+      expect(result).toEqual({
+        id: baseUser.id,
+        email: baseUser.email,
+        nickname: baseUser.nickname,
+        avatar: baseUser.avatar,
+        emailVerifiedAt: '2026-01-15T10:30:00.000Z',
+        hasPassword: true,
+        lastLoginAt: '2026-06-10T08:00:00.000Z',
+        linkedIdentities: [
+          {
+            id: baseIdentity.id,
+            provider: baseIdentity.provider,
+            email: baseIdentity.email,
+            emailVerifiedAt: '2026-01-15T10:30:00.000Z',
+            linkedAt: '2026-01-01T00:00:00.000Z',
+          },
+        ],
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-06-10T12:00:00.000Z',
+      });
+    });
+
+    it('should throw NotFoundException when the user does not exist', async () => {
+      (prismaService.user.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(service.getAccount('missing-user')).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.getAccount('missing-user')).rejects.toMatchObject({
+        response: { code: ResultCode.NOT_FOUND, message: 'User not found' },
+      });
+    });
+
+    it('should set hasPassword to false when passwordHash is null', async () => {
+      (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+        ...baseUser,
+        passwordHash: null,
+        identities: [baseIdentity],
+      });
+
+      const result = await service.getAccount(baseUser.id);
+
+      expect(result.hasPassword).toBe(false);
+    });
+
+    it('should return null fields when dates are null', async () => {
+      (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+        ...baseUser,
+        emailVerifiedAt: null,
+        lastLoginAt: null,
+        avatar: null,
+        nickname: null,
+        identities: [{ ...baseIdentity, emailVerifiedAt: null }],
+      });
+
+      const result = await service.getAccount(baseUser.id);
+
+      expect(result.emailVerifiedAt).toBeNull();
+      expect(result.lastLoginAt).toBeNull();
+      expect(result.avatar).toBeNull();
+      expect(result.nickname).toBeNull();
+      expect(result.linkedIdentities[0].emailVerifiedAt).toBeNull();
+    });
+  });
+
+  describe('updateAccount', () => {
+    it('should update nickname and avatar', async () => {
+      (prismaService.user.findFirst as jest.Mock)
+        .mockResolvedValueOnce({
+          ...baseUser,
+          identities: [baseIdentity],
+        })
+        .mockResolvedValueOnce({
+          ...baseUser,
+          nickname: 'NewNick',
+          avatar: 'https://example.com/new-avatar.png',
+          identities: [baseIdentity],
+        });
+      (prismaService.user.update as jest.Mock).mockResolvedValue(undefined);
+
+      const dto: UpdateAccountDto = {
+        nickname: 'NewNick',
+        avatar: 'https://example.com/new-avatar.png',
+      };
+
+      const result = await service.updateAccount(baseUser.id, dto);
+
+      expect(prismaService.user.update).toHaveBeenCalledWith({
+        where: { id: baseUser.id },
+        data: {
+          nickname: 'NewNick',
+          avatar: 'https://example.com/new-avatar.png',
+        },
+      });
+      expect(result.nickname).toBe('NewNick');
+      expect(result.avatar).toBe('https://example.com/new-avatar.png');
+    });
+
+    it('should normalize empty string to null for clearing', async () => {
+      (prismaService.user.findFirst as jest.Mock)
+        .mockResolvedValueOnce({
+          ...baseUser,
+          identities: [baseIdentity],
+        })
+        .mockResolvedValueOnce({
+          ...baseUser,
+          nickname: null,
+          avatar: null,
+          identities: [baseIdentity],
+        });
+      (prismaService.user.update as jest.Mock).mockResolvedValue(undefined);
+
+      const dto: UpdateAccountDto = { nickname: '', avatar: '' };
+
+      const result = await service.updateAccount(baseUser.id, dto);
+
+      expect(prismaService.user.update).toHaveBeenCalledWith({
+        where: { id: baseUser.id },
+        data: { nickname: null, avatar: null },
+      });
+      expect(result.nickname).toBeNull();
+      expect(result.avatar).toBeNull();
+    });
+
+    it('should skip fields that are undefined', async () => {
+      (prismaService.user.findFirst as jest.Mock)
+        .mockResolvedValueOnce({
+          ...baseUser,
+          identities: [baseIdentity],
+        })
+        .mockResolvedValueOnce({
+          ...baseUser,
+          identities: [baseIdentity],
+        });
+      (prismaService.user.update as jest.Mock).mockResolvedValue(undefined);
+
+      const dto: UpdateAccountDto = {};
+
+      await service.updateAccount(baseUser.id, dto);
+
+      expect(prismaService.user.update).toHaveBeenCalledWith({
+        where: { id: baseUser.id },
+        data: {},
+      });
+    });
+
+    it('should throw NotFoundException when user does not exist', async () => {
+      (prismaService.user.findFirst as jest.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.updateAccount('missing-user', { nickname: 'X' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('unlinkIdentity', () => {
+    it('should unlink an identity when user has password', async () => {
+      (prismaService.user.findFirst as jest.Mock)
+        .mockResolvedValueOnce({
+          ...baseUser,
+          passwordHash: '$argon2id$exists',
+          identities: [baseIdentity, secondIdentity],
+        })
+        .mockResolvedValueOnce({
+          ...baseUser,
+          passwordHash: '$argon2id$exists',
+          identities: [secondIdentity],
+        });
+      (prismaService.userIdentity.delete as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+
+      const result = await service.unlinkIdentity(baseUser.id, baseIdentity.id);
+
+      expect(prismaService.userIdentity.delete).toHaveBeenCalledWith({
+        where: { id: baseIdentity.id },
+      });
+      expect(result.linkedIdentities).toHaveLength(1);
+      expect(result.linkedIdentities[0].id).toBe(secondIdentity.id);
+    });
+
+    it('should throw ForbiddenException when unlinking the last sign-in method', async () => {
+      (prismaService.user.findFirst as jest.Mock).mockResolvedValueOnce({
+        ...baseUser,
+        passwordHash: null,
+        identities: [baseIdentity],
+      });
+
+      await expect(
+        service.unlinkIdentity(baseUser.id, baseIdentity.id),
+      ).rejects.toMatchObject({
+        response: {
+          code: ResultCode.FORBIDDEN,
+          message: 'Cannot unlink the last sign-in method',
+        },
+      });
+    });
+
+    it('should allow unlinking when user has password even with only one identity', async () => {
+      (prismaService.user.findFirst as jest.Mock)
+        .mockResolvedValueOnce({
+          ...baseUser,
+          passwordHash: '$argon2id$exists',
+          identities: [baseIdentity],
+        })
+        .mockResolvedValueOnce({
+          ...baseUser,
+          passwordHash: '$argon2id$exists',
+          identities: [],
+        });
+      (prismaService.userIdentity.delete as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+
+      const result = await service.unlinkIdentity(baseUser.id, baseIdentity.id);
+
+      expect(result.linkedIdentities).toHaveLength(0);
+    });
+
+    it('should throw NotFoundException when identity does not exist', async () => {
+      (prismaService.user.findFirst as jest.Mock).mockResolvedValueOnce({
+        ...baseUser,
+        identities: [baseIdentity],
+      });
+
+      await expect(
+        service.unlinkIdentity(baseUser.id, 'nonexistent-identity'),
+      ).rejects.toMatchObject({
+        response: {
+          code: ResultCode.NOT_FOUND,
+          message: 'Account identity not found',
+        },
+      });
+    });
+
+    it('should allow unlinking when user has multiple identities and no password', async () => {
+      (prismaService.user.findFirst as jest.Mock)
+        .mockResolvedValueOnce({
+          ...baseUser,
+          passwordHash: null,
+          identities: [baseIdentity, secondIdentity],
+        })
+        .mockResolvedValueOnce({
+          ...baseUser,
+          passwordHash: null,
+          identities: [secondIdentity],
+        });
+      (prismaService.userIdentity.delete as jest.Mock).mockResolvedValue(
+        undefined,
+      );
+
+      const result = await service.unlinkIdentity(baseUser.id, baseIdentity.id);
+
+      expect(prismaService.userIdentity.delete).toHaveBeenCalledWith({
+        where: { id: baseIdentity.id },
+      });
+      expect(result.linkedIdentities).toHaveLength(1);
+    });
+  });
+});
