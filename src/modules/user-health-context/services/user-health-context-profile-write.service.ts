@@ -3,14 +3,14 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { UpdateHealthContextProfileDto } from '../dto';
-import { UserHealthContextGuardService } from '../guards/user-health-context-guard.service';
+import { UserHealthContextOwnershipService } from '../guards/ownership.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
 
 @Injectable()
 export class UserHealthContextProfileWriteService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly guardService: UserHealthContextGuardService,
+    private readonly ownershipService: UserHealthContextOwnershipService,
     private readonly mapperService: UserHealthContextMapperService,
   ) {}
 
@@ -18,7 +18,7 @@ export class UserHealthContextProfileWriteService {
     userId: string,
     dto: UpdateHealthContextProfileDto,
   ): Promise<void> {
-    await this.guardService.ensureActiveUserExists(userId);
+    await this.ownershipService.ensureActiveUserExists(userId);
 
     const updateData: Prisma.UserProfileUpdateInput = {};
     const createData: Prisma.UserProfileUncheckedCreateInput = { userId };

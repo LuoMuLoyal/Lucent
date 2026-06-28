@@ -1,3 +1,9 @@
+/**
+ * Data-ownership verification service for user-health-context.
+ *
+ * This is NOT a NestJS Guard. It is imported by domain services to ensure
+ * health-context rows belong to the current user before mutating them.
+ */
 import { ensureOwnedByUser } from '../../../common/utils/prisma-ownership.helper';
 import { notFound } from '../../../common/utils/api-errors';
 import { nonDeleted } from '../../../common/utils/prisma.helpers';
@@ -7,7 +13,7 @@ import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
-export class UserHealthContextGuardService {
+export class UserHealthContextOwnershipService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,

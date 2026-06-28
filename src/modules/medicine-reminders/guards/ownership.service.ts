@@ -1,3 +1,9 @@
+/**
+ * Data-ownership verification service for medicine-reminders.
+ *
+ * This is NOT a NestJS Guard. It is imported by domain services to ensure
+ * medicines and reminders belong to the current user before mutating them.
+ */
 import { Injectable } from '@nestjs/common';
 import { ensureOwnedByUser } from '../../../common/utils/prisma-ownership.helper';
 
@@ -5,7 +11,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import type { OwnedMedicineReminderRecord } from '../types/medicine-reminders.types';
 
 @Injectable()
-export class MedicineRemindersGuardService {
+export class MedicineRemindersOwnershipService {
   constructor(private readonly prisma: PrismaService) {}
 
   async ensureCurrentMedicineOwnedByUser(

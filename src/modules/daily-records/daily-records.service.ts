@@ -5,7 +5,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { DailyRecordKind, Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateDailyRecordDto, UpdateDailyRecordDto } from './dto';
-import { DailyRecordsGuardService } from './guards/daily-records-guard.service';
+import { DailyRecordsOwnershipService } from './guards/ownership.service';
 import { DailyRecordsMapperService } from './services/daily-records-mapper.service';
 import {
   dailyRecordWithAttachments,
@@ -16,7 +16,7 @@ import {
 export class DailyRecordsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly guardService: DailyRecordsGuardService,
+    private readonly ownershipService: DailyRecordsOwnershipService,
     private readonly mapperService: DailyRecordsMapperService,
   ) {}
 
@@ -104,7 +104,7 @@ export class DailyRecordsService {
   }
 
   async update(userId: string, id: string, dto: UpdateDailyRecordDto) {
-    const existing = await this.guardService.ensureOwnedByUser(userId, id);
+    const existing = await this.ownershipService.ensureOwnedByUser(userId, id);
     this.ensureValidSleepFinalState(dto, existing);
 
     const updateAttachments = dto.attachments;
@@ -140,7 +140,7 @@ export class DailyRecordsService {
   }
 
   async delete(userId: string, id: string) {
-    await this.guardService.ensureOwnedByUser(userId, id);
+    await this.ownershipService.ensureOwnedByUser(userId, id);
 
     await this.prisma.userDailyRecord.update({
       where: { id },
@@ -216,7 +216,7 @@ export class DailyRecordsService {
     });
 
     if (record == null) {
-      this.guardService.throwRecordNotFound();
+      this.ownershipService.throwRecordNotFound();
     }
 
     return this.mapperService.toItem(record);

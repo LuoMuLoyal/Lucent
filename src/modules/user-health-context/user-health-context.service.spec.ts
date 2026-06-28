@@ -17,7 +17,7 @@ import {
 } from '../../generated/prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { UserHealthContextGuardService } from './guards/user-health-context-guard.service';
+import { UserHealthContextOwnershipService } from './guards/ownership.service';
 import { UserHealthContextMapperService } from './services/user-health-context-mapper.service';
 import { UserHealthContextProfileWriteService } from './services/user-health-context-profile-write.service';
 import { UserHealthContextService } from './user-health-context.service';
@@ -54,7 +54,7 @@ describe('UserHealthContextService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserHealthContextService,
-        UserHealthContextGuardService,
+        UserHealthContextOwnershipService,
         UserHealthContextMapperService,
         UserHealthContextProfileWriteService,
         {

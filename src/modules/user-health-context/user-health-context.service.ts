@@ -16,7 +16,7 @@ import type {
   UpdateHealthContextConditionDto,
   UpdateHealthContextProfileDto,
 } from './dto';
-import { UserHealthContextGuardService } from './guards/user-health-context-guard.service';
+import { UserHealthContextOwnershipService } from './guards/ownership.service';
 import { UserHealthContextMapperService } from './services/user-health-context-mapper.service';
 import { UserHealthContextProfileWriteService } from './services/user-health-context-profile-write.service';
 import { userHealthContextInclude } from './types/user-health-context.types';
@@ -26,7 +26,7 @@ export class UserHealthContextService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
-    private readonly guardService: UserHealthContextGuardService,
+    private readonly ownershipService: UserHealthContextOwnershipService,
     private readonly mapperService: UserHealthContextMapperService,
     private readonly profileWriteService: UserHealthContextProfileWriteService,
   ) {}
@@ -61,7 +61,7 @@ export class UserHealthContextService {
     userId: string,
     dto: CreateHealthContextAllergyDto,
   ): Promise<HealthContextResponseData> {
-    await this.guardService.ensureActiveUserExists(userId);
+    await this.ownershipService.ensureActiveUserExists(userId);
 
     await this.prisma.userAllergy.create({
       data: {
@@ -83,7 +83,7 @@ export class UserHealthContextService {
     allergyId: string,
     dto: UpdateHealthContextAllergyDto,
   ): Promise<HealthContextResponseData> {
-    await this.guardService.ensureAllergyOwnedByUser(userId, allergyId);
+    await this.ownershipService.ensureAllergyOwnedByUser(userId, allergyId);
 
     const data: Prisma.UserAllergyUpdateInput = {};
 
@@ -121,7 +121,7 @@ export class UserHealthContextService {
     userId: string,
     allergyId: string,
   ): Promise<HealthContextResponseData> {
-    await this.guardService.ensureAllergyOwnedByUser(userId, allergyId);
+    await this.ownershipService.ensureAllergyOwnedByUser(userId, allergyId);
 
     await this.prisma.userAllergy.update({
       where: { id: allergyId },
@@ -137,7 +137,7 @@ export class UserHealthContextService {
     userId: string,
     dto: CreateHealthContextConditionDto,
   ): Promise<HealthContextResponseData> {
-    await this.guardService.ensureActiveUserExists(userId);
+    await this.ownershipService.ensureActiveUserExists(userId);
 
     const createData: Prisma.UserConditionCreateInput = {
       user: { connect: { id: userId } },
@@ -162,7 +162,7 @@ export class UserHealthContextService {
     conditionId: string,
     dto: UpdateHealthContextConditionDto,
   ): Promise<HealthContextResponseData> {
-    await this.guardService.ensureConditionOwnedByUser(userId, conditionId);
+    await this.ownershipService.ensureConditionOwnedByUser(userId, conditionId);
 
     const data: Prisma.UserConditionUpdateInput = {};
 
@@ -193,7 +193,7 @@ export class UserHealthContextService {
     userId: string,
     conditionId: string,
   ): Promise<HealthContextResponseData> {
-    await this.guardService.ensureConditionOwnedByUser(userId, conditionId);
+    await this.ownershipService.ensureConditionOwnedByUser(userId, conditionId);
 
     const resolvedAt = new Date();
     const resolvedDate = this.mapperService.toUtcDateOnly(resolvedAt);
@@ -221,7 +221,7 @@ export class UserHealthContextService {
     userId: string,
     dto: CreateCurrentMedicineDto,
   ): Promise<HealthContextResponseData> {
-    await this.guardService.ensureActiveUserExists(userId);
+    await this.ownershipService.ensureActiveUserExists(userId);
 
     const sourceRefId =
       dto.source === MedicineSource.manual ? null : (dto.sourceRefId ?? null);
@@ -253,7 +253,7 @@ export class UserHealthContextService {
     medicineId: string,
     dto: UpdateCurrentMedicineDto,
   ): Promise<HealthContextResponseData> {
-    await this.guardService.ensureCurrentMedicineOwnedByUser(
+    await this.ownershipService.ensureCurrentMedicineOwnedByUser(
       userId,
       medicineId,
     );
@@ -305,7 +305,7 @@ export class UserHealthContextService {
     userId: string,
     medicineId: string,
   ): Promise<HealthContextResponseData> {
-    await this.guardService.ensureCurrentMedicineOwnedByUser(
+    await this.ownershipService.ensureCurrentMedicineOwnedByUser(
       userId,
       medicineId,
     );

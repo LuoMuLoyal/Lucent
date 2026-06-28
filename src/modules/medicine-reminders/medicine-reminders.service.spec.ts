@@ -4,7 +4,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MedicineRemindersGuardService } from './guards/medicine-reminders-guard.service';
+import { MedicineRemindersOwnershipService } from './guards/ownership.service';
 import { MedicineRemindersMapperService } from './services/medicine-reminders-mapper.service';
 import { MedicineRemindersService } from './medicine-reminders.service';
 
@@ -38,7 +38,7 @@ describe('MedicineRemindersService', () => {
     const module = await Test.createTestingModule({
       providers: [
         MedicineRemindersService,
-        MedicineRemindersGuardService,
+        MedicineRemindersOwnershipService,
         MedicineRemindersMapperService,
         {
           provide: PrismaService,

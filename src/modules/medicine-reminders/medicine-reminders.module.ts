@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MedicineRemindersController } from './medicine-reminders.controller';
-import { MedicineRemindersGuardService } from './guards/medicine-reminders-guard.service';
+import { MedicineRemindersOwnershipService } from './guards/ownership.service';
 import { MedicineRemindersMapperService } from './services/medicine-reminders-mapper.service';
 import { MedicineRemindersService } from './medicine-reminders.service';
 import { ReminderDeliveriesController } from './reminder-deliveries.controller';
@@ -8,7 +8,7 @@ import { ReminderDeliveriesController } from './reminder-deliveries.controller';
 @Module({
   controllers: [MedicineRemindersController, ReminderDeliveriesController],
   providers: [
-    MedicineRemindersGuardService,
+    MedicineRemindersOwnershipService,
     MedicineRemindersMapperService,
     MedicineRemindersService,
   ],

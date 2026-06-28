@@ -5,14 +5,14 @@ import type {
   CreateMedicineReminderDto,
   UpdateMedicineReminderDto,
 } from './dto';
-import { MedicineRemindersGuardService } from './guards/medicine-reminders-guard.service';
+import { MedicineRemindersOwnershipService } from './guards/ownership.service';
 import { MedicineRemindersMapperService } from './services/medicine-reminders-mapper.service';
 
 @Injectable()
 export class MedicineRemindersService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly guardService: MedicineRemindersGuardService,
+    private readonly ownershipService: MedicineRemindersOwnershipService,
     private readonly mapperService: MedicineRemindersMapperService,
   ) {}
 
@@ -34,7 +34,7 @@ export class MedicineRemindersService {
   }
 
   async create(userId: string, dto: CreateMedicineReminderDto) {
-    await this.guardService.ensureCurrentMedicineOwnedByUser(
+    await this.ownershipService.ensureCurrentMedicineOwnedByUser(
       userId,
       dto.currentMedicineId ?? null,
     );
@@ -47,10 +47,10 @@ export class MedicineRemindersService {
   }
 
   async update(userId: string, id: string, dto: UpdateMedicineReminderDto) {
-    const existing = await this.guardService.ensureOwnedByUser(userId, id);
+    const existing = await this.ownershipService.ensureOwnedByUser(userId, id);
 
     if (dto.currentMedicineId !== undefined) {
-      await this.guardService.ensureCurrentMedicineOwnedByUser(
+      await this.ownershipService.ensureCurrentMedicineOwnedByUser(
         userId,
         dto.currentMedicineId,
       );
@@ -65,7 +65,7 @@ export class MedicineRemindersService {
   }
 
   async delete(userId: string, id: string) {
-    await this.guardService.ensureOwnedByUser(userId, id);
+    await this.ownershipService.ensureOwnedByUser(userId, id);
     await this.prisma.userMedicineReminder.update({
       where: { id },
       data: { deletedAt: new Date(), isActive: false },
