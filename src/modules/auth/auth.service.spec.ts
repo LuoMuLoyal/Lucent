@@ -20,6 +20,7 @@ import { AuthRateLimitService } from './services/auth-rate-limit.service';
 import { AuthTokenService } from './services/auth-token.service';
 import { AuthOAuthStateService } from './services/auth-oauth-state.service';
 import { AuthOAuthService } from './services/auth-oauth.service';
+import { CredentialAuthService } from './services/credential-auth.service';
 import { UserStatus } from '../../generated/prisma/client';
 import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
@@ -210,6 +211,20 @@ describe('AuthService', () => {
             markAllAsRead: jest.fn(),
             remove: jest.fn(),
             getUnreadCount: jest.fn(),
+          },
+        },
+        {
+          provide: CredentialAuthService,
+          useValue: {
+            register: jest.fn(),
+            login: jest.fn(),
+            changePassword: jest.fn(),
+            setPassword: jest.fn(),
+            changeEmail: jest.fn(),
+            sendVerificationCode: jest.fn(),
+            verifyEmail: jest.fn(),
+            forgotPassword: jest.fn(),
+            resetPassword: jest.fn(),
           },
         },
       ],
