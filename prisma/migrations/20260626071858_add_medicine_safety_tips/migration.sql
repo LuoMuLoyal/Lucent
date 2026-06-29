@@ -22,7 +22,6 @@ INSERT INTO "medicine_safety_tips" ("id", "content_zh", "content_en", "category"
 ('a1b2c3d4-e5f6-7890-abcd-ef1234567892', '按时按量用药，不要自行增减或停药。', 'Take medicines on time and as directed. Do not change or stop them yourself.', 'timing', 3),
 ('a1b2c3d4-e5f6-7890-abcd-ef1234567893', '药品请置于阴凉干燥处，避免儿童接触。', 'Store medicines in a cool, dry place and keep them away from children.', 'storage', 4),
 ('a1b2c3d4-e5f6-7890-abcd-ef1234567894', '服药期间避免驾驶或操作危险机械，除非确认药物不影响反应能力。', 'Avoid driving or operating hazardous machinery after taking medicines unless you are sure they do not affect your alertness.', 'driving', 5),
-('a1b2c3d4-e5f6-7890-abcd-ef1234567895', '孕期或哺乳期用药前，请先咨询医生或药师。', 'If you are pregnant or breastfeeding, consult a doctor or pharmacist before taking any medicine.', 'pregnancy', 6),
 ('a1b2c3d4-e5f6-7890-abcd-ef1234567896', '抗生素请按完整疗程服用，即使症状好转也不要提前停药。', 'Finish the full course of antibiotics even if you feel better. Do not stop early.', 'timing', 7),
 ('a1b2c3d4-e5f6-7890-abcd-ef1234567897', '如果曾经对某种药物过敏，再次使用前务必告知医生或药师。', 'If you have ever had an allergic reaction to a medicine, tell your doctor or pharmacist before using it again.', 'allergy', 8),
 ('a1b2c3d4-e5f6-7890-abcd-ef1234567898', '多种药物同时服用时，注意相互作用，必要时咨询专业人士。', 'When taking several medicines together, be aware of interactions and ask a professional if needed.', 'timing', 9),

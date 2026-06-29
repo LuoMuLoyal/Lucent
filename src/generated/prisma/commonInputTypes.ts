@@ -220,20 +220,6 @@ export type IntNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedIntNullableFilter<$PrismaModel> | number | null
 }
 
-export type EnumPregnancyStateNullableFilter<$PrismaModel = never> = {
-  equals?: $Enums.PregnancyState | Prisma.EnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  in?: $Enums.PregnancyState[] | Prisma.ListEnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.PregnancyState[] | Prisma.ListEnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumPregnancyStateNullableFilter<$PrismaModel> | $Enums.PregnancyState | null
-}
-
-export type EnumLactationStateNullableFilter<$PrismaModel = never> = {
-  equals?: $Enums.LactationState | Prisma.EnumLactationStateFieldRefInput<$PrismaModel> | null
-  in?: $Enums.LactationState[] | Prisma.ListEnumLactationStateFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.LactationState[] | Prisma.ListEnumLactationStateFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumLactationStateNullableFilter<$PrismaModel> | $Enums.LactationState | null
-}
-
 export type EnumUnitSystemNullableFilter<$PrismaModel = never> = {
   equals?: $Enums.UnitSystem | Prisma.EnumUnitSystemFieldRefInput<$PrismaModel> | null
   in?: $Enums.UnitSystem[] | Prisma.ListEnumUnitSystemFieldRefInput<$PrismaModel> | null
@@ -265,26 +251,6 @@ export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _max?: Prisma.NestedIntNullableFilter<$PrismaModel>
-}
-
-export type EnumPregnancyStateNullableWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.PregnancyState | Prisma.EnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  in?: $Enums.PregnancyState[] | Prisma.ListEnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.PregnancyState[] | Prisma.ListEnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumPregnancyStateNullableWithAggregatesFilter<$PrismaModel> | $Enums.PregnancyState | null
-  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumPregnancyStateNullableFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumPregnancyStateNullableFilter<$PrismaModel>
-}
-
-export type EnumLactationStateNullableWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.LactationState | Prisma.EnumLactationStateFieldRefInput<$PrismaModel> | null
-  in?: $Enums.LactationState[] | Prisma.ListEnumLactationStateFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.LactationState[] | Prisma.ListEnumLactationStateFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumLactationStateNullableWithAggregatesFilter<$PrismaModel> | $Enums.LactationState | null
-  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumLactationStateNullableFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumLactationStateNullableFilter<$PrismaModel>
 }
 
 export type EnumUnitSystemNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -821,20 +787,6 @@ export type NestedEnumSexAtBirthNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumSexAtBirthNullableFilter<$PrismaModel> | $Enums.SexAtBirth | null
 }
 
-export type NestedEnumPregnancyStateNullableFilter<$PrismaModel = never> = {
-  equals?: $Enums.PregnancyState | Prisma.EnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  in?: $Enums.PregnancyState[] | Prisma.ListEnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.PregnancyState[] | Prisma.ListEnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumPregnancyStateNullableFilter<$PrismaModel> | $Enums.PregnancyState | null
-}
-
-export type NestedEnumLactationStateNullableFilter<$PrismaModel = never> = {
-  equals?: $Enums.LactationState | Prisma.EnumLactationStateFieldRefInput<$PrismaModel> | null
-  in?: $Enums.LactationState[] | Prisma.ListEnumLactationStateFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.LactationState[] | Prisma.ListEnumLactationStateFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumLactationStateNullableFilter<$PrismaModel> | $Enums.LactationState | null
-}
-
 export type NestedEnumUnitSystemNullableFilter<$PrismaModel = never> = {
   equals?: $Enums.UnitSystem | Prisma.EnumUnitSystemFieldRefInput<$PrismaModel> | null
   in?: $Enums.UnitSystem[] | Prisma.ListEnumUnitSystemFieldRefInput<$PrismaModel> | null
@@ -877,26 +829,6 @@ export type NestedFloatNullableFilter<$PrismaModel = never> = {
   gt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   gte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
   not?: Prisma.NestedFloatNullableFilter<$PrismaModel> | number | null
-}
-
-export type NestedEnumPregnancyStateNullableWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.PregnancyState | Prisma.EnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  in?: $Enums.PregnancyState[] | Prisma.ListEnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.PregnancyState[] | Prisma.ListEnumPregnancyStateFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumPregnancyStateNullableWithAggregatesFilter<$PrismaModel> | $Enums.PregnancyState | null
-  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumPregnancyStateNullableFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumPregnancyStateNullableFilter<$PrismaModel>
-}
-
-export type NestedEnumLactationStateNullableWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: $Enums.LactationState | Prisma.EnumLactationStateFieldRefInput<$PrismaModel> | null
-  in?: $Enums.LactationState[] | Prisma.ListEnumLactationStateFieldRefInput<$PrismaModel> | null
-  notIn?: $Enums.LactationState[] | Prisma.ListEnumLactationStateFieldRefInput<$PrismaModel> | null
-  not?: Prisma.NestedEnumLactationStateNullableWithAggregatesFilter<$PrismaModel> | $Enums.LactationState | null
-  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
-  _min?: Prisma.NestedEnumLactationStateNullableFilter<$PrismaModel>
-  _max?: Prisma.NestedEnumLactationStateNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumUnitSystemNullableWithAggregatesFilter<$PrismaModel = never> = {

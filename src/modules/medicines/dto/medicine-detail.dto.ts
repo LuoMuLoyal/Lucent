@@ -143,18 +143,6 @@ export class CnMedicineDetailDto {
   precautions!: string | null;
 
   @ApiPropertyOptional({ nullable: true })
-  pediatricUse!: string | null;
-
-  @ApiPropertyOptional({ nullable: true })
-  geriatricUse!: string | null;
-
-  @ApiPropertyOptional({ nullable: true })
-  pregnancy!: string | null;
-
-  @ApiPropertyOptional({ nullable: true })
-  lactation!: string | null;
-
-  @ApiPropertyOptional({ nullable: true })
   pharmacologyToxicology!: string | null;
 
   @ApiPropertyOptional({ nullable: true })

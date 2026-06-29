@@ -72,9 +72,6 @@ export type CnMedicineProductMinAggregateOutputType = {
   adverseReactions: string | null
   contraindications: string | null
   precautions: string | null
-  pediatricUse: string | null
-  geriatricUse: string | null
-  pregnancyLactation: string | null
   pharmacologyToxicology: string | null
   drugInteractions: string | null
   pharmacokinetics: string | null
@@ -122,9 +119,6 @@ export type CnMedicineProductMaxAggregateOutputType = {
   adverseReactions: string | null
   contraindications: string | null
   precautions: string | null
-  pediatricUse: string | null
-  geriatricUse: string | null
-  pregnancyLactation: string | null
   pharmacologyToxicology: string | null
   drugInteractions: string | null
   pharmacokinetics: string | null
@@ -172,9 +166,6 @@ export type CnMedicineProductCountAggregateOutputType = {
   adverseReactions: number
   contraindications: number
   precautions: number
-  pediatricUse: number
-  geriatricUse: number
-  pregnancyLactation: number
   pharmacologyToxicology: number
   drugInteractions: number
   pharmacokinetics: number
@@ -254,9 +245,6 @@ export type CnMedicineProductMinAggregateInputType = {
   adverseReactions?: true
   contraindications?: true
   precautions?: true
-  pediatricUse?: true
-  geriatricUse?: true
-  pregnancyLactation?: true
   pharmacologyToxicology?: true
   drugInteractions?: true
   pharmacokinetics?: true
@@ -304,9 +292,6 @@ export type CnMedicineProductMaxAggregateInputType = {
   adverseReactions?: true
   contraindications?: true
   precautions?: true
-  pediatricUse?: true
-  geriatricUse?: true
-  pregnancyLactation?: true
   pharmacologyToxicology?: true
   drugInteractions?: true
   pharmacokinetics?: true
@@ -354,9 +339,6 @@ export type CnMedicineProductCountAggregateInputType = {
   adverseReactions?: true
   contraindications?: true
   precautions?: true
-  pediatricUse?: true
-  geriatricUse?: true
-  pregnancyLactation?: true
   pharmacologyToxicology?: true
   drugInteractions?: true
   pharmacokinetics?: true
@@ -497,9 +479,6 @@ export type CnMedicineProductGroupByOutputType = {
   adverseReactions: string | null
   contraindications: string | null
   precautions: string | null
-  pediatricUse: string | null
-  geriatricUse: string | null
-  pregnancyLactation: string | null
   pharmacologyToxicology: string | null
   drugInteractions: string | null
   pharmacokinetics: string | null
@@ -576,9 +555,6 @@ export type CnMedicineProductWhereInput = {
   adverseReactions?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   contraindications?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   precautions?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
-  pediatricUse?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
-  geriatricUse?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
-  pregnancyLactation?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   pharmacologyToxicology?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   drugInteractions?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   pharmacokinetics?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
@@ -634,9 +610,6 @@ export type CnMedicineProductOrderByWithRelationInput = {
   adverseReactions?: Prisma.SortOrderInput | Prisma.SortOrder
   contraindications?: Prisma.SortOrderInput | Prisma.SortOrder
   precautions?: Prisma.SortOrderInput | Prisma.SortOrder
-  pediatricUse?: Prisma.SortOrderInput | Prisma.SortOrder
-  geriatricUse?: Prisma.SortOrderInput | Prisma.SortOrder
-  pregnancyLactation?: Prisma.SortOrderInput | Prisma.SortOrder
   pharmacologyToxicology?: Prisma.SortOrderInput | Prisma.SortOrder
   drugInteractions?: Prisma.SortOrderInput | Prisma.SortOrder
   pharmacokinetics?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -695,9 +668,6 @@ export type CnMedicineProductWhereUniqueInput = Prisma.AtLeast<{
   adverseReactions?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   contraindications?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   precautions?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
-  pediatricUse?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
-  geriatricUse?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
-  pregnancyLactation?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   pharmacologyToxicology?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   drugInteractions?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   pharmacokinetics?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
@@ -753,9 +723,6 @@ export type CnMedicineProductOrderByWithAggregationInput = {
   adverseReactions?: Prisma.SortOrderInput | Prisma.SortOrder
   contraindications?: Prisma.SortOrderInput | Prisma.SortOrder
   precautions?: Prisma.SortOrderInput | Prisma.SortOrder
-  pediatricUse?: Prisma.SortOrderInput | Prisma.SortOrder
-  geriatricUse?: Prisma.SortOrderInput | Prisma.SortOrder
-  pregnancyLactation?: Prisma.SortOrderInput | Prisma.SortOrder
   pharmacologyToxicology?: Prisma.SortOrderInput | Prisma.SortOrder
   drugInteractions?: Prisma.SortOrderInput | Prisma.SortOrder
   pharmacokinetics?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -817,9 +784,6 @@ export type CnMedicineProductScalarWhereWithAggregatesInput = {
   adverseReactions?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
   contraindications?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
   precautions?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
-  pediatricUse?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
-  geriatricUse?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
-  pregnancyLactation?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
   pharmacologyToxicology?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
   drugInteractions?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
   pharmacokinetics?: Prisma.StringNullableWithAggregatesFilter<"CnMedicineProduct"> | string | null
@@ -872,9 +836,6 @@ export type CnMedicineProductCreateInput = {
   adverseReactions?: string | null
   contraindications?: string | null
   precautions?: string | null
-  pediatricUse?: string | null
-  geriatricUse?: string | null
-  pregnancyLactation?: string | null
   pharmacologyToxicology?: string | null
   drugInteractions?: string | null
   pharmacokinetics?: string | null
@@ -930,9 +891,6 @@ export type CnMedicineProductUncheckedCreateInput = {
   adverseReactions?: string | null
   contraindications?: string | null
   precautions?: string | null
-  pediatricUse?: string | null
-  geriatricUse?: string | null
-  pregnancyLactation?: string | null
   pharmacologyToxicology?: string | null
   drugInteractions?: string | null
   pharmacokinetics?: string | null
@@ -986,9 +944,6 @@ export type CnMedicineProductUpdateInput = {
   adverseReactions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contraindications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   precautions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pediatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  geriatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pregnancyLactation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacologyToxicology?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugInteractions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacokinetics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1044,9 +999,6 @@ export type CnMedicineProductUncheckedUpdateInput = {
   adverseReactions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contraindications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   precautions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pediatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  geriatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pregnancyLactation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacologyToxicology?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugInteractions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacokinetics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1101,9 +1053,6 @@ export type CnMedicineProductCreateManyInput = {
   adverseReactions?: string | null
   contraindications?: string | null
   precautions?: string | null
-  pediatricUse?: string | null
-  geriatricUse?: string | null
-  pregnancyLactation?: string | null
   pharmacologyToxicology?: string | null
   drugInteractions?: string | null
   pharmacokinetics?: string | null
@@ -1156,9 +1105,6 @@ export type CnMedicineProductUpdateManyMutationInput = {
   adverseReactions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contraindications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   precautions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pediatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  geriatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pregnancyLactation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacologyToxicology?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugInteractions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacokinetics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1212,9 +1158,6 @@ export type CnMedicineProductUncheckedUpdateManyInput = {
   adverseReactions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contraindications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   precautions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pediatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  geriatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pregnancyLactation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacologyToxicology?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugInteractions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacokinetics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1278,9 +1221,6 @@ export type CnMedicineProductCountOrderByAggregateInput = {
   adverseReactions?: Prisma.SortOrder
   contraindications?: Prisma.SortOrder
   precautions?: Prisma.SortOrder
-  pediatricUse?: Prisma.SortOrder
-  geriatricUse?: Prisma.SortOrder
-  pregnancyLactation?: Prisma.SortOrder
   pharmacologyToxicology?: Prisma.SortOrder
   drugInteractions?: Prisma.SortOrder
   pharmacokinetics?: Prisma.SortOrder
@@ -1346,9 +1286,6 @@ export type CnMedicineProductMaxOrderByAggregateInput = {
   adverseReactions?: Prisma.SortOrder
   contraindications?: Prisma.SortOrder
   precautions?: Prisma.SortOrder
-  pediatricUse?: Prisma.SortOrder
-  geriatricUse?: Prisma.SortOrder
-  pregnancyLactation?: Prisma.SortOrder
   pharmacologyToxicology?: Prisma.SortOrder
   drugInteractions?: Prisma.SortOrder
   pharmacokinetics?: Prisma.SortOrder
@@ -1396,9 +1333,6 @@ export type CnMedicineProductMinOrderByAggregateInput = {
   adverseReactions?: Prisma.SortOrder
   contraindications?: Prisma.SortOrder
   precautions?: Prisma.SortOrder
-  pediatricUse?: Prisma.SortOrder
-  geriatricUse?: Prisma.SortOrder
-  pregnancyLactation?: Prisma.SortOrder
   pharmacologyToxicology?: Prisma.SortOrder
   drugInteractions?: Prisma.SortOrder
   pharmacokinetics?: Prisma.SortOrder
@@ -1518,9 +1452,6 @@ export type CnMedicineProductCreateWithoutImportRunInput = {
   adverseReactions?: string | null
   contraindications?: string | null
   precautions?: string | null
-  pediatricUse?: string | null
-  geriatricUse?: string | null
-  pregnancyLactation?: string | null
   pharmacologyToxicology?: string | null
   drugInteractions?: string | null
   pharmacokinetics?: string | null
@@ -1574,9 +1505,6 @@ export type CnMedicineProductUncheckedCreateWithoutImportRunInput = {
   adverseReactions?: string | null
   contraindications?: string | null
   precautions?: string | null
-  pediatricUse?: string | null
-  geriatricUse?: string | null
-  pregnancyLactation?: string | null
   pharmacologyToxicology?: string | null
   drugInteractions?: string | null
   pharmacokinetics?: string | null
@@ -1660,9 +1588,6 @@ export type CnMedicineProductScalarWhereInput = {
   adverseReactions?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   contraindications?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   precautions?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
-  pediatricUse?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
-  geriatricUse?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
-  pregnancyLactation?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   pharmacologyToxicology?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   drugInteractions?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
   pharmacokinetics?: Prisma.StringNullableFilter<"CnMedicineProduct"> | string | null
@@ -1715,9 +1640,6 @@ export type CnMedicineProductCreateWithoutLeafletLinksInput = {
   adverseReactions?: string | null
   contraindications?: string | null
   precautions?: string | null
-  pediatricUse?: string | null
-  geriatricUse?: string | null
-  pregnancyLactation?: string | null
   pharmacologyToxicology?: string | null
   drugInteractions?: string | null
   pharmacokinetics?: string | null
@@ -1772,9 +1694,6 @@ export type CnMedicineProductUncheckedCreateWithoutLeafletLinksInput = {
   adverseReactions?: string | null
   contraindications?: string | null
   precautions?: string | null
-  pediatricUse?: string | null
-  geriatricUse?: string | null
-  pregnancyLactation?: string | null
   pharmacologyToxicology?: string | null
   drugInteractions?: string | null
   pharmacokinetics?: string | null
@@ -1843,9 +1762,6 @@ export type CnMedicineProductUpdateWithoutLeafletLinksInput = {
   adverseReactions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contraindications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   precautions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pediatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  geriatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pregnancyLactation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacologyToxicology?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugInteractions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacokinetics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1900,9 +1816,6 @@ export type CnMedicineProductUncheckedUpdateWithoutLeafletLinksInput = {
   adverseReactions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contraindications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   precautions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pediatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  geriatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pregnancyLactation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacologyToxicology?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugInteractions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacokinetics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1955,9 +1868,6 @@ export type CnMedicineProductCreateManyImportRunInput = {
   adverseReactions?: string | null
   contraindications?: string | null
   precautions?: string | null
-  pediatricUse?: string | null
-  geriatricUse?: string | null
-  pregnancyLactation?: string | null
   pharmacologyToxicology?: string | null
   drugInteractions?: string | null
   pharmacokinetics?: string | null
@@ -2010,9 +1920,6 @@ export type CnMedicineProductUpdateWithoutImportRunInput = {
   adverseReactions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contraindications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   precautions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pediatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  geriatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pregnancyLactation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacologyToxicology?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugInteractions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacokinetics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2066,9 +1973,6 @@ export type CnMedicineProductUncheckedUpdateWithoutImportRunInput = {
   adverseReactions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contraindications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   precautions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pediatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  geriatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pregnancyLactation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacologyToxicology?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugInteractions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacokinetics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2122,9 +2026,6 @@ export type CnMedicineProductUncheckedUpdateManyWithoutImportRunInput = {
   adverseReactions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contraindications?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   precautions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pediatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  geriatricUse?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  pregnancyLactation?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacologyToxicology?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   drugInteractions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pharmacokinetics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2209,9 +2110,6 @@ export type CnMedicineProductSelect<ExtArgs extends runtime.Types.Extensions.Int
   adverseReactions?: boolean
   contraindications?: boolean
   precautions?: boolean
-  pediatricUse?: boolean
-  geriatricUse?: boolean
-  pregnancyLactation?: boolean
   pharmacologyToxicology?: boolean
   drugInteractions?: boolean
   pharmacokinetics?: boolean
@@ -2268,9 +2166,6 @@ export type CnMedicineProductSelectCreateManyAndReturn<ExtArgs extends runtime.T
   adverseReactions?: boolean
   contraindications?: boolean
   precautions?: boolean
-  pediatricUse?: boolean
-  geriatricUse?: boolean
-  pregnancyLactation?: boolean
   pharmacologyToxicology?: boolean
   drugInteractions?: boolean
   pharmacokinetics?: boolean
@@ -2325,9 +2220,6 @@ export type CnMedicineProductSelectUpdateManyAndReturn<ExtArgs extends runtime.T
   adverseReactions?: boolean
   contraindications?: boolean
   precautions?: boolean
-  pediatricUse?: boolean
-  geriatricUse?: boolean
-  pregnancyLactation?: boolean
   pharmacologyToxicology?: boolean
   drugInteractions?: boolean
   pharmacokinetics?: boolean
@@ -2382,9 +2274,6 @@ export type CnMedicineProductSelectScalar = {
   adverseReactions?: boolean
   contraindications?: boolean
   precautions?: boolean
-  pediatricUse?: boolean
-  geriatricUse?: boolean
-  pregnancyLactation?: boolean
   pharmacologyToxicology?: boolean
   drugInteractions?: boolean
   pharmacokinetics?: boolean
@@ -2415,7 +2304,7 @@ export type CnMedicineProductSelectScalar = {
   updatedAt?: boolean
 }
 
-export type CnMedicineProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "importRunId" | "sourceName" | "sourceRowNumber" | "name" | "imageUrl" | "priceText" | "packageSpec" | "approvalNumber" | "manufacturer" | "drugType" | "mainCategory" | "subcategory" | "sourceUrl" | "brandName" | "ingredients" | "properties" | "indications" | "dosage" | "adverseReactions" | "contraindications" | "precautions" | "pediatricUse" | "geriatricUse" | "pregnancyLactation" | "pharmacologyToxicology" | "drugInteractions" | "pharmacokinetics" | "overdose" | "storage" | "validityPeriod" | "barcode" | "nationalDrugCode" | "imageUrlCleaned" | "manufacturerNormalized" | "approvalCodes" | "bestMatchType" | "bestMatchScore" | "topCandidateIds" | "topCandidateScores" | "candidateCount" | "matchQualityOverall" | "matchQualityApproval" | "matchQualityName" | "matchQualityMaker" | "matchQualityLeaflet" | "matchQualityPenalty" | "matchQualityNotes" | "drugbankIds" | "searchText" | "extras" | "createdAt" | "updatedAt", ExtArgs["result"]["cnMedicineProduct"]>
+export type CnMedicineProductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "importRunId" | "sourceName" | "sourceRowNumber" | "name" | "imageUrl" | "priceText" | "packageSpec" | "approvalNumber" | "manufacturer" | "drugType" | "mainCategory" | "subcategory" | "sourceUrl" | "brandName" | "ingredients" | "properties" | "indications" | "dosage" | "adverseReactions" | "contraindications" | "precautions" | "pharmacologyToxicology" | "drugInteractions" | "pharmacokinetics" | "overdose" | "storage" | "validityPeriod" | "barcode" | "nationalDrugCode" | "imageUrlCleaned" | "manufacturerNormalized" | "approvalCodes" | "bestMatchType" | "bestMatchScore" | "topCandidateIds" | "topCandidateScores" | "candidateCount" | "matchQualityOverall" | "matchQualityApproval" | "matchQualityName" | "matchQualityMaker" | "matchQualityLeaflet" | "matchQualityPenalty" | "matchQualityNotes" | "drugbankIds" | "searchText" | "extras" | "createdAt" | "updatedAt", ExtArgs["result"]["cnMedicineProduct"]>
 export type CnMedicineProductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   importRun?: boolean | Prisma.CnMedicineProduct$importRunArgs<ExtArgs>
   leafletLinks?: boolean | Prisma.CnMedicineProduct$leafletLinksArgs<ExtArgs>
@@ -2457,9 +2346,6 @@ export type $CnMedicineProductPayload<ExtArgs extends runtime.Types.Extensions.I
     adverseReactions: string | null
     contraindications: string | null
     precautions: string | null
-    pediatricUse: string | null
-    geriatricUse: string | null
-    pregnancyLactation: string | null
     pharmacologyToxicology: string | null
     drugInteractions: string | null
     pharmacokinetics: string | null
@@ -2935,9 +2821,6 @@ export interface CnMedicineProductFieldRefs {
   readonly adverseReactions: Prisma.FieldRef<"CnMedicineProduct", 'String'>
   readonly contraindications: Prisma.FieldRef<"CnMedicineProduct", 'String'>
   readonly precautions: Prisma.FieldRef<"CnMedicineProduct", 'String'>
-  readonly pediatricUse: Prisma.FieldRef<"CnMedicineProduct", 'String'>
-  readonly geriatricUse: Prisma.FieldRef<"CnMedicineProduct", 'String'>
-  readonly pregnancyLactation: Prisma.FieldRef<"CnMedicineProduct", 'String'>
   readonly pharmacologyToxicology: Prisma.FieldRef<"CnMedicineProduct", 'String'>
   readonly drugInteractions: Prisma.FieldRef<"CnMedicineProduct", 'String'>
   readonly pharmacokinetics: Prisma.FieldRef<"CnMedicineProduct", 'String'>

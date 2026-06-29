@@ -13,9 +13,7 @@ import {
 } from '../../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 import {
-  LactationState,
   MedicineSource,
-  PregnancyState,
   SexAtBirth,
   UnitSystem,
   UserAllergyKind,
@@ -37,8 +35,6 @@ interface HealthContextData {
     birthDate: string | null;
     sexAtBirth: SexAtBirth | null;
     heightCm: number | null;
-    pregnancyState: PregnancyState | null;
-    lactationState: LactationState | null;
     bloodType: string | null;
     locale: string | null;
     timezone: string | null;
@@ -106,8 +102,6 @@ describe('User Health Context API (e2e)', () => {
             birthDate: new Date('1998-03-15T00:00:00.000Z'),
             sexAtBirth: SexAtBirth.female,
             heightCm: 168,
-            pregnancyState: PregnancyState.not_pregnant,
-            lactationState: LactationState.no,
             bloodType: 'O+',
             locale: 'en-US',
             timezone: 'Asia/Shanghai',
@@ -195,8 +189,6 @@ describe('User Health Context API (e2e)', () => {
       birthDate: '1998-03-15',
       sexAtBirth: SexAtBirth.female,
       heightCm: 168,
-      pregnancyState: PregnancyState.not_pregnant,
-      lactationState: LactationState.no,
       bloodType: 'O+',
       locale: 'en-US',
       timezone: 'Asia/Shanghai',
@@ -272,8 +264,6 @@ describe('User Health Context API (e2e)', () => {
         birthDate: '1998-03-15',
         sexAtBirth: SexAtBirth.female,
         heightCm: 168,
-        pregnancyState: PregnancyState.not_pregnant,
-        lactationState: LactationState.no,
         bloodType: 'O+',
         onboardingCompleted: true,
       })
@@ -289,8 +279,6 @@ describe('User Health Context API (e2e)', () => {
     expect(data.profile.birthDate).toBe('1998-03-15');
     expect(data.profile.sexAtBirth).toBe(SexAtBirth.female);
     expect(data.profile.heightCm).toBe(168);
-    expect(data.profile.pregnancyState).toBe(PregnancyState.not_pregnant);
-    expect(data.profile.lactationState).toBe(LactationState.no);
     expect(data.profile.bloodType).toBe('O+');
     expect(data.summary.onboardingCompleted).toBe(true);
 
@@ -305,8 +293,6 @@ describe('User Health Context API (e2e)', () => {
     );
     expect(storedProfile.sexAtBirth).toBe(SexAtBirth.female);
     expect(storedProfile.heightCm).toBe(168);
-    expect(storedProfile.pregnancyState).toBe(PregnancyState.not_pregnant);
-    expect(storedProfile.lactationState).toBe(LactationState.no);
     expect(storedProfile.bloodType).toBe('O+');
     expect(storedProfile.onboardingCompletedAt).not.toBeNull();
   });

@@ -295,7 +295,7 @@ describe('MedicinesService', () => {
         id: 'id-6',
         contentZh: '中文 6',
         contentEn: 'EN 6',
-        category: 'pregnancy',
+        category: 'general',
         sortOrder: 6,
         isActive: true,
         createdAt: new Date(),

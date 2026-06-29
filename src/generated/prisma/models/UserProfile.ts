@@ -38,8 +38,6 @@ export type UserProfileMinAggregateOutputType = {
   birthDate: Date | null
   sexAtBirth: $Enums.SexAtBirth | null
   heightCm: number | null
-  pregnancyState: $Enums.PregnancyState | null
-  lactationState: $Enums.LactationState | null
   bloodType: string | null
   locale: string | null
   timezone: string | null
@@ -54,8 +52,6 @@ export type UserProfileMaxAggregateOutputType = {
   birthDate: Date | null
   sexAtBirth: $Enums.SexAtBirth | null
   heightCm: number | null
-  pregnancyState: $Enums.PregnancyState | null
-  lactationState: $Enums.LactationState | null
   bloodType: string | null
   locale: string | null
   timezone: string | null
@@ -70,8 +66,6 @@ export type UserProfileCountAggregateOutputType = {
   birthDate: number
   sexAtBirth: number
   heightCm: number
-  pregnancyState: number
-  lactationState: number
   bloodType: number
   locale: number
   timezone: number
@@ -97,8 +91,6 @@ export type UserProfileMinAggregateInputType = {
   birthDate?: true
   sexAtBirth?: true
   heightCm?: true
-  pregnancyState?: true
-  lactationState?: true
   bloodType?: true
   locale?: true
   timezone?: true
@@ -113,8 +105,6 @@ export type UserProfileMaxAggregateInputType = {
   birthDate?: true
   sexAtBirth?: true
   heightCm?: true
-  pregnancyState?: true
-  lactationState?: true
   bloodType?: true
   locale?: true
   timezone?: true
@@ -129,8 +119,6 @@ export type UserProfileCountAggregateInputType = {
   birthDate?: true
   sexAtBirth?: true
   heightCm?: true
-  pregnancyState?: true
-  lactationState?: true
   bloodType?: true
   locale?: true
   timezone?: true
@@ -233,8 +221,6 @@ export type UserProfileGroupByOutputType = {
   birthDate: Date | null
   sexAtBirth: $Enums.SexAtBirth | null
   heightCm: number | null
-  pregnancyState: $Enums.PregnancyState | null
-  lactationState: $Enums.LactationState | null
   bloodType: string | null
   locale: string | null
   timezone: string | null
@@ -273,8 +259,6 @@ export type UserProfileWhereInput = {
   birthDate?: Prisma.DateTimeNullableFilter<"UserProfile"> | Date | string | null
   sexAtBirth?: Prisma.EnumSexAtBirthNullableFilter<"UserProfile"> | $Enums.SexAtBirth | null
   heightCm?: Prisma.IntNullableFilter<"UserProfile"> | number | null
-  pregnancyState?: Prisma.EnumPregnancyStateNullableFilter<"UserProfile"> | $Enums.PregnancyState | null
-  lactationState?: Prisma.EnumLactationStateNullableFilter<"UserProfile"> | $Enums.LactationState | null
   bloodType?: Prisma.StringNullableFilter<"UserProfile"> | string | null
   locale?: Prisma.StringNullableFilter<"UserProfile"> | string | null
   timezone?: Prisma.StringNullableFilter<"UserProfile"> | string | null
@@ -291,8 +275,6 @@ export type UserProfileOrderByWithRelationInput = {
   birthDate?: Prisma.SortOrderInput | Prisma.SortOrder
   sexAtBirth?: Prisma.SortOrderInput | Prisma.SortOrder
   heightCm?: Prisma.SortOrderInput | Prisma.SortOrder
-  pregnancyState?: Prisma.SortOrderInput | Prisma.SortOrder
-  lactationState?: Prisma.SortOrderInput | Prisma.SortOrder
   bloodType?: Prisma.SortOrderInput | Prisma.SortOrder
   locale?: Prisma.SortOrderInput | Prisma.SortOrder
   timezone?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -312,8 +294,6 @@ export type UserProfileWhereUniqueInput = Prisma.AtLeast<{
   birthDate?: Prisma.DateTimeNullableFilter<"UserProfile"> | Date | string | null
   sexAtBirth?: Prisma.EnumSexAtBirthNullableFilter<"UserProfile"> | $Enums.SexAtBirth | null
   heightCm?: Prisma.IntNullableFilter<"UserProfile"> | number | null
-  pregnancyState?: Prisma.EnumPregnancyStateNullableFilter<"UserProfile"> | $Enums.PregnancyState | null
-  lactationState?: Prisma.EnumLactationStateNullableFilter<"UserProfile"> | $Enums.LactationState | null
   bloodType?: Prisma.StringNullableFilter<"UserProfile"> | string | null
   locale?: Prisma.StringNullableFilter<"UserProfile"> | string | null
   timezone?: Prisma.StringNullableFilter<"UserProfile"> | string | null
@@ -330,8 +310,6 @@ export type UserProfileOrderByWithAggregationInput = {
   birthDate?: Prisma.SortOrderInput | Prisma.SortOrder
   sexAtBirth?: Prisma.SortOrderInput | Prisma.SortOrder
   heightCm?: Prisma.SortOrderInput | Prisma.SortOrder
-  pregnancyState?: Prisma.SortOrderInput | Prisma.SortOrder
-  lactationState?: Prisma.SortOrderInput | Prisma.SortOrder
   bloodType?: Prisma.SortOrderInput | Prisma.SortOrder
   locale?: Prisma.SortOrderInput | Prisma.SortOrder
   timezone?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -355,8 +333,6 @@ export type UserProfileScalarWhereWithAggregatesInput = {
   birthDate?: Prisma.DateTimeNullableWithAggregatesFilter<"UserProfile"> | Date | string | null
   sexAtBirth?: Prisma.EnumSexAtBirthNullableWithAggregatesFilter<"UserProfile"> | $Enums.SexAtBirth | null
   heightCm?: Prisma.IntNullableWithAggregatesFilter<"UserProfile"> | number | null
-  pregnancyState?: Prisma.EnumPregnancyStateNullableWithAggregatesFilter<"UserProfile"> | $Enums.PregnancyState | null
-  lactationState?: Prisma.EnumLactationStateNullableWithAggregatesFilter<"UserProfile"> | $Enums.LactationState | null
   bloodType?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
   locale?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
   timezone?: Prisma.StringNullableWithAggregatesFilter<"UserProfile"> | string | null
@@ -371,8 +347,6 @@ export type UserProfileCreateInput = {
   birthDate?: Date | string | null
   sexAtBirth?: $Enums.SexAtBirth | null
   heightCm?: number | null
-  pregnancyState?: $Enums.PregnancyState | null
-  lactationState?: $Enums.LactationState | null
   bloodType?: string | null
   locale?: string | null
   timezone?: string | null
@@ -389,8 +363,6 @@ export type UserProfileUncheckedCreateInput = {
   birthDate?: Date | string | null
   sexAtBirth?: $Enums.SexAtBirth | null
   heightCm?: number | null
-  pregnancyState?: $Enums.PregnancyState | null
-  lactationState?: $Enums.LactationState | null
   bloodType?: string | null
   locale?: string | null
   timezone?: string | null
@@ -405,8 +377,6 @@ export type UserProfileUpdateInput = {
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sexAtBirth?: Prisma.NullableEnumSexAtBirthFieldUpdateOperationsInput | $Enums.SexAtBirth | null
   heightCm?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  pregnancyState?: Prisma.NullableEnumPregnancyStateFieldUpdateOperationsInput | $Enums.PregnancyState | null
-  lactationState?: Prisma.NullableEnumLactationStateFieldUpdateOperationsInput | $Enums.LactationState | null
   bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   timezone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -423,8 +393,6 @@ export type UserProfileUncheckedUpdateInput = {
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sexAtBirth?: Prisma.NullableEnumSexAtBirthFieldUpdateOperationsInput | $Enums.SexAtBirth | null
   heightCm?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  pregnancyState?: Prisma.NullableEnumPregnancyStateFieldUpdateOperationsInput | $Enums.PregnancyState | null
-  lactationState?: Prisma.NullableEnumLactationStateFieldUpdateOperationsInput | $Enums.LactationState | null
   bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   timezone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -440,8 +408,6 @@ export type UserProfileCreateManyInput = {
   birthDate?: Date | string | null
   sexAtBirth?: $Enums.SexAtBirth | null
   heightCm?: number | null
-  pregnancyState?: $Enums.PregnancyState | null
-  lactationState?: $Enums.LactationState | null
   bloodType?: string | null
   locale?: string | null
   timezone?: string | null
@@ -456,8 +422,6 @@ export type UserProfileUpdateManyMutationInput = {
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sexAtBirth?: Prisma.NullableEnumSexAtBirthFieldUpdateOperationsInput | $Enums.SexAtBirth | null
   heightCm?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  pregnancyState?: Prisma.NullableEnumPregnancyStateFieldUpdateOperationsInput | $Enums.PregnancyState | null
-  lactationState?: Prisma.NullableEnumLactationStateFieldUpdateOperationsInput | $Enums.LactationState | null
   bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   timezone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -473,8 +437,6 @@ export type UserProfileUncheckedUpdateManyInput = {
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sexAtBirth?: Prisma.NullableEnumSexAtBirthFieldUpdateOperationsInput | $Enums.SexAtBirth | null
   heightCm?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  pregnancyState?: Prisma.NullableEnumPregnancyStateFieldUpdateOperationsInput | $Enums.PregnancyState | null
-  lactationState?: Prisma.NullableEnumLactationStateFieldUpdateOperationsInput | $Enums.LactationState | null
   bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   timezone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -495,8 +457,6 @@ export type UserProfileCountOrderByAggregateInput = {
   birthDate?: Prisma.SortOrder
   sexAtBirth?: Prisma.SortOrder
   heightCm?: Prisma.SortOrder
-  pregnancyState?: Prisma.SortOrder
-  lactationState?: Prisma.SortOrder
   bloodType?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
@@ -516,8 +476,6 @@ export type UserProfileMaxOrderByAggregateInput = {
   birthDate?: Prisma.SortOrder
   sexAtBirth?: Prisma.SortOrder
   heightCm?: Prisma.SortOrder
-  pregnancyState?: Prisma.SortOrder
-  lactationState?: Prisma.SortOrder
   bloodType?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
@@ -532,8 +490,6 @@ export type UserProfileMinOrderByAggregateInput = {
   birthDate?: Prisma.SortOrder
   sexAtBirth?: Prisma.SortOrder
   heightCm?: Prisma.SortOrder
-  pregnancyState?: Prisma.SortOrder
-  lactationState?: Prisma.SortOrder
   bloodType?: Prisma.SortOrder
   locale?: Prisma.SortOrder
   timezone?: Prisma.SortOrder
@@ -591,14 +547,6 @@ export type NullableIntFieldUpdateOperationsInput = {
   divide?: number
 }
 
-export type NullableEnumPregnancyStateFieldUpdateOperationsInput = {
-  set?: $Enums.PregnancyState | null
-}
-
-export type NullableEnumLactationStateFieldUpdateOperationsInput = {
-  set?: $Enums.LactationState | null
-}
-
 export type NullableEnumUnitSystemFieldUpdateOperationsInput = {
   set?: $Enums.UnitSystem | null
 }
@@ -607,8 +555,6 @@ export type UserProfileCreateWithoutUserInput = {
   birthDate?: Date | string | null
   sexAtBirth?: $Enums.SexAtBirth | null
   heightCm?: number | null
-  pregnancyState?: $Enums.PregnancyState | null
-  lactationState?: $Enums.LactationState | null
   bloodType?: string | null
   locale?: string | null
   timezone?: string | null
@@ -623,8 +569,6 @@ export type UserProfileUncheckedCreateWithoutUserInput = {
   birthDate?: Date | string | null
   sexAtBirth?: $Enums.SexAtBirth | null
   heightCm?: number | null
-  pregnancyState?: $Enums.PregnancyState | null
-  lactationState?: $Enums.LactationState | null
   bloodType?: string | null
   locale?: string | null
   timezone?: string | null
@@ -655,8 +599,6 @@ export type UserProfileUpdateWithoutUserInput = {
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sexAtBirth?: Prisma.NullableEnumSexAtBirthFieldUpdateOperationsInput | $Enums.SexAtBirth | null
   heightCm?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  pregnancyState?: Prisma.NullableEnumPregnancyStateFieldUpdateOperationsInput | $Enums.PregnancyState | null
-  lactationState?: Prisma.NullableEnumLactationStateFieldUpdateOperationsInput | $Enums.LactationState | null
   bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   timezone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -671,8 +613,6 @@ export type UserProfileUncheckedUpdateWithoutUserInput = {
   birthDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   sexAtBirth?: Prisma.NullableEnumSexAtBirthFieldUpdateOperationsInput | $Enums.SexAtBirth | null
   heightCm?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  pregnancyState?: Prisma.NullableEnumPregnancyStateFieldUpdateOperationsInput | $Enums.PregnancyState | null
-  lactationState?: Prisma.NullableEnumLactationStateFieldUpdateOperationsInput | $Enums.LactationState | null
   bloodType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   locale?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   timezone?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -690,8 +630,6 @@ export type UserProfileSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   birthDate?: boolean
   sexAtBirth?: boolean
   heightCm?: boolean
-  pregnancyState?: boolean
-  lactationState?: boolean
   bloodType?: boolean
   locale?: boolean
   timezone?: boolean
@@ -708,8 +646,6 @@ export type UserProfileSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   birthDate?: boolean
   sexAtBirth?: boolean
   heightCm?: boolean
-  pregnancyState?: boolean
-  lactationState?: boolean
   bloodType?: boolean
   locale?: boolean
   timezone?: boolean
@@ -726,8 +662,6 @@ export type UserProfileSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   birthDate?: boolean
   sexAtBirth?: boolean
   heightCm?: boolean
-  pregnancyState?: boolean
-  lactationState?: boolean
   bloodType?: boolean
   locale?: boolean
   timezone?: boolean
@@ -744,8 +678,6 @@ export type UserProfileSelectScalar = {
   birthDate?: boolean
   sexAtBirth?: boolean
   heightCm?: boolean
-  pregnancyState?: boolean
-  lactationState?: boolean
   bloodType?: boolean
   locale?: boolean
   timezone?: boolean
@@ -756,7 +688,7 @@ export type UserProfileSelectScalar = {
   updatedAt?: boolean
 }
 
-export type UserProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"userId" | "birthDate" | "sexAtBirth" | "heightCm" | "pregnancyState" | "lactationState" | "bloodType" | "locale" | "timezone" | "unitSystem" | "onboardingCompletedAt" | "extras" | "createdAt" | "updatedAt", ExtArgs["result"]["userProfile"]>
+export type UserProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"userId" | "birthDate" | "sexAtBirth" | "heightCm" | "bloodType" | "locale" | "timezone" | "unitSystem" | "onboardingCompletedAt" | "extras" | "createdAt" | "updatedAt", ExtArgs["result"]["userProfile"]>
 export type UserProfileInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -777,8 +709,6 @@ export type $UserProfilePayload<ExtArgs extends runtime.Types.Extensions.Interna
     birthDate: Date | null
     sexAtBirth: $Enums.SexAtBirth | null
     heightCm: number | null
-    pregnancyState: $Enums.PregnancyState | null
-    lactationState: $Enums.LactationState | null
     bloodType: string | null
     locale: string | null
     timezone: string | null
@@ -1215,8 +1145,6 @@ export interface UserProfileFieldRefs {
   readonly birthDate: Prisma.FieldRef<"UserProfile", 'DateTime'>
   readonly sexAtBirth: Prisma.FieldRef<"UserProfile", 'SexAtBirth'>
   readonly heightCm: Prisma.FieldRef<"UserProfile", 'Int'>
-  readonly pregnancyState: Prisma.FieldRef<"UserProfile", 'PregnancyState'>
-  readonly lactationState: Prisma.FieldRef<"UserProfile", 'LactationState'>
   readonly bloodType: Prisma.FieldRef<"UserProfile", 'String'>
   readonly locale: Prisma.FieldRef<"UserProfile", 'String'>
   readonly timezone: Prisma.FieldRef<"UserProfile", 'String'>

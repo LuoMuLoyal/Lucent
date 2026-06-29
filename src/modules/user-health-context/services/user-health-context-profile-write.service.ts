@@ -56,16 +56,6 @@ export class UserHealthContextProfileWriteService {
       createData.heightCm = dto.heightCm;
     }
 
-    if (dto.pregnancyState !== undefined) {
-      updateData.pregnancyState = dto.pregnancyState;
-      createData.pregnancyState = dto.pregnancyState;
-    }
-
-    if (dto.lactationState !== undefined) {
-      updateData.lactationState = dto.lactationState;
-      createData.lactationState = dto.lactationState;
-    }
-
     if (dto.bloodType !== undefined) {
       const blood = normalizeNullableText(dto.bloodType);
       updateData.bloodType = blood;

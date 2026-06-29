@@ -1,8 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
-  LactationState,
   MedicineSource,
-  PregnancyState,
   SexAtBirth,
   UnitSystem,
   UserAllergyKind,
@@ -75,24 +73,6 @@ class UserHealthProfileDto {
     nullable: true,
   })
   heightCm!: number | null;
-
-  @ApiProperty({
-    description: 'Pregnancy state for personalized medical guidance.',
-    enum: PregnancyState,
-    enumName: 'PregnancyState',
-    example: PregnancyState.not_pregnant,
-    nullable: true,
-  })
-  pregnancyState!: PregnancyState | null;
-
-  @ApiProperty({
-    description: 'Lactation state for personalized medical guidance.',
-    enum: LactationState,
-    enumName: 'LactationState',
-    example: LactationState.no,
-    nullable: true,
-  })
-  lactationState!: LactationState | null;
 
   @ApiProperty({
     description: 'Blood type.',

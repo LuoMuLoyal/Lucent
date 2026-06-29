@@ -10,12 +10,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import {
-  LactationState,
-  PregnancyState,
-  SexAtBirth,
-  UnitSystem,
-} from '../../../generated/prisma/client';
+import { SexAtBirth, UnitSystem } from '../../../generated/prisma/client';
 
 export class UpdateHealthContextProfileDto {
   @ApiPropertyOptional({
@@ -85,30 +80,6 @@ export class UpdateHealthContextProfileDto {
   @Min(1)
   @Max(300)
   heightCm?: number | null;
-
-  @ApiPropertyOptional({
-    description:
-      'Pregnancy state for personalized medical guidance. Use null to clear.',
-    enum: PregnancyState,
-    enumName: 'PregnancyState',
-    example: PregnancyState.not_pregnant,
-    nullable: true,
-  })
-  @IsOptional()
-  @IsEnum(PregnancyState)
-  pregnancyState?: PregnancyState | null;
-
-  @ApiPropertyOptional({
-    description:
-      'Lactation state for personalized medical guidance. Use null to clear.',
-    enum: LactationState,
-    enumName: 'LactationState',
-    example: LactationState.no,
-    nullable: true,
-  })
-  @IsOptional()
-  @IsEnum(LactationState)
-  lactationState?: LactationState | null;
 
   @ApiPropertyOptional({
     description: 'Blood type. Use null to clear.',

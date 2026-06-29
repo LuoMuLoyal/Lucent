@@ -24,7 +24,5 @@ Keep durable implementation context in the owning code comments when the TODO is
 
 - Add optional 2FA challenge verification before issuing tokens.
   Source context: `src/modules/auth/services/credential-auth.service.ts`
-- Expose device/session management so users can review and revoke individual sessions.
-  Source context: `src/modules/auth/auth.service.ts`
 - Add more OAuth providers such as Apple or Google when product scope requires them.
   Source context: `src/modules/auth/types/oauth.types.ts`

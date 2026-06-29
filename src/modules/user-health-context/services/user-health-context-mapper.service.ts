@@ -14,8 +14,6 @@ export class UserHealthContextMapperService {
       birthDate: this.formatDateOnly(user.profile?.birthDate ?? null),
       sexAtBirth: user.profile?.sexAtBirth ?? null,
       heightCm: user.profile?.heightCm ?? null,
-      pregnancyState: user.profile?.pregnancyState ?? null,
-      lactationState: user.profile?.lactationState ?? null,
       bloodType: user.profile?.bloodType ?? null,
       locale: user.profile?.locale ?? null,
       timezone: user.profile?.timezone ?? null,

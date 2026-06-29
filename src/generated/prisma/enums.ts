@@ -27,28 +27,6 @@ export const SexAtBirth = {
 export type SexAtBirth = (typeof SexAtBirth)[keyof typeof SexAtBirth]
 
 
-export const PregnancyState = {
-  not_applicable: 'not_applicable',
-  unknown: 'unknown',
-  not_pregnant: 'not_pregnant',
-  pregnant: 'pregnant',
-  trying: 'trying',
-  postpartum: 'postpartum'
-} as const
-
-export type PregnancyState = (typeof PregnancyState)[keyof typeof PregnancyState]
-
-
-export const LactationState = {
-  not_applicable: 'not_applicable',
-  unknown: 'unknown',
-  no: 'no',
-  yes: 'yes'
-} as const
-
-export type LactationState = (typeof LactationState)[keyof typeof LactationState]
-
-
 export const UnitSystem = {
   metric: 'metric',
   imperial: 'imperial'

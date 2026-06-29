@@ -21,22 +21,6 @@ enum SexAtBirth {
   unknown
 }
 
-enum PregnancyState {
-  not_applicable
-  unknown
-  not_pregnant
-  pregnant
-  trying
-  postpartum
-}
-
-enum LactationState {
-  not_applicable
-  unknown
-  no
-  yes
-}
-
 enum UnitSystem {
   metric
   imperial
@@ -190,8 +174,6 @@ model UserProfile {
   birthDate             DateTime?       @map("birth_date") @db.Date
   sexAtBirth            SexAtBirth?     @map("sex_at_birth")
   heightCm              Int?            @map("height_cm")
-  pregnancyState        PregnancyState? @map("pregnancy_state")
-  lactationState        LactationState? @map("lactation_state")
   bloodType             String?         @map("blood_type")
   locale                String?
   timezone              String?
@@ -480,9 +462,6 @@ model CnMedicineProduct {
   adverseReactions       String?           @map("adverse_reactions")
   contraindications      String?
   precautions            String?
-  pediatricUse           String?           @map("pediatric_use")
-  geriatricUse           String?           @map("geriatric_use")
-  pregnancyLactation     String?           @map("pregnancy_lactation")
   pharmacologyToxicology String?           @map("pharmacology_toxicology")
   drugInteractions       String?           @map("drug_interactions")
   pharmacokinetics       String?
@@ -555,9 +534,6 @@ model CnMedicineLeaflet {
   dosage                 String?
   contraindications      String?
   precautions            String?
-  pregnancyLactation     String?                       @map("pregnancy_lactation")
-  pediatricUse           String?                       @map("pediatric_use")
-  geriatricUse           String?                       @map("geriatric_use")
   drugInteractions       String?                       @map("drug_interactions")
   pharmacologyToxicology String?                       @map("pharmacology_toxicology")
   pharmacokinetics       String?

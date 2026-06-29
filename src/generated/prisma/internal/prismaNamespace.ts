@@ -2654,8 +2654,6 @@ export const UserProfileScalarFieldEnum = {
   birthDate: 'birthDate',
   sexAtBirth: 'sexAtBirth',
   heightCm: 'heightCm',
-  pregnancyState: 'pregnancyState',
-  lactationState: 'lactationState',
   bloodType: 'bloodType',
   locale: 'locale',
   timezone: 'timezone',
@@ -2901,9 +2899,6 @@ export const CnMedicineProductScalarFieldEnum = {
   adverseReactions: 'adverseReactions',
   contraindications: 'contraindications',
   precautions: 'precautions',
-  pediatricUse: 'pediatricUse',
-  geriatricUse: 'geriatricUse',
-  pregnancyLactation: 'pregnancyLactation',
   pharmacologyToxicology: 'pharmacologyToxicology',
   drugInteractions: 'drugInteractions',
   pharmacokinetics: 'pharmacokinetics',
@@ -2966,9 +2961,6 @@ export const CnMedicineLeafletScalarFieldEnum = {
   dosage: 'dosage',
   contraindications: 'contraindications',
   precautions: 'precautions',
-  pregnancyLactation: 'pregnancyLactation',
-  pediatricUse: 'pediatricUse',
-  geriatricUse: 'geriatricUse',
   drugInteractions: 'drugInteractions',
   pharmacologyToxicology: 'pharmacologyToxicology',
   pharmacokinetics: 'pharmacokinetics',
@@ -3374,34 +3366,6 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'Int[]'
  */
 export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-/**
- * Reference to a field of type 'PregnancyState'
- */
-export type EnumPregnancyStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PregnancyState'>
-    
-
-
-/**
- * Reference to a field of type 'PregnancyState[]'
- */
-export type ListEnumPregnancyStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PregnancyState[]'>
-    
-
-
-/**
- * Reference to a field of type 'LactationState'
- */
-export type EnumLactationStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LactationState'>
-    
-
-
-/**
- * Reference to a field of type 'LactationState[]'
- */
-export type ListEnumLactationStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'LactationState[]'>
     
 
 

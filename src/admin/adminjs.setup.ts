@@ -158,8 +158,6 @@ const coreResourceOverrides: Record<string, Partial<AdminResourceConfig>> = {
       'birthDate',
       'sexAtBirth',
       'heightCm',
-      'pregnancyState',
-      'lactationState',
       'bloodType',
       'locale',
       'timezone',
