@@ -85,6 +85,9 @@ importers:
       cache-manager-ioredis-yet:
         specifier: ^2.1.2
         version: 2.1.2
+      chart.js:
+        specifier: ^4.5.1
+        version: 4.5.1
       class-transformer:
         specifier: ^0.5.1
         version: 0.5.1
@@ -145,6 +148,9 @@ importers:
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
+      quickchart-js:
+        specifier: ^3.1.3
+        version: 3.1.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -6492,6 +6498,12 @@ packages:
     engines: { node: '>=20' }
     hasBin: true
 
+  cross-fetch@3.2.0:
+    resolution:
+      {
+        integrity: sha512-Q+xVJLoGOeIMXZmbUK4HYk+69cQH6LudR0Vu/pRm2YlU/hDV9CiS0gKUMaWY5f2NeUH9C1nV3bsTlCo0FsTV1Q==,
+      }
+
   cross-fetch@4.0.0:
     resolution:
       {
@@ -8303,6 +8315,12 @@ packages:
     resolution:
       {
         integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==,
+      }
+
+  javascript-stringify@2.1.0:
+    resolution:
+      {
+        integrity: sha512-JVAfqNPTvNq3sB/VHQJAFxN/sPgKnsKrCwyRt15zwNCdrMMJDdcEOdubuy+DuJYYdm0ox1J4uzEuYKkN+9yhVg==,
       }
 
   jest-changed-files@30.4.1:
@@ -10336,6 +10354,12 @@ packages:
         integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==,
       }
     engines: { node: '>=10' }
+
+  quickchart-js@3.1.3:
+    resolution:
+      {
+        integrity: sha512-QzPUXBA/UntYBbOMITtMz7B426fes1XFmmjmjA070jXeMWhyhDojJf2aSZPsekj35ywfJhWjY6TKf3S0/XxyAg==,
+      }
 
   raf-schd@4.0.3:
     resolution:
@@ -16633,6 +16657,12 @@ snapshots:
       '@epic-web/invariant': 1.0.0
       cross-spawn: 7.0.6
 
+  cross-fetch@3.2.0:
+    dependencies:
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+
   cross-fetch@4.0.0:
     dependencies:
       node-fetch: 2.7.0
@@ -17696,6 +17726,8 @@ snapshots:
       '@isaacs/cliui': 8.0.2
     optionalDependencies:
       '@pkgjs/parseargs': 0.11.0
+
+  javascript-stringify@2.1.0: {}
 
   jest-changed-files@30.4.1:
     dependencies:
@@ -19009,6 +19041,13 @@ snapshots:
   qs@6.5.5: {}
 
   quick-lru@5.1.1: {}
+
+  quickchart-js@3.1.3:
+    dependencies:
+      cross-fetch: 3.2.0
+      javascript-stringify: 2.1.0
+    transitivePeerDependencies:
+      - encoding
 
   raf-schd@4.0.3: {}
 

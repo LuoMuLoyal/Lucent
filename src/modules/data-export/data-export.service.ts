@@ -9,6 +9,7 @@ import {
   type DataExportRequestDataDto,
 } from './dto';
 import { DataExportStorageService } from './services/data-export-storage.service';
+import { DataExportQueueService } from './services/data-export-queue.service';
 import { ReportExportPdfService } from './services/report-export-pdf.service';
 import type { ReportDashboardDataDto } from '../reports/dto';
 
@@ -41,6 +42,7 @@ export class DataExportService {
     private readonly reportsService: ReportsService,
     private readonly storageService: DataExportStorageService,
     private readonly reportExportPdfService: ReportExportPdfService,
+    private readonly queueService: DataExportQueueService,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -55,6 +57,20 @@ export class DataExportService {
     const effectiveRange =
       kind === 'monthly' ? MONTHLY_EXPORT_RANGE : requestedRange;
 
+    if (!this.storageService.isConfigured()) {
+      const created = await this.prisma.dataExportRequest.create({
+        data: {
+          userId,
+          kind,
+          format,
+          range: effectiveRange,
+          status: 'unavailable',
+          errorMessage: 'Tencent COS export storage is not configured',
+        },
+      });
+      return this.toDto(created);
+    }
+
     const created = await this.prisma.dataExportRequest.create({
       data: {
         userId,
@@ -65,34 +81,41 @@ export class DataExportService {
       },
     });
 
-    if (!this.storageService.isConfigured()) {
-      const unavailable = await this.prisma.dataExportRequest.update({
-        where: { id: created.id },
-        data: {
-          status: 'unavailable',
-          errorMessage: 'Tencent COS export storage is not configured',
-        },
+    // Enqueue async processing via BullMQ
+    if (this.queueService.isConfigured) {
+      await this.queueService.enqueue({
+        exportRequestId: created.id,
+        userId,
+        language,
       });
-
-      return this.toDto(unavailable);
+      return this.toDto(created);
     }
 
+    // Fallback: synchronous inline processing when queue is unavailable
+    return this.processInline(created, userId, language);
+  }
+
+  private async processInline(
+    row: DataExportRequestRow,
+    userId: string,
+    language: string,
+  ): Promise<DataExportRequestDataDto> {
     const processing = await this.prisma.dataExportRequest.update({
-      where: { id: created.id },
-      data: {
-        status: 'processing',
-        errorMessage: null,
-      },
+      where: { id: row.id },
+      data: { status: 'processing', errorMessage: null },
     });
 
     try {
       const report = await this.reportsService.getDashboard(
         userId,
-        { range: effectiveRange },
+        { range: row.range as 'last_7_days' | 'last_30_days' },
         language,
       );
-      const pdf = await this._buildPdfForKind(kind, language, report);
-      const fileName = this.createFileName(kind, effectiveRange);
+      const pdf = await this._buildPdfForKind(row.kind, language, report);
+      const fileName = this.createFileName(
+        row.kind as CreateDataExportRequestDto['kind'],
+        row.range as CreateDataExportRequestDto['range'],
+      );
       const uploaded = await this.storageService.uploadPdf({
         userId,
         fileName,

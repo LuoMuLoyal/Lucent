@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment */
 import type { PrismaService } from '../../prisma/prisma.service';
 import type { ReportsService } from '../reports/dashboard/reports.service';
 import { DataExportService } from './data-export.service';
@@ -22,11 +23,13 @@ describe('DataExportService', () => {
     const notificationsService = {
       create: jest.fn(),
     } as unknown as NotificationsService;
+    const queueService = { isConfigured: false, enqueue: jest.fn() } as any;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      queueService,
       notificationsService,
     );
 
@@ -41,7 +44,6 @@ describe('DataExportService', () => {
     expect(result.format).toBe('pdf');
     expect(result.range).toBe('last_7_days');
     expect(prisma.dataExportRequest.create).toHaveBeenCalledTimes(1);
-    expect(prisma.dataExportRequest.update).toHaveBeenCalledTimes(1);
     expect(storageService.uploadPdf).not.toHaveBeenCalled();
   });
 
@@ -68,11 +70,13 @@ describe('DataExportService', () => {
     const notificationsService = {
       create: jest.fn(),
     } as unknown as NotificationsService;
+    const queueService = { isConfigured: false, enqueue: jest.fn() } as any;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      queueService,
       notificationsService,
     );
 
@@ -114,11 +118,13 @@ describe('DataExportService', () => {
     const notificationsService = {
       create: jest.fn(),
     } as unknown as NotificationsService;
+    const queueService = { isConfigured: false, enqueue: jest.fn() } as any;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      queueService,
       notificationsService,
     );
 
@@ -158,11 +164,13 @@ describe('DataExportService', () => {
     const notificationsService = {
       create: jest.fn(),
     } as unknown as NotificationsService;
+    const queueService = { isConfigured: false, enqueue: jest.fn() } as any;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      queueService,
       notificationsService,
     );
 
@@ -211,11 +219,13 @@ describe('DataExportService', () => {
     const notificationsService = {
       create: jest.fn(),
     } as unknown as NotificationsService;
+    const queueService = { isConfigured: false, enqueue: jest.fn() } as any;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      queueService,
       notificationsService,
     );
 
@@ -257,11 +267,13 @@ describe('DataExportService', () => {
     const notificationsService = {
       create: jest.fn(),
     } as unknown as NotificationsService;
+    const queueService = { isConfigured: false, enqueue: jest.fn() } as any;
     const service = new DataExportService(
       prisma,
       reportsService,
       storageService,
       pdfService,
+      queueService,
       notificationsService,
     );
 

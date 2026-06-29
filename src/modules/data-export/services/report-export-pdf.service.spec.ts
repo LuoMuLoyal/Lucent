@@ -1,8 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { PDFDocument } from 'pdf-lib';
 import { ReportExportPdfService } from './report-export-pdf.service';
 
+const mockChartService = {
+  buildTrendChart: jest.fn().mockResolvedValue(null),
+  buildScoreChart: jest.fn().mockResolvedValue(null),
+} as any;
+
 describe('ReportExportPdfService', () => {
-  const service = new ReportExportPdfService();
+  const service = new ReportExportPdfService(mockChartService);
 
   it('builds a multi-page hospital pdf with metadata', async () => {
     const pdfBytes = await service.buildHospitalPdf({

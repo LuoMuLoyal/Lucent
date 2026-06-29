@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
 import type { ReportDashboardDataDto } from '../../reports/dto';
+import { ReportChartService } from './report-chart.service';
 import {
   kindLabel,
   statusLabel,
@@ -35,6 +36,11 @@ type ReportPdfKind = 'hospital' | 'monthly' | 'print';
 
 @Injectable()
 export class ReportExportPdfService {
+  constructor(private readonly chartService: ReportChartService) {
+    // Chart service available for future PDF chart embedding (P3 groundwork)
+    void this.chartService;
+  }
+
   async buildHospitalPdf(input: {
     locale: string;
     report: ReportDashboardDataDto;

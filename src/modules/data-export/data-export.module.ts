@@ -7,7 +7,9 @@ import { DataExportCosRuntime } from './config/data-export-cos.runtime';
 import { DataExportController } from './data-export.controller';
 import { DataExportService } from './data-export.service';
 import { DataExportStorageService } from './services/data-export-storage.service';
+import { DataExportQueueService } from './services/data-export-queue.service';
 import { ReportExportPdfService } from './services/report-export-pdf.service';
+import { ReportChartService } from './services/report-chart.service';
 
 @Module({
   imports: [AuthModule, ReportsModule, NotificationsModule],
@@ -16,6 +18,8 @@ import { ReportExportPdfService } from './services/report-export-pdf.service';
     DataExportCosRuntime,
     DataExportStorageService,
     ReportExportPdfService,
+    ReportChartService,
+    DataExportQueueService,
     DataExportService,
   ],
 })
