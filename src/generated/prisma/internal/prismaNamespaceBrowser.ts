@@ -106,6 +106,9 @@ export const UserScalarFieldEnum = {
   status: 'status',
   emailVerifiedAt: 'emailVerifiedAt',
   lastLoginAt: 'lastLoginAt',
+  twoFactorEnabled: 'twoFactorEnabled',
+  twoFactorSecret: 'twoFactorSecret',
+  twoFactorRecoveryCodes: 'twoFactorRecoveryCodes',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

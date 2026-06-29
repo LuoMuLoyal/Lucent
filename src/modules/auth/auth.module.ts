@@ -11,6 +11,7 @@ import { AuthTokenService } from './services/auth-token.service';
 import { AuthOAuthStateService } from './services/auth-oauth-state.service';
 import { AuthOAuthService } from './services/auth-oauth.service';
 import { CredentialAuthService } from './services/credential-auth.service';
+import { AuthTwoFactorService } from './services/auth-two-factor.service';
 import { VerificationCodeService } from './services/verification-code.service';
 import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
@@ -31,6 +32,7 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
     AuthOAuthStateService,
     AuthOAuthService,
     CredentialAuthService,
+    AuthTwoFactorService,
     JwtAccessStrategy,
     VerificationCodeService,
     WechatMobileOAuthProvider,

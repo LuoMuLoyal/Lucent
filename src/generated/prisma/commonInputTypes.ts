@@ -61,6 +61,11 @@ export type DateTimeNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
 }
 
+export type BoolFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
+}
+
 export type DateTimeFilter<$PrismaModel = never> = {
   equals?: Date | string | Prisma.DateTimeFieldRefInput<$PrismaModel>
   in?: Date[] | string[] | Prisma.ListDateTimeFieldRefInput<$PrismaModel>
@@ -135,6 +140,14 @@ export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
   _max?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
+}
+
+export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedBoolFilter<$PrismaModel>
+  _max?: Prisma.NestedBoolFilter<$PrismaModel>
 }
 
 export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -304,11 +317,6 @@ export type EnumUserDevicePlatformFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumUserDevicePlatformFilter<$PrismaModel> | $Enums.UserDevicePlatform
 }
 
-export type BoolFilter<$PrismaModel = never> = {
-  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
-}
-
 export type EnumUserDevicePlatformWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.UserDevicePlatform | Prisma.EnumUserDevicePlatformFieldRefInput<$PrismaModel>
   in?: $Enums.UserDevicePlatform[] | Prisma.ListEnumUserDevicePlatformFieldRefInput<$PrismaModel>
@@ -317,14 +325,6 @@ export type EnumUserDevicePlatformWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumUserDevicePlatformFilter<$PrismaModel>
   _max?: Prisma.NestedEnumUserDevicePlatformFilter<$PrismaModel>
-}
-
-export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedBoolFilter<$PrismaModel>
-  _max?: Prisma.NestedBoolFilter<$PrismaModel>
 }
 
 export type EnumUserAllergyKindFilter<$PrismaModel = never> = {
@@ -651,6 +651,11 @@ export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
   not?: Prisma.NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
 }
 
+export type NestedBoolFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
+}
+
 export type NestedDateTimeFilter<$PrismaModel = never> = {
   equals?: Date | string | Prisma.DateTimeFieldRefInput<$PrismaModel>
   in?: Date[] | string[] | Prisma.ListDateTimeFieldRefInput<$PrismaModel>
@@ -740,6 +745,14 @@ export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
   _max?: Prisma.NestedDateTimeNullableFilter<$PrismaModel>
+}
+
+export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedBoolFilter<$PrismaModel>
+  _max?: Prisma.NestedBoolFilter<$PrismaModel>
 }
 
 export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -882,11 +895,6 @@ export type NestedEnumUserDevicePlatformFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumUserDevicePlatformFilter<$PrismaModel> | $Enums.UserDevicePlatform
 }
 
-export type NestedBoolFilter<$PrismaModel = never> = {
-  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
-}
-
 export type NestedEnumUserDevicePlatformWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.UserDevicePlatform | Prisma.EnumUserDevicePlatformFieldRefInput<$PrismaModel>
   in?: $Enums.UserDevicePlatform[] | Prisma.ListEnumUserDevicePlatformFieldRefInput<$PrismaModel>
@@ -895,14 +903,6 @@ export type NestedEnumUserDevicePlatformWithAggregatesFilter<$PrismaModel = neve
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumUserDevicePlatformFilter<$PrismaModel>
   _max?: Prisma.NestedEnumUserDevicePlatformFilter<$PrismaModel>
-}
-
-export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedBoolFilter<$PrismaModel>
-  _max?: Prisma.NestedBoolFilter<$PrismaModel>
 }
 
 export type NestedEnumUserAllergyKindFilter<$PrismaModel = never> = {

@@ -309,4 +309,22 @@ export class AuthService {
       action: '/account',
     });
   }
+
+  // ── 2FA delegation ────────────────────────────────────────────
+
+  async setupTwoFactor(userId: string) {
+    return this.credentialAuthService.setupTwoFactor(userId);
+  }
+
+  async confirmTwoFactor(userId: string, code: string) {
+    return this.credentialAuthService.confirmTwoFactor(userId, code);
+  }
+
+  async verifyTwoFactor(dto: { code: string; tempToken: string }) {
+    return this.credentialAuthService.verifyTwoFactor(dto.tempToken, dto.code);
+  }
+
+  async disableTwoFactor(userId: string) {
+    return this.credentialAuthService.disableTwoFactor(userId);
+  }
 }

@@ -510,10 +510,6 @@ export type EnumUserDevicePlatformFieldUpdateOperationsInput = {
   set?: $Enums.UserDevicePlatform
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type UserDeviceCreateWithoutUserInput = {
   id?: string
   platform: $Enums.UserDevicePlatform

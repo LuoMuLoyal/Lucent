@@ -62,6 +62,7 @@ import {
   SuccessResponseDto,
   VerifyEmailResponseDto,
 } from './dto/responses';
+import { ConfirmTwoFactorDto, VerifyTwoFactorDto } from './dto/two-factor.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -261,6 +262,58 @@ export class AuthController {
     @Param('sessionId') sessionId: string,
   ) {
     await this.authTokenService.revokeById(user.sub, sessionId);
+    return successEnvelope(null);
+  }
+
+  // ── 3d. POST /api/v1/auth/2fa/setup ────────────────────────────
+
+  @Post('2fa/setup')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '生成 2FA 绑定密钥和二维码' })
+  async setupTwoFactor(@CurrentUser() user: UserPayload) {
+    const result = await this.authService.setupTwoFactor(user.sub);
+    return successEnvelope(result);
+  }
+
+  // ── 3e. POST /api/v1/auth/2fa/confirm ──────────────────────────
+
+  @Post('2fa/confirm')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '确认 2FA 绑定（校验 TOTP）' })
+  async confirmTwoFactor(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: ConfirmTwoFactorDto,
+  ) {
+    const recoveryCodes = await this.authService.confirmTwoFactor(
+      user.sub,
+      dto.code,
+    );
+    return successEnvelope({ recoveryCodes });
+  }
+
+  // ── 3f. POST /api/v1/auth/2fa/verify ───────────────────────────
+
+  @Post('2fa/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '登录后验证 TOTP 或恢复码，签发正式 token' })
+  async verifyTwoFactor(@Body() dto: VerifyTwoFactorDto) {
+    const result = await this.authService.verifyTwoFactor(dto);
+    return successEnvelope(result);
+  }
+
+  // ── 3g. DELETE /api/v1/auth/2fa ────────────────────────────────
+
+  @Delete('2fa')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '禁用 2FA' })
+  async disableTwoFactor(@CurrentUser() user: UserPayload) {
+    await this.authService.disableTwoFactor(user.sub);
     return successEnvelope(null);
   }
 

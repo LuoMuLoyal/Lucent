@@ -2625,6 +2625,9 @@ export const UserScalarFieldEnum = {
   status: 'status',
   emailVerifiedAt: 'emailVerifiedAt',
   lastLoginAt: 'lastLoginAt',
+  twoFactorEnabled: 'twoFactorEnabled',
+  twoFactorSecret: 'twoFactorSecret',
+  twoFactorRecoveryCodes: 'twoFactorRecoveryCodes',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -3328,6 +3331,13 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+/**
  * Reference to a field of type 'Json'
  */
 export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -3408,13 +3418,6 @@ export type EnumUserDevicePlatformFieldRefInput<$PrismaModel> = FieldRefInputTyp
  * Reference to a field of type 'UserDevicePlatform[]'
  */
 export type ListEnumUserDevicePlatformFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserDevicePlatform[]'>
-    
-
-
-/**
- * Reference to a field of type 'Boolean'
- */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 

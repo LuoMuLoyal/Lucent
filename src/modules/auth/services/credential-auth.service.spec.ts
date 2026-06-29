@@ -7,11 +7,18 @@ import {
 } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
+jest.mock('otplib', () => ({
+  generateSecret: jest.fn(() => 'MOCK_TOTP_SECRET'),
+  generateURI: jest.fn(() => 'otpauth://totp/Lumos:test?secret=MOCK'),
+  verify: jest.fn(() => Promise.resolve({ valid: true })),
+}));
+
 import { CredentialAuthService } from './credential-auth.service';
 import { UserService } from '../../user/user.service';
 import { VerificationCodeService } from './verification-code.service';
 import { AuthTokenService } from './auth-token.service';
 import { AuthRateLimitService } from './auth-rate-limit.service';
+import { AuthTwoFactorService } from './auth-two-factor.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import type { NotificationListItemDto } from '../../notifications/dto/notifications-response.dto';
 import { ResultCode } from '../../../common/api-envelope';
@@ -37,7 +44,10 @@ const mockUser: User = {
   avatar: null,
   status: UserStatus.active,
   emailVerifiedAt: new Date('2026-01-01'),
-  lastLoginAt: new Date('2026-06-01'),
+  lastLoginAt: new Date('2026-01-01T00:00:00Z'),
+  twoFactorEnabled: false,
+  twoFactorSecret: null,
+  twoFactorRecoveryCodes: null,
   deletedAt: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-06-01'),
@@ -137,6 +147,18 @@ describe('CredentialAuthService', () => {
           provide: I18nService,
           useValue: {
             t: jest.fn((key: string) => key),
+          },
+        },
+        {
+          provide: AuthTwoFactorService,
+          useValue: {
+            generateSetup: jest.fn(),
+            confirmSetup: jest.fn(),
+            verifyCode: jest.fn().mockResolvedValue(true),
+            useRecoveryCode: jest.fn(),
+            disable: jest.fn(),
+            createTempToken: jest.fn(() => 'mock-temp-token'),
+            verifyTempToken: jest.fn(() => true),
           },
         },
       ],

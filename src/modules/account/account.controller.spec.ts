@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument */
 
+jest.mock('otplib', () => ({
+  generateSecret: jest.fn(() => 'MOCK_SECRET'),
+  generateURI: jest.fn(() => 'otpauth://'),
+  verify: jest.fn(() => Promise.resolve({ valid: true })),
+}));
+
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import type { UserPayload } from '../auth/services/auth-token.service';

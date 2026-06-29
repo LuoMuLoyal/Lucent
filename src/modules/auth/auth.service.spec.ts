@@ -1,4 +1,11 @@
 import { nonDeleted } from '../../common/utils/prisma.helpers';
+
+jest.mock('otplib', () => ({
+  generateSecret: jest.fn(() => 'MOCK_SECRET'),
+  generateURI: jest.fn(() => 'otpauth://'),
+  verify: jest.fn(() => Promise.resolve({ valid: true })),
+}));
+
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import {
@@ -45,6 +52,9 @@ const mockUser = {
   status: UserStatus.active,
   emailVerifiedAt: null,
   lastLoginAt: null,
+  twoFactorEnabled: false,
+  twoFactorSecret: null,
+  twoFactorRecoveryCodes: null,
   ...nonDeleted,
   createdAt: new Date('2026-01-01T00:00:00Z'),
   updatedAt: new Date('2026-01-01T00:00:00Z'),

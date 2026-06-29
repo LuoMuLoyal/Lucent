@@ -30,6 +30,7 @@ import {
   type TokenPair,
 } from './auth-token.service';
 import { AuthRateLimitService } from './auth-rate-limit.service';
+import { AuthTwoFactorService } from './auth-two-factor.service';
 
 /**
  * Handles email/password credential flows: registration, login,
@@ -42,6 +43,7 @@ export class CredentialAuthService {
     private readonly verificationCodeService: VerificationCodeService,
     private readonly authTokenService: AuthTokenService,
     private readonly authRateLimitService: AuthRateLimitService,
+    private readonly authTwoFactorService: AuthTwoFactorService,
     private readonly notificationsService: NotificationsService,
     private readonly i18n: I18nService,
   ) {}
@@ -125,11 +127,61 @@ export class CredentialAuthService {
       status: UserStatus.active,
     });
 
+    // 2FA check: if enabled, return temp token instead of real tokens
+    if (updatedUser.twoFactorEnabled) {
+      const tempToken = this.authTwoFactorService.createTempToken(
+        updatedUser.id,
+      );
+      return {
+        user: updatedUser,
+        requiresTwoFactor: true,
+        tempToken,
+      } as unknown as { user: User } & TokenPair;
+    }
+
     const tokens = await this.authTokenService.generateTokenPair(
       updatedUser,
       context,
     );
     return { user: updatedUser, ...tokens };
+  }
+
+  async verifyTwoFactor(
+    tempToken: string,
+    code: string,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
+    const { userId } = this.resolveTempToken(tempToken);
+
+    const user = await this.userService.findById(userId);
+    if (!user) {
+      unauthorized(this.i18n.t('auth.email_or_password_wrong'));
+    }
+
+    // Try TOTP first, then recovery code
+    const totpValid = await this.authTwoFactorService.verifyCode(userId, code);
+    const recoveryValid =
+      !totpValid &&
+      (await this.authTwoFactorService.useRecoveryCode(userId, code));
+
+    if (!totpValid && !recoveryValid) {
+      unauthorized(this.i18n.t('auth.invalid_two_factor_code'));
+    }
+
+    const tokens = await this.authTokenService.generateTokenPair(user, context);
+    return { user, ...tokens };
+  }
+
+  private resolveTempToken(tempToken: string): { userId: string } {
+    // Try to decode and extract userId from temp token
+    try {
+      const decoded = Buffer.from(tempToken, 'base64url').toString('utf-8');
+      const [userId] = decoded.split(':');
+      if (!userId) throw new Error('INVALID_TEMP_TOKEN');
+      return { userId };
+    } catch {
+      unauthorized('Invalid temporary token');
+    }
   }
 
   // ── Password Management ──────────────────────────────────────
@@ -293,6 +345,20 @@ export class CredentialAuthService {
     } catch {
       // Silently fail so notification issues do not break auth flow.
     }
+  }
+
+  // ── 2FA delegation ────────────────────────────────────────────
+
+  async setupTwoFactor(userId: string) {
+    return this.authTwoFactorService.generateSetup(userId);
+  }
+
+  async confirmTwoFactor(userId: string, code: string) {
+    return this.authTwoFactorService.confirmSetup(userId, code);
+  }
+
+  async disableTwoFactor(userId: string) {
+    return this.authTwoFactorService.disable(userId);
   }
 }
 
