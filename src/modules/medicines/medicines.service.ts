@@ -14,6 +14,8 @@ import {
 import { MedicinesCacheService } from './cache/medicines-cache.service';
 import { CnMedicinesService } from './sources/cn-medicines.service';
 import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
+import { LlmRuntimeService } from '../llm-runtime/llm-runtime.service';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 @Injectable()
 export class MedicinesService {
@@ -25,7 +27,62 @@ export class MedicinesService {
     private readonly medicinesCacheService: MedicinesCacheService,
     private readonly i18n: I18nService,
     private readonly prisma: PrismaService,
+    private readonly llmRuntime: LlmRuntimeService,
   ) {}
+
+  async recognizeMedicine(imageUrl: string): Promise<{
+    name: string | null;
+    approvalNumber: string | null;
+    specification: string | null;
+    manufacturer: string | null;
+  }> {
+    const model = this.llmRuntime.createChatModel('chat', {
+      temperature: 0.1,
+    });
+
+    const systemPrompt = `你是一个药品识别助手。从药品包装图片中提取信息，以 JSON 格式返回。
+只返回 JSON，不要其他文字。JSON 格式：
+{"name": "药品名称", "approvalNumber": "国药准字", "specification": "规格", "manufacturer": "厂商"}
+
+如果某项无法识别，设为空字符串""。`;
+
+    const response = await model.invoke([
+      new SystemMessage(systemPrompt),
+      new HumanMessage({
+        content: [
+          { type: 'text', text: '识别这张药品包装图片' },
+          { type: 'image_url', image_url: { url: imageUrl } },
+        ],
+      }),
+    ]);
+
+    const text =
+      typeof response.content === 'string'
+        ? response.content
+        : JSON.stringify(response.content);
+
+    try {
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}') + 1;
+      if (jsonStart >= 0 && jsonEnd > jsonStart) {
+        return JSON.parse(text.slice(jsonStart, jsonEnd)) as {
+          name: string | null;
+          approvalNumber: string | null;
+          specification: string | null;
+          manufacturer: string | null;
+        };
+      }
+    } catch {
+      /* fall through */
+    }
+
+    return {
+      name: null,
+      approvalNumber: null,
+      specification: null,
+      manufacturer: null,
+    };
+  }
 
   async search(query: MedicineSearchQueryDto): Promise<MedicineSearchResult> {
     return this.searchWithCache(query, false);

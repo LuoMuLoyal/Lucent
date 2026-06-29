@@ -9,6 +9,7 @@ import { CnMedicinesService } from './sources/cn-medicines.service';
 import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
 import { ResultCode } from '../../common/api-envelope';
 import { PrismaService } from '../../prisma/prisma.service';
+import { LlmRuntimeService } from '../llm-runtime/llm-runtime.service';
 
 describe('MedicinesService', () => {
   let service: MedicinesService;
@@ -54,6 +55,14 @@ describe('MedicinesService', () => {
             medicineSafetyTip: {
               findMany: jest.fn(),
             },
+          },
+        },
+        {
+          provide: LlmRuntimeService,
+          useValue: {
+            createChatModel: jest.fn().mockReturnValue({
+              invoke: jest.fn().mockResolvedValue({ content: '{}' }),
+            }),
           },
         },
       ],

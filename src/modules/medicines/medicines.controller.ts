@@ -1,5 +1,17 @@
-import { Controller, Get, Headers, Param, Query } from '@nestjs/common';
 import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
   ApiExtraModels,
   ApiHeader,
   ApiOperation,
@@ -10,6 +22,10 @@ import {
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
 import { ResultCode, successEnvelope } from '../../common/api-envelope';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { UserPayload } from '../auth/auth.service';
+import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
 import {
   CnMedicineDetailDto,
   DrugbankMedicineDetailDto,
@@ -120,6 +136,22 @@ export class MedicinesController {
       normalized === 'true' ||
       normalized === 'yes' ||
       normalized === 'no-cache'
+    );
+  }
+
+  // ── AI Medicine Box Recognition ──────────────────────────────────
+
+  @Post('recognize')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'AI识别药盒图片，提取药品信息' })
+  async recognize(
+    @CurrentUser() _user: UserPayload,
+    @Body() dto: RecognizeMedicineDto,
+  ) {
+    return successEnvelope(
+      await this.medicinesService.recognizeMedicine(dto.imageUrl),
     );
   }
 }
