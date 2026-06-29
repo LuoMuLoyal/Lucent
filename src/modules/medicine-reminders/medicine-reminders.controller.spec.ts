@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion */
+
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import type { UserPayload } from '../auth/services/auth-token.service';
@@ -32,7 +34,7 @@ describe('MedicineRemindersController', () => {
 
   describe('GET /user/medicine-reminders', () => {
     it('should list reminders', async () => {
-      service.list.mockResolvedValue([]);
+      service.list.mockResolvedValue({ items: [] } as any);
 
       const result = await controller.list(mockUser);
 
@@ -40,12 +42,12 @@ describe('MedicineRemindersController', () => {
       expect(result).toEqual({
         code: ResultCode.SUCCESS,
         message: '',
-        data: [],
+        data: { items: [] },
       });
     });
 
     it('should pass activeOnly filter', async () => {
-      service.list.mockResolvedValue([]);
+      service.list.mockResolvedValue({ items: [] } as any);
 
       await controller.list(mockUser, 'true');
 
@@ -57,12 +59,13 @@ describe('MedicineRemindersController', () => {
     it('should create a reminder', async () => {
       const dto = {
         currentMedicineId: 'med-1',
-        scheduledTime: '08:00',
+        scheduledHour: 8,
+        scheduledMinute: 0,
         daysOfWeek: [1, 2, 3],
       };
-      service.create.mockResolvedValue({ id: 'rem-1' });
+      service.create.mockResolvedValue({ id: 'rem-1' } as any);
 
-      const result = await controller.create(mockUser, dto as never);
+      const result = await controller.create(mockUser, dto as any);
 
       expect(service.create).toHaveBeenCalledWith(mockUser.sub, dto);
       expect(result).toEqual({
@@ -75,14 +78,16 @@ describe('MedicineRemindersController', () => {
 
   describe('PATCH /user/medicine-reminders/:id', () => {
     it('should update a reminder', async () => {
-      service.update.mockResolvedValue({ id: 'rem-1' });
+      service.update.mockResolvedValue({ id: 'rem-1' } as any);
 
       const result = await controller.update(mockUser, 'rem-1', {
-        scheduledTime: '09:00',
-      });
+        scheduledHour: 9,
+        scheduledMinute: 0,
+      } as any);
 
       expect(service.update).toHaveBeenCalledWith(mockUser.sub, 'rem-1', {
-        scheduledTime: '09:00',
+        scheduledHour: 9,
+        scheduledMinute: 0,
       });
       expect(result).toEqual({
         code: ResultCode.SUCCESS,

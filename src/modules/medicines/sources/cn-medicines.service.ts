@@ -176,7 +176,6 @@ export class CnMedicinesService {
       precautions: row.precautions,
       pediatricUse: row.pediatricUse,
       geriatricUse: row.geriatricUse,
-      pregnancyLactation: row.pregnancyLactation,
       pregnancy,
       lactation,
       pharmacologyToxicology: row.pharmacologyToxicology,

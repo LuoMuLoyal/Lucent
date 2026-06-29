@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument */
+
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import type { UserPayload } from '../auth/services/auth-token.service';
@@ -159,7 +161,7 @@ describe('AccountController', () => {
         email: 'new@example.com',
         emailVerifiedAt: new Date('2026-06-15T08:00:00.000Z'),
       };
-      authService.changeEmail.mockResolvedValue(updatedUser);
+      authService.changeEmail.mockResolvedValue(updatedUser as any);
 
       const result = await controller.changeEmail(mockUser, {
         newEmail: 'new@example.com',
@@ -184,7 +186,7 @@ describe('AccountController', () => {
       authService.changeEmail.mockResolvedValue({
         email: 'unverified@example.com',
         emailVerifiedAt: null,
-      });
+      } as any);
 
       const result = await controller.changeEmail(mockUser, {
         newEmail: 'unverified@example.com',

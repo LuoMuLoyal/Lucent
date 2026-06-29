@@ -3,6 +3,9 @@
 /node_modules
 /build
 
+# Windows null-device artifact (Bash writes to "nul" as a file)
+nul
+
 # Python
 __pycache__/
 *.py[cod]

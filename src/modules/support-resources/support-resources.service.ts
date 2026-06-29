@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type {
   AppInfoDataDto,
   SupportResourceListDataDto,
@@ -10,6 +12,18 @@ import {
 } from './support-resources-reference';
 
 const BUILD_DATE = new Date().toISOString();
+
+interface PackageJson {
+  name: string;
+  version: string;
+  description?: string;
+}
+
+function readPackageJson(): PackageJson {
+  const pkgPath = resolve(__dirname, '../../../package.json');
+  const raw = readFileSync(pkgPath, 'utf-8');
+  return JSON.parse(raw) as PackageJson;
+}
 
 @Injectable()
 export class SupportResourcesService {
@@ -25,12 +39,7 @@ export class SupportResourcesService {
   }
 
   getAppInfo(): AppInfoDataDto {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pkg = require('../../../package.json') as {
-      name: string;
-      version: string;
-      description?: string;
-    };
+    const pkg = readPackageJson();
 
     return {
       name: pkg.name,

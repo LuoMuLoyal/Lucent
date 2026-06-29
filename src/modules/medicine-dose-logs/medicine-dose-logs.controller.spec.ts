@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion */
+
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import type { UserPayload } from '../auth/services/auth-token.service';
@@ -32,7 +34,7 @@ describe('MedicineDoseLogsController', () => {
 
   describe('GET /user/medicine-dose-logs', () => {
     it('should list dose logs for a date', async () => {
-      service.list.mockResolvedValue([]);
+      service.list.mockResolvedValue({ items: [] } as any);
 
       const result = await controller.list(mockUser, '2026-06-10');
 
@@ -40,7 +42,7 @@ describe('MedicineDoseLogsController', () => {
       expect(result).toEqual({
         code: ResultCode.SUCCESS,
         message: '',
-        data: [],
+        data: { items: [] },
       });
     });
   });
@@ -51,9 +53,9 @@ describe('MedicineDoseLogsController', () => {
         currentMedicineId: 'med-1',
         scheduledFor: '2026-06-10T08:00:00Z',
       };
-      service.create.mockResolvedValue({ id: 'log-1' });
+      service.create.mockResolvedValue({ id: 'log-1' } as any);
 
-      const result = await controller.create(mockUser, dto as never);
+      const result = await controller.create(mockUser, dto as any);
 
       expect(service.create).toHaveBeenCalledWith(mockUser.sub, dto);
       expect(result).toEqual({
@@ -66,11 +68,11 @@ describe('MedicineDoseLogsController', () => {
 
   describe('PATCH /user/medicine-dose-logs/:id', () => {
     it('should update a dose log', async () => {
-      service.update.mockResolvedValue({ id: 'log-1' });
+      service.update.mockResolvedValue({ id: 'log-1' } as any);
 
       const result = await controller.update(mockUser, 'log-1', {
         status: 'taken',
-      });
+      } as any);
 
       expect(service.update).toHaveBeenCalledWith(mockUser.sub, 'log-1', {
         status: 'taken',

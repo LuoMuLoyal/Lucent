@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unnecessary-type-assertion */
+
 import { nonDeleted } from '../../common/utils/prisma.helpers';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -152,7 +154,7 @@ describe('AccountService', () => {
       expect(result.lastLoginAt).toBeNull();
       expect(result.avatar).toBeNull();
       expect(result.nickname).toBeNull();
-      expect(result.linkedIdentities[0].emailVerifiedAt).toBeNull();
+      expect(result.linkedIdentities![0]!.emailVerifiedAt).toBeNull();
     });
   });
 
@@ -269,7 +271,7 @@ describe('AccountService', () => {
         where: { id: baseIdentity.id },
       });
       expect(result.linkedIdentities).toHaveLength(1);
-      expect(result.linkedIdentities[0].id).toBe(secondIdentity.id);
+      expect(result.linkedIdentities![0]!.id).toBe(secondIdentity.id);
     });
 
     it('should throw ForbiddenException when unlinking the last sign-in method', async () => {
