@@ -1,32 +1,19 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import request from 'supertest';
-import type { App } from 'supertest/types';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
 import type { ApiEnvelope } from '../../../src/common/api-envelope';
+import { createTestApp, expectData } from '../../helpers/e2e-helpers';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 
 const SUPPORT_RESOURCES_PATH = '/api/v1/public/support-resources';
 const APP_INFO_PATH = '/api/v1/public/app-info';
 
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return body.data as T;
-}
-
 describe('Support Resources API (e2e)', () => {
-  let app: INestApplication<App>;
+  let ctx: E2eTestContext;
+  let app: E2eApp;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
-    await app.init();
+    ctx = await createTestApp();
+    app = ctx.app;
   });
 
   afterAll(async () => {

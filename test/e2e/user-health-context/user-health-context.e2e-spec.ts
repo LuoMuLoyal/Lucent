@@ -1,15 +1,17 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
-import type { App } from 'supertest/types';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
 import { ResultCode } from '../../../src/common/api-envelope';
 import type { ApiEnvelope } from '../../../src/common/api-envelope';
-import { PrismaService } from '../../../src/prisma/prisma.service';
+import {
+  createTestApp,
+  cleanupDatabase,
+  createAccessToken,
+  bearer,
+  expectData,
+  expectDefined,
+  uniqueEmail,
+} from '../../helpers/e2e-helpers';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 import {
   LactationState,
   MedicineSource,
@@ -21,7 +23,6 @@ import {
   UserConditionStatus,
   UserStatus,
 } from '../../../src/generated/prisma/client';
-import { ConfigKey } from '../../../src/config/config-keys.enum';
 
 interface HealthContextData {
   summary: {
@@ -70,96 +71,30 @@ interface HealthContextData {
 }
 
 const HEALTH_CONTEXT_PATH = '/api/v1/user/health-context';
-const AUTHORIZATION_HEADER = 'Authorization';
-const BEARER_AUTH_SCHEME = 'Bearer';
-const TEST_EMAIL_DOMAIN = 'example.com';
-
-let seededUserSeq = 0;
-
-function bearer(accessToken: string): string {
-  return `${BEARER_AUTH_SCHEME} ${accessToken}`;
-}
-
-function uniqueEmail(): string {
-  seededUserSeq += 1;
-  return `healthcontext${String(seededUserSeq)}_${String(Date.now())}@${TEST_EMAIL_DOMAIN}`;
-}
-
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return body.data as T;
-}
-
-function expectDefined<T>(value: T | undefined | null, message: string): T {
-  expect(value).toBeDefined();
-  expect(value).not.toBeNull();
-  if (value == null) {
-    throw new Error(message);
-  }
-  return value;
-}
+const AUTH_HEADER = 'Authorization';
 
 describe('User Health Context API (e2e)', () => {
-  let app: INestApplication<App>;
-  let prisma: PrismaService;
-  let jwtService: JwtService;
-  let configService: ConfigService;
+  let ctx: E2eTestContext;
+  let app: E2eApp;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
-    await app.init();
-
-    prisma = app.get(PrismaService);
-    jwtService = app.get(JwtService);
-    configService = app.get(ConfigService);
-
-    await prisma.userCurrentMedicine.deleteMany();
-    await prisma.userCondition.deleteMany();
-    await prisma.userAllergy.deleteMany();
-    await prisma.userSession.deleteMany();
-    await prisma.user.deleteMany();
+    ctx = await createTestApp();
+    app = ctx.app;
+    await cleanupDatabase(ctx.prisma);
   });
 
   afterAll(async () => {
-    await prisma.userCurrentMedicine.deleteMany();
-    await prisma.userCondition.deleteMany();
-    await prisma.userAllergy.deleteMany();
-    await prisma.userSession.deleteMany();
-    await prisma.user.deleteMany();
+    await cleanupDatabase(ctx.prisma);
     await app.close();
   });
 
-  async function createAccessToken(
-    userId: string,
-    email: string,
-  ): Promise<string> {
-    const jwtConfig = configService.getOrThrow<{
-      accessSecret: string;
-      accessTtl: number;
-      issuer: string;
-      audience: string;
-    }>(ConfigKey.Jwt);
-
-    return jwtService.signAsync(
-      { sub: userId, email },
-      {
-        secret: jwtConfig.accessSecret,
-        expiresIn: jwtConfig.accessTtl,
-        algorithm: 'HS512',
-        issuer: jwtConfig.issuer,
-        audience: jwtConfig.audience,
-      },
-    );
+  async function makeToken(userId: string, email: string): Promise<string> {
+    return createAccessToken(ctx.jwtService, ctx.configService, userId, email);
   }
 
   it('should return the authenticated user health context aggregate', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -178,9 +113,7 @@ describe('User Health Context API (e2e)', () => {
             timezone: 'Asia/Shanghai',
             unitSystem: UnitSystem.metric,
             onboardingCompletedAt: new Date('2026-05-01T08:00:00.000Z'),
-            extras: {
-              preferredReminderHour: 9,
-            },
+            extras: { preferredReminderHour: 9 },
           },
         },
         allergies: {
@@ -238,14 +171,14 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .get(HEALTH_CONTEXT_PATH)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
     const body = response.body as ApiEnvelope<HealthContextData>;
@@ -269,9 +202,7 @@ describe('User Health Context API (e2e)', () => {
       timezone: 'Asia/Shanghai',
       unitSystem: UnitSystem.metric,
       onboardingCompletedAt: '2026-05-01T08:00:00.000Z',
-      extras: {
-        preferredReminderHour: 9,
-      },
+      extras: { preferredReminderHour: 9 },
     });
 
     expect(data.allergies).toHaveLength(1);
@@ -296,13 +227,12 @@ describe('User Health Context API (e2e)', () => {
     });
   });
 
-  it('should return not found when the JWT is valid but the user record does not exist', async () => {
-    const email = uniqueEmail();
-    const accessToken = await createAccessToken('missing-user-id', email);
+  it('should return not found when the JWT is valid but user does not exist', async () => {
+    const accessToken = await makeToken('missing-user-id', 'ghost@example.com');
 
     const response = await request(app.getHttpServer())
       .get(HEALTH_CONTEXT_PATH)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .expect(404);
 
     const body = response.body as ApiEnvelope;
@@ -311,8 +241,8 @@ describe('User Health Context API (e2e)', () => {
   });
 
   it('should update profile fields for the authenticated user', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -327,14 +257,14 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({
         locale: ' zh-CN ',
         timezone: null,
@@ -364,7 +294,7 @@ describe('User Health Context API (e2e)', () => {
     expect(data.profile.bloodType).toBe('O+');
     expect(data.summary.onboardingCompleted).toBe(true);
 
-    const storedProfile = await prisma.userProfile.findUniqueOrThrow({
+    const storedProfile = await ctx.prisma.userProfile.findUniqueOrThrow({
       where: { userId: user.id },
     });
     expect(storedProfile.locale).toBe('zh-CN');
@@ -381,9 +311,9 @@ describe('User Health Context API (e2e)', () => {
     expect(storedProfile.onboardingCompletedAt).not.toBeNull();
   });
 
-  it('should set onboardingCompletedAt when onboarding completion creates a profile', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+  it('should set onboardingCompletedAt when onboarding creates a profile', async () => {
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -391,14 +321,14 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({ onboardingCompleted: true })
       .expect(200);
 
@@ -409,15 +339,15 @@ describe('User Health Context API (e2e)', () => {
     expect(data.summary.onboardingCompleted).toBe(true);
     expect(data.profile.onboardingCompletedAt).not.toBeNull();
 
-    const storedProfile = await prisma.userProfile.findUniqueOrThrow({
+    const storedProfile = await ctx.prisma.userProfile.findUniqueOrThrow({
       where: { userId: user.id },
     });
     expect(storedProfile.onboardingCompletedAt).not.toBeNull();
   });
 
   it('should clear profile fields when sending null', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -433,14 +363,14 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({
         birthDate: null,
         sexAtBirth: null,
@@ -458,7 +388,7 @@ describe('User Health Context API (e2e)', () => {
     expect(data.profile.heightCm).toBeNull();
     expect(data.profile.bloodType).toBeNull();
 
-    const storedProfile = await prisma.userProfile.findUniqueOrThrow({
+    const storedProfile = await ctx.prisma.userProfile.findUniqueOrThrow({
       where: { userId: user.id },
     });
     expect(storedProfile.birthDate).toBeNull();
@@ -468,8 +398,8 @@ describe('User Health Context API (e2e)', () => {
   });
 
   it('should reject invalid birthDate format', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -477,21 +407,21 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({ birthDate: '15-03-1998' })
       .expect(400);
   });
 
   it('should reject heightCm out of range', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -499,27 +429,27 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({ heightCm: 0 })
       .expect(400);
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({ heightCm: 301 })
       .expect(400);
   });
 
   it('should reject unsupported sexAtBirth enum value', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -527,14 +457,14 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/profile`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({ sexAtBirth: 'alien' })
       .expect(400);
   });
@@ -542,8 +472,8 @@ describe('User Health Context API (e2e)', () => {
   // ── Allergy e2e ──
 
   it('should create an allergy and return the refreshed aggregate', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -551,14 +481,14 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .post(`${HEALTH_CONTEXT_PATH}/allergies`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({
         kind: UserAllergyKind.drug,
         label: ' Penicillin ',
@@ -583,8 +513,7 @@ describe('User Health Context API (e2e)', () => {
     expect(firstAllergy.kind).toBe(UserAllergyKind.drug);
     expect(firstAllergy.isActive).toBe(true);
 
-    // Verify persistence
-    const stored = await prisma.userAllergy.findFirstOrThrow({
+    const stored = await ctx.prisma.userAllergy.findFirstOrThrow({
       where: { userId: user.id },
     });
     expect(stored.label).toBe('Penicillin');
@@ -592,8 +521,8 @@ describe('User Health Context API (e2e)', () => {
   });
 
   it('should update an allergy', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -608,17 +537,17 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const allergy = await prisma.userAllergy.findFirstOrThrow({
+    const allergy = await ctx.prisma.userAllergy.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/allergies/${allergy.id}`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({ label: ' Penicillin G ', severity: UserAllergySeverity.severe })
       .expect(200);
 
@@ -633,8 +562,8 @@ describe('User Health Context API (e2e)', () => {
   });
 
   it('should soft-delete an allergy', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -648,33 +577,31 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const allergy = await prisma.userAllergy.findFirstOrThrow({
+    const allergy = await ctx.prisma.userAllergy.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .delete(`${HEALTH_CONTEXT_PATH}/allergies/${allergy.id}`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
     const data = expectData(response.body as ApiEnvelope<HealthContextData>);
-    // Active allergies should be 0 after soft delete
     expect(data.summary.activeAllergyCount).toBe(0);
 
-    // Verify persistence: isActive=false, row still exists
-    const stored = await prisma.userAllergy.findUniqueOrThrow({
+    const stored = await ctx.prisma.userAllergy.findUniqueOrThrow({
       where: { id: allergy.id },
     });
     expect(stored.isActive).toBe(false);
   });
 
   it('should return 404 when accessing a foreign allergy', async () => {
-    const email1 = uniqueEmail();
-    const user1 = await prisma.user.create({
+    const email1 = uniqueEmail('hc');
+    const user1 = await ctx.prisma.user.create({
       data: {
         email: email1,
         passwordHash: '$argon2id$mock',
@@ -685,8 +612,8 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const email2 = uniqueEmail();
-    const user2 = await prisma.user.create({
+    const email2 = uniqueEmail('hc');
+    const user2 = await ctx.prisma.user.create({
       data: {
         email: email2,
         passwordHash: '$argon2id$mock',
@@ -694,17 +621,17 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const allergy = await prisma.userAllergy.findFirstOrThrow({
+    const allergy = await ctx.prisma.userAllergy.findFirstOrThrow({
       where: { userId: user1.id },
     });
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user2.id,
       expectDefined(user2.email, 'Expected user email'),
     );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/allergies/${allergy.id}`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({ label: 'X' })
       .expect(404);
   });
@@ -712,8 +639,8 @@ describe('User Health Context API (e2e)', () => {
   // ── Condition e2e ──
 
   it('should create a condition and return the refreshed aggregate', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -721,14 +648,14 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .post(`${HEALTH_CONTEXT_PATH}/conditions`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({
         label: ' Asthma ',
         status: UserConditionStatus.active,
@@ -751,8 +678,7 @@ describe('User Health Context API (e2e)', () => {
     expect(firstCondition.status).toBe(UserConditionStatus.active);
     expect(firstCondition.diagnosedAt).toBe('2024-02-01');
 
-    // Verify persistence
-    const stored = await prisma.userCondition.findFirstOrThrow({
+    const stored = await ctx.prisma.userCondition.findFirstOrThrow({
       where: { userId: user.id },
     });
     expect(stored.label).toBe('Asthma');
@@ -760,8 +686,8 @@ describe('User Health Context API (e2e)', () => {
   });
 
   it('should update a condition', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -776,17 +702,17 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const condition = await prisma.userCondition.findFirstOrThrow({
+    const condition = await ctx.prisma.userCondition.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/conditions/${condition.id}`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({
         label: ' Asthma Updated ',
         status: UserConditionStatus.suspected,
@@ -804,8 +730,8 @@ describe('User Health Context API (e2e)', () => {
   });
 
   it('should soft-resolve a condition', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -819,17 +745,17 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const condition = await prisma.userCondition.findFirstOrThrow({
+    const condition = await ctx.prisma.userCondition.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .delete(`${HEALTH_CONTEXT_PATH}/conditions/${condition.id}`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
     const data = expectData(response.body as ApiEnvelope<HealthContextData>);
@@ -841,8 +767,7 @@ describe('User Health Context API (e2e)', () => {
     expect(resolvedCondition.status).toBe(UserConditionStatus.resolved);
     expect(resolvedCondition.resolvedAt).not.toBeNull();
 
-    // Verify persistence
-    const stored = await prisma.userCondition.findUniqueOrThrow({
+    const stored = await ctx.prisma.userCondition.findUniqueOrThrow({
       where: { id: condition.id },
     });
     expect(stored.status).toBe(UserConditionStatus.resolved);
@@ -850,8 +775,8 @@ describe('User Health Context API (e2e)', () => {
   });
 
   it('should return 404 when accessing a foreign condition', async () => {
-    const email1 = uniqueEmail();
-    const user1 = await prisma.user.create({
+    const email1 = uniqueEmail('hc');
+    const user1 = await ctx.prisma.user.create({
       data: {
         email: email1,
         passwordHash: '$argon2id$mock',
@@ -862,8 +787,8 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const email2 = uniqueEmail();
-    const user2 = await prisma.user.create({
+    const email2 = uniqueEmail('hc');
+    const user2 = await ctx.prisma.user.create({
       data: {
         email: email2,
         passwordHash: '$argon2id$mock',
@@ -871,17 +796,17 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const condition = await prisma.userCondition.findFirstOrThrow({
+    const condition = await ctx.prisma.userCondition.findFirstOrThrow({
       where: { userId: user1.id },
     });
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user2.id,
       expectDefined(user2.email, 'Expected user email'),
     );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/conditions/${condition.id}`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({ label: 'X' })
       .expect(404);
   });
@@ -889,8 +814,8 @@ describe('User Health Context API (e2e)', () => {
   // ── Current medicine e2e ──
 
   it('should create a current medicine and return the refreshed aggregate', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -898,14 +823,14 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .post(`${HEALTH_CONTEXT_PATH}/current-medicines`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({
         source: MedicineSource.drugbank,
         sourceRefId: 'DB01050',
@@ -933,8 +858,8 @@ describe('User Health Context API (e2e)', () => {
   });
 
   it('should update a current medicine', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -949,17 +874,17 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const medicine = await prisma.userCurrentMedicine.findFirstOrThrow({
+    const medicine = await ctx.prisma.userCurrentMedicine.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/current-medicines/${medicine.id}`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({ displayName: ' Ibuprofen G ', strengthText: '400 mg' })
       .expect(200);
 
@@ -974,8 +899,8 @@ describe('User Health Context API (e2e)', () => {
   });
 
   it('should soft-delete a current medicine', async () => {
-    const email = uniqueEmail();
-    const user = await prisma.user.create({
+    const email = uniqueEmail('hc');
+    const user = await ctx.prisma.user.create({
       data: {
         email,
         passwordHash: '$argon2id$mock',
@@ -989,24 +914,23 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const medicine = await prisma.userCurrentMedicine.findFirstOrThrow({
+    const medicine = await ctx.prisma.userCurrentMedicine.findFirstOrThrow({
       where: { userId: user.id },
     });
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
 
     const response = await request(app.getHttpServer())
       .delete(`${HEALTH_CONTEXT_PATH}/current-medicines/${medicine.id}`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .expect(200);
 
     const data = expectData(response.body as ApiEnvelope<HealthContextData>);
-    // isCurrent=false medicines are excluded from the aggregate
     expect(data.summary.currentMedicineCount).toBe(0);
 
-    const stored = await prisma.userCurrentMedicine.findUniqueOrThrow({
+    const stored = await ctx.prisma.userCurrentMedicine.findUniqueOrThrow({
       where: { id: medicine.id },
     });
     expect(stored.isCurrent).toBe(false);
@@ -1014,8 +938,8 @@ describe('User Health Context API (e2e)', () => {
   });
 
   it('should return 404 when accessing a foreign current medicine', async () => {
-    const email1 = uniqueEmail();
-    const user1 = await prisma.user.create({
+    const email1 = uniqueEmail('hc');
+    const user1 = await ctx.prisma.user.create({
       data: {
         email: email1,
         passwordHash: '$argon2id$mock',
@@ -1029,8 +953,8 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const email2 = uniqueEmail();
-    const user2 = await prisma.user.create({
+    const email2 = uniqueEmail('hc');
+    const user2 = await ctx.prisma.user.create({
       data: {
         email: email2,
         passwordHash: '$argon2id$mock',
@@ -1038,17 +962,17 @@ describe('User Health Context API (e2e)', () => {
       },
     });
 
-    const medicine = await prisma.userCurrentMedicine.findFirstOrThrow({
+    const medicine = await ctx.prisma.userCurrentMedicine.findFirstOrThrow({
       where: { userId: user1.id },
     });
-    const accessToken = await createAccessToken(
+    const accessToken = await makeToken(
       user2.id,
       expectDefined(user2.email, 'Expected user email'),
     );
 
     await request(app.getHttpServer())
       .patch(`${HEALTH_CONTEXT_PATH}/current-medicines/${medicine.id}`)
-      .set(AUTHORIZATION_HEADER, bearer(accessToken))
+      .set(AUTH_HEADER, bearer(accessToken))
       .send({ displayName: 'X' })
       .expect(404);
   });

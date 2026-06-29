@@ -1,36 +1,17 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
-import type { App } from 'supertest/types';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
-import { PrismaService } from '../../../src/prisma/prisma.service';
 import type { ApiEnvelope } from '../../../src/common/api-envelope';
-import { ConfigKey } from '../../../src/config/config-keys.enum';
-import { UserStatus } from '../../../src/generated/prisma/client';
+import {
+  createTestApp,
+  cleanupDatabase,
+  createTestUser,
+  createAccessToken,
+  bearer,
+  expectData,
+} from '../../helpers/e2e-helpers';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 
 const USER_SETTINGS_PATH = '/api/v1/user/settings';
-const AUTHORIZATION_HEADER = 'Authorization';
-const BEARER_AUTH_SCHEME = 'Bearer';
-
-let seededSeq = 0;
-
-function bearer(accessToken: string): string {
-  return `${BEARER_AUTH_SCHEME} ${accessToken}`;
-}
-
-function uniqueEmail(): string {
-  seededSeq += 1;
-  return `settings${String(seededSeq)}_${String(Date.now())}@example.com`;
-}
-
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return body.data as T;
-}
 
 interface UserSettingsData {
   aiSummariesEnabled: boolean;
@@ -47,81 +28,41 @@ interface UserSettingsData {
 }
 
 describe('User Settings API (e2e)', () => {
-  let app: INestApplication<App>;
-  let prisma: PrismaService;
-  let jwtService: JwtService;
-  let configService: ConfigService;
-
+  let ctx: E2eTestContext;
+  let app: E2eApp;
   let userId: string;
   let userEmail: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    ctx = await createTestApp();
+    app = ctx.app;
+    await cleanupDatabase(ctx.prisma);
 
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
-    await app.init();
-
-    prisma = app.get(PrismaService);
-    jwtService = app.get(JwtService);
-    configService = app.get(ConfigService);
-
-    // Clean existing test data
-    await prisma.userSetting.deleteMany();
-    await prisma.userSession.deleteMany();
-    await prisma.user.deleteMany();
-
-    // Create test user
-    userEmail = uniqueEmail();
-    const user = await prisma.user.create({
-      data: {
-        email: userEmail,
-        passwordHash: '$argon2id$mock',
-        nickname: 'SettingsUser',
-        status: UserStatus.active,
-      },
-    });
+    const user = await createTestUser(ctx.prisma, undefined, 'SettingsUser');
     userId = user.id;
+    userEmail = user.email;
   });
 
-  async function createAccessToken(
-    userId: string,
-    email: string,
-  ): Promise<string> {
-    const jwtCfg = configService.getOrThrow<{
-      accessSecret: string;
-      accessTtl: number;
-      issuer: string;
-      audience: string;
-    }>(ConfigKey.Jwt);
-
-    return jwtService.signAsync(
-      { sub: userId, email },
-      {
-        secret: jwtCfg.accessSecret,
-        expiresIn: jwtCfg.accessTtl,
-        algorithm: 'HS512',
-        issuer: jwtCfg.issuer,
-        audience: jwtCfg.audience,
-      },
-    );
-  }
-
   afterAll(async () => {
-    await prisma.userSetting.deleteMany();
-    await prisma.userSession.deleteMany();
-    await prisma.user.deleteMany();
+    await cleanupDatabase(ctx.prisma);
     await app.close();
   });
 
+  async function makeToken(): Promise<string> {
+    return createAccessToken(
+      ctx.jwtService,
+      ctx.configService,
+      userId,
+      userEmail,
+    );
+  }
+
   describe('GET /api/v1/user/settings', () => {
     it('should return default settings for a new user', async () => {
-      const accessToken = await createAccessToken(userId, userEmail);
+      const token = await makeToken();
       const response = await request(app.getHttpServer())
         .get(USER_SETTINGS_PATH)
-        .set(AUTHORIZATION_HEADER, bearer(accessToken))
+        .set('Authorization', bearer(token))
         .expect(200);
 
       const settings = expectData(
@@ -138,28 +79,27 @@ describe('User Settings API (e2e)', () => {
         sleepRecords: true,
         currentMedicines: true,
       });
-      // A new user with no saved settings still gets an updatedAt from the DTO
       expect(settings.updatedAt).toBeNull();
     });
 
-    it('should return 401 without authorization', async () => {
+    it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer()).get(USER_SETTINGS_PATH).expect(401);
     });
 
     it('should return 401 with an invalid token', async () => {
       await request(app.getHttpServer())
         .get(USER_SETTINGS_PATH)
-        .set(AUTHORIZATION_HEADER, bearer('invalid-token'))
+        .set('Authorization', bearer('invalid-token'))
         .expect(401);
     });
   });
 
   describe('PATCH /api/v1/user/settings', () => {
     it('should update a single setting and return the new state', async () => {
-      const token = await createAccessToken(userId, userEmail);
+      const token = await makeToken();
       const response = await request(app.getHttpServer())
         .patch(USER_SETTINGS_PATH)
-        .set(AUTHORIZATION_HEADER, bearer(token))
+        .set('Authorization', bearer(token))
         .send({ aiSummariesEnabled: false })
         .expect(200);
 
@@ -174,10 +114,10 @@ describe('User Settings API (e2e)', () => {
     });
 
     it('should update multiple settings at once', async () => {
-      const token = await createAccessToken(userId, userEmail);
+      const token = await makeToken();
       const response = await request(app.getHttpServer())
         .patch(USER_SETTINGS_PATH)
-        .set(AUTHORIZATION_HEADER, bearer(token))
+        .set('Authorization', bearer(token))
         .send({
           dataSharingConsent: true,
           assistantEnabled: false,
@@ -195,10 +135,10 @@ describe('User Settings API (e2e)', () => {
     });
 
     it('should update assistant context permissions', async () => {
-      const token = await createAccessToken(userId, userEmail);
+      const token = await makeToken();
       const response = await request(app.getHttpServer())
         .patch(USER_SETTINGS_PATH)
-        .set(AUTHORIZATION_HEADER, bearer(token))
+        .set('Authorization', bearer(token))
         .send({
           assistantContext: {
             healthProfile: false,
@@ -218,10 +158,10 @@ describe('User Settings API (e2e)', () => {
     });
 
     it('should reject non-boolean values', async () => {
-      const token = await createAccessToken(userId, userEmail);
+      const token = await makeToken();
       await request(app.getHttpServer())
         .patch(USER_SETTINGS_PATH)
-        .set(AUTHORIZATION_HEADER, bearer(token))
+        .set('Authorization', bearer(token))
         .send({ aiSummariesEnabled: 'not-a-boolean' })
         .expect(400);
     });

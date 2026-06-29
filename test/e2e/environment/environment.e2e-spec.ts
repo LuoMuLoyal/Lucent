@@ -1,19 +1,10 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import request from 'supertest';
-import type { App } from 'supertest/types';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
 import type { ApiEnvelope } from '../../../src/common/api-envelope';
+import { createTestApp, expectData } from '../../helpers/e2e-helpers';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 
 const ENV_PATH = '/api/v1/environment/snapshot';
-
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return body.data as T;
-}
 
 interface SnapshotData {
   dataSource: string;
@@ -26,23 +17,19 @@ interface SnapshotData {
 }
 
 describe('Environment API (e2e)', () => {
-  let app: INestApplication<App>;
+  let ctx: E2eTestContext;
+  let app: E2eApp;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
-    await app.init();
+    ctx = await createTestApp();
+    app = ctx.app;
   });
 
   afterAll(async () => {
     await app.close();
   });
 
-  it('GET /api/v1/environment/snapshot returns static baseline without coordinates', async () => {
+  it('should return static baseline snapshot without coordinates', async () => {
     const response = await request(app.getHttpServer())
       .get(ENV_PATH)
       .expect(200);
@@ -61,7 +48,7 @@ describe('Environment API (e2e)', () => {
     expect(data.humidity.percent).toBe(58);
   });
 
-  it('GET /api/v1/environment/snapshot accepts lat/lon query parameters', async () => {
+  it('should accept lat/lon query parameters', async () => {
     const response = await request(app.getHttpServer())
       .get(`${ENV_PATH}?lat=31.2304&lon=121.4737`)
       .expect(200);
@@ -73,11 +60,11 @@ describe('Environment API (e2e)', () => {
     expect(data.uv.index).toBeGreaterThanOrEqual(0);
   });
 
-  it('GET /api/v1/environment/snapshot rejects out-of-range latitude', async () => {
+  it('should reject out-of-range latitude', async () => {
     await request(app.getHttpServer()).get(`${ENV_PATH}?lat=100`).expect(400);
   });
 
-  it('GET /api/v1/environment/snapshot rejects out-of-range longitude', async () => {
+  it('should reject out-of-range longitude', async () => {
     await request(app.getHttpServer()).get(`${ENV_PATH}?lon=200`).expect(400);
   });
 });

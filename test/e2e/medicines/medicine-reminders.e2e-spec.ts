@@ -1,105 +1,55 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any, @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any */
 
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
-import type { App } from 'supertest/types';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
 import { ResultCode } from '../../../src/common/api-envelope';
 import type { ApiEnvelope } from '../../../src/common/api-envelope';
-import { PrismaService } from '../../../src/prisma/prisma.service';
+import {
+  createTestApp,
+  cleanupDatabase,
+  createAccessToken,
+  bearer,
+  uniqueEmail,
+} from '../../helpers/e2e-helpers';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 import {
   MedicineSource,
   UserStatus,
 } from '../../../src/generated/prisma/client';
-import { ConfigKey } from '../../../src/config/config-keys.enum';
 
 const BASE_PATH = '/api/v1/user/medicine-reminders';
 const AUTH_HEADER = 'Authorization';
-const BEARER = 'Bearer';
-
-let seededSeq = 0;
-
-function uniqueEmail(): string {
-  seededSeq += 1;
-  return `reminder${seededSeq}_${Date.now()}@example.com`;
-}
-
-function bearer(token: string): string {
-  return `${BEARER} ${token}`;
-}
 
 describe('Medicine Reminders API (e2e)', () => {
-  let app: INestApplication<App>;
-  let prisma: PrismaService;
-  let jwtService: JwtService;
-  let configService: ConfigService;
+  let ctx: E2eTestContext;
+  let app: E2eApp;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
-    await app.init();
-
-    prisma = app.get(PrismaService);
-    jwtService = app.get(JwtService);
-    configService = app.get(ConfigService);
-
-    await cleanUserReminderData();
+    ctx = await createTestApp();
+    app = ctx.app;
+    await cleanupDatabase(ctx.prisma);
   });
 
   afterAll(async () => {
-    await cleanUserReminderData();
+    await cleanupDatabase(ctx.prisma);
     await app.close();
   });
 
-  async function cleanUserReminderData() {
-    await prisma.userMedicineReminder.deleteMany();
-    await prisma.userMedicineDoseLog.deleteMany();
-    await prisma.userDailyRecord.deleteMany();
-    await prisma.userCurrentMedicine.deleteMany();
-    await prisma.userCondition.deleteMany();
-    await prisma.userAllergy.deleteMany();
-    await prisma.userSession.deleteMany();
-    await prisma.user.deleteMany();
-  }
-
-  async function createAccessToken(userId: string, email: string | null) {
-    const jwtConfig = configService.getOrThrow<{
-      accessSecret: string;
-      accessTtl: number;
-      issuer: string;
-      audience: string;
-    }>(ConfigKey.Jwt);
-
-    return jwtService.signAsync(
-      { sub: userId, email },
-      {
-        secret: jwtConfig.accessSecret,
-        expiresIn: jwtConfig.accessTtl,
-        algorithm: 'HS512',
-        issuer: jwtConfig.issuer,
-        audience: jwtConfig.audience,
-      },
-    );
-  }
-
   async function createUserWithToken() {
-    const user = await prisma.user.create({
+    const email = uniqueEmail('reminder');
+    const user = await ctx.prisma.user.create({
       data: {
-        email: uniqueEmail(),
+        email,
         passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
-    const token = await createAccessToken(user.id, user.email);
+    const token = await createAccessToken(
+      ctx.jwtService,
+      ctx.configService,
+      user.id,
+      user.email!,
+    );
     return { user, token };
   }
 
@@ -107,7 +57,7 @@ describe('Medicine Reminders API (e2e)', () => {
     userId: string,
     displayName = 'Metformin',
   ) {
-    return prisma.userCurrentMedicine.create({
+    return ctx.prisma.userCurrentMedicine.create({
       data: {
         userId,
         source: MedicineSource.manual,
@@ -296,7 +246,7 @@ describe('Medicine Reminders API (e2e)', () => {
     const body = listRes.body as ApiEnvelope<{ items: any[] }>;
     expect(body.data!.items).toHaveLength(0);
 
-    const stored = await prisma.userMedicineReminder.findUniqueOrThrow({
+    const stored = await ctx.prisma.userMedicineReminder.findUniqueOrThrow({
       where: { id },
     });
     expect(stored.deletedAt).not.toBeNull();
@@ -347,7 +297,7 @@ describe('Medicine Reminders API (e2e)', () => {
       .expect(400);
   });
 
-  it('should require auth', async () => {
+  it('should require auth for reminder access', async () => {
     await request(app.getHttpServer()).get(BASE_PATH).expect(401);
   });
 });

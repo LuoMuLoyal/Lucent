@@ -1,105 +1,55 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
-import type { App } from 'supertest/types';
-
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
-import { PrismaService } from '../../../src/prisma/prisma.service';
 import type { ApiEnvelope } from '../../../src/common/api-envelope';
-import { ConfigKey } from '../../../src/config/config-keys.enum';
-import { UserStatus } from '../../../src/generated/prisma/client';
+import {
+  createTestApp,
+  cleanupDatabase,
+  createTestUser,
+  createAccessToken,
+  bearer,
+  expectData,
+} from '../../helpers/e2e-helpers';
+import type {
+  E2eTestContext,
+  E2eApp,
+  TestUser,
+} from '../../helpers/e2e-helpers';
 
 const ACCOUNT_PATH = '/api/v1/account';
-const AUTHORIZATION_HEADER = 'Authorization';
-const BEARER_AUTH_SCHEME = 'Bearer';
-
-function bearer(token: string): string {
-  return `${BEARER_AUTH_SCHEME} ${token}`;
-}
-
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return body.data as T;
-}
 
 describe('Account API (e2e)', () => {
-  let app: INestApplication<App>;
-  let prisma: PrismaService;
-  let jwtService: JwtService;
-  let configService: ConfigService;
-  let userId: string;
-  let userEmail: string;
+  let ctx: E2eTestContext;
+  let app: E2eApp;
+  let user: TestUser;
   let accessToken: string;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    ctx = await createTestApp();
+    app = ctx.app;
+    await cleanupDatabase(ctx.prisma);
 
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
-    await app.init();
-
-    prisma = app.get(PrismaService);
-    jwtService = app.get(JwtService);
-    configService = app.get(ConfigService);
-
-    // Clean test data
-    await prisma.userIdentity.deleteMany();
-    await prisma.userSession.deleteMany();
-    await prisma.user.deleteMany();
-
-    // Create test user
-    userEmail = `account_${String(Date.now())}@example.com`;
-    const user = await prisma.user.create({
-      data: {
-        email: userEmail,
-        passwordHash: '$argon2id$mock',
-        nickname: 'AccountUser',
-        status: UserStatus.active,
-      },
-    });
-    userId = user.id;
-
-    // Generate JWT
-    const jwtCfg = configService.getOrThrow<{
-      accessSecret: string;
-      accessTtl: number;
-      issuer: string;
-      audience: string;
-    }>(ConfigKey.Jwt);
-
-    accessToken = await jwtService.signAsync(
-      { sub: userId, email: userEmail },
-      {
-        secret: jwtCfg.accessSecret,
-        expiresIn: jwtCfg.accessTtl,
-        algorithm: 'HS512',
-        issuer: jwtCfg.issuer,
-        audience: jwtCfg.audience,
-      },
+    user = await createTestUser(ctx.prisma, undefined, 'AccountUser');
+    accessToken = await createAccessToken(
+      ctx.jwtService,
+      ctx.configService,
+      user.id,
+      user.email,
     );
   });
 
   afterAll(async () => {
-    await prisma.userIdentity.deleteMany();
-    await prisma.userSession.deleteMany();
-    await prisma.user.deleteMany();
+    await cleanupDatabase(ctx.prisma);
     await app.close();
   });
 
   describe('GET /api/v1/account', () => {
-    it('should return 401 without authorization', async () => {
+    it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer()).get(ACCOUNT_PATH).expect(401);
     });
 
-    it('should return account profile', async () => {
+    it('should return account profile for authenticated user', async () => {
       const res = await request(app.getHttpServer())
         .get(ACCOUNT_PATH)
-        .set(AUTHORIZATION_HEADER, bearer(accessToken))
+        .set('Authorization', bearer(accessToken))
         .expect(200);
 
       const data = expectData(
@@ -110,18 +60,18 @@ describe('Account API (e2e)', () => {
           hasPassword: boolean;
         }>,
       );
-      expect(data.id).toBe(userId);
-      expect(data.email).toBe(userEmail);
+      expect(data.id).toBe(user.id);
+      expect(data.email).toBe(user.email);
       expect(data.nickname).toBe('AccountUser');
       expect(data.hasPassword).toBe(true);
     });
   });
 
   describe('PATCH /api/v1/account', () => {
-    it('should update nickname', async () => {
+    it('should update nickname successfully', async () => {
       const res = await request(app.getHttpServer())
         .patch(ACCOUNT_PATH)
-        .set(AUTHORIZATION_HEADER, bearer(accessToken))
+        .set('Authorization', bearer(accessToken))
         .send({ nickname: 'UpdatedName' })
         .expect(200);
 
@@ -129,10 +79,10 @@ describe('Account API (e2e)', () => {
       expect(data.nickname).toBe('UpdatedName');
     });
 
-    it('should clear nickname with empty string', async () => {
+    it('should normalize empty string nickname to null', async () => {
       const res = await request(app.getHttpServer())
         .patch(ACCOUNT_PATH)
-        .set(AUTHORIZATION_HEADER, bearer(accessToken))
+        .set('Authorization', bearer(accessToken))
         .send({ nickname: '' })
         .expect(200);
 
@@ -140,6 +90,13 @@ describe('Account API (e2e)', () => {
         res.body as ApiEnvelope<{ nickname: string | null }>,
       );
       expect(data.nickname).toBeNull();
+    });
+
+    it('should reject unauthenticated update request', async () => {
+      await request(app.getHttpServer())
+        .patch(ACCOUNT_PATH)
+        .send({ nickname: 'Hacker' })
+        .expect(401);
     });
   });
 });

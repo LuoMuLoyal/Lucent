@@ -1,119 +1,52 @@
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
-import type { App } from 'supertest/types';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
 import { ResultCode } from '../../../src/common/api-envelope';
 import type { ApiEnvelope } from '../../../src/common/api-envelope';
-import { PrismaService } from '../../../src/prisma/prisma.service';
 import {
-  DoseLogStatus,
+  createTestApp,
+  cleanupDatabase,
+  createAccessToken,
+  bearer,
+  expectData,
+  expectDefined,
+  uniqueEmail,
+} from '../../helpers/e2e-helpers';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
+import {
   MedicineSource,
   UserStatus,
 } from '../../../src/generated/prisma/client';
-import { ConfigKey } from '../../../src/config/config-keys.enum';
 
 const BASE_PATH = '/api/v1/user/medicine-dose-logs';
 const AUTH_HEADER = 'Authorization';
-const BEARER = 'Bearer';
-
-let seededSeq = 0;
-
-function uniqueEmail(): string {
-  seededSeq += 1;
-  return `doselog${seededSeq}_${Date.now()}@example.com`;
-}
-
-function bearer(token: string): string {
-  return `${BEARER} ${token}`;
-}
-
-function expectDefined<T>(value: T | undefined | null, message: string): T {
-  expect(value).toBeDefined();
-  expect(value).not.toBeNull();
-  if (value == null) {
-    throw new Error(message);
-  }
-  return value;
-}
-
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return expectDefined(body.data, 'Expected envelope data');
-}
 
 describe('Medicine Dose Logs API (e2e)', () => {
-  let app: INestApplication<App>;
-  let prisma: PrismaService;
-  let jwtService: JwtService;
-  let configService: ConfigService;
+  let ctx: E2eTestContext;
+  let app: E2eApp;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
-    await app.init();
-
-    prisma = app.get(PrismaService);
-    jwtService = app.get(JwtService);
-    configService = app.get(ConfigService);
-
-    await cleanUserDoseLogData();
+    ctx = await createTestApp();
+    app = ctx.app;
+    await cleanupDatabase(ctx.prisma);
   });
 
   afterAll(async () => {
-    await cleanUserDoseLogData();
+    await cleanupDatabase(ctx.prisma);
     await app.close();
   });
 
-  async function cleanUserDoseLogData() {
-    await prisma.userMedicineDoseLog.deleteMany();
-    await prisma.userDailyRecord.deleteMany();
-    await prisma.userCurrentMedicine.deleteMany();
-    await prisma.userCondition.deleteMany();
-    await prisma.userAllergy.deleteMany();
-    await prisma.userSession.deleteMany();
-    await prisma.user.deleteMany();
-  }
-
-  async function createAccessToken(userId: string, email: string) {
-    const jwtConfig = configService.getOrThrow<{
-      accessSecret: string;
-      accessTtl: number;
-      issuer: string;
-      audience: string;
-    }>(ConfigKey.Jwt);
-
-    return jwtService.signAsync(
-      { sub: userId, email },
-      {
-        secret: jwtConfig.accessSecret,
-        expiresIn: jwtConfig.accessTtl,
-        algorithm: 'HS512',
-        issuer: jwtConfig.issuer,
-        audience: jwtConfig.audience,
-      },
-    );
-  }
-
   async function createUserWithToken() {
-    const user = await prisma.user.create({
+    const email = uniqueEmail('doselog');
+    const user = await ctx.prisma.user.create({
       data: {
-        email: uniqueEmail(),
+        email,
         passwordHash: '$argon2id$mock',
         status: UserStatus.active,
       },
     });
     const token = await createAccessToken(
+      ctx.jwtService,
+      ctx.configService,
       user.id,
       expectDefined(user.email, 'Expected user email'),
     );
@@ -124,7 +57,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
     userId: string,
     displayName = 'Metformin',
   ) {
-    return prisma.userCurrentMedicine.create({
+    return ctx.prisma.userCurrentMedicine.create({
       data: {
         userId,
         source: MedicineSource.manual,
@@ -143,7 +76,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .send({
         currentMedicineId: medicine.id,
-        status: DoseLogStatus.taken,
+        status: 'taken',
         scheduledFor: '2026-06-04',
         doseText: '1 tablet',
         note: 'with breakfast',
@@ -153,12 +86,12 @@ describe('Medicine Dose Logs API (e2e)', () => {
     const createBody = createRes.body as ApiEnvelope<{
       id: string;
       currentMedicineId: string;
-      status: DoseLogStatus;
+      status: string;
     }>;
     expect(createBody.code).toBe(ResultCode.SUCCESS);
     const created = expectData(createBody);
     expect(created.currentMedicineId).toBe(medicine.id);
-    expect(created.status).toBe(DoseLogStatus.taken);
+    expect(created.status).toBe('taken');
 
     const listRes = await request(app.getHttpServer())
       .get(`${BASE_PATH}?date=2026-06-04`)
@@ -184,7 +117,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .send({
         currentMedicineId: otherMedicine.id,
-        status: DoseLogStatus.taken,
+        status: 'taken',
         scheduledFor: '2026-06-04',
       })
       .expect(404);
@@ -199,7 +132,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .send({
         currentMedicineId: medicine.id,
-        status: DoseLogStatus.planned,
+        status: 'planned',
         scheduledFor: '2026-06-04',
         doseText: '1 tablet',
         note: 'keep this note',
@@ -211,17 +144,17 @@ describe('Medicine Dose Logs API (e2e)', () => {
     const updateRes = await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)
       .set(AUTH_HEADER, bearer(token))
-      .send({ status: DoseLogStatus.skipped })
+      .send({ status: 'skipped' })
       .expect(200);
 
     const body = expectData(
       updateRes.body as ApiEnvelope<{
-        status: DoseLogStatus;
+        status: string;
         doseText: string | null;
         note: string | null;
       }>,
     );
-    expect(body.status).toBe(DoseLogStatus.skipped);
+    expect(body.status).toBe('skipped');
     expect(body.doseText).toBe('1 tablet');
     expect(body.note).toBe('keep this note');
   });
@@ -235,7 +168,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .set(AUTH_HEADER, bearer(token))
       .send({
         currentMedicineId: medicine.id,
-        status: DoseLogStatus.taken,
+        status: 'taken',
         scheduledFor: '2026-06-04',
         doseText: '1 tablet',
         note: 'clear me',
@@ -250,7 +183,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .send({ doseText: null, note: null })
       .expect(200);
 
-    const stored = await prisma.userMedicineDoseLog.findUniqueOrThrow({
+    const stored = await ctx.prisma.userMedicineDoseLog.findUniqueOrThrow({
       where: { id },
     });
     expect(stored.doseText).toBeNull();
@@ -264,7 +197,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .post(BASE_PATH)
       .set(AUTH_HEADER, bearer(token))
       .send({
-        status: DoseLogStatus.planned,
+        status: 'planned',
         scheduledFor: '2026-06-04',
       })
       .expect(201);
@@ -293,7 +226,7 @@ describe('Medicine Dose Logs API (e2e)', () => {
       .post(BASE_PATH)
       .set(AUTH_HEADER, bearer(token))
       .send({
-        status: DoseLogStatus.planned,
+        status: 'planned',
         scheduledFor: '2026-06-04',
       })
       .expect(201);
@@ -303,11 +236,11 @@ describe('Medicine Dose Logs API (e2e)', () => {
     await request(app.getHttpServer())
       .patch(`${BASE_PATH}/${id}`)
       .set(AUTH_HEADER, bearer(otherToken))
-      .send({ status: DoseLogStatus.taken })
+      .send({ status: 'taken' })
       .expect(404);
   });
 
-  it('should require auth', async () => {
+  it('should require auth for dose-log access', async () => {
     await request(app.getHttpServer())
       .get(`${BASE_PATH}?date=2026-06-04`)
       .expect(401);

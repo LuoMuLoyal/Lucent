@@ -1,18 +1,20 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import request from 'supertest';
-import type { App } from 'supertest/types';
 import { createHash } from 'node:crypto';
 
-import { AppModule } from '../../../src/app.module';
-import { setupApp } from '../../../src/setup-app';
-import { PrismaService } from '../../../src/prisma/prisma.service';
-import { ResultCode } from '../../../src/common/api-envelope';
 import type { ApiEnvelope } from '../../../src/common/api-envelope';
+import { ResultCode } from '../../../src/common/api-envelope';
 import { VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS } from '../../../src/modules/auth/services/verification-code.service';
+import {
+  createTestApp,
+  cleanupDatabase,
+  bearer,
+  expectData,
+  expectDefined,
+  uniqueEmail,
+} from '../../helpers/e2e-helpers';
+import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -56,7 +58,7 @@ interface RegisterLoginData {
   tokens: TokensDto;
 }
 
-// ── Helpers ──────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────
 
 const AUTH_PATH = {
   register: '/api/v1/auth/register',
@@ -104,15 +106,8 @@ const UNKNOWN_LOGIN_EMAIL = `nonexistent@${TEST_EMAIL_DOMAIN}`;
 const UNKNOWN_RESET_EMAIL = `nobody@${TEST_EMAIL_DOMAIN}`;
 const INVALID_EMAIL = 'not-an-email';
 const AUTHORIZATION_HEADER = 'Authorization';
-const BEARER_AUTH_SCHEME = 'Bearer';
 const VERIFICATION_CODE_TTL_MS = 5 * 60 * 1000;
 const VERIFICATION_CODE_COOLDOWN_SECONDS = 60;
-
-let userSeq = 0;
-function uniqueEmail(): string {
-  userSeq += 1;
-  return `testuser${String(userSeq)}_${String(Date.now())}@${TEST_EMAIL_DOMAIN}`;
-}
 
 let clientIpSeq = 0;
 const clientIpSeed = (Date.now() ^ process.pid) >>> 0;
@@ -123,26 +118,6 @@ function uniqueClientIp(): string {
   return `198.51.${String(thirdOctet)}.${String(fourthOctet)}`;
 }
 
-/** Assert envelope.data is not null and return typed data. */
-
-function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  // body.data is guaranteed non-null by the expect above
-  return body.data as T;
-}
-
-function expectDefined<T>(value: T | undefined, message: string): T {
-  expect(value).toBeDefined();
-  if (value === undefined) {
-    throw new Error(message);
-  }
-  return value;
-}
-
-function bearer(accessToken: string): string {
-  return `${BEARER_AUTH_SCHEME} ${accessToken}`;
-}
-
 function hashRefreshToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
@@ -150,31 +125,20 @@ function hashRefreshToken(token: string): string {
 // ── Test Suite ───────────────────────────────────────────────
 
 describe('Auth API (e2e)', () => {
-  let app: INestApplication<App>;
-  let prisma: PrismaService;
+  let ctx: E2eTestContext;
+  let app: E2eApp;
   let cache: Cache;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+    ctx = await createTestApp();
+    app = ctx.app;
+    await cleanupDatabase(ctx.prisma);
 
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
-    await app.init();
-
-    prisma = app.get(PrismaService);
     cache = app.get(CACHE_MANAGER);
-
-    // Clean test data (delete in correct order for FK constraints)
-    await prisma.userSession.deleteMany();
-    await prisma.user.deleteMany();
   });
 
   afterAll(async () => {
-    // Final cleanup
-    await prisma.userSession.deleteMany();
-    await prisma.user.deleteMany();
+    await cleanupDatabase(ctx.prisma);
     await app.close();
   });
 
@@ -183,7 +147,7 @@ describe('Auth API (e2e)', () => {
   // ────────────────────────────────────────────────────────────
 
   async function registerUser(email?: string) {
-    const userEmail = email ?? uniqueEmail();
+    const userEmail = email ?? uniqueEmail('auth');
     const code = await issueVerificationCode(AUTH_SCENE.register, userEmail);
     const res = await request(app.getHttpServer())
       .post(AUTH_PATH.register)
@@ -264,7 +228,7 @@ describe('Auth API (e2e)', () => {
 
   describe('POST /api/v1/auth/register', () => {
     it('should register a new user successfully', async () => {
-      const email = uniqueEmail();
+      const email = uniqueEmail('auth');
       const code = await issueVerificationCode(AUTH_SCENE.register, email);
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.register)
@@ -290,11 +254,9 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should reject duplicate email', async () => {
-      const email = uniqueEmail();
-      // Register first
+      const email = uniqueEmail('auth');
       await registerUser(email);
 
-      // Try again with same email
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.register)
         .send({
@@ -318,7 +280,7 @@ describe('Auth API (e2e)', () => {
     it('should reject missing password', async () => {
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.register)
-        .send({ email: uniqueEmail() })
+        .send({ email: uniqueEmail('auth') })
         .expect(400);
 
       const body = res.body as ApiEnvelope;
@@ -349,7 +311,7 @@ describe('Auth API (e2e)', () => {
       expect(data.user.email).toBe(email);
       expect(data.tokens.accessToken).toBeDefined();
 
-      const session = await prisma.userSession.findUnique({
+      const session = await ctx.prisma.userSession.findUnique({
         where: {
           refreshTokenHash: hashRefreshToken(data.tokens.refreshToken),
         },
@@ -383,16 +345,13 @@ describe('Auth API (e2e)', () => {
     it('should login with verification code', async () => {
       const { email } = await registerUser();
 
-      // Send verification code (login scene)
       await sendVerificationCodeRequest(email, AUTH_SCENE.login);
 
-      // Get code from cache
       const code = expectDefined(
         await getVerificationCode(AUTH_SCENE.login, email),
         `Verification code was not cached for ${AUTH_SCENE.login}:${email}`,
       );
 
-      // Login with code
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.login)
         .send({ email, code })
@@ -413,14 +372,12 @@ describe('Auth API (e2e)', () => {
     it('should logout and invalidate refresh token', async () => {
       const { tokens } = await registerUser();
 
-      // Logout
       await request(app.getHttpServer())
         .post(AUTH_PATH.logout)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
         .send({ refreshToken: tokens.refreshToken })
         .expect(200);
 
-      // Refresh with the same token should fail
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.refresh)
         .send({ refreshToken: tokens.refreshToken })
@@ -472,10 +429,9 @@ describe('Auth API (e2e)', () => {
       const data = expectData(body);
       expect(data.accessToken).toBeDefined();
       expect(data.refreshToken).toBeDefined();
-      expect(data.refreshToken).not.toBe(tokens.refreshToken); // rotated
+      expect(data.refreshToken).not.toBe(tokens.refreshToken);
       expect(data.expiresIn).toBeGreaterThan(0);
 
-      // Old refresh token should be invalidated
       const res2 = await request(app.getHttpServer())
         .post(AUTH_PATH.refresh)
         .send({ refreshToken: tokens.refreshToken })
@@ -486,7 +442,7 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should not invalidate other sessions when refreshing one token', async () => {
-      const email = uniqueEmail();
+      const email = uniqueEmail('auth');
       const firstSession = await registerUser(email);
       const secondLogin = await request(app.getHttpServer())
         .post(AUTH_PATH.login)
@@ -524,7 +480,7 @@ describe('Auth API (e2e)', () => {
 
   describe('POST /api/v1/auth/send-verification-code', () => {
     it('should send verification code', async () => {
-      const email = uniqueEmail();
+      const email = uniqueEmail('auth');
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
@@ -544,7 +500,6 @@ describe('Auth API (e2e)', () => {
     it('should enforce cooldown', async () => {
       const { email } = await registerUser();
 
-      // First send
       const clientIp = uniqueClientIp();
       await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
@@ -552,7 +507,6 @@ describe('Auth API (e2e)', () => {
         .send({ email, scene: AUTH_SCENE.login })
         .expect(200);
 
-      // Second send within cooldown
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
         .set('x-forwarded-for', clientIp)
@@ -574,14 +528,14 @@ describe('Auth API (e2e)', () => {
         await request(app.getHttpServer())
           .post(AUTH_PATH.sendVerificationCode)
           .set('x-forwarded-for', clientIp)
-          .send({ email: uniqueEmail(), scene: AUTH_SCENE.register })
+          .send({ email: uniqueEmail('auth'), scene: AUTH_SCENE.register })
           .expect(200);
       }
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.sendVerificationCode)
         .set('x-forwarded-for', clientIp)
-        .send({ email: uniqueEmail(), scene: AUTH_SCENE.register })
+        .send({ email: uniqueEmail('auth'), scene: AUTH_SCENE.register })
         .expect(429);
 
       const body = res.body as ApiEnvelope;
@@ -598,7 +552,6 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
       const code = await seedVerificationCode(AUTH_SCENE.register, email);
 
-      // Verify email
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.verifyEmail)
         .send({ email, code })
@@ -660,7 +613,6 @@ describe('Auth API (e2e)', () => {
     it('should reset password with valid code', async () => {
       const { email } = await registerUser();
 
-      // Send forgot-password code
       await forgotPasswordRequest(email);
 
       const code = expectDefined(
@@ -668,7 +620,6 @@ describe('Auth API (e2e)', () => {
         `Verification code was not cached for ${AUTH_SCENE.resetPassword}:${email}`,
       );
 
-      // Reset password
       const newPassword = RESET_PASSWORD;
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.resetPassword)
@@ -678,13 +629,11 @@ describe('Auth API (e2e)', () => {
       const body = res.body as ApiEnvelope;
       expect(body.code).toBe(ResultCode.SUCCESS);
 
-      // Login with new password should work
       await request(app.getHttpServer())
         .post(AUTH_PATH.login)
         .send({ email, password: newPassword })
         .expect(200);
 
-      // Old password should fail
       await request(app.getHttpServer())
         .post(AUTH_PATH.login)
         .send({ email, password: TEST_PASSWORD })
@@ -827,7 +776,7 @@ describe('Auth API (e2e)', () => {
   describe('POST /api/v1/account/email', () => {
     it('should change email through account route and return verification time', async () => {
       const { tokens } = await registerUser();
-      const newEmail = uniqueEmail();
+      const newEmail = uniqueEmail('auth');
 
       await sendVerificationCodeRequest(newEmail, AUTH_SCENE.changeEmail);
 
@@ -862,7 +811,7 @@ describe('Auth API (e2e)', () => {
 
     it('should reject invalid verification code', async () => {
       const { tokens } = await registerUser();
-      const newEmail = uniqueEmail();
+      const newEmail = uniqueEmail('auth');
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.accountEmail)
@@ -876,7 +825,7 @@ describe('Auth API (e2e)', () => {
 
     it('should return normalized email after change', async () => {
       const { tokens } = await registerUser();
-      const normalizedEmail = uniqueEmail().toLowerCase();
+      const normalizedEmail = uniqueEmail('auth').toLowerCase();
       const mixedCaseEmail = normalizedEmail.replace(
         /^([^@]+)@(.+)$/,
         (_, localPart: string, domain: string) =>
@@ -907,7 +856,10 @@ describe('Auth API (e2e)', () => {
     it('should reject unauthenticated email change', async () => {
       await request(app.getHttpServer())
         .post(AUTH_PATH.accountEmail)
-        .send({ newEmail: uniqueEmail(), code: DEFAULT_VERIFICATION_CODE })
+        .send({
+          newEmail: uniqueEmail('auth'),
+          code: DEFAULT_VERIFICATION_CODE,
+        })
         .expect(401);
     });
   });
@@ -919,7 +871,7 @@ describe('Auth API (e2e)', () => {
   describe('DELETE /api/v1/account/identities/:identityId', () => {
     it('should unlink an OAuth identity when another sign-in method remains', async () => {
       const { user, tokens } = await registerUser();
-      const identity = await prisma.userIdentity.create({
+      const identity = await ctx.prisma.userIdentity.create({
         data: {
           userId: user.id,
           provider: 'wechat_web',
@@ -937,13 +889,13 @@ describe('Auth API (e2e)', () => {
       const data = expectData(body);
       expect(data.linkedIdentities).toEqual([]);
       await expect(
-        prisma.userIdentity.findUnique({ where: { id: identity.id } }),
+        ctx.prisma.userIdentity.findUnique({ where: { id: identity.id } }),
       ).resolves.toBeNull();
     });
 
     it('should reject unlinking the last sign-in method', async () => {
       const { user, tokens } = await registerUser();
-      const identity = await prisma.userIdentity.create({
+      const identity = await ctx.prisma.userIdentity.create({
         data: {
           userId: user.id,
           provider: 'wechat_web',
@@ -951,7 +903,7 @@ describe('Auth API (e2e)', () => {
           providerUnionId: `wechat-unionid-${user.id}`,
         },
       });
-      await prisma.user.update({
+      await ctx.prisma.user.update({
         where: { id: user.id },
         data: { passwordHash: null },
       });
@@ -968,7 +920,7 @@ describe('Auth API (e2e)', () => {
     it('should reject unlinking another account identity', async () => {
       const { tokens } = await registerUser();
       const other = await registerUser();
-      const identity = await prisma.userIdentity.create({
+      const identity = await ctx.prisma.userIdentity.create({
         data: {
           userId: other.user.id,
           provider: 'wechat_web',
