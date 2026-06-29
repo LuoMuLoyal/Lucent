@@ -20,6 +20,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { UserHealthContextOwnershipService } from './guards/ownership.service';
 import { UserHealthContextMapperService } from './services/user-health-context-mapper.service';
 import { UserHealthContextProfileWriteService } from './services/user-health-context-profile-write.service';
+import { UserHealthContextAllergyWriteService } from './services/user-health-context-allergy-write.service';
+import { UserHealthContextConditionWriteService } from './services/user-health-context-condition-write.service';
+import { UserHealthContextMedicineWriteService } from './services/user-health-context-medicine-write.service';
 import { UserHealthContextService } from './user-health-context.service';
 import { ResultCode } from '../../common/api-envelope';
 import { I18nService } from 'nestjs-i18n';
@@ -57,6 +60,9 @@ describe('UserHealthContextService', () => {
         UserHealthContextOwnershipService,
         UserHealthContextMapperService,
         UserHealthContextProfileWriteService,
+        UserHealthContextAllergyWriteService,
+        UserHealthContextConditionWriteService,
+        UserHealthContextMedicineWriteService,
         {
           provide: PrismaService,
           useValue: {

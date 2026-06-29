@@ -4,6 +4,7 @@ import * as argon2 from 'argon2';
 
 import { badRequest, notFound } from '../../common/utils/api-errors';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { User, UserStatus } from '../../generated/prisma/client';
 import { UserService } from '../user/user.service';
 import { VerificationCodeService } from './services/verification-code.service';
@@ -68,6 +69,7 @@ export class AuthService {
     private readonly authOAuthStateService: AuthOAuthStateService,
     private readonly authOAuthService: AuthOAuthService,
     private readonly credentialAuthService: CredentialAuthService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ── Credential delegation ────────────────────────────────────
@@ -250,6 +252,7 @@ export class AuthService {
     await this.authOAuthStateService.consume(dto.state, 'link');
     const profile = await this.wechatWebOAuthProvider.fetchProfile(dto.code);
     await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
+    this._notifyIdentityLinked(userId, profile).catch(() => {});
   }
 
   async linkWechatMobileIdentity(
@@ -274,6 +277,36 @@ export class AuthService {
       updatedUser,
       context,
     );
+    // Emit security notification for new OAuth login
+    this._notifyOAuthLogin(updatedUser.id, profile).catch(() => {
+      // Silently fail — notification issues must not block auth flow.
+    });
     return { user: updatedUser, ...tokens };
+  }
+
+  private async _notifyOAuthLogin(
+    userId: string,
+    profile: OAuthProfile,
+  ): Promise<void> {
+    const providerLabel = profile.provider === 'wechat_web' ? '微信' : '微信';
+    await this.notificationsService.create(userId, {
+      type: 'password_changed', // reuse type for security notification
+      title: '账户登录提醒',
+      content: `您的账户通过${providerLabel}登录。如非本人操作，请尽快联系客服。`,
+      action: '/account',
+    });
+  }
+
+  private async _notifyIdentityLinked(
+    userId: string,
+    _profile: OAuthProfile,
+  ): Promise<void> {
+    const providerLabel = '微信';
+    await this.notificationsService.create(userId, {
+      type: 'password_changed',
+      title: '账户绑定提醒',
+      content: `您的账户已绑定${providerLabel}身份。如非本人操作，请尽快联系客服。`,
+      action: '/account',
+    });
   }
 }

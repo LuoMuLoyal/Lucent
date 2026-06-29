@@ -1,6 +1,6 @@
 # Lucent Docs
 
-Last updated: 2026-06-25
+Last updated: 2026-06-29
 
 This directory keeps the authoritative backend runtime, deployment, generated-contract, and shared data-contract documentation for Lucent. If a complex backend task needs a live execution plan, put it under `../plans/` instead of `docs/`.
 

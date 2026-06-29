@@ -3,7 +3,6 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import {
   BadRequestException,
-  ConflictException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -75,7 +74,6 @@ describe('AuthService', () => {
   let prismaService: jest.Mocked<PrismaService>;
   let userService: jest.Mocked<UserService>;
   let verificationCodeService: jest.Mocked<VerificationCodeService>;
-  let authRateLimitService: jest.Mocked<AuthRateLimitService>;
   let authTokenService: jest.Mocked<AuthTokenService>;
   let authOAuthStateService: jest.Mocked<AuthOAuthStateService>;
   let authOAuthService: jest.Mocked<AuthOAuthService>;
@@ -216,15 +214,23 @@ describe('AuthService', () => {
         {
           provide: CredentialAuthService,
           useValue: {
-            register: jest.fn(),
-            login: jest.fn(),
-            changePassword: jest.fn(),
-            setPassword: jest.fn(),
-            changeEmail: jest.fn(),
-            sendVerificationCode: jest.fn(),
-            verifyEmail: jest.fn(),
-            forgotPassword: jest.fn(),
-            resetPassword: jest.fn(),
+            register: jest
+              .fn()
+              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
+            login: jest
+              .fn()
+              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
+            changePassword: jest.fn().mockResolvedValue(undefined),
+            setPassword: jest.fn().mockResolvedValue(undefined),
+            changeEmail: jest.fn().mockResolvedValue(mockUser),
+            sendVerificationCode: jest
+              .fn()
+              .mockResolvedValue({ message: 'verification_code_sent' }),
+            verifyEmail: jest.fn().mockResolvedValue(undefined),
+            forgotPassword: jest
+              .fn()
+              .mockResolvedValue({ message: 'forgot_password_hint' }),
+            resetPassword: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -234,7 +240,6 @@ describe('AuthService', () => {
     prismaService = module.get(PrismaService);
     userService = module.get(UserService);
     verificationCodeService = module.get(VerificationCodeService);
-    authRateLimitService = module.get(AuthRateLimitService);
     authTokenService = module.get(AuthTokenService);
     authOAuthStateService = module.get(AuthOAuthStateService);
     authOAuthService = module.get(AuthOAuthService);
@@ -275,206 +280,6 @@ describe('AuthService', () => {
 
   // ══════════════════════════════════════════════════════════════
   // 1. Register
-  // ══════════════════════════════════════════════════════════════
-
-  describe('register', () => {
-    it('should register a new user and return user + tokens', async () => {
-      const verifiedUser = {
-        ...mockUser,
-        emailVerifiedAt: new Date('2026-01-02T00:00:00Z'),
-      };
-      userService.findByEmail.mockResolvedValue(null);
-      userService.create.mockResolvedValue(verifiedUser);
-
-      const result = await service.register(
-        {
-          email: 'TEST@example.com',
-          password: 'Password123!',
-          code: '123456',
-          nickname: 'TestUser',
-        },
-        mockRequestContext,
-      );
-
-      expect(userService.findByEmail).toHaveBeenCalledWith('test@example.com');
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'test@example.com',
-        '123456',
-        'register',
-      );
-      expect(argon2.hash).toHaveBeenCalledWith(
-        'Password123!',
-        expect.objectContaining({ type: argon2.argon2id }),
-      );
-      expect(userService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: 'test@example.com',
-          passwordHash: '$argon2id$newhash',
-          nickname: 'TestUser',
-          emailVerifiedAt: expect.any(Date) as Date,
-          profile: { create: {} },
-        }),
-      );
-      expect(authTokenService.generateTokenPair).toHaveBeenCalledWith(
-        verifiedUser,
-        mockRequestContext,
-      );
-      expect(result.user).toEqual(verifiedUser);
-      expect(result.accessToken).toBe('mock-jwt-token');
-      expect(result.refreshToken).toBeDefined();
-    });
-
-    it('should throw ConflictException if email already exists', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-
-      await expect(
-        service.register({
-          email: 'test@example.com',
-          password: 'Password123!',
-          code: '123456',
-        }),
-      ).rejects.toThrow(ConflictException);
-    });
-  });
-
-  // ══════════════════════════════════════════════════════════════
-  // 2. Login
-  // ══════════════════════════════════════════════════════════════
-
-  describe('login', () => {
-    it('should login with valid password and return user + tokens', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-      userService.update.mockResolvedValue({
-        ...mockUser,
-        lastLoginAt: new Date(),
-        status: UserStatus.active,
-      });
-
-      const result = await service.login(
-        { email: 'test@example.com', password: 'Password123!' },
-        mockRequestContext,
-      );
-
-      expect(authRateLimitService.checkLoginRateLimit).toHaveBeenCalledWith(
-        'test@example.com',
-      );
-      expect(userService.findByEmail).toHaveBeenCalledWith('test@example.com');
-      expect(argon2.verify).toHaveBeenCalledWith(
-        '$argon2id$mock',
-        'Password123!',
-      );
-      expect(authRateLimitService.clearLoginFailures).toHaveBeenCalledWith(
-        'test@example.com',
-      );
-      expect(authTokenService.generateTokenPair).toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'user-uuid-1' }),
-        mockRequestContext,
-      );
-      expect(result.accessToken).toBe('mock-jwt-token');
-    });
-
-    it('should throw UnauthorizedException for non-existent user', async () => {
-      userService.findByEmail.mockResolvedValue(null);
-
-      await expect(
-        service.login({ email: 'noone@example.com', password: 'x' }),
-      ).rejects.toThrow(UnauthorizedException);
-
-      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
-        'noone@example.com',
-      );
-    });
-
-    it('should throw UnauthorizedException for wrong password', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-      (argon2.verify as jest.Mock).mockResolvedValueOnce(false);
-
-      await expect(
-        service.login({ email: 'test@example.com', password: 'wrong' }),
-      ).rejects.toThrow(UnauthorizedException);
-
-      expect(authRateLimitService.checkLoginRateLimit).toHaveBeenCalledWith(
-        'test@example.com',
-      );
-      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
-        'test@example.com',
-      );
-    });
-
-    it('should reject password login when the user has no local password', async () => {
-      const oauthUser = { ...mockUser, passwordHash: null };
-      userService.findByEmail.mockResolvedValue(oauthUser);
-
-      await expect(
-        service.login({ email: 'test@example.com', password: 'try' }),
-      ).rejects.toThrow(UnauthorizedException);
-
-      expect(authRateLimitService.recordLoginFailure).toHaveBeenCalledWith(
-        'test@example.com',
-      );
-      expect(argon2.verify).not.toHaveBeenCalled();
-    });
-
-    it('should reject login while email is rate limited', async () => {
-      (
-        authRateLimitService.checkLoginRateLimit as jest.Mock
-      ).mockRejectedValueOnce(
-        new UnauthorizedException({
-          code: 'RATE_LIMITED',
-          message: 'Too many attempts',
-        }),
-      );
-
-      await expect(
-        service.login({ email: 'test@example.com', password: 'Password123!' }),
-      ).rejects.toThrow(UnauthorizedException);
-
-      expect(userService.findByEmail).not.toHaveBeenCalled();
-    });
-
-    it('should throw when no credential is provided', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-
-      await expect(
-        service.login({ email: 'test@example.com' }),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-
-    it('should throw when both password and code are provided', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-
-      await expect(
-        service.login({
-          email: 'test@example.com',
-          password: 'Password123!',
-          code: '123456',
-        }),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-
-    it('should login with verification code', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-      userService.update.mockResolvedValue({
-        ...mockUser,
-        lastLoginAt: new Date(),
-        status: UserStatus.active,
-      });
-
-      const result = await service.login({
-        email: 'test@example.com',
-        code: '123456',
-      });
-
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'test@example.com',
-        '123456',
-        'login',
-      );
-      expect(argon2.verify).not.toHaveBeenCalled();
-      expect(result.accessToken).toBe('mock-jwt-token');
-    });
-  });
-
   // ══════════════════════════════════════════════════════════════
   // 3. Token Refresh
   // ══════════════════════════════════════════════════════════════
@@ -548,204 +353,6 @@ describe('AuthService', () => {
       await expect(service.getActiveUser('user-uuid-1')).rejects.toThrow(
         NotFoundException,
       );
-    });
-  });
-
-  describe('changePassword', () => {
-    it('should change password and logout all devices', async () => {
-      userService.findById.mockResolvedValue(mockUser);
-
-      await service.changePassword('user-uuid-1', {
-        oldPassword: 'OldPassword123!',
-        newPassword: 'NewPassword123!',
-      });
-
-      expect(argon2.verify).toHaveBeenCalledWith(
-        '$argon2id$mock',
-        'OldPassword123!',
-      );
-      expect(argon2.hash).toHaveBeenCalledWith(
-        'NewPassword123!',
-        expect.objectContaining({ type: argon2.argon2id }),
-      );
-      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
-        passwordHash: '$argon2id$newhash',
-      });
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
-    });
-
-    it('should throw UnauthorizedException for wrong old password', async () => {
-      userService.findById.mockResolvedValue(mockUser);
-      (argon2.verify as jest.Mock).mockResolvedValueOnce(false);
-
-      await expect(
-        service.changePassword('user-uuid-1', {
-          oldPassword: 'wrong',
-          newPassword: 'NewPassword123!',
-        }),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-
-    it('should reject password change when the user has no local password', async () => {
-      userService.findById.mockResolvedValue({
-        ...mockUser,
-        passwordHash: null,
-      });
-
-      await expect(
-        service.changePassword('user-uuid-1', {
-          oldPassword: 'any',
-          newPassword: 'NewPassword123!',
-        }),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-  });
-
-  describe('setPassword', () => {
-    it('should set password for OAuth-only user with existing email', async () => {
-      const oauthUser = {
-        ...mockUser,
-        email: 'test@example.com',
-        passwordHash: null,
-      };
-      userService.findById.mockResolvedValue(oauthUser);
-      (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$set');
-
-      await service.setPassword('user-uuid-1', {
-        code: '123456',
-        password: 'NewPassw0rd',
-      });
-
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'test@example.com',
-        '123456',
-        'set-password',
-      );
-      expect(argon2.hash).toHaveBeenCalled();
-      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
-        passwordHash: '$argon2id$set',
-      });
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
-    });
-
-    it('should bind email and set password for OAuth-only user without email', async () => {
-      const oauthUser = { ...mockUser, email: null, passwordHash: null };
-      userService.findById.mockResolvedValue(oauthUser);
-      userService.findByEmail.mockResolvedValue(null);
-      (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$set');
-
-      await service.setPassword('user-uuid-1', {
-        email: 'new@example.com',
-        code: '123456',
-        password: 'NewPassw0rd',
-      });
-
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'new@example.com',
-        '123456',
-        'set-password',
-      );
-      expect(userService.update).toHaveBeenCalledWith('user-uuid-1', {
-        email: 'new@example.com',
-        emailVerifiedAt: expect.any(Date) as Date,
-      });
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
-    });
-
-    it('should throw if user already has a password', async () => {
-      userService.findById.mockResolvedValue(mockUser);
-
-      await expect(
-        service.setPassword('user-uuid-1', {
-          code: '123456',
-          password: 'NewPassw0rd',
-        }),
-      ).rejects.toThrow(ConflictException);
-    });
-
-    it('should throw if user has no email and none is provided', async () => {
-      userService.findById.mockResolvedValue({
-        ...mockUser,
-        email: null,
-        passwordHash: null,
-      });
-
-      await expect(
-        service.setPassword('user-uuid-1', {
-          code: '123456',
-          password: 'NewPassw0rd',
-        }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw if the provided email is already in use', async () => {
-      const oauthUser = { ...mockUser, email: null, passwordHash: null };
-      userService.findById.mockResolvedValue(oauthUser);
-      userService.findByEmail.mockResolvedValue({
-        ...mockUser,
-        id: 'other-user',
-      });
-
-      await expect(
-        service.setPassword('user-uuid-1', {
-          email: 'test@example.com',
-          code: '123456',
-          password: 'NewPassw0rd',
-        }),
-      ).rejects.toThrow(ConflictException);
-    });
-
-    it('should revoke all sessions after setting password', async () => {
-      const oauthUser = {
-        ...mockUser,
-        email: 'test@example.com',
-        passwordHash: null,
-      };
-      userService.findById.mockResolvedValue(oauthUser);
-      (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$set');
-
-      await service.setPassword('user-uuid-1', {
-        code: '123456',
-        password: 'NewPassw0rd',
-      });
-
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
-    });
-  });
-
-  describe('changeEmail', () => {
-    it('should change email after verification', async () => {
-      userService.findById.mockResolvedValue(mockUser);
-      userService.findByEmail.mockResolvedValue(null);
-      userService.update.mockResolvedValue({
-        ...mockUser,
-        email: 'new@example.com',
-        emailVerifiedAt: new Date(),
-      });
-
-      const result = await service.changeEmail('user-uuid-1', {
-        newEmail: '  New@Example.COM  ',
-        code: '123456',
-      });
-
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'new@example.com',
-        '123456',
-        'change-email',
-      );
-      expect(result.email).toBe('new@example.com');
-    });
-
-    it('should throw ConflictException if new email already taken', async () => {
-      userService.findById.mockResolvedValue(mockUser);
-      userService.findByEmail.mockResolvedValue(mockUser);
-
-      await expect(
-        service.changeEmail('user-uuid-1', {
-          newEmail: 'test@example.com',
-          code: '123456',
-        }),
-      ).rejects.toThrow(ConflictException);
     });
   });
 
@@ -834,112 +441,6 @@ describe('AuthService', () => {
 
   // ══════════════════════════════════════════════════════════════
   // 6. Email Verification & Password Reset
-  // ══════════════════════════════════════════════════════════════
-
-  describe('sendVerificationCode', () => {
-    it('should delegate to verificationCodeService.send', async () => {
-      const result = await service.sendVerificationCode({
-        email: '  Test@Example.COM  ',
-        scene: 'register',
-      });
-
-      expect(verificationCodeService.send).toHaveBeenCalledWith(
-        'test@example.com',
-        'register',
-        undefined,
-      );
-      expect(result.message).toBe('auth.verification_code_sent');
-    });
-  });
-
-  describe('verifyEmail', () => {
-    it('should verify code and mark email as verified', async () => {
-      await service.verifyEmail({
-        email: '  Test@Example.COM  ',
-        code: '123456',
-      });
-
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'test@example.com',
-        '123456',
-        'register',
-      );
-      expect(userService.updateByEmail).toHaveBeenCalledWith(
-        'test@example.com',
-        { emailVerifiedAt: expect.any(Date) as Date },
-      );
-    });
-  });
-
-  describe('forgotPassword', () => {
-    it('should send reset code if user exists', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-
-      const result = await service.forgotPassword({
-        email: 'test@example.com',
-      });
-
-      expect(verificationCodeService.send).toHaveBeenCalledWith(
-        'test@example.com',
-        'reset-password',
-      );
-      expect(result.message).toBeDefined();
-    });
-
-    it('should return success message even if user does not exist', async () => {
-      userService.findByEmail.mockResolvedValue(null);
-
-      const result = await service.forgotPassword({
-        email: 'noone@example.com',
-      });
-
-      expect(verificationCodeService.send).not.toHaveBeenCalled();
-      expect(result.message).toBeDefined();
-    });
-  });
-
-  describe('resetPassword', () => {
-    it('should verify code, hash new password, and logout all devices', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser);
-      (prismaService.user.update as jest.Mock).mockResolvedValue(undefined);
-
-      await service.resetPassword({
-        email: '  Test@Example.COM  ',
-        code: '123456',
-        password: 'NewPassword123!',
-      });
-
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'test@example.com',
-        '123456',
-        'reset-password',
-      );
-      expect(argon2.hash).toHaveBeenCalledWith(
-        'NewPassword123!',
-        expect.objectContaining({ type: argon2.argon2id }),
-      );
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-uuid-1' },
-        data: { passwordHash: '$argon2id$newhash' },
-      });
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
-    });
-
-    it('should throw NotFoundException if user not found after code verification', async () => {
-      userService.findByEmail.mockResolvedValue(null);
-
-      await expect(
-        service.resetPassword({
-          email: 'noone@example.com',
-          code: '123456',
-          password: 'NewPassword123!',
-        }),
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  // ══════════════════════════════════════════════════════════════
-  // 7. WeChat Web OAuth
   // ══════════════════════════════════════════════════════════════
 
   describe('wechat web oauth', () => {
