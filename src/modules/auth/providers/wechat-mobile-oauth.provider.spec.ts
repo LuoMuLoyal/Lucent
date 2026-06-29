@@ -19,6 +19,14 @@ const mockOAuthConfig: OAuthConfig = {
     appId: 'wechat-mobile-app-id',
     appSecret: 'wechat-mobile-secret',
   },
+  apple: {
+    appId: 'apple-app-id',
+  },
+  qq: {
+    appId: 'qq-app-id',
+    appSecret: 'qq-secret',
+    redirectUri: 'https://app.example.com/oauth/qq/callback',
+  },
 };
 
 describe('WechatMobileOAuthProvider', () => {
@@ -58,9 +66,9 @@ describe('WechatMobileOAuthProvider', () => {
       },
     });
 
-    await expect(provider.fetchProfile('wechat-code')).rejects.toThrow(
-      ServiceUnavailableException,
-    );
+    await expect(
+      provider.fetchProfile({ code: 'wechat-code' }),
+    ).rejects.toThrow(ServiceUnavailableException);
   });
 
   it('should exchange mobile code for a normalized profile', async () => {
@@ -89,7 +97,7 @@ describe('WechatMobileOAuthProvider', () => {
           }),
       } as Response);
 
-    const profile = await provider.fetchProfile('wechat-mobile-code');
+    const profile = await provider.fetchProfile({ code: 'wechat-mobile-code' });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(profile).toEqual({
@@ -126,7 +134,7 @@ describe('WechatMobileOAuthProvider', () => {
         }),
     } as Response);
 
-    await expect(provider.fetchProfile('bad-code')).rejects.toThrow(
+    await expect(provider.fetchProfile({ code: 'bad-code' })).rejects.toThrow(
       UnauthorizedException,
     );
   });

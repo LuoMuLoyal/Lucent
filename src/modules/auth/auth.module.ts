@@ -15,6 +15,8 @@ import { AuthTwoFactorService } from './services/auth-two-factor.service';
 import { VerificationCodeService } from './services/verification-code.service';
 import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
+import { AppleOAuthProvider } from './providers/apple-oauth.provider';
+import { QqOAuthProvider } from './providers/qq-oauth.provider';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 
 @Module({
@@ -37,6 +39,8 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
     VerificationCodeService,
     WechatMobileOAuthProvider,
     WechatWebOAuthProvider,
+    AppleOAuthProvider,
+    QqOAuthProvider,
   ],
   exports: [AuthService],
 })

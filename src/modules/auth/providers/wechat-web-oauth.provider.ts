@@ -1,4 +1,3 @@
-import { unauthorized } from '../../../common/utils/api-errors';
 import {
   Injectable,
   Logger,
@@ -7,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import type { Prisma } from '../../../generated/prisma/client';
 import { ResultCode } from '../../../common/api-envelope';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type {
@@ -15,51 +13,37 @@ import type {
   OAuthProviderConfig,
 } from '../../../config/oauth.config';
 import {
+  WechatBaseOAuthProvider,
+  WECHAT_ACCESS_TOKEN_URL,
+  WECHAT_USERINFO_URL,
+  type WechatAccessTokenSuccess,
+  type WechatUserInfoSuccess,
+} from './wechat-base-oauth.provider';
+import {
   OAUTH_PROVIDER_WECHAT_WEB,
   type OAuthProfile,
 } from '../types/oauth.types';
+import type { OAuthProvider } from './oauth-provider.interface';
 
 const WECHAT_AUTHORIZE_URL = 'https://open.weixin.qq.com/connect/qrconnect';
-const WECHAT_ACCESS_TOKEN_URL =
-  'https://api.weixin.qq.com/sns/oauth2/access_token';
-const WECHAT_USERINFO_URL = 'https://api.weixin.qq.com/sns/userinfo';
 const WECHAT_SCOPE = 'snsapi_login';
 
-interface WechatAccessTokenSuccess {
-  access_token: string;
-  expires_in: number;
-  refresh_token: string;
-  openid: string;
-  scope: string;
-  unionid?: string;
-}
-
-interface WechatUserInfoSuccess {
-  openid: string;
-  nickname?: string;
-  sex?: number;
-  province?: string;
-  city?: string;
-  country?: string;
-  headimgurl?: string;
-  privilege?: string[];
-  unionid?: string;
-}
-
-interface WechatErrorResponse {
-  errcode: number;
-  errmsg: string;
-}
-
 @Injectable()
-export class WechatWebOAuthProvider implements OnModuleInit {
-  private readonly logger = new Logger(WechatWebOAuthProvider.name);
+export class WechatWebOAuthProvider
+  extends WechatBaseOAuthProvider
+  implements OAuthProvider, OnModuleInit
+{
+  readonly provider = OAUTH_PROVIDER_WECHAT_WEB;
+  protected readonly logger = new Logger(WechatWebOAuthProvider.name);
+
   constructor(
     private readonly configService: ConfigService,
-    private readonly i18n: I18nService,
-  ) {}
+    protected readonly i18n: I18nService,
+  ) {
+    super();
+  }
 
-  buildAuthorizeUrl(state: string): string {
+  buildAuthorizeUrl(state: string, _callbackUri?: string): string {
     const config = this.getConfig();
 
     if (!config.redirectUri) {
@@ -80,7 +64,14 @@ export class WechatWebOAuthProvider implements OnModuleInit {
     return `${WECHAT_AUTHORIZE_URL}?${params.toString()}#wechat_redirect`;
   }
 
-  async fetchProfile(code: string): Promise<OAuthProfile> {
+  async fetchProfile(
+    credential: Record<string, unknown>,
+  ): Promise<OAuthProfile> {
+    const code = credential['code'] as string;
+    if (!code) {
+      // will throw via unauthorized in fetchWechat on invalid code; let WeChat API reject it
+    }
+
     const config = this.getConfig();
     const tokenParams = new URLSearchParams({
       appid: config.appId,
@@ -148,44 +139,5 @@ export class WechatWebOAuthProvider implements OnModuleInit {
   private readRawConfig(): OAuthProviderConfig {
     const config = this.configService.getOrThrow<OAuthConfig>(ConfigKey.OAuth);
     return config.wechatWeb;
-  }
-
-  private async fetchWechat<T>(url: string): Promise<T> {
-    let response: Response;
-    try {
-      response = await fetch(url);
-    } catch {
-      throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
-      });
-    }
-
-    if (!response.ok) {
-      throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
-      });
-    }
-
-    const payload = (await response.json()) as T | WechatErrorResponse;
-    if (this.isWechatError(payload)) {
-      unauthorized(this.i18n.t('auth.oauth_code_invalid'));
-    }
-
-    return payload;
-  }
-
-  private isWechatError(payload: unknown): payload is WechatErrorResponse {
-    if (typeof payload !== 'object' || payload === null) {
-      return false;
-    }
-
-    const candidate = payload as Partial<WechatErrorResponse>;
-    return typeof candidate.errcode === 'number';
-  }
-
-  private toJsonValue(value: unknown): Prisma.InputJsonValue {
-    return value as Prisma.InputJsonValue;
   }
 }

@@ -2,12 +2,14 @@ import type { Prisma } from '../../../generated/prisma/client';
 
 export const OAUTH_PROVIDER_WECHAT_WEB = 'wechat_web';
 export const OAUTH_PROVIDER_WECHAT_MOBILE = 'wechat_mobile';
+export const OAUTH_PROVIDER_APPLE = 'apple';
+export const OAUTH_PROVIDER_QQ = 'qq';
 
-// TODO(auth-oauth): add more providers such as Apple or Google when product scope requires them.
-// blocked: each provider needs platform developer credentials (Apple Developer Program, Google Cloud Console) and app review.
-export type OAuthProvider =
+export type OAuthProviderName =
   | typeof OAUTH_PROVIDER_WECHAT_WEB
-  | typeof OAUTH_PROVIDER_WECHAT_MOBILE;
+  | typeof OAUTH_PROVIDER_WECHAT_MOBILE
+  | typeof OAUTH_PROVIDER_APPLE
+  | typeof OAUTH_PROVIDER_QQ;
 
 export interface OAuthAuthorizeResult {
   authorizeUrl: string;
@@ -17,7 +19,7 @@ export interface OAuthAuthorizeResult {
 }
 
 export interface OAuthProfile {
-  provider: OAuthProvider;
+  provider: OAuthProviderName;
   providerUserId: string;
   unionId?: string;
   email?: string | null;

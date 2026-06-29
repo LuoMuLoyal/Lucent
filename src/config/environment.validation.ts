@@ -59,6 +59,11 @@ export interface EnvironmentVariables {
   [EnvKey.WECHAT_MOBILE_APP_ID]?: string;
   [EnvKey.WECHAT_MOBILE_APP_SECRET]?: string;
 
+  [EnvKey.APPLE_APP_ID]?: string;
+  [EnvKey.QQ_APP_ID]?: string;
+  [EnvKey.QQ_APP_SECRET]?: string;
+  [EnvKey.QQ_REDIRECT_URI]?: string;
+
   [EnvKey.TENCENT_COS_SECRET_ID]?: string;
   [EnvKey.TENCENT_COS_SECRET_KEY]?: string;
   [EnvKey.TENCENT_COS_BUCKET]?: string;

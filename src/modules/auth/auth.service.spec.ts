@@ -30,6 +30,8 @@ import { CredentialAuthService } from './services/credential-auth.service';
 import { UserStatus } from '../../generated/prisma/client';
 import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
+import { AppleOAuthProvider } from './providers/apple-oauth.provider';
+import { QqOAuthProvider } from './providers/qq-oauth.provider';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
   OAUTH_PROVIDER_WECHAT_MOBILE,
@@ -147,6 +149,19 @@ describe('AuthService', () => {
           },
         },
         {
+          provide: AppleOAuthProvider,
+          useValue: {
+            fetchProfile: jest.fn(),
+          },
+        },
+        {
+          provide: QqOAuthProvider,
+          useValue: {
+            buildAuthorizeUrl: jest.fn(),
+            fetchProfile: jest.fn(),
+          },
+        },
+        {
           provide: I18nService,
           useValue: { t: jest.fn((key: string) => key) },
         },
@@ -255,6 +270,8 @@ describe('AuthService', () => {
     authOAuthService = module.get(AuthOAuthService);
     wechatWebOAuthProvider = module.get(WechatWebOAuthProvider);
     wechatMobileOAuthProvider = module.get(WechatMobileOAuthProvider);
+    module.get(AppleOAuthProvider);
+    module.get(QqOAuthProvider);
 
     // argon2 defaults
     (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$newhash');
@@ -490,6 +507,7 @@ describe('AuthService', () => {
       const result = await service.createWechatWebAuthorizeUrl();
 
       expect(authOAuthStateService.createState).toHaveBeenCalledWith(
+        'wechat_web',
         'login',
         undefined,
       );
@@ -508,6 +526,7 @@ describe('AuthService', () => {
       });
 
       expect(authOAuthStateService.createState).toHaveBeenCalledWith(
+        'wechat_web',
         'login',
         'http://localhost:8080/callback',
       );
@@ -517,6 +536,7 @@ describe('AuthService', () => {
       const result = await service.resolveWechatWebCallbackRedirect(mockDto);
 
       expect(authOAuthStateService.peek).toHaveBeenCalledWith(
+        'wechat_web',
         'mock-oauth-state',
       );
       expect(result).toContain('mock-auth-code');
@@ -535,12 +555,13 @@ describe('AuthService', () => {
       );
 
       expect(authOAuthStateService.consume).toHaveBeenCalledWith(
+        'wechat_web',
         'mock-oauth-state',
         'login',
       );
-      expect(wechatWebOAuthProvider.fetchProfile).toHaveBeenCalledWith(
-        'mock-auth-code',
-      );
+      expect(wechatWebOAuthProvider.fetchProfile).toHaveBeenCalledWith({
+        code: 'mock-auth-code',
+      });
       expect(authOAuthService.findOrCreateOAuthUser).toHaveBeenCalled();
       expect(authTokenService.generateTokenPair).toHaveBeenCalled();
       expect(result.accessToken).toBe('mock-jwt-token');
@@ -562,6 +583,7 @@ describe('AuthService', () => {
       await service.linkWechatWebIdentity('user-uuid-1', mockDto);
 
       expect(authOAuthStateService.consume).toHaveBeenCalledWith(
+        'wechat_web',
         'mock-oauth-state',
         'link',
       );
@@ -583,9 +605,9 @@ describe('AuthService', () => {
         code: 'mock-mobile-code',
       });
 
-      expect(wechatMobileOAuthProvider.fetchProfile).toHaveBeenCalledWith(
-        'mock-mobile-code',
-      );
+      expect(wechatMobileOAuthProvider.fetchProfile).toHaveBeenCalledWith({
+        code: 'mock-mobile-code',
+      });
       expect(authOAuthService.linkOAuthProfileToUser).toHaveBeenCalledWith(
         'user-uuid-1',
         expect.objectContaining({

@@ -9,13 +9,13 @@ import { ConfigKey } from '../../../config/config-keys.enum';
 import { ResultCode } from '../../../common/api-envelope';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
-  type OAuthProvider,
+  type OAuthProviderName,
 } from '../types/oauth.types';
 
 const OAUTH_STATE_TTL = 10 * 60 * 1000; // 10 minutes
 
 interface OAuthStateEntry {
-  provider: typeof OAUTH_PROVIDER_WECHAT_WEB;
+  provider: OAuthProviderName;
   purpose: 'login' | 'link';
   callbackUri?: string;
 }
@@ -32,15 +32,16 @@ export class AuthOAuthStateService {
   ) {}
 
   async createState(
+    provider: OAuthProviderName,
     purpose: OAuthStateEntry['purpose'],
     callbackUri?: string,
   ): Promise<{ state: string; ttlSec: number }> {
     const state = randomBytes(24).toString('base64url');
-    const normalizedUri = this.normalizeCallbackUri(callbackUri, purpose);
+    const normalizedUri = this.normalizeCallbackUri(provider, callbackUri);
     await this.cache.set(
-      this.stateKey(OAUTH_PROVIDER_WECHAT_WEB, state),
+      this.stateKey(provider, state),
       {
-        provider: OAUTH_PROVIDER_WECHAT_WEB,
+        provider,
         purpose,
         ...(normalizedUri !== undefined && { callbackUri: normalizedUri }),
       },
@@ -50,23 +51,27 @@ export class AuthOAuthStateService {
   }
 
   async consume(
+    provider: OAuthProviderName,
     state: string,
     purpose: OAuthStateEntry['purpose'],
   ): Promise<OAuthStateEntry> {
-    const key = this.stateKey(OAUTH_PROVIDER_WECHAT_WEB, state);
+    const key = this.stateKey(provider, state);
     const entry = await this.cache.get<OAuthStateEntry>(key);
     await this.cache.del(key);
-    if (!this.isValidEntry(entry, purpose)) {
+    if (!this.isValidEntry(provider, entry, purpose)) {
       unauthorized(this.i18n.t('auth.oauth_state_invalid'));
     }
     return entry;
   }
 
-  async peek(state: string): Promise<OAuthStateEntry> {
+  async peek(
+    provider: OAuthProviderName,
+    state: string,
+  ): Promise<OAuthStateEntry> {
     const entry = await this.cache.get<OAuthStateEntry>(
-      this.stateKey(OAUTH_PROVIDER_WECHAT_WEB, state),
+      this.stateKey(provider, state),
     );
-    if (!this.isValidEntry(entry)) {
+    if (!this.isValidEntry(provider, entry)) {
       unauthorized(this.i18n.t('auth.oauth_state_invalid'));
     }
     return entry;
@@ -88,19 +93,20 @@ export class AuthOAuthStateService {
 
   // ── Private helpers ──
 
-  private stateKey(provider: OAuthProvider, state: string): string {
+  private stateKey(provider: OAuthProviderName, state: string): string {
     const digest = createHash('sha256').update(state).digest('hex');
     return `auth:oauth-state:${provider}:${digest}`;
   }
 
   private isValidEntry(
+    provider: OAuthProviderName,
     entry: unknown,
     purpose?: OAuthStateEntry['purpose'],
   ): entry is OAuthStateEntry {
     if (typeof entry !== 'object' || entry === null) return false;
     const candidate = entry as Partial<OAuthStateEntry>;
     return (
-      candidate.provider === OAUTH_PROVIDER_WECHAT_WEB &&
+      candidate.provider === provider &&
       (candidate.purpose === 'login' || candidate.purpose === 'link') &&
       (purpose === undefined || candidate.purpose === purpose) &&
       (candidate.callbackUri === undefined ||
@@ -109,8 +115,8 @@ export class AuthOAuthStateService {
   }
 
   private normalizeCallbackUri(
+    provider: OAuthProviderName,
     uri: string | undefined,
-    purpose: OAuthStateEntry['purpose'],
   ): string | undefined {
     const trimmed = uri?.trim();
     if (!trimmed) return undefined;
@@ -145,8 +151,7 @@ export class AuthOAuthStateService {
       return parsed.toString();
     }
 
-    const expectedPath =
-      purpose === 'login' ? '/login/oauth/wechat' : '/account/oauth/wechat';
+    const expectedPath = this.providerCallbackPath(provider);
     if (
       parsed.protocol !== 'https:' ||
       parsed.pathname !== expectedPath ||
@@ -158,6 +163,17 @@ export class AuthOAuthStateService {
 
     parsed.search = '';
     return parsed.toString();
+  }
+
+  private providerCallbackPath(provider: OAuthProviderName): string {
+    switch (provider) {
+      case OAUTH_PROVIDER_WECHAT_WEB:
+        return '/login/oauth/wechat';
+      case 'qq':
+        return '/login/oauth/qq';
+      default:
+        return '/login/oauth/wechat';
+    }
   }
 
   private isTrustedOrigin(origin: string): boolean {

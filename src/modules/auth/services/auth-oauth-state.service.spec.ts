@@ -18,11 +18,9 @@ function buildEntry(overrides: Partial<OAuthStateEntry> = {}): OAuthStateEntry {
   return {
     provider: 'wechat_web',
     purpose: 'login',
-    createdAt: Date.now() - 60_000,
-    ttlMs: OAUTH_STATE_TTL,
     callbackUri: 'https://app.example.com/oauth/callback',
     ...overrides,
-  } as OAuthStateEntry;
+  };
 }
 
 // ── Suite ─────────────────────────────────────────────────────
@@ -80,7 +78,7 @@ describe('AuthOAuthStateService', () => {
 
   describe('createState', () => {
     it('should create a state entry with random token and return ttl', async () => {
-      const result = await service.createState('login');
+      const result = await service.createState('wechat_web', 'login');
 
       expect(result.state).toBeTruthy();
       expect(result.state.length).toBeGreaterThanOrEqual(32);
@@ -95,6 +93,7 @@ describe('AuthOAuthStateService', () => {
     it('should include callbackUri when provided for login purpose', async () => {
       // createState stores callbackUri in the cache entry
       await service.createState(
+        'wechat_web',
         'login',
         'http://localhost:3000/oauth/callback',
       );
@@ -118,14 +117,14 @@ describe('AuthOAuthStateService', () => {
       const entry = buildEntry();
       cache.get.mockResolvedValue(entry);
 
-      const result = await service.peek('random-state-token');
+      const result = await service.peek('wechat_web', 'random-state-token');
 
       expect(result).toEqual(entry);
       expect(cache.del).not.toHaveBeenCalled();
     });
 
     it('should throw when state does not exist', async () => {
-      await expect(service.peek('nonexistent')).rejects.toThrow(
+      await expect(service.peek('wechat_web', 'nonexistent')).rejects.toThrow(
         UnauthorizedException,
       );
     });
@@ -140,16 +139,20 @@ describe('AuthOAuthStateService', () => {
       const entry = buildEntry();
       cache.get.mockResolvedValue(entry);
 
-      const result = await service.consume('random-state-token', 'login');
+      const result = await service.consume(
+        'wechat_web',
+        'random-state-token',
+        'login',
+      );
 
       expect(result).toEqual(entry);
       expect(cache.del).toHaveBeenCalled();
     });
 
     it('should throw when state does not exist', async () => {
-      await expect(service.consume('nonexistent', 'login')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(
+        service.consume('wechat_web', 'nonexistent', 'login'),
+      ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw when purpose does not match', async () => {
@@ -157,7 +160,7 @@ describe('AuthOAuthStateService', () => {
       cache.get.mockResolvedValue(entry);
 
       await expect(
-        service.consume('random-state-token', 'link'),
+        service.consume('wechat_web', 'random-state-token', 'link'),
       ).rejects.toThrow(UnauthorizedException);
     });
   });

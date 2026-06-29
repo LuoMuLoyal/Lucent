@@ -7,54 +7,44 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import type { Prisma } from '../../../generated/prisma/client';
 import { ResultCode } from '../../../common/api-envelope';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type { OAuthConfig } from '../../../config/oauth.config';
 import {
+  WechatBaseOAuthProvider,
+  WECHAT_ACCESS_TOKEN_URL,
+  WECHAT_USERINFO_URL,
+  type WechatAccessTokenSuccess,
+  type WechatUserInfoSuccess,
+} from './wechat-base-oauth.provider';
+import {
   OAUTH_PROVIDER_WECHAT_MOBILE,
   type OAuthProfile,
 } from '../types/oauth.types';
-
-const WECHAT_ACCESS_TOKEN_URL =
-  'https://api.weixin.qq.com/sns/oauth2/access_token';
-const WECHAT_USERINFO_URL = 'https://api.weixin.qq.com/sns/userinfo';
-
-interface WechatAccessTokenSuccess {
-  access_token: string;
-  expires_in: number;
-  refresh_token: string;
-  openid: string;
-  scope: string;
-  unionid?: string;
-}
-
-interface WechatUserInfoSuccess {
-  openid: string;
-  nickname?: string;
-  sex?: number;
-  province?: string;
-  city?: string;
-  country?: string;
-  headimgurl?: string;
-  privilege?: string[];
-  unionid?: string;
-}
-
-interface WechatErrorResponse {
-  errcode: number;
-  errmsg: string;
-}
+import type { OAuthProvider } from './oauth-provider.interface';
 
 @Injectable()
-export class WechatMobileOAuthProvider implements OnModuleInit {
-  private readonly logger = new Logger(WechatMobileOAuthProvider.name);
+export class WechatMobileOAuthProvider
+  extends WechatBaseOAuthProvider
+  implements OAuthProvider, OnModuleInit
+{
+  readonly provider = OAUTH_PROVIDER_WECHAT_MOBILE;
+  protected readonly logger = new Logger(WechatMobileOAuthProvider.name);
+
   constructor(
     private readonly configService: ConfigService,
-    private readonly i18n: I18nService,
-  ) {}
+    protected readonly i18n: I18nService,
+  ) {
+    super();
+  }
 
-  async fetchProfile(code: string): Promise<OAuthProfile> {
+  async fetchProfile(
+    credential: Record<string, unknown>,
+  ): Promise<OAuthProfile> {
+    const code = credential['code'] as string;
+    if (!code) {
+      unauthorized(this.i18n.t('auth.oauth_code_required'));
+    }
     const config = this.getConfig();
     const tokenParams = new URLSearchParams({
       appid: config.appId,
@@ -122,44 +112,5 @@ export class WechatMobileOAuthProvider implements OnModuleInit {
   private readRawConfig(): { appId: string; appSecret: string } {
     const config = this.configService.getOrThrow<OAuthConfig>(ConfigKey.OAuth);
     return config.wechatMobile;
-  }
-
-  private async fetchWechat<T>(url: string): Promise<T> {
-    let response: Response;
-    try {
-      response = await fetch(url);
-    } catch {
-      throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
-      });
-    }
-
-    if (!response.ok) {
-      throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
-        message: this.i18n.t('auth.oauth_provider_unavailable'),
-      });
-    }
-
-    const payload = (await response.json()) as T | WechatErrorResponse;
-    if (this.isWechatError(payload)) {
-      unauthorized(this.i18n.t('auth.oauth_code_invalid'));
-    }
-
-    return payload;
-  }
-
-  private isWechatError(payload: unknown): payload is WechatErrorResponse {
-    if (typeof payload !== 'object' || payload === null) {
-      return false;
-    }
-
-    const candidate = payload as Partial<WechatErrorResponse>;
-    return typeof candidate.errcode === 'number';
-  }
-
-  private toJsonValue(value: unknown): Prisma.InputJsonValue {
-    return value as Prisma.InputJsonValue;
   }
 }

@@ -14,10 +14,17 @@ import {
   OAuthAuthorizeDto,
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
+  AppleOAuthCallbackDto,
+  QqOAuthCallbackDto,
+  QqOAuthAuthorizeDto,
 } from './dto/oauth.dto';
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
 import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
+import { AppleOAuthProvider } from './providers/apple-oauth.provider';
+import { QqOAuthProvider } from './providers/qq-oauth.provider';
 import {
+  OAUTH_PROVIDER_WECHAT_WEB,
+  OAUTH_PROVIDER_QQ,
   type OAuthAuthorizeResult,
   type OAuthProfile,
 } from './types/oauth.types';
@@ -64,6 +71,8 @@ export class AuthService {
     private readonly verificationCodeService: VerificationCodeService,
     private readonly wechatWebOAuthProvider: WechatWebOAuthProvider,
     private readonly wechatMobileOAuthProvider: WechatMobileOAuthProvider,
+    private readonly appleOAuthProvider: AppleOAuthProvider,
+    private readonly qqOAuthProvider: QqOAuthProvider,
     private readonly i18n: I18nService,
     private readonly authTokenService: AuthTokenService,
     private readonly authOAuthStateService: AuthOAuthStateService,
@@ -201,10 +210,14 @@ export class AuthService {
     dto?: OAuthAuthorizeDto,
   ): Promise<OAuthAuthorizeResult> {
     const { state, ttlSec } = await this.authOAuthStateService.createState(
+      OAUTH_PROVIDER_WECHAT_WEB,
       purpose,
       dto?.callbackUri,
     );
-    const entry = await this.authOAuthStateService.peek(state);
+    const entry = await this.authOAuthStateService.peek(
+      OAUTH_PROVIDER_WECHAT_WEB,
+      state,
+    );
 
     return {
       authorizeUrl: this.wechatWebOAuthProvider.buildAuthorizeUrl(state),
@@ -219,7 +232,10 @@ export class AuthService {
   async resolveWechatWebCallbackRedirect(
     dto: OAuthCallbackDto,
   ): Promise<string> {
-    const entry = await this.authOAuthStateService.peek(dto.state);
+    const entry = await this.authOAuthStateService.peek(
+      OAUTH_PROVIDER_WECHAT_WEB,
+      dto.state,
+    );
     return this.authOAuthStateService.buildRedirectUrl(
       entry,
       dto.code,
@@ -231,8 +247,14 @@ export class AuthService {
     dto: OAuthCallbackDto,
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
-    await this.authOAuthStateService.consume(dto.state, 'login');
-    const profile = await this.wechatWebOAuthProvider.fetchProfile(dto.code);
+    await this.authOAuthStateService.consume(
+      OAUTH_PROVIDER_WECHAT_WEB,
+      dto.state,
+      'login',
+    );
+    const profile = await this.wechatWebOAuthProvider.fetchProfile({
+      code: dto.code,
+    });
     return this.loginWithOAuthProfile(profile, context);
   }
 
@@ -240,7 +262,61 @@ export class AuthService {
     dto: OAuthCodeCallbackDto,
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
-    const profile = await this.wechatMobileOAuthProvider.fetchProfile(dto.code);
+    const profile = await this.wechatMobileOAuthProvider.fetchProfile({
+      code: dto.code,
+    });
+    return this.loginWithOAuthProfile(profile, context);
+  }
+
+  async loginWithApple(
+    dto: AppleOAuthCallbackDto,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
+    const profile = await this.appleOAuthProvider.fetchProfile({
+      identityToken: dto.identityToken,
+      authorizationCode: dto.authorizationCode,
+      givenName: dto.givenName,
+      familyName: dto.familyName,
+    });
+    return this.loginWithOAuthProfile(profile, context);
+  }
+
+  async createQqAuthorizeUrl(
+    dto?: QqOAuthAuthorizeDto,
+  ): Promise<OAuthAuthorizeResult> {
+    const { state, ttlSec } = await this.authOAuthStateService.createState(
+      OAUTH_PROVIDER_QQ,
+      'login',
+      dto?.callbackUri,
+    );
+    const entry = await this.authOAuthStateService.peek(
+      OAUTH_PROVIDER_QQ,
+      state,
+    );
+
+    return {
+      authorizeUrl: this.qqOAuthProvider.buildAuthorizeUrl(
+        state,
+        dto?.callbackUri,
+      ),
+      state,
+      expiresIn: ttlSec,
+      ...(entry.callbackUri !== undefined && {
+        callbackUri: entry.callbackUri,
+      }),
+    };
+  }
+
+  async loginWithQq(
+    dto: QqOAuthCallbackDto,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
+    await this.authOAuthStateService.consume(
+      OAUTH_PROVIDER_QQ,
+      dto.state,
+      'login',
+    );
+    const profile = await this.qqOAuthProvider.fetchProfile({ code: dto.code });
     return this.loginWithOAuthProfile(profile, context);
   }
 
@@ -249,8 +325,14 @@ export class AuthService {
     dto: OAuthCallbackDto,
   ): Promise<void> {
     await this.getActiveUser(userId);
-    await this.authOAuthStateService.consume(dto.state, 'link');
-    const profile = await this.wechatWebOAuthProvider.fetchProfile(dto.code);
+    await this.authOAuthStateService.consume(
+      OAUTH_PROVIDER_WECHAT_WEB,
+      dto.state,
+      'link',
+    );
+    const profile = await this.wechatWebOAuthProvider.fetchProfile({
+      code: dto.code,
+    });
     await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
     this._notifyIdentityLinked(userId, profile).catch(() => {});
   }
@@ -260,7 +342,9 @@ export class AuthService {
     dto: OAuthCodeCallbackDto,
   ): Promise<void> {
     await this.getActiveUser(userId);
-    const profile = await this.wechatMobileOAuthProvider.fetchProfile(dto.code);
+    const profile = await this.wechatMobileOAuthProvider.fetchProfile({
+      code: dto.code,
+    });
     await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
   }
 
@@ -288,26 +372,34 @@ export class AuthService {
     userId: string,
     profile: OAuthProfile,
   ): Promise<void> {
-    const providerLabel = profile.provider === 'wechat_web' ? '微信' : '微信';
     await this.notificationsService.create(userId, {
-      type: 'password_changed', // reuse type for security notification
+      type: 'password_changed',
       title: '账户登录提醒',
-      content: `您的账户通过${providerLabel}登录。如非本人操作，请尽快联系客服。`,
+      content: `您的账户通过${this._providerLabel(profile.provider)}登录。如非本人操作，请尽快联系客服。`,
       action: '/account',
     });
   }
 
   private async _notifyIdentityLinked(
     userId: string,
-    _profile: OAuthProfile,
+    profile: OAuthProfile,
   ): Promise<void> {
-    const providerLabel = '微信';
     await this.notificationsService.create(userId, {
       type: 'password_changed',
       title: '账户绑定提醒',
-      content: `您的账户已绑定${providerLabel}身份。如非本人操作，请尽快联系客服。`,
+      content: `您的账户已绑定${this._providerLabel(profile.provider)}身份。如非本人操作，请尽快联系客服。`,
       action: '/account',
     });
+  }
+
+  private _providerLabel(provider: string): string {
+    const labels: Record<string, string> = {
+      wechat_web: '微信',
+      wechat_mobile: '微信',
+      apple: 'Apple',
+      qq: 'QQ',
+    };
+    return labels[provider] ?? provider;
   }
 
   // ── 2FA delegation ────────────────────────────────────────────

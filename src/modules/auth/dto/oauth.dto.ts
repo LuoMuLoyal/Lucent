@@ -32,3 +32,61 @@ export class OAuthCodeCallbackDto {
   @MaxLength(512)
   code!: string;
 }
+
+export class AppleOAuthCallbackDto {
+  @ApiProperty({ description: 'Apple 登录返回的 identityToken (JWT)' })
+  @IsString()
+  @MaxLength(4096)
+  identityToken!: string;
+
+  @ApiProperty({
+    description: 'Apple 登录返回的 authorizationCode（可选）',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1024)
+  authorizationCode?: string;
+
+  @ApiProperty({
+    description: 'Apple 返回的 givenName（首次登录时返回）',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  givenName?: string;
+
+  @ApiProperty({
+    description: 'Apple 返回的 familyName（首次登录时返回）',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
+  familyName?: string;
+}
+
+export class QqOAuthCallbackDto {
+  @ApiProperty({ description: 'QQ 授权码' })
+  @IsString()
+  @MaxLength(512)
+  code!: string;
+
+  @ApiProperty({ description: '授权时生成的 state' })
+  @IsString()
+  @MaxLength(512)
+  state!: string;
+}
+
+export class QqOAuthAuthorizeDto {
+  @ApiProperty({
+    description: 'QQ 授权完成后的客户端回跳地址',
+    required: false,
+    example: 'http://127.0.0.1:49152/oauth/qq',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  callbackUri?: string;
+}

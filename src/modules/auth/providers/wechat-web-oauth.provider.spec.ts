@@ -19,6 +19,14 @@ const mockOAuthConfig: OAuthConfig = {
     appId: 'wechat-mobile-app-id',
     appSecret: 'wechat-mobile-secret',
   },
+  apple: {
+    appId: 'apple-app-id',
+  },
+  qq: {
+    appId: 'qq-app-id',
+    appSecret: 'qq-secret',
+    redirectUri: 'https://app.example.com/oauth/qq/callback',
+  },
 };
 
 describe('WechatWebOAuthProvider', () => {
@@ -71,6 +79,14 @@ describe('WechatWebOAuthProvider', () => {
         appId: 'wechat-mobile-app-id',
         appSecret: 'wechat-mobile-secret',
       },
+      apple: {
+        appId: 'apple-app-id',
+      },
+      qq: {
+        appId: 'qq-app-id',
+        appSecret: 'qq-secret',
+        redirectUri: 'https://app.example.com/oauth/qq/callback',
+      },
     });
 
     expect(() => provider.buildAuthorizeUrl('oauth-state')).toThrow(
@@ -104,7 +120,7 @@ describe('WechatWebOAuthProvider', () => {
           }),
       } as Response);
 
-    const profile = await provider.fetchProfile('wechat-code');
+    const profile = await provider.fetchProfile({ code: 'wechat-code' });
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(profile).toEqual({
@@ -141,7 +157,7 @@ describe('WechatWebOAuthProvider', () => {
         }),
     } as Response);
 
-    await expect(provider.fetchProfile('bad-code')).rejects.toThrow(
+    await expect(provider.fetchProfile({ code: 'bad-code' })).rejects.toThrow(
       UnauthorizedException,
     );
   });

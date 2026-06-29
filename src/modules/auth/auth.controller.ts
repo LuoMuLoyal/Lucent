@@ -50,6 +50,9 @@ import {
   OAuthAuthorizeDto,
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
+  AppleOAuthCallbackDto,
+  QqOAuthCallbackDto,
+  QqOAuthAuthorizeDto,
 } from './dto/oauth.dto';
 
 import {
@@ -203,6 +206,81 @@ export class AuthController {
     @Req() request: Request,
   ) {
     const result = await this.authService.loginWithWechatMobile(
+      dto,
+      this.getAuthRequestContext(request),
+    );
+    return successEnvelope({
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        nickname: result.user.nickname,
+        avatar: result.user.avatar,
+        emailVerified: toEmailVerified(result.user.emailVerifiedAt),
+        emailVerifiedAt: formatDateTime(result.user.emailVerifiedAt),
+        createdAt: result.user.createdAt.toISOString(),
+        updatedAt: result.user.updatedAt.toISOString(),
+      },
+      tokens: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
+      },
+    });
+  }
+
+  // ── 2.4 POST /api/v1/auth/oauth/apple/callback ─────────────
+
+  @Post('oauth/apple/callback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Apple 登录回调' })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
+  async loginWithApple(
+    @Body() dto: AppleOAuthCallbackDto,
+    @Req() request: Request,
+  ) {
+    const result = await this.authService.loginWithApple(
+      dto,
+      this.getAuthRequestContext(request),
+    );
+    return successEnvelope({
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        nickname: result.user.nickname,
+        avatar: result.user.avatar,
+        emailVerified: toEmailVerified(result.user.emailVerifiedAt),
+        emailVerifiedAt: formatDateTime(result.user.emailVerifiedAt),
+        createdAt: result.user.createdAt.toISOString(),
+        updatedAt: result.user.updatedAt.toISOString(),
+      },
+      tokens: {
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
+      },
+    });
+  }
+
+  // ── 2.5 POST /api/v1/auth/oauth/qq/authorize ──────────────
+
+  @Post('oauth/qq/authorize')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '创建 QQ 登录授权地址' })
+  @ApiBody({ type: QqOAuthAuthorizeDto, required: false })
+  @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  async createQqAuthorizeUrl(@Body() dto?: QqOAuthAuthorizeDto) {
+    const result = await this.authService.createQqAuthorizeUrl(dto);
+    return successEnvelope(result);
+  }
+
+  // ── 2.6 POST /api/v1/auth/oauth/qq/callback ───────────────
+
+  @Post('oauth/qq/callback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'QQ 登录回调' })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
+  async loginWithQq(@Body() dto: QqOAuthCallbackDto, @Req() request: Request) {
+    const result = await this.authService.loginWithQq(
       dto,
       this.getAuthRequestContext(request),
     );
