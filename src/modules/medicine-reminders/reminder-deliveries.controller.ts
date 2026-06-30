@@ -14,7 +14,7 @@ import { ReminderDeliveryListResponseDto } from './dto';
 import { MedicineRemindersService } from './medicine-reminders.service';
 
 @ApiTags('Reminder Deliveries')
-@Controller('user/reminder-deliveries')
+@Controller('reminder-deliveries')
 export class ReminderDeliveriesController {
   constructor(private readonly service: MedicineRemindersService) {}
 

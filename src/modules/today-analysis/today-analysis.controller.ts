@@ -35,7 +35,7 @@ import {
 @ApiTags('Today Analysis')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
-@Controller('user/today-analysis')
+@Controller('today-analysis')
 export class TodayAnalysisController {
   constructor(
     private readonly todayAnalysisService: TodayAnalysisService,

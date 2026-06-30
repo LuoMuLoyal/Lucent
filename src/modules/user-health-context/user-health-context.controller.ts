@@ -34,7 +34,7 @@ import {
 import { UserHealthContextService } from './user-health-context.service';
 
 @ApiTags('User Health Context')
-@Controller('user/health-context')
+@Controller('health-context')
 export class UserHealthContextController {
   constructor(
     private readonly userHealthContextService: UserHealthContextService,

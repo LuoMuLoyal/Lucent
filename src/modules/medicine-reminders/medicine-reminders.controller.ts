@@ -30,7 +30,7 @@ import {
 import { MedicineRemindersService } from './medicine-reminders.service';
 
 @ApiTags('Medicine Reminders')
-@Controller('user/medicine-reminders')
+@Controller('medicine-reminders')
 export class MedicineRemindersController {
   constructor(private readonly service: MedicineRemindersService) {}
 

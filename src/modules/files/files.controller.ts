@@ -17,7 +17,7 @@ import { CreateFileUploadDto } from './dto/create-file-upload.dto';
 @ApiTags('Files')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
-@Controller('user/files')
+@Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 

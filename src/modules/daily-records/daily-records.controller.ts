@@ -39,7 +39,7 @@ import { DailyRecordsService } from './daily-records.service';
 import { I18nLang } from 'nestjs-i18n';
 
 @ApiTags('Daily Records')
-@Controller('user/daily-records')
+@Controller('daily-records')
 export class DailyRecordsController {
   constructor(
     private readonly dailyRecordsService: DailyRecordsService,

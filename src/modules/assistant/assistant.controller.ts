@@ -34,7 +34,7 @@ import {
 @ApiTags('Assistant')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
-@Controller('user/assistant')
+@Controller('assistant')
 export class AssistantController {
   constructor(private readonly assistantService: AssistantService) {}
 

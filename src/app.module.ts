@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
+import { RouterModule } from '@nestjs/core';
 import { appConfig } from './config/app.config';
 import { aiConfig } from './config/ai.config';
 import { jwtConfig } from './config/jwt.config';
@@ -68,6 +69,25 @@ import { AssistantModule } from './modules/assistant/assistant.module';
     FilesModule,
     NotificationsModule,
     ...(process.env['NODE_ENV'] === 'test' ? [TestingSupportModule] : []),
+    RouterModule.register([
+      {
+        path: 'user',
+        children: [
+          { path: 'assistant', module: AssistantModule },
+          { path: 'daily-records', module: DailyRecordsModule },
+          { path: 'data-export-requests', module: DataExportModule },
+          { path: 'files', module: FilesModule },
+          { path: 'health-context', module: UserHealthContextModule },
+          { path: 'medicine-dose-logs', module: MedicineDoseLogsModule },
+          { path: 'medicine-reminders', module: MedicineRemindersModule },
+          { path: 'notifications', module: NotificationsModule },
+          { path: 'reminder-deliveries', module: MedicineRemindersModule },
+          { path: 'reports', module: ReportsModule },
+          { path: 'settings', module: UserSettingsModule },
+          { path: 'today-analysis', module: TodayAnalysisModule },
+        ],
+      },
+    ]),
   ],
   controllers: [AppController],
   providers: [AppService],

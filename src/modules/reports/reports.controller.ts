@@ -36,7 +36,7 @@ import { ReportsService } from './dashboard/reports.service';
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
-@Controller('user/reports')
+@Controller('reports')
 export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,

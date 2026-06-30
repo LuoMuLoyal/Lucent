@@ -16,7 +16,7 @@ import { UpdateUserSettingsDto, UserSettingsResponseDto } from './dto';
 @ApiTags('User Settings')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
-@Controller('user/settings')
+@Controller('settings')
 export class UserSettingsController {
   constructor(private readonly settingsService: UserSettingsService) {}
 
