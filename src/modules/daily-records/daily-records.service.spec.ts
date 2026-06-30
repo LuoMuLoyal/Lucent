@@ -430,6 +430,14 @@ describe('DailyRecordsService', () => {
     );
   });
 
+  it('should throw NotFoundException when record does not exist', async () => {
+    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue(null);
+
+    await expect(service.update(mockUserId, 'nonexistent', {})).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
   it('should update occurredTime when provided', async () => {
     (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
       userId: mockUserId,

@@ -38,7 +38,15 @@ const AUTO_TITLE_PROPERTY_CANDIDATES = [
 ];
 
 type DynamicImport = <T>(specifier: string) => Promise<T>;
-// eslint-disable-next-line @typescript-eslint/no-implied-eval -- SWC compiles normal dynamic import to require() in this CJS build.
+/**
+ * AdminJS packages are ESM-only and must be imported dynamically.
+ * SWC compiles standard `import()` to `require()` in this CJS build, which
+ * breaks ESM interop. Using `new Function` bypasses SWC's transform so the
+ * runtime `import()` is preserved as-is. This is safe because the specifiers
+ * are hardcoded string literals ('adminjs', '@adminjs/express',
+ * '@sergiyiva/adminjs-prisma') and never come from user input.
+ */
+// eslint-disable-next-line @typescript-eslint/no-implied-eval
 const dynamicImport = new Function(
   'specifier',
   'return import(specifier)',
