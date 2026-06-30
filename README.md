@@ -4,6 +4,8 @@
 
 Lucent is the NestJS backend for Luminous. New backend work happens here; `Luminous/backend` is legacy reference code.
 
+Current version: **v1.0.0-dev**
+
 ## Source Of Truth
 
 - API contract: controller / DTO code plus generated [docs/openapi.json](docs/openapi.json).
@@ -12,7 +14,7 @@ Lucent is the NestJS backend for Luminous. New backend work happens here; `Lumin
 - Medicine data imports: [docs/public/data-sources.md](docs/public/data-sources.md).
 - Product direction: [../Luminous/docs/Product_Vision.md](../Luminous/docs/Product_Vision.md).
 
-Hand-written endpoint mocks and commit-style changelogs are intentionally not maintained. Regenerate OpenAPI when API code changes:
+Hand-written endpoint mocks are intentionally not maintained. Regenerate OpenAPI when API code changes:
 
 ```bash
 pnpm export:openapi
@@ -181,7 +183,13 @@ Active docs:
 
 - [docs/environment.md](docs/environment.md)
 - [docs/deployment.md](docs/deployment.md)
+- [docs/architecture.md](docs/architecture.md)
 - [docs/openapi.json](docs/openapi.json)
+- [docs/adr/](docs/adr/) — Architecture Decision Records
 - [docs/public/data-sources.md](docs/public/data-sources.md)
+- [docs/public/assistant-contract.md](docs/public/assistant-contract.md)
 - [docs/public/reminder-contract.md](docs/public/reminder-contract.md)
 - [docs/public/environment-contract.md](docs/public/environment-contract.md)
+- [docs/public/mine-settings-contract.md](docs/public/mine-settings-contract.md)
+- [docs/MigrationLog.md](docs/MigrationLog.md) — Change history
+- [docs/TODO.md](docs/TODO.md) — Deferred follow-up items

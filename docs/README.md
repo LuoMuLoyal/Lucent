@@ -20,6 +20,8 @@ This directory keeps the authoritative backend runtime, deployment, generated-co
 | `public/assistant-contract.md`     | Assistant capability/permission boundary and rollout truth                            | Prompt drafts or temporary plans      |
 | `TODO.md`                          | Active deferred backend follow-up items                                               | Historical changelog narrative        |
 | `MigrationLog.md`                  | Date-based change history index; entries live in `migration-log/YYYY-MM-DD.md`        | Current-state facts or future plans   |
+| `adr/`                             | Architecture Decision Records for significant technical choices                       | Implementation details or task logs   |
+| `public/README.md`                 | Public contracts directory boundary and usage rules                                   | Individual contract content           |
 
 ## Admin Panel
 
@@ -55,6 +57,8 @@ Product direction and current product state are owned by the workspace path `Lum
 | Backend architecture / module structure change                 | Run `pnpm docs:compodoc` to regenerate architecture docs           |
 | Module dependency, AI pipeline, route, or DB convention change | `architecture.md`                                                  |
 | AdminJS panel resources / CRUD permissions                     | `README.md` admin panel paragraph and `src/admin/adminjs.setup.ts` |
+| Significant architectural decision                             | Create an ADR in `adr/NNNN-title.md`                               |
+| Public contract boundary (non-goals, capability scope) changes | `public/README.md` and the relevant `public/*.md` contract         |
 | Any backend code change                                        | Today's `migration-log/YYYY-MM-DD.md`                              |
 
 ## Relationship With `Lumos-docs`
