@@ -1,0 +1,4 @@
+{
+  "content_type_not_allowed": "File type is not supported",
+  "file_size_exceeds_limit": "File size exceeds the allowed limit"
+}

@@ -31,3 +31,23 @@ export function parseDateOnly(value: string): Date {
   // timezone and shift the stored instant on non-UTC runtimes.
   return new Date(`${value}T00:00:00.000Z`);
 }
+
+/**
+ * Calculates age from a birth date using UTC day boundaries.
+ * Returns 0 when the birth date is in the future or results in a negative age.
+ */
+export function calculateAge(birthDate: Date): number {
+  const today = new Date();
+  let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+
+  const hasHadBirthdayThisYear =
+    today.getUTCMonth() > birthDate.getUTCMonth() ||
+    (today.getUTCMonth() === birthDate.getUTCMonth() &&
+      today.getUTCDate() >= birthDate.getUTCDate());
+
+  if (!hasHadBirthdayThisYear) {
+    age -= 1;
+  }
+
+  return Math.max(age, 0);
+}
