@@ -19,7 +19,7 @@ import {
 } from '@nestjs/swagger';
 
 import { successEnvelope } from '../../common/api-envelope';
-import { AuthService, type UserPayload } from '../auth/auth.service';
+import { AuthService, type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChangeEmailDto } from '../auth/dto/change-email.dto';

@@ -9,7 +9,7 @@ import type {
 import {
   REFERENCE_DATA_UPDATED_AT,
   STATIC_SUPPORT_RESOURCES,
-} from '../support-resources-reference';
+} from './support-resources-reference';
 
 const BUILD_DATE = new Date().toISOString();
 

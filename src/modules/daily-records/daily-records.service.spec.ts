@@ -8,7 +8,7 @@ import { DailyRecordKind } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DailyRecordsOwnershipService } from './services/ownership.service';
 import { DailyRecordsMapperService } from './services/daily-records-mapper.service';
-import { DailyRecordsService } from './daily-records.service';
+import { DailyRecordsService } from './services/daily-records.service';
 
 const mockUserId = 'user-uuid-1';
 

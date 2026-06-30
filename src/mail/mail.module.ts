@@ -11,5 +11,4 @@ import { MailTransportService } from './mail-transport.service';
   providers: [MailTransportService, MailQueueService, MailService],
   exports: [MailService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class MailModule {}

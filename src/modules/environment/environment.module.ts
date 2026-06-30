@@ -6,5 +6,4 @@ import { EnvironmentService } from './services/environment.service';
   controllers: [EnvironmentController],
   providers: [EnvironmentService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class EnvironmentModule {}

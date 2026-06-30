@@ -10,5 +10,4 @@ import { UserSettingsService } from './services/user-settings.service';
   providers: [UserSettingsService],
   exports: [UserSettingsService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class UserSettingsModule {}

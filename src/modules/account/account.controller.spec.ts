@@ -12,7 +12,7 @@ import type { UserPayload } from '../auth/services/auth-token.service';
 
 import { AccountController } from './account.controller';
 import { AccountService } from './services/account.service';
-import { AuthService } from '../auth/auth.service';
+import { AuthService } from '../auth/services/auth.service';
 import type { UpdateAccountDto } from './dto/update-account.dto';
 import type { AccountDto } from './dto/account-response.dto';
 

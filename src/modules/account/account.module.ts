@@ -9,5 +9,4 @@ import { AccountService } from './services/account.service';
   controllers: [AccountController],
   providers: [AccountService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class AccountModule {}

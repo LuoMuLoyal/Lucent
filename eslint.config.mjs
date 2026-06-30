@@ -61,6 +61,13 @@ export default tseslint.config(
     },
   },
   {
+    // NestJS @Module() 装饰器类天然是 "空壳" 类 — 关闭此规则避免手工添加 eslint-disable 注释
+    files: ['**/*.module.ts'],
+    rules: {
+      '@typescript-eslint/no-extraneous-class': 'off',
+    },
+  },
+  {
     files: ['**/*.spec.ts', '**/*.test.ts'],
     plugins: { jest },
     rules: {

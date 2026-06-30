@@ -21,7 +21,7 @@ import { UserHealthContextProfileWriteService } from './services/user-health-con
 import { UserHealthContextAllergyWriteService } from './services/user-health-context-allergy-write.service';
 import { UserHealthContextConditionWriteService } from './services/user-health-context-condition-write.service';
 import { UserHealthContextMedicineWriteService } from './services/user-health-context-medicine-write.service';
-import { UserHealthContextService } from './user-health-context.service';
+import { UserHealthContextService } from './services/user-health-context.service';
 import { ResultCode } from '../../common/api-envelope';
 import { I18nService } from 'nestjs-i18n';
 

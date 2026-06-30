@@ -8,5 +8,4 @@ import { TestingSupportService } from './services/testing-support.service';
   controllers: [TestingSupportController],
   providers: [TestingSupportService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class TestingSupportModule {}

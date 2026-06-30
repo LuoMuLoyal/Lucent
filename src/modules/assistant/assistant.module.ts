@@ -10,7 +10,7 @@ import { AssistantConversationService } from './services/assistant-conversation.
 import { AssistantController } from './assistant.controller';
 import { AssistantPolicyService } from './services/assistant-policy.service';
 import { HistoricalAiSummaryService } from './services/historical-ai-summary.service';
-import { AssistantService } from './assistant.service';
+import { AssistantService } from './services/assistant.service';
 import {
   AssistantContextService,
   AssistantToolLeafletReadService,
@@ -45,5 +45,4 @@ import {
   ],
   exports: [HistoricalAiSummaryService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class AssistantModule {}

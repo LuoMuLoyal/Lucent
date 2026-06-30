@@ -18,5 +18,4 @@ import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
     CnMedicinesService,
   ],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class MedicinesModule {}

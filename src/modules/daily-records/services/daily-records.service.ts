@@ -1,16 +1,16 @@
-import { nonDeleted } from '../../common/utils/prisma.helpers';
-import { normalizeNullableText } from '../../common/utils/string.utils';
-import { parseDateOnly } from '../../common/utils/date-time.utils';
+import { nonDeleted } from '../../../common/utils/prisma.helpers';
+import { normalizeNullableText } from '../../../common/utils/string.utils';
+import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { DailyRecordKind, Prisma } from '../../generated/prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { CreateDailyRecordDto, UpdateDailyRecordDto } from './dto';
-import { DailyRecordsOwnershipService } from './services/ownership.service';
-import { DailyRecordsMapperService } from './services/daily-records-mapper.service';
+import { DailyRecordKind, Prisma } from '../../../generated/prisma/client';
+import { PrismaService } from '../../../prisma/prisma.service';
+import type { CreateDailyRecordDto, UpdateDailyRecordDto } from '../dto';
+import { DailyRecordsOwnershipService } from './ownership.service';
+import { DailyRecordsMapperService } from './daily-records-mapper.service';
 import {
   dailyRecordWithAttachments,
   type DailyRecordDbClient,
-} from './types/daily-records.types';
+} from '../types/daily-records.types';
 
 @Injectable()
 export class DailyRecordsService {

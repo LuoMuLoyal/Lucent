@@ -32,11 +32,11 @@ import {
   toEmailVerified,
 } from '../../common/utils/date-time.utils';
 import { VERIFICATION_CODE_COOLDOWN_SEC } from './services/verification-code.service';
-import { AuthService } from './auth.service';
+import { AuthService } from './services/auth.service';
 import { AuthTokenService } from './services/auth-token.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import type { AuthRequestContext, UserPayload } from './auth.service';
+import type { AuthRequestContext, UserPayload } from './services/auth.service';
 
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';

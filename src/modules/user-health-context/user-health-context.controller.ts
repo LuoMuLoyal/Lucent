@@ -20,7 +20,7 @@ import {
 import { successEnvelope } from '../../common/api-envelope';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { UserPayload } from '../auth/auth.service';
+import type { UserPayload } from '../auth/services/auth.service';
 import {
   CreateCurrentMedicineDto,
   CreateHealthContextAllergyDto,
@@ -31,7 +31,7 @@ import {
   UpdateHealthContextConditionDto,
   UpdateHealthContextProfileDto,
 } from './dto';
-import { UserHealthContextService } from './user-health-context.service';
+import { UserHealthContextService } from './services/user-health-context.service';
 
 @ApiTags('User Health Context')
 @Controller('health-context')

@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import { DataExportController } from './data-export.controller';
-import { DataExportService } from './data-export.service';
+import { DataExportService } from './services/data-export.service';
 import type {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,

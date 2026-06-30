@@ -1,9 +1,9 @@
-import { notFound } from '../../common/utils/api-errors';
-import { nonDeleted } from '../../common/utils/prisma.helpers';
+import { notFound } from '../../../common/utils/api-errors';
+import { nonDeleted } from '../../../common/utils/prisma.helpers';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   CreateCurrentMedicineDto,
   CreateHealthContextAllergyDto,
@@ -13,13 +13,13 @@ import type {
   UpdateHealthContextAllergyDto,
   UpdateHealthContextConditionDto,
   UpdateHealthContextProfileDto,
-} from './dto';
-import { UserHealthContextMapperService } from './services/user-health-context-mapper.service';
-import { UserHealthContextProfileWriteService } from './services/user-health-context-profile-write.service';
-import { UserHealthContextAllergyWriteService } from './services/user-health-context-allergy-write.service';
-import { UserHealthContextConditionWriteService } from './services/user-health-context-condition-write.service';
-import { UserHealthContextMedicineWriteService } from './services/user-health-context-medicine-write.service';
-import { userHealthContextInclude } from './types/user-health-context.types';
+} from '../dto';
+import { UserHealthContextMapperService } from './user-health-context-mapper.service';
+import { UserHealthContextProfileWriteService } from './user-health-context-profile-write.service';
+import { UserHealthContextAllergyWriteService } from './user-health-context-allergy-write.service';
+import { UserHealthContextConditionWriteService } from './user-health-context-condition-write.service';
+import { UserHealthContextMedicineWriteService } from './user-health-context-medicine-write.service';
+import { userHealthContextInclude } from '../types/user-health-context.types';
 
 @Injectable()
 export class UserHealthContextService {

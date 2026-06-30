@@ -21,7 +21,7 @@ import {
 import { successEnvelope } from '../../common/api-envelope';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { UserPayload } from '../auth/auth.service';
+import type { UserPayload } from '../auth/services/auth.service';
 import {
   CreateDailyRecordDto,
   UpdateDailyRecordDto,
@@ -35,7 +35,7 @@ import {
 } from './dto';
 import { DailyRecordCandidatesService } from './services/daily-record-candidates.service';
 import { DailyRecordImageUploadService } from './services/daily-record-image-upload.service';
-import { DailyRecordsService } from './daily-records.service';
+import { DailyRecordsService } from './services/daily-records.service';
 import { I18nLang } from 'nestjs-i18n';
 
 @ApiTags('Daily Records')

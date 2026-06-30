@@ -19,10 +19,10 @@ import { I18nLang } from 'nestjs-i18n';
 import { successEnvelope } from '../../common/api-envelope';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { endSse, prepareSse, writeSseEvent } from '../../common/sse';
-import { type UserPayload } from '../auth/auth.service';
+import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AssistantService } from './assistant.service';
+import { AssistantService } from './services/assistant.service';
 import {
   AssistantCapabilitiesResponseDto,
   AssistantConversationListResponseDto,

@@ -92,5 +92,4 @@ import { AssistantModule } from './modules/assistant/assistant.module';
   controllers: [AppController],
   providers: [AppService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class AppModule {}

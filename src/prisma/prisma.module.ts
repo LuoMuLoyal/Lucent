@@ -6,5 +6,4 @@ import { PrismaService } from './prisma.service.js';
   providers: [PrismaService],
   exports: [PrismaService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class PrismaModule {}

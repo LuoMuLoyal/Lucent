@@ -16,10 +16,10 @@ import {
 import { I18nLang } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../common/api-envelope';
-import { type UserPayload } from '../auth/auth.service';
+import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { DataExportService } from './data-export.service';
+import { DataExportService } from './services/data-export.service';
 import {
   CreateDataExportRequestDto,
   DataExportLatestResponseDto,

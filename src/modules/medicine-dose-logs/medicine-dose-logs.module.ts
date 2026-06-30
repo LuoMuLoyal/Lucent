@@ -8,5 +8,4 @@ import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
   controllers: [MedicineDoseLogsController],
   providers: [MedicineDoseLogsService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class MedicineDoseLogsModule {}

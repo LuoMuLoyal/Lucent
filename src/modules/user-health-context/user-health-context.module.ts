@@ -6,7 +6,7 @@ import { UserHealthContextProfileWriteService } from './services/user-health-con
 import { UserHealthContextAllergyWriteService } from './services/user-health-context-allergy-write.service';
 import { UserHealthContextConditionWriteService } from './services/user-health-context-condition-write.service';
 import { UserHealthContextMedicineWriteService } from './services/user-health-context-medicine-write.service';
-import { UserHealthContextService } from './user-health-context.service';
+import { UserHealthContextService } from './services/user-health-context.service';
 
 @Module({
   controllers: [UserHealthContextController],
@@ -21,5 +21,4 @@ import { UserHealthContextService } from './user-health-context.service';
   ],
   exports: [UserHealthContextService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class UserHealthContextModule {}

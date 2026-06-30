@@ -7,7 +7,7 @@ import {
 } from '@nestjs/swagger';
 
 import { successEnvelope } from '../../common/api-envelope';
-import { type UserPayload } from '../auth/auth.service';
+import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserSettingsService } from './services/user-settings.service';

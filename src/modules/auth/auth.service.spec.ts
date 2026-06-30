@@ -18,7 +18,7 @@ import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
-import { AuthService } from './auth.service';
+import { AuthService } from './services/auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserService } from '../user/services/user.service';
 import { VerificationCodeService } from './services/verification-code.service';

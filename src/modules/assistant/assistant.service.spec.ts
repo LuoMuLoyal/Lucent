@@ -9,7 +9,7 @@ import type { AssistantConversationService } from './services/assistant-conversa
 import type { AssistantPolicyService } from './services/assistant-policy.service';
 import type { AssistantContextService } from './tools/assistant-context.service';
 import type { AssistantToolService } from './tools/assistant-tool.service';
-import { AssistantService } from './assistant.service';
+import { AssistantService } from './services/assistant.service';
 
 function conversationServiceDouble() {
   return {

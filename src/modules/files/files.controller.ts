@@ -9,7 +9,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { UserPayload } from '../auth/auth.service';
+import type { UserPayload } from '../auth/services/auth.service';
 import { successEnvelope } from '../../common/api-envelope';
 import { FilesService } from './services/files.service';
 import { CreateFileUploadDto } from './dto/create-file-upload.dto';

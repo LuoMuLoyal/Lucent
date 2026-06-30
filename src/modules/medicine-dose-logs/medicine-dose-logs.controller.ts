@@ -20,7 +20,7 @@ import {
 import { successEnvelope } from '../../common/api-envelope';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import type { UserPayload } from '../auth/auth.service';
+import type { UserPayload } from '../auth/services/auth.service';
 import {
   CreateDoseLogDto,
   DoseLogListResponseDto,

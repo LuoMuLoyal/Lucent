@@ -22,5 +22,4 @@ import { TodayRecommendationsService } from './services/today-recommendations.se
     TodayRecommendationsService,
   ],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class TodayAnalysisModule {}

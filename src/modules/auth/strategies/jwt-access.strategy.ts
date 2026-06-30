@@ -6,7 +6,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { ConfigKey } from '../../../config/config-keys.enum';
-import { UserPayload } from '../auth.service';
+import { UserPayload } from '../services/auth.service';
 
 interface JwtConfigShape {
   accessSecret: string;

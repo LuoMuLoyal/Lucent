@@ -15,7 +15,7 @@ import {
   toPagination,
   truncateText,
   uniqueNonEmptyStrings,
-} from '../medicines.utils';
+} from '../services/medicines.utils';
 
 interface MedicineSearchCriteria {
   q: string;

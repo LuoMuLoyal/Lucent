@@ -1,12 +1,12 @@
-import { nonDeleted } from '../../common/utils/prisma.helpers';
+import { nonDeleted } from '../../../common/utils/prisma.helpers';
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   CreateMedicineReminderDto,
   UpdateMedicineReminderDto,
-} from './dto';
-import { MedicineRemindersOwnershipService } from './services/ownership.service';
-import { MedicineRemindersMapperService } from './services/medicine-reminders-mapper.service';
+} from '../dto';
+import { MedicineRemindersOwnershipService } from './ownership.service';
+import { MedicineRemindersMapperService } from './medicine-reminders-mapper.service';
 
 @Injectable()
 export class MedicineRemindersService {

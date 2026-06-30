@@ -2,14 +2,14 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
-import { badRequest, notFound } from '../../common/utils/api-errors';
-import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationsService } from '../notifications/services/notifications.service';
-import { User, UserStatus } from '../../generated/prisma/client';
-import { UserService } from '../user/services/user.service';
-import { VerificationCodeService } from './services/verification-code.service';
-import { ResultCode } from '../../common/api-envelope';
-import { DeleteAccountDto } from './dto/delete-account.dto';
+import { badRequest, notFound } from '../../../common/utils/api-errors';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { NotificationsService } from '../../notifications/services/notifications.service';
+import { User, UserStatus } from '../../../generated/prisma/client';
+import { UserService } from '../../user/services/user.service';
+import { VerificationCodeService } from './verification-code.service';
+import { ResultCode } from '../../../common/api-envelope';
+import { DeleteAccountDto } from '../dto/delete-account.dto';
 import {
   OAuthAuthorizeDto,
   OAuthCallbackDto,
@@ -17,45 +17,42 @@ import {
   AppleOAuthCallbackDto,
   QqOAuthCallbackDto,
   QqOAuthAuthorizeDto,
-} from './dto/oauth.dto';
-import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
-import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
-import { AppleOAuthProvider } from './providers/apple-oauth.provider';
-import { QqOAuthProvider } from './providers/qq-oauth.provider';
+} from '../dto/oauth.dto';
+import { WechatWebOAuthProvider } from '../providers/wechat-web-oauth.provider';
+import { WechatMobileOAuthProvider } from '../providers/wechat-mobile-oauth.provider';
+import { AppleOAuthProvider } from '../providers/apple-oauth.provider';
+import { QqOAuthProvider } from '../providers/qq-oauth.provider';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
   OAUTH_PROVIDER_QQ,
   type OAuthAuthorizeResult,
   type OAuthProfile,
-} from './types/oauth.types';
+} from '../types/oauth.types';
 import {
   AuthOAuthStateService,
   type OAuthStateEntry,
-} from './services/auth-oauth-state.service';
+} from './auth-oauth-state.service';
 import {
   AuthTokenService,
   type AuthRequestContext,
   type TokenPair,
-} from './services/auth-token.service';
-import { AuthOAuthService } from './services/auth-oauth.service';
+} from './auth-token.service';
+import { AuthOAuthService } from './auth-oauth.service';
 import {
   CredentialAuthService,
   normalizeEmail,
-} from './services/credential-auth.service';
-import type { RegisterDto } from './dto/register.dto';
-import type { LoginDto } from './dto/login.dto';
-import type { ChangePasswordDto } from './dto/change-password.dto';
-import type { ChangeEmailDto } from './dto/change-email.dto';
-import type { ResetPasswordDto } from './dto/reset-password.dto';
-import type { SetPasswordDto } from './dto/set-password.dto';
-import type { ForgotPasswordDto } from './dto/forgot-password.dto';
-import type { SendVerificationCodeDto } from './dto/send-verification-code.dto';
-import type { VerifyEmailDto } from './dto/verify-email.dto';
+} from './credential-auth.service';
+import type { RegisterDto } from '../dto/register.dto';
+import type { LoginDto } from '../dto/login.dto';
+import type { ChangePasswordDto } from '../dto/change-password.dto';
+import type { ChangeEmailDto } from '../dto/change-email.dto';
+import type { ResetPasswordDto } from '../dto/reset-password.dto';
+import type { SetPasswordDto } from '../dto/set-password.dto';
+import type { ForgotPasswordDto } from '../dto/forgot-password.dto';
+import type { SendVerificationCodeDto } from '../dto/send-verification-code.dto';
+import type { VerifyEmailDto } from '../dto/verify-email.dto';
 
-export type {
-  AuthRequestContext,
-  UserPayload,
-} from './services/auth-token.service';
+export type { AuthRequestContext, UserPayload } from './auth-token.service';
 
 /**
  * Central authentication facade that orchestrates credential flows

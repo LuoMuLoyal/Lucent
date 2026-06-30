@@ -24,7 +24,7 @@ import { I18nLang } from 'nestjs-i18n';
 import { ResultCode, successEnvelope } from '../../common/api-envelope';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { UserPayload } from '../auth/auth.service';
+import type { UserPayload } from '../auth/services/auth.service';
 import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
 import {
   CnMedicineDetailDto,

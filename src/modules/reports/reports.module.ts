@@ -28,5 +28,4 @@ import { ReportsController } from './reports.controller';
   ],
   exports: [ReportsService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class ReportsModule {}

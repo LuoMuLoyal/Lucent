@@ -4,7 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UserModule } from '../user/user.module';
-import { AuthService } from './auth.service';
+import { AuthService } from './services/auth.service';
 import { AuthController } from './auth.controller';
 import { AuthRateLimitService } from './services/auth-rate-limit.service';
 import { AuthTokenService } from './services/auth-token.service';
@@ -44,5 +44,4 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
   ],
   exports: [AuthService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class AuthModule {}

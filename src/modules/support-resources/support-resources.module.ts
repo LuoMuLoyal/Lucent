@@ -6,5 +6,4 @@ import { SupportResourcesService } from './services/support-resources.service';
   controllers: [SupportResourcesController],
   providers: [SupportResourcesService],
 })
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class SupportResourcesModule {}
