@@ -1,0 +1,5 @@
+{
+  "identity_not_found": "未找到账户身份",
+  "cannot_unlink_last_method": "无法解绑唯一的登录方式",
+  "user_not_found": "用户不存在"
+}

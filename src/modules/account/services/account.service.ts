@@ -1,5 +1,6 @@
 import { notFound, forbidden } from '../../../common/utils/api-errors';
 import { Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 
 import { PrismaService } from '../../../prisma/prisma.service';
 import { User, UserIdentity } from '../../../generated/prisma/client';
@@ -10,7 +11,10 @@ type AccountUser = User & { identities: UserIdentity[] };
 
 @Injectable()
 export class AccountService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly i18n: I18nService,
+  ) {}
 
   async getAccount(userId: string): Promise<AccountDto> {
     return this.toAccountDto(await this.getActiveAccountUser(userId));
@@ -42,11 +46,11 @@ export class AccountService {
     const user = await this.getActiveAccountUser(userId);
     const identity = user.identities.find((item) => item.id === identityId);
     if (!identity) {
-      notFound('Account identity not found');
+      notFound(this.i18n.t('account.identity_not_found'));
     }
 
     if (user.passwordHash === null && user.identities.length <= 1) {
-      forbidden('Cannot unlink the last sign-in method');
+      forbidden(this.i18n.t('account.cannot_unlink_last_method'));
     }
 
     await this.prisma.userIdentity.delete({ where: { id: identityId } });
@@ -60,7 +64,7 @@ export class AccountService {
     });
 
     if (!user) {
-      notFound('User not found');
+      notFound(this.i18n.t('account.user_not_found'));
     }
 
     return user;

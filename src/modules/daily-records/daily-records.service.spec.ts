@@ -3,6 +3,7 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { DailyRecordKind } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DailyRecordsOwnershipService } from './services/ownership.service';
@@ -18,6 +19,10 @@ describe('DailyRecordsService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: I18nService,
+          useValue: { t: jest.fn().mockImplementation((key: string) => key) },
+        },
         DailyRecordsService,
         DailyRecordsOwnershipService,
         DailyRecordsMapperService,

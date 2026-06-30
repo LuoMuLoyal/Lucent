@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { ensureOwnedByUser } from '../../../common/utils/prisma-ownership.helper';
 
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -6,7 +7,10 @@ import type { OwnedMedicineReminderRecord } from '../types/medicine-reminders.ty
 
 @Injectable()
 export class MedicineRemindersOwnershipService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly i18n: I18nService,
+  ) {}
 
   async ensureCurrentMedicineOwnedByUser(
     userId: string,
@@ -21,7 +25,11 @@ export class MedicineRemindersOwnershipService {
       select: { id: true, userId: true },
     });
 
-    ensureOwnedByUser(medicine, userId, 'Medicine not found');
+    ensureOwnedByUser(
+      medicine,
+      userId,
+      this.i18n.t('medicine-reminders.medicine_not_found'),
+    );
   }
 
   async ensureOwnedByUser(
@@ -33,7 +41,11 @@ export class MedicineRemindersOwnershipService {
       select: { userId: true, startDate: true, endDate: true },
     });
 
-    ensureOwnedByUser(reminder, userId, 'Reminder not found');
+    ensureOwnedByUser(
+      reminder,
+      userId,
+      this.i18n.t('medicine-reminders.reminder_not_found'),
+    );
 
     return reminder;
   }

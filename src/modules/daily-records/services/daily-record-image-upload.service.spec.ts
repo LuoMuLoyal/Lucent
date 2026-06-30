@@ -4,7 +4,12 @@ import {
 } from '@nestjs/common';
 import type { TencentCosConfig } from '../../../config/tencent-cos.config';
 import type { DailyRecordImageUploadRuntime } from '../config/daily-record-image-upload.runtime';
+import type { I18nService } from 'nestjs-i18n';
 import { DailyRecordImageUploadService } from './daily-record-image-upload.service';
+
+const mockI18n = {
+  t: jest.fn().mockReturnValue('error'),
+} as unknown as I18nService;
 
 describe('DailyRecordImageUploadService', () => {
   beforeEach(() => {
@@ -13,7 +18,7 @@ describe('DailyRecordImageUploadService', () => {
 
   it('should create a Tencent COS signed upload URL', () => {
     const runtime = runtimeDouble(testConfig());
-    const service = new DailyRecordImageUploadService(runtime);
+    const service = new DailyRecordImageUploadService(runtime, mockI18n);
     const expectedObjectKeyPattern =
       /^daily-records\/user-1\/\d{4}\/\d{2}\/\d{2}\/[0-9a-f-]+\.jpg$/;
 
@@ -40,6 +45,7 @@ describe('DailyRecordImageUploadService', () => {
   it('should reject unsupported content types', () => {
     const service = new DailyRecordImageUploadService(
       runtimeDouble(testConfig()),
+      mockI18n,
     );
 
     expect(() =>
@@ -53,6 +59,7 @@ describe('DailyRecordImageUploadService', () => {
   it('should reject images larger than configured limit', () => {
     const service = new DailyRecordImageUploadService(
       runtimeDouble({ ...testConfig(), maxUploadBytes: 1000 }),
+      mockI18n,
     );
 
     expect(() =>
@@ -66,6 +73,7 @@ describe('DailyRecordImageUploadService', () => {
   it('should fail when Tencent COS is not configured', () => {
     const service = new DailyRecordImageUploadService(
       runtimeDouble({ ...testConfig(), secretId: '' }),
+      mockI18n,
     );
 
     expect(() =>

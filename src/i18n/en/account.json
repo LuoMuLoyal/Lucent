@@ -1,0 +1,5 @@
+{
+  "identity_not_found": "Account identity not found",
+  "cannot_unlink_last_method": "Cannot unlink the last sign-in method",
+  "user_not_found": "User not found"
+}

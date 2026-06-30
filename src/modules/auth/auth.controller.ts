@@ -64,7 +64,7 @@ import {
   SendVerificationCodeResponseDto,
   SuccessResponseDto,
   VerifyEmailResponseDto,
-} from './dto/responses';
+} from './dto';
 import { ConfirmTwoFactorDto, VerifyTwoFactorDto } from './dto/two-factor.dto';
 
 @ApiTags('Auth')

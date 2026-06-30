@@ -4,7 +4,7 @@ import {
   TokensDto,
   UserBriefDto,
   UserFullDto,
-} from './common.dto';
+} from './auth-response-common.dto';
 
 // ── Inner data DTOs ────────────────────────────────────────────
 

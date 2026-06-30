@@ -26,10 +26,7 @@ import { ChangeEmailDto } from '../auth/dto/change-email.dto';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 import { SetPasswordDto } from '../auth/dto/set-password.dto';
 import { DeleteAccountDto } from '../auth/dto/delete-account.dto';
-import {
-  OAuthAuthorizeResponseDto,
-  SuccessResponseDto,
-} from '../auth/dto/responses';
+import { OAuthAuthorizeResponseDto, SuccessResponseDto } from '../auth/dto';
 import {
   OAuthAuthorizeDto,
   OAuthCallbackDto,

@@ -1,0 +1,7 @@
+{
+  "medicine_not_found": "Medicine not found",
+  "reminder_not_found": "Reminder not found",
+  "invalid_date": "Invalid date",
+  "days_of_week_empty": "Days of week must not be empty",
+  "end_before_start": "End date must not be before start date"
+}

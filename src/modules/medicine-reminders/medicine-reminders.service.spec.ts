@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { nonDeleted } from '../../common/utils/prisma.helpers';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { Test } from '@nestjs/testing';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -37,6 +38,10 @@ describe('MedicineRemindersService', () => {
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
+        {
+          provide: I18nService,
+          useValue: { t: jest.fn().mockImplementation((key: string) => key) },
+        },
         MedicineRemindersService,
         MedicineRemindersOwnershipService,
         MedicineRemindersMapperService,

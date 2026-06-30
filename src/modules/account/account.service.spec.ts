@@ -4,6 +4,7 @@ import { nonDeleted } from '../../common/utils/prisma.helpers';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { UserStatus } from '../../generated/prisma/client';
 
 import { AccountService } from './services/account.service';
@@ -56,6 +57,10 @@ describe('AccountService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: I18nService,
+          useValue: { t: jest.fn().mockImplementation((key: string) => key) },
+        },
         AccountService,
         {
           provide: PrismaService,
@@ -122,7 +127,10 @@ describe('AccountService', () => {
         NotFoundException,
       );
       await expect(service.getAccount('missing-user')).rejects.toMatchObject({
-        response: { code: ResultCode.NOT_FOUND, message: 'User not found' },
+        response: {
+          code: ResultCode.NOT_FOUND,
+          message: 'account.user_not_found',
+        },
       });
     });
 
@@ -286,7 +294,7 @@ describe('AccountService', () => {
       ).rejects.toMatchObject({
         response: {
           code: ResultCode.FORBIDDEN,
-          message: 'Cannot unlink the last sign-in method',
+          message: 'account.cannot_unlink_last_method',
         },
       });
     });
@@ -323,7 +331,7 @@ describe('AccountService', () => {
       ).rejects.toMatchObject({
         response: {
           code: ResultCode.NOT_FOUND,
-          message: 'Account identity not found',
+          message: 'account.identity_not_found',
         },
       });
     });

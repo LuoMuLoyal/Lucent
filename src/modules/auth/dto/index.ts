@@ -10,3 +10,5 @@ export * from './verify-email.dto';
 export * from './forgot-password.dto';
 export * from './reset-password.dto';
 export * from './oauth.dto';
+export * from './auth-response-common.dto';
+export * from './auth-responses.dto';

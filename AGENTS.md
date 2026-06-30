@@ -27,6 +27,47 @@
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby working code.
 - Use `pnpm typecheck` when you need TypeScript to validate spec and e2e files too; `pnpm build` excludes `**/*spec.ts` and `test/`.
 
+## Module Subdirectory Whitelist
+
+Every module directory must only contain the following subdirectories. New directories outside this whitelist require explicit justification.
+
+**Standard** (every module should use these as needed):
+
+| Directory   | Purpose                                                                             |
+| ----------- | ----------------------------------------------------------------------------------- |
+| `dto/`      | Data Transfer Objects. Must include an `index.ts` barrel export.                    |
+| `services/` | Business-logic services. All `.service.ts` files go here; never in the module root. |
+| `guards/`   | NestJS Guards. Only `.guard.ts` files that implement `CanActivate`.                 |
+
+**Extended** (common cross-cutting concerns):
+
+| Directory     | Purpose                                                              |
+| ------------- | -------------------------------------------------------------------- |
+| `config/`     | Module-level configuration (e.g. runtime options, provider configs). |
+| `types/`      | Module-level TypeScript types and interfaces.                        |
+| `decorators/` | Custom NestJS parameter / method / class decorators.                 |
+| `strategies/` | Passport strategies.                                                 |
+| `providers/`  | OAuth and third-party provider implementations.                      |
+
+**Special** (domain-specific; require a clear reason to exist):
+
+| Directory    | Purpose                                     | Example modules                    |
+| ------------ | ------------------------------------------- | ---------------------------------- |
+| `schemas/`   | DB / Zod / validation schemas               | daily-records, today-analysis      |
+| `prompts/`   | AI prompt templates                         | assistant, reports, today-analysis |
+| `tools/`     | AI Agent tool implementations               | assistant                          |
+| `agent/`     | AI Agent runtime                            | assistant                          |
+| `cache/`     | Caching layer                               | medicines                          |
+| `sources/`   | Data-source adapters                        | medicines                          |
+| `dashboard/` | Sub-feature grouping within a larger module | reports                            |
+
+**Governance rules**:
+
+1. New modules default to Standard directories only.
+2. Adding a directory not in this whitelist must be justified in the PR description.
+3. Do not place `.service.ts` files in the module root — they always belong in `services/`.
+4. Mapper services follow `{domain}-mapper.service.ts` naming and live in `services/`. Ownership-verification services follow `ownership.service.ts` naming.
+
 ## Working Directory
 
 Work inside `Lucent/` for pure backend changes. When operating from the workspace root, use `git -C Lucent ...` and absolute paths so commands run against this repo, not the workspace root or `Luminous`.

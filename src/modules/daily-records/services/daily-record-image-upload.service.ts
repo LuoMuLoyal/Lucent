@@ -1,22 +1,21 @@
 import { badRequest } from '../../../common/utils/api-errors';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
+import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types.constant';
 import { ResultCode } from '../../../common/api-envelope';
 import type { CreateDailyRecordImageUploadDto } from '../dto';
 import { DailyRecordImageUploadRuntime } from '../config/daily-record-image-upload.runtime';
 
 const PROVIDER = 'tencent-cos';
-const ALLOWED_IMAGE_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-]);
 
 @Injectable()
 export class DailyRecordImageUploadService {
-  constructor(private readonly runtime: DailyRecordImageUploadRuntime) {}
+  constructor(
+    private readonly runtime: DailyRecordImageUploadRuntime,
+    private readonly i18n: I18nService,
+  ) {}
 
   createPresignedUpload(userId: string, dto: CreateDailyRecordImageUploadDto) {
     const config = this.runtime.getConfig();
@@ -24,13 +23,11 @@ export class DailyRecordImageUploadService {
 
     const contentType = dto.contentType.trim().toLowerCase();
     if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
-      badRequest('Only jpeg, png, webp, or gif images can be uploaded');
+      badRequest(this.i18n.t('files.content_type_not_allowed'));
     }
 
     if (dto.sizeBytes > config.maxUploadBytes) {
-      badRequest(
-        `Image upload size exceeds ${String(config.maxUploadBytes)} bytes`,
-      );
+      badRequest(this.i18n.t('files.file_size_exceeds_limit'));
     }
 
     const objectKey = this.createObjectKey(userId, dto.fileName, contentType);

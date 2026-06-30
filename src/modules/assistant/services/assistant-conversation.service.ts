@@ -1,5 +1,6 @@
 import { notFound } from '../../../common/utils/api-errors';
 import { Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 
 import {
   AssistantConversationStatus,
@@ -45,7 +46,10 @@ type PersistedConversationSummary = Prisma.AssistantConversationGetPayload<
 
 @Injectable()
 export class AssistantConversationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly i18n: I18nService,
+  ) {}
 
   async getLatestConversation(
     userId: string,
@@ -81,7 +85,7 @@ export class AssistantConversationService {
     });
 
     if (conversation == null) {
-      notFound('Assistant conversation not found');
+      notFound(this.i18n.t('assistant.conversation_not_found'));
     }
 
     await this.prisma.$transaction(async (tx) => {

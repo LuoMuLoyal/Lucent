@@ -180,7 +180,7 @@ export class CredentialAuthService {
       if (!userId) throw new Error('INVALID_TEMP_TOKEN');
       return { userId };
     } catch {
-      unauthorized('Invalid temporary token');
+      unauthorized(this.i18n.t('auth.invalid_temporary_token'));
     }
   }
 

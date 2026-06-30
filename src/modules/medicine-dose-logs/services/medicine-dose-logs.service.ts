@@ -4,6 +4,7 @@ import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { formatDateOnly } from '../../../common/utils/date-time.utils';
 import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 
 import { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -11,7 +12,10 @@ import type { CreateDoseLogDto, UpdateDoseLogDto } from '../dto';
 
 @Injectable()
 export class MedicineDoseLogsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly i18n: I18nService,
+  ) {}
 
   async list(userId: string, date: string) {
     const where: Prisma.UserMedicineDoseLogWhereInput = {
@@ -33,7 +37,7 @@ export class MedicineDoseLogsService {
         select: { userId: true },
       });
       if (!med || med.userId !== userId) {
-        notFound('Medicine not found');
+        notFound(this.i18n.t('medicine-dose-logs.medicine_not_found'));
       }
     }
     const record = await this.prisma.userMedicineDoseLog.create({
@@ -90,6 +94,7 @@ export class MedicineDoseLogsService {
       where: { id },
       select: { userId: true },
     });
-    if (!r || r.userId !== userId) notFound('Not found');
+    if (!r || r.userId !== userId)
+      notFound(this.i18n.t('medicine-dose-logs.not_found'));
   }
 }

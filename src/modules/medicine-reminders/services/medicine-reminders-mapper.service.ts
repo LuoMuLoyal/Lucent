@@ -3,6 +3,7 @@ import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { formatDateOnly } from '../../../common/utils/date-time.utils';
 import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 
 import { Prisma } from '../../../generated/prisma/client';
 import type {
@@ -17,6 +18,7 @@ import type {
 
 @Injectable()
 export class MedicineRemindersMapperService {
+  constructor(private readonly i18n: I18nService) {}
   toCreateData(userId: string, dto: CreateMedicineReminderDto) {
     const startDate = this.parseOptionalDate(dto.startDate);
     const endDate = this.parseOptionalDate(dto.endDate);
@@ -141,7 +143,7 @@ export class MedicineRemindersMapperService {
 
     const unique = Array.from(new Set(value)).sort((a, b) => a - b);
     if (unique.length === 0) {
-      badRequest('daysOfWeek must not be empty');
+      badRequest(this.i18n.t('medicine-reminders.days_of_week_empty'));
     }
 
     return unique;
@@ -166,7 +168,7 @@ export class MedicineRemindersMapperService {
   private parseRequiredDate(value: string) {
     const parsed = parseDateOnly(value);
     if (Number.isNaN(parsed.getTime())) {
-      badRequest('Invalid date');
+      badRequest(this.i18n.t('medicine-reminders.invalid_date'));
     }
 
     return parsed;
@@ -174,7 +176,7 @@ export class MedicineRemindersMapperService {
 
   private assertValidDateWindow(startDate: Date | null, endDate: Date | null) {
     if (startDate != null && endDate != null && endDate < startDate) {
-      badRequest('endDate must not be before startDate');
+      badRequest(this.i18n.t('medicine-reminders.end_before_start'));
     }
   }
 }
