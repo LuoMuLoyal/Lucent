@@ -1,6 +1,9 @@
-import { notFound, badRequest } from '../../common/utils/api-errors';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { I18nService } from 'nestjs-i18n';
+
+import { notFound, badRequest } from '../../common/utils/api-errors';
+import { shuffleArray } from '../../common/utils/array.utils';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   DEFAULT_MEDICINE_SOURCE,
@@ -15,11 +18,12 @@ import { MedicinesCacheService } from './cache/medicines-cache.service';
 import { CnMedicinesService } from './sources/cn-medicines.service';
 import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
 import { LlmRuntimeService } from '../llm-runtime/llm-runtime.service';
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 @Injectable()
 export class MedicinesService {
   private static readonly SAFETY_TIPS_LIMIT = 4;
+
+  private readonly logger = new Logger(MedicinesService.name);
 
   constructor(
     private readonly drugbankMedicinesService: DrugbankMedicinesService,
@@ -40,17 +44,14 @@ export class MedicinesService {
       temperature: 0.1,
     });
 
-    const systemPrompt = `你是一个药品识别助手。从药品包装图片中提取信息，以 JSON 格式返回。
-只返回 JSON，不要其他文字。JSON 格式：
-{"name": "药品名称", "approvalNumber": "国药准字", "specification": "规格", "manufacturer": "厂商"}
-
-如果某项无法识别，设为空字符串""。`;
-
     const response = await model.invoke([
-      new SystemMessage(systemPrompt),
+      new SystemMessage(this.i18n.t('medicine.recognize_prompt')),
       new HumanMessage({
         content: [
-          { type: 'text', text: '识别这张药品包装图片' },
+          {
+            type: 'text',
+            text: this.i18n.t('medicine.recognize_user_message'),
+          },
           { type: 'image_url', image_url: { url: imageUrl } },
         ],
       }),
@@ -72,8 +73,8 @@ export class MedicinesService {
           manufacturer: string | null;
         };
       }
-    } catch {
-      /* fall through */
+    } catch (err) {
+      this.logger.error('Failed to parse medicine recognition response', err);
     }
 
     return {
@@ -166,17 +167,13 @@ export class MedicinesService {
 
     const selected = availableTips.length > 0 ? availableTips : allActiveTips;
 
-    return this.shuffleArray(selected)
+    return shuffleArray(selected)
       .slice(0, MedicinesService.SAFETY_TIPS_LIMIT)
       .map((tip) => ({
         id: tip.id,
         text: useChinese ? tip.contentZh : tip.contentEn,
         category: tip.category,
       }));
-  }
-
-  private shuffleArray<T>(array: readonly T[]): T[] {
-    return [...array].sort(() => Math.random() - 0.5);
   }
 
   private resolveSource(source: string | undefined): MedicineKnowledgeSource {

@@ -1,4 +1,6 @@
 {
   "source_invalid": "Invalid medicine source",
-  "not_found": "Medicine not found"
+  "not_found": "Medicine not found",
+  "recognize_prompt": "You are a medicine recognition assistant. Extract information from medicine packaging images and return JSON only. Do not include any other text.\nJSON format:\n{\"name\": \"medicine name\", \"approvalNumber\": \"approval number\", \"specification\": \"specification\", \"manufacturer\": \"manufacturer\"}\n\nIf a field cannot be identified, set it to empty string \"\".",
+  "recognize_user_message": "Recognize the medicine packaging in this image"
 }

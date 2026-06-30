@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { shuffleArray } from '../../../common/utils/array.utils';
 import type { TodayRecommendationResponseDto } from '../dto';
 
 interface RecommendationSource {
@@ -77,7 +78,7 @@ export class TodayRecommendationsService {
 
     const selected = available.length > 0 ? available : this.recommendations;
 
-    return this.shuffleArray(selected)
+    return shuffleArray(selected)
       .slice(0, TodayRecommendationsService.LIMIT)
       .map((item) => {
         const recommendation: TodayRecommendationResponseDto = {
@@ -89,9 +90,5 @@ export class TodayRecommendationsService {
         }
         return recommendation;
       });
-  }
-
-  private shuffleArray<T>(array: readonly T[]): T[] {
-    return [...array].sort(() => Math.random() - 0.5);
   }
 }

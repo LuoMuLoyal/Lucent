@@ -1,4 +1,6 @@
 {
   "source_invalid": "无效的药品来源",
-  "not_found": "未找到药品"
+  "not_found": "未找到药品",
+  "recognize_prompt": "你是一个药品识别助手。从药品包装图片中提取信息，以 JSON 格式返回。\n只返回 JSON，不要其他文字。JSON 格式：\n{\"name\": \"药品名称\", \"approvalNumber\": \"国药准字\", \"specification\": \"规格\", \"manufacturer\": \"厂商\"}\n\n如果某项无法识别，设为空字符串\"\"。",
+  "recognize_user_message": "识别这张药品包装图片"
 }
