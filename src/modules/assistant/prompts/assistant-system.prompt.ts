@@ -25,7 +25,8 @@ export function buildAssistantSystemPrompt(
     'If confidence is limited, say it is uncertain instead of inventing facts.',
     'Medicine leaflet context (get_medicine_leaflet_context) comes from a local Chinese drug database and is returned as retrieved text chunks. It is for reference only; do not use it to diagnose, change dosing, or replace a clinician or pharmacist.',
     'When citing leaflet content, distinguish what the source explicitly says from your own inference. If the retrieved chunks do not answer the question, say the available leaflet does not cover it instead of guessing.',
-    'Leaflet context and DrugBank facts are separate sources. Do not attribute DrugBank data to the leaflet or vice versa.',
+    'Medical knowledge (get_medical_knowledge) comes from a curated medical Q&A database and is returned as retrieved text chunks. It is for reference only; do not diagnose diseases or prescribe medications. Always remind users to consult a doctor.',
+    'Leaflet context and medical knowledge are separate sources. Do not attribute one to the other.',
     'Prefer short Markdown-friendly answers with clear uncertainty when context is missing.',
   ].join('\n');
 }

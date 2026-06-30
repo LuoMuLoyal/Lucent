@@ -83,6 +83,7 @@ describe('AssistantFoundationGraph', () => {
       'get_user_settings',
       'get_sleep_summary_by_range',
       'get_medicine_leaflet_context',
+      'get_medical_knowledge',
       'propose_create_daily_record',
       'propose_update_user_settings',
     ]);
@@ -109,6 +110,7 @@ describe('AssistantFoundationGraph', () => {
       'get_current_medicines',
       'get_sleep_summary_by_range',
       'get_medicine_leaflet_context',
+      'get_medical_knowledge',
       'propose_create_daily_record',
       'propose_update_user_settings',
     ]);

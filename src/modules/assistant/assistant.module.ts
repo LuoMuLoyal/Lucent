@@ -14,6 +14,7 @@ import { AssistantService } from './services/assistant.service';
 import {
   AssistantContextService,
   AssistantToolLeafletReadService,
+  AssistantToolMedicalKnowledgeService,
   AssistantToolProposalService,
   AssistantToolReadService,
   AssistantToolRecordQueryService,
@@ -41,6 +42,7 @@ import {
     AssistantToolService,
     AssistantToolReadService,
     AssistantToolLeafletReadService,
+    AssistantToolMedicalKnowledgeService,
     AssistantService,
   ],
   exports: [HistoricalAiSummaryService],

@@ -68,9 +68,11 @@ describe('AssistantToolService', () => {
       recordQueryService,
     );
     const leafletReadService = new AssistantToolLeafletReadService({} as never);
+    const medicalKnowledgeService = { getMedicalKnowledge: jest.fn() } as never;
     const service = new AssistantToolService(
       readService,
       leafletReadService,
+      medicalKnowledgeService,
       proposalService,
     );
 
