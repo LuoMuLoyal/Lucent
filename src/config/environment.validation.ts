@@ -43,6 +43,7 @@ export interface EnvironmentVariables {
   [EnvKey.AI_EMBEDDING_API_KEY]?: string;
   [EnvKey.AI_EMBEDDING_BASE_URL]?: string;
   [EnvKey.AI_EMBEDDING_MODEL]?: string;
+  [EnvKey.AI_EMBEDDING_DIMENSION]?: number;
   [EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS]?: string;
   [EnvKey.LOG_LEVEL]?: string;
 
@@ -125,6 +126,11 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.AI_EMBEDDING_API_KEY]: optionalString,
   [EnvKey.AI_EMBEDDING_BASE_URL]: optionalUri,
   [EnvKey.AI_EMBEDDING_MODEL]: optionalString,
+  [EnvKey.AI_EMBEDDING_DIMENSION]: Joi.number()
+    .integer()
+    .min(1)
+    .max(4096)
+    .default(1536),
   [EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS]: optionalString,
   [EnvKey.LOG_LEVEL]: Joi.string()
     .valid('debug', 'info', 'warn', 'error')

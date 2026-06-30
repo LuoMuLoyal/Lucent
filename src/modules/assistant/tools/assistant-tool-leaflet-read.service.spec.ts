@@ -14,7 +14,11 @@ describe('AssistantToolLeafletReadService', () => {
   function buildPrisma(overrides?: {
     cnMedicineProduct?: { findMany: jest.Mock };
     cnMedicineProductLeafletLink?: { findMany: jest.Mock; count: jest.Mock };
-    medicineLeafletChunk?: { findMany: jest.Mock; count: jest.Mock };
+    medicineLeafletChunk?: {
+      findMany: jest.Mock;
+      count: jest.Mock;
+    };
+    $queryRaw?: jest.Mock;
   }) {
     return {
       cnMedicineProduct: {
@@ -29,6 +33,14 @@ describe('AssistantToolLeafletReadService', () => {
         findMany: overrides?.medicineLeafletChunk?.findMany ?? jest.fn(),
         count: overrides?.medicineLeafletChunk?.count ?? jest.fn(),
       },
+      $queryRaw: overrides?.$queryRaw ?? jest.fn(),
+    };
+  }
+
+  function buildLlmRuntime(overrides?: { createEmbeddingModel?: jest.Mock }) {
+    return {
+      createEmbeddingModel:
+        overrides?.createEmbeddingModel ?? jest.fn().mockReturnValue(null),
     };
   }
 
@@ -49,7 +61,11 @@ describe('AssistantToolLeafletReadService', () => {
         count: jest.fn().mockResolvedValue(1),
       },
     });
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const llmRuntime = buildLlmRuntime();
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      llmRuntime as never,
+    );
 
     await expect(service.hasIndexedChunks()).resolves.toBe(true);
     expect(prisma.medicineLeafletChunk.count).toHaveBeenCalledWith({ take: 1 });
@@ -57,7 +73,11 @@ describe('AssistantToolLeafletReadService', () => {
 
   it('returns an empty envelope for empty user message', async () => {
     const prisma = buildPrisma();
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const llmRuntime = buildLlmRuntime();
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      llmRuntime as never,
+    );
 
     const result = await service.getMedicineLeafletContext(buildContext('   '));
 
@@ -76,7 +96,11 @@ describe('AssistantToolLeafletReadService', () => {
         findMany: jest.fn().mockResolvedValue([]),
       },
     });
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const llmRuntime = buildLlmRuntime();
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      llmRuntime as never,
+    );
 
     const result = await service.getMedicineLeafletContext(
       buildContext('阿司匹林'),
@@ -109,7 +133,11 @@ describe('AssistantToolLeafletReadService', () => {
         count: jest.fn().mockResolvedValue(0),
       },
     });
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const llmRuntime = buildLlmRuntime();
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      llmRuntime as never,
+    );
 
     const result = await service.getMedicineLeafletContext(
       buildContext('阿司匹林肠溶片'),
@@ -152,7 +180,11 @@ describe('AssistantToolLeafletReadService', () => {
         count: jest.fn().mockResolvedValue(1),
       },
     });
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const llmRuntime = buildLlmRuntime();
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      llmRuntime as never,
+    );
 
     const result = await service.getMedicineLeafletContext(
       buildContext('阿司匹林'),
@@ -166,7 +198,7 @@ describe('AssistantToolLeafletReadService', () => {
     expect(result.confidence.level).toBe('low');
   });
 
-  it('returns complete envelope with leaflets and chunks', async () => {
+  it('returns complete envelope with leaflets and chunks (keyword fallback)', async () => {
     const prisma = buildPrisma({
       cnMedicineProduct: {
         findMany: jest.fn().mockResolvedValue([
@@ -214,7 +246,11 @@ describe('AssistantToolLeafletReadService', () => {
         count: jest.fn(),
       },
     });
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const llmRuntime = buildLlmRuntime();
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      llmRuntime as never,
+    );
 
     const result = await service.getMedicineLeafletContext(
       buildContext('阿司匹林肠溶片'),
@@ -292,7 +328,11 @@ describe('AssistantToolLeafletReadService', () => {
         count: jest.fn(),
       },
     });
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const llmRuntime = buildLlmRuntime();
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      llmRuntime as never,
+    );
 
     const result = await service.getMedicineLeafletContext(
       buildContext('阿司匹林肠溶片'),
@@ -301,5 +341,226 @@ describe('AssistantToolLeafletReadService', () => {
     expect(result.coverage.status).toBe('empty');
     expect(result.coverage.reason).toContain('no indexed chunks were found');
     expect(result.result['chunks']).toEqual([]);
+  });
+
+  describe('vector search', () => {
+    // Minimal mock vector: SWC transformer has issues with large Array literals.
+    // The test validates behavior, not vector values.
+    const mockEmbedding = [0.01];
+
+    it('uses vector search when embedding is configured', async () => {
+      const prisma = buildPrisma({
+        cnMedicineProduct: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: 'prod-1',
+              name: '阿司匹林肠溶片',
+              brandName: null,
+              approvalNumber: '国药准字H20240001',
+              barcode: null,
+              nationalDrugCode: null,
+              searchText: null,
+              manufacturer: 'Bayer',
+            },
+          ]),
+        },
+        cnMedicineProductLeafletLink: {
+          findMany: jest.fn(),
+          count: jest.fn().mockResolvedValue(1),
+        },
+        medicineLeafletChunk: {
+          findMany: jest.fn(),
+          count: jest.fn(),
+        },
+        $queryRaw: jest.fn().mockResolvedValue([
+          {
+            id: 'chunk-v1',
+            leaflet_id: 'leaflet-1',
+            source_field: 'contraindications',
+            chunk_text: '对阿司匹林过敏者禁用。',
+            chunk_index: 0,
+            similarity: 0.92,
+          },
+          {
+            id: 'chunk-v2',
+            leaflet_id: 'leaflet-1',
+            source_field: 'adverse_reactions',
+            chunk_text: '常见胃肠道不适。',
+            chunk_index: 1,
+            similarity: 0.85,
+          },
+        ]),
+      });
+      const llmRuntime = buildLlmRuntime({
+        createEmbeddingModel: jest.fn().mockReturnValue({
+          embedQuery: jest.fn().mockResolvedValue(mockEmbedding),
+        }),
+      });
+      const service = new AssistantToolLeafletReadService(
+        prisma as never,
+        llmRuntime as never,
+      );
+
+      const result = await service.getMedicineLeafletContext(
+        buildContext('阿司匹林伤胃吗'),
+      );
+
+      expect(result.coverage.status).toBe('complete');
+      expect(result['query']['retrievalMethod']).toBe('vector');
+      expect(result.result['chunks']).toEqual([
+        {
+          leafletId: 'leaflet-1',
+          field: 'contraindications',
+          text: '对阿司匹林过敏者禁用。',
+          rank: 1,
+        },
+        {
+          leafletId: 'leaflet-1',
+          field: 'adverse_reactions',
+          text: '常见胃肠道不适。',
+          rank: 2,
+        },
+      ]);
+    });
+
+    it('falls back to keyword when embedding is not configured', async () => {
+      const prisma = buildPrisma({
+        cnMedicineProduct: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: 'prod-1',
+              name: '阿司匹林肠溶片',
+              brandName: null,
+              approvalNumber: '国药准字H20240001',
+              barcode: null,
+              nationalDrugCode: null,
+              searchText: null,
+              manufacturer: 'Bayer',
+            },
+          ]),
+        },
+        cnMedicineProductLeafletLink: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: 'link-1',
+              productId: 'prod-1',
+              leafletId: 'leaflet-1',
+              matchScore: 0.95,
+              isBestMatch: true,
+              leaflet: {
+                id: 'leaflet-1',
+                instructionId: 'INS-1',
+                genericName: '阿司匹林',
+                manufacturer: 'Bayer',
+                approvalCodes: ['国药准字H20240001'],
+              },
+            },
+          ]),
+          count: jest.fn().mockResolvedValue(1),
+        },
+        medicineLeafletChunk: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: 'chunk-1',
+              leafletId: 'leaflet-1',
+              sourceField: 'indications',
+              chunkIndex: 0,
+              chunkText: '用于预防心脑血管疾病。',
+            },
+          ]),
+          count: jest.fn(),
+        },
+      });
+      const llmRuntime = buildLlmRuntime({
+        createEmbeddingModel: jest.fn().mockReturnValue(null),
+      });
+      const service = new AssistantToolLeafletReadService(
+        prisma as never,
+        llmRuntime as never,
+      );
+
+      const result = await service.getMedicineLeafletContext(
+        buildContext('阿司匹林肠溶片'),
+      );
+
+      expect(result['query']['retrievalMethod']).toBe('keyword');
+      expect(result.coverage.status).toBe('complete');
+    });
+
+    it('falls back to keyword when vector similarity is too low', async () => {
+      const prisma = buildPrisma({
+        cnMedicineProduct: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: 'prod-1',
+              name: '阿司匹林肠溶片',
+              brandName: null,
+              approvalNumber: '国药准字H20240001',
+              barcode: null,
+              nationalDrugCode: null,
+              searchText: null,
+              manufacturer: 'Bayer',
+            },
+          ]),
+        },
+        cnMedicineProductLeafletLink: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: 'link-1',
+              productId: 'prod-1',
+              leafletId: 'leaflet-1',
+              matchScore: 0.95,
+              isBestMatch: true,
+              leaflet: {
+                id: 'leaflet-1',
+                instructionId: 'INS-1',
+                genericName: '阿司匹林',
+                manufacturer: 'Bayer',
+                approvalCodes: ['国药准字H20240001'],
+              },
+            },
+          ]),
+          count: jest.fn().mockResolvedValue(1),
+        },
+        medicineLeafletChunk: {
+          findMany: jest.fn().mockResolvedValue([
+            {
+              id: 'chunk-1',
+              leafletId: 'leaflet-1',
+              sourceField: 'indications',
+              chunkIndex: 0,
+              chunkText: '用于预防心脑血管疾病。',
+            },
+          ]),
+          count: jest.fn(),
+        },
+        $queryRaw: jest.fn().mockResolvedValue([
+          {
+            id: 'chunk-v1',
+            leaflet_id: 'leaflet-1',
+            source_field: 'contraindications',
+            chunk_text: '对阿司匹林过敏者禁用。',
+            chunk_index: 0,
+            similarity: 0.55,
+          },
+        ]),
+      });
+      const llmRuntime = buildLlmRuntime({
+        createEmbeddingModel: jest.fn().mockReturnValue({
+          embedQuery: jest.fn().mockResolvedValue(mockEmbedding),
+        }),
+      });
+      const service = new AssistantToolLeafletReadService(
+        prisma as never,
+        llmRuntime as never,
+      );
+
+      const result = await service.getMedicineLeafletContext(
+        buildContext('阿司匹林肠溶片'),
+      );
+
+      expect(result['query']['retrievalMethod']).toBe('keyword');
+      expect(result.coverage.status).toBe('complete');
+    });
   });
 });

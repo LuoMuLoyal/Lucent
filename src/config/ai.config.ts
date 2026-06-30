@@ -11,6 +11,7 @@ interface AiRoleConfig {
   apiKey: string | null;
   baseUrl: string | null;
   model: string | null;
+  dimension?: number;
 }
 
 export interface AiConfig {
@@ -31,12 +32,27 @@ function buildRoleConfig(keys: {
   apiKey: EnvKey;
   baseUrl: EnvKey;
   model: EnvKey;
+  dimension?: EnvKey;
 }): AiRoleConfig {
-  return {
+  const config: AiRoleConfig = {
     apiKey: readOptionalEnv(keys.apiKey),
     baseUrl: readOptionalEnv(keys.baseUrl),
     model: readOptionalEnv(keys.model),
   };
+  if (keys.dimension) {
+    const parsed = readOptionalNumericEnv(keys.dimension);
+    if (parsed !== undefined) {
+      config.dimension = parsed;
+    }
+  }
+  return config;
+}
+
+function readOptionalNumericEnv(key: EnvKey): number | undefined {
+  const value = readOptionalEnv(key);
+  if (value == null) return undefined;
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? undefined : parsed;
 }
 
 export const aiConfig = registerAs(
@@ -72,6 +88,7 @@ export const aiConfig = registerAs(
       apiKey: EnvKey.AI_EMBEDDING_API_KEY,
       baseUrl: EnvKey.AI_EMBEDDING_BASE_URL,
       model: EnvKey.AI_EMBEDDING_MODEL,
+      dimension: EnvKey.AI_EMBEDDING_DIMENSION,
     }),
     safety: {
       forbiddenPatterns: readForbiddenPatterns(),

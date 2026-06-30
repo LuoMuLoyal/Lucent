@@ -251,12 +251,94 @@ async function rebuild(client, options) {
   return { leafletCount: leaflets.length, chunkCount: chunks.length, inserted };
 }
 
+async function embedChunks(client, options) {
+  const apiKey = process.env.AI_EMBEDDING_API_KEY?.trim();
+  const baseUrl = process.env.AI_EMBEDDING_BASE_URL?.trim();
+  const model = process.env.AI_EMBEDDING_MODEL?.trim();
+
+  if (!apiKey || !baseUrl || !model) {
+    console.error(
+      'Embedding is not configured. Set AI_EMBEDDING_API_KEY, AI_EMBEDDING_BASE_URL, and AI_EMBEDDING_MODEL.',
+    );
+    return { embedded: 0 };
+  }
+
+  // Dynamic import for ESM-only @langchain/openai
+  const { OpenAIEmbeddings } = await import('@langchain/openai');
+  const embeddings = new OpenAIEmbeddings({
+    apiKey,
+    configuration: { baseURL: baseUrl },
+    model,
+  });
+
+  // Clear existing embeddings if --embed-force
+  if (options.embedForce) {
+    console.log('Clearing existing embeddings (--embed-force)...');
+    await client.query(
+      'UPDATE "medicine_leaflet_chunks" SET "embedding" = NULL',
+    );
+  }
+
+  // Fetch chunks without embeddings
+  const result = await client.query(
+    'SELECT "id", "chunk_text" FROM "medicine_leaflet_chunks" WHERE "embedding" IS NULL',
+  );
+  const pendingChunks = result.rows;
+
+  if (pendingChunks.length === 0) {
+    console.log('All chunks already have embeddings.');
+    return { embedded: 0 };
+  }
+
+  console.log(
+    `Generating embeddings for ${pendingChunks.length} chunks (batch size: ${options.embedBatchSize})...`,
+  );
+
+  let embedded = 0;
+  for (let i = 0; i < pendingChunks.length; i += options.embedBatchSize) {
+    const batch = pendingChunks.slice(i, i + options.embedBatchSize);
+    const texts = batch.map((row) => row.chunk_text);
+
+    try {
+      const vectors = await embeddings.embedDocuments(texts);
+
+      for (let j = 0; j < batch.length; j += 1) {
+        const vectorStr = `[${vectors[j].join(',')}]`;
+        await client.query(
+          'UPDATE "medicine_leaflet_chunks" SET "embedding" = $1::vector WHERE "id" = $2',
+          [vectorStr, batch[j].id],
+        );
+      }
+
+      embedded += batch.length;
+      const pct = ((embedded / pendingChunks.length) * 100).toFixed(1);
+      console.log(`  ${embedded}/${pendingChunks.length} (${pct}%)`);
+    } catch (error) {
+      console.error(
+        `  Batch ${i}-${i + batch.length} failed: ${error instanceof Error ? error.message : error}`,
+      );
+      // Wait before retrying next batch
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+
+    // Rate limit: brief pause between batches
+    if (i + options.embedBatchSize < pendingChunks.length) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+  }
+
+  return { embedded };
+}
+
 function parseArgs(argv) {
   const options = {
     maxChunkLength: DEFAULT_MAX_CHUNK_LENGTH,
     chunkOverlap: DEFAULT_CHUNK_OVERLAP,
     sourceVersion: null,
     dryRun: false,
+    embed: false,
+    embedBatchSize: 20,
+    embedForce: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -279,6 +361,19 @@ function parseArgs(argv) {
     }
     if (part === '--dry-run') {
       options.dryRun = true;
+      continue;
+    }
+    if (part === '--embed') {
+      options.embed = true;
+      continue;
+    }
+    if (part === '--embed-batch-size') {
+      options.embedBatchSize = Number(argv[index + 1]) || 20;
+      index += 1;
+      continue;
+    }
+    if (part === '--embed-force') {
+      options.embedForce = true;
     }
   }
 
@@ -299,6 +394,11 @@ async function main() {
   try {
     const summary = await rebuild(client, options);
     console.log(JSON.stringify({ ...summary, options }, null, 2));
+
+    if (options.embed) {
+      const embedSummary = await embedChunks(client, options);
+      console.log(JSON.stringify({ ...embedSummary }, null, 2));
+    }
   } finally {
     await client.end();
   }

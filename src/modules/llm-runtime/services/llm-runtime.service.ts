@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { ChatOpenAI } from '@langchain/openai';
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { aiConfig, type AiConfig } from '../../../config/ai.config';
 
 type AiRole = keyof Omit<AiConfig, 'provider' | 'safety'>;
@@ -61,5 +61,26 @@ export class LlmRuntimeService {
     }
 
     return new ChatOpenAI(fields);
+  }
+
+  createEmbeddingModel(): OpenAIEmbeddings | null {
+    const roleConfig = this.config.embedding;
+    if (
+      this.config.provider !== 'openai-compatible' ||
+      !roleConfig.apiKey ||
+      !roleConfig.baseUrl ||
+      !roleConfig.model
+    ) {
+      return null;
+    }
+
+    return new OpenAIEmbeddings({
+      apiKey: roleConfig.apiKey,
+      configuration: { baseURL: roleConfig.baseUrl },
+      model: roleConfig.model,
+      ...(roleConfig.dimension != null
+        ? { dimensions: roleConfig.dimension }
+        : {}),
+    });
   }
 }

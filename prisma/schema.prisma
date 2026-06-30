@@ -588,6 +588,7 @@ model MedicineLeafletChunk {
   tokenCount    Int?              @map("token_count")
   sourceVersion String?           @map("source_version")
   sourceHash    String?           @map("source_hash")
+  embedding     Unsupported("vector(1536)")?
   createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   leaflet       CnMedicineLeaflet @relation(fields: [leafletId], references: [id], onDelete: Cascade)
