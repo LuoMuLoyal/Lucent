@@ -19,6 +19,7 @@ export class ReportsAiSummaryGeneratorService extends BaseAiGeneratorService<
   ReportSummaryStructuredOutput
 > {
   protected readonly schema = reportSummarySchema;
+  protected readonly modelRole = 'analysis';
   protected readonly options = {
     toolName: 'ReportSummary',
     streamName: 'Report summary',

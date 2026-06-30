@@ -40,7 +40,7 @@ describe('DailyRecordCandidatesService', () => {
 
   it('throws when language model config is missing', async () => {
     const service = createService({
-      hasLanguageModel: false,
+      hasAnalysisModel: false,
     });
 
     await expect(
@@ -55,7 +55,7 @@ describe('DailyRecordCandidatesService', () => {
   });
 
   function createService(options?: {
-    hasLanguageModel?: boolean;
+    hasAnalysisModel?: boolean;
     generateImpl?: jest.Mock;
   }) {
     const copyService = {
@@ -110,9 +110,9 @@ describe('DailyRecordCandidatesService', () => {
     } as unknown as DailyRecordCandidatesCopyService;
 
     const generatorService = {
-      hasLanguageModel: jest
+      hasAnalysisModel: jest
         .fn()
-        .mockReturnValue(options?.hasLanguageModel ?? true),
+        .mockReturnValue(options?.hasAnalysisModel ?? true),
       generate:
         options?.generateImpl ??
         jest.fn().mockResolvedValue({

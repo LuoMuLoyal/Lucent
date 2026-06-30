@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { BaseAiGeneratorService } from '../../../common/ai/base-ai-generator.service';
 import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
 import {
   buildDailyRecordCandidatesSystemPrompt,
@@ -12,34 +12,31 @@ import {
 } from '../schemas/daily-record-candidates.schema';
 
 @Injectable()
-export class DailyRecordCandidatesGeneratorService {
-  constructor(private readonly llmRuntimeService: LlmRuntimeService) {}
+export class DailyRecordCandidatesGeneratorService extends BaseAiGeneratorService<
+  unknown,
+  DailyRecordCandidatesPromptCopy,
+  DailyRecordCandidateStructuredOutput
+> {
+  protected readonly schema = dailyRecordCandidatesSchema;
+  protected readonly modelRole = 'language';
+  protected readonly options = {
+    toolName: 'DailyRecordCandidates',
+    streamName: 'Daily record candidates',
+  } as const;
 
-  hasLanguageModel(): boolean {
-    return this.llmRuntimeService.hasRoleConfig('language');
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor -- NestJS DI requires explicit constructor
+  constructor(llmRuntimeService: LlmRuntimeService) {
+    super(llmRuntimeService);
   }
 
-  async generate(
+  protected buildSystemPrompt(): string {
+    return buildDailyRecordCandidatesSystemPrompt();
+  }
+
+  protected buildUserPrompt(
     context: unknown,
     promptCopy: DailyRecordCandidatesPromptCopy,
-  ): Promise<DailyRecordCandidateStructuredOutput> {
-    const model = this.llmRuntimeService
-      .createChatModel('language', {
-        timeout: 10_000,
-        temperature: 0.1,
-        maxRetries: 0,
-      })
-      .withStructuredOutput(dailyRecordCandidatesSchema, {
-        name: 'DailyRecordCandidates',
-        method: 'functionCalling',
-        strict: true,
-      });
-
-    return model.invoke([
-      new SystemMessage(buildDailyRecordCandidatesSystemPrompt()),
-      new HumanMessage(
-        buildDailyRecordCandidatesUserPrompt(context, promptCopy),
-      ),
-    ]);
+  ): string {
+    return buildDailyRecordCandidatesUserPrompt(context, promptCopy);
   }
 }

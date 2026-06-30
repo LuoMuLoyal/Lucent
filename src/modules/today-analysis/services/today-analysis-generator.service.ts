@@ -19,6 +19,7 @@ export class TodayAnalysisGeneratorService extends BaseAiGeneratorService<
   TodayAnalysisStructuredOutput
 > {
   protected readonly schema = todayAnalysisSchema;
+  protected readonly modelRole = 'analysis';
   protected readonly options = {
     toolName: 'TodayAnalysis',
     streamName: 'Today analysis',

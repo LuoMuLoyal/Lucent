@@ -43,12 +43,7 @@ import {
     AssistantToolLeafletReadService,
     AssistantService,
   ],
-  exports: [
-    AssistantRuntimeService,
-    AssistantPolicyService,
-    HistoricalAiSummaryService,
-    AssistantService,
-  ],
+  exports: [HistoricalAiSummaryService],
 })
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class -- NestJS @Module requires a class declaration
 export class AssistantModule {}

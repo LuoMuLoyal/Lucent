@@ -7,8 +7,16 @@ import {
 import { JsonOutputKeyToolsParser } from '@langchain/core/output_parsers/openai_tools';
 import { ChatGenerationChunk } from '@langchain/core/outputs';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
-import type { ZodType } from 'zod';
+import type { ZodObject, ZodType } from 'zod';
 import { LlmRuntimeService } from '../../modules/llm-runtime/services/llm-runtime.service';
+
+type AiRole =
+  | 'analysis'
+  | 'vision'
+  | 'language'
+  | 'chat'
+  | 'chatCompression'
+  | 'embedding';
 
 const MODEL_OPTIONS = {
   timeout: 10_000,
@@ -37,13 +45,15 @@ export abstract class BaseAiGeneratorService<
 > {
   protected abstract readonly schema: ZodType<TOutput>;
   protected abstract readonly options: BaseAiGeneratorOptions;
+  /** AI model role to use (e.g. 'analysis', 'language'). */
+  protected abstract readonly modelRole: AiRole;
 
   protected constructor(
     private readonly llmRuntimeService: LlmRuntimeService,
   ) {}
 
   hasAnalysisModel(): boolean {
-    return this.llmRuntimeService.hasRoleConfig('analysis');
+    return this.llmRuntimeService.hasRoleConfig(this.modelRole);
   }
 
   async generate(context: TContext, promptCopy: TPromptCopy): Promise<TOutput> {
@@ -79,7 +89,7 @@ export abstract class BaseAiGeneratorService<
         accumulated === undefined ? chunk : accumulated.concat(chunk);
       const partial = (await parser.parsePartialResult([
         this.toGenerationChunk(accumulated),
-      ])) as unknown;
+      ])) as unknown; // parsePartialResult returns a partial that doesn't conform to the full schema
       const summary = this.readSummary(partial);
 
       if (summary.trim().length > 0 && summary !== lastSummary) {
@@ -96,7 +106,7 @@ export abstract class BaseAiGeneratorService<
 
     const result = (await parser.parseResult([
       this.toGenerationChunk(accumulated),
-    ])) as unknown;
+    ])) as unknown; // narrowed by this.schema.parse(result) below
     if (result == null) {
       throw new Error(
         `${this.options.streamName} stream ended without a structured result.`,
@@ -121,7 +131,7 @@ export abstract class BaseAiGeneratorService<
 
   private createStructuredOutputModel() {
     return this.llmRuntimeService
-      .createChatModel('analysis', MODEL_OPTIONS)
+      .createChatModel(this.modelRole, MODEL_OPTIONS)
       .withStructuredOutput(this.schema, {
         name: this.options.toolName,
         method: 'functionCalling',
@@ -133,7 +143,7 @@ export abstract class BaseAiGeneratorService<
     const schema = toJsonSchema(this.schema);
 
     return this.llmRuntimeService
-      .createChatModel('analysis', MODEL_OPTIONS)
+      .createChatModel(this.modelRole, MODEL_OPTIONS)
       .withConfig({
         outputVersion: 'v0',
         tools: [
@@ -169,7 +179,14 @@ export abstract class BaseAiGeneratorService<
       return '';
     }
 
-    const summary = (partial as { summary?: unknown }).summary;
+    const parsed = (this.schema as ZodObject<Record<string, ZodType>>)
+      .partial()
+      .safeParse(partial);
+    if (!parsed.success) {
+      return '';
+    }
+
+    const summary = parsed.data['summary'];
     return typeof summary === 'string' ? summary : '';
   }
 }

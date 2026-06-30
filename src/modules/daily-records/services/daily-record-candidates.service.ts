@@ -32,7 +32,7 @@ export class DailyRecordCandidatesService {
   ): Promise<DailyRecordCandidateData> {
     const locale = this.copyService.resolveLocale(language);
 
-    if (!this.generatorService.hasLanguageModel()) {
+    if (!this.generatorService.hasAnalysisModel()) {
       throw new ServiceUnavailableException({
         code: ResultCode.EXTERNAL_SERVICE_ERROR,
         message: this.copyService.serviceUnavailable(locale),
