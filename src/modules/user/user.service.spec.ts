@@ -3,7 +3,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { UserStatus } from '../../generated/prisma/client';
 
-import { UserService } from './user.service';
+import { UserService } from './services/user.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const mockUser = {

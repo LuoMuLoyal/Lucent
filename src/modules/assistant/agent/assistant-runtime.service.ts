@@ -5,7 +5,7 @@ import {
   HumanMessage,
   SystemMessage,
 } from '@langchain/core/messages';
-import { LlmRuntimeService } from '../../llm-runtime/llm-runtime.service';
+import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
 import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
 import type {
   AssistantMessageResult,

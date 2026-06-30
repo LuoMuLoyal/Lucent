@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import type { UpdateUserSettingsDto, UserSettingsDataDto } from './dto';
+import { PrismaService } from '../../../prisma/prisma.service';
+import type { UpdateUserSettingsDto, UserSettingsDataDto } from '../dto';
 import {
   ASSISTANT_CONTEXT_DEFAULTS,
   ASSISTANT_CONTEXT_SETTING_KEYS,
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
-} from './config/user-settings.constants';
+} from '../config/user-settings.constants';
 
 @Injectable()
 export class UserSettingsService {

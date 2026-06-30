@@ -36,7 +36,7 @@ import {
   MedicineSearchResponseDto,
 } from './dto';
 import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/medicines-cache.constants';
-import { MedicinesService } from './medicines.service';
+import { MedicinesService } from './services/medicines.service';
 
 @ApiTags('Medicines')
 @ApiExtraModels(DrugbankMedicineDetailDto, CnMedicineDetailDto)

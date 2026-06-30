@@ -5,11 +5,11 @@ import type {
   AppInfoDataDto,
   SupportResourceListDataDto,
   SupportResourcesQueryDto,
-} from './dto';
+} from '../dto';
 import {
   REFERENCE_DATA_UPDATED_AT,
   STATIC_SUPPORT_RESOURCES,
-} from './support-resources-reference';
+} from '../support-resources-reference';
 
 const BUILD_DATE = new Date().toISOString();
 
@@ -20,7 +20,7 @@ interface PackageJson {
 }
 
 function readPackageJson(): PackageJson {
-  const pkgPath = resolve(__dirname, '../../../package.json');
+  const pkgPath = resolve(__dirname, '../../../../package.json');
   const raw = readFileSync(pkgPath, 'utf-8');
   return JSON.parse(raw) as PackageJson;
 }

@@ -4,7 +4,7 @@ import type { ReportsService } from '../reports/dashboard/reports.service';
 import { DataExportService } from './data-export.service';
 import type { DataExportStorageService } from './services/data-export-storage.service';
 import type { ReportExportPdfService } from './services/report-export-pdf.service';
-import type { NotificationsService } from '../notifications/notifications.service';
+import type { NotificationsService } from '../notifications/services/notifications.service';
 
 describe('DataExportService', () => {
   it('marks the request unavailable when COS storage is not configured', async () => {

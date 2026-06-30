@@ -1,10 +1,10 @@
-import { notFound, forbidden } from '../../common/utils/api-errors';
+import { notFound, forbidden } from '../../../common/utils/api-errors';
 import { Injectable } from '@nestjs/common';
 
-import { PrismaService } from '../../prisma/prisma.service';
-import { User, UserIdentity } from '../../generated/prisma/client';
-import { AccountDto } from './dto/account-response.dto';
-import { UpdateAccountDto } from './dto/update-account.dto';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { User, UserIdentity } from '../../../generated/prisma/client';
+import { AccountDto } from '../dto/account-response.dto';
+import { UpdateAccountDto } from '../dto/update-account.dto';
 
 type AccountUser = User & { identities: UserIdentity[] };
 

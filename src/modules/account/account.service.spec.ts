@@ -6,7 +6,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { UserStatus } from '../../generated/prisma/client';
 
-import { AccountService } from './account.service';
+import { AccountService } from './services/account.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ResultCode } from '../../common/api-envelope';
 import type { UpdateAccountDto } from './dto/update-account.dto';

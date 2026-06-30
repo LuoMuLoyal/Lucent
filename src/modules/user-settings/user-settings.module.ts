@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from '../auth/auth.module';
 import { UserSettingsController } from './user-settings.controller';
-import { UserSettingsService } from './user-settings.service';
+import { UserSettingsService } from './services/user-settings.service';
 
 @Module({
   imports: [AuthModule],

@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import { UserSettingsController } from './user-settings.controller';
-import { UserSettingsService } from './user-settings.service';
+import { UserSettingsService } from './services/user-settings.service';
 import type { UserSettingsDataDto } from './dto';
 
 describe('UserSettingsController', () => {

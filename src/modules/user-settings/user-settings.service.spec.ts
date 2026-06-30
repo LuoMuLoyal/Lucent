@@ -1,5 +1,5 @@
 import type { PrismaService } from '../../prisma/prisma.service';
-import { UserSettingsService } from './user-settings.service';
+import { UserSettingsService } from './services/user-settings.service';
 
 describe('UserSettingsService', () => {
   it('returns defaults when the user has no stored settings', async () => {

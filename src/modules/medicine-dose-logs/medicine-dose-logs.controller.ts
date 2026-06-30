@@ -27,7 +27,7 @@ import {
   DoseLogResponseDto,
   UpdateDoseLogDto,
 } from './dto';
-import { MedicineDoseLogsService } from './medicine-dose-logs.service';
+import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
 
 @ApiTags('Medicine Dose Logs')
 @Controller('user/medicine-dose-logs')

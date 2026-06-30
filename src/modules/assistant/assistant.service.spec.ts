@@ -3,7 +3,7 @@ import {
   ForbiddenException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { UserSettingsService } from '../user-settings/user-settings.service';
+import type { UserSettingsService } from '../user-settings/services/user-settings.service';
 import type { AssistantRuntimeService } from './agent/assistant-runtime.service';
 import type { AssistantConversationService } from './services/assistant-conversation.service';
 import type { AssistantPolicyService } from './services/assistant-policy.service';

@@ -23,7 +23,7 @@ import { successEnvelope } from '../../common/api-envelope';
 import { type UserPayload } from '../auth/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { NotificationsService } from './notifications.service';
+import { NotificationsService } from './services/notifications.service';
 import {
   NotificationListResponseDto,
   NotificationDetailResponseDto,

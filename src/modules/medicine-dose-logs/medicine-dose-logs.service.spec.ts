@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { DoseLogStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MedicineDoseLogsService } from './medicine-dose-logs.service';
+import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
 
 describe('MedicineDoseLogsService', () => {
   let service: MedicineDoseLogsService;

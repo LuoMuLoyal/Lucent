@@ -9,7 +9,7 @@ import type {
 } from './dto';
 import type { AssistantRuntimeCapabilities } from './types/assistant.types';
 import { AssistantRuntimeService } from './agent/assistant-runtime.service';
-import { UserSettingsService } from '../user-settings/user-settings.service';
+import { UserSettingsService } from '../user-settings/services/user-settings.service';
 import { AssistantPolicyService } from './services/assistant-policy.service';
 import { AssistantContextService } from './tools/assistant-context.service';
 import { AssistantToolService } from './tools/assistant-tool.service';

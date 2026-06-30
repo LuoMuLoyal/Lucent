@@ -3,7 +3,7 @@ import { ResultCode } from '../../common/api-envelope';
 import type { UserPayload } from '../auth/services/auth-token.service';
 
 import { NotificationsController } from './notifications.controller';
-import { NotificationsService } from './notifications.service';
+import { NotificationsService } from './services/notifications.service';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

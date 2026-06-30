@@ -1,7 +1,7 @@
 import { formatDateOnly } from '../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../generated/prisma/client';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService } from '../notifications/services/notifications.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ReportsService } from '../reports/dashboard/reports.service';
 import {

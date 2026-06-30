@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { BaseAiGeneratorService } from '../../../common/ai/base-ai-generator.service';
-import { LlmRuntimeService } from '../../llm-runtime/llm-runtime.service';
+import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
 import {
   buildReportSummarySystemPrompt,
   buildReportSummaryUserPrompt,

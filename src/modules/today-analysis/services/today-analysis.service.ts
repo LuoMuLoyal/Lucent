@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
-import { NotificationsService } from '../../notifications/notifications.service';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { BaseAiSummaryService } from '../../../common/ai/base-ai-summary.service';
 import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';

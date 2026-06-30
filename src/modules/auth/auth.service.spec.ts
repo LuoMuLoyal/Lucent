@@ -20,7 +20,7 @@ import * as argon2 from 'argon2';
 
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UserService } from '../user/user.service';
+import { UserService } from '../user/services/user.service';
 import { VerificationCodeService } from './services/verification-code.service';
 import { AuthRateLimitService } from './services/auth-rate-limit.service';
 import { AuthTokenService } from './services/auth-token.service';
@@ -32,7 +32,7 @@ import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provi
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
 import { AppleOAuthProvider } from './providers/apple-oauth.provider';
 import { QqOAuthProvider } from './providers/qq-oauth.provider';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService } from '../notifications/services/notifications.service';
 import {
   OAUTH_PROVIDER_WECHAT_MOBILE,
   OAUTH_PROVIDER_WECHAT_WEB,

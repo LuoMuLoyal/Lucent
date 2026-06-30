@@ -5,7 +5,7 @@ import type { TodayAnalysisContextService } from './today-analysis-context.servi
 import type { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
 import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
 import { TodayAnalysisService } from './today-analysis.service';
-import type { NotificationsService } from '../../notifications/notifications.service';
+import type { NotificationsService } from '../../notifications/services/notifications.service';
 
 function modelGenerateSpy(service: TodayAnalysisService) {
   return jest.spyOn(

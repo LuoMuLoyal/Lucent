@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import type {
   EnvironmentSnapshotDto,
   EnvironmentSnapshotQueryDto,
-} from './dto';
+} from '../dto';
 import {
   type EnvironmentSnapshotLocationInput,
   getStaticEnvironmentSnapshot,
-} from './config/environment-reference';
+} from '../config/environment-reference';
 
 @Injectable()
 export class EnvironmentService {

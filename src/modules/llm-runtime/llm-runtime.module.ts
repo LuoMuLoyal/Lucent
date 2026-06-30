@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { LlmRuntimeService } from './llm-runtime.service';
+import { LlmRuntimeService } from './services/llm-runtime.service';
 
 @Module({
   providers: [LlmRuntimeService],

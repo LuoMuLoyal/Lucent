@@ -8,7 +8,7 @@ import { JsonOutputKeyToolsParser } from '@langchain/core/output_parsers/openai_
 import { ChatGenerationChunk } from '@langchain/core/outputs';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 import type { ZodType } from 'zod';
-import { LlmRuntimeService } from '../../modules/llm-runtime/llm-runtime.service';
+import { LlmRuntimeService } from '../../modules/llm-runtime/services/llm-runtime.service';
 
 const MODEL_OPTIONS = {
   timeout: 10_000,

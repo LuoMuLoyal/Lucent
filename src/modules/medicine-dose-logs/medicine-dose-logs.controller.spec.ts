@@ -4,7 +4,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import type { UserPayload } from '../auth/services/auth-token.service';
 import { MedicineDoseLogsController } from './medicine-dose-logs.controller';
-import { MedicineDoseLogsService } from './medicine-dose-logs.service';
+import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
 
 const mockUser: UserPayload = { sub: 'user-uuid-1', email: 'test@example.com' };
 

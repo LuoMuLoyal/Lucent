@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { ChatOpenAI } from '@langchain/openai';
-import { aiConfig, type AiConfig } from '../../config/ai.config';
+import { aiConfig, type AiConfig } from '../../../config/ai.config';
 
 type AiRole = keyof Omit<AiConfig, 'provider' | 'safety'>;
 

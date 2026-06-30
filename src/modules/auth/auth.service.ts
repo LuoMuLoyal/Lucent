@@ -4,9 +4,9 @@ import * as argon2 from 'argon2';
 
 import { badRequest, notFound } from '../../common/utils/api-errors';
 import { PrismaService } from '../../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService } from '../notifications/services/notifications.service';
 import { User, UserStatus } from '../../generated/prisma/client';
-import { UserService } from '../user/user.service';
+import { UserService } from '../user/services/user.service';
 import { VerificationCodeService } from './services/verification-code.service';
 import { ResultCode } from '../../common/api-envelope';
 import { DeleteAccountDto } from './dto/delete-account.dto';

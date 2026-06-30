@@ -1,5 +1,5 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import type { LlmRuntimeService } from '../../llm-runtime/llm-runtime.service';
+import type { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
 import { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
 
 describe('TodayAnalysisGeneratorService', () => {

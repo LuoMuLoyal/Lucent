@@ -7,7 +7,7 @@ import {
 import type { ConnectionOptions, Job } from 'bullmq';
 import { Queue, Worker } from 'bullmq';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { NotificationsService } from '../../notifications/notifications.service';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 import { ReportsService } from '../../reports/dashboard/reports.service';
 import { DataExportStorageService } from './data-export-storage.service';
 import { ReportExportPdfService } from './report-export-pdf.service';

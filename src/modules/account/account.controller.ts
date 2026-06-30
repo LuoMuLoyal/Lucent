@@ -35,7 +35,7 @@ import {
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
 } from '../auth/dto/oauth.dto';
-import { AccountService } from './account.service';
+import { AccountService } from './services/account.service';
 import {
   AccountEmailResponseDto,
   AccountResponseDto,

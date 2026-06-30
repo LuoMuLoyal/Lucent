@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../prisma/prisma.service';
-import { TestingSupportService } from './testing-support.service';
+import { TestingSupportService } from './services/testing-support.service';
 import { ARGON2_OPTIONS } from '../auth/config/argon2-options';
 
 jest.mock('argon2', () => ({

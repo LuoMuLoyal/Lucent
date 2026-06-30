@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MedicineRemindersService } from '../../medicine-reminders/medicine-reminders.service';
 import { UserHealthContextService } from '../../user-health-context/user-health-context.service';
-import { UserSettingsService } from '../../user-settings/user-settings.service';
+import { UserSettingsService } from '../../user-settings/services/user-settings.service';
 import { HistoricalAiSummaryService } from '../services/historical-ai-summary.service';
 import type {
   AssistantReadResultEnvelope,

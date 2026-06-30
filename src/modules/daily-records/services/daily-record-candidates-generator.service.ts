@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { LlmRuntimeService } from '../../llm-runtime/llm-runtime.service';
+import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
 import {
   buildDailyRecordCandidatesSystemPrompt,
   buildDailyRecordCandidatesUserPrompt,

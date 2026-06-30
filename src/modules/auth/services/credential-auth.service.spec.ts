@@ -14,12 +14,12 @@ jest.mock('otplib', () => ({
 }));
 
 import { CredentialAuthService } from './credential-auth.service';
-import { UserService } from '../../user/user.service';
+import { UserService } from '../../user/services/user.service';
 import { VerificationCodeService } from './verification-code.service';
 import { AuthTokenService } from './auth-token.service';
 import { AuthRateLimitService } from './auth-rate-limit.service';
 import { AuthTwoFactorService } from './auth-two-factor.service';
-import { NotificationsService } from '../../notifications/notifications.service';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 import type { NotificationListItemDto } from '../../notifications/dto/notifications-response.dto';
 import { ResultCode } from '../../../common/api-envelope';
 import type { User } from '../../../generated/prisma/client';

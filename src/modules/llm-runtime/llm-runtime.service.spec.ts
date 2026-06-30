@@ -1,5 +1,5 @@
 import type { AiConfig } from '../../config/ai.config';
-import { LlmRuntimeService } from './llm-runtime.service';
+import { LlmRuntimeService } from './services/llm-runtime.service';
 
 describe('LlmRuntimeService', () => {
   const baseConfig: AiConfig = {

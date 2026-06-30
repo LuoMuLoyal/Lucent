@@ -3,13 +3,13 @@ import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import { MedicinesService } from './medicines.service';
+import { MedicinesService } from './services/medicines.service';
 import { MedicinesCacheService } from './cache/medicines-cache.service';
 import { CnMedicinesService } from './sources/cn-medicines.service';
 import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
 import { ResultCode } from '../../common/api-envelope';
 import { PrismaService } from '../../prisma/prisma.service';
-import { LlmRuntimeService } from '../llm-runtime/llm-runtime.service';
+import { LlmRuntimeService } from '../llm-runtime/services/llm-runtime.service';
 
 describe('MedicinesService', () => {
   let service: MedicinesService;
