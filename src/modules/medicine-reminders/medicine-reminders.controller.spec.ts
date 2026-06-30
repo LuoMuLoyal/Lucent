@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion */
-
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import type { UserPayload } from '../auth/services/auth-token.service';

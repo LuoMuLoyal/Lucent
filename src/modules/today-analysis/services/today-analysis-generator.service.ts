@@ -25,8 +25,7 @@ export class TodayAnalysisGeneratorService extends BaseAiGeneratorService<
     streamName: 'Today analysis',
   } as const;
 
-  // eslint-disable-next-line @typescript-eslint/no-useless-constructor -- NestJS needs this constructor signature for DI even though it only forwards to super.
-  constructor(llmRuntimeService: LlmRuntimeService) {
+  public constructor(llmRuntimeService: LlmRuntimeService) {
     super(llmRuntimeService);
   }
 

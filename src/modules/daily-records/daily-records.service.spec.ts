@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any */
-
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
@@ -254,7 +252,7 @@ describe('DailyRecordsService', () => {
       ],
     });
     expect(result.attachments).toHaveLength(1);
-    expect(result.attachments[0]!.objectKey).toBe(
+    expect(result.attachments[0]?.objectKey).toBe(
       'daily-records/u1/r1/photo.jpg',
     );
   });
@@ -349,7 +347,7 @@ describe('DailyRecordsService', () => {
         },
       ],
     });
-    expect(result.attachments[0]!.provider).toBe('tencent-cos');
+    expect(result.attachments[0]?.provider).toBe('tencent-cos');
   });
 
   it('should soft-delete a record', async () => {
@@ -415,9 +413,10 @@ describe('DailyRecordsService', () => {
     const result = await service.summary(mockUserId, '2026-06-04');
 
     expect(result.summaries).toHaveLength(2);
-    const water = result.summaries.find((s: any) => s.kind === 'water')!;
+    const water = result.summaries.find((s) => s.kind === 'water');
+    if (!water) throw new Error('water summary not found');
     expect(water.count).toBe(2);
-    expect(water.latest!.value).toBe('3');
+    expect(water.latest?.value).toBe('3');
   });
 
   it('should throw NotFoundException for foreign record', async () => {

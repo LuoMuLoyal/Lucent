@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserHealthContextOwnershipService } from './ownership.service';

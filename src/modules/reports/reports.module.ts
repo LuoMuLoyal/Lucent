@@ -6,6 +6,8 @@ import { ReportsAiSummaryCopyService } from './services/reports-ai-summary-copy.
 import { ReportsAiSummaryGeneratorService } from './services/reports-ai-summary-generator.service';
 import { AiSafetyPolicyService } from '../../common/ai/ai-safety-policy.service';
 import { ReportsAiSummaryService } from './services/reports-ai-summary.service';
+import { ClinicSummaryService } from './services/clinic-summary.service';
+import { ClinicSummaryPdfService } from './services/clinic-summary-pdf.service';
 import { ReportsComputationService } from './dashboard/reports-computation.service';
 import { ReportsContextService } from './dashboard/reports-context.service';
 import { ReportsPresenterService } from './dashboard/reports-presenter.service';
@@ -21,6 +23,8 @@ import { ReportsController } from './reports.controller';
     ReportsAiSummaryGeneratorService,
     AiSafetyPolicyService,
     ReportsAiSummaryService,
+    ClinicSummaryService,
+    ClinicSummaryPdfService,
     ReportsComputationService,
     ReportsContextService,
     ReportsPresenterService,

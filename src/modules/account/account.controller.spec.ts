@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument */
-
 jest.mock('otplib', () => ({
   generateSecret: jest.fn(() => 'MOCK_SECRET'),
   generateURI: jest.fn(() => 'otpauth://'),
@@ -15,13 +13,14 @@ import { AccountService } from './services/account.service';
 import { AuthService } from '../auth/services/auth.service';
 import type { UpdateAccountDto } from './dto/update-account.dto';
 import type { AccountDto } from './dto/account-response.dto';
+import type { User } from '../../generated/prisma/client';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',
   email: 'test@example.com',
 };
 
-const mockAccount: AccountDto = {
+const mockAccount = {
   id: 'user-uuid-1',
   email: 'test@example.com',
   nickname: 'TestUser',
@@ -40,7 +39,7 @@ const mockAccount: AccountDto = {
   ],
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-06-10T12:00:00.000Z',
-};
+} satisfies AccountDto;
 
 describe('AccountController', () => {
   let controller: AccountController;
@@ -101,8 +100,10 @@ describe('AccountController', () => {
   describe('PATCH /account', () => {
     it('should update and return the account envelope', async () => {
       const dto: UpdateAccountDto = { nickname: 'UpdatedName' };
-      // eslint-disable-next-line @typescript-eslint/no-misused-spread
-      const updated: AccountDto = { ...mockAccount, nickname: 'UpdatedName' };
+      const updated: AccountDto = {
+        ...mockAccount,
+        nickname: 'UpdatedName' as const,
+      };
       accountService.updateAccount.mockResolvedValue(updated);
 
       const result = await controller.updateAccount(mockUser, dto);
@@ -167,7 +168,7 @@ describe('AccountController', () => {
         email: 'new@example.com',
         emailVerifiedAt: new Date('2026-06-15T08:00:00.000Z'),
       };
-      authService.changeEmail.mockResolvedValue(updatedUser as any);
+      authService.changeEmail.mockResolvedValue(updatedUser as unknown as User);
 
       const result = await controller.changeEmail(mockUser, {
         newEmail: 'new@example.com',
@@ -192,7 +193,7 @@ describe('AccountController', () => {
       authService.changeEmail.mockResolvedValue({
         email: 'unverified@example.com',
         emailVerifiedAt: null,
-      } as any);
+      } as unknown as User);
 
       const result = await controller.changeEmail(mockUser, {
         newEmail: 'unverified@example.com',
@@ -205,8 +206,10 @@ describe('AccountController', () => {
 
   describe('DELETE /account/identities/:identityId', () => {
     it('should unlink identity and return the account envelope', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-misused-spread
-      const updated: AccountDto = { ...mockAccount, linkedIdentities: [] };
+      const updated: AccountDto = {
+        ...mockAccount,
+        linkedIdentities: [] as const,
+      };
       accountService.unlinkIdentity.mockResolvedValue(updated);
 
       const result = await controller.unlinkIdentity(

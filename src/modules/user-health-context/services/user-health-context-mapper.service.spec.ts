@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Test } from '@nestjs/testing';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
 

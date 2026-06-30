@@ -8,6 +8,7 @@ import {
   type ReportSummaryDataDto,
 } from './dto';
 import { ReportsAiSummaryService } from './services/reports-ai-summary.service';
+import { ClinicSummaryService } from './services/clinic-summary.service';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './dashboard/reports.service';
 
@@ -31,6 +32,10 @@ describe('ReportsController', () => {
           useValue: {
             generate: jest.fn(),
           },
+        },
+        {
+          provide: ClinicSummaryService,
+          useValue: {},
         },
       ],
     }).compile();

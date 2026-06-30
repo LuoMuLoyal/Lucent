@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
 import { nonDeleted } from '../../common/utils/prisma.helpers';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';

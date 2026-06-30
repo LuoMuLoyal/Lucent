@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import type { I18nService } from 'nestjs-i18n';
 import { ReportsPresenterService } from './reports-presenter.service';
 
@@ -127,7 +126,8 @@ describe('ReportsPresenterService', () => {
       'en',
     );
 
-    const sleepPattern = patterns.find((p) => p.kind === 'sleep')!;
+    const sleepPattern = patterns.find((p) => p.kind === 'sleep');
+    if (!sleepPattern) throw new Error('sleep pattern not found');
     expect(sleepPattern.status).toBe('good');
     expect(sleepPattern.body).toContain('7.4');
     expect(sleepPattern.body).toContain('7');
@@ -144,7 +144,8 @@ describe('ReportsPresenterService', () => {
       'en',
     );
 
-    const sleepPattern = patterns.find((p) => p.kind === 'sleep')!;
+    const sleepPattern = patterns.find((p) => p.kind === 'sleep');
+    if (!sleepPattern) throw new Error('sleep pattern not found');
     expect(sleepPattern.status).toBe('insufficient_data');
     expect(sleepPattern.body).toContain('Not enough sleep data');
   });

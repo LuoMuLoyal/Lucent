@@ -1,7 +1,6 @@
 import type { Prisma } from '../../../generated/prisma/client';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const reminderSelect = {
+const _reminderSelect = {
   id: true,
   currentMedicineId: true,
   label: true,
@@ -17,11 +16,10 @@ const reminderSelect = {
 } satisfies Prisma.UserMedicineReminderSelect;
 
 export type MedicineReminderRecord = Prisma.UserMedicineReminderGetPayload<{
-  select: typeof reminderSelect;
+  select: typeof _reminderSelect;
 }>;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const deliverySelect = {
+const _deliverySelect = {
   id: true,
   reminderId: true,
   deviceId: true,
@@ -34,11 +32,10 @@ const deliverySelect = {
 } satisfies Prisma.UserReminderDeliverySelect;
 
 export type ReminderDeliveryRecord = Prisma.UserReminderDeliveryGetPayload<{
-  select: typeof deliverySelect;
+  select: typeof _deliverySelect;
 }>;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const ownedReminderSelect = {
+const _ownedReminderSelect = {
   userId: true,
   startDate: true,
   endDate: true,
@@ -46,5 +43,5 @@ const ownedReminderSelect = {
 
 export type OwnedMedicineReminderRecord =
   Prisma.UserMedicineReminderGetPayload<{
-    select: typeof ownedReminderSelect;
+    select: typeof _ownedReminderSelect;
   }>;

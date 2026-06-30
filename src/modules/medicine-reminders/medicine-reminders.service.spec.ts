@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { nonDeleted } from '../../common/utils/prisma.helpers';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';

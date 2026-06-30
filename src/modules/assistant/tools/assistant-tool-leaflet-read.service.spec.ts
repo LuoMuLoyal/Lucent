@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 // Prevent @prisma/adapter-pg from failing at module load in test env
 jest.mock('@prisma/adapter-pg', () => ({ PrismaPg: jest.fn() }));
 
@@ -42,13 +40,10 @@ describe('AssistantToolLeafletReadService', () => {
 
   afterEach(() => {
     jest.useRealTimers();
-    [
-      'AI_EMBEDDING_API_KEY',
-      'AI_EMBEDDING_BASE_URL',
-      'AI_EMBEDDING_MODEL',
-      'DATABASE_URL',
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-    ].forEach((k) => delete process.env[k]);
+    delete process.env['AI_EMBEDDING_API_KEY'];
+    delete process.env['AI_EMBEDDING_BASE_URL'];
+    delete process.env['AI_EMBEDDING_MODEL'];
+    delete process.env['DATABASE_URL'];
   });
 
   function buildPrisma(overrides?: {
@@ -83,7 +78,7 @@ describe('AssistantToolLeafletReadService', () => {
   function makeDoc(
     content: string,
     metadata: Record<string, unknown> = {},
-  ): any {
+  ): { pageContent: string; metadata: Record<string, unknown> } {
     return { pageContent: content, metadata };
   }
 

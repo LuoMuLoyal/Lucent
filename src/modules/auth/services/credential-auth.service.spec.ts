@@ -284,7 +284,6 @@ describe('CredentialAuthService', () => {
         'test@example.com',
       );
       expect(userService.update).toHaveBeenCalledWith('user-1', {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         lastLoginAt: expect.any(Date),
         status: UserStatus.active,
       });
@@ -493,7 +492,6 @@ describe('CredentialAuthService', () => {
         'user-1',
         expect.objectContaining({
           email: 'changed@example.com',
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           emailVerifiedAt: expect.any(Date),
         }),
       );
@@ -564,7 +562,7 @@ describe('CredentialAuthService', () => {
       );
       expect(userService.updateByEmail).toHaveBeenCalledWith(
         'test@example.com',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+
         { emailVerifiedAt: expect.any(Date) },
       );
     });

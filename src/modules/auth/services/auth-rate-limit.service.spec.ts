@@ -138,7 +138,6 @@ describe('AuthRateLimitService', () => {
         expect.stringContaining('login-failure'),
         expect.objectContaining({
           count: 10,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           lockedUntil: expect.any(Number),
         }),
         expect.any(Number),

@@ -46,7 +46,6 @@ type DynamicImport = <T>(specifier: string) => Promise<T>;
  * are hardcoded string literals ('adminjs', '@adminjs/express',
  * '@sergiyiva/adminjs-prisma') and never come from user input.
  */
-// eslint-disable-next-line @typescript-eslint/no-implied-eval
 const dynamicImport = new Function(
   'specifier',
   'return import(specifier)',

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';

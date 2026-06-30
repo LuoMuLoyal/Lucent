@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access */
 import { Test } from '@nestjs/testing';
 import type { DailyRecordKind } from '../../../generated/prisma/client';
+import type { DailyRecordShape } from '../types/daily-records.types';
 import { DailyRecordsMapperService } from './daily-records-mapper.service';
 
 describe('DailyRecordsMapperService', () => {
@@ -29,9 +29,9 @@ describe('DailyRecordsMapperService', () => {
       const result = service.toAttachmentCreateManyData('u1', 'r1', [
         { objectKey: 'img/abc.jpg' },
       ]);
-      expect(result[0]!.userId).toBe('u1');
-      expect(result[0]!.recordId).toBe('r1');
-      expect(result[0]!.objectKey).toBe('img/abc.jpg');
+      expect(result[0]?.userId).toBe('u1');
+      expect(result[0]?.recordId).toBe('r1');
+      expect(result[0]?.objectKey).toBe('img/abc.jpg');
     });
   });
 
@@ -51,7 +51,7 @@ describe('DailyRecordsMapperService', () => {
         attachments: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      } as any);
+      } as unknown as DailyRecordShape);
       expect(item.id).toBe('r1');
       expect(item.occurredAt).toBe('2026-06-15');
       expect(item.occurredTime).toBe('14:30');
@@ -60,7 +60,7 @@ describe('DailyRecordsMapperService', () => {
 
   describe('toSummaries', () => {
     it('groups records by kind and returns counts', () => {
-      const base: any = {
+      const base = {
         occurredAt: new Date(),
         occurredTime: null,
         title: null,
@@ -72,18 +72,19 @@ describe('DailyRecordsMapperService', () => {
         attachments: [],
         createdAt: new Date(),
         updatedAt: new Date(),
-      };
-      const records: any[] = [
-        { ...base, id: 'r1', kind: 'note' as DailyRecordKind },
-        { ...base, id: 'r2', kind: 'note' as DailyRecordKind },
-        { ...base, id: 'r3', kind: 'water' as DailyRecordKind },
+      } as unknown as DailyRecordShape;
+      const records: DailyRecordShape[] = [
+        { ...base, id: 'r1', kind: 'note' },
+        { ...base, id: 'r2', kind: 'note' },
+        { ...base, id: 'r3', kind: 'water' },
       ];
       const result = service.toSummaries(records);
       expect(result.summaries).toHaveLength(2);
 
-      const noteSummary = result.summaries.find((s: any) => s.kind === 'note');
+      const noteSummary = result.summaries.find((s) => s.kind === 'note');
       expect(noteSummary).toBeDefined();
-      expect(noteSummary!.count).toBe(2);
+      if (!noteSummary) throw new Error('note summary not found');
+      expect(noteSummary.count).toBe(2);
     });
   });
 });

@@ -12,8 +12,7 @@ const DEFAULT_WATER_TARGET_COUNT = 8;
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const dailyRecordSelect = {
+const _dailyRecordSelect = {
   kind: true,
   occurredTime: true,
   title: true,
@@ -25,11 +24,10 @@ const dailyRecordSelect = {
 } satisfies Prisma.UserDailyRecordSelect;
 
 type DailyRecordShape = Prisma.UserDailyRecordGetPayload<{
-  select: typeof dailyRecordSelect;
+  select: typeof _dailyRecordSelect;
 }>;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const reminderSelect = {
+const _reminderSelect = {
   currentMedicineId: true,
   scheduledHour: true,
   scheduledMinute: true,
@@ -40,7 +38,7 @@ const reminderSelect = {
 } satisfies Prisma.UserMedicineReminderSelect;
 
 type ReminderShape = Prisma.UserMedicineReminderGetPayload<{
-  select: typeof reminderSelect;
+  select: typeof _reminderSelect;
 }>;
 
 export interface TodayAnalysisContext {

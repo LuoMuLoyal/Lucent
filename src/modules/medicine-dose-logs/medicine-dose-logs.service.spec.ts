@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';

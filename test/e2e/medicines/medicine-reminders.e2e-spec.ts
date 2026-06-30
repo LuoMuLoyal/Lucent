@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any */
-
 import request from 'supertest';
 
 import { ResultCode } from '../../../src/common/api-envelope';

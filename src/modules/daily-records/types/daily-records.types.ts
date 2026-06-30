@@ -1,8 +1,7 @@
 import { Prisma } from '../../../generated/prisma/client';
 import type { PrismaService } from '../../../prisma/prisma.service';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const dailyRecordAttachmentSelect = {
+const _dailyRecordAttachmentSelect = {
   id: true,
   kind: true,
   objectKey: true,
@@ -19,7 +18,7 @@ const dailyRecordAttachmentSelect = {
 
 export type DailyRecordAttachmentShape =
   Prisma.UserDailyRecordAttachmentGetPayload<{
-    select: typeof dailyRecordAttachmentSelect;
+    select: typeof _dailyRecordAttachmentSelect;
   }>;
 
 export type DailyRecordDbClient = Pick<

@@ -68,12 +68,35 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.spec.ts', '**/*.test.ts'],
+    // AdminJS packages 是 ESM-only, 必须用动态 import 加载。
+    // SWC 会将标准 import() 编译为 require(), 导致 ESM interop 失败。
+    // 用 new Function 绕过 SWC 的 transform, 保留运行时的 import()。
+    files: ['src/admin/adminjs.setup.ts'],
+    rules: {
+      '@typescript-eslint/no-implied-eval': 'off',
+    },
+  },
+  {
+    files: ['**/*.spec.ts', '**/*.test.ts', 'test/**/*.ts'],
     plugins: { jest },
     rules: {
       '@typescript-eslint/unbound-method': 'off',
       'jest/no-jasmine-globals': 'off',
       'jest/no-conditional-expect': 'off',
+      // Jest 匹配器（expect.any、expect.objectContaining 等）天然产生 any 类型值，
+      // 在严格类型检查下会触发 no-unsafe-assignment / no-unsafe-argument。
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      // 测试文件中 mock 对象经常需要灵活类型，使用 any 是标准做法。
+      '@typescript-eslint/no-explicit-any': 'off',
+      // 测试访问 mock 属性时可能无法严格类型检查。
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      // 模板字符串在 e2e 测试的 URL 构造中很常见。
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      // 测试断言中的非空断言在已验证的场景下是安全的。
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      // 测试中某些类型断言可能是多余的，但保留它们有助于文档化意图。
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
     },
   },
 );

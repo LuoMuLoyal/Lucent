@@ -2,7 +2,10 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpException,
+  HttpStatus,
+  Param,
   Post,
   Query,
   Res,
@@ -22,6 +25,7 @@ import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.dec
 import { endSse, prepareSse, writeSseEvent } from '../../common/sse';
 import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   GenerateReportSummaryDto,
@@ -29,8 +33,11 @@ import {
   ReportDashboardResponseDto,
   ReportSummaryResponseDto,
   ReportSummaryStreamResultDto,
+  ClinicSummaryDto,
+  ClinicSummaryShareResponseDto,
 } from './dto';
 import { ReportsAiSummaryService } from './services/reports-ai-summary.service';
+import { ClinicSummaryService } from './services/clinic-summary.service';
 import { ReportsService } from './dashboard/reports.service';
 
 @ApiTags('Reports')
@@ -41,6 +48,7 @@ export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,
     private readonly reportsAiSummaryService: ReportsAiSummaryService,
+    private readonly clinicSummaryService: ClinicSummaryService,
   ) {}
 
   @Get('dashboard')
@@ -114,6 +122,96 @@ export class ReportsController {
     } finally {
       endSse(response);
     }
+  }
+
+  @Post('clinic-summary/preview')
+  @ApiOperation({
+    summary:
+      'Generate a de-identified clinic summary for sharing with a doctor',
+  })
+  @ApiResponse({ status: 200, type: ClinicSummaryDto })
+  async previewClinicSummary(@CurrentUser() user: UserPayload) {
+    return successEnvelope(
+      await this.clinicSummaryService.buildClinicSummary(user.sub),
+    );
+  }
+
+  @Post('clinic-summary/share')
+  @ApiOperation({
+    summary: 'Create a shareable link for the clinic summary (24h expiry)',
+  })
+  @ApiResponse({ status: 200, type: ClinicSummaryShareResponseDto })
+  async shareClinicSummary(@CurrentUser() user: UserPayload) {
+    return successEnvelope(
+      await this.clinicSummaryService.createShareLink(user.sub),
+    );
+  }
+
+  @Public()
+  @Get('clinic-summary/shared/:token')
+  @ApiOperation({
+    summary: 'Access a shared clinic summary by token (no auth required)',
+  })
+  @ApiResponse({ status: 200, type: ClinicSummaryDto })
+  async getSharedClinicSummary(@Param('token') token: string) {
+    const summary = await this.clinicSummaryService.getSharedSummary(token);
+    if (!summary) {
+      throw new HttpException(
+        'Share link expired or invalid.',
+        HttpStatus.GONE,
+      );
+    }
+    return successEnvelope(summary);
+  }
+
+  @Get('clinic-summary/preview/pdf')
+  @Header('Content-Type', 'application/pdf')
+  @Header('Content-Disposition', 'attachment; filename="clinic-summary.pdf"')
+  @ApiOperation({
+    summary: 'Download a de-identified clinic summary as PDF (auth required)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'PDF file',
+    content: { 'application/pdf': {} },
+  })
+  async downloadClinicSummaryPdf(
+    @CurrentUser() user: UserPayload,
+    @I18nLang() language: string,
+    @Res({ passthrough: false }) response: Response,
+  ): Promise<void> {
+    const pdf = await this.clinicSummaryService.exportPdf(user.sub, language);
+    response.send(pdf);
+  }
+
+  @Public()
+  @Get('clinic-summary/shared/:token/pdf')
+  @Header('Content-Type', 'application/pdf')
+  @Header('Content-Disposition', 'attachment; filename="clinic-summary.pdf"')
+  @ApiOperation({
+    summary: 'Download a shared clinic summary as PDF (no auth required)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'PDF file',
+    content: { 'application/pdf': {} },
+  })
+  async downloadSharedClinicSummaryPdf(
+    @Param('token') token: string,
+    @I18nLang() language: string,
+    @Res({ passthrough: false }) response: Response,
+  ): Promise<void> {
+    const pdf = await this.clinicSummaryService.exportSharedPdf(
+      token,
+      language,
+    );
+    if (!pdf) {
+      throw new HttpException(
+        'Share link expired or invalid.',
+        HttpStatus.GONE,
+      );
+    }
+    response.send(pdf);
   }
 }
 

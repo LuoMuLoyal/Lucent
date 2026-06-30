@@ -121,7 +121,6 @@ describe('AuthOAuthService', () => {
         expect.objectContaining({
           email: 'google@example.com',
           nickname: 'Google User',
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           identity: expect.objectContaining({
             provider: 'wechat_web',
             providerUserId: 'wechat-sub-789',
@@ -150,7 +149,6 @@ describe('AuthOAuthService', () => {
       expect(userService.update).toHaveBeenCalledWith(
         'user-1',
         expect.objectContaining({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           lastLoginAt: expect.any(Date),
           status: UserStatus.active,
           nickname: 'WeChat User',

@@ -24,8 +24,7 @@ export class DailyRecordCandidatesGeneratorService extends BaseAiGeneratorServic
     streamName: 'Daily record candidates',
   } as const;
 
-  // eslint-disable-next-line @typescript-eslint/no-useless-constructor -- NestJS DI requires explicit constructor
-  constructor(llmRuntimeService: LlmRuntimeService) {
+  public constructor(llmRuntimeService: LlmRuntimeService) {
     super(llmRuntimeService);
   }
 

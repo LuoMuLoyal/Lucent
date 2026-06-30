@@ -3,7 +3,6 @@ import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash } from 'node:crypto';
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { AuthTokenService } from './auth-token.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 
