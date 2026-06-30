@@ -1,4 +1,5 @@
-import { unauthorized } from '../../../common/utils/api-errors';
+import { createPublicKey } from 'node:crypto';
+
 import {
   Injectable,
   Logger,
@@ -6,18 +7,17 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+
 import { I18nService } from 'nestjs-i18n';
-import { createPublicKey } from 'crypto';
-import jwt from 'jsonwebtoken';
-import type { Prisma } from '../../../generated/prisma/client';
+
 import { ResultCode } from '../../../common/api-envelope';
+import { unauthorized } from '../../../common/utils/api-errors';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type { OAuthConfig } from '../../../config/oauth.config';
+import type { Prisma } from '../../../generated/prisma/client';
 import { OAUTH_PROVIDER_APPLE, type OAuthProfile } from '../types/oauth.types';
 import type { OAuthProvider } from './oauth-provider.interface';
-
-const APPLE_JWKS_URL = 'https://appleid.apple.com/auth/keys';
-const APPLE_ISSUER = 'https://appleid.apple.com';
 
 interface AppleJwk {
   kty: string;
@@ -44,6 +44,12 @@ interface AppleIdTokenPayload {
   real_user_status?: number;
 }
 
+interface DecodedAppleToken {
+  header: { kid?: string; alg?: string };
+  payload: unknown;
+  signature: string;
+}
+
 @Injectable()
 export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
   readonly provider = OAUTH_PROVIDER_APPLE;
@@ -56,6 +62,7 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async fetchProfile(
@@ -94,7 +101,7 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
   }
 
   onModuleInit(): void {
-    const config = this.readRawConfig();
+    const config = this.readAppleConfig();
     if (!config.appId) {
       this.logger.warn(
         'Apple OAuth is not fully configured — Apple Sign In will be unavailable.',
@@ -108,12 +115,15 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
     identityToken: string,
   ): Promise<AppleIdTokenPayload> {
     // Decode without verification to extract kid from header
-    const decoded = jwt.decode(identityToken, { complete: true });
-    if (!decoded || typeof decoded === 'string') {
+    const decoded = this.jwtService.decode<DecodedAppleToken | null>(
+      identityToken,
+      { complete: true },
+    );
+    if (!decoded) {
       unauthorized(this.i18n.t('auth.oauth_code_invalid'));
     }
 
-    const kid = (decoded.header as { kid?: string }).kid;
+    const { kid } = decoded.header;
     if (!kid) {
       unauthorized(this.i18n.t('auth.oauth_code_invalid'));
     }
@@ -122,16 +132,20 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
     const jwk = await this.getAppleJwk(kid);
     const publicKey = this.jwkToPem(jwk);
 
-    const config = this.readRawConfig();
+    const config = this.readAppleConfig();
 
-    // jwt.verify handles signature, expiry, issuer & audience in one call
+    // jwtService.verifyAsync handles signature, expiry, issuer & audience in one call
     try {
-      const payload = jwt.verify(identityToken, publicKey, {
-        algorithms: ['RS256'],
-        issuer: APPLE_ISSUER,
-        audience: config.appId,
-        clockTolerance: 30, // 30s leeway for clock skew
-      }) as AppleIdTokenPayload;
+      const payload = await this.jwtService.verifyAsync<AppleIdTokenPayload>(
+        identityToken,
+        {
+          secret: publicKey,
+          algorithms: ['RS256'],
+          issuer: config.issuer,
+          audience: config.appId,
+          clockTolerance: 30, // 30s leeway for clock skew
+        },
+      );
 
       return payload;
     } catch (err) {
@@ -163,8 +177,10 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
       return this.appleKeys;
     }
 
+    const config = this.readAppleConfig();
+
     try {
-      const response = await fetch(APPLE_JWKS_URL);
+      const response = await fetch(config.jwksUrl);
       if (!response.ok) {
         throw new Error(`JWKS fetch failed: ${String(response.status)}`);
       }
@@ -197,7 +213,11 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
 
   // ── Config ──────────────────────────────────────────────────
 
-  private readRawConfig(): { appId: string } {
+  private readAppleConfig(): {
+    appId: string;
+    jwksUrl: string;
+    issuer: string;
+  } {
     const config = this.configService.getOrThrow<OAuthConfig>(ConfigKey.OAuth);
     return config.apple;
   }

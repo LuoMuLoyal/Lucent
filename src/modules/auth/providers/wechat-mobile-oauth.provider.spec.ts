@@ -21,6 +21,8 @@ const mockOAuthConfig: OAuthConfig = {
   },
   apple: {
     appId: 'apple-app-id',
+    jwksUrl: 'https://appleid.apple.com/auth/keys',
+    issuer: 'https://appleid.apple.com',
   },
   qq: {
     appId: 'qq-app-id',

@@ -11,7 +11,7 @@ export interface OAuthProviderConfig {
 export interface OAuthConfig {
   wechatWeb: OAuthProviderConfig;
   wechatMobile: Omit<OAuthProviderConfig, 'redirectUri'>;
-  apple: { appId: string };
+  apple: { appId: string; jwksUrl: string; issuer: string };
   qq: OAuthProviderConfig;
 }
 
@@ -29,6 +29,8 @@ export const oauthConfig = registerAs(
     },
     apple: {
       appId: process.env[EnvKey.APPLE_APP_ID] ?? '',
+      jwksUrl: 'https://appleid.apple.com/auth/keys',
+      issuer: 'https://appleid.apple.com',
     },
     qq: {
       appId: process.env[EnvKey.QQ_APP_ID] ?? '',
