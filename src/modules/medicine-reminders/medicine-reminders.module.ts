@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MedicineRemindersController } from './medicine-reminders.controller';
-import { MedicineRemindersOwnershipService } from './guards/ownership.service';
+import { MedicineRemindersOwnershipService } from './services/ownership.service';
 import { MedicineRemindersMapperService } from './services/medicine-reminders-mapper.service';
 import { MedicineRemindersService } from './medicine-reminders.service';
 import { ReminderDeliveriesController } from './reminder-deliveries.controller';

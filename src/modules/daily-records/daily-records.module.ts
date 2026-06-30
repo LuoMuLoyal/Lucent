@@ -5,7 +5,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { DailyRecordCandidatesCopyService } from './services/daily-record-candidates-copy.service';
 import { DailyRecordCandidatesGeneratorService } from './services/daily-record-candidates-generator.service';
 import { DailyRecordCandidatesService } from './services/daily-record-candidates.service';
-import { DailyRecordsOwnershipService } from './guards/ownership.service';
+import { DailyRecordsOwnershipService } from './services/ownership.service';
 import { DailyRecordImageUploadService } from './services/daily-record-image-upload.service';
 import { DailyRecordImageUploadRuntime } from './config/daily-record-image-upload.runtime';
 import { DailyRecordsController } from './daily-records.controller';

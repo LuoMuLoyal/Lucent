@@ -5,7 +5,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { DailyRecordKind, Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateDailyRecordDto, UpdateDailyRecordDto } from './dto';
-import { DailyRecordsOwnershipService } from './guards/ownership.service';
+import { DailyRecordsOwnershipService } from './services/ownership.service';
 import { DailyRecordsMapperService } from './services/daily-records-mapper.service';
 import {
   dailyRecordWithAttachments,

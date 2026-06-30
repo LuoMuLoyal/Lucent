@@ -4,7 +4,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MedicineRemindersOwnershipService } from './guards/ownership.service';
+import { MedicineRemindersOwnershipService } from './services/ownership.service';
 import { MedicineRemindersMapperService } from './services/medicine-reminders-mapper.service';
 import { MedicineRemindersService } from './medicine-reminders.service';
 

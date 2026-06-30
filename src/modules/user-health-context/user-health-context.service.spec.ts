@@ -15,7 +15,7 @@ import {
 } from '../../generated/prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
-import { UserHealthContextOwnershipService } from './guards/ownership.service';
+import { UserHealthContextOwnershipService } from './services/ownership.service';
 import { UserHealthContextMapperService } from './services/user-health-context-mapper.service';
 import { UserHealthContextProfileWriteService } from './services/user-health-context-profile-write.service';
 import { UserHealthContextAllergyWriteService } from './services/user-health-context-allergy-write.service';

@@ -5,7 +5,7 @@ import type {
   CreateMedicineReminderDto,
   UpdateMedicineReminderDto,
 } from './dto';
-import { MedicineRemindersOwnershipService } from './guards/ownership.service';
+import { MedicineRemindersOwnershipService } from './services/ownership.service';
 import { MedicineRemindersMapperService } from './services/medicine-reminders-mapper.service';
 
 @Injectable()

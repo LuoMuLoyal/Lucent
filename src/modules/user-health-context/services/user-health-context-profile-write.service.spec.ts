@@ -3,7 +3,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { UserHealthContextProfileWriteService } from './user-health-context-profile-write.service';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { UserHealthContextOwnershipService } from '../guards/ownership.service';
+import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
 
 describe('UserHealthContextProfileWriteService', () => {

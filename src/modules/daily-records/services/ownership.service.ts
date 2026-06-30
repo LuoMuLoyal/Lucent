@@ -1,9 +1,3 @@
-/**
- * Data-ownership verification service for daily-records.
- *
- * This is NOT a NestJS Guard. It is imported by domain services to ensure
- * records belong to the current user before mutating or returning them.
- */
 import { notFound } from '../../../common/utils/api-errors';
 import { Injectable } from '@nestjs/common';
 
