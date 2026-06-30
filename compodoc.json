@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/compodoc/compodoc/develop/src/config/config.schema.json",
+  "tsconfig": "tsconfig.json",
+  "output": "docs/compodoc",
+  "name": "Lucent Architecture",
+  "theme": "gitbook",
+  "disableCoverage": true,
+  "disablePrivate": true,
+  "disableProtected": false,
+  "disableInternal": true,
+  "disableLifeCycleHooks": false,
+  "disableRoutesGraph": false,
+  "disableDependencies": false,
+  "disableGraph": false,
+  "disableSourceCode": false,
+  "disableDomTree": true,
+  "disableTemplateTab": true,
+  "disableStyleTab": true,
+  "disableSearch": false,
+  "exportFormat": "html",
+  "excludes": ["**/*.spec.ts", "**/*.e2e-spec.ts", "**/generated/**"]
+}

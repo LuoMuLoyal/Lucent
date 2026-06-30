@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { apiReference } from '@scalar/nestjs-api-reference';
 import { ConfigKey } from './config/config-keys.enum';
 import { ResultCode } from './common/api-envelope';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
@@ -59,7 +60,7 @@ export function setupApp(
     ),
   });
 
-  // ── Swagger / OpenAPI ──────────────────────────────────────────
+  // ── Scalar API Reference ───────────────────────────────────────
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Lucent API')
     .setDescription('Lucent 后端 API 文档')
@@ -76,7 +77,14 @@ export function setupApp(
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document);
+  app.use(
+    '/api/docs',
+    apiReference({
+      spec: { content: document },
+      theme: 'purple',
+      _integration: 'nestjs',
+    }),
+  );
 }
 
 function formatValidationErrors(errors: ValidationError[]): string {

@@ -39,6 +39,7 @@
     "test:e2e": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand",
     "test:e2e:ci": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand",
     "export:openapi": "pnpm build && cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
+    "docs:compodoc": "compodoc -c compodoc.json",
     "prepare": "husky"
   },
   "dependencies": {
@@ -103,11 +104,13 @@
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
+    "@compodoc/compodoc": "^2.0.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@scalar/nestjs-api-reference": "^1.2.6",
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.40",
     "@swc/jest": "^0.2.39",

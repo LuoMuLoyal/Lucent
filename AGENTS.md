@@ -5,6 +5,7 @@
 - `README.md`
 - `docs/README.md`
 - `docs/environment.md`
+- `docs/architecture.md`
 - `docs/public/data-sources.md` when touching medicine import or source tables
 
 ## Current Baseline
@@ -20,9 +21,12 @@
 ## Working Rules
 
 - API contract changed: run `pnpm export:openapi`; do not maintain hand-written endpoint docs.
+- Backend architecture or module structure changed: run `pnpm docs:compodoc` to regenerate HTML architecture docs under `docs/compodoc/`.
+- API documentation UI is served at `/api/docs` via Scalar (replaces Swagger UI). The underlying OpenAPI generation and export flow remain unchanged.
 - Active multi-step backend task plans belong in `plans/*.md`, not in `docs/` and not in the workspace root.
 - Env, Docker, import flow, or local commands changed: update `docs/environment.md` and `README.md`.
 - Medicine import or source strategy changed: update `docs/public/data-sources.md`.
+- Backend code changed: append a dated entry to `docs/migration-log/YYYY-MM-DD.md` (create the file if it doesn't exist). Keep `docs/MigrationLog.md` as the index only.
 - For localized backend copy, keep `AcceptLanguageResolver + I18nService` as the default path. Use `@I18nLang()` only when a controller/service flow must explicitly branch on the resolved locale and pass that locale deeper into AI/prompt/runtime code.
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby working code.
 - Use `pnpm typecheck` when you need TypeScript to validate spec and e2e files too; `pnpm build` excludes `**/*spec.ts` and `test/`.

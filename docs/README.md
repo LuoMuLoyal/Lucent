@@ -1,22 +1,25 @@
 # Lucent Docs
 
-Last updated: 2026-06-29
+Last updated: 2026-06-30
 
 This directory keeps the authoritative backend runtime, deployment, generated-contract, and shared data-contract documentation for Lucent. If a complex backend task needs a live execution plan, put it under `../plans/` instead of `docs/`.
 
 ## Document Boundaries
 
-| Document                           | Responsibility                                                                       | Do not put here                       |
-| ---------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------- |
-| `environment.md`                   | Runtime config, local stacks, required variables, command behavior                   | Tencent Cloud step-by-step deployment |
-| `deployment.md`                    | Single-source production deployment runbook, directory layout, and checks            | General env variable explanations     |
-| `openapi.json`                     | Generated API contract from `pnpm export:openapi`                                    | Manual edits                          |
-| `public/data-sources.md`           | Medicine source/import strategy and table mapping                                    | Product roadmap                       |
-| `public/reminder-contract.md`      | Reminder/notification backend-vs-device boundary                                     | UI implementation details             |
-| `public/environment-contract.md`   | Environment snapshot API boundary                                                    | More-tab or generic utility plans     |
-| `public/mine-settings-contract.md` | Mine/Settings API boundary (user settings, support resources, app info, data export) | UI implementation details             |
-| `public/assistant-contract.md`     | Assistant capability/permission boundary and rollout truth                           | Prompt drafts or temporary plans      |
-| `TODO.md`                          | Active deferred backend follow-up items                                              | Historical changelog narrative        |
+| Document                           | Responsibility                                                                        | Do not put here                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------- |
+| `environment.md`                   | Runtime config, local stacks, required variables, command behavior                    | Tencent Cloud step-by-step deployment |
+| `deployment.md`                    | Single-source production deployment runbook, directory layout, and checks             | General env variable explanations     |
+| `architecture.md`                  | Module dependency graph, AI pipeline architecture, route architecture, DB conventions | Implementation status or task logs    |
+| `openapi.json`                     | Generated API contract from `pnpm export:openapi`                                     | Manual edits                          |
+| `compodoc/`                        | Generated NestJS architecture docs from `pnpm docs:compodoc`                          | Manual edits                          |
+| `public/data-sources.md`           | Medicine source/import strategy and table mapping                                     | Product roadmap                       |
+| `public/reminder-contract.md`      | Reminder/notification backend-vs-device boundary                                      | UI implementation details             |
+| `public/environment-contract.md`   | Environment snapshot API boundary                                                     | More-tab or generic utility plans     |
+| `public/mine-settings-contract.md` | Mine/Settings API boundary (user settings, support resources, app info, data export)  | UI implementation details             |
+| `public/assistant-contract.md`     | Assistant capability/permission boundary and rollout truth                            | Prompt drafts or temporary plans      |
+| `TODO.md`                          | Active deferred backend follow-up items                                               | Historical changelog narrative        |
+| `MigrationLog.md`                  | Date-based change history index; entries live in `migration-log/YYYY-MM-DD.md`        | Current-state facts or future plans   |
 
 ## Admin Panel
 
@@ -49,7 +52,10 @@ Product direction and current product state are owned by the workspace path `Lum
 | AI generator / policy / service abstraction or safety rules    | `public/assistant-contract.md`                                     |
 | Deferred backend follow-up list                                | `TODO.md`                                                          |
 | Lucent API code                                                | Run `pnpm export:openapi` and keep `openapi.json` generated        |
+| Backend architecture / module structure change                 | Run `pnpm docs:compodoc` to regenerate architecture docs           |
+| Module dependency, AI pipeline, route, or DB convention change | `architecture.md`                                                  |
 | AdminJS panel resources / CRUD permissions                     | `README.md` admin panel paragraph and `src/admin/adminjs.setup.ts` |
+| Any backend code change                                        | Today's `migration-log/YYYY-MM-DD.md`                              |
 
 ## Relationship With `Lumos-docs`
 
@@ -65,5 +71,5 @@ Product direction and current product state are owned by the workspace path `Lum
 - Do not edit `openapi.json` manually.
 - Active repo-local execution plans belong in `Lucent/plans/`; move durable decisions into the owning docs after completion, then delete the plan file.
 - Keep old implementation plans out of active docs after their decisions move into the owning document.
-- **When a follow-up item in `TODO.md` is completed, delete it from `TODO.md`; do not mark it complete there.** Move the resulting current-state facts to `Luminous/docs/Current_State.md` and record the change in the daily `Luminous/docs/migration-log/YYYY-MM-DD.md`.
+- **When a follow-up item in `TODO.md` is completed, delete it from `TODO.md`; do not mark it complete there.** Move the resulting current-state facts to `Luminous/docs/Current_State.md`, record the change in the daily `Luminous/docs/migration-log/YYYY-MM-DD.md`, and also record the completion in today's `Lucent/docs/migration-log/YYYY-MM-DD.md` as cross-repo sync evidence.
 - Repo helper scripts under `scripts/` and `deploy/` are not part of the Nest app ESLint surface; validate them by running the relevant command instead of forcing app-only lint rules onto opened tool files.
