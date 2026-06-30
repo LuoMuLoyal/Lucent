@@ -46,6 +46,7 @@
     "@adminjs/express": "^6.1.1",
     "@babel/plugin-syntax-import-assertions": "7.29.7",
     "@fontpkg/source-han-sans-sc-vf": "^2.5.3",
+    "@langchain/community": "^1.1.29",
     "@langchain/core": "1.1.48",
     "@langchain/langgraph": "1.4.2",
     "@langchain/openai": "1.4.7",

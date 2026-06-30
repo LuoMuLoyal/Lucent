@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { Test } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
 import { DailyRecordCandidatesCopyService } from './daily-record-candidates-copy.service';
@@ -47,8 +48,10 @@ describe('DailyRecordCandidatesCopyService', () => {
 
     it('includes i18n keys for fallback title and rationale', () => {
       const result = service.buildFallback('test', '2026-06-15', 'en');
-      expect(typeof result.items[0].title).toBe('string');
-      expect(typeof result.items[0].rationale).toBe('string');
+      const items = result.items;
+      expect(items).toBeDefined();
+      expect(typeof items[0]!.title).toBe('string');
+      expect(typeof items[0]!.rationale).toBe('string');
       expect(typeof result.confirmationHint).toBe('string');
     });
   });

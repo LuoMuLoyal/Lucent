@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { OpenAIEmbeddings } from '@langchain/openai';
+import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
@@ -12,23 +13,14 @@ import {
 
 const LEAFLET_SEARCH_LIMIT = 5;
 const VECTOR_TOP_K = 5;
-const VECTOR_MIN_SIMILARITY = 0.7;
-
-type LeafletChunkRow = {
-  id: string;
-  leaflet_id: string;
-  source_field: string;
-  chunk_text: string;
-  chunk_index: number;
-  similarity: number;
-};
+const EMBEDDINGS_TABLE = 'leaflet_embeddings';
 
 @Injectable()
 export class AssistantToolLeafletReadService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly llmRuntime: LlmRuntimeService,
-  ) {}
+  private vectorStore: PGVectorStore | null = null;
+  private initPromise: Promise<void> | null = null;
+
+  constructor(private readonly prisma: PrismaService) {}
 
   async hasIndexedChunks(): Promise<boolean> {
     const count = await this.prisma.medicineLeafletChunk.count({
@@ -44,7 +36,7 @@ export class AssistantToolLeafletReadService {
 
     if (!query) {
       return this.buildEmptyEnvelope({
-        query: { medicineQuery: query, matchedBy: [] },
+        medicineQuery: query,
         reason: 'No medicine query was provided.',
       });
     }
@@ -53,139 +45,146 @@ export class AssistantToolLeafletReadService {
 
     if (productResolution.kind === 'no_match') {
       return this.buildEmptyEnvelope({
-        query: { medicineQuery: query, matchedBy: [] },
+        medicineQuery: query,
         reason: `No Chinese medicine product matched "${query}".`,
       });
     }
 
     if (productResolution.kind === 'ambiguous') {
       return this.buildAmbiguousEnvelope({
-        query: { medicineQuery: query, matchedBy: [] },
+        medicineQuery: query,
         candidates: productResolution.candidates,
       });
     }
 
     const product = productResolution.product;
 
-    // ── Hybrid retrieval: vector search first, fallback to keyword ──
-    const vectorChunks = await this.searchByVector(query, product.id);
-
-    if (vectorChunks.length > 0) {
-      const topSimilarity = vectorChunks[0]?.similarity ?? 0;
-      if (topSimilarity >= VECTOR_MIN_SIMILARITY) {
-        const mapped = vectorChunks.map((row, index) => ({
-          leafletId: row.leaflet_id,
-          field: row.source_field,
-          text: row.chunk_text,
-          rank: index + 1,
-        }));
-        return this.buildResultEnvelope(
-          query,
-          product,
-          productResolution.matchedBy,
-          [],
-          mapped,
-          'vector',
-        );
-      }
-    }
-
-    // ── Keyword fallback ──────────────────────────────────────────
-    const links = await this.prisma.cnMedicineProductLeafletLink.findMany({
-      where: { productId: product.id },
-      include: { leaflet: true },
-      orderBy: [{ isBestMatch: 'desc' }, { matchScore: 'desc' }],
-      take: 10,
-    });
-
-    if (links.length === 0) {
+    const store = await this.getVectorStore();
+    if (!store) {
       return this.buildEmptyEnvelope({
-        query: {
-          medicineQuery: query,
-          matchedRecordId: product.id,
-          matchedBy: productResolution.matchedBy,
-        },
-        reason: `Matched product "${product.name}" but no leaflet link is available.`,
+        medicineQuery: query,
+        matchedRecordId: product.id,
+        matchedBy: productResolution.matchedBy,
+        reason: `Matched product "${product.name}" but vector search is not configured.`,
       });
     }
 
-    const leafletIds = links.map((link) => link.leafletId);
-    const chunks = await this.prisma.medicineLeafletChunk.findMany({
-      where: { leafletId: { in: leafletIds } },
-      orderBy: [
-        { leafletId: 'asc' },
-        { sourceField: 'asc' },
-        { chunkIndex: 'asc' },
-      ],
-      take: 50,
+    const results = await store.similaritySearchWithScore(query, VECTOR_TOP_K, {
+      productId: product.id,
     });
 
-    const leaflets = links.map((link) => ({
-      id: link.leaflet.id,
-      instructionId: link.leaflet.instructionId,
-      genericName: link.leaflet.genericName,
-      manufacturer: link.leaflet.manufacturer,
-      approvalCodes: (link.leaflet.approvalCodes as string[] | null) ?? [],
-      isBestMatch: link.isBestMatch ?? false,
-      matchScore: link.matchScore,
-    }));
+    if (results.length === 0) {
+      return this.buildEmptyEnvelope({
+        medicineQuery: query,
+        matchedRecordId: product.id,
+        matchedBy: productResolution.matchedBy,
+        reason: `Matched product "${product.name}" but no semantically relevant chunks were found.`,
+      });
+    }
 
-    const keywordChunks = chunks.map((chunk, index) => ({
-      leafletId: chunk.leafletId,
-      field: chunk.sourceField,
-      text: chunk.chunkText,
+    const chunks = results.map(([doc, score], index) => ({
+      leafletId: doc.metadata['leafletId'] as string,
+      field: doc.metadata['sourceField'] as string,
+      text: doc.pageContent,
       rank: index + 1,
+      score,
     }));
 
-    return this.buildResultEnvelope(
-      query,
-      product,
-      productResolution.matchedBy,
-      leaflets,
-      keywordChunks,
-      'keyword',
-    );
+    return buildReadEnvelope({
+      toolName: 'get_medicine_leaflet_context',
+      query: {
+        medicineQuery: query,
+        matchedSource: 'cn',
+        matchedRecordId: product.id,
+        matchedLeafletIds: [...new Set(chunks.map((c) => c.leafletId))],
+        matchedBy: productResolution.matchedBy,
+        retrievalMethod: 'vector',
+      },
+      result: {
+        medicine: {
+          id: product.id,
+          source: 'cn',
+          name: product.name,
+          manufacturer: product.manufacturer,
+          approvalNumber: product.approvalNumber,
+        },
+        leaflets: [],
+        chunks,
+      },
+      coverage:
+        chunks.length > 0
+          ? { status: 'complete', reason: null }
+          : {
+              status: 'empty',
+              reason: 'Matched product but no indexed chunks were found.',
+            },
+      timeRange: { timezone: 'UTC', startDate: null, endDate: null },
+      confidence: buildReadConfidence({
+        ambiguities: [],
+        preferredReason:
+          'Matched a single Chinese product with vector-semantic leaflet chunks.',
+      }),
+      ambiguities: [],
+      tables: [
+        'cn_medicine_products',
+        'cn_medicine_leaflets',
+        'cn_medicine_product_leaflet_links',
+        EMBEDDINGS_TABLE,
+      ],
+    });
   }
 
   /**
-   * Semantic vector search using pgvector cosine distance.
-   * Returns chunks ranked by similarity (descending).
-   * Returns empty array when embedding is not configured.
+   * Lazily initializes the PGVectorStore backed by the leaflet_embeddings table.
+   * Returns null when embedding is not configured.
    */
-  private async searchByVector(
-    query: string,
-    productId: string,
-  ): Promise<LeafletChunkRow[]> {
-    const embeddingModel = this.llmRuntime.createEmbeddingModel();
-    if (!embeddingModel) {
-      return [];
+  private async getVectorStore(): Promise<PGVectorStore | null> {
+    if (this.vectorStore) return this.vectorStore;
+    if (this.initPromise) {
+      await this.initPromise;
+      return this.vectorStore;
     }
 
-    try {
-      const queryVector = await embeddingModel.embedQuery(query);
-      const vectorStr = `[${queryVector.join(',')}]`;
+    this.initPromise = this.initializeStore();
+    await this.initPromise;
+    return this.vectorStore;
+  }
 
-      const rows = await this.prisma.$queryRaw<LeafletChunkRow[]>`
-        SELECT
-          mc.id,
-          mc.leaflet_id,
-          mc.source_field,
-          mc.chunk_text,
-          mc.chunk_index,
-          1 - (mc.embedding <=> ${vectorStr}::vector) AS similarity
-        FROM medicine_leaflet_chunks mc
-        JOIN cn_medicine_product_leaflet_links l
-          ON l.leaflet_id = mc.leaflet_id
-        WHERE l.product_id = ${productId}
-          AND mc.embedding IS NOT NULL
-        ORDER BY mc.embedding <=> ${vectorStr}::vector
-        LIMIT ${VECTOR_TOP_K}
-      `;
+  private async initializeStore(): Promise<void> {
+    const dbUrl = process.env['DATABASE_URL'];
+    if (!dbUrl) return;
 
-      return rows;
-    } catch {
-      return [];
-    }
+    const embeddings = this.createEmbeddings();
+    if (!embeddings) return;
+
+    this.vectorStore = new PGVectorStore(embeddings, {
+      postgresConnectionOptions: { connectionString: dbUrl },
+      tableName: EMBEDDINGS_TABLE,
+      columns: {
+        idColumnName: 'id',
+        vectorColumnName: 'embedding',
+        contentColumnName: 'document',
+        metadataColumnName: 'cmetadata',
+      },
+      distanceStrategy: 'cosine',
+    });
+
+    await this.vectorStore.ensureTableInDatabase();
+  }
+
+  private createEmbeddings(): OpenAIEmbeddings | null {
+    const raw = process.env as Record<string, string | undefined>;
+    const apiKey = raw['AI_EMBEDDING_API_KEY']?.trim();
+    const baseUrl = raw['AI_EMBEDDING_BASE_URL']?.trim();
+    const model = raw['AI_EMBEDDING_MODEL']?.trim();
+
+    if (!apiKey || !baseUrl || !model) return null;
+
+    return new OpenAIEmbeddings({
+      apiKey,
+      configuration: { baseURL: baseUrl },
+      model,
+    });
   }
 
   private async resolveProduct(query: string) {
@@ -266,86 +265,19 @@ export class AssistantToolLeafletReadService {
     return matchedBy.length > 0 ? matchedBy : ['searchText'];
   }
 
-  private buildResultEnvelope(
-    query: string,
-    product: {
-      id: string;
-      name: string | null;
-      manufacturer: string | null;
-      approvalNumber: string | null;
-    },
-    matchedBy: string[],
-    leaflets: {
-      id: string;
-      instructionId: string | null;
-      genericName: string | null;
-      manufacturer: string | null;
-      approvalCodes: string[];
-      isBestMatch: boolean;
-      matchScore: number | null;
-    }[],
-    chunks: {
-      leafletId: string;
-      field: string;
-      text: string;
-      rank: number;
-    }[],
-    retrievalMethod: 'vector' | 'keyword',
-  ): AssistantReadResultEnvelope {
-    return buildReadEnvelope({
-      toolName: 'get_medicine_leaflet_context',
-      query: {
-        medicineQuery: query,
-        matchedSource: 'cn',
-        matchedRecordId: product.id,
-        matchedLeafletIds: [...new Set(chunks.map((c) => c.leafletId))],
-        matchedBy,
-        retrievalMethod,
-      },
-      result: {
-        medicine: {
-          id: product.id,
-          source: 'cn',
-          name: product.name,
-          manufacturer: product.manufacturer,
-          approvalNumber: product.approvalNumber,
-        },
-        leaflets,
-        chunks,
-      },
-      coverage:
-        chunks.length > 0
-          ? { status: 'complete', reason: null }
-          : {
-              status: 'empty',
-              reason:
-                'Matched product but no indexed chunks were found. Run the leaflet index rebuild.',
-            },
-      timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-      confidence: buildReadConfidence({
-        ambiguities: [],
-        preferredReason:
-          retrievalMethod === 'vector'
-            ? 'Matched a single Chinese product with vector-semantic leaflet chunks.'
-            : 'Matched a single Chinese product with keyword-based leaflet chunks.',
-      }),
-      ambiguities: [],
-      tables: [
-        'cn_medicine_products',
-        'cn_medicine_leaflets',
-        'cn_medicine_product_leaflet_links',
-        'medicine_leaflet_chunks',
-      ],
-    });
-  }
-
   private buildEmptyEnvelope(input: {
-    query: Record<string, unknown>;
+    medicineQuery: string;
+    matchedBy?: string[];
+    matchedRecordId?: string;
     reason: string;
   }): AssistantReadResultEnvelope {
     return buildReadEnvelope({
       toolName: 'get_medicine_leaflet_context',
-      query: input.query,
+      query: {
+        medicineQuery: input.medicineQuery,
+        matchedBy: input.matchedBy ?? [],
+        matchedRecordId: input.matchedRecordId ?? null,
+      },
       result: { medicine: null, leaflets: [], chunks: [] },
       coverage: { status: 'empty', reason: input.reason },
       timeRange: { timezone: 'UTC', startDate: null, endDate: null },
@@ -354,22 +286,20 @@ export class AssistantToolLeafletReadService {
         reason: 'No matching product or leaflet coverage was found.',
       },
       ambiguities: [],
-      tables: [
-        'cn_medicine_products',
-        'cn_medicine_leaflets',
-        'cn_medicine_product_leaflet_links',
-        'medicine_leaflet_chunks',
-      ],
+      tables: [EMBEDDINGS_TABLE],
     });
   }
 
   private buildAmbiguousEnvelope(input: {
-    query: Record<string, unknown>;
+    medicineQuery: string;
     candidates: string[];
   }): AssistantReadResultEnvelope {
     return buildReadEnvelope({
       toolName: 'get_medicine_leaflet_context',
-      query: input.query,
+      query: {
+        medicineQuery: input.medicineQuery,
+        matchedBy: [],
+      },
       result: {
         medicine: null,
         leaflets: [],
@@ -386,12 +316,7 @@ export class AssistantToolLeafletReadService {
         reason: 'Multiple candidate medicines matched the query.',
       },
       ambiguities: input.candidates,
-      tables: [
-        'cn_medicine_products',
-        'cn_medicine_leaflets',
-        'cn_medicine_product_leaflet_links',
-        'medicine_leaflet_chunks',
-      ],
+      tables: [EMBEDDINGS_TABLE],
     });
   }
 }

@@ -263,70 +263,103 @@ async function embedChunks(client, options) {
     return { embedded: 0 };
   }
 
-  // Dynamic import for ESM-only @langchain/openai
+  // Dynamic import for ESM-only packages
   const { OpenAIEmbeddings } = await import('@langchain/openai');
+  const { PGVectorStore } =
+    await import('@langchain/community/vectorstores/pgvector');
+  const { Pool } = await import('pg');
+
   const embeddings = new OpenAIEmbeddings({
     apiKey,
     configuration: { baseURL: baseUrl },
     model,
   });
 
+  const pool = new Pool({ connectionString: client.connectionString, max: 2 });
+
+  const store = new PGVectorStore(embeddings, {
+    pool,
+    tableName: 'leaflet_embeddings',
+    columns: {
+      idColumnName: 'id',
+      vectorColumnName: 'embedding',
+      contentColumnName: 'document',
+      metadataColumnName: 'cmetadata',
+    },
+    distanceStrategy: 'cosine',
+  });
+
+  await store.ensureTableInDatabase();
+
   // Clear existing embeddings if --embed-force
   if (options.embedForce) {
     console.log('Clearing existing embeddings (--embed-force)...');
-    await client.query(
-      'UPDATE "medicine_leaflet_chunks" SET "embedding" = NULL',
-    );
+    await pool.query('DELETE FROM leaflet_embeddings');
   }
 
-  // Fetch chunks without embeddings
-  const result = await client.query(
-    'SELECT "id", "chunk_text" FROM "medicine_leaflet_chunks" WHERE "embedding" IS NULL',
-  );
-  const pendingChunks = result.rows;
+  // Load all chunks from medicine_leaflet_chunks
+  const chunkResult = await client.query(`
+    SELECT mc.id, mc.leaflet_id, mc.source_field, mc.chunk_text, mc.chunk_index
+    FROM medicine_leaflet_chunks mc
+  `);
+  const allChunks = chunkResult.rows;
 
-  if (pendingChunks.length === 0) {
-    console.log('All chunks already have embeddings.');
+  if (allChunks.length === 0) {
+    console.log('No chunks found in medicine_leaflet_chunks.');
+    await pool.end();
     return { embedded: 0 };
   }
 
+  // Load leaflet-to-product mappings for metadata enrichment
+  const linkResult = await client.query(`
+    SELECT leaflet_id, product_id
+    FROM cn_medicine_product_leaflet_links
+  `);
+  const leafletProducts = new Map();
+  for (const row of linkResult.rows) {
+    const ids = leafletProducts.get(row.leaflet_id) ?? [];
+    ids.push(row.product_id);
+    leafletProducts.set(row.leaflet_id, ids);
+  }
+
+  // Build Document array
+  const docs = allChunks.map((row) => ({
+    pageContent: row.chunk_text,
+    metadata: {
+      leafletId: row.leaflet_id,
+      sourceField: row.source_field,
+      chunkIndex: row.chunk_index,
+      chunkId: row.id,
+      productIds: leafletProducts.get(row.leaflet_id) ?? [],
+    },
+  }));
+
   console.log(
-    `Generating embeddings for ${pendingChunks.length} chunks (batch size: ${options.embedBatchSize})...`,
+    `Generating embeddings for ${docs.length} chunks (batch size: ${options.embedBatchSize})...`,
   );
 
   let embedded = 0;
-  for (let i = 0; i < pendingChunks.length; i += options.embedBatchSize) {
-    const batch = pendingChunks.slice(i, i + options.embedBatchSize);
-    const texts = batch.map((row) => row.chunk_text);
+  for (let i = 0; i < docs.length; i += options.embedBatchSize) {
+    const batch = docs.slice(i, i + options.embedBatchSize);
 
     try {
-      const vectors = await embeddings.embedDocuments(texts);
-
-      for (let j = 0; j < batch.length; j += 1) {
-        const vectorStr = `[${vectors[j].join(',')}]`;
-        await client.query(
-          'UPDATE "medicine_leaflet_chunks" SET "embedding" = $1::vector WHERE "id" = $2',
-          [vectorStr, batch[j].id],
-        );
-      }
-
+      await store.addDocuments(batch);
       embedded += batch.length;
-      const pct = ((embedded / pendingChunks.length) * 100).toFixed(1);
-      console.log(`  ${embedded}/${pendingChunks.length} (${pct}%)`);
+      const pct = ((embedded / docs.length) * 100).toFixed(1);
+      console.log(`  ${embedded}/${docs.length} (${pct}%)`);
     } catch (error) {
       console.error(
         `  Batch ${i}-${i + batch.length} failed: ${error instanceof Error ? error.message : error}`,
       );
-      // Wait before retrying next batch
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
-    // Rate limit: brief pause between batches
-    if (i + options.embedBatchSize < pendingChunks.length) {
+    if (i + options.embedBatchSize < docs.length) {
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
   }
 
+  await pool.end();
   return { embedded };
 }
 

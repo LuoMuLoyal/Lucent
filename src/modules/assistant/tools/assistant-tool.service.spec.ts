@@ -67,10 +67,7 @@ describe('AssistantToolService', () => {
       dailyRecordCandidatesService as never,
       recordQueryService,
     );
-    const leafletReadService = new AssistantToolLeafletReadService(
-      {} as never,
-      {} as never,
-    );
+    const leafletReadService = new AssistantToolLeafletReadService({} as never);
     const service = new AssistantToolService(
       readService,
       leafletReadService,
