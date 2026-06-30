@@ -1,9 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { calculateAge } from '../../../common/utils/date-time.utils';
+import { ConfigKey } from '../../../config/config-keys.enum';
 import type {
   ClinicSummaryDto,
   ClinicSummaryProfileDto,
@@ -24,10 +26,11 @@ export class ClinicSummaryService {
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly pdfService: ClinicSummaryPdfService,
+    private readonly configService: ConfigService,
   ) {}
 
   async buildClinicSummary(userId: string): Promise<ClinicSummaryDto> {
-    const user = await this.prisma.user.findFirst({
+    const user = await this.prisma.user.findFirstOrThrow({
       where: { id: userId, deletedAt: null },
       include: {
         profile: {
@@ -50,10 +53,6 @@ export class ClinicSummaryService {
         },
       },
     });
-
-    if (!user) {
-      throw new Error('User not found');
-    }
 
     const profile = this.deidentifyProfile(user);
     const allergies = user.allergies.map(
@@ -101,9 +100,10 @@ export class ClinicSummaryService {
 
     await this.cacheManager.set(key, summary, SHARE_TTL_MS);
 
-    // Derive public base URL from env, fallback to localhost
-    const baseUrl =
-      process.env['PUBLIC_BASE_URL']?.trim() || 'http://localhost:3000';
+    const appConfig = this.configService.get<{ publicBaseUrl: string }>(
+      ConfigKey.App,
+    );
+    const baseUrl = appConfig?.publicBaseUrl ?? 'http://localhost:3000';
 
     return {
       shareUrl: `${baseUrl}/api/v1/reports/clinic-summary/shared/${token}`,

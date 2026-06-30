@@ -5,7 +5,7 @@ import type {
 } from '../types/assistant.types';
 import type { AssistantToolName } from './assistant-tool.types';
 import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.service';
-import { AssistantToolMedicalKnowledgeService } from './assistant-tool-medical-knowledge.service';
+import { AssistantToolMedicalKnowledgeService } from './services/assistant-tool-medical-knowledge.service';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';
 

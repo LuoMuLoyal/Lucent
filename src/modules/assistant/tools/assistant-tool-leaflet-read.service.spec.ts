@@ -26,24 +26,35 @@ jest.mock('pg', () => ({
 }));
 
 describe('AssistantToolLeafletReadService', () => {
+  let configService: {
+    get: jest.Mock;
+  };
+
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-06-25T12:00:00.000Z'));
     mockSimilaritySearchWithScore.mockReset();
     mockEnsureTable.mockReset();
-    // Simulate embedding configured
-    process.env['AI_EMBEDDING_API_KEY'] = 'test-key';
-    process.env['AI_EMBEDDING_BASE_URL'] = 'https://test.api';
-    process.env['AI_EMBEDDING_MODEL'] = 'test-model';
-    process.env['DATABASE_URL'] = 'postgres://test:test@localhost:5432/test';
+
+    configService = {
+      get: jest.fn((key: string) => {
+        if (key === 'DATABASE_URL')
+          return 'postgres://test:test@localhost:5432/test';
+        if (key === 'ai')
+          return {
+            embedding: {
+              apiKey: 'test-key',
+              baseUrl: 'https://test.api',
+              model: 'test-model',
+            },
+          };
+        return undefined;
+      }),
+    };
   });
 
   afterEach(() => {
     jest.useRealTimers();
-    delete process.env['AI_EMBEDDING_API_KEY'];
-    delete process.env['AI_EMBEDDING_BASE_URL'];
-    delete process.env['AI_EMBEDDING_MODEL'];
-    delete process.env['DATABASE_URL'];
   });
 
   function buildPrisma(overrides?: {
@@ -86,14 +97,20 @@ describe('AssistantToolLeafletReadService', () => {
     const prisma = buildPrisma({
       medicineLeafletChunk: { count: jest.fn().mockResolvedValue(1) },
     });
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      configService as never,
+    );
 
     await expect(service.hasIndexedChunks()).resolves.toBe(true);
   });
 
   it('returns an empty envelope for empty user message', async () => {
     const prisma = buildPrisma();
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      configService as never,
+    );
 
     const result = await service.getMedicineLeafletContext(buildContext('   '));
 
@@ -104,7 +121,10 @@ describe('AssistantToolLeafletReadService', () => {
     const prisma = buildPrisma({
       cnMedicineProduct: { findMany: jest.fn().mockResolvedValue([]) },
     });
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      configService as never,
+    );
 
     const result = await service.getMedicineLeafletContext(
       buildContext('阿司匹林'),
@@ -143,7 +163,10 @@ describe('AssistantToolLeafletReadService', () => {
         count: jest.fn().mockResolvedValue(1),
       } as never,
     });
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      configService as never,
+    );
 
     const result = await service.getMedicineLeafletContext(
       buildContext('阿司匹林'),
@@ -194,7 +217,10 @@ describe('AssistantToolLeafletReadService', () => {
       ],
     ]);
 
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      configService as never,
+    );
 
     const result = await service.getMedicineLeafletContext(
       buildContext('阿司匹林伤胃吗'),
@@ -243,7 +269,10 @@ describe('AssistantToolLeafletReadService', () => {
 
     mockSimilaritySearchWithScore.mockResolvedValue([]);
 
-    const service = new AssistantToolLeafletReadService(prisma as never);
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      configService as never,
+    );
 
     const result = await service.getMedicineLeafletContext(
       buildContext('阿司匹林肠溶片'),

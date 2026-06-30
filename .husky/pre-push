@@ -1,1 +1,1 @@
-pnpm typecheck && pnpm test:e2e:ci
+pnpm typecheck && pnpm test:ci

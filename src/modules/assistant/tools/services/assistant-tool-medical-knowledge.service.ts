@@ -1,25 +1,32 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { I18nService } from 'nestjs-i18n';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
+import { ConfigKey } from '../../../../config/config-keys.enum';
+import { EnvKey } from '../../../../config/env-keys.enum';
+import type { AiConfig } from '../../../../config/ai.config';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../types/assistant.types';
+} from '../../types/assistant.types';
 import {
   buildReadConfidence,
   buildReadEnvelope,
-} from './assistant-tool-presenters';
+} from '../assistant-tool-presenters';
 
 const VECTOR_TOP_K = 5;
 const EMBEDDINGS_TABLE = 'medical_qa_embeddings';
-
-const DISCLAIMER =
-  '以下内容来自医学知识库，仅供参考，不能替代专业医疗建议。如有健康问题请咨询医生。';
 
 @Injectable()
 export class AssistantToolMedicalKnowledgeService {
   private vectorStore: PGVectorStore | null = null;
   private initPromise: Promise<void> | null = null;
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly i18n: I18nService,
+  ) {}
 
   async getMedicalKnowledge(
     context: AssistantToolExecutionContext,
@@ -30,7 +37,12 @@ export class AssistantToolMedicalKnowledgeService {
       return buildReadEnvelope({
         toolName: 'get_medical_knowledge',
         query: { medicineQuery: query },
-        result: { knowledge: [], disclaimer: DISCLAIMER },
+        result: {
+          knowledge: [],
+          disclaimer: this.i18n.t('assistant.medical_knowledge_disclaimer', {
+            lang: context.locale,
+          }),
+        },
         coverage: { status: 'empty', reason: 'No query was provided.' },
         timeRange: { timezone: 'UTC', startDate: null, endDate: null },
         confidence: { level: 'low', reason: 'Empty query.' },
@@ -44,7 +56,12 @@ export class AssistantToolMedicalKnowledgeService {
       return buildReadEnvelope({
         toolName: 'get_medical_knowledge',
         query: { medicineQuery: query },
-        result: { knowledge: [], disclaimer: DISCLAIMER },
+        result: {
+          knowledge: [],
+          disclaimer: this.i18n.t('assistant.medical_knowledge_disclaimer', {
+            lang: context.locale,
+          }),
+        },
         coverage: {
           status: 'empty',
           reason: 'Medical knowledge vector store is not configured.',
@@ -62,7 +79,12 @@ export class AssistantToolMedicalKnowledgeService {
       return buildReadEnvelope({
         toolName: 'get_medical_knowledge',
         query: { medicineQuery: query },
-        result: { knowledge: [], disclaimer: DISCLAIMER },
+        result: {
+          knowledge: [],
+          disclaimer: this.i18n.t('assistant.medical_knowledge_disclaimer', {
+            lang: context.locale,
+          }),
+        },
         coverage: {
           status: 'empty',
           reason: 'No relevant medical knowledge found for this query.',
@@ -88,7 +110,9 @@ export class AssistantToolMedicalKnowledgeService {
       query: { medicineQuery: query },
       result: {
         knowledge: chunks,
-        disclaimer: DISCLAIMER,
+        disclaimer: this.i18n.t('assistant.medical_knowledge_disclaimer', {
+          lang: context.locale,
+        }),
       },
       coverage:
         chunks.length > 0
@@ -118,7 +142,7 @@ export class AssistantToolMedicalKnowledgeService {
   }
 
   private async initializeStore(): Promise<void> {
-    const dbUrl = process.env['DATABASE_URL'];
+    const dbUrl = this.configService.get<string>(EnvKey.DATABASE_URL);
     if (!dbUrl) return;
 
     const embeddings = this.createEmbeddings();
@@ -140,17 +164,21 @@ export class AssistantToolMedicalKnowledgeService {
   }
 
   private createEmbeddings(): OpenAIEmbeddings | null {
-    const raw = process.env as Record<string, string | undefined>;
-    const apiKey = raw['AI_EMBEDDING_API_KEY']?.trim();
-    const baseUrl = raw['AI_EMBEDDING_BASE_URL']?.trim();
-    const model = raw['AI_EMBEDDING_MODEL']?.trim();
-
-    if (!apiKey || !baseUrl || !model) return null;
+    const aiConfig = this.configService.get<AiConfig>(ConfigKey.Ai);
+    const embedding = aiConfig?.embedding;
+    if (
+      !embedding ||
+      !embedding.apiKey ||
+      !embedding.baseUrl ||
+      !embedding.model
+    ) {
+      return null;
+    }
 
     return new OpenAIEmbeddings({
-      apiKey,
-      configuration: { baseURL: baseUrl },
-      model,
+      apiKey: embedding.apiKey,
+      configuration: { baseURL: embedding.baseUrl },
+      model: embedding.model,
     });
   }
 }

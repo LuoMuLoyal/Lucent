@@ -1,5 +1,19 @@
 # AGENTS.md - Lucent
 
+## Documentation Rules
+
+After every code change, the following docs **MUST** be updated:
+
+| Change type                               | Update target                       | Action                                        |
+| ----------------------------------------- | ----------------------------------- | --------------------------------------------- |
+| Any backend code change                   | `docs/migration-log/YYYY-MM-DD.md`  | Append change entry                           |
+| Current runtime/architecture state change | `docs/Current_State.md`             | Add/update completed item (create if missing) |
+| Closing a TODO item                       | `docs/TODO.md`                      | Delete the line                               |
+| Finishing a plan section                  | `plans/*.md`                        | Delete the entire section                     |
+| Env, Docker, or import flow change        | `docs/environment.md` + `README.md` | Sync both                                     |
+
+- Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or any other marker.
+
 ## Read First
 
 - `README.md`
@@ -38,53 +52,43 @@
 
 Every module directory must only contain the following subdirectories. New directories outside this whitelist require explicit justification.
 
-**Standard** (every module should use these as needed):
+### Standard (always allowed)
 
-| Directory   | Purpose                                                                             |
-| ----------- | ----------------------------------------------------------------------------------- |
-| `dto/`      | Data Transfer Objects. Must include an `index.ts` barrel export.                    |
-| `services/` | Business-logic services. All `.service.ts` files go here; never in the module root. |
-| `guards/`   | NestJS Guards. Only `.guard.ts` files that implement `CanActivate`.                 |
+- `controllers/`
+- `services/`
+- `decorators/`
+- `filters/`
+- `guards/`
+- `interceptors/`
+- `pipes/`
+- `middleware/`
+- `tests/`
+- `dto/`
+- `entities/`
+- `enums/`
+- `types/`
+- `constants/`
 
-**Extended** (common cross-cutting concerns):
+### Extended (allowed with review)
 
-| Directory     | Purpose                                                              |
-| ------------- | -------------------------------------------------------------------- |
-| `config/`     | Module-level configuration (e.g. runtime options, provider configs). |
-| `types/`      | Module-level TypeScript types and interfaces.                        |
-| `decorators/` | Custom NestJS parameter / method / class decorators.                 |
-| `strategies/` | Passport strategies.                                                 |
-| `providers/`  | OAuth and third-party provider implementations.                      |
+- `providers/` — OAuth providers, etc.
+- `adapters/` — external service adapters
+- `cache/` — cache service and admin controllers
+- `utils/` — helper functions scoped to the module
+- `agent/` — AI agent runtime (assistant only)
+- `dashboard/` — dashboard sub-services (reports only)
+- `tools/` — AI tool implementations (assistant only)
 
-**Special** (domain-specific; require a clear reason to exist):
+### Special
 
-| Directory    | Purpose                                     | Example modules                    |
-| ------------ | ------------------------------------------- | ---------------------------------- |
-| `schemas/`   | DB / Zod / validation schemas               | daily-records, today-analysis      |
-| `prompts/`   | AI prompt templates                         | assistant, reports, today-analysis |
-| `tools/`     | AI Agent tool implementations               | assistant                          |
-| `agent/`     | AI Agent runtime                            | assistant                          |
-| `cache/`     | Caching layer                               | medicines                          |
-| `sources/`   | Data-source adapters                        | medicines                          |
-| `dashboard/` | Sub-feature grouping within a larger module | reports                            |
+- `migrations/` — Prisma migrations (root-level only)
+- `config/` — global configuration (root-level only)
+- `common/` — shared utilities, decorators, interceptors (root-level only)
+- `prisma/` — Prisma service and schema (root-level only)
+- `i18n/` — translation files (root-level only)
 
-**Governance rules**:
+## Module Export Rules
 
-1. New modules default to Standard directories only.
-2. Adding a directory not in this whitelist must be justified in the PR description.
-3. Do not place `.service.ts` files in the module root — they always belong in `services/`.
-4. Mapper services follow `{domain}-mapper.service.ts` naming and live in `services/`. Ownership-verification services follow `ownership.service.ts` naming.
-
-## Working Directory
-
-Work inside `Lucent/` for pure backend changes. When operating from the workspace root, use `git -C Lucent ...` and absolute paths so commands run against this repo, not the workspace root or `Luminous`.
-
-## Known Gotchas
-
-- NestJS 11 cache module expects `stores`, not legacy `store`. If Redis is enabled, wrap the Redis store as a Keyv-backed store or the cache manager may silently fall back to memory semantics.
-- `cache-manager` / Nest cache TTL is in milliseconds in this repo.
-- DrugBank `full database.xml` is about 1.9 GB unzipped and contains nested structures; keep it on the scripted XML -> normalized tables path. Do not convert it to `xlsx` for routine import.
-- Prisma 7 client provider is `prisma-client`, not `prisma-client-js`.
-- Prisma output paths resolve relative to `schema.prisma`.
-- Prefer native command flags such as `pnpm --prefix` and `git -C`.
-- Empty NestJS modules may need a narrow eslint disable for `no-extraneous-class`.
+- A service should be exported from its module (`exports` array in `@Module`) **iff** another module directly imports and uses it.
+- Mapper services follow the naming convention `{domain}-mapper.service.ts`.
+- Ownership services (for record/medicine checks) follow the naming convention `ownership.service.ts` and are placed in the owning module's `services/` directory.

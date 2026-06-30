@@ -14,6 +14,7 @@ export interface EnvironmentVariables {
   [EnvKey.CORS_ORIGIN]: string;
   [EnvKey.TRUST_PROXY]?: string;
   [EnvKey.DATABASE_URL]?: string;
+  [EnvKey.PUBLIC_BASE_URL]?: string;
   [EnvKey.REDIS_URL]?: string;
   [EnvKey.JWT_ACCESS_SECRET]: string;
   [EnvKey.JWT_REFRESH_SECRET]: string;
@@ -90,6 +91,7 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.DATABASE_URL]: Joi.string()
     .uri({ scheme: ['postgres', 'postgresql'] })
     .optional(),
+  [EnvKey.PUBLIC_BASE_URL]: Joi.string().uri().optional(),
   [EnvKey.REDIS_URL]: Joi.string()
     .uri({ scheme: ['redis', 'rediss'] })
     .optional(),

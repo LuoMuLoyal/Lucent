@@ -1,3 +1,4 @@
 {
-  "conversation_not_found": "Assistant conversation not found"
+  "conversation_not_found": "Assistant conversation not found",
+  "medical_knowledge_disclaimer": "The following content is from a medical knowledge base. It is for reference only and cannot replace professional medical advice. Please consult a doctor if you have health concerns."
 }

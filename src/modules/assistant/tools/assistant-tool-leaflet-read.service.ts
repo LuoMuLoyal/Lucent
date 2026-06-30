@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { ConfigKey } from '../../../config/config-keys.enum';
+import { EnvKey } from '../../../config/env-keys.enum';
+import type { AiConfig } from '../../../config/ai.config';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
@@ -20,7 +24,10 @@ export class AssistantToolLeafletReadService {
   private vectorStore: PGVectorStore | null = null;
   private initPromise: Promise<void> | null = null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async hasIndexedChunks(): Promise<boolean> {
     const count = await this.prisma.medicineLeafletChunk.count({
@@ -151,7 +158,7 @@ export class AssistantToolLeafletReadService {
   }
 
   private async initializeStore(): Promise<void> {
-    const dbUrl = process.env['DATABASE_URL'];
+    const dbUrl = this.configService.get<string>(EnvKey.DATABASE_URL);
     if (!dbUrl) return;
 
     const embeddings = this.createEmbeddings();
@@ -173,17 +180,21 @@ export class AssistantToolLeafletReadService {
   }
 
   private createEmbeddings(): OpenAIEmbeddings | null {
-    const raw = process.env as Record<string, string | undefined>;
-    const apiKey = raw['AI_EMBEDDING_API_KEY']?.trim();
-    const baseUrl = raw['AI_EMBEDDING_BASE_URL']?.trim();
-    const model = raw['AI_EMBEDDING_MODEL']?.trim();
-
-    if (!apiKey || !baseUrl || !model) return null;
+    const aiConfig = this.configService.get<AiConfig>(ConfigKey.Ai);
+    const embedding = aiConfig?.embedding;
+    if (
+      !embedding ||
+      !embedding.apiKey ||
+      !embedding.baseUrl ||
+      !embedding.model
+    ) {
+      return null;
+    }
 
     return new OpenAIEmbeddings({
-      apiKey,
-      configuration: { baseURL: baseUrl },
-      model,
+      apiKey: embedding.apiKey,
+      configuration: { baseURL: embedding.baseUrl },
+      model: embedding.model,
     });
   }
 

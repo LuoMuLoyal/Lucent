@@ -327,7 +327,7 @@ export class AssistantToolReadService {
     const health = await this.userHealthContextService.getForUser(
       context.userId,
     );
-    const account = await this.prisma.user.findFirst({
+    const account = await this.prisma.user.findFirstOrThrow({
       where: { id: context.userId, deletedAt: null },
       select: { nickname: true },
     });
@@ -346,7 +346,7 @@ export class AssistantToolReadService {
       },
       result: {
         profile: {
-          nickname: account?.nickname ?? null,
+          nickname: account.nickname ?? null,
           sexAtBirth: health.profile.sexAtBirth,
           birthDate: health.profile.birthDate,
           age: health.summary.age,
