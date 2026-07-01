@@ -4,8 +4,6 @@
     "noEmit": true,
     "declaration": false,
     "removeComments": false,
-    "emitDecoratorMetadata": false,
-    "experimentalDecorators": false,
     "strict": false,
     "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": false,

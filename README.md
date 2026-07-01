@@ -58,6 +58,7 @@ Local infrastructure note:
 
 - `pnpm dev:stack` now starts both local PostgreSQL services from `pgvector/pgvector:pg18`.
 - This is required for Lucent assistant RAG indexing because local scripts and `PGVectorStore` expect the `vector` extension to exist.
+- GitHub Actions CI now uses the same `pgvector/pgvector:pg18` PostgreSQL family for its test database service so vector-dependent backend paths are not validated against a weaker database baseline than local development.
 
 For the mobile full-stack E2E lane, run Lucent against the test database so
 the test-only support route is available:

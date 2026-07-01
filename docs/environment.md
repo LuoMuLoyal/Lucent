@@ -64,6 +64,7 @@ Local Docker stack note:
 
 - `pnpm dev:stack` now starts `postgres-dev` and `postgres-test` from `pgvector/pgvector:pg18`, not plain `postgres:18-alpine`.
 - This is required for assistant RAG indexing and query-time vector search because Lucent's local scripts call `CREATE EXTENSION vector` / `PGVectorStore.ensureTableInDatabase()`.
+- GitHub Actions CI now also uses `pgvector/pgvector:pg18` for its PostgreSQL service so local and hosted validation exercise the same extension-capable database family.
 - If you previously created local PostgreSQL volumes from the plain Postgres image, recreating the containers is usually enough. If the old volume state is incompatible or still lacks the extension binary, remove the local dev/test volumes and let Docker initialize them again.
 
 ## Scripts
@@ -101,6 +102,10 @@ Local helper scripts:
   full-stack lane can start correctly from PowerShell on Windows workstations.
 - `pnpm test:runtime:stop`
   stops the Lucent test runtime tracked by `.runtime-test.pid`.
+
+TypeScript project note:
+
+- `scripts/tsconfig.json` and `deploy/tsconfig.json` inherit the root decorator settings so helper scripts can safely import Nest app modules without failing on constructor parameter decorators such as `@Inject(...)`.
 
 Run Prisma commands with explicit `NODE_ENV` when not targeting development, for example:
 

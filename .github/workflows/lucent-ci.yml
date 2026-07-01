@@ -35,7 +35,7 @@ jobs:
       LOG_LEVEL: error
     services:
       postgres:
-        image: postgres:18-alpine
+        image: pgvector/pgvector:pg18
         env:
           POSTGRES_USER: lucent
           POSTGRES_PASSWORD: lucent_dev

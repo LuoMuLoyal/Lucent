@@ -27,7 +27,7 @@ type(scope): 中文摘要
 pnpm check
 ```
 
-This runs lint, typecheck, build, and unit tests. For full TypeScript coverage including spec/e2e files:
+This runs lint, app typecheck, tool/deploy typecheck, build, unit tests, e2e tests, and deploy-asset validation. Tool and deploy projects inherit the root decorator settings now, so imports from Nest app modules are type-checked under the same decorator-capable baseline instead of a stripped-down tools-only compiler mode. For the same app-level TypeScript coverage used by `pnpm check` including spec/e2e files:
 
 ```bash
 pnpm typecheck
