@@ -1,7 +1,7 @@
 services:
   # ── PostgreSQL 18 (development) ──────────────────────────────
   postgres-dev:
-    image: postgres:18-alpine
+    image: pgvector/pgvector:pg18
     container_name: lucent-postgres-dev
     restart: unless-stopped
     environment:
@@ -20,7 +20,7 @@ services:
 
   # ── PostgreSQL 18 (test / e2e) ───────────────────────────────
   postgres-test:
-    image: postgres:18-alpine
+    image: pgvector/pgvector:pg18
     container_name: lucent-postgres-test
     restart: unless-stopped
     environment:

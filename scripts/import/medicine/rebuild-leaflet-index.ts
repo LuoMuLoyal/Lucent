@@ -106,6 +106,11 @@ function normalizeValue(value) {
 }
 
 async function loadLeaflets(client) {
+  return loadLeafletsWithLimit(client, null);
+}
+
+async function loadLeafletsWithLimit(client, sourceLimit) {
+  const limitClause = sourceLimit != null ? `LIMIT ${sourceLimit}` : '';
   const result = await client.query(`
     SELECT
       "id",
@@ -122,6 +127,8 @@ async function loadLeaflets(client) {
       "validity_period",
       "updated_at"
     FROM "cn_medicine_leaflets"
+    ORDER BY "updated_at" DESC, "id" ASC
+    ${limitClause}
   `);
   return result.rows;
 }
@@ -227,7 +234,7 @@ async function insertChunks(client, chunks) {
 
 async function rebuild(client, options) {
   console.log('Loading leaflets...');
-  const leaflets = await loadLeaflets(client);
+  const leaflets = await loadLeafletsWithLimit(client, options.sourceLimit);
   console.log(`Loaded ${leaflets.length} leaflets`);
 
   const chunks = buildChunks(leaflets, options);
@@ -277,7 +284,12 @@ async function embedChunks(client, options) {
     model,
   });
 
-  const pool = new Pool({ connectionString: client.connectionString, max: 2 });
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not configured for embedding.');
+  }
+
+  const pool = new Pool({ connectionString, max: 2 });
 
   const store = new PGVectorStore(embeddings, {
     pool,
@@ -300,9 +312,13 @@ async function embedChunks(client, options) {
   }
 
   // Load all chunks from medicine_leaflet_chunks
+  const limitClause =
+    options.embedLimit != null ? `LIMIT ${options.embedLimit}` : '';
   const chunkResult = await client.query(`
     SELECT mc.id, mc.leaflet_id, mc.source_field, mc.chunk_text, mc.chunk_index
     FROM medicine_leaflet_chunks mc
+    ORDER BY mc.updated_at DESC, mc.id ASC
+    ${limitClause}
   `);
   const allChunks = chunkResult.rows;
 
@@ -380,8 +396,11 @@ function parseArgs(argv) {
     maxChunkLength: DEFAULT_MAX_CHUNK_LENGTH,
     chunkOverlap: DEFAULT_CHUNK_OVERLAP,
     sourceVersion: null,
+    sourceLimit: null,
     dryRun: false,
+    skipRebuild: false,
     embed: false,
+    embedLimit: null,
     embedBatchSize: 20,
     embedForce: false,
   };
@@ -404,12 +423,26 @@ function parseArgs(argv) {
       index += 1;
       continue;
     }
+    if (part === '--source-limit') {
+      options.sourceLimit = Number(argv[index + 1]) || null;
+      index += 1;
+      continue;
+    }
     if (part === '--dry-run') {
       options.dryRun = true;
       continue;
     }
+    if (part === '--skip-rebuild') {
+      options.skipRebuild = true;
+      continue;
+    }
     if (part === '--embed') {
       options.embed = true;
+      continue;
+    }
+    if (part === '--embed-limit') {
+      options.embedLimit = Number(argv[index + 1]) || null;
+      index += 1;
       continue;
     }
     if (part === '--embed-batch-size') {
@@ -437,8 +470,21 @@ async function main() {
   await client.connect();
 
   try {
-    const summary = await rebuild(client, options);
-    console.log(JSON.stringify({ ...summary, options }, null, 2));
+    if (!options.skipRebuild) {
+      const summary = await rebuild(client, options);
+      console.log(JSON.stringify({ ...summary, options }, null, 2));
+    } else {
+      console.log(
+        JSON.stringify(
+          {
+            skippedRebuild: true,
+            options,
+          },
+          null,
+          2,
+        ),
+      );
+    }
 
     if (options.embed) {
       const embedSummary = await embedChunks(client, options);

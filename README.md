@@ -54,6 +54,11 @@ Local toolchain baseline:
 - Node.js `24.x`
 - pnpm `11.x` compatible (`11.9.0` is the pinned CI / recommended Corepack baseline)
 
+Local infrastructure note:
+
+- `pnpm dev:stack` now starts both local PostgreSQL services from `pgvector/pgvector:pg18`.
+- This is required for Lucent assistant RAG indexing because local scripts and `PGVectorStore` expect the `vector` extension to exist.
+
 For the mobile full-stack E2E lane, run Lucent against the test database so
 the test-only support route is available:
 

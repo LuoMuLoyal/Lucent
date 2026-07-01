@@ -18,6 +18,7 @@ This file records current backend implementation facts only. Historical changes 
 - Leaflet embedding metadata now carries `chunkId`, `leafletId`, `productIds`, `productNames`, `sourceField`, and `chunkIndex` for assistant-side cursor/filter usage.
 - DrugBank assistant retrieval is split into entity resolution and scoped passage search rather than open-ended whole-corpus passage search.
 - Medical QA assistant retrieval remains a separate corpus with independent storage and disclaimer/safety handling.
+- Local development database currently has populated `medicine_leaflet_chunks`, but assistant vector-store bootstrap is still blocked until the database runtime provides the `pgvector` extension itself.
 
 ## Toolchain / Contract
 

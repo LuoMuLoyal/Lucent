@@ -60,6 +60,12 @@ pnpm db:migrate
 pnpm start:dev
 ```
 
+Local Docker stack note:
+
+- `pnpm dev:stack` now starts `postgres-dev` and `postgres-test` from `pgvector/pgvector:pg18`, not plain `postgres:18-alpine`.
+- This is required for assistant RAG indexing and query-time vector search because Lucent's local scripts call `CREATE EXTENSION vector` / `PGVectorStore.ensureTableInDatabase()`.
+- If you previously created local PostgreSQL volumes from the plain Postgres image, recreating the containers is usually enough. If the old volume state is incompatible or still lacks the extension binary, remove the local dev/test volumes and let Docker initialize them again.
+
 ## Scripts
 
 | Command                         | Purpose                                                                        |
