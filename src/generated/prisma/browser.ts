@@ -102,6 +102,16 @@ export type FoodCompositionCategory = Prisma.FoodCompositionCategoryModel
  */
 export type FoodCompositionItem = Prisma.FoodCompositionItemModel
 /**
+ * Model MealDishTemplate
+ * 
+ */
+export type MealDishTemplate = Prisma.MealDishTemplateModel
+/**
+ * Model MealDishTemplateIngredient
+ * 
+ */
+export type MealDishTemplateIngredient = Prisma.MealDishTemplateIngredientModel
+/**
  * Model CnMedicineProduct
  * 
  */

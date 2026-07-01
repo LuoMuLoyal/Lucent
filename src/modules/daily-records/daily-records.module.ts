@@ -15,6 +15,9 @@ import { MealAnalysisQueueService } from './services/meal-analysis-queue.service
 import { MealAnalysisMatcherService } from './services/meal-analysis-matcher.service';
 import { MealAnalysisVisionService } from './services/meal-analysis-vision.service';
 import { MealAnalysisWorkerService } from './services/meal-analysis-worker.service';
+import { MealDishDecompositionService } from './services/meal-dish-decomposition.service';
+import { MealIngredientGroundingService } from './services/meal-ingredient-grounding.service';
+import { MealDishTemplateLearningService } from './services/meal-dish-template-learning.service';
 
 @Module({
   imports: [ConfigModule, PrismaModule, LlmRuntimeModule],
@@ -28,6 +31,9 @@ import { MealAnalysisWorkerService } from './services/meal-analysis-worker.servi
     DailyRecordsMapperService,
     MealAnalysisQueueService,
     MealAnalysisMatcherService,
+    MealDishDecompositionService,
+    MealIngredientGroundingService,
+    MealDishTemplateLearningService,
     MealAnalysisVisionService,
     MealAnalysisWorkerService,
     DailyRecordImageUploadRuntime,

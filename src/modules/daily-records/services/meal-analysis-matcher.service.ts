@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { normalizeNullableText } from '../../../common/utils/string.utils';
-import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  normalizeMealEntityName,
+  type MealCompositionMatch,
+  type MealRecognizedDish,
+  type MealResolvedIngredient,
+} from '../types/meal-analysis.types';
+import { MealDishDecompositionService } from './meal-dish-decomposition.service';
+import { MealIngredientGroundingService } from './meal-ingredient-grounding.service';
 
 interface RecognizedFoodItem {
   name: string;
@@ -28,157 +35,102 @@ interface NutritionEstimate {
 
 @Injectable()
 export class MealAnalysisMatcherService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly mealDishDecompositionService: MealDishDecompositionService,
+    private readonly mealIngredientGroundingService: MealIngredientGroundingService,
+  ) {}
 
   async matchAndEstimate(recognizedItems: RecognizedFoodItem[]): Promise<{
     coverage: 'none' | 'partial' | 'complete';
     foodItems: MatchedFoodItem[];
+    recognizedDishes: MealRecognizedDish[];
+    resolvedIngredients: MealResolvedIngredient[];
+    compositionMatches: MealCompositionMatch[];
     nutritionEstimate: NutritionEstimate | null;
     mealCommentary: string | null;
     matchDiagnostics: Record<string, unknown> | null;
   }> {
-    const candidates = await this.prisma.foodCompositionItem.findMany({
-      select: {
-        id: true,
-        name: true,
-        normalizedName: true,
-        aliases: true,
-        ediblePortionPercent: true,
-        energyKcal: true,
-        proteinG: true,
-        fatG: true,
-        carbohydrateG: true,
-        fiberG: true,
-        sodiumMg: true,
-      },
-      where: {
-        normalizedName: {
-          in: recognizedItems
-            .map((item) => normalizeFoodKey(item.name))
-            .filter((value): value is string => value != null),
-        },
-      },
-    });
-
-    const matchedItems = recognizedItems.map((item) => {
-      const normalizedName = normalizeFoodKey(item.name);
-      const match =
-        normalizedName == null
-          ? null
-          : (candidates.find((candidate) => {
-              if (candidate.normalizedName === normalizedName) {
-                return true;
-              }
-
-              const aliases = Array.isArray(candidate.aliases)
-                ? candidate.aliases.filter(
-                    (alias): alias is string => typeof alias === 'string',
-                  )
-                : [];
-              return aliases.includes(normalizedName);
-            }) ?? null);
-
-      return {
-        name: item.name,
-        confidence: item.confidence,
-        portionText: item.portionText,
-        matchedFoodId: match?.id ?? null,
-        matchedFoodName: match?.name ?? null,
-        estimatedGrams: match == null ? null : estimateGrams(item.portionText),
-        nutrientSource: match,
-      };
-    });
-
-    const totals = matchedItems.reduce(
-      (accumulator, item) => {
-        if (
-          item.nutrientSource == null ||
-          item.estimatedGrams == null ||
-          item.estimatedGrams <= 0
-        ) {
-          return accumulator;
+    const recognizedDishes = recognizedItems
+      .map((item, index) => {
+        const normalizedDishName = normalizeMealEntityName(item.name);
+        if (normalizedDishName == null) {
+          return null;
         }
 
-        const ratio = item.estimatedGrams / 100;
-        accumulator.energyKcal += (item.nutrientSource.energyKcal ?? 0) * ratio;
-        accumulator.proteinG += (item.nutrientSource.proteinG ?? 0) * ratio;
-        accumulator.fatG += (item.nutrientSource.fatG ?? 0) * ratio;
-        accumulator.carbohydrateG +=
-          (item.nutrientSource.carbohydrateG ?? 0) * ratio;
-        accumulator.fiberG += (item.nutrientSource.fiberG ?? 0) * ratio;
-        accumulator.sodiumMg += (item.nutrientSource.sodiumMg ?? 0) * ratio;
-        accumulator.matchedItemCount += 1;
-        return accumulator;
-      },
-      {
-        energyKcal: 0,
-        proteinG: 0,
-        fatG: 0,
-        carbohydrateG: 0,
-        fiberG: 0,
-        sodiumMg: 0,
-        matchedItemCount: 0,
-      },
+        return {
+          dishKey: `dish-${String(index + 1)}`,
+          rawName: item.name,
+          normalizedDishName,
+          confidence: item.confidence,
+          portionText: item.portionText,
+          source: 'vision' as const,
+        };
+      })
+      .filter((item): item is MealRecognizedDish => item != null);
+
+    const decomposition =
+      await this.mealDishDecompositionService.resolveRecognizedDishes(
+        recognizedDishes,
+      );
+    const grounded =
+      await this.mealIngredientGroundingService.groundIngredients(
+        decomposition.resolvedIngredients,
+      );
+    const compositionMatches = grounded.compositionMatches;
+    const foodItems = buildLegacyFoodItems(recognizedItems, compositionMatches);
+    const nutritionEstimate = grounded.nutritionEstimate;
+    const unresolvedDishNames = decomposition.unresolvedDishes.map(
+      (item) => item.rawName,
     );
-
-    const totalItemCount = matchedItems.length;
-    const unmatchedNames = matchedItems
+    const unmatchedIngredientNames = compositionMatches
       .filter((item) => item.matchedFoodId == null)
-      .map((item) => item.name);
-    const unmatchedItemCount = unmatchedNames.length;
-
-    const coverage =
-      totalItemCount === 0
-        ? 'none'
-        : unmatchedItemCount === 0
-          ? 'complete'
-          : totals.matchedItemCount > 0
-            ? 'partial'
-            : 'none';
-
-    const nutritionEstimate =
-      totals.matchedItemCount === 0
-        ? null
-        : {
-            energyKcal: roundNumber(totals.energyKcal, 0),
-            proteinG: roundNumber(totals.proteinG, 1),
-            fatG: roundNumber(totals.fatG, 1),
-            carbohydrateG: roundNumber(totals.carbohydrateG, 1),
-            fiberG: roundNumber(totals.fiberG, 1),
-            sodiumMg: roundNumber(totals.sodiumMg, 0),
-            matchedItemCount: totals.matchedItemCount,
-            totalItemCount,
-            unmatchedItemCount,
-          };
+      .map((item) => item.ingredientName);
 
     return {
-      coverage,
-      foodItems: matchedItems.map(
-        ({ nutrientSource: _source, ...item }) => item,
-      ),
+      coverage: grounded.coverage,
+      foodItems,
+      recognizedDishes: decomposition.recognizedDishes,
+      resolvedIngredients: decomposition.resolvedIngredients,
+      compositionMatches,
       nutritionEstimate,
       mealCommentary: buildMealCommentary(
         nutritionEstimate,
-        unmatchedItemCount,
+        unmatchedIngredientNames.length,
       ),
       matchDiagnostics:
-        totalItemCount === 0
+        recognizedDishes.length === 0 &&
+        decomposition.resolvedIngredients.length === 0 &&
+        compositionMatches.length === 0
           ? null
           : {
-              matchedItemCount: totals.matchedItemCount,
-              unmatchedNames,
+              matchedItemCount: nutritionEstimate?.matchedItemCount ?? 0,
+              unmatchedNames: unmatchedIngredientNames,
+              unresolvedDishNames,
             },
     };
   }
 }
 
-function normalizeFoodKey(value: string | null | undefined): string | null {
-  const text = normalizeNullableText(value);
-  if (text == null) {
-    return null;
-  }
+function buildLegacyFoodItems(
+  recognizedItems: RecognizedFoodItem[],
+  compositionMatches: MealCompositionMatch[],
+): MatchedFoodItem[] {
+  return recognizedItems.map((item, index) => {
+    const dishKey = `dish-${String(index + 1)}`;
+    const match = compositionMatches.find(
+      (candidate) => candidate.dishKey === dishKey,
+    );
 
-  return text.replace(/\s+/g, '').replace(/[（(].*?[）)]/g, '');
+    return {
+      name: item.name,
+      confidence: item.confidence,
+      portionText: item.portionText,
+      matchedFoodId: match?.matchedFoodId ?? null,
+      matchedFoodName: match?.matchedFoodName ?? null,
+      estimatedGrams:
+        match?.matchedFoodId == null ? null : estimateGrams(item.portionText),
+    };
+  });
 }
 
 function estimateGrams(portionText: string | null): number | null {
@@ -197,10 +149,6 @@ function estimateGrams(portionText: string | null): number | null {
     return 30;
   }
   return 100;
-}
-
-function roundNumber(value: number, fractionDigits: number): number {
-  return Number(value.toFixed(fractionDigits));
 }
 
 function buildMealCommentary(
@@ -222,7 +170,7 @@ function buildMealCommentary(
     parts.push('油脂可能偏高');
   }
   if (unmatchedItemCount > 0) {
-    parts.push('部分食物未匹配，营养仅为估算');
+    parts.push('部分食材未命中成分表，营养仅为估算');
   }
 
   return parts.length > 0

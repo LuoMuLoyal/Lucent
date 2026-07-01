@@ -213,6 +213,60 @@ describe('MealAnalysisWorkerService', () => {
           matchedItemCount: 2,
           unmatchedNames: [],
         },
+        recognizedDishes: [
+          {
+            dishKey: 'dish-1',
+            rawName: '米饭',
+            normalizedDishName: '米饭',
+            confidence: 0.93,
+            portionText: '1碗',
+            source: 'vision',
+          },
+          {
+            dishKey: 'dish-2',
+            rawName: '鸡胸肉',
+            normalizedDishName: '鸡胸肉',
+            confidence: 0.89,
+            portionText: '约100克',
+            source: 'vision',
+          },
+        ],
+        resolvedIngredients: [
+          {
+            dishKey: 'dish-1',
+            ingredientName: '米饭',
+            normalizedIngredientName: '米饭',
+            defaultRatio: 1,
+            decompositionSource: 'model',
+            confidence: 0.93,
+          },
+          {
+            dishKey: 'dish-2',
+            ingredientName: '鸡胸肉',
+            normalizedIngredientName: '鸡胸肉',
+            defaultRatio: 1,
+            decompositionSource: 'model',
+            confidence: 0.89,
+          },
+        ],
+        compositionMatches: [
+          {
+            dishKey: 'dish-1',
+            ingredientName: '米饭',
+            matchedFoodId: 'food-rice',
+            matchedFoodName: '米饭',
+            matchMethod: 'exact',
+            matchScore: 1,
+          },
+          {
+            dishKey: 'dish-2',
+            ingredientName: '鸡胸肉',
+            matchedFoodId: 'food-chicken',
+            matchedFoodName: '鸡胸肉',
+            matchMethod: 'exact',
+            matchScore: 1,
+          },
+        ],
       },
     });
     const service = new MealAnalysisWorkerService(
@@ -282,6 +336,60 @@ describe('MealAnalysisWorkerService', () => {
                   matchedFoodId: 'food-chicken',
                   matchedFoodName: '鸡胸肉',
                   estimatedGrams: 100,
+                },
+              ],
+              recognizedDishes: [
+                {
+                  dishKey: 'dish-1',
+                  rawName: '米饭',
+                  normalizedDishName: '米饭',
+                  confidence: 0.93,
+                  portionText: '1碗',
+                  source: 'vision',
+                },
+                {
+                  dishKey: 'dish-2',
+                  rawName: '鸡胸肉',
+                  normalizedDishName: '鸡胸肉',
+                  confidence: 0.89,
+                  portionText: '约100克',
+                  source: 'vision',
+                },
+              ],
+              resolvedIngredients: [
+                {
+                  dishKey: 'dish-1',
+                  ingredientName: '米饭',
+                  normalizedIngredientName: '米饭',
+                  defaultRatio: 1,
+                  decompositionSource: 'model',
+                  confidence: 0.93,
+                },
+                {
+                  dishKey: 'dish-2',
+                  ingredientName: '鸡胸肉',
+                  normalizedIngredientName: '鸡胸肉',
+                  defaultRatio: 1,
+                  decompositionSource: 'model',
+                  confidence: 0.89,
+                },
+              ],
+              compositionMatches: [
+                {
+                  dishKey: 'dish-1',
+                  ingredientName: '米饭',
+                  matchedFoodId: 'food-rice',
+                  matchedFoodName: '米饭',
+                  matchMethod: 'exact',
+                  matchScore: 1,
+                },
+                {
+                  dishKey: 'dish-2',
+                  ingredientName: '鸡胸肉',
+                  matchedFoodId: 'food-chicken',
+                  matchedFoodName: '鸡胸肉',
+                  matchMethod: 'exact',
+                  matchScore: 1,
                 },
               ],
               nutritionEstimate: {
@@ -363,6 +471,9 @@ function buildMatcherService(options?: {
     nutritionEstimate: Record<string, unknown> | null;
     mealCommentary: string | null;
     matchDiagnostics: Record<string, unknown> | null;
+    recognizedDishes?: Array<Record<string, unknown>>;
+    resolvedIngredients?: Array<Record<string, unknown>>;
+    compositionMatches?: Array<Record<string, unknown>>;
   };
 }): Pick<MealAnalysisMatcherService, 'matchAndEstimate'> {
   return {
@@ -373,6 +484,9 @@ function buildMatcherService(options?: {
         nutritionEstimate: null,
         mealCommentary: null,
         matchDiagnostics: null,
+        recognizedDishes: [],
+        resolvedIngredients: [],
+        compositionMatches: [],
       },
     ),
   };

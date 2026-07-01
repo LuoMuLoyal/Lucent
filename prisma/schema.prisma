@@ -550,6 +550,7 @@ model FoodCompositionItem {
   createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   importRun            FoodCompositionImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+  mealDishTemplateIngredients MealDishTemplateIngredient[]
 
   @@index([name])
   @@index([normalizedName])
@@ -557,6 +558,43 @@ model FoodCompositionItem {
   @@index([secondaryCategoryCode])
   @@index([searchText])
   @@map("food_composition_items")
+}
+
+model MealDishTemplate {
+  id                 String                       @id @default(uuid())
+  normalizedDishName String                       @unique @map("normalized_dish_name")
+  displayName        String                       @map("display_name")
+  aliases            Json?                        @db.JsonB
+  status             String                       @default("active")
+  source             String                       @default("seeded")
+  searchText         String?                      @map("search_text")
+  createdAt          DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  ingredients        MealDishTemplateIngredient[]
+
+  @@index([displayName])
+  @@index([status])
+  @@index([searchText])
+  @@map("meal_dish_templates")
+}
+
+model MealDishTemplateIngredient {
+  id                       String             @id @default(uuid())
+  templateId               String             @map("template_id")
+  ingredientName           String             @map("ingredient_name")
+  normalizedIngredientName String             @map("normalized_ingredient_name")
+  foodCompositionItemId    String?            @map("food_composition_item_id")
+  defaultRatio             Float?             @map("default_ratio")
+  sortOrder                Int                @default(0) @map("sort_order")
+  createdAt                DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  template                 MealDishTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  foodCompositionItem      FoodCompositionItem? @relation(fields: [foodCompositionItemId], references: [id], onDelete: SetNull)
+
+  @@index([templateId, sortOrder])
+  @@index([normalizedIngredientName])
+  @@index([foodCompositionItemId])
+  @@map("meal_dish_template_ingredients")
 }
 
 model CnMedicineProduct {

@@ -400,6 +400,8 @@ export const ModelName = {
   FoodCompositionImport: 'FoodCompositionImport',
   FoodCompositionCategory: 'FoodCompositionCategory',
   FoodCompositionItem: 'FoodCompositionItem',
+  MealDishTemplate: 'MealDishTemplate',
+  MealDishTemplateIngredient: 'MealDishTemplateIngredient',
   CnMedicineProduct: 'CnMedicineProduct',
   CnMedicineLeaflet: 'CnMedicineLeaflet',
   CnMedicineProductLeafletLink: 'CnMedicineProductLeafletLink',
@@ -430,7 +432,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "foodCompositionImport" | "foodCompositionCategory" | "foodCompositionItem" | "cnMedicineProduct" | "cnMedicineLeaflet" | "cnMedicineProductLeafletLink" | "medicineLeafletChunk" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory" | "userNotification" | "medicineSafetyTip"
+    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "foodCompositionImport" | "foodCompositionCategory" | "foodCompositionItem" | "mealDishTemplate" | "mealDishTemplateIngredient" | "cnMedicineProduct" | "cnMedicineLeaflet" | "cnMedicineProductLeafletLink" | "medicineLeafletChunk" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory" | "userNotification" | "medicineSafetyTip"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1689,6 +1691,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.FoodCompositionItemCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.FoodCompositionItemCountAggregateOutputType> | number
+        }
+      }
+    }
+    MealDishTemplate: {
+      payload: Prisma.$MealDishTemplatePayload<ExtArgs>
+      fields: Prisma.MealDishTemplateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MealDishTemplateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MealDishTemplateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload>
+        }
+        findFirst: {
+          args: Prisma.MealDishTemplateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MealDishTemplateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload>
+        }
+        findMany: {
+          args: Prisma.MealDishTemplateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload>[]
+        }
+        create: {
+          args: Prisma.MealDishTemplateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload>
+        }
+        createMany: {
+          args: Prisma.MealDishTemplateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MealDishTemplateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload>[]
+        }
+        delete: {
+          args: Prisma.MealDishTemplateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload>
+        }
+        update: {
+          args: Prisma.MealDishTemplateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload>
+        }
+        deleteMany: {
+          args: Prisma.MealDishTemplateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MealDishTemplateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MealDishTemplateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload>[]
+        }
+        upsert: {
+          args: Prisma.MealDishTemplateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplatePayload>
+        }
+        aggregate: {
+          args: Prisma.MealDishTemplateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMealDishTemplate>
+        }
+        groupBy: {
+          args: Prisma.MealDishTemplateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MealDishTemplateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MealDishTemplateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MealDishTemplateCountAggregateOutputType> | number
+        }
+      }
+    }
+    MealDishTemplateIngredient: {
+      payload: Prisma.$MealDishTemplateIngredientPayload<ExtArgs>
+      fields: Prisma.MealDishTemplateIngredientFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MealDishTemplateIngredientFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MealDishTemplateIngredientFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload>
+        }
+        findFirst: {
+          args: Prisma.MealDishTemplateIngredientFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MealDishTemplateIngredientFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload>
+        }
+        findMany: {
+          args: Prisma.MealDishTemplateIngredientFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload>[]
+        }
+        create: {
+          args: Prisma.MealDishTemplateIngredientCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload>
+        }
+        createMany: {
+          args: Prisma.MealDishTemplateIngredientCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MealDishTemplateIngredientCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload>[]
+        }
+        delete: {
+          args: Prisma.MealDishTemplateIngredientDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload>
+        }
+        update: {
+          args: Prisma.MealDishTemplateIngredientUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload>
+        }
+        deleteMany: {
+          args: Prisma.MealDishTemplateIngredientDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MealDishTemplateIngredientUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MealDishTemplateIngredientUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload>[]
+        }
+        upsert: {
+          args: Prisma.MealDishTemplateIngredientUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MealDishTemplateIngredientPayload>
+        }
+        aggregate: {
+          args: Prisma.MealDishTemplateIngredientAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMealDishTemplateIngredient>
+        }
+        groupBy: {
+          args: Prisma.MealDishTemplateIngredientGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MealDishTemplateIngredientGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MealDishTemplateIngredientCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MealDishTemplateIngredientCountAggregateOutputType> | number
         }
       }
     }
@@ -3196,6 +3346,36 @@ export const FoodCompositionItemScalarFieldEnum = {
 export type FoodCompositionItemScalarFieldEnum = (typeof FoodCompositionItemScalarFieldEnum)[keyof typeof FoodCompositionItemScalarFieldEnum]
 
 
+export const MealDishTemplateScalarFieldEnum = {
+  id: 'id',
+  normalizedDishName: 'normalizedDishName',
+  displayName: 'displayName',
+  aliases: 'aliases',
+  status: 'status',
+  source: 'source',
+  searchText: 'searchText',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MealDishTemplateScalarFieldEnum = (typeof MealDishTemplateScalarFieldEnum)[keyof typeof MealDishTemplateScalarFieldEnum]
+
+
+export const MealDishTemplateIngredientScalarFieldEnum = {
+  id: 'id',
+  templateId: 'templateId',
+  ingredientName: 'ingredientName',
+  normalizedIngredientName: 'normalizedIngredientName',
+  foodCompositionItemId: 'foodCompositionItemId',
+  defaultRatio: 'defaultRatio',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MealDishTemplateIngredientScalarFieldEnum = (typeof MealDishTemplateIngredientScalarFieldEnum)[keyof typeof MealDishTemplateIngredientScalarFieldEnum]
+
+
 export const CnMedicineProductScalarFieldEnum = {
   id: 'id',
   importRunId: 'importRunId',
@@ -4060,6 +4240,8 @@ export type GlobalOmitConfig = {
   foodCompositionImport?: Prisma.FoodCompositionImportOmit
   foodCompositionCategory?: Prisma.FoodCompositionCategoryOmit
   foodCompositionItem?: Prisma.FoodCompositionItemOmit
+  mealDishTemplate?: Prisma.MealDishTemplateOmit
+  mealDishTemplateIngredient?: Prisma.MealDishTemplateIngredientOmit
   cnMedicineProduct?: Prisma.CnMedicineProductOmit
   cnMedicineLeaflet?: Prisma.CnMedicineLeafletOmit
   cnMedicineProductLeafletLink?: Prisma.CnMedicineProductLeafletLinkOmit

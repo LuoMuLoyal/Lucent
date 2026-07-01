@@ -352,18 +352,33 @@ export class TodayAnalysisContextService {
     }
 
     const description = this.trimNullableText(analysis.mealDescription ?? null);
-    const foodNames = Array.isArray(analysis.foodItems)
-      ? analysis.foodItems
+    const foodNames = Array.isArray(analysis.recognizedDishes)
+      ? analysis.recognizedDishes
           .map((item) => {
-            if (typeof item !== 'object') {
-              return null;
-            }
-            const candidate = item['name'];
-            return typeof candidate === 'string' ? candidate.trim() : null;
+            const candidate =
+              typeof item.rawName === 'string'
+                ? item.rawName
+                : typeof item.normalizedDishName === 'string'
+                  ? item.normalizedDishName
+                  : null;
+            return candidate?.trim() ?? null;
           })
           .filter((value): value is string => value != null && value.length > 0)
           .slice(0, 3)
-      : [];
+      : Array.isArray(analysis.foodItems)
+        ? analysis.foodItems
+            .map((item) => {
+              if (typeof item !== 'object') {
+                return null;
+              }
+              const candidate = item['name'];
+              return typeof candidate === 'string' ? candidate.trim() : null;
+            })
+            .filter(
+              (value): value is string => value != null && value.length > 0,
+            )
+            .slice(0, 3)
+        : [];
 
     return {
       kind: record.kind,

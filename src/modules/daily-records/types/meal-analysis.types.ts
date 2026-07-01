@@ -11,11 +11,41 @@ export const MEAL_ANALYSIS_COVERAGES = ['none', 'partial', 'complete'] as const;
 
 export type MealAnalysisCoverage = (typeof MEAL_ANALYSIS_COVERAGES)[number];
 
+export interface MealRecognizedDish {
+  dishKey: string;
+  rawName: string;
+  normalizedDishName: string;
+  confidence: number | null;
+  portionText: string | null;
+  source: 'vision';
+}
+
+export interface MealResolvedIngredient {
+  dishKey: string;
+  ingredientName: string;
+  normalizedIngredientName: string;
+  defaultRatio: number | null;
+  decompositionSource: 'template' | 'model';
+  confidence: number | null;
+}
+
+export interface MealCompositionMatch {
+  dishKey: string;
+  ingredientName: string;
+  matchedFoodId: string | null;
+  matchedFoodName: string | null;
+  matchMethod: 'exact' | 'alias' | 'fuzzy' | 'unmatched';
+  matchScore: number;
+}
+
 export interface MealAnalysisPayload {
   analysisStatus?: MealAnalysisStatus;
   coverage?: MealAnalysisCoverage;
   mealDescription?: string | null;
   foodItems?: Array<Record<string, unknown>>;
+  recognizedDishes?: MealRecognizedDish[];
+  resolvedIngredients?: MealResolvedIngredient[];
+  compositionMatches?: MealCompositionMatch[];
   nutritionEstimate?: Record<string, unknown> | null;
   mealCommentary?: string | null;
   matchDiagnostics?: Record<string, unknown> | null;
@@ -124,12 +154,7 @@ export function getMealSourceRevision(rawPayload: unknown): number {
 export function getMealListSummary(rawPayload: unknown): MealListSummary {
   const parsed = parseMealRecordPayload(rawPayload);
   const analysis = parsed.mealAnalysis ?? null;
-  const topFoods = Array.isArray(analysis?.foodItems)
-    ? analysis.foodItems
-        .map((item) => readFoodName(item))
-        .filter((value): value is string => value != null)
-        .slice(0, 3)
-    : [];
+  const topFoods = readMealTopFoods(analysis);
 
   return {
     mealAnalysisStatus: analysis?.analysisStatus ?? null,
@@ -205,4 +230,76 @@ function normalizeText(raw: unknown): string | null {
 
   const trimmed = raw.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function readMealTopFoods(analysis: MealAnalysisPayload | null): string[] {
+  const recognizedDishNames = Array.isArray(analysis?.recognizedDishes)
+    ? analysis.recognizedDishes
+        .map((item) => normalizeText(item.rawName) || item.normalizedDishName)
+        .slice(0, 3)
+    : [];
+  if (recognizedDishNames.length > 0) {
+    return recognizedDishNames;
+  }
+
+  return Array.isArray(analysis?.foodItems)
+    ? analysis.foodItems
+        .map((item) => readFoodName(item))
+        .filter((value): value is string => value != null)
+        .slice(0, 3)
+    : [];
+}
+
+export function normalizeMealEntityName(
+  raw: string | null | undefined,
+): string | null {
+  const text = normalizeText(raw);
+  if (text == null) {
+    return null;
+  }
+
+  return text
+    .replace(/\s+/g, '')
+    .replace(/[（(][^）)]*[）)]/g, '')
+    .replace(/[、，,]/g, '')
+    .trim();
+}
+
+export function isMealAnalysisConfirmRequest(rawPayload: unknown): boolean {
+  const root = asPlainRecord(rawPayload);
+  const analysis = asPlainRecord(root?.['mealAnalysis']);
+  return analysis?.['analysisStatus'] === 'confirmed';
+}
+
+export function hasMealDishInputChanges(
+  nextPayload: unknown,
+  existingPayload: unknown,
+): boolean {
+  const nextMealInput = parseMealRecordPayload(nextPayload).mealInput ?? null;
+  const existingMealInput =
+    parseMealRecordPayload(existingPayload).mealInput ?? null;
+  return JSON.stringify(nextMealInput) !== JSON.stringify(existingMealInput);
+}
+
+export function buildConfirmedMealPayload(
+  rawPayload: unknown,
+): PlainRecord | null {
+  const parsed = parseMealRecordPayload(rawPayload);
+  const analysis = parsed.mealAnalysis;
+  if (analysis == null) {
+    return null;
+  }
+
+  const confirmedAt = new Date().toISOString();
+  const confirmedAnalysis: MealAnalysisPayload = {
+    ...analysis,
+    analysisStatus: 'confirmed',
+    confirmedAt,
+  };
+
+  return {
+    ...(parsed.mealInput != null ? { mealInput: parsed.mealInput } : {}),
+    mealAnalysis: confirmedAnalysis,
+    mealAnalysisLastConfirmed: confirmedAnalysis,
+  };
 }

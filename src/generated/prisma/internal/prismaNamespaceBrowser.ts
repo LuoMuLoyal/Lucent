@@ -67,6 +67,8 @@ export const ModelName = {
   FoodCompositionImport: 'FoodCompositionImport',
   FoodCompositionCategory: 'FoodCompositionCategory',
   FoodCompositionItem: 'FoodCompositionItem',
+  MealDishTemplate: 'MealDishTemplate',
+  MealDishTemplateIngredient: 'MealDishTemplateIngredient',
   CnMedicineProduct: 'CnMedicineProduct',
   CnMedicineLeaflet: 'CnMedicineLeaflet',
   CnMedicineProductLeafletLink: 'CnMedicineProductLeafletLink',
@@ -453,6 +455,36 @@ export const FoodCompositionItemScalarFieldEnum = {
 } as const
 
 export type FoodCompositionItemScalarFieldEnum = (typeof FoodCompositionItemScalarFieldEnum)[keyof typeof FoodCompositionItemScalarFieldEnum]
+
+
+export const MealDishTemplateScalarFieldEnum = {
+  id: 'id',
+  normalizedDishName: 'normalizedDishName',
+  displayName: 'displayName',
+  aliases: 'aliases',
+  status: 'status',
+  source: 'source',
+  searchText: 'searchText',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MealDishTemplateScalarFieldEnum = (typeof MealDishTemplateScalarFieldEnum)[keyof typeof MealDishTemplateScalarFieldEnum]
+
+
+export const MealDishTemplateIngredientScalarFieldEnum = {
+  id: 'id',
+  templateId: 'templateId',
+  ingredientName: 'ingredientName',
+  normalizedIngredientName: 'normalizedIngredientName',
+  foodCompositionItemId: 'foodCompositionItemId',
+  defaultRatio: 'defaultRatio',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MealDishTemplateIngredientScalarFieldEnum = (typeof MealDishTemplateIngredientScalarFieldEnum)[keyof typeof MealDishTemplateIngredientScalarFieldEnum]
 
 
 export const CnMedicineProductScalarFieldEnum = {

@@ -56,7 +56,6 @@ Add an asynchronous write-time Meal Analysis flow that turns one Meal Record ima
    - No food RAG.
    - No vector search for food-item matching.
    - No direct agent query of the Food Composition Source.
-   - No ingredient-decomposition model for mixed dishes.
    - No push/system notification when analysis finishes; app-visible state plus polling/refresh only.
    - No multi-image meal analysis; phase 1 uses exactly one trusted image attachment per Meal Record.
    - No individualized nutrition targets or diagnosis-like nutrition judgments.
@@ -86,7 +85,6 @@ Add an asynchronous write-time Meal Analysis flow that turns one Meal Record ima
 
 - Food RAG or food vector stores
 - Agent-owned direct lookup of the food composition dataset
-- Ingredient-level decomposition for mixed dishes
 - System or push notifications for analysis completion
 - Nutrition history versioning beyond the current payload state
 - Individualized nutrition plans, diagnosis, treatment advice, or precise calorie-tracking claims

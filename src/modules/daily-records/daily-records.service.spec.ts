@@ -8,6 +8,7 @@ import { DailyRecordsOwnershipService } from './services/ownership.service';
 import { DailyRecordsMapperService } from './services/daily-records-mapper.service';
 import { DailyRecordsService } from './services/daily-records.service';
 import { MealAnalysisQueueService } from './services/meal-analysis-queue.service';
+import { MealDishTemplateLearningService } from './services/meal-dish-template-learning.service';
 
 const mockUserId = 'user-uuid-1';
 
@@ -15,10 +16,16 @@ describe('DailyRecordsService', () => {
   let service: DailyRecordsService;
   let prisma: jest.Mocked<PrismaService>;
   let mealAnalysisQueueService: { enqueue: jest.Mock };
+  let mealDishTemplateLearningService: {
+    learnFromConfirmedAnalysis: jest.Mock;
+  };
 
   beforeEach(async () => {
     mealAnalysisQueueService = {
       enqueue: jest.fn().mockResolvedValue(undefined),
+    };
+    mealDishTemplateLearningService = {
+      learnFromConfirmedAnalysis: jest.fn().mockResolvedValue(undefined),
     };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -32,6 +39,10 @@ describe('DailyRecordsService', () => {
         {
           provide: MealAnalysisQueueService,
           useValue: mealAnalysisQueueService,
+        },
+        {
+          provide: MealDishTemplateLearningService,
+          useValue: mealDishTemplateLearningService,
         },
         {
           provide: PrismaService,
@@ -252,6 +263,240 @@ describe('DailyRecordsService', () => {
       },
       include: { attachments: { orderBy: { createdAt: 'asc' } } },
     });
+  });
+
+  it('should keep client meal dish edits in mealInput and preserve server-owned analysis branches', async () => {
+    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+      userId: mockUserId,
+      kind: 'meal',
+      payload: {
+        mealInput: {
+          recognizedDishes: [{ rawName: '旧菜名' }],
+        },
+        mealAnalysis: {
+          analysisStatus: 'confirmed',
+          recognizedDishes: [{ rawName: '服务端可信菜名' }],
+        },
+      },
+    });
+    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({
+      id: 'meal-3',
+      kind: 'meal',
+      occurredAt: new Date('2026-07-01'),
+      occurredTime: '18:20',
+      title: 'Dinner',
+      value: null,
+      unit: null,
+      note: null,
+      payload: {
+        mealInput: {
+          recognizedDishes: [{ rawName: '用户改过的菜名' }],
+        },
+        mealAnalysis: {
+          analysisStatus: 'confirmed',
+          recognizedDishes: [{ rawName: '服务端可信菜名' }],
+        },
+      },
+      source: 'manual',
+      attachments: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.update(mockUserId, 'meal-3', {
+      payload: {
+        mealInput: {
+          recognizedDishes: [{ rawName: '用户改过的菜名' }],
+        },
+      },
+    });
+
+    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
+      where: { id: 'meal-3' },
+      data: {
+        mealAnalysisCoverage: null,
+        mealAnalysisFailureReason: null,
+        mealAnalysisStatus: 'confirmed',
+        mealAnalysisUpdatedAt: null,
+        mealSourceRevision: 0,
+        payload: {
+          mealInput: {
+            recognizedDishes: [{ rawName: '用户改过的菜名' }],
+          },
+          mealAnalysis: {
+            analysisStatus: 'confirmed',
+            recognizedDishes: [{ rawName: '服务端可信菜名' }],
+          },
+        },
+      },
+      include: { attachments: { orderBy: { createdAt: 'asc' } } },
+    });
+  });
+
+  it('should mark the current meal analysis confirmed and learn a template from grounded ingredients', async () => {
+    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+      userId: mockUserId,
+      kind: 'meal',
+      payload: {
+        mealAnalysis: {
+          analysisStatus: 'unconfirmed',
+          coverage: 'partial',
+          recognizedDishes: [
+            {
+              dishKey: 'dish-1',
+              rawName: '西红柿炒鸡蛋',
+              normalizedDishName: '西红柿炒鸡蛋',
+              confidence: 0.94,
+              portionText: '一份',
+              source: 'vision',
+            },
+          ],
+          resolvedIngredients: [
+            {
+              dishKey: 'dish-1',
+              ingredientName: '西红柿',
+              normalizedIngredientName: '西红柿',
+              defaultRatio: 0.6,
+              decompositionSource: 'model',
+              confidence: 0.93,
+            },
+            {
+              dishKey: 'dish-1',
+              ingredientName: '鸡蛋',
+              normalizedIngredientName: '鸡蛋',
+              defaultRatio: 0.4,
+              decompositionSource: 'model',
+              confidence: 0.92,
+            },
+          ],
+          compositionMatches: [
+            {
+              dishKey: 'dish-1',
+              ingredientName: '西红柿',
+              matchedFoodId: 'food-tomato',
+              matchedFoodName: '西红柿',
+              matchMethod: 'exact',
+              matchScore: 1,
+            },
+            {
+              dishKey: 'dish-1',
+              ingredientName: '鸡蛋',
+              matchedFoodId: 'food-egg',
+              matchedFoodName: '鸡蛋',
+              matchMethod: 'exact',
+              matchScore: 1,
+            },
+          ],
+        },
+      },
+    });
+    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({
+      id: 'meal-4',
+      kind: 'meal',
+      occurredAt: new Date('2026-07-01'),
+      occurredTime: '12:20',
+      title: 'Lunch',
+      value: null,
+      unit: null,
+      note: null,
+      payload: {
+        mealAnalysis: {
+          analysisStatus: 'confirmed',
+          coverage: 'partial',
+          recognizedDishes: [
+            {
+              dishKey: 'dish-1',
+              rawName: '西红柿炒鸡蛋',
+              normalizedDishName: '西红柿炒鸡蛋',
+              confidence: 0.94,
+              portionText: '一份',
+              source: 'vision',
+            },
+          ],
+          resolvedIngredients: [
+            {
+              dishKey: 'dish-1',
+              ingredientName: '西红柿',
+              normalizedIngredientName: '西红柿',
+              defaultRatio: 0.6,
+              decompositionSource: 'model',
+              confidence: 0.93,
+            },
+            {
+              dishKey: 'dish-1',
+              ingredientName: '鸡蛋',
+              normalizedIngredientName: '鸡蛋',
+              defaultRatio: 0.4,
+              decompositionSource: 'model',
+              confidence: 0.92,
+            },
+          ],
+          compositionMatches: [
+            {
+              dishKey: 'dish-1',
+              ingredientName: '西红柿',
+              matchedFoodId: 'food-tomato',
+              matchedFoodName: '西红柿',
+              matchMethod: 'exact',
+              matchScore: 1,
+            },
+            {
+              dishKey: 'dish-1',
+              ingredientName: '鸡蛋',
+              matchedFoodId: 'food-egg',
+              matchedFoodName: '鸡蛋',
+              matchMethod: 'exact',
+              matchScore: 1,
+            },
+          ],
+          confirmedAt: '2026-07-01T12:30:00.000Z',
+        },
+        mealAnalysisLastConfirmed: {
+          analysisStatus: 'confirmed',
+        },
+      },
+      source: 'manual',
+      attachments: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.update(mockUserId, 'meal-4', {
+      payload: {
+        mealAnalysis: {
+          analysisStatus: 'confirmed',
+        },
+      },
+    });
+
+    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'meal-4' },
+        data: expect.objectContaining({
+          mealAnalysisStatus: 'confirmed',
+          payload: expect.objectContaining({
+            mealAnalysis: expect.objectContaining({
+              analysisStatus: 'confirmed',
+              confirmedAt: expect.any(String),
+            }),
+            mealAnalysisLastConfirmed: expect.objectContaining({
+              analysisStatus: 'confirmed',
+            }),
+          }),
+        }),
+      }),
+    );
+    expect(
+      mealDishTemplateLearningService.learnFromConfirmedAnalysis,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        analysisStatus: 'confirmed',
+        recognizedDishes: expect.any(Array),
+        resolvedIngredients: expect.any(Array),
+        compositionMatches: expect.any(Array),
+      }),
+    );
+    expect(mealAnalysisQueueService.enqueue).not.toHaveBeenCalled();
   });
 
   it('should clear nullable fields when sending null', async () => {

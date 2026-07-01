@@ -24,6 +24,7 @@ This file records current backend implementation facts only. Historical changes 
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the recommended baseline to `11.9.0`.
 - `docs/openapi.json` remains the exported backend contract artifact that Luminous regenerates its `packages/lucent_openapi/` client from.
+- The current exported contract now includes meal-analysis read hot fields on `DailyRecordItemDto`: status, coverage, updated-at, failure-reason, short-description, and top-foods.
 - Lucent CI now re-exports `docs/openapi.json` and fails if the committed contract artifact drifts from current backend code.
 
 ## Meal Analysis
@@ -35,7 +36,12 @@ This file records current backend implementation facts only. Historical changes 
 - `MealAnalysisVisionService` now invokes the configured `vision` model with multimodal image input and expects conservative JSON-only meal recognition output.
 - The meal-analysis worker now reads trusted meal images through Lucent-signed COS GET URLs and writes successful first-phase results back as `unconfirmed` meal-analysis payload plus hot fields.
 - First-phase meal analysis now includes deterministic food-table matching against `food_composition_items`, conservative portion heuristics, aggregated nutrition estimates, and fixed-rule meal commentary.
+- Meal analysis now persists a second-phase layered payload: `recognizedDishes`, `resolvedIngredients`, and `compositionMatches`, while keeping legacy `mealAnalysis.foodItems` as a compatibility mirror for existing consumers.
+- Mixed-dish handling now uses a three-stage backend flow: vision dish recognition, Lucent-owned dish-template or model-based dish decomposition, and conservative ingredient grounding into `food_composition_items`.
+- Meal dish edits in `mealInput` now trigger a fresh async recomputation when the trusted meal image is unchanged, instead of silently leaving stale server-side nutrition results in place.
+- Confirming a meal analysis now has server-owned semantics: the backend stamps `confirmedAt`, snapshots `mealAnalysisLastConfirmed`, and learns only grounded dish-to-ingredient templates into `meal_dish_templates` / `meal_dish_template_ingredients`.
 - Today analysis now reads stored `unconfirmed` / `confirmed` meal-analysis results conservatively in recent-record context, while leaving `analyzing` meals as plain records.
 - Reports now derive `mealEstimateSeries` and `mealEstimateTrackedDays` from stored `confirmed` / `unconfirmed` meal-analysis results instead of inferring meal availability from raw image records.
 - Assistant daily-record query now exposes meal estimate status/coverage as explicit tags and hot fields alongside the stored meal payload.
 - Lucent now has a durable food-composition import structure (`food_composition_imports`, `food_composition_categories`, `food_composition_items`) plus import scripts under `scripts/import/food/`.
+- Lucent now also has a durable meal-dish template layer (`meal_dish_templates`, `meal_dish_template_ingredients`) for conservative mixed-dish grounding without introducing recipe RAG or vector food lookup.

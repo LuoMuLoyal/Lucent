@@ -12,13 +12,18 @@ import {
   type DailyRecordDbClient,
 } from '../types/daily-records.types';
 import {
+  buildConfirmedMealPayload,
   buildMealPayloadFromClientInput,
   getMealSourceRevision,
+  hasMealDishInputChanges,
+  isMealAnalysisConfirmRequest,
   markMealAnalysisQueued,
+  parseMealRecordPayload,
   type MealAnalysisCoverage,
   type MealAnalysisStatus,
 } from '../types/meal-analysis.types';
 import { MealAnalysisQueueService } from './meal-analysis-queue.service';
+import { MealDishTemplateLearningService } from './meal-dish-template-learning.service';
 
 @Injectable()
 export class DailyRecordsService {
@@ -27,6 +32,7 @@ export class DailyRecordsService {
     private readonly ownershipService: DailyRecordsOwnershipService,
     private readonly mapperService: DailyRecordsMapperService,
     private readonly mealAnalysisQueueService: MealAnalysisQueueService,
+    private readonly mealDishTemplateLearningService: MealDishTemplateLearningService,
   ) {}
 
   async list(
@@ -149,17 +155,48 @@ export class DailyRecordsService {
   async update(userId: string, id: string, dto: UpdateDailyRecordDto) {
     const existing = await this.ownershipService.ensureOwnedByUser(userId, id);
     this.ensureValidSleepFinalState(dto, existing);
+    const isMealTarget = (dto.kind ?? existing.kind) === DailyRecordKind.meal;
+    const confirmRequested =
+      isMealTarget && dto.payload !== undefined
+        ? isMealAnalysisConfirmRequest(dto.payload)
+        : false;
 
     const updateAttachments = dto.attachments;
-    const nextPayload =
+    let nextPayload =
       (dto.payload !== undefined || updateAttachments !== undefined) &&
-      (dto.kind ?? existing.kind) === DailyRecordKind.meal
+      isMealTarget
         ? this.prepareMealPayloadForWrite(
             dto.payload !== undefined ? dto.payload : existing.payload,
             updateAttachments,
             existing.payload,
           )
         : null;
+
+    const dishInputChanged =
+      isMealTarget && dto.payload !== undefined
+        ? hasMealDishInputChanges(nextPayload, existing.payload)
+        : false;
+
+    if (isMealTarget && confirmRequested) {
+      nextPayload = buildConfirmedMealPayload(nextPayload);
+    } else if (
+      isMealTarget &&
+      dishInputChanged &&
+      updateAttachments === undefined &&
+      nextPayload != null
+    ) {
+      const currentAnalysis = nextPayload['mealAnalysis'] as
+        | Record<string, unknown>
+        | undefined;
+      const imageObjectKey =
+        typeof currentAnalysis?.['imageObjectKey'] === 'string'
+          ? currentAnalysis['imageObjectKey']
+          : null;
+      if (imageObjectKey != null) {
+        nextPayload = markMealAnalysisQueued(nextPayload, { imageObjectKey });
+      }
+    }
+
     if (updateAttachments !== undefined) {
       return this.prisma.$transaction(async (tx) => {
         await tx.userDailyRecord.update({
@@ -182,6 +219,11 @@ export class DailyRecordsService {
           });
         }
         const item = await this.getItemFromDb(tx, userId, id);
+        if (confirmRequested) {
+          await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
+            parseMealRecordPayload(item.payload).mealAnalysis,
+          );
+        }
         await this.enqueueMealAnalysisIfNeeded(
           userId,
           item,
@@ -203,6 +245,12 @@ export class DailyRecordsService {
     const item = this.mapperService.toItem(record, {
       includeMealPayload: true,
     });
+    if (confirmRequested) {
+      await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
+        parseMealRecordPayload(item.payload).mealAnalysis,
+      );
+      return item;
+    }
     await this.enqueueMealAnalysisIfNeeded(userId, item);
     return item;
   }
@@ -334,8 +382,12 @@ export class DailyRecordsService {
       mealAnalysisCoverage:
         (analysis?.['coverage'] as MealAnalysisCoverage | null | undefined) ??
         null,
-      mealAnalysisUpdatedAt: null,
-      mealAnalysisFailureReason: null,
+      mealAnalysisUpdatedAt:
+        typeof analysis?.['analyzedAt'] === 'string'
+          ? new Date(analysis['analyzedAt'])
+          : null,
+      mealAnalysisFailureReason:
+        (analysis?.['failureReason'] as string | null | undefined) ?? null,
       mealSourceRevision: getMealSourceRevision(mealPayload),
     };
   }
@@ -354,11 +406,26 @@ export class DailyRecordsService {
       return;
     }
 
+    if (sourceRevisionOverride != null) {
+      await this.mealAnalysisQueueService.enqueue({
+        userId,
+        recordId: item.id,
+        sourceRevision: sourceRevisionOverride,
+      });
+      return;
+    }
+
+    const analysis = item.payload?.['mealAnalysis'] as
+      | Record<string, unknown>
+      | undefined;
+    if (analysis?.['analysisStatus'] !== 'analyzing') {
+      return;
+    }
+
     await this.mealAnalysisQueueService.enqueue({
       userId,
       recordId: item.id,
-      sourceRevision:
-        sourceRevisionOverride ?? getMealSourceRevision(item.payload),
+      sourceRevision: getMealSourceRevision(item.payload),
     });
   }
 
