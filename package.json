@@ -41,6 +41,7 @@
     "test:e2e": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand",
     "test:e2e:ci": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config ./test/jest-e2e.json --runInBand",
     "export:openapi": "pnpm build && cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
+    "verify:openapi": "node scripts/contract/verify-openapi-committed.ts",
     "docs:compodoc": "compodoc -c compodoc.json",
     "prepare": "husky"
   },

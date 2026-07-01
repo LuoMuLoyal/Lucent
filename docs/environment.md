@@ -82,6 +82,7 @@ Local Docker stack note:
 | `pnpm test:e2e`                 | E2E tests with Prisma 7 VM-module compatibility                                |
 | `pnpm test:e2e:ci`              | E2E tests in CI with `--runInBand`                                             |
 | `pnpm export:openapi`           | Build then export `docs/openapi.json` from `dist`                              |
+| `pnpm verify:openapi`           | Semantic committed-vs-generated OpenAPI check; ignores formatting-only drift   |
 | `pnpm import:medicine:all`      | Default medicine knowledge import sequence                                     |
 | `pnpm deploy:smoke`             | Post-deploy smoke check for running services and health endpoints              |
 

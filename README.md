@@ -28,6 +28,8 @@ dart run tool/regenerate_lucent_openapi.dart
 dart run tool/verify_lucent_openapi_sync.dart
 ```
 
+Lucent CI now verifies `docs/openapi.json` semantically instead of byte-for-byte. Pure JSON formatting drift no longer blocks downstream unit/e2e lanes, but any real schema/content drift still fails the workflow.
+
 ## Stack
 
 - NestJS 11
