@@ -25,3 +25,11 @@ This file records current backend implementation facts only. Historical changes 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the recommended baseline to `11.9.0`.
 - `docs/openapi.json` remains the exported backend contract artifact that Luminous regenerates its `packages/lucent_openapi/` client from.
 - Lucent CI now re-exports `docs/openapi.json` and fails if the committed contract artifact drifts from current backend code.
+
+## Meal Analysis
+
+- Meal records now use a server-owned payload boundary: client updates can edit the user meal-input branch, but cannot overwrite stored meal-analysis branches directly.
+- Daily-record list reads now keep meal payloads lightweight by omitting the heavy meal-analysis JSON while still exposing summary hot fields.
+- Meal records now carry first-phase meal-analysis hot fields in `user_daily_records`: status, coverage, updated-at, failure-reason, and source-revision.
+- Single-image meal record writes now mark the meal analysis as queued and enqueue an async meal-analysis background job keyed by record id plus source revision.
+- Lucent now has a durable food-composition import structure (`food_composition_imports`, `food_composition_categories`, `food_composition_items`) plus import scripts under `scripts/import/food/`.

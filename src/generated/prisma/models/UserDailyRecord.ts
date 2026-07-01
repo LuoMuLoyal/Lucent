@@ -19,8 +19,18 @@ export type UserDailyRecordModel = runtime.Types.Result.DefaultSelection<Prisma.
 
 export type AggregateUserDailyRecord = {
   _count: UserDailyRecordCountAggregateOutputType | null
+  _avg: UserDailyRecordAvgAggregateOutputType | null
+  _sum: UserDailyRecordSumAggregateOutputType | null
   _min: UserDailyRecordMinAggregateOutputType | null
   _max: UserDailyRecordMaxAggregateOutputType | null
+}
+
+export type UserDailyRecordAvgAggregateOutputType = {
+  mealSourceRevision: number | null
+}
+
+export type UserDailyRecordSumAggregateOutputType = {
+  mealSourceRevision: number | null
 }
 
 export type UserDailyRecordMinAggregateOutputType = {
@@ -34,6 +44,11 @@ export type UserDailyRecordMinAggregateOutputType = {
   unit: string | null
   note: string | null
   source: string | null
+  mealAnalysisStatus: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt: Date | null
+  mealAnalysisFailureReason: string | null
+  mealSourceRevision: number | null
   deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -50,6 +65,11 @@ export type UserDailyRecordMaxAggregateOutputType = {
   unit: string | null
   note: string | null
   source: string | null
+  mealAnalysisStatus: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt: Date | null
+  mealAnalysisFailureReason: string | null
+  mealSourceRevision: number | null
   deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -67,12 +87,25 @@ export type UserDailyRecordCountAggregateOutputType = {
   note: number
   payload: number
   source: number
+  mealAnalysisStatus: number
+  mealAnalysisCoverage: number
+  mealAnalysisUpdatedAt: number
+  mealAnalysisFailureReason: number
+  mealSourceRevision: number
   deletedAt: number
   createdAt: number
   updatedAt: number
   _all: number
 }
 
+
+export type UserDailyRecordAvgAggregateInputType = {
+  mealSourceRevision?: true
+}
+
+export type UserDailyRecordSumAggregateInputType = {
+  mealSourceRevision?: true
+}
 
 export type UserDailyRecordMinAggregateInputType = {
   id?: true
@@ -85,6 +118,11 @@ export type UserDailyRecordMinAggregateInputType = {
   unit?: true
   note?: true
   source?: true
+  mealAnalysisStatus?: true
+  mealAnalysisCoverage?: true
+  mealAnalysisUpdatedAt?: true
+  mealAnalysisFailureReason?: true
+  mealSourceRevision?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -101,6 +139,11 @@ export type UserDailyRecordMaxAggregateInputType = {
   unit?: true
   note?: true
   source?: true
+  mealAnalysisStatus?: true
+  mealAnalysisCoverage?: true
+  mealAnalysisUpdatedAt?: true
+  mealAnalysisFailureReason?: true
+  mealSourceRevision?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -118,6 +161,11 @@ export type UserDailyRecordCountAggregateInputType = {
   note?: true
   payload?: true
   source?: true
+  mealAnalysisStatus?: true
+  mealAnalysisCoverage?: true
+  mealAnalysisUpdatedAt?: true
+  mealAnalysisFailureReason?: true
+  mealSourceRevision?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -162,6 +210,18 @@ export type UserDailyRecordAggregateArgs<ExtArgs extends runtime.Types.Extension
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserDailyRecordAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserDailyRecordSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserDailyRecordMinAggregateInputType
@@ -192,6 +252,8 @@ export type UserDailyRecordGroupByArgs<ExtArgs extends runtime.Types.Extensions.
   take?: number
   skip?: number
   _count?: UserDailyRecordCountAggregateInputType | true
+  _avg?: UserDailyRecordAvgAggregateInputType
+  _sum?: UserDailyRecordSumAggregateInputType
   _min?: UserDailyRecordMinAggregateInputType
   _max?: UserDailyRecordMaxAggregateInputType
 }
@@ -208,10 +270,17 @@ export type UserDailyRecordGroupByOutputType = {
   note: string | null
   payload: runtime.JsonValue | null
   source: string | null
+  mealAnalysisStatus: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt: Date | null
+  mealAnalysisFailureReason: string | null
+  mealSourceRevision: number
   deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: UserDailyRecordCountAggregateOutputType | null
+  _avg: UserDailyRecordAvgAggregateOutputType | null
+  _sum: UserDailyRecordSumAggregateOutputType | null
   _min: UserDailyRecordMinAggregateOutputType | null
   _max: UserDailyRecordMaxAggregateOutputType | null
 }
@@ -246,6 +315,11 @@ export type UserDailyRecordWhereInput = {
   note?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   payload?: Prisma.JsonNullableFilter<"UserDailyRecord">
   source?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
+  mealAnalysisStatus?: Prisma.EnumMealAnalysisStatusNullableFilter<"UserDailyRecord"> | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.EnumMealAnalysisCoverageNullableFilter<"UserDailyRecord"> | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.DateTimeNullableFilter<"UserDailyRecord"> | Date | string | null
+  mealAnalysisFailureReason?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
+  mealSourceRevision?: Prisma.IntFilter<"UserDailyRecord"> | number
   deletedAt?: Prisma.DateTimeNullableFilter<"UserDailyRecord"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"UserDailyRecord"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserDailyRecord"> | Date | string
@@ -265,6 +339,11 @@ export type UserDailyRecordOrderByWithRelationInput = {
   note?: Prisma.SortOrderInput | Prisma.SortOrder
   payload?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrderInput | Prisma.SortOrder
+  mealAnalysisStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  mealAnalysisCoverage?: Prisma.SortOrderInput | Prisma.SortOrder
+  mealAnalysisUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  mealAnalysisFailureReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  mealSourceRevision?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -287,6 +366,11 @@ export type UserDailyRecordWhereUniqueInput = Prisma.AtLeast<{
   note?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   payload?: Prisma.JsonNullableFilter<"UserDailyRecord">
   source?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
+  mealAnalysisStatus?: Prisma.EnumMealAnalysisStatusNullableFilter<"UserDailyRecord"> | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.EnumMealAnalysisCoverageNullableFilter<"UserDailyRecord"> | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.DateTimeNullableFilter<"UserDailyRecord"> | Date | string | null
+  mealAnalysisFailureReason?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
+  mealSourceRevision?: Prisma.IntFilter<"UserDailyRecord"> | number
   deletedAt?: Prisma.DateTimeNullableFilter<"UserDailyRecord"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"UserDailyRecord"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserDailyRecord"> | Date | string
@@ -306,12 +390,19 @@ export type UserDailyRecordOrderByWithAggregationInput = {
   note?: Prisma.SortOrderInput | Prisma.SortOrder
   payload?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrderInput | Prisma.SortOrder
+  mealAnalysisStatus?: Prisma.SortOrderInput | Prisma.SortOrder
+  mealAnalysisCoverage?: Prisma.SortOrderInput | Prisma.SortOrder
+  mealAnalysisUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  mealAnalysisFailureReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  mealSourceRevision?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserDailyRecordCountOrderByAggregateInput
+  _avg?: Prisma.UserDailyRecordAvgOrderByAggregateInput
   _max?: Prisma.UserDailyRecordMaxOrderByAggregateInput
   _min?: Prisma.UserDailyRecordMinOrderByAggregateInput
+  _sum?: Prisma.UserDailyRecordSumOrderByAggregateInput
 }
 
 export type UserDailyRecordScalarWhereWithAggregatesInput = {
@@ -329,6 +420,11 @@ export type UserDailyRecordScalarWhereWithAggregatesInput = {
   note?: Prisma.StringNullableWithAggregatesFilter<"UserDailyRecord"> | string | null
   payload?: Prisma.JsonNullableWithAggregatesFilter<"UserDailyRecord">
   source?: Prisma.StringNullableWithAggregatesFilter<"UserDailyRecord"> | string | null
+  mealAnalysisStatus?: Prisma.EnumMealAnalysisStatusNullableWithAggregatesFilter<"UserDailyRecord"> | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.EnumMealAnalysisCoverageNullableWithAggregatesFilter<"UserDailyRecord"> | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"UserDailyRecord"> | Date | string | null
+  mealAnalysisFailureReason?: Prisma.StringNullableWithAggregatesFilter<"UserDailyRecord"> | string | null
+  mealSourceRevision?: Prisma.IntWithAggregatesFilter<"UserDailyRecord"> | number
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"UserDailyRecord"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"UserDailyRecord"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"UserDailyRecord"> | Date | string
@@ -345,6 +441,11 @@ export type UserDailyRecordCreateInput = {
   note?: string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string | null
+  mealAnalysisStatus?: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Date | string | null
+  mealAnalysisFailureReason?: string | null
+  mealSourceRevision?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -364,6 +465,11 @@ export type UserDailyRecordUncheckedCreateInput = {
   note?: string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string | null
+  mealAnalysisStatus?: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Date | string | null
+  mealAnalysisFailureReason?: string | null
+  mealSourceRevision?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -381,6 +487,11 @@ export type UserDailyRecordUpdateInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealAnalysisStatus?: Prisma.NullableEnumMealAnalysisStatusFieldUpdateOperationsInput | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.NullableEnumMealAnalysisCoverageFieldUpdateOperationsInput | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  mealAnalysisFailureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealSourceRevision?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -400,6 +511,11 @@ export type UserDailyRecordUncheckedUpdateInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealAnalysisStatus?: Prisma.NullableEnumMealAnalysisStatusFieldUpdateOperationsInput | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.NullableEnumMealAnalysisCoverageFieldUpdateOperationsInput | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  mealAnalysisFailureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealSourceRevision?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -418,6 +534,11 @@ export type UserDailyRecordCreateManyInput = {
   note?: string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string | null
+  mealAnalysisStatus?: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Date | string | null
+  mealAnalysisFailureReason?: string | null
+  mealSourceRevision?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -434,6 +555,11 @@ export type UserDailyRecordUpdateManyMutationInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealAnalysisStatus?: Prisma.NullableEnumMealAnalysisStatusFieldUpdateOperationsInput | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.NullableEnumMealAnalysisCoverageFieldUpdateOperationsInput | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  mealAnalysisFailureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealSourceRevision?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -451,6 +577,11 @@ export type UserDailyRecordUncheckedUpdateManyInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealAnalysisStatus?: Prisma.NullableEnumMealAnalysisStatusFieldUpdateOperationsInput | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.NullableEnumMealAnalysisCoverageFieldUpdateOperationsInput | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  mealAnalysisFailureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealSourceRevision?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -478,9 +609,18 @@ export type UserDailyRecordCountOrderByAggregateInput = {
   note?: Prisma.SortOrder
   payload?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  mealAnalysisStatus?: Prisma.SortOrder
+  mealAnalysisCoverage?: Prisma.SortOrder
+  mealAnalysisUpdatedAt?: Prisma.SortOrder
+  mealAnalysisFailureReason?: Prisma.SortOrder
+  mealSourceRevision?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserDailyRecordAvgOrderByAggregateInput = {
+  mealSourceRevision?: Prisma.SortOrder
 }
 
 export type UserDailyRecordMaxOrderByAggregateInput = {
@@ -494,6 +634,11 @@ export type UserDailyRecordMaxOrderByAggregateInput = {
   unit?: Prisma.SortOrder
   note?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  mealAnalysisStatus?: Prisma.SortOrder
+  mealAnalysisCoverage?: Prisma.SortOrder
+  mealAnalysisUpdatedAt?: Prisma.SortOrder
+  mealAnalysisFailureReason?: Prisma.SortOrder
+  mealSourceRevision?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -510,9 +655,18 @@ export type UserDailyRecordMinOrderByAggregateInput = {
   unit?: Prisma.SortOrder
   note?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  mealAnalysisStatus?: Prisma.SortOrder
+  mealAnalysisCoverage?: Prisma.SortOrder
+  mealAnalysisUpdatedAt?: Prisma.SortOrder
+  mealAnalysisFailureReason?: Prisma.SortOrder
+  mealSourceRevision?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserDailyRecordSumOrderByAggregateInput = {
+  mealSourceRevision?: Prisma.SortOrder
 }
 
 export type UserDailyRecordScalarRelationFilter = {
@@ -566,6 +720,14 @@ export type EnumDailyRecordKindFieldUpdateOperationsInput = {
   set?: $Enums.DailyRecordKind
 }
 
+export type NullableEnumMealAnalysisStatusFieldUpdateOperationsInput = {
+  set?: $Enums.MealAnalysisStatus | null
+}
+
+export type NullableEnumMealAnalysisCoverageFieldUpdateOperationsInput = {
+  set?: $Enums.MealAnalysisCoverage | null
+}
+
 export type UserDailyRecordCreateNestedOneWithoutAttachmentsInput = {
   create?: Prisma.XOR<Prisma.UserDailyRecordCreateWithoutAttachmentsInput, Prisma.UserDailyRecordUncheckedCreateWithoutAttachmentsInput>
   connectOrCreate?: Prisma.UserDailyRecordCreateOrConnectWithoutAttachmentsInput
@@ -591,6 +753,11 @@ export type UserDailyRecordCreateWithoutUserInput = {
   note?: string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string | null
+  mealAnalysisStatus?: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Date | string | null
+  mealAnalysisFailureReason?: string | null
+  mealSourceRevision?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -608,6 +775,11 @@ export type UserDailyRecordUncheckedCreateWithoutUserInput = {
   note?: string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string | null
+  mealAnalysisStatus?: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Date | string | null
+  mealAnalysisFailureReason?: string | null
+  mealSourceRevision?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -655,6 +827,11 @@ export type UserDailyRecordScalarWhereInput = {
   note?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
   payload?: Prisma.JsonNullableFilter<"UserDailyRecord">
   source?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
+  mealAnalysisStatus?: Prisma.EnumMealAnalysisStatusNullableFilter<"UserDailyRecord"> | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.EnumMealAnalysisCoverageNullableFilter<"UserDailyRecord"> | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.DateTimeNullableFilter<"UserDailyRecord"> | Date | string | null
+  mealAnalysisFailureReason?: Prisma.StringNullableFilter<"UserDailyRecord"> | string | null
+  mealSourceRevision?: Prisma.IntFilter<"UserDailyRecord"> | number
   deletedAt?: Prisma.DateTimeNullableFilter<"UserDailyRecord"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"UserDailyRecord"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"UserDailyRecord"> | Date | string
@@ -671,6 +848,11 @@ export type UserDailyRecordCreateWithoutAttachmentsInput = {
   note?: string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string | null
+  mealAnalysisStatus?: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Date | string | null
+  mealAnalysisFailureReason?: string | null
+  mealSourceRevision?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -689,6 +871,11 @@ export type UserDailyRecordUncheckedCreateWithoutAttachmentsInput = {
   note?: string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string | null
+  mealAnalysisStatus?: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Date | string | null
+  mealAnalysisFailureReason?: string | null
+  mealSourceRevision?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -721,6 +908,11 @@ export type UserDailyRecordUpdateWithoutAttachmentsInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealAnalysisStatus?: Prisma.NullableEnumMealAnalysisStatusFieldUpdateOperationsInput | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.NullableEnumMealAnalysisCoverageFieldUpdateOperationsInput | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  mealAnalysisFailureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealSourceRevision?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -739,6 +931,11 @@ export type UserDailyRecordUncheckedUpdateWithoutAttachmentsInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealAnalysisStatus?: Prisma.NullableEnumMealAnalysisStatusFieldUpdateOperationsInput | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.NullableEnumMealAnalysisCoverageFieldUpdateOperationsInput | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  mealAnalysisFailureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealSourceRevision?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -755,6 +952,11 @@ export type UserDailyRecordCreateManyUserInput = {
   note?: string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: string | null
+  mealAnalysisStatus?: $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Date | string | null
+  mealAnalysisFailureReason?: string | null
+  mealSourceRevision?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -771,6 +973,11 @@ export type UserDailyRecordUpdateWithoutUserInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealAnalysisStatus?: Prisma.NullableEnumMealAnalysisStatusFieldUpdateOperationsInput | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.NullableEnumMealAnalysisCoverageFieldUpdateOperationsInput | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  mealAnalysisFailureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealSourceRevision?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -788,6 +995,11 @@ export type UserDailyRecordUncheckedUpdateWithoutUserInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealAnalysisStatus?: Prisma.NullableEnumMealAnalysisStatusFieldUpdateOperationsInput | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.NullableEnumMealAnalysisCoverageFieldUpdateOperationsInput | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  mealAnalysisFailureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealSourceRevision?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -805,6 +1017,11 @@ export type UserDailyRecordUncheckedUpdateManyWithoutUserInput = {
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   payload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   source?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealAnalysisStatus?: Prisma.NullableEnumMealAnalysisStatusFieldUpdateOperationsInput | $Enums.MealAnalysisStatus | null
+  mealAnalysisCoverage?: Prisma.NullableEnumMealAnalysisCoverageFieldUpdateOperationsInput | $Enums.MealAnalysisCoverage | null
+  mealAnalysisUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  mealAnalysisFailureReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  mealSourceRevision?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -853,6 +1070,11 @@ export type UserDailyRecordSelect<ExtArgs extends runtime.Types.Extensions.Inter
   note?: boolean
   payload?: boolean
   source?: boolean
+  mealAnalysisStatus?: boolean
+  mealAnalysisCoverage?: boolean
+  mealAnalysisUpdatedAt?: boolean
+  mealAnalysisFailureReason?: boolean
+  mealSourceRevision?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -873,6 +1095,11 @@ export type UserDailyRecordSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   note?: boolean
   payload?: boolean
   source?: boolean
+  mealAnalysisStatus?: boolean
+  mealAnalysisCoverage?: boolean
+  mealAnalysisUpdatedAt?: boolean
+  mealAnalysisFailureReason?: boolean
+  mealSourceRevision?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -891,6 +1118,11 @@ export type UserDailyRecordSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   note?: boolean
   payload?: boolean
   source?: boolean
+  mealAnalysisStatus?: boolean
+  mealAnalysisCoverage?: boolean
+  mealAnalysisUpdatedAt?: boolean
+  mealAnalysisFailureReason?: boolean
+  mealSourceRevision?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -909,12 +1141,17 @@ export type UserDailyRecordSelectScalar = {
   note?: boolean
   payload?: boolean
   source?: boolean
+  mealAnalysisStatus?: boolean
+  mealAnalysisCoverage?: boolean
+  mealAnalysisUpdatedAt?: boolean
+  mealAnalysisFailureReason?: boolean
+  mealSourceRevision?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserDailyRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "kind" | "occurredAt" | "occurredTime" | "title" | "value" | "unit" | "note" | "payload" | "source" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["userDailyRecord"]>
+export type UserDailyRecordOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "kind" | "occurredAt" | "occurredTime" | "title" | "value" | "unit" | "note" | "payload" | "source" | "mealAnalysisStatus" | "mealAnalysisCoverage" | "mealAnalysisUpdatedAt" | "mealAnalysisFailureReason" | "mealSourceRevision" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["userDailyRecord"]>
 export type UserDailyRecordInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   attachments?: boolean | Prisma.UserDailyRecord$attachmentsArgs<ExtArgs>
@@ -945,6 +1182,11 @@ export type $UserDailyRecordPayload<ExtArgs extends runtime.Types.Extensions.Int
     note: string | null
     payload: runtime.JsonValue | null
     source: string | null
+    mealAnalysisStatus: $Enums.MealAnalysisStatus | null
+    mealAnalysisCoverage: $Enums.MealAnalysisCoverage | null
+    mealAnalysisUpdatedAt: Date | null
+    mealAnalysisFailureReason: string | null
+    mealSourceRevision: number
     deletedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -1384,6 +1626,11 @@ export interface UserDailyRecordFieldRefs {
   readonly note: Prisma.FieldRef<"UserDailyRecord", 'String'>
   readonly payload: Prisma.FieldRef<"UserDailyRecord", 'Json'>
   readonly source: Prisma.FieldRef<"UserDailyRecord", 'String'>
+  readonly mealAnalysisStatus: Prisma.FieldRef<"UserDailyRecord", 'MealAnalysisStatus'>
+  readonly mealAnalysisCoverage: Prisma.FieldRef<"UserDailyRecord", 'MealAnalysisCoverage'>
+  readonly mealAnalysisUpdatedAt: Prisma.FieldRef<"UserDailyRecord", 'DateTime'>
+  readonly mealAnalysisFailureReason: Prisma.FieldRef<"UserDailyRecord", 'String'>
+  readonly mealSourceRevision: Prisma.FieldRef<"UserDailyRecord", 'Int'>
   readonly deletedAt: Prisma.FieldRef<"UserDailyRecord", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"UserDailyRecord", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"UserDailyRecord", 'DateTime'>

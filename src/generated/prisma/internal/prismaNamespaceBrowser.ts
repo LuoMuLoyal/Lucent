@@ -64,6 +64,9 @@ export const ModelName = {
   UserDailyRecord: 'UserDailyRecord',
   UserDailyRecordAttachment: 'UserDailyRecordAttachment',
   DrugSourceImport: 'DrugSourceImport',
+  FoodCompositionImport: 'FoodCompositionImport',
+  FoodCompositionCategory: 'FoodCompositionCategory',
+  FoodCompositionItem: 'FoodCompositionItem',
   CnMedicineProduct: 'CnMedicineProduct',
   CnMedicineLeaflet: 'CnMedicineLeaflet',
   CnMedicineProductLeafletLink: 'CnMedicineProductLeafletLink',
@@ -311,6 +314,11 @@ export const UserDailyRecordScalarFieldEnum = {
   note: 'note',
   payload: 'payload',
   source: 'source',
+  mealAnalysisStatus: 'mealAnalysisStatus',
+  mealAnalysisCoverage: 'mealAnalysisCoverage',
+  mealAnalysisUpdatedAt: 'mealAnalysisUpdatedAt',
+  mealAnalysisFailureReason: 'mealAnalysisFailureReason',
+  mealSourceRevision: 'mealSourceRevision',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -358,6 +366,93 @@ export const DrugSourceImportScalarFieldEnum = {
 } as const
 
 export type DrugSourceImportScalarFieldEnum = (typeof DrugSourceImportScalarFieldEnum)[keyof typeof DrugSourceImportScalarFieldEnum]
+
+
+export const FoodCompositionImportScalarFieldEnum = {
+  id: 'id',
+  sourceKey: 'sourceKey',
+  sourceName: 'sourceName',
+  sourceVersion: 'sourceVersion',
+  sourceFileName: 'sourceFileName',
+  sourceFileHash: 'sourceFileHash',
+  sourceExportedAt: 'sourceExportedAt',
+  status: 'status',
+  rawRowCount: 'rawRowCount',
+  importedRowCount: 'importedRowCount',
+  rejectedRowCount: 'rejectedRowCount',
+  rejectionSummary: 'rejectionSummary',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FoodCompositionImportScalarFieldEnum = (typeof FoodCompositionImportScalarFieldEnum)[keyof typeof FoodCompositionImportScalarFieldEnum]
+
+
+export const FoodCompositionCategoryScalarFieldEnum = {
+  code: 'code',
+  importRunId: 'importRunId',
+  sourceRowNumber: 'sourceRowNumber',
+  parentCode: 'parentCode',
+  name: 'name',
+  level: 'level',
+  searchText: 'searchText',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FoodCompositionCategoryScalarFieldEnum = (typeof FoodCompositionCategoryScalarFieldEnum)[keyof typeof FoodCompositionCategoryScalarFieldEnum]
+
+
+export const FoodCompositionItemScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  sourceRowNumber: 'sourceRowNumber',
+  sourceSerialNumber: 'sourceSerialNumber',
+  name: 'name',
+  normalizedName: 'normalizedName',
+  searchText: 'searchText',
+  aliases: 'aliases',
+  primaryCategoryCode: 'primaryCategoryCode',
+  secondaryCategoryCode: 'secondaryCategoryCode',
+  ediblePortionPercent: 'ediblePortionPercent',
+  waterG: 'waterG',
+  energyKcal: 'energyKcal',
+  energyKj: 'energyKj',
+  proteinG: 'proteinG',
+  fatG: 'fatG',
+  carbohydrateG: 'carbohydrateG',
+  fiberG: 'fiberG',
+  cholesterolMg: 'cholesterolMg',
+  calciumMg: 'calciumMg',
+  phosphorusMg: 'phosphorusMg',
+  potassiumMg: 'potassiumMg',
+  sodiumMg: 'sodiumMg',
+  magnesiumMg: 'magnesiumMg',
+  ironMg: 'ironMg',
+  zincMg: 'zincMg',
+  seleniumMg: 'seleniumMg',
+  copperMg: 'copperMg',
+  manganeseMg: 'manganeseMg',
+  iodineMg: 'iodineMg',
+  vitaminAMcgRe: 'vitaminAMcgRe',
+  thiaminMg: 'thiaminMg',
+  riboflavinMg: 'riboflavinMg',
+  vitaminB6Mg: 'vitaminB6Mg',
+  vitaminB12Mg: 'vitaminB12Mg',
+  folateUg: 'folateUg',
+  niacinMg: 'niacinMg',
+  vitaminCMg: 'vitaminCMg',
+  vitaminEMg: 'vitaminEMg',
+  caroteneMcg: 'caroteneMcg',
+  retinolMcg: 'retinolMcg',
+  alphaVitaminEMg: 'alphaVitaminEMg',
+  extras: 'extras',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FoodCompositionItemScalarFieldEnum = (typeof FoodCompositionItemScalarFieldEnum)[keyof typeof FoodCompositionItemScalarFieldEnum]
 
 
 export const CnMedicineProductScalarFieldEnum = {

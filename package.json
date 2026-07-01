@@ -32,6 +32,8 @@
     "test:runtime:start": "node scripts/dev/start-test-runtime.ts",
     "test:runtime:stop": "node scripts/dev/stop-test-runtime.ts",
     "import:medicine:all": "node scripts/import/medicine/import-medicine-datasets.ts",
+    "import:food:categories": "node scripts/import/food/import-food-composition.ts categories",
+    "import:food:items": "node scripts/import/food/import-food-composition.ts items",
     "test": "cross-env NODE_ENV=test jest",
     "test:coverage": "cross-env NODE_ENV=test jest --coverage",
     "test:ci": "cross-env NODE_ENV=test jest --runInBand",

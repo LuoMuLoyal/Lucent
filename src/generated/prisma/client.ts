@@ -109,6 +109,21 @@ export type UserDailyRecordAttachment = Prisma.UserDailyRecordAttachmentModel
  */
 export type DrugSourceImport = Prisma.DrugSourceImportModel
 /**
+ * Model FoodCompositionImport
+ * 
+ */
+export type FoodCompositionImport = Prisma.FoodCompositionImportModel
+/**
+ * Model FoodCompositionCategory
+ * 
+ */
+export type FoodCompositionCategory = Prisma.FoodCompositionCategoryModel
+/**
+ * Model FoodCompositionItem
+ * 
+ */
+export type FoodCompositionItem = Prisma.FoodCompositionItemModel
+/**
  * Model CnMedicineProduct
  * 
  */

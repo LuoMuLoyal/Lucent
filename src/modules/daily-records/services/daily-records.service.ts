@@ -11,6 +11,14 @@ import {
   dailyRecordWithAttachments,
   type DailyRecordDbClient,
 } from '../types/daily-records.types';
+import {
+  buildMealPayloadFromClientInput,
+  getMealSourceRevision,
+  markMealAnalysisQueued,
+  type MealAnalysisCoverage,
+  type MealAnalysisStatus,
+} from '../types/meal-analysis.types';
+import { MealAnalysisQueueService } from './meal-analysis-queue.service';
 
 @Injectable()
 export class DailyRecordsService {
@@ -18,6 +26,7 @@ export class DailyRecordsService {
     private readonly prisma: PrismaService,
     private readonly ownershipService: DailyRecordsOwnershipService,
     private readonly mapperService: DailyRecordsMapperService,
+    private readonly mealAnalysisQueueService: MealAnalysisQueueService,
   ) {}
 
   async list(
@@ -58,6 +67,10 @@ export class DailyRecordsService {
     this.ensureValidSleepPayload(dto.kind, dto.payload);
 
     const createAttachments = dto.attachments;
+    const initialMealPayload =
+      dto.kind === DailyRecordKind.meal
+        ? this.prepareMealPayloadForWrite(dto.payload, createAttachments)
+        : null;
 
     const baseData = {
       userId,
@@ -71,15 +84,18 @@ export class DailyRecordsService {
     };
 
     const payloadField =
-      dto.payload === undefined
-        ? {}
-        : { payload: dto.payload as Prisma.InputJsonValue };
+      dto.kind === DailyRecordKind.meal
+        ? this.buildMealCreateFields(initialMealPayload)
+        : dto.payload === undefined
+          ? {}
+          : { payload: dto.payload as Prisma.InputJsonValue };
 
     if (createAttachments !== undefined && createAttachments.length > 0) {
       return this.prisma.$transaction(async (tx) => {
         const record = await tx.userDailyRecord.create({
           data: { ...baseData, ...payloadField },
         });
+        let queuedRevision: number | null = null;
         await tx.userDailyRecordAttachment.createMany({
           data: this.mapperService.toAttachmentCreateManyData(
             userId,
@@ -87,7 +103,30 @@ export class DailyRecordsService {
             createAttachments,
           ),
         });
-        return this.getItemFromDb(tx, userId, record.id);
+        if (
+          dto.kind === DailyRecordKind.meal &&
+          createAttachments.length === 1
+        ) {
+          const attachment = createAttachments[0];
+          if (attachment == null) {
+            throw new Error('Expected one meal attachment after length check.');
+          }
+          const queuedPayload = markMealAnalysisQueued(record.payload, {
+            imageObjectKey: attachment.objectKey,
+          });
+          queuedRevision = getMealSourceRevision(queuedPayload);
+          await tx.userDailyRecord.update({
+            where: { id: record.id },
+            data: this.withMealHotFields({}, queuedPayload),
+          });
+        }
+        const item = await this.getItemFromDb(tx, userId, record.id);
+        await this.enqueueMealAnalysisIfNeeded(
+          userId,
+          item,
+          queuedRevision ?? undefined,
+        );
+        return item;
       });
     }
 
@@ -96,7 +135,11 @@ export class DailyRecordsService {
       include: dailyRecordWithAttachments,
     });
 
-    return this.mapperService.toItem(record);
+    const item = this.mapperService.toItem(record, {
+      includeMealPayload: true,
+    });
+    await this.enqueueMealAnalysisIfNeeded(userId, item);
+    return item;
   }
 
   async get(userId: string, id: string) {
@@ -108,11 +151,23 @@ export class DailyRecordsService {
     this.ensureValidSleepFinalState(dto, existing);
 
     const updateAttachments = dto.attachments;
+    const nextPayload =
+      (dto.payload !== undefined || updateAttachments !== undefined) &&
+      (dto.kind ?? existing.kind) === DailyRecordKind.meal
+        ? this.prepareMealPayloadForWrite(
+            dto.payload !== undefined ? dto.payload : existing.payload,
+            updateAttachments,
+            existing.payload,
+          )
+        : null;
     if (updateAttachments !== undefined) {
       return this.prisma.$transaction(async (tx) => {
         await tx.userDailyRecord.update({
           where: { id },
-          data: this.mapperService.toRecordUpdateData(dto),
+          data: this.withMealHotFields(
+            this.mapperService.toRecordUpdateData(dto, existing),
+            nextPayload,
+          ),
         });
         await tx.userDailyRecordAttachment.deleteMany({
           where: { userId, recordId: id },
@@ -126,17 +181,30 @@ export class DailyRecordsService {
             ),
           });
         }
-        return this.getItemFromDb(tx, userId, id);
+        const item = await this.getItemFromDb(tx, userId, id);
+        await this.enqueueMealAnalysisIfNeeded(
+          userId,
+          item,
+          nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
+        );
+        return item;
       });
     }
 
     const record = await this.prisma.userDailyRecord.update({
       where: { id },
-      data: this.mapperService.toRecordUpdateData(dto),
+      data: this.withMealHotFields(
+        this.mapperService.toRecordUpdateData(dto, existing),
+        nextPayload,
+      ),
       include: dailyRecordWithAttachments,
     });
 
-    return this.mapperService.toItem(record);
+    const item = this.mapperService.toItem(record, {
+      includeMealPayload: true,
+    });
+    await this.enqueueMealAnalysisIfNeeded(userId, item);
+    return item;
   }
 
   async delete(userId: string, id: string) {
@@ -219,6 +287,96 @@ export class DailyRecordsService {
       this.ownershipService.throwRecordNotFound();
     }
 
-    return this.mapperService.toItem(record);
+    return this.mapperService.toItem(record, { includeMealPayload: true });
+  }
+
+  private prepareMealPayloadForWrite(
+    payload: unknown,
+    attachments: { objectKey: string }[] | undefined,
+    existingPayload?: unknown,
+  ) {
+    const sanitized = buildMealPayloadFromClientInput(
+      payload,
+      existingPayload ?? null,
+    );
+    if (attachments == null || attachments.length !== 1) {
+      return sanitized;
+    }
+    const attachment = attachments[0];
+    if (attachment == null) {
+      return sanitized;
+    }
+
+    return markMealAnalysisQueued(sanitized, {
+      imageObjectKey: attachment.objectKey,
+    });
+  }
+
+  private withMealHotFields(
+    data: Prisma.UserDailyRecordUpdateInput,
+    mealPayload: Record<string, unknown> | null,
+  ): Prisma.UserDailyRecordUpdateInput {
+    if (mealPayload == null) {
+      return data;
+    }
+
+    const analysis = mealPayload['mealAnalysis'] as
+      | Record<string, unknown>
+      | undefined;
+    return {
+      ...data,
+      payload: mealPayload as Prisma.InputJsonValue,
+      mealAnalysisStatus:
+        (analysis?.['analysisStatus'] as
+          | MealAnalysisStatus
+          | null
+          | undefined) ?? null,
+      mealAnalysisCoverage:
+        (analysis?.['coverage'] as MealAnalysisCoverage | null | undefined) ??
+        null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: getMealSourceRevision(mealPayload),
+    };
+  }
+
+  private async enqueueMealAnalysisIfNeeded(
+    userId: string,
+    item: {
+      id: string;
+      kind: DailyRecordKind;
+      attachments: Array<{ objectKey: string }>;
+      payload?: Record<string, unknown> | null;
+    },
+    sourceRevisionOverride?: number,
+  ) {
+    if (item.kind !== DailyRecordKind.meal || item.attachments.length !== 1) {
+      return;
+    }
+
+    await this.mealAnalysisQueueService.enqueue({
+      userId,
+      recordId: item.id,
+      sourceRevision:
+        sourceRevisionOverride ?? getMealSourceRevision(item.payload),
+    });
+  }
+
+  private buildMealCreateFields(
+    mealPayload: Record<string, unknown> | null,
+  ): Record<string, unknown> {
+    if (mealPayload == null) {
+      return {};
+    }
+
+    const analysis = mealPayload['mealAnalysis'] as
+      | Record<string, unknown>
+      | undefined;
+    return {
+      payload: mealPayload,
+      mealAnalysisStatus: analysis?.['analysisStatus'] ?? null,
+      mealAnalysisCoverage: analysis?.['coverage'] ?? null,
+      mealSourceRevision: getMealSourceRevision(mealPayload),
+    };
   }
 }

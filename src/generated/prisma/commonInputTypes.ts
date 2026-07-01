@@ -446,6 +446,20 @@ export type EnumDailyRecordKindFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumDailyRecordKindFilter<$PrismaModel> | $Enums.DailyRecordKind
 }
 
+export type EnumMealAnalysisStatusNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.MealAnalysisStatus | Prisma.EnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MealAnalysisStatus[] | Prisma.ListEnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MealAnalysisStatus[] | Prisma.ListEnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMealAnalysisStatusNullableFilter<$PrismaModel> | $Enums.MealAnalysisStatus | null
+}
+
+export type EnumMealAnalysisCoverageNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.MealAnalysisCoverage | Prisma.EnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MealAnalysisCoverage[] | Prisma.ListEnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MealAnalysisCoverage[] | Prisma.ListEnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMealAnalysisCoverageNullableFilter<$PrismaModel> | $Enums.MealAnalysisCoverage | null
+}
+
 export type EnumDailyRecordKindWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.DailyRecordKind | Prisma.EnumDailyRecordKindFieldRefInput<$PrismaModel>
   in?: $Enums.DailyRecordKind[] | Prisma.ListEnumDailyRecordKindFieldRefInput<$PrismaModel>
@@ -454,6 +468,26 @@ export type EnumDailyRecordKindWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumDailyRecordKindFilter<$PrismaModel>
   _max?: Prisma.NestedEnumDailyRecordKindFilter<$PrismaModel>
+}
+
+export type EnumMealAnalysisStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MealAnalysisStatus | Prisma.EnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MealAnalysisStatus[] | Prisma.ListEnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MealAnalysisStatus[] | Prisma.ListEnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMealAnalysisStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.MealAnalysisStatus | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMealAnalysisStatusNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMealAnalysisStatusNullableFilter<$PrismaModel>
+}
+
+export type EnumMealAnalysisCoverageNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MealAnalysisCoverage | Prisma.EnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MealAnalysisCoverage[] | Prisma.ListEnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MealAnalysisCoverage[] | Prisma.ListEnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMealAnalysisCoverageNullableWithAggregatesFilter<$PrismaModel> | $Enums.MealAnalysisCoverage | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMealAnalysisCoverageNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMealAnalysisCoverageNullableFilter<$PrismaModel>
 }
 
 export type EnumDailyRecordAttachmentKindFilter<$PrismaModel = never> = {
@@ -471,6 +505,33 @@ export type EnumDailyRecordAttachmentKindWithAggregatesFilter<$PrismaModel = nev
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
   _max?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
+}
+
+export type FloatNullableFilter<$PrismaModel = never> = {
+  equals?: number | Prisma.FloatFieldRefInput<$PrismaModel> | null
+  in?: number[] | Prisma.ListFloatFieldRefInput<$PrismaModel> | null
+  notIn?: number[] | Prisma.ListFloatFieldRefInput<$PrismaModel> | null
+  lt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  lte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  gt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  gte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedFloatNullableFilter<$PrismaModel> | number | null
+}
+
+export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: number | Prisma.FloatFieldRefInput<$PrismaModel> | null
+  in?: number[] | Prisma.ListFloatFieldRefInput<$PrismaModel> | null
+  notIn?: number[] | Prisma.ListFloatFieldRefInput<$PrismaModel> | null
+  lt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  lte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  gt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  gte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _avg?: Prisma.NestedFloatNullableFilter<$PrismaModel>
+  _sum?: Prisma.NestedFloatNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedFloatNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedFloatNullableFilter<$PrismaModel>
 }
 
 export type BoolNullableFilter<$PrismaModel = never> = {
@@ -1024,6 +1085,20 @@ export type NestedEnumDailyRecordKindFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumDailyRecordKindFilter<$PrismaModel> | $Enums.DailyRecordKind
 }
 
+export type NestedEnumMealAnalysisStatusNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.MealAnalysisStatus | Prisma.EnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MealAnalysisStatus[] | Prisma.ListEnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MealAnalysisStatus[] | Prisma.ListEnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMealAnalysisStatusNullableFilter<$PrismaModel> | $Enums.MealAnalysisStatus | null
+}
+
+export type NestedEnumMealAnalysisCoverageNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.MealAnalysisCoverage | Prisma.EnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MealAnalysisCoverage[] | Prisma.ListEnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MealAnalysisCoverage[] | Prisma.ListEnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMealAnalysisCoverageNullableFilter<$PrismaModel> | $Enums.MealAnalysisCoverage | null
+}
+
 export type NestedEnumDailyRecordKindWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.DailyRecordKind | Prisma.EnumDailyRecordKindFieldRefInput<$PrismaModel>
   in?: $Enums.DailyRecordKind[] | Prisma.ListEnumDailyRecordKindFieldRefInput<$PrismaModel>
@@ -1032,6 +1107,26 @@ export type NestedEnumDailyRecordKindWithAggregatesFilter<$PrismaModel = never> 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumDailyRecordKindFilter<$PrismaModel>
   _max?: Prisma.NestedEnumDailyRecordKindFilter<$PrismaModel>
+}
+
+export type NestedEnumMealAnalysisStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MealAnalysisStatus | Prisma.EnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MealAnalysisStatus[] | Prisma.ListEnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MealAnalysisStatus[] | Prisma.ListEnumMealAnalysisStatusFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMealAnalysisStatusNullableWithAggregatesFilter<$PrismaModel> | $Enums.MealAnalysisStatus | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMealAnalysisStatusNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMealAnalysisStatusNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumMealAnalysisCoverageNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MealAnalysisCoverage | Prisma.EnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  in?: $Enums.MealAnalysisCoverage[] | Prisma.ListEnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.MealAnalysisCoverage[] | Prisma.ListEnumMealAnalysisCoverageFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumMealAnalysisCoverageNullableWithAggregatesFilter<$PrismaModel> | $Enums.MealAnalysisCoverage | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMealAnalysisCoverageNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMealAnalysisCoverageNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel = never> = {
@@ -1049,6 +1144,22 @@ export type NestedEnumDailyRecordAttachmentKindWithAggregatesFilter<$PrismaModel
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
   _max?: Prisma.NestedEnumDailyRecordAttachmentKindFilter<$PrismaModel>
+}
+
+export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: number | Prisma.FloatFieldRefInput<$PrismaModel> | null
+  in?: number[] | Prisma.ListFloatFieldRefInput<$PrismaModel> | null
+  notIn?: number[] | Prisma.ListFloatFieldRefInput<$PrismaModel> | null
+  lt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  lte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  gt?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  gte?: number | Prisma.FloatFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _avg?: Prisma.NestedFloatNullableFilter<$PrismaModel>
+  _sum?: Prisma.NestedFloatNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedFloatNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedFloatNullableFilter<$PrismaModel>
 }
 
 export type NestedBoolNullableFilter<$PrismaModel = never> = {

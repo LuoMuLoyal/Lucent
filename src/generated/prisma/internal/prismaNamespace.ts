@@ -397,6 +397,9 @@ export const ModelName = {
   UserDailyRecord: 'UserDailyRecord',
   UserDailyRecordAttachment: 'UserDailyRecordAttachment',
   DrugSourceImport: 'DrugSourceImport',
+  FoodCompositionImport: 'FoodCompositionImport',
+  FoodCompositionCategory: 'FoodCompositionCategory',
+  FoodCompositionItem: 'FoodCompositionItem',
   CnMedicineProduct: 'CnMedicineProduct',
   CnMedicineLeaflet: 'CnMedicineLeaflet',
   CnMedicineProductLeafletLink: 'CnMedicineProductLeafletLink',
@@ -427,7 +430,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "cnMedicineProduct" | "cnMedicineLeaflet" | "cnMedicineProductLeafletLink" | "medicineLeafletChunk" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory" | "userNotification" | "medicineSafetyTip"
+    modelProps: "user" | "userIdentity" | "userProfile" | "userSession" | "userDevice" | "userAllergy" | "userCondition" | "userCurrentMedicine" | "userMedicineReminder" | "userReminderDelivery" | "userMedicineDoseLog" | "userDailyRecord" | "userDailyRecordAttachment" | "drugSourceImport" | "foodCompositionImport" | "foodCompositionCategory" | "foodCompositionItem" | "cnMedicineProduct" | "cnMedicineLeaflet" | "cnMedicineProductLeafletLink" | "medicineLeafletChunk" | "drugbankDrug" | "drugbankExternalLink" | "drugbankTarget" | "drugbankDrugTarget" | "userSetting" | "dataExportRequest" | "assistantConversation" | "assistantMessage" | "assistantSummaryHistory" | "userNotification" | "medicineSafetyTip"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1464,6 +1467,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.DrugSourceImportCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.DrugSourceImportCountAggregateOutputType> | number
+        }
+      }
+    }
+    FoodCompositionImport: {
+      payload: Prisma.$FoodCompositionImportPayload<ExtArgs>
+      fields: Prisma.FoodCompositionImportFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FoodCompositionImportFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FoodCompositionImportFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload>
+        }
+        findFirst: {
+          args: Prisma.FoodCompositionImportFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FoodCompositionImportFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload>
+        }
+        findMany: {
+          args: Prisma.FoodCompositionImportFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload>[]
+        }
+        create: {
+          args: Prisma.FoodCompositionImportCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload>
+        }
+        createMany: {
+          args: Prisma.FoodCompositionImportCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FoodCompositionImportCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload>[]
+        }
+        delete: {
+          args: Prisma.FoodCompositionImportDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload>
+        }
+        update: {
+          args: Prisma.FoodCompositionImportUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload>
+        }
+        deleteMany: {
+          args: Prisma.FoodCompositionImportDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FoodCompositionImportUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FoodCompositionImportUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload>[]
+        }
+        upsert: {
+          args: Prisma.FoodCompositionImportUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionImportPayload>
+        }
+        aggregate: {
+          args: Prisma.FoodCompositionImportAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFoodCompositionImport>
+        }
+        groupBy: {
+          args: Prisma.FoodCompositionImportGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FoodCompositionImportGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FoodCompositionImportCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FoodCompositionImportCountAggregateOutputType> | number
+        }
+      }
+    }
+    FoodCompositionCategory: {
+      payload: Prisma.$FoodCompositionCategoryPayload<ExtArgs>
+      fields: Prisma.FoodCompositionCategoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FoodCompositionCategoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FoodCompositionCategoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload>
+        }
+        findFirst: {
+          args: Prisma.FoodCompositionCategoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FoodCompositionCategoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload>
+        }
+        findMany: {
+          args: Prisma.FoodCompositionCategoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload>[]
+        }
+        create: {
+          args: Prisma.FoodCompositionCategoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload>
+        }
+        createMany: {
+          args: Prisma.FoodCompositionCategoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FoodCompositionCategoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload>[]
+        }
+        delete: {
+          args: Prisma.FoodCompositionCategoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload>
+        }
+        update: {
+          args: Prisma.FoodCompositionCategoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.FoodCompositionCategoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FoodCompositionCategoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FoodCompositionCategoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.FoodCompositionCategoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionCategoryPayload>
+        }
+        aggregate: {
+          args: Prisma.FoodCompositionCategoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFoodCompositionCategory>
+        }
+        groupBy: {
+          args: Prisma.FoodCompositionCategoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FoodCompositionCategoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FoodCompositionCategoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FoodCompositionCategoryCountAggregateOutputType> | number
+        }
+      }
+    }
+    FoodCompositionItem: {
+      payload: Prisma.$FoodCompositionItemPayload<ExtArgs>
+      fields: Prisma.FoodCompositionItemFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FoodCompositionItemFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FoodCompositionItemFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload>
+        }
+        findFirst: {
+          args: Prisma.FoodCompositionItemFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FoodCompositionItemFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload>
+        }
+        findMany: {
+          args: Prisma.FoodCompositionItemFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload>[]
+        }
+        create: {
+          args: Prisma.FoodCompositionItemCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload>
+        }
+        createMany: {
+          args: Prisma.FoodCompositionItemCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FoodCompositionItemCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload>[]
+        }
+        delete: {
+          args: Prisma.FoodCompositionItemDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload>
+        }
+        update: {
+          args: Prisma.FoodCompositionItemUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload>
+        }
+        deleteMany: {
+          args: Prisma.FoodCompositionItemDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FoodCompositionItemUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FoodCompositionItemUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload>[]
+        }
+        upsert: {
+          args: Prisma.FoodCompositionItemUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FoodCompositionItemPayload>
+        }
+        aggregate: {
+          args: Prisma.FoodCompositionItemAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFoodCompositionItem>
+        }
+        groupBy: {
+          args: Prisma.FoodCompositionItemGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FoodCompositionItemGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FoodCompositionItemCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FoodCompositionItemCountAggregateOutputType> | number
         }
       }
     }
@@ -2830,6 +3055,11 @@ export const UserDailyRecordScalarFieldEnum = {
   note: 'note',
   payload: 'payload',
   source: 'source',
+  mealAnalysisStatus: 'mealAnalysisStatus',
+  mealAnalysisCoverage: 'mealAnalysisCoverage',
+  mealAnalysisUpdatedAt: 'mealAnalysisUpdatedAt',
+  mealAnalysisFailureReason: 'mealAnalysisFailureReason',
+  mealSourceRevision: 'mealSourceRevision',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -2877,6 +3107,93 @@ export const DrugSourceImportScalarFieldEnum = {
 } as const
 
 export type DrugSourceImportScalarFieldEnum = (typeof DrugSourceImportScalarFieldEnum)[keyof typeof DrugSourceImportScalarFieldEnum]
+
+
+export const FoodCompositionImportScalarFieldEnum = {
+  id: 'id',
+  sourceKey: 'sourceKey',
+  sourceName: 'sourceName',
+  sourceVersion: 'sourceVersion',
+  sourceFileName: 'sourceFileName',
+  sourceFileHash: 'sourceFileHash',
+  sourceExportedAt: 'sourceExportedAt',
+  status: 'status',
+  rawRowCount: 'rawRowCount',
+  importedRowCount: 'importedRowCount',
+  rejectedRowCount: 'rejectedRowCount',
+  rejectionSummary: 'rejectionSummary',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FoodCompositionImportScalarFieldEnum = (typeof FoodCompositionImportScalarFieldEnum)[keyof typeof FoodCompositionImportScalarFieldEnum]
+
+
+export const FoodCompositionCategoryScalarFieldEnum = {
+  code: 'code',
+  importRunId: 'importRunId',
+  sourceRowNumber: 'sourceRowNumber',
+  parentCode: 'parentCode',
+  name: 'name',
+  level: 'level',
+  searchText: 'searchText',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FoodCompositionCategoryScalarFieldEnum = (typeof FoodCompositionCategoryScalarFieldEnum)[keyof typeof FoodCompositionCategoryScalarFieldEnum]
+
+
+export const FoodCompositionItemScalarFieldEnum = {
+  id: 'id',
+  importRunId: 'importRunId',
+  sourceRowNumber: 'sourceRowNumber',
+  sourceSerialNumber: 'sourceSerialNumber',
+  name: 'name',
+  normalizedName: 'normalizedName',
+  searchText: 'searchText',
+  aliases: 'aliases',
+  primaryCategoryCode: 'primaryCategoryCode',
+  secondaryCategoryCode: 'secondaryCategoryCode',
+  ediblePortionPercent: 'ediblePortionPercent',
+  waterG: 'waterG',
+  energyKcal: 'energyKcal',
+  energyKj: 'energyKj',
+  proteinG: 'proteinG',
+  fatG: 'fatG',
+  carbohydrateG: 'carbohydrateG',
+  fiberG: 'fiberG',
+  cholesterolMg: 'cholesterolMg',
+  calciumMg: 'calciumMg',
+  phosphorusMg: 'phosphorusMg',
+  potassiumMg: 'potassiumMg',
+  sodiumMg: 'sodiumMg',
+  magnesiumMg: 'magnesiumMg',
+  ironMg: 'ironMg',
+  zincMg: 'zincMg',
+  seleniumMg: 'seleniumMg',
+  copperMg: 'copperMg',
+  manganeseMg: 'manganeseMg',
+  iodineMg: 'iodineMg',
+  vitaminAMcgRe: 'vitaminAMcgRe',
+  thiaminMg: 'thiaminMg',
+  riboflavinMg: 'riboflavinMg',
+  vitaminB6Mg: 'vitaminB6Mg',
+  vitaminB12Mg: 'vitaminB12Mg',
+  folateUg: 'folateUg',
+  niacinMg: 'niacinMg',
+  vitaminCMg: 'vitaminCMg',
+  vitaminEMg: 'vitaminEMg',
+  caroteneMcg: 'caroteneMcg',
+  retinolMcg: 'retinolMcg',
+  alphaVitaminEMg: 'alphaVitaminEMg',
+  extras: 'extras',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FoodCompositionItemScalarFieldEnum = (typeof FoodCompositionItemScalarFieldEnum)[keyof typeof FoodCompositionItemScalarFieldEnum]
 
 
 export const CnMedicineProductScalarFieldEnum = {
@@ -3506,6 +3823,34 @@ export type ListEnumDailyRecordKindFieldRefInput<$PrismaModel> = FieldRefInputTy
 
 
 /**
+ * Reference to a field of type 'MealAnalysisStatus'
+ */
+export type EnumMealAnalysisStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MealAnalysisStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'MealAnalysisStatus[]'
+ */
+export type ListEnumMealAnalysisStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MealAnalysisStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'MealAnalysisCoverage'
+ */
+export type EnumMealAnalysisCoverageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MealAnalysisCoverage'>
+    
+
+
+/**
+ * Reference to a field of type 'MealAnalysisCoverage[]'
+ */
+export type ListEnumMealAnalysisCoverageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MealAnalysisCoverage[]'>
+    
+
+
+/**
  * Reference to a field of type 'DailyRecordAttachmentKind'
  */
 export type EnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DailyRecordAttachmentKind'>
@@ -3516,6 +3861,20 @@ export type EnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel> = FieldRefI
  * Reference to a field of type 'DailyRecordAttachmentKind[]'
  */
 export type ListEnumDailyRecordAttachmentKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DailyRecordAttachmentKind[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+/**
+ * Reference to a field of type 'Float[]'
+ */
+export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
 
@@ -3572,20 +3931,6 @@ export type EnumUserNotificationTypeFieldRefInput<$PrismaModel> = FieldRefInputT
  * Reference to a field of type 'UserNotificationType[]'
  */
 export type ListEnumUserNotificationTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'UserNotificationType[]'>
-    
-
-
-/**
- * Reference to a field of type 'Float'
- */
-export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
-    
-
-
-/**
- * Reference to a field of type 'Float[]'
- */
-export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
     
 
 /**
@@ -3712,6 +4057,9 @@ export type GlobalOmitConfig = {
   userDailyRecord?: Prisma.UserDailyRecordOmit
   userDailyRecordAttachment?: Prisma.UserDailyRecordAttachmentOmit
   drugSourceImport?: Prisma.DrugSourceImportOmit
+  foodCompositionImport?: Prisma.FoodCompositionImportOmit
+  foodCompositionCategory?: Prisma.FoodCompositionCategoryOmit
+  foodCompositionItem?: Prisma.FoodCompositionItemOmit
   cnMedicineProduct?: Prisma.CnMedicineProductOmit
   cnMedicineLeaflet?: Prisma.CnMedicineLeafletOmit
   cnMedicineProductLeafletLink?: Prisma.CnMedicineProductLeafletLinkOmit

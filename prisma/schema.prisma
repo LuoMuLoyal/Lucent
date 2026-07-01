@@ -88,6 +88,19 @@ enum DailyRecordAttachmentKind {
   image
 }
 
+enum MealAnalysisStatus {
+  analyzing
+  unconfirmed
+  confirmed
+  analysis_failed
+}
+
+enum MealAnalysisCoverage {
+  none
+  partial
+  complete
+}
+
 enum AssistantConversationStatus {
   active
   archived
@@ -369,26 +382,33 @@ model UserMedicineDoseLog {
 }
 
 model UserDailyRecord {
-  id          String                      @id @default(uuid())
-  userId      String                      @map("user_id")
-  kind        DailyRecordKind
-  occurredAt  DateTime                    @map("occurred_at") @db.Date
-  occurredTime String?                    @map("occurred_time") @db.VarChar(5)
-  title       String?
-  value       String?
-  unit        String?
-  note        String?
-  payload     Json?                       @db.JsonB
-  source      String?                     @default("manual")
-  deletedAt   DateTime?                   @map("deleted_at") @db.Timestamptz(3)
-  createdAt   DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user        User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attachments UserDailyRecordAttachment[]
+  id                        String                      @id @default(uuid())
+  userId                    String                      @map("user_id")
+  kind                      DailyRecordKind
+  occurredAt                DateTime                    @map("occurred_at") @db.Date
+  occurredTime              String?                     @map("occurred_time") @db.VarChar(5)
+  title                     String?
+  value                     String?
+  unit                      String?
+  note                      String?
+  payload                   Json?                       @db.JsonB
+  source                    String?                     @default("manual")
+  mealAnalysisStatus        MealAnalysisStatus?         @map("meal_analysis_status")
+  mealAnalysisCoverage      MealAnalysisCoverage?       @map("meal_analysis_coverage")
+  mealAnalysisUpdatedAt     DateTime?                   @map("meal_analysis_updated_at") @db.Timestamptz(3)
+  mealAnalysisFailureReason String?                     @map("meal_analysis_failure_reason")
+  mealSourceRevision        Int                         @default(0) @map("meal_source_revision")
+  deletedAt                 DateTime?                   @map("deleted_at") @db.Timestamptz(3)
+  createdAt                 DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments               UserDailyRecordAttachment[]
 
   @@index([userId, occurredAt])
   @@index([userId, occurredAt, occurredTime])
   @@index([userId, kind])
+  @@index([userId, mealAnalysisStatus])
+  @@index([userId, mealAnalysisUpdatedAt])
   @@index([userId, deletedAt])
   @@map("user_daily_records")
 }
@@ -440,6 +460,103 @@ model DrugSourceImport {
 
   @@index([sourceKey, createdAt])
   @@map("drug_source_imports")
+}
+
+model FoodCompositionImport {
+  id               String                   @id @default(uuid())
+  sourceKey        String                   @map("source_key")
+  sourceName       String                   @map("source_name")
+  sourceVersion    String?                  @map("source_version")
+  sourceFileName   String?                  @map("source_file_name")
+  sourceFileHash   String?                  @map("source_file_hash")
+  sourceExportedAt DateTime?                @map("source_exported_at") @db.Timestamptz(3)
+  status           String                   @default("completed")
+  rawRowCount      Int?                     @map("raw_row_count")
+  importedRowCount Int?                     @map("imported_row_count")
+  rejectedRowCount Int?                     @map("rejected_row_count")
+  rejectionSummary Json?                    @map("rejection_summary") @db.JsonB
+  note             String?
+  createdAt        DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  categories       FoodCompositionCategory[]
+  items            FoodCompositionItem[]
+
+  @@index([sourceKey, createdAt])
+  @@map("food_composition_imports")
+}
+
+model FoodCompositionCategory {
+  code            String                 @id
+  importRunId     String?                @map("import_run_id")
+  sourceRowNumber Int?                   @map("source_row_number")
+  parentCode      String?                @map("parent_code")
+  name            String
+  level           Int?
+  searchText      String?                @map("search_text")
+  createdAt       DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun       FoodCompositionImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+
+  @@index([parentCode])
+  @@index([name])
+  @@index([searchText])
+  @@map("food_composition_categories")
+}
+
+model FoodCompositionItem {
+  id                   String                 @id
+  importRunId          String?                @map("import_run_id")
+  sourceRowNumber      Int?                   @map("source_row_number")
+  sourceSerialNumber   Int?                   @map("source_serial_number")
+  name                 String
+  normalizedName       String                 @map("normalized_name")
+  searchText           String?                @map("search_text")
+  aliases              Json?                  @db.JsonB
+  primaryCategoryCode  String?                @map("primary_category_code")
+  secondaryCategoryCode String?               @map("secondary_category_code")
+  ediblePortionPercent Float?                 @map("edible_portion_percent")
+  waterG               Float?                 @map("water_g")
+  energyKcal           Float?                 @map("energy_kcal")
+  energyKj             Float?                 @map("energy_kj")
+  proteinG             Float?                 @map("protein_g")
+  fatG                 Float?                 @map("fat_g")
+  carbohydrateG        Float?                 @map("carbohydrate_g")
+  fiberG               Float?                 @map("fiber_g")
+  cholesterolMg        Float?                 @map("cholesterol_mg")
+  calciumMg            Float?                 @map("calcium_mg")
+  phosphorusMg         Float?                 @map("phosphorus_mg")
+  potassiumMg          Float?                 @map("potassium_mg")
+  sodiumMg             Float?                 @map("sodium_mg")
+  magnesiumMg          Float?                 @map("magnesium_mg")
+  ironMg               Float?                 @map("iron_mg")
+  zincMg               Float?                 @map("zinc_mg")
+  seleniumMg           Float?                 @map("selenium_mg")
+  copperMg             Float?                 @map("copper_mg")
+  manganeseMg          Float?                 @map("manganese_mg")
+  iodineMg             Float?                 @map("iodine_mg")
+  vitaminAMcgRe        Float?                 @map("vitamin_a_mcg_re")
+  thiaminMg            Float?                 @map("thiamin_mg")
+  riboflavinMg         Float?                 @map("riboflavin_mg")
+  vitaminB6Mg          Float?                 @map("vitamin_b6_mg")
+  vitaminB12Mg         Float?                 @map("vitamin_b12_mg")
+  folateUg             Float?                 @map("folate_ug")
+  niacinMg             Float?                 @map("niacin_mg")
+  vitaminCMg           Float?                 @map("vitamin_c_mg")
+  vitaminEMg           Float?                 @map("vitamin_e_mg")
+  caroteneMcg          Float?                 @map("carotene_mcg")
+  retinolMcg           Float?                 @map("retinol_mcg")
+  alphaVitaminEMg      Float?                 @map("alpha_vitamin_e_mg")
+  extras               Json?                  @db.JsonB
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  importRun            FoodCompositionImport? @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+
+  @@index([name])
+  @@index([normalizedName])
+  @@index([primaryCategoryCode])
+  @@index([secondaryCategoryCode])
+  @@index([searchText])
+  @@map("food_composition_items")
 }
 
 model CnMedicineProduct {

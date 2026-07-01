@@ -121,6 +121,25 @@ export const DailyRecordAttachmentKind = {
 export type DailyRecordAttachmentKind = (typeof DailyRecordAttachmentKind)[keyof typeof DailyRecordAttachmentKind]
 
 
+export const MealAnalysisStatus = {
+  analyzing: 'analyzing',
+  unconfirmed: 'unconfirmed',
+  confirmed: 'confirmed',
+  analysis_failed: 'analysis_failed'
+} as const
+
+export type MealAnalysisStatus = (typeof MealAnalysisStatus)[keyof typeof MealAnalysisStatus]
+
+
+export const MealAnalysisCoverage = {
+  none: 'none',
+  partial: 'partial',
+  complete: 'complete'
+} as const
+
+export type MealAnalysisCoverage = (typeof MealAnalysisCoverage)[keyof typeof MealAnalysisCoverage]
+
+
 export const AssistantConversationStatus = {
   active: 'active',
   archived: 'archived'

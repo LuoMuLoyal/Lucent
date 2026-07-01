@@ -9,13 +9,27 @@ import type {
 import type { DailyRecordShape } from '../types/daily-records.types';
 import {
   DailyRecordAttachmentKind,
+  DailyRecordKind,
   Prisma,
 } from '../../../generated/prisma/client';
+import {
+  buildMealPayloadFromClientInput,
+  getMealListSummary,
+} from '../types/meal-analysis.types';
+import type { OwnedRecordSnapshot } from './ownership.service';
+
+interface DailyRecordItemOptions {
+  includeMealPayload?: boolean;
+}
 
 @Injectable()
 export class DailyRecordsMapperService {
-  toRecordUpdateData(dto: UpdateDailyRecordDto) {
+  toRecordUpdateData(
+    dto: UpdateDailyRecordDto,
+    existing?: OwnedRecordSnapshot,
+  ) {
     const data: Prisma.UserDailyRecordUpdateInput = {};
+    const targetKind = dto.kind ?? existing?.kind ?? null;
 
     if (dto.kind !== undefined) {
       data.kind = dto.kind;
@@ -39,10 +53,19 @@ export class DailyRecordsMapperService {
       data.note = normalizeNullableText(dto.note);
     }
     if (dto.payload !== undefined) {
-      data.payload =
-        dto.payload === null
-          ? Prisma.DbNull
-          : (dto.payload as Prisma.InputJsonValue);
+      if (targetKind === DailyRecordKind.meal) {
+        const payload = buildMealPayloadFromClientInput(
+          dto.payload,
+          existing?.payload,
+        );
+        data.payload =
+          payload == null ? Prisma.DbNull : (payload as Prisma.InputJsonValue);
+      } else {
+        data.payload =
+          dto.payload === null
+            ? Prisma.DbNull
+            : (dto.payload as Prisma.InputJsonValue);
+      }
     }
 
     return data;
@@ -69,7 +92,12 @@ export class DailyRecordsMapperService {
     }));
   }
 
-  toItem(record: DailyRecordShape) {
+  toItem(record: DailyRecordShape, options?: DailyRecordItemOptions) {
+    const mealSummary =
+      record.kind === DailyRecordKind.meal
+        ? getMealListSummary(record.payload)
+        : null;
+
     return {
       id: record.id,
       kind: record.kind,
@@ -80,7 +108,18 @@ export class DailyRecordsMapperService {
       unit: record.unit,
       note: record.note,
       source: record.source,
-      payload: record.payload as Record<string, unknown> | null,
+      payload:
+        record.kind === DailyRecordKind.meal
+          ? options?.includeMealPayload === true
+            ? (record.payload as Record<string, unknown> | null)
+            : null
+          : (record.payload as Record<string, unknown> | null),
+      mealAnalysisStatus: mealSummary?.mealAnalysisStatus ?? null,
+      mealAnalysisCoverage: mealSummary?.mealAnalysisCoverage ?? null,
+      mealAnalysisUpdatedAt: mealSummary?.mealAnalysisUpdatedAt ?? null,
+      mealAnalysisFailureReason: mealSummary?.mealAnalysisFailureReason ?? null,
+      mealShortDescription: mealSummary?.mealShortDescription ?? null,
+      mealTopFoods: mealSummary?.mealTopFoods ?? [],
       attachments: record.attachments.map((attachment) => ({
         id: attachment.id,
         kind: attachment.kind,

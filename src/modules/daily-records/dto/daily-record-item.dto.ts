@@ -44,6 +44,43 @@ export class DailyRecordItemDto {
   })
   payload?: Record<string, unknown> | null;
 
+  @ApiPropertyOptional({
+    description: 'Meal analysis status for meal records.',
+    nullable: true,
+  })
+  mealAnalysisStatus?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Meal analysis coverage for meal records.',
+    nullable: true,
+  })
+  mealAnalysisCoverage?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Meal analysis updated timestamp (ISO 8601).',
+    nullable: true,
+  })
+  mealAnalysisUpdatedAt?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Display-safe meal analysis failure reason.',
+    nullable: true,
+  })
+  mealAnalysisFailureReason?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Short meal description for list reads.',
+    nullable: true,
+  })
+  mealShortDescription?: string | null;
+
+  @ApiPropertyOptional({
+    description: 'Top recognized foods for list reads.',
+    isArray: true,
+    type: String,
+  })
+  mealTopFoods?: string[];
+
   @ApiProperty({ type: () => DailyRecordAttachmentDto, isArray: true })
   attachments!: DailyRecordAttachmentDto[];
 

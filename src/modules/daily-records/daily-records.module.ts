@@ -11,6 +11,8 @@ import { DailyRecordImageUploadRuntime } from './config/daily-record-image-uploa
 import { DailyRecordsController } from './daily-records.controller';
 import { DailyRecordsMapperService } from './services/daily-records-mapper.service';
 import { DailyRecordsService } from './services/daily-records.service';
+import { MealAnalysisQueueService } from './services/meal-analysis-queue.service';
+import { MealAnalysisWorkerService } from './services/meal-analysis-worker.service';
 
 @Module({
   imports: [ConfigModule, PrismaModule, LlmRuntimeModule],
@@ -22,6 +24,8 @@ import { DailyRecordsService } from './services/daily-records.service';
     DailyRecordsOwnershipService,
     DailyRecordsService,
     DailyRecordsMapperService,
+    MealAnalysisQueueService,
+    MealAnalysisWorkerService,
     DailyRecordImageUploadRuntime,
     DailyRecordImageUploadService,
   ],

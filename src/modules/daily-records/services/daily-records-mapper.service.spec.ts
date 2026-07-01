@@ -22,6 +22,43 @@ describe('DailyRecordsMapperService', () => {
       expect(result.kind).toBe('sleep');
       expect(result.occurredAt).toBeInstanceOf(Date);
     });
+
+    it('replaces only mealInput and keeps server-owned mealAnalysis', () => {
+      const result = service.toRecordUpdateData(
+        {
+          payload: {
+            mealInput: {
+              manualSummary: 'updated by user',
+            },
+            mealAnalysis: {
+              analysisStatus: 'analysis_failed',
+            },
+          },
+        },
+        {
+          kind: 'meal' as DailyRecordKind,
+          payload: {
+            mealInput: {
+              manualSummary: 'old text',
+            },
+            mealAnalysis: {
+              analysisStatus: 'confirmed',
+              mealDescription: 'trusted result',
+            },
+          },
+        },
+      );
+
+      expect(result.payload).toEqual({
+        mealInput: {
+          manualSummary: 'updated by user',
+        },
+        mealAnalysis: {
+          analysisStatus: 'confirmed',
+          mealDescription: 'trusted result',
+        },
+      });
+    });
   });
 
   describe('toAttachmentCreateManyData', () => {
@@ -55,6 +92,33 @@ describe('DailyRecordsMapperService', () => {
       expect(item.id).toBe('r1');
       expect(item.occurredAt).toBe('2026-06-15');
       expect(item.occurredTime).toBe('14:30');
+    });
+
+    it('keeps full meal payload for detail reads when requested', () => {
+      const payload = {
+        mealInput: { manualSummary: 'rice' },
+        mealAnalysis: { analysisStatus: 'confirmed' },
+      };
+      const item = service.toItem(
+        {
+          id: 'meal-1',
+          kind: 'meal' as DailyRecordKind,
+          occurredAt: new Date('2026-07-01'),
+          occurredTime: '12:10',
+          title: 'Lunch',
+          value: null,
+          unit: null,
+          note: null,
+          source: null,
+          payload,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as unknown as DailyRecordShape,
+        { includeMealPayload: true },
+      );
+
+      expect(item.payload).toEqual(payload);
     });
   });
 
