@@ -23,6 +23,8 @@ export interface ReportDashboardFacts {
   medicationSeries: number[];
   waterSeries: number[];
   sleepSeries: number[];
+  mealEstimateSeries: number[];
+  mealEstimateTrackedDays: number;
 }
 
 export interface ReportDashboardComputed {

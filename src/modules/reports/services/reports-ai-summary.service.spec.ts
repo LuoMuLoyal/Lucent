@@ -45,6 +45,8 @@ describe('ReportsAiSummaryService', () => {
     medicationSeries: [100, 50, 100, 0, 100, 50, 100],
     waterSeries: [1.8, 1.4, 1.7, 1.2, 1.6, 1.1, 1.5],
     sleepSeries: [0, 0, 0, 0, 0, 0, 0],
+    mealEstimateSeries: [1, 1, 0, 1, 0, 0, 1],
+    mealEstimateTrackedDays: 4,
   };
 
   const baseComputed = {
@@ -128,11 +130,13 @@ describe('ReportsAiSummaryService', () => {
       medication: baseFacts.medicationSeries,
       water: baseFacts.waterSeries,
       sleep: baseFacts.sleepSeries,
+      mealEstimate: baseFacts.mealEstimateSeries,
     },
     dataQuality: {
       medicationTrackedDays: 6,
       waterTrackedDays: 7,
       sleepTrackedDays: 0,
+      mealEstimateTrackedDays: 4,
     },
   };
 
@@ -274,6 +278,8 @@ describe('ReportsAiSummaryService', () => {
         medicationSeries: Array<number>(30).fill(100),
         waterSeries: Array<number>(30).fill(1.6),
         sleepSeries: Array<number>(30).fill(0),
+        mealEstimateSeries: Array<number>(30).fill(1),
+        mealEstimateTrackedDays: 30,
       },
       context: {
         ...baseAiContext,
@@ -283,11 +289,13 @@ describe('ReportsAiSummaryService', () => {
           medication: Array<number>(30).fill(100),
           water: Array<number>(30).fill(1.6),
           sleep: Array<number>(30).fill(0),
+          mealEstimate: Array<number>(30).fill(1),
         },
         dataQuality: {
           medicationTrackedDays: 30,
           waterTrackedDays: 30,
           sleepTrackedDays: 0,
+          mealEstimateTrackedDays: 30,
         },
       },
     });

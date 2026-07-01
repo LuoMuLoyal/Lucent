@@ -45,8 +45,14 @@ export class AssistantToolRecordQueryService {
         value: item.value ?? null,
         unit: item.unit ?? null,
         note: item.note ?? null,
-        tags: [],
+        tags: this.buildTags(item),
         payload: item.payload ?? null,
+        mealAnalysisStatus: item.mealAnalysisStatus ?? null,
+        mealAnalysisCoverage: item.mealAnalysisCoverage ?? null,
+        mealAnalysisUpdatedAt: item.mealAnalysisUpdatedAt ?? null,
+        mealAnalysisFailureReason: item.mealAnalysisFailureReason ?? null,
+        mealShortDescription: item.mealShortDescription ?? null,
+        mealTopFoods: item.mealTopFoods,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
       }));
@@ -308,5 +314,24 @@ export class AssistantToolRecordQueryService {
       /(?:备注|note|内容|content)\s*[:：]?\s*(.+)$/i,
     );
     return noteMatch?.[1] != null ? noteMatch[1].trim() : null;
+  }
+
+  private buildTags(item: {
+    kind: DailyRecordKind;
+    mealAnalysisStatus?: string | null;
+    mealAnalysisCoverage?: string | null;
+  }): string[] {
+    if (item.kind !== DailyRecordKind.meal) {
+      return [];
+    }
+
+    const tags: string[] = [];
+    if (item.mealAnalysisStatus != null) {
+      tags.push(`meal_estimate:${item.mealAnalysisStatus}`);
+    }
+    if (item.mealAnalysisCoverage != null) {
+      tags.push(`meal_coverage:${item.mealAnalysisCoverage}`);
+    }
+    return tags;
   }
 }

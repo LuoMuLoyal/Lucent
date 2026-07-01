@@ -62,11 +62,13 @@ describe('ReportsAiSummaryGeneratorService', () => {
           medication: Array<number>(30).fill(80),
           water: Array<number>(30).fill(1.6),
           sleep: Array<number>(30).fill(0),
+          mealEstimate: Array<number>(30).fill(1),
         },
         dataQuality: {
           medicationTrackedDays: 30,
           waterTrackedDays: 30,
           sleepTrackedDays: 0,
+          mealEstimateTrackedDays: 30,
         },
       },
       {

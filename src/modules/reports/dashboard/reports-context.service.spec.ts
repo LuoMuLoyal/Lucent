@@ -114,4 +114,63 @@ describe('ReportsContextService', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+
+  it('counts meal estimate days only from confirmed and unconfirmed meal analyses', async () => {
+    const prisma = buildPrisma();
+    prisma.userDailyRecord.findMany = jest.fn().mockResolvedValue([
+      {
+        occurredAt: new Date('2026-06-06T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: {
+            analysisStatus: 'confirmed',
+            coverage: 'complete',
+          },
+        },
+      },
+      {
+        occurredAt: new Date('2026-06-07T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: {
+            analysisStatus: 'unconfirmed',
+            coverage: 'partial',
+          },
+        },
+      },
+      {
+        occurredAt: new Date('2026-06-08T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: {
+            analysisStatus: 'analysis_failed',
+            coverage: 'none',
+          },
+        },
+      },
+      {
+        occurredAt: new Date('2026-06-09T00:00:00.000Z'),
+        kind: 'water',
+        value: '500',
+        unit: 'ml',
+        payload: null,
+      },
+    ]);
+    const service = new ReportsContextService(prisma as never);
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-06',
+      endDate: '2026-06-12',
+    });
+
+    expect(context.mealEstimateSeries).toEqual([1, 1, 0, 0, 0, 0, 0]);
+    expect(context.mealEstimateTrackedDays).toBe(2);
+  });
 });

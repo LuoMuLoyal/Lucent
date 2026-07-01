@@ -9,6 +9,7 @@ import {
   DailyRecordKind,
 } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { parseMealRecordPayload } from '../../daily-records/types/meal-analysis.types';
 import { USER_SETTING_KEYS } from '../../user-settings/config/user-settings.constants';
 import {
   REPORT_RANGE_CUSTOM,
@@ -83,6 +84,16 @@ export class ReportsContextService {
       ),
       waterSeries: this.buildWaterSeries(dailyRecords, startDate, endDate),
       sleepSeries: this.buildSleepSeries(dailyRecords, startDate, endDate),
+      mealEstimateSeries: this.buildMealEstimateSeries(
+        dailyRecords,
+        startDate,
+        endDate,
+      ),
+      mealEstimateTrackedDays: this.buildMealEstimateSeries(
+        dailyRecords,
+        startDate,
+        endDate,
+      ).filter((value) => value > 0).length,
     };
   }
 
@@ -182,6 +193,36 @@ export class ReportsContextService {
 
     return this.eachDay(startDate, endDate).map((date) => {
       return durationByDay.get(this.toDateString(date)) ?? 0;
+    });
+  }
+
+  private buildMealEstimateSeries(
+    dailyRecords: Array<{
+      occurredAt: Date;
+      kind: DailyRecordKind;
+      payload: unknown;
+    }>,
+    startDate: Date,
+    endDate: Date,
+  ): number[] {
+    const estimatesByDay = new Map<string, number>();
+
+    for (const record of dailyRecords) {
+      if (record.kind !== DailyRecordKind.meal) {
+        continue;
+      }
+
+      const payload = parseMealRecordPayload(record.payload);
+      const status = payload.mealAnalysis?.analysisStatus;
+      if (status !== 'confirmed' && status !== 'unconfirmed') {
+        continue;
+      }
+
+      estimatesByDay.set(this.toDateString(record.occurredAt), 1);
+    }
+
+    return this.eachDay(startDate, endDate).map((date) => {
+      return estimatesByDay.get(this.toDateString(date)) ?? 0;
     });
   }
 

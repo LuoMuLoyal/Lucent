@@ -46,6 +46,12 @@ export type ToolRecordItem = {
   note: string | null;
   tags: string[];
   payload: Record<string, unknown> | null;
+  mealAnalysisStatus?: string | null;
+  mealAnalysisCoverage?: string | null;
+  mealAnalysisUpdatedAt?: string | null;
+  mealAnalysisFailureReason?: string | null;
+  mealShortDescription?: string | null;
+  mealTopFoods?: string[];
   createdAt: string | null;
   updatedAt: string | null;
 };

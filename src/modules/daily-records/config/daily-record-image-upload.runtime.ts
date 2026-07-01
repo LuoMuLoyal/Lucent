@@ -39,4 +39,15 @@ export class DailyRecordImageUploadRuntime {
       },
     });
   }
+
+  createSignedGetUrl(objectKey: string): string {
+    return this.cos.getObjectUrl({
+      Bucket: this.config.bucket,
+      Region: this.config.region,
+      Key: objectKey,
+      Method: 'GET',
+      Sign: true,
+      Expires: this.config.downloadExpiresSeconds,
+    });
+  }
 }

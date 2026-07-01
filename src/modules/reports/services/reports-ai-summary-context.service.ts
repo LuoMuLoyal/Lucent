@@ -27,11 +27,13 @@ export interface ReportsAiSummaryContext {
     medication: number[];
     water: number[];
     sleep: number[];
+    mealEstimate: number[];
   };
   dataQuality: {
     medicationTrackedDays: number;
     waterTrackedDays: number;
     sleepTrackedDays: number;
+    mealEstimateTrackedDays: number;
   };
 }
 
@@ -63,6 +65,7 @@ export class ReportsAiSummaryContextService {
         medication: facts.medicationSeries,
         water: facts.waterSeries,
         sleep: facts.sleepSeries,
+        mealEstimate: facts.mealEstimateSeries,
       },
       dataQuality: {
         medicationTrackedDays: facts.medicationSeries.filter(
@@ -70,6 +73,7 @@ export class ReportsAiSummaryContextService {
         ).length,
         waterTrackedDays: facts.waterSeries.filter((value) => value > 0).length,
         sleepTrackedDays: facts.sleepSeries.filter((value) => value > 0).length,
+        mealEstimateTrackedDays: facts.mealEstimateTrackedDays,
       },
     };
   }

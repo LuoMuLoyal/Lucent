@@ -22,11 +22,7 @@ Add an asynchronous write-time Meal Analysis flow that turns one Meal Record ima
    - Keep one current result only; first phase does not preserve multi-version history.
 
 3. Add an asynchronous Meal Analysis backend pipeline backed by BullMQ.
-   - Trigger enqueue only after a Meal Record references exactly one persisted trusted image attachment, not at bare upload time.
-   - Run analysis out of band so record creation returns quickly with `analysisStatus = analyzing`.
    - Support retry from `analysis_failed` without creating a second Meal Record.
-   - Re-check record existence, attachment presence, the single-image constraint, soft-delete state, and object readability before processing and again before write-back.
-   - Trust only Lucent-issued image attachments within the authenticated user's storage namespace; never analyze from a client-supplied `publicUrl`.
    - Bind jobs to `recordId + sourceRevision` so stale tasks cannot overwrite newer edits, replacement images, or recomputed analysis.
 
 4. Define an explicit Meal Analysis state machine.
@@ -52,7 +48,6 @@ Add an asynchronous write-time Meal Analysis flow that turns one Meal Record ima
    - Frontend editing can adjust Food Items or portions and mark the result `confirmed`.
 
 8. Bound how downstream AI and summaries consume Meal Analysis.
-   - Today/Report/Assistant read the stored Meal Analysis result through existing daily-record read paths.
    - Document one shared read-rule table so Today, Report, and Assistant agree on how `analyzing`, `unconfirmed`, `confirmed`, `analysis_failed`, and `partial` coverage affect summaries, aggregation, and confidence wording.
    - First-phase consumer matrix:
      - `Today`: may reference `unconfirmed` and `confirmed`; ignores `analyzing`; may mention `analysis_failed` only as missing meal-analysis data; treats `partial` as low-confidence estimated context.

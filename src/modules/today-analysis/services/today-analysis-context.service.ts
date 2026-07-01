@@ -3,10 +3,11 @@ import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import {
   DoseLogStatus,
-  type DailyRecordKind,
+  DailyRecordKind,
   type Prisma,
 } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { parseMealRecordPayload } from '../../daily-records/types/meal-analysis.types';
 
 const DEFAULT_WATER_TARGET_COUNT = 8;
 const MAX_RECENT_RECORDS = 8;
@@ -272,7 +273,7 @@ export class TodayAnalysisContextService {
     };
 
     const sleepRecord = dailyRecords.find(
-      (record) => record.kind === ('sleep' as DailyRecordKind),
+      (record) => record.kind === DailyRecordKind.sleep,
     );
 
     if (sleepRecord == null) {
@@ -321,12 +322,63 @@ export class TodayAnalysisContextService {
   }
 
   private toRecentRecord(record: DailyRecordShape) {
+    const mealPresentation = this.toMealRecentRecord(record);
+    if (mealPresentation != null) {
+      return mealPresentation;
+    }
+
     return {
       kind: record.kind,
       title: this.trimNullableText(record.title),
       value: this.trimNullableText(record.value),
       unit: this.trimNullableText(record.unit),
       note: this.trimNullableText(record.note),
+      createdAt: record.createdAt.toISOString(),
+    };
+  }
+
+  private toMealRecentRecord(record: DailyRecordShape) {
+    if (record.kind !== DailyRecordKind.meal) {
+      return null;
+    }
+
+    const payload = parseMealRecordPayload(record.payload);
+    const analysis = payload.mealAnalysis;
+    if (
+      analysis?.analysisStatus !== 'unconfirmed' &&
+      analysis?.analysisStatus !== 'confirmed'
+    ) {
+      return null;
+    }
+
+    const description = this.trimNullableText(analysis.mealDescription ?? null);
+    const foodNames = Array.isArray(analysis.foodItems)
+      ? analysis.foodItems
+          .map((item) => {
+            if (typeof item !== 'object') {
+              return null;
+            }
+            const candidate = item['name'];
+            return typeof candidate === 'string' ? candidate.trim() : null;
+          })
+          .filter((value): value is string => value != null && value.length > 0)
+          .slice(0, 3)
+      : [];
+
+    return {
+      kind: record.kind,
+      title:
+        description == null
+          ? this.trimNullableText(record.title)
+          : analysis.analysisStatus === 'confirmed'
+            ? `饮食已确认：${description}`
+            : `饮食估算中：${description}`,
+      value: this.trimNullableText(record.value),
+      unit: this.trimNullableText(record.unit),
+      note:
+        foodNames.length > 0
+          ? `识别食物：${foodNames.join('、')}`
+          : this.trimNullableText(record.note),
       createdAt: record.createdAt.toISOString(),
     };
   }

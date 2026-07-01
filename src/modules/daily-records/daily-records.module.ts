@@ -12,6 +12,7 @@ import { DailyRecordsController } from './daily-records.controller';
 import { DailyRecordsMapperService } from './services/daily-records-mapper.service';
 import { DailyRecordsService } from './services/daily-records.service';
 import { MealAnalysisQueueService } from './services/meal-analysis-queue.service';
+import { MealAnalysisVisionService } from './services/meal-analysis-vision.service';
 import { MealAnalysisWorkerService } from './services/meal-analysis-worker.service';
 
 @Module({
@@ -25,6 +26,7 @@ import { MealAnalysisWorkerService } from './services/meal-analysis-worker.servi
     DailyRecordsService,
     DailyRecordsMapperService,
     MealAnalysisQueueService,
+    MealAnalysisVisionService,
     MealAnalysisWorkerService,
     DailyRecordImageUploadRuntime,
     DailyRecordImageUploadService,

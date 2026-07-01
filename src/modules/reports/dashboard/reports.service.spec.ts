@@ -15,6 +15,8 @@ describe('ReportsService', () => {
         medicationSeries: [50, 100, 0, 0, 0, 0, 0],
         waterSeries: [1.5, 0, 0, 0, 0, 0, 0],
         sleepSeries: [0, 0, 0, 0, 0, 0, 0],
+        mealEstimateSeries: [1, 0, 0, 0, 0, 0, 0],
+        mealEstimateTrackedDays: 1,
       }),
     } as unknown as ReportsContextService;
     const computationService = {
@@ -128,6 +130,8 @@ describe('ReportsService', () => {
         medicationSeries: Array(30).fill(100),
         waterSeries: Array(30).fill(1.8),
         sleepSeries: Array(30).fill(0),
+        mealEstimateSeries: Array(30).fill(1),
+        mealEstimateTrackedDays: 30,
       }),
     } as unknown as ReportsContextService;
     const computationService = {
@@ -170,6 +174,8 @@ describe('ReportsService', () => {
         medicationSeries: Array(7).fill(0),
         waterSeries: Array(7).fill(0),
         sleepSeries,
+        mealEstimateSeries: Array(7).fill(0),
+        mealEstimateTrackedDays: 0,
       }),
     } as unknown as ReportsContextService;
     const computationService = {
