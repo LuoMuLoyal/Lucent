@@ -6,6 +6,7 @@ import {
   getMealSourceRevision,
   parseMealRecordPayload,
 } from '../types/meal-analysis.types';
+import { MealAnalysisMatcherService } from './meal-analysis-matcher.service';
 import { MealAnalysisVisionService } from './meal-analysis-vision.service';
 
 interface MealAnalysisJobData {
@@ -22,6 +23,7 @@ export class MealAnalysisWorkerService {
     private readonly prisma: PrismaService,
     private readonly mealAnalysisVisionService: MealAnalysisVisionService,
     private readonly dailyRecordImageUploadRuntime: DailyRecordImageUploadRuntime,
+    private readonly mealAnalysisMatcherService: MealAnalysisMatcherService,
   ) {}
 
   async process(job: MealAnalysisJobData): Promise<void> {
@@ -97,22 +99,13 @@ export class MealAnalysisWorkerService {
       await this.mealAnalysisVisionService.recognizeFromImageUrl(
         signedImageUrl,
       );
+    const matched = await this.mealAnalysisMatcherService.matchAndEstimate(
+      recognition.foodItems,
+    );
     const analyzedAt = new Date();
     const mealDescription = normalizeNullableText(recognition.mealDescription);
-    const foodItems = recognition.foodItems
-      .map((item) => ({
-        name: normalizeNullableText(item.name),
-        confidence:
-          typeof item.confidence === 'number' ? item.confidence : null,
-        portionText: normalizeNullableText(item.portionText),
-      }))
-      .filter((item) => item.name != null)
-      .map((item) => ({
-        name: item.name,
-        confidence: item.confidence,
-        portionText: item.portionText,
-      }));
-    const coverage = foodItems.length > 0 ? 'partial' : 'none';
+    const foodItems = matched.foodItems;
+    const coverage = matched.coverage;
 
     await this.prisma.userDailyRecord.update({
       where: { id: record.id },
@@ -127,6 +120,9 @@ export class MealAnalysisWorkerService {
             coverage,
             mealDescription,
             foodItems,
+            nutritionEstimate: matched.nutritionEstimate,
+            mealCommentary: matched.mealCommentary,
+            matchDiagnostics: matched.matchDiagnostics,
             failureReason: null,
             analyzedAt: analyzedAt.toISOString(),
             imageObjectKey:

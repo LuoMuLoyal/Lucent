@@ -32,7 +32,9 @@ This file records current backend implementation facts only. Historical changes 
 - Daily-record list reads now keep meal payloads lightweight by omitting the heavy meal-analysis JSON while still exposing summary hot fields.
 - Meal records now carry first-phase meal-analysis hot fields in `user_daily_records`: status, coverage, updated-at, failure-reason, and source-revision.
 - Single-image meal record writes now mark the meal analysis as queued and enqueue an async meal-analysis background job keyed by record id plus source revision.
+- `MealAnalysisVisionService` now invokes the configured `vision` model with multimodal image input and expects conservative JSON-only meal recognition output.
 - The meal-analysis worker now reads trusted meal images through Lucent-signed COS GET URLs and writes successful first-phase results back as `unconfirmed` meal-analysis payload plus hot fields.
+- First-phase meal analysis now includes deterministic food-table matching against `food_composition_items`, conservative portion heuristics, aggregated nutrition estimates, and fixed-rule meal commentary.
 - Today analysis now reads stored `unconfirmed` / `confirmed` meal-analysis results conservatively in recent-record context, while leaving `analyzing` meals as plain records.
 - Reports now derive `mealEstimateSeries` and `mealEstimateTrackedDays` from stored `confirmed` / `unconfirmed` meal-analysis results instead of inferring meal availability from raw image records.
 - Assistant daily-record query now exposes meal estimate status/coverage as explicit tags and hot fields alongside the stored meal payload.

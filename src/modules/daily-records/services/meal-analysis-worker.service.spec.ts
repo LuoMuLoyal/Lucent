@@ -1,5 +1,6 @@
 import type { PrismaService } from '../../../prisma/prisma.service';
 import type { DailyRecordImageUploadRuntime } from '../config/daily-record-image-upload.runtime';
+import type { MealAnalysisMatcherService } from './meal-analysis-matcher.service';
 import type { MealAnalysisVisionService } from './meal-analysis-vision.service';
 import { MealAnalysisWorkerService } from './meal-analysis-worker.service';
 
@@ -30,6 +31,7 @@ describe('MealAnalysisWorkerService', () => {
       prisma as never,
       buildVisionService({ configured: true }) as never,
       buildUploadRuntime() as never,
+      buildMatcherService() as never,
     );
 
     await service.process({
@@ -63,6 +65,7 @@ describe('MealAnalysisWorkerService', () => {
       prisma as never,
       buildVisionService({ configured: true }) as never,
       buildUploadRuntime() as never,
+      buildMatcherService() as never,
     );
 
     await service.process({
@@ -108,6 +111,7 @@ describe('MealAnalysisWorkerService', () => {
       prisma as never,
       buildVisionService({ configured: false }) as never,
       buildUploadRuntime() as never,
+      buildMatcherService() as never,
     );
 
     await service.process({
@@ -172,10 +176,50 @@ describe('MealAnalysisWorkerService', () => {
       },
     });
     const uploadRuntime = buildUploadRuntime();
+    const matcher = buildMatcherService({
+      result: {
+        coverage: 'partial',
+        foodItems: [
+          {
+            name: '米饭',
+            confidence: 0.93,
+            portionText: '1碗',
+            matchedFoodId: 'food-rice',
+            matchedFoodName: '米饭',
+            estimatedGrams: 100,
+          },
+          {
+            name: '鸡胸肉',
+            confidence: 0.89,
+            portionText: '约100克',
+            matchedFoodId: 'food-chicken',
+            matchedFoodName: '鸡胸肉',
+            estimatedGrams: 100,
+          },
+        ],
+        nutritionEstimate: {
+          energyKcal: 249,
+          proteinG: 22,
+          fatG: 5.3,
+          carbohydrateG: 25.9,
+          fiberG: 0.3,
+          sodiumMg: 48,
+          matchedItemCount: 2,
+          totalItemCount: 2,
+          unmatchedItemCount: 0,
+        },
+        mealCommentary: '这一餐蛋白质较充足，但蔬菜信息仍不完整。',
+        matchDiagnostics: {
+          matchedItemCount: 2,
+          unmatchedNames: [],
+        },
+      },
+    });
     const service = new MealAnalysisWorkerService(
       prisma as never,
       vision as never,
       uploadRuntime as never,
+      matcher as never,
     );
 
     await service.process({
@@ -190,6 +234,18 @@ describe('MealAnalysisWorkerService', () => {
     expect(vision.recognizeFromImageUrl).toHaveBeenCalledWith(
       'https://cos.example.com/signed-meal-4.jpg',
     );
+    expect(matcher.matchAndEstimate).toHaveBeenCalledWith([
+      {
+        name: '米饭',
+        confidence: 0.93,
+        portionText: '1碗',
+      },
+      {
+        name: '鸡胸肉',
+        confidence: 0.89,
+        portionText: '约100克',
+      },
+    ]);
     expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
       where: { id: 'r4' },
       data: expect.objectContaining({
@@ -215,13 +271,35 @@ describe('MealAnalysisWorkerService', () => {
                   name: '米饭',
                   confidence: 0.93,
                   portionText: '1碗',
+                  matchedFoodId: 'food-rice',
+                  matchedFoodName: '米饭',
+                  estimatedGrams: 100,
                 },
                 {
                   name: '鸡胸肉',
                   confidence: 0.89,
                   portionText: '约100克',
+                  matchedFoodId: 'food-chicken',
+                  matchedFoodName: '鸡胸肉',
+                  estimatedGrams: 100,
                 },
               ],
+              nutritionEstimate: {
+                energyKcal: 249,
+                proteinG: 22,
+                fatG: 5.3,
+                carbohydrateG: 25.9,
+                fiberG: 0.3,
+                sodiumMg: 48,
+                matchedItemCount: 2,
+                totalItemCount: 2,
+                unmatchedItemCount: 0,
+              },
+              mealCommentary: '这一餐蛋白质较充足，但蔬菜信息仍不完整。',
+              matchDiagnostics: {
+                matchedItemCount: 2,
+                unmatchedNames: [],
+              },
               failureReason: null,
               imageObjectKey: 'daily-records/u1/meal-4.jpg',
               sourceRevision: 2,
@@ -275,5 +353,27 @@ function buildUploadRuntime(): Pick<
     createSignedGetUrl: jest
       .fn()
       .mockReturnValue('https://cos.example.com/signed-meal-4.jpg'),
+  };
+}
+
+function buildMatcherService(options?: {
+  result?: {
+    coverage: 'none' | 'partial' | 'complete';
+    foodItems: Array<Record<string, unknown>>;
+    nutritionEstimate: Record<string, unknown> | null;
+    mealCommentary: string | null;
+    matchDiagnostics: Record<string, unknown> | null;
+  };
+}): Pick<MealAnalysisMatcherService, 'matchAndEstimate'> {
+  return {
+    matchAndEstimate: jest.fn().mockResolvedValue(
+      options?.result ?? {
+        coverage: 'none',
+        foodItems: [],
+        nutritionEstimate: null,
+        mealCommentary: null,
+        matchDiagnostics: null,
+      },
+    ),
   };
 }

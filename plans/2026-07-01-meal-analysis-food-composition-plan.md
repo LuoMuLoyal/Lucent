@@ -31,14 +31,10 @@ Add an asynchronous write-time Meal Analysis flow that turns one Meal Record ima
    - Preserve the last confirmed snapshot until a newer run succeeds so a failed recompute does not erase the only accepted result.
 
 5. Split responsibility between the vision model and deterministic backend matching.
-   - Vision model output is limited to `mealDescription`, normalized food-candidate names, coarse portions, and confidence.
-   - Prompt the vision model with a small curated list of common canonical food-name examples only; do not expose database row ids or full table schema.
    - Backend matching owns normalization, alias expansion, class-aware conservative fuzzy matching, and no-match handling.
    - Persisted vision output must pass schema validation, length limits, and a lightweight safety filter before storage.
 
 6. Generate Nutrition Estimate and Meal Commentary through rule-based backend logic.
-   - Use matched Food Items to compute meal-level estimated energy, protein, fat, carbohydrate, fiber, sodium, and other selected core metrics.
-   - Generate Meal Commentary from conservative fixed thresholds, not from model free-form judgments and not from individualized nutrition targets.
    - Allow partial estimates when some Food Items are unmatched; unmatched or low-confidence items remain visible but do not force a guessed nutrition total.
 
 7. Expose lightweight list reads and heavier detail/edit reads.
