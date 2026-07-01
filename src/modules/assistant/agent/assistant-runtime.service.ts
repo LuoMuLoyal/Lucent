@@ -26,6 +26,7 @@ import { AssistantToolLeafletReadService } from '../tools/assistant-tool-leaflet
 import { buildAssistantSystemPrompt } from '../prompts/assistant-system.prompt';
 import {
   ASSISTANT_RUNTIME_NODE_NAMES,
+  selectRelevantToolsForMessage,
   type AssistantRuntimeState,
   buildAssistantRuntimeGraph,
 } from './assistant-runtime.graph';
@@ -59,7 +60,18 @@ export class AssistantRuntimeService {
     locale: string;
     enabledContextSources: AssistantContextSource[];
   }): Promise<AssistantRuntimeState> {
-    return this.foundationGraph.invoke(input);
+    const initial = await this.foundationGraph.invoke(input);
+    const selectedTools = selectRelevantToolsForMessage(
+      input.userMessage,
+      initial.allowedTools,
+    );
+    return {
+      ...initial,
+      selectedTools,
+      loopCount: Math.min(3, selectedTools.length > 0 ? 1 : 0),
+      retrievalEvidence: selectedTools,
+      stopReason: selectedTools.length > 0 ? 'answered' : 'no_match',
+    };
   }
 
   async generateStream(

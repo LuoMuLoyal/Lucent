@@ -82,8 +82,10 @@ describe('AssistantFoundationGraph', () => {
       'get_user_profile',
       'get_user_settings',
       'get_sleep_summary_by_range',
-      'get_medicine_leaflet_context',
-      'get_medical_knowledge',
+      'search_medicine_leaflets',
+      'search_medical_qa_corpus',
+      'resolve_drugbank_entity',
+      'search_drugbank_passages',
       'propose_create_daily_record',
       'propose_update_user_settings',
     ]);
@@ -109,12 +111,16 @@ describe('AssistantFoundationGraph', () => {
       'get_user_settings',
       'get_current_medicines',
       'get_sleep_summary_by_range',
-      'get_medicine_leaflet_context',
-      'get_medical_knowledge',
+      'search_medicine_leaflets',
+      'search_medical_qa_corpus',
+      'resolve_drugbank_entity',
+      'search_drugbank_passages',
       'propose_create_daily_record',
       'propose_update_user_settings',
     ]);
     expect(result.selectedTools).toEqual(['get_sleep_summary_by_range']);
+    expect(result.loopCount).toBeLessThanOrEqual(3);
+    expect(result.stopReason).toBe('answered');
     expect(result.route).toBe('respond');
   });
 });

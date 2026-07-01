@@ -14,8 +14,15 @@ import {
   buildReadConfidence,
   buildReadEnvelope,
 } from '../assistant-tool-presenters';
+import {
+  buildVectorPage,
+  buildVectorQueryHash,
+  decodeVectorCursor,
+} from './assistant-vector-cursor';
+import { parseSearchPayload } from './assistant-tool-drugbank-entity-resolve.service';
 
-const VECTOR_TOP_K = 5;
+const DEFAULT_LIMIT = 4;
+const MAX_LIMIT = 8;
 const EMBEDDINGS_TABLE = 'medical_qa_embeddings';
 
 @Injectable()
@@ -28,19 +35,31 @@ export class AssistantToolMedicalKnowledgeService {
     private readonly i18n: I18nService,
   ) {}
 
-  async getMedicalKnowledge(
+  async searchMedicalQaCorpus(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const query = context.userMessage.trim();
+    const payload = parseSearchPayload(context.userMessage);
+    const query = payload.query.trim();
+    const limit = normalizeLimit(payload.limit);
+    const queryHash = buildVectorQueryHash(query, payload.filters);
+    const cursor = decodeVectorCursor(payload.cursor);
+    const offset =
+      cursor != null && cursor.queryHash === queryHash ? cursor.offset : 0;
 
     if (!query) {
       return buildReadEnvelope({
-        toolName: 'get_medical_knowledge',
+        toolName: 'search_medical_qa_corpus',
         query: { medicineQuery: query },
         result: {
           knowledge: [],
           disclaimer: this.i18n.t('assistant.medical_knowledge_disclaimer', {
             lang: context.locale,
+          }),
+          page: buildVectorPage({
+            limit,
+            offset,
+            hasMore: false,
+            queryHash,
           }),
         },
         coverage: { status: 'empty', reason: 'No query was provided.' },
@@ -54,12 +73,18 @@ export class AssistantToolMedicalKnowledgeService {
     const store = await this.getVectorStore();
     if (!store) {
       return buildReadEnvelope({
-        toolName: 'get_medical_knowledge',
+        toolName: 'search_medical_qa_corpus',
         query: { medicineQuery: query },
         result: {
           knowledge: [],
           disclaimer: this.i18n.t('assistant.medical_knowledge_disclaimer', {
             lang: context.locale,
+          }),
+          page: buildVectorPage({
+            limit,
+            offset,
+            hasMore: false,
+            queryHash,
           }),
         },
         coverage: {
@@ -73,16 +98,27 @@ export class AssistantToolMedicalKnowledgeService {
       });
     }
 
-    const results = await store.similaritySearchWithScore(query, VECTOR_TOP_K);
+    const results = await store.similaritySearchWithScore(
+      query,
+      offset + limit + 1,
+    );
+    const pageResults = results.slice(offset, offset + limit);
+    const hasMore = results.length > offset + limit;
 
-    if (results.length === 0) {
+    if (pageResults.length === 0) {
       return buildReadEnvelope({
-        toolName: 'get_medical_knowledge',
+        toolName: 'search_medical_qa_corpus',
         query: { medicineQuery: query },
         result: {
           knowledge: [],
           disclaimer: this.i18n.t('assistant.medical_knowledge_disclaimer', {
             lang: context.locale,
+          }),
+          page: buildVectorPage({
+            limit,
+            offset,
+            hasMore: false,
+            queryHash,
           }),
         },
         coverage: {
@@ -96,22 +132,29 @@ export class AssistantToolMedicalKnowledgeService {
       });
     }
 
-    const chunks = results.map(([doc, score], index) => ({
+    const chunks = pageResults.map(([doc, score], index) => ({
       qaId: doc.metadata['qaId'] as string,
       question: doc.metadata['question'] as string,
       answer: doc.pageContent,
       safetyLabel: doc.metadata['safetyLabel'] as string,
-      rank: index + 1,
+      topic: (doc.metadata['topic'] as string | undefined) ?? 'general',
+      rank: offset + index + 1,
       score,
     }));
 
     return buildReadEnvelope({
-      toolName: 'get_medical_knowledge',
+      toolName: 'search_medical_qa_corpus',
       query: { medicineQuery: query },
       result: {
         knowledge: chunks,
         disclaimer: this.i18n.t('assistant.medical_knowledge_disclaimer', {
           lang: context.locale,
+        }),
+        page: buildVectorPage({
+          limit,
+          offset,
+          hasMore,
+          queryHash,
         }),
       },
       coverage:
@@ -181,4 +224,9 @@ export class AssistantToolMedicalKnowledgeService {
       model: embedding.model,
     });
   }
+}
+
+function normalizeLimit(limit: number | undefined): number {
+  if (limit == null || Number.isNaN(limit)) return DEFAULT_LIMIT;
+  return Math.max(1, Math.min(MAX_LIMIT, Math.trunc(limit)));
 }

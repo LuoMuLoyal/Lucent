@@ -14,11 +14,12 @@ const CHUNKABLE_FIELDS = [
   'dosage',
   'contraindications',
   'precautions',
-  'pediatric_use',
-  'geriatric_use',
-  'pregnancy_lactation',
   'adverse_reactions',
   'drug_interactions',
+  'pharmacology_toxicology',
+  'pharmacokinetics',
+  'storage',
+  'validity_period',
 ];
 
 const DEFAULT_MAX_CHUNK_LENGTH = 1000;
@@ -113,11 +114,12 @@ async function loadLeaflets(client) {
       "dosage",
       "contraindications",
       "precautions",
-      "pediatric_use",
-      "geriatric_use",
-      "pregnancy_lactation",
       "adverse_reactions",
       "drug_interactions",
+      "pharmacology_toxicology",
+      "pharmacokinetics",
+      "storage",
+      "validity_period",
       "updated_at"
     FROM "cn_medicine_leaflets"
   `);
@@ -312,14 +314,23 @@ async function embedChunks(client, options) {
 
   // Load leaflet-to-product mappings for metadata enrichment
   const linkResult = await client.query(`
-    SELECT leaflet_id, product_id
+    SELECT l.leaflet_id, l.product_id, p.name
     FROM cn_medicine_product_leaflet_links
+    l
+    LEFT JOIN cn_medicine_products p ON p.id = l.product_id
   `);
   const leafletProducts = new Map();
+  const leafletProductNames = new Map();
   for (const row of linkResult.rows) {
     const ids = leafletProducts.get(row.leaflet_id) ?? [];
     ids.push(row.product_id);
     leafletProducts.set(row.leaflet_id, ids);
+
+    const names = leafletProductNames.get(row.leaflet_id) ?? [];
+    if (row.name != null) {
+      names.push(row.name);
+    }
+    leafletProductNames.set(row.leaflet_id, names);
   }
 
   // Build Document array
@@ -331,6 +342,7 @@ async function embedChunks(client, options) {
       chunkIndex: row.chunk_index,
       chunkId: row.id,
       productIds: leafletProducts.get(row.leaflet_id) ?? [],
+      productNames: leafletProductNames.get(row.leaflet_id) ?? [],
     },
   }));
 

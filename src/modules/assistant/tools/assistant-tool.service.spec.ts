@@ -1,6 +1,8 @@
 import { DailyRecordKind } from '../../../generated/prisma/client';
 import type { AssistantToolExecutionContext } from '../types/assistant.types';
 import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.service';
+import { AssistantToolDrugbankEntityResolveService } from './services/assistant-tool-drugbank-entity-resolve.service';
+import { AssistantToolDrugbankSearchService } from './services/assistant-tool-drugbank-search.service';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';
 import { AssistantToolRecordQueryService } from './assistant-tool-record-query.service';
@@ -68,14 +70,50 @@ describe('AssistantToolService', () => {
       recordQueryService,
     );
     const leafletReadService = new AssistantToolLeafletReadService(
-      {} as never,
+      {
+        cnMedicineProduct: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+        cnMedicineProductLeafletLink: {
+          count: jest.fn().mockResolvedValue(0),
+        },
+        medicineLeafletChunk: {
+          count: jest.fn().mockResolvedValue(0),
+        },
+      } as never,
       { get: jest.fn() } as never,
     );
-    const medicalKnowledgeService = { getMedicalKnowledge: jest.fn() } as never;
+    const medicalKnowledgeService = {
+      searchMedicalQaCorpus: jest.fn().mockResolvedValue({
+        query: {},
+        result: { knowledge: [] },
+        coverage: { status: 'empty', reason: 'No query was provided.' },
+        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
+        source: {
+          tool: 'search_medical_qa_corpus',
+          generatedAt: new Date().toISOString(),
+          tables: ['medical_qa_embeddings'],
+        },
+        confidence: { level: 'low', reason: 'Empty query.' },
+        ambiguities: [],
+      }),
+    } as never;
+    const drugbankEntityResolveService =
+      new AssistantToolDrugbankEntityResolveService({
+        drugbankDrug: {
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      } as never);
+    const drugbankSearchService = new AssistantToolDrugbankSearchService(
+      { get: jest.fn() } as never,
+      drugbankEntityResolveService,
+    );
     const service = new AssistantToolService(
       readService,
       leafletReadService,
       medicalKnowledgeService,
+      drugbankEntityResolveService,
+      drugbankSearchService,
       proposalService,
     );
 
@@ -92,6 +130,19 @@ describe('AssistantToolService', () => {
       },
     };
   }
+
+  it('dispatches the new retrieval tools', async () => {
+    const { service } = buildExecutor();
+
+    await expect(
+      service.executeMany(buildContext(), [
+        'search_medicine_leaflets',
+        'search_medical_qa_corpus',
+        'resolve_drugbank_entity',
+        'search_drugbank_passages',
+      ]),
+    ).resolves.toHaveLength(4);
+  });
 
   it('returns one persisted today summary for a specific date', async () => {
     const { service, deps } = buildExecutor();

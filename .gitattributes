@@ -1,0 +1,8 @@
+* text=auto
+
+*.ts text
+*.js text
+*.json text
+*.md text
+*.yml text
+*.yaml text

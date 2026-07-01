@@ -6,6 +6,7 @@ import {
 } from '../tools/assistant-tool.types';
 
 const ASSISTANT_ROUTE = 'respond' as const;
+const MAX_TOOL_LOOPS = 3;
 
 export const ASSISTANT_RUNTIME_NODE_NAMES = [
   'prepare_context',
@@ -27,6 +28,18 @@ const AssistantRuntimeState = Annotation.Root({
   selectedTools: Annotation<AssistantToolName[]>({
     reducer: (_left, right) => right,
     default: () => [],
+  }),
+  loopCount: Annotation<number>({
+    reducer: (_left, right) => right,
+    default: () => 0,
+  }),
+  retrievalEvidence: Annotation<AssistantToolName[]>({
+    reducer: (_left, right) => right,
+    default: () => [],
+  }),
+  stopReason: Annotation<'answered' | 'no_match' | 'tool_cap_reached' | null>({
+    reducer: (_left, right) => right,
+    default: () => null,
   }),
   route: Annotation<'respond'>({
     reducer: (_left, right) => right,
@@ -169,7 +182,7 @@ const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /近几天睡眠/,
     /最近睡眠/,
   ],
-  get_medicine_leaflet_context: [
+  search_medicine_leaflets: [
     /说明书/,
     /用法用量/,
     /副作用/,
@@ -186,7 +199,7 @@ const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /dosage/i,
     /drug interaction/i,
   ],
-  get_medical_knowledge: [
+  search_medical_qa_corpus: [
     /医学知识/,
     /疾病知识/,
     /病因/,
@@ -202,6 +215,26 @@ const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /流行病学/,
     /medical knowledge/i,
     /disease.*knowledge/i,
+  ],
+  resolve_drugbank_entity: [
+    /drugbank/i,
+    /药理/,
+    /机制/,
+    /mechanism/i,
+    /相互作用/,
+    /interaction/i,
+    /药物知识/,
+    /scientific/i,
+  ],
+  search_drugbank_passages: [
+    /drugbank/i,
+    /药理/,
+    /机制/,
+    /mechanism/i,
+    /相互作用/,
+    /interaction/i,
+    /药物知识/,
+    /scientific/i,
   ],
   propose_create_daily_record: [
     /帮我记/,
@@ -330,6 +363,27 @@ export function selectRelevantToolsForMessage(
     TOOL_KEYWORD_RULES[toolName].some((rule) => rule.test(userMessage)),
   );
 
+  const sortRetrievalTools = (
+    toolNames: readonly AssistantToolName[],
+  ): AssistantToolName[] => {
+    const priority: AssistantToolName[] = [
+      'search_medicine_leaflets',
+      'resolve_drugbank_entity',
+      'search_drugbank_passages',
+      'search_medical_qa_corpus',
+    ];
+
+    return [...toolNames].sort((left, right) => {
+      const leftPriority = priority.indexOf(left);
+      const rightPriority = priority.indexOf(right);
+      const normalizedLeft =
+        leftPriority === -1 ? Number.MAX_SAFE_INTEGER : leftPriority;
+      const normalizedRight =
+        rightPriority === -1 ? Number.MAX_SAFE_INTEGER : rightPriority;
+      return normalizedLeft - normalizedRight;
+    });
+  };
+
   if (matched.length > 0) {
     const matchedReadTools = matched.filter(
       (toolName) => !toolName.startsWith('propose_'),
@@ -410,7 +464,7 @@ export function selectRelevantToolsForMessage(
             ]),
           ]
         : matchedReadTools;
-    return withRangeFallback;
+    return sortRetrievalTools(withRangeFallback);
   }
 
   const writeTools = allowedTools.filter((toolName) =>
@@ -477,7 +531,7 @@ export function selectRelevantToolsForMessage(
     allowedTools.length > 0 &&
     BROAD_PERSONALIZED_QUERY_RULES.some((rule) => rule.test(userMessage))
   ) {
-    return [...allowedTools];
+    return sortRetrievalTools(allowedTools);
   }
 
   return [];
@@ -493,6 +547,18 @@ export function buildAssistantRuntimeGraph() {
         state.userMessage,
         selectAllowedToolsForContextSources(state.enabledContextSources),
       ),
+      loopCount: Math.min(MAX_TOOL_LOOPS, 1),
+      retrievalEvidence: selectRelevantToolsForMessage(
+        state.userMessage,
+        selectAllowedToolsForContextSources(state.enabledContextSources),
+      ),
+      stopReason:
+        selectRelevantToolsForMessage(
+          state.userMessage,
+          selectAllowedToolsForContextSources(state.enabledContextSources),
+        ).length === 0
+          ? 'no_match'
+          : 'answered',
       route: ASSISTANT_ROUTE,
     }))
     .addNode('respond', () => ({}))

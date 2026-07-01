@@ -6,7 +6,7 @@ import { buildAssistantSystemPrompt } from '../prompts/assistant-system.prompt';
 function buildLeafletService(hasChunks = false) {
   return {
     hasIndexedChunks: jest.fn().mockResolvedValue(hasChunks),
-    getMedicineLeafletContext: jest.fn(),
+    searchMedicineLeaflets: jest.fn(),
   };
 }
 
@@ -44,8 +44,10 @@ describe('AssistantRuntimeService', () => {
         'get_user_settings',
         'get_current_medicines',
         'get_sleep_summary_by_range',
-        'get_medicine_leaflet_context',
-        'get_medical_knowledge',
+        'search_medicine_leaflets',
+        'search_medical_qa_corpus',
+        'resolve_drugbank_entity',
+        'search_drugbank_passages',
         'propose_create_daily_record',
         'propose_update_daily_record',
         'propose_delete_daily_record',
@@ -63,8 +65,10 @@ describe('AssistantRuntimeService', () => {
         'get_user_settings',
         'get_current_medicines',
         'get_sleep_summary_by_range',
-        'get_medicine_leaflet_context',
-        'get_medical_knowledge',
+        'search_medicine_leaflets',
+        'search_medical_qa_corpus',
+        'resolve_drugbank_entity',
+        'search_drugbank_passages',
         'propose_create_daily_record',
         'propose_update_daily_record',
         'propose_delete_daily_record',
@@ -77,6 +81,50 @@ describe('AssistantRuntimeService', () => {
         'current_medicines',
       ],
     });
+  });
+
+  it('stops after the bounded retrieval loop cap', async () => {
+    const llmRuntimeService = {
+      hasRoleConfig: jest.fn().mockReturnValue(true),
+    } as unknown as LlmRuntimeService;
+
+    const leafletService = buildLeafletService(true);
+    const service = new AssistantRuntimeService(
+      llmRuntimeService,
+      leafletService as never,
+    );
+
+    const result = await service.planConversation({
+      userId: 'user-1',
+      userMessage: '布洛芬伤胃吗',
+      locale: 'zh-CN',
+      enabledContextSources: ['current_medicines'],
+    });
+
+    expect(result.loopCount).toBeLessThanOrEqual(3);
+  });
+
+  it('prioritizes leaflet then DrugBank before medical QA when multiple tools are relevant', async () => {
+    const llmRuntimeService = {
+      hasRoleConfig: jest.fn().mockReturnValue(true),
+    } as unknown as LlmRuntimeService;
+
+    const leafletService = buildLeafletService(true);
+    const service = new AssistantRuntimeService(
+      llmRuntimeService,
+      leafletService as never,
+    );
+
+    const result = await service.planConversation({
+      userId: 'user-1',
+      userMessage: '布洛芬的药理机制和说明书禁忌是什么',
+      locale: 'zh-CN',
+      enabledContextSources: ['current_medicines'],
+    });
+
+    expect(result.selectedTools).toEqual(
+      expect.arrayContaining(['search_medicine_leaflets']),
+    );
   });
 
   it('streams assistant chunks into one final message', async () => {

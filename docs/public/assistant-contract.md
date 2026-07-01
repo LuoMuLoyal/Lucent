@@ -17,7 +17,7 @@ Current scope:
 
 Current non-goals:
 
-- free-form tool calling
+- free-form tool calling with no server-owned limits
 - autonomous writes
 - broad conversation management such as rename or delete
 
@@ -55,7 +55,7 @@ Implications:
 
 - Do not retro-fit Today/Report bounded linear flows into agent flows "for consistency".
 - `ai-copy.ts` (locale-aware prompt/copy helpers) remains the shared prompt/copy layer; extend it with scenario-specific keys rather than replacing it.
-- `get_medicine_leaflet_context` is the first RAG read tool. It retrieves Chinese drug leaflets as server-owned text chunks. It is not a replacement for the reviewed medicine safety rule engine and not a mandatory dependency for every assistant reply.
+- Assistant retrieval is source-split and server-owned. Chinese leaflet, DrugBank scientific passages, and filtered medical QA are separate retrieval tools with different trust boundaries. None of them replaces the reviewed medicine safety rule engine.
 
 ## AI Safety Policy
 
@@ -72,6 +72,7 @@ Rules:
 - AI output must never contain diagnosis, prescription, dosage adjustment, or treatment-plan wording.
 - Every bounded-linear AI module must run policy checks on both final output and streamed intermediate summary text.
 - Policy rejection must trigger the fallback copy path, not an empty/error response.
+- Filtered medical QA retrieval is assistant-only reference material. It must not be treated as authoritative diagnosis, prescription, dosage, or treatment advice.
 
 ## AI Copy / Localization
 
@@ -202,6 +203,7 @@ Rules:
 - tool use stays server-owned and bounded
 - the server may stream text chunks first and then emit one final `result`
 - `proposedActions` never means the backend already wrote data
+- assistant retrieval loops are bounded; the runtime may perform multiple retrieval decisions, but only within an explicit server cap
 
 ## Current Read Tools
 
@@ -216,15 +218,42 @@ Rules:
 - `get_user_settings`
 - `get_current_medicines`
 - `get_sleep_summary_by_range`
-- `get_medicine_leaflet_context`
+- `search_medicine_leaflets`
+- `search_medical_qa_corpus`
+- `resolve_drugbank_entity`
+- `search_drugbank_passages`
 
-### Medicine leaflet context
+### Source-Split Retrieval Tools
 
-`get_medicine_leaflet_context` resolves the user's medicine mention against the local `cn_medicine_products` table, follows `cn_medicine_product_leaflet_links` to `cn_medicine_leaflets`, and returns up to 50 text chunks from `medicine_leaflet_chunks`.
+#### Chinese leaflet retrieval
+
+`search_medicine_leaflets` retrieves Chinese medicine package-insert evidence from a dedicated vector index over Lucent-owned leaflet chunks.
 
 - It requires no specific context source to be permitted, but in practice the graph only selects it when `current_medicines` is enabled or the user explicitly asks about a medicine.
-- If multiple products match, the tool returns partial coverage with a candidate list instead of guessing.
-- The returned chunks are server-owned evidence; the model must not treat them as a diagnosis or dosing instruction and must express uncertainty when the chunks do not answer the question.
+- Retrieval is vector-first and source-split. A miss stays a miss; the assistant must not fall back to keyword guessing.
+- Product/entity ambiguity is surfaced as partial coverage with explicit candidates instead of silent guessing.
+- Returned chunks are server-owned evidence; the model must not treat them as diagnosis or dosing instruction and must express uncertainty when the chunks do not answer the question.
+
+#### Medical QA retrieval
+
+`search_medical_qa_corpus` retrieves filtered semantic matches from the imported `alpaca_zh_demo`-derived medical QA corpus.
+
+- This tool is assistant-only reference material and is never a frontend linear medication-flow evidence source.
+- High-risk content is filtered/tagged before indexing; blocked rows must not be returned.
+- Every response includes disclaimer context and must be presented as educational reference rather than authoritative care advice.
+
+#### DrugBank retrieval
+
+DrugBank retrieval is intentionally split into two tools:
+
+- `resolve_drugbank_entity`
+- `search_drugbank_passages`
+
+`resolve_drugbank_entity` identifies one or more bounded DrugBank entity candidates from local Lucent data. `search_drugbank_passages` then searches only inside the resolved entity scope.
+
+- DrugBank retrieval is entity-scoped, not open-ended whole-corpus passage search as the primary path.
+- DrugBank passages are intended for scientific grounding such as mechanism, interactions, and narrative pharmacology context.
+- If no resolved entity scope exists, the assistant must treat that as missing evidence instead of improvising a search target.
 
 ## Current Proposal-Only Write Tools
 
@@ -278,6 +307,7 @@ Rules:
 
 - `query` records the exact resolved date/range/profile scope the server used
 - `query.matchedBy` uses stable semantic tags such as `explicit_iso_date`, `relative_today`, `explicit_date_range`, and `relative_last_n_days` instead of echoing raw user text
+- retrieval tools may also include source-specific tags such as resolved entity/product ids, retrieval method, cursor metadata, and metadata filters
 - `coverage` must say whether the answer is complete, partial, or empty
 - `ambiguities` must surface defaulted dates/ranges instead of silently hiding them
 - range reads stay bounded; current record/sleep range tools cap at 14 days
@@ -328,6 +358,7 @@ Additional rules:
 - orchestration foundation is LangGraph
 - streaming transport is SSE
 - markdown output is expected
-- RAG is enabled when `medicine_leaflet_chunks` is populated and the chat model is configured
+- retrieval is source-split across Chinese leaflets, filtered medical QA, and entity-scoped DrugBank passages
+- assistant retrieval loops are bounded; runtime may decide to call zero, one, or multiple retrieval tools, but only inside explicit loop and tool-count caps
 - persisted assistant conversations are live
 - cross-conversation memory is optional and controlled by `assistantMemoryEnabled`

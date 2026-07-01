@@ -5,6 +5,8 @@ import type {
 } from '../types/assistant.types';
 import type { AssistantToolName } from './assistant-tool.types';
 import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.service';
+import { AssistantToolDrugbankEntityResolveService } from './services/assistant-tool-drugbank-entity-resolve.service';
+import { AssistantToolDrugbankSearchService } from './services/assistant-tool-drugbank-search.service';
 import { AssistantToolMedicalKnowledgeService } from './services/assistant-tool-medical-knowledge.service';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';
@@ -15,6 +17,8 @@ export class AssistantToolService {
     private readonly readService: AssistantToolReadService,
     private readonly leafletReadService: AssistantToolLeafletReadService,
     private readonly medicalKnowledgeService: AssistantToolMedicalKnowledgeService,
+    private readonly drugbankEntityResolveService: AssistantToolDrugbankEntityResolveService,
+    private readonly drugbankSearchService: AssistantToolDrugbankSearchService,
     private readonly proposalService: AssistantToolProposalService,
   ) {}
 
@@ -89,17 +93,27 @@ export class AssistantToolService {
           name: toolName,
           data: await this.readService.getSleepSummaryByRange(context),
         };
-      case 'get_medicine_leaflet_context':
+      case 'search_medicine_leaflets':
         return {
           name: toolName,
-          data: await this.leafletReadService.getMedicineLeafletContext(
+          data: await this.leafletReadService.searchMedicineLeaflets(context),
+        };
+      case 'search_medical_qa_corpus':
+        return {
+          name: toolName,
+          data: await this.medicalKnowledgeService.searchMedicalQaCorpus(
             context,
           ),
         };
-      case 'get_medical_knowledge':
+      case 'resolve_drugbank_entity':
         return {
           name: toolName,
-          data: await this.medicalKnowledgeService.getMedicalKnowledge(context),
+          data: await this.drugbankEntityResolveService.resolve(context),
+        };
+      case 'search_drugbank_passages':
+        return {
+          name: toolName,
+          data: await this.drugbankSearchService.search(context),
         };
       case 'propose_create_daily_record':
         return this.proposalService.buildCreateDailyRecordProposal(

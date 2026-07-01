@@ -135,19 +135,38 @@ Optional later table:
 
 ## RAG Knowledge Sources
 
-Medicine RAG currently uses chunked Chinese package-insert text from `cn_medicine_leaflets`. The chunks are produced by `scripts/import/medicine/rebuild-leaflet-index.ts` and stored in `medicine_leaflet_chunks`. The assistant retrieves them via `get_medicine_leaflet_context`, which first resolves a `cn_medicine_products` row and then reads linked leaflet chunks. This keeps retrieval tied to a concrete, approved product label.
+Assistant retrieval keeps each corpus separate. Lucent does not merge Chinese leaflet, DrugBank scientific passages, and medical QA into one embedding table or one generic search tool.
 
-### Evaluated but not-yet-integrated source: 医疗问答数据集
+### Chinese leaflet RAG
+
+Chinese leaflet RAG uses chunked package-insert text from `cn_medicine_leaflets`.
+
+- chunk rows live in `medicine_leaflet_chunks`
+- vector index rows live in a dedicated PGVector-backed leaflet store
+- retrieval is exposed through `search_medicine_leaflets`
+
+The retrieval path stays product-scoped and vector-first. A retrieval miss does not fall back to keyword guessing.
+
+### DrugBank assistant RAG
+
+DrugBank assistant retrieval is separate from the Chinese leaflet corpus and is limited to assistant usage in this phase.
+
+- source of truth stays `drugbank_drugs` plus related normalized tables
+- assistant passages are built only from approved narrative scientific fields such as `description`, `indication`, `mechanism_of_action`, `pharmacodynamics`, `toxicity`, `metabolism`, `absorption`, `half_life`, and `clearance`
+- retrieval is split into `resolve_drugbank_entity` and `search_drugbank_passages`
+- passage search is entity-scoped rather than open-ended whole-corpus search
+
+### Assistant-only medical QA corpus: 医疗问答数据集
 
 - **Location:** `DrugDataBase/医疗问答数据集一共135万条/数据集/alpaca_zh_demo.json`
 - **Size:** ~1.83 GB, ~1.36 million records
 - **Format:** JSON array of Alpaca-style objects: `{ "id": "DX_N", "instruction": "问题", "output": "回答" }`
-- **Status:** available on disk, not imported into PostgreSQL, not indexed for RAG.
+- **Status:** assistant-only reference corpus candidate; import/indexing stays separate from leaflet and DrugBank stores and must preserve explicit safety filtering and disclaimer behavior.
 
-Why it is different from leaflet RAG:
+Why it is different from leaflet and DrugBank RAG:
 
 - Leaflets are official package inserts tied to a product; the Q&A set is generic medical question/answer content of unknown provenance.
-- The current retrieval tool is product-first; the Q&A set is open-domain and would need a separate retrieval path (e.g., a `medical_qa_chunks` table + semantic search).
+- The retrieval path is open-domain and lower-trust, so it must remain a separate assistant-only semantic retrieval path (e.g., `medical_qa_chunks` + dedicated vector store).
 - Many answers contain diagnosis and treatment recommendations. Using them verbatim would cross the project's medical red line.
 
 **Boundaries if integrated in the future:**
@@ -156,8 +175,10 @@ Why it is different from leaflet RAG:
 2. **Content filtering:** pre-filter or tag records; drop or block high-risk categories.
 3. **Disclaimer:** every answer sourced from this dataset must be labeled as reference-only and not a substitute for professional medical advice.
 4. **Human review:** treat the dataset as unverified; do not present it as authoritative.
-5. **Separate table:** do not mix Q&A chunks with leaflet chunks; keep distinct `source_kind` and retrieval logic.
+5. **Separate storage:** do not mix Q&A chunks with leaflet chunks or DrugBank passages; keep distinct storage, metadata, and retrieval logic.
 6. **Legal/compliance review:** confirm with legal/product before enabling user-facing retrieval.
+
+The frontend linear medication suggestion/risk flow must not consume this QA corpus in the current phase.
 
 As of 4.0.0, `ChineseDrugData_Master_V2/ChineseDrugData_Master_V2.xlsx` is the locked CN source for both structured product lookup and leaflet RAG. The data fusion pipeline is frozen for 4.0.0; further improvements (DrugBank bridging, product aggregation, English translation) are scheduled for 4.x.
 

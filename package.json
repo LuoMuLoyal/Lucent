@@ -5,10 +5,10 @@
   "author": "",
   "private": true,
   "license": "MIT",
-  "packageManager": "pnpm@10.33.2",
+  "packageManager": "pnpm@11.9.0",
   "engines": {
     "node": ">=24 <25",
-    "pnpm": ">=10.33.2 <11"
+    "pnpm": ">=11 <12"
   },
   "scripts": {
     "check": "pnpm lint:check && pnpm typecheck && pnpm typecheck:tools && pnpm build && pnpm test:ci && pnpm test:e2e:ci && pnpm deploy:assets:check",

@@ -14,9 +14,16 @@ import {
   buildReadConfidence,
   buildReadEnvelope,
 } from './assistant-tool-presenters';
+import {
+  buildVectorPage,
+  buildVectorQueryHash,
+  decodeVectorCursor,
+} from './services/assistant-vector-cursor';
+import { parseSearchPayload } from './services/assistant-tool-drugbank-entity-resolve.service';
 
-const LEAFLET_SEARCH_LIMIT = 5;
-const VECTOR_TOP_K = 5;
+const DEFAULT_LIMIT = 4;
+const MAX_LIMIT = 8;
+const VECTOR_FETCH_BUFFER = 4;
 const EMBEDDINGS_TABLE = 'leaflet_embeddings';
 
 @Injectable()
@@ -36,106 +43,163 @@ export class AssistantToolLeafletReadService {
     return count > 0;
   }
 
-  async getMedicineLeafletContext(
+  async searchMedicineLeaflets(
     context: AssistantToolExecutionContext,
   ): Promise<AssistantReadResultEnvelope> {
-    const query = context.userMessage.trim();
+    const payload = parseSearchPayload(context.userMessage);
+    const query = payload.query.trim();
+    const limit = normalizeLimit(payload.limit);
+    const queryHash = buildVectorQueryHash(query, payload.filters);
+    const cursor = decodeVectorCursor(payload.cursor);
+    const offset =
+      cursor != null && cursor.queryHash === queryHash ? cursor.offset : 0;
 
     if (!query) {
       return this.buildEmptyEnvelope({
         medicineQuery: query,
+        limit,
+        offset,
+        queryHash,
         reason: 'No medicine query was provided.',
       });
     }
-
-    const productResolution = await this.resolveProduct(query);
-
-    if (productResolution.kind === 'no_match') {
-      return this.buildEmptyEnvelope({
-        medicineQuery: query,
-        reason: `No Chinese medicine product matched "${query}".`,
-      });
-    }
-
-    if (productResolution.kind === 'ambiguous') {
-      return this.buildAmbiguousEnvelope({
-        medicineQuery: query,
-        candidates: productResolution.candidates,
-      });
-    }
-
-    const product = productResolution.product;
 
     const store = await this.getVectorStore();
     if (!store) {
       return this.buildEmptyEnvelope({
         medicineQuery: query,
-        matchedRecordId: product.id,
-        matchedBy: productResolution.matchedBy,
-        reason: `Matched product "${product.name}" but vector search is not configured.`,
+        limit,
+        offset,
+        queryHash,
+        reason: 'Chinese leaflet vector search is not configured.',
       });
     }
 
-    const results = await store.similaritySearchWithScore(query, VECTOR_TOP_K, {
-      productId: product.id,
-    });
+    const metadataFilters = payload.filters;
+    const productIdFilter =
+      typeof metadataFilters['productId'] === 'string'
+        ? metadataFilters['productId']
+        : null;
+    const sourceFieldFilter =
+      typeof metadataFilters['sourceField'] === 'string'
+        ? metadataFilters['sourceField']
+        : null;
+    const rawResults = await store.similaritySearchWithScore(
+      query,
+      offset + limit + VECTOR_FETCH_BUFFER,
+    );
+    const filteredResults = rawResults.filter(([doc]) => {
+      const productIds = Array.isArray(doc.metadata['productIds'])
+        ? (doc.metadata['productIds'] as unknown[]).filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [];
+      const sourceField =
+        typeof doc.metadata['sourceField'] === 'string'
+          ? doc.metadata['sourceField']
+          : null;
 
-    if (results.length === 0) {
+      if (productIdFilter != null && !productIds.includes(productIdFilter)) {
+        return false;
+      }
+
+      if (sourceFieldFilter != null && sourceField !== sourceFieldFilter) {
+        return false;
+      }
+
+      return true;
+    });
+    const pageResults = filteredResults.slice(offset, offset + limit);
+    const hasMore = filteredResults.length > offset + limit;
+
+    if (pageResults.length === 0) {
       return this.buildEmptyEnvelope({
         medicineQuery: query,
-        matchedRecordId: product.id,
-        matchedBy: productResolution.matchedBy,
-        reason: `Matched product "${product.name}" but no semantically relevant chunks were found.`,
+        limit,
+        offset,
+        queryHash,
+        reason: 'No semantically relevant Chinese leaflet chunks were found.',
       });
     }
 
-    const chunks = results.map(([doc, score], index) => ({
-      leafletId: doc.metadata['leafletId'] as string,
-      field: doc.metadata['sourceField'] as string,
+    const chunks = pageResults.map(([doc, score], index) => ({
+      chunkId:
+        typeof doc.metadata['chunkId'] === 'string'
+          ? doc.metadata['chunkId']
+          : null,
+      leafletId: String(doc.metadata['leafletId'] ?? ''),
+      field: String(doc.metadata['sourceField'] ?? ''),
+      productIds: Array.isArray(doc.metadata['productIds'])
+        ? (doc.metadata['productIds'] as unknown[]).filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [],
+      productNames: Array.isArray(doc.metadata['productNames'])
+        ? (doc.metadata['productNames'] as unknown[]).filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [],
       text: doc.pageContent,
-      rank: index + 1,
+      rank: offset + index + 1,
       score,
     }));
+    const candidateNames = [
+      ...new Set(
+        chunks.flatMap((chunk) =>
+          chunk.productNames.length > 0
+            ? chunk.productNames
+            : chunk.productIds.map((productId) => `product:${productId}`),
+        ),
+      ),
+    ];
+    const primaryProductLabel = candidateNames[0] ?? null;
+    const coverage =
+      candidateNames.length > 1
+        ? {
+            status: 'partial' as const,
+            reason:
+              'Leaflet evidence matched multiple candidate products. Review the returned candidates before drawing conclusions.',
+          }
+        : { status: 'complete' as const, reason: null };
 
     return buildReadEnvelope({
-      toolName: 'get_medicine_leaflet_context',
+      toolName: 'search_medicine_leaflets',
       query: {
         medicineQuery: query,
         matchedSource: 'cn',
-        matchedRecordId: product.id,
         matchedLeafletIds: [...new Set(chunks.map((c) => c.leafletId))],
-        matchedBy: productResolution.matchedBy,
         retrievalMethod: 'vector',
+        filters: metadataFilters,
       },
       result: {
-        medicine: {
-          id: product.id,
-          source: 'cn',
-          name: product.name,
-          manufacturer: product.manufacturer,
-          approvalNumber: product.approvalNumber,
-        },
+        medicine:
+          primaryProductLabel == null
+            ? null
+            : {
+                source: 'cn',
+                name: primaryProductLabel,
+              },
         leaflets: [],
         chunks,
+        candidates: candidateNames,
+        page: buildVectorPage({
+          limit,
+          offset,
+          hasMore,
+          queryHash,
+        }),
       },
-      coverage:
-        chunks.length > 0
-          ? { status: 'complete', reason: null }
-          : {
-              status: 'empty',
-              reason: 'Matched product but no indexed chunks were found.',
-            },
+      coverage,
       timeRange: { timezone: 'UTC', startDate: null, endDate: null },
       confidence: buildReadConfidence({
-        ambiguities: [],
+        ambiguities: candidateNames.length > 1 ? candidateNames : [],
         preferredReason:
-          'Matched a single Chinese product with vector-semantic leaflet chunks.',
+          'Retrieved Chinese leaflet chunks through semantic vector search without keyword fallback.',
       }),
-      ambiguities: [],
+      ambiguities: candidateNames.length > 1 ? candidateNames : [],
       tables: [
-        'cn_medicine_products',
         'cn_medicine_leaflets',
-        'cn_medicine_product_leaflet_links',
+        'medicine_leaflet_chunks',
         EMBEDDINGS_TABLE,
       ],
     });
@@ -198,136 +262,48 @@ export class AssistantToolLeafletReadService {
     });
   }
 
-  private async resolveProduct(query: string) {
-    const candidates = await this.prisma.cnMedicineProduct.findMany({
-      where: {
-        OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { brandName: { contains: query, mode: 'insensitive' } },
-          { approvalNumber: { contains: query, mode: 'insensitive' } },
-          { barcode: { contains: query, mode: 'insensitive' } },
-          { nationalDrugCode: { contains: query, mode: 'insensitive' } },
-          { searchText: { contains: query, mode: 'insensitive' } },
-        ],
-      },
-      orderBy: [{ name: 'asc' }],
-      take: LEAFLET_SEARCH_LIMIT,
-    });
-
-    if (candidates.length === 0) {
-      return { kind: 'no_match' as const };
-    }
-
-    const withLinkCounts = await Promise.all(
-      candidates.map(async (product) => {
-        const count = await this.prisma.cnMedicineProductLeafletLink.count({
-          where: { productId: product.id },
-        });
-        return { product, hasLinks: count > 0 };
-      }),
-    );
-
-    const linked = withLinkCounts.filter(({ hasLinks }) => hasLinks);
-
-    if (linked.length === 0) {
-      return { kind: 'no_match' as const };
-    }
-
-    if (linked.length === 1) {
-      const match = linked[0];
-      if (match == null) {
-        return { kind: 'no_match' as const };
-      }
-      const { product } = match;
-      return {
-        kind: 'single' as const,
-        product,
-        matchedBy: this.describeMatchedBy(query, product),
-        ambiguities: [],
-      };
-    }
-
-    const names = linked.map(({ product }) => product.name);
-    return {
-      kind: 'ambiguous' as const,
-      candidates: names,
-    };
-  }
-
-  private describeMatchedBy(
-    query: string,
-    product: {
-      name: string | null;
-      brandName: string | null;
-      approvalNumber: string | null;
-    },
-  ) {
-    const matchedBy: string[] = [];
-    const lowerQuery = query.toLowerCase();
-    if (product.name?.toLowerCase().includes(lowerQuery)) {
-      matchedBy.push('name');
-    }
-    if (product.brandName?.toLowerCase().includes(lowerQuery)) {
-      matchedBy.push('brandName');
-    }
-    if (product.approvalNumber?.toLowerCase().includes(lowerQuery)) {
-      matchedBy.push('approvalNumber');
-    }
-    return matchedBy.length > 0 ? matchedBy : ['searchText'];
-  }
-
   private buildEmptyEnvelope(input: {
     medicineQuery: string;
-    matchedBy?: string[];
-    matchedRecordId?: string;
+    limit: number;
+    offset: number;
+    queryHash: string;
     reason: string;
   }): AssistantReadResultEnvelope {
     return buildReadEnvelope({
-      toolName: 'get_medicine_leaflet_context',
+      toolName: 'search_medicine_leaflets',
       query: {
         medicineQuery: input.medicineQuery,
-        matchedBy: input.matchedBy ?? [],
-        matchedRecordId: input.matchedRecordId ?? null,
-      },
-      result: { medicine: null, leaflets: [], chunks: [] },
-      coverage: { status: 'empty', reason: input.reason },
-      timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-      confidence: {
-        level: 'low',
-        reason: 'No matching product or leaflet coverage was found.',
-      },
-      ambiguities: [],
-      tables: [EMBEDDINGS_TABLE],
-    });
-  }
-
-  private buildAmbiguousEnvelope(input: {
-    medicineQuery: string;
-    candidates: string[];
-  }): AssistantReadResultEnvelope {
-    return buildReadEnvelope({
-      toolName: 'get_medicine_leaflet_context',
-      query: {
-        medicineQuery: input.medicineQuery,
-        matchedBy: [],
+        retrievalMethod: 'vector',
       },
       result: {
         medicine: null,
         leaflets: [],
         chunks: [],
-        candidates: input.candidates,
+        candidates: [],
+        page: buildVectorPage({
+          limit: input.limit,
+          offset: input.offset,
+          hasMore: false,
+          queryHash: input.queryHash,
+        }),
       },
-      coverage: {
-        status: 'partial',
-        reason: `Multiple products matched the query: ${input.candidates.join(', ')}.`,
-      },
+      coverage: { status: 'empty', reason: input.reason },
       timeRange: { timezone: 'UTC', startDate: null, endDate: null },
       confidence: {
         level: 'low',
-        reason: 'Multiple candidate medicines matched the query.',
+        reason: 'No semantically relevant Chinese leaflet evidence was found.',
       },
-      ambiguities: input.candidates,
-      tables: [EMBEDDINGS_TABLE],
+      ambiguities: [],
+      tables: [
+        'cn_medicine_leaflets',
+        'medicine_leaflet_chunks',
+        EMBEDDINGS_TABLE,
+      ],
     });
   }
+}
+
+function normalizeLimit(limit: number | undefined): number {
+  if (limit == null || Number.isNaN(limit)) return DEFAULT_LIMIT;
+  return Math.max(1, Math.min(MAX_LIMIT, Math.trunc(limit)));
 }

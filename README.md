@@ -20,6 +20,14 @@ Hand-written endpoint mocks are intentionally not maintained. Regenerate OpenAPI
 pnpm export:openapi
 ```
 
+Before merging API contract changes, keep `docs/openapi.json` committed and regenerate the Flutter client from `../Luminous`:
+
+```bash
+cd ../Luminous
+dart run tool/regenerate_lucent_openapi.dart
+dart run tool/verify_lucent_openapi_sync.dart
+```
+
 ## Stack
 
 - NestJS 11
@@ -33,11 +41,18 @@ pnpm export:openapi
 ## Local Development
 
 ```bash
+corepack enable
+corepack prepare pnpm@11.9.0 --activate
 pnpm install
 pnpm dev:stack
 pnpm db:migrate
 pnpm start:dev
 ```
+
+Local toolchain baseline:
+
+- Node.js `24.x`
+- pnpm `11.x` compatible (`11.9.0` is the pinned CI / recommended Corepack baseline)
 
 For the mobile full-stack E2E lane, run Lucent against the test database so
 the test-only support route is available:

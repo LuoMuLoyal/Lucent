@@ -17,10 +17,10 @@ Keep durable implementation context in the owning code comments when the TODO is
 
 ## Assistant RAG
 
-- `get_medicine_leaflet_context` is implemented with keyword product matching and fixed-size chunk retrieval. Future iterations may add relevance ranking, vector/semantic search, or chunk re-ranking when retrieval quality needs improvement.
-  Source context: `src/modules/assistant/tools/assistant-tool-leaflet-read.service.ts`, `scripts/import/medicine/rebuild-leaflet-index.ts`
-- Evaluate whether to integrate the `alpaca_zh_demo.json` medical Q&A dataset (~1.36M records) as a separate RAG corpus. Before any import, define content filtering, scope boundaries, and compliance review. See `docs/public/data-sources.md` for the current boundaries.
-  Source context: `DrugDataBase/医疗问答数据集一共135万条/数据集/alpaca_zh_demo.json`
+- Keep assistant retrieval source-split. Do not collapse Chinese leaflets, DrugBank passages, and medical QA into one shared corpus or one undifferentiated search tool.
+  Source context: `src/modules/assistant/tools/`, `docs/public/assistant-contract.md`, `docs/public/data-sources.md`
+- Keep medical QA assistant-only until a separate legal/product decision explicitly allows any broader surface. Frontend linear medication flows must not consume QA-corpus retrieval results.
+  Source context: `DrugDataBase/医疗问答数据集一共135万条/数据集/alpaca_zh_demo.json`, `docs/public/data-sources.md`
 
 ## Auth / Security
 

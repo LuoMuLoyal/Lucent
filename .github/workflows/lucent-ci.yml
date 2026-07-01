@@ -63,7 +63,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10.33.2
+          version: 11.9.0
           run_install: false
 
       - name: Setup Node.js
@@ -95,6 +95,12 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Export OpenAPI
+        run: pnpm export:openapi
+
+      - name: Verify OpenAPI is committed
+        run: git diff --exit-code -- docs/openapi.json
 
       - name: Unit tests
         run: pnpm test:ci
