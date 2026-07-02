@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-01
+Last updated: 2026-07-02
 
 This file records current backend implementation facts only. Historical changes belong in `docs/migration-log/`; deferred follow-up belongs in `docs/TODO.md`; public assistant/source boundaries belong in `docs/public/*.md`.
 
@@ -48,3 +48,4 @@ This file records current backend implementation facts only. Historical changes 
 - Assistant daily-record query now exposes meal estimate status/coverage as explicit tags and hot fields alongside the stored meal payload.
 - Lucent now has a durable food-composition import structure (`food_composition_imports`, `food_composition_categories`, `food_composition_items`) plus import scripts under `scripts/import/food/`.
 - Lucent now also has a durable meal-dish template layer (`meal_dish_templates`, `meal_dish_template_ingredients`) for conservative mixed-dish grounding without introducing recipe RAG or vector food lookup.
+- Meal-analysis code-quality audit completed: duplicated local utilities consolidated into shared common utils, fuzzy ingredient lookup now filters candidates with an indexed prefix predicate, silent JSON-parse failures are logged, and hard-coded thresholds/constants are named and marked for future configuration.

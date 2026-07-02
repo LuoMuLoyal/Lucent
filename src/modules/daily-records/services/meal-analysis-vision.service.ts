@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { extractJsonObject } from '../../../common/utils/json.utils';
+import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
 
 export interface MealVisionRecognitionResult {
@@ -55,7 +57,7 @@ export class MealAnalysisVisionService {
       typeof response.content === 'string'
         ? response.content
         : JSON.stringify(response.content);
-    const parsed = parseRecognitionResponse(text);
+    const parsed = parseRecognitionResponse(text, this.logger);
     if (parsed == null) {
       this.logger.warn('Meal vision response was not parseable JSON');
       return emptyRecognitionResult();
@@ -88,6 +90,7 @@ function buildMealVisionUserPrompt(): string {
 
 function parseRecognitionResponse(
   rawText: string,
+  logger: Logger,
 ): MealVisionRecognitionResult | null {
   try {
     const jsonText = extractJsonObject(rawText);
@@ -142,28 +145,12 @@ function parseRecognitionResponse(
       mealDescription,
       foodItems,
     };
-  } catch {
+  } catch (error) {
+    logger.warn(
+      `Failed to parse meal vision response: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return null;
   }
-}
-
-function extractJsonObject(rawText: string): string | null {
-  const jsonStart = rawText.indexOf('{');
-  const jsonEnd = rawText.lastIndexOf('}') + 1;
-  if (jsonStart < 0 || jsonEnd <= jsonStart) {
-    return null;
-  }
-
-  return rawText.slice(jsonStart, jsonEnd);
-}
-
-function normalizeNullableText(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
 }
 
 function emptyRecognitionResult(): MealVisionRecognitionResult {

@@ -33,6 +33,14 @@ interface NutritionEstimate {
   unmatchedItemCount: number;
 }
 
+// TODO: move meal analysis business thresholds to configuration (env or
+// database) so they can be tuned without a code deployment.
+const DEFAULT_PORTION_GRAMS = 100;
+const SMALL_PORTION_GRAMS = 30;
+const HIGH_PROTEIN_THRESHOLD_G = 20;
+const LOW_CARBOHYDRATE_THRESHOLD_G = 20;
+const HIGH_FAT_THRESHOLD_G = 20;
+
 @Injectable()
 export class MealAnalysisMatcherService {
   constructor(
@@ -136,19 +144,19 @@ function buildLegacyFoodItems(
 function estimateGrams(portionText: string | null): number | null {
   const normalized = normalizeNullableText(portionText);
   if (normalized == null) {
-    return 100;
+    return DEFAULT_PORTION_GRAMS;
   }
   if (/\d+\s*克/.test(normalized)) {
     const value = Number(normalized.match(/(\d+)/)?.[1] ?? 0);
-    return value > 0 ? value : 100;
+    return value > 0 ? value : DEFAULT_PORTION_GRAMS;
   }
   if (normalized.includes('碗') || normalized.includes('份')) {
-    return 100;
+    return DEFAULT_PORTION_GRAMS;
   }
   if (normalized.includes('少量')) {
-    return 30;
+    return SMALL_PORTION_GRAMS;
   }
-  return 100;
+  return DEFAULT_PORTION_GRAMS;
 }
 
 function buildMealCommentary(
@@ -160,13 +168,13 @@ function buildMealCommentary(
   }
 
   const parts: string[] = [];
-  if (nutritionEstimate.proteinG >= 20) {
+  if (nutritionEstimate.proteinG >= HIGH_PROTEIN_THRESHOLD_G) {
     parts.push('这一餐蛋白质较充足');
   }
-  if (nutritionEstimate.carbohydrateG < 20) {
+  if (nutritionEstimate.carbohydrateG < LOW_CARBOHYDRATE_THRESHOLD_G) {
     parts.push('碳水可能偏少');
   }
-  if (nutritionEstimate.fatG >= 20) {
+  if (nutritionEstimate.fatG >= HIGH_FAT_THRESHOLD_G) {
     parts.push('油脂可能偏高');
   }
   if (unmatchedItemCount > 0) {

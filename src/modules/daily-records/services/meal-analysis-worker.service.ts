@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DailyRecordKind, type Prisma } from '../../../generated/prisma/client';
+import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { DailyRecordImageUploadRuntime } from '../config/daily-record-image-upload.runtime';
 import {
@@ -169,15 +170,4 @@ export class MealAnalysisWorkerService {
       mealAnalysisFailureReason: failureReason,
     };
   }
-}
-
-function normalizeNullableText(
-  value: string | null | undefined,
-): string | null {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
 }

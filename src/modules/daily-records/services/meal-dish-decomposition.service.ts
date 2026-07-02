@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { type Prisma } from '../../../generated/prisma/client';
+import { extractJsonObject } from '../../../common/utils/json.utils';
 import { buildSearchText } from '../../../common/utils/search-text.utils';
+import { normalizeNullableNumber } from '../../../common/utils/number.utils';
+import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
 import {
@@ -20,21 +24,9 @@ interface ResolveRecognizedDishesResult {
   }>;
 }
 
-type DishTemplateWithIngredients = {
-  normalizedDishName: string;
-  aliases: unknown;
-  ingredients: Array<{
-    ingredientName: string;
-    normalizedIngredientName: string;
-    defaultRatio: number | null;
-  }>;
-};
-
-type DishTemplatePrismaAccess = PrismaService & {
-  mealDishTemplate: {
-    findMany: (args: unknown) => Promise<DishTemplateWithIngredients[]>;
-  };
-};
+type DishTemplateWithIngredients = Prisma.MealDishTemplateGetPayload<{
+  include: { ingredients: true };
+}>;
 
 @Injectable()
 export class MealDishDecompositionService {
@@ -59,9 +51,7 @@ export class MealDishDecompositionService {
     const normalizedNames = recognizedDishes
       .map((item) => item.normalizedDishName)
       .filter((item, index, array) => array.indexOf(item) === index);
-    const templates = await (
-      this.prisma as DishTemplatePrismaAccess
-    ).mealDishTemplate.findMany({
+    const templates = await this.prisma.mealDishTemplate.findMany({
       where: {
         status: 'active',
         OR: [
@@ -72,7 +62,9 @@ export class MealDishDecompositionService {
           },
           {
             searchText: {
-              in: normalizedNames.map((name) => buildSearchText([name])),
+              in: normalizedNames
+                .map((name) => buildSearchText([name]))
+                .filter((text): text is string => text != null),
             },
           },
         ],
@@ -173,7 +165,7 @@ export class MealDishDecompositionService {
       typeof response.content === 'string'
         ? response.content
         : JSON.stringify(response.content);
-    const parsed = parseDecompositionResponse(text);
+    const parsed = parseDecompositionResponse(text, this.logger);
     if (parsed == null) {
       this.logger.warn(
         `Meal dish decomposition response was not parseable JSON: ${dish.rawName}`,
@@ -207,7 +199,10 @@ function buildMealDishDecompositionUserPrompt(
   ].join(' ');
 }
 
-function parseDecompositionResponse(rawText: string): {
+function parseDecompositionResponse(
+  rawText: string,
+  logger: Logger,
+): {
   normalizedDishName: string;
   ingredients: Array<{
     ingredientName: string;
@@ -227,7 +222,7 @@ function parseDecompositionResponse(rawText: string): {
       ingredients?: unknown;
     };
     const normalizedDishName = normalizeMealEntityName(
-      asNullableString(parsed.normalizedDishName),
+      normalizeNullableText(parsed.normalizedDishName),
     );
     if (normalizedDishName == null || !Array.isArray(parsed.ingredients)) {
       return null;
@@ -239,9 +234,11 @@ function parseDecompositionResponse(rawText: string): {
           return null;
         }
         const candidate = item as Record<string, unknown>;
-        const ingredientName = asNullableString(candidate['ingredientName']);
+        const ingredientName = normalizeNullableText(
+          candidate['ingredientName'],
+        );
         const normalizedIngredientName = normalizeMealEntityName(
-          asNullableString(candidate['normalizedIngredientName']) ??
+          normalizeNullableText(candidate['normalizedIngredientName']) ??
             ingredientName,
         );
         if (ingredientName == null || normalizedIngredientName == null) {
@@ -251,8 +248,8 @@ function parseDecompositionResponse(rawText: string): {
         return {
           ingredientName,
           normalizedIngredientName,
-          defaultRatio: asNullableNumber(candidate['defaultRatio']),
-          confidence: asNullableNumber(candidate['confidence']),
+          defaultRatio: normalizeNullableNumber(candidate['defaultRatio']),
+          confidence: normalizeNullableNumber(candidate['confidence']),
         };
       })
       .filter(
@@ -274,34 +271,10 @@ function parseDecompositionResponse(rawText: string): {
       normalizedDishName,
       ingredients,
     };
-  } catch {
+  } catch (error) {
+    logger.warn(
+      `Failed to parse meal dish decomposition response: ${error instanceof Error ? error.message : String(error)}`,
+    );
     return null;
   }
-}
-
-function extractJsonObject(rawText: string): string | null {
-  const jsonStart = rawText.indexOf('{');
-  const jsonEnd = rawText.lastIndexOf('}') + 1;
-  if (jsonStart < 0 || jsonEnd <= jsonStart) {
-    return null;
-  }
-
-  return rawText.slice(jsonStart, jsonEnd);
-}
-
-function asNullableString(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function asNullableNumber(value: unknown): number | null {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    return null;
-  }
-
-  return value;
 }

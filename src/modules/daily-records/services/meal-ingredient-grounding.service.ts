@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { roundNumber } from '../../../common/utils/number.utils';
+import { commonCharacterCount } from '../../../common/utils/string.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   type MealCompositionMatch,
@@ -32,8 +34,11 @@ interface GroundingResult {
   } | null;
 }
 
+// TODO: move fuzzy matching thresholds to configuration (env or database) so
+// they can be tuned without a code deployment.
 const FUZZY_ACCEPT_SCORE = 0.7;
 const FUZZY_MIN_LEAD = 0.1;
+const FUZZY_QUERY_PREFIX_LENGTH = 1;
 
 @Injectable()
 export class MealIngredientGroundingService {
@@ -97,7 +102,17 @@ export class MealIngredientGroundingService {
         continue;
       }
 
+      const fuzzyPrefix = ingredient.normalizedIngredientName.slice(
+        0,
+        FUZZY_QUERY_PREFIX_LENGTH,
+      );
       const fuzzyCandidates = await this.prisma.foodCompositionItem.findMany({
+        where: {
+          OR: [
+            { normalizedName: { startsWith: fuzzyPrefix } },
+            { searchText: { startsWith: fuzzyPrefix } },
+          ],
+        },
         take: 5,
         select: {
           id: true,
@@ -280,13 +295,4 @@ function scoreCandidate(
     1,
   );
   return longestCommonLength / denominator;
-}
-
-function commonCharacterCount(left: string, right: string): number {
-  const leftChars = new Set(left.split(''));
-  return right.split('').filter((char) => leftChars.has(char)).length;
-}
-
-function roundNumber(value: number, fractionDigits: number): number {
-  return Number(value.toFixed(fractionDigits));
 }

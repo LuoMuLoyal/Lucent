@@ -195,10 +195,19 @@ function buildPrisma(options: {
 }): {
   foodCompositionItem: Pick<PrismaService['foodCompositionItem'], 'findMany'>;
 } {
-  const findMany = jest
-    .fn()
-    .mockImplementation((args?: { where?: { OR?: unknown } }) => {
-      if (args?.where?.OR != null) {
+  const findMany = jest.fn().mockImplementation(
+    (args?: {
+      where?: {
+        OR?: Array<{
+          normalizedName?: { in?: string[] };
+          searchText?: { in?: string[] };
+        }>;
+      };
+    }) => {
+      const isExactQuery = args?.where?.OR?.every(
+        (condition) => typeof condition.normalizedName === 'string',
+      );
+      if (isExactQuery) {
         return Promise.resolve(options.exact);
       }
 
@@ -210,7 +219,8 @@ function buildPrisma(options: {
           }),
         ),
       );
-    });
+    },
+  );
 
   return {
     foodCompositionItem: {
