@@ -5,7 +5,10 @@ import type {
 } from '../types/assistant.types';
 import type { AssistantToolName } from './assistant-tool.types';
 import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.service';
-import { AssistantToolDrugbankEntityResolveService } from './services/assistant-tool-drugbank-entity-resolve.service';
+import {
+  AssistantToolDrugbankEntityResolveService,
+  parseSearchPayload,
+} from './services/assistant-tool-drugbank-entity-resolve.service';
 import { AssistantToolDrugbankSearchService } from './services/assistant-tool-drugbank-search.service';
 import { AssistantToolMedicalKnowledgeService } from './services/assistant-tool-medical-knowledge.service';
 import { AssistantToolMedicineLookupService } from './services/assistant-tool-medicine-lookup.service';
@@ -30,9 +33,61 @@ export class AssistantToolService {
   ): Promise<AssistantToolExecutionResult[]> {
     const results: AssistantToolExecutionResult[] = [];
     for (const toolName of toolNames) {
-      results.push(await this.executeOne(context, toolName));
+      const toolContext = this.buildToolContext(context, toolName, results);
+      results.push(await this.executeOne(toolContext, toolName));
     }
     return results;
+  }
+
+  private buildToolContext(
+    context: AssistantToolExecutionContext,
+    toolName: AssistantToolName,
+    previousResults: readonly AssistantToolExecutionResult[],
+  ): AssistantToolExecutionContext {
+    if (toolName !== 'search_medicine_leaflets') {
+      return context;
+    }
+
+    const productId = this.readResolvedCnProductId(previousResults);
+    if (productId == null) {
+      return context;
+    }
+
+    const payload = parseSearchPayload(context.userMessage);
+    return {
+      ...context,
+      userMessage: JSON.stringify({
+        query: payload.query,
+        ...(payload.limit != null ? { limit: payload.limit } : {}),
+        ...(payload.cursor != null ? { cursor: payload.cursor } : {}),
+        filters: {
+          ...payload.filters,
+          productId,
+        },
+      }),
+    };
+  }
+
+  private readResolvedCnProductId(
+    results: readonly AssistantToolExecutionResult[],
+  ): string | null {
+    const detailResult = [...results]
+      .reverse()
+      .find((result) => result.name === 'get_cn_medicine_detail');
+    const resultEnvelope = detailResult?.data['result'];
+    if (resultEnvelope == null || typeof resultEnvelope !== 'object') {
+      return null;
+    }
+
+    const product = (resultEnvelope as Record<string, unknown>)['product'];
+    if (product == null || typeof product !== 'object') {
+      return null;
+    }
+
+    const productId = (product as Record<string, unknown>)['id'];
+    return typeof productId === 'string' && productId.trim().length > 0
+      ? productId
+      : null;
   }
 
   private async executeOne(

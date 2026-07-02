@@ -28,6 +28,25 @@ describe('AssistantFoundationGraph', () => {
       'get_cn_medicine_detail',
       'search_medicine_leaflets',
     ]);
+
+    expect(
+      selectRelevantToolsForMessage(
+        '这个国药准字H10900089的禁忌和不良反应是什么',
+        [
+          'search_cn_medicine_products',
+          'get_cn_medicine_detail',
+          'search_medicine_leaflets',
+          'resolve_drugbank_entity',
+          'get_drugbank_detail',
+          'search_drugbank_passages',
+          'search_medical_qa_corpus',
+        ],
+      ),
+    ).toEqual([
+      'search_cn_medicine_products',
+      'get_cn_medicine_detail',
+      'search_medicine_leaflets',
+    ]);
   });
 
   it('selects point summary tools for dated history questions', () => {

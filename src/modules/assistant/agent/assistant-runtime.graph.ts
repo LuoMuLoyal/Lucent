@@ -389,6 +389,32 @@ const WRITE_INTENT_RULES = [
   /disable/i,
 ] as const;
 
+const EXPLICIT_CN_PRODUCT_RULES = [
+  /国药准字/,
+  /批准文号/,
+  /生产厂家/,
+  /厂家/,
+  /药厂/,
+  /商品名/,
+  /规格/,
+  /胶囊/,
+  /片剂?/,
+  /颗粒/,
+  /口服液/,
+] as const;
+
+const CN_LEAFLET_STYLE_RULES = [
+  /说明书/,
+  /成分/,
+  /适应症/,
+  /禁忌/,
+  /注意事项/,
+  /不良反应/,
+  /副作用/,
+  /药物相互作用/,
+  /相互作用/,
+] as const;
+
 export function selectRelevantToolsForMessage(
   userMessage: string,
   allowedTools: readonly AssistantToolName[],
@@ -436,6 +462,23 @@ export function selectRelevantToolsForMessage(
       return normalizedLeft - normalizedRight;
     });
   };
+
+  const filterAvailable = (
+    toolNames: readonly AssistantToolName[],
+  ): AssistantToolName[] =>
+    toolNames.filter((toolName): toolName is AssistantToolName =>
+      allowedTools.includes(toolName),
+    );
+
+  if (EXPLICIT_CN_PRODUCT_RULES.some((rule) => rule.test(userMessage))) {
+    return filterAvailable([
+      'search_cn_medicine_products',
+      'get_cn_medicine_detail',
+      ...(CN_LEAFLET_STYLE_RULES.some((rule) => rule.test(userMessage))
+        ? ['search_medicine_leaflets' as const]
+        : []),
+    ]);
+  }
 
   if (matched.length > 0) {
     const matchedReadTools = matched.filter(

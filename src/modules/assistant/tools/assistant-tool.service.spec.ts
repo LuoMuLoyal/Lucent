@@ -203,6 +203,78 @@ describe('AssistantToolService', () => {
     expect(deps.medicineLookupService.getDrugbankDetail).toHaveBeenCalled();
   });
 
+  it('passes a resolved CN product id into downstream leaflet retrieval', async () => {
+    const { service, deps } = buildExecutor();
+    const leafletSpy = jest
+      .spyOn(
+        AssistantToolLeafletReadService.prototype,
+        'searchMedicineLeaflets',
+      )
+      .mockResolvedValue({
+        query: {},
+        result: { chunks: [] },
+        coverage: { status: 'empty', reason: 'No query was provided.' },
+        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
+        source: {
+          tool: 'search_medicine_leaflets',
+          generatedAt: new Date().toISOString(),
+          tables: ['medicine_leaflet_chunks'],
+        },
+        confidence: { level: 'low', reason: 'Empty query.' },
+        ambiguities: [],
+      });
+
+    (
+      deps.medicineLookupService.getCnMedicineDetail as jest.Mock
+    ).mockResolvedValue({
+      query: {
+        query: '阿司匹林肠溶片',
+        matchedSource: 'cn',
+        productId: 'prod-1',
+      },
+      result: {
+        product: {
+          id: 'prod-1',
+          name: '阿司匹林肠溶片',
+        },
+        candidates: [],
+      },
+      coverage: { status: 'complete', reason: null },
+      timeRange: { timezone: 'UTC', startDate: null, endDate: null },
+      source: {
+        tool: 'get_cn_medicine_detail',
+        generatedAt: new Date().toISOString(),
+        tables: ['cn_medicine_products'],
+      },
+      confidence: {
+        level: 'high',
+        reason: 'Loaded one structured Chinese medicine detail record.',
+      },
+      ambiguities: [],
+    });
+
+    await service.executeMany(
+      buildContext({
+        locale: 'zh-CN',
+        userMessage: '阿司匹林肠溶片的禁忌和不良反应是什么',
+      }),
+      ['get_cn_medicine_detail', 'search_medicine_leaflets'],
+    );
+
+    expect(leafletSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        locale: 'zh-CN',
+      }),
+    );
+    const leafletContext = leafletSpy.mock.calls[0]?.[0];
+    expect(leafletContext?.userMessage).toContain('"productId":"prod-1"');
+    expect(leafletContext?.userMessage).toContain(
+      '"query":"阿司匹林肠溶片的禁忌和不良反应是什么"',
+    );
+
+    leafletSpy.mockRestore();
+  });
+
   it('returns one persisted today summary for a specific date', async () => {
     const { service, deps } = buildExecutor();
     deps.aiSummaryHistoryService.getLatestTodaySummaryByDate.mockResolvedValue({
