@@ -14,6 +14,7 @@ import { HistoricalAiSummaryService } from './services/historical-ai-summary.ser
 import { AssistantService } from './services/assistant.service';
 import {
   AssistantContextService,
+  AssistantToolDrugbankCandidateMatchService,
   AssistantToolDrugbankEntityResolveService,
   AssistantToolDrugbankSearchService,
   AssistantToolLeafletReadService,
@@ -49,6 +50,7 @@ import {
     AssistantToolLeafletReadService,
     AssistantToolMedicalKnowledgeService,
     AssistantToolMedicineLookupService,
+    AssistantToolDrugbankCandidateMatchService,
     AssistantToolDrugbankEntityResolveService,
     AssistantToolDrugbankSearchService,
     AssistantService,

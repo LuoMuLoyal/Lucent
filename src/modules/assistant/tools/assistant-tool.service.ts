@@ -5,6 +5,7 @@ import type {
 } from '../types/assistant.types';
 import type { AssistantToolName } from './assistant-tool.types';
 import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.service';
+import { AssistantToolDrugbankCandidateMatchService } from './services/assistant-tool-drugbank-candidate-match.service';
 import { AssistantToolDrugbankEntityResolveService } from './services/assistant-tool-drugbank-entity-resolve.service';
 import { AssistantToolDrugbankSearchService } from './services/assistant-tool-drugbank-search.service';
 import { AssistantToolMedicalKnowledgeService } from './services/assistant-tool-medical-knowledge.service';
@@ -21,6 +22,7 @@ export class AssistantToolService {
     private readonly drugbankEntityResolveService: AssistantToolDrugbankEntityResolveService,
     private readonly drugbankSearchService: AssistantToolDrugbankSearchService,
     private readonly medicineLookupService: AssistantToolMedicineLookupService,
+    private readonly drugbankCandidateMatchService: AssistantToolDrugbankCandidateMatchService,
     private readonly proposalService: AssistantToolProposalService,
   ) {}
 
@@ -106,6 +108,13 @@ export class AssistantToolService {
         return {
           name: toolName,
           data: await this.medicineLookupService.getCnMedicineDetail(context),
+        };
+      case 'match_cn_product_to_drugbank_candidates':
+        return {
+          name: toolName,
+          data: await this.drugbankCandidateMatchService.matchCandidates(
+            context,
+          ),
         };
       case 'search_medicine_leaflets':
         return {

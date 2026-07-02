@@ -8,7 +8,7 @@ This file records current backend implementation facts only. Historical changes 
 
 - Assistant retrieval is source-split across Chinese leaflet RAG, assistant-only filtered medical QA, and entity-scoped DrugBank scientific retrieval.
 - Assistant runtime now carries bounded retrieval-loop state (`loopCount`, `selectedTools`, `retrievalEvidence`, `stopReason`) and keeps tool use server-owned.
-- Assistant tool surface now also includes structured Chinese product search/detail (`search_cn_medicine_products`, `get_cn_medicine_detail`) plus structured DrugBank detail reads (`get_drugbank_detail`) in addition to the retrieval-only tools.
+- Assistant tool surface now also includes structured Chinese product search/detail (`search_cn_medicine_products`, `get_cn_medicine_detail`), deterministic CN -> DrugBank candidate bridging (`match_cn_product_to_drugbank_candidates`), and structured DrugBank detail reads (`get_drugbank_detail`) in addition to the retrieval-only tools.
 - Assistant retrieval misses do not fall back to keyword guessing once a vector-backed retrieval path is selected.
 - Medical QA retrieval remains assistant-only reference material and is not a frontend linear medication-flow evidence source.
 - `search_medicine_leaflets` now returns vector-page metadata (`limit`, `offset`, `hasMore`, `nextCursor`) and supports metadata-filtered retrieval without switching back to SQL keyword fallback.
@@ -17,6 +17,7 @@ This file records current backend implementation facts only. Historical changes 
 
 - Chinese leaflet assistant retrieval uses Lucent-owned `medicine_leaflet_chunks` plus a dedicated leaflet vector store.
 - Structured assistant medicine lookup now reuses the source-owned medicine services instead of inventing a merged assistant-only medicine table: Chinese detail stays on `cn_medicine_products`, and DrugBank detail stays on `drugbank_drugs`.
+- Assistant CN -> DrugBank runtime bridging is now ingredient-first and deterministic: it normalizes CN ingredient or product-name aliases, queries local `drugbank_drugs`, and returns explainable candidates with confidence instead of trusting `cn_medicine_products.drugbank_ids`.
 - Leaflet embedding metadata now carries `chunkId`, `leafletId`, `productIds`, `productNames`, `sourceField`, and `chunkIndex` for assistant-side cursor/filter usage.
 - DrugBank assistant retrieval is split into entity resolution and scoped passage search rather than open-ended whole-corpus passage search.
 - Medical QA assistant retrieval remains a separate corpus with independent storage and disclaimer/safety handling.

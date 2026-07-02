@@ -108,9 +108,10 @@ Assistant tooling now also reflects this separation:
 
 - `search_cn_medicine_products`
 - `get_cn_medicine_detail`
+- `match_cn_product_to_drugbank_candidates`
 - `get_drugbank_detail`
 
-These are structured source-owned lookups. They help the assistant read one source more precisely, but they do not solve CN -> DrugBank matching by themselves.
+`match_cn_product_to_drugbank_candidates` is the first runtime bridge helper, but it is still only a deterministic candidate generator. It helps the assistant bridge sources more explicitly; it does not turn CN -> DrugBank matching into a solved reviewed mapping.
 
 The two datasets do not have the same field model. Lucent should handle this with two layers:
 
@@ -148,6 +149,7 @@ Assistant retrieval keeps each corpus separate. Lucent does not merge Chinese le
 Assistant structured medicine lookup is also source-owned rather than merged:
 
 - Chinese structured product search/detail stays on `cn_medicine_products`
+- CN -> DrugBank candidate generation uses normalized ingredient/product-name tokens plus local `drugbank_drugs`, but returns candidates only
 - DrugBank structured detail stays on `drugbank_drugs`
 - Cross-source matching still requires a future reviewed bridge instead of runtime guessing
 
