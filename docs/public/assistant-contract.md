@@ -218,10 +218,20 @@ Rules:
 - `get_user_settings`
 - `get_current_medicines`
 - `get_sleep_summary_by_range`
+- `search_cn_medicine_products`
+- `get_cn_medicine_detail`
 - `search_medicine_leaflets`
 - `search_medical_qa_corpus`
 - `resolve_drugbank_entity`
+- `get_drugbank_detail`
 - `search_drugbank_passages`
+
+### Structured Medicine Lookup Tools
+
+- `search_cn_medicine_products` returns bounded structured candidates from `cn_medicine_products` for Chinese-market product lookup.
+- `get_cn_medicine_detail` returns one structured Chinese product detail when one product id or one safe single-candidate resolution is available; otherwise it returns explicit candidates instead of guessing.
+- `get_drugbank_detail` returns one structured DrugBank detail when one DrugBank id or one safe single-candidate resolution is available; otherwise it returns explicit candidates instead of guessing.
+- These tools are source-owned lookups, not cross-source matching. They must not be treated as proof that a Chinese product already maps to one DrugBank entity.
 
 ### Source-Split Retrieval Tools
 
@@ -247,9 +257,10 @@ Rules:
 DrugBank retrieval is intentionally split into two tools:
 
 - `resolve_drugbank_entity`
+- `get_drugbank_detail`
 - `search_drugbank_passages`
 
-`resolve_drugbank_entity` identifies one or more bounded DrugBank entity candidates from local Lucent data. `search_drugbank_passages` then searches only inside the resolved entity scope.
+`resolve_drugbank_entity` identifies one or more bounded DrugBank entity candidates from local Lucent data. `get_drugbank_detail` reads one structured detail record when one safe candidate is available. `search_drugbank_passages` then searches only inside the resolved entity scope.
 
 - DrugBank retrieval is entity-scoped, not open-ended whole-corpus passage search as the primary path.
 - DrugBank passages are intended for scientific grounding such as mechanism, interactions, and narrative pharmacology context.

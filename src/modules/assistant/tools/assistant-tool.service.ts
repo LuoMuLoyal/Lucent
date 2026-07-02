@@ -8,6 +8,7 @@ import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.s
 import { AssistantToolDrugbankEntityResolveService } from './services/assistant-tool-drugbank-entity-resolve.service';
 import { AssistantToolDrugbankSearchService } from './services/assistant-tool-drugbank-search.service';
 import { AssistantToolMedicalKnowledgeService } from './services/assistant-tool-medical-knowledge.service';
+import { AssistantToolMedicineLookupService } from './services/assistant-tool-medicine-lookup.service';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';
 
@@ -19,6 +20,7 @@ export class AssistantToolService {
     private readonly medicalKnowledgeService: AssistantToolMedicalKnowledgeService,
     private readonly drugbankEntityResolveService: AssistantToolDrugbankEntityResolveService,
     private readonly drugbankSearchService: AssistantToolDrugbankSearchService,
+    private readonly medicineLookupService: AssistantToolMedicineLookupService,
     private readonly proposalService: AssistantToolProposalService,
   ) {}
 
@@ -93,6 +95,18 @@ export class AssistantToolService {
           name: toolName,
           data: await this.readService.getSleepSummaryByRange(context),
         };
+      case 'search_cn_medicine_products':
+        return {
+          name: toolName,
+          data: await this.medicineLookupService.searchCnMedicineProducts(
+            context,
+          ),
+        };
+      case 'get_cn_medicine_detail':
+        return {
+          name: toolName,
+          data: await this.medicineLookupService.getCnMedicineDetail(context),
+        };
       case 'search_medicine_leaflets':
         return {
           name: toolName,
@@ -109,6 +123,11 @@ export class AssistantToolService {
         return {
           name: toolName,
           data: await this.drugbankEntityResolveService.resolve(context),
+        };
+      case 'get_drugbank_detail':
+        return {
+          name: toolName,
+          data: await this.medicineLookupService.getDrugbankDetail(context),
         };
       case 'search_drugbank_passages':
         return {

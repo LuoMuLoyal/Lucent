@@ -3,6 +3,7 @@ import type { AssistantToolExecutionContext } from '../types/assistant.types';
 import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.service';
 import { AssistantToolDrugbankEntityResolveService } from './services/assistant-tool-drugbank-entity-resolve.service';
 import { AssistantToolDrugbankSearchService } from './services/assistant-tool-drugbank-search.service';
+import type { AssistantToolMedicineLookupService } from './services/assistant-tool-medicine-lookup.service';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';
 import { AssistantToolRecordQueryService } from './assistant-tool-record-query.service';
@@ -108,12 +109,60 @@ describe('AssistantToolService', () => {
       { get: jest.fn() } as never,
       drugbankEntityResolveService,
     );
+    const medicineLookupService: Pick<
+      AssistantToolMedicineLookupService,
+      'searchCnMedicineProducts' | 'getCnMedicineDetail' | 'getDrugbankDetail'
+    > = {
+      searchCnMedicineProducts: jest.fn().mockResolvedValue({
+        query: {},
+        result: { products: [] },
+        coverage: { status: 'empty', reason: 'No query was provided.' },
+        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
+        source: {
+          tool: 'search_cn_medicine_products',
+          generatedAt: new Date().toISOString(),
+          tables: ['cn_medicine_products'],
+        },
+        confidence: { level: 'low', reason: 'Empty query.' },
+        ambiguities: [],
+      }),
+      getCnMedicineDetail: jest.fn().mockResolvedValue({
+        query: {},
+        result: { product: null, candidates: [] },
+        coverage: { status: 'empty', reason: 'No product query was provided.' },
+        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
+        source: {
+          tool: 'get_cn_medicine_detail',
+          generatedAt: new Date().toISOString(),
+          tables: ['cn_medicine_products'],
+        },
+        confidence: { level: 'low', reason: 'Empty query.' },
+        ambiguities: [],
+      }),
+      getDrugbankDetail: jest.fn().mockResolvedValue({
+        query: {},
+        result: { drug: null, candidates: [] },
+        coverage: {
+          status: 'empty',
+          reason: 'No DrugBank query was provided.',
+        },
+        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
+        source: {
+          tool: 'get_drugbank_detail',
+          generatedAt: new Date().toISOString(),
+          tables: ['drugbank_drugs'],
+        },
+        confidence: { level: 'low', reason: 'Empty query.' },
+        ambiguities: [],
+      }),
+    };
     const service = new AssistantToolService(
       readService,
       leafletReadService,
       medicalKnowledgeService,
       drugbankEntityResolveService,
       drugbankSearchService,
+      medicineLookupService as never,
       proposalService,
     );
 
@@ -124,6 +173,7 @@ describe('AssistantToolService', () => {
         dailyRecordCandidatesService,
         dailyRecordsService,
         medicineRemindersService,
+        medicineLookupService,
         recordQueryService,
         userHealthContextService,
         userSettingsService,
@@ -132,16 +182,25 @@ describe('AssistantToolService', () => {
   }
 
   it('dispatches the new retrieval tools', async () => {
-    const { service } = buildExecutor();
+    const { service, deps } = buildExecutor();
 
     await expect(
       service.executeMany(buildContext(), [
+        'search_cn_medicine_products',
+        'get_cn_medicine_detail',
+        'get_drugbank_detail',
         'search_medicine_leaflets',
         'search_medical_qa_corpus',
         'resolve_drugbank_entity',
         'search_drugbank_passages',
       ]),
-    ).resolves.toHaveLength(4);
+    ).resolves.toHaveLength(7);
+
+    expect(
+      deps.medicineLookupService.searchCnMedicineProducts,
+    ).toHaveBeenCalled();
+    expect(deps.medicineLookupService.getCnMedicineDetail).toHaveBeenCalled();
+    expect(deps.medicineLookupService.getDrugbankDetail).toHaveBeenCalled();
   });
 
   it('returns one persisted today summary for a specific date', async () => {

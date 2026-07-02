@@ -3,6 +3,7 @@ import { AuthModule } from '../auth/auth.module';
 import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
 import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module';
+import { MedicinesModule } from '../medicines/medicines.module';
 import { UserHealthContextModule } from '../user-health-context/user-health-context.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { AssistantRuntimeService } from './agent/assistant-runtime.service';
@@ -17,6 +18,7 @@ import {
   AssistantToolDrugbankSearchService,
   AssistantToolLeafletReadService,
   AssistantToolMedicalKnowledgeService,
+  AssistantToolMedicineLookupService,
   AssistantToolProposalService,
   AssistantToolReadService,
   AssistantToolRecordQueryService,
@@ -27,6 +29,7 @@ import {
   imports: [
     AuthModule,
     LlmRuntimeModule,
+    MedicinesModule,
     UserSettingsModule,
     UserHealthContextModule,
     DailyRecordsModule,
@@ -45,6 +48,7 @@ import {
     AssistantToolReadService,
     AssistantToolLeafletReadService,
     AssistantToolMedicalKnowledgeService,
+    AssistantToolMedicineLookupService,
     AssistantToolDrugbankEntityResolveService,
     AssistantToolDrugbankSearchService,
     AssistantService,

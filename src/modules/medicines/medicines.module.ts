@@ -17,5 +17,6 @@ import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
     DrugbankMedicinesService,
     CnMedicinesService,
   ],
+  exports: [DrugbankMedicinesService, CnMedicinesService],
 })
 export class MedicinesModule {}

@@ -104,6 +104,14 @@ Lucent keeps the Chinese and English medicine datasets separate at query time. T
 
 Do not force both sources into one canonical medicine table in Phase 1. Matching Chinese products to DrugBank drug entities is a later enrichment task because one Chinese product can map to multiple active ingredients, and one DrugBank drug can map to many brands/products.
 
+Assistant tooling now also reflects this separation:
+
+- `search_cn_medicine_products`
+- `get_cn_medicine_detail`
+- `get_drugbank_detail`
+
+These are structured source-owned lookups. They help the assistant read one source more precisely, but they do not solve CN -> DrugBank matching by themselves.
+
 The two datasets do not have the same field model. Lucent should handle this with two layers:
 
 1. A small common response layer for search lists and generic detail headers.
@@ -136,6 +144,12 @@ Optional later table:
 ## RAG Knowledge Sources
 
 Assistant retrieval keeps each corpus separate. Lucent does not merge Chinese leaflet, DrugBank scientific passages, and medical QA into one embedding table or one generic search tool.
+
+Assistant structured medicine lookup is also source-owned rather than merged:
+
+- Chinese structured product search/detail stays on `cn_medicine_products`
+- DrugBank structured detail stays on `drugbank_drugs`
+- Cross-source matching still requires a future reviewed bridge instead of runtime guessing
 
 ### Chinese leaflet RAG
 

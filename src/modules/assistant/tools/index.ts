@@ -4,6 +4,7 @@ export * from './assistant-tool-leaflet-read.service';
 export * from './services/assistant-tool-drugbank-entity-resolve.service';
 export * from './services/assistant-tool-drugbank-search.service';
 export * from './services/assistant-tool-medical-knowledge.service';
+export * from './services/assistant-tool-medicine-lookup.service';
 export * from './assistant-tool-proposal.service';
 export * from './assistant-tool-read.service';
 export * from './assistant-tool-record-query.service';

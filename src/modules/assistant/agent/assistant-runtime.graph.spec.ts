@@ -13,6 +13,21 @@ describe('AssistantFoundationGraph', () => {
         'get_current_medicines',
       ]),
     ).toEqual(['get_sleep_summary_by_range']);
+
+    expect(
+      selectRelevantToolsForMessage(
+        '查一下国药准字H10900089这个药的成分和厂家',
+        [
+          'search_cn_medicine_products',
+          'get_cn_medicine_detail',
+          'search_medicine_leaflets',
+        ],
+      ),
+    ).toEqual([
+      'search_cn_medicine_products',
+      'get_cn_medicine_detail',
+      'search_medicine_leaflets',
+    ]);
   });
 
   it('selects point summary tools for dated history questions', () => {
@@ -82,9 +97,12 @@ describe('AssistantFoundationGraph', () => {
       'get_user_profile',
       'get_user_settings',
       'get_sleep_summary_by_range',
+      'search_cn_medicine_products',
+      'get_cn_medicine_detail',
       'search_medicine_leaflets',
       'search_medical_qa_corpus',
       'resolve_drugbank_entity',
+      'get_drugbank_detail',
       'search_drugbank_passages',
       'propose_create_daily_record',
       'propose_update_user_settings',
@@ -111,9 +129,12 @@ describe('AssistantFoundationGraph', () => {
       'get_user_settings',
       'get_current_medicines',
       'get_sleep_summary_by_range',
+      'search_cn_medicine_products',
+      'get_cn_medicine_detail',
       'search_medicine_leaflets',
       'search_medical_qa_corpus',
       'resolve_drugbank_entity',
+      'get_drugbank_detail',
       'search_drugbank_passages',
       'propose_create_daily_record',
       'propose_update_user_settings',
