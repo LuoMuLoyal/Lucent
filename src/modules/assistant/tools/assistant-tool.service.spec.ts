@@ -1,7 +1,6 @@
 import { DailyRecordKind } from '../../../generated/prisma/client';
 import type { AssistantToolExecutionContext } from '../types/assistant.types';
 import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.service';
-import type { AssistantToolDrugbankCandidateMatchService } from './services/assistant-tool-drugbank-candidate-match.service';
 import { AssistantToolDrugbankEntityResolveService } from './services/assistant-tool-drugbank-entity-resolve.service';
 import { AssistantToolDrugbankSearchService } from './services/assistant-tool-drugbank-search.service';
 import type { AssistantToolMedicineLookupService } from './services/assistant-tool-medicine-lookup.service';
@@ -157,27 +156,6 @@ describe('AssistantToolService', () => {
         ambiguities: [],
       }),
     };
-    const drugbankCandidateMatchService: Pick<
-      AssistantToolDrugbankCandidateMatchService,
-      'matchCandidates'
-    > = {
-      matchCandidates: jest.fn().mockResolvedValue({
-        query: {},
-        result: { product: null, candidates: [] },
-        coverage: {
-          status: 'empty',
-          reason: 'No product query was provided.',
-        },
-        timeRange: { timezone: 'UTC', startDate: null, endDate: null },
-        source: {
-          tool: 'match_cn_product_to_drugbank_candidates',
-          generatedAt: new Date().toISOString(),
-          tables: ['cn_medicine_products', 'drugbank_drugs'],
-        },
-        confidence: { level: 'low', reason: 'Empty query.' },
-        ambiguities: [],
-      }),
-    };
     const service = new AssistantToolService(
       readService,
       leafletReadService,
@@ -185,7 +163,6 @@ describe('AssistantToolService', () => {
       drugbankEntityResolveService,
       drugbankSearchService,
       medicineLookupService as never,
-      drugbankCandidateMatchService as never,
       proposalService,
     );
 
@@ -197,7 +174,6 @@ describe('AssistantToolService', () => {
         dailyRecordsService,
         medicineRemindersService,
         medicineLookupService,
-        drugbankCandidateMatchService,
         recordQueryService,
         userHealthContextService,
         userSettingsService,
@@ -216,19 +192,15 @@ describe('AssistantToolService', () => {
         'search_medicine_leaflets',
         'search_medical_qa_corpus',
         'resolve_drugbank_entity',
-        'match_cn_product_to_drugbank_candidates',
         'search_drugbank_passages',
       ]),
-    ).resolves.toHaveLength(8);
+    ).resolves.toHaveLength(7);
 
     expect(
       deps.medicineLookupService.searchCnMedicineProducts,
     ).toHaveBeenCalled();
     expect(deps.medicineLookupService.getCnMedicineDetail).toHaveBeenCalled();
     expect(deps.medicineLookupService.getDrugbankDetail).toHaveBeenCalled();
-    expect(
-      deps.drugbankCandidateMatchService.matchCandidates,
-    ).toHaveBeenCalled();
   });
 
   it('returns one persisted today summary for a specific date', async () => {

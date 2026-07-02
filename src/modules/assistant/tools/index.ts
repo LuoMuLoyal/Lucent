@@ -2,7 +2,6 @@ export * from './assistant-tool.types';
 export * from './assistant-tool.service';
 export * from './assistant-tool-leaflet-read.service';
 export * from './services/assistant-tool-drugbank-entity-resolve.service';
-export * from './services/assistant-tool-drugbank-candidate-match.service';
 export * from './services/assistant-tool-drugbank-search.service';
 export * from './services/assistant-tool-medical-knowledge.service';
 export * from './services/assistant-tool-medicine-lookup.service';

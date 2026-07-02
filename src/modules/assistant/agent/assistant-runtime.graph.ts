@@ -211,19 +211,6 @@ const TOOL_KEYWORD_RULES: Record<AssistantToolName, RegExp[]> = {
     /indication/i,
     /package spec/i,
   ],
-  match_cn_product_to_drugbank_candidates: [
-    /drugbank/i,
-    /候选/,
-    /映射/,
-    /匹配/,
-    /对应/,
-    /桥接/,
-    /成分对应/,
-    /candidate/i,
-    /map/i,
-    /match/i,
-    /bridge/i,
-  ],
   search_medicine_leaflets: [
     /说明书/,
     /成分/,
@@ -432,7 +419,6 @@ export function selectRelevantToolsForMessage(
     const priority: AssistantToolName[] = [
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
-      'match_cn_product_to_drugbank_candidates',
       'search_medicine_leaflets',
       'resolve_drugbank_entity',
       'get_drugbank_detail',
@@ -452,23 +438,12 @@ export function selectRelevantToolsForMessage(
   };
 
   if (matched.length > 0) {
-    const rawMatchedReadTools = matched.filter(
+    const matchedReadTools = matched.filter(
       (toolName) => !toolName.startsWith('propose_'),
     );
     const matchedWriteTools = matched.filter((toolName) =>
       toolName.startsWith('propose_'),
     );
-    const matchedReadTools = rawMatchedReadTools.includes(
-      'match_cn_product_to_drugbank_candidates',
-    )
-      ? [
-          ...new Set<AssistantToolName>([
-            ...rawMatchedReadTools,
-            'search_cn_medicine_products',
-            'get_cn_medicine_detail',
-          ]),
-        ]
-      : rawMatchedReadTools;
 
     if (
       /历史.*today|历史.*总结|之前.*today|以前.*today|past today|recent today/i.test(

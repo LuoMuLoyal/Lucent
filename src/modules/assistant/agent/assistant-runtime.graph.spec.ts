@@ -28,23 +28,6 @@ describe('AssistantFoundationGraph', () => {
       'get_cn_medicine_detail',
       'search_medicine_leaflets',
     ]);
-
-    expect(
-      selectRelevantToolsForMessage(
-        '把布洛芬缓释胶囊对应的 drugbank 候选列出来',
-        [
-          'search_cn_medicine_products',
-          'get_cn_medicine_detail',
-          'match_cn_product_to_drugbank_candidates',
-          'get_drugbank_detail',
-        ],
-      ),
-    ).toEqual([
-      'search_cn_medicine_products',
-      'get_cn_medicine_detail',
-      'match_cn_product_to_drugbank_candidates',
-      'get_drugbank_detail',
-    ]);
   });
 
   it('selects point summary tools for dated history questions', () => {
@@ -116,7 +99,6 @@ describe('AssistantFoundationGraph', () => {
       'get_sleep_summary_by_range',
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
-      'match_cn_product_to_drugbank_candidates',
       'search_medicine_leaflets',
       'search_medical_qa_corpus',
       'resolve_drugbank_entity',
@@ -149,7 +131,6 @@ describe('AssistantFoundationGraph', () => {
       'get_sleep_summary_by_range',
       'search_cn_medicine_products',
       'get_cn_medicine_detail',
-      'match_cn_product_to_drugbank_candidates',
       'search_medicine_leaflets',
       'search_medical_qa_corpus',
       'resolve_drugbank_entity',

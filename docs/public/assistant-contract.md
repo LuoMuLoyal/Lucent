@@ -223,7 +223,6 @@ Rules:
 - `search_medicine_leaflets`
 - `search_medical_qa_corpus`
 - `resolve_drugbank_entity`
-- `match_cn_product_to_drugbank_candidates`
 - `get_drugbank_detail`
 - `search_drugbank_passages`
 
@@ -231,9 +230,8 @@ Rules:
 
 - `search_cn_medicine_products` returns bounded structured candidates from `cn_medicine_products` for Chinese-market product lookup.
 - `get_cn_medicine_detail` returns one structured Chinese product detail when one product id or one safe single-candidate resolution is available; otherwise it returns explicit candidates instead of guessing.
-- `match_cn_product_to_drugbank_candidates` deterministically normalizes CN ingredient or product-name tokens, queries local `drugbank_drugs`, and returns explainable DrugBank candidates with evidence and confidence instead of declaring one reviewed final mapping.
 - `get_drugbank_detail` returns one structured DrugBank detail when one DrugBank id or one safe single-candidate resolution is available; otherwise it returns explicit candidates instead of guessing.
-- These tools stay server-owned and bounded. `match_cn_product_to_drugbank_candidates` is candidate generation only, not reviewed source-of-truth cross-source mapping, and must not be treated as proof that a Chinese product already maps to one DrugBank entity.
+- These tools stay server-owned and bounded. They must not be treated as proof that a Chinese product already maps to one DrugBank entity.
 
 ### Source-Split Retrieval Tools
 
