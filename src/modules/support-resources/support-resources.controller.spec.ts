@@ -24,16 +24,6 @@ describe('SupportResourcesController', () => {
     expect(result.data?.updatedAt).toBeTruthy();
   });
 
-  it('should filter resources by campus scope', () => {
-    const result = controller.getResources({ scope: 'campus' });
-
-    expect(result.code).toBe(ResultCode.SUCCESS);
-    expect(result.data).toBeDefined();
-    for (const item of result.data?.items ?? []) {
-      expect(item.scope).toBe('campus');
-    }
-  });
-
   it('should filter resources by help scope', () => {
     const result = controller.getResources({ scope: 'help' });
 
@@ -41,6 +31,16 @@ describe('SupportResourcesController', () => {
     expect(result.data).toBeDefined();
     for (const item of result.data?.items ?? []) {
       expect(item.scope).toBe('help');
+    }
+  });
+
+  it('should filter resources by about scope', () => {
+    const result = controller.getResources({ scope: 'about' });
+
+    expect(result.code).toBe(ResultCode.SUCCESS);
+    expect(result.data).toBeDefined();
+    for (const item of result.data?.items ?? []) {
+      expect(item.scope).toBe('about');
     }
   });
 

@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export const SUPPORT_RESOURCE_SCOPES = ['campus', 'help', 'about'] as const;
+export const SUPPORT_RESOURCE_SCOPES = ['help', 'about'] as const;
 export type SupportResourceScope = (typeof SUPPORT_RESOURCE_SCOPES)[number];
 
 export const SUPPORT_RESOURCE_ACTION_TYPES = [
@@ -12,7 +12,7 @@ export type SupportResourceActionType =
   (typeof SUPPORT_RESOURCE_ACTION_TYPES)[number];
 
 export class SupportResourceDto {
-  @ApiProperty({ example: 'campus-hospital' })
+  @ApiProperty({ example: 'help-faq' })
   id!: string;
 
   @ApiProperty({
@@ -21,7 +21,7 @@ export class SupportResourceDto {
   })
   scope!: SupportResourceScope;
 
-  @ApiProperty({ example: 'Campus Hospital' })
+  @ApiProperty({ example: 'FAQ' })
   title!: string;
 
   @ApiPropertyOptional({ type: String, nullable: true })

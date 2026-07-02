@@ -17,9 +17,14 @@ describe('SupportResourcesService', () => {
     expect(result.items.length).toBeGreaterThan(0);
   });
 
-  it('should filter resources by scope', () => {
-    const result = service.getResources({ scope: 'campus' });
-    expect(result.items.every((item) => item.scope === 'campus')).toBe(true);
+  it('should filter resources by help scope', () => {
+    const result = service.getResources({ scope: 'help' });
+    expect(result.items.every((item) => item.scope === 'help')).toBe(true);
+  });
+
+  it('should filter resources by about scope', () => {
+    const result = service.getResources({ scope: 'about' });
+    expect(result.items.every((item) => item.scope === 'about')).toBe(true);
   });
 
   it('should return app info with package metadata', () => {

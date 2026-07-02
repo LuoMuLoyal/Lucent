@@ -19,6 +19,12 @@ This file records current backend implementation facts only. Historical changes 
 - DrugBank assistant retrieval is split into entity resolution and scoped passage search rather than open-ended whole-corpus passage search.
 - Medical QA assistant retrieval remains a separate corpus with independent storage and disclaimer/safety handling.
 - Local development database currently has populated `medicine_leaflet_chunks`, but assistant vector-store bootstrap is still blocked until the database runtime provides the `pgvector` extension itself.
+- The locked CN master source currently has no usable built-in CN -> DrugBank bridge: the reviewed `ProductsEnriched.drugbank_ids` column exists in the local V2 workbook snapshot but has 0 populated rows, so cross-source mapping remains a future reviewed enrichment task rather than a runtime assumption.
+
+## Public Support Resources
+
+- `GET /api/v1/public/support-resources` now only serves `help` / `about` reference entries.
+- Campus-scoped support resources have been removed from the active public contract because the project does not have a reliable school-specific data source.
 
 ## Toolchain / Contract
 

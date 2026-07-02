@@ -134,6 +134,6 @@ approximate/reference data rather than real-time conditions.
 
 - Do not reintroduce a standalone More tab or generic utility hub for environment data.
 - Future Luminous wiring should create an `EnvironmentRepository` that calls `GET /api/v1/environment/snapshot`.
-- Valid frontend targets are contextual Today signals or Mine/campus-service support entries after the matching user job is explicit.
+- Valid frontend targets are contextual Today signals or other bounded health-support surfaces after the matching user job is explicit.
 - When `dataSource` is `'static'`, show a visible reference/static label.
 - When the API is unavailable, keep the surrounding page usable and label any fallback as mock/static.

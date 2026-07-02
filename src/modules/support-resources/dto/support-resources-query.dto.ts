@@ -4,7 +4,7 @@ import { SUPPORT_RESOURCE_SCOPES } from './support-resources-response.dto';
 
 export class SupportResourcesQueryDto {
   @ApiPropertyOptional({
-    description: "Filter by scope: 'campus', 'help', 'about'. Default: all.",
+    description: "Filter by scope: 'help', 'about'. Default: all.",
     enum: SUPPORT_RESOURCE_SCOPES,
   })
   @IsOptional()

@@ -1,6 +1,6 @@
 # Mine And Settings Contract
 
-Last updated: 2026-06-18
+Last updated: 2026-07-02
 
 ## Summary
 
@@ -21,18 +21,17 @@ public support resources, app metadata, and data-export request status.
 
 ## Ownership Map
 
-| Setting / Resource                | Owner  | Notes                                          |
-| --------------------------------- | ------ | ---------------------------------------------- |
-| AI/privacy toggles                | Server | Persisted as user settings                     |
-| Data sharing consent              | Server | Persisted as user settings                     |
-| Theme mode / palette              | Device | SharedPreferences, not synced                  |
-| Language preference               | Device | Also written through health-context locale     |
-| Notification permission           | Device | OS-level grant, not a server preference        |
-| Reminder scheduling               | Device | Local notification controller                  |
-| Campus hospital / pharmacy / etc. | Server | Static reference data served from Lucent       |
-| Help / FAQ content                | Server | Static reference data served from Lucent       |
-| App about metadata                | Server | Read from package/config, not hardcoded client |
-| Data export request               | Server | Status plus first real report-PDF export flow  |
+| Setting / Resource             | Owner  | Notes                                          |
+| ------------------------------ | ------ | ---------------------------------------------- |
+| AI/privacy toggles             | Server | Persisted as user settings                     |
+| Data sharing consent           | Server | Persisted as user settings                     |
+| Theme mode / palette           | Device | SharedPreferences, not synced                  |
+| Language preference            | Device | Also written through health-context locale     |
+| Notification permission        | Device | OS-level grant, not a server preference        |
+| Reminder scheduling            | Device | Local notification controller                  |
+| Help / about reference entries | Server | Static reference data served from Lucent       |
+| App about metadata             | Server | Read from package/config, not hardcoded client |
+| Data export request            | Server | Status plus first real report-PDF export flow  |
 
 ## API Surface
 
@@ -100,15 +99,15 @@ assistantContext.currentMedicines
 
 ### 2. Support Resources
 
-**Endpoint:** `GET /api/v1/public/support-resources?scope=campus`
+**Endpoint:** `GET /api/v1/public/support-resources?scope=help`
 
 Public (no authentication required). Returns a list of static reference entries.
 
 **Query:**
 
-| Param   | Type   | Required | Description                                               |
-| ------- | ------ | -------- | --------------------------------------------------------- |
-| `scope` | string | no       | Filter by scope: `campus`, `help`, `about`. Default: all. |
+| Param   | Type   | Required | Description                                     |
+| ------- | ------ | -------- | ----------------------------------------------- |
+| `scope` | string | no       | Filter by scope: `help`, `about`. Default: all. |
 
 **Response:** `{ code: 0, data: SupportResourceListDto }`
 
@@ -119,8 +118,8 @@ interface SupportResourceListDto {
 }
 
 interface SupportResourceDto {
-  id: string; // stable identifier, e.g. "campus-hospital"
-  scope: 'campus' | 'help' | 'about';
+  id: string; // stable identifier, e.g. "help-faq"
+  scope: 'help' | 'about';
   title: string; // localized title (server-locale or key)
   titleKey: string | null; // client l10n key if available
   subtitle: string | null;
@@ -273,8 +272,6 @@ model DataExportRequest {
 
 ## Luminous Integration Notes
 
-- Mine campus services should read from `GET /api/v1/public/support-resources?scope=campus`
-  instead of hardcoded entries.
 - Settings privacy rows should read from `GET /api/v1/user/settings` and write
   through `PATCH /api/v1/user/settings`.
 - Assistant settings UI should also treat `GET /api/v1/user/assistant/capabilities`

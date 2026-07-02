@@ -50,15 +50,10 @@ describe('Support Resources API (e2e)', () => {
         .expect(400);
     });
 
-    it('should return campus resources when scoped', async () => {
-      const response = await request(app.getHttpServer())
+    it('should return 400 for removed campus scope', async () => {
+      await request(app.getHttpServer())
         .get(`${SUPPORT_RESOURCES_PATH}?scope=campus`)
-        .expect(200);
-
-      const data = expectData(
-        response.body as ApiEnvelope<{ items: unknown[] }>,
-      );
-      expect(data.items.length).toBeGreaterThanOrEqual(1);
+        .expect(400);
     });
   });
 

@@ -1,6 +1,6 @@
 # Data Sources
 
-Last updated: 2026-06-27
+Last updated: 2026-07-02
 
 ## Target Directory
 
@@ -181,6 +181,12 @@ Why it is different from leaflet and DrugBank RAG:
 The frontend linear medication suggestion/risk flow must not consume this QA corpus in the current phase.
 
 As of 4.0.0, `ChineseDrugData_Master_V2/ChineseDrugData_Master_V2.xlsx` is the locked CN source for both structured product lookup and leaflet RAG. The data fusion pipeline is frozen for 4.0.0; further improvements (DrugBank bridging, product aggregation, English translation) are scheduled for 4.x.
+
+Current bridge status (verified 2026-07-02 on the local V2 workbook snapshot):
+
+- `ProductsEnriched` currently contains a `drugbank_ids` column, but the reviewed local snapshot has **0 populated rows** in that column.
+- Do not treat `drugbank_ids` as an already solved CN -> DrugBank bridge in runtime logic.
+- Any future cross-source bridge needs a new reviewed mapping pipeline, likely starting from normalized ingredient extraction rather than assuming product-name-level exact joins.
 
 ## Chinese Source Mapping
 
