@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Logger,
   Post,
   Query,
   Res,
@@ -20,7 +21,7 @@ import { I18nLang } from 'nestjs-i18n';
 import { successEnvelope } from '../../common/api-envelope';
 import { endSse, prepareSse, writeSseEvent } from '../../common/sse';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
-import { type UserPayload } from '../auth/services/auth.service';
+import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TodayAnalysisService } from './services/today-analysis.service';
@@ -37,6 +38,8 @@ import {
 @UseGuards(JwtAuthGuard)
 @Controller('today-analysis')
 export class TodayAnalysisController {
+  private readonly logger = new Logger(TodayAnalysisController.name);
+
   constructor(
     private readonly todayAnalysisService: TodayAnalysisService,
     private readonly todayRecommendationsService: TodayRecommendationsService,
@@ -122,6 +125,11 @@ export class TodayAnalysisController {
         data: {},
       });
     } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Today analysis stream failed for user ${user.sub}: ${reason}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       writeSseEvent(response, {
         event: 'error',
         data: httpExceptionPayload(error),

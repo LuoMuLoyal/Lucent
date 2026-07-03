@@ -1,7 +1,8 @@
 import { nonDeleted } from '../../../common/utils/prisma.helpers';
 import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { parseDateOnly } from '../../../common/utils/date-time.utils';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { badRequest } from '../../../common/utils/api-errors';
 import { DailyRecordKind, Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { CreateDailyRecordDto, UpdateDailyRecordDto } from '../dto';
@@ -287,14 +288,12 @@ export class DailyRecordsService {
   ) {
     if (kind !== DailyRecordKind.sleep) return;
     if (payload == null || typeof payload['durationMinutes'] !== 'number') {
-      throw new BadRequestException(
+      badRequest(
         'Sleep records require payload.durationMinutes as a positive number.',
       );
     }
     if (payload['durationMinutes'] <= 0) {
-      throw new BadRequestException(
-        'Sleep payload.durationMinutes must be a positive number.',
-      );
+      badRequest('Sleep payload.durationMinutes must be a positive number.');
     }
   }
 
@@ -310,14 +309,12 @@ export class DailyRecordsService {
     const payload = rawPayload as Record<string, unknown> | null;
 
     if (payload == null || typeof payload['durationMinutes'] !== 'number') {
-      throw new BadRequestException(
+      badRequest(
         'Sleep records require payload.durationMinutes as a positive number.',
       );
     }
     if (payload['durationMinutes'] <= 0) {
-      throw new BadRequestException(
-        'Sleep payload.durationMinutes must be a positive number.',
-      );
+      badRequest('Sleep payload.durationMinutes must be a positive number.');
     }
   }
 

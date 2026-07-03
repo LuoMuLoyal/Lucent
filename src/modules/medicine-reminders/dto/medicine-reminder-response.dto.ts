@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-class MedicineReminderItemDto {
+export class MedicineReminderItemDto {
   @ApiProperty({ description: 'Reminder id.' })
   id!: string;
 
@@ -49,7 +49,7 @@ class MedicineReminderItemDto {
   updatedAt!: string;
 }
 
-class MedicineReminderListDataDto {
+export class MedicineReminderListDataDto {
   @ApiProperty({ type: () => MedicineReminderItemDto, isArray: true })
   items!: MedicineReminderItemDto[];
 }

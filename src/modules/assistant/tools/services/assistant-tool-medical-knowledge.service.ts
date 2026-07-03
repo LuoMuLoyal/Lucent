@@ -20,9 +20,11 @@ import {
   decodeVectorCursor,
 } from './assistant-vector-cursor';
 import { parseSearchPayload } from './assistant-tool-drugbank-entity-resolve.service';
+import {
+  ASSISTANT_VECTOR_DEFAULT_LIMIT,
+  ASSISTANT_VECTOR_MAX_LIMIT,
+} from '../assistant-tool.constants';
 
-const DEFAULT_LIMIT = 4;
-const MAX_LIMIT = 8;
 const EMBEDDINGS_TABLE = 'medical_qa_embeddings';
 
 @Injectable()
@@ -227,6 +229,7 @@ export class AssistantToolMedicalKnowledgeService {
 }
 
 function normalizeLimit(limit: number | undefined): number {
-  if (limit == null || Number.isNaN(limit)) return DEFAULT_LIMIT;
-  return Math.max(1, Math.min(MAX_LIMIT, Math.trunc(limit)));
+  if (limit == null || Number.isNaN(limit))
+    return ASSISTANT_VECTOR_DEFAULT_LIMIT;
+  return Math.max(1, Math.min(ASSISTANT_VECTOR_MAX_LIMIT, Math.trunc(limit)));
 }

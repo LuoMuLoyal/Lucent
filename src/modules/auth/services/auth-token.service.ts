@@ -6,22 +6,17 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { User } from '../../../generated/prisma/client';
 import { ConfigKey } from '../../../config/config-keys.enum';
 
-export interface TokenPair {
-  accessToken: string;
-  refreshToken: string;
-  accessTokenExpiresAt: string;
-  refreshTokenExpiresAt: string;
-}
+import type {
+  AuthRequestContext,
+  TokenPair,
+  UserPayload,
+} from '../types/auth-request';
 
-export interface UserPayload {
-  sub: string;
-  email: string | null;
-}
-
-export interface AuthRequestContext {
-  ipAddress?: string;
-  userAgent?: string;
-}
+export type {
+  AuthRequestContext,
+  TokenPair,
+  UserPayload,
+} from '../types/auth-request';
 
 interface JwtConfigShape {
   accessSecret: string;

@@ -20,9 +20,11 @@ import {
   decodeVectorCursor,
 } from './services/assistant-vector-cursor';
 import { parseSearchPayload } from './services/assistant-tool-drugbank-entity-resolve.service';
+import {
+  ASSISTANT_VECTOR_DEFAULT_LIMIT,
+  ASSISTANT_VECTOR_MAX_LIMIT,
+} from './assistant-tool.constants';
 
-const DEFAULT_LIMIT = 4;
-const MAX_LIMIT = 8;
 const VECTOR_FETCH_BUFFER = 4;
 const PRODUCT_RESOLVE_FETCH_COUNT = 20;
 const PRODUCT_RESOLVE_AMBIGUITY_THRESHOLD = 0.05;
@@ -440,6 +442,7 @@ export class AssistantToolLeafletReadService {
 }
 
 function normalizeLimit(limit: number | undefined): number {
-  if (limit == null || Number.isNaN(limit)) return DEFAULT_LIMIT;
-  return Math.max(1, Math.min(MAX_LIMIT, Math.trunc(limit)));
+  if (limit == null || Number.isNaN(limit))
+    return ASSISTANT_VECTOR_DEFAULT_LIMIT;
+  return Math.max(1, Math.min(ASSISTANT_VECTOR_MAX_LIMIT, Math.trunc(limit)));
 }

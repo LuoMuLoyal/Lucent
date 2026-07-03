@@ -1,5 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { randomUUID } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
@@ -16,6 +16,8 @@ type HealthComponent = HealthProbeDto['components'][number];
 
 @Injectable()
 export class AppService {
+  private readonly logger = new Logger(AppService.name);
+
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
@@ -125,6 +127,11 @@ export class AppService {
             },
       });
     } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Database health probe failed: ${reason}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return this.buildComponent({
         name: 'database',
         status: 'down',
@@ -191,6 +198,11 @@ export class AppService {
             },
       });
     } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Cache health probe failed: ${reason}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       return this.buildComponent({
         name: 'cache',
         status: 'down',

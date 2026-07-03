@@ -6,7 +6,7 @@ import {
   type Prisma,
 } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import type { ReportRange } from '../../reports/dto/report-dashboard-query.dto';
+import type { AssistantReportRange } from '../types/assistant-ports';
 
 type SummaryBullet = {
   kind: string;
@@ -18,7 +18,7 @@ type PersistSummaryInput = {
   kind: 'today' | 'report';
   scopeKey: string;
   date?: string | null;
-  rangeKey?: string | null;
+  rangeKey?: AssistantReportRange | null;
   startDate?: string | null;
   endDate?: string | null;
   generatedAt: string;
@@ -106,7 +106,7 @@ export class HistoricalAiSummaryService {
   async getLatestReportSummaryByRange(
     userId: string,
     input: {
-      rangeKey?: ReportRange | null;
+      rangeKey?: AssistantReportRange | null;
       startDate?: string | null;
       endDate?: string | null;
     },

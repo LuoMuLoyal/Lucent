@@ -26,3 +26,8 @@ Keep durable implementation context in the owning code comments when the TODO is
 
 - Add more OAuth providers such as Apple or Google when product scope requires them.
   Source context: `src/modules/auth/types/oauth.types.ts`
+
+## Code Quality Follow-up
+
+- Split `src/admin/adminjs.setup.ts` (~623 lines) into focused modules: resource config, Prisma DMMF handling, static asset serving, and authentication routing.
+- Split `src/modules/auth/services/auth.service.ts` (~401 lines) into smaller facades: credential flow, OAuth flow, account management, and security notifications.

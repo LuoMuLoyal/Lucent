@@ -13,3 +13,10 @@ export function shuffleArray<T>(array: readonly T[]): T[] {
   }
   return result;
 }
+
+/** Returns true when the value is null, undefined, or an empty array. */
+export function isEmptyArray(
+  value: unknown[] | undefined | null,
+): value is [] | undefined | null {
+  return value == null || value.length === 0;
+}

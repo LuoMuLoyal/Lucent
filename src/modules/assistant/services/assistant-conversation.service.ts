@@ -1,4 +1,5 @@
 import { notFound } from '../../../common/utils/api-errors';
+import { truncate } from '../../../common/utils/string.utils';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
@@ -12,6 +13,12 @@ import type {
   AssistantConversationSnapshot,
   AssistantConversationSummary,
 } from '../types/assistant.types';
+import {
+  MAX_COMPACT_LENGTH,
+  MEMORY_CONVERSATION_LIMIT,
+  MEMORY_MESSAGE_LIMIT,
+  RECENT_CONVERSATION_LIMIT,
+} from '../tools/assistant-tool.constants';
 
 const conversationWithMessagesArgs = {
   include: {
@@ -31,10 +38,6 @@ const conversationSummaryArgs = {
     updatedAt: true,
   },
 } satisfies Prisma.AssistantConversationDefaultArgs;
-
-const RECENT_CONVERSATION_LIMIT = 20;
-const MEMORY_CONVERSATION_LIMIT = 3;
-const MEMORY_MESSAGE_LIMIT = 6;
 
 type PersistedConversation = Prisma.AssistantConversationGetPayload<
   typeof conversationWithMessagesArgs
@@ -314,7 +317,7 @@ export class AssistantConversationService {
       return null;
     }
 
-    return compact.length <= 48 ? compact : '${compact.substring(0, 48)}...';
+    return truncate(compact, MAX_COMPACT_LENGTH);
   }
 
   private toSnapshot(

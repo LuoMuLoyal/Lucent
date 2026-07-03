@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
@@ -52,7 +52,7 @@ import type { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import type { SendVerificationCodeDto } from '../dto/send-verification-code.dto';
 import type { VerifyEmailDto } from '../dto/verify-email.dto';
 
-export type { AuthRequestContext, UserPayload } from './auth-token.service';
+export type { AuthRequestContext, UserPayload } from '../types/auth-request';
 
 /**
  * Central authentication facade that orchestrates credential flows
@@ -62,6 +62,8 @@ export type { AuthRequestContext, UserPayload } from './auth-token.service';
  */
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
@@ -331,7 +333,13 @@ export class AuthService {
       code: dto.code,
     });
     await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
-    this._notifyIdentityLinked(userId, profile).catch(() => {});
+    this._notifyIdentityLinked(userId, profile).catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Failed to notify identity linked for user ${userId} via ${profile.provider}: ${reason}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    });
   }
 
   async linkWechatMobileIdentity(
@@ -359,8 +367,12 @@ export class AuthService {
       context,
     );
     // Emit security notification for new OAuth login
-    this._notifyOAuthLogin(updatedUser.id, profile).catch(() => {
-      // Silently fail — notification issues must not block auth flow.
+    this._notifyOAuthLogin(updatedUser.id, profile).catch((error: unknown) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Failed to notify OAuth login for user ${updatedUser.id} via ${profile.provider}: ${reason}`,
+        error instanceof Error ? error.stack : undefined,
+      );
     });
     return { user: updatedUser, ...tokens };
   }

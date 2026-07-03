@@ -19,6 +19,11 @@ export function resolveSingleDate(
   userMessage: string,
   opts: { fallbackDate: string; defaultAmbiguity: string },
 ): ToolSingleDateResolution {
+  // Supported explicit formats:
+  // - ISO-like: 2026-06-30
+  // - Chinese:  6月30日 or 6月30
+  // - US slash: 06/30/2026
+  // - Short slash (assumes current year): 06/30
   const datePatterns: RegExp[] = [
     /(\d{4})-(\d{1,2})-(\d{1,2})/,
     /(\d{1,2})月(\d{1,2})日?/,
@@ -94,6 +99,9 @@ export function resolveSingleDate(
 }
 
 export function resolveDateRange(userMessage: string): ToolRangeResolution {
+  // Supported range formats:
+  // - Explicit ISO range: 2026-06-01~2026-06-30 (also 到/至/to)
+  // - Relative last-N days in Chinese or English (e.g. 最近7天, last 7 days)
   const rangePatterns: RegExp[] = [
     /(\d{4}-\d{1,2}-\d{1,2})\s*(?:~|到|至|to)\s*(\d{4}-\d{1,2}-\d{1,2})/,
     /最近\s*(\d+)\s*天/,

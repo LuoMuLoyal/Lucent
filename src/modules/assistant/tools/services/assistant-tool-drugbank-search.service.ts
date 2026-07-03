@@ -22,10 +22,12 @@ import {
   AssistantToolDrugbankEntityResolveService,
   parseSearchPayload,
 } from './assistant-tool-drugbank-entity-resolve.service';
+import {
+  ASSISTANT_VECTOR_DEFAULT_LIMIT,
+  ASSISTANT_VECTOR_MAX_LIMIT,
+} from '../assistant-tool.constants';
 
 const DRUGBANK_EMBEDDINGS_TABLE = 'drugbank_passage_embeddings';
-const DEFAULT_LIMIT = 4;
-const MAX_LIMIT = 8;
 
 @Injectable()
 export class AssistantToolDrugbankSearchService {
@@ -228,7 +230,7 @@ export class AssistantToolDrugbankSearchService {
           : null,
         passages: [],
         page: buildVectorPage({
-          limit: DEFAULT_LIMIT,
+          limit: ASSISTANT_VECTOR_DEFAULT_LIMIT,
           offset: 0,
           hasMore: false,
           queryHash: buildVectorQueryHash('', {}),
@@ -247,6 +249,7 @@ export class AssistantToolDrugbankSearchService {
 }
 
 function normalizeLimit(limit: number | undefined): number {
-  if (limit == null || Number.isNaN(limit)) return DEFAULT_LIMIT;
-  return Math.max(1, Math.min(MAX_LIMIT, Math.trunc(limit)));
+  if (limit == null || Number.isNaN(limit))
+    return ASSISTANT_VECTOR_DEFAULT_LIMIT;
+  return Math.max(1, Math.min(ASSISTANT_VECTOR_MAX_LIMIT, Math.trunc(limit)));
 }

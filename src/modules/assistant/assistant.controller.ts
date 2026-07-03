@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Logger,
   Param,
   Post,
   Res,
@@ -19,7 +20,7 @@ import { I18nLang } from 'nestjs-i18n';
 import { successEnvelope } from '../../common/api-envelope';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { endSse, prepareSse, writeSseEvent } from '../../common/sse';
-import { type UserPayload } from '../auth/services/auth.service';
+import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AssistantService } from './services/assistant.service';
@@ -36,6 +37,8 @@ import {
 @UseGuards(JwtAuthGuard)
 @Controller('assistant')
 export class AssistantController {
+  private readonly logger = new Logger(AssistantController.name);
+
   constructor(private readonly assistantService: AssistantService) {}
 
   @Get('capabilities')
@@ -154,6 +157,11 @@ export class AssistantController {
         data: {},
       });
     } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Assistant stream failed for user ${user.sub}: ${reason}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       writeSseEvent(response, {
         event: 'error',
         data: httpExceptionPayload(error),

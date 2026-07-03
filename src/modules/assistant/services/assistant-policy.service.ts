@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { UserSettingsDataDto } from '../../user-settings/dto';
+import type { IAssistantUserSettings } from '../types/assistant-ports';
 import { selectAllowedToolsForContextSources } from '../agent/assistant-runtime.graph';
 import type {
   AssistantRuntimeCapabilities,
@@ -19,7 +19,7 @@ import {
 export class AssistantPolicyService {
   evaluate(
     foundation: AssistantRuntimeCapabilities,
-    settings: UserSettingsDataDto,
+    settings: IAssistantUserSettings,
   ): AssistantPolicySnapshot {
     const enabledContextSources = ASSISTANT_CONTEXT_SOURCES.filter((source) =>
       this.isContextSourceEnabled(source, settings),
@@ -51,7 +51,7 @@ export class AssistantPolicyService {
   private buildToolCapability(
     toolName: AssistantToolName,
     foundation: AssistantRuntimeCapabilities,
-    settings: UserSettingsDataDto,
+    settings: IAssistantUserSettings,
     contextPermittedToolNames: readonly AssistantToolName[],
   ): AssistantToolCapabilitySnapshot {
     const requiredContextSources: AssistantContextSource[] = [
@@ -103,7 +103,7 @@ export class AssistantPolicyService {
 
   private isContextSourceEnabled(
     source: AssistantContextSource,
-    settings: UserSettingsDataDto,
+    settings: IAssistantUserSettings,
   ): boolean {
     switch (source) {
       case 'health_profile':

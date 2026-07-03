@@ -2,6 +2,17 @@
  * Shared string utilities.
  */
 
+/** Returns true for `null`, `undefined`, non-strings, or whitespace-only strings. */
+export function isBlank(value: unknown): boolean {
+  if (value == null) {
+    return true;
+  }
+  if (typeof value !== 'string') {
+    return true;
+  }
+  return value.trim().length === 0;
+}
+
 /** Trims whitespace and returns null if the value is not a non-empty string. */
 export function normalizeNullableText(value: unknown): string | null {
   if (typeof value !== 'string') {
@@ -32,4 +43,29 @@ export function commonCharacterCount(left: string, right: string): number {
   }
 
   return common;
+}
+
+/**
+ * Truncates a string to a maximum length, appending a suffix when truncated.
+ * Returns the original string when it fits.
+ */
+export function truncate(
+  value: string,
+  maxLength: number,
+  suffix = '...',
+): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  return `${value.substring(0, maxLength)}${suffix}`;
+}
+
+import { randomUUID } from 'node:crypto';
+
+/**
+ * Generates a stable, globally unique identifier with a human-readable prefix.
+ * Useful for proposal/action IDs that must not collide across requests.
+ */
+export function generatePrefixedId(prefix: string): string {
+  return `${prefix}-${randomUUID()}`;
 }

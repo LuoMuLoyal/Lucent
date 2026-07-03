@@ -5,6 +5,7 @@ import {
   Header,
   HttpException,
   HttpStatus,
+  Logger,
   Param,
   Post,
   Query,
@@ -24,7 +25,7 @@ import { successEnvelope } from '../../common/api-envelope';
 import { httpExceptionPayload } from '../../common/utils/error-payload';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { endSse, prepareSse, writeSseEvent } from '../../common/sse';
-import { type UserPayload } from '../auth/services/auth.service';
+import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -46,6 +47,8 @@ import { ReportsService } from './dashboard/reports.service';
 @UseGuards(JwtAuthGuard)
 @Controller('reports')
 export class ReportsController {
+  private readonly logger = new Logger(ReportsController.name);
+
   constructor(
     private readonly reportsService: ReportsService,
     private readonly reportsAiSummaryService: ReportsAiSummaryService,
@@ -116,6 +119,11 @@ export class ReportsController {
         data: {},
       });
     } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Report summary stream failed for user ${user.sub}: ${reason}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       writeSseEvent(response, {
         event: 'error',
         data: httpExceptionPayload(error),

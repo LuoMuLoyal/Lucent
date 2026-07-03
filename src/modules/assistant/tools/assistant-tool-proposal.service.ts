@@ -1,6 +1,8 @@
 import { formatDateOnly } from '../../../common/utils/date-time.utils';
-import { Injectable } from '@nestjs/common';
-import { DailyRecordCandidatesService } from '../../daily-records/services/daily-record-candidates.service';
+import { generatePrefixedId } from '../../../common/utils/string.utils';
+import { Inject, Injectable } from '@nestjs/common';
+import type { IDailyRecordCandidateGenerator } from '../types/assistant-ports';
+import { DAILY_RECORD_CANDIDATE_GENERATOR } from '../types/assistant-ports';
 import type {
   AssistantCreateDailyRecordProposalPayload,
   AssistantToolExecutionContext,
@@ -30,7 +32,8 @@ import {
 @Injectable()
 export class AssistantToolProposalService {
   constructor(
-    private readonly dailyRecordCandidatesService: DailyRecordCandidatesService,
+    @Inject(DAILY_RECORD_CANDIDATE_GENERATOR)
+    private readonly dailyRecordCandidatesService: IDailyRecordCandidateGenerator,
     private readonly recordQueryService: AssistantToolRecordQueryService,
   ) {}
 
@@ -90,7 +93,7 @@ export class AssistantToolProposalService {
       },
       proposedActions: [
         {
-          id: `proposal-create-${String(Date.now())}`,
+          id: generatePrefixedId('proposal-create'),
           type: 'create_daily_record',
           status: 'proposed',
           confirmationRequired: true,
@@ -360,7 +363,7 @@ export class AssistantToolProposalService {
       },
       proposedActions: [
         {
-          id: `proposal-settings-${String(Date.now())}`,
+          id: generatePrefixedId('proposal-settings'),
           type: 'update_user_settings',
           status: 'proposed',
           confirmationRequired: true,

@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { MedicineRemindersService } from '../../medicine-reminders/services/medicine-reminders.service';
+import type { IMedicineReminderReader } from '../types/assistant-ports';
+import { MEDICINE_REMINDER_READER } from '../types/assistant-ports';
 import { UserHealthContextService } from '../../user-health-context/services/user-health-context.service';
 import { UserSettingsService } from '../../user-settings/services/user-settings.service';
 import { HistoricalAiSummaryService } from '../services/historical-ai-summary.service';
@@ -38,7 +39,8 @@ export class AssistantToolReadService {
     private readonly prisma: PrismaService,
     private readonly aiSummaryHistoryService: HistoricalAiSummaryService,
     private readonly userHealthContextService: UserHealthContextService,
-    private readonly medicineRemindersService: MedicineRemindersService,
+    @Inject(MEDICINE_REMINDER_READER)
+    private readonly medicineRemindersService: IMedicineReminderReader,
     private readonly userSettingsService: UserSettingsService,
     private readonly recordQueryService: AssistantToolRecordQueryService,
   ) {}

@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DailyRecordKind } from '../../../generated/prisma/client';
-import { DailyRecordsService } from '../../daily-records/services/daily-records.service';
+import type { IDailyRecordReader } from '../types/assistant-ports';
+import { DAILY_RECORD_READER } from '../types/assistant-ports';
 import type { AssistantToolExecutionContext } from '../types/assistant.types';
 import { resolveSingleDate } from './assistant-tool-date-resolver';
 import type {
@@ -10,10 +11,14 @@ import type {
   ToolRecordItem,
   ToolSingleDateResolution,
 } from './assistant-tool.constants';
+import { MUTATION_MATCH_WEIGHTS } from './assistant-tool.constants';
 
 @Injectable()
 export class AssistantToolRecordQueryService {
-  constructor(private readonly dailyRecordsService: DailyRecordsService) {}
+  constructor(
+    @Inject(DAILY_RECORD_READER)
+    private readonly dailyRecordsService: IDailyRecordReader,
+  ) {}
 
   async listToolRecords(
     userId: string,
@@ -52,7 +57,7 @@ export class AssistantToolRecordQueryService {
         mealAnalysisUpdatedAt: item.mealAnalysisUpdatedAt ?? null,
         mealAnalysisFailureReason: item.mealAnalysisFailureReason ?? null,
         mealShortDescription: item.mealShortDescription ?? null,
-        mealTopFoods: item.mealTopFoods,
+        mealTopFoods: item.mealTopFoods ?? [],
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
       }));
@@ -238,12 +243,12 @@ export class AssistantToolRecordQueryService {
         return { record, score: 0, matchedBy };
       }
       matchedBy.push('kind');
-      score += 10;
+      score += MUTATION_MATCH_WEIGHTS.kind;
     }
 
     if (hints.numericHint != null && record.value === hints.numericHint) {
       matchedBy.push('value');
-      score += 8;
+      score += MUTATION_MATCH_WEIGHTS.value;
     }
 
     if (
@@ -252,7 +257,7 @@ export class AssistantToolRecordQueryService {
       record.title.toLowerCase().includes(hints.titleHint.toLowerCase())
     ) {
       matchedBy.push('title');
-      score += 9;
+      score += MUTATION_MATCH_WEIGHTS.title;
     }
 
     if (
@@ -261,14 +266,14 @@ export class AssistantToolRecordQueryService {
       record.note.toLowerCase().includes(hints.noteHint.toLowerCase())
     ) {
       matchedBy.push('note');
-      score += 9;
+      score += MUTATION_MATCH_WEIGHTS.note;
     }
 
     if (matchedBy.length === 0 && hints.kindHint == null) {
       return { record, score: 0, matchedBy };
     }
 
-    score += Math.max(0, 3 - index);
+    score += Math.max(0, MUTATION_MATCH_WEIGHTS.positionBonus - index);
     return { record, score, matchedBy };
   }
 

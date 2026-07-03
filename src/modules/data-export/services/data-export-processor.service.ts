@@ -137,8 +137,11 @@ export class DataExportProcessorService {
         content: `您的${kindLabels[kind] ?? '报告'}已生成，可以前往报告页查看。`,
         action: 'report',
       });
-    } catch {
-      // Silently fail so notification issues do not break export flow.
+    } catch (error: unknown) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Failed to notify export completed for user ${userId}, kind ${kind}: ${reason}`,
+      );
     }
   }
 }

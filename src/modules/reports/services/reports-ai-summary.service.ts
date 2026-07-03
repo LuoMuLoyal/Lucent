@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { badRequest } from '../../../common/utils/api-errors';
 
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -117,7 +118,7 @@ export class ReportsAiSummaryService extends BaseAiSummaryService<
     }
     if (dto.range === 'custom') {
       if (dto.startDate == null || dto.endDate == null) {
-        throw new BadRequestException(
+        badRequest(
           'startDate and endDate are required for custom range summaries.',
         );
       }

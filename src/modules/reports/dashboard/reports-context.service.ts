@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { badRequest } from '../../../common/utils/api-errors';
 import { nonDeleted } from '../../../common/utils/prisma.helpers';
 import {
   formatDateOnly,
@@ -337,13 +338,11 @@ export class ReportsContextService {
   ): Date {
     if (range === REPORT_RANGE_CUSTOM) {
       if (!query.endDate) {
-        throw new BadRequestException(
-          'endDate is required when range is custom.',
-        );
+        badRequest('endDate is required when range is custom.');
       }
       const customEndDate = parseDateOnly(query.endDate);
       if (customEndDate > this.todayUtc()) {
-        throw new BadRequestException('endDate must not be in the future.');
+        badRequest('endDate must not be in the future.');
       }
       return customEndDate;
     }
@@ -357,15 +356,11 @@ export class ReportsContextService {
   ): Date {
     if (range === REPORT_RANGE_CUSTOM) {
       if (!query.startDate) {
-        throw new BadRequestException(
-          'startDate is required when range is custom.',
-        );
+        badRequest('startDate is required when range is custom.');
       }
       const startDate = parseDateOnly(query.startDate);
       if (startDate > endDate) {
-        throw new BadRequestException(
-          'startDate must not be later than endDate.',
-        );
+        badRequest('startDate must not be later than endDate.');
       }
       return startDate;
     }
