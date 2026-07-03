@@ -64,19 +64,21 @@ When controller or DTO code changes:
    ```bash
    dart run tool/regenerate_lucent_openapi.dart
    ```
-4. Append a dated entry to `docs/migration-log/YYYY-MM-DD.md`.
+4. Append a dated entry to `docs/02-logs/migration-log/YYYY-MM-DD.md`.
 
 ## Architecture Changes
 
 When module structure, dependencies, or AI pipeline architecture changes:
 
 1. Run `pnpm docs:compodoc` to regenerate architecture docs.
-2. Update `docs/architecture.md` if module dependency graph or route architecture changed.
-3. Consider creating an ADR in `docs/adr/` if the decision is significant.
+2. Update `docs/01-reference/architecture.md` if module dependency graph or route architecture
+   changed.
+3. Consider creating an ADR in `docs/01-reference/adr/` if the decision is significant.
 
 ## Documentation
 
 - See `docs/README.md` for the document boundaries and update map.
-- Any backend code change: append to today's `docs/migration-log/YYYY-MM-DD.md`.
-- Completed TODO items: delete from `docs/TODO.md`, move facts to `Luminous/docs/Current_State.md`.
+- Any backend code change: append to today's `docs/02-logs/migration-log/YYYY-MM-DD.md`.
+- Completed TODO items: delete from `docs/00-current/TODO.md`, move facts to
+  `Luminous/docs/00-current/Current_State.md`.
 - Active multi-step plans: `plans/YYYY-MM-DD-short-task-name.md`.

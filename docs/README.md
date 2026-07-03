@@ -1,79 +1,182 @@
 # Lucent Docs
 
-Last updated: 2026-06-30
+Lucent NestJS 后端的文档 vault。本目录是后端运行时、部署、生成合同和共享数据合同的权威来源。
 
-This directory keeps the authoritative backend runtime, deployment, generated-contract, and shared data-contract documentation for Lucent. If a complex backend task needs a live execution plan, put it under `../plans/` instead of `docs/`.
+## 快速导航
 
-## Document Boundaries
+- [[00-current/Current_State]] — 当前后端实现状态入口
+- [[00-current/TODO]] — 活跃延后项
+- [[00-current/MigrationLog]] — 变更日志索引
+- [[01-reference/architecture]] — 模块依赖、AI 管道、路由、数据库约定
+- [[01-reference/environment]] — 本地环境、Docker 与快速命令总览
+- [[01-reference/environment-variables]] — 环境变量参考
+- [[01-reference/deployment]] — 生产部署手册
+- [[01-reference/adr/README]] — 架构决策记录
+- `public/*.md` — 公共合同边界
+- `openapi.json` — 生成的 API 合同
 
-| Document                           | Responsibility                                                                        | Do not put here                       |
-| ---------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------- |
-| `environment.md`                   | Runtime config, local stacks, required variables, command behavior                    | Tencent Cloud step-by-step deployment |
-| `deployment.md`                    | Single-source production deployment runbook, directory layout, and checks             | General env variable explanations     |
-| `architecture.md`                  | Module dependency graph, AI pipeline architecture, route architecture, DB conventions | Implementation status or task logs    |
-| `openapi.json`                     | Generated API contract from `pnpm export:openapi`                                     | Manual edits                          |
-| `compodoc/`                        | Generated NestJS architecture docs from `pnpm docs:compodoc`                          | Manual edits                          |
-| `public/data-sources.md`           | Medicine source/import strategy and table mapping                                     | Product roadmap                       |
-| `public/reminder-contract.md`      | Reminder/notification backend-vs-device boundary                                      | UI implementation details             |
-| `public/environment-contract.md`   | Environment snapshot API boundary                                                     | More-tab or generic utility plans     |
-| `public/mine-settings-contract.md` | Mine/Settings API boundary (user settings, support resources, app info, data export)  | UI implementation details             |
-| `public/assistant-contract.md`     | Assistant capability/permission boundary and rollout truth                            | Prompt drafts or temporary plans      |
-| `TODO.md`                          | Active deferred backend follow-up items                                               | Historical changelog narrative        |
-| `MigrationLog.md`                  | Date-based change history index; entries live in `migration-log/YYYY-MM-DD.md`        | Current-state facts or future plans   |
-| `adr/`                             | Architecture Decision Records for significant technical choices                       | Implementation details or task logs   |
-| `public/README.md`                 | Public contracts directory boundary and usage rules                                   | Individual contract content           |
+## Obsidian 用法
+
+1. 在 Obsidian 中选择「打开本地仓库」。
+2. 选择 `Lucent/docs/` 作为 vault 根目录。
+3. 新建笔记默认保存在 `00-current/`。
+
+## 归档策略
+
+- 旧计划和已完成决策归档到本仓库 `docs/04-archive/`（当前后端暂无活跃归档文件）。
+- 活跃文档完成后应直接删除，不留 `✅` 或 `DONE` 标记。
+
+## 文档边界
+
+- `01-reference/environment.md`
+  - Responsibility: Local stacks, Docker, scripts, runtime notes, and quick commands
+  - Do not put here: Detailed environment variable reference (use `environment-variables.md`)
+- `01-reference/environment-variables.md`
+  - Responsibility: Required and optional environment variable reference
+  - Do not put here: Docker or local stack setup steps
+- `01-reference/deployment.md`
+  - Responsibility: Single-source production deployment runbook, directory layout, and checks
+  - Do not put here: General env variable explanations
+- `01-reference/architecture.md`
+  - Responsibility: Module dependency graph, AI pipeline architecture, route architecture, DB
+    conventions
+  - Do not put here: Implementation status or task logs
+- `openapi.json`
+  - Responsibility: Generated API contract from `pnpm export:openapi`
+  - Do not put here: Manual edits
+- `compodoc/`
+  - Responsibility: Generated NestJS architecture docs from `pnpm docs:compodoc`
+  - Do not put here: Manual edits
+- `public/data-sources.md`
+  - Responsibility: Data source index/overview and cross-source strategy
+  - Do not put here: Detailed source mapping (use `data-sources-cn-products.md`,
+    `data-sources-drugbank.md`, `data-sources-medical-qa.md`, `data-sources-food-composition.md`)
+- `public/reminder-contract.md`
+  - Responsibility: Reminder/notification backend-vs-device boundary
+  - Do not put here: UI implementation details
+- `public/environment-contract.md`
+  - Responsibility: Environment snapshot API boundary
+  - Do not put here: More-tab or generic utility plans
+- `public/mine-settings-contract.md`
+  - Responsibility: Mine/Settings API overview and user settings
+  - Do not put here: Support resources, app info, or data-export details (use their own contract
+    files)
+- `public/support-resources-contract.md`
+  - Responsibility: Public support resource entries
+- `public/app-info-contract.md`
+  - Responsibility: App metadata endpoint
+- `public/data-export-contract.md`
+  - Responsibility: Data export request flow
+- `public/assistant-contract.md`
+  - Responsibility: Assistant contract overview, boundaries, routes, and conversation/streaming
+    contracts
+  - Do not put here: Capability/tool details (use `assistant-capabilities.md`), safety policy (use
+    `assistant-safety.md`), or rollout truth (use `assistant-rollout.md`)
+- `public/assistant-capabilities.md`
+  - Responsibility: Assistant capability shape, tools, envelopes, and proposals
+- `public/assistant-rollout.md`
+  - Responsibility: Assistant rollout/runtime truth
+- `public/assistant-safety.md`
+  - Responsibility: Assistant AI safety policy
+- `00-current/TODO.md`
+  - Responsibility: Active deferred backend follow-up items
+  - Do not put here: Historical changelog narrative
+- `00-current/MigrationLog.md`
+  - Responsibility: Date-based change history index; entries live in
+    `02-logs/migration-log/YYYY-MM-DD.md`
+  - Do not put here: Current-state facts or future plans
+- `01-reference/adr/`
+  - Responsibility: Architecture Decision Records for significant technical choices
+  - Do not put here: Implementation details or task logs
+- `public/README.md`
+  - Responsibility: Public contracts directory boundary and usage rules
+  - Do not put here: Individual contract content
 
 ## Admin Panel
 
-`/admin` is powered by AdminJS with the `@sergiyiva/adminjs-prisma` adapter.
-Resources are generated automatically from `prisma/schema.prisma` at runtime, so
-adding a new Prisma model and regenerating the client is enough to surface it in
-the admin panel. Model-specific overrides (navigation group, list/show/filter
-fields, hidden fields, title property, sort order, enum picklists) are declared
-in `src/admin/adminjs.setup.ts`.
+`/admin` is powered by AdminJS with the `@sergiyiva/adminjs-prisma` adapter. Resources are
+generated automatically from `prisma/schema.prisma` at runtime, so adding a new Prisma model and
+regenerating the client is enough to surface it in the admin panel. Model-specific overrides
+(navigation group, list/show/filter fields, hidden fields, title property, sort order, enum
+picklists) are declared in `src/admin/adminjs.setup.ts`.
 
-By default every resource supports full CRUD. Sensitive scalar fields such as
-`passwordHash`, `refreshTokenHash`, `pushToken`, and `rawProfile` are hidden,
-and all relation fields are hidden so only foreign-key scalars are exposed in
-forms.
+By default every resource supports full CRUD. Sensitive scalar fields such as `passwordHash`,
+`refreshTokenHash`, `pushToken`, and `rawProfile` are hidden, and all relation fields are hidden so
+only foreign-key scalars are exposed in forms.
 
 Product direction and current product state are owned by the workspace path `Luminous/docs/`.
 
 ## Update Map
 
-| Change                                                         | Update                                                             |
-| -------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Environment variables, local Docker, scripts, runtime baseline | `environment.md` and root `README.md`                              |
-| Production deployment procedure or server directory layout     | `deployment.md`                                                    |
-| Production deploy asset layout under repo `deploy/`            | `deployment.md` and root `README.md`                               |
-| Medicine import behavior or source-table strategy              | `public/data-sources.md`                                           |
-| Reminder schedule/preference contract                          | `public/reminder-contract.md`                                      |
-| Environment snapshot contract                                  | `public/environment-contract.md`                                   |
-| Mine/Settings contract                                         | `public/mine-settings-contract.md`                                 |
-| Assistant capability / permission contract                     | `public/assistant-contract.md`                                     |
-| AI generator / policy / service abstraction or safety rules    | `public/assistant-contract.md`                                     |
-| Deferred backend follow-up list                                | `TODO.md`                                                          |
-| Lucent API code                                                | Run `pnpm export:openapi` and keep `openapi.json` generated        |
-| Backend architecture / module structure change                 | Run `pnpm docs:compodoc` to regenerate architecture docs           |
-| Module dependency, AI pipeline, route, or DB convention change | `architecture.md`                                                  |
-| AdminJS panel resources / CRUD permissions                     | `README.md` admin panel paragraph and `src/admin/adminjs.setup.ts` |
-| Significant architectural decision                             | Create an ADR in `adr/NNNN-title.md`                               |
-| Public contract boundary (non-goals, capability scope) changes | `public/README.md` and the relevant `public/*.md` contract         |
-| Any backend code change                                        | Today's `migration-log/YYYY-MM-DD.md`                              |
+- Environment variables, local Docker, scripts, runtime baseline
+  - Update: `01-reference/environment.md` and root `README.md`
+- Production deployment procedure or server directory layout
+  - Update: `01-reference/deployment.md`
+- Production deploy asset layout under repo `deploy/`
+  - Update: `01-reference/deployment.md` and root `README.md`
+- Medicine import behavior or source-table strategy
+  - Update: `public/data-sources.md`
+- Reminder schedule/preference contract
+  - Update: `public/reminder-contract.md`
+- Environment snapshot contract
+  - Update: `public/environment-contract.md`
+- Mine/Settings contract
+  - Update: `public/mine-settings-contract.md`
+- Assistant capability / permission contract
+  - Update: `public/assistant-contract.md`
+- AI generator / policy / service abstraction or safety rules
+  - Update: `public/assistant-contract.md`
+- Deferred backend follow-up list
+  - Update: `00-current/TODO.md`
+- Lucent API code
+  - Action: Run `pnpm export:openapi` and keep `openapi.json` generated
+- Backend architecture / module structure change
+  - Action: Run `pnpm docs:compodoc` to regenerate architecture docs
+- Module dependency, AI pipeline, route, or DB convention change
+  - Update: `01-reference/architecture.md`
+- AdminJS panel resources / CRUD permissions
+  - Update: `README.md` admin panel paragraph and `src/admin/adminjs.setup.ts`
+- Significant architectural decision
+  - Action: Create an ADR in `01-reference/adr/NNNN-title.md`
+- Public contract boundary (non-goals, capability scope) changes
+  - Update: `public/README.md` and the relevant `public/*.md` contract
+- Any backend code change
+  - Update: Today's `02-logs/migration-log/YYYY-MM-DD.md`
 
 ## Relationship With `Lumos-docs`
 
-`Lumos-docs/` is a separate showcase documentation site. It mirrors content from `Lucent/docs/` and `Luminous/docs/` for browsing convenience, but it **is not the source of truth** and is updated more slowly than the repo docs.
+`Lumos-docs/` is a separate showcase documentation site. It mirrors content from `Lucent/docs/` and
+`Luminous/docs/` for browsing convenience, but it **is not the source of truth** and is updated
+more slowly than the repo docs.
 
 - Treat `Lucent/docs/` and `Luminous/docs/` inside each repo as the authoritative reference.
-- Do not edit `Lumos-docs/` copies by hand to keep them "in sync"; the site should consume repo docs through its build pipeline.
-- If you find a discrepancy, trust the repo-local doc and open a site ingestion issue instead of patching the mirror.
+- Do not edit `Lumos-docs/` copies by hand to keep them "in sync"; the site should consume repo
+  docs through its build pipeline.
+- If you find a discrepancy, trust the repo-local doc and open a site ingestion issue instead of
+  patching the mirror.
+
+## Docs Governance
+
+- **Single source of truth**: glossary lives in [[Glossary]], environment variables in
+  [[01-reference/environment-variables]], assistant boundaries in `public/assistant-contract.md`,
+  data sources in `public/data-sources.md`.
+- **Active docs ≤ 250 lines**: split long docs into focused sub-files and link them.
+- **Prefer links over duplication**: state a rule once and reference it elsewhere.
+- **Use lists instead of tables**: reserve tables for side-by-side comparisons only.
 
 ## Rules
 
 - Do not maintain hand-written endpoint docs or API mock documents.
 - Do not edit `openapi.json` manually.
-- Active repo-local execution plans belong in `Lucent/plans/`; move durable decisions into the owning docs after completion, then delete the plan file.
-- Keep old implementation plans out of active docs after their decisions move into the owning document.
-- **When a follow-up item in `TODO.md` is completed, delete it from `TODO.md`; do not mark it complete there.** Move the resulting current-state facts to `Luminous/docs/Current_State.md`, record the change in the daily `Luminous/docs/migration-log/YYYY-MM-DD.md`, and also record the completion in today's `Lucent/docs/migration-log/YYYY-MM-DD.md` as cross-repo sync evidence.
-- Repo helper scripts under `scripts/` and `deploy/` are not part of the Nest app ESLint surface; validate them by running the relevant command instead of forcing app-only lint rules onto opened tool files.
+- Active repo-local execution plans belong in `Lucent/plans/`; move durable decisions into the
+  owning docs after completion, then delete the plan file.
+- Keep old implementation plans out of active docs after their decisions move into the owning
+  document.
+- **When a follow-up item in `00-current/TODO.md` is completed, delete it from
+  `00-current/TODO.md`; do not mark it complete there.** Move the resulting current-state facts to
+  `Luminous/docs/00-current/Current_State.md`, record the change in the daily
+  `Luminous/docs/03-logs/migration-log/YYYY-MM-DD.md`, and also record the completion in today's
+  `Lucent/docs/02-logs/migration-log/YYYY-MM-DD.md` as cross-repo sync evidence.
+- Repo helper scripts under `scripts/` and `deploy/` are not part of the Nest app ESLint surface;
+  validate them by running the relevant command instead of forcing app-only lint rules onto opened
+  tool files.

@@ -4,25 +4,36 @@
 
 After every code change, the following docs **MUST** be updated:
 
-| Change type                               | Update target                       | Action                                        |
-| ----------------------------------------- | ----------------------------------- | --------------------------------------------- |
-| Any backend code change                   | `docs/migration-log/YYYY-MM-DD.md`  | Append change entry                           |
-| Current runtime/architecture state change | `docs/Current_State.md`             | Add/update completed item (create if missing) |
-| Closing a TODO item                       | `docs/TODO.md`                      | Delete the line                               |
-| Finishing a plan section                  | `plans/*.md`                        | Delete the entire section                     |
-| Env, Docker, or import flow change        | `docs/environment.md` + `README.md` | Sync both                                     |
+- Any backend code change
+  - Update target: `docs/02-logs/migration-log/YYYY-MM-DD.md`
+  - Action: Append change entry
+- Current runtime/architecture state change
+  - Update target: `docs/00-current/Current_State.md`
+  - Action: Add/update completed item (create if missing)
+- Closing a TODO item
+  - Update target: `docs/00-current/TODO.md`
+  - Action: Delete the line
+- Finishing a plan section
+  - Update target: `plans/*.md`
+  - Action: Delete the entire section
+- Env, Docker, or import flow change
+  - Update target: `docs/01-reference/environment.md` + `README.md`
+  - Action: Sync both
 
-- Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or any other marker.
+Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or any other marker.
 
 ## Read First
 
 - `README.md`
 - `CONTRIBUTING.md`
 - `docs/README.md`
-- `docs/environment.md`
-- `docs/architecture.md`
-- `docs/adr/` for historical architecture decisions
-- `docs/public/data-sources.md` when touching medicine import or source tables
+- `docs/01-reference/environment.md`
+- `docs/01-reference/environment-variables.md`
+- `docs/01-reference/architecture.md`
+- `docs/01-reference/adr/` for historical architecture decisions
+- `docs/public/data-sources.md` (and `docs/public/data-sources-cn-products.md`,
+  `docs/public/data-sources-drugbank.md`, `docs/public/data-sources-medical-qa.md`) when touching
+  medicine import or source tables
 
 ## Current Baseline
 
@@ -40,10 +51,13 @@ After every code change, the following docs **MUST** be updated:
 - Backend architecture or module structure changed: run `pnpm docs:compodoc` to regenerate HTML architecture docs under `docs/compodoc/`.
 - API documentation UI is served at `/api/docs` via Scalar (replaces Swagger UI). The underlying OpenAPI generation and export flow remain unchanged.
 - Active multi-step backend task plans belong in `plans/*.md`, not in `docs/` and not in the workspace root.
-- Env, Docker, import flow, or local commands changed: update `docs/environment.md` and `README.md`.
-- Medicine import or source strategy changed: update `docs/public/data-sources.md`.
-- Backend code changed: append a dated entry to `docs/migration-log/YYYY-MM-DD.md` (create the file if it doesn't exist). Keep `docs/MigrationLog.md` as the index only.
-- Significant architectural decision made: create an ADR in `docs/adr/NNNN-title.md` following the template in `docs/adr/README.md`.
+- Env, Docker, import flow, or local commands changed: update `docs/01-reference/environment.md`,
+  `docs/01-reference/environment-variables.md` (if variable details change), and `README.md`.
+- Medicine import or source strategy changed: update `docs/public/data-sources.md` and the
+  relevant source-specific file (`data-sources-cn-products.md`, `data-sources-drugbank.md`,
+  `data-sources-medical-qa.md`, or `data-sources-food-composition.md`).
+- Backend code changed: append a dated entry to `docs/02-logs/migration-log/YYYY-MM-DD.md` (create the file if it doesn't exist). Keep `docs/00-current/MigrationLog.md` as the index only.
+- Significant architectural decision made: create an ADR in `docs/01-reference/adr/NNNN-title.md` following the template in `docs/01-reference/adr/README.md`.
 - For localized backend copy, keep `AcceptLanguageResolver + I18nService` as the default path. Use `@I18nLang()` only when a controller/service flow must explicitly branch on the resolved locale and pass that locale deeper into AI/prompt/runtime code.
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby working code.
 - Use `pnpm typecheck` when you need TypeScript to validate spec and e2e files too; `pnpm build` excludes `**/*spec.ts` and `test/`.

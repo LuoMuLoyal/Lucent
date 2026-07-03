@@ -10,9 +10,9 @@ Current version: **v1.0.0-dev**
 
 - API contract: controller / DTO code plus generated [docs/openapi.json](docs/openapi.json).
 - Database model: [prisma/schema.prisma](prisma/schema.prisma).
-- Runtime configuration: [docs/environment.md](docs/environment.md).
+- Runtime configuration: [docs/01-reference/environment.md](docs/01-reference/environment.md).
 - Medicine data imports: [docs/public/data-sources.md](docs/public/data-sources.md).
-- Product direction: [../Luminous/docs/Product_Vision.md](../Luminous/docs/Product_Vision.md).
+- Product direction: [../Luminous/docs/01-product/Product_Vision.md](../Luminous/docs/01-product/Product_Vision.md).
 
 Hand-written endpoint mocks are intentionally not maintained. Regenerate OpenAPI when API code changes:
 
@@ -100,7 +100,7 @@ Daily-record image uploads are signed by Lucent for Tencent COS. Configure
 AI runtime configuration is role-based and OpenAI-compatible only. Configure
 `AI_PROVIDER=openai-compatible`, then give each role its own
 `BASE_URL` / `API_KEY` / `MODEL`, including analysis, vision, language,
-chat, chat compression, and embedding. See [docs/environment.md](docs/environment.md).
+chat, chat compression, and embedding. See [docs/01-reference/environment.md](docs/01-reference/environment.md).
 `AI_LANGUAGE_MODEL` now powers `POST /api/v1/user/daily-records/candidate-records/generate`,
 which converts one natural-language note into user-confirmed candidate daily records
 without writing directly into the final daily-record table.
@@ -205,15 +205,27 @@ Start with [docs/README.md](docs/README.md).
 
 Active docs:
 
-- [docs/environment.md](docs/environment.md)
-- [docs/deployment.md](docs/deployment.md)
-- [docs/architecture.md](docs/architecture.md)
+- [docs/00-current/Current_State.md](docs/00-current/Current_State.md) — Current implementation state
+- [docs/00-current/TODO.md](docs/00-current/TODO.md) — Deferred follow-up items
+- [docs/00-current/MigrationLog.md](docs/00-current/MigrationLog.md) — Change history index
+- [docs/01-reference/environment.md](docs/01-reference/environment.md)
+- [docs/01-reference/environment-variables.md](docs/01-reference/environment-variables.md)
+- [docs/01-reference/deployment.md](docs/01-reference/deployment.md)
+- [docs/01-reference/architecture.md](docs/01-reference/architecture.md)
+- [docs/01-reference/adr/](docs/01-reference/adr/) — Architecture Decision Records
 - [docs/openapi.json](docs/openapi.json)
-- [docs/adr/](docs/adr/) — Architecture Decision Records
 - [docs/public/data-sources.md](docs/public/data-sources.md)
+- [docs/public/data-sources-cn-products.md](docs/public/data-sources-cn-products.md)
+- [docs/public/data-sources-drugbank.md](docs/public/data-sources-drugbank.md)
+- [docs/public/data-sources-medical-qa.md](docs/public/data-sources-medical-qa.md)
+- [docs/public/data-sources-food-composition.md](docs/public/data-sources-food-composition.md)
 - [docs/public/assistant-contract.md](docs/public/assistant-contract.md)
+- [docs/public/assistant-capabilities.md](docs/public/assistant-capabilities.md)
+- [docs/public/assistant-rollout.md](docs/public/assistant-rollout.md)
+- [docs/public/assistant-safety.md](docs/public/assistant-safety.md)
 - [docs/public/reminder-contract.md](docs/public/reminder-contract.md)
 - [docs/public/environment-contract.md](docs/public/environment-contract.md)
 - [docs/public/mine-settings-contract.md](docs/public/mine-settings-contract.md)
-- [docs/MigrationLog.md](docs/MigrationLog.md) — Change history
-- [docs/TODO.md](docs/TODO.md) — Deferred follow-up items
+- [docs/public/support-resources-contract.md](docs/public/support-resources-contract.md)
+- [docs/public/app-info-contract.md](docs/public/app-info-contract.md)
+- [docs/public/data-export-contract.md](docs/public/data-export-contract.md)

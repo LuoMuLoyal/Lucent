@@ -30,10 +30,14 @@ returns a default region's data.
 
 **Request:**
 
-| Param | Type   | Required | Description            |
-| ----- | ------ | -------- | ---------------------- |
-| `lat` | number | no       | Latitude, approximate  |
-| `lon` | number | no       | Longitude, approximate |
+- `lat`
+  - Type: number
+  - Required: no
+  - Description: Latitude, approximate
+- `lon`
+  - Type: number
+  - Required: no
+  - Description: Longitude, approximate
 
 **Response envelope:** `{ code: 0, data: EnvironmentSnapshotDto }`
 
@@ -117,23 +121,30 @@ approximate/reference data rather than real-time conditions.
 
 ## Explicit Non-Goals
 
-1. **No real-time weather API integration.** External weather services (OpenWeatherMap, AccuWeather, etc.) require API keys and paid tiers. Not in scope.
-2. **No user location tracking.** The `lat`/`lon` params are optional and approximate. Lucent does NOT store or track user location.
+1. **No real-time weather API integration.** External weather services (OpenWeatherMap,
+   AccuWeather, etc.) require API keys and paid tiers. Not in scope.
+2. **No user location tracking.** The `lat`/`lon` params are optional and approximate. Lucent does
+   NOT store or track user location.
 3. **No health diagnosis or medical advice.** Environment data is informational only.
-4. **No push alerts for environment changes.** This would require the notification infrastructure defined in `reminder-contract.md`.
+4. **No push alerts for environment changes.** This would require the notification infrastructure
+   defined in `reminder-contract.md`.
 5. **No historical environment data API.** Only current snapshot is provided.
 
 ## Migration Path
 
 1. **Phase A (Task 13 — this doc):** Contract design and review.
-2. **Phase B (implemented 2026-06-06):** Static reference data + `GET /api/v1/environment/snapshot` in Lucent.
+2. **Phase B (implemented 2026-06-06):** Static reference data + `GET /api/v1/environment/snapshot`
+   in Lucent.
 3. **Phase C (next):** Luminous swaps mock environment data for real API.
 4. **Phase D (future):** Optional external API integration behind same contract.
 
 ## Luminous Integration Notes
 
 - Do not reintroduce a standalone More tab or generic utility hub for environment data.
-- Future Luminous wiring should create an `EnvironmentRepository` that calls `GET /api/v1/environment/snapshot`.
-- Valid frontend targets are contextual Today signals or other bounded health-support surfaces after the matching user job is explicit.
+- Future Luminous wiring should create an `EnvironmentRepository` that calls `GET
+ /api/v1/environment/snapshot`.
+- Valid frontend targets are contextual Today signals or other bounded health-support surfaces
+  after the matching user job is explicit.
 - When `dataSource` is `'static'`, show a visible reference/static label.
-- When the API is unavailable, keep the surrounding page usable and label any fallback as mock/static.
+- When the API is unavailable, keep the surrounding page usable and label any fallback as
+  mock/static.

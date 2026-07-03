@@ -1,0 +1,71 @@
+# Data Export Contract
+
+本文件是 [[mine-settings-contract]] 拆分后的子文档。
+
+相关子文档：
+
+- [[support-resources-contract]]
+- [[app-info-contract]]
+
+### 5. Data Export Requests
+
+**Endpoints:**
+
+```text
+POST /api/v1/user/data-export-requests
+GET  /api/v1/user/data-export-requests/latest
+```
+
+Both require authentication and a valid `x-security-elevation` Bearer token (obtained from `POST
+/api/v1/settings/security-pin/verify`).
+
+**POST Body:**
+
+```typescript
+interface CreateDataExportRequestDto {
+  kind?: 'hospital' | 'monthly' | 'print';
+  format?: 'pdf'; // only pdf is supported right now
+  range?: 'last_7_days' | 'last_30_days';
+}
+```
+
+**POST Response (201):** `{ code: 0, data: DataExportRequestDto }`
+
+Lucent persists the request row first, then tries to generate the export immediately.
+Current real implementations are:
+
+- `hospital + pdf + last_7_days`
+- `monthly + pdf + last_30_days`
+- `print + pdf + last_7_days`
+
+**GET Response:** `{ code: 0, data: DataExportRequestDto | null }`
+
+Returns the most recent export request for the authenticated user, or `null`
+if none exists.
+
+```typescript
+interface DataExportRequestDto {
+  id: string;
+  kind: 'hospital' | 'monthly' | 'print';
+  format: 'pdf';
+  range: 'last_7_days' | 'last_30_days';
+  status: 'requested' | 'processing' | 'completed' | 'failed' | 'unavailable';
+  requestedAt: string; // ISO-8601
+  completedAt: string | null;
+  downloadUrl: string | null; // short-lived signed GET URL when completed
+  fileName: string | null;
+  fileSizeBytes: number | null;
+  errorMessage: string | null;
+}
+```
+
+**Current behavior:**
+
+- If Tencent COS export storage is not configured, POST still creates a row but
+  returns status `unavailable`.
+- If the export succeeds, Lucent uploads the PDF to COS, stores object metadata,
+  and GET returns a short-lived signed download URL.
+- `downloadUrl` should be treated as ephemeral; clients should refresh latest
+  status before downloading again instead of caching the URL permanently.
+- `monthly` requests are normalized to `last_30_days` before Lucent stores and generates the export,
+  even if the caller passes another range value.

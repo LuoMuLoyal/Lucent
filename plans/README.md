@@ -10,7 +10,7 @@ Use this directory for active, repo-local execution plans that are too detailed 
 
 ## What Does Not Go Here
 
-- runtime or setup facts: put those in `docs/environment.md` or `README.md`
+- runtime or setup facts: put those in `docs/01-reference/environment.md` or `README.md`
 - API contract details: keep those in code plus generated `docs/openapi.json`
 - shared contract boundaries: keep those in `docs/public/*.md`
 - completed plans that no longer drive work
