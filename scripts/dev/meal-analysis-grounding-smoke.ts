@@ -8,6 +8,7 @@ import { MealAnalysisVisionService } from '../../src/modules/daily-records/servi
 import { MealDishDecompositionService } from '../../src/modules/daily-records/services/meal-dish-decomposition.service';
 import { MealIngredientGroundingService } from '../../src/modules/daily-records/services/meal-ingredient-grounding.service';
 import { MealAnalysisMatcherService } from '../../src/modules/daily-records/services/meal-analysis-matcher.service';
+import { AiSafetyPolicyService } from '../../src/common/ai/ai-safety-policy.service';
 
 loadEnv({ path: '.env.development.local', override: false });
 loadEnv({ path: '.env.development', override: false });
@@ -26,8 +27,10 @@ async function main() {
   const configService = new ConfigService(process.env);
   const prisma = new PrismaService(configService);
   const llmRuntimeService = new LlmRuntimeService(aiConfig());
+  const safetyPolicyService = new AiSafetyPolicyService(aiConfig());
   const mealAnalysisVisionService = new MealAnalysisVisionService(
     llmRuntimeService,
+    safetyPolicyService,
   );
   const mealDishDecompositionService = new MealDishDecompositionService(
     prisma,

@@ -264,7 +264,7 @@ describe('AssistantToolLeafletReadService', () => {
     );
 
     expect(result.coverage.status).toBe('empty');
-    expect(result.coverage.reason).toContain('No semantically relevant');
+    expect(result.coverage.reason).toContain('product');
   });
 
   it('applies cursor pagination over vector results', async () => {
@@ -328,5 +328,183 @@ describe('AssistantToolLeafletReadService', () => {
         rank: 2,
       }),
     ]);
+  });
+
+  it('includes the resolved product in the result envelope', async () => {
+    const prisma = buildPrisma();
+    mockSimilaritySearchWithScore.mockResolvedValue([
+      [
+        makeDoc('对阿司匹林过敏者禁用。', {
+          chunkId: 'chunk-1',
+          leafletId: 'leaflet-1',
+          sourceField: 'contraindications',
+          productIds: ['prod-1'],
+          productNames: ['阿司匹林肠溶片'],
+        }),
+        0.92,
+      ],
+    ]);
+
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      configService as never,
+    );
+
+    const result = await service.searchMedicineLeaflets(
+      buildContext('阿司匹林肠溶片'),
+    );
+
+    expect(result.result['resolvedProduct']).toEqual({
+      source: 'cn',
+      productId: 'prod-1',
+      name: '阿司匹林肠溶片',
+    });
+    expect(result.result['medicine']).toEqual({
+      source: 'cn',
+      name: '阿司匹林肠溶片',
+    });
+  });
+
+  it('uses the productId filter as the resolved product', async () => {
+    const prisma = buildPrisma();
+    mockSimilaritySearchWithScore.mockResolvedValue([
+      [
+        makeDoc('阿司匹林肠溶片禁忌。', {
+          chunkId: 'chunk-1',
+          leafletId: 'leaflet-1',
+          sourceField: 'contraindications',
+          productIds: ['p1'],
+          productNames: ['阿司匹林肠溶片'],
+        }),
+        0.92,
+      ],
+      [
+        makeDoc('阿司匹林泡腾片不良反应。', {
+          chunkId: 'chunk-2',
+          leafletId: 'leaflet-2',
+          sourceField: 'adverse_reactions',
+          productIds: ['p2'],
+          productNames: ['阿司匹林泡腾片'],
+        }),
+        0.91,
+      ],
+    ]);
+
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      configService as never,
+    );
+
+    const result = await service.searchMedicineLeaflets(
+      buildContext(
+        JSON.stringify({
+          query: '阿司匹林',
+          filters: { productId: 'p2' },
+        }),
+      ),
+    );
+
+    expect(result.result['resolvedProduct']).toEqual({
+      source: 'cn',
+      productId: 'p2',
+      name: '阿司匹林泡腾片',
+    });
+    expect(result.result['chunks']).toHaveLength(1);
+    expect((result.result['chunks'] as unknown[])[0]).toEqual(
+      expect.objectContaining({
+        chunkId: 'chunk-2',
+        productIds: ['p2'],
+      }),
+    );
+    expect(result.coverage.status).toBe('complete');
+  });
+
+  it('applies the sourceField filter after product resolution', async () => {
+    const prisma = buildPrisma();
+    mockSimilaritySearchWithScore.mockResolvedValue([
+      [
+        makeDoc('阿司匹林肠溶片禁忌。', {
+          chunkId: 'chunk-1',
+          leafletId: 'leaflet-1',
+          sourceField: 'contraindications',
+          productIds: ['p1'],
+          productNames: ['阿司匹林肠溶片'],
+        }),
+        0.95,
+      ],
+      [
+        makeDoc('阿司匹林肠溶片不良反应。', {
+          chunkId: 'chunk-2',
+          leafletId: 'leaflet-1',
+          sourceField: 'adverse_reactions',
+          productIds: ['p1'],
+          productNames: ['阿司匹林肠溶片'],
+        }),
+        0.93,
+      ],
+    ]);
+
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      configService as never,
+    );
+
+    const result = await service.searchMedicineLeaflets(
+      buildContext(
+        JSON.stringify({
+          query: '阿司匹林肠溶片',
+          filters: { sourceField: 'contraindications' },
+        }),
+      ),
+    );
+
+    expect(result.result['chunks']).toHaveLength(1);
+    expect((result.result['chunks'] as unknown[])[0]).toEqual(
+      expect.objectContaining({
+        chunkId: 'chunk-1',
+        field: 'contraindications',
+      }),
+    );
+  });
+
+  it('returns empty coverage when no chunks match the resolved product', async () => {
+    const prisma = buildPrisma();
+    mockSimilaritySearchWithScore
+      .mockResolvedValueOnce([
+        [
+          makeDoc('阿司匹林肠溶片禁忌。', {
+            chunkId: 'chunk-1',
+            leafletId: 'leaflet-1',
+            sourceField: 'contraindications',
+            productIds: ['p1'],
+            productNames: ['阿司匹林肠溶片'],
+          }),
+          0.92,
+        ],
+      ])
+      .mockResolvedValueOnce([
+        [
+          makeDoc('阿司匹林泡腾片不良反应。', {
+            chunkId: 'chunk-2',
+            leafletId: 'leaflet-2',
+            sourceField: 'adverse_reactions',
+            productIds: ['p2'],
+            productNames: ['阿司匹林泡腾片'],
+          }),
+          0.91,
+        ],
+      ]);
+
+    const service = new AssistantToolLeafletReadService(
+      prisma as never,
+      configService as never,
+    );
+
+    const result = await service.searchMedicineLeaflets(
+      buildContext('阿司匹林'),
+    );
+
+    expect(result.coverage.status).toBe('empty');
+    expect(result.coverage.reason).toContain('resolved product');
   });
 });

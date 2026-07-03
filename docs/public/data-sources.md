@@ -1,6 +1,6 @@
 # Data Sources
 
-Last updated: 2026-07-02
+Last updated: 2026-07-03
 
 ## Target Directory
 
@@ -119,19 +119,21 @@ Do not invent empty columns just to make `cn_medicine_products` and `drugbank_dr
 
 Recommended durable tables after staging:
 
-| Table                               | Purpose                                                                                                         |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `cn_medicine_products`              | One row per Chinese product/specification from `ChineseDrugData_Master_V2.xlsx`.                                |
-| `cn_medicine_leaflets`              | One row per cleaned yaozs instruction from `ChineseDrugData_Master_V2.xlsx`.                                    |
-| `cn_medicine_product_leaflet_links` | Product-to-leaflet links with match type, approval code, and match score from `ChineseDrugData_Master_V2.xlsx`. |
-| `medicine_leaflet_chunks`           | Chunked leaflet text for RAG; empty until the rebuild-leaflet-index pipeline runs.                              |
-| `drugbank_drugs`                    | One row per primary DrugBank drug entry from `full database.xml`.                                               |
-| `drugbank_external_links`           | External identifiers and consumer links from `drug links.csv` plus XML external identifiers/links.              |
-| `drugbank_targets`                  | Target/polypeptide rows from `all.csv` or `pharmacologically_active.csv`.                                       |
-| `drugbank_drug_targets`             | Many-to-many relationship between DrugBank drugs and target rows.                                               |
-| `drug_source_imports`               | Import run metadata: source name, version/export date, file hash, row counts, rejection summary.                |
+| Table                               | Purpose                                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `cn_medicine_products`              | One row per Chinese product/specification from `ChineseDrugData_Master_V2.xlsx`.                                    |
+| `cn_medicine_leaflets`              | One row per cleaned yaozs instruction from `ChineseDrugData_Master_V2.xlsx`.                                        |
+| `cn_medicine_product_leaflet_links` | Product-to-leaflet links with match type, approval code, and match score from `ChineseDrugData_Master_V2.xlsx`.     |
+| `medicine_leaflet_chunks`           | Chunked leaflet text for RAG; empty until the rebuild-leaflet-index pipeline runs.                                  |
+| `drugbank_drugs`                    | One row per primary DrugBank drug entry from `full database.xml`.                                                   |
+| `drugbank_external_links`           | External identifiers and consumer links from `drug links.csv` plus XML external identifiers/links.                  |
+| `drugbank_targets`                  | Target/polypeptide rows from `all.csv` or `pharmacologically_active.csv`.                                           |
+| `drugbank_drug_targets`             | Many-to-many relationship between DrugBank drugs and target rows.                                                   |
+| `drugbank_passage_chunks`           | Chunked narrative passages from `drugbank_drugs` for RAG; empty until the rebuild-drugbank-rag-index pipeline runs. |
+| `medical_qa_chunks`                 | Filtered question/answer pairs from the medical QA corpus for assistant-only RAG.                                   |
+| `drug_source_imports`               | Import run metadata: source name, version/export date, file hash, row counts, rejection summary.                    |
 
-These durable tables now exist in Lucent's Prisma schema and migration history, even though the real source data has not been imported yet.
+These durable tables now exist in Lucent's Prisma schema and migration history. Local development currently holds 100-record smoke-test subsets for DrugBank drugs, DrugBank passage chunks, and medical QA chunks; full imports remain optional and are run with the same scripts using higher or omitted `--limit` values.
 
 Optional later table:
 
@@ -156,6 +158,13 @@ Chinese leaflet RAG uses chunked package-insert text from `cn_medicine_leaflets`
 - chunk rows live in `medicine_leaflet_chunks`
 - vector index rows live in a dedicated PGVector-backed leaflet store
 - retrieval is exposed through `search_medicine_leaflets`
+- `search_medicine_leaflets` resolves the product by aggregating vector chunk scores over the leaflet store before returning chunks
+
+Rebuild pipeline:
+
+```bash
+pnpm exec ts-node scripts/import/medicine/rebuild-leaflet-index.ts --embed --embed-limit 100
+```
 
 The retrieval path stays product-scoped and vector-first. A retrieval miss does not fall back to keyword guessing.
 
@@ -165,8 +174,16 @@ DrugBank assistant retrieval is separate from the Chinese leaflet corpus and is 
 
 - source of truth stays `drugbank_drugs` plus related normalized tables
 - assistant passages are built only from approved narrative scientific fields such as `description`, `indication`, `mechanism_of_action`, `pharmacodynamics`, `toxicity`, `metabolism`, `absorption`, `half_life`, and `clearance`
+- chunk rows live in `drugbank_passage_chunks`; vector index rows live in `drugbank_passage_embeddings`
 - retrieval is split into `resolve_drugbank_entity` and `search_drugbank_passages`
 - passage search is entity-scoped rather than open-ended whole-corpus search
+
+Rebuild pipeline (smoke-test with 100 drugs and 100 chunks):
+
+```bash
+pnpm exec ts-node scripts/import/medicine/import-medicine-knowledge.ts drugbank-drugs --limit 100
+pnpm exec ts-node scripts/import/medicine/rebuild-drugbank-rag-index.ts --limit 100 --embed --embed-limit 100 --embed-batch-size 10
+```
 
 ### Assistant-only medical QA corpus: 医疗问答数据集
 
@@ -174,6 +191,14 @@ DrugBank assistant retrieval is separate from the Chinese leaflet corpus and is 
 - **Size:** ~1.83 GB, ~1.36 million records
 - **Format:** JSON array of Alpaca-style objects: `{ "id": "DX_N", "instruction": "问题", "output": "回答" }`
 - **Status:** assistant-only reference corpus candidate; import/indexing stays separate from leaflet and DrugBank stores and must preserve explicit safety filtering and disclaimer behavior.
+- **Import script:** `scripts/import/medicine/import-medical-qa.ts` streams the NDJSON source, applies a safety filter, writes `medical_qa_chunks`, and optionally embeds into `medical_qa_embeddings`.
+
+Smoke-test command (100 records, 100 chunks):
+
+```bash
+pnpm exec ts-node scripts/import/medicine/import-medical-qa.ts --filter --limit 100
+pnpm exec ts-node scripts/import/medicine/import-medical-qa.ts --embed --embed-limit 100 --embed-batch-size 10
+```
 
 Why it is different from leaflet and DrugBank RAG:
 

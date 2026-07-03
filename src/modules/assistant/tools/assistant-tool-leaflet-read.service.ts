@@ -24,6 +24,8 @@ import { parseSearchPayload } from './services/assistant-tool-drugbank-entity-re
 const DEFAULT_LIMIT = 4;
 const MAX_LIMIT = 8;
 const VECTOR_FETCH_BUFFER = 4;
+const PRODUCT_RESOLVE_FETCH_COUNT = 20;
+const PRODUCT_RESOLVE_AMBIGUITY_THRESHOLD = 0.05;
 const EMBEDDINGS_TABLE = 'leaflet_embeddings';
 
 @Injectable()
@@ -84,6 +86,24 @@ export class AssistantToolLeafletReadService {
       typeof metadataFilters['sourceField'] === 'string'
         ? metadataFilters['sourceField']
         : null;
+
+    const productResolution = await this.resolveProductByVector(
+      query,
+      store,
+      productIdFilter,
+    );
+
+    if (productResolution.resolvedProductId == null) {
+      return this.buildEmptyEnvelope({
+        medicineQuery: query,
+        limit,
+        offset,
+        queryHash,
+        reason: 'No Chinese leaflet product could be resolved for the query.',
+      });
+    }
+
+    const resolvedProductId = productResolution.resolvedProductId;
     const rawResults = await store.similaritySearchWithScore(
       query,
       offset + limit + VECTOR_FETCH_BUFFER,
@@ -99,7 +119,7 @@ export class AssistantToolLeafletReadService {
           ? doc.metadata['sourceField']
           : null;
 
-      if (productIdFilter != null && !productIds.includes(productIdFilter)) {
+      if (!productIds.includes(resolvedProductId)) {
         return false;
       }
 
@@ -118,7 +138,8 @@ export class AssistantToolLeafletReadService {
         limit,
         offset,
         queryHash,
-        reason: 'No semantically relevant Chinese leaflet chunks were found.',
+        reason:
+          'No semantically relevant Chinese leaflet chunks were found for the resolved product.',
       });
     }
 
@@ -143,22 +164,21 @@ export class AssistantToolLeafletReadService {
       rank: offset + index + 1,
       score,
     }));
-    const candidateNames = [
-      ...new Set(
-        chunks.flatMap((chunk) =>
-          chunk.productNames.length > 0
-            ? chunk.productNames
-            : chunk.productIds.map((productId) => `product:${productId}`),
-        ),
-      ),
-    ];
-    const primaryProductLabel = candidateNames[0] ?? null;
+
+    const resolvedProductName =
+      productResolution.resolvedProductName ??
+      chunks
+        .flatMap((chunk) => chunk.productNames)
+        .find((name) => name.length > 0) ??
+      `product:${resolvedProductId}`;
+
+    const candidateNames = productResolution.ambiguities;
     const coverage =
-      candidateNames.length > 1
+      candidateNames.length > 0
         ? {
             status: 'partial' as const,
             reason:
-              'Leaflet evidence matched multiple candidate products. Review the returned candidates before drawing conclusions.',
+              'Product-level vector resolve returned multiple candidate products. Review the returned candidates before drawing conclusions.',
           }
         : { status: 'complete' as const, reason: null };
 
@@ -172,13 +192,15 @@ export class AssistantToolLeafletReadService {
         filters: metadataFilters,
       },
       result: {
-        medicine:
-          primaryProductLabel == null
-            ? null
-            : {
-                source: 'cn',
-                name: primaryProductLabel,
-              },
+        medicine: {
+          source: 'cn',
+          name: resolvedProductName,
+        },
+        resolvedProduct: {
+          source: 'cn',
+          productId: resolvedProductId,
+          name: resolvedProductName,
+        },
         leaflets: [],
         chunks,
         candidates: candidateNames,
@@ -192,17 +214,131 @@ export class AssistantToolLeafletReadService {
       coverage,
       timeRange: { timezone: 'UTC', startDate: null, endDate: null },
       confidence: buildReadConfidence({
-        ambiguities: candidateNames.length > 1 ? candidateNames : [],
+        ambiguities: candidateNames,
         preferredReason:
-          'Retrieved Chinese leaflet chunks through semantic vector search without keyword fallback.',
+          'Resolved a Chinese leaflet product through vector aggregation before retrieving chunks.',
       }),
-      ambiguities: candidateNames.length > 1 ? candidateNames : [],
+      ambiguities: candidateNames,
       tables: [
         'cn_medicine_leaflets',
         'medicine_leaflet_chunks',
         EMBEDDINGS_TABLE,
       ],
     });
+  }
+
+  /**
+   * Resolves the most likely product for a leaflet query by aggregating
+   * vector chunk scores over the existing leaflet_embeddings store. When the
+   * caller already provides a productId filter, that product is returned without
+   * an extra vector search.
+   */
+  private async resolveProductByVector(
+    query: string,
+    store: PGVectorStore,
+    productIdFilter: string | null,
+  ): Promise<{
+    resolvedProductId: string | null;
+    resolvedProductName: string | null;
+    ambiguities: string[];
+  }> {
+    if (productIdFilter != null) {
+      return {
+        resolvedProductId: productIdFilter,
+        resolvedProductName: null,
+        ambiguities: [],
+      };
+    }
+
+    const rawResults = await store.similaritySearchWithScore(
+      query,
+      PRODUCT_RESOLVE_FETCH_COUNT,
+    );
+
+    const productScores = new Map<
+      string,
+      {
+        productId: string;
+        productName: string;
+        score: number;
+      }
+    >();
+
+    for (const [doc, score] of rawResults) {
+      const productIds = Array.isArray(doc.metadata['productIds'])
+        ? (doc.metadata['productIds'] as unknown[]).filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [];
+      const productNames = Array.isArray(doc.metadata['productNames'])
+        ? (doc.metadata['productNames'] as unknown[]).filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : [];
+
+      for (let index = 0; index < productIds.length; index += 1) {
+        const productId = productIds[index];
+        if (productId == null) {
+          continue;
+        }
+        const productName = productNames[index] ?? `product:${productId}`;
+        const existing = productScores.get(productId);
+
+        if (existing == null) {
+          productScores.set(productId, {
+            productId,
+            productName,
+            score,
+          });
+          continue;
+        }
+
+        existing.score = Math.max(existing.score, score);
+      }
+    }
+
+    const rankedProducts = [...productScores.values()].sort(
+      (a, b) => b.score - a.score,
+    );
+
+    if (rankedProducts.length === 0) {
+      return {
+        resolvedProductId: null,
+        resolvedProductName: null,
+        ambiguities: [],
+      };
+    }
+
+    const topProduct = rankedProducts[0];
+
+    if (topProduct == null) {
+      return {
+        resolvedProductId: null,
+        resolvedProductName: null,
+        ambiguities: [],
+      };
+    }
+
+    const ambiguities: string[] = [];
+
+    if (rankedProducts.length >= 2) {
+      const topScore = topProduct.score;
+      const ambiguousProducts = rankedProducts.filter(
+        (product) =>
+          product.score >= topScore - PRODUCT_RESOLVE_AMBIGUITY_THRESHOLD,
+      );
+      if (ambiguousProducts.length > 1) {
+        ambiguities.push(
+          ...ambiguousProducts.map((product) => product.productName),
+        );
+      }
+    }
+
+    return {
+      resolvedProductId: topProduct.productId,
+      resolvedProductName: topProduct.productName,
+      ambiguities: [...new Set(ambiguities)],
+    };
   }
 
   /**

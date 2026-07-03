@@ -754,6 +754,19 @@ model MedicineLeafletChunk {
   @@map("medicine_leaflet_chunks")
 }
 
+model MedicalQaChunk {
+  id           String   @id @default(uuid())
+  qaId         String   @unique @map("qa_id")
+  question     String
+  answer       String
+  safetyLabel  String   @map("safety_label")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([safetyLabel])
+  @@map("medical_qa_chunks")
+}
+
 model DrugbankDrug {
   drugbankId           String                 @id @map("drugbank_id")
   importRunId          String?                @map("import_run_id")
@@ -794,12 +807,31 @@ model DrugbankDrug {
   importRun            DrugSourceImport?      @relation(fields: [importRunId], references: [id], onDelete: SetNull)
   externalLinkRows     DrugbankExternalLink[]
   targetRelations      DrugbankDrugTarget[]
+  passageChunks        DrugbankPassageChunk[]
 
   @@index([name])
   @@index([casNumber])
   @@index([unii])
   @@index([searchText])
   @@map("drugbank_drugs")
+}
+
+model DrugbankPassageChunk {
+  id            String       @id @default(uuid())
+  drugbankId    String       @map("drugbank_id")
+  sourceField   String       @map("source_field")
+  chunkText     String       @map("chunk_text")
+  chunkIndex    Int          @map("chunk_index")
+  sourceVersion String?      @map("source_version")
+  sourceHash    String?      @map("source_hash")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  drug          DrugbankDrug @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
+
+  @@unique([drugbankId, sourceField, chunkIndex])
+  @@index([drugbankId])
+  @@index([sourceField])
+  @@map("drugbank_passage_chunks")
 }
 
 model DrugbankExternalLink {

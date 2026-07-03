@@ -130,15 +130,16 @@ async function filterAndWrite(options: {
     written: 0,
   };
 
-  // Ensure table exists
+  // Ensure table exists (idempotent; matches Prisma-managed schema)
   await client.query(`
     CREATE TABLE IF NOT EXISTS medical_qa_chunks (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      id TEXT PRIMARY KEY,
       qa_id TEXT NOT NULL UNIQUE,
       question TEXT NOT NULL,
       answer TEXT NOT NULL,
       safety_label TEXT NOT NULL CHECK (safety_label IN ('safe', 'caution', 'blocked')),
-      created_at TIMESTAMPTZ DEFAULT now()
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
     )
   `);
 
@@ -170,13 +171,21 @@ async function filterAndWrite(options: {
       const label = classifySafety(record.instruction, record.output);
       stats[label] += 1;
 
-      values.push(`($${idx}, $${idx + 1}, $${idx + 2}, $${idx + 3})`);
-      params.push(record.id, record.instruction, record.output, label);
-      idx += 4;
+      values.push(
+        `($${idx}, $${idx + 1}, $${idx + 2}, $${idx + 3}, $${idx + 4})`,
+      );
+      params.push(
+        crypto.randomUUID(),
+        record.id,
+        record.instruction,
+        record.output,
+        label,
+      );
+      idx += 5;
     }
 
     await client.query(
-      `INSERT INTO medical_qa_chunks (qa_id, question, answer, safety_label)
+      `INSERT INTO medical_qa_chunks (id, qa_id, question, answer, safety_label)
        VALUES ${values.join(', ')}
        ON CONFLICT (qa_id) DO UPDATE SET
          question = EXCLUDED.question,
