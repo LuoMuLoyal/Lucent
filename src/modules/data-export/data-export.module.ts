@@ -6,6 +6,7 @@ import { ReportsModule } from '../reports/reports.module';
 import { SecurityPinModule } from '../security-pin/security-pin.module';
 import { DataExportCosRuntime } from './config/data-export-cos.runtime';
 import { DataExportController } from './data-export.controller';
+import { DataExportProcessorService } from './services/data-export-processor.service';
 import { DataExportService } from './services/data-export.service';
 import { DataExportStorageService } from './services/data-export-storage.service';
 import { DataExportQueueService } from './services/data-export-queue.service';
@@ -20,6 +21,7 @@ import { ReportChartService } from './services/report-chart.service';
     DataExportStorageService,
     ReportExportPdfService,
     ReportChartService,
+    DataExportProcessorService,
     DataExportQueueService,
     DataExportService,
   ],

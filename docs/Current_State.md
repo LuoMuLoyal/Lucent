@@ -24,8 +24,8 @@ This file records current backend implementation facts only. Historical changes 
 - DrugBank RAG passages are built from approved narrative scientific fields (`description`, `indication`, `mechanism_of_action`, `pharmacodynamics`, `toxicity`, `metabolism`, `absorption`, `half_life`, `clearance`), chunked into `drugbank_passage_chunks`, and embedded into `drugbank_passage_embeddings`.
 - Medical QA assistant retrieval is stored in `medical_qa_chunks` and embedded into `medical_qa_embeddings`; it remains a separate corpus with independent safety filtering and disclaimer handling.
 - Local development database currently has populated `medicine_leaflet_chunks`, `drugbank_passage_chunks`, and `medical_qa_chunks`, but assistant vector-store bootstrap is still blocked until the database runtime provides the `pgvector` extension itself.
-- The locked CN master source currently has no usable built-in CN -> DrugBank bridge: the reviewed `ProductsEnriched.drugbank_ids` column exists in the local V2 workbook snapshot but has 0 populated rows, so cross-source mapping remains a future reviewed enrichment task rather than a runtime assumption.
-- Lucent currently does not expose an assistant runtime CN -> DrugBank bridge tool. Cross-source mapping is intentionally left unresolved at runtime rather than maintained with a partial handwritten alias table.
+- The locked CN master source currently has no usable built-in CN -> DrugBank bridge table or alias map: the reviewed `ProductsEnriched.drugbank_ids` column exists in the local V2 workbook snapshot but has 0 populated rows, so it is not treated as a runtime bridge.
+- Lucent does not maintain a runtime CN -> DrugBank mapping bridge or alias table. Cross-source questions are handled by the assistant's source-split structured lookup tools, which return separate CN and DrugBank evidence without asserting a single merged entity.
 
 ## Public Support Resources
 
@@ -51,6 +51,13 @@ This file records current backend implementation facts only. Historical changes 
 - Elevation tokens are invalidated when the PIN is enabled, changed, or disabled because `securityElevationVersion` is bumped.
 - Sensitive routes (`POST /account/password`, `POST /account/email`, `DELETE /account/identities/:identityId`, `POST /user/data-export-requests`, `GET /user/data-export-requests/latest`) are protected by `SecurityElevationGuard` and `@RequireSecurityElevation()`.
 - Credential login no longer returns 2FA challenge fields (`requiresTwoFactor`, `tempToken`).
+
+## Report Export
+
+- Report export uses a shared `DataExportProcessorService` for both async (BullMQ) and inline fallback paths so the two execution modes run the same status, PDF generation, upload, and notification logic.
+- When `REDIS_URL` is configured, `POST /api/v1/user/data-export-requests` enqueues a BullMQ job and immediately returns a `requested` row; otherwise it falls back to synchronous inline processing and returns the final state.
+- Async worker failures mark the request `failed`, log the error, and let BullMQ retry the job with exponential backoff.
+- Notification creation failures are swallowed so they do not break the export flow.
 
 ## Meal Analysis
 

@@ -137,9 +137,9 @@ These durable tables now exist in Lucent's Prisma schema and migration history. 
 
 Optional later table:
 
-| Table                     | Purpose                                                                                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `medicine_source_matches` | Reviewed mapping between `cn_medicine_products` and `drugbank_drugs`, with match method and confidence. |
+| Table                  | Purpose                                                                                                                                                                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| None currently planned | Lucent does not maintain a runtime mapping table between `cn_medicine_products` and `drugbank_drugs`. Cross-source questions are handled by the assistant's source-split structured lookup tools rather than a shared bridge table. |
 
 ## RAG Knowledge Sources
 
@@ -149,7 +149,7 @@ Assistant structured medicine lookup is also source-owned rather than merged:
 
 - Chinese structured product search/detail stays on `cn_medicine_products`
 - DrugBank structured detail stays on `drugbank_drugs`
-- Cross-source matching still requires a future reviewed bridge instead of runtime guessing
+- Cross-source matching is not performed by a maintained runtime bridge or alias table. The assistant resolves cross-source questions on demand using source-split structured lookup tools (`search_cn_medicine_products`, `get_cn_medicine_detail`, `get_drugbank_detail`, `search_medicine_leaflets`, `search_drugbank_passages`).
 
 ### Chinese leaflet RAG
 
@@ -223,7 +223,7 @@ Current bridge status (verified 2026-07-02 on the local V2 workbook snapshot):
 
 - `ProductsEnriched` currently contains a `drugbank_ids` column, but the reviewed local snapshot has **0 populated rows** in that column.
 - Do not treat `drugbank_ids` as an already solved CN -> DrugBank bridge in runtime logic.
-- Any future cross-source bridge needs a new reviewed mapping pipeline, likely starting from normalized ingredient extraction rather than assuming product-name-level exact joins.
+- There is no plan to build a maintained CN -> DrugBank mapping table or pipeline in this phase. Cross-source questions are handled by the assistant's source-split tools instead of a runtime bridge.
 
 ## Chinese Source Mapping
 
@@ -240,53 +240,53 @@ These sheets are produced by `DrugDataBase/ChineseDrugData_Master_V2/build_maste
 
 Product-level fields come from `FullDrugDetail.xlsx`; canonical instruction text comes from the cleaned yaozs rows. When no instruction matches a product, the product row still exists in `cn_medicine_products`, but it will have no linked rows in `cn_medicine_product_leaflet_links`.
 
-| XLSX column               | `cn_medicine_products` field | Notes                                                                               |
-| ------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- |
-| `product_name`            | `name`                       | Required search/display name. Keep the original text.                               |
-| `image_url`               | `image_url`                  | Keep source URL; proxy/cache decision remains separate.                             |
-| `price`                   | `price_text`                 | Keep as text because values may be empty or non-normalized.                         |
-| `package_spec`            | `package_spec`               | Product-specific strength/package text.                                             |
-| `approval_number`         | `approval_number`            | Chinese approval number; useful for dedupe and detail display.                      |
-| `manufacturer`            | `manufacturer`               | Manufacturer display/filter field.                                                  |
-| `drug_type`               | `drug_type`                  | Example: prescription / OTC text.                                                   |
-| `main_category`           | `main_category`              | Broad category.                                                                     |
-| `subcategory`             | `subcategory`                | Secondary category.                                                                 |
-| `detail_url`              | `source_url`                 | Original detail page.                                                               |
-| `brand_name`              | `brand_name`                 | Optional brand/trade name.                                                          |
-| `ingredients`             | `ingredients`                | Package insert field.                                                               |
-| `properties`              | `properties`                 | Package insert field.                                                               |
-| `indications`             | `indications`                | Package insert field.                                                               |
-| `dosage`                  | `dosage`                     | Package insert field.                                                               |
-| `adverse_reactions`       | `adverse_reactions`          | Package insert field.                                                               |
-| `contraindications`       | `contraindications`          | Package insert field.                                                               |
-| `precautions`             | `precautions`                | Package insert field.                                                               |
-| `pediatric_use`           | `pediatric_use`              | Package insert field.                                                               |
-| `geriatric_use`           | `geriatric_use`              | Package insert field.                                                               |
-| `pregnancy_lactation`     | `pregnancy` + `lactation`    | Package insert field; API splits sentences by context keywords into two DTO fields. |
-| `pharmacology_toxicology` | `pharmacology_toxicology`    | Package insert field.                                                               |
-| `drug_interactions`       | `drug_interactions`          | Package insert field.                                                               |
-| `pharmacokinetics`        | `pharmacokinetics`           | Package insert field.                                                               |
-| `overdose`                | `overdose`                   | Kept from `FullDrugDetail`; yaozs source does not provide this field.               |
-| `storage`                 | `storage`                    | Enriched from matched yaozs instruction when available.                             |
-| `validity_period`         | `validity_period`            | Enriched from matched yaozs instruction when available.                             |
-| `barcode`                 | `barcode`                    | Product barcode when present.                                                       |
-| `national_drug_code`      | `national_drug_code`         | National drug code when present.                                                    |
-| `image_url_cleaned`       | `image_url_cleaned`          | Placeholder-cleaned image URL.                                                      |
-| `manufacturer_normalized` | `manufacturer_normalized`    | Manufacturer name with common suffixes stripped.                                    |
-| `approval_codes`          | `approval_codes`             | All extracted approval codes as a JSONB array.                                      |
-| `best_match_type`         | `best_match_type`            | `exact_code` or `fuzzy_name`.                                                       |
-| `best_match_score`        | `best_match_score`           | Score of the best matched instruction.                                              |
-| `top_candidate_ids`       | `top_candidate_ids`          | Top-5 instruction candidate ids as a JSONB array.                                   |
-| `top_candidate_scores`    | `top_candidate_scores`       | Top-5 candidate scores as a JSONB array.                                            |
-| `candidate_count`         | `candidate_count`            | Number of candidates considered.                                                    |
-| `match_quality_overall`   | `match_quality_overall`      | Composite quality score (0-~200).                                                   |
-| `match_quality_approval`  | `match_quality_approval`     | Approval-code match quality component.                                              |
-| `match_quality_name`      | `match_quality_name`         | Name match quality component.                                                       |
-| `match_quality_maker`     | `match_quality_maker`        | Manufacturer match quality component.                                               |
-| `match_quality_leaflet`   | `match_quality_leaflet`      | Leaflet completeness quality component.                                             |
-| `match_quality_penalty`   | `match_quality_penalty`      | Multi-candidate / conflict penalty.                                                 |
-| `match_quality_notes`     | `match_quality_notes`        | Quality notes as a JSONB array.                                                     |
-| `drugbank_ids`            | `drugbank_ids`               | Optional DrugBank ids as a JSONB array.                                             |
+| XLSX column               | `cn_medicine_products` field | Notes                                                                                                     |
+| ------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `product_name`            | `name`                       | Required search/display name. Keep the original text.                                                     |
+| `image_url`               | `image_url`                  | Keep source URL; proxy/cache decision remains separate.                                                   |
+| `price`                   | `price_text`                 | Keep as text because values may be empty or non-normalized.                                               |
+| `package_spec`            | `package_spec`               | Product-specific strength/package text.                                                                   |
+| `approval_number`         | `approval_number`            | Chinese approval number; useful for dedupe and detail display.                                            |
+| `manufacturer`            | `manufacturer`               | Manufacturer display/filter field.                                                                        |
+| `drug_type`               | `drug_type`                  | Example: prescription / OTC text.                                                                         |
+| `main_category`           | `main_category`              | Broad category.                                                                                           |
+| `subcategory`             | `subcategory`                | Secondary category.                                                                                       |
+| `detail_url`              | `source_url`                 | Original detail page.                                                                                     |
+| `brand_name`              | `brand_name`                 | Optional brand/trade name.                                                                                |
+| `ingredients`             | `ingredients`                | Package insert field.                                                                                     |
+| `properties`              | `properties`                 | Package insert field.                                                                                     |
+| `indications`             | `indications`                | Package insert field.                                                                                     |
+| `dosage`                  | `dosage`                     | Package insert field.                                                                                     |
+| `adverse_reactions`       | `adverse_reactions`          | Package insert field.                                                                                     |
+| `contraindications`       | `contraindications`          | Package insert field.                                                                                     |
+| `precautions`             | `precautions`                | Package insert field.                                                                                     |
+| `pediatric_use`           | `pediatric_use`              | Package insert field.                                                                                     |
+| `geriatric_use`           | `geriatric_use`              | Package insert field.                                                                                     |
+| `pregnancy_lactation`     | `pregnancy` + `lactation`    | Package insert field; API splits sentences by context keywords into two DTO fields.                       |
+| `pharmacology_toxicology` | `pharmacology_toxicology`    | Package insert field.                                                                                     |
+| `drug_interactions`       | `drug_interactions`          | Package insert field.                                                                                     |
+| `pharmacokinetics`        | `pharmacokinetics`           | Package insert field.                                                                                     |
+| `overdose`                | `overdose`                   | Kept from `FullDrugDetail`; yaozs source does not provide this field.                                     |
+| `storage`                 | `storage`                    | Enriched from matched yaozs instruction when available.                                                   |
+| `validity_period`         | `validity_period`            | Enriched from matched yaozs instruction when available.                                                   |
+| `barcode`                 | `barcode`                    | Product barcode when present.                                                                             |
+| `national_drug_code`      | `national_drug_code`         | National drug code when present.                                                                          |
+| `image_url_cleaned`       | `image_url_cleaned`          | Placeholder-cleaned image URL.                                                                            |
+| `manufacturer_normalized` | `manufacturer_normalized`    | Manufacturer name with common suffixes stripped.                                                          |
+| `approval_codes`          | `approval_codes`             | All extracted approval codes as a JSONB array.                                                            |
+| `best_match_type`         | `best_match_type`            | `exact_code` or `fuzzy_name`.                                                                             |
+| `best_match_score`        | `best_match_score`           | Score of the best matched instruction.                                                                    |
+| `top_candidate_ids`       | `top_candidate_ids`          | Top-5 instruction candidate ids as a JSONB array.                                                         |
+| `top_candidate_scores`    | `top_candidate_scores`       | Top-5 candidate scores as a JSONB array.                                                                  |
+| `candidate_count`         | `candidate_count`            | Number of candidates considered.                                                                          |
+| `match_quality_overall`   | `match_quality_overall`      | Composite quality score (0-~200).                                                                         |
+| `match_quality_approval`  | `match_quality_approval`     | Approval-code match quality component.                                                                    |
+| `match_quality_name`      | `match_quality_name`         | Name match quality component.                                                                             |
+| `match_quality_maker`     | `match_quality_maker`        | Manufacturer match quality component.                                                                     |
+| `match_quality_leaflet`   | `match_quality_leaflet`      | Leaflet completeness quality component.                                                                   |
+| `match_quality_penalty`   | `match_quality_penalty`      | Multi-candidate / conflict penalty.                                                                       |
+| `match_quality_notes`     | `match_quality_notes`        | Quality notes as a JSONB array.                                                                           |
+| `drugbank_ids`            | `drugbank_ids`               | Optional source field, currently not populated in the local V2 snapshot and not used as a runtime bridge. |
 
 In V2, `ProductsEnriched` no longer flattens matched instruction text into the product row. Structured instruction text lives in `cn_medicine_leaflets`, and `cn_medicine_products` only carries metadata (`best_instruction_id`, `best_match_type`, `match_quality_*`, `top_candidate_ids`, etc.) to select and rank leaflets. `overdose` has no yaozs counterpart and remains from `FullDrugDetail`.
 
@@ -344,7 +344,7 @@ Key V2 improvements over V1:
 - **Multiple candidates:** top-5 instruction candidates are retained per product.
 - **Normalized manufacturers:** `manufacturer_normalized` improves matching and search.
 - **Cleaned images:** placeholder image URLs are emptied.
-- **DrugBank bridge:** optional `drugbank_ids` field for future scientific enrichment.
+- **DrugBank bridge:** optional `drugbank_ids` source field; currently not populated and not used as a runtime bridge.
 
 Cleaning rules applied during build:
 
@@ -449,7 +449,7 @@ Default behavior:
 - If `source` is missing, Lucent uses `drugbank` for medicine search/detail because the current product direction is personal health copilot knowledge-first.
 - If `source=cn`, ids refer to `cn_medicine_products.id`.
 - If `source=drugbank`, ids refer to `drugbank_drugs.drugbank_id`.
-- Cross-source matching is not automatic. If a future detail page wants enrichment, it should use reviewed rows from `medicine_source_matches`.
+- Cross-source matching is not automatic. The assistant should use the source-split structured medicine lookup tools rather than a shared mapping table.
 
 ## API Shape for Different Field Sets
 
