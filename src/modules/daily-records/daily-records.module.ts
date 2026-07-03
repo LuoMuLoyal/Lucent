@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AiSafetyPolicyService } from '../../common/ai/ai-safety-policy.service';
 import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { DailyRecordCandidatesCopyService } from './services/daily-record-candidates-copy.service';
@@ -23,6 +24,7 @@ import { MealDishTemplateLearningService } from './services/meal-dish-template-l
   imports: [ConfigModule, PrismaModule, LlmRuntimeModule],
   controllers: [DailyRecordsController],
   providers: [
+    AiSafetyPolicyService,
     DailyRecordCandidatesCopyService,
     DailyRecordCandidatesGeneratorService,
     DailyRecordCandidatesService,

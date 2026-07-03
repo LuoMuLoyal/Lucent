@@ -35,6 +35,13 @@ export interface ReportsAiSummaryContext {
     sleepTrackedDays: number;
     mealEstimateTrackedDays: number;
   };
+  mealEstimateBreakdown: {
+    confirmedDays: number;
+    estimatedDays: number;
+    partialDays: number;
+    analyzingDays: number;
+    failedDays: number;
+  };
 }
 
 @Injectable()
@@ -75,6 +82,7 @@ export class ReportsAiSummaryContextService {
         sleepTrackedDays: facts.sleepSeries.filter((value) => value > 0).length,
         mealEstimateTrackedDays: facts.mealEstimateTrackedDays,
       },
+      mealEstimateBreakdown: facts.mealEstimateBreakdown,
     };
   }
 }

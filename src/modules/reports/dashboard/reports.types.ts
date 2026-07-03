@@ -25,6 +25,13 @@ export interface ReportDashboardFacts {
   sleepSeries: number[];
   mealEstimateSeries: number[];
   mealEstimateTrackedDays: number;
+  mealEstimateBreakdown: {
+    confirmedDays: number;
+    estimatedDays: number;
+    partialDays: number;
+    analyzingDays: number;
+    failedDays: number;
+  };
 }
 
 export interface ReportDashboardComputed {

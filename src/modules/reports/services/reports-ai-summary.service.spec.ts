@@ -47,6 +47,13 @@ describe('ReportsAiSummaryService', () => {
     sleepSeries: [0, 0, 0, 0, 0, 0, 0],
     mealEstimateSeries: [1, 1, 0, 1, 0, 0, 1],
     mealEstimateTrackedDays: 4,
+    mealEstimateBreakdown: {
+      confirmedDays: 2,
+      estimatedDays: 2,
+      partialDays: 1,
+      analyzingDays: 0,
+      failedDays: 0,
+    },
   };
 
   const baseComputed = {
@@ -137,6 +144,13 @@ describe('ReportsAiSummaryService', () => {
       waterTrackedDays: 7,
       sleepTrackedDays: 0,
       mealEstimateTrackedDays: 4,
+    },
+    mealEstimateBreakdown: {
+      confirmedDays: 2,
+      estimatedDays: 2,
+      partialDays: 1,
+      analyzingDays: 0,
+      failedDays: 0,
     },
   };
 
@@ -280,6 +294,13 @@ describe('ReportsAiSummaryService', () => {
         sleepSeries: Array<number>(30).fill(0),
         mealEstimateSeries: Array<number>(30).fill(1),
         mealEstimateTrackedDays: 30,
+        mealEstimateBreakdown: {
+          confirmedDays: 30,
+          estimatedDays: 0,
+          partialDays: 0,
+          analyzingDays: 0,
+          failedDays: 0,
+        },
       },
       context: {
         ...baseAiContext,
@@ -296,6 +317,13 @@ describe('ReportsAiSummaryService', () => {
           waterTrackedDays: 30,
           sleepTrackedDays: 0,
           mealEstimateTrackedDays: 30,
+        },
+        mealEstimateBreakdown: {
+          confirmedDays: 30,
+          estimatedDays: 0,
+          partialDays: 0,
+          analyzingDays: 0,
+          failedDays: 0,
         },
       },
     });

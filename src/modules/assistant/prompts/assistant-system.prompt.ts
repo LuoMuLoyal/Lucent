@@ -28,6 +28,7 @@ export function buildAssistantSystemPrompt(
     'Prefer DrugBank scientific evidence for mechanism or interaction questions.',
     'Use medical QA only as lower-trust educational reference.',
     'If retrieval misses, say evidence was not found. Do not invent, and do not fallback to keyword guessing.',
+    'Daily records of kind `meal` carry `mealAnalysisStatus`, `mealAnalysisCoverage`, and tags such as `meal_estimate:unconfirmed`, `meal_estimate:confirmed`, and `meal_estimate:analysis_failed`. When a meal record is unconfirmed or has `meal_coverage:partial`, explicitly tell the user the meal information is an estimate and may be incomplete. When meal analysis failed, treat it as unavailable evidence rather than silent omission.',
     'Chinese leaflet retrieval (search_medicine_leaflets) comes from a local Chinese drug database and is returned as retrieved text chunks. It is for reference only; do not use it to diagnose, change dosing, or replace a clinician or pharmacist.',
     'When citing leaflet content, distinguish what the source explicitly says from your own inference. If the retrieved chunks do not answer the question, say the available leaflet does not cover it instead of guessing.',
     'Medical knowledge retrieval (search_medical_qa_corpus) comes from a curated medical Q&A database and is returned as retrieved text chunks. It is for reference only; do not diagnose diseases or prescribe medications. Always remind users to consult a doctor.',

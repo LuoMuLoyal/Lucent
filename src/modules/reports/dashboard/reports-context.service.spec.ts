@@ -172,5 +172,69 @@ describe('ReportsContextService', () => {
 
     expect(context.mealEstimateSeries).toEqual([1, 1, 0, 0, 0, 0, 0]);
     expect(context.mealEstimateTrackedDays).toBe(2);
+    expect(context.mealEstimateBreakdown).toEqual({
+      confirmedDays: 1,
+      estimatedDays: 1,
+      partialDays: 1,
+      analyzingDays: 0,
+      failedDays: 1,
+    });
+  });
+
+  it('breaks down meal estimate status per day for the AI summary', async () => {
+    const prisma = buildPrisma();
+    prisma.userDailyRecord.findMany = jest.fn().mockResolvedValue([
+      {
+        occurredAt: new Date('2026-06-06T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: {
+            analysisStatus: 'analyzing',
+            coverage: 'none',
+          },
+        },
+      },
+      {
+        occurredAt: new Date('2026-06-07T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: {
+            analysisStatus: 'unconfirmed',
+            coverage: 'complete',
+          },
+        },
+      },
+      {
+        occurredAt: new Date('2026-06-08T00:00:00.000Z'),
+        kind: 'meal',
+        value: null,
+        unit: null,
+        payload: {
+          mealAnalysis: {
+            analysisStatus: 'confirmed',
+            coverage: 'partial',
+          },
+        },
+      },
+    ]);
+    const service = new ReportsContextService(prisma as never);
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-06',
+      endDate: '2026-06-12',
+    });
+
+    expect(context.mealEstimateBreakdown).toEqual({
+      confirmedDays: 1,
+      estimatedDays: 1,
+      partialDays: 1,
+      analyzingDays: 1,
+      failedDays: 0,
+    });
   });
 });

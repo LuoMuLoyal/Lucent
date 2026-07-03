@@ -344,10 +344,30 @@ export class TodayAnalysisContextService {
 
     const payload = parseMealRecordPayload(record.payload);
     const analysis = payload.mealAnalysis;
-    if (
-      analysis?.analysisStatus !== 'unconfirmed' &&
-      analysis?.analysisStatus !== 'confirmed'
-    ) {
+    const status = analysis?.analysisStatus;
+
+    // Keep analyzing meals as plain records so the LLM does not treat
+    // unfinished results as available evidence.
+    if (status === 'analyzing') {
+      return null;
+    }
+
+    if (status === 'analysis_failed') {
+      return {
+        kind: record.kind,
+        title: '饮食分析缺失',
+        value: this.trimNullableText(record.value),
+        unit: this.trimNullableText(record.unit),
+        note: '未能识别饮食内容，缺少可使用的餐食分析数据',
+        createdAt: record.createdAt.toISOString(),
+      };
+    }
+
+    if (status !== 'unconfirmed' && status !== 'confirmed') {
+      return null;
+    }
+
+    if (analysis == null) {
       return null;
     }
 
@@ -380,20 +400,37 @@ export class TodayAnalysisContextService {
             .slice(0, 3)
         : [];
 
+    const isPartial = analysis.coverage === 'partial';
+    const estimateLabel =
+      status === 'confirmed'
+        ? isPartial
+          ? '饮食已确认（部分匹配）'
+          : '饮食已确认'
+        : isPartial
+          ? '饮食估算中（部分匹配）'
+          : '饮食估算中';
+
+    const noteParts: string[] = [];
+    if (isPartial) {
+      noteParts.push('部分估算');
+    }
+    if (foodNames.length > 0) {
+      noteParts.push(`识别食物：${foodNames.join('、')}`);
+    }
+    const note =
+      noteParts.length > 0
+        ? noteParts.join(' · ')
+        : this.trimNullableText(record.note);
+
     return {
       kind: record.kind,
       title:
         description == null
           ? this.trimNullableText(record.title)
-          : analysis.analysisStatus === 'confirmed'
-            ? `饮食已确认：${description}`
-            : `饮食估算中：${description}`,
+          : `${estimateLabel}：${description}`,
       value: this.trimNullableText(record.value),
       unit: this.trimNullableText(record.unit),
-      note:
-        foodNames.length > 0
-          ? `识别食物：${foodNames.join('、')}`
-          : this.trimNullableText(record.note),
+      note,
       createdAt: record.createdAt.toISOString(),
     };
   }

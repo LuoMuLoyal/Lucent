@@ -9,7 +9,10 @@ import {
   DailyRecordKind,
 } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { parseMealRecordPayload } from '../../daily-records/types/meal-analysis.types';
+import {
+  MealAnalysisStatus,
+  parseMealRecordPayload,
+} from '../../daily-records/types/meal-analysis.types';
 import { USER_SETTING_KEYS } from '../../user-settings/config/user-settings.constants';
 import {
   REPORT_RANGE_CUSTOM,
@@ -71,6 +74,12 @@ export class ReportsContextService {
       }),
     ]);
 
+    const mealEstimateFacts = this.buildMealEstimateFacts(
+      dailyRecords,
+      startDate,
+      endDate,
+    );
+
     return {
       range,
       startDate,
@@ -84,16 +93,11 @@ export class ReportsContextService {
       ),
       waterSeries: this.buildWaterSeries(dailyRecords, startDate, endDate),
       sleepSeries: this.buildSleepSeries(dailyRecords, startDate, endDate),
-      mealEstimateSeries: this.buildMealEstimateSeries(
-        dailyRecords,
-        startDate,
-        endDate,
-      ),
-      mealEstimateTrackedDays: this.buildMealEstimateSeries(
-        dailyRecords,
-        startDate,
-        endDate,
-      ).filter((value) => value > 0).length,
+      mealEstimateSeries: mealEstimateFacts.series,
+      mealEstimateTrackedDays: mealEstimateFacts.series.filter(
+        (value) => value > 0,
+      ).length,
+      mealEstimateBreakdown: mealEstimateFacts.breakdown,
     };
   }
 
@@ -196,7 +200,7 @@ export class ReportsContextService {
     });
   }
 
-  private buildMealEstimateSeries(
+  private buildMealEstimateFacts(
     dailyRecords: Array<{
       occurredAt: Date;
       kind: DailyRecordKind;
@@ -204,8 +208,18 @@ export class ReportsContextService {
     }>,
     startDate: Date,
     endDate: Date,
-  ): number[] {
-    const estimatesByDay = new Map<string, number>();
+  ): {
+    series: number[];
+    breakdown: {
+      confirmedDays: number;
+      estimatedDays: number;
+      partialDays: number;
+      analyzingDays: number;
+      failedDays: number;
+    };
+  } {
+    const statusByDay = new Map<string, Set<MealAnalysisStatus>>();
+    const partialByDay = new Set<string>();
 
     for (const record of dailyRecords) {
       if (record.kind !== DailyRecordKind.meal) {
@@ -214,16 +228,65 @@ export class ReportsContextService {
 
       const payload = parseMealRecordPayload(record.payload);
       const status = payload.mealAnalysis?.analysisStatus;
-      if (status !== 'confirmed' && status !== 'unconfirmed') {
+      if (status == null) {
         continue;
       }
 
-      estimatesByDay.set(this.toDateString(record.occurredAt), 1);
+      const day = this.toDateString(record.occurredAt);
+      const dayStatuses = statusByDay.get(day) ?? new Set<MealAnalysisStatus>();
+      dayStatuses.add(status);
+      statusByDay.set(day, dayStatuses);
+
+      if (payload.mealAnalysis?.coverage === 'partial') {
+        partialByDay.add(day);
+      }
     }
 
-    return this.eachDay(startDate, endDate).map((date) => {
-      return estimatesByDay.get(this.toDateString(date)) ?? 0;
-    });
+    const series: number[] = [];
+    let confirmedDays = 0;
+    let estimatedDays = 0;
+    let partialDays = 0;
+    let analyzingDays = 0;
+    let failedDays = 0;
+
+    for (const date of this.eachDay(startDate, endDate)) {
+      const day = this.toDateString(date);
+      const statuses = statusByDay.get(day) ?? new Set<MealAnalysisStatus>();
+
+      if (statuses.has('confirmed') || statuses.has('unconfirmed')) {
+        series.push(1);
+      } else {
+        series.push(0);
+      }
+
+      if (statuses.has('confirmed')) {
+        confirmedDays += 1;
+      } else if (statuses.has('unconfirmed')) {
+        estimatedDays += 1;
+      } else if (statuses.has('analyzing')) {
+        analyzingDays += 1;
+      } else if (statuses.has('analysis_failed')) {
+        failedDays += 1;
+      }
+
+      if (
+        partialByDay.has(day) &&
+        (statuses.has('confirmed') || statuses.has('unconfirmed'))
+      ) {
+        partialDays += 1;
+      }
+    }
+
+    return {
+      series,
+      breakdown: {
+        confirmedDays,
+        estimatedDays,
+        partialDays,
+        analyzingDays,
+        failedDays,
+      },
+    };
   }
 
   private parseWaterLiters(

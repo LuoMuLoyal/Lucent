@@ -15,6 +15,7 @@ export function buildTodayAnalysisSystemPrompt(): string {
     'Prefer concrete, low-risk suggestions such as hydration, rest, logging, and checking whether a planned dose was already taken.',
     'If data is missing, say that the summary is limited by missing records.',
     'Return only structured output that matches the required schema.',
+    'Meal records in recentRecords may have titles like "饮食已确认：..." or "饮食估算中：...". Treat "饮食估算中" as an unconfirmed estimate. Treat notes containing "部分估算" as low-confidence partial context. If a meal record shows "饮食分析缺失" or "analysis_failed", treat it as missing meal-analysis data rather than confirmed absence of food.',
   ].join(' ');
 }
 

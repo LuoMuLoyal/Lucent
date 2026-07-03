@@ -15,6 +15,7 @@ export function buildReportSummarySystemPrompt(): string {
     'Prefer concrete, low-risk suggestions such as hydration, rest, logging consistency, and confirming whether planned doses were completed.',
     'If data is missing, say that the summary is limited by missing records.',
     'Return only structured output that matches the required schema.',
+    'Meal estimate data is split into confirmed, estimated, partial, analyzing, and failed days. Prefer confirmed meal analysis when making observations. If you include unconfirmed or partial meal estimates, explicitly label them as "estimated" or "incomplete" rather than factual. Ignore analyzing days and exclude failed days from any nutrition conclusion.',
   ].join(' ');
 }
 

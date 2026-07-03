@@ -1,8 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
 import { extractJsonObject } from '../../../common/utils/json.utils';
 import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
+
+const MEAL_DESCRIPTION_MAX_LENGTH = 200;
+const FOOD_NAME_MAX_LENGTH = 100;
+const PORTION_TEXT_MAX_LENGTH = 100;
 
 export interface MealVisionRecognitionResult {
   mealDescription: string | null;
@@ -17,7 +22,10 @@ export interface MealVisionRecognitionResult {
 export class MealAnalysisVisionService {
   private readonly logger = new Logger(MealAnalysisVisionService.name);
 
-  constructor(private readonly llmRuntimeService: LlmRuntimeService) {}
+  constructor(
+    private readonly llmRuntimeService: LlmRuntimeService,
+    private readonly safetyPolicyService: AiSafetyPolicyService,
+  ) {}
 
   isConfigured(): boolean {
     return this.llmRuntimeService.hasRoleConfig('vision');
@@ -63,8 +71,111 @@ export class MealAnalysisVisionService {
       return emptyRecognitionResult();
     }
 
-    return parsed;
+    return this.sanitizeRecognitionResult(parsed);
   }
+
+  private sanitizeRecognitionResult(
+    raw: MealVisionRecognitionResult,
+  ): MealVisionRecognitionResult {
+    const mealDescription = this.sanitizeNullableText(
+      raw.mealDescription,
+      MEAL_DESCRIPTION_MAX_LENGTH,
+      true,
+    );
+
+    const foodItems = raw.foodItems
+      .map((item) => {
+        const name = this.sanitizeText(item.name, FOOD_NAME_MAX_LENGTH);
+        if (name == null) {
+          return null;
+        }
+
+        if (!this.safetyPolicyService.isSafeText(name)) {
+          this.logger.warn('Meal vision food name rejected by safety filter');
+          return null;
+        }
+
+        const portionText = this.sanitizeNullableText(
+          item.portionText,
+          PORTION_TEXT_MAX_LENGTH,
+          false,
+        );
+
+        return {
+          name,
+          confidence: item.confidence,
+          portionText,
+        };
+      })
+      .filter(
+        (
+          item,
+        ): item is {
+          name: string;
+          confidence: number | null;
+          portionText: string | null;
+        } => item != null,
+      );
+
+    if (mealDescription == null && foodItems.length === 0) {
+      this.logger.warn(
+        'Meal vision result was sanitized to empty; returning empty recognition result',
+      );
+      return emptyRecognitionResult();
+    }
+
+    return { mealDescription, foodItems };
+  }
+
+  private sanitizeNullableText(
+    raw: string | null,
+    maxLength: number,
+    dropIfUnsafe: boolean,
+  ): string | null {
+    const sanitized = this.sanitizeText(raw, maxLength);
+    if (sanitized == null) {
+      return null;
+    }
+
+    if (dropIfUnsafe && !this.safetyPolicyService.isSafeText(sanitized)) {
+      return null;
+    }
+
+    return sanitized;
+  }
+
+  private sanitizeText(raw: string | null, maxLength: number): string | null {
+    if (raw == null) {
+      return null;
+    }
+
+    const withoutScriptBlocks = raw
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+    const withoutMarkup = withoutScriptBlocks
+      .replace(/<[^>]*>/g, '')
+      .split('')
+      .filter((char) => !isControlCharacter(char))
+      .join('');
+    const normalized = normalizeNullableText(withoutMarkup);
+    if (normalized == null) {
+      return null;
+    }
+
+    return normalized.length > maxLength
+      ? normalized.slice(0, maxLength)
+      : normalized;
+  }
+}
+
+function isControlCharacter(char: string): boolean {
+  const code = char.charCodeAt(0);
+  return (
+    code <= 0x08 ||
+    (code >= 0x0b && code <= 0x0c) ||
+    (code >= 0x0e && code <= 0x1f) ||
+    code === 0x7f
+  );
 }
 
 function buildMealVisionSystemPrompt(): string {

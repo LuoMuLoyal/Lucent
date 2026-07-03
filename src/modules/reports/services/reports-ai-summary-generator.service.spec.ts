@@ -70,6 +70,13 @@ describe('ReportsAiSummaryGeneratorService', () => {
           sleepTrackedDays: 0,
           mealEstimateTrackedDays: 30,
         },
+        mealEstimateBreakdown: {
+          confirmedDays: 30,
+          estimatedDays: 0,
+          partialDays: 0,
+          analyzingDays: 0,
+          failedDays: 0,
+        },
       },
       {
         userIntro: 'intro',

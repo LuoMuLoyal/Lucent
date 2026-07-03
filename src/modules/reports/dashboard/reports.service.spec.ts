@@ -17,6 +17,13 @@ describe('ReportsService', () => {
         sleepSeries: [0, 0, 0, 0, 0, 0, 0],
         mealEstimateSeries: [1, 0, 0, 0, 0, 0, 0],
         mealEstimateTrackedDays: 1,
+        mealEstimateBreakdown: {
+          confirmedDays: 1,
+          estimatedDays: 0,
+          partialDays: 0,
+          analyzingDays: 0,
+          failedDays: 0,
+        },
       }),
     } as unknown as ReportsContextService;
     const computationService = {
@@ -132,6 +139,13 @@ describe('ReportsService', () => {
         sleepSeries: Array(30).fill(0),
         mealEstimateSeries: Array(30).fill(1),
         mealEstimateTrackedDays: 30,
+        mealEstimateBreakdown: {
+          confirmedDays: 30,
+          estimatedDays: 0,
+          partialDays: 0,
+          analyzingDays: 0,
+          failedDays: 0,
+        },
       }),
     } as unknown as ReportsContextService;
     const computationService = {
@@ -176,6 +190,13 @@ describe('ReportsService', () => {
         sleepSeries,
         mealEstimateSeries: Array(7).fill(0),
         mealEstimateTrackedDays: 0,
+        mealEstimateBreakdown: {
+          confirmedDays: 0,
+          estimatedDays: 0,
+          partialDays: 0,
+          analyzingDays: 0,
+          failedDays: 0,
+        },
       }),
     } as unknown as ReportsContextService;
     const computationService = {
