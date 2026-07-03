@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-02
+Last updated: 2026-07-03
 
 This file records current backend implementation facts only. Historical changes belong in `docs/migration-log/`; deferred follow-up belongs in `docs/TODO.md`; public assistant/source boundaries belong in `docs/public/*.md`.
 
@@ -40,6 +40,16 @@ This file records current backend implementation facts only. Historical changes 
 - The OpenAPI committed-artifact gate is now semantic JSON comparison rather than raw text diff, so formatting-only reflow in `docs/openapi.json` does not block unit/e2e stages.
 - Lucent CI PostgreSQL now runs on `pgvector/pgvector:pg18`, matching the documented extension-capable local baseline instead of validating against plain Postgres.
 - `pnpm typecheck:tools` now type-checks `scripts/` and `deploy/` under the same decorator-capable baseline as the Nest app, so tool imports of Nest services no longer fail on stripped decorator settings.
+
+## Auth / Security PIN
+
+- The optional TOTP 2FA system has been replaced with an in-app 6-digit Security PIN.
+- `User` carries `securityPinEnabled`, `securityPinHash`, `securityPinChangedAt`, and `securityElevationVersion` instead of the old `twoFactor*` columns.
+- PIN management endpoints live under `/api/v1/settings/security-pin/*`: enable, verify, change, disable.
+- A successful verify returns a short-lived signed elevation JWT (`scope: security_elevation`, 15 minutes) carried in the `x-security-elevation` header.
+- Elevation tokens are invalidated when the PIN is enabled, changed, or disabled because `securityElevationVersion` is bumped.
+- Sensitive routes (`POST /account/password`, `POST /account/email`, `DELETE /account/identities/:identityId`, `POST /user/data-export-requests`, `GET /user/data-export-requests/latest`) are protected by `SecurityElevationGuard` and `@RequireSecurityElevation()`.
+- Credential login no longer returns 2FA challenge fields (`requiresTwoFactor`, `tempToken`).
 
 ## Meal Analysis
 

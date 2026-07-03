@@ -29,6 +29,7 @@ graph TD
     subgraph "Internal Services"
         llm["llm-runtime<br>(AI model factory)"]
         user["user<br>(data layer)"]
+        security["security-pin<br>(PIN + elevation tokens)"]
         testing["testing-support<br>(test only)"]
     end
 
@@ -44,6 +45,7 @@ graph TD
     auth --> notifications
     auth --> jwt
     account --> auth
+    account --> security
 
     %% User resource dependencies
     assistant --> llm
@@ -59,12 +61,15 @@ graph TD
     today --> notifications
     dataExport --> reports
     dataExport --> notifications
+    dataExport --> security
     medicines --> llm
     files --> daily
 
     %% Infrastructure
     auth --> prisma
     user --> prisma
+    security --> user
+    security --> jwt
     daily --> prisma
     notifications --> prisma
     reports --> prisma
@@ -142,6 +147,10 @@ Routes are configured via `RouterModule` in `AppModule`. Controllers declare bar
 ## Error Handling
 
 All error responses use `api-errors.ts` helpers (`notFound`, `badRequest`, `unauthorized`, `forbidden`, `conflict`) with i18n keys. The global envelope is `{ code: ResultCode, message: string, data?: T }`.
+
+## Security Elevation
+
+Sensitive routes are protected by `SecurityElevationGuard` plus the `@RequireSecurityElevation()` decorator. Elevation is granted by a short-lived signed JWT minted after verifying the user's 6-digit Security PIN. The guard reads the token from the `x-security-elevation` header as `Bearer <token>` and stores the decoded payload on the request as `securityElevation`. Any PIN enable/change/disable operation increments the user's `securityElevationVersion`, invalidating prior elevation tokens.
 
 ## Database
 

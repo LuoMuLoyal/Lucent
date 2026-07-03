@@ -75,9 +75,6 @@ export class AuthOAuthService {
   async updateOAuthLoginUser(user: User, profile: OAuthProfile): Promise<User> {
     return this.userService.update(user.id, {
       lastLoginAt: new Date('2026-01-01T00:00:00Z'),
-      twoFactorEnabled: false,
-      twoFactorSecret: null,
-      twoFactorRecoveryCodes: null,
       status: UserStatus.active,
       ...(profile.nickname !== undefined && { nickname: profile.nickname }),
       ...(profile.avatar !== undefined && { avatar: profile.avatar }),

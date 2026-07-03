@@ -19,8 +19,18 @@ export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayloa
 
 export type AggregateUser = {
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
+}
+
+export type UserAvgAggregateOutputType = {
+  securityElevationVersion: number | null
+}
+
+export type UserSumAggregateOutputType = {
+  securityElevationVersion: number | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -32,9 +42,10 @@ export type UserMinAggregateOutputType = {
   status: $Enums.UserStatus | null
   emailVerifiedAt: Date | null
   lastLoginAt: Date | null
-  twoFactorEnabled: boolean | null
-  twoFactorSecret: string | null
-  twoFactorRecoveryCodes: string | null
+  securityPinEnabled: boolean | null
+  securityPinHash: string | null
+  securityPinChangedAt: Date | null
+  securityElevationVersion: number | null
   deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -49,9 +60,10 @@ export type UserMaxAggregateOutputType = {
   status: $Enums.UserStatus | null
   emailVerifiedAt: Date | null
   lastLoginAt: Date | null
-  twoFactorEnabled: boolean | null
-  twoFactorSecret: string | null
-  twoFactorRecoveryCodes: string | null
+  securityPinEnabled: boolean | null
+  securityPinHash: string | null
+  securityPinChangedAt: Date | null
+  securityElevationVersion: number | null
   deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -66,15 +78,24 @@ export type UserCountAggregateOutputType = {
   status: number
   emailVerifiedAt: number
   lastLoginAt: number
-  twoFactorEnabled: number
-  twoFactorSecret: number
-  twoFactorRecoveryCodes: number
+  securityPinEnabled: number
+  securityPinHash: number
+  securityPinChangedAt: number
+  securityElevationVersion: number
   deletedAt: number
   createdAt: number
   updatedAt: number
   _all: number
 }
 
+
+export type UserAvgAggregateInputType = {
+  securityElevationVersion?: true
+}
+
+export type UserSumAggregateInputType = {
+  securityElevationVersion?: true
+}
 
 export type UserMinAggregateInputType = {
   id?: true
@@ -85,9 +106,10 @@ export type UserMinAggregateInputType = {
   status?: true
   emailVerifiedAt?: true
   lastLoginAt?: true
-  twoFactorEnabled?: true
-  twoFactorSecret?: true
-  twoFactorRecoveryCodes?: true
+  securityPinEnabled?: true
+  securityPinHash?: true
+  securityPinChangedAt?: true
+  securityElevationVersion?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -102,9 +124,10 @@ export type UserMaxAggregateInputType = {
   status?: true
   emailVerifiedAt?: true
   lastLoginAt?: true
-  twoFactorEnabled?: true
-  twoFactorSecret?: true
-  twoFactorRecoveryCodes?: true
+  securityPinEnabled?: true
+  securityPinHash?: true
+  securityPinChangedAt?: true
+  securityElevationVersion?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -119,9 +142,10 @@ export type UserCountAggregateInputType = {
   status?: true
   emailVerifiedAt?: true
   lastLoginAt?: true
-  twoFactorEnabled?: true
-  twoFactorSecret?: true
-  twoFactorRecoveryCodes?: true
+  securityPinEnabled?: true
+  securityPinHash?: true
+  securityPinChangedAt?: true
+  securityElevationVersion?: true
   deletedAt?: true
   createdAt?: true
   updatedAt?: true
@@ -166,6 +190,18 @@ export type UserAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserMinAggregateInputType
@@ -196,6 +232,8 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: UserCountAggregateInputType | true
+  _avg?: UserAvgAggregateInputType
+  _sum?: UserSumAggregateInputType
   _min?: UserMinAggregateInputType
   _max?: UserMaxAggregateInputType
 }
@@ -209,13 +247,16 @@ export type UserGroupByOutputType = {
   status: $Enums.UserStatus
   emailVerifiedAt: Date | null
   lastLoginAt: Date | null
-  twoFactorEnabled: boolean
-  twoFactorSecret: string | null
-  twoFactorRecoveryCodes: string | null
+  securityPinEnabled: boolean
+  securityPinHash: string | null
+  securityPinChangedAt: Date | null
+  securityElevationVersion: number
   deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
@@ -247,9 +288,10 @@ export type UserWhereInput = {
   status?: Prisma.EnumUserStatusFilter<"User"> | $Enums.UserStatus
   emailVerifiedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFilter<"User"> | boolean
-  twoFactorSecret?: Prisma.StringNullableFilter<"User"> | string | null
-  twoFactorRecoveryCodes?: Prisma.StringNullableFilter<"User"> | string | null
+  securityPinEnabled?: Prisma.BoolFilter<"User"> | boolean
+  securityPinHash?: Prisma.StringNullableFilter<"User"> | string | null
+  securityPinChangedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  securityElevationVersion?: Prisma.IntFilter<"User"> | number
   deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
@@ -282,9 +324,10 @@ export type UserOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   emailVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  twoFactorEnabled?: Prisma.SortOrder
-  twoFactorSecret?: Prisma.SortOrderInput | Prisma.SortOrder
-  twoFactorRecoveryCodes?: Prisma.SortOrderInput | Prisma.SortOrder
+  securityPinEnabled?: Prisma.SortOrder
+  securityPinHash?: Prisma.SortOrderInput | Prisma.SortOrder
+  securityPinChangedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  securityElevationVersion?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -320,9 +363,10 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.EnumUserStatusFilter<"User"> | $Enums.UserStatus
   emailVerifiedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   lastLoginAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFilter<"User"> | boolean
-  twoFactorSecret?: Prisma.StringNullableFilter<"User"> | string | null
-  twoFactorRecoveryCodes?: Prisma.StringNullableFilter<"User"> | string | null
+  securityPinEnabled?: Prisma.BoolFilter<"User"> | boolean
+  securityPinHash?: Prisma.StringNullableFilter<"User"> | string | null
+  securityPinChangedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  securityElevationVersion?: Prisma.IntFilter<"User"> | number
   deletedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
@@ -355,15 +399,18 @@ export type UserOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   emailVerifiedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  twoFactorEnabled?: Prisma.SortOrder
-  twoFactorSecret?: Prisma.SortOrderInput | Prisma.SortOrder
-  twoFactorRecoveryCodes?: Prisma.SortOrderInput | Prisma.SortOrder
+  securityPinEnabled?: Prisma.SortOrder
+  securityPinHash?: Prisma.SortOrderInput | Prisma.SortOrder
+  securityPinChangedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  securityElevationVersion?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
+  _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
+  _sum?: Prisma.UserSumOrderByAggregateInput
 }
 
 export type UserScalarWhereWithAggregatesInput = {
@@ -378,9 +425,10 @@ export type UserScalarWhereWithAggregatesInput = {
   status?: Prisma.EnumUserStatusWithAggregatesFilter<"User"> | $Enums.UserStatus
   emailVerifiedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   lastLoginAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
-  twoFactorEnabled?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
-  twoFactorSecret?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
-  twoFactorRecoveryCodes?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  securityPinEnabled?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
+  securityPinHash?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  securityPinChangedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  securityElevationVersion?: Prisma.IntWithAggregatesFilter<"User"> | number
   deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
@@ -395,9 +443,10 @@ export type UserCreateInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -430,9 +479,10 @@ export type UserUncheckedCreateInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -465,9 +515,10 @@ export type UserUpdateInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -500,9 +551,10 @@ export type UserUncheckedUpdateInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -535,9 +587,10 @@ export type UserCreateManyInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -552,9 +605,10 @@ export type UserUpdateManyMutationInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -569,9 +623,10 @@ export type UserUncheckedUpdateManyInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -586,12 +641,17 @@ export type UserCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   emailVerifiedAt?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
-  twoFactorEnabled?: Prisma.SortOrder
-  twoFactorSecret?: Prisma.SortOrder
-  twoFactorRecoveryCodes?: Prisma.SortOrder
+  securityPinEnabled?: Prisma.SortOrder
+  securityPinHash?: Prisma.SortOrder
+  securityPinChangedAt?: Prisma.SortOrder
+  securityElevationVersion?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserAvgOrderByAggregateInput = {
+  securityElevationVersion?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -603,9 +663,10 @@ export type UserMaxOrderByAggregateInput = {
   status?: Prisma.SortOrder
   emailVerifiedAt?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
-  twoFactorEnabled?: Prisma.SortOrder
-  twoFactorSecret?: Prisma.SortOrder
-  twoFactorRecoveryCodes?: Prisma.SortOrder
+  securityPinEnabled?: Prisma.SortOrder
+  securityPinHash?: Prisma.SortOrder
+  securityPinChangedAt?: Prisma.SortOrder
+  securityElevationVersion?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -620,12 +681,17 @@ export type UserMinOrderByAggregateInput = {
   status?: Prisma.SortOrder
   emailVerifiedAt?: Prisma.SortOrder
   lastLoginAt?: Prisma.SortOrder
-  twoFactorEnabled?: Prisma.SortOrder
-  twoFactorSecret?: Prisma.SortOrder
-  twoFactorRecoveryCodes?: Prisma.SortOrder
+  securityPinEnabled?: Prisma.SortOrder
+  securityPinHash?: Prisma.SortOrder
+  securityPinChangedAt?: Prisma.SortOrder
+  securityElevationVersion?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type UserSumOrderByAggregateInput = {
+  securityElevationVersion?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -651,6 +717,14 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
 
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
+}
+
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
 }
 
 export type DateTimeFieldUpdateOperationsInput = {
@@ -918,9 +992,10 @@ export type UserCreateWithoutIdentitiesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -952,9 +1027,10 @@ export type UserUncheckedCreateWithoutIdentitiesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1002,9 +1078,10 @@ export type UserUpdateWithoutIdentitiesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1036,9 +1113,10 @@ export type UserUncheckedUpdateWithoutIdentitiesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1070,9 +1148,10 @@ export type UserCreateWithoutProfileInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1104,9 +1183,10 @@ export type UserUncheckedCreateWithoutProfileInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1154,9 +1234,10 @@ export type UserUpdateWithoutProfileInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1188,9 +1269,10 @@ export type UserUncheckedUpdateWithoutProfileInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1222,9 +1304,10 @@ export type UserCreateWithoutSessionsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1256,9 +1339,10 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1306,9 +1390,10 @@ export type UserUpdateWithoutSessionsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1340,9 +1425,10 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1374,9 +1460,10 @@ export type UserCreateWithoutDevicesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1408,9 +1495,10 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1458,9 +1546,10 @@ export type UserUpdateWithoutDevicesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1492,9 +1581,10 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1526,9 +1616,10 @@ export type UserCreateWithoutAllergiesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1560,9 +1651,10 @@ export type UserUncheckedCreateWithoutAllergiesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1610,9 +1702,10 @@ export type UserUpdateWithoutAllergiesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1644,9 +1737,10 @@ export type UserUncheckedUpdateWithoutAllergiesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1678,9 +1772,10 @@ export type UserCreateWithoutConditionsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1712,9 +1807,10 @@ export type UserUncheckedCreateWithoutConditionsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1762,9 +1858,10 @@ export type UserUpdateWithoutConditionsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1796,9 +1893,10 @@ export type UserUncheckedUpdateWithoutConditionsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1830,9 +1928,10 @@ export type UserCreateWithoutCurrentMedicinesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1864,9 +1963,10 @@ export type UserUncheckedCreateWithoutCurrentMedicinesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1914,9 +2014,10 @@ export type UserUpdateWithoutCurrentMedicinesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1948,9 +2049,10 @@ export type UserUncheckedUpdateWithoutCurrentMedicinesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1982,9 +2084,10 @@ export type UserCreateWithoutMedicineRemindersInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2016,9 +2119,10 @@ export type UserUncheckedCreateWithoutMedicineRemindersInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2066,9 +2170,10 @@ export type UserUpdateWithoutMedicineRemindersInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2100,9 +2205,10 @@ export type UserUncheckedUpdateWithoutMedicineRemindersInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2134,9 +2240,10 @@ export type UserCreateWithoutReminderDeliveriesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2168,9 +2275,10 @@ export type UserUncheckedCreateWithoutReminderDeliveriesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2218,9 +2326,10 @@ export type UserUpdateWithoutReminderDeliveriesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2252,9 +2361,10 @@ export type UserUncheckedUpdateWithoutReminderDeliveriesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2286,9 +2396,10 @@ export type UserCreateWithoutDoseLogsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2320,9 +2431,10 @@ export type UserUncheckedCreateWithoutDoseLogsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2370,9 +2482,10 @@ export type UserUpdateWithoutDoseLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2404,9 +2517,10 @@ export type UserUncheckedUpdateWithoutDoseLogsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2438,9 +2552,10 @@ export type UserCreateWithoutDailyRecordsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2472,9 +2587,10 @@ export type UserUncheckedCreateWithoutDailyRecordsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2522,9 +2638,10 @@ export type UserUpdateWithoutDailyRecordsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2556,9 +2673,10 @@ export type UserUncheckedUpdateWithoutDailyRecordsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2590,9 +2708,10 @@ export type UserCreateWithoutDailyRecordAttachmentsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2624,9 +2743,10 @@ export type UserUncheckedCreateWithoutDailyRecordAttachmentsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2674,9 +2794,10 @@ export type UserUpdateWithoutDailyRecordAttachmentsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2708,9 +2829,10 @@ export type UserUncheckedUpdateWithoutDailyRecordAttachmentsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2742,9 +2864,10 @@ export type UserCreateWithoutSettingsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2776,9 +2899,10 @@ export type UserUncheckedCreateWithoutSettingsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2826,9 +2950,10 @@ export type UserUpdateWithoutSettingsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2860,9 +2985,10 @@ export type UserUncheckedUpdateWithoutSettingsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2894,9 +3020,10 @@ export type UserCreateWithoutDataExportRequestsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2928,9 +3055,10 @@ export type UserUncheckedCreateWithoutDataExportRequestsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -2978,9 +3106,10 @@ export type UserUpdateWithoutDataExportRequestsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3012,9 +3141,10 @@ export type UserUncheckedUpdateWithoutDataExportRequestsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3046,9 +3176,10 @@ export type UserCreateWithoutAssistantConversationsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -3080,9 +3211,10 @@ export type UserUncheckedCreateWithoutAssistantConversationsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -3130,9 +3262,10 @@ export type UserUpdateWithoutAssistantConversationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3164,9 +3297,10 @@ export type UserUncheckedUpdateWithoutAssistantConversationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3198,9 +3332,10 @@ export type UserCreateWithoutAssistantMessagesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -3232,9 +3367,10 @@ export type UserUncheckedCreateWithoutAssistantMessagesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -3282,9 +3418,10 @@ export type UserUpdateWithoutAssistantMessagesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3316,9 +3453,10 @@ export type UserUncheckedUpdateWithoutAssistantMessagesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3350,9 +3488,10 @@ export type UserCreateWithoutAssistantSummaryHistoriesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -3384,9 +3523,10 @@ export type UserUncheckedCreateWithoutAssistantSummaryHistoriesInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -3434,9 +3574,10 @@ export type UserUpdateWithoutAssistantSummaryHistoriesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3468,9 +3609,10 @@ export type UserUncheckedUpdateWithoutAssistantSummaryHistoriesInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3502,9 +3644,10 @@ export type UserCreateWithoutNotificationsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -3536,9 +3679,10 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   status?: $Enums.UserStatus
   emailVerifiedAt?: Date | string | null
   lastLoginAt?: Date | string | null
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: string | null
-  twoFactorRecoveryCodes?: string | null
+  securityPinEnabled?: boolean
+  securityPinHash?: string | null
+  securityPinChangedAt?: Date | string | null
+  securityElevationVersion?: number
   deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -3586,9 +3730,10 @@ export type UserUpdateWithoutNotificationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3620,9 +3765,10 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
   emailVerifiedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastLoginAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  twoFactorEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  twoFactorSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  twoFactorRecoveryCodes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  securityPinHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  securityPinChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  securityElevationVersion?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -3829,9 +3975,10 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   status?: boolean
   emailVerifiedAt?: boolean
   lastLoginAt?: boolean
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: boolean
-  twoFactorRecoveryCodes?: boolean
+  securityPinEnabled?: boolean
+  securityPinHash?: boolean
+  securityPinChangedAt?: boolean
+  securityElevationVersion?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -3865,9 +4012,10 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   status?: boolean
   emailVerifiedAt?: boolean
   lastLoginAt?: boolean
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: boolean
-  twoFactorRecoveryCodes?: boolean
+  securityPinEnabled?: boolean
+  securityPinHash?: boolean
+  securityPinChangedAt?: boolean
+  securityElevationVersion?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -3882,9 +4030,10 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   status?: boolean
   emailVerifiedAt?: boolean
   lastLoginAt?: boolean
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: boolean
-  twoFactorRecoveryCodes?: boolean
+  securityPinEnabled?: boolean
+  securityPinHash?: boolean
+  securityPinChangedAt?: boolean
+  securityElevationVersion?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -3899,15 +4048,16 @@ export type UserSelectScalar = {
   status?: boolean
   emailVerifiedAt?: boolean
   lastLoginAt?: boolean
-  twoFactorEnabled?: boolean
-  twoFactorSecret?: boolean
-  twoFactorRecoveryCodes?: boolean
+  securityPinEnabled?: boolean
+  securityPinHash?: boolean
+  securityPinChangedAt?: boolean
+  securityElevationVersion?: boolean
   deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "passwordHash" | "nickname" | "avatar" | "status" | "emailVerifiedAt" | "lastLoginAt" | "twoFactorEnabled" | "twoFactorSecret" | "twoFactorRecoveryCodes" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "passwordHash" | "nickname" | "avatar" | "status" | "emailVerifiedAt" | "lastLoginAt" | "securityPinEnabled" | "securityPinHash" | "securityPinChangedAt" | "securityElevationVersion" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   profile?: boolean | Prisma.User$profileArgs<ExtArgs>
   identities?: boolean | Prisma.User$identitiesArgs<ExtArgs>
@@ -3963,9 +4113,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     status: $Enums.UserStatus
     emailVerifiedAt: Date | null
     lastLoginAt: Date | null
-    twoFactorEnabled: boolean
-    twoFactorSecret: string | null
-    twoFactorRecoveryCodes: string | null
+    securityPinEnabled: boolean
+    securityPinHash: string | null
+    securityPinChangedAt: Date | null
+    securityElevationVersion: number
     deletedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -4418,9 +4569,10 @@ export interface UserFieldRefs {
   readonly status: Prisma.FieldRef<"User", 'UserStatus'>
   readonly emailVerifiedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly lastLoginAt: Prisma.FieldRef<"User", 'DateTime'>
-  readonly twoFactorEnabled: Prisma.FieldRef<"User", 'Boolean'>
-  readonly twoFactorSecret: Prisma.FieldRef<"User", 'String'>
-  readonly twoFactorRecoveryCodes: Prisma.FieldRef<"User", 'String'>
+  readonly securityPinEnabled: Prisma.FieldRef<"User", 'Boolean'>
+  readonly securityPinHash: Prisma.FieldRef<"User", 'String'>
+  readonly securityPinChangedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly securityElevationVersion: Prisma.FieldRef<"User", 'Int'>
   readonly deletedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>

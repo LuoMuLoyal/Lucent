@@ -22,6 +22,8 @@ import { successEnvelope } from '../../common/api-envelope';
 import { AuthService, type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SecurityElevationGuard } from '../security-pin/guards/security-elevation.guard';
+import { RequireSecurityElevation } from '../security-pin/decorators/require-security-elevation.decorator';
 import { ChangeEmailDto } from '../auth/dto/change-email.dto';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 import { SetPasswordDto } from '../auth/dto/set-password.dto';
@@ -41,7 +43,7 @@ import { UpdateAccountDto } from './dto/update-account.dto';
 
 @ApiTags('Account')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SecurityElevationGuard)
 @Controller('account')
 export class AccountController {
   constructor(
@@ -69,6 +71,7 @@ export class AccountController {
   }
 
   @Post('password')
+  @RequireSecurityElevation()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change authenticated account password' })
   @ApiResponse({ status: 200, type: SuccessResponseDto })
@@ -96,6 +99,7 @@ export class AccountController {
   }
 
   @Post('email')
+  @RequireSecurityElevation()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change authenticated account email' })
   @ApiResponse({ status: 200, type: AccountEmailResponseDto })
@@ -111,6 +115,7 @@ export class AccountController {
   }
 
   @Delete('identities/:identityId')
+  @RequireSecurityElevation()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Unlink authenticated account OAuth identity' })
   @ApiResponse({ status: 200, type: AccountResponseDto })

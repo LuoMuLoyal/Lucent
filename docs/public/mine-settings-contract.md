@@ -1,6 +1,6 @@
 # Mine And Settings Contract
 
-Last updated: 2026-07-02
+Last updated: 2026-07-03
 
 ## Summary
 
@@ -61,6 +61,10 @@ interface UserSettingsDto {
     currentMedicines: boolean; // allow the assistant to read medicine-box/current medicines
   };
   updatedAt: string; // ISO-8601
+  securityPin: {
+    enabled: boolean; // whether a Security PIN is set
+    lastChangedAt: string | null; // ISO-8601 of last PIN change
+  };
 }
 ```
 
@@ -97,7 +101,58 @@ assistantContext.sleepRecords
 assistantContext.currentMedicines
 ```
 
-### 2. Support Resources
+### 2. Security PIN
+
+**Endpoints:**
+
+```text
+POST /api/v1/settings/security-pin/enable
+POST /api/v1/settings/security-pin/verify
+POST /api/v1/settings/security-pin/change
+POST /api/v1/settings/security-pin/disable
+```
+
+All require authentication. Enable/change/disable additionally require the user's current Security PIN. If no PIN is set, `enable` only requires the desired new PIN.
+
+**Request bodies:**
+
+```typescript
+interface EnableSecurityPinDto {
+  pin: string; // 6-digit numeric
+}
+
+interface VerifySecurityPinDto {
+  pin: string; // 6-digit numeric
+}
+
+interface ChangeSecurityPinDto {
+  oldPin: string; // current 6-digit PIN
+  newPin: string; // desired 6-digit PIN
+}
+
+interface DisableSecurityPinDto {
+  pin: string; // current 6-digit PIN
+}
+```
+
+**Verify response:** `{ code: 0, data: SecurityPinElevationResponseDto }`
+
+```typescript
+interface SecurityPinElevationResponseDto {
+  elevationToken: string; // short-lived signed JWT
+  expiresAt: string; // ISO-8601, 15 minutes after issuance
+}
+```
+
+The elevation token proves a recent PIN verification. Clients must send it as `Bearer <elevationToken>` in the `x-security-elevation` header when calling protected sensitive routes.
+
+**Current behavior:**
+
+- PINs are hashed with argon2id on the server; Lucent never stores the raw PIN.
+- Enabling, changing, or disabling a PIN bumps the user's elevation version, invalidating previously issued elevation tokens.
+- A disabled PIN removes the hash; re-enabling requires setting a new PIN from scratch.
+
+### 3. Support Resources
 
 **Endpoint:** `GET /api/v1/public/support-resources?scope=help`
 
@@ -135,7 +190,7 @@ interface SupportResourceDto {
 `support-resources` module — no database migration required for this endpoint.
 Entries marked `available: false` when no real contact/URL is configured.
 
-### 3. App Info
+### 4. App Info
 
 **Endpoint:** `GET /api/v1/public/app-info`
 
@@ -158,7 +213,7 @@ interface AppInfoDto {
 
 Values are read from config or package.json at startup — no database.
 
-### 4. Data Export Requests
+### 5. Data Export Requests
 
 **Endpoints:**
 
@@ -167,7 +222,7 @@ POST /api/v1/user/data-export-requests
 GET  /api/v1/user/data-export-requests/latest
 ```
 
-Both require authentication.
+Both require authentication and a valid `x-security-elevation` Bearer token (obtained from `POST /api/v1/settings/security-pin/verify`).
 
 **POST Body:**
 

@@ -1,0 +1,7 @@
+{
+  "not_enabled": "安全 PIN 未启用",
+  "invalid_pin": "安全 PIN 错误",
+  "elevation_token_invalid": "安全验证令牌无效",
+  "elevation_token_stale": "安全验证已过期，请重新验证 PIN",
+  "invalid_format": "安全 PIN 必须是 6 位数字"
+}

@@ -111,9 +111,10 @@ export const UserScalarFieldEnum = {
   status: 'status',
   emailVerifiedAt: 'emailVerifiedAt',
   lastLoginAt: 'lastLoginAt',
-  twoFactorEnabled: 'twoFactorEnabled',
-  twoFactorSecret: 'twoFactorSecret',
-  twoFactorRecoveryCodes: 'twoFactorRecoveryCodes',
+  securityPinEnabled: 'securityPinEnabled',
+  securityPinHash: 'securityPinHash',
+  securityPinChangedAt: 'securityPinChangedAt',
+  securityElevationVersion: 'securityElevationVersion',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

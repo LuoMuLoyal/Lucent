@@ -2,6 +2,8 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import { DataExportController } from './data-export.controller';
 import { DataExportService } from './services/data-export.service';
+import { SecurityElevationGuard } from '../security-pin/guards/security-elevation.guard';
+import { SecurityPinService } from '../security-pin/services/security-pin.service';
 import type {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,
@@ -20,6 +22,13 @@ describe('DataExportController', () => {
           useValue: {
             createRequest: jest.fn(),
             getLatestRequest: jest.fn(),
+          },
+        },
+        SecurityElevationGuard,
+        {
+          provide: SecurityPinService,
+          useValue: {
+            verifyElevationToken: jest.fn(),
           },
         },
       ],

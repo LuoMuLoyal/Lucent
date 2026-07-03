@@ -3000,9 +3000,10 @@ export const UserScalarFieldEnum = {
   status: 'status',
   emailVerifiedAt: 'emailVerifiedAt',
   lastLoginAt: 'lastLoginAt',
-  twoFactorEnabled: 'twoFactorEnabled',
-  twoFactorSecret: 'twoFactorSecret',
-  twoFactorRecoveryCodes: 'twoFactorRecoveryCodes',
+  securityPinEnabled: 'securityPinEnabled',
+  securityPinHash: 'securityPinHash',
+  securityPinChangedAt: 'securityPinChangedAt',
+  securityElevationVersion: 'securityElevationVersion',
   deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -3835,6 +3836,20 @@ export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
+ * Reference to a field of type 'Int'
+ */
+export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Int[]'
+ */
+export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+/**
  * Reference to a field of type 'Json'
  */
 export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
@@ -3859,20 +3874,6 @@ export type EnumSexAtBirthFieldRefInput<$PrismaModel> = FieldRefInputType<$Prism
  * Reference to a field of type 'SexAtBirth[]'
  */
 export type ListEnumSexAtBirthFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'SexAtBirth[]'>
-    
-
-
-/**
- * Reference to a field of type 'Int'
- */
-export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
-    
-
-
-/**
- * Reference to a field of type 'Int[]'
- */
-export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
 
 

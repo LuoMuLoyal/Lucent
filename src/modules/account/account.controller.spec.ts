@@ -11,6 +11,8 @@ import type { UserPayload } from '../auth/services/auth-token.service';
 import { AccountController } from './account.controller';
 import { AccountService } from './services/account.service';
 import { AuthService } from '../auth/services/auth.service';
+import { SecurityElevationGuard } from '../security-pin/guards/security-elevation.guard';
+import { SecurityPinService } from '../security-pin/services/security-pin.service';
 import type { UpdateAccountDto } from './dto/update-account.dto';
 import type { AccountDto } from './dto/account-response.dto';
 import type { User } from '../../generated/prisma/client';
@@ -68,6 +70,13 @@ describe('AccountController', () => {
             createWechatWebIdentityLinkAuthorizeUrl: jest.fn(),
             linkWechatWebIdentity: jest.fn(),
             linkWechatMobileIdentity: jest.fn(),
+          },
+        },
+        SecurityElevationGuard,
+        {
+          provide: SecurityPinService,
+          useValue: {
+            verifyElevationToken: jest.fn(),
           },
         },
       ],

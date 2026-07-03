@@ -2,11 +2,13 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api-envelope';
 import { UserSettingsController } from './user-settings.controller';
 import { UserSettingsService } from './services/user-settings.service';
+import { SecurityPinService } from '../security-pin/services/security-pin.service';
 import type { UserSettingsDataDto } from './dto';
 
 describe('UserSettingsController', () => {
   let controller: UserSettingsController;
   let service: jest.Mocked<UserSettingsService>;
+  let securityPinService: jest.Mocked<SecurityPinService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -19,11 +21,21 @@ describe('UserSettingsController', () => {
             updateSettings: jest.fn(),
           },
         },
+        {
+          provide: SecurityPinService,
+          useValue: {
+            enable: jest.fn(),
+            change: jest.fn(),
+            disable: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get(UserSettingsController);
     service = module.get(UserSettingsService);
+    securityPinService = module.get(SecurityPinService);
   });
 
   it('should return user settings envelope', async () => {
@@ -55,6 +67,74 @@ describe('UserSettingsController', () => {
       aiSummariesEnabled: false,
     });
   });
+
+  it('enables security pin from settings and returns updated settings', async () => {
+    securityPinService.enable.mockResolvedValue(undefined);
+    const settings = makeSettings();
+    service.getSettings.mockResolvedValue(settings);
+
+    const result = await controller.enableSecurityPin(
+      { sub: 'u1', email: 'a@b.c' },
+      { pin: '123456' },
+    );
+
+    expect(securityPinService.enable).toHaveBeenCalledWith('u1', {
+      pin: '123456',
+    });
+    expect(service.getSettings).toHaveBeenCalledWith('u1');
+    expect(result.data).toBeDefined();
+  });
+
+  it('verifies security pin and returns elevation token', async () => {
+    securityPinService.verify.mockResolvedValue({
+      elevationToken: 'token',
+      expiresAt: '2026-07-03T12:15:00.000Z',
+    });
+
+    const result = await controller.verifySecurityPin(
+      { sub: 'u1', email: 'a@b.c' },
+      { pin: '123456' },
+    );
+
+    expect(securityPinService.verify).toHaveBeenCalledWith('u1', {
+      pin: '123456',
+    });
+    expect(result.data?.elevationToken).toBe('token');
+    expect(result.data?.expiresAt).toBe('2026-07-03T12:15:00.000Z');
+  });
+
+  it('changes security pin and returns updated settings', async () => {
+    securityPinService.change.mockResolvedValue(undefined);
+    const settings = makeSettings();
+    service.getSettings.mockResolvedValue(settings);
+
+    const result = await controller.changeSecurityPin(
+      { sub: 'u1', email: 'a@b.c' },
+      { oldPin: '123456', newPin: '654321' },
+    );
+
+    expect(securityPinService.change).toHaveBeenCalledWith('u1', {
+      oldPin: '123456',
+      newPin: '654321',
+    });
+    expect(result.data).toBeDefined();
+  });
+
+  it('disables security pin and returns updated settings', async () => {
+    securityPinService.disable.mockResolvedValue(undefined);
+    const settings = makeSettings();
+    service.getSettings.mockResolvedValue(settings);
+
+    const result = await controller.disableSecurityPin(
+      { sub: 'u1', email: 'a@b.c' },
+      { pin: '123456' },
+    );
+
+    expect(securityPinService.disable).toHaveBeenCalledWith('u1', {
+      pin: '123456',
+    });
+    expect(result.data).toBeDefined();
+  });
 });
 
 function makeSettings(
@@ -72,6 +152,10 @@ function makeSettings(
       currentMedicines: true,
     },
     updatedAt: '2026-06-10T00:00:00.000Z',
+    securityPin: {
+      enabled: false,
+      lastChangedAt: null,
+    },
     ...overrides,
   };
 }

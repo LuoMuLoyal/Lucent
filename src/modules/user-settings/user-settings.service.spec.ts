@@ -8,6 +8,12 @@ describe('UserSettingsService', () => {
         findMany: jest.fn().mockResolvedValue([]),
         upsert: jest.fn(),
       },
+      user: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          securityPinEnabled: false,
+          securityPinChangedAt: null,
+        }),
+      },
     } as unknown as PrismaService;
 
     const service = new UserSettingsService(prisma);
@@ -24,6 +30,10 @@ describe('UserSettingsService', () => {
         currentMedicines: true,
       },
       updatedAt: null,
+      securityPin: {
+        enabled: false,
+        lastChangedAt: null,
+      },
     });
   });
 
@@ -54,6 +64,12 @@ describe('UserSettingsService', () => {
         ]),
         upsert: jest.fn(),
       },
+      user: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          securityPinEnabled: true,
+          securityPinChangedAt: new Date('2026-07-03T12:00:00.000Z'),
+        }),
+      },
     } as unknown as PrismaService;
 
     const service = new UserSettingsService(prisma);
@@ -70,6 +86,10 @@ describe('UserSettingsService', () => {
         currentMedicines: true,
       },
       updatedAt: '2026-06-17T11:00:00.000Z',
+      securityPin: {
+        enabled: true,
+        lastChangedAt: '2026-07-03T12:00:00.000Z',
+      },
     });
   });
 
@@ -79,6 +99,12 @@ describe('UserSettingsService', () => {
       userSetting: {
         findMany: jest.fn().mockResolvedValue([]),
         upsert,
+      },
+      user: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          securityPinEnabled: false,
+          securityPinChangedAt: null,
+        }),
       },
     } as unknown as PrismaService;
 

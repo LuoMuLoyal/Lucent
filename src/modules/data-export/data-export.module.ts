@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ReportsModule } from '../reports/reports.module';
+import { SecurityPinModule } from '../security-pin/security-pin.module';
 import { DataExportCosRuntime } from './config/data-export-cos.runtime';
 import { DataExportController } from './data-export.controller';
 import { DataExportService } from './services/data-export.service';
@@ -12,7 +13,7 @@ import { ReportExportPdfService } from './services/report-export-pdf.service';
 import { ReportChartService } from './services/report-chart.service';
 
 @Module({
-  imports: [AuthModule, ReportsModule, NotificationsModule],
+  imports: [AuthModule, ReportsModule, NotificationsModule, SecurityPinModule],
   controllers: [DataExportController],
   providers: [
     DataExportCosRuntime,

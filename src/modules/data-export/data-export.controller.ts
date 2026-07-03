@@ -19,6 +19,8 @@ import { successEnvelope } from '../../common/api-envelope';
 import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { SecurityElevationGuard } from '../security-pin/guards/security-elevation.guard';
+import { RequireSecurityElevation } from '../security-pin/decorators/require-security-elevation.decorator';
 import { DataExportService } from './services/data-export.service';
 import {
   CreateDataExportRequestDto,
@@ -28,12 +30,13 @@ import {
 
 @ApiTags('Data Export')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SecurityElevationGuard)
 @Controller('data-export-requests')
 export class DataExportController {
   constructor(private readonly exportService: DataExportService) {}
 
   @Post()
+  @RequireSecurityElevation()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new data export request' })
   @ApiResponse({ status: 201, type: DataExportRequestResponseDto })
@@ -48,6 +51,7 @@ export class DataExportController {
   }
 
   @Get('latest')
+  @RequireSecurityElevation()
   @ApiOperation({ summary: 'Get the latest data export request' })
   @ApiResponse({ status: 200, type: DataExportLatestResponseDto })
   async getLatestRequest(@CurrentUser() user: UserPayload) {
