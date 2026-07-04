@@ -8,15 +8,7 @@ import { JsonOutputKeyToolsParser } from '@langchain/core/output_parsers/openai_
 import { ChatGenerationChunk } from '@langchain/core/outputs';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 import type { ZodObject, ZodType } from 'zod';
-import { LlmRuntimeService } from '../../modules/llm-runtime/services/llm-runtime.service';
-
-type AiRole =
-  | 'analysis'
-  | 'vision'
-  | 'language'
-  | 'chat'
-  | 'chatCompression'
-  | 'embedding';
+import type { AiRole, LlmRuntimePort } from './llm-runtime.port';
 
 const MODEL_OPTIONS = {
   timeout: 10_000,
@@ -48,9 +40,7 @@ export abstract class BaseAiGeneratorService<
   /** AI model role to use (e.g. 'analysis', 'language'). */
   protected abstract readonly modelRole: AiRole;
 
-  protected constructor(
-    private readonly llmRuntimeService: LlmRuntimeService,
-  ) {}
+  protected constructor(private readonly llmRuntimeService: LlmRuntimePort) {}
 
   hasAnalysisModel(): boolean {
     return this.llmRuntimeService.hasRoleConfig(this.modelRole);

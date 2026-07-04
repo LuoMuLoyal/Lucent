@@ -1,4 +1,4 @@
-import { parseDateOnly } from '../../../common/utils/date-time.utils';
+import { parseDateOnly, now } from '../../../common/utils/date-time.utils';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
@@ -58,7 +58,7 @@ export class TestingSupportService {
               passwordHash,
               nickname,
               status: UserStatus.active,
-              emailVerifiedAt: new Date(),
+              emailVerifiedAt: now(),
               profile: {
                 upsert: {
                   create: {},
@@ -74,7 +74,7 @@ export class TestingSupportService {
               passwordHash,
               nickname,
               status: UserStatus.active,
-              emailVerifiedAt: new Date(),
+              emailVerifiedAt: now(),
               profile: { create: {} },
             },
             select: { id: true, nickname: true },

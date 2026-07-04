@@ -2,6 +2,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { ResultCode } from '../../../common/api-envelope';
+import { now } from '../../../common/utils/date-time.utils';
 import { DataExportCosRuntime } from '../config/data-export-cos.runtime';
 
 const PROVIDER = 'tencent-cos';
@@ -64,10 +65,10 @@ export class DataExportStorageService {
   }
 
   private createObjectKey(userId: string, fileName: string): string {
-    const now = new Date();
-    const year = String(now.getUTCFullYear());
-    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(now.getUTCDate()).padStart(2, '0');
+    const currentTime = now();
+    const year = String(currentTime.getUTCFullYear());
+    const month = String(currentTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(currentTime.getUTCDate()).padStart(2, '0');
     const extension = this.resolveExtension(fileName);
 
     return `exports/${userId}/${year}/${month}/${day}/${randomUUID()}${extension}`;

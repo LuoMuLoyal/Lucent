@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import { now } from '../../../common/utils/date-time.utils';
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -13,6 +14,7 @@ import {
 } from './today-analysis-context.service';
 import { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
 import type { TodayAnalysisStructuredOutput } from '../schemas/today-analysis.schema';
+import { nowIsoString } from '../../../common/utils/date-time.utils';
 
 interface PreparedTodayAnalysis {
   context: TodayAnalysisContext;
@@ -49,7 +51,7 @@ export class TodayAnalysisService extends BaseAiSummaryService<
   ): Promise<PreparedTodayAnalysis> {
     const date = dto.date ?? this.todayUtcDateString();
     const context = await this.contextService.build(userId, date);
-    const generatedAt = new Date().toISOString();
+    const generatedAt = nowIsoString();
 
     return {
       locale,
@@ -113,9 +115,13 @@ export class TodayAnalysisService extends BaseAiSummaryService<
   }
 
   private todayUtcDateString(): string {
-    const now = new Date();
+    const currentTime = now();
     return new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+      Date.UTC(
+        currentTime.getUTCFullYear(),
+        currentTime.getUTCMonth(),
+        currentTime.getUTCDate(),
+      ),
     )
       .toISOString()
       .slice(0, 10);

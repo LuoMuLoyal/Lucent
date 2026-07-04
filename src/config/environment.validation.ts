@@ -1,4 +1,12 @@
 import Joi from 'joi';
+import {
+  DEFAULT_COS_MAX_UPLOAD_BYTES,
+  DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
+  DEFAULT_EMBEDDING_DIMENSION,
+  MAX_COS_MAX_UPLOAD_BYTES,
+  MAX_COS_UPLOAD_EXPIRY_SECONDS,
+  MAX_EMBEDDING_DIMENSION,
+} from './constants';
 import { EnvKey } from './env-keys.enum';
 
 export enum NodeEnvironment {
@@ -131,8 +139,8 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.AI_EMBEDDING_DIMENSION]: Joi.number()
     .integer()
     .min(1)
-    .max(4096)
-    .default(1536),
+    .max(MAX_EMBEDDING_DIMENSION)
+    .default(DEFAULT_EMBEDDING_DIMENSION),
   [EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS]: optionalString,
   [EnvKey.LOG_LEVEL]: Joi.string()
     .valid('debug', 'info', 'warn', 'error')
@@ -159,18 +167,18 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS]: Joi.number()
     .integer()
     .min(60)
-    .max(3600)
-    .default(600),
+    .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
+    .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
   [EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]: Joi.number()
     .integer()
     .min(1)
-    .max(50_000_000)
-    .default(10_485_760),
+    .max(MAX_COS_MAX_UPLOAD_BYTES)
+    .default(DEFAULT_COS_MAX_UPLOAD_BYTES),
   [EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS]: Joi.number()
     .integer()
     .min(60)
-    .max(3600)
-    .default(600),
+    .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
+    .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
   [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]: Joi.string()
     .valid('true', 'false')
     .optional(),

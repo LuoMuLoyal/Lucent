@@ -1,15 +1,26 @@
+import {
+  AI_SUMMARIES_ENABLED_SETTING_KEY,
+  ASSISTANT_CONTEXT_DAILY_RECORDS_SETTING_KEY,
+  ASSISTANT_CONTEXT_HEALTH_PROFILE_SETTING_KEY,
+  ASSISTANT_CONTEXT_CURRENT_MEDICINES_SETTING_KEY,
+  ASSISTANT_CONTEXT_SLEEP_RECORDS_SETTING_KEY,
+  ASSISTANT_ENABLED_SETTING_KEY,
+  ASSISTANT_MEMORY_ENABLED_SETTING_KEY,
+  DATA_SHARING_CONSENT_SETTING_KEY,
+} from '../../../common/constants/user-setting-keys';
+
 export const USER_SETTING_KEYS = {
-  aiSummariesEnabled: 'aiSummariesEnabled',
-  dataSharingConsent: 'dataSharingConsent',
-  assistantEnabled: 'assistantEnabled',
-  assistantMemoryEnabled: 'assistantMemoryEnabled',
+  aiSummariesEnabled: AI_SUMMARIES_ENABLED_SETTING_KEY,
+  dataSharingConsent: DATA_SHARING_CONSENT_SETTING_KEY,
+  assistantEnabled: ASSISTANT_ENABLED_SETTING_KEY,
+  assistantMemoryEnabled: ASSISTANT_MEMORY_ENABLED_SETTING_KEY,
 } as const;
 
 export const ASSISTANT_CONTEXT_SETTING_KEYS = {
-  healthProfile: 'assistantContext.healthProfile',
-  dailyRecords: 'assistantContext.dailyRecords',
-  sleepRecords: 'assistantContext.sleepRecords',
-  currentMedicines: 'assistantContext.currentMedicines',
+  healthProfile: ASSISTANT_CONTEXT_HEALTH_PROFILE_SETTING_KEY,
+  dailyRecords: ASSISTANT_CONTEXT_DAILY_RECORDS_SETTING_KEY,
+  sleepRecords: ASSISTANT_CONTEXT_SLEEP_RECORDS_SETTING_KEY,
+  currentMedicines: ASSISTANT_CONTEXT_CURRENT_MEDICINES_SETTING_KEY,
 } as const;
 
 export const USER_SETTINGS_DEFAULTS = {

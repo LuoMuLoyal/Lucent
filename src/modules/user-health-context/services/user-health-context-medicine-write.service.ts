@@ -4,6 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
+import { now } from '../../../common/utils/date-time.utils';
 import type {
   CreateCurrentMedicineDto,
   UpdateCurrentMedicineDto,
@@ -80,7 +81,7 @@ export class UserHealthContextMedicineWriteService {
       userId,
       medicineId,
     );
-    const endedAt = new Date();
+    const endedAt = now();
     const endedDate = this.mapperService.toUtcDateOnly(endedAt);
     const current = await this.prisma.userCurrentMedicine.findUnique({
       where: { id: medicineId },

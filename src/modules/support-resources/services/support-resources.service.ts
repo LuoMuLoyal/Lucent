@@ -6,12 +6,13 @@ import type {
   SupportResourceListDataDto,
   SupportResourcesQueryDto,
 } from '../dto';
+import { nowIsoString } from '../../../common/utils/date-time.utils';
 import {
   REFERENCE_DATA_UPDATED_AT,
   STATIC_SUPPORT_RESOURCES,
 } from './support-resources-reference';
 
-const BUILD_DATE = new Date().toISOString();
+const BUILD_DATE = nowIsoString();
 
 interface PackageJson {
   name: string;

@@ -30,6 +30,7 @@ import {
   type TokenPair,
 } from './auth-token.service';
 import { AuthRateLimitService } from './auth-rate-limit.service';
+import { now } from '../../../common/utils/date-time.utils';
 
 /**
  * Handles email/password credential flows: registration, login,
@@ -61,13 +62,12 @@ export class CredentialAuthService {
     await this.verificationCodeService.verify(email, dto.code, 'register');
 
     const passwordHash = await argon2.hash(dto.password, ARGON2_OPTIONS);
-    const now = new Date();
 
     const user = await this.userService.create({
       email,
       passwordHash,
       nickname: dto.nickname ?? null,
-      emailVerifiedAt: now,
+      emailVerifiedAt: now(),
       profile: { create: {} },
     });
 
@@ -119,9 +119,8 @@ export class CredentialAuthService {
 
     await this.authRateLimitService.clearLoginFailures(email);
 
-    const now = new Date();
     const updatedUser = await this.userService.update(user.id, {
-      lastLoginAt: now,
+      lastLoginAt: now(),
       status: UserStatus.active,
     });
 
@@ -185,7 +184,7 @@ export class CredentialAuthService {
       }
       await this.userService.update(userId, {
         email: targetEmail,
-        emailVerifiedAt: new Date(),
+        emailVerifiedAt: now(),
       });
     }
 
@@ -215,7 +214,7 @@ export class CredentialAuthService {
 
     return this.userService.update(userId, {
       email: newEmail,
-      emailVerifiedAt: new Date(),
+      emailVerifiedAt: now(),
     });
   }
 
@@ -237,7 +236,7 @@ export class CredentialAuthService {
     const email = normalizeEmail(dto.email);
     await this.verificationCodeService.verify(email, dto.code, 'register');
     await this.userService.updateByEmail(email, {
-      emailVerifiedAt: new Date(),
+      emailVerifiedAt: now(),
     });
   }
 

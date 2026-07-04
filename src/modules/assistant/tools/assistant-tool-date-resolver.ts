@@ -1,4 +1,4 @@
-import { formatDateOnly } from '../../../common/utils/date-time.utils';
+import { formatDateOnly, now } from '../../../common/utils/date-time.utils';
 import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import {
   DEFAULT_RANGE_DAYS,
@@ -52,8 +52,8 @@ export function resolveSingleDate(
       month = parseInt(g2, 10);
       day = parseInt(g3, 10);
     } else {
-      const now = new Date();
-      year = now.getUTCFullYear();
+      const currentTime = now();
+      year = currentTime.getUTCFullYear();
       month = parseInt(g1, 10);
       day = parseInt(g2, 10);
     }
@@ -247,16 +247,16 @@ export function enumerateDates(
 }
 
 export function todayDateString(): string {
-  return formatDateOnly(new Date());
+  return formatDateOnly(now());
 }
 
 export function offsetDateString(offsetDays: number): string {
-  const now = new Date();
+  const currentTime = now();
   const shifted = new Date(
     Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate() + offsetDays,
+      currentTime.getUTCFullYear(),
+      currentTime.getUTCMonth(),
+      currentTime.getUTCDate() + offsetDays,
     ),
   );
   return formatDateOnly(shifted);

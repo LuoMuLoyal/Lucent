@@ -2,34 +2,43 @@ import { EnvKey } from './env-keys.enum';
 import { NodeEnvironment, validateEnvironment } from './environment.validation';
 
 describe('validateEnvironment', () => {
+  const localDatabaseUrl =
+    'postgresql://postgres:postgres@127.0.0.1:15432/lucent?schema=public';
+  const prodDatabaseUrl =
+    'postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public';
+  const redisUrl = 'redis://redis:6379';
+  const localJwtAccessSecret = 'local-access-secret';
+  const localJwtRefreshSecret = 'local-refresh-secret';
+  const prodJwtAccessSecret = 'access-secret';
+  const prodJwtRefreshSecret = 'refresh-secret';
+  const adminEmail = 'admin@example.com';
+  const adminPassword = 'admin12345';
+  const adminCookieSecret = 'dev_lucent_admin_cookie_secret_32_chars';
+
   it('keeps explicit local config values outside production', () => {
     const config = validateEnvironment({
       [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-      [EnvKey.DATABASE_URL]:
-        'postgresql://postgres:postgres@127.0.0.1:15432/lucent?schema=public',
-      [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
-      [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
-      [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
-      [EnvKey.ADMIN_PASSWORD]: 'admin12345',
-      [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+      [EnvKey.DATABASE_URL]: localDatabaseUrl,
+      [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
+      [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
+      [EnvKey.ADMIN_EMAIL]: adminEmail,
+      [EnvKey.ADMIN_PASSWORD]: adminPassword,
+      [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
     });
 
-    expect(config[EnvKey.ADMIN_EMAIL]).toBe('admin@example.com');
-    expect(config[EnvKey.ADMIN_PASSWORD]).toBe('admin12345');
-    expect(config[EnvKey.ADMIN_COOKIE_SECRET]).toBe(
-      'dev_lucent_admin_cookie_secret_32_chars',
-    );
+    expect(config[EnvKey.ADMIN_EMAIL]).toBe(adminEmail);
+    expect(config[EnvKey.ADMIN_PASSWORD]).toBe(adminPassword);
+    expect(config[EnvKey.ADMIN_COOKIE_SECRET]).toBe(adminCookieSecret);
   });
 
   it('requires admin credentials in production', () => {
     expect(() =>
       validateEnvironment({
         [EnvKey.NODE_ENV]: NodeEnvironment.Production,
-        [EnvKey.DATABASE_URL]:
-          'postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public',
-        [EnvKey.REDIS_URL]: 'redis://redis:6379',
-        [EnvKey.JWT_ACCESS_SECRET]: 'access-secret',
-        [EnvKey.JWT_REFRESH_SECRET]: 'refresh-secret',
+        [EnvKey.DATABASE_URL]: prodDatabaseUrl,
+        [EnvKey.REDIS_URL]: redisUrl,
+        [EnvKey.JWT_ACCESS_SECRET]: prodJwtAccessSecret,
+        [EnvKey.JWT_REFRESH_SECRET]: prodJwtRefreshSecret,
         [EnvKey.CORS_ORIGIN]: 'https://example.com',
       }),
     ).toThrow('ADMIN_EMAIL');
@@ -38,14 +47,13 @@ describe('validateEnvironment', () => {
   it('allows empty CORS_ORIGIN in production for app-only deployments', () => {
     const config = validateEnvironment({
       [EnvKey.NODE_ENV]: NodeEnvironment.Production,
-      [EnvKey.DATABASE_URL]:
-        'postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public',
-      [EnvKey.REDIS_URL]: 'redis://redis:6379',
-      [EnvKey.JWT_ACCESS_SECRET]: 'access-secret',
-      [EnvKey.JWT_REFRESH_SECRET]: 'refresh-secret',
-      [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
-      [EnvKey.ADMIN_PASSWORD]: 'admin12345',
-      [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+      [EnvKey.DATABASE_URL]: prodDatabaseUrl,
+      [EnvKey.REDIS_URL]: redisUrl,
+      [EnvKey.JWT_ACCESS_SECRET]: prodJwtAccessSecret,
+      [EnvKey.JWT_REFRESH_SECRET]: prodJwtRefreshSecret,
+      [EnvKey.ADMIN_EMAIL]: adminEmail,
+      [EnvKey.ADMIN_PASSWORD]: adminPassword,
+      [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
       [EnvKey.CORS_ORIGIN]: '',
     });
 
@@ -56,14 +64,13 @@ describe('validateEnvironment', () => {
     expect(() =>
       validateEnvironment({
         [EnvKey.NODE_ENV]: NodeEnvironment.Production,
-        [EnvKey.DATABASE_URL]:
-          'postgresql://lucent:lucent_dev@postgres:5432/lucent?schema=public',
-        [EnvKey.REDIS_URL]: 'redis://redis:6379',
-        [EnvKey.JWT_ACCESS_SECRET]: 'access-secret',
-        [EnvKey.JWT_REFRESH_SECRET]: 'refresh-secret',
-        [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
-        [EnvKey.ADMIN_PASSWORD]: 'admin12345',
-        [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+        [EnvKey.DATABASE_URL]: prodDatabaseUrl,
+        [EnvKey.REDIS_URL]: redisUrl,
+        [EnvKey.JWT_ACCESS_SECRET]: prodJwtAccessSecret,
+        [EnvKey.JWT_REFRESH_SECRET]: prodJwtRefreshSecret,
+        [EnvKey.ADMIN_EMAIL]: adminEmail,
+        [EnvKey.ADMIN_PASSWORD]: adminPassword,
+        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
         [EnvKey.CORS_ORIGIN]: '*',
       }),
     ).toThrow('CORS_ORIGIN must not be * in production');
@@ -72,11 +79,11 @@ describe('validateEnvironment', () => {
   it('accepts complete AI role configurations', () => {
     const config = validateEnvironment({
       [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-      [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
-      [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
-      [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
-      [EnvKey.ADMIN_PASSWORD]: 'admin12345',
-      [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+      [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
+      [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
+      [EnvKey.ADMIN_EMAIL]: adminEmail,
+      [EnvKey.ADMIN_PASSWORD]: adminPassword,
+      [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
       [EnvKey.AI_PROVIDER]: 'openai-compatible',
       [EnvKey.AI_ANALYSIS_API_KEY]: 'analysis-key',
       [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://analysis.example.com/v1',
@@ -108,11 +115,11 @@ describe('validateEnvironment', () => {
     expect(() =>
       validateEnvironment({
         [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-        [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
-        [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
-        [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
-        [EnvKey.ADMIN_PASSWORD]: 'admin12345',
-        [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
+        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
+        [EnvKey.ADMIN_EMAIL]: adminEmail,
+        [EnvKey.ADMIN_PASSWORD]: adminPassword,
+        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
         [EnvKey.AI_PROVIDER]: 'openai-compatible',
         [EnvKey.AI_CHAT_API_KEY]: 'chat-key',
         [EnvKey.AI_CHAT_MODEL]: 'chat-model',
@@ -124,11 +131,11 @@ describe('validateEnvironment', () => {
     expect(() =>
       validateEnvironment({
         [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-        [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
-        [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
-        [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
-        [EnvKey.ADMIN_PASSWORD]: 'admin12345',
-        [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
+        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
+        [EnvKey.ADMIN_EMAIL]: adminEmail,
+        [EnvKey.ADMIN_PASSWORD]: adminPassword,
+        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
         [EnvKey.AI_ANALYSIS_API_KEY]: 'analysis-key',
         [EnvKey.AI_ANALYSIS_BASE_URL]: 'https://analysis.example.com/v1',
         [EnvKey.AI_ANALYSIS_MODEL]: 'analysis-model',
@@ -139,11 +146,11 @@ describe('validateEnvironment', () => {
   it('allows default COS region alone without treating COS as configured', () => {
     const config = validateEnvironment({
       [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-      [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
-      [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
-      [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
-      [EnvKey.ADMIN_PASSWORD]: 'admin12345',
-      [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+      [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
+      [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
+      [EnvKey.ADMIN_EMAIL]: adminEmail,
+      [EnvKey.ADMIN_PASSWORD]: adminPassword,
+      [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
       [EnvKey.TENCENT_COS_REGION]: 'ap-guangzhou',
     });
 
@@ -154,11 +161,11 @@ describe('validateEnvironment', () => {
     expect(() =>
       validateEnvironment({
         [EnvKey.NODE_ENV]: NodeEnvironment.Development,
-        [EnvKey.JWT_ACCESS_SECRET]: 'local-access-secret',
-        [EnvKey.JWT_REFRESH_SECRET]: 'local-refresh-secret',
-        [EnvKey.ADMIN_EMAIL]: 'admin@example.com',
-        [EnvKey.ADMIN_PASSWORD]: 'admin12345',
-        [EnvKey.ADMIN_COOKIE_SECRET]: 'dev_lucent_admin_cookie_secret_32_chars',
+        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
+        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
+        [EnvKey.ADMIN_EMAIL]: adminEmail,
+        [EnvKey.ADMIN_PASSWORD]: adminPassword,
+        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
         [EnvKey.TENCENT_COS_BUCKET]: 'lucent-dev',
         [EnvKey.TENCENT_COS_REGION]: 'ap-guangzhou',
       }),

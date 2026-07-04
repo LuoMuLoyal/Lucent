@@ -1,7 +1,7 @@
 import { notFound } from '../../../common/utils/api-errors';
 import { nonDeleted } from '../../../common/utils/prisma.helpers';
 import { normalizeNullableText } from '../../../common/utils/string.utils';
-import { formatDateOnly } from '../../../common/utils/date-time.utils';
+import { formatDateOnly, now } from '../../../common/utils/date-time.utils';
 import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
@@ -71,7 +71,7 @@ export class MedicineDoseLogsService {
     await this.ensureOwned(userId, id);
     await this.prisma.userMedicineDoseLog.update({
       where: { id },
-      data: { deletedAt: new Date() },
+      data: { deletedAt: now() },
     });
   }
 

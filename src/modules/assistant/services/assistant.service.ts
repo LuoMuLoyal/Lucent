@@ -14,6 +14,7 @@ import { AssistantPolicyService } from './assistant-policy.service';
 import { AssistantContextService } from '../tools/assistant-context.service';
 import { AssistantToolService } from '../tools/assistant-tool.service';
 import { AssistantConversationService } from './assistant-conversation.service';
+import { nowIsoString } from '../../../common/utils/date-time.utils';
 import type {
   AssistantConversationMessage,
   AssistantStreamChunkEvent,
@@ -161,7 +162,7 @@ export class AssistantService {
       conversationId: conversation.id,
       role: 'assistant',
       content: result.content,
-      generatedAt: new Date().toISOString(),
+      generatedAt: nowIsoString(),
       usedTools: result.usedToolNames,
       proposedActions: toolResults.flatMap(
         (toolResult) => toolResult.proposedActions ?? [],

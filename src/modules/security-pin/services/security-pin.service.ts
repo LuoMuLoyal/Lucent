@@ -12,6 +12,7 @@ import {
   notFound,
   unauthorized,
 } from '../../../common/utils/api-errors';
+import { now } from '../../../common/utils/date-time.utils';
 import {
   SECURITY_ELEVATION_SCOPE,
   SECURITY_ELEVATION_TTL_SECONDS,
@@ -78,7 +79,7 @@ export class SecurityPinService {
       data: {
         securityPinEnabled: true,
         securityPinHash: hash,
-        securityPinChangedAt: new Date(),
+        securityPinChangedAt: now(),
         securityElevationVersion: { increment: 1 },
       },
     });
@@ -105,7 +106,7 @@ export class SecurityPinService {
       data: {
         securityPinEnabled: true,
         securityPinHash: hash,
-        securityPinChangedAt: new Date(),
+        securityPinChangedAt: now(),
         securityElevationVersion: { increment: 1 },
       },
     });

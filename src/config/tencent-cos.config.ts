@@ -1,5 +1,9 @@
 import { registerAs } from '@nestjs/config';
 import { ConfigKey } from './config-keys.enum';
+import {
+  DEFAULT_COS_MAX_UPLOAD_BYTES,
+  DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
+} from './constants';
 import { EnvKey } from './env-keys.enum';
 
 export interface TencentCosConfig {
@@ -22,13 +26,16 @@ export const tencentCosConfig = registerAs(
     region: process.env[EnvKey.TENCENT_COS_REGION] ?? '',
     publicBaseUrl: process.env[EnvKey.TENCENT_COS_PUBLIC_BASE_URL] ?? '',
     uploadExpiresSeconds: Number(
-      process.env[EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS] ?? 600,
+      process.env[EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS] ??
+        DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
     ),
     maxUploadBytes: Number(
-      process.env[EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES] ?? 10_485_760,
+      process.env[EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES] ??
+        DEFAULT_COS_MAX_UPLOAD_BYTES,
     ),
     downloadExpiresSeconds: Number(
-      process.env[EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS] ?? 600,
+      process.env[EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS] ??
+        DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
     ),
   }),
 );

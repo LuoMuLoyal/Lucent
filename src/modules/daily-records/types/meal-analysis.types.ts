@@ -1,3 +1,5 @@
+import { nowIsoString } from '../../../common/utils/date-time.utils';
+
 export const MEAL_ANALYSIS_STATUSES = [
   'analyzing',
   'unconfirmed',
@@ -290,7 +292,7 @@ export function buildConfirmedMealPayload(
     return null;
   }
 
-  const confirmedAt = new Date().toISOString();
+  const confirmedAt = nowIsoString();
   const confirmedAnalysis: MealAnalysisPayload = {
     ...analysis,
     analysisStatus: 'confirmed',

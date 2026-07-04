@@ -6,6 +6,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { User } from '../../../generated/prisma/client';
 import { ConfigKey } from '../../../config/config-keys.enum';
 
+import { now } from '../../../common/utils/date-time.utils';
 import type {
   AuthRequestContext,
   TokenPair,
@@ -95,7 +96,7 @@ export class AuthTokenService {
       include: { user: true },
     });
 
-    if (!record || record.expiresAt < new Date() || record.revokedAt !== null) {
+    if (!record || record.expiresAt < now() || record.revokedAt !== null) {
       throw new Error('REFRESH_TOKEN_INVALID');
     }
 
@@ -122,7 +123,7 @@ export class AuthTokenService {
     }
     await this.prisma.userSession.update({
       where: { id: sessionId },
-      data: { revokedAt: new Date() },
+      data: { revokedAt: now() },
     });
   }
 
@@ -138,9 +139,9 @@ export class AuthTokenService {
       isCurrent: boolean;
     }>
   > {
-    const now = new Date();
+    const currentTime = now();
     const records = await this.prisma.userSession.findMany({
-      where: { userId, revokedAt: null, expiresAt: { gt: now } },
+      where: { userId, revokedAt: null, expiresAt: { gt: currentTime } },
       orderBy: { lastUsedAt: 'desc' },
     });
     return records.map((record) => ({

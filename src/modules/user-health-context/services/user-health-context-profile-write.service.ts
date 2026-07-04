@@ -5,6 +5,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import type { UpdateHealthContextProfileDto } from '../dto';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
+import { now } from '../../../common/utils/date-time.utils';
 
 @Injectable()
 export class UserHealthContextProfileWriteService {
@@ -69,7 +70,7 @@ export class UserHealthContextProfileWriteService {
           select: { onboardingCompletedAt: true },
         });
         if (!current?.onboardingCompletedAt) {
-          const completedAt = new Date();
+          const completedAt = now();
           updateData.onboardingCompletedAt = completedAt;
           createData.onboardingCompletedAt = completedAt;
         }

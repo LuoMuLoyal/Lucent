@@ -1,6 +1,6 @@
 import { nonDeleted } from '../../../common/utils/prisma.helpers';
 import { normalizeNullableText } from '../../../common/utils/string.utils';
-import { parseDateOnly } from '../../../common/utils/date-time.utils';
+import { parseDateOnly, now } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import { badRequest } from '../../../common/utils/api-errors';
 import { DailyRecordKind, Prisma } from '../../../generated/prisma/client';
@@ -261,7 +261,7 @@ export class DailyRecordsService {
 
     await this.prisma.userDailyRecord.update({
       where: { id },
-      data: { deletedAt: new Date() },
+      data: { deletedAt: now() },
     });
   }
 

@@ -4,6 +4,8 @@ import { nonDeleted } from '../../../common/utils/prisma.helpers';
 import {
   formatDateOnly,
   parseDateOnly,
+  now,
+  nowIsoString,
 } from '../../../common/utils/date-time.utils';
 import {
   DoseLogStatus,
@@ -85,7 +87,7 @@ export class ReportsContextService {
       range,
       startDate,
       endDate,
-      generatedAt: new Date().toISOString(),
+      generatedAt: nowIsoString(),
       aiSummaryEnabled: settings?.value !== false,
       medicationSeries: this.buildMedicationSeries(
         doseLogs,
@@ -325,7 +327,7 @@ export class ReportsContextService {
   }
 
   private todayUtc(): Date {
-    return parseDateOnly(formatDateOnly(new Date()));
+    return parseDateOnly(formatDateOnly(now()));
   }
 
   private toDateString(date: Date): string {

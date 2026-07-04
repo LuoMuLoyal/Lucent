@@ -51,6 +51,7 @@ import type { SetPasswordDto } from '../dto/set-password.dto';
 import type { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import type { SendVerificationCodeDto } from '../dto/send-verification-code.dto';
 import type { VerifyEmailDto } from '../dto/verify-email.dto';
+import { now } from '../../../common/utils/date-time.utils';
 
 export type { AuthRequestContext, UserPayload } from '../types/auth-request';
 
@@ -186,7 +187,7 @@ export class AuthService {
     await this.logoutAll(userId);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { deletedAt: new Date(), status: UserStatus.deleted },
+      data: { deletedAt: now(), status: UserStatus.deleted },
     });
   }
 

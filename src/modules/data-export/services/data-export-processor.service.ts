@@ -4,7 +4,7 @@ import { NotificationsService } from '../../notifications/services/notifications
 import { ReportsService } from '../../reports/dashboard/reports.service';
 import { DataExportStorageService } from './data-export-storage.service';
 import { ReportExportPdfService } from './report-export-pdf.service';
-import { formatDateOnly } from '../../../common/utils/date-time.utils';
+import { formatDateOnly, now } from '../../../common/utils/date-time.utils';
 
 export interface DataExportProcessorInput {
   exportRequestId: string;
@@ -66,7 +66,7 @@ export class DataExportProcessorService {
           provider: uploaded.provider,
           fileName,
           fileSizeBytes: uploaded.fileSizeBytes,
-          completedAt: new Date(),
+          completedAt: now(),
           errorMessage: null,
         },
       });
@@ -117,7 +117,7 @@ export class DataExportProcessorService {
   }
 
   private createFileName(kind: string, range: string): string {
-    const date = formatDateOnly(new Date());
+    const date = formatDateOnly(now());
     return `lumos-${kind}-${range}-${date}.pdf`;
   }
 

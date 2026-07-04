@@ -53,7 +53,12 @@ export abstract class WechatBaseOAuthProvider {
     let response: Response;
     try {
       response = await fetch(url);
-    } catch {
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `WeChat OAuth request failed: ${reason}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw new ServiceUnavailableException({
         code: ResultCode.EXTERNAL_SERVICE_ERROR,
         message: this.i18n.t('auth.oauth_provider_unavailable'),

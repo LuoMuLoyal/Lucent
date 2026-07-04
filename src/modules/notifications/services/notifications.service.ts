@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { now } from '../../../common/utils/date-time.utils';
 import {
   type CreateNotificationDto,
   type NotificationListItemDto,
@@ -85,7 +86,7 @@ export class NotificationsService {
   ): Promise<NotificationDetailDto | null> {
     const row = await this.prisma.userNotification.updateMany({
       where: { id, userId, isRead: false },
-      data: { isRead: true, readAt: new Date() },
+      data: { isRead: true, readAt: now() },
     });
 
     if (row.count === 0) {
@@ -110,7 +111,7 @@ export class NotificationsService {
   async markAllAsRead(userId: string): Promise<number> {
     const result = await this.prisma.userNotification.updateMany({
       where: { userId, isRead: false },
-      data: { isRead: true, readAt: new Date() },
+      data: { isRead: true, readAt: now() },
     });
 
     return result.count;

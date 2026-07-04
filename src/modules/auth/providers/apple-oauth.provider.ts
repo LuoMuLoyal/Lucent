@@ -18,6 +18,7 @@ import type { OAuthConfig } from '../../../config/oauth.config';
 import type { Prisma } from '../../../generated/prisma/client';
 import { OAUTH_PROVIDER_APPLE, type OAuthProfile } from '../types/oauth.types';
 import type { OAuthProvider } from './oauth-provider.interface';
+import { now } from '../../../common/utils/date-time.utils';
 
 interface AppleJwk {
   kty: string;
@@ -84,7 +85,7 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
       email: payload.email ?? null,
       emailVerifiedAt:
         payload.email_verified === true || payload.email_verified === 'true'
-          ? new Date()
+          ? now()
           : null,
       nickname:
         (givenName ?? familyName)

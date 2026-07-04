@@ -7,6 +7,7 @@ import type {
 } from '../dto';
 import { MedicineRemindersOwnershipService } from './ownership.service';
 import { MedicineRemindersMapperService } from './medicine-reminders-mapper.service';
+import { now } from '../../../common/utils/date-time.utils';
 
 @Injectable()
 export class MedicineRemindersService {
@@ -68,7 +69,7 @@ export class MedicineRemindersService {
     await this.ownershipService.ensureOwnedByUser(userId, id);
     await this.prisma.userMedicineReminder.update({
       where: { id },
-      data: { deletedAt: new Date(), isActive: false },
+      data: { deletedAt: now(), isActive: false },
     });
   }
 

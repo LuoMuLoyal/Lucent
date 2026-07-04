@@ -11,6 +11,7 @@ import {
 } from './app.dto';
 import { EnvKey } from './config/env-keys.enum';
 import { PrismaService } from './prisma/prisma.service';
+import { nowIsoString } from './common/utils/date-time.utils';
 
 type HealthComponent = HealthProbeDto['components'][number];
 
@@ -63,7 +64,7 @@ export class AppService {
     return {
       probe,
       status: this.computeOverallStatus(components),
-      checkedAt: new Date().toISOString(),
+      checkedAt: nowIsoString(),
       app: this.getAppInfo(),
       summary,
       components,

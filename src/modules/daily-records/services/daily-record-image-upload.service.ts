@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types.constant';
 import { ResultCode } from '../../../common/api-envelope';
+import { now } from '../../../common/utils/date-time.utils';
 import type { CreateDailyRecordImageUploadDto } from '../dto';
 import { DailyRecordImageUploadRuntime } from '../config/daily-record-image-upload.runtime';
 
@@ -74,10 +75,10 @@ export class DailyRecordImageUploadService {
     fileName: string | undefined,
     contentType: string,
   ): string {
-    const now = new Date();
-    const year = String(now.getUTCFullYear());
-    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(now.getUTCDate()).padStart(2, '0');
+    const currentTime = now();
+    const year = String(currentTime.getUTCFullYear());
+    const month = String(currentTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(currentTime.getUTCDate()).padStart(2, '0');
     const extension = this.resolveExtension(fileName, contentType);
 
     return `daily-records/${userId}/${year}/${month}/${day}/${randomUUID()}${extension}`;

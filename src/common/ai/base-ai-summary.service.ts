@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { AI_SUMMARIES_ENABLED_SETTING_KEY } from '../constants/user-setting-keys';
 import { forbidden } from '../utils/api-errors';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { PromptCopy } from '../localized-copy/localized-copy';
-import { USER_SETTING_KEYS } from '../../modules/user-settings/config/user-settings.constants';
 import type { StreamSummaryEvent } from '../stream-summary';
 import { AiSafetyPolicyService } from './ai-safety-policy.service';
 import { BaseAiGeneratorService } from './base-ai-generator.service';
@@ -139,7 +139,7 @@ export abstract class BaseAiSummaryService<
     const setting = await this.prisma.userSetting.findFirst({
       where: {
         userId,
-        key: USER_SETTING_KEYS.aiSummariesEnabled,
+        key: AI_SUMMARIES_ENABLED_SETTING_KEY,
       },
       select: {
         value: true,

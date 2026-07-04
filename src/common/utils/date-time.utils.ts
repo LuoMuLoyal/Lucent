@@ -4,6 +4,16 @@ import { format } from 'date-fns';
  * Shared date-time helpers used across auth and other modules.
  */
 
+/** Returns the current instant as a Date. */
+export function now(): Date {
+  return new Date();
+}
+
+/** Returns the current instant as an ISO-8601 string. */
+export function nowIsoString(): string {
+  return new Date().toISOString();
+}
+
 export function calculateExpiresIn(expiresAtIso: string): number {
   const diff = new Date(expiresAtIso).getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / 1000));

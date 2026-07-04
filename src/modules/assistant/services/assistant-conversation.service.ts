@@ -13,6 +13,7 @@ import type {
   AssistantConversationSnapshot,
   AssistantConversationSummary,
 } from '../types/assistant.types';
+import { now } from '../../../common/utils/date-time.utils';
 import {
   MAX_COMPACT_LENGTH,
   MEMORY_CONVERSATION_LIMIT,
@@ -162,7 +163,7 @@ export class AssistantConversationService {
       normalized,
     );
     const userMessagesToAppend = normalized.slice(appendStartIndex);
-    const assistantNow = new Date();
+    const assistantNow = now();
 
     await this.prisma.$transaction(async (tx) => {
       if (userMessagesToAppend.length > 0) {

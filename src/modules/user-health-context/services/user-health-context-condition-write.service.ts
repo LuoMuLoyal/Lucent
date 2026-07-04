@@ -4,6 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';
+import { now } from '../../../common/utils/date-time.utils';
 import type {
   CreateHealthContextConditionDto,
   UpdateHealthContextConditionDto,
@@ -56,7 +57,7 @@ export class UserHealthContextConditionWriteService {
 
   async softDelete(userId: string, conditionId: string): Promise<void> {
     await this.ownershipService.ensureConditionOwnedByUser(userId, conditionId);
-    const resolvedAt = new Date();
+    const resolvedAt = now();
     const resolvedDate = this.mapperService.toUtcDateOnly(resolvedAt);
     const current = await this.prisma.userCondition.findUnique({
       where: { id: conditionId },

@@ -4,7 +4,10 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { calculateAge } from '../../../common/utils/date-time.utils';
+import {
+  calculateAge,
+  nowIsoString,
+} from '../../../common/utils/date-time.utils';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type {
   ClinicSummaryDto,
@@ -80,7 +83,7 @@ export class ClinicSummaryService {
     );
 
     return {
-      generatedAt: new Date().toISOString(),
+      generatedAt: nowIsoString(),
       dataRange: DATA_RANGE,
       profile,
       allergies,

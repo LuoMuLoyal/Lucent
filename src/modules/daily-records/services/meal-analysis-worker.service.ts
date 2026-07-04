@@ -9,6 +9,7 @@ import {
 } from '../types/meal-analysis.types';
 import { MealAnalysisMatcherService } from './meal-analysis-matcher.service';
 import { MealAnalysisVisionService } from './meal-analysis-vision.service';
+import { now } from '../../../common/utils/date-time.utils';
 
 interface MealAnalysisJobData {
   userId: string;
@@ -103,7 +104,7 @@ export class MealAnalysisWorkerService {
     const matched = await this.mealAnalysisMatcherService.matchAndEstimate(
       recognition.foodItems,
     );
-    const analyzedAt = new Date();
+    const analyzedAt = now();
     const mealDescription = normalizeNullableText(recognition.mealDescription);
     const foodItems = matched.foodItems;
     const coverage = matched.coverage;

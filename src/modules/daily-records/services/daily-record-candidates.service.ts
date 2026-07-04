@@ -10,6 +10,7 @@ import type {
 } from '../dto';
 import { DailyRecordCandidatesCopyService } from './daily-record-candidates-copy.service';
 import { DailyRecordCandidatesGeneratorService } from './daily-record-candidates-generator.service';
+import { nowIsoString } from '../../../common/utils/date-time.utils';
 
 interface DailyRecordCandidatesContext {
   text: string;
@@ -49,7 +50,7 @@ export class DailyRecordCandidatesService {
 
       return {
         locale,
-        generatedAt: new Date().toISOString(),
+        generatedAt: nowIsoString(),
         confirmationHint: this.copyService.confirmationHint(locale),
         items: output.items,
       };

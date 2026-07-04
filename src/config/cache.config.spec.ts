@@ -29,6 +29,9 @@ jest.mock('cache-manager-ioredis-yet', () => ({
 }));
 
 describe('CacheConfigService', () => {
+  const REDIS_DEFAULT_PORT = 6379;
+  const REDIS_CUSTOM_PORT = 6380;
+
   const redisStoreMock = redisStore as jest.MockedFunction<typeof redisStore>;
 
   beforeEach(() => {
@@ -53,7 +56,7 @@ describe('CacheConfigService', () => {
     const service = new CacheConfigService({
       get: jest.fn().mockImplementation((key: string) => {
         if (key === 'REDIS_URL') {
-          return 'redis://:secret@cache.internal:6380/2';
+          return `redis://:secret@cache.internal:${REDIS_CUSTOM_PORT}/2`;
         }
 
         return undefined;
@@ -64,7 +67,7 @@ describe('CacheConfigService', () => {
 
     expect(redisStoreMock).toHaveBeenCalledWith({
       host: 'cache.internal',
-      port: 6380,
+      port: REDIS_CUSTOM_PORT,
       password: 'secret',
       db: 2,
       tls: undefined,
@@ -96,7 +99,7 @@ describe('CacheConfigService', () => {
 
     expect(redisStoreMock).toHaveBeenCalledWith({
       host: 'secure-cache.internal',
-      port: 6379,
+      port: REDIS_DEFAULT_PORT,
       password: undefined,
       db: 0,
       tls: {},
