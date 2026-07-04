@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
-import { DoseLogStatus } from '../../../generated/prisma/client';
+import { DoseLogStatus } from '#generated/prisma/client';
 
 export class UpdateDoseLogDto {
   @ApiPropertyOptional({ enum: DoseLogStatus, enumName: 'DoseLogStatus' })

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DailyRecordKind, type Prisma } from '../../../generated/prisma/client';
+import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
 import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { DailyRecordImageUploadRuntime } from '../config/daily-record-image-upload.runtime';

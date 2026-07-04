@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DoseLogStatus } from '../../../generated/prisma/client';
+import { DoseLogStatus } from '#generated/prisma/client';
 
 class DoseLogItemDto {
   @ApiProperty({ description: 'Dose log id.' })

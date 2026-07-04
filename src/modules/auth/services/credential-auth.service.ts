@@ -10,8 +10,8 @@ import * as argon2 from 'argon2';
 
 import { ARGON2_OPTIONS } from '../config/argon2-options';
 import { NotificationsService } from '../../notifications/services/notifications.service';
-import type { User } from '../../../generated/prisma/client';
-import { UserStatus } from '../../../generated/prisma/client';
+import type { User } from '#generated/prisma/client';
+import { UserStatus } from '#generated/prisma/client';
 import { UserService } from '../../user/services/user.service';
 import { VerificationCodeService } from './verification-code.service';
 import { ResultCode } from '../../../common/api-envelope';

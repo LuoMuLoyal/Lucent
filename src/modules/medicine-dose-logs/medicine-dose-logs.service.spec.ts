@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { DoseLogStatus } from '../../generated/prisma/client';
+import { DoseLogStatus } from '#generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
 

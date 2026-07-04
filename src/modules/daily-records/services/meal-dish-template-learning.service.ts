@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '../../../generated/prisma/client';
+import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { buildSearchText } from '../../../common/utils/search-text.utils';
 import type { MealAnalysisPayload } from '../types/meal-analysis.types';

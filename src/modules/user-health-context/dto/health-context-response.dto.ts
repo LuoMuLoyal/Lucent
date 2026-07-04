@@ -6,7 +6,7 @@ import {
   UserAllergyKind,
   UserAllergySeverity,
   UserConditionStatus,
-} from '../../../generated/prisma/client';
+} from '#generated/prisma/client';
 
 class UserHealthSummaryDto {
   @ApiProperty({

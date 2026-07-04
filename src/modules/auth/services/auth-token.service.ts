@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { User } from '../../../generated/prisma/client';
+import { User } from '#generated/prisma/client';
 import { ConfigKey } from '../../../config/config-keys.enum';
 
 import { now } from '../../../common/utils/date-time.utils';

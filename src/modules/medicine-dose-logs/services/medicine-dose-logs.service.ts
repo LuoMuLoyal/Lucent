@@ -6,7 +6,7 @@ import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import { Prisma } from '../../../generated/prisma/client';
+import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { CreateDoseLogDto, UpdateDoseLogDto } from '../dto';
 

@@ -2,7 +2,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { DailyRecordKind } from '../../generated/prisma/client';
+import { DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DailyRecordsOwnershipService } from './services/ownership.service';
 import { DailyRecordsMapperService } from './services/daily-records-mapper.service';

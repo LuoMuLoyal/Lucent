@@ -9,7 +9,7 @@ import { setupApp } from '../../src/setup-app';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import type { ApiEnvelope } from '../../src/common/api-envelope';
 import { ConfigKey } from '../../src/config/config-keys.enum';
-import { UserStatus } from '../../src/generated/prisma/client';
+import { UserStatus } from '#generated/prisma/client';
 
 // ── Constants ──────────────────────────────────────────────────
 

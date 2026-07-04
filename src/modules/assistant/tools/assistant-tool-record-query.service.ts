@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DailyRecordKind } from '../../../generated/prisma/client';
+import { DailyRecordKind } from '#generated/prisma/client';
 import type { IDailyRecordReader } from '../types/assistant-ports';
 import { DAILY_RECORD_READER } from '../types/assistant-ports';
 import type { AssistantToolExecutionContext } from '../types/assistant.types';

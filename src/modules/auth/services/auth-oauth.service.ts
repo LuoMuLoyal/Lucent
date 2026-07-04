@@ -2,7 +2,7 @@ import { conflict } from '../../../common/utils/api-errors';
 import { Injectable } from '@nestjs/common';
 
 import { I18nService } from 'nestjs-i18n';
-import { User, UserStatus } from '../../../generated/prisma/client';
+import { User, UserStatus } from '#generated/prisma/client';
 import { UserService } from '../../user/services/user.service';
 import type { OAuthProfile } from '../types/oauth.types';
 

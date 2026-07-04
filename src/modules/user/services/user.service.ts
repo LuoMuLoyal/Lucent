@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { Prisma, User, UserIdentity } from '../../../generated/prisma/client';
+import { Prisma, User, UserIdentity } from '#generated/prisma/client';
 
 export interface UserIdentityInput {
   provider: string;

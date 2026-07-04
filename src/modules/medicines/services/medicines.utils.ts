@@ -1,4 +1,4 @@
-import type { Prisma } from '../../../generated/prisma/client';
+import type { Prisma } from '#generated/prisma/client';
 
 const DEFAULT_SUMMARY_LENGTH = 180;
 

@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { MedicineSource } from '../../../generated/prisma/client';
+import { MedicineSource } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserHealthContextOwnershipService } from './ownership.service';
 import { UserHealthContextMapperService } from './user-health-context-mapper.service';

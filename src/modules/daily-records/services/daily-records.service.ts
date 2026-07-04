@@ -3,7 +3,7 @@ import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { parseDateOnly, now } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import { badRequest } from '../../../common/utils/api-errors';
-import { DailyRecordKind, Prisma } from '../../../generated/prisma/client';
+import { DailyRecordKind, Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { CreateDailyRecordDto, UpdateDailyRecordDto } from '../dto';
 import { DailyRecordsOwnershipService } from './ownership.service';

@@ -5,7 +5,7 @@ import * as argon2 from 'argon2';
 import { badRequest, notFound } from '../../../common/utils/api-errors';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
-import { User, UserStatus } from '../../../generated/prisma/client';
+import { User, UserStatus } from '#generated/prisma/client';
 import { UserService } from '../../user/services/user.service';
 import { VerificationCodeService } from './verification-code.service';
 import { ResultCode } from '../../../common/api-envelope';

@@ -45,3 +45,7 @@ Last updated: 2026-07-04
     `report-pdf.theme.ts` moved to `data-export/utils/`.
   - `user-settings/config/user-settings.constants.ts` moved to `user-settings/constants/`.
   - `architecture.md` directory example updated to match the whitelist.
+
+- Prisma-generated client moved out of `src/` to root-level `generated/prisma`.
+  - Introduced Node.js subpath import `#generated/*` with synchronized TS/SWC/Jest configuration.
+  - All `.../generated/prisma/client` imports across `src/` and `test/` replaced with `#generated/prisma/client`.

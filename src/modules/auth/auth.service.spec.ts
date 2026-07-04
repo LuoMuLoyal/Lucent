@@ -21,7 +21,7 @@ import { AuthTokenService } from './services/auth-token.service';
 import { AuthOAuthStateService } from './services/auth-oauth-state.service';
 import { AuthOAuthService } from './services/auth-oauth.service';
 import { CredentialAuthService } from './services/credential-auth.service';
-import { UserStatus } from '../../generated/prisma/client';
+import { UserStatus } from '#generated/prisma/client';
 import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
 import { AppleOAuthProvider } from './providers/apple-oauth.provider';

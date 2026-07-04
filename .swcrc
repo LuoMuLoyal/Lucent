@@ -2,6 +2,10 @@
   "$schema": "https://json.schemastore.org/swcrc",
   "sourceMaps": true,
   "jsc": {
+    "baseUrl": ".",
+    "paths": {
+      "#generated/*": ["./generated/*"]
+    },
     "target": "es2022",
     "keepClassNames": true,
     "parser": {

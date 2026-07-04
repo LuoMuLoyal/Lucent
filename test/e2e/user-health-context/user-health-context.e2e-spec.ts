@@ -20,7 +20,7 @@ import {
   UserAllergySeverity,
   UserConditionStatus,
   UserStatus,
-} from '../../../src/generated/prisma/client';
+} from '#generated/prisma/client';
 
 interface HealthContextData {
   summary: {

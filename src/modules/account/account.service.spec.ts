@@ -3,7 +3,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { UserStatus } from '../../generated/prisma/client';
+import { UserStatus } from '#generated/prisma/client';
 
 import { AccountService } from './services/account.service';
 import { PrismaService } from '../../prisma/prisma.service';

@@ -12,10 +12,7 @@ import {
   uniqueEmail,
 } from '../../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
-import {
-  MedicineSource,
-  UserStatus,
-} from '../../../src/generated/prisma/client';
+import { MedicineSource, UserStatus } from '#generated/prisma/client';
 
 const BASE_PATH = '/api/v1/user/medicine-dose-logs';
 const AUTH_HEADER = 'Authorization';

@@ -7,7 +7,7 @@ import {
   MaxLength,
 } from 'class-validator';
 
-import { DoseLogStatus } from '../../../generated/prisma/client';
+import { DoseLogStatus } from '#generated/prisma/client';
 
 export class CreateDoseLogDto {
   @ApiPropertyOptional({ description: 'Linked current medicine id.' })

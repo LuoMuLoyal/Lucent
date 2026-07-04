@@ -7,10 +7,7 @@ import {
   now,
   nowIsoString,
 } from '../../../common/utils/date-time.utils';
-import {
-  DoseLogStatus,
-  DailyRecordKind,
-} from '../../../generated/prisma/client';
+import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   MealAnalysisStatus,

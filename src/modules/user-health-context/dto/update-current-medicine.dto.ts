@@ -7,7 +7,7 @@ import {
   Matches,
   MaxLength,
 } from 'class-validator';
-import { MedicineSource } from '../../../generated/prisma/client';
+import { MedicineSource } from '#generated/prisma/client';
 
 export class UpdateCurrentMedicineDto {
   @ApiPropertyOptional({

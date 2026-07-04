@@ -3,7 +3,7 @@ import { notFound } from '../../../common/utils/api-errors';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import type { DailyRecordKind } from '../../../generated/prisma/client';
+import type { DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 export type OwnedRecordSnapshot = {

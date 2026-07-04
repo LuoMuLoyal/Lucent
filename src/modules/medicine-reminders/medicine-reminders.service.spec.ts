@@ -2,7 +2,7 @@ import { nonDeleted } from '../../common/utils/prisma.helpers';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { Test } from '@nestjs/testing';
-import { Prisma } from '../../generated/prisma/client';
+import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MedicineRemindersOwnershipService } from './services/ownership.service';
 import { MedicineRemindersMapperService } from './services/medicine-reminders-mapper.service';

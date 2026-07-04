@@ -8,7 +8,7 @@ import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
 import { ResultCode } from '../../../src/common/api-envelope';
 import type { ApiEnvelope } from '../../../src/common/api-envelope';
-import { DailyRecordKind } from '../../../src/generated/prisma/client';
+import { DailyRecordKind } from '#generated/prisma/client';
 
 const TESTING_PATH = '/api/v1/testing/fullstack-e2e/record-lane/prepare';
 const LOGIN_PATH = '/api/v1/auth/login';

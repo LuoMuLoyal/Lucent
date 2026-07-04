@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString } from 'class-validator';
-import { type UserNotificationType } from '../../../generated/prisma/client';
+import { type UserNotificationType } from '#generated/prisma/client';
 
 export const USER_NOTIFICATION_TYPES = [
   'ai_today_summary',

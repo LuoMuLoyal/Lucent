@@ -3,10 +3,7 @@ import { truncate } from '../../../common/utils/string.utils';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import {
-  AssistantConversationStatus,
-  Prisma,
-} from '../../../generated/prisma/client';
+import { AssistantConversationStatus, Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   AssistantConversationMessage,

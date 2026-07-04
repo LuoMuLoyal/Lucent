@@ -5,6 +5,9 @@
   "author": "",
   "private": true,
   "license": "MIT",
+  "imports": {
+    "#generated/*": "./generated/*"
+  },
   "packageManager": "pnpm@11.9.0",
   "engines": {
     "node": ">=24 <25",
@@ -20,8 +23,8 @@
     "start:dev": "cross-env NODE_ENV=development nest start --watch",
     "start:test:dev": "cross-env NODE_ENV=test nest start --watch",
     "start:prod": "cross-env NODE_ENV=production node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"src/generated/**\" --fix",
-    "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"src/generated/**\" --max-warnings=0",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"generated/**\" --fix",
+    "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"generated/**\" --max-warnings=0",
     "deploy:assets:check": "node deploy/validate-assets.ts",
     "deploy:smoke": "node deploy/post-deploy-smoke.ts",
     "deploy:server": "node deploy/deploy-server.ts",
@@ -166,7 +169,8 @@
       "^.+\\.(t|j)s$": "@swc/jest"
     },
     "moduleNameMapper": {
-      "^(\\.{1,2}/.*)\\.js$": "$1"
+      "^(\\.{1,2}/.*)\\.js$": "$1",
+      "^#generated/(.*)$": "<rootDir>/../generated/$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

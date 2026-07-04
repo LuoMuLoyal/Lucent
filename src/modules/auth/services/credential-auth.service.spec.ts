@@ -15,8 +15,8 @@ import { AuthRateLimitService } from './auth-rate-limit.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import type { NotificationListItemDto } from '../../notifications/dto/notifications-response.dto';
 import { ResultCode } from '../../../common/api-envelope';
-import type { User } from '../../../generated/prisma/client';
-import { UserStatus } from '../../../generated/prisma/client';
+import type { User } from '#generated/prisma/client';
+import { UserStatus } from '#generated/prisma/client';
 
 // ── Module-level argon2 mock ──────────────────────────────────
 

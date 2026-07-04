@@ -1,10 +1,7 @@
 import { formatDateOnly } from '../../../common/utils/date-time.utils';
 import { parseDateOnly } from '../../../common/utils/date-time.utils';
 import { Injectable } from '@nestjs/common';
-import {
-  AiSummaryHistoryKind,
-  type Prisma,
-} from '../../../generated/prisma/client';
+import { AiSummaryHistoryKind, type Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { AssistantReportRange } from '../types/assistant-ports';
 

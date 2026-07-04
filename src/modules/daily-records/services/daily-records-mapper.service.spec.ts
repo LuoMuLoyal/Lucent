@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import type { DailyRecordKind } from '../../../generated/prisma/client';
+import type { DailyRecordKind } from '#generated/prisma/client';
 import type { DailyRecordShape } from '../types/daily-records.types';
 import { DailyRecordsMapperService } from './daily-records-mapper.service';
 

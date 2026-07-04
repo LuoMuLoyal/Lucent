@@ -15,7 +15,7 @@ import { SecurityElevationGuard } from '../security-pin/guards/security-elevatio
 import { SecurityPinService } from '../security-pin/services/security-pin.service';
 import type { UpdateAccountDto } from './dto/update-account.dto';
 import type { AccountDto } from './dto/account-response.dto';
-import type { User } from '../../generated/prisma/client';
+import type { User } from '#generated/prisma/client';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

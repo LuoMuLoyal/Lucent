@@ -16,7 +16,7 @@ import { unauthorized } from '../../../common/utils/api-errors';
 import { withRetry } from '../../../common/utils/retry.utils';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type { OAuthConfig } from '../../../config/oauth.config';
-import type { Prisma } from '../../../generated/prisma/client';
+import type { Prisma } from '#generated/prisma/client';
 import { OAUTH_PROVIDER_APPLE, type OAuthProfile } from '../types/oauth.types';
 import type { OAuthProvider } from './oauth-provider.interface';
 import { now } from '../../../common/utils/date-time.utils';

@@ -11,7 +11,7 @@ import {
   DailyRecordAttachmentKind,
   DailyRecordKind,
   Prisma,
-} from '../../../generated/prisma/client';
+} from '#generated/prisma/client';
 import {
   buildMealPayloadFromClientInput,
   getMealListSummary,

@@ -12,7 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { DailyRecordKind } from '../../../generated/prisma/client';
+import { DailyRecordKind } from '#generated/prisma/client';
 import { DailyRecordAttachmentInputDto } from './daily-record-attachment.dto';
 
 export class CreateDailyRecordDto {

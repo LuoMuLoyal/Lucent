@@ -10,7 +10,7 @@ import {
   UserAllergySeverity,
   UserConditionStatus,
   UserStatus,
-} from '../../generated/prisma/client';
+} from '#generated/prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { UserHealthContextOwnershipService } from './services/ownership.service';

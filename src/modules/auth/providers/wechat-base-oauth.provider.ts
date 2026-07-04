@@ -2,7 +2,7 @@ import { unauthorized } from '../../../common/utils/api-errors';
 import type { Logger } from '@nestjs/common';
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
-import type { Prisma } from '../../../generated/prisma/client';
+import type { Prisma } from '#generated/prisma/client';
 import { ResultCode } from '../../../common/api-envelope';
 import type { OAuthProvider } from './oauth-provider.interface';
 

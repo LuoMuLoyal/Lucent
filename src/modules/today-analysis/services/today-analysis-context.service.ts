@@ -5,7 +5,7 @@ import {
   DoseLogStatus,
   DailyRecordKind,
   type Prisma,
-} from '../../../generated/prisma/client';
+} from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { parseMealRecordPayload } from '../../daily-records/types/meal-analysis.types';
 

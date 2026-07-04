@@ -1,6 +1,6 @@
 import { normalizeNullableText } from '../../../common/utils/string.utils';
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '../../../generated/prisma/client';
+import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { UpdateHealthContextProfileDto } from '../dto';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';

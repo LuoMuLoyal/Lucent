@@ -6,7 +6,7 @@ import type {
   AssistantUpdateUserSettingsProposalPayload,
 } from '../types/assistant.types';
 import type { AssistantToolName } from './assistant-tool.types';
-import { DailyRecordKind } from '../../../generated/prisma/client';
+import { DailyRecordKind } from '#generated/prisma/client';
 import { nowIsoString } from '../../../common/utils/date-time.utils';
 import {
   RANGE_TRUNCATED_MESSAGE,

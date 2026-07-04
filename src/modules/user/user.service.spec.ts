@@ -1,7 +1,7 @@
 import { nonDeleted } from '../../common/utils/prisma.helpers';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { UserStatus } from '../../generated/prisma/client';
+import { UserStatus } from '#generated/prisma/client';
 
 import { UserService } from './services/user.service';
 import { PrismaService } from '../../prisma/prisma.service';

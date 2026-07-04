@@ -7,10 +7,7 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-import {
-  UserAllergyKind,
-  UserAllergySeverity,
-} from '../../../generated/prisma/client';
+import { UserAllergyKind, UserAllergySeverity } from '#generated/prisma/client';
 
 export class UpdateHealthContextAllergyDto {
   @ApiPropertyOptional({
