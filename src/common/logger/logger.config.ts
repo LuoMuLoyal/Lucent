@@ -1,62 +1,90 @@
-import type { WinstonModuleOptions } from 'nest-winston';
-import { utilities as nestWinstonUtilities } from 'nest-winston';
-import * as winston from 'winston';
-import DailyRotateFile from 'winston-daily-rotate-file';
-import * as path from 'path';
+import type { Params } from 'nestjs-pino';
+import type { Options } from 'pino-http';
+import { randomUUID } from 'node:crypto';
+import type { Request, Response } from 'express';
+import type { RequestWithId } from '../middleware/request-id.middleware';
 
-const LOG_DIR = path.resolve(process.cwd(), 'logs');
-
-function createDailyRotateTransport(
-  level: string,
-  filename: string,
-): DailyRotateFile {
-  return new DailyRotateFile({
-    level,
-    dirname: LOG_DIR,
-    filename: `${filename}-%DATE%.log`,
-    datePattern: 'YYYY-MM-DD',
-    zippedArchive: true,
-    maxSize: '20m',
-    maxFiles: '30d', // 保留 30 天
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.json(),
-    ),
-  });
-}
-
-export function createWinstonLoggerOptions(
-  nodeEnv: string,
-  logLevel: string,
-): WinstonModuleOptions {
+function createPinoHttpOptions(nodeEnv: string, logLevel: string): Options {
   const isProduction = nodeEnv === 'production';
   const level = logLevel || (isProduction ? 'info' : 'debug');
 
-  const transports: winston.transport[] = [
-    // 控制台输出
-    new winston.transports.Console({
-      format: isProduction
-        ? winston.format.combine(
-            winston.format.timestamp(),
-            winston.format.json(),
-          )
-        : winston.format.combine(
-            winston.format.timestamp({ format: 'HH:mm:ss.SSS' }),
-            nestWinstonUtilities.format.nestLike('Lucent', {
-              colors:
-                (process.stdout as unknown as { isTTY?: boolean }).isTTY ===
-                true,
-              prettyPrint: true,
-            }),
-          ),
-    }),
+  return {
+    level,
+    ...(isProduction
+      ? {}
+      : {
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              singleLine: true,
+              translateTime: 'HH:MM:ss.l',
+              ignore: 'pid,hostname',
+            },
+          },
+        }),
+    genReqId: (request) => {
+      const existingRequestId = (request as RequestWithId).requestId;
+      if (
+        typeof existingRequestId === 'string' &&
+        existingRequestId.length > 0
+      ) {
+        return existingRequestId;
+      }
 
-    // 按天滚动：全量日志
-    createDailyRotateTransport(level, 'app'),
+      const headerValue = request.headers['x-request-id'];
+      if (typeof headerValue === 'string' && headerValue.trim()) {
+        return headerValue.trim();
+      }
 
-    // 按天滚动：错误日志（只记录 error 及以上）
-    createDailyRotateTransport('error', 'error'),
-  ];
+      return randomUUID();
+    },
+    customLogLevel: (_request, response, error) => {
+      if (error || response.statusCode >= 500) {
+        return 'error';
+      }
+      if (response.statusCode >= 400) {
+        return 'warn';
+      }
+      return 'info';
+    },
+    autoLogging: {
+      ignore: (request) => {
+        const requestUrl = request.url ?? '';
+        return (
+          requestUrl.startsWith('/api/v1/health') ||
+          requestUrl.startsWith('/api/docs')
+        );
+      },
+    },
+    customSuccessMessage: (request, response) => {
+      const requestMethod = request.method ?? '';
+      const requestUrl = request.url ?? '';
+      return `${requestMethod} ${requestUrl} completed with ${String(response.statusCode)}`;
+    },
+    customErrorMessage: (request, response) => {
+      const requestMethod = request.method ?? '';
+      const requestUrl = request.url ?? '';
+      return `${requestMethod} ${requestUrl} failed with ${String(response.statusCode)}`;
+    },
+    serializers: {
+      req: (request: Request) => ({
+        id: (request as RequestWithId).requestId,
+        method: request.method,
+        url: request.originalUrl || request.url,
+        ip: request.ip,
+        userAgent: request.headers['user-agent'],
+      }),
+      res: (response: Response) => ({
+        statusCode: response.statusCode,
+      }),
+    },
+  };
+}
 
-  return { level, transports };
+export function createLoggerOptions(nodeEnv: string, logLevel: string): Params {
+  return {
+    pinoHttp: createPinoHttpOptions(nodeEnv, logLevel),
+    renameContext: 'context',
+  };
 }

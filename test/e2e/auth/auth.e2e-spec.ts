@@ -10,8 +10,10 @@ import {
   createTestApp,
   cleanupDatabase,
   bearer,
+  createSecurityElevationToken,
   expectData,
   expectDefined,
+  SECURITY_ELEVATION_HEADER,
   uniqueEmail,
 } from '../../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
@@ -728,11 +730,13 @@ describe('Auth API (e2e)', () => {
 
   describe('POST /api/v1/account/password', () => {
     it('should change password through account route', async () => {
-      const { email, tokens } = await registerUser();
+      const { email, tokens, user } = await registerUser();
+      const elevationToken = await createSecurityElevationToken(ctx, user.id);
 
       await request(app.getHttpServer())
         .post(AUTH_PATH.accountPassword)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .send({ oldPassword: TEST_PASSWORD, newPassword: CHANGED_PASSWORD })
         .expect(200);
 
@@ -743,11 +747,13 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should reject wrong old password', async () => {
-      const { tokens } = await registerUser();
+      const { tokens, user } = await registerUser();
+      const elevationToken = await createSecurityElevationToken(ctx, user.id);
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.accountPassword)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .send({
           oldPassword: WRONG_OLD_PASSWORD,
           newPassword: REJECTED_NEW_PASSWORD,
@@ -775,8 +781,9 @@ describe('Auth API (e2e)', () => {
 
   describe('POST /api/v1/account/email', () => {
     it('should change email through account route and return verification time', async () => {
-      const { tokens } = await registerUser();
+      const { tokens, user } = await registerUser();
       const newEmail = uniqueEmail('auth');
+      const elevationToken = await createSecurityElevationToken(ctx, user.id);
 
       await sendVerificationCodeRequest(newEmail, AUTH_SCENE.changeEmail);
 
@@ -788,6 +795,7 @@ describe('Auth API (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.accountEmail)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .send({ newEmail, code })
         .expect(200);
 
@@ -810,12 +818,14 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should reject invalid verification code', async () => {
-      const { tokens } = await registerUser();
+      const { tokens, user } = await registerUser();
       const newEmail = uniqueEmail('auth');
+      const elevationToken = await createSecurityElevationToken(ctx, user.id);
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.accountEmail)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .send({ newEmail, code: INVALID_VERIFICATION_CODE })
         .expect(400);
 
@@ -824,8 +834,9 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should return normalized email after change', async () => {
-      const { tokens } = await registerUser();
+      const { tokens, user } = await registerUser();
       const normalizedEmail = uniqueEmail('auth').toLowerCase();
+      const elevationToken = await createSecurityElevationToken(ctx, user.id);
       const mixedCaseEmail = normalizedEmail.replace(
         /^([^@]+)@(.+)$/,
         (_, localPart: string, domain: string) =>
@@ -842,6 +853,7 @@ describe('Auth API (e2e)', () => {
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.accountEmail)
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .send({ newEmail: mixedCaseEmail, code })
         .expect(200);
 
@@ -871,6 +883,7 @@ describe('Auth API (e2e)', () => {
   describe('DELETE /api/v1/account/identities/:identityId', () => {
     it('should unlink an OAuth identity when another sign-in method remains', async () => {
       const { user, tokens } = await registerUser();
+      const elevationToken = await createSecurityElevationToken(ctx, user.id);
       const identity = await ctx.prisma.userIdentity.create({
         data: {
           userId: user.id,
@@ -883,6 +896,7 @@ describe('Auth API (e2e)', () => {
       const res = await request(app.getHttpServer())
         .delete(AUTH_PATH.accountIdentity(identity.id))
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .expect(200);
 
       const body = res.body as ApiEnvelope<AccountDto>;
@@ -895,6 +909,7 @@ describe('Auth API (e2e)', () => {
 
     it('should reject unlinking the last sign-in method', async () => {
       const { user, tokens } = await registerUser();
+      const elevationToken = await createSecurityElevationToken(ctx, user.id);
       const identity = await ctx.prisma.userIdentity.create({
         data: {
           userId: user.id,
@@ -911,6 +926,7 @@ describe('Auth API (e2e)', () => {
       const res = await request(app.getHttpServer())
         .delete(AUTH_PATH.accountIdentity(identity.id))
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .expect(403);
 
       const body = res.body as ApiEnvelope;
@@ -918,7 +934,8 @@ describe('Auth API (e2e)', () => {
     });
 
     it('should reject unlinking another account identity', async () => {
-      const { tokens } = await registerUser();
+      const { tokens, user } = await registerUser();
+      const elevationToken = await createSecurityElevationToken(ctx, user.id);
       const other = await registerUser();
       const identity = await ctx.prisma.userIdentity.create({
         data: {
@@ -931,6 +948,7 @@ describe('Auth API (e2e)', () => {
       await request(app.getHttpServer())
         .delete(AUTH_PATH.accountIdentity(identity.id))
         .set(AUTHORIZATION_HEADER, bearer(tokens.accessToken))
+        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .expect(404);
     });
   });

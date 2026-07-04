@@ -1,12 +1,15 @@
 import {
   ArgumentsHost,
   Catch,
+  Injectable,
   ExceptionFilter,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Response } from 'express';
+import type { Request, Response } from 'express';
+import { PinoLogger } from 'nestjs-pino';
 import { ResultCode, errorEnvelope } from '../api-envelope';
+import { RequestContextService } from '../logger/request-context.service';
 
 interface ErrorResponseBody {
   code?: string | number;
@@ -19,14 +22,52 @@ interface ErrorResponseBody {
  * `{ code, message, data }` response envelope.
  */
 @Catch()
+@Injectable()
 export class ApiExceptionFilter implements ExceptionFilter {
+  constructor(
+    private readonly logger: PinoLogger,
+    private readonly requestContextService: RequestContextService,
+  ) {
+    this.logger.setContext(ApiExceptionFilter.name);
+  }
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
     const status = this.resolveStatus(exception);
     const body = this.resolveBody(exception, status);
 
+    this.logException(exception, request, status, body.message);
+
     response.status(status).json(errorEnvelope(body.code, body.message));
+  }
+
+  private logException(
+    exception: unknown,
+    request: Request,
+    status: HttpStatus,
+    message: string,
+  ): void {
+    const metadata = {
+      requestId: this.requestContextService.getRequestId(),
+      method: request.method,
+      path: request.originalUrl || request.url,
+      statusCode: status,
+    };
+
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.logger.error(
+        {
+          ...metadata,
+          err: exception instanceof Error ? exception : undefined,
+        },
+        `Unhandled exception: ${message}`,
+      );
+      return;
+    }
+
+    this.logger.warn(metadata, `Handled exception: ${message}`);
   }
 
   private resolveStatus(exception: unknown): HttpStatus {

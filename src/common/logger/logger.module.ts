@@ -1,19 +1,21 @@
 import { Global, Module } from '@nestjs/common';
-import { WinstonModule } from 'nest-winston';
+import { LoggerModule as PinoLoggerModule } from 'nestjs-pino';
 import { EnvKey } from '../../config/env-keys.enum';
-import { createWinstonLoggerOptions } from './logger.config';
+import { createLoggerOptions } from './logger.config';
+import { RequestContextService } from './request-context.service';
 
 @Global()
 @Module({
   imports: [
-    WinstonModule.forRootAsync({
+    PinoLoggerModule.forRootAsync({
       useFactory: () => {
         const nodeEnv = process.env[EnvKey.NODE_ENV] ?? 'development';
         const logLevel = process.env[EnvKey.LOG_LEVEL] ?? '';
-        return createWinstonLoggerOptions(nodeEnv, logLevel);
+        return createLoggerOptions(nodeEnv, logLevel);
       },
     }),
   ],
-  exports: [WinstonModule],
+  providers: [RequestContextService],
+  exports: [PinoLoggerModule, RequestContextService],
 })
 export class LoggerModule {}

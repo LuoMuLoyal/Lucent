@@ -17,6 +17,11 @@ Last updated: 2026-07-04
 
 当前共享目录边界以 `[[00-current/Code_Quality_Maintainability]]` 为准；`src/common/` 已按
 `helpers/`、`services/`、`logger/` 等角色分层，不再使用单一 `utils/` 汇总共享代码。
+后端日志基线现已切换到 `pino` / `nestjs-pino`，并带有 `X-Request-Id` + AsyncLocalStorage
+请求上下文。
+Lucent runtime、Prisma CLI 与本地 import 脚本现统一按
+`.env.<NODE_ENV>.local` → `.env.<NODE_ENV>` 的优先级解析环境变量，不再使用根 `.env`
+fallback。
 
 ## 相关文档
 

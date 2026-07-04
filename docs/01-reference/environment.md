@@ -148,6 +148,15 @@ NODE_ENV=test pnpm exec prisma migrate deploy
   startup can fail even after the container is already running app bootstrap code.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development
   runtime.
+- Lucent runtime logging now uses `nestjs-pino` with `pino-http`; development
+  output is pretty-printed, while production stays JSON-first on stdout/stderr.
+- `requestIdMiddleware` remains the source of truth for `X-Request-Id`; the
+  request id is also bridged into a shared AsyncLocalStorage request context so
+  exception and service logs can resolve the active request without passing
+  `Request` through every layer.
+- Automatic request/response logs intentionally suppress noisy
+  `/api/v1/health*` and `/api/docs*` routes, but still keep request context for
+  the rest of the request pipeline.
 - When `REDIS_URL` is set, Lucent uses Redis through a Keyv-backed Nest cache store; without it,
   cache falls back to memory.
 - Mail delivery uses BullMQ when `REDIS_URL` is set and immediate send when Redis is absent.

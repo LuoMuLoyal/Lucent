@@ -54,3 +54,11 @@ Last updated: 2026-07-04
   - `src/common/helpers/` holds pure helper functions and stateless shared utilities.
   - `src/common/services/` holds shared injectable services such as `LocalizedCopyService`.
   - `src/common/logger/` holds the shared Nest logging module.
+- The logging foundation now uses `nestjs-pino` / `pino-http` instead of
+  Winston.
+  - `requestIdMiddleware` still owns `X-Request-Id`.
+  - `RequestContextService` bridges the request id into AsyncLocalStorage for
+    downstream logs and exception handling.
+  - `setup-app.ts` no longer emits hand-built string HTTP logs; structured
+    request/response logs and global exception logs share the same Pino
+    baseline.

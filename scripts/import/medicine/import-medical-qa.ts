@@ -19,6 +19,7 @@ const readline = require('node:readline');
 
 const dotenv = require('dotenv');
 const { Client } = require('pg');
+const { getDotenvLoadOrder } = require('../../../src/config/env-file-paths');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const DRUG_DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
@@ -80,14 +81,12 @@ function classifySafety(
 
 function loadEnvironment(): string {
   const nodeEnv = process.env.NODE_ENV?.trim() || 'development';
-  dotenv.config({
-    path: path.join(REPO_ROOT, `.env.${nodeEnv}.local`),
-    override: true,
-  });
-  dotenv.config({
-    path: path.join(REPO_ROOT, `.env.${nodeEnv}`),
-    override: true,
-  });
+  for (const envPath of getDotenvLoadOrder()) {
+    dotenv.config({
+      path: path.join(REPO_ROOT, envPath),
+      override: true,
+    });
+  }
   return nodeEnv;
 }
 

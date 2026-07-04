@@ -15,6 +15,7 @@ const path = require('node:path');
 
 const dotenv = require('dotenv');
 const { Client } = require('pg');
+const { getDotenvLoadOrder } = require('../../../src/config/env-file-paths');
 const { stableUuid } = require('./import-medicine-knowledge.ts');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
@@ -37,14 +38,12 @@ const INSERT_BATCH_SIZE = 500;
 
 function loadEnvironment() {
   const nodeEnv = process.env.NODE_ENV?.trim() || 'development';
-  dotenv.config({
-    path: path.join(REPO_ROOT, `.env.${nodeEnv}.local`),
-    override: true,
-  });
-  dotenv.config({
-    path: path.join(REPO_ROOT, `.env.${nodeEnv}`),
-    override: true,
-  });
+  for (const envPath of getDotenvLoadOrder()) {
+    dotenv.config({
+      path: path.join(REPO_ROOT, envPath),
+      override: true,
+    });
+  }
   return nodeEnv;
 }
 

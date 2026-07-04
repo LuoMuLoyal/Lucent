@@ -34,6 +34,7 @@ import { TestingSupportModule } from './modules/testing-support/testing-support.
 import { LlmRuntimeModule } from './modules/llm-runtime/llm-runtime.module';
 import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
+import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 
 /**
  * Root application module. Wires configuration, persistence, common
@@ -93,6 +94,6 @@ import { AssistantModule } from './modules/assistant/assistant.module';
     ]),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ApiExceptionFilter],
 })
 export class AppModule {}

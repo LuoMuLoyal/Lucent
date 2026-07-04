@@ -185,7 +185,22 @@ the prefix is centralized.
 
 All error responses use `api-errors.ts` helpers (`notFound`, `badRequest`, `unauthorized`,
 `forbidden`, `conflict`) with i18n keys. The global envelope is `{ code: ResultCode, message:
-string, data?: T }`.
+string, data?: T }`. `ApiExceptionFilter` is now resolved from Nest DI instead
+of being `new`-ed in bootstrap code so it can emit structured `pino` logs with
+`requestId`, method, path, status, and stack metadata.
+
+## Logging Foundation
+
+- `src/common/logger/logger.module.ts` registers the app-wide `nestjs-pino`
+  logger.
+- `src/common/middleware/request-id.middleware.ts` remains the request-id
+  source of truth and mirrors the final id back to `X-Request-Id`.
+- `src/common/logger/request-context.service.ts` stores the active request id in
+  AsyncLocalStorage so shared infrastructure can read request context without
+  threading `Request` through every call.
+- `setup-app.ts` no longer hand-builds string HTTP logs; request/response logs
+  come from `pino-http` with route-level noise suppression for health/docs
+  endpoints.
 
 ## Security Elevation
 

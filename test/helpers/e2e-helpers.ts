@@ -9,12 +9,15 @@ import { setupApp } from '../../src/setup-app';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import type { ApiEnvelope } from '../../src/common/api-envelope';
 import { ConfigKey } from '../../src/config/config-keys.enum';
+import { SecurityPinService } from '../../src/modules/security-pin/services/security-pin.service';
 import { UserStatus } from '#generated/prisma/client';
 
 // ── Constants ──────────────────────────────────────────────────
 
 export const AUTHORIZATION_HEADER = 'Authorization';
 export const BEARER_AUTH_SCHEME = 'Bearer';
+export const SECURITY_ELEVATION_HEADER = 'x-security-elevation';
+export const DEFAULT_SECURITY_PIN = '123456';
 
 // ── E2E Test App Setup ─────────────────────────────────────────
 
@@ -26,6 +29,7 @@ export interface E2eTestContext {
   prisma: PrismaService;
   jwtService: JwtService;
   configService: ConfigService;
+  securityPinService: SecurityPinService;
 }
 
 /**
@@ -45,8 +49,9 @@ export async function createTestApp(): Promise<E2eTestContext> {
   const prisma = app.get(PrismaService);
   const jwtService = app.get(JwtService);
   const configService = app.get(ConfigService);
+  const securityPinService = app.get(SecurityPinService);
 
-  return { app, prisma, jwtService, configService };
+  return { app, prisma, jwtService, configService, securityPinService };
 }
 
 // ── Database Cleanup ───────────────────────────────────────────
@@ -156,6 +161,19 @@ export async function createAccessToken(
       audience: jwtCfg.audience,
     },
   );
+}
+
+/**
+ * Enable a Security PIN for the user and mint a fresh elevation token.
+ */
+export async function createSecurityElevationToken(
+  ctx: E2eTestContext,
+  userId: string,
+  pin = DEFAULT_SECURITY_PIN,
+): Promise<string> {
+  await ctx.securityPinService.enable(userId, { pin });
+  const result = await ctx.securityPinService.verify(userId, { pin });
+  return result.elevationToken;
 }
 
 // ── HTTP Helpers ───────────────────────────────────────────────

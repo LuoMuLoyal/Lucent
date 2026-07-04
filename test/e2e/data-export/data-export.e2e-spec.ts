@@ -6,7 +6,9 @@ import {
   createTestUser,
   createAccessToken,
   bearer,
+  createSecurityElevationToken,
   expectData,
+  SECURITY_ELEVATION_HEADER,
 } from '../../helpers/e2e-helpers';
 import type {
   E2eTestContext,
@@ -21,6 +23,7 @@ describe('Data Export API (e2e)', () => {
   let app: E2eApp;
   let user: TestUser;
   let accessToken: string;
+  let elevationToken: string;
 
   beforeAll(async () => {
     ctx = await createTestApp();
@@ -34,6 +37,7 @@ describe('Data Export API (e2e)', () => {
       user.id,
       user.email,
     );
+    elevationToken = await createSecurityElevationToken(ctx, user.id);
   });
 
   afterAll(async () => {
@@ -50,6 +54,7 @@ describe('Data Export API (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post(EXPORT_PATH)
         .set('Authorization', bearer(accessToken))
+        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .send({})
         .expect(201);
 
@@ -80,6 +85,7 @@ describe('Data Export API (e2e)', () => {
       const response = await request(app.getHttpServer())
         .get(`${EXPORT_PATH}/latest`)
         .set('Authorization', bearer(accessToken))
+        .set(SECURITY_ELEVATION_HEADER, bearer(elevationToken))
         .expect(200);
 
       const data = expectData(

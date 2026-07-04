@@ -4,10 +4,13 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PinoLogger } from 'nestjs-pino';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppController } from '../../../src/app.controller';
 import { AppService } from '../../../src/app.service';
+import { ApiExceptionFilter } from '../../../src/common/filters/api-exception.filter';
+import { RequestContextService } from '../../../src/common/logger/request-context.service';
 import { PrismaService } from '../../../src/prisma/prisma.service';
 import { setupApp } from '../../../src/setup-app';
 
@@ -57,6 +60,16 @@ describe('Lucent API (e2e)', () => {
               }
               return undefined;
             }),
+          },
+        },
+        RequestContextService,
+        ApiExceptionFilter,
+        {
+          provide: PinoLogger,
+          useValue: {
+            setContext: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
           },
         },
       ],

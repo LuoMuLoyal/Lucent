@@ -1,19 +1,20 @@
-import type { Request, Response, NextFunction } from 'express';
 import type { INestApplication, ValidationError } from '@nestjs/common';
 import {
   BadRequestException,
-  Logger,
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import { LoggerErrorInterceptor } from 'nestjs-pino';
 import { ConfigKey } from './config/config-keys.enum';
 import { ResultCode } from './common/api-envelope';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ApiEnvelopeInterceptor } from './common/interceptors/api-envelope.interceptor';
 import { requestIdMiddleware } from './common/middleware/request-id.middleware';
+import { bindRequestContextMiddleware } from './common/logger/request-context.middleware';
+import { RequestContextService } from './common/logger/request-context.service';
 
 /**
  * Configures the NestJS application with global middleware, pipes, filters,
@@ -24,18 +25,7 @@ export function setupApp(
   configService: ConfigService,
 ): void {
   app.use(requestIdMiddleware);
-
-  const logger = new Logger('HTTP');
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    const start = Date.now();
-    res.on('finish', () => {
-      const duration = Date.now() - start;
-      logger.log(
-        `${req.method} ${req.originalUrl || req.url} ${String(res.statusCode)} ${String(duration)}ms`,
-      );
-    });
-    next();
-  });
+  app.use(bindRequestContextMiddleware(app.get(RequestContextService)));
 
   app.setGlobalPrefix('api');
   app.enableVersioning({
@@ -54,8 +44,11 @@ export function setupApp(
         }),
     }),
   );
-  app.useGlobalInterceptors(new ApiEnvelopeInterceptor());
-  app.useGlobalFilters(new ApiExceptionFilter());
+  app.useGlobalInterceptors(
+    new LoggerErrorInterceptor(),
+    new ApiEnvelopeInterceptor(),
+  );
+  app.useGlobalFilters(app.get(ApiExceptionFilter));
 
   app.enableCors({
     origin: configService.get<boolean | string[]>(

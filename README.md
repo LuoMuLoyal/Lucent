@@ -36,6 +36,7 @@ Lucent CI now verifies `docs/openapi.json` semantically instead of byte-for-byte
 - Prisma 7 / PostgreSQL
 - Redis / BullMQ
 - Passport JWT
+- Pino / nestjs-pino structured logging
 - WeChat Web / Mobile OAuth login
 - OpenAPI-generated client/docs
 - LangChain / LangGraph-based AI integration foundation
@@ -92,6 +93,11 @@ In local development the template credentials are `admin@lucent.local` /
 
 JWT access and refresh secrets also come from the env file now; the dev/test
 templates already include local values.
+
+Lucent runtime logging now uses `nestjs-pino` over `pino-http`. Request logs,
+Nest app logs, and global exception logs share the same structured logger
+baseline, and every request gets a propagated `X-Request-Id` plus a matching
+request context entry for downstream logs.
 
 Daily-record image uploads are signed by Lucent for Tencent COS. Configure
 `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and
@@ -170,7 +176,7 @@ LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLI
 - `src/common/` now separates shared code by role instead of a catch-all `utils/` bucket:
   - `helpers/` for pure helper functions and stateless utilities
   - `services/` for shared injectable services
-  - `logger/` for the shared Nest logging module
+  - `logger/` for the shared Pino/Nest logging module plus request context helpers
 - `scripts/` contains a small set of local helpers grouped by purpose:
   - `scripts/dev/` for local runtime helpers
 - `scripts/contract/` for contract export helpers
