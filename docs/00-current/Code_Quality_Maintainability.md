@@ -2,6 +2,12 @@
 
 Last updated: 2026-07-04
 
+- Date parsing in `assistant-tool-date-resolver.ts` now uses `date-fns` (`isValid`,
+  `differenceInCalendarDays`, `eachDayOfInterval`, `addDays`) instead of manual UTC arithmetic.
+- Outbound HTTP retries are centralized in `src/common/utils/retry.utils.ts` (`withRetry` /
+  `fetchWithRetry`); QQ and Apple OAuth providers share the same retry semantics.
+- Public exports across `setup-app.ts`, `app.module.ts`, `adminjs.setup.ts`, `api-envelope.ts`,
+  `api-errors.ts`, filters/interceptors, and `config/` now have JSDoc descriptions.
 - COS and embedding defaults/limits are centralized in `src/config/constants.ts`; both
   `tencent-cos.config.ts` and `environment.validation.ts` reference the same constants.
 - Repeated test literals in `environment.validation.spec.ts` (DB URLs, admin credentials) and

@@ -1,12 +1,15 @@
 import type { Response } from 'express';
 
+/** Named event types used by Server-Sent Event streams. */
 export type SseEventName = 'summary' | 'chunk' | 'result' | 'error' | 'done';
 
+/** A single Server-Sent Event message. */
 export interface SseMessage<T = unknown> {
   event: SseEventName;
   data: T;
 }
 
+/** Prepares an Express response for Server-Sent Events. */
 export function prepareSse(response: Response): void {
   response.status(200);
   response.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -16,6 +19,7 @@ export function prepareSse(response: Response): void {
   response.flushHeaders();
 }
 
+/** Writes a single event to an SSE stream. */
 export function writeSseEvent<T>(
   response: Response,
   message: SseMessage<T>,
@@ -24,6 +28,7 @@ export function writeSseEvent<T>(
   response.write(`data: ${JSON.stringify(message.data)}\n\n`);
 }
 
+/** Ends an SSE stream gracefully. */
 export function endSse(response: Response): void {
   response.end();
 }

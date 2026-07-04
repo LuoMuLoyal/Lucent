@@ -1,5 +1,14 @@
-import { formatDateOnly, now } from '../../../common/utils/date-time.utils';
-import { parseDateOnly } from '../../../common/utils/date-time.utils';
+import {
+  addDays,
+  differenceInCalendarDays,
+  eachDayOfInterval,
+  isValid,
+} from 'date-fns';
+import {
+  formatDateOnly,
+  now,
+  parseDateOnly,
+} from '../../../common/utils/date-time.utils';
 import {
   DEFAULT_RANGE_DAYS,
   DEFAULT_RANGE_FALLBACK_MESSAGE,
@@ -57,7 +66,12 @@ export function resolveSingleDate(
       month = parseInt(g1, 10);
       day = parseInt(g2, 10);
     }
-    const date = makeDateString(year, month, day);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (!isValid(date)) {
+      continue;
+    }
+
+    const dateString = formatDateOnly(date);
     const matchedBy =
       g3 != null && g3.length === 4
         ? ['explicit_slash_date']
@@ -66,7 +80,7 @@ export function resolveSingleDate(
           : pattern.source.includes('月')
             ? ['explicit_month_day']
             : ['explicit_month_day_slash'];
-    return { date, matchedBy, ambiguities: [] };
+    return { date: dateString, matchedBy, ambiguities: [] };
   }
 
   if (/今天|today/i.test(userMessage)) {
@@ -214,10 +228,8 @@ export function normalizeRange(
 
 export function diffDaysInclusive(startDate: string, endDate: string): number {
   return (
-    Math.floor(
-      (parseDateOnly(endDate).getTime() - parseDateOnly(startDate).getTime()) /
-        86400000,
-    ) + 1
+    differenceInCalendarDays(parseDateOnly(endDate), parseDateOnly(startDate)) +
+    1
   );
 }
 
@@ -226,24 +238,11 @@ export function enumerateDates(
   endDate: string,
   maxDays = Number.POSITIVE_INFINITY,
 ): string[] {
-  const dates: string[] = [];
   const start = parseDateOnly(startDate);
   const end = parseDateOnly(endDate);
-  for (
-    let cursor = start, index = 0;
-    cursor.getTime() <= end.getTime() && index < maxDays;
-    cursor = new Date(
-      Date.UTC(
-        cursor.getUTCFullYear(),
-        cursor.getUTCMonth(),
-        cursor.getUTCDate() + 1,
-      ),
-    ),
-      index += 1
-  ) {
-    dates.push(formatDateOnly(cursor));
-  }
-  return dates;
+  return eachDayOfInterval({ start, end })
+    .slice(0, maxDays)
+    .map((date) => formatDateOnly(date));
 }
 
 export function todayDateString(): string {
@@ -251,21 +250,5 @@ export function todayDateString(): string {
 }
 
 export function offsetDateString(offsetDays: number): string {
-  const currentTime = now();
-  const shifted = new Date(
-    Date.UTC(
-      currentTime.getUTCFullYear(),
-      currentTime.getUTCMonth(),
-      currentTime.getUTCDate() + offsetDays,
-    ),
-  );
-  return formatDateOnly(shifted);
-}
-
-export function makeDateString(
-  year: number,
-  month: number,
-  day: number,
-): string {
-  return formatDateOnly(new Date(Date.UTC(year, month - 1, day)));
+  return formatDateOnly(addDays(parseDateOnly(todayDateString()), offsetDays));
 }

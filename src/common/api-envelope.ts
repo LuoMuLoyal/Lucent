@@ -63,6 +63,7 @@ export enum ResultCode {
   EXTERNAL_SERVICE_ERROR = 500_003,
 }
 
+/** Standard API response envelope. */
 export interface ApiEnvelope<T = unknown> {
   code: ResultCode;
   message: string;
@@ -70,6 +71,7 @@ export interface ApiEnvelope<T = unknown> {
   meta?: Record<string, unknown>;
 }
 
+/** Builds a success envelope wrapping the given data. */
 export function successEnvelope<T>(data: T): ApiEnvelope<T> {
   return {
     code: ResultCode.SUCCESS,
@@ -78,6 +80,7 @@ export function successEnvelope<T>(data: T): ApiEnvelope<T> {
   };
 }
 
+/** Builds an error envelope with the given result code and message. */
 export function errorEnvelope(
   code: ResultCode,
   message: string,

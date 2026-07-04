@@ -14,15 +14,21 @@ export function nowIsoString(): string {
   return new Date().toISOString();
 }
 
+/**
+ * Calculates remaining seconds until an ISO-8601 expiration instant.
+ * Returns 0 if the instant is in the past.
+ */
 export function calculateExpiresIn(expiresAtIso: string): number {
   const diff = new Date(expiresAtIso).getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / 1000));
 }
 
+/** Serializes a Date to an ISO-8601 string, or returns null. */
 export function formatDateTime(value: Date | null): string | null {
   return value?.toISOString() ?? null;
 }
 
+/** Returns whether the user has a verified email timestamp. */
 export function toEmailVerified(emailVerifiedAt: Date | null): boolean {
   return emailVerifiedAt !== null;
 }

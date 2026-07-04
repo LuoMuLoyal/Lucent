@@ -35,6 +35,10 @@ import { LlmRuntimeModule } from './modules/llm-runtime/llm-runtime.module';
 import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
 
+/**
+ * Root application module. Wires configuration, persistence, common
+ * infrastructure, and all feature modules together.
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({

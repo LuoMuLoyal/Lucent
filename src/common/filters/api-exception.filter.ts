@@ -14,6 +14,10 @@ interface ErrorResponseBody {
   error?: string;
 }
 
+/**
+ * Global exception filter that converts any thrown error into the standard
+ * `{ code, message, data }` response envelope.
+ */
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {

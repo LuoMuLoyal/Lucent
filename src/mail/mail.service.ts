@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { MailQueueService } from './mail-queue.service';
 
+/**
+ * Queues outbound emails via the configured mail queue.
+ */
 @Injectable()
 export class MailService {
   constructor(private readonly mailQueueService: MailQueueService) {}

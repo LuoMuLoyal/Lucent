@@ -9,12 +9,14 @@ import {
 } from './constants';
 import { EnvKey } from './env-keys.enum';
 
+/** Supported runtime environments. */
 export enum NodeEnvironment {
   Development = 'development',
   Test = 'test',
   Production = 'production',
 }
 
+/** Strongly typed shape of validated environment variables. */
 export interface EnvironmentVariables {
   [EnvKey.NODE_ENV]: NodeEnvironment;
   [EnvKey.HOST]: string;
@@ -235,6 +237,11 @@ const AI_ROLE_GROUPS = [
   },
 ] as const;
 
+/**
+ * Validates a raw environment object against the project schema.
+ *
+ * @throws {Error} When a required or invalid value is detected.
+ */
 export function validateEnvironment(
   config: Record<string, unknown>,
 ): EnvironmentVariables {

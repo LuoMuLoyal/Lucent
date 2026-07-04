@@ -15,6 +15,10 @@ import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ApiEnvelopeInterceptor } from './common/interceptors/api-envelope.interceptor';
 import { requestIdMiddleware } from './common/middleware/request-id.middleware';
 
+/**
+ * Configures the NestJS application with global middleware, pipes, filters,
+ * interceptors, API versioning, CORS, and OpenAPI documentation.
+ */
 export function setupApp(
   app: INestApplication,
   configService: ConfigService,

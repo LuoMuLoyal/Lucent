@@ -21,6 +21,11 @@ function isApiEnvelope(value: unknown): value is ApiEnvelope {
   );
 }
 
+/**
+ * Global interceptor that wraps successful controller return values in the
+ * standard API envelope, unless the handler or controller is marked with
+ * {@link SkipApiEnvelope}.
+ */
 @Injectable()
 export class ApiEnvelopeInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {

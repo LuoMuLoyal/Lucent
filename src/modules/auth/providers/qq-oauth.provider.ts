@@ -1,4 +1,5 @@
 import { unauthorized } from '../../../common/utils/api-errors';
+import { fetchWithRetry } from '../../../common/utils/retry.utils';
 import {
   Injectable,
   Logger,
@@ -147,7 +148,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
       redirect_uri: config.redirectUri,
     });
 
-    const response = await this.fetchWithRetry(
+    const response = await this.fetchQqApi(
       `${QQ_ACCESS_TOKEN_URL}?${params.toString()}`,
     );
     const text = await response.text();
@@ -189,7 +190,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
       fmt: 'json',
     });
 
-    const response = await this.fetchWithRetry(
+    const response = await this.fetchQqApi(
       `${QQ_OPENID_URL}?${params.toString()}`,
     );
     const text = await response.text();
@@ -225,7 +226,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
       openid,
     });
 
-    const response = await this.fetchWithRetry(
+    const response = await this.fetchQqApi(
       `${QQ_USERINFO_URL}?${params.toString()}`,
     );
     const data = (await response.json()) as QqUserInfoResponse;
@@ -242,28 +243,20 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
 
   // ── HTTP helpers ────────────────────────────────────────────
 
-  private async fetchWithRetry(url: string): Promise<Response> {
-    let lastErr: unknown;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`HTTP ${String(response.status)}`);
-        }
-        return response;
-      } catch (err) {
-        lastErr = err;
-        if (attempt < 1) {
-          await new Promise((r) => setTimeout(r, 200));
-        }
-      }
+  private async fetchQqApi(url: string): Promise<Response> {
+    try {
+      return await fetchWithRetry(url);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `QQ API request failed: ${reason}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new ServiceUnavailableException({
+        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        message: this.i18n.t('auth.oauth_provider_unavailable'),
+      });
     }
-
-    this.logger.error('QQ API request failed', lastErr);
-    throw new ServiceUnavailableException({
-      code: ResultCode.EXTERNAL_SERVICE_ERROR,
-      message: this.i18n.t('auth.oauth_provider_unavailable'),
-    });
   }
 
   private extractJsonp(text: string): Record<string, unknown> {

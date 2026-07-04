@@ -13,6 +13,7 @@ import { I18nService } from 'nestjs-i18n';
 
 import { ResultCode } from '../../../common/api-envelope';
 import { unauthorized } from '../../../common/utils/api-errors';
+import { withRetry } from '../../../common/utils/retry.utils';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type { OAuthConfig } from '../../../config/oauth.config';
 import type { Prisma } from '../../../generated/prisma/client';
@@ -181,10 +182,13 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
     const config = this.readAppleConfig();
 
     try {
-      const response = await fetch(config.jwksUrl);
-      if (!response.ok) {
-        throw new Error(`JWKS fetch failed: ${String(response.status)}`);
-      }
+      const response = await withRetry(async () => {
+        const res = await fetch(config.jwksUrl);
+        if (!res.ok) {
+          throw new Error(`JWKS fetch failed: ${String(res.status)}`);
+        }
+        return res;
+      });
       const data = (await response.json()) as AppleJwksResponse;
       this.appleKeys = data.keys;
       this.lastJwksFetch = now;

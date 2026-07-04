@@ -89,6 +89,9 @@ interface AdminJsPrismaModule {
   getModelByName: (name: string, clientModule?: PrismaClientModule) => unknown;
 }
 
+/**
+ * Minimal Prisma client module shape required by the AdminJS Prisma adapter.
+ */
 export interface PrismaClientModule {
   Prisma: {
     dmmf: {
@@ -119,6 +122,9 @@ interface PrismaDmmfField {
   type: string;
 }
 
+/**
+ * Configuration for a single AdminJS resource derived from a Prisma model.
+ */
 export interface AdminResourceConfig {
   modelName: string;
   navigation: string;
@@ -350,6 +356,10 @@ const coreResourceOverrides: Record<string, Partial<AdminResourceConfig>> = {
   },
 };
 
+/**
+ * Registers the AdminJS panel, authenticated router, and static assets on the
+ * given NestJS application.
+ */
 export async function registerAdminPanel(
   app: INestApplication,
   configService: ConfigService,
@@ -462,6 +472,9 @@ async function sendAdminStaticAsset(
   });
 }
 
+/**
+ * Builds a minimal Prisma client module from the schema file for AdminJS.
+ */
 export async function buildPrismaClientModule(): Promise<PrismaClientModule> {
   const schema = await readFile(SCHEMA_PATH, 'utf8');
   const dmmf = await getDMMF({
@@ -475,6 +488,9 @@ export async function buildPrismaClientModule(): Promise<PrismaClientModule> {
   };
 }
 
+/**
+ * Generates AdminJS resource configurations for every model in the Prisma DMMF.
+ */
 export function generateAdminResourceConfigs(
   clientModule: PrismaClientModule,
 ): AdminResourceConfig[] {
