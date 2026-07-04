@@ -3,17 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
-import { ConfigKey } from '../../../../config/config-keys.enum';
-import { EnvKey } from '../../../../config/env-keys.enum';
-import type { AiConfig } from '../../../../config/ai.config';
+import { ConfigKey } from '../../../config/config-keys.enum';
+import { EnvKey } from '../../../config/env-keys.enum';
+import type { AiConfig } from '../../../config/ai.config';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types/assistant.types';
+} from '../types/assistant.types';
 import {
   buildReadConfidence,
   buildReadEnvelope,
-} from '../assistant-tool-presenters';
+} from './assistant-tool-presenters';
 import {
   buildVectorPage,
   buildVectorQueryHash,
@@ -23,7 +23,7 @@ import { parseSearchPayload } from './assistant-tool-drugbank-entity-resolve.ser
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   ASSISTANT_VECTOR_MAX_LIMIT,
-} from '../assistant-tool.constants';
+} from './assistant-tool.constants';
 
 const EMBEDDINGS_TABLE = 'medical_qa_embeddings';
 

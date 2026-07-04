@@ -2,17 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { OpenAIEmbeddings } from '@langchain/openai';
-import type { AiConfig } from '../../../../config/ai.config';
-import { ConfigKey } from '../../../../config/config-keys.enum';
-import { EnvKey } from '../../../../config/env-keys.enum';
+import type { AiConfig } from '../../../config/ai.config';
+import { ConfigKey } from '../../../config/config-keys.enum';
+import { EnvKey } from '../../../config/env-keys.enum';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types/assistant.types';
+} from '../types/assistant.types';
 import {
   buildReadConfidence,
   buildReadEnvelope,
-} from '../assistant-tool-presenters';
+} from './assistant-tool-presenters';
 import {
   buildVectorPage,
   buildVectorQueryHash,
@@ -25,7 +25,7 @@ import {
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   ASSISTANT_VECTOR_MAX_LIMIT,
-} from '../assistant-tool.constants';
+} from './assistant-tool.constants';
 
 const DRUGBANK_EMBEDDINGS_TABLE = 'drugbank_passage_embeddings';
 

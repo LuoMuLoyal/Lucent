@@ -35,3 +35,13 @@ Last updated: 2026-07-04
   `auth.service.ts` splits remain deferred.
 - `UserPayload` / `AuthRequestContext` / `TokenPair` were moved to
   `src/modules/auth/types/auth-request.ts` and re-exported for backward compatibility.
+
+- Module subdirectory whitelist is now enforced and aligned with actual code:
+  - `prompts/`, `schemas/`, and `strategies/` added to `AGENTS.md` Standard whitelist.
+  - Module-level `config/` restricted to runtime configuration objects/classes only.
+  - `medicines/sources/` renamed to `medicines/adapters/` (matches existing `adapters/` whitelist).
+  - `assistant/tools/services/` flattened into `assistant/tools/`.
+  - `data-export/config/report-pdf.constants.ts` moved to `data-export/constants/`;
+    `report-pdf.theme.ts` moved to `data-export/utils/`.
+  - `user-settings/config/user-settings.constants.ts` moved to `user-settings/constants/`.
+  - `architecture.md` directory example updated to match the whitelist.

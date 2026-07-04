@@ -8,10 +8,10 @@ import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.s
 import {
   AssistantToolDrugbankEntityResolveService,
   parseSearchPayload,
-} from './services/assistant-tool-drugbank-entity-resolve.service';
-import { AssistantToolDrugbankSearchService } from './services/assistant-tool-drugbank-search.service';
-import { AssistantToolMedicalKnowledgeService } from './services/assistant-tool-medical-knowledge.service';
-import { AssistantToolMedicineLookupService } from './services/assistant-tool-medicine-lookup.service';
+} from './assistant-tool-drugbank-entity-resolve.service';
+import { AssistantToolDrugbankSearchService } from './assistant-tool-drugbank-search.service';
+import { AssistantToolMedicalKnowledgeService } from './assistant-tool-medical-knowledge.service';
+import { AssistantToolMedicineLookupService } from './assistant-tool-medicine-lookup.service';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';
 

@@ -14,11 +14,11 @@ import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
   TOP_Y,
-} from '../../data-export/config/report-pdf.constants';
+} from '../../data-export/constants/report-pdf.constants';
 import type {
   EmbeddedFont,
   PageContext,
-} from '../../data-export/config/report-pdf.constants';
+} from '../../data-export/constants/report-pdf.constants';
 import {
   ensureSpace,
   drawSectionTitle,

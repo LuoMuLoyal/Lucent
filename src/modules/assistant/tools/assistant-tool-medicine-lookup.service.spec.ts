@@ -1,4 +1,4 @@
-import type { AssistantToolExecutionContext } from '../../types/assistant.types';
+import type { AssistantToolExecutionContext } from '../types/assistant.types';
 import { AssistantToolMedicineLookupService } from './assistant-tool-medicine-lookup.service';
 
 describe('AssistantToolMedicineLookupService', () => {

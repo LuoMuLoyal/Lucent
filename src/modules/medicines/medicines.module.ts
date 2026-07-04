@@ -4,8 +4,8 @@ import { MedicinesCacheAdminService } from './cache/medicines-cache-admin.servic
 import { MedicinesCacheService } from './cache/medicines-cache.service';
 import { MedicinesController } from './medicines.controller';
 import { MedicinesService } from './services/medicines.service';
-import { CnMedicinesService } from './sources/cn-medicines.service';
-import { DrugbankMedicinesService } from './sources/drugbank-medicines.service';
+import { CnMedicinesService } from './adapters/cn-medicines.service';
+import { DrugbankMedicinesService } from './adapters/drugbank-medicines.service';
 
 @Module({
   imports: [LlmRuntimeModule],

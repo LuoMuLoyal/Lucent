@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import type { AssistantReadResultEnvelope } from '../../types/assistant.types';
-import type { AssistantToolExecutionContext } from '../../types/assistant.types';
-import type { MedicineSearchItemDto } from '../../../medicines/dto';
-import { CnMedicinesService } from '../../../medicines/sources/cn-medicines.service';
-import { DrugbankMedicinesService } from '../../../medicines/sources/drugbank-medicines.service';
+import type { AssistantReadResultEnvelope } from '../types/assistant.types';
+import type { AssistantToolExecutionContext } from '../types/assistant.types';
+import type { MedicineSearchItemDto } from '../../medicines/dto';
+import { CnMedicinesService } from '../../medicines/adapters/cn-medicines.service';
+import { DrugbankMedicinesService } from '../../medicines/adapters/drugbank-medicines.service';
 import {
   buildReadConfidence,
   buildReadEnvelope,
-} from '../assistant-tool-presenters';
+} from './assistant-tool-presenters';
 import { parseSearchPayload } from './assistant-tool-drugbank-entity-resolve.service';
 
 const DEFAULT_SEARCH_LIMIT = 4;

@@ -8,15 +8,18 @@ import {
   kindLabel,
   statusLabel,
   statusPalette,
-} from '../config/report-pdf.theme';
+} from '../utils/report-pdf.theme';
 import {
   CONTENT_WIDTH,
   MARGIN_X,
   PAGE_HEIGHT,
   PAGE_WIDTH,
   TOP_Y,
-} from '../config/report-pdf.constants';
-import type { EmbeddedFont, PageContext } from '../config/report-pdf.constants';
+} from '../constants/report-pdf.constants';
+import type {
+  EmbeddedFont,
+  PageContext,
+} from '../constants/report-pdf.constants';
 import {
   ensureSpace,
   drawSectionTitle,

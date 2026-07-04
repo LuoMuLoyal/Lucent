@@ -134,8 +134,11 @@ src/modules/{module}/
 │   ├── {module}-mapper.service.ts  # Mapper convention
 │   └── ownership.service.ts        # Ownership verification convention
 ├── guards/            # NestJS Guards (only .guard.ts, CanActivate)
-├── config/            # Module-level configuration (extended)
-├── types/             # Module-level TypeScript types (extended)
+├── types/             # Module-level TypeScript types
+├── constants/         # Module-level constants
+├── prompts/           # AI prompt copy and templates
+├── schemas/           # AI output schemas and structured-response validators
+├── config/            # Module-level runtime configuration (objects/classes only)
 ├── {module}.controller.ts
 └── {module}.module.ts
 ```

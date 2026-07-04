@@ -18,8 +18,8 @@ import {
   buildVectorPage,
   buildVectorQueryHash,
   decodeVectorCursor,
-} from './services/assistant-vector-cursor';
-import { parseSearchPayload } from './services/assistant-tool-drugbank-entity-resolve.service';
+} from './assistant-vector-cursor';
+import { parseSearchPayload } from './assistant-tool-drugbank-entity-resolve.service';
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   ASSISTANT_VECTOR_MAX_LIMIT,

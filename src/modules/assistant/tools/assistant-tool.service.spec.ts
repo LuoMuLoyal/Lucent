@@ -1,9 +1,9 @@
 import { DailyRecordKind } from '../../../generated/prisma/client';
 import type { AssistantToolExecutionContext } from '../types/assistant.types';
 import { AssistantToolLeafletReadService } from './assistant-tool-leaflet-read.service';
-import { AssistantToolDrugbankEntityResolveService } from './services/assistant-tool-drugbank-entity-resolve.service';
-import { AssistantToolDrugbankSearchService } from './services/assistant-tool-drugbank-search.service';
-import type { AssistantToolMedicineLookupService } from './services/assistant-tool-medicine-lookup.service';
+import { AssistantToolDrugbankEntityResolveService } from './assistant-tool-drugbank-entity-resolve.service';
+import { AssistantToolDrugbankSearchService } from './assistant-tool-drugbank-search.service';
+import type { AssistantToolMedicineLookupService } from './assistant-tool-medicine-lookup.service';
 import { AssistantToolProposalService } from './assistant-tool-proposal.service';
 import { AssistantToolReadService } from './assistant-tool-read.service';
 import { AssistantToolRecordQueryService } from './assistant-tool-record-query.service';

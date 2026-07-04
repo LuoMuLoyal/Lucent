@@ -7,7 +7,7 @@ import {
   buildVectorQueryHash,
   decodeVectorCursor,
   encodeVectorCursor,
-} from './services/assistant-vector-cursor';
+} from './assistant-vector-cursor';
 
 // Mock PGVectorStore
 const mockSimilaritySearchWithScore = jest.fn();

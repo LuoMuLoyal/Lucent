@@ -10,10 +10,13 @@ import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
   TOP_Y,
-} from '../config/report-pdf.constants';
-import type { EmbeddedFont, PageContext } from '../config/report-pdf.constants';
-import { statusLabel, statusPalette } from '../config/report-pdf.theme';
-import { metricLabel } from '../config/report-pdf.theme';
+} from '../constants/report-pdf.constants';
+import type {
+  EmbeddedFont,
+  PageContext,
+} from '../constants/report-pdf.constants';
+import { statusLabel, statusPalette } from '../utils/report-pdf.theme';
+import { metricLabel } from '../utils/report-pdf.theme';
 import type {
   ReportDashboardDataDto,
   ReportMetricDto,

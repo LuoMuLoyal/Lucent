@@ -16,7 +16,7 @@ import {
   MealAnalysisStatus,
   parseMealRecordPayload,
 } from '../../daily-records/types/meal-analysis.types';
-import { USER_SETTING_KEYS } from '../../user-settings/config/user-settings.constants';
+import { USER_SETTING_KEYS } from '../../user-settings/constants/user-settings.constants';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,

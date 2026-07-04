@@ -82,6 +82,9 @@ Every module directory must only contain the following subdirectories. New direc
 - `enums/`
 - `types/`
 - `constants/`
+- `prompts/` — AI prompt copy and templates
+- `schemas/` — AI output schemas and structured-response validators
+- `strategies/` — Passport / authentication strategies
 
 ### Extended (allowed with review)
 
@@ -96,7 +99,7 @@ Every module directory must only contain the following subdirectories. New direc
 ### Special
 
 - `migrations/` — Prisma migrations (root-level only)
-- `config/` — global configuration (root-level only)
+- `config/` — global configuration at root level; module-level `config/` is allowed only for runtime configuration objects/classes (not for constants, themes, or static helpers)
 - `common/` — shared utilities, decorators, interceptors (root-level only)
 - `prisma/` — Prisma service and schema (root-level only)
 - `i18n/` — translation files (root-level only)
