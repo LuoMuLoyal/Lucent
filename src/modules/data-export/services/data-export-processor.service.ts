@@ -4,7 +4,7 @@ import { NotificationsService } from '../../notifications/services/notifications
 import { ReportsService } from '../../reports/dashboard/reports.service';
 import { DataExportStorageService } from './data-export-storage.service';
 import { ReportExportPdfService } from './report-export-pdf.service';
-import { formatDateOnly, now } from '../../../common/utils/date-time.utils';
+import { formatDateOnly, now } from '../../../common/helpers/date-time.utils';
 
 export interface DataExportProcessorInput {
   exportRequestId: string;

@@ -2,7 +2,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { ResultCode } from '../../../common/api-envelope';
-import { now } from '../../../common/utils/date-time.utils';
+import { now } from '../../../common/helpers/date-time.utils';
 import { DataExportCosRuntime } from '../config/data-export-cos.runtime';
 
 const PROVIDER = 'tencent-cos';

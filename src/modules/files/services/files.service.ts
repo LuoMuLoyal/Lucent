@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types.constant';
-import { badRequest } from '../../../common/utils/api-errors';
+import { badRequest } from '../../../common/helpers/api-errors';
 import { DailyRecordImageUploadRuntime } from '../../daily-records/config/daily-record-image-upload.runtime';
 import type { CreateFileUploadDto } from '../dto/create-file-upload.dto';
 

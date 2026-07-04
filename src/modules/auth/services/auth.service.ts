@@ -1,84 +1,48 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import * as argon2 from 'argon2';
 
-import { badRequest, notFound } from '../../../common/utils/api-errors';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { NotificationsService } from '../../notifications/services/notifications.service';
-import { User, UserStatus } from '#generated/prisma/client';
-import { UserService } from '../../user/services/user.service';
-import { VerificationCodeService } from './verification-code.service';
+import { User } from '#generated/prisma/client';
 import { ResultCode } from '../../../common/api-envelope';
 import { DeleteAccountDto } from '../dto/delete-account.dto';
+import { ChangeEmailDto } from '../dto/change-email.dto';
+import { ChangePasswordDto } from '../dto/change-password.dto';
+import { ForgotPasswordDto } from '../dto/forgot-password.dto';
+import { LoginDto } from '../dto/login.dto';
 import {
+  AppleOAuthCallbackDto,
   OAuthAuthorizeDto,
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
-  AppleOAuthCallbackDto,
-  QqOAuthCallbackDto,
   QqOAuthAuthorizeDto,
+  QqOAuthCallbackDto,
 } from '../dto/oauth.dto';
-import { WechatWebOAuthProvider } from '../providers/wechat-web-oauth.provider';
-import { WechatMobileOAuthProvider } from '../providers/wechat-mobile-oauth.provider';
-import { AppleOAuthProvider } from '../providers/apple-oauth.provider';
-import { QqOAuthProvider } from '../providers/qq-oauth.provider';
-import {
-  OAUTH_PROVIDER_WECHAT_WEB,
-  OAUTH_PROVIDER_QQ,
-  type OAuthAuthorizeResult,
-  type OAuthProfile,
-} from '../types/oauth.types';
-import {
-  AuthOAuthStateService,
-  type OAuthStateEntry,
-} from './auth-oauth-state.service';
-import {
-  AuthTokenService,
-  type AuthRequestContext,
-  type TokenPair,
-} from './auth-token.service';
-import { AuthOAuthService } from './auth-oauth.service';
-import {
-  CredentialAuthService,
-  normalizeEmail,
-} from './credential-auth.service';
-import type { RegisterDto } from '../dto/register.dto';
-import type { LoginDto } from '../dto/login.dto';
-import type { ChangePasswordDto } from '../dto/change-password.dto';
-import type { ChangeEmailDto } from '../dto/change-email.dto';
-import type { ResetPasswordDto } from '../dto/reset-password.dto';
-import type { SetPasswordDto } from '../dto/set-password.dto';
-import type { ForgotPasswordDto } from '../dto/forgot-password.dto';
-import type { SendVerificationCodeDto } from '../dto/send-verification-code.dto';
-import type { VerifyEmailDto } from '../dto/verify-email.dto';
-import { now } from '../../../common/utils/date-time.utils';
+import { RegisterDto } from '../dto/register.dto';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
+import { SendVerificationCodeDto } from '../dto/send-verification-code.dto';
+import { SetPasswordDto } from '../dto/set-password.dto';
+import { VerifyEmailDto } from '../dto/verify-email.dto';
+import { AuthRequestContext, TokenPair } from '../types/auth-request';
+import { OAuthAuthorizeResult } from '../types/oauth.types';
+import { AuthAccountService } from './auth-account.service';
+import { AuthOAuthFacadeService } from './auth-oauth-facade.service';
+import { AuthTokenService } from './auth-token.service';
+import { CredentialAuthService } from './credential-auth.service';
 
 export type { AuthRequestContext, UserPayload } from '../types/auth-request';
 
 /**
- * Central authentication facade that orchestrates credential flows
- * (via {@link CredentialAuthService}) and OAuth flows (via dedicated sub-services).
- *
- * Controller-facing methods delegate to the appropriate domain service.
+ * Central authentication facade that orchestrates credential flows,
+ * token management, account lifecycle, and OAuth flows via focused
+ * sub-services.
  */
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly userService: UserService,
-    private readonly verificationCodeService: VerificationCodeService,
-    private readonly wechatWebOAuthProvider: WechatWebOAuthProvider,
-    private readonly wechatMobileOAuthProvider: WechatMobileOAuthProvider,
-    private readonly appleOAuthProvider: AppleOAuthProvider,
-    private readonly qqOAuthProvider: QqOAuthProvider,
     private readonly i18n: I18nService,
     private readonly authTokenService: AuthTokenService,
-    private readonly authOAuthStateService: AuthOAuthStateService,
-    private readonly authOAuthService: AuthOAuthService,
     private readonly credentialAuthService: CredentialAuthService,
-    private readonly notificationsService: NotificationsService,
+    private readonly authAccountService: AuthAccountService,
+    private readonly authOAuthFacadeService: AuthOAuthFacadeService,
   ) {}
 
   // ── Credential delegation ────────────────────────────────────
@@ -143,272 +107,84 @@ export class AuthService {
     await this.authTokenService.revokeAll(userId);
   }
 
-  // ── Profile Management ───────────────────────────────────────
+  // ── Account Management ───────────────────────────────────────
 
   async getActiveUser(userId: string): Promise<User> {
-    const user = await this.userService.findById(userId);
-    if (!user) {
-      notFound(this.i18n.t('auth.user_not_found'));
-    }
-    return user;
+    return this.authAccountService.getActiveUser(userId);
   }
 
   async deleteAccount(userId: string, dto: DeleteAccountDto): Promise<void> {
-    const user = await this.getActiveUser(userId);
-
-    if (dto.password) {
-      if (!user.passwordHash) {
-        throw new UnauthorizedException({
-          code: ResultCode.WRONG_PASSWORD,
-          message: this.i18n.t('auth.use_code_for_oauth_account_deletion'),
-        });
-      }
-      const valid = await argon2.verify(user.passwordHash, dto.password);
-      if (!valid) {
-        throw new UnauthorizedException({
-          code: ResultCode.WRONG_PASSWORD,
-          message: this.i18n.t('auth.password_wrong'),
-        });
-      }
-    } else if (dto.code) {
-      const email = user.email ? normalizeEmail(user.email) : null;
-      if (!email) {
-        badRequest(this.i18n.t('auth.email_required_for_delete_account'));
-      }
-      await this.verificationCodeService.verify(
-        email,
-        dto.code,
-        'delete-account',
-      );
-    } else {
-      badRequest(this.i18n.t('auth.provide_password_or_code_for_deletion'));
-    }
-
     await this.logoutAll(userId);
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { deletedAt: now(), status: UserStatus.deleted },
-    });
+    await this.authAccountService.deleteAccount(userId, dto);
   }
 
-  // ── OAuth ────────────────────────────────────────────────────
+  // ── OAuth delegation ─────────────────────────────────────────
 
   async createWechatWebAuthorizeUrl(
     dto?: OAuthAuthorizeDto,
   ): Promise<OAuthAuthorizeResult> {
-    return this.createWechatWebAuthorizeUrlForPurpose('login', dto);
+    return this.authOAuthFacadeService.createWechatWebAuthorizeUrl(dto);
   }
 
   async createWechatWebIdentityLinkAuthorizeUrl(
     dto?: OAuthAuthorizeDto,
   ): Promise<OAuthAuthorizeResult> {
-    return this.createWechatWebAuthorizeUrlForPurpose('link', dto);
-  }
-
-  private async createWechatWebAuthorizeUrlForPurpose(
-    purpose: OAuthStateEntry['purpose'],
-    dto?: OAuthAuthorizeDto,
-  ): Promise<OAuthAuthorizeResult> {
-    const { state, ttlSec } = await this.authOAuthStateService.createState(
-      OAUTH_PROVIDER_WECHAT_WEB,
-      purpose,
-      dto?.callbackUri,
+    return this.authOAuthFacadeService.createWechatWebIdentityLinkAuthorizeUrl(
+      dto,
     );
-    const entry = await this.authOAuthStateService.peek(
-      OAUTH_PROVIDER_WECHAT_WEB,
-      state,
-    );
-
-    return {
-      authorizeUrl: this.wechatWebOAuthProvider.buildAuthorizeUrl(state),
-      state,
-      expiresIn: ttlSec,
-      ...(entry.callbackUri !== undefined && {
-        callbackUri: entry.callbackUri,
-      }),
-    };
   }
 
   async resolveWechatWebCallbackRedirect(
     dto: OAuthCallbackDto,
   ): Promise<string> {
-    const entry = await this.authOAuthStateService.peek(
-      OAUTH_PROVIDER_WECHAT_WEB,
-      dto.state,
-    );
-    return this.authOAuthStateService.buildRedirectUrl(
-      entry,
-      dto.code,
-      dto.state,
-    );
+    return this.authOAuthFacadeService.resolveWechatWebCallbackRedirect(dto);
   }
 
   async loginWithWechatWeb(
     dto: OAuthCallbackDto,
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
-    await this.authOAuthStateService.consume(
-      OAUTH_PROVIDER_WECHAT_WEB,
-      dto.state,
-      'login',
-    );
-    const profile = await this.wechatWebOAuthProvider.fetchProfile({
-      code: dto.code,
-    });
-    return this.loginWithOAuthProfile(profile, context);
+    return this.authOAuthFacadeService.loginWithWechatWeb(dto, context);
   }
 
   async loginWithWechatMobile(
     dto: OAuthCodeCallbackDto,
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
-    const profile = await this.wechatMobileOAuthProvider.fetchProfile({
-      code: dto.code,
-    });
-    return this.loginWithOAuthProfile(profile, context);
+    return this.authOAuthFacadeService.loginWithWechatMobile(dto, context);
   }
 
   async loginWithApple(
     dto: AppleOAuthCallbackDto,
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
-    const profile = await this.appleOAuthProvider.fetchProfile({
-      identityToken: dto.identityToken,
-      authorizationCode: dto.authorizationCode,
-      givenName: dto.givenName,
-      familyName: dto.familyName,
-    });
-    return this.loginWithOAuthProfile(profile, context);
+    return this.authOAuthFacadeService.loginWithApple(dto, context);
   }
 
   async createQqAuthorizeUrl(
     dto?: QqOAuthAuthorizeDto,
   ): Promise<OAuthAuthorizeResult> {
-    const { state, ttlSec } = await this.authOAuthStateService.createState(
-      OAUTH_PROVIDER_QQ,
-      'login',
-      dto?.callbackUri,
-    );
-    const entry = await this.authOAuthStateService.peek(
-      OAUTH_PROVIDER_QQ,
-      state,
-    );
-
-    return {
-      authorizeUrl: this.qqOAuthProvider.buildAuthorizeUrl(
-        state,
-        dto?.callbackUri,
-      ),
-      state,
-      expiresIn: ttlSec,
-      ...(entry.callbackUri !== undefined && {
-        callbackUri: entry.callbackUri,
-      }),
-    };
+    return this.authOAuthFacadeService.createQqAuthorizeUrl(dto);
   }
 
   async loginWithQq(
     dto: QqOAuthCallbackDto,
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
-    await this.authOAuthStateService.consume(
-      OAUTH_PROVIDER_QQ,
-      dto.state,
-      'login',
-    );
-    const profile = await this.qqOAuthProvider.fetchProfile({ code: dto.code });
-    return this.loginWithOAuthProfile(profile, context);
+    return this.authOAuthFacadeService.loginWithQq(dto, context);
   }
 
   async linkWechatWebIdentity(
     userId: string,
     dto: OAuthCallbackDto,
   ): Promise<void> {
-    await this.getActiveUser(userId);
-    await this.authOAuthStateService.consume(
-      OAUTH_PROVIDER_WECHAT_WEB,
-      dto.state,
-      'link',
-    );
-    const profile = await this.wechatWebOAuthProvider.fetchProfile({
-      code: dto.code,
-    });
-    await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
-    this._notifyIdentityLinked(userId, profile).catch((error: unknown) => {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Failed to notify identity linked for user ${userId} via ${profile.provider}: ${reason}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-    });
+    return this.authOAuthFacadeService.linkWechatWebIdentity(userId, dto);
   }
 
   async linkWechatMobileIdentity(
     userId: string,
     dto: OAuthCodeCallbackDto,
   ): Promise<void> {
-    await this.getActiveUser(userId);
-    const profile = await this.wechatMobileOAuthProvider.fetchProfile({
-      code: dto.code,
-    });
-    await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
-  }
-
-  private async loginWithOAuthProfile(
-    profile: OAuthProfile,
-    context?: AuthRequestContext,
-  ): Promise<{ user: User } & TokenPair> {
-    const user = await this.authOAuthService.findOrCreateOAuthUser(profile);
-    const updatedUser = await this.authOAuthService.updateOAuthLoginUser(
-      user,
-      profile,
-    );
-    const tokens = await this.authTokenService.generateTokenPair(
-      updatedUser,
-      context,
-    );
-    // Emit security notification for new OAuth login
-    this._notifyOAuthLogin(updatedUser.id, profile).catch((error: unknown) => {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Failed to notify OAuth login for user ${updatedUser.id} via ${profile.provider}: ${reason}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-    });
-    return { user: updatedUser, ...tokens };
-  }
-
-  private async _notifyOAuthLogin(
-    userId: string,
-    profile: OAuthProfile,
-  ): Promise<void> {
-    await this.notificationsService.create(userId, {
-      type: 'password_changed',
-      title: '账户登录提醒',
-      content: `您的账户通过${this._providerLabel(profile.provider)}登录。如非本人操作，请尽快联系客服。`,
-      action: '/account',
-    });
-  }
-
-  private async _notifyIdentityLinked(
-    userId: string,
-    profile: OAuthProfile,
-  ): Promise<void> {
-    await this.notificationsService.create(userId, {
-      type: 'password_changed',
-      title: '账户绑定提醒',
-      content: `您的账户已绑定${this._providerLabel(profile.provider)}身份。如非本人操作，请尽快联系客服。`,
-      action: '/account',
-    });
-  }
-
-  private _providerLabel(provider: string): string {
-    const labels: Record<string, string> = {
-      wechat_web: '微信',
-      wechat_mobile: '微信',
-      apple: 'Apple',
-      qq: 'QQ',
-    };
-    return labels[provider] ?? provider;
+    return this.authOAuthFacadeService.linkWechatMobileIdentity(userId, dto);
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { badRequest } from '../../../common/utils/api-errors';
+import { badRequest } from '../../../common/helpers/api-errors';
 
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { PrismaService } from '../../../prisma/prisma.service';

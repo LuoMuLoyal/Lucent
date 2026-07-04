@@ -1,5 +1,5 @@
-import { formatDateOnly, now } from '../../../common/utils/date-time.utils';
-import { generatePrefixedId } from '../../../common/utils/string.utils';
+import { formatDateOnly, now } from '../../../common/helpers/date-time.utils';
+import { generatePrefixedId } from '../../../common/helpers/string.utils';
 import { Inject, Injectable } from '@nestjs/common';
 import type { IDailyRecordCandidateGenerator } from '../types/assistant-ports';
 import { DAILY_RECORD_CANDIDATE_GENERATOR } from '../types/assistant-ports';

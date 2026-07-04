@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { normalizeNullableText } from '../../../common/utils/string.utils';
+import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import {
   normalizeMealEntityName,
   type MealCompositionMatch,

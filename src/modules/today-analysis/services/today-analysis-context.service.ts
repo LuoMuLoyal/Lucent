@@ -1,5 +1,5 @@
-import { nonDeleted } from '../../../common/utils/prisma.helpers';
-import { parseDateOnly } from '../../../common/utils/date-time.utils';
+import { nonDeleted } from '../../../common/helpers/prisma.helpers';
+import { parseDateOnly } from '../../../common/helpers/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import {
   DoseLogStatus,

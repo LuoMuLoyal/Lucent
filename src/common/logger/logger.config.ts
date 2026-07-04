@@ -33,7 +33,7 @@ export function createWinstonLoggerOptions(
   const level = logLevel || (isProduction ? 'info' : 'debug');
 
   const transports: winston.transport[] = [
-    // ── 控制台 ──
+    // 控制台输出
     new winston.transports.Console({
       format: isProduction
         ? winston.format.combine(
@@ -51,10 +51,10 @@ export function createWinstonLoggerOptions(
           ),
     }),
 
-    // ── 按天滚动：全量日志 ──
+    // 按天滚动：全量日志
     createDailyRotateTransport(level, 'app'),
 
-    // ── 按天滚动：错误日志（只记录 error 及以上） ──
+    // 按天滚动：错误日志（只记录 error 及以上）
     createDailyRotateTransport('error', 'error'),
   ];
 

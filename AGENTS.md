@@ -104,6 +104,18 @@ Every module directory must only contain the following subdirectories. New direc
 - `prisma/` — Prisma service and schema (root-level only)
 - `i18n/` — translation files (root-level only)
 
+## Root `common/` Conventions
+
+- Do not recreate a catch-all `src/common/utils/` directory.
+- Prefer role-based shared subdirectories under `src/common/`:
+  - `helpers/` — pure helper functions and stateless shared utilities
+  - `services/` — shared injectable services
+  - `logger/` — shared Nest logging module
+  - existing capability folders such as `ai/`, `filters/`, `interceptors/`, `middleware/`,
+    `constants/`, `validators/`
+- If a file needs Nest DI (`@Injectable()`, module wiring, env-based runtime assembly), it should
+  not live in `helpers/`.
+
 ## Module Export Rules
 
 - A service should be exported from its module (`exports` array in `@Module`) **iff** another module directly imports and uses it.

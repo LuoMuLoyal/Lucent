@@ -6,7 +6,7 @@ import type {
   SupportResourceListDataDto,
   SupportResourcesQueryDto,
 } from '../dto';
-import { nowIsoString } from '../../../common/utils/date-time.utils';
+import { nowIsoString } from '../../../common/helpers/date-time.utils';
 import {
   REFERENCE_DATA_UPDATED_AT,
   STATIC_SUPPORT_RESOURCES,

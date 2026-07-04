@@ -1,5 +1,5 @@
-import { unauthorized } from '../../../common/utils/api-errors';
-import { fetchWithRetry } from '../../../common/utils/retry.utils';
+import { unauthorized } from '../../../common/helpers/api-errors';
+import { fetchWithRetry } from '../../../common/helpers/retry.utils';
 import {
   Injectable,
   Logger,

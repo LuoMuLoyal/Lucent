@@ -11,8 +11,8 @@ import {
   forbidden,
   notFound,
   unauthorized,
-} from '../../../common/utils/api-errors';
-import { now } from '../../../common/utils/date-time.utils';
+} from '../../../common/helpers/api-errors';
+import { now } from '../../../common/helpers/date-time.utils';
 import {
   SECURITY_ELEVATION_SCOPE,
   SECURITY_ELEVATION_TTL_SECONDS,

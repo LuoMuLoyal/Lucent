@@ -23,20 +23,20 @@ import {
 import type { Request, Response } from 'express';
 
 import { successEnvelope } from '../../common/api-envelope';
-import { getRequestClientIp } from '../../common/request/client-ip';
+import { getRequestClientIp } from '../../common/helpers/client-ip';
 import { ConfigService } from '@nestjs/config';
 import { ConfigKey } from '../../config/config-keys.enum';
 import {
   calculateExpiresIn,
   formatDateTime,
   toEmailVerified,
-} from '../../common/utils/date-time.utils';
+} from '../../common/helpers/date-time.utils';
 import { VERIFICATION_CODE_COOLDOWN_SEC } from './services/verification-code.service';
 import { AuthService } from './services/auth.service';
 import { AuthTokenService } from './services/auth-token.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import type { AuthRequestContext, UserPayload } from './services/auth.service';
+import type { AuthRequestContext, UserPayload } from './types/auth-request';
 
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';

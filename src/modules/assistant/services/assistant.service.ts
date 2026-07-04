@@ -1,4 +1,4 @@
-import { badRequest, forbidden } from '../../../common/utils/api-errors';
+import { badRequest, forbidden } from '../../../common/helpers/api-errors';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ResultCode } from '../../../common/api-envelope';
 import type {
@@ -14,7 +14,7 @@ import { AssistantPolicyService } from './assistant-policy.service';
 import { AssistantContextService } from '../tools/assistant-context.service';
 import { AssistantToolService } from '../tools/assistant-tool.service';
 import { AssistantConversationService } from './assistant-conversation.service';
-import { nowIsoString } from '../../../common/utils/date-time.utils';
+import { nowIsoString } from '../../../common/helpers/date-time.utils';
 import type {
   AssistantConversationMessage,
   AssistantStreamChunkEvent,

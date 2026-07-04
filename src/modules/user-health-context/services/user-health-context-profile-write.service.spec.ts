@@ -1,4 +1,4 @@
-import { parseDateOnly } from '../../../common/utils/date-time.utils';
+import { parseDateOnly } from '../../../common/helpers/date-time.utils';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { UserHealthContextProfileWriteService } from './user-health-context-profile-write.service';

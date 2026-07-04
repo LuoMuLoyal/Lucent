@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { I18nService } from 'nestjs-i18n';
 
-import { notFound, badRequest } from '../../../common/utils/api-errors';
-import { shuffleArray } from '../../../common/utils/array.utils';
+import { notFound, badRequest } from '../../../common/helpers/api-errors';
+import { shuffleArray } from '../../../common/helpers/array.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   DEFAULT_MEDICINE_SOURCE,

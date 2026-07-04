@@ -22,7 +22,7 @@ import type { Response } from 'express';
 import { I18nLang } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../common/api-envelope';
-import { httpExceptionPayload } from '../../common/utils/error-payload';
+import { httpExceptionPayload } from '../../common/helpers/error-payload';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { endSse, prepareSse, writeSseEvent } from '../../common/sse';
 import { type UserPayload } from '../auth/types/auth-request';

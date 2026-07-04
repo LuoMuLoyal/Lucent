@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { type Prisma } from '#generated/prisma/client';
-import { extractJsonObject } from '../../../common/utils/json.utils';
-import { buildSearchText } from '../../../common/utils/search-text.utils';
-import { normalizeNullableNumber } from '../../../common/utils/number.utils';
-import { normalizeNullableText } from '../../../common/utils/string.utils';
+import { extractJsonObject } from '../../../common/helpers/json.utils';
+import { buildSearchText } from '../../../common/helpers/search-text.utils';
+import { normalizeNullableNumber } from '../../../common/helpers/number.utils';
+import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
 import {

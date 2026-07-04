@@ -11,7 +11,7 @@ import {
 } from './app.dto';
 import { EnvKey } from './config/env-keys.enum';
 import { PrismaService } from './prisma/prisma.service';
-import { nowIsoString } from './common/utils/date-time.utils';
+import { nowIsoString } from './common/helpers/date-time.utils';
 
 type HealthComponent = HealthProbeDto['components'][number];
 

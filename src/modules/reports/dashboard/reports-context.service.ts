@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { badRequest } from '../../../common/utils/api-errors';
-import { nonDeleted } from '../../../common/utils/prisma.helpers';
+import { badRequest } from '../../../common/helpers/api-errors';
+import { nonDeleted } from '../../../common/helpers/prisma.helpers';
 import {
   formatDateOnly,
   parseDateOnly,
   now,
   nowIsoString,
-} from '../../../common/utils/date-time.utils';
+} from '../../../common/helpers/date-time.utils';
 import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {

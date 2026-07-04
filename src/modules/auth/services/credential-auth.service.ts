@@ -3,7 +3,7 @@ import {
   badRequest,
   unauthorized,
   conflict,
-} from '../../../common/utils/api-errors';
+} from '../../../common/helpers/api-errors';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
@@ -30,7 +30,7 @@ import {
   type TokenPair,
 } from './auth-token.service';
 import { AuthRateLimitService } from './auth-rate-limit.service';
-import { now } from '../../../common/utils/date-time.utils';
+import { now } from '../../../common/helpers/date-time.utils';
 
 /**
  * Handles email/password credential flows: registration, login,

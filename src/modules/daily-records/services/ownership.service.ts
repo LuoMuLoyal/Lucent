@@ -1,5 +1,5 @@
-import { ensureOwnedByUser } from '../../../common/utils/prisma-ownership.helper';
-import { notFound } from '../../../common/utils/api-errors';
+import { ensureOwnedByUser } from '../../../common/helpers/prisma-ownership.helper';
+import { notFound } from '../../../common/helpers/api-errors';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 

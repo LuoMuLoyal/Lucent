@@ -1,16 +1,11 @@
-import { nonDeleted } from '../../common/utils/prisma.helpers';
+import { nonDeleted } from '../../common/helpers/prisma.helpers';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import {
-  BadRequestException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
-import * as argon2 from 'argon2';
 
 import { AuthService } from './services/auth.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -21,16 +16,15 @@ import { AuthTokenService } from './services/auth-token.service';
 import { AuthOAuthStateService } from './services/auth-oauth-state.service';
 import { AuthOAuthService } from './services/auth-oauth.service';
 import { CredentialAuthService } from './services/credential-auth.service';
+import { AuthAccountService } from './services/auth-account.service';
+import { AuthOAuthFacadeService } from './services/auth-oauth-facade.service';
+import { AuthNotificationService } from './services/auth-notification.service';
 import { UserStatus } from '#generated/prisma/client';
 import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
 import { AppleOAuthProvider } from './providers/apple-oauth.provider';
 import { QqOAuthProvider } from './providers/qq-oauth.provider';
 import { NotificationsService } from '../notifications/services/notifications.service';
-import {
-  OAUTH_PROVIDER_WECHAT_MOBILE,
-  OAUTH_PROVIDER_WECHAT_WEB,
-} from './types/oauth.types';
 
 jest.mock('argon2', () => ({
   argon2id: 2,
@@ -78,14 +72,9 @@ const mockTokenPair = {
 
 describe('AuthService', () => {
   let service: AuthService;
-  let prismaService: jest.Mocked<PrismaService>;
-  let userService: jest.Mocked<UserService>;
-  let verificationCodeService: jest.Mocked<VerificationCodeService>;
   let authTokenService: jest.Mocked<AuthTokenService>;
-  let authOAuthStateService: jest.Mocked<AuthOAuthStateService>;
-  let authOAuthService: jest.Mocked<AuthOAuthService>;
-  let wechatWebOAuthProvider: jest.Mocked<WechatWebOAuthProvider>;
-  let wechatMobileOAuthProvider: jest.Mocked<WechatMobileOAuthProvider>;
+  let authAccountService: jest.Mocked<AuthAccountService>;
+  let authOAuthFacadeService: jest.Mocked<AuthOAuthFacadeService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -253,47 +242,64 @@ describe('AuthService', () => {
             resetPassword: jest.fn().mockResolvedValue(undefined),
           },
         },
+        {
+          provide: AuthAccountService,
+          useValue: {
+            getActiveUser: jest.fn().mockResolvedValue(mockUser),
+            deleteAccount: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: AuthOAuthFacadeService,
+          useValue: {
+            createWechatWebAuthorizeUrl: jest.fn().mockResolvedValue({
+              url: 'https://example.com/auth',
+              state: 'mock-state',
+            }),
+            createWechatWebIdentityLinkAuthorizeUrl: jest
+              .fn()
+              .mockResolvedValue({
+                url: 'https://example.com/link',
+                state: 'mock-state',
+              }),
+            resolveWechatWebCallbackRedirect: jest
+              .fn()
+              .mockResolvedValue('http://localhost:8080/callback'),
+            loginWithWechatWeb: jest
+              .fn()
+              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
+            loginWithWechatMobile: jest
+              .fn()
+              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
+            loginWithApple: jest
+              .fn()
+              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
+            createQqAuthorizeUrl: jest.fn().mockResolvedValue({
+              url: 'https://example.com/qq/auth',
+              state: 'mock-state',
+            }),
+            loginWithQq: jest
+              .fn()
+              .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
+            linkWechatWebIdentity: jest.fn().mockResolvedValue(undefined),
+            linkWechatMobileIdentity: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: AuthNotificationService,
+          useValue: {
+            notifyOAuthLogin: jest.fn().mockResolvedValue(undefined),
+            notifyIdentityLinked: jest.fn().mockResolvedValue(undefined),
+            providerLabel: jest.fn((provider: string) => provider),
+          },
+        },
       ],
     }).compile();
 
     service = module.get(AuthService);
-    prismaService = module.get(PrismaService);
-    userService = module.get(UserService);
-    verificationCodeService = module.get(VerificationCodeService);
     authTokenService = module.get(AuthTokenService);
-    authOAuthStateService = module.get(AuthOAuthStateService);
-    authOAuthService = module.get(AuthOAuthService);
-    wechatWebOAuthProvider = module.get(WechatWebOAuthProvider);
-    wechatMobileOAuthProvider = module.get(WechatMobileOAuthProvider);
-    module.get(AppleOAuthProvider);
-    module.get(QqOAuthProvider);
-
-    // argon2 defaults
-    (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$newhash');
-    (argon2.verify as jest.Mock).mockResolvedValue(true);
-
-    // WeChat provider defaults
-    wechatWebOAuthProvider.buildAuthorizeUrl.mockReturnValue(
-      'https://open.weixin.qq.com/connect/qrconnect?mock=1',
-    );
-    wechatWebOAuthProvider.fetchProfile.mockResolvedValue({
-      provider: OAUTH_PROVIDER_WECHAT_WEB,
-      providerUserId: 'wechat-openid-1',
-      unionId: 'wechat-unionid-1',
-      email: null,
-      nickname: 'WechatUser',
-      avatar: 'https://example.com/wechat-avatar.png',
-      rawProfile: { openid: 'wechat-openid-1' },
-    });
-    wechatMobileOAuthProvider.fetchProfile.mockResolvedValue({
-      provider: OAUTH_PROVIDER_WECHAT_MOBILE,
-      providerUserId: 'wechat-mobile-openid-1',
-      unionId: 'wechat-unionid-1',
-      email: null,
-      nickname: 'WechatMobileUser',
-      avatar: 'https://example.com/wechat-mobile-avatar.png',
-      rawProfile: { openid: 'wechat-mobile-openid-1' },
-    });
+    authAccountService = module.get(AuthAccountService);
+    authOAuthFacadeService = module.get(AuthOAuthFacadeService);
   });
 
   afterEach(() => {
@@ -362,15 +368,21 @@ describe('AuthService', () => {
   // ══════════════════════════════════════════════════════════════
 
   describe('getActiveUser', () => {
-    it('should return user by id', async () => {
-      userService.findById.mockResolvedValue(mockUser);
+    it('should delegate to authAccountService.getActiveUser', async () => {
+      authAccountService.getActiveUser.mockResolvedValue(mockUser);
 
       const result = await service.getActiveUser('user-uuid-1');
+
+      expect(authAccountService.getActiveUser).toHaveBeenCalledWith(
+        'user-uuid-1',
+      );
       expect(result).toEqual(mockUser);
     });
 
-    it('should throw NotFoundException if user not found', async () => {
-      userService.findById.mockResolvedValue(null);
+    it('should propagate errors from authAccountService.getActiveUser', async () => {
+      authAccountService.getActiveUser.mockRejectedValue(
+        new NotFoundException('user_not_found'),
+      );
 
       await expect(service.getActiveUser('user-uuid-1')).rejects.toThrow(
         NotFoundException,
@@ -379,85 +391,25 @@ describe('AuthService', () => {
   });
 
   describe('deleteAccount', () => {
-    it('should soft-delete user after password verification', async () => {
-      userService.findById.mockResolvedValue(mockUser);
-
+    it('should delegate to authAccountService.deleteAccount', async () => {
       await service.deleteAccount('user-uuid-1', {
         password: 'Password123!',
       });
 
-      expect(argon2.verify).toHaveBeenCalledWith(
-        '$argon2id$mock',
-        'Password123!',
+      expect(authAccountService.deleteAccount).toHaveBeenCalledWith(
+        'user-uuid-1',
+        { password: 'Password123!' },
       );
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
-      expect(prismaService.user.update).toHaveBeenCalledTimes(1);
-      const updateCall = (prismaService.user.update as jest.Mock).mock
-        .calls[0] as [Parameters<typeof prismaService.user.update>[0]];
-      expect(updateCall[0].where).toEqual({ id: 'user-uuid-1' });
-      expect(updateCall[0].data).toMatchObject({
-        status: UserStatus.deleted,
-      });
-      expect(updateCall[0].data.deletedAt).toBeInstanceOf(Date);
     });
 
-    it('should throw UnauthorizedException for wrong password', async () => {
-      userService.findById.mockResolvedValue(mockUser);
-      (argon2.verify as jest.Mock).mockResolvedValueOnce(false);
+    it('should propagate errors from authAccountService.deleteAccount', async () => {
+      authAccountService.deleteAccount.mockRejectedValue(
+        new UnauthorizedException('invalid_credentials'),
+      );
 
       await expect(
         service.deleteAccount('user-uuid-1', { password: 'wrong' }),
       ).rejects.toThrow(UnauthorizedException);
-    });
-
-    it('should reject password-based deletion for OAuth-only users', async () => {
-      userService.findById.mockResolvedValue({
-        ...mockUser,
-        passwordHash: null,
-      });
-
-      await expect(
-        service.deleteAccount('user-uuid-1', { password: 'any' }),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-
-    it('should soft-delete OAuth-only user via email code verification', async () => {
-      const oauthUser = {
-        ...mockUser,
-        email: 'test@example.com',
-        passwordHash: null,
-      };
-      userService.findById.mockResolvedValue(oauthUser);
-
-      await service.deleteAccount('user-uuid-1', { code: '123456' });
-
-      expect(verificationCodeService.verify).toHaveBeenCalledWith(
-        'test@example.com',
-        '123456',
-        'delete-account',
-      );
-      expect(authTokenService.revokeAll).toHaveBeenCalledWith('user-uuid-1');
-      expect(prismaService.user.update).toHaveBeenCalledTimes(1);
-    });
-
-    it('should throw when OAuth-only user has no email for code deletion', async () => {
-      userService.findById.mockResolvedValue({
-        ...mockUser,
-        email: null,
-        passwordHash: null,
-      });
-
-      await expect(
-        service.deleteAccount('user-uuid-1', { code: '123456' }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw when neither password nor code is provided', async () => {
-      userService.findById.mockResolvedValue(mockUser);
-
-      await expect(service.deleteAccount('user-uuid-1', {})).rejects.toThrow(
-        BadRequestException,
-      );
     });
   });
 
@@ -465,150 +417,140 @@ describe('AuthService', () => {
   // 6. Email Verification & Password Reset
   // ══════════════════════════════════════════════════════════════
 
-  describe('wechat web oauth', () => {
+  describe('OAuth facade delegation', () => {
     const mockDto = { code: 'mock-auth-code', state: 'mock-oauth-state' };
 
-    beforeEach(() => {
-      // sub-service defaults for OAuth
-      (authOAuthStateService.createState as jest.Mock).mockResolvedValue({
-        state: 'mock-oauth-state',
-        ttlSec: 600,
-        callbackUri: undefined,
-      });
-      (authOAuthStateService.peek as jest.Mock).mockResolvedValue({
-        callbackUri: 'http://localhost:8080/callback',
-        targetUrl: '/',
-        purpose: 'login',
-        platform: 'web',
-      });
-      (authOAuthStateService.consume as jest.Mock).mockResolvedValue({
-        callbackUri: 'http://localhost:8080/callback',
-        targetUrl: '/',
-        purpose: 'login',
-      });
-      (authOAuthStateService.buildRedirectUrl as jest.Mock).mockReturnValue(
-        'http://localhost:8080/callback?code=mock-auth-code&state=mock-oauth-state',
-      );
-
-      (authOAuthService.findOrCreateOAuthUser as jest.Mock).mockResolvedValue(
-        mockUser,
-      );
-      (authOAuthService.updateOAuthLoginUser as jest.Mock).mockResolvedValue(
-        mockUser,
-      );
-    });
-
-    it('should create a WeChat web authorize URL', async () => {
+    it('should delegate createWechatWebAuthorizeUrl to authOAuthFacadeService', async () => {
       const result = await service.createWechatWebAuthorizeUrl();
 
-      expect(authOAuthStateService.createState).toHaveBeenCalledWith(
-        'wechat_web',
-        'login',
-        undefined,
-      );
-      expect(wechatWebOAuthProvider.buildAuthorizeUrl).toHaveBeenCalledWith(
-        'mock-oauth-state',
-      );
-      expect(result.authorizeUrl).toBe(
-        'https://open.weixin.qq.com/connect/qrconnect?mock=1',
-      );
-      expect(result.state).toBe('mock-oauth-state');
+      expect(
+        authOAuthFacadeService.createWechatWebAuthorizeUrl,
+      ).toHaveBeenCalled();
+      expect(result).toEqual({
+        url: 'https://example.com/auth',
+        state: 'mock-state',
+      });
     });
 
-    it('should pass callbackUri when provided', async () => {
+    it('should pass callbackUri to authOAuthFacadeService', async () => {
       await service.createWechatWebAuthorizeUrl({
         callbackUri: 'http://localhost:8080/callback',
       });
 
-      expect(authOAuthStateService.createState).toHaveBeenCalledWith(
-        'wechat_web',
-        'login',
-        'http://localhost:8080/callback',
-      );
+      expect(
+        authOAuthFacadeService.createWechatWebAuthorizeUrl,
+      ).toHaveBeenCalledWith({
+        callbackUri: 'http://localhost:8080/callback',
+      });
     });
 
-    it('should resolve WeChat web callback redirect', async () => {
+    it('should delegate resolveWechatWebCallbackRedirect to authOAuthFacadeService', async () => {
       const result = await service.resolveWechatWebCallbackRedirect(mockDto);
 
-      expect(authOAuthStateService.peek).toHaveBeenCalledWith(
-        'wechat_web',
-        'mock-oauth-state',
-      );
-      expect(result).toContain('mock-auth-code');
+      expect(
+        authOAuthFacadeService.resolveWechatWebCallbackRedirect,
+      ).toHaveBeenCalledWith(mockDto);
+      expect(result).toBe('http://localhost:8080/callback');
     });
 
-    it('should create a passwordless user from WeChat profile and return tokens', async () => {
-      (authOAuthStateService.consume as jest.Mock).mockResolvedValue({
-        callbackUri: 'http://localhost:8080/callback',
-        targetUrl: '/',
-        purpose: 'login',
-      });
-
+    it('should delegate loginWithWechatWeb to authOAuthFacadeService', async () => {
       const result = await service.loginWithWechatWeb(
         mockDto,
         mockRequestContext,
       );
 
-      expect(authOAuthStateService.consume).toHaveBeenCalledWith(
-        'wechat_web',
-        'mock-oauth-state',
-        'login',
+      expect(authOAuthFacadeService.loginWithWechatWeb).toHaveBeenCalledWith(
+        mockDto,
+        mockRequestContext,
       );
-      expect(wechatWebOAuthProvider.fetchProfile).toHaveBeenCalledWith({
-        code: 'mock-auth-code',
-      });
-      expect(authOAuthService.findOrCreateOAuthUser).toHaveBeenCalled();
-      expect(authTokenService.generateTokenPair).toHaveBeenCalled();
       expect(result.accessToken).toBe('mock-jwt-token');
     });
 
-    it('should reject callback when OAuth state is missing', async () => {
-      (authOAuthStateService.consume as jest.Mock).mockRejectedValueOnce(
-        new Error('OAUTH_STATE_MISSING'),
-      );
+    it('should propagate errors from authOAuthFacadeService.loginWithWechatWeb', async () => {
+      (
+        authOAuthFacadeService.loginWithWechatWeb as jest.Mock
+      ).mockRejectedValueOnce(new Error('OAUTH_STATE_MISSING'));
 
       await expect(
         service.loginWithWechatWeb({ code: 'x', state: 'bad' }),
       ).rejects.toThrow();
     });
 
-    it('should link WeChat web identity to the current user', async () => {
-      userService.findById.mockResolvedValue(mockUser);
-
+    it('should delegate linkWechatWebIdentity to authOAuthFacadeService', async () => {
       await service.linkWechatWebIdentity('user-uuid-1', mockDto);
 
-      expect(authOAuthStateService.consume).toHaveBeenCalledWith(
-        'wechat_web',
-        'mock-oauth-state',
-        'link',
-      );
-      expect(authOAuthService.linkOAuthProfileToUser).toHaveBeenCalledWith(
+      expect(authOAuthFacadeService.linkWechatWebIdentity).toHaveBeenCalledWith(
         'user-uuid-1',
-        expect.objectContaining({
-          provider: OAUTH_PROVIDER_WECHAT_WEB,
-        }),
+        mockDto,
       );
     });
 
-    it('should link WeChat mobile identity to the current user', async () => {
-      userService.findById.mockResolvedValue(mockUser);
-      (authOAuthService.linkOAuthProfileToUser as jest.Mock).mockResolvedValue(
-        undefined,
-      );
-
+    it('should delegate linkWechatMobileIdentity to authOAuthFacadeService', async () => {
       await service.linkWechatMobileIdentity('user-uuid-1', {
         code: 'mock-mobile-code',
       });
 
-      expect(wechatMobileOAuthProvider.fetchProfile).toHaveBeenCalledWith({
-        code: 'mock-mobile-code',
+      expect(
+        authOAuthFacadeService.linkWechatMobileIdentity,
+      ).toHaveBeenCalledWith('user-uuid-1', { code: 'mock-mobile-code' });
+    });
+
+    it('should delegate createWechatWebIdentityLinkAuthorizeUrl to authOAuthFacadeService', async () => {
+      const result = await service.createWechatWebIdentityLinkAuthorizeUrl();
+
+      expect(
+        authOAuthFacadeService.createWechatWebIdentityLinkAuthorizeUrl,
+      ).toHaveBeenCalled();
+      expect(result).toEqual({
+        url: 'https://example.com/link',
+        state: 'mock-state',
       });
-      expect(authOAuthService.linkOAuthProfileToUser).toHaveBeenCalledWith(
-        'user-uuid-1',
-        expect.objectContaining({
-          provider: OAUTH_PROVIDER_WECHAT_MOBILE,
-        }),
+    });
+
+    it('should delegate loginWithWechatMobile to authOAuthFacadeService', async () => {
+      const dto = { code: 'mock-mobile-code' };
+      const result = await service.loginWithWechatMobile(
+        dto,
+        mockRequestContext,
       );
+
+      expect(authOAuthFacadeService.loginWithWechatMobile).toHaveBeenCalledWith(
+        dto,
+        mockRequestContext,
+      );
+      expect(result.accessToken).toBe('mock-jwt-token');
+    });
+
+    it('should delegate loginWithApple to authOAuthFacadeService', async () => {
+      const dto = { identityToken: 'mock-apple-token' };
+      const result = await service.loginWithApple(dto, mockRequestContext);
+
+      expect(authOAuthFacadeService.loginWithApple).toHaveBeenCalledWith(
+        dto,
+        mockRequestContext,
+      );
+      expect(result.accessToken).toBe('mock-jwt-token');
+    });
+
+    it('should delegate createQqAuthorizeUrl to authOAuthFacadeService', async () => {
+      const result = await service.createQqAuthorizeUrl();
+
+      expect(authOAuthFacadeService.createQqAuthorizeUrl).toHaveBeenCalled();
+      expect(result).toEqual({
+        url: 'https://example.com/qq/auth',
+        state: 'mock-state',
+      });
+    });
+
+    it('should delegate loginWithQq to authOAuthFacadeService', async () => {
+      const dto = { code: 'mock-qq-code', state: 'mock-qq-state' };
+      const result = await service.loginWithQq(dto, mockRequestContext);
+
+      expect(authOAuthFacadeService.loginWithQq).toHaveBeenCalledWith(
+        dto,
+        mockRequestContext,
+      );
+      expect(result.accessToken).toBe('mock-jwt-token');
     });
   });
 });

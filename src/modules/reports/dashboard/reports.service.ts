@@ -1,4 +1,4 @@
-import { formatDateOnly } from '../../../common/utils/date-time.utils';
+import { formatDateOnly } from '../../../common/helpers/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import type { ReportDashboardDataDto, ReportDashboardQueryDto } from '../dto';
 import { ReportsComputationService } from './reports-computation.service';

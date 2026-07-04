@@ -7,7 +7,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import {
   calculateAge,
   nowIsoString,
-} from '../../../common/utils/date-time.utils';
+} from '../../../common/helpers/date-time.utils';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type {
   ClinicSummaryDto,

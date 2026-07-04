@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { roundNumber } from '../../../common/utils/number.utils';
-import { commonCharacterCount } from '../../../common/utils/string.utils';
+import { roundNumber } from '../../../common/helpers/number.utils';
+import { commonCharacterCount } from '../../../common/helpers/string.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   type MealCompositionMatch,

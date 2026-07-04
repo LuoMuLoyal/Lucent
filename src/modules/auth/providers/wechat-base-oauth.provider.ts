@@ -1,4 +1,4 @@
-import { unauthorized } from '../../../common/utils/api-errors';
+import { unauthorized } from '../../../common/helpers/api-errors';
 import type { Logger } from '@nestjs/common';
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';

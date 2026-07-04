@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { now } from '../../../common/utils/date-time.utils';
+import { now } from '../../../common/helpers/date-time.utils';
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -14,7 +14,7 @@ import {
 } from './today-analysis-context.service';
 import { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
 import type { TodayAnalysisStructuredOutput } from '../schemas/today-analysis.schema';
-import { nowIsoString } from '../../../common/utils/date-time.utils';
+import { nowIsoString } from '../../../common/helpers/date-time.utils';
 
 interface PreparedTodayAnalysis {
   context: TodayAnalysisContext;

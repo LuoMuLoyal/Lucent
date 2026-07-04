@@ -1,9 +1,9 @@
-import {
-  buildPrismaClientModule,
-  generateAdminResourceConfigs,
-  type AdminResourceConfig,
-  type PrismaClientModule,
-} from './adminjs.setup';
+import { buildPrismaClientModule } from './services/admin-prisma-module.service';
+import { generateAdminResourceConfigs } from './services/admin-resource-config.service';
+import type {
+  AdminResourceConfig,
+  PrismaClientModule,
+} from './types/adminjs.types';
 
 describe('AdminJS resource config generation', () => {
   let clientModule: PrismaClientModule;

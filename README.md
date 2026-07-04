@@ -166,7 +166,11 @@ LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLI
 ## Source Layout
 
 - `src/modules/` contains business feature modules: auth, account, user, health context, daily records, dose logs, medicines.
-- Top-level `src/` keeps app bootstrap and infrastructure/runtime support: `common`, `config`, `generated`, `i18n`, `mail`, `prisma`.
+- Top-level `src/` keeps app bootstrap and infrastructure/runtime support: `common`, `config`, `i18n`, `mail`, `prisma`.
+- `src/common/` now separates shared code by role instead of a catch-all `utils/` bucket:
+  - `helpers/` for pure helper functions and stateless utilities
+  - `services/` for shared injectable services
+  - `logger/` for the shared Nest logging module
 - `scripts/` contains a small set of local helpers grouped by purpose:
   - `scripts/dev/` for local runtime helpers
 - `scripts/contract/` for contract export helpers

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { normalizeNullableText } from '../../../common/utils/string.utils';
+import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import type {
   CreateHealthContextAllergyDto,

@@ -1,11 +1,11 @@
-import { badRequest } from '../../../common/utils/api-errors';
+import { badRequest } from '../../../common/helpers/api-errors';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types.constant';
 import { ResultCode } from '../../../common/api-envelope';
-import { now } from '../../../common/utils/date-time.utils';
+import { now } from '../../../common/helpers/date-time.utils';
 import type { CreateDailyRecordImageUploadDto } from '../dto';
 import { DailyRecordImageUploadRuntime } from '../config/daily-record-image-upload.runtime';
 

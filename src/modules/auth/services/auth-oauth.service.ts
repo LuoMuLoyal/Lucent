@@ -1,4 +1,4 @@
-import { conflict } from '../../../common/utils/api-errors';
+import { conflict } from '../../../common/helpers/api-errors';
 import { Injectable } from '@nestjs/common';
 
 import { I18nService } from 'nestjs-i18n';

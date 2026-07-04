@@ -4,7 +4,7 @@ Last updated: 2026-07-04
 
 - Date parsing in `assistant-tool-date-resolver.ts` now uses `date-fns` (`isValid`,
   `differenceInCalendarDays`, `eachDayOfInterval`, `addDays`) instead of manual UTC arithmetic.
-- Outbound HTTP retries are centralized in `src/common/utils/retry.utils.ts` (`withRetry` /
+- Outbound HTTP retries are centralized in `src/common/helpers/retry.utils.ts` (`withRetry` /
   `fetchWithRetry`); QQ and Apple OAuth providers share the same retry semantics.
 - Public exports across `setup-app.ts`, `app.module.ts`, `adminjs.setup.ts`, `api-envelope.ts`,
   `api-errors.ts`, filters/interceptors, and `config/` now have JSDoc descriptions.
@@ -18,7 +18,7 @@ Last updated: 2026-07-04
   `src/common/constants/user-setting-keys.ts`, and `BaseAiGeneratorService` depends on the
   `LlmRuntimePort` interface defined in `src/common/ai/llm-runtime.port.ts`.
 - Current-time creation is centralized through `now()` / `nowIsoString()` in
-  `src/common/utils/date-time.utils.ts`; bare `new Date()` calls in non-test business code have been
+  `src/common/helpers/date-time.utils.ts`; bare `new Date()` calls in non-test business code have been
   replaced.
 - Silent catch blocks across auth notifications, SSE controllers, health probes, and export
   notifications now log errors before falling back, improving production observability.
@@ -27,8 +27,8 @@ Last updated: 2026-07-04
 - Assistant module cross-module service dependencies are now consumed through `assistant-ports.ts`
   interfaces and injection tokens (`MEDICINE_REMINDER_READER`, `DAILY_RECORD_READER`,
   `DAILY_RECORD_CANDIDATE_GENERATOR`) instead of concrete class imports.
-- Shared utilities expanded: `isBlank`, `isEmptyArray`, `truncate`, and `generatePrefixedId` live
-  in `src/common/utils/` with unit specs.
+- Shared helpers expanded: `isBlank`, `isEmptyArray`, `truncate`, and `generatePrefixedId` live in
+  `src/common/helpers/` with unit specs.
 - `api-errors.ts` helpers are now used consistently for plain `BadRequestException` throws in
   reports and daily-records services.
 - `assistant-runtime.graph.ts` was split into state/router/graph files; `adminjs.setup.ts` and
@@ -49,3 +49,8 @@ Last updated: 2026-07-04
 - Prisma-generated client moved out of `src/` to root-level `generated/prisma`.
   - Introduced Node.js subpath import `#generated/*` with synchronized TS/SWC/Jest configuration.
   - All `.../generated/prisma/client` imports across `src/` and `test/` replaced with `#generated/prisma/client`.
+
+- Shared `common/` code is now split by role instead of collecting everything under `utils/`.
+  - `src/common/helpers/` holds pure helper functions and stateless shared utilities.
+  - `src/common/services/` holds shared injectable services such as `LocalizedCopyService`.
+  - `src/common/logger/` holds the shared Nest logging module.

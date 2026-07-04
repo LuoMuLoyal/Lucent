@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../common/utils/prisma.helpers';
+import { nonDeleted } from '../../common/helpers/prisma.helpers';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { Test } from '@nestjs/testing';

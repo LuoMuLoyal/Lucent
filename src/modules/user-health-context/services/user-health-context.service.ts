@@ -1,7 +1,7 @@
-import { nonDeleted } from '../../../common/utils/prisma.helpers';
+import { nonDeleted } from '../../../common/helpers/prisma.helpers';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { notFound } from '../../../common/utils/api-errors';
+import { notFound } from '../../../common/helpers/api-errors';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   CreateCurrentMedicineDto,

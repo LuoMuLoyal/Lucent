@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-03
+Last updated: 2026-07-04
 
 本文件只保留简介和按区域链接。具体后端实现细节见 `00-current/` 下各子文件。
 
@@ -14,6 +14,9 @@ Last updated: 2026-07-03
 - [[00-current/Report_Export]]
 - [[00-current/Meal_Analysis]]
 - [[00-current/Code_Quality_Maintainability]]
+
+当前共享目录边界以 `[[00-current/Code_Quality_Maintainability]]` 为准；`src/common/` 已按
+`helpers/`、`services/`、`logger/` 等角色分层，不再使用单一 `utils/` 汇总共享代码。
 
 ## 相关文档
 

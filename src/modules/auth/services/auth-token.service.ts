@@ -6,7 +6,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { User } from '#generated/prisma/client';
 import { ConfigKey } from '../../../config/config-keys.enum';
 
-import { now } from '../../../common/utils/date-time.utils';
+import { now } from '../../../common/helpers/date-time.utils';
 import type {
   AuthRequestContext,
   TokenPair,

@@ -1,4 +1,4 @@
-import { badRequest, unauthorized } from '../../../common/utils/api-errors';
+import { badRequest, unauthorized } from '../../../common/helpers/api-errors';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';

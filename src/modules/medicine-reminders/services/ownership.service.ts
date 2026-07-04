@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { ensureOwnedByUser } from '../../../common/utils/prisma-ownership.helper';
+import { ensureOwnedByUser } from '../../../common/helpers/prisma-ownership.helper';
 
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { OwnedMedicineReminderRecord } from '../types/medicine-reminders.types';

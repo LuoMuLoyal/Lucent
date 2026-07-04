@@ -125,6 +125,16 @@ graph LR
 
 See `AGENTS.md` → Module Subdirectory Whitelist for the complete governance rules.
 
+Root-level `src/` infrastructure directories stay separate from `common/` shared code. In
+particular, `mail/`, `prisma/`, `config/`, and `i18n/` remain root-level runtime boundaries, while
+`common/` is internally split by role:
+
+- `common/helpers/` — pure helper functions and stateless shared utilities
+- `common/services/` — shared injectable services
+- `common/logger/` — shared Nest logging module
+- `common/ai/`, `common/filters/`, `common/interceptors/`, `common/middleware/`,
+  `common/constants/`, `common/validators/` — capability-specific shared code
+
 ```
 src/modules/{module}/
 ├── dto/               # Data Transfer Objects (must have index.ts)

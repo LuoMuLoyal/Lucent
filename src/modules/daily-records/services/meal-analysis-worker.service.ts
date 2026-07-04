@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
-import { normalizeNullableText } from '../../../common/utils/string.utils';
+import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { DailyRecordImageUploadRuntime } from '../config/daily-record-image-upload.runtime';
 import {
@@ -9,7 +9,7 @@ import {
 } from '../types/meal-analysis.types';
 import { MealAnalysisMatcherService } from './meal-analysis-matcher.service';
 import { MealAnalysisVisionService } from './meal-analysis-vision.service';
-import { now } from '../../../common/utils/date-time.utils';
+import { now } from '../../../common/helpers/date-time.utils';
 
 interface MealAnalysisJobData {
   userId: string;

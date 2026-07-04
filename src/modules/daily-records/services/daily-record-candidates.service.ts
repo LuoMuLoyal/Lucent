@@ -10,7 +10,7 @@ import type {
 } from '../dto';
 import { DailyRecordCandidatesCopyService } from './daily-record-candidates-copy.service';
 import { DailyRecordCandidatesGeneratorService } from './daily-record-candidates-generator.service';
-import { nowIsoString } from '../../../common/utils/date-time.utils';
+import { nowIsoString } from '../../../common/helpers/date-time.utils';
 
 interface DailyRecordCandidatesContext {
   text: string;

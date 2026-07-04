@@ -1,4 +1,4 @@
-import { nowIsoString } from '../../../common/utils/date-time.utils';
+import { nowIsoString } from '../../../common/helpers/date-time.utils';
 
 export const MEAL_ANALYSIS_STATUSES = [
   'analyzing',
