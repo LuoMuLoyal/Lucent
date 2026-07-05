@@ -1,5 +1,10 @@
 import { badRequest, unauthorized } from '../../../common/helpers/api-errors';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
@@ -25,6 +30,8 @@ export type { OAuthStateEntry };
 
 @Injectable()
 export class AuthOAuthStateService {
+  private readonly logger = new Logger(AuthOAuthStateService.name);
+
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly configService: ConfigService,
@@ -124,7 +131,8 @@ export class AuthOAuthStateService {
     let parsed: URL;
     try {
       parsed = new URL(trimmed);
-    } catch {
+    } catch (error) {
+      this.logger.warn('Invalid OAuth callback URI', { uri: trimmed, error });
       throw this.invalidUri();
     }
 

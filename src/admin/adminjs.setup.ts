@@ -2,21 +2,15 @@ import type { INestApplication } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  ADMIN_COOKIE_SECRET_KEY,
-  ADMIN_EMAIL_KEY,
-  ADMIN_PASSWORD_KEY,
-  ADMIN_ROOT_PATH,
-  NODE_ENV_KEY,
-} from './constants/adminjs.constants';
+import { ADMIN_ROOT_PATH } from './constants/adminjs.constants';
 import { buildPrismaClientModule } from './services/admin-prisma-module.service';
 import { buildResources } from './services/admin-resource-builder.service';
 import { registerAdminStaticAssets } from './services/admin-static-asset.service';
+import { buildAdminAuthRouter } from './services/admin-auth-router.service';
 import type {
   AdminJsExpressModule,
   AdminJsModule,
   AdminJsPrismaModule,
-  AdminUser,
   DynamicImport,
 } from './types/adminjs.types';
 
@@ -66,35 +60,10 @@ export async function registerAdminPanel(
     resources,
   });
 
-  const adminEmail = configService.getOrThrow<string>(ADMIN_EMAIL_KEY);
-  const adminPassword = configService.getOrThrow<string>(ADMIN_PASSWORD_KEY);
-  const cookieSecret = configService.getOrThrow<string>(
-    ADMIN_COOKIE_SECRET_KEY,
-  );
-  const isProduction = configService.get<string>(NODE_ENV_KEY) === 'production';
-
-  const router = buildAuthenticatedRouter(
+  const router = buildAdminAuthRouter(
     admin,
-    {
-      cookieName: 'lucent-admin',
-      cookiePassword: cookieSecret,
-      authenticate: (email, password): AdminUser | null =>
-        email === adminEmail && password === adminPassword
-          ? { email: adminEmail }
-          : null,
-    },
-    null,
-    {
-      resave: false,
-      saveUninitialized: false,
-      secret: cookieSecret,
-      name: 'lucent-admin',
-      cookie: {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure: isProduction,
-      },
-    },
+    configService,
+    buildAuthenticatedRouter,
   );
 
   registerAdminStaticAssets(

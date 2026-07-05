@@ -1,7 +1,11 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-04
+Last updated: 2026-07-05
 
+- auth 模块三处静默 catch 补充 logger.warn：`auth.service.ts` refresh、`auth-oauth-state.service.ts`
+  normalizeCallbackUri、`credential-auth.service.ts` \_notifyPasswordChanged，保留生产环境可观测性。
+- `adminjs.setup.ts` 认证/路由构建逻辑提取到 `services/admin-auth-router.service.ts`，
+  主文件从 106 行精简至约 77 行。
 - Date parsing in `assistant-tool-date-resolver.ts` now uses `date-fns` (`isValid`,
   `differenceInCalendarDays`, `eachDayOfInterval`, `addDays`) instead of manual UTC arithmetic.
 - Outbound HTTP retries are centralized in `src/common/helpers/retry.utils.ts` (`withRetry` /

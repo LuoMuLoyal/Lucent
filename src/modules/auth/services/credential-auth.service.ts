@@ -4,7 +4,7 @@ import {
   unauthorized,
   conflict,
 } from '../../../common/helpers/api-errors';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
@@ -38,6 +38,8 @@ import { now } from '../../../common/helpers/date-time.utils';
  */
 @Injectable()
 export class CredentialAuthService {
+  private readonly logger = new Logger(CredentialAuthService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly verificationCodeService: VerificationCodeService,
@@ -289,8 +291,11 @@ export class CredentialAuthService {
         content: '您的账户密码已成功修改。如非本人操作，请尽快联系客服。',
         action: '/account',
       });
-    } catch {
-      // Silently fail so notification issues do not break auth flow.
+    } catch (error) {
+      this.logger.warn('Notification delivery failed during password change', {
+        userId,
+        error,
+      });
     }
   }
 }

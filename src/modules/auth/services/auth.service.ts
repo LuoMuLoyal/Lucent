@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
@@ -37,6 +37,8 @@ export type { AuthRequestContext, UserPayload } from '../types/auth-request';
  */
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly i18n: I18nService,
     private readonly authTokenService: AuthTokenService,
@@ -91,7 +93,8 @@ export class AuthService {
   ): Promise<TokenPair> {
     try {
       return await this.authTokenService.refresh(refreshToken, context);
-    } catch {
+    } catch (error) {
+      this.logger.warn('Token refresh failed', { error });
       throw new UnauthorizedException({
         code: ResultCode.REFRESH_TOKEN_INVALID,
         message: this.i18n.t('auth.refresh_token_invalid'),
