@@ -20,6 +20,7 @@ import { metricLabel } from '../utils/report-pdf.theme';
 import type {
   ReportDashboardDataDto,
   ReportMetricDto,
+  ReportTrendDto,
 } from '../../reports/dto';
 
 export type PdfColor = ReturnType<typeof rgb>;
@@ -85,6 +86,32 @@ export function drawWrappedText(
   }
 }
 
+function buildScoreBreakdown(
+  metrics: ReportMetricDto[],
+  isZh: boolean,
+): string {
+  const parts = metrics.map((m) => {
+    const label = metricLabel(m.kind, isZh);
+    const score = metricScoreValue(m.status);
+    const sign = score >= 0 ? '+' : '';
+    return `${label} ${sign}${String(score)}`;
+  });
+  return parts.join('    ');
+}
+
+function metricScoreValue(status: string): number {
+  switch (status) {
+    case 'good':
+      return 35;
+    case 'stable':
+      return 25;
+    case 'needs_attention':
+      return 15;
+    default:
+      return 18;
+  }
+}
+
 export function drawScoreCard(
   context: PageContext,
   report: ReportDashboardDataDto,
@@ -97,7 +124,8 @@ export function drawScoreCard(
     11,
     CONTENT_WIDTH - 28,
   );
-  const boxHeight = 52 + summaryLines.length * 15;
+  const breakdownText = buildScoreBreakdown(report.metrics, isZh);
+  const boxHeight = 68 + summaryLines.length * 15;
   ensureHeight(context, boxHeight);
   const boxY = context.cursorY - boxHeight;
   context.page.drawRectangle({
@@ -142,7 +170,14 @@ export function drawScoreCard(
     font: context.cjkFont,
     color: rgb(0.14, 0.19, 0.26),
   });
-  let textY = context.cursorY - 58;
+  context.page.drawText(breakdownText, {
+    x: MARGIN_X + 14,
+    y: context.cursorY - 54,
+    size: 9.5,
+    font: context.cjkFont,
+    color: rgb(0.4, 0.45, 0.53),
+  });
+  let textY = context.cursorY - 74;
   for (const line of summaryLines) {
     context.page.drawText(line, {
       x: MARGIN_X + 14,
@@ -163,7 +198,7 @@ export function drawMetricsGrid(
 ): void {
   const cols = 2;
   const cardWidth = (CONTENT_WIDTH - 8) / cols;
-  const cardHeight = 56;
+  const cardHeight = 76;
   for (let i = 0; i < metrics.length; i += cols) {
     const row = metrics.slice(i, i + cols);
     const boxHeight = cardHeight;
@@ -230,6 +265,32 @@ function drawCompactMetricCard(
     font: context.cjkFont,
     color: palette.text,
   });
+  const deltaLabel = deltaText(metric, isZh);
+  context.page.drawText(deltaLabel, {
+    x: x + 10,
+    y: y + height - 50,
+    size: 9,
+    font: context.cjkFont,
+    color: rgb(0.34, 0.41, 0.5),
+  });
+  const sparklineText = metric.sparkline
+    .map((v) => (Number.isInteger(v) ? String(v) : v.toFixed(1)))
+    .join(' ');
+  context.page.drawText(sparklineText, {
+    x: x + 10,
+    y: y + height - 64,
+    size: 8,
+    font: context.cjkFont,
+    color: rgb(0.45, 0.49, 0.55),
+  });
+}
+
+function deltaText(metric: ReportMetricDto, isZh: boolean): string {
+  const prefix = isZh ? 'Δ:' : 'Δ:';
+  if (metric.delta === '--') return `${prefix} --`;
+  const arrow =
+    metric.direction === 'up' ? '↑' : metric.direction === 'down' ? '↓' : '→';
+  return `${prefix} ${metric.delta} ${arrow}`;
 }
 
 export function drawInsightBlock(
@@ -241,6 +302,7 @@ export function drawInsightBlock(
     backgroundColor: PdfColor;
     badgeText?: string;
     badgeColor?: PdfColor;
+    sparkline?: number[];
   },
 ): void {
   const titleLines = wrapText(
@@ -256,8 +318,14 @@ export function drawInsightBlock(
     CONTENT_WIDTH - 28,
   );
   const badgeHeight = input.badgeText ? 20 : 0;
+  const sparklineHeight = input.sparkline ? 18 : 0;
   const boxHeight =
-    14 + badgeHeight + titleLines.length * 15 + bodyLines.length * 15 + 18;
+    14 +
+    badgeHeight +
+    titleLines.length * 15 +
+    bodyLines.length * 15 +
+    sparklineHeight +
+    18;
   ensureHeight(context, boxHeight);
   const boxY = context.cursorY - boxHeight;
   context.page.drawRectangle({
@@ -308,6 +376,19 @@ export function drawInsightBlock(
     });
     textY -= 15;
   }
+  if (input.sparkline) {
+    const sparklineText = input.sparkline
+      .map((v) => (Number.isInteger(v) ? String(v) : v.toFixed(1)))
+      .join(' ');
+    context.page.drawText(sparklineText, {
+      x: MARGIN_X + 14,
+      y: textY,
+      size: 8,
+      font: context.cjkFont,
+      color: rgb(0.5, 0.54, 0.6),
+    });
+    textY -= 18;
+  }
   context.cursorY = boxY - 8;
 }
 
@@ -330,6 +411,116 @@ export function wrapText(
   }
   if (current) lines.push(current);
   return lines;
+}
+
+export function drawTrendTable(
+  context: PageContext,
+  trends: ReportTrendDto[],
+  isZh: boolean,
+): void {
+  if (trends.length === 0) return;
+  const maxLen = Math.max(...trends.map((t) => t.values.length), 0);
+  if (maxLen === 0) return;
+
+  const dayColWidth = 44;
+  const metricColWidth = (CONTENT_WIDTH - dayColWidth) / trends.length;
+  const rowHeight = 15;
+  const headerHeight = 18;
+
+  ensureHeight(context, headerHeight + rowHeight);
+  const headerY = context.cursorY;
+  drawRowBackground(
+    context,
+    MARGIN_X,
+    headerY - headerHeight,
+    CONTENT_WIDTH,
+    headerHeight,
+    rgb(0.94, 0.96, 0.98),
+  );
+  const dateLabel = isZh ? '日期' : 'Day';
+  context.page.drawText(dateLabel, {
+    x: MARGIN_X + 4,
+    y: headerY - 13,
+    size: 8.5,
+    font: context.cjkFont,
+    color: rgb(0.22, 0.27, 0.33),
+  });
+  for (let ci = 0; ci < trends.length; ci += 1) {
+    const trend = trends[ci];
+    if (!trend) continue;
+    const label = `${metricLabel(trend.kind, isZh)}(${trend.unit})`;
+    const colX = MARGIN_X + dayColWidth + ci * metricColWidth;
+    context.page.drawText(label, {
+      x: colX + 4,
+      y: headerY - 13,
+      size: 8.5,
+      font: context.cjkFont,
+      color: rgb(0.22, 0.27, 0.33),
+    });
+  }
+  context.cursorY = headerY - headerHeight;
+
+  for (let row = 0; row < maxLen; row += 1) {
+    ensureSpace(context, 1, 2);
+    const bgY = context.cursorY - rowHeight;
+    if (row % 2 === 0) {
+      drawRowBackground(
+        context,
+        MARGIN_X,
+        bgY,
+        CONTENT_WIDTH,
+        rowHeight,
+        rgb(0.97, 0.98, 0.99),
+      );
+    }
+    const dayNum = isZh ? `第${String(row + 1)}天` : `Day ${String(row + 1)}`;
+    context.page.drawText(dayNum, {
+      x: MARGIN_X + 4,
+      y: bgY + 3,
+      size: 8,
+      font: context.cjkFont,
+      color: rgb(0.4, 0.45, 0.53),
+    });
+    for (let ci = 0; ci < trends.length; ci += 1) {
+      const trend = trends[ci];
+      if (!trend) continue;
+      const colX = MARGIN_X + dayColWidth + ci * metricColWidth;
+      const value = trend.values[row];
+      const valueText =
+        value == null
+          ? '--'
+          : Number.isInteger(value)
+            ? String(value)
+            : value.toFixed(1);
+      context.page.drawText(valueText, {
+        x: colX + 6,
+        y: bgY + 3,
+        size: 8,
+        font: context.cjkFont,
+        color: rgb(0.22, 0.27, 0.33),
+      });
+    }
+    context.cursorY = bgY;
+  }
+  context.cursorY -= 8;
+}
+
+function drawRowBackground(
+  context: PageContext,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: PdfColor,
+): void {
+  context.page.drawRectangle({
+    x,
+    y,
+    width,
+    height,
+    color,
+    borderWidth: 0,
+  });
 }
 
 export function drawPageChrome(context: PageContext): void {

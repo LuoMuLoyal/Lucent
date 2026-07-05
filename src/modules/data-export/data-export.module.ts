@@ -11,7 +11,6 @@ import { DataExportService } from './services/data-export.service';
 import { DataExportStorageService } from './services/data-export-storage.service';
 import { DataExportQueueService } from './services/data-export-queue.service';
 import { ReportExportPdfService } from './services/report-export-pdf.service';
-import { ReportChartService } from './services/report-chart.service';
 
 @Module({
   imports: [AuthModule, ReportsModule, NotificationsModule, SecurityPinModule],
@@ -20,7 +19,6 @@ import { ReportChartService } from './services/report-chart.service';
     DataExportCosRuntime,
     DataExportStorageService,
     ReportExportPdfService,
-    ReportChartService,
     DataExportProcessorService,
     DataExportQueueService,
     DataExportService,

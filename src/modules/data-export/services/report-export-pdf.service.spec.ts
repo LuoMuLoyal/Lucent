@@ -1,14 +1,8 @@
 import { PDFDocument } from 'pdf-lib';
 import { ReportExportPdfService } from './report-export-pdf.service';
-import type { ReportChartService } from './report-chart.service';
-
-const mockChartService = {
-  buildTrendChart: jest.fn().mockResolvedValue(null),
-  buildScoreChart: jest.fn().mockResolvedValue(null),
-} as unknown as ReportChartService;
 
 describe('ReportExportPdfService', () => {
-  const service = new ReportExportPdfService(mockChartService);
+  const service = new ReportExportPdfService();
 
   it('builds a multi-page hospital pdf with metadata', async () => {
     const pdfBytes = await service.buildHospitalPdf({
@@ -96,7 +90,26 @@ function sampleReport(input?: {
         sparkline: [6.2, 6.1, 6.4, 6.5, 6.8, 6.4, 6.5],
       },
     ],
-    trends: [],
+    trends: [
+      {
+        kind: 'medication' as const,
+        unit: '%',
+        currentValue: '92',
+        values: [90, 95, 93, 92, 91, 94, 92],
+      },
+      {
+        kind: 'water' as const,
+        unit: 'L',
+        currentValue: '1.4',
+        values: [1.8, 1.6, 1.3, 1.2, 1.5, 1.4, 1.4],
+      },
+      {
+        kind: 'sleep' as const,
+        unit: 'h',
+        currentValue: '6.5',
+        values: [6.2, 6.1, 6.4, 6.5, 6.8, 6.4, 6.5],
+      },
+    ],
     findings: Array.from({ length: findingsCount }, (_, index) => ({
       kind: 'hydration' as const,
       title: `饮水偏低 ${String(index + 1)}`,

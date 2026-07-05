@@ -3,7 +3,6 @@ import { Injectable } from '@nestjs/common';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
 import type { ReportDashboardDataDto } from '../../reports/dto';
-import { ReportChartService } from './report-chart.service';
 import {
   kindLabel,
   statusLabel,
@@ -21,15 +20,16 @@ import type {
   PageContext,
 } from '../constants/report-pdf.constants';
 import {
-  ensureSpace,
-  drawSectionTitle,
-  drawWrappedText,
-  drawScoreCard,
-  drawMetricsGrid,
   drawInsightBlock,
-  drawSubsectionTitle,
-  drawPageDecorations,
+  drawMetricsGrid,
   drawPageChrome,
+  drawPageDecorations,
+  drawScoreCard,
+  drawSectionTitle,
+  drawSubsectionTitle,
+  drawTrendTable,
+  drawWrappedText,
+  ensureSpace,
 } from './report-export-pdf-draw.service';
 
 const FONT_PATH =
@@ -39,11 +39,6 @@ type ReportPdfKind = 'hospital' | 'monthly' | 'print';
 
 @Injectable()
 export class ReportExportPdfService {
-  constructor(private readonly chartService: ReportChartService) {
-    // Chart service available for future PDF chart embedding (P3 groundwork)
-    void this.chartService;
-  }
-
   async buildHospitalPdf(input: {
     locale: string;
     report: ReportDashboardDataDto;
@@ -162,6 +157,11 @@ export class ReportExportPdfService {
       drawMetricsGrid(context, report.metrics, isZh);
     context.cursorY -= 8;
 
+    const trendsLabel = isZh ? '每日趋势' : 'Daily Trends';
+    drawSectionTitle(context, trendsLabel);
+    drawTrendTable(context, report.trends, isZh);
+    context.cursorY -= 8;
+
     drawSectionTitle(context, findingsLabel);
     if (report.findings.length === 0) {
       drawWrappedText(
@@ -217,6 +217,7 @@ export class ReportExportPdfService {
           backgroundColor: palette.fill,
           badgeText: statusLabel(pattern.status, isZh),
           badgeColor: palette.text,
+          sparkline: pattern.sparkline,
         });
       }
     }
@@ -231,6 +232,7 @@ export class ReportExportPdfService {
           backgroundColor: palette.fill,
           badgeText: statusLabel(pattern.status, isZh),
           badgeColor: palette.text,
+          sparkline: pattern.sparkline,
         });
       }
     }

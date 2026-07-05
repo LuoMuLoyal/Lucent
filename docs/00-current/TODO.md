@@ -1,6 +1,6 @@
 # Lucent TODO
 
-Last updated: 2026-06-30
+Last updated: 2026-07-05
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -11,13 +11,6 @@ random docs.
 `Luminous/docs/00-current/Current_State.md`, and record the completion in both today's
 `Lucent/docs/02-logs/migration-log/YYYY-MM-DD.md` and
 `Luminous/docs/02-logs/migration-log/YYYY-MM-DD.md` as cross-repo sync evidence.
-
-## Module Boundaries
-
-## Report Export
-
-- Richer structured sections or chart blocks if doctor-facing readability needs more than the
-  current text-first PDF template.
 
 ## Assistant RAG
 
@@ -32,7 +25,7 @@ random docs.
 - Cross-source CN -> DrugBank mapping is intentionally not a runtime table or alias map. Use
   assistant source-split structured lookup tools for cross-source questions instead of building a
   shared mapping layer.
-  Source context: `src/modules/assistant/tools/services/assistant-tool-medicine-lookup.service.ts`,
+  Source context: `src/modules/assistant/tools/assistant-tool-medicine-lookup.service.ts`,
   `docs/public/assistant-contract.md`
 
 ## Auth / Security

@@ -35,8 +35,9 @@ Last updated: 2026-07-05
   `src/common/helpers/` with unit specs.
 - `api-errors.ts` helpers are now used consistently for plain `BadRequestException` throws in
   reports and daily-records services.
-- `assistant-runtime.graph.ts` was split into state/router/graph files; `adminjs.setup.ts` and
-  `auth.service.ts` splits remain deferred.
+- `assistant-runtime.graph.ts` was split into state/router/graph files; `adminjs.setup.ts` was
+  split into types/constants/services files; `auth.service.ts` was split into account, OAuth
+  facade, and notification sub-services.
 - `UserPayload` / `AuthRequestContext` / `TokenPair` were moved to
   `src/modules/auth/types/auth-request.ts` and re-exported for backward compatibility.
 
