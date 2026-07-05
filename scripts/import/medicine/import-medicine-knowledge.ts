@@ -1,19 +1,31 @@
 #!/usr/bin/env node
 
-const crypto = require('node:crypto');
-const fs = require('node:fs');
 const path = require('node:path');
-const readline = require('node:readline');
-const { spawn } = require('node:child_process');
-
-const dotenv = require('dotenv');
 const { Client } = require('pg');
-const { getDotenvLoadOrder } = require('../../../src/config/env-file-paths');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+const { loadEnvironment, REPO_ROOT } = require('../../shared/env.ts');
+const { stableUuid } = require('../../shared/stable-id.ts');
+const {
+  executeUpsert,
+  startImportRun,
+  finishImportRun,
+  parsePositiveIntegerOption,
+  parseArgs,
+  streamParseAndUpsert,
+} = require('../../shared/db-upsert.ts');
+
+// Re-export for backwards compatibility (rebuild scripts + tests depend on these)
+module.exports = {
+  invalidateMedicineCache,
+  listMedicineCacheKeys,
+  redisStoreFromUrl,
+  stableUuid,
+  stripNamespacePrefix,
+};
+
 const DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
-const STABLE_ID_NAMESPACE = 'lucent:medicine-import';
 const MEDICINES_CACHE_KEY_PREFIX = 'medicines';
+const IMPORT_RUNS_TABLE = 'drug_source_imports';
 
 const COMMANDS = {
   'cn-products': {
@@ -477,40 +489,29 @@ const COMMANDS = {
   },
 };
 
-function loadEnvironment() {
-  const nodeEnv = process.env.NODE_ENV?.trim() || 'development';
-  for (const envPath of getDotenvLoadOrder()) {
-    dotenv.config({
-      path: path.join(REPO_ROOT, envPath),
-      override: true,
-    });
-  }
+function printUsage() {
+  console.log(`Usage:
+  node scripts/import/medicine/import-medicine-knowledge.ts <command> [options]
 
-  return nodeEnv;
+Commands:
+  cn-products
+  cn-leaflets
+  cn-product-leaflet-links
+  drugbank-drugs
+  drugbank-links
+  drugbank-targets-all
+  drugbank-targets-active
+
+Options:
+  --source <path>       Override the default source file path.
+  --batch-size <n>      Number of records per upsert batch. Default: 100
+  --limit <n>           Parse only the first N records (useful for smoke tests).
+  --source-version <v>  Store the export/version string in drug_source_imports.
+  --with-hash           Compute SHA-256 for the source file and store it in drug_source_imports.
+`);
 }
 
-function parseArgs(argv) {
-  const args = { _: [] };
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const part = argv[index];
-    if (!part.startsWith('--')) {
-      args._.push(part);
-      continue;
-    }
-
-    const key = part.slice(2);
-    const next = argv[index + 1];
-    if (next && !next.startsWith('--')) {
-      args[key] = next;
-      index += 1;
-    } else {
-      args[key] = true;
-    }
-  }
-
-  return args;
-}
+// ─── Redis cache invalidation (medicine-specific) ─────────────
 
 async function redisStoreFromUrl(redisUrl) {
   const { redisStore } = require('cache-manager-ioredis-yet');
@@ -533,7 +534,6 @@ function stripNamespacePrefix(key, namespacePrefix) {
   if (!namespacePrefix || !key.startsWith(namespacePrefix)) {
     return key;
   }
-
   return key.slice(namespacePrefix.length);
 }
 
@@ -581,226 +581,7 @@ async function invalidateMedicineCache() {
   }
 }
 
-function printUsage() {
-  console.log(`Usage:
-  node scripts/import/medicine/import-medicine-knowledge.ts <command> [options]
-
-Commands:
-  cn-products
-  cn-leaflets
-  cn-product-leaflet-links
-  drugbank-drugs
-  drugbank-links
-  drugbank-targets-all
-  drugbank-targets-active
-
-Options:
-  --source <path>       Override the default source file path.
-  --batch-size <n>      Number of records per upsert batch. Default: 100
-  --limit <n>           Parse only the first N records (useful for smoke tests).
-  --source-version <v>  Store the export/version string in drug_source_imports.
-  --with-hash           Compute SHA-256 for the source file and store it in drug_source_imports.
-`);
-}
-
-function normalizeValue(value) {
-  if (value === undefined) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return JSON.stringify(value);
-  }
-
-  if (value !== null && typeof value === 'object') {
-    return JSON.stringify(value);
-  }
-
-  return value;
-}
-
-function normalizeStableIdPart(value) {
-  if (value === undefined || value === null) {
-    return '';
-  }
-
-  return String(value).trim();
-}
-
-function dedupeByConflictColumns(spec, records) {
-  const deduped = new Map();
-
-  for (const record of records) {
-    const key = spec.conflictColumns
-      .map((column) => normalizeStableIdPart(record[column]))
-      .join('||');
-    deduped.set(key, record);
-  }
-
-  return [...deduped.values()];
-}
-
-function formatUuid(buffer) {
-  const hex = buffer.toString('hex');
-  return [
-    hex.slice(0, 8),
-    hex.slice(8, 12),
-    hex.slice(12, 16),
-    hex.slice(16, 20),
-    hex.slice(20, 32),
-  ].join('-');
-}
-
-function stableUuid(...parts) {
-  const hash = crypto.createHash('sha1');
-  hash.update(STABLE_ID_NAMESPACE);
-  hash.update('::');
-  hash.update(parts.map(normalizeStableIdPart).join('||'));
-
-  const bytes = Buffer.from(hash.digest().subarray(0, 16));
-
-  // Shape the first 16 digest bytes into a UUIDv5-compatible layout.
-  bytes[6] = (bytes[6] & 0x0f) | 0x50;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-  return formatUuid(bytes);
-}
-
-function parsePositiveIntegerOption(value, optionName) {
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`${optionName} must be a positive integer`);
-  }
-
-  return parsed;
-}
-
-function sqlIdentifier(name) {
-  return `"${name.replace(/"/g, '""')}"`;
-}
-
-function buildUpsertStatement(spec, rowCount) {
-  const placeholders = [];
-  const valuesPerRow = spec.columns.length;
-
-  for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
-    const rowPlaceholders = spec.columns.map((_, columnIndex) => {
-      const parameterIndex = rowIndex * valuesPerRow + columnIndex + 1;
-      return `$${String(parameterIndex)}`;
-    });
-    placeholders.push(`(${rowPlaceholders.join(', ')})`);
-  }
-
-  const updateAssignments = spec.updateColumns.map(
-    (column) => `${sqlIdentifier(column)} = EXCLUDED.${sqlIdentifier(column)}`,
-  );
-
-  return `
-    INSERT INTO ${sqlIdentifier(spec.tableName)} (${spec.columns
-      .map(sqlIdentifier)
-      .join(', ')})
-    VALUES ${placeholders.join(', ')}
-    ON CONFLICT (${spec.conflictColumns.map(sqlIdentifier).join(', ')})
-    DO UPDATE SET
-      ${updateAssignments.join(', ')},
-      "updated_at" = CURRENT_TIMESTAMP
-  `;
-}
-
-async function executeUpsert(client, spec, records) {
-  if (records.length === 0) {
-    return 0;
-  }
-
-  const rows = dedupeByConflictColumns(spec, records);
-  const sql = buildUpsertStatement(spec, rows.length);
-  const params = rows.flatMap((record) =>
-    spec.columns.map((column) => normalizeValue(record[column])),
-  );
-
-  await client.query(sql, params);
-  return rows.length;
-}
-
-function collectRejectionSample(samples, rejection) {
-  if (samples.length >= 10) {
-    return;
-  }
-
-  samples.push({
-    rowNumber: rejection.rowNumber ?? null,
-    message: rejection.message,
-  });
-}
-
-async function computeFileHash(filePath) {
-  return new Promise((resolve, reject) => {
-    const hash = crypto.createHash('sha256');
-    const stream = fs.createReadStream(filePath);
-
-    stream.on('error', reject);
-    stream.on('data', (chunk) => hash.update(chunk));
-    stream.on('end', () => resolve(hash.digest('hex')));
-  });
-}
-
-async function startImportRun(client, config, filePath, options) {
-  const sourceStats = await fs.promises.stat(filePath);
-  const importRunId = crypto.randomUUID();
-
-  await client.query(
-    `
-      INSERT INTO "drug_source_imports" (
-        "id",
-        "source_key",
-        "source_name",
-        "source_version",
-        "source_file_name",
-        "source_file_hash",
-        "source_exported_at",
-        "status"
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'running')
-    `,
-    [
-      importRunId,
-      config.sourceKey,
-      config.sourceName,
-      options.sourceVersion ?? null,
-      path.basename(filePath),
-      options.withHash ? await computeFileHash(filePath) : null,
-      sourceStats.mtime.toISOString(),
-    ],
-  );
-
-  return importRunId;
-}
-
-async function finishImportRun(client, importRunId, summary) {
-  await client.query(
-    `
-      UPDATE "drug_source_imports"
-      SET
-        "status" = $2,
-        "raw_row_count" = $3,
-        "imported_row_count" = $4,
-        "rejected_row_count" = $5,
-        "rejection_summary" = $6,
-        "note" = $7,
-        "updated_at" = CURRENT_TIMESTAMP
-      WHERE "id" = $1
-    `,
-    [
-      importRunId,
-      summary.status,
-      summary.rawRowCount,
-      summary.importedRowCount,
-      summary.rejectedRowCount,
-      summary.rejectionSummary,
-      summary.note ?? null,
-    ],
-  );
-}
+// ─── Target-specific batch execution ──────────────────────────
 
 async function queryTargetIdMap(client, sourceDataset, sourceTargetIds) {
   if (sourceTargetIds.length === 0) {
@@ -822,7 +603,7 @@ async function queryTargetIdMap(client, sourceDataset, sourceTargetIds) {
 
 async function executeTargetBatch(client, spec, importRunId, records) {
   if (records.length === 0) {
-    return;
+    return 0;
   }
 
   const normalizedTargets = records.map((record) => ({
@@ -908,26 +689,14 @@ async function executeTargetBatch(client, spec, importRunId, records) {
     );
 
     await client.query('COMMIT');
-    return { upsertedTargetCount };
+    return upsertedTargetCount;
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
   }
 }
 
-function createParserArgs(config, sourcePath, options) {
-  const parserArgs = [config.parser, '--source-path', sourcePath];
-
-  if (options.limit !== undefined) {
-    parserArgs.push('--limit', String(options.limit));
-  }
-
-  if (config.sourceDataset) {
-    parserArgs.push('--source-dataset', config.sourceDataset);
-  }
-
-  return parserArgs;
-}
+// ─── Main import flow ─────────────────────────────────────────
 
 async function runImport(command, cliOptions) {
   const config = COMMANDS[command];
@@ -941,6 +710,7 @@ async function runImport(command, cliOptions) {
     cliOptions.source ? String(cliOptions.source) : config.defaultSourcePath,
   );
 
+  const fs = require('node:fs');
   await fs.promises.access(sourcePath, fs.constants.R_OK);
 
   if (!process.env.DATABASE_URL) {
@@ -950,13 +720,19 @@ async function runImport(command, cliOptions) {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
-  const importRunId = await startImportRun(client, config, sourcePath, {
-    sourceVersion:
-      cliOptions['source-version'] !== undefined
-        ? String(cliOptions['source-version'])
-        : null,
-    withHash: cliOptions['with-hash'] === true,
-  });
+  const importRunId = await startImportRun(
+    client,
+    IMPORT_RUNS_TABLE,
+    config,
+    sourcePath,
+    {
+      sourceVersion:
+        cliOptions['source-version'] !== undefined
+          ? String(cliOptions['source-version'])
+          : null,
+      withHash: cliOptions['with-hash'] === true,
+    },
+  );
 
   const summary = {
     status: 'completed',
@@ -966,55 +742,32 @@ async function runImport(command, cliOptions) {
     rejectionSummary: null,
     note: `Imported with NODE_ENV=${nodeEnv}`,
   };
-  const rejectionSamples = [];
   const batchSize = parsePositiveIntegerOption(
     cliOptions['batch-size'] ?? 100,
     '--batch-size',
   );
-  let currentBatch = [];
 
   try {
-    const parserArgs = createParserArgs(config, sourcePath, {
-      limit:
-        cliOptions.limit !== undefined
-          ? parsePositiveIntegerOption(cliOptions.limit, '--limit')
-          : undefined,
-    });
+    const limit =
+      cliOptions.limit !== undefined
+        ? parsePositiveIntegerOption(cliOptions.limit, '--limit')
+        : undefined;
 
-    const child = spawn('python', parserArgs, {
-      cwd: REPO_ROOT,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    const childExit = new Promise((resolve, reject) => {
-      child.on('error', reject);
-      child.on('exit', resolve);
-    });
-
-    child.stderr.setEncoding('utf-8');
-    child.stderr.on('data', (chunk) => {
-      process.stderr.write(chunk);
-    });
-
-    const stdout = readline.createInterface({
-      input: child.stdout,
-      crlfDelay: Infinity,
-    });
-
-    const flushBatch = async () => {
-      if (currentBatch.length === 0) {
+    const flushBatch = async (batch) => {
+      if (batch.length === 0) {
         return;
       }
 
       if (config.mode === 'targets') {
-        const { upsertedTargetCount } = await executeTargetBatch(
+        const upsertedTargetCount = await executeTargetBatch(
           client,
           config,
           importRunId,
-          currentBatch,
+          batch,
         );
         summary.importedRowCount += upsertedTargetCount;
       } else {
-        const normalizedBatch = currentBatch.map((record) => ({
+        const normalizedBatch = batch.map((record) => ({
           ...record,
           import_run_id: importRunId,
         }));
@@ -1024,63 +777,29 @@ async function runImport(command, cliOptions) {
           normalizedBatch,
         );
       }
-
-      currentBatch = [];
     };
 
-    for await (const line of stdout) {
-      if (!line.trim()) {
-        continue;
-      }
+    const stats = await streamParseAndUpsert(
+      config,
+      sourcePath,
+      { limit, batchSize },
+      flushBatch,
+    );
 
-      const payload = JSON.parse(line);
-      summary.rawRowCount += 1;
-
-      if (payload.kind === 'error') {
-        summary.rejectedRowCount += 1;
-        collectRejectionSample(rejectionSamples, payload);
-        continue;
-      }
-
-      if (payload.kind !== 'record') {
-        summary.rejectedRowCount += 1;
-        collectRejectionSample(rejectionSamples, {
-          rowNumber: null,
-          message: `Unsupported payload kind: ${String(payload.kind)}`,
-        });
-        continue;
-      }
-
-      currentBatch.push(payload.data);
-      if (currentBatch.length >= batchSize) {
-        await flushBatch();
-      }
-    }
-
-    await flushBatch();
-
-    const exitCode = await childExit;
-
-    if (exitCode !== 0) {
-      throw new Error(`Parser exited with code ${String(exitCode)}`);
-    }
-
+    summary.rawRowCount = stats.rawRowCount;
+    summary.rejectedRowCount = stats.rejectedRowCount;
     summary.rejectionSummary =
-      rejectionSamples.length > 0
-        ? {
-            sample: rejectionSamples,
-          }
+      stats.rejectionSamples.length > 0
+        ? { sample: stats.rejectionSamples }
         : null;
   } catch (error) {
     summary.status = 'failed';
-    summary.rejectionSummary = {
-      sample: rejectionSamples,
-    };
+    summary.rejectionSummary = { sample: [] };
     summary.note =
       error instanceof Error ? error.message : 'Unknown import failure';
     throw error;
   } finally {
-    await finishImportRun(client, importRunId, summary);
+    await finishImportRun(client, IMPORT_RUNS_TABLE, importRunId, summary);
     await client.end();
   }
 
@@ -1124,11 +843,3 @@ async function main() {
 if (require.main === module) {
   void main();
 }
-
-module.exports = {
-  invalidateMedicineCache,
-  listMedicineCacheKeys,
-  redisStoreFromUrl,
-  stableUuid,
-  stripNamespacePrefix,
-};

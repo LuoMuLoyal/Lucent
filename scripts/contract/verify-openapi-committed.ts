@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 function normalizeJson(value) {
   if (Array.isArray(value)) {
@@ -30,7 +31,7 @@ function main() {
     process.exit(1);
   }
 
-  const diffResult = require('node:child_process').spawnSync(
+  const diffResult = spawnSync(
     'git',
     ['diff', '--no-ext-diff', '--unified=0', '--', 'docs/openapi.json'],
     {
@@ -50,7 +51,7 @@ function main() {
   }
 
   const workingTreeText = fs.readFileSync(openApiPath, 'utf8');
-  const committedTextResult = require('node:child_process').spawnSync(
+  const committedTextResult = spawnSync(
     'git',
     ['show', 'HEAD:docs/openapi.json'],
     {

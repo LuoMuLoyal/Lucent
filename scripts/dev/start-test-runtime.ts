@@ -55,9 +55,7 @@ async function main() {
   applyTestMigrations();
 
   const logFd = fs.openSync(LOG_FILE, 'w');
-  const command = IS_WINDOWS
-    ? (process.env.ComSpec ?? 'cmd.exe')
-    : PNPM_COMMAND;
+  const command = IS_WINDOWS ? SHELL_COMMAND : PNPM_COMMAND;
   const args = IS_WINDOWS
     ? ['/d', '/s', '/c', 'pnpm start:test:dev']
     : ['start:test:dev'];
@@ -105,27 +103,15 @@ function stopProcessTree(pid) {
 }
 
 function applyTestMigrations() {
-  const result = IS_WINDOWS
-    ? spawnSync(
-        SHELL_COMMAND,
-        ['/d', '/s', '/c', 'pnpm exec prisma migrate deploy'],
-        {
-          cwd: REPO_ROOT,
-          env: {
-            ...process.env,
-            NODE_ENV: 'test',
-          },
-          stdio: 'inherit',
-        },
-      )
-    : spawnSync(PNPM_COMMAND, ['exec', 'prisma', 'migrate', 'deploy'], {
-        cwd: REPO_ROOT,
-        env: {
-          ...process.env,
-          NODE_ENV: 'test',
-        },
-        stdio: 'inherit',
-      });
+  const [command, args] = IS_WINDOWS
+    ? [SHELL_COMMAND, ['/d', '/s', '/c', 'pnpm exec prisma migrate deploy']]
+    : [PNPM_COMMAND, ['exec', 'prisma', 'migrate', 'deploy']];
+
+  const result = spawnSync(command, args, {
+    cwd: REPO_ROOT,
+    env: { ...process.env, NODE_ENV: 'test' },
+    stdio: 'inherit',
+  });
 
   if (result.status !== 0) {
     process.exit(result.status ?? 1);

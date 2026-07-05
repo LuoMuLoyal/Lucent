@@ -10,15 +10,23 @@
  * Use --limit for smoke tests; it does not trigger a full import.
  */
 
-const crypto = require('node:crypto');
 const path = require('node:path');
-
-const dotenv = require('dotenv');
 const { Client } = require('pg');
-const { getDotenvLoadOrder } = require('../../../src/config/env-file-paths');
-const { stableUuid } = require('./import-medicine-knowledge.ts');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
+const { loadEnvironment } = require('../../shared/env.ts');
+const { stableUuid } = require('../../shared/stable-id.ts');
+const {
+  chunkText,
+  normalizeValue,
+  computeSourceHash,
+  insertChunksBatch,
+  createEmbeddingStore,
+  embedDocuments,
+  parseRebuildArgs,
+} = require('../../shared/chunking.ts');
+
+const CHUNK_TABLE = 'drugbank_passage_chunks';
+const EMBEDDING_TABLE = 'drugbank_passage_embeddings';
 
 const CHUNKABLE_FIELDS = [
   'description',
@@ -32,89 +40,44 @@ const CHUNKABLE_FIELDS = [
   'clearance',
 ];
 
-const DEFAULT_MAX_CHUNK_LENGTH = 1000;
-const DEFAULT_CHUNK_OVERLAP = 100;
-const INSERT_BATCH_SIZE = 500;
+const CHUNK_COLUMNS = [
+  'id',
+  'drugbank_id',
+  'source_field',
+  'chunk_text',
+  'chunk_index',
+  'source_version',
+  'source_hash',
+];
 
-function loadEnvironment() {
-  const nodeEnv = process.env.NODE_ENV?.trim() || 'development';
-  for (const envPath of getDotenvLoadOrder()) {
-    dotenv.config({
-      path: path.join(REPO_ROOT, envPath),
-      override: true,
-    });
-  }
-  return nodeEnv;
-}
-
-function splitByParagraphs(text) {
-  return text
-    .split(/\n\s*/)
-    .map((paragraph) => paragraph.trim())
-    .filter((paragraph) => paragraph.length > 0);
-}
-
-function splitByLength(text, maxLength, overlap) {
-  if (text.length <= maxLength) {
-    return [text];
-  }
-
-  const chunks = [];
-  let start = 0;
-  while (start < text.length) {
-    const end = Math.min(start + maxLength, text.length);
-    chunks.push(text.slice(start, end));
-    if (end === text.length) {
-      break;
-    }
-    start = Math.max(end - overlap, start + 1);
-  }
-  return chunks;
-}
-
-function chunkText(text, maxLength, overlap) {
-  const paragraphs = splitByParagraphs(text);
-  const chunks = [];
-
-  for (const paragraph of paragraphs) {
-    if (paragraph.length <= maxLength) {
-      chunks.push(paragraph);
-      continue;
-    }
-    chunks.push(...splitByLength(paragraph, maxLength, overlap));
-  }
-
-  return chunks;
-}
-
-function buildChunkId(drugbankId, field, index, sourceHash) {
-  return stableUuid(
-    'drugbank_passage_chunk',
-    drugbankId,
-    field,
-    String(index),
-    sourceHash,
-  );
-}
-
-function computeSourceHash(rows) {
-  const hash = crypto.createHash('sha256');
-  for (const row of rows) {
-    hash.update(row.drugbank_id);
-    hash.update(row.updated_at?.toISOString() ?? row.drugbank_id);
-  }
-  return hash.digest('hex').slice(0, 16);
-}
-
-function normalizeValue(value) {
-  if (value === undefined || value === null) {
-    return null;
-  }
-  return String(value);
-}
+// ─── Data loading ─────────────────────────────────────────────
 
 async function loadDrugbankRows(client, sourceLimit) {
-  const limitClause = sourceLimit != null ? `LIMIT ${sourceLimit}` : '';
+  if (sourceLimit != null) {
+    const result = await client.query(
+      `
+        SELECT
+          drugbank_id,
+          name,
+          description,
+          indication,
+          mechanism_of_action,
+          pharmacodynamics,
+          toxicity,
+          metabolism,
+          absorption,
+          half_life,
+          clearance,
+          updated_at
+        FROM drugbank_drugs
+        ORDER BY name ASC
+        LIMIT $1
+      `,
+      [sourceLimit],
+    );
+    return result.rows;
+  }
+
   const result = await client.query(`
     SELECT
       drugbank_id,
@@ -131,13 +94,24 @@ async function loadDrugbankRows(client, sourceLimit) {
       updated_at
     FROM drugbank_drugs
     ORDER BY name ASC
-    ${limitClause}
   `);
   return result.rows;
 }
 
+// ─── Chunk building ───────────────────────────────────────────
+
+function buildChunkId(drugbankId, field, index, sourceHash) {
+  return stableUuid(
+    'drugbank_passage_chunk',
+    drugbankId,
+    field,
+    String(index),
+    sourceHash,
+  );
+}
+
 function buildChunks(rows, options) {
-  const sourceHash = computeSourceHash(rows);
+  const sourceHash = computeSourceHash(rows, 'drugbank_id', 'updated_at');
   const sourceVersion =
     options.sourceVersion ?? `rebuilt-${new Date().toISOString()}`;
   const chunks = [];
@@ -171,66 +145,7 @@ function buildChunks(rows, options) {
   return chunks;
 }
 
-async function clearChunks(client) {
-  const result = await client.query('DELETE FROM "drugbank_passage_chunks"');
-  return result.rowCount;
-}
-
-async function insertChunks(client, chunks) {
-  if (chunks.length === 0) {
-    return 0;
-  }
-
-  const columns = [
-    'id',
-    'drugbank_id',
-    'source_field',
-    'chunk_text',
-    'chunk_index',
-    'source_version',
-    'source_hash',
-  ];
-
-  let inserted = 0;
-  for (let index = 0; index < chunks.length; index += INSERT_BATCH_SIZE) {
-    const batch = chunks.slice(index, index + INSERT_BATCH_SIZE);
-    const placeholders = [];
-    const values = [];
-
-    for (let rowIndex = 0; rowIndex < batch.length; rowIndex += 1) {
-      const rowPlaceholders = [];
-      for (
-        let columnIndex = 0;
-        columnIndex < columns.length;
-        columnIndex += 1
-      ) {
-        rowPlaceholders.push(`$${rowIndex * columns.length + columnIndex + 1}`);
-      }
-      placeholders.push(`(${rowPlaceholders.join(', ')})`);
-      for (const column of columns) {
-        values.push(batch[rowIndex][column]);
-      }
-    }
-
-    const sql = `
-      INSERT INTO "drugbank_passage_chunks" (
-        "${columns.join('", "')}"
-      )
-      VALUES ${placeholders.join(', ')}
-      ON CONFLICT ("drugbank_id", "source_field", "chunk_index")
-      DO UPDATE SET
-        "chunk_text" = EXCLUDED."chunk_text",
-        "source_version" = EXCLUDED."source_version",
-        "source_hash" = EXCLUDED."source_hash",
-        "updated_at" = CURRENT_TIMESTAMP
-    `;
-
-    const result = await client.query(sql, values);
-    inserted += result.rowCount;
-  }
-
-  return inserted;
-}
+// ─── Rebuild phase ────────────────────────────────────────────
 
 async function rebuild(client, options) {
   console.log('Loading DrugBank rows...');
@@ -250,207 +165,105 @@ async function rebuild(client, options) {
   }
 
   console.log('Clearing existing chunks...');
-  const deletedCount = await clearChunks(client);
+  const deletedCount = (await client.query(`DELETE FROM "${CHUNK_TABLE}"`))
+    .rowCount;
   console.log(`Deleted ${deletedCount} existing chunks`);
 
   console.log('Inserting chunks...');
-  const inserted = await insertChunks(client, chunks);
+  const inserted = await insertChunksBatch(
+    client,
+    CHUNK_TABLE,
+    CHUNK_COLUMNS,
+    ['drugbank_id', 'source_field', 'chunk_index'],
+    ['chunk_text', 'source_version', 'source_hash'],
+    chunks,
+  );
   console.log(`Inserted ${inserted} chunks`);
 
   return { drugCount: rows.length, chunkCount: chunks.length, inserted };
 }
 
+// ─── Embedding phase ──────────────────────────────────────────
+
 async function embedChunks(client, options) {
-  const apiKey = process.env.AI_EMBEDDING_API_KEY?.trim();
-  const baseUrl = process.env.AI_EMBEDDING_BASE_URL?.trim();
-  const model = process.env.AI_EMBEDDING_MODEL?.trim();
+  const embeddingStore = await createEmbeddingStore(EMBEDDING_TABLE);
+  if (!embeddingStore) {
+    return { embedded: 0 };
+  }
+  const { store, pool } = embeddingStore;
 
-  if (!apiKey || !baseUrl || !model) {
-    console.error(
-      'Embedding is not configured. Set AI_EMBEDDING_API_KEY, AI_EMBEDDING_BASE_URL, and AI_EMBEDDING_MODEL.',
+  try {
+    if (options.embedForce) {
+      console.log('Clearing existing embeddings (--embed-force)...');
+      await pool.query(`DELETE FROM "${EMBEDDING_TABLE}"`);
+    }
+
+    // Load all chunks from drugbank_passage_chunks
+    let allChunks;
+    if (options.embedLimit != null) {
+      allChunks = (
+        await client.query(
+          `
+            SELECT id, drugbank_id, source_field, chunk_text, chunk_index
+            FROM "${CHUNK_TABLE}"
+            ORDER BY updated_at DESC, id ASC
+            LIMIT $1
+          `,
+          [options.embedLimit],
+        )
+      ).rows;
+    } else {
+      allChunks = (
+        await client.query(`
+          SELECT id, drugbank_id, source_field, chunk_text, chunk_index
+          FROM "${CHUNK_TABLE}"
+          ORDER BY updated_at DESC, id ASC
+        `)
+      ).rows;
+    }
+
+    if (allChunks.length === 0) {
+      console.log(`No chunks found in ${CHUNK_TABLE}.`);
+      return { embedded: 0 };
+    }
+
+    // Load drug names for metadata enrichment
+    const drugResult = await client.query(
+      'SELECT drugbank_id, name FROM drugbank_drugs',
     );
-    return { embedded: 0 };
-  }
+    const drugNames = new Map();
+    for (const row of drugResult.rows) {
+      drugNames.set(row.drugbank_id, row.name);
+    }
 
-  // Dynamic import for ESM-only packages
-  const { OpenAIEmbeddings } = await import('@langchain/openai');
-  const { PGVectorStore } =
-    await import('@langchain/community/vectorstores/pgvector');
-  const { Pool } = await import('pg');
+    // Build Document array
+    const docs = allChunks.map((row) => ({
+      pageContent: row.chunk_text,
+      metadata: {
+        chunkId: row.id,
+        drugbankId: row.drugbank_id,
+        drugName: drugNames.get(row.drugbank_id) ?? null,
+        field: row.source_field,
+        chunkIndex: row.chunk_index,
+      },
+    }));
 
-  const embeddings = new OpenAIEmbeddings({
-    apiKey,
-    configuration: { baseURL: baseUrl },
-    model,
-  });
-
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error('DATABASE_URL is not configured for embedding.');
-  }
-
-  const pool = new Pool({ connectionString, max: 2 });
-
-  const store = new PGVectorStore(embeddings, {
-    pool,
-    tableName: 'drugbank_passage_embeddings',
-    columns: {
-      idColumnName: 'id',
-      vectorColumnName: 'embedding',
-      contentColumnName: 'document',
-      metadataColumnName: 'cmetadata',
-    },
-    distanceStrategy: 'cosine',
-  });
-
-  await store.ensureTableInDatabase();
-
-  if (options.embedForce) {
-    console.log('Clearing existing embeddings (--embed-force)...');
-    await pool.query('DELETE FROM drugbank_passage_embeddings');
-  }
-
-  // Load all chunks from drugbank_passage_chunks
-  const limitClause =
-    options.embedLimit != null ? `LIMIT ${options.embedLimit}` : '';
-  const chunkResult = await client.query(`
-    SELECT id, drugbank_id, source_field, chunk_text, chunk_index
-    FROM drugbank_passage_chunks
-    ORDER BY updated_at DESC, id ASC
-    ${limitClause}
-  `);
-  const allChunks = chunkResult.rows;
-
-  if (allChunks.length === 0) {
-    console.log('No chunks found in drugbank_passage_chunks.');
+    const embedded = await embedDocuments(store, docs, options.embedBatchSize);
+    return { embedded };
+  } finally {
     await pool.end();
-    return { embedded: 0 };
   }
-
-  // Load drug names for metadata enrichment
-  const drugResult = await client.query(`
-    SELECT drugbank_id, name FROM drugbank_drugs
-  `);
-  const drugNames = new Map();
-  for (const row of drugResult.rows) {
-    drugNames.set(row.drugbank_id, row.name);
-  }
-
-  // Build Document array
-  const docs = allChunks.map((row) => ({
-    pageContent: row.chunk_text,
-    metadata: {
-      chunkId: row.id,
-      drugbankId: row.drugbank_id,
-      drugName: drugNames.get(row.drugbank_id) ?? null,
-      field: row.source_field,
-      chunkIndex: row.chunk_index,
-    },
-  }));
-
-  console.log(
-    `Generating embeddings for ${docs.length} chunks (batch size: ${options.embedBatchSize})...`,
-  );
-
-  let embedded = 0;
-  for (let i = 0; i < docs.length; i += options.embedBatchSize) {
-    const batch = docs.slice(i, i + options.embedBatchSize);
-
-    try {
-      await store.addDocuments(batch);
-      embedded += batch.length;
-      const pct = ((embedded / docs.length) * 100).toFixed(1);
-      console.log(`  ${embedded}/${docs.length} (${pct}%)`);
-    } catch (error) {
-      console.error(
-        `  Batch ${i}-${i + batch.length} failed: ${error instanceof Error ? error.message : error}`,
-      );
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-
-    if (i + options.embedBatchSize < docs.length) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-  }
-
-  await pool.end();
-  return { embedded };
 }
 
-function parseArgs(argv) {
-  const options = {
-    maxChunkLength: DEFAULT_MAX_CHUNK_LENGTH,
-    chunkOverlap: DEFAULT_CHUNK_OVERLAP,
-    sourceVersion: null,
-    sourceLimit: null,
-    dryRun: false,
-    skipRebuild: false,
-    embed: false,
-    embedLimit: null,
-    embedBatchSize: 20,
-    embedForce: false,
-  };
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const part = argv[index];
-    if (part === '--max-chunk-length') {
-      options.maxChunkLength =
-        Number(argv[index + 1]) || DEFAULT_MAX_CHUNK_LENGTH;
-      index += 1;
-      continue;
-    }
-    if (part === '--chunk-overlap') {
-      options.chunkOverlap = Number(argv[index + 1]) || DEFAULT_CHUNK_OVERLAP;
-      index += 1;
-      continue;
-    }
-    if (part === '--source-version') {
-      options.sourceVersion = argv[index + 1] ?? null;
-      index += 1;
-      continue;
-    }
-    if (part === '--limit' || part === '--source-limit') {
-      options.sourceLimit = Number(argv[index + 1]) || null;
-      index += 1;
-      continue;
-    }
-    if (part === '--dry-run') {
-      options.dryRun = true;
-      continue;
-    }
-    if (part === '--skip-rebuild') {
-      options.skipRebuild = true;
-      continue;
-    }
-    if (part === '--embed') {
-      options.embed = true;
-      continue;
-    }
-    if (part === '--embed-limit') {
-      options.embedLimit = Number(argv[index + 1]) || null;
-      index += 1;
-      continue;
-    }
-    if (part === '--embed-batch-size') {
-      options.embedBatchSize = Number(argv[index + 1]) || 20;
-      index += 1;
-      continue;
-    }
-    if (part === '--embed-force') {
-      options.embedForce = true;
-    }
-  }
-
-  return options;
-}
+// ─── CLI ──────────────────────────────────────────────────────
 
 function printHelp() {
   console.log(`
 Usage: node rebuild-drugbank-rag-index.ts [options]
 
 Options:
-  --max-chunk-length <n>  Max chunk length (default: ${DEFAULT_MAX_CHUNK_LENGTH})
-  --chunk-overlap <n>     Chunk overlap (default: ${DEFAULT_CHUNK_OVERLAP})
+  --max-chunk-length <n>  Max chunk length (default: 1000)
+  --chunk-overlap <n>     Chunk overlap (default: 100)
   --source-version <v>    Version tag for the rebuild
   --limit <n>             Max source rows to process (default: all)
   --dry-run               Count chunks without writing
@@ -481,7 +294,7 @@ async function main() {
     return;
   }
 
-  const options = parseArgs(argv);
+  const options = parseRebuildArgs(argv);
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
@@ -490,16 +303,7 @@ async function main() {
       const summary = await rebuild(client, options);
       console.log(JSON.stringify({ ...summary, options }, null, 2));
     } else {
-      console.log(
-        JSON.stringify(
-          {
-            skippedRebuild: true,
-            options,
-          },
-          null,
-          2,
-        ),
-      );
+      console.log(JSON.stringify({ skippedRebuild: true, options }, null, 2));
     }
 
     if (options.embed) {

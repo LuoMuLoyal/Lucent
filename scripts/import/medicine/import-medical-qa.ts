@@ -17,9 +17,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const readline = require('node:readline');
 
-const dotenv = require('dotenv');
 const { Client } = require('pg');
-const { getDotenvLoadOrder } = require('../../../src/config/env-file-paths');
+const { loadEnvironment } = require('../../shared/env.ts');
+const {
+  createEmbeddingStore,
+  embedDocuments,
+} = require('../../shared/chunking.ts');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const DRUG_DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
@@ -78,17 +81,6 @@ function classifySafety(
 }
 
 // ── Environment ────────────────────────────────────────────────
-
-function loadEnvironment(): string {
-  const nodeEnv = process.env.NODE_ENV?.trim() || 'development';
-  for (const envPath of getDotenvLoadOrder()) {
-    dotenv.config({
-      path: path.join(REPO_ROOT, envPath),
-      override: true,
-    });
-  }
-  return nodeEnv;
-}
 
 // ── Phase 1: filter & write chunks ─────────────────────────────
 
@@ -231,95 +223,43 @@ async function embedChunks(options: {
   batchSize: number;
   force: boolean;
 }): Promise<{ embedded: number }> {
-  const apiKey = process.env.AI_EMBEDDING_API_KEY?.trim();
-  const baseUrl = process.env.AI_EMBEDDING_BASE_URL?.trim();
-  const model = process.env.AI_EMBEDDING_MODEL?.trim();
+  const embeddingStore = await createEmbeddingStore('medical_qa_embeddings');
+  if (!embeddingStore) {
+    return { embedded: 0 };
+  }
+  const { store, pool } = embeddingStore;
 
-  if (!apiKey || !baseUrl || !model) {
-    console.error(
-      'Embedding not configured. Set AI_EMBEDDING_API_KEY, AI_EMBEDDING_BASE_URL, and AI_EMBEDDING_MODEL.',
+  try {
+    if (options.force) {
+      console.log('Clearing existing embeddings...');
+      await pool.query('DELETE FROM medical_qa_embeddings');
+    }
+
+    // Load safe + caution chunks only (skip blocked)
+    const result = await options.client.query(
+      `SELECT qa_id, question, answer, safety_label FROM medical_qa_chunks WHERE safety_label != 'blocked'`,
     );
-    return { embedded: 0 };
-  }
+    const rows = result.rows;
 
-  const { OpenAIEmbeddings } = await import('@langchain/openai');
-  const { PGVectorStore } =
-    await import('@langchain/community/vectorstores/pgvector');
-  const { Pool } = await import('pg');
+    if (rows.length === 0) {
+      console.log('No chunks to embed.');
+      return { embedded: 0 };
+    }
 
-  const embeddings = new OpenAIEmbeddings({
-    apiKey,
-    configuration: { baseURL: baseUrl },
-    model,
-  });
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
+    const docs = rows.map((row: any) => ({
+      pageContent: row.answer,
+      metadata: {
+        qaId: row.qa_id,
+        question: row.question,
+        safetyLabel: row.safety_label,
+      },
+    }));
 
-  const store = new PGVectorStore(embeddings, {
-    pool,
-    tableName: 'medical_qa_embeddings',
-    columns: {
-      idColumnName: 'id',
-      vectorColumnName: 'embedding',
-      contentColumnName: 'document',
-      metadataColumnName: 'cmetadata',
-    },
-    distanceStrategy: 'cosine',
-  });
-
-  await store.ensureTableInDatabase();
-
-  if (options.force) {
-    console.log('Clearing existing embeddings...');
-    await pool.query('DELETE FROM medical_qa_embeddings');
-  }
-
-  // Load safe + caution chunks only (skip blocked)
-  const result = await options.client.query(
-    `SELECT qa_id, question, answer, safety_label FROM medical_qa_chunks WHERE safety_label != 'blocked'`,
-  );
-  const rows = result.rows;
-
-  if (rows.length === 0) {
-    console.log('No chunks to embed.');
+    const embedded = await embedDocuments(store, docs, options.batchSize);
+    return { embedded };
+  } finally {
     await pool.end();
-    return { embedded: 0 };
   }
-
-  const docs = rows.map((row: any) => ({
-    pageContent: row.answer,
-    metadata: {
-      qaId: row.qa_id,
-      question: row.question,
-      safetyLabel: row.safety_label,
-    },
-  }));
-
-  console.log(
-    `Embedding ${docs.length} QA chunks (batch size: ${options.batchSize})...`,
-  );
-
-  let embedded = 0;
-  for (let i = 0; i < docs.length; i += options.batchSize) {
-    const batch = docs.slice(i, i + options.batchSize);
-    try {
-      await store.addDocuments(batch);
-      embedded += batch.length;
-      console.log(
-        `  ${embedded}/${docs.length} (${((embedded / docs.length) * 100).toFixed(1)}%)`,
-      );
-    } catch (error: any) {
-      console.error(
-        `  Batch ${i}-${i + batch.length} failed: ${error?.message ?? error}`,
-      );
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-    if (i + options.batchSize < docs.length) {
-      await new Promise((r) => setTimeout(r, 200));
-    }
-  }
-
-  await pool.end();
-  return { embedded };
 }
 
 // ── CLI ────────────────────────────────────────────────────────
