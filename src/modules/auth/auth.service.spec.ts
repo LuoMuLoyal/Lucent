@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { PinoLogger } from 'nestjs-pino';
 import { I18nService } from 'nestjs-i18n';
 
 import { AuthService } from './services/auth.service';
@@ -79,6 +80,16 @@ describe('AuthService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: PinoLogger,
+          useValue: {
+            setContext: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            info: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
         AuthService,
         {
           provide: PrismaService,
@@ -170,7 +181,6 @@ describe('AuthService', () => {
             revokeById: jest.fn(),
             listSessions: jest.fn(),
             hashRefreshToken: jest.fn(),
-            normalizeEmail: jest.fn(),
           },
         },
         {

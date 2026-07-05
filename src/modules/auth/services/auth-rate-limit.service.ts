@@ -15,6 +15,12 @@ export interface LoginFailureBucket {
   lockedUntil?: number;
 }
 
+/** Builds the cache key for a login failure bucket. */
+export function loginFailureCacheKey(email: string): string {
+  const digest = createHash('sha256').update(email).digest('hex');
+  return `auth:login-failure:${digest}`;
+}
+
 @Injectable()
 export class AuthRateLimitService {
   constructor(
@@ -23,7 +29,7 @@ export class AuthRateLimitService {
   ) {}
 
   async checkLoginRateLimit(email: string): Promise<void> {
-    const key = this.loginFailureKey(email);
+    const key = loginFailureCacheKey(email);
     const entry = await this.cache.get<LoginFailureBucket>(key);
     if (!entry) return;
 
@@ -41,7 +47,7 @@ export class AuthRateLimitService {
   }
 
   async recordLoginFailure(email: string): Promise<void> {
-    const key = this.loginFailureKey(email);
+    const key = loginFailureCacheKey(email);
     const now = Date.now();
     const entry = await this.cache.get<LoginFailureBucket>(key);
 
@@ -73,12 +79,7 @@ export class AuthRateLimitService {
   }
 
   async clearLoginFailures(email: string): Promise<void> {
-    await this.cache.del(this.loginFailureKey(email));
-  }
-
-  private loginFailureKey(email: string): string {
-    const digest = createHash('sha256').update(email).digest('hex');
-    return `auth:login-failure:${digest}`;
+    await this.cache.del(loginFailureCacheKey(email));
   }
 
   private isValidLoginFailureBucket(

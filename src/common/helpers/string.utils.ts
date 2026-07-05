@@ -24,6 +24,14 @@ export function normalizeNullableText(value: unknown): string | null {
 }
 
 /**
+ * Trims whitespace and converts to lowercase.
+ * Used for email normalization across auth flows.
+ */
+export function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+/**
  * Counts the number of characters that appear in both strings, without
  * double-counting repeated characters.
  */

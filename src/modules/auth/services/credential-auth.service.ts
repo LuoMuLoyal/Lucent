@@ -4,7 +4,9 @@ import {
   unauthorized,
   conflict,
 } from '../../../common/helpers/api-errors';
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { normalizeEmail } from '../../../common/helpers/string.utils';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
@@ -38,16 +40,17 @@ import { now } from '../../../common/helpers/date-time.utils';
  */
 @Injectable()
 export class CredentialAuthService {
-  private readonly logger = new Logger(CredentialAuthService.name);
-
   constructor(
+    private readonly logger: PinoLogger,
     private readonly userService: UserService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly authTokenService: AuthTokenService,
     private readonly authRateLimitService: AuthRateLimitService,
     private readonly notificationsService: NotificationsService,
     private readonly i18n: I18nService,
-  ) {}
+  ) {
+    this.logger.setContext(CredentialAuthService.name);
+  }
 
   // ── Registration ─────────────────────────────────────────────
 
@@ -287,8 +290,8 @@ export class CredentialAuthService {
     try {
       await this.notificationsService.create(userId, {
         type: 'password_changed',
-        title: '密码已修改',
-        content: '您的账户密码已成功修改。如非本人操作，请尽快联系客服。',
+        title: this.i18n.t('auth.password_changed_notification_title'),
+        content: this.i18n.t('auth.password_changed_notification_content'),
         action: '/account',
       });
     } catch (error) {
@@ -298,9 +301,4 @@ export class CredentialAuthService {
       });
     }
   }
-}
-
-/** Shared email normalization — also used by AuthService and other auth modules. */
-export function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
 }

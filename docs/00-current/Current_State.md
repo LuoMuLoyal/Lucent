@@ -22,6 +22,7 @@ Last updated: 2026-07-05
 Lucent runtime、Prisma CLI 与本地 import 脚本现统一按
 `.env.<NODE_ENV>.local` → `.env.<NODE_ENV>` 的优先级解析环境变量，不再使用根 `.env`
 fallback。
+User.email 字段已在数据库层添加唯一约束（`@unique`），应用层重复检查仍保留作为早期拦截。
 
 ## 相关文档
 

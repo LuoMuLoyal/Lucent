@@ -32,6 +32,7 @@ import {
   DailyRecordImageUploadResponseDto,
   DailyRecordCandidateResponseDto,
   GenerateDailyRecordCandidatesDto,
+  QueryDailyRecordDto,
 } from './dto';
 import { DailyRecordCandidatesService } from './services/daily-record-candidates.service';
 import { DailyRecordImageUploadService } from './services/daily-record-image-upload.service';
@@ -58,17 +59,14 @@ export class DailyRecordsController {
   @ApiResponse({ status: 200, type: DailyRecordListResponseDto })
   async list(
     @CurrentUser() user: UserPayload,
-    @Query('date') date: string,
-    @Query('kind') kind?: string,
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
+    @Query() query: QueryDailyRecordDto,
   ) {
     const result = await this.dailyRecordsService.list(
       user.sub,
-      date,
-      kind,
-      page != null ? parseInt(page, 10) : 1,
-      pageSize != null ? parseInt(pageSize, 10) : 50,
+      query.date,
+      query.kind,
+      query.page ?? 1,
+      query.pageSize ?? 50,
     );
     return successEnvelope(result);
   }

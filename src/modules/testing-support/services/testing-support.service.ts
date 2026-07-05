@@ -3,9 +3,9 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import * as argon2 from 'argon2';
-import { createHash } from 'node:crypto';
 
 import { ARGON2_OPTIONS } from '../../auth/config/argon2-options';
+import { loginFailureCacheKey } from '../../auth/services/auth-rate-limit.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserStatus } from '#generated/prisma/client';
 import type { PrepareFullstackRecordLaneDto } from '../dto/prepare-fullstack-record-lane.dto';
@@ -116,7 +116,7 @@ export class TestingSupportService {
       };
     });
 
-    await this.cache.del(this.loginFailureCacheKey(email));
+    await this.cache.del(loginFailureCacheKey(email));
 
     return {
       createdUser: result.createdUser,
@@ -163,10 +163,5 @@ export class TestingSupportService {
     });
 
     return recordIds.length;
-  }
-
-  private loginFailureCacheKey(email: string): string {
-    const digest = createHash('sha256').update(email).digest('hex');
-    return `auth:login-failure:${digest}`;
   }
 }

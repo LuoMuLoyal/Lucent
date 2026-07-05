@@ -57,9 +57,9 @@ export class CacheConfigService implements CacheOptionsFactory {
       get: (key) => store.get(key),
       mget: (...keys) => store.mget(...keys),
       set: (key, value, ttl) => store.set(key, value, ttl),
-      mset: (entries, ttl) =>
+      mset: (entries: Array<[string, unknown]>, ttl) =>
         store.mset(
-          Object.entries(entries).map(([key, value]) => [key, value]),
+          entries.map(([key, value]) => [key, value] as [string, unknown]),
           ttl,
         ),
       del: (key) => store.del(key),

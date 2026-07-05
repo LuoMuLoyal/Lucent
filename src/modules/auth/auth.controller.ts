@@ -91,9 +91,11 @@ export class AuthController {
         id: result.user.id,
         email: result.user.email,
         nickname: result.user.nickname,
+        avatar: result.user.avatar,
         emailVerified: toEmailVerified(result.user.emailVerifiedAt),
         emailVerifiedAt: formatDateTime(result.user.emailVerifiedAt),
         createdAt: result.user.createdAt.toISOString(),
+        updatedAt: result.user.updatedAt.toISOString(),
       },
       tokens: {
         accessToken: result.accessToken,

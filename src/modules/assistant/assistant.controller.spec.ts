@@ -16,6 +16,7 @@ jest.mock('../../common/sse', () => ({
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 import { ResultCode } from '../../common/api-envelope';
 import { AssistantController } from './assistant.controller';
 import { AssistantService } from './services/assistant.service';
@@ -28,6 +29,16 @@ describe('AssistantController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AssistantController],
       providers: [
+        {
+          provide: PinoLogger,
+          useValue: {
+            setContext: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            info: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
         {
           provide: AssistantService,
           useValue: {
@@ -419,8 +430,6 @@ describe('AssistantController', () => {
       event: 'error',
       data: {
         message: 'forbidden',
-        code: ResultCode.FORBIDDEN,
-        statusCode: 403,
       },
     });
     expect(endSse).toHaveBeenCalledWith(response);

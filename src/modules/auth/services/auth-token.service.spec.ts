@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash } from 'node:crypto';
 import { AuthTokenService } from './auth-token.service';
+import { normalizeEmail } from '../../../common/helpers/string.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 function hash(token: string): string {
@@ -112,10 +113,10 @@ describe('AuthTokenService', () => {
 
       const result = await service.refresh(oldToken);
 
+      expect(result.accessToken).toBe('mock-access-token');
       expect(prisma.userSession.delete).toHaveBeenCalledWith({
         where: { id: 'session-1' },
       });
-      expect(result.accessToken).toBe('mock-access-token');
     });
 
     it('should throw for missing session', async () => {
@@ -262,11 +263,9 @@ describe('AuthTokenService', () => {
     });
   });
 
-  describe('normalizeEmail', () => {
+  describe('normalizeEmail (shared helper)', () => {
     it('should trim and lowercase', () => {
-      expect(service.normalizeEmail('  Test@Example.COM  ')).toBe(
-        'test@example.com',
-      );
+      expect(normalizeEmail('  Test@Example.COM  ')).toBe('test@example.com');
     });
   });
 });

@@ -5,11 +5,11 @@ import { I18nService } from 'nestjs-i18n';
 import { User, UserStatus } from '#generated/prisma/client';
 import { ResultCode } from '../../../common/api-envelope';
 import { badRequest, notFound } from '../../../common/helpers/api-errors';
+import { normalizeEmail } from '../../../common/helpers/string.utils';
 import { now } from '../../../common/helpers/date-time.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserService } from '../../user/services/user.service';
 import { DeleteAccountDto } from '../dto/delete-account.dto';
-import { normalizeEmail } from './credential-auth.service';
 import { VerificationCodeService } from './verification-code.service';
 
 @Injectable()

@@ -6,6 +6,7 @@ import * as argon2 from 'argon2';
 
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ConfigKey } from '../../../config/config-keys.enum';
+import { ARGON2_OPTIONS } from '../../auth/config/argon2-options';
 import {
   badRequest,
   forbidden,
@@ -35,13 +36,6 @@ interface SecurityPinUser {
 }
 
 const SECURITY_PIN_REGEX = /^\d{6}$/;
-
-const ARGON2_OPTIONS: argon2.Options = {
-  type: argon2.argon2id,
-  memoryCost: 65536,
-  timeCost: 3,
-  parallelism: 4,
-};
 
 export interface SecurityPinStatusDto {
   enabled: boolean;

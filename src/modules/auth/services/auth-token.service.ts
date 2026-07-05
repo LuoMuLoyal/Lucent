@@ -100,8 +100,12 @@ export class AuthTokenService {
       throw new Error('REFRESH_TOKEN_INVALID');
     }
 
+    // Generate the new token pair first so that a failure during generation
+    // does not leave the user without a valid session. If creation succeeds but
+    // deletion fails, the old session will eventually expire on its own.
+    const tokens = await this.generateTokenPair(record.user, context);
     await this.prisma.userSession.delete({ where: { id: record.id } });
-    return this.generateTokenPair(record.user, context);
+    return tokens;
   }
 
   async revoke(userId: string, refreshToken: string): Promise<void> {
@@ -158,10 +162,6 @@ export class AuthTokenService {
 
   hashRefreshToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
-  }
-
-  normalizeEmail(email: string): string {
-    return email.trim().toLowerCase();
   }
 
   private getSessionContextData(context: AuthRequestContext | undefined): {

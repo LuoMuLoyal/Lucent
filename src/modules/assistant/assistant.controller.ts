@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   HttpException,
-  Logger,
   Param,
   Post,
   Res,
@@ -17,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { I18nLang } from 'nestjs-i18n';
+import { PinoLogger } from 'nestjs-pino';
 import { successEnvelope } from '../../common/api-envelope';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { endSse, prepareSse, writeSseEvent } from '../../common/sse';
@@ -37,9 +37,12 @@ import {
 @UseGuards(JwtAuthGuard)
 @Controller('assistant')
 export class AssistantController {
-  private readonly logger = new Logger(AssistantController.name);
-
-  constructor(private readonly assistantService: AssistantService) {}
+  constructor(
+    private readonly logger: PinoLogger,
+    private readonly assistantService: AssistantService,
+  ) {
+    this.logger.setContext(AssistantController.name);
+  }
 
   @Get('capabilities')
   @ApiOperation({
@@ -157,77 +160,51 @@ export class AssistantController {
         data: {},
       });
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const payload = this.resolveErrorPayload(error);
       this.logger.error(
-        `Assistant stream failed for user ${user.sub}: ${reason}`,
+        `Assistant stream failed for user ${user.sub}: ${payload.logMessage}`,
         error instanceof Error ? error.stack : undefined,
       );
       writeSseEvent(response, {
         event: 'error',
-        data: httpExceptionPayload(error),
+        data: { message: payload.clientMessage },
       });
     } finally {
       endSse(response);
     }
   }
-}
+  private resolveErrorPayload(error: unknown): {
+    clientMessage: string;
+    logMessage: string;
+  } {
+    if (error instanceof HttpException) {
+      const response = error.getResponse();
+      const message =
+        typeof response === 'string' ? response : extractMessage(response);
+      return {
+        clientMessage: message,
+        logMessage: message,
+      };
+    }
 
-function httpExceptionPayload(error: unknown): {
-  message: string;
-  code?: number;
-  statusCode?: number;
-} {
-  if (!(error instanceof HttpException)) {
+    const internal =
+      error instanceof Error ? error.message : 'Unexpected error.';
     return {
-      message: error instanceof Error ? error.message : 'Unexpected error.',
+      clientMessage: 'An unexpected error occurred. Please try again.',
+      logMessage: internal,
     };
   }
-
-  const response = error.getResponse();
-  if (typeof response === 'string') {
-    return withOptionalErrorFields(response, undefined, error.getStatus());
-  }
-
-  const message =
-    'message' in response
-      ? (response as { message?: unknown }).message
-      : undefined;
-  const code =
-    'code' in response ? (response as { code?: unknown }).code : undefined;
-  if (Array.isArray(message)) {
-    return withOptionalErrorFields(
-      message.join('; '),
-      typeof code === 'number' ? code : undefined,
-      error.getStatus(),
-    );
-  }
-  if (typeof message === 'string' && message.trim().length > 0) {
-    return withOptionalErrorFields(
-      message,
-      typeof code === 'number' ? code : undefined,
-      error.getStatus(),
-    );
-  }
-  return withOptionalErrorFields(
-    error.message,
-    typeof code === 'number' ? code : undefined,
-    error.getStatus(),
-  );
 }
 
-function withOptionalErrorFields(
-  message: string,
-  code?: number,
-  statusCode?: number,
-): { message: string; code?: number; statusCode?: number } {
-  const payload: { message: string; code?: number; statusCode?: number } = {
-    message,
-  };
-  if (code != null) {
-    payload.code = code;
+function extractMessage(response: object): string {
+  if ('message' in response) {
+    const value = (response as { message?: unknown }).message;
+    if (Array.isArray(value)) {
+      return value.join('; ');
+    }
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
   }
-  if (statusCode != null) {
-    payload.statusCode = statusCode;
-  }
-  return payload;
+  return 'Request failed.';
 }

@@ -218,3 +218,16 @@ prior elevation tokens.
 - **Generated client**: `src/generated/prisma/`
 - **Key conventions**: `@map()` for snake_case columns, `@db.Timestamptz(3)` for timestamps,
   soft-delete via `deletedAt`
+
+## Assistant RAG Data-Source Constraints
+
+以下约束记录了 Assistant 三源检索架构的刻意设计边界，任何修改前必须理解：
+
+- **源分离**：中文说明书（`leaflet_embeddings`）、DrugBank 科学文献（`drugbank_passage_embeddings`）、
+  医学问答语料（`medical_qa_embeddings`）各自独立向量表 + 独立检索工具。不得合并为一个共享语料库
+  或通用检索工具。
+- **医学 QA 仅限 Assistant**：医学问答语料的检索结果仅供 Assistant 对话使用。前端线性服药流程
+  （如 medication flows、daily records 展示）不得消费该语料的检索结果。放宽此限制需要单独的法律/
+  产品决策。
+- **无 CN→DrugBank 运行时映射表**：跨语言药品关联不通过运行时表或别名映射实现；跨源问题时使用
+  Assistant 源分离结构化查找工具，而非建立共享映射层。

@@ -1,4 +1,5 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
@@ -37,15 +38,16 @@ export type { AuthRequestContext, UserPayload } from '../types/auth-request';
  */
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
+    private readonly logger: PinoLogger,
     private readonly i18n: I18nService,
     private readonly authTokenService: AuthTokenService,
     private readonly credentialAuthService: CredentialAuthService,
     private readonly authAccountService: AuthAccountService,
     private readonly authOAuthFacadeService: AuthOAuthFacadeService,
-  ) {}
+  ) {
+    this.logger.setContext(AuthService.name);
+  }
 
   // ── Credential delegation ────────────────────────────────────
 

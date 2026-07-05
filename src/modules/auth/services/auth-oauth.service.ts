@@ -1,4 +1,5 @@
 import { conflict } from '../../../common/helpers/api-errors';
+import { normalizeEmail } from '../../../common/helpers/string.utils';
 import { Injectable } from '@nestjs/common';
 
 import { I18nService } from 'nestjs-i18n';
@@ -34,7 +35,7 @@ export class AuthOAuthService {
 
     if (profile.email) {
       const existingUser = await this.userService.findByEmail(
-        this.normalizeEmail(profile.email),
+        normalizeEmail(profile.email),
       );
       if (existingUser) {
         await this.linkOAuthIdentity(existingUser.id, profile);
@@ -44,8 +45,7 @@ export class AuthOAuthService {
 
     return this.userService.createOAuthUser({
       ...(profile.email !== undefined && {
-        email:
-          profile.email === null ? null : this.normalizeEmail(profile.email),
+        email: profile.email === null ? null : normalizeEmail(profile.email),
       }),
       ...(profile.nickname !== undefined && { nickname: profile.nickname }),
       ...(profile.avatar !== undefined && { avatar: profile.avatar }),
@@ -59,8 +59,7 @@ export class AuthOAuthService {
           providerUnionId: profile.unionId,
         }),
         ...(profile.email !== undefined && {
-          email:
-            profile.email === null ? null : this.normalizeEmail(profile.email),
+          email: profile.email === null ? null : normalizeEmail(profile.email),
         }),
         ...(profile.emailVerifiedAt !== undefined && {
           emailVerifiedAt: profile.emailVerifiedAt,
@@ -119,8 +118,7 @@ export class AuthOAuthService {
         providerUnionId: profile.unionId,
       }),
       ...(profile.email !== undefined && {
-        email:
-          profile.email === null ? null : this.normalizeEmail(profile.email),
+        email: profile.email === null ? null : normalizeEmail(profile.email),
       }),
       ...(profile.emailVerifiedAt !== undefined && {
         emailVerifiedAt: profile.emailVerifiedAt,
@@ -129,9 +127,5 @@ export class AuthOAuthService {
         rawProfile: profile.rawProfile,
       }),
     });
-  }
-
-  private normalizeEmail(email: string): string {
-    return email.trim().toLowerCase();
   }
 }

@@ -128,7 +128,7 @@ enum UserNotificationType {
 
 model User {
   id                     String                      @id @default(uuid())
-  email                  String?
+  email                  String?                     @unique
   passwordHash           String?                     @map("password_hash") // argon2 hashed for local accounts
   nickname               String?
   avatar                 String?
@@ -161,7 +161,6 @@ model User {
   assistantSummaryHistories AssistantSummaryHistory[]
   notifications          UserNotification[]
 
-  @@index([email])
   @@index([status])
   @@map("users")
 }

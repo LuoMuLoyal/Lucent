@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import {
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  Max,
+  Min,
+} from 'class-validator';
 
 import { DailyRecordKind } from '#generated/prisma/client';
 
@@ -18,11 +25,14 @@ export class QueryDailyRecordDto {
 
   @ApiPropertyOptional({ description: 'Page number (1-based).', example: 1 })
   @IsOptional()
-  @IsString()
-  page?: string;
+  @IsInt()
+  @Min(1)
+  page?: number;
 
-  @ApiPropertyOptional({ description: 'Page size.', example: 50 })
+  @ApiPropertyOptional({ description: 'Page size (1-100).', example: 50 })
   @IsOptional()
-  @IsString()
-  pageSize?: string;
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize?: number;
 }
