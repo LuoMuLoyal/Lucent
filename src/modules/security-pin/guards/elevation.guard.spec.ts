@@ -3,10 +3,10 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { ExecutionContext } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common';
 
-import { SecurityElevationGuard } from './security-elevation.guard';
-import { SecurityPinService } from '../services/security-pin.service';
-import { REQUIRE_SECURITY_ELEVATION_KEY } from '../decorators/require-security-elevation.decorator';
-import type { SecurityElevationPayload } from '../types/security-elevation.types';
+import { SecurityElevationGuard } from './elevation.guard';
+import { SecurityPinService } from '../services/pin.service';
+import { REQUIRE_SECURITY_ELEVATION_KEY } from '../decorators/require-elevation.decorator';
+import type { SecurityElevationPayload } from '../types/elevation.types';
 
 function createMockContext(
   options: {

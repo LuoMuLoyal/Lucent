@@ -19,7 +19,7 @@ import {
   SECURITY_ELEVATION_TTL_SECONDS,
   type SecurityElevationPayload,
   type SecurityElevationResult,
-} from '../types/security-elevation.types';
+} from '../types/elevation.types';
 
 interface JwtConfigShape {
   accessSecret: string;

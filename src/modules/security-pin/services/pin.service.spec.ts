@@ -16,7 +16,7 @@ jest.mock('argon2', () => ({
 }));
 
 import * as argon2 from 'argon2';
-import { SecurityPinService } from './security-pin.service';
+import { SecurityPinService } from './pin.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 type MockPrisma = {

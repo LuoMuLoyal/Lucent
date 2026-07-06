@@ -7,11 +7,11 @@ import {
 import { Reflector } from '@nestjs/core';
 import { I18nContext } from 'nestjs-i18n';
 
-import { SecurityPinService } from '../services/security-pin.service';
-import { REQUIRE_SECURITY_ELEVATION_KEY } from '../decorators/require-security-elevation.decorator';
+import { SecurityPinService } from '../services/pin.service';
+import { REQUIRE_SECURITY_ELEVATION_KEY } from '../decorators/require-elevation.decorator';
 import type { UserPayload } from '../../auth/services/auth.service';
-import type { SecurityElevationPayload } from '../types/security-elevation.types';
-import { ResultCode } from '../../../common/api-envelope';
+import type { SecurityElevationPayload } from '../types/elevation.types';
+import { ResultCode } from '../../../common/api';
 
 interface ElevatedRequest {
   headers: Record<string, string | string[] | undefined>;
