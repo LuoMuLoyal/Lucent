@@ -4,10 +4,10 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { MedicinesService } from './services/medicines.service';
-import { MedicinesCacheService } from './cache/medicines-cache.service';
-import { CnMedicinesService } from './adapters/cn-medicines.service';
-import { DrugbankMedicinesService } from './adapters/drugbank-medicines.service';
-import { ResultCode } from '../../common/api-envelope';
+import { MedicinesCacheService } from './cache/cache.service';
+import { CnMedicinesService } from './adapters/cn.service';
+import { DrugbankMedicinesService } from './adapters/drugbank.service';
+import { ResultCode } from '../../common/api';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LlmRuntimeService } from '../llm-runtime/services/llm-runtime.service';
 

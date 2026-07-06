@@ -21,7 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
-import { ResultCode, successEnvelope } from '../../common/api-envelope';
+import { ResultCode, successEnvelope } from '../../common/api';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserPayload } from '../auth/services/auth.service';
@@ -35,7 +35,7 @@ import {
   MedicineSearchQueryDto,
   MedicineSearchResponseDto,
 } from './dto';
-import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/medicines-cache.constants';
+import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/cache.constants';
 import { MedicinesService } from './services/medicines.service';
 
 @ApiTags('Medicines')

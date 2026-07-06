@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
-import { MedicinesCacheAdminService } from './cache/medicines-cache-admin.service';
-import { MedicinesCacheService } from './cache/medicines-cache.service';
+import { MedicinesCacheAdminService } from './cache/cache-admin.service';
+import { MedicinesCacheService } from './cache/cache.service';
 import { MedicinesController } from './medicines.controller';
 import { MedicinesService } from './services/medicines.service';
-import { CnMedicinesService } from './adapters/cn-medicines.service';
-import { DrugbankMedicinesService } from './adapters/drugbank-medicines.service';
+import { CnMedicinesService } from './adapters/cn.service';
+import { DrugbankMedicinesService } from './adapters/drugbank.service';
 
 @Module({
   imports: [LlmRuntimeModule],

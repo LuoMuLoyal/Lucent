@@ -16,7 +16,7 @@ import {
   toStringList,
   truncateText,
   uniqueNonEmptyStrings,
-} from '../services/medicines.utils';
+} from '../utils/helpers';
 
 interface MedicineSearchCriteria {
   q: string;

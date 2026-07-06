@@ -5,7 +5,7 @@ import type { Cache } from 'cache-manager';
 import type { CacheManagerStore } from 'cache-manager';
 import Keyv from 'keyv';
 import { KeyvAdapter } from 'cache-manager';
-import { MedicinesCacheAdminService } from './medicines-cache-admin.service';
+import { MedicinesCacheAdminService } from './cache-admin.service';
 
 function createCacheStoreMock(overrides?: {
   keys?: () => Promise<string[]>;

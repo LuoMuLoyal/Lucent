@@ -10,7 +10,7 @@ import {
   MEDICINES_CACHE_KEY_PREFIX,
   MEDICINES_DETAIL_CACHE_TTL_MS,
   MEDICINES_SEARCH_CACHE_TTL_MS,
-} from './medicines-cache.constants';
+} from './cache.constants';
 
 interface SearchCacheKeyInput {
   source: MedicineKnowledgeSource;

@@ -14,9 +14,9 @@ import {
   type MedicineSearchQueryDto,
   type MedicineSearchResult,
 } from '../dto';
-import { MedicinesCacheService } from '../cache/medicines-cache.service';
-import { CnMedicinesService } from '../adapters/cn-medicines.service';
-import { DrugbankMedicinesService } from '../adapters/drugbank-medicines.service';
+import { MedicinesCacheService } from '../cache/cache.service';
+import { CnMedicinesService } from '../adapters/cn.service';
+import { DrugbankMedicinesService } from '../adapters/drugbank.service';
 import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
 
 @Injectable()
