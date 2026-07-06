@@ -1,7 +1,7 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { TencentCosConfig } from '../../../config/tencent-cos.config';
-import type { DataExportCosRuntime } from '../config/data-export-cos.runtime';
-import { DataExportStorageService } from './data-export-storage.service';
+import type { DataExportCosRuntime } from '../config/cos.runtime';
+import { DataExportStorageService } from './storage.service';
 
 describe('DataExportStorageService', () => {
   it('uploads a pdf and returns object metadata', async () => {

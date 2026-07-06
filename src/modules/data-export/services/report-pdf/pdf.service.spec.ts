@@ -1,5 +1,5 @@
 import { PDFDocument } from 'pdf-lib';
-import { ReportExportPdfService } from './report-export-pdf.service';
+import { ReportExportPdfService } from './pdf.service';
 
 describe('ReportExportPdfService', () => {
   const service = new ReportExportPdfService();

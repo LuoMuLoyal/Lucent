@@ -1,9 +1,9 @@
 import type { PrismaService } from '../../prisma/prisma.service';
-import { DataExportService } from './services/data-export.service';
-import type { DataExportStorageService } from './services/data-export-storage.service';
-import type { DataExportQueueService } from './services/data-export-queue.service';
-import type { DataExportProcessorService } from './services/data-export-processor.service';
-import type { DataExportProcessorInput } from './services/data-export-processor.service';
+import { DataExportService } from './services/export.service';
+import type { DataExportStorageService } from './services/storage.service';
+import type { DataExportQueueService } from './services/queue.service';
+import type { DataExportProcessorService } from './services/processor.service';
+import type { DataExportProcessorInput } from './services/processor.service';
 
 describe('DataExportService', () => {
   it('marks the request unavailable when COS storage is not configured', async () => {

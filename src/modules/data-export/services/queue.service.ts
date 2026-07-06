@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import type { ConnectionOptions, Job } from 'bullmq';
 import { Queue, Worker } from 'bullmq';
-import { DataExportProcessorService } from './data-export-processor.service';
+import { DataExportProcessorService } from './processor.service';
 
 interface DataExportJobData {
   exportRequestId: string;

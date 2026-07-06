@@ -1,8 +1,8 @@
-import { DataExportProcessorService } from './data-export-processor.service';
+import { DataExportProcessorService } from './processor.service';
 import type { PrismaService } from '../../../prisma/prisma.service';
-import type { ReportsService } from '../../reports/dashboard/reports.service';
-import type { DataExportStorageService } from './data-export-storage.service';
-import type { ReportExportPdfService } from './report-export-pdf.service';
+import type { ReportsService } from '../../reports/dashboard';
+import type { DataExportStorageService } from './storage.service';
+import type { ReportExportPdfService } from './report-pdf/pdf.service';
 import type { NotificationsService } from '../../notifications/services/notifications.service';
 
 type MockPrisma = {

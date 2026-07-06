@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
-import { ReportsService } from '../../reports/dashboard/reports.service';
-import { DataExportStorageService } from './data-export-storage.service';
-import { ReportExportPdfService } from './report-export-pdf.service';
+import { ReportsService } from '../../reports/dashboard';
+import { DataExportStorageService } from './storage.service';
+import { ReportExportPdfService } from './report-pdf/pdf.service';
 import { formatDateOnly, now } from '../../../common/helpers/date-time.utils';
 
 export interface DataExportProcessorInput {

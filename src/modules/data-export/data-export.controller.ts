@@ -15,13 +15,13 @@ import {
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
 
-import { successEnvelope } from '../../common/api-envelope';
+import { successEnvelope } from '../../common/api';
 import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SecurityElevationGuard } from '../security-pin/guards/security-elevation.guard';
-import { RequireSecurityElevation } from '../security-pin/decorators/require-security-elevation.decorator';
-import { DataExportService } from './services/data-export.service';
+import { SecurityElevationGuard } from '../security-pin/guards';
+import { RequireSecurityElevation } from '../security-pin/decorators';
+import { DataExportService } from './services/export.service';
 import {
   CreateDataExportRequestDto,
   DataExportLatestResponseDto,

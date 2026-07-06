@@ -10,18 +10,18 @@ import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
   TOP_Y,
-} from '../constants/report-pdf.constants';
+} from '../../constants/report-pdf.constants';
 import type {
   EmbeddedFont,
   PageContext,
-} from '../constants/report-pdf.constants';
-import { statusLabel, statusPalette } from '../utils/report-pdf.theme';
-import { metricLabel } from '../utils/report-pdf.theme';
+} from '../../constants/report-pdf.constants';
+import { statusLabel, statusPalette } from '../../utils/report-pdf.theme';
+import { metricLabel } from '../../utils/report-pdf.theme';
 import type {
   ReportDashboardDataDto,
   ReportMetricDto,
   ReportTrendDto,
-} from '../../reports/dto';
+} from '../../../reports/dto';
 
 export type PdfColor = ReturnType<typeof rgb>;
 

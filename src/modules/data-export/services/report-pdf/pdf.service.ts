@@ -2,23 +2,23 @@ import fontkit from '@pdf-lib/fontkit';
 import { Injectable } from '@nestjs/common';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
-import type { ReportDashboardDataDto } from '../../reports/dto';
+import type { ReportDashboardDataDto } from '../../../reports/dto';
 import {
   kindLabel,
   statusLabel,
   statusPalette,
-} from '../utils/report-pdf.theme';
+} from '../../utils/report-pdf.theme';
 import {
   CONTENT_WIDTH,
   MARGIN_X,
   PAGE_HEIGHT,
   PAGE_WIDTH,
   TOP_Y,
-} from '../constants/report-pdf.constants';
+} from '../../constants/report-pdf.constants';
 import type {
   EmbeddedFont,
   PageContext,
-} from '../constants/report-pdf.constants';
+} from '../../constants/report-pdf.constants';
 import {
   drawInsightBlock,
   drawMetricsGrid,
@@ -30,7 +30,7 @@ import {
   drawTrendTable,
   drawWrappedText,
   ensureSpace,
-} from './report-export-pdf-draw.service';
+} from './draw.service';
 
 const FONT_PATH =
   require.resolve('@fontpkg/source-han-sans-sc-vf/SourceHanSansSC-VF.otf');

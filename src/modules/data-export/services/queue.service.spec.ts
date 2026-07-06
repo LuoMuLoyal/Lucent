@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
-import { DataExportQueueService } from './data-export-queue.service';
-import { DataExportProcessorService } from './data-export-processor.service';
+import { DataExportQueueService } from './queue.service';
+import { DataExportProcessorService } from './processor.service';
 
 jest.mock('bullmq', () => ({
   Queue: jest.fn(),

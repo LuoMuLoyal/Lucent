@@ -1,9 +1,9 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api-envelope';
+import { ResultCode } from '../../common/api';
 import { DataExportController } from './data-export.controller';
-import { DataExportService } from './services/data-export.service';
-import { SecurityElevationGuard } from '../security-pin/guards/security-elevation.guard';
-import { SecurityPinService } from '../security-pin/services/security-pin.service';
+import { DataExportService } from './services/export.service';
+import { SecurityElevationGuard } from '../security-pin/guards';
+import { SecurityPinService } from '../security-pin/services';
 import type {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,

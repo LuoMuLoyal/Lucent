@@ -5,9 +5,9 @@ import {
   type CreateDataExportRequestDto,
   type DataExportRequestDataDto,
 } from '../dto';
-import { DataExportStorageService } from './data-export-storage.service';
-import { DataExportQueueService } from './data-export-queue.service';
-import { DataExportProcessorService } from './data-export-processor.service';
+import { DataExportStorageService } from './storage.service';
+import { DataExportQueueService } from './queue.service';
+import { DataExportProcessorService } from './processor.service';
 
 const DEFAULT_EXPORT_RANGE = 'last_7_days';
 const MONTHLY_EXPORT_RANGE = 'last_30_days';
