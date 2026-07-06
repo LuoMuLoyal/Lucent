@@ -1,10 +1,55 @@
 # Lucent
 
+[![CI](https://github.com/LuoMuLoyal/Lucent/actions/workflows/lucent-ci.yml/badge.svg)](https://github.com/LuoMuLoyal/Lucent/actions/workflows/lucent-ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Frontend: Luminous](https://img.shields.io/badge/frontend-LuoMuLoyal%2FLuminous-16a34a?logo=github)](https://github.com/LuoMuLoyal/Luminous)
 
-Lucent is the NestJS backend for Luminous. New backend work happens here; `Luminous/backend` is legacy reference code.
+Lucent is the NestJS backend for [Luminous](https://github.com/LuoMuLoyal/Luminous), a personal health
+management assistant. It provides authentication, health records, AI-powered analysis, medicine
+knowledge retrieval, and data export.
 
-Current version: **v1.0.0-dev**
+**Current version:** `v1.0.0-dev` — see the [Roadmap](ROADMAP.md) for the path to stable release.
+
+## Key Features
+
+- **Auth** — credential login + WeChat / Apple / QQ OAuth, JWT sessions, in-app Security PIN
+- **Health Records** — daily records (water, meal, vital, mood, symptom, activity, note, sleep),
+  dose logs, medicine reminders, allergies / conditions / current medicines
+- **AI Pipeline** — Today analysis, Report summaries, NL record candidates, meal-analysis vision,
+  agent-based assistant with source-split RAG, SSE streaming
+- **Medicine Knowledge** — CN products + leaflet chunks, DrugBank drugs, medical QA corpus,
+  three independent vector retrieval sources
+- **Data Export** — BullMQ async PDF export with inline fallback
+- **Admin Panel** — embedded AdminJS at `/admin` with auto-discovered Prisma resources
+
+## Quick Start
+
+```bash
+corepack enable
+corepack prepare pnpm@11.9.0 --activate
+pnpm install
+pnpm dev:stack        # start local PostgreSQL + Redis
+pnpm db:migrate       # apply migrations
+pnpm start:dev        # start dev server
+```
+
+Prerequisites: Node.js `24.x`, pnpm `11.x`, Docker (for `dev:stack`).
+
+## Documentation
+
+| Resource              | Link                                                                                     |
+| --------------------- | ---------------------------------------------------------------------------------------- |
+| Architecture          | [docs/01-reference/architecture.md](docs/01-reference/architecture.md)                   |
+| Environment setup     | [docs/01-reference/environment.md](docs/01-reference/environment.md)                     |
+| Environment variables | [docs/01-reference/environment-variables.md](docs/01-reference/environment-variables.md) |
+| Deployment            | [docs/01-reference/deployment.md](docs/01-reference/deployment.md)                       |
+| API contract          | [docs/openapi.json](docs/openapi.json) (generated)                                       |
+| ADRs                  | [docs/01-reference/adr/](docs/01-reference/adr/)                                         |
+| Current state         | [docs/00-current/Current_State.md](docs/00-current/Current_State.md)                     |
+| Roadmap               | [ROADMAP.md](ROADMAP.md)                                                                 |
+| Changelog             | [CHANGELOG.md](CHANGELOG.md)                                                             |
+| Contributing          | [CONTRIBUTING.md](CONTRIBUTING.md)                                                       |
+| Security policy       | [SECURITY.md](SECURITY.md)                                                               |
 
 ## Source Of Truth
 
@@ -211,7 +256,7 @@ LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLI
 
 ## Docs
 
-Start with [docs/README.md](docs/README.md).
+Start with [docs/README.md](docs/README.md). For planned evolution see [ROADMAP.md](ROADMAP.md).
 
 Active docs:
 

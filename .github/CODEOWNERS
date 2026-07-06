@@ -1,0 +1,20 @@
+# Default owner — all paths not explicitly listed below
+* @LuoMuLoyal
+
+# Auth and security-sensitive areas
+/src/modules/auth/          @LuoMuLoyal
+/src/modules/security-pin/  @LuoMuLoyal
+/src/modules/account/       @LuoMuLoyal
+/deploy/                    @LuoMuLoyal
+SECURITY.md                 @LuoMuLoyal
+
+# AI pipeline and assistant
+/src/modules/assistant/     @LuoMuLoyal
+/src/modules/llm-runtime/   @LuoMuLoyal
+/src/common/ai/             @LuoMuLoyal
+
+# Database schema
+/prisma/                    @LuoMuLoyal
+
+# CI/CD
+/.github/workflows/         @LuoMuLoyal

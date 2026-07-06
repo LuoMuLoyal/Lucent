@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/LuoMuLoyal/Lucent/blob/main/SECURITY.md
+    about: Do not open public issues for security vulnerabilities. Follow SECURITY.md.
+  - name: Roadmap discussion
+    url: https://github.com/LuoMuLoyal/Lucent/blob/main/ROADMAP.md
+    about: Check the roadmap before suggesting large-scale changes.
