@@ -3,7 +3,7 @@ import { parseDateOnly } from '../../../common/helpers/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import { AiSummaryHistoryKind, type Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import type { AssistantReportRange } from '../types/assistant-ports';
+import type { AssistantReportRange } from '../types/ports';
 
 type SummaryBullet = {
   kind: string;

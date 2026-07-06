@@ -1,25 +1,25 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
-import { DailyRecordCandidatesService } from '../daily-records/services/daily-record-candidates.service';
-import { DailyRecordsService } from '../daily-records/services/daily-records.service';
+import { DailyRecordCandidatesService } from '../daily-records/services';
+import { DailyRecordsService } from '../daily-records/services';
 import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
 import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module';
-import { MedicineRemindersService } from '../medicine-reminders/services/medicine-reminders.service';
+import { MedicineRemindersService } from '../medicine-reminders/services';
 import { MedicinesModule } from '../medicines/medicines.module';
 import { UserHealthContextModule } from '../user-health-context/user-health-context.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
-import { AssistantRuntimeService } from './agent/assistant-runtime.service';
-import { AssistantConversationService } from './services/assistant-conversation.service';
+import { AssistantRuntimeService } from './agent/runtime.service';
+import { AssistantConversationService } from './services/conversation.service';
 import { AssistantController } from './assistant.controller';
-import { AssistantPolicyService } from './services/assistant-policy.service';
+import { AssistantPolicyService } from './services/policy.service';
 import { HistoricalAiSummaryService } from './services/historical-ai-summary.service';
-import { AssistantService } from './services/assistant.service';
+import { AssistantService } from './services/core.service';
 import {
   DAILY_RECORD_CANDIDATE_GENERATOR,
   DAILY_RECORD_READER,
   MEDICINE_REMINDER_READER,
-} from './types/assistant-ports';
+} from './types/ports';
 import {
   AssistantContextService,
   AssistantToolDrugbankEntityResolveService,

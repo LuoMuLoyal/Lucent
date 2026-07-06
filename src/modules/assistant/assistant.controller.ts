@@ -17,13 +17,13 @@ import {
 import type { Response } from 'express';
 import { I18nLang } from 'nestjs-i18n';
 import { PinoLogger } from 'nestjs-pino';
-import { successEnvelope } from '../../common/api-envelope';
+import { successEnvelope } from '../../common/api';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
-import { endSse, prepareSse, writeSseEvent } from '../../common/sse';
+import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
 import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AssistantService } from './services/assistant.service';
+import { AssistantService } from './services/core.service';
 import {
   AssistantCapabilitiesResponseDto,
   AssistantConversationListResponseDto,

@@ -2,7 +2,7 @@ const prepareSse = jest.fn();
 const writeSseEvent = jest.fn();
 const endSse = jest.fn();
 
-jest.mock('../../common/sse', () => ({
+jest.mock('../../common/api/sse', () => ({
   prepareSse: (...args: unknown[]): void => {
     prepareSse(...args);
   },
@@ -17,9 +17,9 @@ jest.mock('../../common/sse', () => ({
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { ResultCode } from '../../common/api-envelope';
+import { ResultCode } from '../../common/api';
 import { AssistantController } from './assistant.controller';
-import { AssistantService } from './services/assistant.service';
+import { AssistantService } from './services/core.service';
 
 describe('AssistantController', () => {
   let controller: AssistantController;

@@ -4,12 +4,12 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { UserSettingsService } from '../user-settings/services/user-settings.service';
-import type { AssistantRuntimeService } from './agent/assistant-runtime.service';
-import type { AssistantConversationService } from './services/assistant-conversation.service';
-import type { AssistantPolicyService } from './services/assistant-policy.service';
-import type { AssistantContextService } from './tools/assistant-context.service';
-import type { AssistantToolService } from './tools/assistant-tool.service';
-import { AssistantService } from './services/assistant.service';
+import type { AssistantRuntimeService } from './agent/runtime.service';
+import type { AssistantConversationService } from './services/conversation.service';
+import type { AssistantPolicyService } from './services/policy.service';
+import type { AssistantContextService } from './tools/context.service';
+import type { AssistantToolService } from './tools/tool.service';
+import { AssistantService } from './services/core.service';
 
 function conversationServiceDouble() {
   return {
