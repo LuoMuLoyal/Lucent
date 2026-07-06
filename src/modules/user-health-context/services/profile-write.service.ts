@@ -4,7 +4,7 @@ import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { UpdateHealthContextProfileDto } from '../dto';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
-import { UserHealthContextMapperService } from './user-health-context-mapper.service';
+import { UserHealthContextMapperService } from './mapper.service';
 import { now } from '../../../common/helpers/date-time.utils';
 
 @Injectable()

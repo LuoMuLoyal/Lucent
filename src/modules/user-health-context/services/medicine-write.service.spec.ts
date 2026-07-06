@@ -2,8 +2,8 @@ import { Test } from '@nestjs/testing';
 import { MedicineSource } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserHealthContextOwnershipService } from './ownership.service';
-import { UserHealthContextMapperService } from './user-health-context-mapper.service';
-import { UserHealthContextMedicineWriteService } from './user-health-context-medicine-write.service';
+import { UserHealthContextMapperService } from './mapper.service';
+import { UserHealthContextMedicineWriteService } from './medicine-write.service';
 
 describe('UserHealthContextMedicineWriteService', () => {
   let service: UserHealthContextMedicineWriteService;

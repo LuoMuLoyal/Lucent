@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserHealthContextOwnershipService } from './ownership.service';
-import { UserHealthContextAllergyWriteService } from './user-health-context-allergy-write.service';
+import { UserHealthContextAllergyWriteService } from './allergy-write.service';
 
 describe('UserHealthContextAllergyWriteService', () => {
   let service: UserHealthContextAllergyWriteService;

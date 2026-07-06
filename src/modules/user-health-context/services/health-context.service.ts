@@ -13,12 +13,12 @@ import type {
   UpdateHealthContextConditionDto,
   UpdateHealthContextProfileDto,
 } from '../dto';
-import { UserHealthContextMapperService } from './user-health-context-mapper.service';
-import { UserHealthContextProfileWriteService } from './user-health-context-profile-write.service';
-import { UserHealthContextAllergyWriteService } from './user-health-context-allergy-write.service';
-import { UserHealthContextConditionWriteService } from './user-health-context-condition-write.service';
-import { UserHealthContextMedicineWriteService } from './user-health-context-medicine-write.service';
-import { userHealthContextInclude } from '../types/user-health-context.types';
+import { UserHealthContextMapperService } from './mapper.service';
+import { UserHealthContextProfileWriteService } from './profile-write.service';
+import { UserHealthContextAllergyWriteService } from './allergy-write.service';
+import { UserHealthContextConditionWriteService } from './condition-write.service';
+import { UserHealthContextMedicineWriteService } from './medicine-write.service';
+import { userHealthContextInclude } from '../types/health-context.types';
 
 @Injectable()
 export class UserHealthContextService {

@@ -1,8 +1,8 @@
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserHealthContextOwnershipService } from './ownership.service';
-import { UserHealthContextMapperService } from './user-health-context-mapper.service';
-import { UserHealthContextConditionWriteService } from './user-health-context-condition-write.service';
+import { UserHealthContextMapperService } from './mapper.service';
+import { UserHealthContextConditionWriteService } from './condition-write.service';
 
 describe('UserHealthContextConditionWriteService', () => {
   let service: UserHealthContextConditionWriteService;
