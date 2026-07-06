@@ -5,10 +5,10 @@ import { I18nService } from 'nestjs-i18n';
 import { DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DailyRecordsOwnershipService } from './services/ownership.service';
-import { DailyRecordsMapperService } from './services/daily-records-mapper.service';
-import { DailyRecordsService } from './services/daily-records.service';
-import { MealAnalysisQueueService } from './services/meal-analysis-queue.service';
-import { MealDishTemplateLearningService } from './services/meal-dish-template-learning.service';
+import { DailyRecordsMapperService } from './services/mapper.service';
+import { DailyRecordsService } from './services/records.service';
+import { MealAnalysisQueueService } from './services/meal-analysis/queue.service';
+import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service';
 
 const mockUserId = 'user-uuid-1';
 
