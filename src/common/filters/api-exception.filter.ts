@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { PinoLogger } from 'nestjs-pino';
-import { ResultCode, errorEnvelope } from '../api-envelope';
+import { ResultCode, errorEnvelope } from '../api/api-envelope';
 import { RequestContextService } from '../logger/request-context.service';
 
 interface ErrorResponseBody {

@@ -5,7 +5,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
-import { ApiEnvelope, successEnvelope } from '../api-envelope';
+import { ApiEnvelope, successEnvelope } from '../api/api-envelope';
 import { SKIP_API_ENVELOPE_KEY } from './skip-api-envelope.decorator';
 
 function isApiEnvelope(value: unknown): value is ApiEnvelope {

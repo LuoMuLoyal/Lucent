@@ -4,7 +4,7 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { setupApp } from './setup-app';
 import { ConfigKey } from './config/config-keys.enum';
-import { registerAdminPanel } from './admin/adminjs.setup';
+import { registerAdminPanel } from './admin/setup';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });

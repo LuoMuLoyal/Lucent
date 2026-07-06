@@ -1,7 +1,7 @@
 import type { ArgumentsHost } from '@nestjs/common';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { Response } from 'express';
-import { ResultCode } from '../api-envelope';
+import { ResultCode } from '../api/api-envelope';
 import { ApiExceptionFilter } from './api-exception.filter';
 
 describe('ApiExceptionFilter', () => {

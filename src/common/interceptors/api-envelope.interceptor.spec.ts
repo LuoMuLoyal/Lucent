@@ -1,6 +1,6 @@
 import { lastValueFrom, of } from 'rxjs';
 import { ApiEnvelopeInterceptor } from './api-envelope.interceptor';
-import { ResultCode } from '../api-envelope';
+import { ResultCode } from '../api/api-envelope';
 import { SKIP_API_ENVELOPE_KEY } from './skip-api-envelope.decorator';
 
 function createMockExecutionContext(handler?: object, targetClass?: object) {

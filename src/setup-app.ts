@@ -9,7 +9,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { LoggerErrorInterceptor } from 'nestjs-pino';
 import { ConfigKey } from './config/config-keys.enum';
-import { ResultCode } from './common/api-envelope';
+import { ResultCode } from './common/api';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ApiEnvelopeInterceptor } from './common/interceptors/api-envelope.interceptor';
 import { requestIdMiddleware } from './common/middleware/request-id.middleware';

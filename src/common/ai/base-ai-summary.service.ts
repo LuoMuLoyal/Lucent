@@ -3,7 +3,7 @@ import { AI_SUMMARIES_ENABLED_SETTING_KEY } from '../constants/user-setting-keys
 import { forbidden } from '../helpers/api-errors';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { PromptCopy } from '../helpers/localized-copy';
-import type { StreamSummaryEvent } from '../stream-summary';
+import type { StreamSummaryEvent } from '../api/stream-summary';
 import { AiSafetyPolicyService } from './ai-safety-policy.service';
 import { BaseAiGeneratorService } from './base-ai-generator.service';
 
