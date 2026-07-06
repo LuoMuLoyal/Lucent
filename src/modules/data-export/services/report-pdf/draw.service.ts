@@ -86,6 +86,32 @@ export function drawWrappedText(
   }
 }
 
+/**
+ * Formats sparkline values as a space-separated string, truncating from the
+ * right (most recent) so the result fits within `maxWidth` at size 8.
+ */
+function truncateSparkline(
+  font: EmbeddedFont,
+  values: number[],
+  maxWidth: number,
+): string {
+  const parts: string[] = [];
+  for (let i = values.length - 1; i >= 0; i -= 1) {
+    const v = values[i];
+    if (v === undefined) continue;
+    const formatted = Number.isInteger(v) ? String(v) : v.toFixed(1);
+    const candidate =
+      parts.length === 0 ? formatted : `${formatted} ${parts.join(' ')}`;
+    if (font.widthOfTextAtSize(candidate, 8) <= maxWidth) {
+      parts.unshift(formatted);
+    } else {
+      parts.unshift('…');
+      break;
+    }
+  }
+  return parts.join(' ');
+}
+
 function buildScoreBreakdown(
   metrics: ReportMetricDto[],
   isZh: boolean,
@@ -96,9 +122,14 @@ function buildScoreBreakdown(
     const sign = score >= 0 ? '+' : '';
     return `${label} ${sign}${String(score)}`;
   });
-  return parts.join('    ');
+  return parts.join('  |  ');
 }
 
+/**
+ * Maps a metric status to a numeric score for the score breakdown.
+ * `insufficient_data` and unknown statuses return 0 (unscored) so they
+ * never appear healthier than `needs_attention`.
+ */
 function metricScoreValue(status: string): number {
   switch (status) {
     case 'good':
@@ -108,7 +139,7 @@ function metricScoreValue(status: string): number {
     case 'needs_attention':
       return 15;
     default:
-      return 18;
+      return 0;
   }
 }
 
@@ -273,9 +304,11 @@ function drawCompactMetricCard(
     font: context.cjkFont,
     color: rgb(0.34, 0.41, 0.5),
   });
-  const sparklineText = metric.sparkline
-    .map((v) => (Number.isInteger(v) ? String(v) : v.toFixed(1)))
-    .join(' ');
+  const sparklineText = truncateSparkline(
+    context.cjkFont,
+    metric.sparkline,
+    width - 20,
+  );
   context.page.drawText(sparklineText, {
     x: x + 10,
     y: y + height - 64,
@@ -377,9 +410,11 @@ export function drawInsightBlock(
     textY -= 15;
   }
   if (input.sparkline) {
-    const sparklineText = input.sparkline
-      .map((v) => (Number.isInteger(v) ? String(v) : v.toFixed(1)))
-      .join(' ');
+    const sparklineText = truncateSparkline(
+      context.cjkFont,
+      input.sparkline,
+      CONTENT_WIDTH - 28,
+    );
     context.page.drawText(sparklineText, {
       x: MARGIN_X + 14,
       y: textY,
