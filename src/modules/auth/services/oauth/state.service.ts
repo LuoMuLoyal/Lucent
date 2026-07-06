@@ -1,4 +1,7 @@
-import { badRequest, unauthorized } from '../../../common/helpers/api-errors';
+import {
+  badRequest,
+  unauthorized,
+} from '../../../../common/helpers/api-errors';
 import {
   BadRequestException,
   Inject,
@@ -10,12 +13,12 @@ import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
 import { I18nService } from 'nestjs-i18n';
-import { ConfigKey } from '../../../config/config-keys.enum';
-import { ResultCode } from '../../../common/api-envelope';
+import { ConfigKey } from '../../../../config/config-keys.enum';
+import { ResultCode } from '../../../../common/api';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
   type OAuthProviderName,
-} from '../types/oauth.types';
+} from '../../types/oauth.types';
 
 const OAUTH_STATE_TTL = 10 * 60 * 1000; // 10 minutes
 

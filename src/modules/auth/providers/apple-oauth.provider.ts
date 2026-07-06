@@ -11,7 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 
 import { I18nService } from 'nestjs-i18n';
 
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 import { unauthorized } from '../../../common/helpers/api-errors';
 import { withRetry } from '../../../common/helpers/retry.utils';
 import { ConfigKey } from '../../../config/config-keys.enum';

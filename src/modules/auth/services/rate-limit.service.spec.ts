@@ -4,9 +4,9 @@ import { UnauthorizedException } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 
-import { AuthRateLimitService } from './auth-rate-limit.service';
+import { AuthRateLimitService } from './rate-limit.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 
 // ── Suite ─────────────────────────────────────────────────────
 

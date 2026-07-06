@@ -12,7 +12,7 @@ import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { createHash, randomInt } from 'node:crypto';
 
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 import { MailService } from '../../../mail/mail.service';
 import type { VerificationScene } from '../dto/send-verification-code.dto';
 

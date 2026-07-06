@@ -1,11 +1,11 @@
-import { conflict } from '../../../common/helpers/api-errors';
-import { normalizeEmail } from '../../../common/helpers/string.utils';
+import { conflict } from '../../../../common/helpers/api-errors';
+import { normalizeEmail } from '../../../../common/helpers/string.utils';
 import { Injectable } from '@nestjs/common';
 
 import { I18nService } from 'nestjs-i18n';
 import { User, UserStatus } from '#generated/prisma/client';
-import { UserService } from '../../user/services/user.service';
-import type { OAuthProfile } from '../types/oauth.types';
+import { UserService } from '../../../user/services/user.service';
+import type { OAuthProfile } from '../../types/oauth.types';
 
 @Injectable()
 export class AuthOAuthService {

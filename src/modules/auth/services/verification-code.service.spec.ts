@@ -14,7 +14,7 @@ import {
 } from './verification-code.service';
 import { MailService } from '../../../mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 
 describe('VerificationCodeService', () => {
   let service: VerificationCodeService;

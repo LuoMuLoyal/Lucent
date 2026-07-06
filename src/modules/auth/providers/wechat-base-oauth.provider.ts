@@ -3,7 +3,7 @@ import type { Logger } from '@nestjs/common';
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
 import type { Prisma } from '#generated/prisma/client';
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 import type { OAuthProvider } from './oauth-provider.interface';
 
 export const WECHAT_ACCESS_TOKEN_URL =

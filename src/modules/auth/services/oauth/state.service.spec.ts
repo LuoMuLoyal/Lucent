@@ -9,7 +9,7 @@ import {
   AuthOAuthStateService,
   OAUTH_STATE_TTL,
   type OAuthStateEntry,
-} from './auth-oauth-state.service';
+} from './state.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 // ── Fixtures ──────────────────────────────────────────────────

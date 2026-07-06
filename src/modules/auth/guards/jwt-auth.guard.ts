@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { I18nContext } from 'nestjs-i18n';
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 /**

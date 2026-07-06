@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash } from 'node:crypto';
-import { AuthTokenService } from './auth-token.service';
+import { AuthTokenService } from './token.service';
 import { normalizeEmail } from '../../../common/helpers/string.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 

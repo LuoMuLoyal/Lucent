@@ -16,7 +16,7 @@ import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
 import { UserService } from '../../user/services/user.service';
 import { VerificationCodeService } from './verification-code.service';
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
@@ -30,8 +30,8 @@ import {
   AuthTokenService,
   type AuthRequestContext,
   type TokenPair,
-} from './auth-token.service';
-import { AuthRateLimitService } from './auth-rate-limit.service';
+} from './token.service';
+import { AuthRateLimitService } from './rate-limit.service';
 import { now } from '../../../common/helpers/date-time.utils';
 
 /**

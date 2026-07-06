@@ -3,7 +3,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 import { DeleteAccountDto } from '../dto/delete-account.dto';
 import { ChangeEmailDto } from '../dto/change-email.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
@@ -24,10 +24,10 @@ import { SetPasswordDto } from '../dto/set-password.dto';
 import { VerifyEmailDto } from '../dto/verify-email.dto';
 import { AuthRequestContext, TokenPair } from '../types/auth-request';
 import { OAuthAuthorizeResult } from '../types/oauth.types';
-import { AuthAccountService } from './auth-account.service';
-import { AuthOAuthFacadeService } from './auth-oauth-facade.service';
-import { AuthTokenService } from './auth-token.service';
-import { CredentialAuthService } from './credential-auth.service';
+import { AuthAccountService } from './account.service';
+import { AuthOAuthFacadeService } from './oauth/facade.service';
+import { AuthTokenService } from './token.service';
+import { CredentialAuthService } from './credential.service';
 
 export type { AuthRequestContext, UserPayload } from '../types/auth-request';
 

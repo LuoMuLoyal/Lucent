@@ -8,14 +8,14 @@ import {
 import { PinoLogger } from 'nestjs-pino';
 import { I18nService } from 'nestjs-i18n';
 
-import { CredentialAuthService } from './credential-auth.service';
+import { CredentialAuthService } from './credential.service';
 import { UserService } from '../../user/services/user.service';
 import { VerificationCodeService } from './verification-code.service';
-import { AuthTokenService } from './auth-token.service';
-import { AuthRateLimitService } from './auth-rate-limit.service';
+import { AuthTokenService } from './token.service';
+import { AuthRateLimitService } from './rate-limit.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import type { NotificationListItemDto } from '../../notifications/dto/notifications-response.dto';
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
 

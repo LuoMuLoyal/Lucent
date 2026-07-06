@@ -3,12 +3,12 @@ import { Test } from '@nestjs/testing';
 import { HttpException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import { AuthOAuthService } from './auth-oauth.service';
-import { UserService } from '../../user/services/user.service';
+import { AuthOAuthService } from './oauth.service';
+import { UserService } from '../../../user/services/user.service';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
 import type { UserIdentity } from '#generated/prisma/client';
-import type { OAuthProfile } from '../types/oauth.types';
+import type { OAuthProfile } from '../../types/oauth.types';
 
 // ── Fixtures ──────────────────────────────────────────────────
 

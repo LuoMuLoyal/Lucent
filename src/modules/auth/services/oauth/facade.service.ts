@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { User } from '#generated/prisma/client';
-import { UserService } from '../../user/services/user.service';
+import { UserService } from '../../../user/services/user.service';
 import {
   AppleOAuthCallbackDto,
   OAuthAuthorizeDto,
@@ -9,25 +9,22 @@ import {
   OAuthCodeCallbackDto,
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
-} from '../dto/oauth.dto';
-import { AppleOAuthProvider } from '../providers/apple-oauth.provider';
-import { QqOAuthProvider } from '../providers/qq-oauth.provider';
-import { WechatMobileOAuthProvider } from '../providers/wechat-mobile-oauth.provider';
-import { WechatWebOAuthProvider } from '../providers/wechat-web-oauth.provider';
+} from '../../dto/oauth.dto';
+import { AppleOAuthProvider } from '../../providers/apple-oauth.provider';
+import { QqOAuthProvider } from '../../providers/qq-oauth.provider';
+import { WechatMobileOAuthProvider } from '../../providers/wechat-mobile-oauth.provider';
+import { WechatWebOAuthProvider } from '../../providers/wechat-web-oauth.provider';
 import {
   OAUTH_PROVIDER_QQ,
   OAUTH_PROVIDER_WECHAT_WEB,
   type OAuthAuthorizeResult,
   type OAuthProfile,
-} from '../types/oauth.types';
-import { AuthNotificationService } from './auth-notification.service';
-import { AuthOAuthService } from './auth-oauth.service';
-import {
-  AuthOAuthStateService,
-  type OAuthStateEntry,
-} from './auth-oauth-state.service';
-import { AuthTokenService, type TokenPair } from './auth-token.service';
-import type { AuthRequestContext } from '../types/auth-request';
+} from '../../types/oauth.types';
+import { AuthNotificationService } from '../notification.service';
+import { AuthOAuthService } from './oauth.service';
+import { AuthOAuthStateService, type OAuthStateEntry } from './state.service';
+import { AuthTokenService, type TokenPair } from '../token.service';
+import type { AuthRequestContext } from '../../types/auth-request';
 
 @Injectable()
 export class AuthOAuthFacadeService {

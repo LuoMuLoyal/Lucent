@@ -9,7 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import type { Prisma } from '#generated/prisma/client';
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type { OAuthConfig } from '../../../config/oauth.config';
 import { OAUTH_PROVIDER_QQ, type OAuthProfile } from '../types/oauth.types';

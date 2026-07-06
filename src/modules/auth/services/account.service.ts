@@ -3,7 +3,7 @@ import * as argon2 from 'argon2';
 import { I18nService } from 'nestjs-i18n';
 
 import { User, UserStatus } from '#generated/prisma/client';
-import { ResultCode } from '../../../common/api-envelope';
+import { ResultCode } from '../../../common/api';
 import { badRequest, notFound } from '../../../common/helpers/api-errors';
 import { normalizeEmail } from '../../../common/helpers/string.utils';
 import { now } from '../../../common/helpers/date-time.utils';
