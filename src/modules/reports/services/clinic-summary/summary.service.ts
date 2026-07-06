@@ -3,12 +3,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   calculateAge,
   nowIsoString,
-} from '../../../common/helpers/date-time.utils';
-import { ConfigKey } from '../../../config/config-keys.enum';
+} from '../../../../common/helpers/date-time.utils';
+import { ConfigKey } from '../../../../config/config-keys.enum';
 import type {
   ClinicSummaryDto,
   ClinicSummaryProfileDto,
@@ -16,8 +16,8 @@ import type {
   ClinicSummaryConditionDto,
   ClinicSummaryMedicineDto,
   ClinicSummaryShareResponseDto,
-} from '../dto/clinic-summary-response.dto';
-import { ClinicSummaryPdfService } from './clinic-summary-pdf.service';
+} from '../../dto/clinic-summary-response.dto';
+import { ClinicSummaryPdfService } from './pdf.service';
 
 const SHARE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SHARE_KEY_PREFIX = 'clinic-share:';

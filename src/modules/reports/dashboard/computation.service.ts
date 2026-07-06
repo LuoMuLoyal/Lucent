@@ -5,8 +5,8 @@ import type {
   MetricStatus,
   ReportDashboardComputed,
   ReportDashboardFacts,
-} from './reports.types';
-import { ReportsPresenterService } from './reports-presenter.service';
+} from './types';
+import { ReportsPresenterService } from './presenter.service';
 
 @Injectable()
 export class ReportsComputationService {

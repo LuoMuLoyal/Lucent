@@ -21,10 +21,10 @@ import {
 import type { Response } from 'express';
 import { I18nLang } from 'nestjs-i18n';
 
-import { successEnvelope } from '../../common/api-envelope';
+import { successEnvelope } from '../../common/api';
 import { httpExceptionPayload } from '../../common/helpers/error-payload';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
-import { endSse, prepareSse, writeSseEvent } from '../../common/sse';
+import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
 import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
@@ -38,9 +38,9 @@ import {
   ClinicSummaryDto,
   ClinicSummaryShareResponseDto,
 } from './dto';
-import { ReportsAiSummaryService } from './services/reports-ai-summary.service';
-import { ClinicSummaryService } from './services/clinic-summary.service';
-import { ReportsService } from './dashboard/reports.service';
+import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
+import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import { ReportsService } from './dashboard/dashboard.service';
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')

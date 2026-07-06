@@ -1,13 +1,13 @@
 import { ForbiddenException } from '@nestjs/common';
-import type { AiConfig } from '../../../config/ai.config';
-import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from '../dto';
-import type { ReportsAiSummaryContextService } from './reports-ai-summary-context.service';
-import type { ReportsAiSummaryCopyService } from './reports-ai-summary-copy.service';
-import type { ReportsAiSummaryGeneratorService } from './reports-ai-summary-generator.service';
-import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
-import { ReportsAiSummaryService } from './reports-ai-summary.service';
-import type { ReportsComputationService } from '../dashboard/reports-computation.service';
-import type { ReportsContextService } from '../dashboard/reports-context.service';
+import type { AiConfig } from '../../../../config/ai.config';
+import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from '../../dto';
+import type { ReportsAiSummaryContextService } from './context.service';
+import type { ReportsAiSummaryCopyService } from './copy.service';
+import type { ReportsAiSummaryGeneratorService } from './generator.service';
+import { AiSafetyPolicyService } from '../../../../common/ai/ai-safety-policy.service';
+import { ReportsAiSummaryService } from './summary.service';
+import type { ReportsComputationService } from '../../dashboard/computation.service';
+import type { ReportsContextService } from '../../dashboard/context.service';
 
 function modelGenerateSpy(service: ReportsAiSummaryService) {
   return jest.spyOn(

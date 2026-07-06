@@ -20,7 +20,7 @@ import {
   REPORT_RANGE_LAST_7_DAYS,
   type ReportDashboardQueryDto,
 } from '../dto';
-import type { ReportDashboardFacts } from './reports.types';
+import type { ReportDashboardFacts } from './types';
 
 @Injectable()
 export class ReportsContextService {

@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api-envelope';
+import { ResultCode } from '../../common/api';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
@@ -7,10 +7,10 @@ import {
   type ReportDashboardDataDto,
   type ReportSummaryDataDto,
 } from './dto';
-import { ReportsAiSummaryService } from './services/reports-ai-summary.service';
-import { ClinicSummaryService } from './services/clinic-summary.service';
+import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
+import { ClinicSummaryService } from './services/clinic-summary/summary.service';
 import { ReportsController } from './reports.controller';
-import { ReportsService } from './dashboard/reports.service';
+import { ReportsService } from './dashboard/dashboard.service';
 
 describe('ReportsController', () => {
   let controller: ReportsController;

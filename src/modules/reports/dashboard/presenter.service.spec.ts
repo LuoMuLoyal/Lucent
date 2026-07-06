@@ -1,5 +1,5 @@
 import type { I18nService } from 'nestjs-i18n';
-import { ReportsPresenterService } from './reports-presenter.service';
+import { ReportsPresenterService } from './presenter.service';
 
 function createMockI18n(): I18nService {
   const en: Record<string, string> = {

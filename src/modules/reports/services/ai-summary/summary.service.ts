@@ -1,24 +1,24 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { badRequest } from '../../../common/helpers/api-errors';
+import { badRequest } from '../../../../common/helpers/api-errors';
 
-import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { BaseAiSummaryService } from '../../../common/ai/base-ai-summary.service';
-import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
+import { HistoricalAiSummaryService } from '../../../assistant/services/historical-ai-summary.service';
+import { PrismaService } from '../../../../prisma/prisma.service';
+import { BaseAiSummaryService } from '../../../../common/ai/base-ai-summary.service';
+import { AiSafetyPolicyService } from '../../../../common/ai/ai-safety-policy.service';
 import type {
   GenerateReportSummaryDto,
   ReportDashboardQueryDto,
   ReportSummaryDataDto,
-} from '../dto';
+} from '../../dto';
 import {
   ReportsAiSummaryContextService,
   type ReportsAiSummaryContext,
-} from './reports-ai-summary-context.service';
-import { ReportsAiSummaryCopyService } from './reports-ai-summary-copy.service';
-import { ReportsAiSummaryGeneratorService } from './reports-ai-summary-generator.service';
-import type { ReportSummaryStructuredOutput } from '../schemas/report-summary.schema';
-import { ReportsComputationService } from '../dashboard/reports-computation.service';
-import { ReportsContextService } from '../dashboard/reports-context.service';
+} from './context.service';
+import { ReportsAiSummaryCopyService } from './copy.service';
+import { ReportsAiSummaryGeneratorService } from './generator.service';
+import type { ReportSummaryStructuredOutput } from '../../schemas/report-summary.schema';
+import { ReportsComputationService } from '../../dashboard/computation.service';
+import { ReportsContextService } from '../../dashboard/context.service';
 
 interface PreparedReportSummary {
   context: ReportsAiSummaryContext;

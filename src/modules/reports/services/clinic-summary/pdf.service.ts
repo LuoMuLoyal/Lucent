@@ -7,25 +7,25 @@ import type {
   ClinicSummaryAllergyDto,
   ClinicSummaryConditionDto,
   ClinicSummaryMedicineDto,
-} from '../dto/clinic-summary-response.dto';
+} from '../../dto/clinic-summary-response.dto';
 import {
   CONTENT_WIDTH,
   MARGIN_X,
   PAGE_HEIGHT,
   PAGE_WIDTH,
   TOP_Y,
-} from '../../data-export/constants/report-pdf.constants';
+} from '../../../data-export/constants/report-pdf.constants';
 import type {
   EmbeddedFont,
   PageContext,
-} from '../../data-export/constants/report-pdf.constants';
+} from '../../../data-export/constants/report-pdf.constants';
 import {
   ensureSpace,
   drawSectionTitle,
   drawPageDecorations,
   drawPageChrome,
   wrapText,
-} from '../../data-export/services/report-export-pdf-draw.service';
+} from '../../../data-export/services/report-pdf/draw.service';
 
 const FONT_PATH =
   require.resolve('@fontpkg/source-han-sans-sc-vf/SourceHanSansSC-VF.otf');

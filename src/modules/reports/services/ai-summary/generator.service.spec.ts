@@ -1,7 +1,7 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import type { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
-import { REPORT_RANGE_LAST_30_DAYS } from '../dto';
-import { ReportsAiSummaryGeneratorService } from './reports-ai-summary-generator.service';
+import type { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { REPORT_RANGE_LAST_30_DAYS } from '../../dto';
+import { ReportsAiSummaryGeneratorService } from './generator.service';
 
 describe('ReportsAiSummaryGeneratorService', () => {
   it('delegates generation to llm runtime with structured output', async () => {

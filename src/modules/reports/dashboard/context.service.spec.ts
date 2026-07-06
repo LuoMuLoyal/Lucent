@@ -4,7 +4,7 @@ import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
 } from '../dto';
-import { ReportsContextService } from './reports-context.service';
+import { ReportsContextService } from './context.service';
 
 describe('ReportsContextService', () => {
   const buildPrisma = () => ({

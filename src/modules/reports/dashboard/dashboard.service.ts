@@ -1,8 +1,8 @@
 import { formatDateOnly } from '../../../common/helpers/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import type { ReportDashboardDataDto, ReportDashboardQueryDto } from '../dto';
-import { ReportsComputationService } from './reports-computation.service';
-import { ReportsContextService } from './reports-context.service';
+import { ReportsComputationService } from './computation.service';
+import { ReportsContextService } from './context.service';
 
 @Injectable()
 export class ReportsService {

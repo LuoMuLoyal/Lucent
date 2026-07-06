@@ -6,7 +6,7 @@ import type {
   ReportPatternDto,
   ReportRange,
 } from '../dto';
-import type { MetricStatus } from './reports.types';
+import type { MetricStatus } from './types';
 
 @Injectable()
 export class ReportsPresenterService {

@@ -1,9 +1,9 @@
-import { formatDateOnly } from '../../../common/helpers/date-time.utils';
+import { formatDateOnly } from '../../../../common/helpers/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import type {
   ReportDashboardComputed,
   ReportDashboardFacts,
-} from '../dashboard/reports.types';
+} from '../../dashboard/types';
 
 export interface ReportsAiSummaryContext {
   range: ReportDashboardFacts['range'];
