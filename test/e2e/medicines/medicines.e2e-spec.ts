@@ -6,8 +6,8 @@ import type { App } from 'supertest/types';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
-import type { ApiEnvelope } from '../../../src/common/api-envelope';
-import { ResultCode } from '../../../src/common/api-envelope';
+import type { ApiEnvelope } from '../../../src/common/api';
+import { ResultCode } from '../../../src/common/api';
 import { PrismaService } from '../../../src/prisma/prisma.service';
 
 interface MedicineSearchItem {

@@ -3,8 +3,8 @@ import type { Cache } from 'cache-manager';
 import request from 'supertest';
 import { createHash } from 'node:crypto';
 
-import type { ApiEnvelope } from '../../../src/common/api-envelope';
-import { ResultCode } from '../../../src/common/api-envelope';
+import type { ApiEnvelope } from '../../../src/common/api';
+import { ResultCode } from '../../../src/common/api';
 import { VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS } from '../../../src/modules/auth/services/verification-code.service';
 import {
   createTestApp,

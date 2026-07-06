@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api-envelope';
+import { ResultCode } from '../../common/api';
 import { SupportResourcesController } from './support-resources.controller';
 import { SupportResourcesService } from './services/support-resources.service';
 

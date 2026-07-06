@@ -1,6 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { successEnvelope } from '../../common/api-envelope';
+import { successEnvelope } from '../../common/api';
 import {
   EnvironmentSnapshotQueryDto,
   EnvironmentSnapshotResponseDto,

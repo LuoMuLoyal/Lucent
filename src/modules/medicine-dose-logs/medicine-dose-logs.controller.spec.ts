@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api-envelope';
-import type { UserPayload } from '../auth/services/auth-token.service';
+import { ResultCode } from '../../common/api';
+import type { UserPayload } from '../auth/services/token.service';
 import { MedicineDoseLogsController } from './medicine-dose-logs.controller';
 import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
 

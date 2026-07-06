@@ -10,9 +10,9 @@ import type { App } from 'supertest/types';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
-import { ResultCode } from '../../../src/common/api-envelope';
-import type { ApiEnvelope } from '../../../src/common/api-envelope';
-import { DailyRecordCandidatesService } from '../../../src/modules/daily-records/services/daily-record-candidates.service';
+import { ResultCode } from '../../../src/common/api';
+import type { ApiEnvelope } from '../../../src/common/api';
+import { DailyRecordCandidatesService } from '../../../src/modules/daily-records/services';
 import { PrismaService } from '../../../src/prisma/prisma.service';
 import { DailyRecordKind, UserStatus } from '#generated/prisma/client';
 import { ConfigKey } from '../../../src/config/config-keys.enum';

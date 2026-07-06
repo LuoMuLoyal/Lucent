@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api-envelope';
+import { ResultCode } from '../../common/api';
 import type { EnvironmentSnapshotDto } from './dto';
 import { EnvironmentController } from './environment.controller';
 import { EnvironmentService } from './services/environment.service';

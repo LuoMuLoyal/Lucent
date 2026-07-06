@@ -6,8 +6,8 @@ import type { App } from 'supertest/types';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
-import { ResultCode } from '../../../src/common/api-envelope';
-import type { ApiEnvelope } from '../../../src/common/api-envelope';
+import { ResultCode } from '../../../src/common/api';
+import type { ApiEnvelope } from '../../../src/common/api';
 import { DailyRecordKind } from '#generated/prisma/client';
 
 const TESTING_PATH = '/api/v1/testing/fullstack-e2e/record-lane/prepare';

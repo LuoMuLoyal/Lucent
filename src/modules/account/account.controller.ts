@@ -18,12 +18,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { successEnvelope } from '../../common/api-envelope';
+import { successEnvelope } from '../../common/api';
 import { AuthService, type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { SecurityElevationGuard } from '../security-pin/guards/security-elevation.guard';
-import { RequireSecurityElevation } from '../security-pin/decorators/require-security-elevation.decorator';
+import { SecurityElevationGuard } from '../security-pin/guards';
+import { RequireSecurityElevation } from '../security-pin/decorators';
 import { ChangeEmailDto } from '../auth/dto/change-email.dto';
 import { ChangePasswordDto } from '../auth/dto/change-password.dto';
 import { SetPasswordDto } from '../auth/dto/set-password.dto';

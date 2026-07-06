@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api-envelope';
+import { ResultCode } from '../../common/api';
 import { UserSettingsController } from './user-settings.controller';
 import { UserSettingsService } from './services/user-settings.service';
-import { SecurityPinService } from '../security-pin/services/security-pin.service';
+import { SecurityPinService } from '../security-pin/services';
 import type { UserSettingsDataDto } from './dto';
 
 describe('UserSettingsController', () => {

@@ -5,14 +5,14 @@ jest.mock('otplib', () => ({
 }));
 
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api-envelope';
-import type { UserPayload } from '../auth/services/auth-token.service';
+import { ResultCode } from '../../common/api';
+import type { UserPayload } from '../auth/services/token.service';
 
 import { AccountController } from './account.controller';
 import { AccountService } from './services/account.service';
 import { AuthService } from '../auth/services/auth.service';
-import { SecurityElevationGuard } from '../security-pin/guards/security-elevation.guard';
-import { SecurityPinService } from '../security-pin/services/security-pin.service';
+import { SecurityElevationGuard } from '../security-pin/guards';
+import { SecurityPinService } from '../security-pin/services';
 import type { UpdateAccountDto } from './dto/update-account.dto';
 import type { AccountDto } from './dto/account-response.dto';
 import type { User } from '#generated/prisma/client';

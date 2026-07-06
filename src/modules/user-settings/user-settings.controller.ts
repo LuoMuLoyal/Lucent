@@ -15,20 +15,20 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { successEnvelope } from '../../common/api-envelope';
+import { successEnvelope } from '../../common/api';
 import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserSettingsService } from './services/user-settings.service';
 import { UpdateUserSettingsDto, UserSettingsResponseDto } from './dto';
-import { SecurityPinService } from '../security-pin/services/security-pin.service';
+import { SecurityPinService } from '../security-pin/services';
 import {
   ChangeSecurityPinDto,
   DisableSecurityPinDto,
   EnableSecurityPinDto,
   SecurityPinElevationResponseDto,
   VerifySecurityPinDto,
-} from '../security-pin/dto/security-pin.dto';
+} from '../security-pin/dto/pin.dto';
 
 @ApiTags('User Settings')
 @ApiBearerAuth('access-token')

@@ -5,7 +5,7 @@ import type { Cache } from 'cache-manager';
 import * as argon2 from 'argon2';
 
 import { ARGON2_OPTIONS } from '../../auth/config/argon2-options';
-import { loginFailureCacheKey } from '../../auth/services/auth-rate-limit.service';
+import { loginFailureCacheKey } from '../../auth/services/rate-limit.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserStatus } from '#generated/prisma/client';
 import type { PrepareFullstackRecordLaneDto } from '../dto/prepare-fullstack-record-lane.dto';
