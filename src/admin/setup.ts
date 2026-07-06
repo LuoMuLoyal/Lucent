@@ -2,17 +2,17 @@ import type { INestApplication } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 
 import { PrismaService } from '../prisma/prisma.service';
-import { ADMIN_ROOT_PATH } from './constants/adminjs.constants';
-import { buildPrismaClientModule } from './services/admin-prisma-module.service';
-import { buildResources } from './services/admin-resource-builder.service';
-import { registerAdminStaticAssets } from './services/admin-static-asset.service';
-import { buildAdminAuthRouter } from './services/admin-auth-router.service';
+import { ADMIN_ROOT_PATH } from './constants/constants';
+import { buildPrismaClientModule } from './services/prisma-module.service';
+import { buildResources } from './services/resource-builder.service';
+import { registerAdminStaticAssets } from './services/static-asset.service';
+import { buildAdminAuthRouter } from './services/auth-router.service';
 import type {
   AdminJsExpressModule,
   AdminJsModule,
   AdminJsPrismaModule,
   DynamicImport,
-} from './types/adminjs.types';
+} from './types/types';
 
 /**
  * AdminJS packages are ESM-only and must be imported dynamically.

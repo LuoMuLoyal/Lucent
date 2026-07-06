@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { getDMMF } from '@prisma/internals';
 
-import { SCHEMA_PATH } from '../constants/adminjs.constants';
-import type { PrismaClientModule } from '../types/adminjs.types';
+import { SCHEMA_PATH } from '../constants/constants';
+import type { PrismaClientModule } from '../types/types';
 
 /**
  * Builds a minimal Prisma client module from the schema file for AdminJS.

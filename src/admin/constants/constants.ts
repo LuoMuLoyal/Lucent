@@ -1,4 +1,4 @@
-import type { AdminResourceConfig } from '../types/adminjs.types';
+import type { AdminResourceConfig } from '../types/types';
 
 export const ADMIN_ROOT_PATH = '/admin';
 export const SCHEMA_PATH = 'prisma/schema.prisma';

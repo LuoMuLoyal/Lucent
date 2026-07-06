@@ -7,8 +7,8 @@ import {
   ADMIN_EMAIL_KEY,
   ADMIN_PASSWORD_KEY,
   NODE_ENV_KEY,
-} from '../constants/adminjs.constants';
-import type { AdminJsExpressModule, AdminUser } from '../types/adminjs.types';
+} from '../constants/constants';
+import type { AdminJsExpressModule, AdminUser } from '../types/types';
 
 /**
  * Builds an authenticated Express router for the AdminJS panel using

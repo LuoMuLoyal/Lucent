@@ -4,7 +4,7 @@ import { stat } from 'node:fs/promises';
 import { extname } from 'node:path';
 import type { NextFunction, Request, Response } from 'express';
 
-import type { AdminAsset } from '../types/adminjs.types';
+import type { AdminAsset } from '../types/types';
 
 export function registerAdminStaticAssets(
   app: INestApplication,
