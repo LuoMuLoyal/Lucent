@@ -62,14 +62,42 @@ Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby working code.
 - Use `pnpm typecheck` when you need TypeScript to validate spec and e2e files too; `pnpm build` excludes `**/*spec.ts` and `test/`.
 
+## File Naming Rules
+
+- **No directory-name prefix duplication**: a file must not repeat the name of its enclosing
+  directory or module.
+  - ❌ `auth/services/auth-token.service.ts` — the `auth/` directory already conveys the module.
+  - ✅ `auth/services/token.service.ts`
+- **Module root files keep the module name**: `xxx.controller.ts`, `xxx.module.ts`, and
+  `xxx.service.ts` (if the main service lives at the module root) retain the module-name prefix.
+- **`.service.ts` suffix is mandatory** for all `@Injectable()` service files, following NestJS
+  convention.
+- **Domain sub-directories**: when `services/` or `tools/` contains more than 8 files spanning 2+
+  functional areas, split into domain sub-directories (e.g. `services/oauth/`, `tools/drugbank/`).
+- **Spec files follow their source**: `*.spec.ts` must sit next to the file it tests and be
+  renamed in lockstep.
+
+## Barrel Exports Rules
+
+- Every sub-directory inside a module (`services/`, `dto/`, `tools/`, `providers/`, `strategies/`,
+  `guards/`, `decorators/`, `types/`, `constants/`, `cache/`, `adapters/`, `agent/`, `dashboard/`,
+  etc.) **must** contain an `index.ts` that re-exports all public symbols from that directory.
+- A barrel file contains **only** `export *` statements — no logic, no imports for side-effects.
+- Cross-module imports must go through the barrel, not deep file paths:
+  - ❌ `import { XxxService } from '../auth/services/auth-token.service';`
+  - ✅ `import { XxxService } from '../auth/services';`
+- `@Module()` `exports` arrays still control DI visibility; barrels only affect TypeScript import
+   paths.
+- `dto/` barrels re-export DTOs only — they never define DTOs inline.
+
 ## Module Subdirectory Whitelist
 
 Every module directory must only contain the following subdirectories. New directories outside this whitelist require explicit justification.
 
 ### Standard (always allowed)
 
-- `controllers/`
-- `services/`
+- `controllers/` — optional; in practice the main controller lives at the module root
+- `services/` — service files; when files exceed 8 and span 2+ domains, split into domain sub-directories
 - `decorators/`
 - `filters/`
 - `guards/`
@@ -91,7 +119,7 @@ Every module directory must only contain the following subdirectories. New direc
 - `providers/` — OAuth providers, etc.
 - `adapters/` — external service adapters
 - `cache/` — cache service and admin controllers
-- `utils/` — helper functions scoped to the module
+- `utils/` — pure helper functions scoped to the module; not a home for injectable services
 - `agent/` — AI agent runtime (assistant only)
 - `dashboard/` — dashboard sub-services (reports only)
 - `tools/` — AI tool implementations (assistant only)
@@ -106,18 +134,23 @@ Every module directory must only contain the following subdirectories. New direc
 
 ## Root `common/` Conventions
 
+- **No scattered files at the `common/` root** — every file must live inside a role-based
+  sub-directory.
 - Do not recreate a catch-all `src/common/utils/` directory.
 - Prefer role-based shared subdirectories under `src/common/`:
+  - `api/` — API envelope, SSE, stream helpers
   - `helpers/` — pure helper functions and stateless shared utilities
   - `services/` — shared injectable services
   - `logger/` — shared Nest logging module
-  - existing capability folders such as `ai/`, `filters/`, `interceptors/`, `middleware/`,
+  - `ai/` — shared AI services (safety policy, base generators, LLM runtime port)
+  - existing capability folders such as `filters/`, `interceptors/`, `middleware/`,
     `constants/`, `validators/`
 - If a file needs Nest DI (`@Injectable()`, module wiring, env-based runtime assembly), it should
   not live in `helpers/`.
+- Every sub-directory under `common/` must have an `index.ts` barrel.
 
 ## Module Export Rules
 
 - A service should be exported from its module (`exports` array in `@Module`) **iff** another module directly imports and uses it.
-- Mapper services follow the naming convention `{domain}-mapper.service.ts`.
+- Mapper services follow the naming convention `mapper.service.ts` (placed in the module's `services/` directory; no module-name prefix).
 - Ownership services (for record/medicine checks) follow the naming convention `ownership.service.ts` and are placed in the owning module's `services/` directory.

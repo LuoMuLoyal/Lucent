@@ -71,7 +71,7 @@ export default tseslint.config(
     // AdminJS packages 是 ESM-only, 必须用动态 import 加载。
     // SWC 会将标准 import() 编译为 require(), 导致 ESM interop 失败。
     // 用 new Function 绕过 SWC 的 transform, 保留运行时的 import()。
-    files: ['src/admin/adminjs.setup.ts'],
+    files: ['src/admin/setup.ts'],
     rules: {
       '@typescript-eslint/no-implied-eval': 'off',
     },
