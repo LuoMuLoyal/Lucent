@@ -6,12 +6,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common/api-envelope';
+import { successEnvelope } from '../../common/api';
 import type { UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ReminderDeliveryListResponseDto } from './dto';
-import { MedicineRemindersService } from './services/medicine-reminders.service';
+import { MedicineRemindersService } from './services/reminders.service';
 
 @ApiTags('Reminder Deliveries')
 @Controller('reminder-deliveries')

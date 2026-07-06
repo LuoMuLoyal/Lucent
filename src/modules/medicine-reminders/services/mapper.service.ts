@@ -14,7 +14,7 @@ import type {
   MedicineReminderRecord,
   OwnedMedicineReminderRecord,
   ReminderDeliveryRecord,
-} from '../types/medicine-reminders.types';
+} from '../types/types';
 
 @Injectable()
 export class MedicineRemindersMapperService {
