@@ -4,11 +4,17 @@ const path = require('node:path');
 const readline = require('node:readline');
 const { spawn } = require('node:child_process');
 
-const { REPO_ROOT } = require('./env.ts');
-const { normalizeStableIdPart } = require('./stable-id.ts');
+const { REPO_ROOT } = require('./env');
+const { normalizeStableIdPart } = require('./stable-id');
 
 // ─── Value normalisation ──────────────────────────────────────
 
+/**
+ * Normalizes a value for SQL parameter binding.
+ * Objects/arrays are JSON-serialized; undefined becomes null.
+ * Primitive values (number, boolean, string) are passed through as-is
+ * so the pg driver can handle them with correct type coercion.
+ */
 function normalizeValue(value) {
   if (value === undefined) {
     return null;
@@ -28,6 +34,13 @@ function sqlIdentifier(name) {
   return `"${name.replace(/"/g, '""')}"`;
 }
 
+/**
+ * Builds a parameterised ON CONFLICT upsert statement.
+ *
+ * SECURITY: `spec.tableName` and `spec.columns` are interpolated into SQL
+ * via `sqlIdentifier` (double-quote escaping). They MUST come from trusted,
+ * hard-coded call sites — never from user input.
+ */
 function buildUpsertStatement(spec, rowCount) {
   const placeholders = [];
   const valuesPerRow = spec.columns.length;

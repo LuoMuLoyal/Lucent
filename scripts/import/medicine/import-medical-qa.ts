@@ -18,11 +18,11 @@ const path = require('node:path');
 const readline = require('node:readline');
 
 const { Client } = require('pg');
-const { loadEnvironment } = require('../../shared/env.ts');
+const { loadEnvironment } = require('../../shared/env');
 const {
   createEmbeddingStore,
   embedDocuments,
-} = require('../../shared/chunking.ts');
+} = require('../../shared/chunking');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const DRUG_DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');

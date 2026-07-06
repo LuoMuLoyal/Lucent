@@ -13,8 +13,8 @@
 const path = require('node:path');
 const { Client } = require('pg');
 
-const { loadEnvironment } = require('../../shared/env.ts');
-const { stableUuid } = require('../../shared/stable-id.ts');
+const { loadEnvironment } = require('../../shared/env');
+const { stableUuid } = require('../../shared/stable-id');
 const {
   chunkText,
   normalizeValue,
@@ -23,7 +23,7 @@ const {
   createEmbeddingStore,
   embedDocuments,
   parseRebuildArgs,
-} = require('../../shared/chunking.ts');
+} = require('../../shared/chunking');
 
 const CHUNK_TABLE = 'drugbank_passage_chunks';
 const EMBEDDING_TABLE = 'drugbank_passage_embeddings';

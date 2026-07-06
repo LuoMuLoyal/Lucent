@@ -3,8 +3,8 @@
 const path = require('node:path');
 const { Client } = require('pg');
 
-const { loadEnvironment, REPO_ROOT } = require('../../shared/env.ts');
-const { stableUuid } = require('../../shared/stable-id.ts');
+const { loadEnvironment, REPO_ROOT } = require('../../shared/env');
+const { stableUuid } = require('../../shared/stable-id');
 const {
   executeUpsert,
   startImportRun,
@@ -12,7 +12,7 @@ const {
   parsePositiveIntegerOption,
   parseArgs,
   streamParseAndUpsert,
-} = require('../../shared/db-upsert.ts');
+} = require('../../shared/db-upsert');
 
 // Re-export for backwards compatibility (rebuild scripts + tests depend on these)
 module.exports = {

@@ -4,7 +4,7 @@ const test = require('node:test');
 const {
   listMedicineCacheKeys,
   stripNamespacePrefix,
-} = require('./import-medicine-knowledge.ts');
+} = require('./import-medicine-knowledge');
 
 test('stripNamespacePrefix removes the expected prefix only once', () => {
   assert.equal(

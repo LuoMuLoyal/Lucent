@@ -4,7 +4,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { Client } = require('pg');
 
-const { loadEnvironment, REPO_ROOT } = require('../../shared/env.ts');
+const { loadEnvironment, REPO_ROOT } = require('../../shared/env');
 const {
   executeUpsert,
   startImportRun,
@@ -12,7 +12,7 @@ const {
   parsePositiveIntegerOption,
   parseArgs,
   streamParseAndUpsert,
-} = require('../../shared/db-upsert.ts');
+} = require('../../shared/db-upsert');
 
 const DATA_ROOT = path.resolve(REPO_ROOT, '..', 'DrugDataBase');
 const IMPORT_RUNS_TABLE = 'food_composition_imports';

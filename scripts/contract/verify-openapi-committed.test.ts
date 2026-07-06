@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { hasSemanticJsonDiff } = require('./verify-openapi-committed.ts');
+const { hasSemanticJsonDiff } = require('./verify-openapi-committed');
 
 test('ignores formatting-only JSON differences', () => {
   const committed = JSON.stringify(

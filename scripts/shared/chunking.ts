@@ -46,6 +46,14 @@ function chunkText(text, maxLength, overlap) {
   return chunks;
 }
 
+/**
+ * Normalizes a value for text chunking purposes.
+ * Returns `null` for nullish values so callers can skip empty fields.
+ * All other values are stringified via `String()` — this is intentional
+ * because the output is used as text input to `chunkText()`, not for
+ * database storage (db-upsert.ts has its own `normalizeValue` that
+ * preserves primitive types for SQL parameter binding).
+ */
 function normalizeValue(value) {
   if (value === undefined || value === null) {
     return null;
