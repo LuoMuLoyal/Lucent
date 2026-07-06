@@ -7,13 +7,13 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { BaseAiSummaryService } from '../../../common/ai/base-ai-summary.service';
 import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
 import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from '../dto';
-import { TodayAnalysisCopyService } from './today-analysis-copy.service';
+import { TodayAnalysisCopyService } from './copy.service';
 import {
   TodayAnalysisContextService,
   type TodayAnalysisContext,
-} from './today-analysis-context.service';
-import { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
-import type { TodayAnalysisStructuredOutput } from '../schemas/today-analysis.schema';
+} from './context.service';
+import { TodayAnalysisGeneratorService } from './generator.service';
+import type { TodayAnalysisStructuredOutput } from '../schemas/analysis.schema';
 import { nowIsoString } from '../../../common/helpers/date-time.utils';
 
 interface PreparedTodayAnalysis {

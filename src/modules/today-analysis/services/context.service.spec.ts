@@ -1,4 +1,4 @@
-import { TodayAnalysisContextService } from './today-analysis-context.service';
+import { TodayAnalysisContextService } from './context.service';
 
 describe('TodayAnalysisContextService', () => {
   const buildPrisma = (records: unknown[]) => ({

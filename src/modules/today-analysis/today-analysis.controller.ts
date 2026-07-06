@@ -18,14 +18,14 @@ import {
 } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { I18nLang } from 'nestjs-i18n';
-import { successEnvelope } from '../../common/api-envelope';
-import { endSse, prepareSse, writeSseEvent } from '../../common/sse';
+import { successEnvelope } from '../../common/api';
+import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TodayAnalysisService } from './services/today-analysis.service';
-import { TodayRecommendationsService } from './services/today-recommendations.service';
+import { TodayAnalysisService } from './services/analysis.service';
+import { TodayRecommendationsService } from './services/recommendations.service';
 import {
   GenerateTodayAnalysisDto,
   TodayAnalysisResponseDto,

@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api-envelope';
-import { TodayAnalysisService } from './services/today-analysis.service';
-import { TodayRecommendationsService } from './services/today-recommendations.service';
+import { ResultCode } from '../../common/api';
+import { TodayAnalysisService } from './services/analysis.service';
+import { TodayRecommendationsService } from './services/recommendations.service';
 import type { TodayAnalysisDataDto } from './dto';
 import { TodayAnalysisController } from './today-analysis.controller';
 

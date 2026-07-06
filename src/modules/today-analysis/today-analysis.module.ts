@@ -2,13 +2,13 @@ import { Module } from '@nestjs/common';
 import { AssistantModule } from '../assistant/assistant.module';
 import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { TodayAnalysisCopyService } from './services/today-analysis-copy.service';
+import { TodayAnalysisCopyService } from './services/copy.service';
 import { TodayAnalysisController } from './today-analysis.controller';
-import { TodayAnalysisContextService } from './services/today-analysis-context.service';
-import { TodayAnalysisGeneratorService } from './services/today-analysis-generator.service';
+import { TodayAnalysisContextService } from './services/context.service';
+import { TodayAnalysisGeneratorService } from './services/generator.service';
 import { AiSafetyPolicyService } from '../../common/ai/ai-safety-policy.service';
-import { TodayAnalysisService } from './services/today-analysis.service';
-import { TodayRecommendationsService } from './services/today-recommendations.service';
+import { TodayAnalysisService } from './services/analysis.service';
+import { TodayRecommendationsService } from './services/recommendations.service';
 
 @Module({
   imports: [LlmRuntimeModule, AssistantModule, NotificationsModule],

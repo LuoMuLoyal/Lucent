@@ -5,12 +5,12 @@ import {
   buildTodayAnalysisSystemPrompt,
   buildTodayAnalysisUserPrompt,
   type TodayAnalysisPromptCopy,
-} from '../prompts/today-analysis.prompt';
+} from '../prompts/analysis.prompt';
 import {
   todayAnalysisSchema,
   type TodayAnalysisStructuredOutput,
-} from '../schemas/today-analysis.schema';
-import type { TodayAnalysisContext } from './today-analysis-context.service';
+} from '../schemas/analysis.schema';
+import type { TodayAnalysisContext } from './context.service';
 
 @Injectable()
 export class TodayAnalysisGeneratorService extends BaseAiGeneratorService<

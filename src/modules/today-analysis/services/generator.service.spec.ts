@@ -1,6 +1,6 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
-import { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
+import { TodayAnalysisGeneratorService } from './generator.service';
 
 describe('TodayAnalysisGeneratorService', () => {
   it('delegates generation to llm runtime with structured output', async () => {

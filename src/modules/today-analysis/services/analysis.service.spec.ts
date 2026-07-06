@@ -1,10 +1,10 @@
 import { ForbiddenException } from '@nestjs/common';
 import type { AiConfig } from '../../../config/ai.config';
-import type { TodayAnalysisCopyService } from './today-analysis-copy.service';
-import type { TodayAnalysisContextService } from './today-analysis-context.service';
-import type { TodayAnalysisGeneratorService } from './today-analysis-generator.service';
+import type { TodayAnalysisCopyService } from './copy.service';
+import type { TodayAnalysisContextService } from './context.service';
+import type { TodayAnalysisGeneratorService } from './generator.service';
 import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
-import { TodayAnalysisService } from './today-analysis.service';
+import { TodayAnalysisService } from './analysis.service';
 import type { NotificationsService } from '../../notifications/services/notifications.service';
 
 function modelGenerateSpy(service: TodayAnalysisService) {
