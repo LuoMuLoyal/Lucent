@@ -77,3 +77,10 @@ Last updated: 2026-07-07
   - `setup-app.ts` no longer emits hand-built string HTTP logs; structured
     request/response logs and global exception logs share the same Pino
     baseline.
+
+- Unit test coverage expanded for low-coverage modules identified in the 2026-07-07 review:
+  - `llm-runtime` service spec expanded from 3 to 18 tests, covering `hasRoleConfig` edge cases,
+    `createChatModel` without/partial options, and `createEmbeddingModel` (null/configured/dimension).
+  - `medicine-reminders` gained 3 new spec files: `mapper.service.spec.ts` (29 tests),
+    `ownership.service.spec.ts` (7 tests), `reminder-deliveries.controller.spec.ts` (5 tests).
+  - `account`, `notifications`, `user` were assessed as already well covered (service + controller specs).
