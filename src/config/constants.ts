@@ -25,3 +25,9 @@ export const DEFAULT_EMBEDDING_DIMENSION = 1536;
 
 /** Maximum embedding dimension accepted by the environment validator. */
 export const MAX_EMBEDDING_DIMENSION = 4096;
+
+/**
+ * Timeout (ms) for AI model invocations (structured output, streaming, chat).
+ * Centralised here so all AI call sites share a single source of truth.
+ */
+export const AI_MODEL_TIMEOUT_MS = 10_000;

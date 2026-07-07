@@ -3,6 +3,9 @@
 /node_modules
 /build
 
+# TypeScript incremental build cache
+*.tsbuildinfo
+
 # Windows null-device artifact (Bash writes to "nul" as a file)
 nul
 

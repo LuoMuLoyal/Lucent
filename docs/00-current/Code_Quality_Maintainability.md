@@ -1,6 +1,6 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-05
+Last updated: 2026-07-07
 
 - auth 模块三处静默 catch 补充 logger.warn：`auth.service.ts` refresh、`auth-oauth-state.service.ts`
   normalizeCallbackUri、`credential-auth.service.ts` \_notifyPasswordChanged，保留生产环境可观测性。
@@ -35,6 +35,16 @@ Last updated: 2026-07-05
   `src/common/helpers/` with unit specs.
 - `api-errors.ts` helpers are now used consistently for plain `BadRequestException` throws in
   reports and daily-records services.
+- AI model invocation timeout is centralized as `AI_MODEL_TIMEOUT_MS` in `src/config/constants.ts`;
+  `BaseAiGeneratorService` and `AssistantRuntimeService` both reference the same constant instead
+  of hardcoding `10_000`.
+- Error-info extraction is centralized in `src/common/helpers/error-info.utils.ts`
+  (`extractErrorInfo`); 13 catch blocks across 11 files now share the same message/stack extraction
+  pattern instead of repeating `error instanceof Error ? error.message : String(error)`.
+- Key optional string fields in daily-records, medicine-dose-logs, and medicine-reminders DTOs now
+  use `@IsNotEmpty()` alongside `@IsString()` to reject empty strings that would otherwise pass
+  validation. Fields that explicitly support empty-string clearing (e.g. `UpdateAccountDto.nickname`)
+  are intentionally left without `@IsNotEmpty()`.
 - `assistant-runtime.graph.ts` was split into state/router/graph files; `adminjs.setup.ts` was
   split into types/constants/services files; `auth.service.ts` was split into account, OAuth
   facade, and notification sub-services.

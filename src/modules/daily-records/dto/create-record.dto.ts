@@ -4,6 +4,7 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsNotEmpty,
   IsObject,
   IsOptional,
   Matches,
@@ -41,18 +42,21 @@ export class CreateDailyRecordDto {
   @ApiPropertyOptional({ description: 'Short label.' })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   title?: string;
 
   @ApiPropertyOptional({ description: 'Measured value.' })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   value?: string;
 
   @ApiPropertyOptional({ description: 'Unit label.', example: 'bpm' })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(50)
   unit?: string;
 

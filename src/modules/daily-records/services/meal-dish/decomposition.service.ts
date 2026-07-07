@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { type Prisma } from '#generated/prisma/client';
 import { extractJsonObject } from '../../../../common/helpers/json.utils';
+import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
 import { buildSearchText } from '../../../../common/helpers/search-text.utils';
 import { normalizeNullableNumber } from '../../../../common/helpers/number.utils';
 import { normalizeNullableText } from '../../../../common/helpers/string.utils';
@@ -273,7 +274,7 @@ function parseDecompositionResponse(
     };
   } catch (error) {
     logger.warn(
-      `Failed to parse meal dish decomposition response: ${error instanceof Error ? error.message : String(error)}`,
+      `Failed to parse meal dish decomposition response: ${extractErrorInfo(error).message}`,
     );
     return null;
   }

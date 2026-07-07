@@ -1,4 +1,5 @@
 import { unauthorized } from '../../../common/helpers/api-errors';
+import { extractErrorInfo } from '../../../common/helpers/error-info.utils';
 import type { Logger } from '@nestjs/common';
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
@@ -54,11 +55,8 @@ export abstract class WechatBaseOAuthProvider {
     try {
       response = await fetch(url);
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `WeChat OAuth request failed: ${reason}`,
-        error instanceof Error ? error.stack : undefined,
-      );
+      const { message: reason, stack } = extractErrorInfo(error);
+      this.logger.error(`WeChat OAuth request failed: ${reason}`, stack);
       throw new ServiceUnavailableException({
         code: ResultCode.EXTERNAL_SERVICE_ERROR,
         message: this.i18n.t('auth.oauth_provider_unavailable'),

@@ -1,5 +1,6 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import { TodayAnalysisGeneratorService } from './generator.service';
 
 describe('TodayAnalysisGeneratorService', () => {
@@ -57,7 +58,7 @@ describe('TodayAnalysisGeneratorService', () => {
     );
 
     expect(createChatModel).toHaveBeenCalledWith('analysis', {
-      timeout: 10_000,
+      timeout: AI_MODEL_TIMEOUT_MS,
       temperature: 0.2,
       maxRetries: 0,
     });

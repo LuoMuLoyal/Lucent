@@ -11,6 +11,7 @@ import type {
 import { DailyRecordCandidatesCopyService } from '../candidates/copy.service';
 import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
 import { nowIsoString } from '../../../../common/helpers/date-time.utils';
+import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
 
 interface DailyRecordCandidatesContext {
   text: string;
@@ -55,7 +56,7 @@ export class DailyRecordCandidatesService {
         items: output.items,
       };
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const { message: reason } = extractErrorInfo(error);
       this.logger.warn(
         `Daily record candidate generation failed for ${dto.occurredAt}; falling back: ${reason}`,
       );

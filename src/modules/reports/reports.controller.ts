@@ -22,6 +22,7 @@ import type { Response } from 'express';
 import { I18nLang } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../common/api';
+import { extractErrorInfo } from '../../common/helpers/error-info.utils';
 import { httpExceptionPayload } from '../../common/helpers/error-payload';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
@@ -119,10 +120,10 @@ export class ReportsController {
         data: {},
       });
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
         `Report summary stream failed for user ${user.sub}: ${reason}`,
-        error instanceof Error ? error.stack : undefined,
+        stack,
       );
       writeSseEvent(response, {
         event: 'error',

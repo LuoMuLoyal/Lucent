@@ -1,4 +1,5 @@
 import type { AiConfig } from '../../config/ai.config';
+import { AI_MODEL_TIMEOUT_MS } from '../../config/constants';
 import { LlmRuntimeService } from './services/llm-runtime.service';
 
 describe('LlmRuntimeService', () => {
@@ -28,7 +29,7 @@ describe('LlmRuntimeService', () => {
     const service = new LlmRuntimeService(baseConfig);
 
     const model = service.createChatModel('analysis', {
-      timeout: 10_000,
+      timeout: AI_MODEL_TIMEOUT_MS,
       temperature: 0.2,
       maxRetries: 0,
     });

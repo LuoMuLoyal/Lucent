@@ -20,6 +20,7 @@ import type { Response } from 'express';
 import { I18nLang } from 'nestjs-i18n';
 import { successEnvelope } from '../../common/api';
 import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
+import { extractErrorInfo } from '../../common/helpers/error-info.utils';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -125,10 +126,10 @@ export class TodayAnalysisController {
         data: {},
       });
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
         `Today analysis stream failed for user ${user.sub}: ${reason}`,
-        error instanceof Error ? error.stack : undefined,
+        stack,
       );
       writeSseEvent(response, {
         event: 'error',

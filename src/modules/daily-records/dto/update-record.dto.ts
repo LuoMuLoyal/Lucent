@@ -4,6 +4,7 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsNotEmpty,
   IsObject,
   IsOptional,
   Matches,
@@ -45,6 +46,7 @@ export class UpdateDailyRecordDto {
   })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   title?: string | null;
 
@@ -54,6 +56,7 @@ export class UpdateDailyRecordDto {
   })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   value?: string | null;
 
@@ -63,6 +66,7 @@ export class UpdateDailyRecordDto {
   })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(50)
   unit?: string | null;
 

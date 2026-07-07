@@ -9,9 +9,10 @@ import { ChatGenerationChunk } from '@langchain/core/outputs';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 import type { ZodObject, ZodType } from 'zod';
 import type { AiRole, LlmRuntimePort } from './llm-runtime.port';
+import { AI_MODEL_TIMEOUT_MS } from '../../config/constants';
 
 const MODEL_OPTIONS = {
-  timeout: 10_000,
+  timeout: AI_MODEL_TIMEOUT_MS,
   temperature: 0.2,
   maxRetries: 0,
 } as const;

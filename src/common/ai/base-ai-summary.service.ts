@@ -6,6 +6,7 @@ import type { PromptCopy } from '../helpers/localized-copy';
 import type { StreamSummaryEvent } from '../api/stream-summary';
 import { AiSafetyPolicyService } from './ai-safety-policy.service';
 import { BaseAiGeneratorService } from './base-ai-generator.service';
+import { extractErrorInfo } from '../helpers/error-info.utils';
 
 export interface AiSummaryCopyService<TContext, TOutput> {
   resolveLocale(language: string | undefined): string;
@@ -175,7 +176,7 @@ export abstract class BaseAiSummaryService<
         `Policy rejected model output for ${this.buildLogContext(context)}; falling back`,
       );
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const { message: reason } = extractErrorInfo(error);
       this.logger.warn(
         `Generation failed for ${this.buildLogContext(context)}; falling back: ${reason}`,
       );
@@ -226,7 +227,7 @@ export abstract class BaseAiSummaryService<
         `Policy rejected streamed model output for ${this.buildLogContext(context)}; falling back`,
       );
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const { message: reason } = extractErrorInfo(error);
       this.logger.warn(
         `Streamed generation failed for ${this.buildLogContext(context)}; falling back: ${reason}`,
       );

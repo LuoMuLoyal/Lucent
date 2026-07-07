@@ -5,6 +5,7 @@ import { ReportsService } from '../../reports/dashboard';
 import { DataExportStorageService } from './storage.service';
 import { ReportExportPdfService } from './report-pdf/pdf.service';
 import { formatDateOnly, now } from '../../../common/helpers/date-time.utils';
+import { extractErrorInfo } from '../../../common/helpers/error-info.utils';
 
 export interface DataExportProcessorInput {
   exportRequestId: string;
@@ -138,7 +139,7 @@ export class DataExportProcessorService {
         action: 'report',
       });
     } catch (error: unknown) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const { message: reason } = extractErrorInfo(error);
       this.logger.warn(
         `Failed to notify export completed for user ${userId}, kind ${kind}: ${reason}`,
       );

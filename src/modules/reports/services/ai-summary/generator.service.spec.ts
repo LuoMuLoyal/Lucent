@@ -1,5 +1,6 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { AI_MODEL_TIMEOUT_MS } from '../../../../config/constants';
 import { REPORT_RANGE_LAST_30_DAYS } from '../../dto';
 import { ReportsAiSummaryGeneratorService } from './generator.service';
 
@@ -87,7 +88,7 @@ describe('ReportsAiSummaryGeneratorService', () => {
     );
 
     expect(createChatModel).toHaveBeenCalledWith('analysis', {
-      timeout: 10_000,
+      timeout: AI_MODEL_TIMEOUT_MS,
       temperature: 0.2,
       maxRetries: 0,
     });

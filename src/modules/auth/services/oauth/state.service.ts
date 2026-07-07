@@ -2,6 +2,7 @@ import {
   badRequest,
   unauthorized,
 } from '../../../../common/helpers/api-errors';
+import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
 import {
   BadRequestException,
   Inject,
@@ -137,7 +138,7 @@ export class AuthOAuthStateService {
     } catch (error) {
       this.logger.warn('Invalid OAuth callback URI', {
         uri: trimmed,
-        error: error instanceof Error ? error.message : String(error),
+        error: extractErrorInfo(error).message,
       });
       throw this.invalidUri();
     }

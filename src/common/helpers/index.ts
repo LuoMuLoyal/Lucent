@@ -3,6 +3,8 @@ export * from './array.utils.spec';
 export * from './array.utils';
 export * from './client-ip';
 export * from './date-time.utils';
+export * from './error-info.utils';
+export * from './error-info.utils.spec';
 export * from './error-payload';
 export * from './json.utils';
 export * from './localized-copy';

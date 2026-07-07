@@ -12,6 +12,7 @@ import {
 import { EnvKey } from './config/env-keys.enum';
 import { PrismaService } from './prisma/prisma.service';
 import { nowIsoString } from './common/helpers/date-time.utils';
+import { extractErrorInfo } from './common/helpers/error-info.utils';
 
 type HealthComponent = HealthProbeDto['components'][number];
 
@@ -128,11 +129,8 @@ export class AppService {
             },
       });
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Database health probe failed: ${reason}`,
-        error instanceof Error ? error.stack : undefined,
-      );
+      const { message: reason, stack } = extractErrorInfo(error);
+      this.logger.error(`Database health probe failed: ${reason}`, stack);
       return this.buildComponent({
         name: 'database',
         status: 'down',
@@ -199,11 +197,8 @@ export class AppService {
             },
       });
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
-      this.logger.error(
-        `Cache health probe failed: ${reason}`,
-        error instanceof Error ? error.stack : undefined,
-      );
+      const { message: reason, stack } = extractErrorInfo(error);
+      this.logger.error(`Cache health probe failed: ${reason}`, stack);
       return this.buildComponent({
         name: 'cache',
         status: 'down',

@@ -1,5 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 import { DoseLogStatus } from '#generated/prisma/client';
 
@@ -12,12 +18,14 @@ export class UpdateDoseLogDto {
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   doseText?: string | null;
 
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(500)
   note?: string | null;
 }

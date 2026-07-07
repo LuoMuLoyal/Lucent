@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
@@ -13,6 +14,7 @@ export class CreateDoseLogDto {
   @ApiPropertyOptional({ description: 'Linked current medicine id.' })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   currentMedicineId?: string;
 
   @ApiProperty({
@@ -33,6 +35,7 @@ export class CreateDoseLogDto {
   @ApiPropertyOptional({ description: 'Dose text.' })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   doseText?: string;
 

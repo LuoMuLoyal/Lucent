@@ -6,6 +6,7 @@ import {
   IsBoolean,
   IsDateString,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Max,
@@ -17,11 +18,13 @@ export class CreateMedicineReminderDto {
   @ApiPropertyOptional({ description: 'Linked current medicine id.' })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   currentMedicineId?: string;
 
   @ApiPropertyOptional({ description: 'Reminder label.' })
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   label?: string | null;
 

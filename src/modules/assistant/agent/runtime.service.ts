@@ -19,6 +19,7 @@ import {
   ASSISTANT_TOOL_NAMES,
 } from '../tools/types';
 import type { AssistantContextSource, AssistantToolName } from '../tools/types';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import { AssistantToolLeafletReadService } from '../tools/leaflet/read.service';
 import { buildAssistantSystemPrompt } from '../prompts/system.prompt';
 import {
@@ -29,7 +30,7 @@ import {
 } from './runtime';
 
 const CHAT_MODEL_OPTIONS = {
-  timeout: 10_000,
+  timeout: AI_MODEL_TIMEOUT_MS,
   temperature: 0.2,
   maxRetries: 0,
 } as const;

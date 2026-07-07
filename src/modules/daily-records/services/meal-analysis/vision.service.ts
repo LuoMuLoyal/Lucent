@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { AiSafetyPolicyService } from '../../../../common/ai/ai-safety-policy.service';
 import { extractJsonObject } from '../../../../common/helpers/json.utils';
+import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
 import { normalizeNullableText } from '../../../../common/helpers/string.utils';
 import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
 
@@ -258,7 +259,7 @@ function parseRecognitionResponse(
     };
   } catch (error) {
     logger.warn(
-      `Failed to parse meal vision response: ${error instanceof Error ? error.message : String(error)}`,
+      `Failed to parse meal vision response: ${extractErrorInfo(error).message}`,
     );
     return null;
   }
