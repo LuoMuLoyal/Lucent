@@ -4,10 +4,10 @@ import { aiConfig } from '../../src/config/ai.config';
 import { EnvKey } from '../../src/config/env-keys.enum';
 import { LlmRuntimeService } from '../../src/modules/llm-runtime/services/llm-runtime.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import { MealAnalysisVisionService } from '../../src/modules/daily-records/services/meal-analysis-vision.service';
-import { MealDishDecompositionService } from '../../src/modules/daily-records/services/meal-dish-decomposition.service';
-import { MealIngredientGroundingService } from '../../src/modules/daily-records/services/meal-ingredient-grounding.service';
-import { MealAnalysisMatcherService } from '../../src/modules/daily-records/services/meal-analysis-matcher.service';
+import { MealAnalysisVisionService } from '../../src/modules/daily-records/services/meal-analysis/vision.service';
+import { MealDishDecompositionService } from '../../src/modules/daily-records/services/meal-dish/decomposition.service';
+import { MealIngredientGroundingService } from '../../src/modules/daily-records/services/meal-ingredient/grounding.service';
+import { MealAnalysisMatcherService } from '../../src/modules/daily-records/services/meal-analysis/matcher.service';
 import { AiSafetyPolicyService } from '../../src/common/ai/ai-safety-policy.service';
 
 loadEnv({ path: '.env.development.local', override: false });
@@ -42,6 +42,7 @@ async function main() {
   const mealAnalysisMatcherService = new MealAnalysisMatcherService(
     mealDishDecompositionService,
     mealIngredientGroundingService,
+    configService,
   );
 
   await prisma.$connect();
