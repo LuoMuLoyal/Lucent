@@ -15,7 +15,7 @@
   },
   "scripts": {
     "check": "pnpm lint:check && pnpm format:check && pnpm typecheck && pnpm typecheck:tools && pnpm build && pnpm test:ci && pnpm test:e2e:ci && pnpm deploy:assets:check",
-    "prepare": "husky",
+    "prepare": "simple-git-hooks",
     "build": "nest build",
     "typecheck": "pnpm exec tsc -p tsconfig.typecheck.json --noEmit",
     "typecheck:tools": "pnpm exec tsc -p scripts/tsconfig.json --noEmit && pnpm exec tsc -p deploy/tsconfig.json --noEmit",
@@ -139,10 +139,10 @@
     "eslint-plugin-jest": "^29.15.3",
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^17.0.0",
-    "husky": "^9.1.7",
     "jest": "^30.0.0",
     "lint-staged": "^17.0.5",
     "prettier": "^3.4.2",
+    "simple-git-hooks": "^2.13.1",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
@@ -150,6 +150,10 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript-eslint": "^8.20.0"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged",
+    "commit-msg": "pnpm exec commitlint --edit $1"
   },
   "lint-staged": {
     "*.ts": [
