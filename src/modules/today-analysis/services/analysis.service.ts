@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { now } from '../../../common/helpers/date-time.utils';
+import type { CreateNotificationDto } from '../../notifications/dto';
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -102,16 +103,21 @@ export class TodayAnalysisService extends BaseAiSummaryService<
     userId: string,
     data: TodayAnalysisDataDto,
   ): Promise<void> {
-    try {
-      await this.notificationsService.create(userId, {
-        type: 'ai_today_summary',
-        title: 'AI 今日总结已生成',
-        content: data.summary,
-        action: 'today',
-      });
-    } catch {
-      // Silently fail so notification issues do not break analysis generation.
-    }
+    const scope = {
+      date: data.date,
+      source: 'today-analysis',
+    } as const;
+
+    await this.createNotificationSafely(
+      userId,
+      this.buildTodaySummaryNotification(data),
+      scope,
+    );
+    await this.createNotificationSafely(
+      userId,
+      this.buildProactiveSuggestionNotification(data),
+      scope,
+    );
   }
 
   private todayUtcDateString(): string {
@@ -125,5 +131,51 @@ export class TodayAnalysisService extends BaseAiSummaryService<
     )
       .toISOString()
       .slice(0, 10);
+  }
+
+  private buildTodaySummaryNotification(
+    data: TodayAnalysisDataDto,
+  ): CreateNotificationDto {
+    return {
+      type: 'ai_today_summary',
+      title: 'AI 今日总结已生成',
+      content: data.summary,
+      action: data.action,
+      actionPayload: {
+        date: data.date,
+        source: 'today-analysis',
+      },
+    };
+  }
+
+  private buildProactiveSuggestionNotification(
+    data: TodayAnalysisDataDto,
+  ): CreateNotificationDto {
+    return {
+      type: 'ai_proactive_suggestion',
+      title: 'AI 主动建议',
+      content: data.bullets[0]?.text ?? data.summary,
+      action: data.action,
+      actionPayload: {
+        date: data.date,
+        source: 'today-analysis',
+        actionLabel: data.actionLabel,
+      },
+    };
+  }
+
+  private async createNotificationSafely(
+    userId: string,
+    dto: CreateNotificationDto,
+    scope: {
+      source: string;
+      date: string;
+    },
+  ): Promise<void> {
+    try {
+      await this.notificationsService.createOrReplaceScoped(userId, dto, scope);
+    } catch {
+      // Silently fail so notification issues do not break analysis generation.
+    }
   }
 }

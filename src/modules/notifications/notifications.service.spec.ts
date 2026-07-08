@@ -22,26 +22,48 @@ const mockReadNotificationRow = {
   readAt: new Date('2026-06-10T12:00:00.000Z'),
 };
 
+const mockScopedSuggestionRow = {
+  id: 'notif-suggestion-1',
+  type: 'ai_proactive_suggestion' as const,
+  title: 'AI 主动建议',
+  content: '还有 1 项今日用药待确认。',
+  action: 'today' as string | null,
+  actionPayload: {
+    source: 'today-analysis',
+    date: '2026-06-12',
+    actionLabel: '查看今日记录',
+  } as Record<string, unknown> | null,
+  isRead: false,
+  readAt: null as Date | null,
+  createdAt: new Date('2026-06-12T08:00:00.000Z'),
+};
+
 describe('NotificationsService', () => {
   let service: NotificationsService;
   let prismaService: jest.Mocked<PrismaService>;
 
   beforeEach(async () => {
+    const prismaMock = {
+      $transaction: jest.fn(),
+      userNotification: {
+        create: jest.fn(),
+        findMany: jest.fn(),
+        count: jest.fn(),
+        findFirst: jest.fn(),
+        updateMany: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+    };
+    prismaMock.$transaction.mockImplementation(
+      (callback: (tx: typeof prismaMock) => unknown) => callback(prismaMock),
+    );
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationsService,
         {
           provide: PrismaService,
-          useValue: {
-            userNotification: {
-              create: jest.fn(),
-              findMany: jest.fn(),
-              count: jest.fn(),
-              findFirst: jest.fn(),
-              updateMany: jest.fn(),
-              deleteMany: jest.fn(),
-            },
-          },
+          useValue: prismaMock,
         },
       ],
     }).compile();
@@ -116,6 +138,120 @@ describe('NotificationsService', () => {
 
       expect(result.action).toBeNull();
       expect(result.actionPayload).toBeNull();
+    });
+  });
+
+  describe('createOrReplaceScoped', () => {
+    it('creates a new notification when no scoped duplicate exists', async () => {
+      (prismaService.userNotification.findMany as jest.Mock).mockResolvedValue([
+        {
+          ...mockScopedSuggestionRow,
+          id: 'notif-suggestion-other-date',
+          actionPayload: {
+            source: 'today-analysis',
+            date: '2026-06-11',
+            actionLabel: '查看今日记录',
+          },
+        },
+      ]);
+      (prismaService.userNotification.create as jest.Mock).mockResolvedValue({
+        ...mockScopedSuggestionRow,
+        id: 'notif-suggestion-new',
+      });
+
+      const result = await service.createOrReplaceScoped(
+        'user-uuid-1',
+        {
+          type: 'ai_proactive_suggestion',
+          title: 'AI 主动建议',
+          content: '还有 1 项今日用药待确认。',
+          action: 'today',
+          actionPayload: {
+            source: 'today-analysis',
+            date: '2026-06-12',
+            actionLabel: '查看今日记录',
+          },
+        },
+        {
+          source: 'today-analysis',
+          date: '2026-06-12',
+        },
+      );
+
+      expect(prismaService.userNotification.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-uuid-1',
+          type: 'ai_proactive_suggestion',
+        },
+        select: expect.any(Object) as Record<string, boolean>,
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(prismaService.userNotification.deleteMany).not.toHaveBeenCalled();
+      expect(result.id).toBe('notif-suggestion-new');
+    });
+
+    it('replaces existing scoped duplicates before creating a fresh notification', async () => {
+      (prismaService.userNotification.findMany as jest.Mock).mockResolvedValue([
+        mockScopedSuggestionRow,
+        {
+          ...mockScopedSuggestionRow,
+          id: 'notif-suggestion-2',
+          createdAt: new Date('2026-06-12T07:00:00.000Z'),
+        },
+        {
+          ...mockScopedSuggestionRow,
+          id: 'notif-suggestion-other-source',
+          actionPayload: {
+            source: 'report-summary',
+            date: '2026-06-12',
+            actionLabel: '查看报告',
+          },
+        },
+      ]);
+      (
+        prismaService.userNotification.deleteMany as jest.Mock
+      ).mockResolvedValue({ count: 2 });
+      (prismaService.userNotification.create as jest.Mock).mockResolvedValue({
+        ...mockScopedSuggestionRow,
+        id: 'notif-suggestion-new',
+        createdAt: new Date('2026-06-12T09:00:00.000Z'),
+      });
+
+      await service.createOrReplaceScoped(
+        'user-uuid-1',
+        {
+          type: 'ai_proactive_suggestion',
+          title: 'AI 主动建议',
+          content: '还有 1 项今日用药待确认。',
+          action: 'today',
+          actionPayload: {
+            source: 'today-analysis',
+            date: '2026-06-12',
+            actionLabel: '查看今日记录',
+          },
+        },
+        {
+          source: 'today-analysis',
+          date: '2026-06-12',
+        },
+      );
+
+      expect(prismaService.userNotification.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-uuid-1',
+          id: {
+            in: ['notif-suggestion-1', 'notif-suggestion-2'],
+          },
+        },
+      });
+      expect(prismaService.userNotification.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            userId: 'user-uuid-1',
+            type: 'ai_proactive_suggestion',
+          }),
+        }),
+      );
     });
   });
 

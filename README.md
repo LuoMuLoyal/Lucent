@@ -73,6 +73,13 @@ dart run tool/regenerate_lucent_openapi.dart
 dart run tool/verify_lucent_openapi_sync.dart
 ```
 
+Generated artifact policy in this repo:
+
+- `generated/prisma/` is intentionally local-only and stays ignored. Regenerate it from
+  `prisma/schema.prisma` plus migrations through the normal Prisma flow instead of committing it.
+- `docs/openapi.json` is generated but must stay committed because it is the cross-repo contract
+  consumed by `Luminous`.
+
 Lucent CI now verifies `docs/openapi.json` semantically instead of byte-for-byte. Pure JSON formatting drift no longer blocks downstream unit/e2e lanes, but any real schema/content drift still fails the workflow.
 
 ## Stack

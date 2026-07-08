@@ -24,6 +24,11 @@ type UserNotificationRow = Prisma.UserNotificationGetPayload<{
   select: typeof notificationSelect;
 }>;
 
+interface NotificationScope {
+  source: string;
+  date: string;
+}
+
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -43,6 +48,54 @@ export class NotificationsService {
       },
       select: notificationSelect,
     });
+
+    return this.toListItemDto(created);
+  }
+
+  async createOrReplaceScoped(
+    userId: string,
+    dto: CreateNotificationDto,
+    scope: NotificationScope,
+  ): Promise<NotificationListItemDto> {
+    const created = await this.prisma.$transaction<UserNotificationRow>(
+      async (tx) => {
+        const existing = await tx.userNotification.findMany({
+          where: {
+            userId,
+            type: dto.type,
+          },
+          select: notificationSelect,
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const duplicateIds = existing
+          .filter((row) => this.matchesScope(row.actionPayload, scope))
+          .map((row) => row.id);
+
+        if (duplicateIds.length > 0) {
+          await tx.userNotification.deleteMany({
+            where: {
+              userId,
+              id: {
+                in: duplicateIds,
+              },
+            },
+          });
+        }
+
+        return tx.userNotification.create({
+          data: {
+            userId,
+            type: dto.type,
+            title: dto.title,
+            content: dto.content,
+            action: dto.action ?? null,
+            actionPayload: (dto.actionPayload ?? null) as Prisma.InputJsonValue,
+          },
+          select: notificationSelect,
+        });
+      },
+    );
 
     return this.toListItemDto(created);
   }
@@ -150,5 +203,20 @@ export class NotificationsService {
     return Object.assign({}, item, {
       readAt: row.readAt?.toISOString() ?? null,
     });
+  }
+
+  private matchesScope(
+    payload: Prisma.JsonValue | null,
+    scope: NotificationScope,
+  ): boolean {
+    if (
+      payload == null ||
+      Array.isArray(payload) ||
+      typeof payload !== 'object'
+    ) {
+      return false;
+    }
+
+    return payload['source'] === scope.source && payload['date'] === scope.date;
   }
 }

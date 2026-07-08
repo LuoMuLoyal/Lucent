@@ -71,6 +71,8 @@ pids
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
+# Prisma client output is local-only. Regenerate from schema with prisma/client
+# install hooks or `pnpm prisma:generate`; do not commit this directory.
 /generated/prisma
 /scripts/deploy/dist
 .codebase-memory/

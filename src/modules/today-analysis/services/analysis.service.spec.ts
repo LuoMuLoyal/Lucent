@@ -18,6 +18,17 @@ function modelGenerateSpy(service: TodayAnalysisService) {
   );
 }
 
+function notificationCreateOrReplaceScopedSpy(service: TodayAnalysisService) {
+  return jest.spyOn(
+    (
+      service as unknown as {
+        notificationsService: { createOrReplaceScoped: jest.Mock };
+      }
+    ).notificationsService,
+    'createOrReplaceScoped',
+  );
+}
+
 describe('TodayAnalysisService', () => {
   const baseConfig: AiConfig = {
     provider: 'openai-compatible',
@@ -61,6 +72,7 @@ describe('TodayAnalysisService', () => {
 
   it('returns model output when policy accepts it', async () => {
     const service = createService();
+    const notifySpy = notificationCreateOrReplaceScopedSpy(service);
     const modelOutput = {
       summary: '今日记录主要集中在饮水和用药，仍有一项待确认。',
       bullets: [
@@ -88,6 +100,43 @@ describe('TodayAnalysisService', () => {
 
     expect(result.summary).toBe(modelOutput.summary);
     expect(result.bullets).toEqual(modelOutput.bullets);
+    expect(notifySpy).toHaveBeenNthCalledWith(
+      1,
+      'u1',
+      {
+        type: 'ai_today_summary',
+        title: 'AI 今日总结已生成',
+        content: modelOutput.summary,
+        action: 'today',
+        actionPayload: {
+          date: '2026-06-12',
+          source: 'today-analysis',
+        },
+      },
+      {
+        date: '2026-06-12',
+        source: 'today-analysis',
+      },
+    );
+    expect(notifySpy).toHaveBeenNthCalledWith(
+      2,
+      'u1',
+      {
+        type: 'ai_proactive_suggestion',
+        title: 'AI 主动建议',
+        content: modelOutput.bullets[0]?.text,
+        action: 'today',
+        actionPayload: {
+          date: '2026-06-12',
+          source: 'today-analysis',
+          actionLabel: '查看今日记录',
+        },
+      },
+      {
+        date: '2026-06-12',
+        source: 'today-analysis',
+      },
+    );
   });
 
   it('falls back when policy rejects the model output', async () => {
@@ -363,6 +412,7 @@ describe('TodayAnalysisService', () => {
 
     const notificationsService = {
       create: jest.fn(),
+      createOrReplaceScoped: jest.fn(),
     } as unknown as NotificationsService;
     return new TodayAnalysisService(
       prisma as never,
