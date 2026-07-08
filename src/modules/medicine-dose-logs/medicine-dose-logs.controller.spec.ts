@@ -19,6 +19,7 @@ describe('MedicineDoseLogsController', () => {
           useValue: {
             list: jest.fn(),
             create: jest.fn(),
+            mark: jest.fn(),
             update: jest.fn(),
             delete: jest.fn(),
           },
@@ -60,6 +61,31 @@ describe('MedicineDoseLogsController', () => {
         code: ResultCode.SUCCESS,
         message: '',
         data: { id: 'log-1' },
+      });
+    });
+  });
+
+  describe('POST /user/medicine-dose-logs/mark', () => {
+    it('should mark a reminder slot dose log idempotently', async () => {
+      const dto = {
+        currentMedicineId: 'med-1',
+        reminderId: 'reminder-1',
+        status: 'taken',
+        scheduledFor: '2026-07-08',
+        scheduledTime: '08:30',
+      };
+      service.mark.mockResolvedValue({
+        id: 'log-1',
+        reminderId: 'reminder-1',
+      } as any);
+
+      const result = await controller.mark(mockUser, dto as any);
+
+      expect(service.mark).toHaveBeenCalledWith(mockUser.sub, dto);
+      expect(result).toEqual({
+        code: ResultCode.SUCCESS,
+        message: '',
+        data: { id: 'log-1', reminderId: 'reminder-1' },
       });
     });
   });

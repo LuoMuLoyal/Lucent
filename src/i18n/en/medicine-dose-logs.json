@@ -1,4 +1,5 @@
 {
   "medicine_not_found": "Medicine not found",
+  "invalid_slot_identity": "Reminder and medicine do not match",
   "not_found": "Not found"
 }

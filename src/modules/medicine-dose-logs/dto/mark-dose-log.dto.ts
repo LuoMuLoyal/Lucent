@@ -11,7 +11,7 @@ import {
 
 import { DoseLogStatus } from '#generated/prisma/client';
 
-export class CreateDoseLogDto {
+export class MarkDoseLogDto {
   @ApiPropertyOptional({ description: 'Linked current medicine id.' })
   @IsOptional()
   @IsString()
@@ -19,7 +19,7 @@ export class CreateDoseLogDto {
   currentMedicineId?: string;
 
   @ApiPropertyOptional({
-    description: 'Linked reminder id for slot-aware logs.',
+    description: 'Linked reminder id for slot-aware marks.',
   })
   @IsOptional()
   @IsString()
@@ -36,13 +36,13 @@ export class CreateDoseLogDto {
 
   @ApiProperty({
     description: 'Scheduled date YYYY-MM-DD.',
-    example: '2026-06-04',
+    example: '2026-07-08',
   })
   @IsDateString()
   scheduledFor!: string;
 
   @ApiPropertyOptional({
-    description: 'Scheduled slot time in HH:mm.',
+    description: 'Scheduled slot time in HH:mm for slot-aware marks.',
     example: '08:30',
   })
   @IsOptional()
@@ -55,11 +55,11 @@ export class CreateDoseLogDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  doseText?: string;
+  doseText?: string | null;
 
   @ApiPropertyOptional({ description: 'Free-text note.' })
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  note?: string;
+  note?: string | null;
 }

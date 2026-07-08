@@ -24,6 +24,7 @@ import type { UserPayload } from '../auth/services/auth.service';
 import {
   CreateDoseLogDto,
   DoseLogListResponseDto,
+  MarkDoseLogDto,
   DoseLogResponseDto,
   UpdateDoseLogDto,
 } from './dto';
@@ -54,6 +55,17 @@ export class MedicineDoseLogsController {
     @Body() dto: CreateDoseLogDto,
   ) {
     return successEnvelope(await this.service.create(user.sub, dto));
+  }
+
+  @Post('mark')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Mark a dose log idempotently for one reminder slot',
+  })
+  @ApiResponse({ status: 201, type: DoseLogResponseDto })
+  async mark(@CurrentUser() user: UserPayload, @Body() dto: MarkDoseLogDto) {
+    return successEnvelope(await this.service.mark(user.sub, dto));
   }
 
   @Patch(':id')

@@ -64,6 +64,23 @@ describe('Medicine Dose Logs API (e2e)', () => {
     });
   }
 
+  async function createReminder(
+    userId: string,
+    currentMedicineId: string,
+    scheduledHour = 8,
+    scheduledMinute = 30,
+  ) {
+    return ctx.prisma.userMedicineReminder.create({
+      data: {
+        userId,
+        currentMedicineId,
+        scheduledHour,
+        scheduledMinute,
+        isActive: true,
+      },
+    });
+  }
+
   it('should create and list linked dose logs', async () => {
     const { user, token } = await createUserWithToken();
     const medicine = await createCurrentMedicine(user.id);
@@ -118,6 +135,62 @@ describe('Medicine Dose Logs API (e2e)', () => {
         scheduledFor: '2026-06-04',
       })
       .expect(404);
+  });
+
+  it('should mark the same reminder slot idempotently', async () => {
+    const { user, token } = await createUserWithToken();
+    const medicine = await createCurrentMedicine(user.id);
+    const reminder = await createReminder(user.id, medicine.id);
+
+    const firstRes = await request(app.getHttpServer())
+      .post(`${BASE_PATH}/mark`)
+      .set(AUTH_HEADER, bearer(token))
+      .send({
+        currentMedicineId: medicine.id,
+        reminderId: reminder.id,
+        status: 'planned',
+        scheduledFor: '2026-07-08',
+        scheduledTime: '08:30',
+      })
+      .expect(201);
+
+    const secondRes = await request(app.getHttpServer())
+      .post(`${BASE_PATH}/mark`)
+      .set(AUTH_HEADER, bearer(token))
+      .send({
+        currentMedicineId: medicine.id,
+        reminderId: reminder.id,
+        status: 'taken',
+        scheduledFor: '2026-07-08',
+        scheduledTime: '08:30',
+        note: 'after breakfast',
+      })
+      .expect(201);
+
+    const first = expectData(firstRes.body as ApiEnvelope<{ id: string }>);
+    const second = expectData(
+      secondRes.body as ApiEnvelope<{
+        id: string;
+        reminderId: string | null;
+        scheduledTime: string | null;
+        status: string;
+        note: string | null;
+      }>,
+    );
+    expect(second.id).toBe(first.id);
+    expect(second.reminderId).toBe(reminder.id);
+    expect(second.scheduledTime).toBe('08:30');
+    expect(second.status).toBe('taken');
+    expect(second.note).toBe('after breakfast');
+
+    const stored = await ctx.prisma.userMedicineDoseLog.findMany({
+      where: {
+        userId: user.id,
+        reminderId: reminder.id,
+        scheduledFor: new Date('2026-07-08T00:00:00.000Z'),
+      },
+    });
+    expect(stored).toHaveLength(1);
   });
 
   it('should update status without clearing omitted nullable fields', async () => {

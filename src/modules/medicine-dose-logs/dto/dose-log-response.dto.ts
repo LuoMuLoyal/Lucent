@@ -8,6 +8,11 @@ class DoseLogItemDto {
   @ApiPropertyOptional({ description: 'Linked current medicine id.' })
   currentMedicineId!: string | null;
 
+  @ApiPropertyOptional({
+    description: 'Linked reminder id for slot-aware logs.',
+  })
+  reminderId!: string | null;
+
   @ApiProperty({ enum: DoseLogStatus, enumName: 'DoseLogStatus' })
   status!: DoseLogStatus;
 
@@ -16,6 +21,12 @@ class DoseLogItemDto {
     example: '2026-06-04',
   })
   scheduledFor!: string;
+
+  @ApiPropertyOptional({
+    description: 'Scheduled slot time in HH:mm format.',
+    example: '08:30',
+  })
+  scheduledTime!: string | null;
 
   @ApiPropertyOptional({ description: 'Dose text.' })
   doseText!: string | null;

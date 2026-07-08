@@ -324,6 +324,7 @@ model UserMedicineReminder {
   user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
   deliveries        UserReminderDelivery[]
+  doseLogs          UserMedicineDoseLog[]
 
   @@index([userId, isActive])
   @@index([userId, currentMedicineId])
@@ -363,8 +364,10 @@ model UserMedicineDoseLog {
   id                String               @id @default(uuid())
   userId            String               @map("user_id")
   currentMedicineId String?              @map("current_medicine_id")
+  reminderId        String?              @map("reminder_id")
   status            DoseLogStatus        @default(planned)
   scheduledFor      DateTime             @map("scheduled_for") @db.Date
+  scheduledTime     String?              @map("scheduled_time") @db.VarChar(5)
   takenAt           DateTime?            @map("taken_at") @db.Timestamptz(3)
   doseText          String?
   note              String?
@@ -374,9 +377,12 @@ model UserMedicineDoseLog {
   updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
+  reminder          UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
 
   @@index([userId, scheduledFor])
   @@index([userId, currentMedicineId])
+  @@index([userId, reminderId, scheduledFor])
+  @@index([userId, currentMedicineId, scheduledFor, scheduledTime])
   @@index([userId, deletedAt])
   @@map("user_medicine_dose_logs")
 }

@@ -35,7 +35,7 @@
     "test:e2e:ci": "pnpm test:e2e",
     "test:runtime:start": "node scripts/dev/start-test-runtime.ts",
     "test:runtime:stop": "node scripts/dev/stop-test-runtime.ts",
-    "prisma:generate": "pnpm exec prisma generate",
+    "prisma:generate": "pnpm exec prisma generate && node scripts/dev/fix-generated-prisma-internal.js",
     "db:migrate:dev": "cross-env NODE_ENV=development pnpm exec prisma migrate deploy",
     "db:migrate:test": "cross-env NODE_ENV=test pnpm exec prisma migrate deploy",
     "db:migrate": "pnpm prisma:generate && pnpm db:migrate:dev && pnpm db:migrate:test",

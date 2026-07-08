@@ -25,8 +25,10 @@ describe('MedicineDoseLogsService', () => {
               create: jest.fn(),
               update: jest.fn(),
               findUnique: jest.fn(),
+              findFirst: jest.fn(),
             },
             userCurrentMedicine: { findUnique: jest.fn() },
+            userMedicineReminder: { findUnique: jest.fn() },
           },
         },
       ],
@@ -42,6 +44,8 @@ describe('MedicineDoseLogsService', () => {
       currentMedicineId: null,
       status: 'taken',
       scheduledFor: new Date('2026-06-04'),
+      reminderId: null,
+      scheduledTime: null,
       doseText: null,
       note: null,
       source: 'manual',
@@ -55,6 +59,8 @@ describe('MedicineDoseLogsService', () => {
         currentMedicineId: null,
         status: 'taken',
         scheduledFor: new Date('2026-06-04'),
+        reminderId: null,
+        scheduledTime: null,
         doseText: null,
         note: null,
         source: 'manual',
@@ -104,6 +110,8 @@ describe('MedicineDoseLogsService', () => {
       currentMedicineId: null,
       status: DoseLogStatus.skipped,
       scheduledFor: new Date('2026-06-04'),
+      reminderId: null,
+      scheduledTime: null,
       doseText: '1 tablet',
       note: 'with food',
       source: 'manual',
@@ -115,7 +123,7 @@ describe('MedicineDoseLogsService', () => {
 
     expect(prisma.userMedicineDoseLog.update).toHaveBeenCalledWith({
       where: { id: 'd1' },
-      data: { status: DoseLogStatus.skipped },
+      data: { status: DoseLogStatus.skipped, takenAt: null },
     });
   });
 
@@ -129,6 +137,8 @@ describe('MedicineDoseLogsService', () => {
       currentMedicineId: null,
       status: DoseLogStatus.taken,
       scheduledFor: new Date('2026-06-04'),
+      reminderId: null,
+      scheduledTime: null,
       doseText: null,
       note: null,
       source: 'manual',
@@ -151,6 +161,96 @@ describe('MedicineDoseLogsService', () => {
 
     await expect(
       service.update('u1', 'd1', { status: DoseLogStatus.taken }),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('should upsert an existing reminder slot dose log when mark is called', async () => {
+    (prisma.userMedicineReminder.findUnique as jest.Mock).mockResolvedValue({
+      id: 'reminder-1',
+      userId: 'u1',
+      currentMedicineId: 'medicine-1',
+    });
+    (prisma.userCurrentMedicine.findUnique as jest.Mock).mockResolvedValue({
+      userId: 'u1',
+    });
+    (prisma.userMedicineDoseLog.findFirst as jest.Mock).mockResolvedValue({
+      id: 'dose-1',
+      userId: 'u1',
+      currentMedicineId: 'medicine-1',
+      reminderId: 'reminder-1',
+      status: DoseLogStatus.planned,
+      scheduledFor: new Date('2026-07-08T00:00:00.000Z'),
+      scheduledTime: '08:30',
+      doseText: null,
+      note: null,
+      source: 'manual',
+      createdAt: new Date('2026-07-08T01:00:00.000Z'),
+      updatedAt: new Date('2026-07-08T01:00:00.000Z'),
+      takenAt: null,
+    });
+    (prisma.userMedicineDoseLog.update as jest.Mock).mockResolvedValue({
+      id: 'dose-1',
+      userId: 'u1',
+      currentMedicineId: 'medicine-1',
+      reminderId: 'reminder-1',
+      status: DoseLogStatus.taken,
+      scheduledFor: new Date('2026-07-08T00:00:00.000Z'),
+      scheduledTime: '08:30',
+      doseText: null,
+      note: 'after breakfast',
+      source: 'manual',
+      createdAt: new Date('2026-07-08T01:00:00.000Z'),
+      updatedAt: new Date('2026-07-08T02:00:00.000Z'),
+      takenAt: new Date('2026-07-08T02:00:00.000Z'),
+    });
+
+    const result = await service.mark('u1', {
+      currentMedicineId: 'medicine-1',
+      reminderId: 'reminder-1',
+      status: DoseLogStatus.taken,
+      scheduledFor: '2026-07-08',
+      scheduledTime: '08:30',
+      note: 'after breakfast',
+    });
+
+    expect(prisma.userMedicineDoseLog.findFirst).toHaveBeenCalledWith({
+      where: {
+        userId: 'u1',
+        reminderId: 'reminder-1',
+        scheduledFor: new Date('2026-07-08T00:00:00.000Z'),
+        deletedAt: null,
+      },
+      orderBy: [{ updatedAt: 'desc' }],
+    });
+    expect(prisma.userMedicineDoseLog.update).toHaveBeenCalledWith({
+      where: { id: 'dose-1' },
+      data: expect.objectContaining({
+        currentMedicineId: 'medicine-1',
+        reminderId: 'reminder-1',
+        status: DoseLogStatus.taken,
+        scheduledTime: '08:30',
+        note: 'after breakfast',
+      }),
+    });
+    expect(result.reminderId).toBe('reminder-1');
+    expect(result.scheduledTime).toBe('08:30');
+  });
+
+  it('should reject foreign reminder slots on mark', async () => {
+    (prisma.userMedicineReminder.findUnique as jest.Mock).mockResolvedValue({
+      id: 'reminder-1',
+      userId: 'other',
+      currentMedicineId: 'medicine-1',
+    });
+
+    await expect(
+      service.mark('u1', {
+        currentMedicineId: 'medicine-1',
+        reminderId: 'reminder-1',
+        status: DoseLogStatus.taken,
+        scheduledFor: '2026-07-08',
+        scheduledTime: '08:30',
+      }),
     ).rejects.toThrow(NotFoundException);
   });
 });

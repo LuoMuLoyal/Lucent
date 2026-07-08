@@ -23,6 +23,8 @@ Lucent runtime、Prisma CLI 与本地 import 脚本现统一按
 `.env.<NODE_ENV>.local` → `.env.<NODE_ENV>` 的优先级解析环境变量，不再使用根 `.env`
 fallback。
 User.email 字段已在数据库层添加唯一约束（`@unique`），应用层重复检查仍保留作为早期拦截。
+Medicine dose logs 现已具备 slot-aware 基础合同：单条 dose log 可携带 `reminderId` +
+`scheduledTime`，并新增幂等 `POST /api/v1/user/medicine-dose-logs/mark` 用于按提醒槽位标记。
 
 ## 相关文档
 
