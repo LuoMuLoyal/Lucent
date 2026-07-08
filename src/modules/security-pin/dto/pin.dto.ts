@@ -58,6 +58,7 @@ export class SecurityPinSettingsDto {
   @ApiProperty({
     description: 'ISO-8601 timestamp of last PIN change, null if never set',
     nullable: true,
+    type: String,
   })
   lastChangedAt!: string | null;
 }

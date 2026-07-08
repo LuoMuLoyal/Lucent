@@ -34,6 +34,7 @@ export class UpdateDailyRecordDto {
     description: 'Time in HH:mm 24-hour format. Use null to clear.',
     example: '09:45',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -43,6 +44,7 @@ export class UpdateDailyRecordDto {
   @ApiPropertyOptional({
     description: 'Short label. Use null to clear.',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -53,6 +55,7 @@ export class UpdateDailyRecordDto {
   @ApiPropertyOptional({
     description: 'Measured value. Use null to clear.',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -63,6 +66,7 @@ export class UpdateDailyRecordDto {
   @ApiPropertyOptional({
     description: 'Unit label. Use null to clear.',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -73,6 +77,7 @@ export class UpdateDailyRecordDto {
   @ApiPropertyOptional({
     description: 'Free-text note. Use null to clear.',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -83,6 +88,8 @@ export class UpdateDailyRecordDto {
     description:
       'Structured payload for kind-specific data. Use null to clear.',
     nullable: true,
+    type: Object,
+    additionalProperties: true,
   })
   @IsOptional()
   @IsObject()

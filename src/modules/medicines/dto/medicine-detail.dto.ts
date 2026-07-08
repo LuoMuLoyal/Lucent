@@ -14,52 +14,58 @@ export class DrugbankMedicineDetailDto {
   @ApiProperty({ example: 'drugbank' })
   kind!: 'drugbank';
 
-  @ApiPropertyOptional({ nullable: true, example: 'small molecule' })
+  @ApiPropertyOptional({
+    nullable: true,
+    type: String,
+    example: 'small molecule',
+  })
   drugType!: string | null;
 
-  @ApiPropertyOptional({ nullable: true, example: 'solid' })
+  @ApiPropertyOptional({ nullable: true, type: String, example: 'solid' })
   state!: string | null;
 
   @ApiPropertyOptional({
     nullable: true,
+    type: String,
     example: 'A non-steroidal anti-inflammatory drug.',
   })
   description!: string | null;
 
   @ApiPropertyOptional({
     nullable: true,
+    type: String,
     example: 'Used for pain, fever, and inflammation.',
   })
   indication!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   mechanismOfAction!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   pharmacodynamics!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   toxicity!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   metabolism!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   absorption!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   halfLife!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   proteinBinding!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   routeOfElimination!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   volumeOfDistribution!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   clearance!: string | null;
 
   @ApiProperty({ type: [String], example: ['approved', 'small molecule'] })
@@ -109,67 +115,71 @@ export class CnMedicineDetailDto {
   @ApiProperty({ example: 'cnProduct' })
   kind!: 'cnProduct';
 
-  @ApiPropertyOptional({ nullable: true, example: '国药准字H10900089' })
+  @ApiPropertyOptional({
+    nullable: true,
+    type: String,
+    example: '国药准字H10900089',
+  })
   approvalNumber!: string | null;
 
-  @ApiPropertyOptional({ nullable: true, example: '某某制药' })
+  @ApiPropertyOptional({ nullable: true, type: String, example: '某某制药' })
   manufacturer!: string | null;
 
-  @ApiPropertyOptional({ nullable: true, example: '0.3g*10粒' })
+  @ApiPropertyOptional({ nullable: true, type: String, example: '0.3g*10粒' })
   packageSpec!: string | null;
 
-  @ApiPropertyOptional({ nullable: true, example: '布洛芬' })
+  @ApiPropertyOptional({ nullable: true, type: String, example: '布洛芬' })
   brandName!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   ingredients!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   properties!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   indications!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   dosage!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   adverseReactions!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   contraindications!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   precautions!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   pharmacologyToxicology!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   drugInteractions!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   pharmacokinetics!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   overdose!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   storage!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   validityPeriod!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   barcode!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   nationalDrugCode!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   sourceUrl!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   imageUrl!: string | null;
 
   @ApiPropertyOptional({
@@ -196,6 +206,7 @@ export class MedicineDetailDataDto {
   @ApiProperty({
     example: 'CAS 15687-27-1',
     nullable: true,
+    type: String,
   })
   subtitle!: string | null;
 

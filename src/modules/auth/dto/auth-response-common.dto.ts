@@ -9,10 +9,16 @@ export class UserBriefDto {
     description: '邮箱地址，第三方账号可能为空',
     example: 'user@example.com',
     nullable: true,
+    type: String,
   })
   email!: string | null;
 
-  @ApiProperty({ description: '昵称', example: '小明', nullable: true })
+  @ApiProperty({
+    description: '昵称',
+    example: '小明',
+    nullable: true,
+    type: String,
+  })
   nickname!: string | null;
 
   @ApiProperty({ description: '邮箱是否已验证', example: true })
@@ -22,6 +28,7 @@ export class UserBriefDto {
     description: '邮箱验证时间 (ISO 8601)',
     example: '2026-01-01T00:00:00.000Z',
     nullable: true,
+    type: String,
   })
   emailVerifiedAt!: string | null;
 
@@ -41,16 +48,23 @@ export class UserFullDto {
     description: '邮箱地址，第三方账号可能为空',
     example: 'user@example.com',
     nullable: true,
+    type: String,
   })
   email!: string | null;
 
-  @ApiProperty({ description: '昵称', example: '小明', nullable: true })
+  @ApiProperty({
+    description: '昵称',
+    example: '小明',
+    nullable: true,
+    type: String,
+  })
   nickname!: string | null;
 
   @ApiProperty({
     description: '头像 URL',
     example: 'https://example.com/avatar.png',
     nullable: true,
+    type: String,
   })
   avatar!: string | null;
 
@@ -61,6 +75,7 @@ export class UserFullDto {
     description: '邮箱验证时间 (ISO 8601)',
     example: '2026-01-01T00:00:00.000Z',
     nullable: true,
+    type: String,
   })
   emailVerifiedAt!: string | null;
 

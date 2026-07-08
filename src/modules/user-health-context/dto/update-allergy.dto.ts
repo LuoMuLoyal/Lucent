@@ -32,6 +32,7 @@ export class UpdateHealthContextAllergyDto {
     description: 'Recorded reaction. Use null to clear.',
     example: 'Rash',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -51,6 +52,7 @@ export class UpdateHealthContextAllergyDto {
     description: 'User note for the allergy. Use null to clear.',
     example: 'Avoid completely',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -61,6 +63,7 @@ export class UpdateHealthContextAllergyDto {
     description: 'When this allergy was recorded in ISO 8601 format.',
     example: '2026-06-03T09:00:00.000Z',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsISO8601()

@@ -32,6 +32,9 @@ Today analysis 在落库 `assistant_summary_histories` 之外，现会额外产�
 `source=today-analysis` 供前端做“历史建议回顾”归因。
 同一天重复生成 today analysis 时，上述两类通知现按 `type + source + date` 做覆盖写入并清理旧重复项，
 避免通知页和报告页的建议历史被重复生成污染。
+OpenAPI 合同现已全面修复：所有 `nullable: true` 的 DTO 字段均显式标注 `type`，消除了 Flutter 生成客户端中
+`int` 调用 `.toJson()` 的 P0 崩溃以及大量字段退化为 `dynamic` 的 P1 类型丢失问题。SSE 流端点已补充
+`text/event-stream` content 标注，`/clear` 端点已提取具名响应 DTO。
 
 ## 相关文档
 

@@ -23,6 +23,7 @@ export class UpdateCurrentMedicineDto {
     description: 'Source-specific reference id.',
     example: 'DB01050',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -42,6 +43,7 @@ export class UpdateCurrentMedicineDto {
     description: 'Strength text. Use null to clear.',
     example: '200 mg',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -52,6 +54,7 @@ export class UpdateCurrentMedicineDto {
     description: 'Dose text. Use null to clear.',
     example: '1 tablet after meals',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -62,6 +65,7 @@ export class UpdateCurrentMedicineDto {
     description: 'Administration route. Use null to clear.',
     example: 'oral',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -72,6 +76,7 @@ export class UpdateCurrentMedicineDto {
     description: 'Start date in YYYY-MM-DD format. Use null to clear.',
     example: '2026-06-03',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -84,6 +89,7 @@ export class UpdateCurrentMedicineDto {
     description: 'End date in YYYY-MM-DD format. Use null to clear.',
     example: '2026-06-10',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -96,6 +102,7 @@ export class UpdateCurrentMedicineDto {
     description: 'User note. Use null to clear.',
     example: 'Use only when needed for headaches',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()

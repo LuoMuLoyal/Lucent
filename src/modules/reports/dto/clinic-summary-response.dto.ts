@@ -6,13 +6,19 @@ export class ClinicSummaryProfileDto {
 
   @ApiPropertyOptional({
     description: 'Age in years (derived from birthDate, never raw date)',
+    type: Number,
+    nullable: true,
   })
   age?: number | null;
 
-  @ApiProperty({ description: 'Sex at birth' })
+  @ApiProperty({ description: 'Sex at birth', type: String, nullable: true })
   sexAtBirth!: string | null;
 
-  @ApiPropertyOptional({ description: 'Blood type' })
+  @ApiPropertyOptional({
+    description: 'Blood type',
+    type: String,
+    nullable: true,
+  })
   bloodType?: string | null;
 }
 
@@ -20,10 +26,14 @@ export class ClinicSummaryAllergyDto {
   @ApiProperty({ description: 'Allergy label (e.g. 青霉素)' })
   label!: string;
 
-  @ApiProperty({ description: 'Reaction description' })
+  @ApiProperty({
+    description: 'Reaction description',
+    type: String,
+    nullable: true,
+  })
   reaction!: string | null;
 
-  @ApiProperty({ description: 'Severity level' })
+  @ApiProperty({ description: 'Severity level', type: String, nullable: true })
   severity!: string | null;
 }
 
@@ -31,10 +41,14 @@ export class ClinicSummaryConditionDto {
   @ApiProperty({ description: 'Condition label (e.g. 高血压)' })
   label!: string;
 
-  @ApiProperty({ description: 'Current status' })
+  @ApiProperty({ description: 'Current status', type: String, nullable: true })
   status!: string | null;
 
-  @ApiPropertyOptional({ description: 'Year of diagnosis (YYYY)' })
+  @ApiPropertyOptional({
+    description: 'Year of diagnosis (YYYY)',
+    type: Number,
+    nullable: true,
+  })
   diagnosedYear?: number | null;
 }
 
@@ -42,7 +56,11 @@ export class ClinicSummaryMedicineDto {
   @ApiProperty({ description: 'Generic medicine name' })
   displayName!: string;
 
-  @ApiPropertyOptional({ description: 'Dose instruction' })
+  @ApiPropertyOptional({
+    description: 'Dose instruction',
+    type: String,
+    nullable: true,
+  })
   doseText?: string | null;
 }
 

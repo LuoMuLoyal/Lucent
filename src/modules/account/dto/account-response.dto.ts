@@ -11,6 +11,7 @@ class AccountIdentityDto {
     description: 'Provider email when the provider exposes one.',
     example: 'user@example.com',
     nullable: true,
+    type: String,
   })
   email!: string | null;
 
@@ -18,6 +19,7 @@ class AccountIdentityDto {
     description: 'Provider email verification time in ISO 8601.',
     example: '2026-01-01T00:00:00.000Z',
     nullable: true,
+    type: String,
   })
   emailVerifiedAt!: string | null;
 
@@ -36,6 +38,7 @@ export class AccountDto {
     description: 'Account email. OAuth-only accounts may not have one.',
     example: 'user@example.com',
     nullable: true,
+    type: String,
   })
   email!: string | null;
 
@@ -43,6 +46,7 @@ export class AccountDto {
     description: 'Display nickname.',
     example: 'Lumi User',
     nullable: true,
+    type: String,
   })
   nickname!: string | null;
 
@@ -50,6 +54,7 @@ export class AccountDto {
     description: 'Avatar URL.',
     example: 'https://example.com/avatar.png',
     nullable: true,
+    type: String,
   })
   avatar!: string | null;
 
@@ -57,6 +62,7 @@ export class AccountDto {
     description: 'Account email verification time in ISO 8601.',
     example: '2026-01-01T00:00:00.000Z',
     nullable: true,
+    type: String,
   })
   emailVerifiedAt!: string | null;
 
@@ -67,6 +73,7 @@ export class AccountDto {
     description: 'Last login time in ISO 8601.',
     example: '2026-01-01T00:00:00.000Z',
     nullable: true,
+    type: String,
   })
   lastLoginAt!: string | null;
 

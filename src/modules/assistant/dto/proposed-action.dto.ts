@@ -17,7 +17,7 @@ class AssistantProposalTargetDto {
   @ApiProperty()
   label!: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   recordId?: string;
 
   @ApiPropertyOptional({ type: [String] })
@@ -67,7 +67,7 @@ export class AssistantProposedActionDto {
   @ApiProperty()
   summary!: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   reason!: string | null;
 
   @ApiProperty({ type: () => AssistantPreviewFieldDto, isArray: true })

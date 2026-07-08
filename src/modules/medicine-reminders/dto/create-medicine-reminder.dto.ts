@@ -21,7 +21,11 @@ export class CreateMedicineReminderDto {
   @IsNotEmpty()
   currentMedicineId?: string;
 
-  @ApiPropertyOptional({ description: 'Reminder label.' })
+  @ApiPropertyOptional({
+    description: 'Reminder label.',
+    type: String,
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
@@ -59,6 +63,7 @@ export class CreateMedicineReminderDto {
   @ApiPropertyOptional({
     description: 'Date in YYYY-MM-DD format when the reminder starts.',
     nullable: true,
+    type: String,
     example: '2026-06-09',
   })
   @IsOptional()
@@ -68,6 +73,7 @@ export class CreateMedicineReminderDto {
   @ApiPropertyOptional({
     description: 'Date in YYYY-MM-DD format when the reminder ends.',
     nullable: true,
+    type: String,
     example: '2026-06-30',
   })
   @IsOptional()
@@ -82,7 +88,11 @@ export class CreateMedicineReminderDto {
   @IsBoolean()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ description: 'User note.' })
+  @ApiPropertyOptional({
+    description: 'User note.',
+    type: String,
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)

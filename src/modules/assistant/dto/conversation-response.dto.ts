@@ -35,6 +35,7 @@ export class AssistantConversationDataDto {
   @ApiProperty({
     description: 'Optional server-derived conversation title.',
     nullable: true,
+    type: String,
   })
   title!: string | null;
 
@@ -53,6 +54,7 @@ export class AssistantConversationDataDto {
   @ApiProperty({
     description: 'ISO-8601 timestamp of the latest conversation activity.',
     nullable: true,
+    type: String,
   })
   lastMessageAt!: string | null;
 

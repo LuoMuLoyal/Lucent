@@ -18,6 +18,7 @@ export class UpdateHealthContextProfileDto {
       'Preferred locale. Use null or empty string to clear and follow the client default.',
     example: 'zh-CN',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -28,6 +29,7 @@ export class UpdateHealthContextProfileDto {
     description: 'Preferred timezone. Use null or empty string to clear.',
     example: 'Asia/Shanghai',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -49,6 +51,7 @@ export class UpdateHealthContextProfileDto {
     description: 'Birth date in YYYY-MM-DD format.',
     example: '1998-03-15',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -74,6 +77,7 @@ export class UpdateHealthContextProfileDto {
     minimum: 1,
     maximum: 300,
     nullable: true,
+    type: Number,
   })
   @IsOptional()
   @IsInt()
@@ -85,6 +89,7 @@ export class UpdateHealthContextProfileDto {
     description: 'Blood type. Use null to clear.',
     example: 'O+',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()

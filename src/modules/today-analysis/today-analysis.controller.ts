@@ -30,7 +30,6 @@ import { TodayRecommendationsService } from './services/recommendations.service'
 import {
   GenerateTodayAnalysisDto,
   TodayAnalysisResponseDto,
-  TodayAnalysisStreamResultDto,
   TodayRecommendationResponseDto,
 } from './dto';
 
@@ -95,7 +94,16 @@ export class TodayAnalysisController {
   @ApiOperation({
     summary: 'Stream authenticated user today AI analysis generation',
   })
-  @ApiResponse({ status: 200, type: TodayAnalysisStreamResultDto })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Server-Sent Events stream. Each event has an "event" field (chunk | result | error | done) and a JSON "data" field.',
+    content: {
+      'text/event-stream': {
+        schema: { type: 'string' },
+      },
+    },
+  })
   async generateStream(
     @CurrentUser() user: UserPayload,
     @Body() dto: GenerateTodayAnalysisDto,

@@ -20,21 +20,28 @@ class DailyRecordCandidateItemDto {
   @ApiPropertyOptional({
     description: 'Short candidate title.',
     nullable: true,
+    type: String,
   })
   title!: string | null;
 
   @ApiPropertyOptional({
     description: 'Candidate measured value.',
     nullable: true,
+    type: String,
   })
   value!: string | null;
 
-  @ApiPropertyOptional({ description: 'Candidate unit.', nullable: true })
+  @ApiPropertyOptional({
+    description: 'Candidate unit.',
+    nullable: true,
+    type: String,
+  })
   unit!: string | null;
 
   @ApiPropertyOptional({
     description: 'Candidate free-text note.',
     nullable: true,
+    type: String,
   })
   note!: string | null;
 

@@ -26,9 +26,9 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AssistantService } from './services/core.service';
 import {
   AssistantCapabilitiesResponseDto,
+  AssistantClearResultResponseDto,
   AssistantConversationListResponseDto,
   AssistantConversationResponseDto,
-  AssistantStreamResultDto,
   StreamAssistantMessagesDto,
 } from './dto';
 
@@ -98,26 +98,7 @@ export class AssistantController {
     summary:
       'Archive the authenticated user latest active assistant conversation',
   })
-  @ApiResponse({
-    status: 200,
-    schema: {
-      properties: {
-        code: { type: 'number', example: 0 },
-        message: { type: 'string', example: '' },
-        data: {
-          type: 'object',
-          properties: {
-            cleared: { type: 'boolean', example: true },
-            archivedConversationId: {
-              type: 'string',
-              nullable: true,
-              example: 'conversation-id',
-            },
-          },
-        },
-      },
-    },
-  })
+  @ApiResponse({ status: 200, type: AssistantClearResultResponseDto })
   async clearLatestConversation(@CurrentUser() user: UserPayload) {
     return successEnvelope(
       await this.assistantService.clearLatestConversation(user.sub),
@@ -129,7 +110,16 @@ export class AssistantController {
   @ApiOperation({
     summary: 'Stream authenticated user assistant response',
   })
-  @ApiResponse({ status: 200, type: AssistantStreamResultDto })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Server-Sent Events stream. Each event has an "event" field (chunk | result | error | done) and a JSON "data" field.',
+    content: {
+      'text/event-stream': {
+        schema: { type: 'string' },
+      },
+    },
+  })
   async streamMessages(
     @CurrentUser() user: UserPayload,
     @Body() dto: StreamAssistantMessagesDto,

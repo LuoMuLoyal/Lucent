@@ -33,6 +33,7 @@ export class CreateHealthContextConditionDto {
     description: 'Diagnosis date in YYYY-MM-DD format.',
     example: '2024-02-01',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()

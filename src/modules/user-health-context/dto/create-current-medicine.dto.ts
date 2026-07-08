@@ -74,6 +74,7 @@ export class CreateCurrentMedicineDto {
     description: 'Start date in YYYY-MM-DD format.',
     example: '2026-06-03',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -86,6 +87,7 @@ export class CreateCurrentMedicineDto {
     description: 'End date in YYYY-MM-DD format.',
     example: '2026-06-10',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()

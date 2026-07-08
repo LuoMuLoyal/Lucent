@@ -43,6 +43,7 @@ export class MedicineSearchQueryDto {
     description: 'Page number, 1-based.',
     example: 1,
     default: 1,
+    type: Number,
   })
   @IsOptional()
   @Type(() => Number)
@@ -55,6 +56,7 @@ export class MedicineSearchQueryDto {
     example: 20,
     default: 20,
     maximum: 50,
+    type: Number,
   })
   @IsOptional()
   @Type(() => Number)

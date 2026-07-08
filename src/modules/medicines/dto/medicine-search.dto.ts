@@ -24,6 +24,7 @@ export class MedicineSearchItemDto {
     description: 'Short supporting subtitle.',
     example: 'CAS 15687-27-1',
     nullable: true,
+    type: String,
   })
   subtitle!: string | null;
 
@@ -31,6 +32,7 @@ export class MedicineSearchItemDto {
     description: 'Short preview summary.',
     example: 'A non-steroidal anti-inflammatory drug...',
     nullable: true,
+    type: String,
   })
   summary!: string | null;
 
@@ -45,6 +47,7 @@ export class MedicineSearchItemDto {
     description: 'Optional image URL.',
     example: null,
     nullable: true,
+    type: String,
   })
   imageUrl!: string | null;
 

@@ -20,57 +20,88 @@ export class DailyRecordItemDto {
     description: 'Time in HH:mm 24-hour format when available.',
     example: '09:45',
     nullable: true,
+    type: String,
   })
   occurredTime?: string | null;
 
-  @ApiPropertyOptional({ description: 'Short label.' })
+  @ApiPropertyOptional({
+    description: 'Short label.',
+    type: String,
+    nullable: true,
+  })
   title?: string | null;
 
-  @ApiPropertyOptional({ description: 'Measured value.' })
+  @ApiPropertyOptional({
+    description: 'Measured value.',
+    type: String,
+    nullable: true,
+  })
   value?: string | null;
 
-  @ApiPropertyOptional({ description: 'Unit label.', example: 'bpm' })
+  @ApiPropertyOptional({
+    description: 'Unit label.',
+    example: 'bpm',
+    type: String,
+    nullable: true,
+  })
   unit?: string | null;
 
-  @ApiPropertyOptional({ description: 'Free-text note.' })
+  @ApiPropertyOptional({
+    description: 'Free-text note.',
+    type: String,
+    nullable: true,
+  })
   note?: string | null;
 
-  @ApiPropertyOptional({ description: 'Source.', example: 'manual' })
+  @ApiPropertyOptional({
+    description: 'Source.',
+    example: 'manual',
+    type: String,
+    nullable: true,
+  })
   source?: string | null;
 
   @ApiPropertyOptional({
     description:
       'Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }.',
+    type: Object,
+    additionalProperties: true,
+    nullable: true,
   })
   payload?: Record<string, unknown> | null;
 
   @ApiPropertyOptional({
     description: 'Meal analysis status for meal records.',
     nullable: true,
+    type: String,
   })
   mealAnalysisStatus?: string | null;
 
   @ApiPropertyOptional({
     description: 'Meal analysis coverage for meal records.',
     nullable: true,
+    type: String,
   })
   mealAnalysisCoverage?: string | null;
 
   @ApiPropertyOptional({
     description: 'Meal analysis updated timestamp (ISO 8601).',
     nullable: true,
+    type: String,
   })
   mealAnalysisUpdatedAt?: string | null;
 
   @ApiPropertyOptional({
     description: 'Display-safe meal analysis failure reason.',
     nullable: true,
+    type: String,
   })
   mealAnalysisFailureReason?: string | null;
 
   @ApiPropertyOptional({
     description: 'Short meal description for list reads.',
     nullable: true,
+    type: String,
   })
   mealShortDescription?: string | null;
 

@@ -15,14 +15,14 @@ export class UpdateDoseLogDto {
   @IsEnum(DoseLogStatus)
   status?: DoseLogStatus;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
   doseText?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @IsString()
   @IsNotEmpty()

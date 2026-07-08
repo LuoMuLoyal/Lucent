@@ -35,7 +35,6 @@ import {
   ReportDashboardQueryDto,
   ReportDashboardResponseDto,
   ReportSummaryResponseDto,
-  ReportSummaryStreamResultDto,
   ClinicSummaryDto,
   ClinicSummaryShareResponseDto,
 } from './dto';
@@ -89,7 +88,16 @@ export class ReportsController {
   @ApiOperation({
     summary: 'Stream authenticated user AI summary generation for report',
   })
-  @ApiResponse({ status: 200, type: ReportSummaryStreamResultDto })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Server-Sent Events stream. Each event has an "event" field (chunk | result | error | done) and a JSON "data" field.',
+    content: {
+      'text/event-stream': {
+        schema: { type: 'string' },
+      },
+    },
+  })
   async generateSummaryStream(
     @CurrentUser() user: UserPayload,
     @Body() dto: GenerateReportSummaryDto,

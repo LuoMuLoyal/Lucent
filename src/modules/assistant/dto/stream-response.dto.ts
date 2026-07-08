@@ -48,6 +48,33 @@ export class AssistantMessageDataDto {
   proposedActions?: AssistantProposedActionDto[];
 }
 
+export class AssistantClearResultDataDto {
+  @ApiProperty({
+    description: 'Whether the latest conversation was cleared.',
+    example: true,
+  })
+  cleared!: boolean;
+
+  @ApiProperty({
+    description: 'The archived conversation id, or null when none existed.',
+    example: 'conversation-id',
+    nullable: true,
+    type: String,
+  })
+  archivedConversationId!: string | null;
+}
+
+export class AssistantClearResultResponseDto {
+  @ApiProperty({ description: 'Result code.', example: 0 })
+  code!: number;
+
+  @ApiProperty({ description: 'Message.', example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => AssistantClearResultDataDto })
+  data!: AssistantClearResultDataDto;
+}
+
 export class AssistantStreamResultDto {
   @ApiProperty({ enum: ['chunk', 'result', 'error', 'done'] })
   event!: 'chunk' | 'result' | 'error' | 'done';

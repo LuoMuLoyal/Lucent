@@ -31,6 +31,7 @@ export class UpdateHealthContextConditionDto {
     description: 'Diagnosis date in YYYY-MM-DD format. Use null to clear.',
     example: '2024-02-01',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()
@@ -43,6 +44,7 @@ export class UpdateHealthContextConditionDto {
     description: 'User note for the condition. Use null to clear.',
     example: 'Triggered during pollen season',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsString()

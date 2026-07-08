@@ -14,6 +14,7 @@ class UserHealthSummaryDto {
       'Age derived from birth date. Null when birth date is missing.',
     example: 28,
     nullable: true,
+    type: Number,
   })
   age!: number | null;
 
@@ -55,6 +56,7 @@ class UserHealthProfileDto {
     description: 'Birth date in YYYY-MM-DD format.',
     example: '1998-03-15',
     nullable: true,
+    type: String,
   })
   birthDate!: string | null;
 
@@ -71,6 +73,7 @@ class UserHealthProfileDto {
     description: 'Height in centimeters.',
     example: 168,
     nullable: true,
+    type: Number,
   })
   heightCm!: number | null;
 
@@ -78,6 +81,7 @@ class UserHealthProfileDto {
     description: 'Blood type.',
     example: 'O+',
     nullable: true,
+    type: String,
   })
   bloodType!: string | null;
 
@@ -85,6 +89,7 @@ class UserHealthProfileDto {
     description: 'Preferred locale.',
     example: 'en-US',
     nullable: true,
+    type: String,
   })
   locale!: string | null;
 
@@ -92,6 +97,7 @@ class UserHealthProfileDto {
     description: 'Preferred timezone.',
     example: 'Asia/Shanghai',
     nullable: true,
+    type: String,
   })
   timezone!: string | null;
 
@@ -108,6 +114,7 @@ class UserHealthProfileDto {
     description: 'When the onboarding flow was completed.',
     example: '2026-05-30T09:00:00.000Z',
     nullable: true,
+    type: String,
   })
   onboardingCompletedAt!: string | null;
 
@@ -146,6 +153,7 @@ class UserAllergyItemDto {
     description: 'Recorded reaction.',
     example: 'Rash',
     nullable: true,
+    type: String,
   })
   reaction!: string | null;
 
@@ -165,6 +173,7 @@ class UserAllergyItemDto {
     description: 'User note for the allergy.',
     example: 'Avoid completely',
     nullable: true,
+    type: String,
   })
   note!: string | null;
 
@@ -183,6 +192,7 @@ class UserAllergyItemDto {
     description: 'When this allergy was recorded.',
     example: '2026-05-20T09:00:00.000Z',
     nullable: true,
+    type: String,
   })
   recordedAt!: string | null;
 
@@ -221,6 +231,7 @@ class UserConditionItemDto {
     description: 'Diagnosis date in YYYY-MM-DD format.',
     example: '2024-02-01',
     nullable: true,
+    type: String,
   })
   diagnosedAt!: string | null;
 
@@ -228,6 +239,7 @@ class UserConditionItemDto {
     description: 'Resolved date in YYYY-MM-DD format.',
     example: '2025-03-12',
     nullable: true,
+    type: String,
   })
   resolvedAt!: string | null;
 
@@ -235,6 +247,7 @@ class UserConditionItemDto {
     description: 'User note for the condition.',
     example: 'Triggered during pollen season',
     nullable: true,
+    type: String,
   })
   note!: string | null;
 
@@ -275,6 +288,7 @@ class UserCurrentMedicineItemDto {
     description: 'Source-specific reference id.',
     example: 'DB01050',
     nullable: true,
+    type: String,
   })
   sourceRefId!: string | null;
 
@@ -288,6 +302,7 @@ class UserCurrentMedicineItemDto {
     description: 'Strength text.',
     example: '200 mg',
     nullable: true,
+    type: String,
   })
   strengthText!: string | null;
 
@@ -295,6 +310,7 @@ class UserCurrentMedicineItemDto {
     description: 'Dose text.',
     example: '1 tablet after meals',
     nullable: true,
+    type: String,
   })
   doseText!: string | null;
 
@@ -302,6 +318,7 @@ class UserCurrentMedicineItemDto {
     description: 'Administration route.',
     example: 'oral',
     nullable: true,
+    type: String,
   })
   route!: string | null;
 
@@ -309,6 +326,7 @@ class UserCurrentMedicineItemDto {
     description: 'Start date in YYYY-MM-DD format.',
     example: '2026-05-01',
     nullable: true,
+    type: String,
   })
   startedAt!: string | null;
 
@@ -316,6 +334,7 @@ class UserCurrentMedicineItemDto {
     description: 'End date in YYYY-MM-DD format.',
     example: '2026-05-07',
     nullable: true,
+    type: String,
   })
   endedAt!: string | null;
 
@@ -326,6 +345,7 @@ class UserCurrentMedicineItemDto {
     description: 'User note for the medicine.',
     example: 'Use only when needed for headaches',
     nullable: true,
+    type: String,
   })
   note!: string | null;
 

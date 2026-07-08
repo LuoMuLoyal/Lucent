@@ -15,13 +15,21 @@ import {
 } from 'class-validator';
 
 export class UpdateMedicineReminderDto {
-  @ApiPropertyOptional({ description: 'Linked current medicine id.' })
+  @ApiPropertyOptional({
+    description: 'Linked current medicine id.',
+    type: String,
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
   currentMedicineId?: string | null;
 
-  @ApiPropertyOptional({ description: 'Reminder label.' })
+  @ApiPropertyOptional({
+    description: 'Reminder label.',
+    type: String,
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
@@ -61,6 +69,7 @@ export class UpdateMedicineReminderDto {
     description:
       'Date in YYYY-MM-DD format when the reminder starts. Use null to clear.',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsDateString()
@@ -70,6 +79,7 @@ export class UpdateMedicineReminderDto {
     description:
       'Date in YYYY-MM-DD format when the reminder ends. Use null to clear.',
     nullable: true,
+    type: String,
   })
   @IsOptional()
   @IsDateString()
@@ -80,7 +90,11 @@ export class UpdateMedicineReminderDto {
   @IsBoolean()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ description: 'User note.' })
+  @ApiPropertyOptional({
+    description: 'User note.',
+    type: String,
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
