@@ -40,7 +40,7 @@ class OAuthAuthorizeDataDto {
   @ApiProperty({
     description: '客户端回跳地址。桌面端 loopback 或可信 Web 回调登录时返回。',
     required: false,
-    example: 'http://127.0.0.1:49152/oauth/wechat',
+    example: 'https://api.lumos.app/oauth/wechat',
   })
   callbackUri?: string;
 }

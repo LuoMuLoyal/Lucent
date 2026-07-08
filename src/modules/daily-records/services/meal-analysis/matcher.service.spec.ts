@@ -101,9 +101,13 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
+    const configService = {
+      get: jest.fn().mockReturnValue(undefined),
+    };
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
+      configService as never,
     );
 
     const result = await service.matchAndEstimate([

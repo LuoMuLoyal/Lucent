@@ -16,6 +16,9 @@ import { extractErrorInfo } from './common/helpers/error-info.utils';
 
 type HealthComponent = HealthProbeDto['components'][number];
 
+/** TTL (ms) for the health-check cache probe key. */
+const PROBE_TTL_MS = 5_000;
+
 @Injectable()
 export class AppService {
   private readonly logger = new Logger(AppService.name);
@@ -174,7 +177,7 @@ export class AppService {
     const probeKey = `health:probe:${randomUUID()}`;
 
     try {
-      await this.cache.set(probeKey, 'ok', 5_000);
+      await this.cache.set(probeKey, 'ok', PROBE_TTL_MS);
       const value = await this.cache.get<string>(probeKey);
       await this.cache.del(probeKey);
 

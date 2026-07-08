@@ -3,6 +3,11 @@ import {
   DEFAULT_COS_MAX_UPLOAD_BYTES,
   DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
   DEFAULT_EMBEDDING_DIMENSION,
+  DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G,
+  DEFAULT_MEAL_HIGH_PROTEIN_THRESHOLD_G,
+  DEFAULT_MEAL_LOW_CARBOHYDRATE_THRESHOLD_G,
+  DEFAULT_MEAL_PORTION_GRAMS,
+  DEFAULT_MEAL_SMALL_PORTION_GRAMS,
   MAX_COS_MAX_UPLOAD_BYTES,
   MAX_COS_UPLOAD_EXPIRY_SECONDS,
   MAX_EMBEDDING_DIMENSION,
@@ -85,6 +90,11 @@ export interface EnvironmentVariables {
   [EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]?: number;
   [EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS]?: number;
   [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]?: string;
+  [EnvKey.MEAL_DEFAULT_PORTION_GRAMS]?: number;
+  [EnvKey.MEAL_SMALL_PORTION_GRAMS]?: number;
+  [EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G]?: number;
+  [EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G]?: number;
+  [EnvKey.MEAL_HIGH_FAT_THRESHOLD_G]?: number;
 }
 
 const optionalString = Joi.string().allow('').optional();
@@ -94,7 +104,11 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.NODE_ENV]: Joi.string()
     .valid(...Object.values(NodeEnvironment))
     .default(NodeEnvironment.Development),
-  [EnvKey.HOST]: Joi.string().default('0.0.0.0'),
+  [EnvKey.HOST]: Joi.when('NODE_ENV', {
+    is: NodeEnvironment.Production,
+    then: Joi.string().default('127.0.0.1'),
+    otherwise: Joi.string().default('0.0.0.0'),
+  }),
   [EnvKey.PORT]: Joi.number().integer().min(1).default(3000),
   [EnvKey.CORS_ORIGIN]: Joi.string().allow('').default(''),
   [EnvKey.TRUST_PROXY]: Joi.string().valid('true', 'false').optional(),
@@ -184,6 +198,31 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]: Joi.string()
     .valid('true', 'false')
     .optional(),
+  [EnvKey.MEAL_DEFAULT_PORTION_GRAMS]: Joi.number()
+    .integer()
+    .min(1)
+    .max(10000)
+    .default(DEFAULT_MEAL_PORTION_GRAMS),
+  [EnvKey.MEAL_SMALL_PORTION_GRAMS]: Joi.number()
+    .integer()
+    .min(1)
+    .max(10000)
+    .default(DEFAULT_MEAL_SMALL_PORTION_GRAMS),
+  [EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G]: Joi.number()
+    .integer()
+    .min(0)
+    .max(500)
+    .default(DEFAULT_MEAL_HIGH_PROTEIN_THRESHOLD_G),
+  [EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G]: Joi.number()
+    .integer()
+    .min(0)
+    .max(500)
+    .default(DEFAULT_MEAL_LOW_CARBOHYDRATE_THRESHOLD_G),
+  [EnvKey.MEAL_HIGH_FAT_THRESHOLD_G]: Joi.number()
+    .integer()
+    .min(0)
+    .max(500)
+    .default(DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G),
 });
 
 const AI_ROLE_GROUPS = [

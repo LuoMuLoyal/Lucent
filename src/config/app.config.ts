@@ -20,9 +20,10 @@ function parseCorsOrigin(raw: string): boolean | string[] {
 
 export const appConfig = registerAs(ConfigKey.App, () => {
   const env = process.env[EnvKey.NODE_ENV] ?? 'development';
+  const isProduction = env === 'production';
   return {
     env,
-    host: process.env[EnvKey.HOST] ?? '0.0.0.0',
+    host: process.env[EnvKey.HOST] ?? (isProduction ? '127.0.0.1' : '0.0.0.0'),
     port: Number(process.env[EnvKey.PORT] ?? 3000),
     corsOrigin: parseCorsOrigin(process.env[EnvKey.CORS_ORIGIN] ?? ''),
     trustProxy: env === 'test' || process.env[EnvKey.TRUST_PROXY] === 'true',

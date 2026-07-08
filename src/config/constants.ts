@@ -31,3 +31,28 @@ export const MAX_EMBEDDING_DIMENSION = 4096;
  * Centralised here so all AI call sites share a single source of truth.
  */
 export const AI_MODEL_TIMEOUT_MS = 10_000;
+
+// ── JWT ───────────────────────────────────────────────────────────────────────
+
+/** Default access-token TTL in seconds (2 hours). */
+export const DEFAULT_JWT_ACCESS_TTL_SECONDS = 2 * 3600;
+
+/** Default refresh-token TTL in seconds (30 days). */
+export const DEFAULT_JWT_REFRESH_TTL_SECONDS = 30 * 86400;
+
+// ── Meal analysis ─────────────────────────────────────────────────────────────
+
+/** Default portion size in grams when portion text is unspecified. */
+export const DEFAULT_MEAL_PORTION_GRAMS = 100;
+
+/** Small portion size in grams (e.g. "少量"). */
+export const DEFAULT_MEAL_SMALL_PORTION_GRAMS = 30;
+
+/** Threshold (g) above which a meal is considered high-protein. */
+export const DEFAULT_MEAL_HIGH_PROTEIN_THRESHOLD_G = 20;
+
+/** Threshold (g) below which a meal is considered low-carbohydrate. */
+export const DEFAULT_MEAL_LOW_CARBOHYDRATE_THRESHOLD_G = 20;
+
+/** Threshold (g) above which a meal is considered high-fat. */
+export const DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G = 20;

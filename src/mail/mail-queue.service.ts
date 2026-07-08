@@ -14,6 +14,29 @@ import { MailTransportService } from './mail-transport.service';
 const MAIL_QUEUE_NAME = 'lucent-mail';
 const SEND_MAIL_JOB = 'send-mail';
 
+// ── Mail queue tuning constants ───────────────────────────────────────────────
+
+/** Maximum send attempts per mail job. */
+const MAIL_MAX_ATTEMPTS = 3;
+
+/** Initial backoff delay in ms for exponential retry. */
+const MAIL_BACKOFF_DELAY_MS = 5_000;
+
+/** Worker concurrency (parallel job processing). */
+const MAIL_WORKER_CONCURRENCY = 3;
+
+/** Age in seconds after which completed jobs are removed (24 h). */
+const MAIL_COMPLETE_AGE_SECONDS = 24 * 60 * 60;
+
+/** Age in seconds after which failed jobs are removed (7 d). */
+const MAIL_FAIL_AGE_SECONDS = 7 * 24 * 60 * 60;
+
+/** Maximum number of completed jobs to retain. */
+const MAIL_COMPLETE_MAX_COUNT = 1_000;
+
+/** Maximum number of failed jobs to retain. */
+const MAIL_FAIL_MAX_COUNT = 5_000;
+
 interface SendMailJobData {
   to: string;
   subject: string;
@@ -67,9 +90,15 @@ export class MailQueueService implements OnModuleInit, OnModuleDestroy {
       (job) => this.processJob(job),
       {
         connection: workerConnection,
-        concurrency: 3,
-        removeOnComplete: { age: 24 * 60 * 60, count: 1000 },
-        removeOnFail: { age: 7 * 24 * 60 * 60, count: 5000 },
+        concurrency: MAIL_WORKER_CONCURRENCY,
+        removeOnComplete: {
+          age: MAIL_COMPLETE_AGE_SECONDS,
+          count: MAIL_COMPLETE_MAX_COUNT,
+        },
+        removeOnFail: {
+          age: MAIL_FAIL_AGE_SECONDS,
+          count: MAIL_FAIL_MAX_COUNT,
+        },
       },
     );
     this.worker.on('failed', (job, error) => {
@@ -105,13 +134,16 @@ export class MailQueueService implements OnModuleInit, OnModuleDestroy {
 
   private defaultJobOptions(): JobsOptions {
     return {
-      attempts: 3,
+      attempts: MAIL_MAX_ATTEMPTS,
       backoff: {
         type: 'exponential',
-        delay: 5000,
+        delay: MAIL_BACKOFF_DELAY_MS,
       },
-      removeOnComplete: { age: 24 * 60 * 60, count: 1000 },
-      removeOnFail: { age: 7 * 24 * 60 * 60, count: 5000 },
+      removeOnComplete: {
+        age: MAIL_COMPLETE_AGE_SECONDS,
+        count: MAIL_COMPLETE_MAX_COUNT,
+      },
+      removeOnFail: { age: MAIL_FAIL_AGE_SECONDS, count: MAIL_FAIL_MAX_COUNT },
     };
   }
 

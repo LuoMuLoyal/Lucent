@@ -1,5 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { normalizeNullableText } from '../../../../common/helpers/string.utils';
+import { EnvKey } from '../../../../config/env-keys.enum';
+import {
+  DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G,
+  DEFAULT_MEAL_HIGH_PROTEIN_THRESHOLD_G,
+  DEFAULT_MEAL_LOW_CARBOHYDRATE_THRESHOLD_G,
+  DEFAULT_MEAL_PORTION_GRAMS,
+  DEFAULT_MEAL_SMALL_PORTION_GRAMS,
+} from '../../../../config/constants';
 import {
   normalizeMealEntityName,
   type MealCompositionMatch,
@@ -33,20 +42,42 @@ interface NutritionEstimate {
   unmatchedItemCount: number;
 }
 
-// TODO: move meal analysis business thresholds to configuration (env or
-// database) so they can be tuned without a code deployment.
-const DEFAULT_PORTION_GRAMS = 100;
-const SMALL_PORTION_GRAMS = 30;
-const HIGH_PROTEIN_THRESHOLD_G = 20;
-const LOW_CARBOHYDRATE_THRESHOLD_G = 20;
-const HIGH_FAT_THRESHOLD_G = 20;
+/** Thresholds for meal analysis commentary, configurable via environment. */
+interface MealAnalysisThresholds {
+  defaultPortionGrams: number;
+  smallPortionGrams: number;
+  highProteinThresholdG: number;
+  lowCarbohydrateThresholdG: number;
+  highFatThresholdG: number;
+}
 
 @Injectable()
 export class MealAnalysisMatcherService {
+  private readonly thresholds: MealAnalysisThresholds;
+
   constructor(
     private readonly mealDishDecompositionService: MealDishDecompositionService,
     private readonly mealIngredientGroundingService: MealIngredientGroundingService,
-  ) {}
+    configService: ConfigService,
+  ) {
+    this.thresholds = {
+      defaultPortionGrams:
+        configService.get<number>(EnvKey.MEAL_DEFAULT_PORTION_GRAMS) ??
+        DEFAULT_MEAL_PORTION_GRAMS,
+      smallPortionGrams:
+        configService.get<number>(EnvKey.MEAL_SMALL_PORTION_GRAMS) ??
+        DEFAULT_MEAL_SMALL_PORTION_GRAMS,
+      highProteinThresholdG:
+        configService.get<number>(EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G) ??
+        DEFAULT_MEAL_HIGH_PROTEIN_THRESHOLD_G,
+      lowCarbohydrateThresholdG:
+        configService.get<number>(EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G) ??
+        DEFAULT_MEAL_LOW_CARBOHYDRATE_THRESHOLD_G,
+      highFatThresholdG:
+        configService.get<number>(EnvKey.MEAL_HIGH_FAT_THRESHOLD_G) ??
+        DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G,
+    };
+  }
 
   async matchAndEstimate(recognizedItems: RecognizedFoodItem[]): Promise<{
     coverage: 'none' | 'partial' | 'complete';
@@ -85,7 +116,11 @@ export class MealAnalysisMatcherService {
         decomposition.resolvedIngredients,
       );
     const compositionMatches = grounded.compositionMatches;
-    const foodItems = buildLegacyFoodItems(recognizedItems, compositionMatches);
+    const foodItems = buildLegacyFoodItems(
+      recognizedItems,
+      compositionMatches,
+      this.thresholds,
+    );
     const nutritionEstimate = grounded.nutritionEstimate;
     const unresolvedDishNames = decomposition.unresolvedDishes.map(
       (item) => item.rawName,
@@ -104,6 +139,7 @@ export class MealAnalysisMatcherService {
       mealCommentary: buildMealCommentary(
         nutritionEstimate,
         unmatchedIngredientNames.length,
+        this.thresholds,
       ),
       matchDiagnostics:
         recognizedDishes.length === 0 &&
@@ -122,6 +158,7 @@ export class MealAnalysisMatcherService {
 function buildLegacyFoodItems(
   recognizedItems: RecognizedFoodItem[],
   compositionMatches: MealCompositionMatch[],
+  thresholds: MealAnalysisThresholds,
 ): MatchedFoodItem[] {
   return recognizedItems.map((item, index) => {
     const dishKey = `dish-${String(index + 1)}`;
@@ -136,45 +173,51 @@ function buildLegacyFoodItems(
       matchedFoodId: match?.matchedFoodId ?? null,
       matchedFoodName: match?.matchedFoodName ?? null,
       estimatedGrams:
-        match?.matchedFoodId == null ? null : estimateGrams(item.portionText),
+        match?.matchedFoodId == null
+          ? null
+          : estimateGrams(item.portionText, thresholds),
     };
   });
 }
 
-function estimateGrams(portionText: string | null): number | null {
+function estimateGrams(
+  portionText: string | null,
+  thresholds: MealAnalysisThresholds,
+): number | null {
   const normalized = normalizeNullableText(portionText);
   if (normalized == null) {
-    return DEFAULT_PORTION_GRAMS;
+    return thresholds.defaultPortionGrams;
   }
   if (/\d+\s*克/.test(normalized)) {
     const value = Number(normalized.match(/(\d+)/)?.[1] ?? 0);
-    return value > 0 ? value : DEFAULT_PORTION_GRAMS;
+    return value > 0 ? value : thresholds.defaultPortionGrams;
   }
   if (normalized.includes('碗') || normalized.includes('份')) {
-    return DEFAULT_PORTION_GRAMS;
+    return thresholds.defaultPortionGrams;
   }
   if (normalized.includes('少量')) {
-    return SMALL_PORTION_GRAMS;
+    return thresholds.smallPortionGrams;
   }
-  return DEFAULT_PORTION_GRAMS;
+  return thresholds.defaultPortionGrams;
 }
 
 function buildMealCommentary(
   nutritionEstimate: NutritionEstimate | null,
   unmatchedItemCount: number,
+  thresholds: MealAnalysisThresholds,
 ): string | null {
   if (nutritionEstimate == null) {
     return null;
   }
 
   const parts: string[] = [];
-  if (nutritionEstimate.proteinG >= HIGH_PROTEIN_THRESHOLD_G) {
+  if (nutritionEstimate.proteinG >= thresholds.highProteinThresholdG) {
     parts.push('这一餐蛋白质较充足');
   }
-  if (nutritionEstimate.carbohydrateG < LOW_CARBOHYDRATE_THRESHOLD_G) {
+  if (nutritionEstimate.carbohydrateG < thresholds.lowCarbohydrateThresholdG) {
     parts.push('碳水可能偏少');
   }
-  if (nutritionEstimate.fatG >= HIGH_FAT_THRESHOLD_G) {
+  if (nutritionEstimate.fatG >= thresholds.highFatThresholdG) {
     parts.push('油脂可能偏高');
   }
   if (unmatchedItemCount > 0) {

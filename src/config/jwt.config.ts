@@ -1,6 +1,10 @@
 import { registerAs } from '@nestjs/config';
 import { ConfigKey } from './config-keys.enum';
 import { EnvKey } from './env-keys.enum';
+import {
+  DEFAULT_JWT_ACCESS_TTL_SECONDS,
+  DEFAULT_JWT_REFRESH_TTL_SECONDS,
+} from './constants';
 
 /**
  * Parse a human-friendly TTL string (e.g. "15m", "14d", "2h") into seconds.
@@ -33,8 +37,14 @@ function parseTtl(raw: string | undefined, defaultSeconds: number): number {
 export const jwtConfig = registerAs(ConfigKey.Jwt, () => ({
   accessSecret: process.env[EnvKey.JWT_ACCESS_SECRET] as string,
   refreshSecret: process.env[EnvKey.JWT_REFRESH_SECRET] as string,
-  accessTtl: parseTtl(process.env[EnvKey.JWT_ACCESS_TTL], 2 * 3600), // default 2h
-  refreshTtl: parseTtl(process.env[EnvKey.JWT_REFRESH_TTL], 30 * 86400), // default 30d
+  accessTtl: parseTtl(
+    process.env[EnvKey.JWT_ACCESS_TTL],
+    DEFAULT_JWT_ACCESS_TTL_SECONDS,
+  ),
+  refreshTtl: parseTtl(
+    process.env[EnvKey.JWT_REFRESH_TTL],
+    DEFAULT_JWT_REFRESH_TTL_SECONDS,
+  ),
   issuer: process.env[EnvKey.JWT_ISSUER] ?? 'lucent-api',
   audience: process.env[EnvKey.JWT_AUDIENCE] ?? 'luminous-app',
 }));
