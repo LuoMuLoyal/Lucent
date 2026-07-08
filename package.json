@@ -46,7 +46,6 @@
     "import:food:categories": "node scripts/import/food/import-food-composition.ts categories",
     "import:food:items": "node scripts/import/food/import-food-composition.ts items",
     "export:openapi": "pnpm build && cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
-    "verify:openapi": "node scripts/contract/verify-openapi-committed.ts",
     "deploy:assets:check": "node deploy/validate-assets.ts",
     "deploy:smoke": "node deploy/post-deploy-smoke.ts",
     "deploy:server": "node deploy/deploy-server.ts",

@@ -43,7 +43,7 @@ Prerequisites: Node.js `24.x`, pnpm `11.x`, Docker (for `dev:stack`).
 | Environment setup     | [docs/01-reference/environment.md](docs/01-reference/environment.md)                     |
 | Environment variables | [docs/01-reference/environment-variables.md](docs/01-reference/environment-variables.md) |
 | Deployment            | [docs/01-reference/deployment.md](docs/01-reference/deployment.md)                       |
-| API contract          | [docs/openapi.json](docs/openapi.json) (generated)                                       |
+| API contract          | local `docs/openapi.json` export (generated, ignored)                                    |
 | ADRs                  | [docs/01-reference/adr/](docs/01-reference/adr/)                                         |
 | Current state         | [docs/00-current/Current_State.md](docs/00-current/Current_State.md)                     |
 | Roadmap               | [ROADMAP.md](ROADMAP.md)                                                                 |
@@ -53,7 +53,7 @@ Prerequisites: Node.js `24.x`, pnpm `11.x`, Docker (for `dev:stack`).
 
 ## Source Of Truth
 
-- API contract: controller / DTO code plus generated [docs/openapi.json](docs/openapi.json).
+- API contract: controller / DTO code plus a local generated `docs/openapi.json` export.
 - Database model: [prisma/schema.prisma](prisma/schema.prisma).
 - Runtime configuration: [docs/01-reference/environment.md](docs/01-reference/environment.md).
 - Medicine data imports: [docs/public/data-sources.md](docs/public/data-sources.md).
@@ -65,11 +65,11 @@ Hand-written endpoint mocks are intentionally not maintained. Regenerate OpenAPI
 pnpm export:openapi
 ```
 
-Before merging API contract changes, keep `docs/openapi.json` committed and regenerate the Flutter client from `../Luminous`:
+Before merging API contract changes, export a fresh local `docs/openapi.json` and regenerate the Flutter client from `../Luminous`:
 
 ```bash
 cd ../Luminous
-dart run tool/regenerate_lucent_openapi.dart
+dart run tool/bootstrap_generated_sources.dart
 dart run tool/verify_lucent_openapi_sync.dart
 ```
 
@@ -77,10 +77,11 @@ Generated artifact policy in this repo:
 
 - `generated/prisma/` is intentionally local-only and stays ignored. Regenerate it from
   `prisma/schema.prisma` plus migrations through the normal Prisma flow instead of committing it.
-- `docs/openapi.json` is generated but must stay committed because it is the cross-repo contract
-  consumed by `Luminous`.
+- `docs/openapi.json` is also local-only and stays ignored. Export it with `pnpm export:openapi`
+  before regenerating the Luminous client or validating cross-repo contract sync.
 
-Lucent CI now verifies `docs/openapi.json` semantically instead of byte-for-byte. Pure JSON formatting drift no longer blocks downstream unit/e2e lanes, but any real schema/content drift still fails the workflow.
+Lucent CI now exports `docs/openapi.json` as a local build artifact instead of enforcing a
+committed generated contract file in git history.
 
 ## Stack
 
@@ -275,7 +276,7 @@ Active docs:
 - [docs/01-reference/deployment.md](docs/01-reference/deployment.md)
 - [docs/01-reference/architecture.md](docs/01-reference/architecture.md)
 - [docs/01-reference/adr/](docs/01-reference/adr/) — Architecture Decision Records
-- [docs/openapi.json](docs/openapi.json)
+- local `docs/openapi.json` export (generated, ignored)
 - [docs/public/data-sources.md](docs/public/data-sources.md)
 - [docs/public/data-sources-cn-products.md](docs/public/data-sources-cn-products.md)
 - [docs/public/data-sources-drugbank.md](docs/public/data-sources-drugbank.md)

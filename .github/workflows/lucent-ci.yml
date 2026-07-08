@@ -104,6 +104,3 @@ jobs:
 
       - name: Export OpenAPI
         run: pnpm export:openapi
-
-      - name: Verify OpenAPI is committed
-        run: pnpm verify:openapi

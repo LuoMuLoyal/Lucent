@@ -55,7 +55,7 @@ Each contract document defines:
 ## Rules
 
 - These documents are the **authoritative API boundary** — when backend and frontend disagree,
-  these contracts (plus generated `openapi.json`) are the tiebreaker.
+  these contracts (plus a freshly exported local `openapi.json`) are the tiebreaker.
 - Update the relevant contract when the API boundary changes (new fields, new endpoints, removed
   features, changed non-goals).
 - Do not put UI implementation details or product roadmap in these documents.
@@ -64,6 +64,7 @@ Each contract document defines:
 
 ## Relationship to openapi.json
 
-`docs/openapi.json` is the machine-readable API contract (generated). These `public/*.md` files
+`docs/openapi.json` is the machine-readable API contract (generated locally, ignored in git). These
+`public/*.md` files
 provide human-readable context that OpenAPI alone does not capture: capability boundaries,
 non-goals, rollout status, and integration notes.

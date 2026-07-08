@@ -59,12 +59,13 @@ LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLI
 When controller or DTO code changes:
 
 1. Run `pnpm export:openapi` to regenerate `docs/openapi.json`.
-2. `pnpm verify:openapi` is the semantic CI gate for that file: formatting-only JSON diffs are ignored, but real contract drift still fails.
-3. In the Luminous repo, regenerate the Flutter client:
+2. In the Luminous repo, regenerate the Flutter client:
    ```bash
-   dart run tool/regenerate_lucent_openapi.dart
+   cd ../Luminous
+   dart run tool/bootstrap_generated_sources.dart
+   dart run tool/verify_lucent_openapi_sync.dart
    ```
-4. Append a dated entry to `docs/02-logs/migration-log/YYYY-MM-DD.md`.
+3. Append a dated entry to `docs/02-logs/migration-log/YYYY-MM-DD.md`.
 
 ## Architecture Changes
 

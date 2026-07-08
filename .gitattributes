@@ -7,5 +7,3 @@
 *.yml text
 *.yaml text
 
-# Generated but tracked backend contract artifact.
-docs/openapi.json linguist-generated

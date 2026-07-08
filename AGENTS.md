@@ -47,7 +47,8 @@ Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or
 
 ## Working Rules
 
-- API contract changed: run `pnpm export:openapi`; do not maintain hand-written endpoint docs.
+- API contract changed: run `pnpm export:openapi`; local `docs/openapi.json` stays ignored, and you
+  still must not maintain hand-written endpoint docs.
 - Backend architecture or module structure changed: run `pnpm docs:compodoc` to regenerate HTML architecture docs under `docs/compodoc/`.
 - API documentation UI is served at `/api/docs` via Scalar (replaces Swagger UI). The underlying OpenAPI generation and export flow remain unchanged.
 - Active multi-step backend task plans belong in `plans/*.md`, not in `docs/` and not in the workspace root.
@@ -87,7 +88,7 @@ Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or
   - ❌ `import { XxxService } from '../auth/services/auth-token.service';`
   - ✅ `import { XxxService } from '../auth/services';`
 - `@Module()` `exports` arrays still control DI visibility; barrels only affect TypeScript import
-   paths.
+  paths.
 - `dto/` barrels re-export DTOs only — they never define DTOs inline.
 
 ## Module Subdirectory Whitelist
