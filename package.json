@@ -153,7 +153,8 @@
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged",
-    "commit-msg": "pnpm exec commitlint --edit $1"
+    "commit-msg": "pnpm exec commitlint --edit $1",
+    "pre-push": "pnpm lint:check && pnpm typecheck"
   },
   "lint-staged": {
     "*.ts": [

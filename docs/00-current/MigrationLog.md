@@ -15,7 +15,7 @@ Records backend changes in date order. Detailed entries are split by date under
 
 ## Active Entries
 
-- [2026-07-09](../02-logs/migration-log/2026-07-09.md) — 配置化硬编码常量 + Auth Controller 拆分 + 水分目标 DB 持久化（审查报告 LUC-2026-0709 全量修复）
+- [2026-07-09](../02-logs/migration-log/2026-07-09.md) — 配置化 + Auth Controller 拆分 + 水分目标 DB 持久化 + pre-push 钩子 + husky 残留清理
 - [2026-07-08](../02-logs/migration-log/2026-07-08.md) — 7.8 审查修复 + Today analysis 主动建议通知 + Medicine dose log Phase 2 + OpenAPI 合同修复 + 生成物边界治理 + Git 钩子轻量化
 - [2026-07-07](../02-logs/migration-log/2026-07-07.md) — 审查修复（超时配置 / 错误处理工具 / DTO 边界防御 / 测试覆盖率补充）
 - [2026-07-06](../02-logs/migration-log/2026-07-06.md) — 全项目模块结构重构 + 审查修复 + ROADMAP + 开源标准文件 + CHANGELOG
