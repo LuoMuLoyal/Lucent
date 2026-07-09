@@ -1,6 +1,6 @@
 # Lucent Migration Log
 
-Last updated: 2026-07-03
+Last updated: 2026-07-09
 
 Records backend changes in date order. Detailed entries are split by date under
 `docs/02-logs/migration-log/`.
@@ -15,9 +15,38 @@ Records backend changes in date order. Detailed entries are split by date under
 
 ## Active Entries
 
+- [2026-07-09](../02-logs/migration-log/2026-07-09.md) — 配置化硬编码常量 + Auth Controller 拆分 + 水分目标 DB 持久化（审查报告 LUC-2026-0709 全量修复）
+- [2026-07-08](../02-logs/migration-log/2026-07-08.md) — 7.8 审查修复 + Today analysis 主动建议通知 + Medicine dose log Phase 2 + OpenAPI 合同修复 + 生成物边界治理 + Git 钩子轻量化
+- [2026-07-07](../02-logs/migration-log/2026-07-07.md) — 审查修复（超时配置 / 错误处理工具 / DTO 边界防御 / 测试覆盖率补充）
+- [2026-07-06](../02-logs/migration-log/2026-07-06.md) — 全项目模块结构重构 + 审查修复 + ROADMAP + 开源标准文件 + CHANGELOG
+- [2026-07-05](../02-logs/migration-log/2026-07-05.md) — 审查修复（安全性 + 代码质量）+ Report Export PDF 增强 + 脚本目录重构 + package.json scripts 优化
+- [2026-07-04](../02-logs/migration-log/2026-07-04.md) — Logger 升级到 Pino + 审查修复 + 目录结构规范化 + Prisma 客户端迁移 + AuthService 拆分 + AdminJS 拆分 + common 目录分层
 - [2026-07-03](../02-logs/migration-log/2026-07-03.md) — Docs restructure + Assistant RAG / DrugBank closeout
 - [2026-07-02](../02-logs/migration-log/2026-07-02.md) — Public contracts + meal-analysis read rules
 - [2026-07-01](../02-logs/migration-log/2026-07-01.md) — Meal-analysis pipeline + today-analysis read matrix
+
+## Quick Navigation by Topic
+
+Major changes grouped by area:
+
+- **Auth / Security** (OAuth, Security PIN, rate limit, JWT)
+  - Key Dates: 07/04, 07/05, 07/08, 07/09
+- **AI Pipeline** (Assistant runtime, today-analysis, meal-analysis, LLM)
+  - Key Dates: 07/01, 07/04, 07/07, 07/08, 07/09
+- **Medicine** (dose logs, reminders, knowledge base, RAG)
+  - Key Dates: 07/03, 07/08
+- **Report / Export** (dashboard, PDF, clinic summary)
+  - Key Dates: 07/05
+- **Infrastructure** (logger, Prisma, AdminJS, common/ structure, env config)
+  - Key Dates: 07/04, 07/05, 07/06
+- **Code Quality** (审查修复, DTO validation, retry utils, test coverage)
+  - Key Dates: 07/04, 07/05, 07/06, 07/07, 07/08, 07/09
+- **CI / Tooling** (git hooks, scripts, package.json, GitHub Actions)
+  - Key Dates: 07/05, 07/06, 07/08
+- **OpenAPI** (export, contract fixes, generated client boundary)
+  - Key Dates: 07/04, 07/08
+- **Docs / Governance** (ROADMAP, CHANGELOG, open-source files, architecture)
+  - Key Dates: 07/03, 07/04, 07/06
 
 ## Archived Entries
 

@@ -1,0 +1,125 @@
+rules:
+  - name: infrastructure
+    code:
+      - src/main.ts
+      - src/app.module.ts
+      - src/setup-app.ts
+      - src/config/**
+      - src/prisma/**
+      - src/mail/**
+      - src/i18n/**
+      - src/admin/**
+      - prisma/schema.prisma
+      - prisma/migrations/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/00-current/Toolchain_Contract.md
+      - docs/00-current/Code_Quality_Maintainability.md
+      - docs/01-reference/architecture.md
+      - docs/01-reference/environment.md
+      - docs/02-logs/migration-log/*.md
+  - name: common-shared
+    code:
+      - src/common/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/00-current/Code_Quality_Maintainability.md
+      - docs/01-reference/architecture.md
+      - docs/02-logs/migration-log/*.md
+  - name: auth-security
+    code:
+      - src/modules/auth/**
+      - src/modules/security-pin/**
+      - src/modules/account/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/00-current/Auth_Security_PIN.md
+      - docs/02-logs/migration-log/*.md
+  - name: user-domain
+    code:
+      - src/modules/user/**
+      - src/modules/user-health-context/**
+      - src/modules/user-settings/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/02-logs/migration-log/*.md
+  - name: daily-records
+    code:
+      - src/modules/daily-records/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/00-current/Meal_Analysis.md
+      - docs/02-logs/migration-log/*.md
+  - name: medicine
+    code:
+      - src/modules/medicines/**
+      - src/modules/medicine-dose-logs/**
+      - src/modules/medicine-reminders/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/00-current/Medicine_Data_RAG.md
+      - docs/public/reminder-contract.md
+      - docs/02-logs/migration-log/*.md
+  - name: assistant-ai
+    code:
+      - src/modules/assistant/**
+      - src/modules/today-analysis/**
+      - src/modules/llm-runtime/**
+      - src/common/ai/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/00-current/Assistant_Runtime.md
+      - docs/01-reference/architecture.md
+      - docs/public/assistant-capabilities.md
+      - docs/public/assistant-contract.md
+      - docs/public/assistant-safety.md
+      - docs/02-logs/migration-log/*.md
+  - name: report-export
+    code:
+      - src/modules/reports/**
+      - src/modules/data-export/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/00-current/Report_Export.md
+      - docs/public/data-export-contract.md
+      - docs/02-logs/migration-log/*.md
+  - name: notifications
+    code:
+      - src/modules/notifications/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/02-logs/migration-log/*.md
+  - name: support-files-env
+    code:
+      - src/modules/support-resources/**
+      - src/modules/files/**
+      - src/modules/environment/**
+      - src/modules/testing-support/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/00-current/Public_Support_Resources.md
+      - docs/public/support-resources-contract.md
+      - docs/public/environment-contract.md
+      - docs/02-logs/migration-log/*.md
+  - name: scripts-tooling
+    code:
+      - scripts/**
+      - .github/**
+      - package.json
+      - tsconfig.json
+      - .swcrc
+      - commitlint.config.mjs
+      - pnpm-workspace.yaml
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/00-current/Toolchain_Contract.md
+      - docs/01-reference/environment.md
+      - docs/02-logs/migration-log/*.md
+  - name: docs-openapi
+    code:
+      - docs/openapi.json
+      - docs/public/**
+    docs_required:
+      - docs/00-current/Current_State.md
+      - docs/00-current/Toolchain_Contract.md
+      - docs/02-logs/migration-log/*.md

@@ -1,6 +1,6 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-07
+Last updated: 2026-07-09
 
 - auth 模块三处静默 catch 补充 logger.warn：`auth.service.ts` refresh、`auth-oauth-state.service.ts`
   normalizeCallbackUri、`credential-auth.service.ts` \_notifyPasswordChanged，保留生产环境可观测性。
@@ -84,3 +84,7 @@ Last updated: 2026-07-07
   - `medicine-reminders` gained 3 new spec files: `mapper.service.spec.ts` (29 tests),
     `ownership.service.spec.ts` (7 tests), `reminder-deliveries.controller.spec.ts` (5 tests).
   - `account`, `notifications`, `user` were assessed as already well covered (service + controller specs).
+
+- Audit report LUC-2026-0709 fully remediated: fuzzy-match thresholds, verification-code service
+  parameters, mail-queue tuning, OAuth State TTL, and retry defaults are now environment-configurable
+  with Joi validation. The `.gitattributes` file marks generated code paths.

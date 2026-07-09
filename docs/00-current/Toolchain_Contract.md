@@ -1,6 +1,6 @@
 # Toolchain / Contract
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -18,3 +18,9 @@ Last updated: 2026-07-08
 - `pnpm typecheck:tools` now type-checks `scripts/` and `deploy/` under the same decorator-capable
   baseline as the Nest app, so tool imports of Nest services no longer fail on stripped decorator
   settings.
+- Lucent runtime, Prisma CLI, and local import scripts now parse environment variables in a unified
+  priority order: `.env.<NODE_ENV>.local` → `.env.<NODE_ENV>`, with no root `.env` fallback.
+- OpenAPI contract fully fixed: all `nullable: true` DTO fields now have explicit `type` annotations,
+  eliminating the P0 crash (`int.toJson is not a function`) and P1 type loss (`dynamic`) in the
+  Flutter generated client. SSE stream endpoints have `text/event-stream` content annotations, and
+  the `/clear` endpoint has a named response DTO.

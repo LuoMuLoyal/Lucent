@@ -1,6 +1,6 @@
 # Assistant Runtime
 
-Last updated: 2026-07-03
+Last updated: 2026-07-09
 
 - Assistant retrieval is source-split across Chinese leaflet RAG, assistant-only filtered medical
   QA, and entity-scoped DrugBank scientific retrieval.
@@ -25,3 +25,9 @@ Last updated: 2026-07-03
 - Assistant tool execution now carries resolved CN `productId` forward into downstream leaflet
   retrieval by rewriting the leaflet tool payload with `filters.productId` when one structured CN
   detail record was already resolved safely.
+- Today analysis now produces two notification types in addition to persisting
+  `assistant_summary_histories`: `ai_today_summary` and `ai_proactive_suggestion`. Both carry
+  `actionPayload.date` and `actionPayload.source=today-analysis` for frontend attribution.
+- When today analysis is regenerated on the same day, the two notification types are overwritten
+  by `type + source + date` scoped replace, cleaning up old duplicates to avoid polluting the
+  notification page and report page suggestion history.

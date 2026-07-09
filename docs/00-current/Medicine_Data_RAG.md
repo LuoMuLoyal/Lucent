@@ -1,6 +1,6 @@
 # Medicine Data / RAG
 
-Last updated: 2026-07-03
+Last updated: 2026-07-09
 
 - Chinese leaflet assistant retrieval uses Lucent-owned `medicine_leaflet_chunks` plus a dedicated
   leaflet vector store.
@@ -28,3 +28,10 @@ Last updated: 2026-07-03
 - Lucent does not maintain a runtime CN -> DrugBank mapping bridge or alias table. Cross-source
   questions are handled by the assistant's source-split structured lookup tools, which return
   separate CN and DrugBank evidence without asserting a single merged entity.
+- Medicine dose logs now have a slot-aware contract: a single dose log can carry `reminderId` +
+  `scheduledTime` to distinguish multiple reminder slots for the same medicine on the same day.
+  A new idempotent `POST /api/v1/user/medicine-dose-logs/mark` endpoint matches by
+  `reminderId + scheduledFor` (preferred), falling back to `currentMedicineId + scheduledFor +
+  scheduledTime`, then to `currentMedicineId + scheduledFor`.
+- Today analysis water target is now read from the `user_settings` DB table (`waterTargetCount`,
+  range 1-30) instead of a hardcoded constant, allowing per-user personalization.

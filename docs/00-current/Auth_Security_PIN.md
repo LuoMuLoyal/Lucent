@@ -1,6 +1,6 @@
 # Auth / Security PIN
 
-Last updated: 2026-07-03
+Last updated: 2026-07-09
 
 - The optional TOTP 2FA system has been replaced with an in-app 6-digit Security PIN.
 - `User` carries `securityPinEnabled`, `securityPinHash`, `securityPinChangedAt`, and
@@ -16,3 +16,12 @@ Last updated: 2026-07-03
  /user/data-export-requests/latest`) are protected by `SecurityElevationGuard` and
   `@RequireSecurityElevation()`.
 - Credential login no longer returns 2FA challenge fields (`requiresTwoFactor`, `tempToken`).
+- `User.email` has a database-level unique constraint (`@unique`); the application-layer duplicate
+  check is retained as an early interception.
+- Auth Controller has been split into three focused controllers: `local.controller.ts`
+  (register, login, verification code, password reset), `oauth.controller.ts` (WeChat, Apple, QQ),
+  and `session.controller.ts` (logout, session list, revoke, refresh). A shared `buildAuthResponse`
+  helper eliminates duplicated user+tokens serialization.
+- Multiple security parameters are now environment-configurable with Joi validation: verification
+  code TTL/cooldown/rate-limit, OAuth state TTL, and mail queue tuning (attempts, backoff,
+  concurrency, retention).
