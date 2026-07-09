@@ -136,13 +136,14 @@ Observability:
 ```text
 LOG_LEVEL
 SLOW_REQUEST_THRESHOLD_MS
-METRICS_LOG_INTERVAL_MS
+METRICS_ENABLED
 ```
 
 - `LOG_LEVEL` — pino log level (`debug` / `info` / `warn` / `error`). Defaults to `debug` in
   development, `info` in production.
 - `SLOW_REQUEST_THRESHOLD_MS` — requests exceeding this duration (in ms) trigger a `warn` log
   via `SlowRequestInterceptor`. Default: `2000`. Range: 10–300000.
-- `METRICS_LOG_INTERVAL_MS` — interval (in ms) between periodic process-metrics log entries
-  (rss, heap, uptime, active handles). Default: `300000` (5 min). Range: 10000–3600000. Skipped
-  in test environment.
+- `METRICS_ENABLED` — enable/disable Prometheus metrics collection (`prom-client`).
+  Default: `true`. Set to `false` in test environment. When enabled, the `/metrics`
+  endpoint exposes Prometheus exposition format for scraping. See ADR-0006 for the
+  full observability strategy.

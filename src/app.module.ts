@@ -17,6 +17,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { I18nModule } from './i18n/i18n.module';
 import { LoggerModule } from './common/logger/logger.module';
+import { MetricsModule } from './common/metrics/metrics.module';
 import { MedicinesModule } from './modules/medicines/medicines.module';
 import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from './modules/medicine-dose-logs/medicine-dose-logs.module';
@@ -55,6 +56,7 @@ import { ApiExceptionFilter } from './common/filters/api-exception.filter';
     }),
     I18nModule,
     LoggerModule,
+    MetricsModule,
     PrismaModule,
     MailModule,
     AuthModule,

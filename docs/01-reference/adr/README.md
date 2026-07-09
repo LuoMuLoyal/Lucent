@@ -71,3 +71,11 @@ What becomes easier or harder as a result of this decision?
   - Title: GitHub Actions + Tencent TCR Deployment Model
   - Status: accepted
   - Date: 2026-06-14
+- [0005](0005-meal-analysis-write-time-pipeline.md)
+  - Title: Write-Time Meal Analysis With Imported Food Composition Data
+  - Status: accepted
+  - Date: 2026-06-17
+- [0006](0006-observability-strategy.md)
+  - Title: Observability Strategy — prom-client + Prometheus/Grafana, Defer OpenTelemetry
+  - Status: accepted
+  - Date: 2026-07-09

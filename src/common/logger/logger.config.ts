@@ -64,7 +64,8 @@ function createPinoHttpOptions(nodeEnv: string, logLevel: string): Options {
         const requestUrl = request.url ?? '';
         return (
           requestUrl.startsWith('/api/v1/health') ||
-          requestUrl.startsWith('/api/docs')
+          requestUrl.startsWith('/api/docs') ||
+          requestUrl.startsWith('/metrics')
         );
       },
     },

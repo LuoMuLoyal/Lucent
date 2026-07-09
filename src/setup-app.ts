@@ -5,6 +5,7 @@ import {
   VersioningType,
 } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { LoggerErrorInterceptor } from 'nestjs-pino';
@@ -16,6 +17,8 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
 import { requestIdMiddleware } from './common/middleware/request-id.middleware';
 import { bindRequestContextMiddleware } from './common/logger/request-context.middleware';
 import { RequestContextService } from './common/logger/request-context.service';
+import { MetricsService } from './common/metrics/metrics.service';
+import { createMetricsMiddleware } from './common/metrics/metrics.middleware';
 
 /**
  * Configures the NestJS application with global middleware, pipes, filters,
@@ -27,6 +30,14 @@ export function setupApp(
 ): void {
   app.use(requestIdMiddleware);
   app.use(bindRequestContextMiddleware(app.get(RequestContextService)));
+
+  // ── Prometheus metrics ──────────────────────────────────────────
+  const metricsService = app.get(MetricsService);
+  app.use(createMetricsMiddleware(metricsService));
+  app.use('/metrics', async (_req: Request, res: Response) => {
+    res.type(metricsService.getContentType());
+    res.send(await metricsService.getMetrics());
+  });
 
   app.setGlobalPrefix('api');
   app.enableVersioning({

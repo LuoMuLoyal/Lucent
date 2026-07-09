@@ -208,9 +208,28 @@ of being `new`-ed in bootstrap code so it can emit structured `pino` logs with
 - `LifecycleService` (`src/common/logger/lifecycle.service.ts`) logs structured
   startup and shutdown events. `main.ts` calls `app.enableShutdownHooks()` so
   SIGTERM/SIGINT triggers NestJS lifecycle hooks (Prisma disconnect, etc.).
-- `ProcessMetricsService` (`src/common/logger/process-metrics.service.ts`)
-  periodically logs rss/heap/uptime/activeHandles every
-  `METRICS_LOG_INTERVAL_MS` (default 5min); skipped in test environment.
+
+## Metrics Foundation
+
+- `src/common/metrics/metrics.module.ts` is a Global module that provides
+  `MetricsService` — the centralised Prometheus metrics registry.
+- `MetricsService` (`src/common/metrics/metrics.service.ts`) collects:
+  - Default Node.js runtime metrics via `prom-client` `collectDefaultMetrics`
+    (heap, rss, event loop lag, GC stats, active handles)
+  - HTTP request latency histogram and counter
+    (`http_request_duration_seconds`, `http_requests_total`)
+  - BullMQ job counter and gauges
+    (`bullmq_jobs_total`, `bullmq_active_jobs`, `bullmq_waiting_jobs`)
+  - LLM call duration histogram and token counter
+    (`llm_call_duration_seconds`, `llm_tokens_used_total`)
+- The `/metrics` endpoint is served as a raw Express route in `setupApp`,
+  not a NestJS controller, so it bypasses the interceptor/filter stack.
+- The metrics middleware (`src/common/metrics/metrics.middleware.ts`) uses
+  `res.on('finish')` to capture the final HTTP status code. Route paths are
+  normalised (UUIDs and numeric IDs → `:id`) to prevent label cardinality
+  explosion.
+- `METRICS_ENABLED` env var controls activation (default `true`, forced off in
+  test environment). See ADR-0006 for the full observability strategy.
 
 ## Security Elevation
 

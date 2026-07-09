@@ -83,8 +83,10 @@ Last updated: 2026-07-09
     `SLOW_REQUEST_THRESHOLD_MS` (default 2000ms).
   - `LifecycleService` logs application start and graceful shutdown (signal, uptime).
     `main.ts` calls `enableShutdownHooks()` so SIGTERM triggers NestJS destroy hooks.
-  - `ProcessMetricsService` periodically logs rss/heap/uptime/activeHandles every
-    `METRICS_LOG_INTERVAL_MS` (default 5min); skipped in test env.
+  - `MetricsService` (`src/common/metrics/metrics.service.ts`) collects Prometheus
+    metrics via `prom-client`: default Node.js runtime metrics, HTTP request
+    latency/counters, BullMQ job metrics, and LLM call/token metrics. Controlled by
+    `METRICS_ENABLED` (default `true`, forced off in test). See ADR-0006.
 
 - Unit test coverage expanded for low-coverage modules identified in the 2026-07-07 review:
   - `llm-runtime` service spec expanded from 3 to 18 tests, covering `hasRoleConfig` edge cases,

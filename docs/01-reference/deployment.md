@@ -1,6 +1,6 @@
 # Lucent Deployment
 
-Last updated: 2026-06-17
+Last updated: 2026-07-09
 
 这份文档只保留当前简化后的生产部署模型。
 
@@ -26,12 +26,14 @@ Last updated: 2026-06-17
   - `certs/*`
   - `data/postgresql`
   - `data/redis`
+  - `data/prometheus`
+  - `data/grafana`
   - `logs/app`
   - `logs/nginx`
 
 没有 `releases/<sha>`。
 没有 `current` 软链接。
-没有 Prometheus / Grafana / synthetic monitor。
+Prometheus / Grafana 已纳入 docker-compose（见下文可观测性章节）。
 
 ## 首次准备
 
@@ -40,6 +42,8 @@ mkdir -p /opt/lucent/app
 mkdir -p /opt/lucent/server/certs
 mkdir -p /opt/lucent/server/data/postgresql
 mkdir -p /opt/lucent/server/data/redis
+mkdir -p /opt/lucent/server/data/prometheus
+mkdir -p /opt/lucent/server/data/grafana
 ```
 
 PostgreSQL 18 注意事项：
@@ -96,9 +100,10 @@ curl -k https://your-domain.example/api/v1/health/ready
 
 通过标准：
 
-- `app`、`postgres`、`redis`、`nginx` 四个容器在运行
+- `app`、`postgres`、`redis`、`nginx`、`prometheus`、`grafana` 六个容器在运行
 - `/api/v1/health/ready` 返回 `200`
 - Nginx 能正常反代 HTTPS 请求
+- `http://127.0.0.1:3000/metrics` 返回 Prometheus text format
 
 ## 部署后 Smoke Checklist
 
@@ -155,4 +160,32 @@ DEPLOY_PORT
 DEPLOY_USER
 DEPLOY_SSH_KEY
 DEPLOY_SSH_KNOWN_HOSTS
+GRAFANA_ADMIN_PASSWORD
 ```
+
+`GRAFANA_ADMIN_PASSWORD` 用于 Grafana 容器的管理员密码。如果未设置，默认为 `admin`。
+
+## 可观测性
+
+生产 docker-compose 包含 Prometheus 和 Grafana 两个容器：
+
+| 容器                | 镜像                     | 端口 | 说明                                                    |
+| ------------------- | ------------------------ | ---- | ------------------------------------------------------- |
+| `lucent-prometheus` | `prom/prometheus:v3.4.2` | 9090 | 从 `app:3000/metrics` 以 15s 间隔 scrape，15 天数据保留 |
+| `lucent-grafana`    | `grafana/grafana:12.1.0` | 3001 | 预置 Prometheus 数据源和 Lucent Backend Overview 仪表盘 |
+
+这两个端口不暴露到公网，Nginx 不代理。通过 SSH 隧道访问：
+
+```bash
+# Grafana
+ssh -L 3001:localhost:3001 user@server
+# 然后浏览器打开 http://localhost:3001
+
+# Prometheus
+ssh -L 9090:localhost:9090 user@server
+# 然后浏览器打开 http://localhost:9090
+```
+
+Grafana 初始管理员密码由 `GRAFANA_ADMIN_PASSWORD` 环境变量控制（写在 `.env.compose` 中）。
+
+应用端通过 `prom-client` 在 `/metrics` 端点暴露 Prometheus exposition format。环境变量 `METRICS_ENABLED` 控制开关（默认 `true`）。详见 ADR-0006。

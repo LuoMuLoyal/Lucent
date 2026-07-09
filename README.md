@@ -90,6 +90,7 @@ committed generated contract file in git history.
 - Redis / BullMQ
 - Passport JWT
 - Pino / nestjs-pino structured logging
+- prom-client / Prometheus / Grafana metrics (ADR-0006)
 - WeChat Web / Mobile OAuth login
 - OpenAPI-generated client/docs
 - LangChain / LangGraph-based AI integration foundation

@@ -87,3 +87,38 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+
+  prometheus:
+    image: prom/prometheus:v3.4.2
+    container_name: lucent-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ${LUCENT_SERVER_DIR}/data/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.listen-address=0.0.0.0:9090'
+    ports:
+      - '9090:9090'
+    depends_on:
+      app:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    container_name: lucent-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/opt/grafana/dashboards:ro
+      - ${LUCENT_SERVER_DIR}/data/grafana:/var/lib/grafana
+    ports:
+      - '3001:3000'
+    depends_on:
+      prometheus:
+        condition: service_started

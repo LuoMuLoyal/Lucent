@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'lucent-dashboards'
+    orgId: 1
+    folder: 'Lucent'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /opt/grafana/dashboards

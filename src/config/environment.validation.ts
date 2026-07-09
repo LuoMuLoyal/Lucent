@@ -6,7 +6,6 @@ import {
   DEFAULT_FUZZY_ACCEPT_SCORE,
   DEFAULT_FUZZY_MIN_LEAD,
   DEFAULT_FUZZY_QUERY_PREFIX_LENGTH,
-  DEFAULT_METRICS_LOG_INTERVAL_MS,
   DEFAULT_SLOW_REQUEST_THRESHOLD_MS,
   DEFAULT_MAIL_QUEUE_BACKOFF_DELAY_MS,
   DEFAULT_MAIL_QUEUE_COMPLETE_AGE_SECONDS,
@@ -29,7 +28,6 @@ import {
   MAX_COS_MAX_UPLOAD_BYTES,
   MAX_COS_UPLOAD_EXPIRY_SECONDS,
   MAX_EMBEDDING_DIMENSION,
-  MAX_METRICS_LOG_INTERVAL_MS,
 } from './constants';
 import { EnvKey } from './env-keys.enum';
 
@@ -131,7 +129,7 @@ export interface EnvironmentVariables {
   [EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT]?: number;
   [EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT]?: number;
   [EnvKey.SLOW_REQUEST_THRESHOLD_MS]?: number;
-  [EnvKey.METRICS_LOG_INTERVAL_MS]?: number;
+  [EnvKey.METRICS_ENABLED]?: string;
 }
 
 const optionalString = Joi.string().allow('').optional();
@@ -343,11 +341,7 @@ const envSchema = Joi.object<EnvironmentVariables>({
     .min(10)
     .max(300_000)
     .default(DEFAULT_SLOW_REQUEST_THRESHOLD_MS),
-  [EnvKey.METRICS_LOG_INTERVAL_MS]: Joi.number()
-    .integer()
-    .min(10_000)
-    .max(MAX_METRICS_LOG_INTERVAL_MS)
-    .default(DEFAULT_METRICS_LOG_INTERVAL_MS),
+  [EnvKey.METRICS_ENABLED]: Joi.string().valid('true', 'false').default('true'),
 });
 
 const AI_ROLE_GROUPS = [
