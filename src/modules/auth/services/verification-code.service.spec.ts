@@ -6,15 +6,20 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
+import { ConfigService } from '@nestjs/config';
 
 import { I18nService } from 'nestjs-i18n';
-import {
-  VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS,
-  VerificationCodeService,
-} from './verification-code.service';
+import { VerificationCodeService } from './verification-code.service';
 import { MailService } from '../../../mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ResultCode } from '../../../common/api';
+import {
+  DEFAULT_VERIFICATION_CODE_LENGTH,
+  DEFAULT_VERIFICATION_CODE_TTL_MS,
+  DEFAULT_VERIFICATION_COOLDOWN_MS,
+  DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
+  DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
+} from '../../../config/constants';
 
 describe('VerificationCodeService', () => {
   let service: VerificationCodeService;
@@ -45,6 +50,24 @@ describe('VerificationCodeService', () => {
             t: jest.fn((key: string) => key),
           },
         },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string, fallback?: unknown) => {
+              if (key === 'VERIFICATION_CODE_TTL_MS')
+                return DEFAULT_VERIFICATION_CODE_TTL_MS;
+              if (key === 'VERIFICATION_COOLDOWN_MS')
+                return DEFAULT_VERIFICATION_COOLDOWN_MS;
+              if (key === 'VERIFICATION_RATE_LIMIT_WINDOW_MS')
+                return DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS;
+              if (key === 'VERIFICATION_RATE_LIMIT_MAX')
+                return DEFAULT_VERIFICATION_RATE_LIMIT_MAX;
+              if (key === 'VERIFICATION_CODE_LENGTH')
+                return DEFAULT_VERIFICATION_CODE_LENGTH;
+              return fallback;
+            }),
+          },
+        },
       ],
     }).compile();
 
@@ -69,14 +92,14 @@ describe('VerificationCodeService', () => {
       expect(cache.set).toHaveBeenCalledWith(
         'vcode:register:test@example.com',
         expect.stringMatching(/^\d{6}$/), // 6-digit code
-        300_000,
+        DEFAULT_VERIFICATION_CODE_TTL_MS,
       );
 
       // Should set cooldown in cache (60s TTL)
       expect(cache.set).toHaveBeenCalledWith(
         'vcode:cd:register:test@example.com',
         '1',
-        60_000,
+        DEFAULT_VERIFICATION_COOLDOWN_MS,
       );
 
       // Should send email
@@ -122,14 +145,14 @@ describe('VerificationCodeService', () => {
           count: 1,
           resetAt: expect.any(Number) as number,
         }),
-        600_000,
+        DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
       );
     });
 
     it('should throw 429 when client rate limit is exceeded', async () => {
       const resetAt = Date.now() + 60_000;
       (cache.get as jest.Mock).mockResolvedValue({
-        count: VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS,
+        count: DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
         resetAt,
       });
 

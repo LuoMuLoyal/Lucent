@@ -23,6 +23,7 @@ describe('UserSettingsService', () => {
       dataSharingConsent: false,
       assistantEnabled: true,
       assistantMemoryEnabled: false,
+      waterTargetCount: 8,
       assistantContext: {
         healthProfile: true,
         dailyRecords: true,
@@ -79,6 +80,7 @@ describe('UserSettingsService', () => {
       dataSharingConsent: true,
       assistantEnabled: false,
       assistantMemoryEnabled: true,
+      waterTargetCount: 8,
       assistantContext: {
         healthProfile: true,
         dailyRecords: true,

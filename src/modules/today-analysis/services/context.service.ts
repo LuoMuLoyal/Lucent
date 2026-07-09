@@ -8,8 +8,11 @@ import {
 } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { parseMealRecordPayload } from '../../daily-records/types/meal-analysis.types';
+import {
+  USER_SETTING_KEYS,
+  USER_SETTINGS_DEFAULTS,
+} from '../../user-settings/constants/user-settings.constants';
 
-const DEFAULT_WATER_TARGET_COUNT = 8;
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;
 
@@ -98,6 +101,7 @@ export class TodayAnalysisContextService {
       doseLogs,
       dailyRecords,
       activeAllergyCount,
+      waterTargetCount,
     ] = await Promise.all([
       this.prisma.userCurrentMedicine.findMany({
         where: {
@@ -167,6 +171,15 @@ export class TodayAnalysisContextService {
           isActive: true,
         },
       }),
+      this.prisma.userSetting.findUnique({
+        where: {
+          userId_key: {
+            userId,
+            key: USER_SETTING_KEYS.waterTargetCount,
+          },
+        },
+        select: { value: true },
+      }),
     ]);
 
     const completedMedicineIds = new Set(
@@ -195,6 +208,11 @@ export class TodayAnalysisContextService {
     const waterCompletedCount = dailyRecords.filter(
       (record) => record.kind === 'water',
     ).length;
+    const waterTarget =
+      typeof waterTargetCount?.value === 'number' &&
+      Number.isFinite(waterTargetCount.value)
+        ? waterTargetCount.value
+        : USER_SETTINGS_DEFAULTS.waterTargetCount;
     const recordSummary = this.buildRecordSummary(dailyRecords);
     const recentRecords = dailyRecords
       .slice(0, MAX_RECENT_RECORDS)
@@ -205,11 +223,8 @@ export class TodayAnalysisContextService {
       date,
       water: {
         completedCount: waterCompletedCount,
-        targetCount: DEFAULT_WATER_TARGET_COUNT,
-        remainingCount: Math.max(
-          DEFAULT_WATER_TARGET_COUNT - waterCompletedCount,
-          0,
-        ),
+        targetCount: waterTarget,
+        remainingCount: Math.max(waterTarget - waterCompletedCount, 0),
       },
       medication: {
         medicineCount: currentMedicines.length,

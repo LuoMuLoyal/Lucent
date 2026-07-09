@@ -5,14 +5,14 @@
  * duplicated manual `for` loops and magic retry constants.
  */
 
-const DEFAULT_ATTEMPTS = 2;
-const DEFAULT_DELAY_MS = 200;
+const DEFAULT_ATTEMPTS = 3;
+const DEFAULT_DELAY_MS = 500;
 
 /** Options for {@link withRetry} and {@link fetchWithRetry}. */
 export interface RetryOptions {
-  /** Maximum number of attempts (default: 2). */
+  /** Maximum number of attempts (default: 3). */
   attempts?: number;
-  /** Delay before the first retry, in milliseconds (default: 200). */
+  /** Delay before the first retry, in milliseconds (default: 500). */
   delayMs?: number;
   /** Backoff strategy: fixed or exponential (default: 'fixed'). */
   backoff?: 'fixed' | 'exponential';

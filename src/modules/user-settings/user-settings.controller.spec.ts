@@ -145,6 +145,7 @@ function makeSettings(
     dataSharingConsent: false,
     assistantEnabled: true,
     assistantMemoryEnabled: false,
+    waterTargetCount: 8,
     assistantContext: {
       healthProfile: true,
       dailyRecords: true,

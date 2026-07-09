@@ -5,7 +5,9 @@ import { PassportModule } from '@nestjs/passport';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UserModule } from '../user/user.module';
 import { AuthService } from './services/auth.service';
-import { AuthController } from './auth.controller';
+import { LocalController } from './controllers/local.controller';
+import { OAuthController } from './controllers/oauth.controller';
+import { SessionController } from './controllers/session.controller';
 import { AuthRateLimitService } from './services/rate-limit.service';
 import { AuthTokenService } from './services/token.service';
 import { AuthOAuthStateService } from './services/oauth/state.service';
@@ -28,7 +30,7 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}), // actual secret is configured per-sign in AuthService
   ],
-  controllers: [AuthController],
+  controllers: [LocalController, OAuthController, SessionController],
   providers: [
     AuthService,
     AuthAccountService,

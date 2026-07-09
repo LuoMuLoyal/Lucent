@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 
 import type { ApiEnvelope } from '../../../src/common/api';
 import { ResultCode } from '../../../src/common/api';
-import { VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS } from '../../../src/modules/auth/services/verification-code.service';
+import { DEFAULT_VERIFICATION_RATE_LIMIT_MAX } from '../../../src/config/constants';
 import {
   createTestApp,
   cleanupDatabase,
@@ -524,7 +524,7 @@ describe('Auth API (e2e)', () => {
 
       for (
         let index = 0;
-        index < VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS;
+        index < DEFAULT_VERIFICATION_RATE_LIMIT_MAX;
         index += 1
       ) {
         await request(app.getHttpServer())

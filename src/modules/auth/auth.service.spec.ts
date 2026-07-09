@@ -128,6 +128,7 @@ describe('AuthService', () => {
             assertClientRateLimit: jest.fn(),
             send: jest.fn(),
             verify: jest.fn(),
+            getCooldownSec: jest.fn().mockReturnValue(60),
           },
         },
         {

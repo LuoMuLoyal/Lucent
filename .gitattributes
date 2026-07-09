@@ -7,3 +7,5 @@
 *.yml text
 *.yaml text
 
+# Mark generated API client as linguist-generated to reduce diff noise
+generated/lucent_api/** linguist-generated=true

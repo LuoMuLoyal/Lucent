@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 本文件只保留简介和按区域链接。具体后端实现细节见 `00-current/` 下各子文件。
 
@@ -35,6 +35,9 @@ Today analysis 在落库 `assistant_summary_histories` 之外，现会额外产�
 OpenAPI 合同现已全面修复：所有 `nullable: true` 的 DTO 字段均显式标注 `type`，消除了 Flutter 生成客户端中
 `int` 调用 `.toJson()` 的 P0 崩溃以及大量字段退化为 `dynamic` 的 P1 类型丢失问题。SSE 流端点已补充
 `text/event-stream` content 标注，`/clear` 端点已提取具名响应 DTO。
+代码审查报告 LUC-2026-0709 全量修复完成：模糊匹配阈值、验证码服务参数、邮件队列调优、OAuth State TTL、重试默认值
+均已提取为环境变量配置（含 Joi 校验）；Auth Controller 已按 local/oauth/session 三控制器拆分，提取共享 `buildAuthResponse` helper；
+今日分析上下文水分目标从 `user_settings` DB 表读取（新增 `waterTargetCount` 设置项，支持 1-30 范围）；`.gitattributes` 标记生成代码。
 
 ## 相关文档
 

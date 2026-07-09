@@ -7,6 +7,7 @@ import {
   ASSISTANT_ENABLED_SETTING_KEY,
   ASSISTANT_MEMORY_ENABLED_SETTING_KEY,
   DATA_SHARING_CONSENT_SETTING_KEY,
+  WATER_TARGET_COUNT_SETTING_KEY,
 } from '../../../common/constants/user-setting-keys';
 
 export const USER_SETTING_KEYS = {
@@ -14,6 +15,7 @@ export const USER_SETTING_KEYS = {
   dataSharingConsent: DATA_SHARING_CONSENT_SETTING_KEY,
   assistantEnabled: ASSISTANT_ENABLED_SETTING_KEY,
   assistantMemoryEnabled: ASSISTANT_MEMORY_ENABLED_SETTING_KEY,
+  waterTargetCount: WATER_TARGET_COUNT_SETTING_KEY,
 } as const;
 
 export const ASSISTANT_CONTEXT_SETTING_KEYS = {
@@ -28,6 +30,7 @@ export const USER_SETTINGS_DEFAULTS = {
   dataSharingConsent: false,
   assistantEnabled: true,
   assistantMemoryEnabled: false,
+  waterTargetCount: 8,
 } as const;
 
 export const ASSISTANT_CONTEXT_DEFAULTS = {

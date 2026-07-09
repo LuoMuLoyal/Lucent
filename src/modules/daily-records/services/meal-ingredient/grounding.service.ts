@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { roundNumber } from '../../../../common/helpers/number.utils';
 import { commonCharacterCount } from '../../../../common/helpers/string.utils';
+import { EnvKey } from '../../../../config/env-keys.enum';
+import {
+  DEFAULT_FUZZY_ACCEPT_SCORE,
+  DEFAULT_FUZZY_MIN_LEAD,
+  DEFAULT_FUZZY_QUERY_PREFIX_LENGTH,
+} from '../../../../config/constants';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   type MealCompositionMatch,
@@ -34,15 +41,29 @@ interface GroundingResult {
   } | null;
 }
 
-// TODO: move fuzzy matching thresholds to configuration (env or database) so
-// they can be tuned without a code deployment.
-const FUZZY_ACCEPT_SCORE = 0.7;
-const FUZZY_MIN_LEAD = 0.1;
-const FUZZY_QUERY_PREFIX_LENGTH = 1;
-
 @Injectable()
 export class MealIngredientGroundingService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly fuzzyAcceptScore: number;
+  private readonly fuzzyMinLead: number;
+  private readonly fuzzyQueryPrefixLength: number;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    this.fuzzyAcceptScore = this.configService.get<number>(
+      EnvKey.FUZZY_ACCEPT_SCORE,
+      DEFAULT_FUZZY_ACCEPT_SCORE,
+    );
+    this.fuzzyMinLead = this.configService.get<number>(
+      EnvKey.FUZZY_MIN_LEAD,
+      DEFAULT_FUZZY_MIN_LEAD,
+    );
+    this.fuzzyQueryPrefixLength = this.configService.get<number>(
+      EnvKey.FUZZY_QUERY_PREFIX_LENGTH,
+      DEFAULT_FUZZY_QUERY_PREFIX_LENGTH,
+    );
+  }
 
   async groundIngredients(
     ingredients: MealResolvedIngredient[],
@@ -104,7 +125,7 @@ export class MealIngredientGroundingService {
 
       const fuzzyPrefix = ingredient.normalizedIngredientName.slice(
         0,
-        FUZZY_QUERY_PREFIX_LENGTH,
+        this.fuzzyQueryPrefixLength,
       );
       const fuzzyCandidates = await this.prisma.foodCompositionItem.findMany({
         where: {
@@ -142,8 +163,8 @@ export class MealIngredientGroundingService {
       const second = ranked[1];
       if (
         top != null &&
-        top.score >= FUZZY_ACCEPT_SCORE &&
-        top.score - (second?.score ?? 0) >= FUZZY_MIN_LEAD
+        top.score >= this.fuzzyAcceptScore &&
+        top.score - (second?.score ?? 0) >= this.fuzzyMinLead
       ) {
         matches.push(
           toGroundedIngredient(

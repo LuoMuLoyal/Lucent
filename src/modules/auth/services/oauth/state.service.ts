@@ -15,13 +15,13 @@ import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
 import { I18nService } from 'nestjs-i18n';
 import { ConfigKey } from '../../../../config/config-keys.enum';
+import { EnvKey } from '../../../../config/env-keys.enum';
+import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/constants';
 import { ResultCode } from '../../../../common/api';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
   type OAuthProviderName,
 } from '../../types/oauth.types';
-
-const OAUTH_STATE_TTL = 10 * 60 * 1000; // 10 minutes
 
 interface OAuthStateEntry {
   provider: OAuthProviderName;
@@ -29,18 +29,23 @@ interface OAuthStateEntry {
   callbackUri?: string;
 }
 
-export { OAUTH_STATE_TTL };
 export type { OAuthStateEntry };
 
 @Injectable()
 export class AuthOAuthStateService {
   private readonly logger = new Logger(AuthOAuthStateService.name);
+  private readonly stateTtlMs: number;
 
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
-  ) {}
+  ) {
+    this.stateTtlMs = this.configService.get<number>(
+      EnvKey.OAUTH_STATE_TTL_MS,
+      DEFAULT_OAUTH_STATE_TTL_MS,
+    );
+  }
 
   async createState(
     provider: OAuthProviderName,
@@ -56,9 +61,9 @@ export class AuthOAuthStateService {
         purpose,
         ...(normalizedUri !== undefined && { callbackUri: normalizedUri }),
       },
-      OAUTH_STATE_TTL,
+      this.stateTtlMs,
     );
-    return { state, ttlSec: OAUTH_STATE_TTL / 1000 };
+    return { state, ttlSec: this.stateTtlMs / 1000 };
   }
 
   async consume(

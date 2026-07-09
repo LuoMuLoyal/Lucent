@@ -20,3 +20,5 @@ export const ASSISTANT_CONTEXT_SLEEP_RECORDS_SETTING_KEY =
   'assistantContext.sleepRecords';
 export const ASSISTANT_CONTEXT_CURRENT_MEDICINES_SETTING_KEY =
   'assistantContext.currentMedicines';
+
+export const WATER_TARGET_COUNT_SETTING_KEY = 'waterTargetCount';

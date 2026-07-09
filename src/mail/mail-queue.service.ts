@@ -8,34 +8,13 @@ import { ConfigService } from '@nestjs/config';
 import { Queue, Worker } from 'bullmq';
 import type { ConnectionOptions, JobsOptions, Job } from 'bullmq';
 
+import { ConfigKey } from '../config/config-keys.enum';
+import type { MailConfig } from '../config/mail.config';
 import { EnvKey } from '../config/env-keys.enum';
 import { MailTransportService } from './mail-transport.service';
 
 const MAIL_QUEUE_NAME = 'lucent-mail';
 const SEND_MAIL_JOB = 'send-mail';
-
-// ── Mail queue tuning constants ───────────────────────────────────────────────
-
-/** Maximum send attempts per mail job. */
-const MAIL_MAX_ATTEMPTS = 3;
-
-/** Initial backoff delay in ms for exponential retry. */
-const MAIL_BACKOFF_DELAY_MS = 5_000;
-
-/** Worker concurrency (parallel job processing). */
-const MAIL_WORKER_CONCURRENCY = 3;
-
-/** Age in seconds after which completed jobs are removed (24 h). */
-const MAIL_COMPLETE_AGE_SECONDS = 24 * 60 * 60;
-
-/** Age in seconds after which failed jobs are removed (7 d). */
-const MAIL_FAIL_AGE_SECONDS = 7 * 24 * 60 * 60;
-
-/** Maximum number of completed jobs to retain. */
-const MAIL_COMPLETE_MAX_COUNT = 1_000;
-
-/** Maximum number of failed jobs to retain. */
-const MAIL_FAIL_MAX_COUNT = 5_000;
 
 interface SendMailJobData {
   to: string;
@@ -67,6 +46,9 @@ export class MailQueueService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    const mailConfig = this.configService.get<MailConfig>(ConfigKey.Mail);
+    const queueConfig = mailConfig?.queue;
+
     const queueConnection = this.createConnection(redisUrl, {
       maxRetriesPerRequest: 1,
     });
@@ -78,7 +60,7 @@ export class MailQueueService implements OnModuleInit, OnModuleDestroy {
       MAIL_QUEUE_NAME,
       {
         connection: queueConnection,
-        defaultJobOptions: this.defaultJobOptions(),
+        defaultJobOptions: this.defaultJobOptions(queueConfig),
       },
     );
     this.queue.on('error', (error) => {
@@ -90,14 +72,14 @@ export class MailQueueService implements OnModuleInit, OnModuleDestroy {
       (job) => this.processJob(job),
       {
         connection: workerConnection,
-        concurrency: MAIL_WORKER_CONCURRENCY,
+        concurrency: queueConfig?.workerConcurrency ?? 3,
         removeOnComplete: {
-          age: MAIL_COMPLETE_AGE_SECONDS,
-          count: MAIL_COMPLETE_MAX_COUNT,
+          age: queueConfig?.completeAgeSeconds ?? 24 * 60 * 60,
+          count: queueConfig?.completeMaxCount ?? 1_000,
         },
         removeOnFail: {
-          age: MAIL_FAIL_AGE_SECONDS,
-          count: MAIL_FAIL_MAX_COUNT,
+          age: queueConfig?.failAgeSeconds ?? 7 * 24 * 60 * 60,
+          count: queueConfig?.failMaxCount ?? 5_000,
         },
       },
     );
@@ -132,18 +114,23 @@ export class MailQueueService implements OnModuleInit, OnModuleDestroy {
     await this.transport.send(job.data.to, job.data.subject, job.data.html);
   }
 
-  private defaultJobOptions(): JobsOptions {
+  private defaultJobOptions(
+    config: MailConfig['queue'] | undefined,
+  ): JobsOptions {
     return {
-      attempts: MAIL_MAX_ATTEMPTS,
+      attempts: config?.maxAttempts ?? 3,
       backoff: {
         type: 'exponential',
-        delay: MAIL_BACKOFF_DELAY_MS,
+        delay: config?.backoffDelayMs ?? 5_000,
       },
       removeOnComplete: {
-        age: MAIL_COMPLETE_AGE_SECONDS,
-        count: MAIL_COMPLETE_MAX_COUNT,
+        age: config?.completeAgeSeconds ?? 24 * 60 * 60,
+        count: config?.completeMaxCount ?? 1_000,
       },
-      removeOnFail: { age: MAIL_FAIL_AGE_SECONDS, count: MAIL_FAIL_MAX_COUNT },
+      removeOnFail: {
+        age: config?.failAgeSeconds ?? 7 * 24 * 60 * 60,
+        count: config?.failMaxCount ?? 5_000,
+      },
     };
   }
 

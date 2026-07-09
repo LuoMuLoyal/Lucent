@@ -9,24 +9,21 @@ import {
 } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { createHash, randomInt } from 'node:crypto';
 
 import { ResultCode } from '../../../common/api';
+import {
+  DEFAULT_VERIFICATION_CODE_LENGTH,
+  DEFAULT_VERIFICATION_CODE_TTL_MS,
+  DEFAULT_VERIFICATION_COOLDOWN_MS,
+  DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
+  DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
+} from '../../../config/constants';
+import { EnvKey } from '../../../config/env-keys.enum';
 import { MailService } from '../../../mail/mail.service';
 import type { VerificationScene } from '../dto/send-verification-code.dto';
-
-const CODE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-const COOLDOWN_TTL_MS = 60 * 1000; // 60 seconds
-/** Cooldown period in seconds (exposed for API response) */
-export const VERIFICATION_CODE_COOLDOWN_SEC = COOLDOWN_TTL_MS / 1000;
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
-const RATE_LIMIT_MAX_REQUESTS = 20;
-export const VERIFICATION_CODE_RATE_LIMIT_WINDOW_SEC =
-  RATE_LIMIT_WINDOW_MS / 1000;
-export const VERIFICATION_CODE_RATE_LIMIT_MAX_REQUESTS =
-  RATE_LIMIT_MAX_REQUESTS;
-const CODE_LENGTH = 6;
 
 interface RateLimitBucket {
   count: number;
@@ -37,11 +34,44 @@ interface RateLimitBucket {
 export class VerificationCodeService {
   private readonly logger = new Logger(VerificationCodeService.name);
 
+  private readonly codeTtlMs: number;
+  private readonly cooldownTtlMs: number;
+  private readonly rateLimitWindowMs: number;
+  private readonly rateLimitMaxRequests: number;
+  private readonly codeLength: number;
+
   constructor(
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly mailService: MailService,
     private readonly i18n: I18nService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.codeTtlMs = this.configService.get<number>(
+      EnvKey.VERIFICATION_CODE_TTL_MS,
+      DEFAULT_VERIFICATION_CODE_TTL_MS,
+    );
+    this.cooldownTtlMs = this.configService.get<number>(
+      EnvKey.VERIFICATION_COOLDOWN_MS,
+      DEFAULT_VERIFICATION_COOLDOWN_MS,
+    );
+    this.rateLimitWindowMs = this.configService.get<number>(
+      EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS,
+      DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
+    );
+    this.rateLimitMaxRequests = this.configService.get<number>(
+      EnvKey.VERIFICATION_RATE_LIMIT_MAX,
+      DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
+    );
+    this.codeLength = this.configService.get<number>(
+      EnvKey.VERIFICATION_CODE_LENGTH,
+      DEFAULT_VERIFICATION_CODE_LENGTH,
+    );
+  }
+
+  /** Cooldown period in seconds (exposed for API response). */
+  getCooldownSec(): number {
+    return Math.floor(this.cooldownTtlMs / 1000);
+  }
 
   /**
    * 生成并发送验证码。
@@ -69,10 +99,10 @@ export class VerificationCodeService {
     const codeKey = this.codeKey(scene, email);
 
     // Store code in cache
-    await this.cache.set(codeKey, code, CODE_TTL_MS);
+    await this.cache.set(codeKey, code, this.codeTtlMs);
 
     // Set cooldown
-    await this.cache.set(cooldownKey, '1', COOLDOWN_TTL_MS);
+    await this.cache.set(cooldownKey, '1', this.cooldownTtlMs);
 
     // Send email
     await this.mailService.sendVerificationCode(email, code);
@@ -92,13 +122,13 @@ export class VerificationCodeService {
     if (!this.isValidBucket(bucket) || bucket.resetAt <= now) {
       await this.cache.set(
         key,
-        { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS },
-        RATE_LIMIT_WINDOW_MS,
+        { count: 1, resetAt: now + this.rateLimitWindowMs },
+        this.rateLimitWindowMs,
       );
       return;
     }
 
-    if (bucket.count >= RATE_LIMIT_MAX_REQUESTS) {
+    if (bucket.count >= this.rateLimitMaxRequests) {
       throw new HttpException(
         {
           code: ResultCode.VERIFICATION_CODE_RATE_LIMITED,
@@ -150,8 +180,8 @@ export class VerificationCodeService {
   // ── Private Helpers ──────────────────────────────────────────
 
   private generateCode(): string {
-    const num = randomInt(0, 10 ** CODE_LENGTH);
-    return num.toString().padStart(CODE_LENGTH, '0');
+    const num = randomInt(0, 10 ** this.codeLength);
+    return num.toString().padStart(this.codeLength, '0');
   }
 
   private codeKey(scene: string, email: string): string {

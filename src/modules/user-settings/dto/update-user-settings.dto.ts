@@ -1,6 +1,6 @@
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, Max, Min } from 'class-validator';
 import { ValidateNested } from 'class-validator';
 
 export class UpdateAssistantContextSettingsDto {
@@ -64,6 +64,17 @@ export class UpdateUserSettingsDto {
   @IsOptional()
   @IsBoolean()
   assistantMemoryEnabled?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Daily water intake target (number of glasses).',
+    minimum: 1,
+    maximum: 30,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(30)
+  waterTargetCount?: number;
 
   @ApiPropertyOptional({
     description: 'Fine-grained permissions for what the assistant may read.',

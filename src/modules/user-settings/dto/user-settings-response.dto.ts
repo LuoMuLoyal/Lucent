@@ -46,6 +46,12 @@ export class UserSettingsDataDto {
   assistantMemoryEnabled!: boolean;
 
   @ApiProperty({
+    description: 'Daily water intake target (number of glasses).',
+    example: 8,
+  })
+  waterTargetCount!: number;
+
+  @ApiProperty({
     description: 'Fine-grained assistant context permissions.',
     type: () => AssistantContextSettingsDto,
   })

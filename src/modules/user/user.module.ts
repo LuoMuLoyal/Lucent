@@ -3,7 +3,7 @@ import { UserService } from './services/user.service';
 
 /**
  * Pure internal service module — provides user CRUD operations to auth/account.
- * No controller is needed; user-facing endpoints live in AuthController and AccountController.
+ * No controller is needed; user-facing endpoints live in auth controllers and AccountController.
  */
 @Module({
   providers: [UserService],

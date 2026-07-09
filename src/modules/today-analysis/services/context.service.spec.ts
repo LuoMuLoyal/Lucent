@@ -17,6 +17,9 @@ describe('TodayAnalysisContextService', () => {
     userAllergy: {
       count: jest.fn().mockResolvedValue(0),
     },
+    userSetting: {
+      findUnique: jest.fn().mockResolvedValue(null),
+    },
   });
 
   it('includes unconfirmed meal analysis facts in recent records conservatively', async () => {

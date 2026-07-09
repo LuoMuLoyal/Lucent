@@ -20,7 +20,12 @@ describe('MealIngredientGroundingService', () => {
       ],
       fuzzy: [],
     });
-    const service = new MealIngredientGroundingService(prisma as never);
+    const service = new MealIngredientGroundingService(
+      prisma as never,
+      {
+        get: (_key: string, fallback?: unknown) => fallback,
+      } as never,
+    );
 
     const result = await service.groundIngredients([
       {
@@ -100,7 +105,12 @@ describe('MealIngredientGroundingService', () => {
         ],
       ],
     });
-    const service = new MealIngredientGroundingService(prisma as never);
+    const service = new MealIngredientGroundingService(
+      prisma as never,
+      {
+        get: (_key: string, fallback?: unknown) => fallback,
+      } as never,
+    );
 
     const result = await service.groundIngredients([
       {
@@ -162,7 +172,12 @@ describe('MealIngredientGroundingService', () => {
         ],
       ],
     });
-    const service = new MealIngredientGroundingService(prisma as never);
+    const service = new MealIngredientGroundingService(
+      prisma as never,
+      {
+        get: (_key: string, fallback?: unknown) => fallback,
+      } as never,
+    );
 
     const result = await service.groundIngredients([
       {

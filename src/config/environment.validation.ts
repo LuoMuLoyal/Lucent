@@ -3,11 +3,27 @@ import {
   DEFAULT_COS_MAX_UPLOAD_BYTES,
   DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
   DEFAULT_EMBEDDING_DIMENSION,
+  DEFAULT_FUZZY_ACCEPT_SCORE,
+  DEFAULT_FUZZY_MIN_LEAD,
+  DEFAULT_FUZZY_QUERY_PREFIX_LENGTH,
+  DEFAULT_MAIL_QUEUE_BACKOFF_DELAY_MS,
+  DEFAULT_MAIL_QUEUE_COMPLETE_AGE_SECONDS,
+  DEFAULT_MAIL_QUEUE_COMPLETE_MAX_COUNT,
+  DEFAULT_MAIL_QUEUE_FAIL_AGE_SECONDS,
+  DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT,
+  DEFAULT_MAIL_QUEUE_MAX_ATTEMPTS,
+  DEFAULT_MAIL_QUEUE_WORKER_CONCURRENCY,
   DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G,
   DEFAULT_MEAL_HIGH_PROTEIN_THRESHOLD_G,
   DEFAULT_MEAL_LOW_CARBOHYDRATE_THRESHOLD_G,
   DEFAULT_MEAL_PORTION_GRAMS,
   DEFAULT_MEAL_SMALL_PORTION_GRAMS,
+  DEFAULT_OAUTH_STATE_TTL_MS,
+  DEFAULT_VERIFICATION_CODE_LENGTH,
+  DEFAULT_VERIFICATION_CODE_TTL_MS,
+  DEFAULT_VERIFICATION_COOLDOWN_MS,
+  DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
+  DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
   MAX_COS_MAX_UPLOAD_BYTES,
   MAX_COS_UPLOAD_EXPIRY_SECONDS,
   MAX_EMBEDDING_DIMENSION,
@@ -95,6 +111,22 @@ export interface EnvironmentVariables {
   [EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G]?: number;
   [EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G]?: number;
   [EnvKey.MEAL_HIGH_FAT_THRESHOLD_G]?: number;
+  [EnvKey.FUZZY_ACCEPT_SCORE]?: number;
+  [EnvKey.FUZZY_MIN_LEAD]?: number;
+  [EnvKey.FUZZY_QUERY_PREFIX_LENGTH]?: number;
+  [EnvKey.VERIFICATION_CODE_TTL_MS]?: number;
+  [EnvKey.VERIFICATION_COOLDOWN_MS]?: number;
+  [EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS]?: number;
+  [EnvKey.VERIFICATION_RATE_LIMIT_MAX]?: number;
+  [EnvKey.VERIFICATION_CODE_LENGTH]?: number;
+  [EnvKey.OAUTH_STATE_TTL_MS]?: number;
+  [EnvKey.MAIL_QUEUE_MAX_ATTEMPTS]?: number;
+  [EnvKey.MAIL_QUEUE_BACKOFF_DELAY_MS]?: number;
+  [EnvKey.MAIL_QUEUE_WORKER_CONCURRENCY]?: number;
+  [EnvKey.MAIL_QUEUE_COMPLETE_AGE_SECONDS]?: number;
+  [EnvKey.MAIL_QUEUE_FAIL_AGE_SECONDS]?: number;
+  [EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT]?: number;
+  [EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT]?: number;
 }
 
 const optionalString = Joi.string().allow('').optional();
@@ -223,6 +255,84 @@ const envSchema = Joi.object<EnvironmentVariables>({
     .min(0)
     .max(500)
     .default(DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G),
+  [EnvKey.FUZZY_ACCEPT_SCORE]: Joi.number()
+    .min(0)
+    .max(1)
+    .default(DEFAULT_FUZZY_ACCEPT_SCORE),
+  [EnvKey.FUZZY_MIN_LEAD]: Joi.number()
+    .min(0)
+    .max(1)
+    .default(DEFAULT_FUZZY_MIN_LEAD),
+  [EnvKey.FUZZY_QUERY_PREFIX_LENGTH]: Joi.number()
+    .integer()
+    .min(1)
+    .max(10)
+    .default(DEFAULT_FUZZY_QUERY_PREFIX_LENGTH),
+  [EnvKey.VERIFICATION_CODE_TTL_MS]: Joi.number()
+    .integer()
+    .min(10_000)
+    .max(3_600_000)
+    .default(DEFAULT_VERIFICATION_CODE_TTL_MS),
+  [EnvKey.VERIFICATION_COOLDOWN_MS]: Joi.number()
+    .integer()
+    .min(0)
+    .max(3_600_000)
+    .default(DEFAULT_VERIFICATION_COOLDOWN_MS),
+  [EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS]: Joi.number()
+    .integer()
+    .min(60_000)
+    .max(86_400_000)
+    .default(DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS),
+  [EnvKey.VERIFICATION_RATE_LIMIT_MAX]: Joi.number()
+    .integer()
+    .min(1)
+    .max(1_000)
+    .default(DEFAULT_VERIFICATION_RATE_LIMIT_MAX),
+  [EnvKey.VERIFICATION_CODE_LENGTH]: Joi.number()
+    .integer()
+    .min(4)
+    .max(10)
+    .default(DEFAULT_VERIFICATION_CODE_LENGTH),
+  [EnvKey.OAUTH_STATE_TTL_MS]: Joi.number()
+    .integer()
+    .min(60_000)
+    .max(3_600_000)
+    .default(DEFAULT_OAUTH_STATE_TTL_MS),
+  [EnvKey.MAIL_QUEUE_MAX_ATTEMPTS]: Joi.number()
+    .integer()
+    .min(1)
+    .max(20)
+    .default(DEFAULT_MAIL_QUEUE_MAX_ATTEMPTS),
+  [EnvKey.MAIL_QUEUE_BACKOFF_DELAY_MS]: Joi.number()
+    .integer()
+    .min(100)
+    .max(300_000)
+    .default(DEFAULT_MAIL_QUEUE_BACKOFF_DELAY_MS),
+  [EnvKey.MAIL_QUEUE_WORKER_CONCURRENCY]: Joi.number()
+    .integer()
+    .min(1)
+    .max(50)
+    .default(DEFAULT_MAIL_QUEUE_WORKER_CONCURRENCY),
+  [EnvKey.MAIL_QUEUE_COMPLETE_AGE_SECONDS]: Joi.number()
+    .integer()
+    .min(60)
+    .max(2_592_000)
+    .default(DEFAULT_MAIL_QUEUE_COMPLETE_AGE_SECONDS),
+  [EnvKey.MAIL_QUEUE_FAIL_AGE_SECONDS]: Joi.number()
+    .integer()
+    .min(60)
+    .max(2_592_000)
+    .default(DEFAULT_MAIL_QUEUE_FAIL_AGE_SECONDS),
+  [EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT]: Joi.number()
+    .integer()
+    .min(1)
+    .max(1_000_000)
+    .default(DEFAULT_MAIL_QUEUE_COMPLETE_MAX_COUNT),
+  [EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT]: Joi.number()
+    .integer()
+    .min(1)
+    .max(1_000_000)
+    .default(DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT),
 });
 
 const AI_ROLE_GROUPS = [

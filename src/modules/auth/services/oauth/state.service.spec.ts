@@ -5,12 +5,9 @@ import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 
-import {
-  AuthOAuthStateService,
-  OAUTH_STATE_TTL,
-  type OAuthStateEntry,
-} from './state.service';
+import { AuthOAuthStateService, type OAuthStateEntry } from './state.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/constants';
 
 // ── Fixtures ──────────────────────────────────────────────────
 
@@ -31,9 +28,10 @@ describe('AuthOAuthStateService', () => {
 
   beforeEach(async () => {
     const mockConfigService = {
-      getOrThrow: jest.fn((key: string) => {
-        if (key === 'auth.oauthStateTtl') return OAUTH_STATE_TTL;
-        throw new Error(`Unexpected config key: ${key}`);
+      get: jest.fn((key: string, fallback?: unknown) => {
+        if (key === 'OAUTH_STATE_TTL_MS') return DEFAULT_OAUTH_STATE_TTL_MS;
+        if (key === 'app.corsOrigin') return false;
+        return fallback;
       }),
     };
 
@@ -82,11 +80,11 @@ describe('AuthOAuthStateService', () => {
 
       expect(result.state).toBeTruthy();
       expect(result.state.length).toBeGreaterThanOrEqual(32);
-      expect(result.ttlSec).toBe(Math.floor(OAUTH_STATE_TTL / 1000));
+      expect(result.ttlSec).toBe(Math.floor(DEFAULT_OAUTH_STATE_TTL_MS / 1000));
       expect(cache.set).toHaveBeenCalledWith(
         expect.stringContaining('auth:oauth-state:'),
         expect.objectContaining({ purpose: 'login' }),
-        OAUTH_STATE_TTL,
+        DEFAULT_OAUTH_STATE_TTL_MS,
       );
     });
 
@@ -103,7 +101,7 @@ describe('AuthOAuthStateService', () => {
         expect.objectContaining({
           purpose: 'login',
         }),
-        OAUTH_STATE_TTL,
+        DEFAULT_OAUTH_STATE_TTL_MS,
       );
     });
   });

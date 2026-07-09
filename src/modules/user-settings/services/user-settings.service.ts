@@ -8,6 +8,9 @@ import {
   USER_SETTINGS_DEFAULTS,
 } from '../constants/user-settings.constants';
 
+/** Type union for settings values stored in the DB. */
+type SettingValue = boolean | number;
+
 @Injectable()
 export class UserSettingsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -54,6 +57,11 @@ export class UserSettingsService {
         USER_SETTING_KEYS.assistantMemoryEnabled,
         USER_SETTINGS_DEFAULTS.assistantMemoryEnabled,
       ),
+      waterTargetCount: this.readNumber(
+        map,
+        USER_SETTING_KEYS.waterTargetCount,
+        USER_SETTINGS_DEFAULTS.waterTargetCount,
+      ),
       assistantContext: {
         healthProfile: this.readBool(
           map,
@@ -88,7 +96,7 @@ export class UserSettingsService {
     userId: string,
     dto: UpdateUserSettingsDto,
   ): Promise<UserSettingsDataDto> {
-    const upserts: Array<{ key: string; value: boolean }> = [];
+    const upserts: Array<{ key: string; value: SettingValue }> = [];
     if (dto.aiSummariesEnabled !== undefined) {
       upserts.push({
         key: USER_SETTING_KEYS.aiSummariesEnabled,
@@ -111,6 +119,12 @@ export class UserSettingsService {
       upserts.push({
         key: USER_SETTING_KEYS.assistantMemoryEnabled,
         value: dto.assistantMemoryEnabled,
+      });
+    }
+    if (dto.waterTargetCount !== undefined) {
+      upserts.push({
+        key: USER_SETTING_KEYS.waterTargetCount,
+        value: dto.waterTargetCount,
       });
     }
 
@@ -157,5 +171,14 @@ export class UserSettingsService {
   ): boolean {
     const raw = map.get(key);
     return typeof raw === 'boolean' ? raw : fallback;
+  }
+
+  private readNumber(
+    map: Map<string, unknown>,
+    key: string,
+    fallback: number,
+  ): number {
+    const raw = map.get(key);
+    return typeof raw === 'number' && Number.isFinite(raw) ? raw : fallback;
   }
 }
