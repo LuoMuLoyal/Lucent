@@ -16,6 +16,7 @@
   "scripts": {
     "check": "pnpm lint:check && pnpm format:check && pnpm typecheck && pnpm typecheck:tools && pnpm build && pnpm test:ci && pnpm test:e2e:ci && pnpm deploy:assets:check",
     "prepare": "simple-git-hooks",
+    "postinstall": "pnpm prisma:generate",
     "build": "nest build",
     "typecheck": "pnpm exec tsc -p tsconfig.typecheck.json --noEmit",
     "typecheck:tools": "pnpm exec tsc -p scripts/tsconfig.json --noEmit && pnpm exec tsc -p deploy/tsconfig.json --noEmit",
@@ -45,7 +46,7 @@
     "import:medicine:all": "node scripts/import/medicine/import-medicine-datasets.ts",
     "import:food:categories": "node scripts/import/food/import-food-composition.ts categories",
     "import:food:items": "node scripts/import/food/import-food-composition.ts items",
-    "export:openapi": "pnpm build && cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
+    "export:openapi": "pnpm prisma:generate && pnpm build && cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
     "deploy:assets:check": "node deploy/validate-assets.ts",
     "deploy:smoke": "node deploy/post-deploy-smoke.ts",
     "deploy:server": "node deploy/deploy-server.ts",

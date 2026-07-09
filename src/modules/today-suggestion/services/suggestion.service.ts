@@ -21,8 +21,10 @@ import { RecordCollectorService } from './collectors/record.service';
 import { ProfileCollectorService } from './collectors/profile.service';
 import { RegistryService } from './rules/registry.service';
 import { ArbitrationService } from './arbitration/arbitration.service';
+import { SuppressionService } from './arbitration/suppression.service';
 import { BaselineService } from './lifecycle/baseline.service';
 import { LifecycleService } from './lifecycle/lifecycle.service';
+import { EscalationService } from './notification/escalation.service';
 
 /**
  * Main orchestrator for the Today suggestion engine.
@@ -31,9 +33,11 @@ import { LifecycleService } from './lifecycle/lifecycle.service';
  * 1. Collect signals from all collectors.
  * 2. Build RuleContext (baseline status, time of day).
  * 3. Run all registered rules against the signals.
- * 4. Arbitrate candidates into primary / secondary / observations.
- * 5. Persist active suggestions to DB.
- * 6. Map to response DTOs.
+ * 4. Filter & adjust candidates via feedback-driven suppression.
+ * 5. Arbitrate candidates into primary / secondary / observations.
+ * 6. Persist active suggestions to DB.
+ * 7. Escalate eligible suggestions to notifications.
+ * 8. Map to response DTOs.
  */
 @Injectable()
 export class SuggestionService {
@@ -44,9 +48,11 @@ export class SuggestionService {
     private readonly recordCollector: RecordCollectorService,
     private readonly profileCollector: ProfileCollectorService,
     private readonly registry: RegistryService,
+    private readonly suppression: SuppressionService,
     private readonly arbitration: ArbitrationService,
     private readonly baseline: BaselineService,
     private readonly lifecycle: LifecycleService,
+    private readonly escalation: EscalationService,
   ) {}
 
   /**
@@ -108,10 +114,14 @@ export class SuggestionService {
       }
     }
 
-    // 4. Arbitrate
-    const result = this.arbitration.arbitrate(candidates);
+    // 4. Filter & adjust candidates via feedback-driven suppression
+    const { candidates: adjustedCandidates } =
+      await this.suppression.filterAndAdjust(userId, candidates);
 
-    // 5. Persist active suggestions
+    // 5. Arbitrate
+    const result = this.arbitration.arbitrate(adjustedCandidates);
+
+    // 6. Persist active suggestions
     await this.lifecycle.expireStaleSuggestions(userId, targetDate);
 
     const activeItems: SuggestionItemDto[] = [];
@@ -123,6 +133,14 @@ export class SuggestionService {
         targetDate,
       );
       activeItems.push(this.toDto(id, result.primary));
+
+      // 7. Escalate eligible primary suggestion to notification
+      await this.escalation.escalateIfNeeded(
+        userId,
+        id,
+        result.primary,
+        targetDate,
+      );
     }
 
     for (const candidate of result.secondary) {
@@ -134,7 +152,7 @@ export class SuggestionService {
       activeItems.push(this.toDto(id, candidate));
     }
 
-    // 6. Map observations (not persisted — they're low priority)
+    // 8. Map observations (not persisted — they're low priority)
     const observationDtos = result.observations.map((c, i) =>
       this.toDto(`obs_${String(i)}`, c, SuggestionLifecycleState.ACTIVE),
     );

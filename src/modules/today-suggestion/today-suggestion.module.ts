@@ -1,5 +1,6 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionService } from './services/suggestion.service';
 import { MedicationCollectorService } from './services/collectors/medication.service';
@@ -15,17 +16,20 @@ import {
 } from './services/rules';
 import { ArbitrationService } from './services/arbitration/arbitration.service';
 import { ScoringService } from './services/arbitration/scoring.service';
+import { SuppressionService } from './services/arbitration/suppression.service';
 import { BaselineService } from './services/lifecycle/baseline.service';
 import { LifecycleService } from './services/lifecycle/lifecycle.service';
+import { FeedbackService } from './services/feedback/feedback.service';
+import { EscalationService } from './services/notification/escalation.service';
 import type { SuggestionRule } from './types';
 
 /**
  * Today Suggestion module — the backend suggestion engine.
  *
- * Pipeline: Signal → Candidate (rule engine) → Arbitration → Lifecycle → DTO
+ * Pipeline: Signal → Candidate (rule engine) → Suppression → Arbitration → Lifecycle → Notification → DTO
  */
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, NotificationsModule],
   controllers: [TodaySuggestionController],
   providers: [
     // Collectors
@@ -42,13 +46,18 @@ import type { SuggestionRule } from './types';
     // Arbitration
     ArbitrationService,
     ScoringService,
+    SuppressionService,
     // Lifecycle
     BaselineService,
     LifecycleService,
+    // Feedback
+    FeedbackService,
+    // Notification escalation
+    EscalationService,
     // Orchestrator
     SuggestionService,
   ],
-  exports: [SuggestionService],
+  exports: [SuggestionService, FeedbackService],
 })
 export class TodaySuggestionModule implements OnModuleInit {
   constructor(

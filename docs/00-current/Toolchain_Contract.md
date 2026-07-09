@@ -13,6 +13,9 @@ Last updated: 2026-07-09
 - `pnpm prisma:generate` now also transpiles `generated/prisma/internal/*.ts` to `.js`, because
   Prisma 7's custom-output client currently leaves those runtime files missing while `client.js`
   still requires them for `pnpm build`, `pnpm export:openapi`, and other compiled-runtime flows.
+- `package.json` now includes a `postinstall` hook that runs `pnpm prisma:generate`, ensuring the
+  Prisma client (with the `.js` fix) is always generated after `pnpm install`. The `export:openapi`
+  script also depends on `pnpm prisma:generate` as a belt-and-suspenders safeguard.
 - Lucent CI PostgreSQL now runs on `pgvector/pgvector:pg18`, matching the documented
   extension-capable local baseline instead of validating against plain Postgres.
 - `pnpm typecheck:tools` now type-checks `scripts/` and `deploy/` under the same decorator-capable

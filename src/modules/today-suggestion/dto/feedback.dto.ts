@@ -1,23 +1,34 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn } from 'class-validator';
+import type { SuggestionFeedback } from '../types/suggestion.types';
+
+const FEEDBACK_VALUES = [
+  'accepted',
+  'later',
+  'not_applicable',
+  'suppress',
+] as const;
 
 export class SuggestionFeedbackDto {
   @ApiProperty({
     description: 'User feedback for the suggestion',
-    enum: ['accepted', 'later', 'not_applicable', 'suppress'],
+    enum: FEEDBACK_VALUES,
   })
-  @IsIn(['accepted', 'later', 'not_applicable', 'suppress'])
-  feedback!: 'accepted' | 'later' | 'not_applicable' | 'suppress';
+  @IsIn(FEEDBACK_VALUES)
+  feedback!: SuggestionFeedback;
 }
 
 export class SuggestionFeedbackResponseDto {
   @ApiProperty()
   suggestionId!: string;
 
-  @ApiProperty()
-  feedback!: string;
+  @ApiProperty({ enum: FEEDBACK_VALUES })
+  feedback!: SuggestionFeedback;
 
-  @ApiProperty({ description: 'Effect applied by the feedback engine' })
+  @ApiProperty({
+    description: 'Effect applied by the feedback engine',
+    enum: ['boosted_type', 'delayed_until', 'suppressed_type', 'noted'],
+  })
   appliedEffect!: string;
 
   @ApiPropertyOptional({
