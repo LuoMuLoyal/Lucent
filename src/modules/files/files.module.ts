@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
-import { DailyRecordImageUploadRuntime } from '../daily-records/config/daily-record-image-upload.runtime';
+import { StorageModule } from '../../common/storage';
 import { FilesController } from './files.controller';
 import { FilesService } from './services/files.service';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, StorageModule],
   controllers: [FilesController],
-  providers: [DailyRecordImageUploadRuntime, FilesService],
+  providers: [FilesService],
 })
 export class FilesModule {}

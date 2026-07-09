@@ -88,3 +88,9 @@ Last updated: 2026-07-09
 - Audit report LUC-2026-0709 fully remediated: fuzzy-match thresholds, verification-code service
   parameters, mail-queue tuning, OAuth State TTL, and retry defaults are now environment-configurable
   with Joi validation. The `.gitattributes` file marks generated code paths.
+- COS storage runtime unified: `DailyRecordImageUploadRuntime` (daily-records) and `DataExportCosRuntime`
+  (data-export) replaced by a single `CosStorageRuntime` in `src/common/storage/`, provided via
+  `StorageModule`. The `files` module no longer reverse-depends on `daily-records/config/`.
+- Today-suggestion test coverage expanded: 5 new spec files (+65 test cases) for `MedicationCollectorService`,
+  `ProfileCollectorService`, `RecordCollectorService`, `BaselineService`, and `SuggestionService`
+  (the orchestrator). Total test count: 118 suites, 832 tests.

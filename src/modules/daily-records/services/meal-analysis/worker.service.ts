@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
 import { normalizeNullableText } from '../../../../common/helpers/string.utils';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { DailyRecordImageUploadRuntime } from '../../config/daily-record-image-upload.runtime';
+import { CosStorageRuntime } from '../../../../common/storage';
 import {
   getMealSourceRevision,
   parseMealRecordPayload,
@@ -24,7 +24,7 @@ export class MealAnalysisWorkerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mealAnalysisVisionService: MealAnalysisVisionService,
-    private readonly dailyRecordImageUploadRuntime: DailyRecordImageUploadRuntime,
+    private readonly cosStorageRuntime: CosStorageRuntime,
     private readonly mealAnalysisMatcherService: MealAnalysisMatcherService,
   ) {}
 
@@ -93,10 +93,9 @@ export class MealAnalysisWorkerService {
       return;
     }
 
-    const signedImageUrl =
-      this.dailyRecordImageUploadRuntime.createSignedGetUrl(
-        attachment.objectKey,
-      );
+    const signedImageUrl = this.cosStorageRuntime.createSignedGetUrl(
+      attachment.objectKey,
+    );
     const recognition =
       await this.mealAnalysisVisionService.recognizeFromImageUrl(
         signedImageUrl,

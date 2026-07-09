@@ -1,5 +1,5 @@
 import type { PrismaService } from '../../../../prisma/prisma.service';
-import type { DailyRecordImageUploadRuntime } from '../../config/daily-record-image-upload.runtime';
+import type { CosStorageRuntime } from '../../../../common/storage';
 import type { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
 import type { MealAnalysisVisionService } from '../meal-analysis/vision.service';
 import { MealAnalysisWorkerService } from '../meal-analysis/worker.service';
@@ -453,10 +453,7 @@ function buildVisionService(options: {
   };
 }
 
-function buildUploadRuntime(): Pick<
-  DailyRecordImageUploadRuntime,
-  'createSignedGetUrl'
-> {
+function buildUploadRuntime(): Pick<CosStorageRuntime, 'createSignedGetUrl'> {
   return {
     createSignedGetUrl: jest
       .fn()

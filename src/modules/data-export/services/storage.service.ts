@@ -3,13 +3,13 @@ import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { ResultCode } from '../../../common/api';
 import { now } from '../../../common/helpers/date-time.utils';
-import { DataExportCosRuntime } from '../config/cos.runtime';
+import { CosStorageRuntime } from '../../../common/storage';
 
 const PROVIDER = 'tencent-cos';
 
 @Injectable()
 export class DataExportStorageService {
-  constructor(private readonly runtime: DataExportCosRuntime) {}
+  constructor(private readonly runtime: CosStorageRuntime) {}
 
   isConfigured(): boolean {
     const config = this.runtime.getConfig();

@@ -1,11 +1,19 @@
 import COS from 'cos-nodejs-sdk-v5';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../../config/config-keys.enum';
-import type { TencentCosConfig } from '../../../config/tencent-cos.config';
+import { ConfigKey } from '../../config/config-keys.enum';
+import type { TencentCosConfig } from '../../config/tencent-cos.config';
 
+/**
+ * Shared Tencent COS (Cloud Object Storage) runtime.
+ *
+ * Consolidates all COS operations (signed PUT/GET URLs, buffer upload)
+ * into a single injectable so that feature modules (`files`,
+ * `daily-records`, `data-export`, …) never need to create their own
+ * COS client or depend on another module's config.
+ */
 @Injectable()
-export class DailyRecordImageUploadRuntime {
+export class CosStorageRuntime {
   private readonly cos: COS;
   private readonly config: TencentCosConfig;
 
@@ -48,6 +56,21 @@ export class DailyRecordImageUploadRuntime {
       Method: 'GET',
       Sign: true,
       Expires: this.config.downloadExpiresSeconds,
+    });
+  }
+
+  async uploadBuffer(params: {
+    objectKey: string;
+    contentType: string;
+    body: Buffer;
+  }): Promise<void> {
+    await this.cos.putObject({
+      Bucket: this.config.bucket,
+      Region: this.config.region,
+      Key: params.objectKey,
+      Body: params.body,
+      ContentType: params.contentType,
+      ContentLength: params.body.byteLength,
     });
   }
 }

@@ -6,15 +6,15 @@ import { extname } from 'node:path';
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types.constant';
 import { ResultCode } from '../../../common/api';
 import { now } from '../../../common/helpers/date-time.utils';
+import { CosStorageRuntime } from '../../../common/storage';
 import type { CreateDailyRecordImageUploadDto } from '../dto';
-import { DailyRecordImageUploadRuntime } from '../config/daily-record-image-upload.runtime';
 
 const PROVIDER = 'tencent-cos';
 
 @Injectable()
 export class DailyRecordImageUploadService {
   constructor(
-    private readonly runtime: DailyRecordImageUploadRuntime,
+    private readonly runtime: CosStorageRuntime,
     private readonly i18n: I18nService,
   ) {}
 

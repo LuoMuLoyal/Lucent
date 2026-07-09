@@ -3,12 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { StorageModule } from '../../common/storage';
 import { DailyRecordCandidatesCopyService } from './services/candidates/copy.service';
 import { DailyRecordCandidatesGeneratorService } from './services/candidates/generator.service';
 import { DailyRecordCandidatesService } from './services/candidates/candidates.service';
 import { DailyRecordsOwnershipService } from './services/ownership.service';
 import { DailyRecordImageUploadService } from './services/image-upload.service';
-import { DailyRecordImageUploadRuntime } from './config/daily-record-image-upload.runtime';
 import { DailyRecordsController } from './daily-records.controller';
 import { DailyRecordsMapperService } from './services/mapper.service';
 import { DailyRecordsService } from './services/records.service';
@@ -21,7 +21,7 @@ import { MealIngredientGroundingService } from './services/meal-ingredient/groun
 import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, LlmRuntimeModule],
+  imports: [ConfigModule, PrismaModule, LlmRuntimeModule, StorageModule],
   controllers: [DailyRecordsController],
   providers: [
     LlmSafetyPolicyService,
@@ -38,13 +38,8 @@ import { MealDishTemplateLearningService } from './services/meal-dish/template-l
     MealDishTemplateLearningService,
     MealAnalysisVisionService,
     MealAnalysisWorkerService,
-    DailyRecordImageUploadRuntime,
     DailyRecordImageUploadService,
   ],
-  exports: [
-    DailyRecordsService,
-    DailyRecordCandidatesService,
-    DailyRecordImageUploadRuntime,
-  ],
+  exports: [DailyRecordsService, DailyRecordCandidatesService],
 })
 export class DailyRecordsModule {}

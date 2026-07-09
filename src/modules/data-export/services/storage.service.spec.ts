@@ -1,6 +1,6 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { TencentCosConfig } from '../../../config/tencent-cos.config';
-import type { DataExportCosRuntime } from '../config/cos.runtime';
+import type { CosStorageRuntime } from '../../../common/storage';
 import { DataExportStorageService } from './storage.service';
 
 describe('DataExportStorageService', () => {
@@ -68,12 +68,12 @@ function testConfig(): TencentCosConfig {
 
 function runtimeDouble(
   config: TencentCosConfig,
-): jest.Mocked<DataExportCosRuntime> {
+): jest.Mocked<CosStorageRuntime> {
   return {
     getConfig: jest.fn().mockReturnValue(config),
     uploadBuffer: jest.fn().mockResolvedValue(undefined),
     createSignedGetUrl: jest
       .fn()
       .mockReturnValue('https://signed-download.example.com'),
-  } as unknown as jest.Mocked<DataExportCosRuntime>;
+  } as unknown as jest.Mocked<CosStorageRuntime>;
 }

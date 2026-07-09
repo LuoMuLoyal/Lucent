@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
 import type { TencentCosConfig } from '../../../config/tencent-cos.config';
-import type { DailyRecordImageUploadRuntime } from '../../daily-records/config/daily-record-image-upload.runtime';
+import type { CosStorageRuntime } from '../../../common/storage';
 import { FilesService } from './files.service';
 
 const mockI18n = {
@@ -34,9 +34,9 @@ describe('FilesService', () => {
 
   function runtimeDouble(
     config: TencentCosConfig,
-  ): jest.Mocked<DailyRecordImageUploadRuntime> {
+  ): jest.Mocked<CosStorageRuntime> {
     const runtime: Pick<
-      jest.Mocked<DailyRecordImageUploadRuntime>,
+      jest.Mocked<CosStorageRuntime>,
       'getConfig' | 'createSignedPutUrl'
     > = {
       getConfig: jest.fn().mockReturnValue(config),
@@ -45,7 +45,7 @@ describe('FilesService', () => {
         .mockReturnValue('https://signed-upload.example.com'),
     };
 
-    return runtime as jest.Mocked<DailyRecordImageUploadRuntime>;
+    return runtime as jest.Mocked<CosStorageRuntime>;
   }
 
   describe('createPresignedUpload', () => {

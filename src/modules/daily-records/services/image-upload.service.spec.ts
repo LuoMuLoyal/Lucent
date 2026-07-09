@@ -3,7 +3,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { TencentCosConfig } from '../../../config/tencent-cos.config';
-import type { DailyRecordImageUploadRuntime } from '../config/daily-record-image-upload.runtime';
+import type { CosStorageRuntime } from '../../../common/storage';
 import type { I18nService } from 'nestjs-i18n';
 import { DailyRecordImageUploadService } from './image-upload.service';
 
@@ -100,9 +100,9 @@ function testConfig(): TencentCosConfig {
 
 function runtimeDouble(
   config: TencentCosConfig,
-): jest.Mocked<DailyRecordImageUploadRuntime> {
+): jest.Mocked<CosStorageRuntime> {
   const runtime: Pick<
-    jest.Mocked<DailyRecordImageUploadRuntime>,
+    jest.Mocked<CosStorageRuntime>,
     'getConfig' | 'createSignedPutUrl'
   > = {
     getConfig: jest.fn().mockReturnValue(config),
@@ -111,5 +111,5 @@ function runtimeDouble(
       .mockReturnValue('https://signed-upload.example.com'),
   };
 
-  return runtime as jest.Mocked<DailyRecordImageUploadRuntime>;
+  return runtime as jest.Mocked<CosStorageRuntime>;
 }

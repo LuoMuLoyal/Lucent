@@ -6,7 +6,7 @@ import { I18nService } from 'nestjs-i18n';
 
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types.constant';
 import { badRequest } from '../../../common/helpers/api-errors';
-import { DailyRecordImageUploadRuntime } from '../../daily-records/config/daily-record-image-upload.runtime';
+import { CosStorageRuntime } from '../../../common/storage';
 import type { CreateFileUploadDto } from '../dto/create-file-upload.dto';
 
 const PROVIDER = 'tencent-cos';
@@ -14,7 +14,7 @@ const PROVIDER = 'tencent-cos';
 @Injectable()
 export class FilesService {
   constructor(
-    private readonly runtime: DailyRecordImageUploadRuntime,
+    private readonly runtime: CosStorageRuntime,
     private readonly i18n: I18nService,
   ) {}
 
