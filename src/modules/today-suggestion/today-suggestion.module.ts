@@ -14,6 +14,7 @@ import {
   SleepShortfallRuleService,
   DeterioratingTrendRuleService,
   CaffeineSleepRuleService,
+  MoodSleepRuleService,
   CoverageRuleService,
 } from './services/rules';
 import { ArbitrationService } from './services/arbitration/arbitration.service';
@@ -22,6 +23,9 @@ import { SuppressionService } from './services/arbitration/suppression.service';
 import { BaselineService } from './services/lifecycle/baseline.service';
 import { LifecycleService } from './services/lifecycle/lifecycle.service';
 import { FeedbackService } from './services/feedback/feedback.service';
+import { FeedbackStatsService } from './services/feedback/feedback-stats.service';
+import { SuggestionCacheService } from './services/cache/suggestion-cache.service';
+import { RuleVersionRegistry } from './services/rules/rule-version-registry.service';
 import { EscalationService } from './services/notification/escalation.service';
 import { ExplanationGeneratorService } from './services/explanation/explanation-generator.service';
 import { ExplanationService } from './services/explanation/explanation.service';
@@ -43,11 +47,13 @@ import type { SuggestionRule } from './types';
     ProfileCollectorService,
     // Rules (injectable, registered in registry at startup)
     RegistryService,
+    RuleVersionRegistry,
     MissedDoseRuleService,
     WaterShortfallRuleService,
     SleepShortfallRuleService,
     DeterioratingTrendRuleService,
     CaffeineSleepRuleService,
+    MoodSleepRuleService,
     CoverageRuleService,
     // Arbitration
     ArbitrationService,
@@ -58,6 +64,9 @@ import type { SuggestionRule } from './types';
     LifecycleService,
     // Feedback
     FeedbackService,
+    FeedbackStatsService,
+    // Cache
+    SuggestionCacheService,
     // Notification escalation
     EscalationService,
     // AI explanation
@@ -67,7 +76,12 @@ import type { SuggestionRule } from './types';
     // Orchestrator
     SuggestionService,
   ],
-  exports: [SuggestionService, FeedbackService, ExplanationService],
+  exports: [
+    SuggestionService,
+    FeedbackService,
+    ExplanationService,
+    SuggestionCacheService,
+  ],
 })
 export class TodaySuggestionModule implements OnModuleInit {
   constructor(
@@ -77,6 +91,7 @@ export class TodaySuggestionModule implements OnModuleInit {
     private readonly sleepShortfallRule: SleepShortfallRuleService,
     private readonly deterioratingTrendRule: DeterioratingTrendRuleService,
     private readonly caffeineSleepRule: CaffeineSleepRuleService,
+    private readonly moodSleepRule: MoodSleepRuleService,
     private readonly coverageRule: CoverageRuleService,
   ) {}
 
@@ -87,6 +102,7 @@ export class TodaySuggestionModule implements OnModuleInit {
       this.sleepShortfallRule,
       this.deterioratingTrendRule,
       this.caffeineSleepRule,
+      this.moodSleepRule,
       this.coverageRule,
     ];
 

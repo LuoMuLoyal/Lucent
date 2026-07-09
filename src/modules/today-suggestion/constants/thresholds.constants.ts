@@ -49,6 +49,15 @@ export const CAFFEINE_SLEEP_MIN_DAYS = 2;
 /** Minimum sleep duration decline (minutes) to consider for correlation. */
 export const CAFFEINE_SLEEP_DECLINE_MINUTES = 30;
 
+/** Base priority score for a mood-sleep correlation candidate. */
+export const MOOD_SLEEP_BASE_SCORE = 550;
+
+/** Minimum consecutive days for mood-sleep correlation. */
+export const MOOD_SLEEP_MIN_DAYS = 2;
+
+/** Mood score threshold below which mood is considered "low" (1–5 scale). */
+export const MOOD_LOW_THRESHOLD = 2;
+
 /** Confidence threshold: candidates below this are demoted to observations. */
 export const CONFIDENCE_DEMOTE_THRESHOLD = 'low';
 

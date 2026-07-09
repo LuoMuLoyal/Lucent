@@ -3,6 +3,7 @@ import type { SuggestionCandidate } from '../../types';
 import { SuggestionFeedback } from '../../types';
 import { FeedbackService } from '../feedback/feedback.service';
 import type { FeedbackEntry } from '../feedback/feedback.service';
+import { FeedbackStatsService } from '../feedback/feedback-stats.service';
 
 /** Result of filtering and adjusting candidates with feedback data. */
 export interface SuppressionResult {
@@ -26,7 +27,10 @@ export interface SuppressionResult {
 export class SuppressionService {
   private readonly logger = new Logger(SuppressionService.name);
 
-  constructor(private readonly feedbackService: FeedbackService) {}
+  constructor(
+    private readonly feedbackService: FeedbackService,
+    private readonly feedbackStatsService: FeedbackStatsService,
+  ) {}
 
   /**
    * Loads active feedbacks for the user, then filters and adjusts
@@ -42,7 +46,11 @@ export class SuppressionService {
 
     const feedbacks = await this.feedbackService.loadActiveFeedbacks(userId);
 
-    if (feedbacks.length === 0) {
+    // Load feedback-driven score multipliers for each rule
+    const ruleIds = [...new Set(candidates.map((c) => c.ruleId))];
+    const statsMap = await this.feedbackStatsService.loadStats(userId, ruleIds);
+
+    if (feedbacks.length === 0 && statsMap.size === 0) {
       return { candidates, suppressedIds: [] };
     }
 
@@ -107,10 +115,23 @@ export class SuppressionService {
           (FeedbackService.getAcceptedBoostPercent() / 100);
       }
 
+      // Apply static adjustments first
       if (adjustment !== 0) {
         adjusted.priorityScore = Math.max(
           0,
           Math.round(candidate.priorityScore + adjustment),
+        );
+      }
+
+      // 4. Apply dynamic feedback-driven score multiplier
+      const stats = statsMap.get(candidate.ruleId);
+      if (stats != null && stats.scoreMultiplier !== 1.0) {
+        adjusted.priorityScore = Math.max(
+          0,
+          Math.round(adjusted.priorityScore * stats.scoreMultiplier),
+        );
+        this.logger.debug(
+          `Applied dynamic multiplier ${String(stats.scoreMultiplier)} to candidate ${candidate.candidateId} (rule=${candidate.ruleId}, acceptRatio=${String(stats.acceptRatio)}, suppressRatio=${String(stats.suppressRatio)})`,
         );
       }
 

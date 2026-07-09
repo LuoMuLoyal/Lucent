@@ -1,6 +1,8 @@
 import { SuppressionService } from './suppression.service';
 import type { FeedbackService } from '../feedback/feedback.service';
 import type { FeedbackEntry } from '../feedback/feedback.service';
+import type { FeedbackStatsService } from '../feedback/feedback-stats.service';
+import type { RuleFeedbackStats } from '../feedback/feedback-stats.service';
 import {
   SuggestionType,
   TriggerType,
@@ -51,14 +53,22 @@ function buildFeedbackEntry(
 
 /**
  * Creates a SuppressionService with a mocked FeedbackService
- * that returns the given feedback entries.
+ * that returns the given feedback entries, and a mocked
+ * FeedbackStatsService that returns the given stats.
  */
-function createService(feedbacks: FeedbackEntry[]): SuppressionService {
+function createService(
+  feedbacks: FeedbackEntry[],
+  stats: Map<string, RuleFeedbackStats> = new Map(),
+): SuppressionService {
   const mockFeedbackService = {
     loadActiveFeedbacks: jest.fn().mockResolvedValue(feedbacks),
   } as unknown as FeedbackService;
 
-  return new SuppressionService(mockFeedbackService);
+  const mockStatsService = {
+    loadStats: jest.fn().mockResolvedValue(stats),
+  } as unknown as FeedbackStatsService;
+
+  return new SuppressionService(mockFeedbackService, mockStatsService);
 }
 
 describe('SuppressionService', () => {

@@ -887,13 +887,6 @@ TodaySuggestionModule
 
 ## 16. 实现阶段
 
-### Phase 6：持续优化（ ongoing ）
-
-- 基于反馈数据调整规则优先级和 threshold。
-- 支持 A/B 规则版本（`ruleVersion`）。
-- 扩展更多信号组合规则。
-- 优化缓存策略和性能。
-
 ---
 
 ## 17. 安全、隐私与边界

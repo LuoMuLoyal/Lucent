@@ -3,8 +3,10 @@ import { WaterShortfallRuleService } from './water-shortfall.service';
 import { SleepShortfallRuleService } from './sleep-shortfall.service';
 import { DeterioratingTrendRuleService } from './deteriorating-trend.service';
 import { CaffeineSleepRuleService } from './caffeine-sleep.service';
+import { MoodSleepRuleService } from './mood-sleep.service';
 import { CoverageRuleService } from './coverage.service';
 import { RegistryService } from './registry.service';
+import { RuleVersionRegistry } from './rule-version-registry.service';
 import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
 import type {
   SuggestionSignal,
@@ -595,6 +597,305 @@ describe('TodaySuggestion Rules', () => {
 
       const candidate = rule.match(signals, buildContext());
       expect(candidate).toBeNull();
+    });
+  });
+
+  describe('MoodSleepRuleService', () => {
+    let rule: MoodSleepRuleService;
+
+    beforeEach(() => {
+      rule = new MoodSleepRuleService();
+    });
+
+    it('should be configured correctly', () => {
+      expect(rule.ruleId).toBe('mood_sleep_correlation');
+      expect(rule.type).toBe(SuggestionType.BEHAVIOR_ADVICE);
+      expect(rule.consumableSignalKinds).toEqual(['mood_trend', 'sleep_trend']);
+    });
+
+    it('should match when low mood correlates with insufficient sleep', () => {
+      const signals = [
+        buildSignal({
+          source: 'record',
+          kind: 'mood_trend',
+          payload: {
+            dailyMoods: [
+              { date: '2026-07-07', moodScore: 4, label: 'good' },
+              { date: '2026-07-08', moodScore: 3, label: 'ok' },
+              { date: '2026-07-09', moodScore: 2, label: 'bad' },
+            ],
+            consecutiveDays: 3,
+          },
+        }),
+        buildSignal({
+          source: 'record',
+          kind: 'sleep_trend',
+          payload: {
+            dailyDurations: [
+              { date: '2026-07-07', durationMinutes: 420 },
+              { date: '2026-07-08', durationMinutes: 380 },
+              { date: '2026-07-09', durationMinutes: 300 },
+            ],
+            consecutiveDays: 3,
+          },
+        }),
+      ];
+
+      const candidate = rule.match(signals, buildContext());
+      expect(candidate).not.toBeNull();
+      expect(candidate!.subtype).toBe('mood');
+      expect(candidate!.title).toContain('情绪');
+    });
+
+    it('should not match when mood is not low', () => {
+      const signals = [
+        buildSignal({
+          source: 'record',
+          kind: 'mood_trend',
+          payload: {
+            dailyMoods: [
+              { date: '2026-07-08', moodScore: 4, label: 'good' },
+              { date: '2026-07-09', moodScore: 4, label: 'good' },
+            ],
+            consecutiveDays: 2,
+          },
+        }),
+        buildSignal({
+          source: 'record',
+          kind: 'sleep_trend',
+          payload: {
+            dailyDurations: [
+              { date: '2026-07-08', durationMinutes: 380 },
+              { date: '2026-07-09', durationMinutes: 300 },
+            ],
+            consecutiveDays: 2,
+          },
+        }),
+      ];
+
+      const candidate = rule.match(signals, buildContext());
+      expect(candidate).toBeNull();
+    });
+
+    it('should not match when sleep is above 6 hours', () => {
+      const signals = [
+        buildSignal({
+          source: 'record',
+          kind: 'mood_trend',
+          payload: {
+            dailyMoods: [
+              { date: '2026-07-08', moodScore: 2, label: 'bad' },
+              { date: '2026-07-09', moodScore: 2, label: 'bad' },
+            ],
+            consecutiveDays: 2,
+          },
+        }),
+        buildSignal({
+          source: 'record',
+          kind: 'sleep_trend',
+          payload: {
+            dailyDurations: [
+              { date: '2026-07-08', durationMinutes: 420 },
+              { date: '2026-07-09', durationMinutes: 400 },
+            ],
+            consecutiveDays: 2,
+          },
+        }),
+      ];
+
+      const candidate = rule.match(signals, buildContext());
+      expect(candidate).toBeNull();
+    });
+
+    it('should not match when mood signal is missing', () => {
+      const signals = [
+        buildSignal({
+          source: 'record',
+          kind: 'sleep_trend',
+          payload: {
+            dailyDurations: [
+              { date: '2026-07-08', durationMinutes: 300 },
+              { date: '2026-07-09', durationMinutes: 300 },
+            ],
+            consecutiveDays: 2,
+          },
+        }),
+      ];
+
+      const candidate = rule.match(signals, buildContext());
+      expect(candidate).toBeNull();
+    });
+
+    it('should not match when mood days is below minimum', () => {
+      const signals = [
+        buildSignal({
+          source: 'record',
+          kind: 'mood_trend',
+          payload: {
+            dailyMoods: [{ date: '2026-07-09', moodScore: 2, label: 'bad' }],
+            consecutiveDays: 1,
+          },
+        }),
+        buildSignal({
+          source: 'record',
+          kind: 'sleep_trend',
+          payload: {
+            dailyDurations: [
+              { date: '2026-07-08', durationMinutes: 300 },
+              { date: '2026-07-09', durationMinutes: 300 },
+            ],
+            consecutiveDays: 2,
+          },
+        }),
+      ];
+
+      const candidate = rule.match(signals, buildContext());
+      expect(candidate).toBeNull();
+    });
+
+    it('should not match when dates do not overlap', () => {
+      const signals = [
+        buildSignal({
+          source: 'record',
+          kind: 'mood_trend',
+          payload: {
+            dailyMoods: [
+              { date: '2026-07-01', moodScore: 2, label: 'bad' },
+              { date: '2026-07-02', moodScore: 2, label: 'bad' },
+            ],
+            consecutiveDays: 2,
+          },
+        }),
+        buildSignal({
+          source: 'record',
+          kind: 'sleep_trend',
+          payload: {
+            dailyDurations: [
+              { date: '2026-07-08', durationMinutes: 300 },
+              { date: '2026-07-09', durationMinutes: 300 },
+            ],
+            consecutiveDays: 2,
+          },
+        }),
+      ];
+
+      const candidate = rule.match(signals, buildContext());
+      expect(candidate).toBeNull();
+    });
+  });
+
+  describe('RuleVersionRegistry', () => {
+    let registry: RuleVersionRegistry;
+
+    beforeEach(() => {
+      registry = new RuleVersionRegistry();
+    });
+
+    it('should return the single registered version', () => {
+      const rule = new MissedDoseRuleService();
+      registry.registerVersion(rule);
+
+      const selected = registry.selectVersion('missed_dose_pending', 'user-1');
+      expect(selected).toBe(rule);
+    });
+
+    it('should return null for unregistered rule', () => {
+      expect(registry.selectVersion('nonexistent', 'user-1')).toBeNull();
+    });
+
+    it('should always select the same version for the same user+rule', () => {
+      const rule1 = new MissedDoseRuleService();
+      // Create a second version with same ruleId but different version
+      const rule2 = Object.assign(
+        Object.create(MissedDoseRuleService.prototype),
+        rule1,
+        { ruleVersion: '2.0.0' },
+      );
+      registry.registerVersion(rule1);
+      registry.registerVersion(rule2);
+      registry.setDistribution('missed_dose_pending', 0.5);
+
+      const first = registry.selectVersion('missed_dose_pending', 'user-1');
+      const second = registry.selectVersion('missed_dose_pending', 'user-1');
+      expect(first).toBe(second);
+    });
+
+    it('should return old version when distribution is 0', () => {
+      const rule1 = new MissedDoseRuleService();
+      const rule2 = Object.assign(
+        Object.create(MissedDoseRuleService.prototype),
+        rule1,
+        { ruleVersion: '2.0.0' },
+      );
+      registry.registerVersion(rule1);
+      registry.registerVersion(rule2);
+      registry.setDistribution('missed_dose_pending', 0);
+
+      const selected = registry.selectVersion('missed_dose_pending', 'user-1');
+      expect(selected).toBe(rule1);
+    });
+
+    it('should return new version when distribution is 1', () => {
+      const rule1 = new MissedDoseRuleService();
+      const rule2 = Object.assign(
+        Object.create(MissedDoseRuleService.prototype),
+        rule1,
+        { ruleVersion: '2.0.0' },
+      );
+      registry.registerVersion(rule1);
+      registry.registerVersion(rule2);
+      registry.setDistribution('missed_dose_pending', 1);
+
+      const selected = registry.selectVersion('missed_dose_pending', 'user-1');
+      expect(selected).toBe(rule2);
+    });
+
+    it('should respect forced version over distribution', () => {
+      const rule1 = new MissedDoseRuleService();
+      const rule2 = Object.assign(
+        Object.create(MissedDoseRuleService.prototype),
+        rule1,
+        { ruleVersion: '2.0.0' },
+      );
+      registry.registerVersion(rule1);
+      registry.registerVersion(rule2);
+      registry.setDistribution('missed_dose_pending', 0);
+      registry.forceVersion('missed_dose_pending', '2.0.0');
+
+      const selected = registry.selectVersion('missed_dose_pending', 'user-1');
+      expect(selected).toBe(rule2);
+    });
+
+    it('should clear forced version when null is passed', () => {
+      const rule1 = new MissedDoseRuleService();
+      const rule2 = Object.assign(
+        Object.create(MissedDoseRuleService.prototype),
+        rule1,
+        { ruleVersion: '2.0.0' },
+      );
+      registry.registerVersion(rule1);
+      registry.registerVersion(rule2);
+      registry.forceVersion('missed_dose_pending', '2.0.0');
+      registry.forceVersion('missed_dose_pending', null);
+      registry.setDistribution('missed_dose_pending', 0);
+
+      const selected = registry.selectVersion('missed_dose_pending', 'user-1');
+      expect(selected).toBe(rule1);
+    });
+
+    it('should report multi-version rule IDs', () => {
+      const rule1 = new MissedDoseRuleService();
+      const rule2 = Object.assign(
+        Object.create(MissedDoseRuleService.prototype),
+        rule1,
+        { ruleVersion: '2.0.0' },
+      );
+      registry.registerVersion(rule1);
+      registry.registerVersion(rule2);
+
+      expect(registry.getMultiVersionRuleIds()).toEqual([
+        'missed_dose_pending',
+      ]);
     });
   });
 

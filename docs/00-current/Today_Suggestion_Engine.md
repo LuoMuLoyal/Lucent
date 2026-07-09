@@ -46,13 +46,13 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 
 ## 卡片类型
 
-| 类型   | 枚举值            | 规则                                                                   | 说明                           |
-| ------ | ----------------- | ---------------------------------------------------------------------- | ------------------------------ |
-| 依从卡 | `compliance`      | `missed_dose_pending`                                                  | 到时未确认用药                 |
-| 行为卡 | `behavior_advice` | `water_behind_target`, `sleep_shortfall`, `caffeine_sleep_correlation` | 饮水/睡眠不足, 咖啡因-睡眠关联 |
-| 趋势卡 | `trend`           | `deteriorating_symptom`                                                | 症状恶化趋势                   |
-| 说明卡 | `coverage`        | `coverage_explanation`                                                 | 档案不完整/今日无记录          |
-| 风险卡 | `confirmed_risk`  | （Phase 3+）                                                           | 明确规则风险                   |
+| 类型   | 枚举值            | 规则                                                                                             | 说明                                          |
+| ------ | ----------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| 依从卡 | `compliance`      | `missed_dose_pending`                                                                            | 到时未确认用药                                |
+| 行为卡 | `behavior_advice` | `water_behind_target`, `sleep_shortfall`, `caffeine_sleep_correlation`, `mood_sleep_correlation` | 饮水/睡眠不足, 咖啡因-睡眠关联, 情绪-睡眠关联 |
+| 趋势卡 | `trend`           | `deteriorating_symptom`                                                                          | 症状恶化趋势                                  |
+| 说明卡 | `coverage`        | `coverage_explanation`                                                                           | 档案不完整/今日无记录                         |
+| 风险卡 | `confirmed_risk`  | （Phase 3+）                                                                                     | 明确规则风险                                  |
 
 ## 冷启动基线
 
@@ -96,6 +96,41 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 - `user_suggestion_baselines` — 冷启动基线
 - `user_suggestion_feedbacks` — 反馈记录
 
+## 缓存策略
+
+三层 Redis 缓存，减少重复计算开销：
+
+| 缓存层       | Key 格式                                                    | TTL    | 失效条件                  |
+| ------------ | ----------------------------------------------------------- | ------ | ------------------------- |
+| 信号缓存     | `today_suggestion:signals:{userId}:{date}`                  | 5 分钟 | 新记录/剂量日志创建时失效 |
+| 建议结果缓存 | `today_suggestion:suggestions:{userId}:{date}:{excludeKey}` | 3 分钟 | 用户提交反馈时失效        |
+| 基线状态缓存 | `today_suggestion:baseline:{userId}`                        | 1 小时 | 新基线建立时失效          |
+
+- 使用全局 `CacheModule`（Keyv + Redis），与 `MedicinesCacheService` 模式一致
+- `SuggestionCacheService` 封装 get/set/invalidate 操作
+- `buildExcludeKey()` 确保不同 excludeIds 组合生成不同缓存 key
+
+## 反馈数据驱动 threshold 调整
+
+在静态反馈抑制之上，新增动态 score 倍率调整：
+
+- `FeedbackStatsService` 统计每条规则过去 30 天的反馈数据（accept/suppress 比率）
+- 最小样本量 5 条反馈后开始生效
+- 高 accept 率（≥50%）→ score 倍率上浮（最高 1.5x）
+- 高 suppress 率（≥50%）→ score 倍率下降（最低 0.5x）
+- 样本不足或比率均衡时倍率 = 1.0（无影响）
+- 在 `SuppressionService.filterAndAdjust` 中应用：静态反馈调整 → 动态倍率调整
+
+## A/B 规则版本
+
+支持同一规则注册多个版本，按用户哈希分流：
+
+- `RuleVersionRegistry`：注册/选择规则版本
+- `setDistribution(ruleId, ratio)`：设置新版本流量比例（0–1）
+- `forceVersion(ruleId, version)`：强制全量使用指定版本（覆盖分布）
+- `selectVersion(ruleId, userId)`：基于 FNV-1a 哈希确定性选择，同一用户始终看到同一版本
+- 当前所有规则为单版本注册，架构已就绪供后续 A/B 测试使用
+
 ## 实现状态
 
 - [x] Phase 1: 规则引擎骨架 + missed-dose + water-shortfall
@@ -103,4 +138,4 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 - [x] Phase 3: 反馈驱动抑制 + 通知升级
 - [x] Phase 4: AI 解释层（信号组合规则在 Phase 5 实现）
 - [x] Phase 5: 信号组合（caffeine-sleep 关联规则）+ 历史回顾 API
-- [ ] Phase 6: 缓存策略
+- [x] Phase 6: 缓存策略 + 反馈驱动 threshold 调整 + A/B 规则版本 + mood-sleep 信号组合规则

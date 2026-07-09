@@ -236,6 +236,28 @@ export class RecordCollectorService {
       },
     });
 
+    // Mood trend signal (for mood-sleep correlation rule)
+    const moodRecords = multiDayRecords.filter(
+      (r) => r.kind === DailyRecordKind.mood,
+    );
+    if (moodRecords.length > 0) {
+      const moodByDate = this.buildMoodTrend(moodRecords);
+      if (moodByDate.length > 0) {
+        signals.push({
+          signalId: `rec_mood_trend_${date}`,
+          source: 'record',
+          kind: 'mood_trend',
+          recordedAt: day,
+          userId,
+          triggerType: TriggerType.TIMER,
+          payload: {
+            dailyMoods: moodByDate,
+            consecutiveDays: moodByDate.length,
+          },
+        });
+      }
+    }
+
     return signals;
   }
 
@@ -310,5 +332,66 @@ export class RecordCollectorService {
       date,
       count,
     }));
+  }
+
+  /**
+   * Builds a per-date summary of mood from mood records.
+   * Maps mood title/value to a numeric scale (1–5).
+   */
+  private buildMoodTrend(records: RecordShape[]): Array<{
+    date: string;
+    moodScore: number;
+    label: string;
+  }> {
+    const byDate = new Map<string, { moodScore: number; label: string }>();
+    for (const record of records) {
+      const dateKey = record.occurredAt.toISOString().slice(0, 10);
+      const label = record.title ?? record.value ?? 'unknown';
+      const moodScore = this.parseMoodScore(record.value, record.title);
+      // Keep the latest entry per date (records are ordered asc by occurredAt)
+      byDate.set(dateKey, { moodScore, label });
+    }
+    return Array.from(byDate.entries()).map(([date, entry]) => ({
+      date,
+      moodScore: entry.moodScore,
+      label: entry.label,
+    }));
+  }
+
+  /** Parses a mood score from value/title fields. Returns 1–5 scale. */
+  private parseMoodScore(value: string | null, title: string | null): number {
+    // Try numeric value first
+    if (value != null) {
+      const num = parseInt(value, 10);
+      if (!isNaN(num) && num >= 1 && num <= 5) return num;
+    }
+
+    // Try keyword mapping from title
+    const text = (title ?? '').toLowerCase();
+    if (
+      text.includes('great') ||
+      text.includes('很好') ||
+      text.includes('开心')
+    )
+      return 5;
+    if (text.includes('good') || text.includes('好') || text.includes('happy'))
+      return 4;
+    if (text.includes('ok') || text.includes('一般') || text.includes('normal'))
+      return 3;
+    if (
+      text.includes('bad') ||
+      text.includes('差') ||
+      text.includes('sad') ||
+      text.includes('低落')
+    )
+      return 2;
+    if (
+      text.includes('terrible') ||
+      text.includes('很差') ||
+      text.includes('awful')
+    )
+      return 1;
+
+    return 3; // default neutral
   }
 }
