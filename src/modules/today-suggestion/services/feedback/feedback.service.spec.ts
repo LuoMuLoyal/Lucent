@@ -7,25 +7,39 @@ import {
   FEEDBACK_SUPPRESS_DURATION_MS,
 } from '../../constants';
 
-type MockDb = Record<string, Record<string, jest.Mock>>;
-
 describe('FeedbackService', () => {
   let service: FeedbackService;
-  let prismaMock: MockDb;
+  let findFirstMock: jest.Mock;
+  let findManyMock: jest.Mock;
+  let findUniqueMock: jest.Mock;
+  let createSuggestionMock: jest.Mock;
+  let updateManyMock: jest.Mock;
+  let updateMock: jest.Mock;
+  let feedbackCreateMock: jest.Mock;
+  let feedbackFindManyMock: jest.Mock;
 
   beforeEach(() => {
-    prismaMock = {
+    findFirstMock = jest.fn();
+    findManyMock = jest.fn();
+    findUniqueMock = jest.fn();
+    createSuggestionMock = jest.fn();
+    updateManyMock = jest.fn();
+    updateMock = jest.fn();
+    feedbackCreateMock = jest.fn();
+    feedbackFindManyMock = jest.fn();
+
+    const prismaMock = {
       userSuggestion: {
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
-        findUnique: jest.fn(),
-        create: jest.fn(),
-        updateMany: jest.fn(),
-        update: jest.fn(),
+        findFirst: findFirstMock,
+        findMany: findManyMock,
+        findUnique: findUniqueMock,
+        create: createSuggestionMock,
+        updateMany: updateManyMock,
+        update: updateMock,
       },
       userSuggestionFeedback: {
-        create: jest.fn(),
-        findMany: jest.fn(),
+        create: feedbackCreateMock,
+        findMany: feedbackFindManyMock,
       },
     };
 
@@ -34,7 +48,7 @@ describe('FeedbackService', () => {
 
   describe('recordFeedback', () => {
     it('should throw NotFoundException if suggestion does not exist', async () => {
-      prismaMock['userSuggestion']['findFirst'].mockResolvedValue(null);
+      findFirstMock.mockResolvedValue(null);
 
       await expect(
         service.recordFeedback('user-1', 'sug-1', SuggestionFeedback.LATER),
@@ -42,15 +56,15 @@ describe('FeedbackService', () => {
     });
 
     it('should record accepted feedback with no expiry', async () => {
-      prismaMock['userSuggestion']['findFirst'].mockResolvedValue({
+      findFirstMock.mockResolvedValue({
         id: 'sug-1',
         type: 'compliance',
         ruleId: 'missed_dose_pending',
         priorityScore: 800,
         lifecycleState: 'active',
       });
-      prismaMock['userSuggestionFeedback']['create'].mockResolvedValue({});
-      prismaMock['userSuggestion']['updateMany'].mockResolvedValue({
+      feedbackCreateMock.mockResolvedValue({});
+      updateManyMock.mockResolvedValue({
         count: 1,
       });
 
@@ -64,22 +78,21 @@ describe('FeedbackService', () => {
       expect(result.expiresAt).toBeNull();
 
       // Should not mark as dismissed for accepted
-      const updateCall =
-        prismaMock['userSuggestion']['updateMany'].mock.calls[0][0];
+      const updateCall = updateManyMock.mock.calls[0]![0];
       expect(updateCall.data.lifecycleState).toBeUndefined();
       expect(updateCall.data.feedback).toBe('accepted');
     });
 
     it('should record later feedback with 4-hour expiry and mark as dismissed', async () => {
-      prismaMock['userSuggestion']['findFirst'].mockResolvedValue({
+      findFirstMock.mockResolvedValue({
         id: 'sug-1',
         type: 'compliance',
         ruleId: 'missed_dose_pending',
         priorityScore: 800,
         lifecycleState: 'active',
       });
-      prismaMock['userSuggestionFeedback']['create'].mockResolvedValue({});
-      prismaMock['userSuggestion']['updateMany'].mockResolvedValue({
+      feedbackCreateMock.mockResolvedValue({});
+      updateManyMock.mockResolvedValue({
         count: 1,
       });
 
@@ -101,21 +114,20 @@ describe('FeedbackService', () => {
       expect(expiresAt).toBeLessThanOrEqual(expectedMax);
 
       // Should mark as dismissed for later
-      const updateCall =
-        prismaMock['userSuggestion']['updateMany'].mock.calls[0][0];
+      const updateCall = updateManyMock.mock.calls[0]![0];
       expect(updateCall.data.lifecycleState).toBe('dismissed');
     });
 
     it('should record not_applicable feedback with 7-day expiry', async () => {
-      prismaMock['userSuggestion']['findFirst'].mockResolvedValue({
+      findFirstMock.mockResolvedValue({
         id: 'sug-1',
         type: 'behavior_advice',
         ruleId: 'water_behind_target',
         priorityScore: 400,
         lifecycleState: 'active',
       });
-      prismaMock['userSuggestionFeedback']['create'].mockResolvedValue({});
-      prismaMock['userSuggestion']['updateMany'].mockResolvedValue({
+      feedbackCreateMock.mockResolvedValue({});
+      updateManyMock.mockResolvedValue({
         count: 1,
       });
 
@@ -133,21 +145,20 @@ describe('FeedbackService', () => {
       );
 
       // Should not mark as dismissed for not_applicable
-      const updateCall =
-        prismaMock['userSuggestion']['updateMany'].mock.calls[0][0];
+      const updateCall = updateManyMock.mock.calls[0]![0];
       expect(updateCall.data.lifecycleState).toBeUndefined();
     });
 
     it('should record suppress feedback with 30-day expiry and mark as dismissed', async () => {
-      prismaMock['userSuggestion']['findFirst'].mockResolvedValue({
+      findFirstMock.mockResolvedValue({
         id: 'sug-1',
         type: 'behavior_advice',
         ruleId: 'water_behind_target',
         priorityScore: 400,
         lifecycleState: 'active',
       });
-      prismaMock['userSuggestionFeedback']['create'].mockResolvedValue({});
-      prismaMock['userSuggestion']['updateMany'].mockResolvedValue({
+      feedbackCreateMock.mockResolvedValue({});
+      updateManyMock.mockResolvedValue({
         count: 1,
       });
 
@@ -165,15 +176,14 @@ describe('FeedbackService', () => {
       );
 
       // Should mark as dismissed for suppress
-      const updateCall =
-        prismaMock['userSuggestion']['updateMany'].mock.calls[0][0];
+      const updateCall = updateManyMock.mock.calls[0]![0];
       expect(updateCall.data.lifecycleState).toBe('dismissed');
     });
   });
 
   describe('loadActiveFeedbacks', () => {
     it('should return empty array when no feedbacks exist', async () => {
-      prismaMock['userSuggestionFeedback']['findMany'].mockResolvedValue([]);
+      feedbackFindManyMock.mockResolvedValue([]);
 
       const result = await service.loadActiveFeedbacks('user-1');
 
@@ -181,7 +191,7 @@ describe('FeedbackService', () => {
     });
 
     it('should augment feedback entries with suggestion data', async () => {
-      prismaMock['userSuggestionFeedback']['findMany'].mockResolvedValue([
+      feedbackFindManyMock.mockResolvedValue([
         {
           suggestionId: 'sug-1',
           suggestionType: 'compliance',
@@ -196,7 +206,7 @@ describe('FeedbackService', () => {
         },
       ]);
 
-      prismaMock['userSuggestion']['findMany'].mockResolvedValue([
+      findManyMock.mockResolvedValue([
         { id: 'sug-1', ruleId: 'missed_dose_pending', priorityScore: 800 },
         { id: 'sug-2', ruleId: 'water_behind_target', priorityScore: 400 },
       ]);
@@ -212,7 +222,7 @@ describe('FeedbackService', () => {
     });
 
     it('should filter out feedbacks whose suggestion was deleted', async () => {
-      prismaMock['userSuggestionFeedback']['findMany'].mockResolvedValue([
+      feedbackFindManyMock.mockResolvedValue([
         {
           suggestionId: 'sug-1',
           suggestionType: 'compliance',
@@ -228,7 +238,7 @@ describe('FeedbackService', () => {
       ]);
 
       // Only sug-1 exists, sug-deleted was deleted
-      prismaMock['userSuggestion']['findMany'].mockResolvedValue([
+      findManyMock.mockResolvedValue([
         { id: 'sug-1', ruleId: 'missed_dose_pending', priorityScore: 800 },
       ]);
 

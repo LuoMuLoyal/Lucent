@@ -13,6 +13,7 @@ import {
   WaterShortfallRuleService,
   SleepShortfallRuleService,
   DeterioratingTrendRuleService,
+  CaffeineSleepRuleService,
   CoverageRuleService,
 } from './services/rules';
 import { ArbitrationService } from './services/arbitration/arbitration.service';
@@ -46,6 +47,7 @@ import type { SuggestionRule } from './types';
     WaterShortfallRuleService,
     SleepShortfallRuleService,
     DeterioratingTrendRuleService,
+    CaffeineSleepRuleService,
     CoverageRuleService,
     // Arbitration
     ArbitrationService,
@@ -74,6 +76,7 @@ export class TodaySuggestionModule implements OnModuleInit {
     private readonly waterShortfallRule: WaterShortfallRuleService,
     private readonly sleepShortfallRule: SleepShortfallRuleService,
     private readonly deterioratingTrendRule: DeterioratingTrendRuleService,
+    private readonly caffeineSleepRule: CaffeineSleepRuleService,
     private readonly coverageRule: CoverageRuleService,
   ) {}
 
@@ -83,6 +86,7 @@ export class TodaySuggestionModule implements OnModuleInit {
       this.waterShortfallRule,
       this.sleepShortfallRule,
       this.deterioratingTrendRule,
+      this.caffeineSleepRule,
       this.coverageRule,
     ];
 

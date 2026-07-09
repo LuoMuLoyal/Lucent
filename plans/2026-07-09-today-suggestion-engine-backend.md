@@ -887,17 +887,6 @@ TodaySuggestionModule
 
 ## 16. 实现阶段
 
-### Phase 5：信号组合 + 历史回顾（1-2 周）
-
-- 新增 `caffeine-sleep.service.ts` 等信号组合规则。
-- 新增 `GET /today/suggestions/history` 接口，供 Report 历史建议回顾区使用。
-- 前端 Report 页展示已执行/未执行/被延后的建议历史。
-
-**验收标准**：
-
-- 多个弱信号可按预定义规则组合成更强卡。
-- Report 历史建议回顾区正确展示建议历史。
-
 ### Phase 6：持续优化（ ongoing ）
 
 - 基于反馈数据调整规则优先级和 threshold。

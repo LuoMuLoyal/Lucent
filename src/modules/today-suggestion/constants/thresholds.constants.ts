@@ -40,6 +40,15 @@ export const SLEEP_SHORTFALL_MIN_DAYS = 2;
 /** Base priority score for a coverage-explanation candidate. */
 export const COVERAGE_BASE_SCORE = 200;
 
+/** Base priority score for a caffeine-sleep correlation candidate. */
+export const CAFFEINE_SLEEP_BASE_SCORE = 600;
+
+/** Minimum consecutive days of caffeine records for correlation. */
+export const CAFFEINE_SLEEP_MIN_DAYS = 2;
+
+/** Minimum sleep duration decline (minutes) to consider for correlation. */
+export const CAFFEINE_SLEEP_DECLINE_MINUTES = 30;
+
 /** Confidence threshold: candidates below this are demoted to observations. */
 export const CONFIDENCE_DEMOTE_THRESHOLD = 'low';
 

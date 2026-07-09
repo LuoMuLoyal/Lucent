@@ -36,6 +36,9 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
   - Header: `Accept-Language` (可选, 用于本地化)
   - Response: `{ suggestionId, reason, boundary, aiGenerated }`
   - 不阻塞首屏：规则引擎先返回结构化卡片，前端按需请求 AI 解释
+- `GET /user/today/suggestions/history` — 获取建议历史（供 Report 页回顾区）
+  - Query: `startDate` (可选, 默认 30 天前), `endDate` (可选, 默认今天), `lifecycleState` (可选), `type` (可选), `limit` (可选, 默认 100, 最大 500)
+  - Response: `{ items[], total, startDate, endDate }`
 
 ## 模块位置
 
@@ -43,13 +46,13 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 
 ## 卡片类型
 
-| 类型   | 枚举值            | 规则                                     | 说明                  |
-| ------ | ----------------- | ---------------------------------------- | --------------------- |
-| 依从卡 | `compliance`      | `missed_dose_pending`                    | 到时未确认用药        |
-| 行为卡 | `behavior_advice` | `water_behind_target`, `sleep_shortfall` | 饮水/睡眠不足         |
-| 趋势卡 | `trend`           | `deteriorating_symptom`                  | 症状恶化趋势          |
-| 说明卡 | `coverage`        | `coverage_explanation`                   | 档案不完整/今日无记录 |
-| 风险卡 | `confirmed_risk`  | （Phase 3+）                             | 明确规则风险          |
+| 类型   | 枚举值            | 规则                                                                   | 说明                           |
+| ------ | ----------------- | ---------------------------------------------------------------------- | ------------------------------ |
+| 依从卡 | `compliance`      | `missed_dose_pending`                                                  | 到时未确认用药                 |
+| 行为卡 | `behavior_advice` | `water_behind_target`, `sleep_shortfall`, `caffeine_sleep_correlation` | 饮水/睡眠不足, 咖啡因-睡眠关联 |
+| 趋势卡 | `trend`           | `deteriorating_symptom`                                                | 症状恶化趋势                   |
+| 说明卡 | `coverage`        | `coverage_explanation`                                                 | 档案不完整/今日无记录          |
+| 风险卡 | `confirmed_risk`  | （Phase 3+）                                                           | 明确规则风险                   |
 
 ## 冷启动基线
 
@@ -99,6 +102,5 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 - [x] Phase 2: 5 类卡片 + 冷启动基线 + 生命周期 + sleep/trend/coverage 规则
 - [x] Phase 3: 反馈驱动抑制 + 通知升级
 - [x] Phase 4: AI 解释层（信号组合规则在 Phase 5 实现）
-- [ ] Phase 5: 信号组合 + 历史回顾
-- [ ] Phase 5: 历史回顾
+- [x] Phase 5: 信号组合（caffeine-sleep 关联规则）+ 历史回顾 API
 - [ ] Phase 6: 缓存策略

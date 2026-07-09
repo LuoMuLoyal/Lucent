@@ -3,4 +3,5 @@ export * from './missed-dose.service';
 export * from './water-shortfall.service';
 export * from './sleep-shortfall.service';
 export * from './deteriorating-trend.service';
+export * from './caffeine-sleep.service';
 export * from './coverage.service';

@@ -2,8 +2,6 @@ import { EscalationService } from './escalation.service';
 import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
 import type { SuggestionCandidate } from '../../types';
 
-type MockDb = Record<string, Record<string, jest.Mock>>;
-
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},
 ): SuggestionCandidate {
@@ -32,18 +30,23 @@ function buildCandidate(
 
 describe('EscalationService', () => {
   let service: EscalationService;
-  let notificationsMock: MockDb;
-  let prismaMock: MockDb;
+  let createOrReplaceScopedMock: jest.Mock;
+  let findUniqueMock: jest.Mock;
+  let updateMock: jest.Mock;
 
   beforeEach(() => {
-    notificationsMock = {
-      createOrReplaceScoped: jest.fn().mockResolvedValue({}),
+    createOrReplaceScopedMock = jest.fn().mockResolvedValue({});
+    findUniqueMock = jest.fn();
+    updateMock = jest.fn().mockResolvedValue({});
+
+    const notificationsMock = {
+      createOrReplaceScoped: createOrReplaceScopedMock,
     };
 
-    prismaMock = {
+    const prismaMock = {
       userSuggestion: {
-        findUnique: jest.fn(),
-        update: jest.fn().mockResolvedValue({}),
+        findUnique: findUniqueMock,
+        update: updateMock,
       },
     };
 
@@ -54,7 +57,7 @@ describe('EscalationService', () => {
   });
 
   it('should escalate an eligible candidate', async () => {
-    prismaMock['userSuggestion']['findUnique'].mockResolvedValue({
+    findUniqueMock.mockResolvedValue({
       notificationSentAt: null,
     });
 
@@ -67,16 +70,16 @@ describe('EscalationService', () => {
     );
 
     expect(result).toBe(true);
-    expect(notificationsMock['createOrReplaceScoped']).toHaveBeenCalledTimes(1);
+    expect(createOrReplaceScopedMock).toHaveBeenCalledTimes(1);
 
-    const callArgs = notificationsMock['createOrReplaceScoped'].mock.calls[0];
+    const callArgs = createOrReplaceScopedMock.mock.calls[0]!;
     expect(callArgs[0]).toBe('user-1');
     expect(callArgs[1].type).toBe('ai_proactive_suggestion');
     expect(callArgs[1].title).toBe('Test suggestion');
     expect(callArgs[2].source).toBe('today_suggestion_compliance');
     expect(callArgs[2].date).toBe('2026-07-09');
 
-    expect(prismaMock['userSuggestion']['update']).toHaveBeenCalledTimes(1);
+    expect(updateMock).toHaveBeenCalledTimes(1);
   });
 
   it('should not escalate if notificationEligible is false', async () => {
@@ -90,7 +93,7 @@ describe('EscalationService', () => {
     );
 
     expect(result).toBe(false);
-    expect(notificationsMock['createOrReplaceScoped']).not.toHaveBeenCalled();
+    expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
   });
 
   it('should not escalate if triggerType is TIMER', async () => {
@@ -104,7 +107,7 @@ describe('EscalationService', () => {
     );
 
     expect(result).toBe(false);
-    expect(notificationsMock['createOrReplaceScoped']).not.toHaveBeenCalled();
+    expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
   });
 
   it('should not escalate if confidence is MEDIUM', async () => {
@@ -120,7 +123,7 @@ describe('EscalationService', () => {
     );
 
     expect(result).toBe(false);
-    expect(notificationsMock['createOrReplaceScoped']).not.toHaveBeenCalled();
+    expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
   });
 
   it('should not escalate if priorityScore is below 700', async () => {
@@ -134,11 +137,11 @@ describe('EscalationService', () => {
     );
 
     expect(result).toBe(false);
-    expect(notificationsMock['createOrReplaceScoped']).not.toHaveBeenCalled();
+    expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
   });
 
   it('should not escalate if notification was already sent', async () => {
-    prismaMock['userSuggestion']['findUnique'].mockResolvedValue({
+    findUniqueMock.mockResolvedValue({
       notificationSentAt: new Date('2026-07-09T10:00:00.000Z'),
     });
 
@@ -151,16 +154,14 @@ describe('EscalationService', () => {
     );
 
     expect(result).toBe(false);
-    expect(notificationsMock['createOrReplaceScoped']).not.toHaveBeenCalled();
+    expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
   });
 
   it('should return false on notification creation error', async () => {
-    prismaMock['userSuggestion']['findUnique'].mockResolvedValue({
+    findUniqueMock.mockResolvedValue({
       notificationSentAt: null,
     });
-    notificationsMock['createOrReplaceScoped'].mockRejectedValue(
-      new Error('DB error'),
-    );
+    createOrReplaceScopedMock.mockRejectedValue(new Error('DB error'));
 
     const candidate = buildCandidate();
     const result = await service.escalateIfNeeded(
@@ -172,11 +173,11 @@ describe('EscalationService', () => {
 
     expect(result).toBe(false);
     // Should not have marked the suggestion as notified
-    expect(prismaMock['userSuggestion']['update']).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
   });
 
   it('should use suggestion type in the notification scope for deduplication', async () => {
-    prismaMock['userSuggestion']['findUnique'].mockResolvedValue({
+    findUniqueMock.mockResolvedValue({
       notificationSentAt: null,
     });
 
@@ -190,7 +191,7 @@ describe('EscalationService', () => {
 
     await service.escalateIfNeeded('user-1', 'sug-1', candidate, '2026-07-09');
 
-    const callArgs = notificationsMock['createOrReplaceScoped'].mock.calls[0];
+    const callArgs = createOrReplaceScopedMock.mock.calls[0]!;
     expect(callArgs[2].source).toBe('today_suggestion_behavior_advice');
   });
 });

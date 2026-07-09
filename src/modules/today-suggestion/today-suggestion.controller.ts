@@ -21,11 +21,13 @@ import type { UserPayload } from '../auth/types/auth-request';
 import { SuggestionService } from './services/suggestion.service';
 import { FeedbackService } from './services/feedback/feedback.service';
 import { ExplanationService } from './services/explanation/explanation.service';
+import { LifecycleService } from './services/lifecycle/lifecycle.service';
 import type { TodaySuggestionsResponseDto } from './dto';
 import {
   SuggestionFeedbackDto,
   SuggestionFeedbackResponseDto,
   SuggestionExplanationResponseDto,
+  SuggestionHistoryResponseDto,
 } from './dto';
 
 @ApiTags('Today Suggestion')
@@ -37,6 +39,7 @@ export class TodaySuggestionController {
     private readonly suggestionService: SuggestionService,
     private readonly feedbackService: FeedbackService,
     private readonly explanationService: ExplanationService,
+    private readonly lifecycleService: LifecycleService,
   ) {}
 
   @Get()
@@ -111,6 +114,75 @@ export class TodaySuggestionController {
       reason: result.reason,
       boundary: result.boundary,
       aiGenerated: result.aiGenerated,
+    };
+
+    return successEnvelope(response);
+  }
+
+  @Get('history')
+  @ApiOperation({ summary: 'Get suggestion history for the Report page' })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Start date (YYYY-MM-DD). Defaults to 30 days ago.',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'End date (YYYY-MM-DD). Defaults to today.',
+  })
+  @ApiQuery({
+    name: 'lifecycleState',
+    required: false,
+    enum: ['generated', 'active', 'fading', 'expired', 'dismissed'],
+    description: 'Filter by lifecycle state.',
+  })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    enum: [
+      'confirmed_risk',
+      'compliance',
+      'trend',
+      'behavior_advice',
+      'coverage',
+    ],
+    description: 'Filter by suggestion type.',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Max items (default 100, max 500).',
+  })
+  async getHistory(
+    @CurrentUser() user: UserPayload,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('lifecycleState') lifecycleState?: string,
+    @Query('type') type?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const resolvedEndDate = endDate ?? new Date().toISOString().slice(0, 10);
+    const resolvedStartDate =
+      startDate ?? LifecycleService.getDefaultStartDate();
+
+    const result = await this.lifecycleService.getHistory(
+      user.sub,
+      resolvedStartDate,
+      resolvedEndDate,
+      {
+        ...(lifecycleState != null ? { lifecycleState } : {}),
+        ...(type != null ? { type } : {}),
+        ...(limit != null ? { limit: parseInt(limit, 10) } : {}),
+      },
+    );
+
+    const response: SuggestionHistoryResponseDto = {
+      items: result.items,
+      total: result.total,
+      startDate: resolvedStartDate,
+      endDate: resolvedEndDate,
     };
 
     return successEnvelope(response);

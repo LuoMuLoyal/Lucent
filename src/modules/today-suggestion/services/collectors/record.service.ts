@@ -197,6 +197,28 @@ export class RecordCollectorService {
       });
     }
 
+    // Caffeine trend signal (for caffeine-sleep correlation rule)
+    const caffeineRecords = multiDayRecords.filter(
+      (r) => r.kind === DailyRecordKind.meal && r.title != null,
+    );
+    if (caffeineRecords.length > 0) {
+      const caffeineByDate = this.buildCaffeineTrend(caffeineRecords);
+      if (caffeineByDate.length > 0) {
+        signals.push({
+          signalId: `rec_caffeine_trend_${date}`,
+          source: 'record',
+          kind: 'caffeine_trend',
+          recordedAt: day,
+          userId,
+          triggerType: TriggerType.TIMER,
+          payload: {
+            dailyIntakes: caffeineByDate,
+            consecutiveDays: caffeineByDate.length,
+          },
+        });
+      }
+    }
+
     // Record density signal (for coverage rule)
     const recordKinds = new Set(todayRecords.map((r) => r.kind));
     signals.push({
@@ -254,5 +276,39 @@ export class RecordCollectorService {
     if (hour >= 12 && hour < 17) return 'afternoon';
     if (hour >= 17 && hour < 22) return 'evening';
     return 'night';
+  }
+
+  /**
+   * Builds a per-date summary of caffeine intake from meal records.
+   * Infers caffeine from title/note containing coffee, tea, energy drink keywords.
+   * Returns estimated intake count per date.
+   */
+  private buildCaffeineTrend(records: RecordShape[]): Array<{
+    date: string;
+    count: number;
+  }> {
+    const byDate = new Map<string, number>();
+    for (const record of records) {
+      const title = record.title?.toLowerCase() ?? '';
+      const note = record.note?.toLowerCase() ?? '';
+      const isCaffeine =
+        title.includes('coffee') ||
+        title.includes('咖啡') ||
+        title.includes('tea') ||
+        title.includes('茶') ||
+        title.includes('energy') ||
+        title.includes('能量饮料') ||
+        note.includes('coffee') ||
+        note.includes('咖啡') ||
+        note.includes('tea') ||
+        note.includes('茶');
+      if (!isCaffeine) continue;
+      const dateKey = record.occurredAt.toISOString().slice(0, 10);
+      byDate.set(dateKey, (byDate.get(dateKey) ?? 0) + 1);
+    }
+    return Array.from(byDate.entries()).map(([date, count]) => ({
+      date,
+      count,
+    }));
   }
 }

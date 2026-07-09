@@ -3,6 +3,13 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 import { nowIsoString } from '../../../../common/helpers/date-time.utils';
 import type { SuggestionCandidate, SuggestionAction } from '../../types';
 import { SuggestionLifecycleState } from '../../types';
+import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto';
+import type { Prisma } from '#generated/prisma/client';
+
+/** Max items returned by the history endpoint. */
+const HISTORY_MAX_LIMIT = 500;
+const HISTORY_DEFAULT_LIMIT = 100;
+const HISTORY_DEFAULT_DAYS = 30;
 
 /**
  * Manages suggestion card lifecycle: persisting new suggestions,
@@ -133,21 +140,69 @@ export class LifecycleService {
 
   /**
    * Returns suggestion history for the Report page.
+   * Supports optional filtering by lifecycleState and suggestion type,
+   * and applies a sane default date range + limit.
    */
   async getHistory(
     userId: string,
     startDate: string,
     endDate: string,
-  ): Promise<unknown[]> {
-    return this.prisma.userSuggestion.findMany({
-      where: {
-        userId,
-        date: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      orderBy: { generatedAt: 'desc' },
-    });
+    filters?: {
+      lifecycleState?: string;
+      type?: string;
+      limit?: number;
+    },
+  ): Promise<{ items: SuggestionHistoryItemDto[]; total: number }> {
+    const limit = Math.min(
+      filters?.limit ?? HISTORY_DEFAULT_LIMIT,
+      HISTORY_MAX_LIMIT,
+    );
+
+    const where: Prisma.UserSuggestionWhereInput = {
+      userId,
+      date: { gte: startDate, lte: endDate },
+    };
+    if (filters?.lifecycleState != null) {
+      where.lifecycleState = filters.lifecycleState as never;
+    }
+    if (filters?.type != null) {
+      where.type = filters.type as never;
+    }
+
+    const [records, total] = await Promise.all([
+      this.prisma.userSuggestion.findMany({
+        where,
+        orderBy: { generatedAt: 'desc' },
+        take: limit,
+      }),
+      this.prisma.userSuggestion.count({ where }),
+    ]);
+
+    const items: SuggestionHistoryItemDto[] = records.map((r) => ({
+      id: r.id,
+      date: r.date,
+      type: r.type as never,
+      title: r.title,
+      reason: r.reason,
+      ruleId: r.ruleId,
+      ruleVersion: r.ruleVersion,
+      triggerType: r.triggerType as never,
+      lifecycleState: r.lifecycleState as never,
+      confidence: r.confidence as never,
+      subtype: r.subtype ?? undefined,
+      feedback: r.feedback ?? undefined,
+      feedbackAt: r.feedbackAt?.toISOString() ?? undefined,
+      generatedAt: r.generatedAt.toISOString(),
+      expiredAt: r.expiredAt?.toISOString() ?? undefined,
+    }));
+
+    return { items, total };
+  }
+
+  /** Returns the default start date for the history query (N days ago). */
+  static getDefaultStartDate(): string {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - HISTORY_DEFAULT_DAYS);
+    return d.toISOString().slice(0, 10);
   }
 }
