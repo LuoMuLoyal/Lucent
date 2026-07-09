@@ -113,8 +113,8 @@ export class SuggestionHistoryQueryDto {
   limit?: number | undefined;
 }
 
-/** Response for GET /today/suggestions/history. */
-export class SuggestionHistoryResponseDto {
+/** Data payload for GET /today/suggestions/history. */
+export class SuggestionHistoryDataDto {
   @ApiProperty({
     type: () => [SuggestionHistoryItemDto],
     description: 'Suggestion history items',
@@ -129,4 +129,16 @@ export class SuggestionHistoryResponseDto {
 
   @ApiProperty({ description: 'End date used for the query' })
   endDate!: string;
+}
+
+/** Envelope response for GET /today/suggestions/history. */
+export class SuggestionHistoryResponseDto {
+  @ApiProperty({ example: 0 })
+  code!: number;
+
+  @ApiProperty({ example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => SuggestionHistoryDataDto })
+  data!: SuggestionHistoryDataDto;
 }

@@ -12,6 +12,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiQuery,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
@@ -22,12 +23,16 @@ import { SuggestionService } from './services/suggestion.service';
 import { FeedbackService } from './services/feedback/feedback.service';
 import { ExplanationService } from './services/explanation/explanation.service';
 import { LifecycleService } from './services/lifecycle/lifecycle.service';
-import type { TodaySuggestionsResponseDto } from './dto';
 import {
   SuggestionFeedbackDto,
+  TodaySuggestionsDataDto,
+  SuggestionFeedbackDataDto,
+  SuggestionExplanationDataDto,
+  SuggestionHistoryDataDto,
   SuggestionFeedbackResponseDto,
   SuggestionExplanationResponseDto,
   SuggestionHistoryResponseDto,
+  TodaySuggestionsResponseDto,
 } from './dto';
 
 @ApiTags('Today Suggestion')
@@ -44,6 +49,7 @@ export class TodaySuggestionController {
 
   @Get()
   @ApiOperation({ summary: 'Get Today page suggestion cards' })
+  @ApiResponse({ status: 200, type: TodaySuggestionsResponseDto })
   @ApiQuery({
     name: 'date',
     required: false,
@@ -67,7 +73,7 @@ export class TodaySuggestionController {
         ? [excludeIds]
         : [];
 
-    const result: TodaySuggestionsResponseDto =
+    const result: TodaySuggestionsDataDto =
       await this.suggestionService.generate(user.sub, date, normalizedExclude);
 
     return successEnvelope(result);
@@ -75,6 +81,7 @@ export class TodaySuggestionController {
 
   @Post(':id/feedback')
   @ApiOperation({ summary: 'Submit feedback for a suggestion card' })
+  @ApiResponse({ status: 201, type: SuggestionFeedbackResponseDto })
   async submitFeedback(
     @CurrentUser() user: UserPayload,
     @Param('id') suggestionId: string,
@@ -86,7 +93,7 @@ export class TodaySuggestionController {
       dto.feedback,
     );
 
-    const response: SuggestionFeedbackResponseDto = {
+    const response: SuggestionFeedbackDataDto = {
       suggestionId: result.suggestionId,
       feedback: result.feedback,
       appliedEffect: result.appliedEffect,
@@ -98,6 +105,7 @@ export class TodaySuggestionController {
 
   @Post(':id/explain')
   @ApiOperation({ summary: 'Get AI explanation for a suggestion card' })
+  @ApiResponse({ status: 201, type: SuggestionExplanationResponseDto })
   async explainSuggestion(
     @CurrentUser() user: UserPayload,
     @Param('id') suggestionId: string,
@@ -109,7 +117,7 @@ export class TodaySuggestionController {
       language,
     );
 
-    const response: SuggestionExplanationResponseDto = {
+    const response: SuggestionExplanationDataDto = {
       suggestionId: result.suggestionId,
       reason: result.reason,
       boundary: result.boundary,
@@ -121,6 +129,7 @@ export class TodaySuggestionController {
 
   @Get('history')
   @ApiOperation({ summary: 'Get suggestion history for the Report page' })
+  @ApiResponse({ status: 200, type: SuggestionHistoryResponseDto })
   @ApiQuery({
     name: 'startDate',
     required: false,
@@ -178,7 +187,7 @@ export class TodaySuggestionController {
       },
     );
 
-    const response: SuggestionHistoryResponseDto = {
+    const response: SuggestionHistoryDataDto = {
       items: result.items,
       total: result.total,
       startDate: resolvedStartDate,

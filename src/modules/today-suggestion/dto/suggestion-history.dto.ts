@@ -1,8 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SuggestionItemDto } from './suggestion-response.dto';
 
-/** Top-level response for GET /today/suggestions. */
-export class TodaySuggestionsResponseDto {
+/** Data payload for GET /today/suggestions. */
+export class TodaySuggestionsDataDto {
   @ApiProperty({ description: 'When the suggestions were generated' })
   generatedAt!: string;
 
@@ -23,4 +23,16 @@ export class TodaySuggestionsResponseDto {
     description: 'Low-confidence observations',
   })
   observations?: SuggestionItemDto[] | undefined;
+}
+
+/** Envelope response for GET /today/suggestions. */
+export class TodaySuggestionsResponseDto {
+  @ApiProperty({ example: 0 })
+  code!: number;
+
+  @ApiProperty({ example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => TodaySuggestionsDataDto })
+  data!: TodaySuggestionsDataDto;
 }

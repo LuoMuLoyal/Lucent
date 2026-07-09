@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import type { SuggestionSignal } from '../../types';
 import type { BaselineDimension } from '../../types';
-import type { TodaySuggestionsResponseDto } from '../../dto/suggestion-history.dto';
+import type { TodaySuggestionsDataDto } from '../../dto/suggestion-history.dto';
 import {
   SIGNAL_CACHE_TTL_MS,
   SUGGESTION_CACHE_TTL_MS,
@@ -59,8 +59,8 @@ export class SuggestionCacheService {
     userId: string,
     date: string,
     excludeKey: string,
-  ): Promise<TodaySuggestionsResponseDto | undefined> {
-    return this.cache.get<TodaySuggestionsResponseDto>(
+  ): Promise<TodaySuggestionsDataDto | undefined> {
+    return this.cache.get<TodaySuggestionsDataDto>(
       this.suggestionKey(userId, date, excludeKey),
     );
   }
@@ -69,7 +69,7 @@ export class SuggestionCacheService {
     userId: string,
     date: string,
     excludeKey: string,
-    result: TodaySuggestionsResponseDto,
+    result: TodaySuggestionsDataDto,
   ): Promise<void> {
     await this.cache.set(
       this.suggestionKey(userId, date, excludeKey),

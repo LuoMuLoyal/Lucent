@@ -18,7 +18,7 @@ export class SuggestionFeedbackDto {
   feedback!: SuggestionFeedback;
 }
 
-export class SuggestionFeedbackResponseDto {
+export class SuggestionFeedbackDataDto {
   @ApiProperty()
   suggestionId!: string;
 
@@ -35,4 +35,16 @@ export class SuggestionFeedbackResponseDto {
     description: 'When the suppression expires (if applicable)',
   })
   expiresAt?: string;
+}
+
+/** Envelope response for POST /today/suggestions/:id/feedback. */
+export class SuggestionFeedbackResponseDto {
+  @ApiProperty({ example: 0 })
+  code!: number;
+
+  @ApiProperty({ example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => SuggestionFeedbackDataDto })
+  data!: SuggestionFeedbackDataDto;
 }

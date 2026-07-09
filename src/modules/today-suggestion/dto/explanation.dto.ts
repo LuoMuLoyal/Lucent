@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-/** Response DTO for the AI explanation endpoint. */
-export class SuggestionExplanationResponseDto {
+/** Data payload for POST /today/suggestions/:id/explain. */
+export class SuggestionExplanationDataDto {
   @ApiProperty({ description: 'The suggestion ID that was explained' })
   suggestionId!: string;
 
@@ -24,4 +24,16 @@ export class SuggestionExplanationResponseDto {
     description: 'Locale used for the explanation (e.g. "zh-CN", "en")',
   })
   locale?: string;
+}
+
+/** Envelope response for POST /today/suggestions/:id/explain. */
+export class SuggestionExplanationResponseDto {
+  @ApiProperty({ example: 0 })
+  code!: number;
+
+  @ApiProperty({ example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => SuggestionExplanationDataDto })
+  data!: SuggestionExplanationDataDto;
 }

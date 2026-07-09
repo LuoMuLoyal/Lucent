@@ -139,3 +139,11 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 - [x] Phase 4: AI 解释层（信号组合规则在 Phase 5 实现）
 - [x] Phase 5: 信号组合（caffeine-sleep 关联规则）+ 历史回顾 API
 - [x] Phase 6: 缓存策略 + 反馈驱动 threshold 调整 + A/B 规则版本 + mood-sleep 信号组合规则
+
+## 前端接入状态
+
+- [x] Phase 1: OpenAPI 导出 + Flutter API 客户端生成 + 网络层注册
+- [x] Phase 2: Domain 实体层 + Remote Data Source + Repository 清理
+- [ ] Phase 3: Riverpod Provider + UI 重构（主卡/次卡/观察项）
+- [ ] Phase 4: 反馈按钮接入 + AI 解释按需加载
+- [ ] Phase 5: 深层链接导航 + 历史回顾

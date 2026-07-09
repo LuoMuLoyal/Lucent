@@ -15,7 +15,7 @@ import {
   SuggestionFeedback,
 } from '../../today-suggestion/types';
 import type { SuggestionItemDto } from '../../today-suggestion/dto/suggestion-response.dto';
-import type { TodaySuggestionsResponseDto } from '../../today-suggestion/dto/suggestion-history.dto';
+import type { TodaySuggestionsDataDto } from '../../today-suggestion/dto/suggestion-history.dto';
 import { MedicationCollectorService } from './collectors/medication.service';
 import { RecordCollectorService } from './collectors/record.service';
 import { ProfileCollectorService } from './collectors/profile.service';
@@ -62,7 +62,7 @@ export class SuggestionService {
     userId: string,
     date?: string,
     excludeIds?: string[],
-  ): Promise<TodaySuggestionsResponseDto> {
+  ): Promise<TodaySuggestionsDataDto> {
     const targetDate = date ?? formatDateOnly(now());
     const generatedAt = nowIsoString();
 
