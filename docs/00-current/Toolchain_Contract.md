@@ -1,6 +1,6 @@
 # Toolchain / Contract
 
-Last updated: 2026-07-09
+Last updated: 2026-07-09 (pre-commit doc-check .ts + default blocking)
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -27,3 +27,8 @@ Last updated: 2026-07-09
   eliminating the P0 crash (`int.toJson is not a function`) and P1 type loss (`dynamic`) in the
   Flutter generated client. SSE stream endpoints have `text/event-stream` content annotations, and
   the `/clear` endpoint has a named response DTO.
+- Pre-commit hook (`simple-git-hooks`) now runs `scripts/hooks/check-docs-updated.ts` before
+  `pnpm lint-staged`. The script blocks commits that stage `src/**/*.ts` source files (excluding
+  specs / generated / test) without a corresponding doc update (migration log under
+  `docs/02-logs/migration-log/` or any file under `docs/00-current/`). Bypass with
+  `SKIP_DOC_CHECK=1` or `--no-verify`.

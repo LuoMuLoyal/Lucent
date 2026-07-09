@@ -15,6 +15,7 @@ Last updated: 2026-07-09
 - [[00-current/Meal_Analysis]] — 餐食分析管道
 - [[00-current/Code_Quality_Maintainability]] — 代码质量、模块结构、测试覆盖
 - [[00-current/Today_Suggestion_Engine]] — Today 主动建议引擎
+- [[00-current/Toolchain_Contract]] — 工具链、OpenAPI 合同、Git hooks（含 pre-commit 文档检查）
 
 ## 相关文档
 
