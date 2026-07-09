@@ -1,0 +1,105 @@
+import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import type {
+  SuggestionRule,
+  SuggestionSignal,
+  RuleContext,
+  SuggestionCandidate,
+} from '../../types';
+import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
+import { BaselineDimension } from '../../types';
+import {
+  SLEEP_SHORTFALL_BASE_SCORE,
+  SLEEP_SHORTFALL_MINUTES,
+  SLEEP_SHORTFALL_MIN_DAYS,
+} from '../../constants';
+
+/**
+ * Rule: sleep_shortfall
+ * Type: BEHAVIOR_ADVICE
+ * Trigger: TIMER
+ *
+ * Fires when the most recent sleep record shows a duration
+ * below 6 hours AND the user has at least 2 days of sleep records.
+ */
+@Injectable()
+export class SleepShortfallRuleService implements SuggestionRule {
+  readonly ruleId = 'sleep_shortfall';
+  readonly ruleVersion = '1.0.0';
+  readonly type = SuggestionType.BEHAVIOR_ADVICE;
+  readonly triggerType = TriggerType.TIMER;
+  readonly isBaselineRequired = true;
+  readonly baselineDimensions = [BaselineDimension.SLEEP_DURATION];
+  readonly consumableSignalKinds = ['sleep_record', 'sleep_trend'];
+
+  match(
+    signals: SuggestionSignal[],
+    _context: RuleContext,
+  ): SuggestionCandidate | null {
+    const sleepSignal = signals.find(
+      (s) => s.kind === 'sleep_record' && s.source === 'record',
+    );
+    const sleepTrendSignal = signals.find(
+      (s) => s.kind === 'sleep_trend' && s.source === 'record',
+    );
+
+    if (sleepSignal == null) {
+      return null;
+    }
+
+    const durationMinutes = sleepSignal.payload['durationMinutes'] as
+      | number
+      | null;
+    if (durationMinutes == null || durationMinutes <= 0) {
+      return null;
+    }
+
+    if (durationMinutes >= SLEEP_SHORTFALL_MINUTES) {
+      return null;
+    }
+
+    // Check baseline: need at least N consecutive days
+    const consecutiveDays = sleepTrendSignal?.payload[
+      'consecutiveDays'
+    ] as number;
+    if (consecutiveDays < SLEEP_SHORTFALL_MIN_DAYS) {
+      return null;
+    }
+
+    const hours = Math.floor(durationMinutes / 60);
+    const mins = durationMinutes % 60;
+
+    return {
+      candidateId: randomUUID(),
+      ruleId: this.ruleId,
+      ruleVersion: this.ruleVersion,
+      type: this.type,
+      triggerType: this.triggerType,
+      title: '昨晚睡眠不足',
+      reason: `睡眠时长仅 ${String(hours)} 小时 ${String(mins)} 分钟，低于 6 小时，可能影响今日状态。`,
+      evidence: [
+        {
+          kind: 'record',
+          label: '睡眠时长',
+          value: `${String(hours)}h ${String(mins)}m`,
+        },
+        {
+          kind: 'baseline',
+          label: '近期记录天数',
+          value: `${String(consecutiveDays)} 天`,
+        },
+      ],
+      boundary: '睡眠建议仅供参考，持续睡眠问题请咨询医生。',
+      primaryAction: {
+        actionId: 'go_record_sleep',
+        label: '记录睡眠',
+        route: '/record/create?kind=sleep',
+        authRequired: true,
+      },
+      priorityScore: SLEEP_SHORTFALL_BASE_SCORE,
+      confidence: SuggestionConfidence.MEDIUM,
+      notificationEligible: false,
+      subtype: 'sleep',
+    };
+  }
+}

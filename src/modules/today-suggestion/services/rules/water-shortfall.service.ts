@@ -1,0 +1,114 @@
+import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import type {
+  SuggestionRule,
+  SuggestionSignal,
+  RuleContext,
+  SuggestionCandidate,
+} from '../../types';
+import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
+import { BaselineDimension } from '../../types';
+import {
+  WATER_SHORTFALL_THRESHOLD,
+  WATER_SHORTFALL_BASE_SCORE,
+  WATER_SHORTFALL_MIN_DAYS,
+} from '../../constants';
+
+/**
+ * Rule: water_behind_target
+ * Type: BEHAVIOR_ADVICE
+ * Trigger: TIMER
+ *
+ * Fires when the user's water intake is below 50% of target
+ * AND it is afternoon or later AND the user has at least 2 days
+ * of recent water records (baseline check).
+ */
+@Injectable()
+export class WaterShortfallRuleService implements SuggestionRule {
+  readonly ruleId = 'water_behind_target';
+  readonly ruleVersion = '1.0.0';
+  readonly type = SuggestionType.BEHAVIOR_ADVICE;
+  readonly triggerType = TriggerType.TIMER;
+  readonly isBaselineRequired = true;
+  readonly baselineDimensions = [BaselineDimension.WATER_INTAKE];
+  readonly consumableSignalKinds = ['water_count', 'water_trend'];
+
+  match(
+    signals: SuggestionSignal[],
+    context: RuleContext,
+  ): SuggestionCandidate | null {
+    const waterCountSignal = signals.find(
+      (s) => s.kind === 'water_count' && s.source === 'record',
+    );
+    const waterTrendSignal = signals.find(
+      (s) => s.kind === 'water_trend' && s.source === 'record',
+    );
+
+    if (waterCountSignal == null) {
+      return null;
+    }
+
+    const completedCount = waterCountSignal.payload['completedCount'] as number;
+    const targetCount = waterCountSignal.payload['targetCount'] as number;
+    const remainingCount = waterCountSignal.payload['remainingCount'] as number;
+
+    // Only fire if water is below threshold
+    if (
+      targetCount === 0 ||
+      completedCount / targetCount >= WATER_SHORTFALL_THRESHOLD
+    ) {
+      return null;
+    }
+
+    // Only fire in afternoon or later
+    if (context.timeOfDay === 'morning') {
+      return null;
+    }
+
+    // Check baseline: need at least N consecutive days of water records
+    const consecutiveDays = waterTrendSignal?.payload[
+      'consecutiveDays'
+    ] as number;
+    if (consecutiveDays < WATER_SHORTFALL_MIN_DAYS) {
+      return null;
+    }
+
+    return {
+      candidateId: randomUUID(),
+      ruleId: this.ruleId,
+      ruleVersion: this.ruleVersion,
+      type: this.type,
+      triggerType: this.triggerType,
+      title: `今日饮水还差 ${String(remainingCount)} 杯`,
+      reason: `今日已记录 ${String(completedCount)} 杯，目标 ${String(targetCount)} 杯，完成度不足 50%。`,
+      evidence: [
+        {
+          kind: 'record',
+          label: '当前杯数',
+          value: `${String(completedCount)} 杯`,
+        },
+        {
+          kind: 'record',
+          label: '目标杯数',
+          value: `${String(targetCount)} 杯`,
+        },
+        {
+          kind: 'baseline',
+          label: '近期记录天数',
+          value: `${String(consecutiveDays)} 天`,
+        },
+      ],
+      boundary: '饮水建议仅供参考，请根据个人情况调整。',
+      primaryAction: {
+        actionId: 'go_record_water',
+        label: '去记录',
+        route: '/record/create?kind=water',
+        authRequired: true,
+      },
+      priorityScore: WATER_SHORTFALL_BASE_SCORE,
+      confidence: SuggestionConfidence.MEDIUM,
+      notificationEligible: false,
+      subtype: 'water',
+    };
+  }
+}

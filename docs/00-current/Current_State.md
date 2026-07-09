@@ -14,6 +14,7 @@ Last updated: 2026-07-09
 - [[00-current/Report_Export]] — 报告导出、PDF 生成
 - [[00-current/Meal_Analysis]] — 餐食分析管道
 - [[00-current/Code_Quality_Maintainability]] — 代码质量、模块结构、测试覆盖
+- [[00-current/Today_Suggestion_Engine]] — Today 主动建议引擎
 
 ## 相关文档
 

@@ -33,6 +33,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { TestingSupportModule } from './modules/testing-support/testing-support.module';
 import { LlmRuntimeModule } from './modules/llm-runtime/llm-runtime.module';
 import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module';
+import { TodaySuggestionModule } from './modules/today-suggestion/today-suggestion.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 
@@ -68,6 +69,7 @@ import { ApiExceptionFilter } from './common/filters/api-exception.filter';
     LlmRuntimeModule,
     AssistantModule,
     TodayAnalysisModule,
+    TodaySuggestionModule,
     UserSettingsModule,
     SupportResourcesModule,
     DataExportModule,
@@ -89,6 +91,7 @@ import { ApiExceptionFilter } from './common/filters/api-exception.filter';
           ReportsModule,
           UserSettingsModule,
           TodayAnalysisModule,
+          TodaySuggestionModule,
         ],
       },
     ]),

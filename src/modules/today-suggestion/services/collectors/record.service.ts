@@ -1,0 +1,258 @@
+import { Injectable } from '@nestjs/common';
+import { nonDeleted } from '../../../../common/helpers/prisma.helpers';
+import { parseDateOnly, now } from '../../../../common/helpers/date-time.utils';
+import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
+import { PrismaService } from '../../../../prisma/prisma.service';
+import type { SuggestionSignal } from '../../../today-suggestion/types';
+import { TriggerType } from '../../../today-suggestion/types';
+import {
+  USER_SETTING_KEYS,
+  USER_SETTINGS_DEFAULTS,
+} from '../../../user-settings/constants/user-settings.constants';
+import { TREND_LOOKBACK_DAYS } from '../../../today-suggestion/constants';
+
+const _recordSelect = {
+  id: true,
+  kind: true,
+  occurredAt: true,
+  occurredTime: true,
+  title: true,
+  value: true,
+  unit: true,
+  note: true,
+  payload: true,
+  createdAt: true,
+} satisfies Prisma.UserDailyRecordSelect;
+
+type RecordShape = Prisma.UserDailyRecordGetPayload<{
+  select: typeof _recordSelect;
+}>;
+
+/**
+ * Collects daily-record signals: water count, sleep data,
+ * symptom records (multi-day for trend), and mood records.
+ */
+@Injectable()
+export class RecordCollectorService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async collect(userId: string, date: string): Promise<SuggestionSignal[]> {
+    const day = parseDateOnly(date);
+    const lookbackStart = new Date(day);
+    lookbackStart.setUTCDate(
+      lookbackStart.getUTCDate() - (TREND_LOOKBACK_DAYS - 1),
+    );
+
+    const [todayRecords, multiDayRecords, waterTargetSetting] =
+      await Promise.all([
+        this.prisma.userDailyRecord.findMany({
+          where: {
+            userId,
+            ...nonDeleted,
+            occurredAt: day,
+          },
+          select: _recordSelect,
+          orderBy: [{ createdAt: 'desc' }],
+        }),
+        this.prisma.userDailyRecord.findMany({
+          where: {
+            userId,
+            ...nonDeleted,
+            occurredAt: { gte: lookbackStart, lte: day },
+          },
+          select: _recordSelect,
+          orderBy: [{ occurredAt: 'asc' }],
+        }),
+        this.prisma.userSetting.findUnique({
+          where: {
+            userId_key: {
+              userId,
+              key: USER_SETTING_KEYS.waterTargetCount,
+            },
+          },
+          select: { value: true },
+        }),
+      ]);
+
+    const signals: SuggestionSignal[] = [];
+
+    // Water signal
+    const waterRecords = todayRecords.filter(
+      (r) => r.kind === DailyRecordKind.water,
+    );
+    const waterTarget =
+      typeof waterTargetSetting?.value === 'number' &&
+      Number.isFinite(waterTargetSetting.value)
+        ? waterTargetSetting.value
+        : USER_SETTINGS_DEFAULTS.waterTargetCount;
+
+    signals.push({
+      signalId: `rec_water_${date}`,
+      source: 'record',
+      kind: 'water_count',
+      recordedAt: day,
+      userId,
+      triggerType: TriggerType.TIMER,
+      payload: {
+        completedCount: waterRecords.length,
+        targetCount: waterTarget,
+        remainingCount: Math.max(waterTarget - waterRecords.length, 0),
+      },
+    });
+
+    // Multi-day water trend signal
+    const multiDayWater = this.buildDailyCounts(
+      multiDayRecords.filter((r) => r.kind === DailyRecordKind.water),
+    );
+    signals.push({
+      signalId: `rec_water_trend_${date}`,
+      source: 'record',
+      kind: 'water_trend',
+      recordedAt: day,
+      userId,
+      triggerType: TriggerType.TIMER,
+      payload: {
+        dailyCounts: multiDayWater,
+        consecutiveDays: multiDayWater.length,
+        targetCount: waterTarget,
+      },
+    });
+
+    // Sleep signal
+    const sleepRecord = todayRecords.find(
+      (r) => r.kind === DailyRecordKind.sleep,
+    );
+    if (sleepRecord != null) {
+      const payload = sleepRecord.payload as Record<string, unknown> | null;
+      const durationMinutes =
+        typeof payload?.['durationMinutes'] === 'number'
+          ? payload['durationMinutes']
+          : null;
+      const quality =
+        typeof payload?.['quality'] === 'string' ? payload['quality'] : null;
+
+      signals.push({
+        signalId: `rec_sleep_${date}`,
+        source: 'record',
+        kind: 'sleep_record',
+        recordedAt: day,
+        userId,
+        triggerType: TriggerType.TIMER,
+        payload: {
+          durationMinutes,
+          quality,
+          recordId: sleepRecord.id,
+        },
+      });
+    }
+
+    // Multi-day sleep trend signal
+    const multiDaySleep = multiDayRecords
+      .filter((r) => r.kind === DailyRecordKind.sleep)
+      .map((r) => {
+        const payload = r.payload as Record<string, unknown> | null;
+        return {
+          date: r.occurredAt.toISOString().slice(0, 10),
+          durationMinutes:
+            typeof payload?.['durationMinutes'] === 'number'
+              ? payload['durationMinutes']
+              : null,
+        };
+      })
+      .filter((s) => s.durationMinutes != null);
+
+    if (multiDaySleep.length > 0) {
+      signals.push({
+        signalId: `rec_sleep_trend_${date}`,
+        source: 'record',
+        kind: 'sleep_trend',
+        recordedAt: day,
+        userId,
+        triggerType: TriggerType.TIMER,
+        payload: {
+          dailyDurations: multiDaySleep,
+          consecutiveDays: multiDaySleep.length,
+        },
+      });
+    }
+
+    // Symptom trend signal (for deteriorating_trend rule)
+    const symptomRecords = multiDayRecords.filter(
+      (r) => r.kind === DailyRecordKind.symptom,
+    );
+    if (symptomRecords.length > 0) {
+      const symptomByDate = this.buildSymptomTrend(symptomRecords);
+      signals.push({
+        signalId: `rec_symptom_trend_${date}`,
+        source: 'record',
+        kind: 'symptom_trend',
+        recordedAt: day,
+        userId,
+        triggerType: TriggerType.TIMER,
+        payload: {
+          byDate: symptomByDate,
+          totalRecords: symptomRecords.length,
+          uniqueDates: symptomByDate.length,
+        },
+      });
+    }
+
+    // Record density signal (for coverage rule)
+    const recordKinds = new Set(todayRecords.map((r) => r.kind));
+    signals.push({
+      signalId: `rec_density_${date}`,
+      source: 'record',
+      kind: 'record_density',
+      recordedAt: day,
+      userId,
+      triggerType: TriggerType.TIMER,
+      payload: {
+        todayCount: todayRecords.length,
+        todayKinds: Array.from(recordKinds),
+        multiDayCount: multiDayRecords.length,
+        lookbackDays: TREND_LOOKBACK_DAYS,
+      },
+    });
+
+    return signals;
+  }
+
+  private buildDailyCounts(
+    records: RecordShape[],
+  ): Array<{ date: string; count: number }> {
+    const byDate = new Map<string, number>();
+    for (const record of records) {
+      const dateKey = record.occurredAt.toISOString().slice(0, 10);
+      byDate.set(dateKey, (byDate.get(dateKey) ?? 0) + 1);
+    }
+    return Array.from(byDate.entries()).map(([date, count]) => ({
+      date,
+      count,
+    }));
+  }
+
+  private buildSymptomTrend(records: RecordShape[]): Array<{
+    date: string;
+    title: string;
+    value: string | null;
+    note: string | null;
+  }> {
+    return records.map((r) => ({
+      date: r.occurredAt.toISOString().slice(0, 10),
+      title: r.title ?? '',
+      value: r.value,
+      note: r.note,
+    }));
+  }
+
+  /** Returns the current time-of-day bucket for rule context. */
+  static getTimeOfDay(
+    date: Date = now(),
+  ): 'morning' | 'afternoon' | 'evening' | 'night' {
+    const hour = date.getUTCHours();
+    if (hour >= 5 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 17) return 'afternoon';
+    if (hour >= 17 && hour < 22) return 'evening';
+    return 'night';
+  }
+}
