@@ -1,0 +1,169 @@
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../../../prisma/prisma.service';
+import { AiSafetyPolicyService } from '../../../../common/ai/ai-safety-policy.service';
+import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
+import { resolveLocale } from '../../../../common/helpers/localized-copy';
+import type {
+  ExplanationContext,
+  ExplanationPromptCopy,
+} from '../../prompts/explanation.prompt';
+import { ExplanationGeneratorService } from './explanation-generator.service';
+
+/**
+ * Result of an AI explanation request.
+ */
+export interface ExplanationResult {
+  suggestionId: string;
+  reason: string;
+  boundary: string;
+  /** Whether the AI model was used (false = fallback to original rule text). */
+  aiGenerated: boolean;
+}
+
+/**
+ * AI explanation layer for suggestion cards.
+ *
+ * Design principles (aligned with Product_AI_Design):
+ * - Rule-first, AI only explains — the suggestion already exists with rule text.
+ * - AI generates enhanced reason/boundary variants on demand, not blocking first screen.
+ * - All LLM output must be grounded in the suggestion's evidence[].
+ * - All LLM output passes through AiSafetyPolicyService.
+ * - If the model is not configured or fails, falls back to original rule text.
+ */
+@Injectable()
+export class ExplanationService {
+  private readonly logger = new Logger(ExplanationService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly generatorService: ExplanationGeneratorService,
+    private readonly policyService: AiSafetyPolicyService,
+  ) {}
+
+  /**
+   * Generates an AI-enhanced explanation for a suggestion card.
+   *
+   * @param userId - The requesting user's ID.
+   * @param suggestionId - The suggestion to explain.
+   * @param language - Accept-Language header value (optional).
+   * @returns Enhanced reason and boundary text, or the original if AI is unavailable.
+   */
+  async explain(
+    userId: string,
+    suggestionId: string,
+    language?: string,
+  ): Promise<ExplanationResult> {
+    const locale = resolveLocale(language);
+
+    const suggestion = await this.prisma.userSuggestion.findFirst({
+      where: { id: suggestionId, userId },
+    });
+
+    if (suggestion == null) {
+      throw new NotFoundException('Suggestion not found');
+    }
+
+    const context = this.buildContext(suggestion);
+    const promptCopy = this.buildPromptCopy(locale);
+
+    const output = await this.generateWithFallback(
+      context,
+      promptCopy,
+      suggestionId,
+    );
+
+    return {
+      suggestionId,
+      reason: output.reason,
+      boundary: output.boundary,
+      aiGenerated: output.aiGenerated,
+    };
+  }
+
+  private async generateWithFallback(
+    context: ExplanationContext,
+    promptCopy: ExplanationPromptCopy,
+    suggestionId: string,
+  ): Promise<{ reason: string; boundary: string; aiGenerated: boolean }> {
+    // If no model configured, return original rule text immediately.
+    if (!this.generatorService.hasAnalysisModel()) {
+      this.logger.debug(
+        `Model not configured for suggestion ${suggestionId}; returning original text`,
+      );
+      return {
+        reason: context.originalReason,
+        boundary: context.originalBoundary,
+        aiGenerated: false,
+      };
+    }
+
+    try {
+      const raw = await this.generatorService.generate(context, promptCopy);
+
+      // Safety check: reject output containing forbidden patterns.
+      if (this.policyService.isSafe([raw.reason, raw.boundary])) {
+        return {
+          reason: raw.reason,
+          boundary: raw.boundary,
+          aiGenerated: true,
+        };
+      }
+
+      this.logger.warn(
+        `Policy rejected AI explanation for suggestion ${suggestionId}; falling back`,
+      );
+    } catch (error) {
+      const { message: reason } = extractErrorInfo(error);
+      this.logger.warn(
+        `AI explanation failed for suggestion ${suggestionId}; falling back: ${reason}`,
+      );
+    }
+
+    return {
+      reason: context.originalReason,
+      boundary: context.originalBoundary,
+      aiGenerated: false,
+    };
+  }
+
+  private buildContext(suggestion: {
+    type: string;
+    triggerType: string;
+    confidence: string;
+    title: string;
+    ruleId: string;
+    subtype: string | null;
+    evidence: unknown;
+    reason: string;
+    boundary: string;
+  }): ExplanationContext {
+    return {
+      suggestionType: suggestion.type as ExplanationContext['suggestionType'],
+      triggerType: suggestion.triggerType as ExplanationContext['triggerType'],
+      confidence: suggestion.confidence as ExplanationContext['confidence'],
+      title: suggestion.title,
+      ruleId: suggestion.ruleId,
+      ...(suggestion.subtype != null ? { subtype: suggestion.subtype } : {}),
+      evidence: suggestion.evidence as ExplanationContext['evidence'],
+      originalReason: suggestion.reason,
+      originalBoundary: suggestion.boundary,
+    };
+  }
+
+  private buildPromptCopy(locale: string): ExplanationPromptCopy {
+    const isZh = locale === 'zh-CN';
+
+    return {
+      userIntro: isZh
+        ? '请为以下健康建议卡生成更自然的中文解释文案。'
+        : 'Generate a more natural English explanation for the following health suggestion card.',
+      tone: isZh
+        ? '语气应温和、客观，避免绝对化表述。'
+        : 'The tone should be gentle, objective, and avoid absolute statements.',
+      constraints: isZh
+        ? '只能基于提供的 evidence 数组生成内容，不得虚构数据或引用不在证据中的记录。'
+        : 'Use ONLY the provided evidence array. Do not invent data or reference records not in the evidence.',
+      factsLabel: 'Suggestion context:',
+    };
+  }
+}

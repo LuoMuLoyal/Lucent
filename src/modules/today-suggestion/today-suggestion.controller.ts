@@ -5,6 +5,7 @@ import {
   Post,
   Body,
   Query,
+  Headers,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -19,8 +20,13 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { UserPayload } from '../auth/types/auth-request';
 import { SuggestionService } from './services/suggestion.service';
 import { FeedbackService } from './services/feedback/feedback.service';
+import { ExplanationService } from './services/explanation/explanation.service';
 import type { TodaySuggestionsResponseDto } from './dto';
-import { SuggestionFeedbackDto, SuggestionFeedbackResponseDto } from './dto';
+import {
+  SuggestionFeedbackDto,
+  SuggestionFeedbackResponseDto,
+  SuggestionExplanationResponseDto,
+} from './dto';
 
 @ApiTags('Today Suggestion')
 @ApiBearerAuth('access-token')
@@ -30,6 +36,7 @@ export class TodaySuggestionController {
   constructor(
     private readonly suggestionService: SuggestionService,
     private readonly feedbackService: FeedbackService,
+    private readonly explanationService: ExplanationService,
   ) {}
 
   @Get()
@@ -81,6 +88,29 @@ export class TodaySuggestionController {
       feedback: result.feedback,
       appliedEffect: result.appliedEffect,
       ...(result.expiresAt != null ? { expiresAt: result.expiresAt } : {}),
+    };
+
+    return successEnvelope(response);
+  }
+
+  @Post(':id/explain')
+  @ApiOperation({ summary: 'Get AI explanation for a suggestion card' })
+  async explainSuggestion(
+    @CurrentUser() user: UserPayload,
+    @Param('id') suggestionId: string,
+    @Headers('accept-language') language?: string,
+  ) {
+    const result = await this.explanationService.explain(
+      user.sub,
+      suggestionId,
+      language,
+    );
+
+    const response: SuggestionExplanationResponseDto = {
+      suggestionId: result.suggestionId,
+      reason: result.reason,
+      boundary: result.boundary,
+      aiGenerated: result.aiGenerated,
     };
 
     return successEnvelope(response);

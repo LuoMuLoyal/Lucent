@@ -1,6 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionService } from './services/suggestion.service';
 import { MedicationCollectorService } from './services/collectors/medication.service';
@@ -21,6 +22,9 @@ import { BaselineService } from './services/lifecycle/baseline.service';
 import { LifecycleService } from './services/lifecycle/lifecycle.service';
 import { FeedbackService } from './services/feedback/feedback.service';
 import { EscalationService } from './services/notification/escalation.service';
+import { ExplanationGeneratorService } from './services/explanation/explanation-generator.service';
+import { ExplanationService } from './services/explanation/explanation.service';
+import { AiSafetyPolicyService } from '../../common/ai/ai-safety-policy.service';
 import type { SuggestionRule } from './types';
 
 /**
@@ -29,7 +33,7 @@ import type { SuggestionRule } from './types';
  * Pipeline: Signal → Candidate (rule engine) → Suppression → Arbitration → Lifecycle → Notification → DTO
  */
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, NotificationsModule, LlmRuntimeModule],
   controllers: [TodaySuggestionController],
   providers: [
     // Collectors
@@ -54,10 +58,14 @@ import type { SuggestionRule } from './types';
     FeedbackService,
     // Notification escalation
     EscalationService,
+    // AI explanation
+    ExplanationGeneratorService,
+    ExplanationService,
+    AiSafetyPolicyService,
     // Orchestrator
     SuggestionService,
   ],
-  exports: [SuggestionService, FeedbackService],
+  exports: [SuggestionService, FeedbackService, ExplanationService],
 })
 export class TodaySuggestionModule implements OnModuleInit {
   constructor(

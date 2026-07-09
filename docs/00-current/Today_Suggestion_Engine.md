@@ -20,6 +20,8 @@
 通知升级 (Escalation)
     ↓
 DTO 映射 → API 响应
+    ↓
+AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 ```
 
 ## API 端点
@@ -30,6 +32,10 @@ DTO 映射 → API 响应
 - `POST /user/today/suggestions/:id/feedback` — 提交建议卡反馈
   - Body: `{ feedback: 'accepted' | 'later' | 'not_applicable' | 'suppress' }`
   - Response: `{ suggestionId, feedback, appliedEffect, expiresAt? }`
+- `POST /user/today/suggestions/:id/explain` — 获取 AI 增强解释
+  - Header: `Accept-Language` (可选, 用于本地化)
+  - Response: `{ suggestionId, reason, boundary, aiGenerated }`
+  - 不阻塞首屏：规则引擎先返回结构化卡片，前端按需请求 AI 解释
 
 ## 模块位置
 
@@ -70,6 +76,17 @@ DTO 映射 → API 响应
 - 去重：按 `(suggestionType, date)` 去重，避免通知轰炸
 - 使用 `NotificationsService.createOrReplaceScoped()` 发送
 
+## AI 解释层
+
+按需为复杂建议卡生成 AI 增强的 `reason` 和 `boundary` 自然语言变体。
+
+- 设计原则：规则优先，AI 仅解释 — 不创建或覆盖建议，只生成更自然的文案
+- 所有 LLM 输出必须基于 `evidence[]`，禁止生成 evidence 之外的内容
+- 所有 LLM 输出经过 `AiSafetyPolicyService` 安全检查（禁止诊断/处方/停药等表述）
+- 不阻塞首屏：前端先拿到规则生成的卡片，AI 解释按需加载
+- 模型未配置或调用失败时，回退到规则原始文案
+- 继承 `BaseAiGeneratorService`，使用 `language` 角色模型，结构化输出 (Zod schema)
+
 ## 数据库表
 
 - `user_suggestions` — 建议持久化
@@ -81,6 +98,7 @@ DTO 映射 → API 响应
 - [x] Phase 1: 规则引擎骨架 + missed-dose + water-shortfall
 - [x] Phase 2: 5 类卡片 + 冷启动基线 + 生命周期 + sleep/trend/coverage 规则
 - [x] Phase 3: 反馈驱动抑制 + 通知升级
-- [ ] Phase 4: 信号组合 + AI 解释层
+- [x] Phase 4: AI 解释层（信号组合规则在 Phase 5 实现）
+- [ ] Phase 5: 信号组合 + 历史回顾
 - [ ] Phase 5: 历史回顾
 - [ ] Phase 6: 缓存策略
