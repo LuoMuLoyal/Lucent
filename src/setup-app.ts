@@ -12,6 +12,7 @@ import { ConfigKey } from './config/config-keys.enum';
 import { ResultCode } from './common/api';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ApiEnvelopeInterceptor } from './common/interceptors/api-envelope.interceptor';
+import { SlowRequestInterceptor } from './common/interceptors/slow-request.interceptor';
 import { requestIdMiddleware } from './common/middleware/request-id.middleware';
 import { bindRequestContextMiddleware } from './common/logger/request-context.middleware';
 import { RequestContextService } from './common/logger/request-context.service';
@@ -46,6 +47,7 @@ export function setupApp(
   );
   app.useGlobalInterceptors(
     new LoggerErrorInterceptor(),
+    app.get(SlowRequestInterceptor),
     new ApiEnvelopeInterceptor(),
   );
   app.useGlobalFilters(app.get(ApiExceptionFilter));

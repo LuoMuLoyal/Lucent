@@ -4,6 +4,17 @@ import { randomUUID } from 'node:crypto';
 import type { Request, Response } from 'express';
 import type { RequestWithId } from '../middleware/request-id.middleware';
 
+/**
+ * Formats a response-time suffix string (e.g. ` in 42ms`) for inclusion
+ * in HTTP request log messages.
+ */
+function formatDurationSuffix(responseTime: number): string {
+  if (responseTime < 0) {
+    return '';
+  }
+  return ` in ${responseTime.toFixed(0)}ms`;
+}
+
 function createPinoHttpOptions(nodeEnv: string, logLevel: string): Options {
   const isProduction = nodeEnv === 'production';
   const level = logLevel || (isProduction ? 'info' : 'debug');
@@ -57,15 +68,15 @@ function createPinoHttpOptions(nodeEnv: string, logLevel: string): Options {
         );
       },
     },
-    customSuccessMessage: (request, response) => {
+    customSuccessMessage: (request, response, responseTime) => {
       const requestMethod = request.method ?? '';
       const requestUrl = request.url ?? '';
-      return `${requestMethod} ${requestUrl} completed with ${String(response.statusCode)}`;
+      return `${requestMethod} ${requestUrl} completed ${String(response.statusCode)}${formatDurationSuffix(responseTime)}`;
     },
-    customErrorMessage: (request, response) => {
+    customErrorMessage: (request, response, _error) => {
       const requestMethod = request.method ?? '';
       const requestUrl = request.url ?? '';
-      return `${requestMethod} ${requestUrl} failed with ${String(response.statusCode)}`;
+      return `${requestMethod} ${requestUrl} failed ${String(response.statusCode)}`;
     },
     serializers: {
       req: (request: Request) => ({

@@ -200,7 +200,17 @@ of being `new`-ed in bootstrap code so it can emit structured `pino` logs with
   threading `Request` through every call.
 - `setup-app.ts` no longer hand-builds string HTTP logs; request/response logs
   come from `pino-http` with route-level noise suppression for health/docs
-  endpoints.
+  endpoints. Each log line includes response time (e.g. `completed 200 in 42ms`).
+- `SlowRequestInterceptor` (`src/common/interceptors/slow-request.interceptor.ts`)
+  is a global interceptor that warns when a request exceeds
+  `SLOW_REQUEST_THRESHOLD_MS` (default 2000ms). Use `@SkipSlowRequestLog()` to
+  opt out per-handler.
+- `LifecycleService` (`src/common/logger/lifecycle.service.ts`) logs structured
+  startup and shutdown events. `main.ts` calls `app.enableShutdownHooks()` so
+  SIGTERM/SIGINT triggers NestJS lifecycle hooks (Prisma disconnect, etc.).
+- `ProcessMetricsService` (`src/common/logger/process-metrics.service.ts`)
+  periodically logs rss/heap/uptime/activeHandles every
+  `METRICS_LOG_INTERVAL_MS` (default 5min); skipped in test environment.
 
 ## Security Elevation
 

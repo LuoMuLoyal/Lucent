@@ -13,6 +13,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   setupApp(app, configService);
   await registerAdminPanel(app, configService);
+  app.enableShutdownHooks();
 
   const host = configService.getOrThrow<string>(`${ConfigKey.App}.host`);
   const port = configService.getOrThrow<number>(`${ConfigKey.App}.port`);

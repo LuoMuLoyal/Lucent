@@ -77,6 +77,14 @@ Last updated: 2026-07-09
   - `setup-app.ts` no longer emits hand-built string HTTP logs; structured
     request/response logs and global exception logs share the same Pino
     baseline.
+  - HTTP request logs now include response time (e.g. `GET /path completed 200 in 42ms`)
+    via pino-http v11's `responseTime` callback parameter.
+  - `SlowRequestInterceptor` (global) warns on requests exceeding
+    `SLOW_REQUEST_THRESHOLD_MS` (default 2000ms).
+  - `LifecycleService` logs application start and graceful shutdown (signal, uptime).
+    `main.ts` calls `enableShutdownHooks()` so SIGTERM triggers NestJS destroy hooks.
+  - `ProcessMetricsService` periodically logs rss/heap/uptime/activeHandles every
+    `METRICS_LOG_INTERVAL_MS` (default 5min); skipped in test env.
 
 - Unit test coverage expanded for low-coverage modules identified in the 2026-07-07 review:
   - `llm-runtime` service spec expanded from 3 to 18 tests, covering `hasRoleConfig` edge cases,
@@ -93,4 +101,4 @@ Last updated: 2026-07-09
   `StorageModule`. The `files` module no longer reverse-depends on `daily-records/config/`.
 - Today-suggestion test coverage expanded: 5 new spec files (+65 test cases) for `MedicationCollectorService`,
   `ProfileCollectorService`, `RecordCollectorService`, `BaselineService`, and `SuggestionService`
-  (the orchestrator). Total test count: 118 suites, 832 tests.
+  (the orchestrator). Total test count: 119 suites, 839 tests.

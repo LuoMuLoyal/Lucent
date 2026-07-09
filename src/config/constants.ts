@@ -110,3 +110,14 @@ export const DEFAULT_MAIL_QUEUE_COMPLETE_MAX_COUNT = 1_000;
 
 /** Default maximum number of failed mail jobs to retain. */
 export const DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT = 5_000;
+
+// ── Observability ─────────────────────────────────────────────────────────────
+
+/** Default threshold (ms) above which a request is logged as slow. */
+export const DEFAULT_SLOW_REQUEST_THRESHOLD_MS = 2_000;
+
+/** Default interval (ms) between periodic process-metrics log entries (5 min). */
+export const DEFAULT_METRICS_LOG_INTERVAL_MS = 5 * 60 * 1000;
+
+/** Maximum allowed metrics log interval (1 hour). */
+export const MAX_METRICS_LOG_INTERVAL_MS = 60 * 60 * 1000;

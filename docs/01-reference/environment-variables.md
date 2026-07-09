@@ -130,3 +130,19 @@ Recommended role split:
 - `AI_CHAT_MODEL`: 轻聊天页的主对话模型
 - `AI_CHAT_COMPRESSION_MODEL`: 长对话摘要、压缩历史上下文的低成本模型
 - `AI_EMBEDDING_MODEL`: RAG 检索向量化、知识库分片索引和查询向量生成
+
+Observability:
+
+```text
+LOG_LEVEL
+SLOW_REQUEST_THRESHOLD_MS
+METRICS_LOG_INTERVAL_MS
+```
+
+- `LOG_LEVEL` — pino log level (`debug` / `info` / `warn` / `error`). Defaults to `debug` in
+  development, `info` in production.
+- `SLOW_REQUEST_THRESHOLD_MS` — requests exceeding this duration (in ms) trigger a `warn` log
+  via `SlowRequestInterceptor`. Default: `2000`. Range: 10–300000.
+- `METRICS_LOG_INTERVAL_MS` — interval (in ms) between periodic process-metrics log entries
+  (rss, heap, uptime, active handles). Default: `300000` (5 min). Range: 10000–3600000. Skipped
+  in test environment.
