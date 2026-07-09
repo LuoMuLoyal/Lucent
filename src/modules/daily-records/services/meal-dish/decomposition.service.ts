@@ -7,7 +7,7 @@ import { buildSearchText } from '../../../../common/helpers/search-text.utils';
 import { normalizeNullableNumber } from '../../../../common/helpers/number.utils';
 import { normalizeNullableText } from '../../../../common/helpers/string.utils';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
 import {
   normalizeMealEntityName,
   type MealRecognizedDish,

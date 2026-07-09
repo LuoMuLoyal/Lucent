@@ -6,7 +6,7 @@ import type { ReportSummaryStructuredOutput } from '../../schemas/report-summary
 import type { ReportSummaryPromptCopy } from '../../prompts/report-summary.prompt';
 
 @Injectable()
-export class ReportsAiSummaryCopyService extends LocalizedCopyService<ReportSummaryPromptCopy> {
+export class ReportsLlmSummaryCopyService extends LocalizedCopyService<ReportSummaryPromptCopy> {
   protected readonly scope = 'reports-ai-summary';
 
   summariesDisabled(locale: string): string {

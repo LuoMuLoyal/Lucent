@@ -64,8 +64,8 @@ rules:
     code:
       - src/modules/assistant/**
       - src/modules/today-analysis/**
-      - src/modules/llm-runtime/**
-      - src/common/ai/**
+      - src/llm-runtime/**
+      - src/common/llm/**
     docs_required:
       - docs/00-current/Current_State.md
       - docs/00-current/Assistant_Runtime.md

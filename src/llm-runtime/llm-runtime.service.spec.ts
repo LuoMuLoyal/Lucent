@@ -1,5 +1,6 @@
-import type { AiConfig } from '../../config/ai.config';
-import { AI_MODEL_TIMEOUT_MS } from '../../config/constants';
+import { ServiceUnavailableException } from '@nestjs/common';
+import type { AiConfig } from '../config/ai.config';
+import { AI_MODEL_TIMEOUT_MS } from '../config/constants';
 import { LlmRuntimeService } from './services/llm-runtime.service';
 
 describe('LlmRuntimeService', () => {
@@ -109,6 +110,42 @@ describe('LlmRuntimeService', () => {
     });
   });
 
+  // ── getConfiguredRoles / isHealthy ─────────────────────────────────────
+
+  describe('getConfiguredRoles', () => {
+    it('returns only the configured roles', () => {
+      const service = new LlmRuntimeService(baseConfig);
+
+      expect(service.getConfiguredRoles()).toEqual(['analysis']);
+    });
+
+    it('returns empty array when no roles are configured', () => {
+      const service = new LlmRuntimeService({
+        ...baseConfig,
+        provider: null,
+      });
+
+      expect(service.getConfiguredRoles()).toEqual([]);
+    });
+  });
+
+  describe('isHealthy', () => {
+    it('returns true when at least one role is configured', () => {
+      const service = new LlmRuntimeService(baseConfig);
+
+      expect(service.isHealthy()).toBe(true);
+    });
+
+    it('returns false when no roles are configured', () => {
+      const service = new LlmRuntimeService({
+        ...baseConfig,
+        provider: null,
+      });
+
+      expect(service.isHealthy()).toBe(false);
+    });
+  });
+
   // ── createChatModel ────────────────────────────────────────────────────
 
   describe('createChatModel', () => {
@@ -170,6 +207,26 @@ describe('LlmRuntimeService', () => {
       const model = service.createChatModel('chat');
 
       expect(model).toBeDefined();
+    });
+  });
+
+  // ── requireChatModel ───────────────────────────────────────────────────
+
+  describe('requireChatModel', () => {
+    it('creates a chat model when the role is configured', () => {
+      const service = new LlmRuntimeService(baseConfig);
+
+      const model = service.requireChatModel('analysis');
+
+      expect(model).toBeDefined();
+    });
+
+    it('throws ServiceUnavailableException when the role is not configured', () => {
+      const service = new LlmRuntimeService(baseConfig);
+
+      expect(() => service.requireChatModel('chat')).toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 

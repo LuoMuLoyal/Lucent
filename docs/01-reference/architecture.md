@@ -27,7 +27,7 @@ graph TD
     end
 
     subgraph "Internal Services"
-        llm["llm-runtime<br>(AI model factory)"]
+        llm["llm-runtime<br>(LLM model factory)<br>src/llm-runtime/"]
         user["user<br>(data layer)"]
         security["security-pin<br>(PIN + elevation tokens)"]
         testing["testing-support<br>(test only)"]
@@ -89,7 +89,7 @@ graph LR
 
     subgraph "Layer 2: Generation"
         GC["Copy Service<br>(i18n prompt copy)"]
-        GEN["Generator Service<br>extends BaseAiGeneratorService"]
+        GEN["Generator Service<br>extends BaseLlmGeneratorService"]
         CC --> GEN
         GC --> GEN
     end
@@ -132,7 +132,7 @@ particular, `mail/`, `prisma/`, `config/`, and `i18n/` remain root-level runtime
 - `common/helpers/` — pure helper functions and stateless shared utilities
 - `common/services/` — shared injectable services
 - `common/logger/` — shared Nest logging module
-- `common/ai/`, `common/filters/`, `common/interceptors/`, `common/middleware/`,
+- `common/llm/`, `common/filters/`, `common/interceptors/`, `common/middleware/`,
   `common/constants/`, `common/validators/` — capability-specific shared code
 
 ```

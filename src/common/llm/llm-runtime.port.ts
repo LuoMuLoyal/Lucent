@@ -1,11 +1,11 @@
 import type { ChatOpenAI } from '@langchain/openai';
 
 /**
- * Supported AI model roles. Kept as an explicit union so that `common/ai`
+ * Supported LLM model roles. Kept as an explicit union so that `common/llm`
  * does not need to know about the concrete `AiConfig` shape defined in
  * `src/config/ai.config.ts`.
  */
-export type AiRole =
+export type LlmRole =
   | 'analysis'
   | 'vision'
   | 'language'
@@ -14,14 +14,14 @@ export type AiRole =
   | 'embedding';
 
 /**
- * Port abstraction for the LLM runtime. Defined in `common/ai` so that
- * `BaseAiGeneratorService` depends on an interface rather than the concrete
- * `LlmRuntimeService` living under `modules/llm-runtime`.
+ * Port abstraction for the LLM runtime. Defined in `common/llm` so that
+ * `BaseLlmGeneratorService` depends on an interface rather than the concrete
+ * `LlmRuntimeService` living under `src/llm-runtime/`.
  */
 export interface LlmRuntimePort {
-  hasRoleConfig(role: AiRole): boolean;
+  hasRoleConfig(role: LlmRole): boolean;
   createChatModel(
-    role: AiRole,
+    role: LlmRole,
     options?: {
       timeout?: number;
       temperature?: number;

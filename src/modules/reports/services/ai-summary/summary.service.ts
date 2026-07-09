@@ -3,8 +3,8 @@ import { badRequest } from '../../../../common/helpers/api-errors';
 
 import { HistoricalAiSummaryService } from '../../../assistant/services/historical-ai-summary.service';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { BaseAiSummaryService } from '../../../../common/ai/base-ai-summary.service';
-import { AiSafetyPolicyService } from '../../../../common/ai/ai-safety-policy.service';
+import { BaseLlmSummaryService } from '../../../../common/llm/base-llm-summary.service';
+import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import type {
   GenerateReportSummaryDto,
   ReportDashboardQueryDto,
@@ -14,7 +14,7 @@ import {
   ReportsAiSummaryContextService,
   type ReportsAiSummaryContext,
 } from './context.service';
-import { ReportsAiSummaryCopyService } from './copy.service';
+import { ReportsLlmSummaryCopyService } from './copy.service';
 import { ReportsAiSummaryGeneratorService } from './generator.service';
 import type { ReportSummaryStructuredOutput } from '../../schemas/report-summary.schema';
 import { ReportsComputationService } from '../../dashboard/computation.service';
@@ -26,7 +26,7 @@ interface PreparedReportSummary {
 }
 
 @Injectable()
-export class ReportsAiSummaryService extends BaseAiSummaryService<
+export class ReportsAiSummaryService extends BaseLlmSummaryService<
   ReportsAiSummaryContext,
   ReportSummaryStructuredOutput,
   ReportSummaryDataDto,
@@ -40,13 +40,13 @@ export class ReportsAiSummaryService extends BaseAiSummaryService<
     private readonly reportsContextService: ReportsContextService,
     private readonly reportsComputationService: ReportsComputationService,
     private readonly reportsAiSummaryContextService: ReportsAiSummaryContextService,
-    reportsAiSummaryCopyService: ReportsAiSummaryCopyService,
+    reportsLlmSummaryCopyService: ReportsLlmSummaryCopyService,
     reportsAiSummaryGeneratorService: ReportsAiSummaryGeneratorService,
-    reportsAiSummaryPolicyService: AiSafetyPolicyService,
+    reportsAiSummaryPolicyService: LlmSafetyPolicyService,
   ) {
     super(
       prisma,
-      reportsAiSummaryCopyService,
+      reportsLlmSummaryCopyService,
       reportsAiSummaryGeneratorService,
       reportsAiSummaryPolicyService,
     );

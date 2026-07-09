@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { AiSafetyPolicyService } from '../../../../common/ai/ai-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
 import { resolveLocale } from '../../../../common/helpers/localized-copy';
 import type {
@@ -27,7 +27,7 @@ export interface ExplanationResult {
  * - Rule-first, AI only explains — the suggestion already exists with rule text.
  * - AI generates enhanced reason/boundary variants on demand, not blocking first screen.
  * - All LLM output must be grounded in the suggestion's evidence[].
- * - All LLM output passes through AiSafetyPolicyService.
+ * - All LLM output passes through LlmSafetyPolicyService.
  * - If the model is not configured or fails, falls back to original rule text.
  */
 @Injectable()
@@ -37,7 +37,7 @@ export class ExplanationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly generatorService: ExplanationGeneratorService,
-    private readonly policyService: AiSafetyPolicyService,
+    private readonly policyService: LlmSafetyPolicyService,
   ) {}
 
   /**

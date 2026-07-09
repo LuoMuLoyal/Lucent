@@ -9,7 +9,7 @@
 
 ## AI Safety Policy
 
-The shared `AiSafetyPolicyService` forbids content that could be interpreted as medical advice:
+The shared `LlmSafetyPolicyService` forbids content that could be interpreted as medical advice:
 
 - Diagnosis, confirmed conditions, or treatment plans.
 - Recommendations to start, stop, increase, decrease, or adjust medication dosage.

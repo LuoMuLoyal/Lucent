@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { BaseAiGeneratorService } from '../../../common/ai/base-ai-generator.service';
-import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
+import { BaseLlmGeneratorService } from '../../../common/llm/base-llm-generator.service';
+import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
 import {
   buildTodayAnalysisSystemPrompt,
   buildTodayAnalysisUserPrompt,
@@ -13,7 +13,7 @@ import {
 import type { TodayAnalysisContext } from './context.service';
 
 @Injectable()
-export class TodayAnalysisGeneratorService extends BaseAiGeneratorService<
+export class TodayAnalysisGeneratorService extends BaseLlmGeneratorService<
   TodayAnalysisContext,
   TodayAnalysisPromptCopy,
   TodayAnalysisStructuredOutput

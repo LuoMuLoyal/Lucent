@@ -107,7 +107,7 @@ AI safety configuration (optional):
 AI_SAFETY_FORBIDDEN_PATTERNS
 ```
 
-- Comma- or newline-separated regex strings used by `AiSafetyPolicyService`.
+- Comma- or newline-separated regex strings used by `LlmSafetyPolicyService`.
 - If unset or empty, a hardcoded medical-advice baseline is used.
 - Example: `AI_SAFETY_FORBIDDEN_PATTERNS=诊断,确诊,停药,\bprescription\b`
 

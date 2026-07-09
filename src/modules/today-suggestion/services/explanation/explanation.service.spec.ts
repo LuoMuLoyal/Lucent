@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import type { AiSafetyPolicyService } from '../../../../common/ai/ai-safety-policy.service';
+import type { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import type { ExplanationGeneratorService } from './explanation-generator.service';
 import { ExplanationService } from './explanation.service';
@@ -51,7 +51,7 @@ describe('ExplanationService', () => {
 
     const safetyMock = {
       isSafe: jest.fn().mockReturnValue(isSafe),
-    } as unknown as AiSafetyPolicyService;
+    } as unknown as LlmSafetyPolicyService;
 
     const service = new ExplanationService(
       prismaMock as unknown as PrismaService,
@@ -106,7 +106,7 @@ describe('ExplanationService', () => {
       } as unknown as ExplanationGeneratorService;
       const safetyMock = {
         isSafe: jest.fn().mockReturnValue(true),
-      } as unknown as AiSafetyPolicyService;
+      } as unknown as LlmSafetyPolicyService;
       const prismaMock = {
         userSuggestion: {
           findFirst: jest.fn().mockResolvedValue(mockSuggestion),

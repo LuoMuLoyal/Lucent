@@ -1,5 +1,5 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import type { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
+import type { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import { TodayAnalysisGeneratorService } from './generator.service';
 

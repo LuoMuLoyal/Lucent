@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { BaseAiGeneratorService } from '../../../../common/ai/base-ai-generator.service';
-import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { BaseLlmGeneratorService } from '../../../../common/llm/base-llm-generator.service';
+import { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
 import {
   buildDailyRecordCandidatesSystemPrompt,
   buildDailyRecordCandidatesUserPrompt,
@@ -12,7 +12,7 @@ import {
 } from '../../schemas/daily-record-candidates.schema';
 
 @Injectable()
-export class DailyRecordCandidatesGeneratorService extends BaseAiGeneratorService<
+export class DailyRecordCandidatesGeneratorService extends BaseLlmGeneratorService<
   unknown,
   DailyRecordCandidatesPromptCopy,
   DailyRecordCandidateStructuredOutput

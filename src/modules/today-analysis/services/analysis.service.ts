@@ -5,8 +5,8 @@ import type { CreateNotificationDto } from '../../notifications/dto';
 import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { BaseAiSummaryService } from '../../../common/ai/base-ai-summary.service';
-import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
+import { BaseLlmSummaryService } from '../../../common/llm/base-llm-summary.service';
+import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
 import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from '../dto';
 import { TodayAnalysisCopyService } from './copy.service';
 import {
@@ -24,7 +24,7 @@ interface PreparedTodayAnalysis {
 }
 
 @Injectable()
-export class TodayAnalysisService extends BaseAiSummaryService<
+export class TodayAnalysisService extends BaseLlmSummaryService<
   TodayAnalysisContext,
   TodayAnalysisStructuredOutput,
   TodayAnalysisDataDto,
@@ -39,7 +39,7 @@ export class TodayAnalysisService extends BaseAiSummaryService<
     private readonly contextService: TodayAnalysisContextService,
     copyService: TodayAnalysisCopyService,
     generatorService: TodayAnalysisGeneratorService,
-    policyService: AiSafetyPolicyService,
+    policyService: LlmSafetyPolicyService,
     private readonly notificationsService: NotificationsService,
   ) {
     super(prisma, copyService, generatorService, policyService);

@@ -31,7 +31,7 @@ import { DataExportModule } from './modules/data-export/data-export.module';
 import { FilesModule } from './modules/files/files.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { TestingSupportModule } from './modules/testing-support/testing-support.module';
-import { LlmRuntimeModule } from './modules/llm-runtime/llm-runtime.module';
+import { LlmRuntimeModule } from './llm-runtime/llm-runtime.module';
 import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module';
 import { TodaySuggestionModule } from './modules/today-suggestion/today-suggestion.module';
 import { AssistantModule } from './modules/assistant/assistant.module';

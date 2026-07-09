@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
+import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { MedicinesCacheAdminService } from './cache/cache-admin.service';
 import { MedicinesCacheService } from './cache/cache.service';
 import { MedicinesController } from './medicines.controller';

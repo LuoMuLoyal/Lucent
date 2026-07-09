@@ -4,24 +4,24 @@ import { forbidden } from '../helpers/api-errors';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { PromptCopy } from '../helpers/localized-copy';
 import type { StreamSummaryEvent } from '../api/stream-summary';
-import { AiSafetyPolicyService } from './ai-safety-policy.service';
-import { BaseAiGeneratorService } from './base-ai-generator.service';
+import { LlmSafetyPolicyService } from './llm-safety-policy.service';
+import { BaseLlmGeneratorService } from './base-llm-generator.service';
 import { extractErrorInfo } from '../helpers/error-info.utils';
 
-export interface AiSummaryCopyService<TContext, TOutput> {
+export interface LlmSummaryCopyService<TContext, TOutput> {
   resolveLocale(language: string | undefined): string;
   buildPromptCopy(locale: string): PromptCopy;
   summariesDisabled(locale: string): string;
   buildFallback(context: TContext, locale: string): TOutput;
 }
 
-export interface PreparedAiSummary<TContext, TMetadata = unknown> {
+export interface PreparedLlmSummary<TContext, TMetadata = unknown> {
   context: TContext;
   locale: string;
   metadata?: TMetadata;
 }
 
-export interface AiStructuredOutput extends Record<string, unknown> {
+export interface LlmStructuredOutput extends Record<string, unknown> {
   summary: string;
   bullets: Array<{ text: string }>;
   actionLabel: string;
@@ -30,16 +30,16 @@ export interface AiStructuredOutput extends Record<string, unknown> {
 }
 
 /**
- * Shared orchestration layer for AI summary features (today, report, etc.).
+ * Shared orchestration layer for LLM summary features (today, report, etc.).
  *
  * Subclasses provide data preparation, DTO mapping, persistence, and any
  * post-processing hooks; the common generate / generateStream / fallback /
  * safety-check flow lives here.
  */
 @Injectable()
-export abstract class BaseAiSummaryService<
+export abstract class BaseLlmSummaryService<
   TContext,
-  TOutput extends AiStructuredOutput,
+  TOutput extends LlmStructuredOutput,
   TDataDto,
   TGenerateDto,
   TMetadata = unknown,
@@ -48,13 +48,13 @@ export abstract class BaseAiSummaryService<
 
   protected constructor(
     protected readonly prisma: PrismaService,
-    protected readonly copyService: AiSummaryCopyService<TContext, TOutput>,
-    protected readonly generatorService: BaseAiGeneratorService<
+    protected readonly copyService: LlmSummaryCopyService<TContext, TOutput>,
+    protected readonly generatorService: BaseLlmGeneratorService<
       TContext,
       PromptCopy,
       TOutput
     >,
-    protected readonly policyService: AiSafetyPolicyService,
+    protected readonly policyService: LlmSafetyPolicyService,
   ) {}
 
   async generate(
@@ -107,7 +107,7 @@ export abstract class BaseAiSummaryService<
     userId: string,
     dto: TGenerateDto,
     locale: string,
-  ): Promise<PreparedAiSummary<TContext, TMetadata>>;
+  ): Promise<PreparedLlmSummary<TContext, TMetadata>>;
 
   protected abstract toDataDto(
     context: TContext,

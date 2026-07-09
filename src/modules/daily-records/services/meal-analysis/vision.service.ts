@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
-import { AiSafetyPolicyService } from '../../../../common/ai/ai-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import { extractJsonObject } from '../../../../common/helpers/json.utils';
 import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
 import { normalizeNullableText } from '../../../../common/helpers/string.utils';
-import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
 
 const MEAL_DESCRIPTION_MAX_LENGTH = 200;
 const FOOD_NAME_MAX_LENGTH = 100;
@@ -25,7 +25,7 @@ export class MealAnalysisVisionService {
 
   constructor(
     private readonly llmRuntimeService: LlmRuntimeService,
-    private readonly safetyPolicyService: AiSafetyPolicyService,
+    private readonly safetyPolicyService: LlmSafetyPolicyService,
   ) {}
 
   isConfigured(): boolean {

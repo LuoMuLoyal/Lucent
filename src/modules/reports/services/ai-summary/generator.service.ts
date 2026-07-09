@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { BaseAiGeneratorService } from '../../../../common/ai/base-ai-generator.service';
-import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { BaseLlmGeneratorService } from '../../../../common/llm/base-llm-generator.service';
+import { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
 import {
   buildReportSummarySystemPrompt,
   buildReportSummaryUserPrompt,
@@ -13,7 +13,7 @@ import {
 import type { ReportsAiSummaryContext } from './context.service';
 
 @Injectable()
-export class ReportsAiSummaryGeneratorService extends BaseAiGeneratorService<
+export class ReportsAiSummaryGeneratorService extends BaseLlmGeneratorService<
   ReportsAiSummaryContext,
   ReportSummaryPromptCopy,
   ReportSummaryStructuredOutput

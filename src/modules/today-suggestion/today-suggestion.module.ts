@@ -1,7 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
+import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionService } from './services/suggestion.service';
 import { MedicationCollectorService } from './services/collectors/medication.service';
@@ -29,7 +29,7 @@ import { RuleVersionRegistry } from './services/rules/rule-version-registry.serv
 import { EscalationService } from './services/notification/escalation.service';
 import { ExplanationGeneratorService } from './services/explanation/explanation-generator.service';
 import { ExplanationService } from './services/explanation/explanation.service';
-import { AiSafetyPolicyService } from '../../common/ai/ai-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import type { SuggestionRule } from './types';
 
 /**
@@ -72,7 +72,7 @@ import type { SuggestionRule } from './types';
     // AI explanation
     ExplanationGeneratorService,
     ExplanationService,
-    AiSafetyPolicyService,
+    LlmSafetyPolicyService,
     // Orchestrator
     SuggestionService,
   ],

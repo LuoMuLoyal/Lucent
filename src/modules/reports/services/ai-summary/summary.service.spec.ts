@@ -2,9 +2,9 @@ import { ForbiddenException } from '@nestjs/common';
 import type { AiConfig } from '../../../../config/ai.config';
 import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from '../../dto';
 import type { ReportsAiSummaryContextService } from './context.service';
-import type { ReportsAiSummaryCopyService } from './copy.service';
+import type { ReportsLlmSummaryCopyService } from './copy.service';
 import type { ReportsAiSummaryGeneratorService } from './generator.service';
-import { AiSafetyPolicyService } from '../../../../common/ai/ai-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import { ReportsAiSummaryService } from './summary.service';
 import type { ReportsComputationService } from '../../dashboard/computation.service';
 import type { ReportsContextService } from '../../dashboard/context.service';
@@ -367,7 +367,7 @@ describe('ReportsAiSummaryService', () => {
     const reportsAiSummaryContextService = {
       build: jest.fn().mockReturnValue(options?.context ?? baseAiContext),
     } as unknown as ReportsAiSummaryContextService;
-    const reportsAiSummaryCopyService = {
+    const reportsLlmSummaryCopyService = {
       resolveLocale: jest.fn((language: string | undefined) => {
         const normalized = language?.trim().toLowerCase() ?? '';
         return normalized.startsWith('zh') ? 'zh-CN' : 'en';
@@ -456,7 +456,7 @@ describe('ReportsAiSummaryService', () => {
           };
         },
       ),
-    } as unknown as ReportsAiSummaryCopyService;
+    } as unknown as ReportsLlmSummaryCopyService;
     const reportsAiSummaryGeneratorService = {
       hasAnalysisModel: jest
         .fn()
@@ -471,9 +471,11 @@ describe('ReportsAiSummaryService', () => {
       reportsContextService,
       reportsComputationService,
       reportsAiSummaryContextService,
-      reportsAiSummaryCopyService,
+      reportsLlmSummaryCopyService,
       reportsAiSummaryGeneratorService,
-      new AiSafetyPolicyService({ safety: { forbiddenPatterns: [] } } as never),
+      new LlmSafetyPolicyService({
+        safety: { forbiddenPatterns: [] },
+      } as never),
     );
   }
 });

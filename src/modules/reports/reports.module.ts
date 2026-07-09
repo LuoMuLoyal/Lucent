@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AssistantModule } from '../assistant/assistant.module';
-import { LlmRuntimeModule } from '../llm-runtime/llm-runtime.module';
+import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { ReportsAiSummaryContextService } from './services/ai-summary/context.service';
-import { ReportsAiSummaryCopyService } from './services/ai-summary/copy.service';
+import { ReportsLlmSummaryCopyService } from './services/ai-summary/copy.service';
 import { ReportsAiSummaryGeneratorService } from './services/ai-summary/generator.service';
-import { AiSafetyPolicyService } from '../../common/ai/ai-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
 import { ClinicSummaryService } from './services/clinic-summary/summary.service';
 import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service';
@@ -19,9 +19,9 @@ import { ReportsController } from './reports.controller';
   controllers: [ReportsController],
   providers: [
     ReportsAiSummaryContextService,
-    ReportsAiSummaryCopyService,
+    ReportsLlmSummaryCopyService,
     ReportsAiSummaryGeneratorService,
-    AiSafetyPolicyService,
+    LlmSafetyPolicyService,
     ReportsAiSummaryService,
     ClinicSummaryService,
     ClinicSummaryPdfService,

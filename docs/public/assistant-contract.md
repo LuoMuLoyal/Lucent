@@ -37,9 +37,9 @@ The following boundaries constrain all future AI work:
   branching, and retrieval
 - **New AI features** → `Default to bounded linear` — Escalate to agent only with a concrete
   tool-use or multi-step reasoning requirement
-- **Shared generator/policy/service layer** → `Reuse `common/ai``— Today/Report already share`BaseAiGeneratorService`, `AiSafetyPolicyService`, and `BaseAiSummaryService
+- **Shared generator/policy/service layer** → `Reuse `common/llm``— Today/Report already share`BaseLlmGeneratorService`, `LlmSafetyPolicyService`, and `BaseLlmSummaryService
 
-All bounded-linear AI features must follow the layered architecture implemented in `src/common/ai`:
+All bounded-linear AI features must follow the layered architecture implemented in `src/common/llm`:
 
 ```
 AI Analysis Flow
@@ -53,11 +53,11 @@ AI Analysis Flow
 ### Rules
 
 - Do not copy-paste a new `PolicyService` or `GeneratorService`. Extend or reuse the shared base
-  classes in `src/common/ai`.
-- New AI analysis modules must implement the `BaseAiSummaryService` template unless they are
+  classes in `src/common/llm`.
+- New AI analysis modules must implement the `BaseLlmSummaryService` template unless they are
   agent-based.
-- All AI output must pass the shared `AiSafetyPolicyService` before being returned or persisted.
-- Streamed output must also be filtered by `AiSafetyPolicyService.isSafeSummaryText` for every
+- All AI output must pass the shared `LlmSafetyPolicyService` before being returned or persisted.
+- Streamed output must also be filtered by `LlmSafetyPolicyService.isSafeSummaryText` for every
   intermediate chunk.
 - When policy rejects output, fall back to the locale-aware `copyService.buildFallback()` result. Do
   not return empty output or throw.

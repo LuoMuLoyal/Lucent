@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
 import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
 
 interface GeneratorInternals {

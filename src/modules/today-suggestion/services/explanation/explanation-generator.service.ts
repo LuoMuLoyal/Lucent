@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { BaseAiGeneratorService } from '../../../../common/ai/base-ai-generator.service';
-import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { BaseLlmGeneratorService } from '../../../../common/llm/base-llm-generator.service';
+import { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
 import {
   buildExplanationSystemPrompt,
   buildExplanationUserPrompt,
@@ -15,11 +15,11 @@ import {
 /**
  * LLM generator for suggestion card explanations.
  *
- * Extends BaseAiGeneratorService to use structured-output function calling
+ * Extends BaseLlmGeneratorService to use structured-output function calling
  * with a Zod schema, following the same pattern as TodayAnalysisGeneratorService.
  */
 @Injectable()
-export class ExplanationGeneratorService extends BaseAiGeneratorService<
+export class ExplanationGeneratorService extends BaseLlmGeneratorService<
   ExplanationContext,
   ExplanationPromptCopy,
   ExplanationStructuredOutput

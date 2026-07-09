@@ -1,13 +1,13 @@
 import { SystemMessage } from '@langchain/core/messages';
 import type { HumanMessage } from '@langchain/core/messages';
-import { AiSafetyPolicyService } from '../../../../common/ai/ai-safety-policy.service';
-import type { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
+import type { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
 import { MealAnalysisVisionService } from '../meal-analysis/vision.service';
 
 describe('MealAnalysisVisionService', () => {
   const createService = (invoke: jest.Mock) => {
     const createChatModel = jest.fn().mockReturnValue({ invoke });
-    const safetyPolicyService = new AiSafetyPolicyService({
+    const safetyPolicyService = new LlmSafetyPolicyService({
       safety: { forbiddenPatterns: [] },
     } as never);
     const service = new MealAnalysisVisionService(
@@ -147,7 +147,7 @@ describe('MealAnalysisVisionService', () => {
       }),
     });
     const createChatModel = jest.fn().mockReturnValue({ invoke });
-    const safetyPolicyService = new AiSafetyPolicyService({
+    const safetyPolicyService = new LlmSafetyPolicyService({
       safety: { forbiddenPatterns: [] },
     } as never);
     jest.spyOn(safetyPolicyService, 'isSafeText').mockImplementation((text) => {

@@ -18,9 +18,9 @@ Last updated: 2026-07-09
   hard-coded ports/codes in `cache.config.spec.ts` / `mail.service.spec.ts` are now extracted.
 - `wechat-base-oauth.provider.ts` now logs network-level OAuth failures before translating them to
   `ServiceUnavailableException`.
-- `common/ai` no longer imports from `modules/`: user-setting keys live in
-  `src/common/constants/user-setting-keys.ts`, and `BaseAiGeneratorService` depends on the
-  `LlmRuntimePort` interface defined in `src/common/ai/llm-runtime.port.ts`.
+- `common/llm` no longer imports from `modules/`: user-setting keys live in
+  `src/common/constants/user-setting-keys.ts`, and `BaseLlmGeneratorService` depends on the
+  `LlmRuntimePort` interface defined in `src/common/llm/llm-runtime.port.ts`.
 - Current-time creation is centralized through `now()` / `nowIsoString()` in
   `src/common/helpers/date-time.utils.ts`; bare `new Date()` calls in non-test business code have been
   replaced.
@@ -36,7 +36,7 @@ Last updated: 2026-07-09
 - `api-errors.ts` helpers are now used consistently for plain `BadRequestException` throws in
   reports and daily-records services.
 - AI model invocation timeout is centralized as `AI_MODEL_TIMEOUT_MS` in `src/config/constants.ts`;
-  `BaseAiGeneratorService` and `AssistantRuntimeService` both reference the same constant instead
+  `BaseLlmGeneratorService` and `AssistantRuntimeService` both reference the same constant instead
   of hardcoding `10_000`.
 - Error-info extraction is centralized in `src/common/helpers/error-info.utils.ts`
   (`extractErrorInfo`); 13 catch blocks across 11 files now share the same message/stack extraction

@@ -28,15 +28,15 @@ const DEFAULT_FORBIDDEN_PATTERNS = [
 ];
 
 /**
- * Shared AI content safety policy.
+ * Shared LLM content safety policy.
  *
- * Centralizes forbidden-pattern checks so that every AI module applies the
+ * Centralizes forbidden-pattern checks so that every LLM module applies the
  * same safety rules instead of copy-pasting them. Patterns can be overridden
  * at runtime via the `AI_SAFETY_FORBIDDEN_PATTERNS` environment variable
  * (comma or newline separated regex strings).
  */
 @Injectable()
-export class AiSafetyPolicyService {
+export class LlmSafetyPolicyService {
   private readonly forbiddenPatterns: RegExp[];
 
   constructor(

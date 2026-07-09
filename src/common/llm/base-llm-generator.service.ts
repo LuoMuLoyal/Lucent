@@ -8,7 +8,7 @@ import { JsonOutputKeyToolsParser } from '@langchain/core/output_parsers/openai_
 import { ChatGenerationChunk } from '@langchain/core/outputs';
 import { toJsonSchema } from '@langchain/core/utils/json_schema';
 import type { ZodObject, ZodType } from 'zod';
-import type { AiRole, LlmRuntimePort } from './llm-runtime.port';
+import type { LlmRole, LlmRuntimePort } from './llm-runtime.port';
 import { AI_MODEL_TIMEOUT_MS } from '../../config/constants';
 
 const MODEL_OPTIONS = {
@@ -17,7 +17,7 @@ const MODEL_OPTIONS = {
   maxRetries: 0,
 } as const;
 
-export interface BaseAiGeneratorOptions {
+export interface BaseLlmGeneratorOptions {
   /** Name passed to the model as the function/tool name. */
   toolName: string;
   /** Human-readable name used in stream error messages. */
@@ -25,21 +25,21 @@ export interface BaseAiGeneratorOptions {
 }
 
 /**
- * Shared base for AI structured-output generators.
+ * Shared base for LLM structured-output generators.
  *
  * Subclasses only need to supply the Zod schema, tool name, and prompt builders;
  * streaming and structured-output invocation are implemented once here.
  */
 @Injectable()
-export abstract class BaseAiGeneratorService<
+export abstract class BaseLlmGeneratorService<
   TContext,
   TPromptCopy,
   TOutput extends Record<string, unknown>,
 > {
   protected abstract readonly schema: ZodType<TOutput>;
-  protected abstract readonly options: BaseAiGeneratorOptions;
-  /** AI model role to use (e.g. 'analysis', 'language'). */
-  protected abstract readonly modelRole: AiRole;
+  protected abstract readonly options: BaseLlmGeneratorOptions;
+  /** LLM model role to use (e.g. 'analysis', 'language'). */
+  protected abstract readonly modelRole: LlmRole;
 
   protected constructor(private readonly llmRuntimeService: LlmRuntimePort) {}
 

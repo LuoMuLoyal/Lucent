@@ -3,7 +3,7 @@
  *
  * These keys are used by both domain modules (user-settings) and common
  * infrastructure (AI summaries). Keeping them in `common/` breaks the
- * previous reverse dependency where `common/ai` imported from
+ * previous reverse dependency where `common/llm` imported from
  * `modules/user-settings`.
  */
 

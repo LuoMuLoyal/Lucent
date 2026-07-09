@@ -3,7 +3,7 @@ import type { AiConfig } from '../../../config/ai.config';
 import type { TodayAnalysisCopyService } from './copy.service';
 import type { TodayAnalysisContextService } from './context.service';
 import type { TodayAnalysisGeneratorService } from './generator.service';
-import { AiSafetyPolicyService } from '../../../common/ai/ai-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
 import { TodayAnalysisService } from './analysis.service';
 import type { NotificationsService } from '../../notifications/services/notifications.service';
 
@@ -420,7 +420,9 @@ describe('TodayAnalysisService', () => {
       contextService,
       copyService,
       generatorService,
-      new AiSafetyPolicyService({ safety: { forbiddenPatterns: [] } } as never),
+      new LlmSafetyPolicyService({
+        safety: { forbiddenPatterns: [] },
+      } as never),
       notificationsService,
     );
   }

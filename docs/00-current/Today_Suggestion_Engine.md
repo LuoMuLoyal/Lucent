@@ -85,10 +85,10 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 
 - 设计原则：规则优先，AI 仅解释 — 不创建或覆盖建议，只生成更自然的文案
 - 所有 LLM 输出必须基于 `evidence[]`，禁止生成 evidence 之外的内容
-- 所有 LLM 输出经过 `AiSafetyPolicyService` 安全检查（禁止诊断/处方/停药等表述）
+- 所有 LLM 输出经过 `LlmSafetyPolicyService` 安全检查（禁止诊断/处方/停药等表述）
 - 不阻塞首屏：前端先拿到规则生成的卡片，AI 解释按需加载
 - 模型未配置或调用失败时，回退到规则原始文案
-- 继承 `BaseAiGeneratorService`，使用 `language` 角色模型，结构化输出 (Zod schema)
+- 继承 `BaseLlmGeneratorService`，使用 `language` 角色模型，结构化输出 (Zod schema)
 
 ## 数据库表
 
