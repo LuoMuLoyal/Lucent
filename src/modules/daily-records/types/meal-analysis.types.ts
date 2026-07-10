@@ -1,4 +1,5 @@
 import { nowIsoString } from '../../../common/helpers/date-time.utils';
+import { mealRecordPayloadSchema } from '../../../common/validators/jsonb-schemas';
 
 export const MEAL_ANALYSIS_STATUSES = [
   'analyzing',
@@ -81,13 +82,22 @@ export function parseMealRecordPayload(raw: unknown): MealRecordPayload {
     return {};
   }
 
-  return {
+  const manuallyParsed: MealRecordPayload = {
     mealInput: clonePlainRecord(readMealInputCandidate(root)),
     mealAnalysis: cloneMealAnalysis(root['mealAnalysis']),
     mealAnalysisLastConfirmed: cloneMealAnalysis(
       root['mealAnalysisLastConfirmed'],
     ),
   };
+
+  // Validate the manually parsed result against the Zod schema.
+  // On failure, fall back to the manually parsed version (which is more
+  // permissive) so a schema mismatch doesn't crash the request.
+  const zodResult = mealRecordPayloadSchema.safeParse(manuallyParsed);
+  if (zodResult.success) {
+    return zodResult.data as MealRecordPayload;
+  }
+  return manuallyParsed;
 }
 
 export function buildMealPayloadFromClientInput(

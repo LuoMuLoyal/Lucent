@@ -1,6 +1,6 @@
 # Lucent TODO
 
-Last updated: 2026-07-05
+Last updated: 2026-07-10
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -12,8 +12,16 @@ random docs.
 `Lucent/docs/02-logs/migration-log/YYYY-MM-DD.md` and
 `Luminous/docs/02-logs/migration-log/YYYY-MM-DD.md` as cross-repo sync evidence.
 
-后续可做（不在本次范围）
-在 BullMQ 队列服务中接入 recordBullmqJob() 事件监听（3 个队列服务各加几行）
-在 LLM 调用服务中接入 recordLlmCall() / recordLlmTokens()（AI 服务 wrapper 层）
-配置 Prometheus alerting rules
-添加 synthetic uptime monitoring
+## 后续可做
+
+### 数据层
+
+- 为 assistant、auth 模块补充 Repository 抽象层（daily-records 已完成）
+- 将 DailyRecordsService 的现有 Prisma 调用迁移到 DailyRecordRepositoryPort
+
+### 可观测性（暂时搁置）
+
+- OpenTelemetry 分布式追踪
+- 接入 recordBullmqJob() / recordLlmCall() / recordLlmTokens()
+- 配置 Prometheus alerting rules
+- 添加 synthetic uptime monitoring
