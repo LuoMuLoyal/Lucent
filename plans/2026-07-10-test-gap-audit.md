@@ -13,28 +13,18 @@
 
 ## 二、全局统计
 
-| 维度                        | 数量                                         |
-| --------------------------- | -------------------------------------------- |
-| 单元测试文件 `.spec.ts`     | 121 → 139（P0）→ 149（P1）→ 173（P2 后）     |
-| E2E 测试文件 `.e2e-spec.ts` | 17 → 19（P1 后）                             |
-| 源 Service 文件（modules）  | 109                                          |
-| 源 Service 文件（common）   | 7                                            |
-| 源 Controller 文件          | 21                                           |
-| 源 Repository 文件          | 8                                            |
-| 源 Provider 文件            | 5                                            |
-| 源 Guard 文件               | 2                                            |
-| Jest 覆盖率阈值             | branches 50%, functions/lines/statements 60% |
+| 维度                        | 数量                                             |
+| --------------------------- | ------------------------------------------------ |
+| 单元测试文件 `.spec.ts`     | 121 → 139（P0）→ 149（P1）→ 173（P2）→ 186（P3） |
+| E2E 测试文件 `.e2e-spec.ts` | 17 → 19（P1 后）                                 |
+| 源 Service 文件（modules）  | 109                                              |
+| 源 Service 文件（common）   | 7                                                |
+| 源 Controller 文件          | 21                                               |
+| 源 Repository 文件          | 8                                                |
+| 源 Provider 文件            | 5                                                |
+| 源 Guard 文件               | 2                                                |
+| Jest 覆盖率阈值             | branches 50%, functions/lines/statements 60%     |
 
-## 三、缺口清单（按优先级分组）
+## 三、后续优先级
 
-### P3 — 低频改动 / 薄包装
-
-| 区域                      | 缺失文件数 |
-| ------------------------- | ---------- |
-| Repository 层（8 个模块） | 8          |
-| `admin/services/`         | 5          |
-
-## 四、后续优先级
-
-- 推进 P3（Repository + Admin）
 - 覆盖率阈值逐步提升至 branches 70% / functions+lines+statements 80%
