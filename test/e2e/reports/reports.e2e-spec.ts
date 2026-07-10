@@ -17,6 +17,11 @@ import type {
 } from '../../helpers/e2e-helpers';
 
 const DASHBOARD_PATH = '/api/v1/user/reports/dashboard';
+const CLINIC_PREVIEW_PATH = '/api/v1/user/reports/clinic-summary/preview';
+const CLINIC_SHARE_PATH = '/api/v1/user/reports/clinic-summary/share';
+const CLINIC_SHARED_PATH = '/api/v1/user/reports/clinic-summary/shared';
+const CLINIC_PREVIEW_PDF_PATH =
+  '/api/v1/user/reports/clinic-summary/preview/pdf';
 
 describe('Reports API (e2e)', () => {
   let ctx: E2eTestContext;
@@ -128,6 +133,166 @@ describe('Reports API (e2e)', () => {
       const body = response.body as ApiEnvelope<{ summary?: string }>;
       expect(body.code).toBe(ResultCode.SUCCESS);
       expect(body.data).toBeDefined();
+    });
+  });
+
+  // ── Clinic Summary ─────────────────────────────────────────
+
+  describe('POST /api/v1/user/reports/clinic-summary/preview', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer()).post(CLINIC_PREVIEW_PATH).expect(401);
+    });
+
+    it('should return a de-identified clinic summary for authenticated user', async () => {
+      const response = await request(app.getHttpServer())
+        .post(CLINIC_PREVIEW_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(201);
+
+      const body = response.body as ApiEnvelope<{
+        generatedAt: string;
+        dataRange: string;
+        profile: {
+          nickname: string;
+          age: number | null;
+          sexAtBirth: string | null;
+          bloodType: string | null;
+        };
+        allergies: unknown[];
+        conditions: unknown[];
+        currentMedicines: unknown[];
+        disclaimer: string;
+      }>;
+
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      const data = expectData(body);
+      expect(data.generatedAt).toBeTruthy();
+      expect(data.dataRange).toBe('last_30_days');
+      // nickname should be masked (de-identified)
+      expect(data.profile.nickname).not.toBe('ReportsUser');
+      expect(data.disclaimer).toBeTruthy();
+      expect(Array.isArray(data.allergies)).toBe(true);
+      expect(Array.isArray(data.conditions)).toBe(true);
+      expect(Array.isArray(data.currentMedicines)).toBe(true);
+    });
+  });
+
+  describe('POST /api/v1/user/reports/clinic-summary/share', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer()).post(CLINIC_SHARE_PATH).expect(401);
+    });
+
+    it('should create a shareable link with expiry', async () => {
+      const response = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(201);
+
+      const body = response.body as ApiEnvelope<{
+        shareUrl: string;
+        expiresAt: string;
+      }>;
+
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      const data = expectData(body);
+      expect(data.shareUrl).toContain('/clinic-summary/shared/');
+      expect(data.expiresAt).toBeTruthy();
+      // expiry should be in the future
+      expect(new Date(data.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    });
+  });
+
+  describe('GET /api/v1/reports/clinic-summary/shared/:token', () => {
+    it('should return 410 for an invalid or expired token', async () => {
+      await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/invalid-token-12345`)
+        .expect(410);
+    });
+
+    it('should return the shared clinic summary for a valid token', async () => {
+      // First create a share link
+      const shareRes = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(201);
+
+      const shareData = expectData(
+        shareRes.body as ApiEnvelope<{ shareUrl: string; expiresAt: string }>,
+      );
+      // Extract the token from the shareUrl
+      const token = shareData.shareUrl.split('/').pop()!;
+
+      // Then access the shared summary
+      const response = await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/${token}`)
+        .expect(200);
+
+      const body = response.body as ApiEnvelope<{
+        generatedAt: string;
+        dataRange: string;
+        disclaimer: string;
+      }>;
+
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      const data = expectData(body);
+      expect(data.generatedAt).toBeTruthy();
+      expect(data.dataRange).toBe('last_30_days');
+      expect(data.disclaimer).toBeTruthy();
+    });
+  });
+
+  describe('GET /api/v1/user/reports/clinic-summary/preview/pdf', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer())
+        .get(CLINIC_PREVIEW_PDF_PATH)
+        .expect(401);
+    });
+
+    it('should download a PDF file for authenticated user', async () => {
+      const response = await request(app.getHttpServer())
+        .get(CLINIC_PREVIEW_PDF_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      expect(response.headers['content-type']).toBe('application/pdf');
+      expect(response.headers['content-disposition']).toContain(
+        'clinic-summary.pdf',
+      );
+      // PDF files start with %PDF
+      const body = response.body as Buffer;
+      expect(body.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('GET /api/v1/reports/clinic-summary/shared/:token/pdf', () => {
+    it('should return 410 for an invalid or expired token', async () => {
+      await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/invalid-token-pdf-12345/pdf`)
+        .expect(410);
+    });
+
+    it('should download a PDF file for a valid shared token', async () => {
+      // Create a share link first
+      const shareRes = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(201);
+
+      const shareData = expectData(
+        shareRes.body as ApiEnvelope<{ shareUrl: string }>,
+      );
+      const token = shareData.shareUrl.split('/').pop()!;
+
+      const response = await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/${token}/pdf`)
+        .expect(200);
+
+      expect(response.headers['content-type']).toBe('application/pdf');
+      expect(response.headers['content-disposition']).toContain(
+        'clinic-summary.pdf',
+      );
+      const body = response.body as Buffer;
+      expect(body.length).toBeGreaterThan(0);
     });
   });
 });

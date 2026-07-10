@@ -517,4 +517,117 @@ describe('Daily Records API (e2e)', () => {
       'zh-CN',
     ]);
   });
+
+  // ── Presigned Image Upload ─────────────────────────────────
+
+  describe('POST /attachments/images/presign-upload', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer())
+        .post(`${BASE_PATH}/attachments/images/presign-upload`)
+        .send({
+          contentType: 'image/jpeg',
+          sizeBytes: 1024,
+        })
+        .expect(401);
+    });
+
+    it('should return 400 or 503 for invalid content type', async () => {
+      const email = uniqueEmail();
+      const user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash: '$argon2id$mock',
+          status: UserStatus.active,
+        },
+      });
+      const token = await createAccessToken(
+        user.id,
+        expectDefined(user.email, 'Expected user email'),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/attachments/images/presign-upload`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          contentType: 'application/pdf',
+          sizeBytes: 1024,
+        });
+
+      // If COS is configured → 400 (invalid content type)
+      // If COS is not configured → 503 (service unavailable, checked before content type)
+      expect([400, 503]).toContain(res.status);
+    });
+
+    it('should return 400 for missing required fields', async () => {
+      const email = uniqueEmail();
+      const user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash: '$argon2id$mock',
+          status: UserStatus.active,
+        },
+      });
+      const token = await createAccessToken(
+        user.id,
+        expectDefined(user.email, 'Expected user email'),
+      );
+
+      await request(app.getHttpServer())
+        .post(`${BASE_PATH}/attachments/images/presign-upload`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({ fileName: 'test.jpg' })
+        .expect(400);
+    });
+
+    it('should create presigned upload URL or return 503 when COS not configured', async () => {
+      const email = uniqueEmail();
+      const user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash: '$argon2id$mock',
+          status: UserStatus.active,
+        },
+      });
+      const token = await createAccessToken(
+        user.id,
+        expectDefined(user.email, 'Expected user email'),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post(`${BASE_PATH}/attachments/images/presign-upload`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          contentType: 'image/jpeg',
+          sizeBytes: 102400,
+          fileName: 'breakfast.jpg',
+        });
+
+      // COS may not be configured in test environment → 503
+      // When COS is configured → 201
+      if (res.status === 201) {
+        const body = res.body as ApiEnvelope<{
+          provider: string;
+          bucket: string;
+          objectKey: string;
+          uploadUrl: string;
+          headers: Record<string, string>;
+          publicUrl: string | null;
+          expiresAt: string;
+          maxSizeBytes: number;
+        }>;
+        expect(body.code).toBe(ResultCode.SUCCESS);
+        const data = expectData(body);
+        expect(data.provider).toBe('tencent-cos');
+        expect(data.bucket).toBeTruthy();
+        expect(data.objectKey).toContain('daily-records/');
+        expect(data.uploadUrl).toBeTruthy();
+        expect(data.headers['Content-Type']).toBe('image/jpeg');
+        expect(data.expiresAt).toBeTruthy();
+        expect(data.maxSizeBytes).toBeGreaterThan(0);
+      } else {
+        // COS not configured
+        expect([503, 500]).toContain(res.status);
+      }
+    });
+  });
 });

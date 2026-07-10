@@ -1,6 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 
@@ -9,6 +10,8 @@ import { setupApp } from '../../../src/setup-app';
 import type { ApiEnvelope } from '../../../src/common/api';
 import { ResultCode } from '../../../src/common/api';
 import { PrismaService } from '../../../src/prisma/prisma.service';
+import { ConfigKey } from '../../../src/config/config-keys.enum';
+import { UserStatus } from '#generated/prisma/client';
 
 interface MedicineSearchItem {
   id: string;
@@ -38,7 +41,23 @@ interface MedicineDetailData {
   detail: Record<string, unknown>;
 }
 
+interface SafetyTipItem {
+  id: string;
+  text: string;
+  category: string;
+}
+
 const MEDICINES_PATH = '/api/v1/medicines';
+const SAFETY_TIPS_PATH = '/api/v1/medicines/safety-tips';
+const RECOGNIZE_PATH = '/api/v1/medicines/recognize';
+const AUTH_HEADER = 'Authorization';
+
+let recognizeSeq = 0;
+
+function uniqueEmail(): string {
+  recognizeSeq += 1;
+  return `med-recognize${recognizeSeq}_${Date.now()}@example.com`;
+}
 
 function expectData<T>(body: ApiEnvelope<T>): T {
   expect(body.data).not.toBeNull();
@@ -48,6 +67,8 @@ function expectData<T>(body: ApiEnvelope<T>): T {
 describe('Medicines API (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let jwtService: JwtService;
+  let configService: ConfigService;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -59,7 +80,10 @@ describe('Medicines API (e2e)', () => {
     await app.init();
 
     prisma = app.get(PrismaService);
+    jwtService = app.get(JwtService);
+    configService = app.get(ConfigService);
 
+    await prisma.medicineSafetyTip.deleteMany();
     await prisma.drugbankDrugTarget.deleteMany();
     await prisma.drugbankExternalLink.deleteMany();
     await prisma.drugbankTarget.deleteMany();
@@ -69,6 +93,7 @@ describe('Medicines API (e2e)', () => {
   });
 
   afterAll(async () => {
+    await prisma.medicineSafetyTip.deleteMany();
     await prisma.drugbankDrugTarget.deleteMany();
     await prisma.drugbankExternalLink.deleteMany();
     await prisma.drugbankTarget.deleteMany();
@@ -79,6 +104,7 @@ describe('Medicines API (e2e)', () => {
   });
 
   beforeEach(async () => {
+    await prisma.medicineSafetyTip.deleteMany();
     await prisma.drugbankDrugTarget.deleteMany();
     await prisma.drugbankExternalLink.deleteMany();
     await prisma.drugbankTarget.deleteMany();
@@ -214,5 +240,218 @@ describe('Medicines API (e2e)', () => {
     const body = response.body as ApiEnvelope;
     expect(body.code).toBe(ResultCode.BAD_REQUEST);
     expect(body.message).toBe('Invalid medicine source');
+  });
+
+  // ── Safety Tips ──────────────────────────────────────────────
+
+  describe('GET /api/v1/medicines/safety-tips', () => {
+    beforeEach(async () => {
+      await prisma.medicineSafetyTip.createMany({
+        data: [
+          {
+            id: 'tip-alcohol',
+            contentZh: '服药期间请勿饮酒',
+            contentEn: 'Do not drink alcohol while taking medicine',
+            category: 'alcohol',
+            sortOrder: 1,
+            isActive: true,
+          },
+          {
+            id: 'tip-caffeine',
+            contentZh: '咖啡因可能影响药效',
+            contentEn: 'Caffeine may affect drug efficacy',
+            category: 'caffeine',
+            sortOrder: 2,
+            isActive: true,
+          },
+          {
+            id: 'tip-timing',
+            contentZh: '请按时服药',
+            contentEn: 'Take medicine on time',
+            category: 'timing',
+            sortOrder: 3,
+            isActive: true,
+          },
+          {
+            id: 'tip-storage',
+            contentZh: '请将药品存放在阴凉处',
+            contentEn: 'Store medicine in a cool place',
+            category: 'storage',
+            sortOrder: 4,
+            isActive: true,
+          },
+          {
+            id: 'tip-food',
+            contentZh: '注意药物与食物的相互作用',
+            contentEn: 'Be aware of drug-food interactions',
+            category: 'food',
+            sortOrder: 5,
+            isActive: true,
+          },
+          {
+            id: 'tip-inactive',
+            contentZh: '此提示已停用',
+            contentEn: 'This tip is inactive',
+            category: 'general',
+            sortOrder: 6,
+            isActive: false,
+          },
+        ],
+      });
+    });
+
+    it('should return up to 4 random safety tips in Chinese', async () => {
+      const response = await request(app.getHttpServer())
+        .get(SAFETY_TIPS_PATH)
+        .set('Accept-Language', 'zh-CN')
+        .expect(200);
+
+      const body = response.body as ApiEnvelope<SafetyTipItem[]>;
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      const data = expectData(body);
+      expect(data).toHaveLength(4);
+      // Each tip should have Chinese text
+      for (const tip of data) {
+        expect(tip.id).toBeTruthy();
+        expect(tip.text).toBeTruthy();
+        expect(tip.category).toBeTruthy();
+      }
+      // Should not include inactive tips
+      expect(data.map((t) => t.id)).not.toContain('tip-inactive');
+    });
+
+    it('should return tips in English by default', async () => {
+      const response = await request(app.getHttpServer())
+        .get(SAFETY_TIPS_PATH)
+        .expect(200);
+
+      const body = response.body as ApiEnvelope<SafetyTipItem[]>;
+      const data = expectData(body);
+      expect(data).toHaveLength(4);
+      // English text should contain ASCII characters typical of English
+      expect(data[0]?.text).toMatch(/^[A-Z]/);
+    });
+
+    it('should return empty array when no active tips exist', async () => {
+      await prisma.medicineSafetyTip.deleteMany();
+
+      const response = await request(app.getHttpServer())
+        .get(SAFETY_TIPS_PATH)
+        .expect(200);
+
+      const body = response.body as ApiEnvelope<SafetyTipItem[]>;
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      expect(body.data).toEqual([]);
+    });
+
+    it('should exclude specified tip ids', async () => {
+      const firstRes = await request(app.getHttpServer())
+        .get(SAFETY_TIPS_PATH)
+        .set('Accept-Language', 'zh-CN')
+        .expect(200);
+
+      const firstData = expectData(
+        firstRes.body as ApiEnvelope<SafetyTipItem[]>,
+      );
+      const excludeIds = firstData.map((t) => t.id);
+
+      const secondRes = await request(app.getHttpServer())
+        .get(`${SAFETY_TIPS_PATH}?exclude=${excludeIds.join('&exclude=')}`)
+        .set('Accept-Language', 'zh-CN')
+        .expect(200);
+
+      const secondData = expectData(
+        secondRes.body as ApiEnvelope<SafetyTipItem[]>,
+      );
+      // Excluded ids should not appear (unless fewer than 4 remain)
+      for (const id of excludeIds) {
+        expect(secondData.map((t) => t.id)).not.toContain(id);
+      }
+    });
+  });
+
+  // ── AI Medicine Box Recognition ──────────────────────────────
+
+  describe('POST /api/v1/medicines/recognize', () => {
+    async function createUserWithToken() {
+      const email = uniqueEmail();
+      const user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash: '$argon2id$mock',
+          status: UserStatus.active,
+        },
+      });
+
+      const jwtCfg = configService.getOrThrow<{
+        accessSecret: string;
+        accessTtl: number;
+        issuer: string;
+        audience: string;
+      }>(ConfigKey.Jwt);
+
+      const token = await jwtService.signAsync(
+        { sub: user.id, email: user.email! },
+        {
+          secret: jwtCfg.accessSecret,
+          expiresIn: jwtCfg.accessTtl,
+          algorithm: 'HS512' as const,
+          issuer: jwtCfg.issuer,
+          audience: jwtCfg.audience,
+        },
+      );
+      return { user, token };
+    }
+
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer())
+        .post(RECOGNIZE_PATH)
+        .send({ imageUrl: 'https://example.com/medicine.jpg' })
+        .expect(401);
+    });
+
+    it('should return 400 for invalid request body (missing imageUrl)', async () => {
+      const { token } = await createUserWithToken();
+
+      await request(app.getHttpServer())
+        .post(RECOGNIZE_PATH)
+        .set(AUTH_HEADER, `Bearer ${token}`)
+        .send({})
+        .expect(400);
+    });
+
+    it('should return 400 for empty imageUrl', async () => {
+      const { token } = await createUserWithToken();
+
+      await request(app.getHttpServer())
+        .post(RECOGNIZE_PATH)
+        .set(AUTH_HEADER, `Bearer ${token}`)
+        .send({ imageUrl: '' })
+        .expect(400);
+    });
+
+    it('should accept a valid request and return a recognition result (may be 503 if LLM not configured)', async () => {
+      const { token } = await createUserWithToken();
+
+      const response = await request(app.getHttpServer())
+        .post(RECOGNIZE_PATH)
+        .set(AUTH_HEADER, `Bearer ${token}`)
+        .send({ imageUrl: 'http://localhost/test-medicine.jpg' });
+
+      // The endpoint calls LLM; in test env LLM may not be configured
+      // which results in either 200 (with null fields) or 503
+      if (response.status === 200) {
+        const body = response.body as ApiEnvelope<{
+          name: string | null;
+          approvalNumber: string | null;
+          specification: string | null;
+          manufacturer: string | null;
+        }>;
+        expect(body.code).toBe(ResultCode.SUCCESS);
+        expect(body.data).toBeDefined();
+      } else {
+        expect([503, 500]).toContain(response.status);
+      }
+    });
   });
 });

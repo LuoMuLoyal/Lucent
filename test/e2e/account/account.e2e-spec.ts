@@ -19,6 +19,9 @@ import type {
   TestUser,
 } from '../../helpers/e2e-helpers';
 import { UserStatus } from '#generated/prisma/client';
+import { WechatWebOAuthProvider } from '../../../src/modules/auth/providers/wechat-web-oauth.provider';
+import { WechatMobileOAuthProvider } from '../../../src/modules/auth/providers/wechat-mobile-oauth.provider';
+import type { OAuthProfile } from '../../../src/modules/auth/types/oauth.types';
 
 const ACCOUNT_PATH = '/api/v1/account';
 const SET_PASSWORD_PATH = `${ACCOUNT_PATH}/set-password`;
@@ -56,6 +59,8 @@ describe('Account API (e2e)', () => {
   let user: TestUser;
   let accessToken: string;
   let cache: Cache;
+  let wechatWebProvider: WechatWebOAuthProvider;
+  let wechatMobileProvider: WechatMobileOAuthProvider;
 
   beforeAll(async () => {
     ctx = await createTestApp();
@@ -71,6 +76,8 @@ describe('Account API (e2e)', () => {
     );
 
     cache = app.get(CACHE_MANAGER);
+    wechatWebProvider = app.get(WechatWebOAuthProvider);
+    wechatMobileProvider = app.get(WechatMobileOAuthProvider);
   });
 
   afterAll(async () => {
@@ -339,6 +346,10 @@ describe('Account API (e2e)', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('POST /account/identities/wechat-web/authorize', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer())
         .post(WECHAT_WEB_AUTHORIZE_PATH)
@@ -355,6 +366,53 @@ describe('Account API (e2e)', () => {
       const body = res.body as ApiEnvelope;
       expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
+
+    it('should return authorize URL when WeChat OAuth is configured (mocked)', async () => {
+      jest
+        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
+        .mockReturnValue(
+          'https://open.weixin.qq.com/connect/qrconnect?appid=wx123&state=mock-state',
+        );
+
+      const res = await request(app.getHttpServer())
+        .post(WECHAT_WEB_AUTHORIZE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      const data = expectData(
+        res.body as ApiEnvelope<{
+          authorizeUrl: string;
+          state: string;
+          expiresIn: number;
+        }>,
+      );
+      expect(data.authorizeUrl).toContain('open.weixin.qq.com');
+      expect(data.state).toBeTruthy();
+      expect(data.expiresIn).toBeGreaterThan(0);
+    });
+
+    it('should include callbackUri in response when provided', async () => {
+      jest
+        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
+        .mockReturnValue('https://open.weixin.qq.com/connect/qrconnect');
+
+      const callbackUri = 'http://localhost:3000/login/oauth/wechat';
+      const res = await request(app.getHttpServer())
+        .post(WECHAT_WEB_AUTHORIZE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ callbackUri })
+        .expect(200);
+
+      const data = expectData(
+        res.body as ApiEnvelope<{
+          authorizeUrl: string;
+          state: string;
+          expiresIn: number;
+          callbackUri?: string;
+        }>,
+      );
+      expect(data.callbackUri).toBe(callbackUri);
+    });
   });
 
   // ════════════════════════════════════════════════════════════
@@ -362,6 +420,10 @@ describe('Account API (e2e)', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('POST /account/identities/wechat-web/callback', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer())
         .post(WECHAT_WEB_CALLBACK_PATH)
@@ -392,6 +454,75 @@ describe('Account API (e2e)', () => {
         .send({})
         .expect(400);
     });
+
+    it('should reject with 401 for invalid state', async () => {
+      const res = await request(app.getHttpServer())
+        .post(WECHAT_WEB_CALLBACK_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ code: 'test-code', state: 'non-existent-state' })
+        .expect(401);
+
+      const body = res.body as ApiEnvelope;
+      expect(body.code).not.toBe(ResultCode.SUCCESS);
+    });
+
+    it('should link WeChat web identity with valid state and code', async () => {
+      // Mock buildAuthorizeUrl so authorize endpoint creates a valid state
+      jest
+        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
+        .mockReturnValue('https://open.weixin.qq.com/connect/qrconnect');
+
+      // Mock fetchProfile to return a fake WeChat profile
+      const mockProfile: OAuthProfile = {
+        provider: 'wechat_web',
+        providerUserId: 'wx-openid-web-link',
+        unionId: 'wx-union-web-link',
+        nickname: 'WeChat Web User',
+        avatar: 'https://wx.qlogo.cn/web-avatar',
+      };
+      jest
+        .spyOn(wechatWebProvider, 'fetchProfile')
+        .mockResolvedValue(mockProfile);
+
+      // Create a fresh user for this test
+      const linkEmail = uniqueEmail('wx-web-link');
+      const linkUser = await ctx.prisma.user.create({
+        data: {
+          email: linkEmail,
+          passwordHash: '$argon2id$mock',
+          nickname: 'WxWebLinkUser',
+          status: UserStatus.active,
+        },
+      });
+      const linkToken = await createAccessToken(
+        ctx.jwtService,
+        ctx.configService,
+        linkUser.id,
+        linkUser.email!,
+      );
+
+      // Step 1: Get a valid state from the authorize endpoint
+      const authorizeRes = await request(app.getHttpServer())
+        .post(WECHAT_WEB_AUTHORIZE_PATH)
+        .set('Authorization', bearer(linkToken))
+        .expect(200);
+      const { state } = expectData(
+        authorizeRes.body as ApiEnvelope<{ state: string }>,
+      );
+
+      // Step 2: Call the callback with the state and a code
+      const res = await request(app.getHttpServer())
+        .post(WECHAT_WEB_CALLBACK_PATH)
+        .set('Authorization', bearer(linkToken))
+        .send({ code: 'mock-wechat-code', state })
+        .expect(200);
+
+      // Step 3: Verify the identity is linked in the account response
+      const accountData = expectData(res.body as ApiEnvelope<AccountDto>);
+      expect(accountData.linkedIdentities).toHaveLength(1);
+      expect(accountData.linkedIdentities[0].provider).toBe('wechat_web');
+      expect(accountData.linkedIdentities[0].id).toBeTruthy();
+    });
   });
 
   // ════════════════════════════════════════════════════════════
@@ -399,6 +530,10 @@ describe('Account API (e2e)', () => {
   // ════════════════════════════════════════════════════════════
 
   describe('POST /account/identities/wechat-mobile/callback', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer())
         .post(WECHAT_MOBILE_CALLBACK_PATH)
@@ -412,6 +547,60 @@ describe('Account API (e2e)', () => {
         .set('Authorization', bearer(accessToken))
         .send({})
         .expect(400);
+    });
+
+    it('should return 503 when WeChat mobile OAuth is not configured', async () => {
+      // Don't mock fetchProfile — real provider calls getConfig() → 503
+      const res = await request(app.getHttpServer())
+        .post(WECHAT_MOBILE_CALLBACK_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ code: 'test-code' })
+        .expect(503);
+
+      const body = res.body as ApiEnvelope;
+      expect(body.code).not.toBe(ResultCode.SUCCESS);
+    });
+
+    it('should link WeChat mobile identity with valid code', async () => {
+      // Mock fetchProfile to return a fake WeChat mobile profile
+      const mockProfile: OAuthProfile = {
+        provider: 'wechat_mobile',
+        providerUserId: 'wx-openid-mobile-link',
+        unionId: 'wx-union-mobile-link',
+        nickname: 'WeChat Mobile User',
+        avatar: 'https://wx.qlogo.cn/mobile-avatar',
+      };
+      jest
+        .spyOn(wechatMobileProvider, 'fetchProfile')
+        .mockResolvedValue(mockProfile);
+
+      // Create a fresh user for this test
+      const linkEmail = uniqueEmail('wx-mobile-link');
+      const linkUser = await ctx.prisma.user.create({
+        data: {
+          email: linkEmail,
+          passwordHash: '$argon2id$mock',
+          nickname: 'WxMobileLinkUser',
+          status: UserStatus.active,
+        },
+      });
+      const linkToken = await createAccessToken(
+        ctx.jwtService,
+        ctx.configService,
+        linkUser.id,
+        linkUser.email!,
+      );
+
+      const res = await request(app.getHttpServer())
+        .post(WECHAT_MOBILE_CALLBACK_PATH)
+        .set('Authorization', bearer(linkToken))
+        .send({ code: 'mock-wechat-mobile-code' })
+        .expect(200);
+
+      // Verify the identity is linked in the account response
+      const accountData = expectData(res.body as ApiEnvelope<AccountDto>);
+      expect(accountData.linkedIdentities).toHaveLength(1);
+      expect(accountData.linkedIdentities[0].provider).toBe('wechat_mobile');
     });
   });
 });

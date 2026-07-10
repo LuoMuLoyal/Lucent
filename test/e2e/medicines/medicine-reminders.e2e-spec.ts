@@ -13,6 +13,7 @@ import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 import { MedicineSource, UserStatus } from '#generated/prisma/client';
 
 const BASE_PATH = '/api/v1/user/medicine-reminders';
+const DELIVERIES_PATH = '/api/v1/user/reminder-deliveries';
 const AUTH_HEADER = 'Authorization';
 
 describe('Medicine Reminders API (e2e)', () => {
@@ -294,5 +295,143 @@ describe('Medicine Reminders API (e2e)', () => {
 
   it('should require auth for reminder access', async () => {
     await request(app.getHttpServer()).get(BASE_PATH).expect(401);
+  });
+
+  // ── Reminder Deliveries ────────────────────────────────────
+
+  describe('GET /api/v1/user/reminder-deliveries', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer()).get(DELIVERIES_PATH).expect(401);
+    });
+
+    it('should return empty delivery list for a new user', async () => {
+      const { token } = await createUserWithToken();
+
+      const res = await request(app.getHttpServer())
+        .get(DELIVERIES_PATH)
+        .set(AUTH_HEADER, bearer(token))
+        .expect(200);
+
+      const body = res.body as ApiEnvelope<{ items: unknown[] }>;
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      expect(body.data!.items).toEqual([]);
+    });
+
+    it('should list delivery audit logs for the authenticated user', async () => {
+      const { user, token } = await createUserWithToken();
+
+      // Seed a reminder and a delivery log
+      const medicine = await createCurrentMedicine(user.id);
+      const reminder = await ctx.prisma.userMedicineReminder.create({
+        data: {
+          userId: user.id,
+          currentMedicineId: medicine.id,
+          label: 'Morning dose',
+          scheduledHour: 8,
+          scheduledMinute: 30,
+        },
+      });
+
+      const scheduledFor = new Date('2026-07-10T08:00:00.000Z');
+      const deliveredAt = new Date('2026-07-10T08:00:05.000Z');
+
+      await ctx.prisma.userReminderDelivery.create({
+        data: {
+          userId: user.id,
+          reminderId: reminder.id,
+          deviceId: 'device-1',
+          channel: 'local',
+          status: 'delivered',
+          scheduledFor,
+          deliveredAt,
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .get(DELIVERIES_PATH)
+        .set(AUTH_HEADER, bearer(token))
+        .expect(200);
+
+      const body = res.body as ApiEnvelope<{
+        items: Array<{
+          id: string;
+          reminderId: string | null;
+          deviceId: string | null;
+          channel: string;
+          status: string;
+          scheduledFor: string;
+          deliveredAt: string | null;
+          errorMessage: string | null;
+          createdAt: string;
+        }>;
+      }>;
+
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      expect(body.data!.items).toHaveLength(1);
+
+      const delivery = body.data!.items[0]!;
+      expect(delivery.reminderId).toBe(reminder.id);
+      expect(delivery.deviceId).toBe('device-1');
+      expect(delivery.channel).toBe('local');
+      expect(delivery.status).toBe('delivered');
+      expect(delivery.scheduledFor).toBeTruthy();
+      expect(delivery.deliveredAt).toBeTruthy();
+    });
+
+    it('should filter deliveries by date', async () => {
+      const { user, token } = await createUserWithToken();
+
+      const scheduledFor1 = new Date('2026-07-10T08:00:00.000Z');
+      const scheduledFor2 = new Date('2026-07-11T08:00:00.000Z');
+
+      await ctx.prisma.userReminderDelivery.createMany({
+        data: [
+          {
+            userId: user.id,
+            channel: 'local',
+            status: 'delivered',
+            scheduledFor: scheduledFor1,
+            deliveredAt: scheduledFor1,
+          },
+          {
+            userId: user.id,
+            channel: 'local',
+            status: 'scheduled',
+            scheduledFor: scheduledFor2,
+          },
+        ],
+      });
+
+      const res = await request(app.getHttpServer())
+        .get(`${DELIVERIES_PATH}?date=2026-07-10`)
+        .set(AUTH_HEADER, bearer(token))
+        .expect(200);
+
+      const body = res.body as ApiEnvelope<{ items: unknown[] }>;
+      expect(body.data!.items).toHaveLength(1);
+    });
+
+    it('should respect limit parameter', async () => {
+      const { user, token } = await createUserWithToken();
+
+      const baseDate = new Date('2026-07-10T08:00:00.000Z');
+      await ctx.prisma.userReminderDelivery.createMany({
+        data: Array.from({ length: 5 }, (_, i) => ({
+          userId: user.id,
+          channel: 'local',
+          status: 'delivered',
+          scheduledFor: new Date(baseDate.getTime() + i * 60_000),
+          deliveredAt: new Date(baseDate.getTime() + i * 60_000),
+        })),
+      });
+
+      const res = await request(app.getHttpServer())
+        .get(`${DELIVERIES_PATH}?limit=2`)
+        .set(AUTH_HEADER, bearer(token))
+        .expect(200);
+
+      const body = res.body as ApiEnvelope<{ items: unknown[] }>;
+      expect(body.data!.items).toHaveLength(2);
+    });
   });
 });
