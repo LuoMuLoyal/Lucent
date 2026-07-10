@@ -4,6 +4,10 @@ import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.servi
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { StorageModule } from '../../common/storage';
+import {
+  DailyRecordRepository,
+  DailyRecordRepositoryPort,
+} from './repositories/daily-record.repository';
 import { DailyRecordCandidatesCopyService } from './services/candidates/copy.service';
 import { DailyRecordCandidatesGeneratorService } from './services/candidates/generator.service';
 import { DailyRecordCandidatesService } from './services/candidates/candidates.service';
@@ -25,6 +29,10 @@ import { MealDishTemplateLearningService } from './services/meal-dish/template-l
   controllers: [DailyRecordsController],
   providers: [
     LlmSafetyPolicyService,
+    {
+      provide: DailyRecordRepositoryPort,
+      useClass: DailyRecordRepository,
+    },
     DailyRecordCandidatesCopyService,
     DailyRecordCandidatesGeneratorService,
     DailyRecordCandidatesService,
@@ -40,6 +48,10 @@ import { MealDishTemplateLearningService } from './services/meal-dish/template-l
     MealAnalysisWorkerService,
     DailyRecordImageUploadService,
   ],
-  exports: [DailyRecordsService, DailyRecordCandidatesService],
+  exports: [
+    DailyRecordsService,
+    DailyRecordCandidatesService,
+    DailyRecordRepositoryPort,
+  ],
 })
 export class DailyRecordsModule {}
