@@ -15,7 +15,7 @@
 
 | 维度                        | 数量                                         |
 | --------------------------- | -------------------------------------------- |
-| 单元测试文件 `.spec.ts`     | 121 → 139（P0 后） → 149（P1 后）            |
+| 单元测试文件 `.spec.ts`     | 121 → 139（P0）→ 149（P1）→ 173（P2 后）     |
 | E2E 测试文件 `.e2e-spec.ts` | 17 → 19（P1 后）                             |
 | 源 Service 文件（modules）  | 109                                          |
 | 源 Service 文件（common）   | 7                                            |
@@ -27,26 +27,14 @@
 
 ## 三、缺口清单（按优先级分组）
 
-### P2 — 基础设施 / 工具函数
-
-| 区域                                        | 缺失文件数                                                                                                                |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `common/llm/`                               | 4 (base-llm-generator, base-llm-summary, llm-safety-policy, llm-retry.helper)                                             |
-| `common/helpers/`                           | 10 (date-time, number, json, search-text, retry, prisma-ownership, prisma.helpers, client-ip, localized-copy, api-errors) |
-| `common/` 其他                              | 5 (api/sse, api/stream-summary, queue/queue.factory, logger/lifecycle, logger/request-context.middleware)                 |
-| `data-export`                               | 2 (export.service, report-pdf/draw)                                                                                       |
-| `medicines`                                 | 2 (adapters/cn, adapters/drugbank)                                                                                        |
-| `common/services/localized-copy.service.ts` | 1                                                                                                                         |
-
-### P3 — 低频改动 / 薄封装
+### P3 — 低频改动 / 薄包装
 
 | 区域                      | 缺失文件数 |
 | ------------------------- | ---------- |
 | Repository 层（8 个模块） | 8          |
 | `admin/services/`         | 5          |
 
-## 四、后续优先级（本次不执行）
+## 四、后续优先级
 
-- 推进 P2（工具函数 + LLM 基础设施）
-- P2 完成后推进 P3（Repository + Admin）
+- 推进 P3（Repository + Admin）
 - 覆盖率阈值逐步提升至 branches 70% / functions+lines+statements 80%
