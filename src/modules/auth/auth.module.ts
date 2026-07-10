@@ -4,6 +4,12 @@ import { PassportModule } from '@nestjs/passport';
 
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UserModule } from '../user/user.module';
+import {
+  AuthSessionRepository,
+  AuthSessionRepositoryPort,
+  AuthAccountRepository,
+  AuthAccountRepositoryPort,
+} from './repositories';
 import { AuthService } from './services/auth.service';
 import { LocalController } from './controllers/local.controller';
 import { OAuthController } from './controllers/oauth.controller';
@@ -32,6 +38,14 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
   ],
   controllers: [LocalController, OAuthController, SessionController],
   providers: [
+    {
+      provide: AuthSessionRepositoryPort,
+      useClass: AuthSessionRepository,
+    },
+    {
+      provide: AuthAccountRepositoryPort,
+      useClass: AuthAccountRepository,
+    },
     AuthService,
     AuthAccountService,
     AuthOAuthFacadeService,

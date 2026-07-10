@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
-import { PrismaService } from '../../../prisma/prisma.service';
 import { User } from '#generated/prisma/client';
 import { ConfigKey } from '../../../config/config-keys.enum';
 
@@ -12,6 +11,10 @@ import type {
   TokenPair,
   UserPayload,
 } from '../types/auth-request';
+import {
+  AuthSessionRepositoryPort,
+  type SessionContextData,
+} from '../repositories/session.repository';
 
 export type {
   AuthRequestContext,
@@ -31,7 +34,7 @@ interface JwtConfigShape {
 @Injectable()
 export class AuthTokenService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly sessionRepository: AuthSessionRepositoryPort,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
@@ -68,15 +71,19 @@ export class AuthTokenService {
       audience: config.audience,
     });
 
-    await this.prisma.userSession.create({
-      data: {
-        refreshTokenHash,
-        expiresAt: new Date(now + refreshTokenExpiresInMs),
-        lastUsedAt: new Date(now),
-        ...this.getSessionContextData(context),
-        user: { connect: { id: user.id } },
-      },
-    });
+    const sessionInput: Parameters<
+      AuthSessionRepositoryPort['createSession']
+    >[0] = {
+      userId: user.id,
+      refreshTokenHash,
+      expiresAt: new Date(now + refreshTokenExpiresInMs),
+      lastUsedAt: new Date(now),
+    };
+    const contextData = this.getSessionContextData(context);
+    if (contextData != null) {
+      sessionInput.context = contextData;
+    }
+    await this.sessionRepository.createSession(sessionInput);
 
     return {
       accessToken,
@@ -95,10 +102,10 @@ export class AuthTokenService {
     context?: AuthRequestContext,
   ): Promise<TokenPair> {
     const refreshTokenHash = this.hashRefreshToken(refreshToken);
-    const record = await this.prisma.userSession.findUnique({
-      where: { refreshTokenHash },
-      include: { user: true },
-    });
+    const record =
+      await this.sessionRepository.findSessionByRefreshTokenHash(
+        refreshTokenHash,
+      );
 
     if (!record || record.expiresAt < now() || record.revokedAt !== null) {
       throw new Error('REFRESH_TOKEN_INVALID');
@@ -108,31 +115,27 @@ export class AuthTokenService {
     // does not leave the user without a valid session. If creation succeeds but
     // deletion fails, the old session will eventually expire on its own.
     const tokens = await this.generateTokenPair(record.user, context);
-    await this.prisma.userSession.delete({ where: { id: record.id } });
+    await this.sessionRepository.deleteSessionById(record.id);
     return tokens;
   }
 
   async revoke(userId: string, refreshToken: string): Promise<void> {
-    await this.prisma.userSession.deleteMany({
-      where: { userId, refreshTokenHash: this.hashRefreshToken(refreshToken) },
-    });
+    await this.sessionRepository.deleteSessionsByUserIdAndHash(
+      userId,
+      this.hashRefreshToken(refreshToken),
+    );
   }
 
   async revokeAll(userId: string): Promise<void> {
-    await this.prisma.userSession.deleteMany({ where: { userId } });
+    await this.sessionRepository.deleteSessionsByUserId(userId);
   }
 
   async revokeById(userId: string, sessionId: string): Promise<void> {
-    const record = await this.prisma.userSession.findUnique({
-      where: { id: sessionId },
-    });
+    const record = await this.sessionRepository.findSessionById(sessionId);
     if (!record || record.userId !== userId) {
       throw new Error('SESSION_NOT_FOUND');
     }
-    await this.prisma.userSession.update({
-      where: { id: sessionId },
-      data: { revokedAt: now() },
-    });
+    await this.sessionRepository.revokeSessionById(sessionId);
   }
 
   async listSessions(userId: string): Promise<
@@ -147,11 +150,7 @@ export class AuthTokenService {
       isCurrent: boolean;
     }>
   > {
-    const currentTime = now();
-    const records = await this.prisma.userSession.findMany({
-      where: { userId, revokedAt: null, expiresAt: { gt: currentTime } },
-      orderBy: { lastUsedAt: 'desc' },
-    });
+    const records = await this.sessionRepository.listActiveSessions(userId);
     return records.map((record) => ({
       id: record.id,
       deviceType: record.deviceType,
@@ -168,13 +167,13 @@ export class AuthTokenService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  private getSessionContextData(context: AuthRequestContext | undefined): {
-    ipAddress?: string;
-    userAgent?: string;
-  } {
+  private getSessionContextData(
+    context: AuthRequestContext | undefined,
+  ): SessionContextData | undefined {
+    if (context == null) return undefined;
     return {
-      ...(context?.ipAddress !== undefined && { ipAddress: context.ipAddress }),
-      ...(context?.userAgent !== undefined && { userAgent: context.userAgent }),
+      ...(context.ipAddress !== undefined && { ipAddress: context.ipAddress }),
+      ...(context.userAgent !== undefined && { userAgent: context.userAgent }),
     };
   }
 }

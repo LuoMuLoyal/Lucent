@@ -14,11 +14,6 @@ random docs.
 
 ## 后续可做
 
-### 数据层
-
-- 为 assistant、auth 模块补充 Repository 抽象层（daily-records 已完成）
-- 将 DailyRecordsService 的现有 Prisma 调用迁移到 DailyRecordRepositoryPort
-
 ### 可观测性（暂时搁置）
 
 - OpenTelemetry 分布式追踪

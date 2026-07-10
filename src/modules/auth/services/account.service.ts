@@ -2,20 +2,20 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { I18nService } from 'nestjs-i18n';
 
-import { User, UserStatus } from '#generated/prisma/client';
+import { User } from '#generated/prisma/client';
 import { ResultCode } from '../../../common/api';
 import { badRequest, notFound } from '../../../common/helpers/api-errors';
 import { normalizeEmail } from '../../../common/helpers/string.utils';
 import { now } from '../../../common/helpers/date-time.utils';
-import { PrismaService } from '../../../prisma/prisma.service';
 import { UserService } from '../../user/services/user.service';
 import { DeleteAccountDto } from '../dto/delete-account.dto';
 import { VerificationCodeService } from './verification-code.service';
+import { AuthAccountRepositoryPort } from '../repositories/account.repository';
 
 @Injectable()
 export class AuthAccountService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly accountRepository: AuthAccountRepositoryPort,
     private readonly userService: UserService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly i18n: I18nService,
@@ -60,9 +60,6 @@ export class AuthAccountService {
       badRequest(this.i18n.t('auth.provide_password_or_code_for_deletion'));
     }
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { deletedAt: now(), status: UserStatus.deleted },
-    });
+    await this.accountRepository.softDeleteUser(userId, now());
   }
 }

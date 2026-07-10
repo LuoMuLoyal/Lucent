@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { createHash } from 'node:crypto';
 import { AuthTokenService } from './token.service';
 import { normalizeEmail } from '../../../common/helpers/string.utils';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { AuthSessionRepositoryPort } from '../repositories/session.repository';
 
 function hash(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -13,29 +13,32 @@ function hash(token: string): string {
 
 describe('AuthTokenService', () => {
   let service: AuthTokenService;
-  let prisma: jest.Mocked<PrismaService>;
+  let sessionRepo: jest.Mocked<AuthSessionRepositoryPort>;
 
-  const mockUser: { id: string; email: string } = {
+  const mockUser: { id: string; email: string; status: string } = {
     id: 'user-1',
     email: 'test@example.com',
+    status: 'active',
   };
 
   beforeEach(async () => {
+    const sessionRepoMock = {
+      createSession: jest.fn().mockResolvedValue(undefined),
+      findSessionByRefreshTokenHash: jest.fn().mockResolvedValue(null),
+      deleteSessionById: jest.fn().mockResolvedValue(undefined),
+      deleteSessionsByUserIdAndHash: jest.fn().mockResolvedValue(undefined),
+      deleteSessionsByUserId: jest.fn().mockResolvedValue(undefined),
+      findSessionById: jest.fn().mockResolvedValue(null),
+      revokeSessionById: jest.fn().mockResolvedValue(undefined),
+      listActiveSessions: jest.fn().mockResolvedValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthTokenService,
         {
-          provide: PrismaService,
-          useValue: {
-            userSession: {
-              create: jest.fn(),
-              findUnique: jest.fn().mockResolvedValue(null),
-              findMany: jest.fn().mockResolvedValue([]),
-              delete: jest.fn(),
-              deleteMany: jest.fn(),
-              update: jest.fn(),
-            },
-          },
+          provide: AuthSessionRepositoryPort,
+          useValue: sessionRepoMock,
         },
         {
           provide: JwtService,
@@ -58,7 +61,7 @@ describe('AuthTokenService', () => {
     }).compile();
 
     service = module.get(AuthTokenService);
-    prisma = module.get(PrismaService);
+    sessionRepo = module.get(AuthSessionRepositoryPort);
   });
 
   afterEach(() => {
@@ -73,12 +76,10 @@ describe('AuthTokenService', () => {
       expect(result.refreshToken).toEqual(expect.any(String));
       expect(result.accessTokenExpiresAt).toEqual(expect.any(String));
       expect(result.refreshTokenExpiresAt).toEqual(expect.any(String));
-      expect(prisma.userSession.create).toHaveBeenCalledWith(
+      expect(sessionRepo.createSession).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            refreshTokenHash: expect.any(String),
-            user: { connect: { id: 'user-1' } },
-          }),
+          userId: 'user-1',
+          refreshTokenHash: expect.any(String),
         }),
       );
     });
@@ -89,12 +90,9 @@ describe('AuthTokenService', () => {
         userAgent: 'TestAgent/1.0',
       });
 
-      expect(prisma.userSession.create).toHaveBeenCalledWith(
+      expect(sessionRepo.createSession).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            ipAddress: '1.2.3.4',
-            userAgent: 'TestAgent/1.0',
-          }),
+          context: { ipAddress: '1.2.3.4', userAgent: 'TestAgent/1.0' },
         }),
       );
     });
@@ -103,20 +101,19 @@ describe('AuthTokenService', () => {
   describe('refresh', () => {
     it('should rotate the refresh token', async () => {
       const oldToken = 'old-refresh-token';
-      (prisma.userSession.findUnique as jest.Mock).mockResolvedValueOnce({
+      sessionRepo.findSessionByRefreshTokenHash.mockResolvedValueOnce({
         id: 'session-1',
         refreshTokenHash: hash(oldToken),
         expiresAt: new Date(Date.now() + 86400000),
         revokedAt: null,
-        user: mockUser,
+        userId: 'user-1',
+        user: mockUser as never,
       });
 
       const result = await service.refresh(oldToken);
 
       expect(result.accessToken).toBe('mock-access-token');
-      expect(prisma.userSession.delete).toHaveBeenCalledWith({
-        where: { id: 'session-1' },
-      });
+      expect(sessionRepo.deleteSessionById).toHaveBeenCalledWith('session-1');
     });
 
     it('should throw for missing session', async () => {
@@ -126,12 +123,13 @@ describe('AuthTokenService', () => {
     });
 
     it('should throw for revoked session', async () => {
-      (prisma.userSession.findUnique as jest.Mock).mockResolvedValueOnce({
+      sessionRepo.findSessionByRefreshTokenHash.mockResolvedValueOnce({
         id: 'session-1',
         refreshTokenHash: hash('revoked-token'),
         expiresAt: new Date(Date.now() + 86400000),
         revokedAt: new Date(),
-        user: mockUser,
+        userId: 'user-1',
+        user: mockUser as never,
       });
 
       await expect(service.refresh('revoked-token')).rejects.toThrow(
@@ -140,12 +138,13 @@ describe('AuthTokenService', () => {
     });
 
     it('should throw for expired session', async () => {
-      (prisma.userSession.findUnique as jest.Mock).mockResolvedValueOnce({
+      sessionRepo.findSessionByRefreshTokenHash.mockResolvedValueOnce({
         id: 'session-1',
         refreshTokenHash: hash('expired-token'),
         expiresAt: new Date(Date.now() - 1000),
         revokedAt: null,
-        user: mockUser,
+        userId: 'user-1',
+        user: mockUser as never,
       });
 
       await expect(service.refresh('expired-token')).rejects.toThrow(
@@ -158,12 +157,10 @@ describe('AuthTokenService', () => {
     it('should delete the session by refresh token hash', async () => {
       await service.revoke('user-1', 'some-token');
 
-      expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
-        where: {
-          userId: 'user-1',
-          refreshTokenHash: hash('some-token'),
-        },
-      });
+      expect(sessionRepo.deleteSessionsByUserIdAndHash).toHaveBeenCalledWith(
+        'user-1',
+        hash('some-token'),
+      );
     });
   });
 
@@ -171,25 +168,20 @@ describe('AuthTokenService', () => {
     it('should delete all sessions for the user', async () => {
       await service.revokeAll('user-1');
 
-      expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
-      });
+      expect(sessionRepo.deleteSessionsByUserId).toHaveBeenCalledWith('user-1');
     });
   });
 
   describe('revokeById', () => {
     it('should revoke a session by its ID', async () => {
-      (prisma.userSession.findUnique as jest.Mock).mockResolvedValueOnce({
+      sessionRepo.findSessionById.mockResolvedValueOnce({
         id: 'session-1',
         userId: 'user-1',
-      });
+      } as never);
 
       await service.revokeById('user-1', 'session-1');
 
-      expect(prisma.userSession.update).toHaveBeenCalledWith({
-        where: { id: 'session-1' },
-        data: { revokedAt: expect.any(Date) as Date },
-      });
+      expect(sessionRepo.revokeSessionById).toHaveBeenCalledWith('session-1');
     });
 
     it('should throw when session is not found', async () => {
@@ -199,10 +191,10 @@ describe('AuthTokenService', () => {
     });
 
     it('should throw when session belongs to another user', async () => {
-      (prisma.userSession.findUnique as jest.Mock).mockResolvedValueOnce({
+      sessionRepo.findSessionById.mockResolvedValueOnce({
         id: 'session-1',
         userId: 'user-2',
-      });
+      } as never);
 
       await expect(service.revokeById('user-1', 'session-1')).rejects.toThrow(
         'SESSION_NOT_FOUND',
@@ -213,9 +205,10 @@ describe('AuthTokenService', () => {
   describe('listSessions', () => {
     it('should return only active sessions', async () => {
       const now = new Date();
-      (prisma.userSession.findMany as jest.Mock).mockResolvedValueOnce([
+      sessionRepo.listActiveSessions.mockResolvedValueOnce([
         {
           id: 'session-1',
+          userId: 'user-1',
           deviceType: 'mobile',
           deviceName: 'iPhone 15',
           platform: 'ios',
@@ -225,6 +218,7 @@ describe('AuthTokenService', () => {
         },
         {
           id: 'session-2',
+          userId: 'user-1',
           deviceType: 'desktop',
           deviceName: null,
           platform: 'windows',
@@ -240,14 +234,7 @@ describe('AuthTokenService', () => {
       expect(result[0]?.id).toBe('session-1');
       expect(result[0]?.deviceType).toBe('mobile');
       expect(result[1]?.deviceName).toBeNull();
-      expect(prisma.userSession.findMany).toHaveBeenCalledWith({
-        where: {
-          userId: 'user-1',
-          revokedAt: null,
-          expiresAt: { gt: expect.any(Date) as Date },
-        },
-        orderBy: { lastUsedAt: 'desc' },
-      });
+      expect(sessionRepo.listActiveSessions).toHaveBeenCalledWith('user-1');
     });
 
     it('should return empty array when no active sessions', async () => {

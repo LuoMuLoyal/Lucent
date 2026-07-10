@@ -9,7 +9,10 @@ import { PinoLogger } from 'nestjs-pino';
 import { I18nService } from 'nestjs-i18n';
 
 import { AuthService } from './services/auth.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import {
+  AuthSessionRepositoryPort,
+  AuthAccountRepositoryPort,
+} from './repositories';
 import { UserService } from '../user/services/user.service';
 import { VerificationCodeService } from './services/verification-code.service';
 import { AuthRateLimitService } from './services/rate-limit.service';
@@ -92,10 +95,12 @@ describe('AuthService', () => {
         },
         AuthService,
         {
-          provide: PrismaService,
-          useValue: {
-            user: { update: jest.fn() },
-          },
+          provide: AuthSessionRepositoryPort,
+          useValue: {},
+        },
+        {
+          provide: AuthAccountRepositoryPort,
+          useValue: {},
         },
         {
           provide: UserService,
