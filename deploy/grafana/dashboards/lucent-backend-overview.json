@@ -235,6 +235,86 @@
           "decimals": 0
         }
       }
+    },
+    {
+      "title": "LLM Call Rate by Role & Status",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "targets": [
+        {
+          "expr": "sum(rate(llm_call_duration_seconds_count[5m])) by (role, status)",
+          "legendFormat": "{{role}} {{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "decimals": 1
+        }
+      }
+    },
+    {
+      "title": "LLM Call Duration P95 by Model",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(llm_call_duration_seconds_bucket[5m])) by (le, model))",
+          "legendFormat": "{{model}} P95",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 2
+        }
+      }
+    },
+    {
+      "title": "LLM Token Usage Rate",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "targets": [
+        {
+          "expr": "sum(rate(llm_tokens_used_total[5m])) by (model, type)",
+          "legendFormat": "{{model}} {{type}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1
+        }
+      }
+    },
+    {
+      "title": "BullMQ Queue Depth (Active & Waiting)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+      "targets": [
+        {
+          "expr": "bullmq_active_jobs",
+          "legendFormat": "{{queue}} active",
+          "refId": "A"
+        },
+        {
+          "expr": "bullmq_waiting_jobs",
+          "legendFormat": "{{queue}} waiting",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0
+        }
+      }
     }
   ],
   "refresh": "10s",
@@ -246,5 +326,5 @@
   "timezone": "browser",
   "title": "Lucent Backend Overview",
   "uid": "lucent-backend-overview",
-  "version": 1
+  "version": 2
 }

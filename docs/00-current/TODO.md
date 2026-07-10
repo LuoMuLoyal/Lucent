@@ -17,6 +17,5 @@ random docs.
 ### 可观测性（暂时搁置）
 
 - OpenTelemetry 分布式追踪
-- 接入 recordBullmqJob() / recordLlmCall() / recordLlmTokens()
 - 配置 Prometheus alerting rules
 - 添加 synthetic uptime monitoring
