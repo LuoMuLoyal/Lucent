@@ -20,7 +20,7 @@ import { nowIsoString } from '../../../common/helpers/date-time.utils';
 interface PreparedTodayAnalysis {
   context: TodayAnalysisContext;
   locale: string;
-  generatedAt: string;
+  metadata: string;
 }
 
 @Injectable()
@@ -57,7 +57,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     return {
       locale,
       context,
-      generatedAt,
+      metadata: generatedAt,
     };
   }
 

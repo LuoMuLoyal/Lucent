@@ -17,6 +17,8 @@ import type {
 } from '../../helpers/e2e-helpers';
 
 const DASHBOARD_PATH = '/api/v1/user/reports/dashboard';
+const SUMMARY_GENERATE_PATH = '/api/v1/user/reports/summary/generate';
+const SUMMARY_STREAM_PATH = '/api/v1/user/reports/summary/generate/stream';
 const CLINIC_PREVIEW_PATH = '/api/v1/user/reports/clinic-summary/preview';
 const CLINIC_SHARE_PATH = '/api/v1/user/reports/clinic-summary/share';
 const CLINIC_SHARED_PATH = '/api/v1/user/reports/clinic-summary/shared';
@@ -125,7 +127,7 @@ describe('Reports API (e2e)', () => {
 
     it('should accept generate request and return response (may be fallback)', async () => {
       const response = await request(app.getHttpServer())
-        .post('/api/v1/user/reports/summary/generate')
+        .post(SUMMARY_GENERATE_PATH)
         .set('Authorization', bearer(accessToken))
         .send({ range: 'last_7_days' })
         .expect(201);
@@ -133,6 +135,60 @@ describe('Reports API (e2e)', () => {
       const body = response.body as ApiEnvelope<{ summary?: string }>;
       expect(body.code).toBe(ResultCode.SUCCESS);
       expect(body.data).toBeDefined();
+    });
+  });
+
+  // ── Summary Generate Stream (SSE) ──────────────────────────
+
+  describe('POST /api/v1/user/reports/summary/generate/stream', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer()).post(SUMMARY_STREAM_PATH).expect(401);
+    });
+
+    it('should return 400 when custom range is missing dates', async () => {
+      await request(app.getHttpServer())
+        .post(SUMMARY_STREAM_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ range: 'custom' })
+        .expect(400);
+    });
+
+    it('should return SSE stream with result and done events', async () => {
+      const response = await request(app.getHttpServer())
+        .post(SUMMARY_STREAM_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ range: 'last_7_days' })
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/event-stream');
+
+      const text = response.text as string;
+      // SSE stream must contain event markers
+      expect(text).toContain('event:');
+      // The stream should always end with a done event
+      expect(text).toContain('event: done');
+      // A result event should be present with summary data
+      expect(text).toContain('event: result');
+      // The result data should contain report summary fields
+      expect(text).toContain('"summary"');
+      expect(text).toContain('"range"');
+      expect(text).toContain('"startDate"');
+      expect(text).toContain('"endDate"');
+    });
+
+    it('should accept last_30_days range and stream summary', async () => {
+      const response = await request(app.getHttpServer())
+        .post(SUMMARY_STREAM_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ range: 'last_30_days' })
+        .expect(200);
+
+      expect(response.headers['content-type']).toContain('text/event-stream');
+
+      const text = response.text as string;
+      expect(text).toContain('event: result');
+      expect(text).toContain('event: done');
+      expect(text).toContain('"last_30_days"');
     });
   });
 

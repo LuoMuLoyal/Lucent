@@ -46,7 +46,7 @@
 | 23  | Assistant           | `POST /assistant/messages/stream`                       | SSE 流式对话     |
 | 24  | Daily Records       | `POST /daily-records/attachments/images/presign-upload` | 图片预签名上传   |
 
-### 🟡 P1 中优先级
+### 🟡 P1 中优先级（全部完成）
 
 | #   | 模块           | 端点                                    | 说明                 |
 | --- | -------------- | --------------------------------------- | -------------------- |
@@ -66,7 +66,7 @@
 
 | 模块                | 总端点 | 已覆盖 | 未覆盖 | 缺口率 |
 | ------------------- | ------ | ------ | ------ | ------ |
-| Health              | 4      | 2      | 2      | 50%    |
+| Health              | 4      | 4      | 0      | 0%     |
 | Auth (Local)        | 6      | 6      | 0      | 0%     |
 | Auth (Session)      | 4      | 4      | 0      | 0%     |
 | Auth (OAuth)        | 7      | 0      | 7      | 100%   |
@@ -75,7 +75,7 @@
 | Health Context      | 11     | 11     | 0      | 0%     |
 | Daily Records       | 8      | 8      | 0      | 0%     |
 | Today Suggestion    | 4      | 4      | 0      | 0%     |
-| Today Analysis      | 3      | 1      | 2      | 67%    |
+| Today Analysis      | 3      | 3      | 0      | 0%     |
 | Medicines           | 4      | 4      | 0      | 0%     |
 | Medicine Reminders  | 4      | 4      | 0      | 0%     |
 | Reminder Deliveries | 1      | 1      | 0      | 0%     |
@@ -91,8 +91,4 @@
 
 ## 五、后续批次
 
-P0 全部完成。可继续按 P1 推进：
-
-- Health liveness/deep 探针
-- Today Analysis generate + generate/stream
-- Reports summary/generate/stream
+P0、P1 全部完成。剩余 P2（OAuth 回调端点）需要真实第三方服务，暂不推进。

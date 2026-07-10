@@ -11,6 +11,8 @@ import { AppController } from '../../../src/app.controller';
 import { AppService } from '../../../src/app.service';
 import { ApiExceptionFilter } from '../../../src/common/filters/api-exception.filter';
 import { RequestContextService } from '../../../src/common/logger/request-context.service';
+import { MetricsService } from '../../../src/common/metrics/metrics.service';
+import { SlowRequestInterceptor } from '../../../src/common/interceptors/slow-request.interceptor';
 import { PrismaService } from '../../../src/prisma/prisma.service';
 import { setupApp } from '../../../src/setup-app';
 
@@ -24,8 +26,10 @@ describe('Lucent API (e2e)', () => {
   };
 
   beforeEach(async () => {
+    const rawOk = jest.fn().mockResolvedValue([{ '?column?': 1 }]);
     prisma = {
-      $queryRawUnsafe: jest.fn().mockResolvedValue([{ '?column?': 1 }]),
+      $queryRaw: rawOk,
+      $queryRawUnsafe: rawOk,
     };
     cache = {
       set: jest.fn(),
@@ -64,6 +68,8 @@ describe('Lucent API (e2e)', () => {
         },
         RequestContextService,
         ApiExceptionFilter,
+        MetricsService,
+        SlowRequestInterceptor,
         {
           provide: PinoLogger,
           useValue: {
@@ -122,6 +128,135 @@ describe('Lucent API (e2e)', () => {
               failed: 1,
             },
           },
+        });
+      });
+  });
+
+  // ── Liveness Probe ──────────────────────────────────────────
+
+  it('/api/v1/health/live (GET) returns 200 with liveness probe', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/health/live')
+      .expect(200)
+      .expect('X-Request-Id', /.+/)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          code: 0,
+          message: '',
+          data: {
+            probe: 'live',
+            status: 'ok',
+            summary: {
+              total: 0,
+              passed: 0,
+              failed: 0,
+            },
+          },
+        });
+        // Liveness probe has no components — it only checks process health
+        const data = response.body.data;
+        expect(data.components).toEqual([]);
+        expect(data.app).toBeDefined();
+        expect(data.app.name).toBe('lucent');
+        expect(data.app.pid).toBe(process.pid);
+      });
+  });
+
+  it('/api/v1/health/live (GET) always returns 200 even when DB is down', () => {
+    prisma.$queryRawUnsafe.mockRejectedValue(new Error('db down'));
+
+    return request(app.getHttpServer())
+      .get('/api/v1/health/live')
+      .expect(200)
+      .expect((response) => {
+        expect(response.body.data.status).toBe('ok');
+        expect(response.body.data.summary).toEqual({
+          total: 0,
+          passed: 0,
+          failed: 0,
+        });
+      });
+  });
+
+  // ── Deep Health Probe ────────────────────────────────────────
+
+  it('/api/v1/health/deep (GET) returns 200 with detailed component diagnostics', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/health/deep')
+      .expect(200)
+      .expect('X-Request-Id', /.+/)
+      .expect((response) => {
+        expect(response.body).toMatchObject({
+          code: 0,
+          message: '',
+          data: {
+            probe: 'deep',
+            status: 'ok',
+            summary: {
+              total: 2,
+              passed: 2,
+              failed: 0,
+            },
+          },
+        });
+
+        const components = response.body.data.components as Array<{
+          name: string;
+          status: string;
+          critical: boolean;
+          details: Record<string, unknown> | null;
+          error: string | null;
+        }>;
+        expect(components).toHaveLength(2);
+
+        // Database component should include detailed diagnostics
+        const dbComponent = components.find((c) => c.name === 'database');
+        expect(dbComponent).toBeDefined();
+        expect(dbComponent!.status).toBe('up');
+        expect(dbComponent!.critical).toBe(true);
+        expect(dbComponent!.details).toMatchObject({
+          driver: 'prisma',
+          probe: 'SELECT 1',
+        });
+
+        // Cache component should include backend info
+        const cacheComponent = components.find((c) => c.name === 'cache');
+        expect(cacheComponent).toBeDefined();
+        expect(cacheComponent!.status).toBe('up');
+        expect(cacheComponent!.details).toMatchObject({
+          backend: 'memory',
+          mode: 'fallback',
+        });
+      });
+  });
+
+  it('/api/v1/health/deep (GET) returns 503 when a critical dependency is down', () => {
+    prisma.$queryRawUnsafe.mockRejectedValue(new Error('db down'));
+
+    return request(app.getHttpServer())
+      .get('/api/v1/health/deep')
+      .expect(503)
+      .expect((response) => {
+        expect(response.body.data.status).toBe('error');
+        expect(response.body.data.summary).toEqual({
+          total: 2,
+          passed: 1,
+          failed: 1,
+        });
+
+        const components = response.body.data.components as Array<{
+          name: string;
+          status: string;
+          critical: boolean;
+          details: Record<string, unknown> | null;
+          error: string | null;
+        }>;
+        const dbComponent = components.find((c) => c.name === 'database');
+        expect(dbComponent!.status).toBe('down');
+        expect(dbComponent!.error).toBeTruthy();
+        expect(dbComponent!.details).toMatchObject({
+          driver: 'prisma',
+          probe: 'SELECT 1',
         });
       });
   });
