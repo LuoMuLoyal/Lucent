@@ -12,7 +12,8 @@ Lucent NestJS 后端的文档 vault。本目录是后端运行时、部署、生
 - [[01-reference/environment-variables]] — 环境变量参考
 - [[01-reference/deployment]] — 生产部署手册
 - [[01-reference/adr/README]] — 架构决策记录
-- `public/*.md` — 公共合同边界
+- [[01-reference/how-to/README]] — 操作指南
+- `01-reference/contracts/*.md` — 公共合同边界
 - `openapi.json` — 生成的 API 合同
 
 ## Obsidian 用法
@@ -23,7 +24,7 @@ Lucent NestJS 后端的文档 vault。本目录是后端运行时、部署、生
 
 ## 归档策略
 
-- 旧计划和已完成决策归档到本仓库 `docs/04-archive/`（当前后端暂无活跃归档文件）。
+- 旧计划和已完成决策归档到本仓库 `docs/03-archive/`（当前后端暂无活跃归档文件）。
 - 活跃文档完成后应直接删除，不留 `✅` 或 `DONE` 标记。
 
 ## 文档边界
@@ -47,36 +48,36 @@ Lucent NestJS 后端的文档 vault。本目录是后端运行时、部署、生
 - `compodoc/`
   - Responsibility: Generated NestJS architecture docs from `pnpm docs:compodoc`
   - Do not put here: Manual edits
-- `public/data-sources.md`
+- `01-reference/contracts/data-sources.md`
   - Responsibility: Data source index/overview and cross-source strategy
   - Do not put here: Detailed source mapping (use `data-sources-cn-products.md`,
     `data-sources-drugbank.md`, `data-sources-medical-qa.md`, `data-sources-food-composition.md`)
-- `public/reminder-contract.md`
+- `01-reference/contracts/reminder-contract.md`
   - Responsibility: Reminder/notification backend-vs-device boundary
   - Do not put here: UI implementation details
-- `public/environment-contract.md`
+- `01-reference/contracts/environment-contract.md`
   - Responsibility: Environment snapshot API boundary
   - Do not put here: More-tab or generic utility plans
-- `public/mine-settings-contract.md`
+- `01-reference/contracts/mine-settings-contract.md`
   - Responsibility: Mine/Settings API overview and user settings
   - Do not put here: Support resources, app info, or data-export details (use their own contract
     files)
-- `public/support-resources-contract.md`
+- `01-reference/contracts/support-resources-contract.md`
   - Responsibility: Public support resource entries
-- `public/app-info-contract.md`
+- `01-reference/contracts/app-info-contract.md`
   - Responsibility: App metadata endpoint
-- `public/data-export-contract.md`
+- `01-reference/contracts/data-export-contract.md`
   - Responsibility: Data export request flow
-- `public/assistant-contract.md`
+- `01-reference/contracts/assistant-contract.md`
   - Responsibility: Assistant contract overview, boundaries, routes, and conversation/streaming
     contracts
   - Do not put here: Capability/tool details (use `assistant-capabilities.md`), safety policy (use
     `assistant-safety.md`), or rollout truth (use `assistant-rollout.md`)
-- `public/assistant-capabilities.md`
+- `01-reference/contracts/assistant-capabilities.md`
   - Responsibility: Assistant capability shape, tools, envelopes, and proposals
-- `public/assistant-rollout.md`
+- `01-reference/contracts/assistant-rollout.md`
   - Responsibility: Assistant rollout/runtime truth
-- `public/assistant-safety.md`
+- `01-reference/contracts/assistant-safety.md`
   - Responsibility: Assistant AI safety policy
 - `00-current/TODO.md`
   - Responsibility: Active deferred backend follow-up items
@@ -88,7 +89,7 @@ Lucent NestJS 后端的文档 vault。本目录是后端运行时、部署、生
 - `01-reference/adr/`
   - Responsibility: Architecture Decision Records for significant technical choices
   - Do not put here: Implementation details or task logs
-- `public/README.md`
+- `01-reference/contracts/README.md`
   - Responsibility: Public contracts directory boundary and usage rules
   - Do not put here: Individual contract content
 
@@ -115,17 +116,17 @@ Product direction and current product state are owned by the workspace path `Lum
 - Production deploy asset layout under repo `deploy/`
   - Update: `01-reference/deployment.md` and root `README.md`
 - Medicine import behavior or source-table strategy
-  - Update: `public/data-sources.md`
+  - Update: `01-reference/contracts/data-sources.md`
 - Reminder schedule/preference contract
-  - Update: `public/reminder-contract.md`
+  - Update: `01-reference/contracts/reminder-contract.md`
 - Environment snapshot contract
-  - Update: `public/environment-contract.md`
+  - Update: `01-reference/contracts/environment-contract.md`
 - Mine/Settings contract
-  - Update: `public/mine-settings-contract.md`
+  - Update: `01-reference/contracts/mine-settings-contract.md`
 - Assistant capability / permission contract
-  - Update: `public/assistant-contract.md`
+  - Update: `01-reference/contracts/assistant-contract.md`
 - AI generator / policy / service abstraction or safety rules
-  - Update: `public/assistant-contract.md`
+  - Update: `01-reference/contracts/assistant-contract.md`
 - Deferred backend follow-up list
   - Update: `00-current/TODO.md`
 - Lucent API code
@@ -139,7 +140,7 @@ Product direction and current product state are owned by the workspace path `Lum
 - Significant architectural decision
   - Action: Create an ADR in `01-reference/adr/NNNN-title.md`
 - Public contract boundary (non-goals, capability scope) changes
-  - Update: `public/README.md` and the relevant `public/*.md` contract
+  - Update: `01-reference/contracts/README.md` and the relevant `01-reference/contracts/*.md` contract
 - Any backend code change
   - Update: Today's `02-logs/migration-log/YYYY-MM-DD.md`
 
@@ -158,8 +159,8 @@ more slowly than the repo docs.
 ## Docs Governance
 
 - **Single source of truth**: glossary lives in [[Glossary]], environment variables in
-  [[01-reference/environment-variables]], assistant boundaries in `public/assistant-contract.md`,
-  data sources in `public/data-sources.md`.
+  [[01-reference/environment-variables]], assistant boundaries in `01-reference/contracts/assistant-contract.md`,
+  data sources in `01-reference/contracts/data-sources.md`.
 - **Active docs ≤ 250 lines**: split long docs into focused sub-files and link them.
 - **Prefer links over duplication**: state a rule once and reference it elsewhere.
 - **Use lists instead of tables**: reserve tables for side-by-side comparisons only.

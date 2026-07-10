@@ -31,8 +31,8 @@ Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or
 - `docs/01-reference/environment-variables.md`
 - `docs/01-reference/architecture.md`
 - `docs/01-reference/adr/` for historical architecture decisions
-- `docs/public/data-sources.md` (and `docs/public/data-sources-cn-products.md`,
-  `docs/public/data-sources-drugbank.md`, `docs/public/data-sources-medical-qa.md`) when touching
+- `docs/01-reference/contracts/data-sources.md` (and `docs/01-reference/contracts/data-sources-cn-products.md`,
+  `docs/01-reference/contracts/data-sources-drugbank.md`, `docs/01-reference/contracts/data-sources-medical-qa.md`) when touching
   medicine import or source tables
 
 ## Current Baseline
@@ -54,7 +54,7 @@ Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or
 - Active multi-step backend task plans belong in `plans/*.md`, not in `docs/` and not in the workspace root.
 - Env, Docker, import flow, or local commands changed: update `docs/01-reference/environment.md`,
   `docs/01-reference/environment-variables.md` (if variable details change), and `README.md`.
-- Medicine import or source strategy changed: update `docs/public/data-sources.md` and the
+- Medicine import or source strategy changed: update `docs/01-reference/contracts/data-sources.md` and the
   relevant source-specific file (`data-sources-cn-products.md`, `data-sources-drugbank.md`,
   `data-sources-medical-qa.md`, or `data-sources-food-composition.md`).
 - Backend code changed: append a dated entry to `docs/02-logs/migration-log/YYYY-MM-DD.md` (create the file if it doesn't exist). Keep `docs/00-current/MigrationLog.md` as the index only.

@@ -10,7 +10,7 @@ random docs.
 **When a follow-up item is completed:** delete it from this file, move resulting facts to
 `Luminous/docs/00-current/Current_State.md`, and record the completion in both today's
 `Lucent/docs/02-logs/migration-log/YYYY-MM-DD.md` and
-`Luminous/docs/02-logs/migration-log/YYYY-MM-DD.md` as cross-repo sync evidence.
+`Luminous/docs/03-logs/migration-log/YYYY-MM-DD.md` as cross-repo sync evidence.
 
 ## 后续可做
 

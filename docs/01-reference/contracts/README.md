@@ -1,4 +1,4 @@
-# Public Contracts
+# API Contracts
 
 This directory contains API contract documents shared between Lucent (backend) and Luminous
 (frontend). These documents define the **boundary** between backend and client — what the API
@@ -65,6 +65,6 @@ Each contract document defines:
 ## Relationship to openapi.json
 
 `docs/openapi.json` is the machine-readable API contract (generated locally, ignored in git). These
-`public/*.md` files
+contract files
 provide human-readable context that OpenAPI alone does not capture: capability boundaries,
 non-goals, rollout status, and integration notes.

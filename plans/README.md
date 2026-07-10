@@ -12,7 +12,7 @@ Use this directory for active, repo-local execution plans that are too detailed 
 
 - runtime or setup facts: put those in `docs/01-reference/environment.md` or `README.md`
 - API contract details: keep those in code plus generated `docs/openapi.json`
-- shared contract boundaries: keep those in `docs/public/*.md`
+- shared contract boundaries: keep those in `docs/01-reference/contracts/*.md`
 - completed plans that no longer drive work
 
 ## Naming

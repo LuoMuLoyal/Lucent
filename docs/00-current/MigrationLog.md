@@ -10,7 +10,7 @@ Records backend changes in date order. Detailed entries are split by date under
 - Add new entries to `docs/02-logs/migration-log/YYYY-MM-DD.md`.
 - If a date file does not exist yet, create it with the title `# Migration Log - YYYY-MM-DD`.
 - Add the new entry link to the active index below (newest first).
-- Older entries are moved to `docs/04-archive/migration-log/`.
+- Older entries are moved to `docs/03-archive/migration-log/`.
 - Use concrete dates. Do not move old history back into this index.
 
 ## Active Entries
@@ -50,4 +50,4 @@ Major changes grouped by area:
 
 ## Archived Entries
 
-Older entries are preserved in `docs/04-archive/migration-log/`.
+Older entries are preserved in `docs/03-archive/migration-log/`.

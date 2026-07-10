@@ -29,5 +29,6 @@ Last updated: 2026-07-10
 
 - 延后项：[[00-current/TODO]]
 - 变更日志：[[00-current/MigrationLog]]
-- 公共合同：`public/*.md`
 - 参考规范：[[01-reference/architecture]]
+- API 合同：`01-reference/contracts/*.md`
+- 操作指南：[[01-reference/how-to/README]]

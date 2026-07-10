@@ -56,7 +56,7 @@ Prerequisites: Node.js `24.x`, pnpm `11.x`, Docker (for `dev:stack`).
 - API contract: controller / DTO code plus a local generated `docs/openapi.json` export.
 - Database model: [prisma/schema.prisma](prisma/schema.prisma).
 - Runtime configuration: [docs/01-reference/environment.md](docs/01-reference/environment.md).
-- Medicine data imports: [docs/public/data-sources.md](docs/public/data-sources.md).
+- Medicine data imports: [docs/01-reference/contracts/data-sources.md](docs/01-reference/contracts/data-sources.md).
 - Product direction: [../Luminous/docs/01-product/Product_Vision.md](../Luminous/docs/01-product/Product_Vision.md).
 
 Hand-written endpoint mocks are intentionally not maintained. Regenerate OpenAPI when API code changes:
@@ -278,18 +278,18 @@ Active docs:
 - [docs/01-reference/architecture.md](docs/01-reference/architecture.md)
 - [docs/01-reference/adr/](docs/01-reference/adr/) — Architecture Decision Records
 - local `docs/openapi.json` export (generated, ignored)
-- [docs/public/data-sources.md](docs/public/data-sources.md)
-- [docs/public/data-sources-cn-products.md](docs/public/data-sources-cn-products.md)
-- [docs/public/data-sources-drugbank.md](docs/public/data-sources-drugbank.md)
-- [docs/public/data-sources-medical-qa.md](docs/public/data-sources-medical-qa.md)
-- [docs/public/data-sources-food-composition.md](docs/public/data-sources-food-composition.md)
-- [docs/public/assistant-contract.md](docs/public/assistant-contract.md)
-- [docs/public/assistant-capabilities.md](docs/public/assistant-capabilities.md)
-- [docs/public/assistant-rollout.md](docs/public/assistant-rollout.md)
-- [docs/public/assistant-safety.md](docs/public/assistant-safety.md)
-- [docs/public/reminder-contract.md](docs/public/reminder-contract.md)
-- [docs/public/environment-contract.md](docs/public/environment-contract.md)
-- [docs/public/mine-settings-contract.md](docs/public/mine-settings-contract.md)
-- [docs/public/support-resources-contract.md](docs/public/support-resources-contract.md)
-- [docs/public/app-info-contract.md](docs/public/app-info-contract.md)
-- [docs/public/data-export-contract.md](docs/public/data-export-contract.md)
+- [docs/01-reference/contracts/data-sources.md](docs/01-reference/contracts/data-sources.md)
+- [docs/01-reference/contracts/data-sources-cn-products.md](docs/01-reference/contracts/data-sources-cn-products.md)
+- [docs/01-reference/contracts/data-sources-drugbank.md](docs/01-reference/contracts/data-sources-drugbank.md)
+- [docs/01-reference/contracts/data-sources-medical-qa.md](docs/01-reference/contracts/data-sources-medical-qa.md)
+- [docs/01-reference/contracts/data-sources-food-composition.md](docs/01-reference/contracts/data-sources-food-composition.md)
+- [docs/01-reference/contracts/assistant-contract.md](docs/01-reference/contracts/assistant-contract.md)
+- [docs/01-reference/contracts/assistant-capabilities.md](docs/01-reference/contracts/assistant-capabilities.md)
+- [docs/01-reference/contracts/assistant-rollout.md](docs/01-reference/contracts/assistant-rollout.md)
+- [docs/01-reference/contracts/assistant-safety.md](docs/01-reference/contracts/assistant-safety.md)
+- [docs/01-reference/contracts/reminder-contract.md](docs/01-reference/contracts/reminder-contract.md)
+- [docs/01-reference/contracts/environment-contract.md](docs/01-reference/contracts/environment-contract.md)
+- [docs/01-reference/contracts/mine-settings-contract.md](docs/01-reference/contracts/mine-settings-contract.md)
+- [docs/01-reference/contracts/support-resources-contract.md](docs/01-reference/contracts/support-resources-contract.md)
+- [docs/01-reference/contracts/app-info-contract.md](docs/01-reference/contracts/app-info-contract.md)
+- [docs/01-reference/contracts/data-export-contract.md](docs/01-reference/contracts/data-export-contract.md)

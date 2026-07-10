@@ -58,7 +58,7 @@ rules:
     docs_required:
       - docs/00-current/Current_State.md
       - docs/00-current/Medicine_Data_RAG.md
-      - docs/public/reminder-contract.md
+      - docs/01-reference/contracts/reminder-contract.md
       - docs/02-logs/migration-log/*.md
   - name: assistant-ai
     code:
@@ -70,9 +70,9 @@ rules:
       - docs/00-current/Current_State.md
       - docs/00-current/Assistant_Runtime.md
       - docs/01-reference/architecture.md
-      - docs/public/assistant-capabilities.md
-      - docs/public/assistant-contract.md
-      - docs/public/assistant-safety.md
+      - docs/01-reference/contracts/assistant-capabilities.md
+      - docs/01-reference/contracts/assistant-contract.md
+      - docs/01-reference/contracts/assistant-safety.md
       - docs/02-logs/migration-log/*.md
   - name: report-export
     code:
@@ -81,7 +81,7 @@ rules:
     docs_required:
       - docs/00-current/Current_State.md
       - docs/00-current/Report_Export.md
-      - docs/public/data-export-contract.md
+      - docs/01-reference/contracts/data-export-contract.md
       - docs/02-logs/migration-log/*.md
   - name: notifications
     code:
@@ -98,8 +98,8 @@ rules:
     docs_required:
       - docs/00-current/Current_State.md
       - docs/00-current/Public_Support_Resources.md
-      - docs/public/support-resources-contract.md
-      - docs/public/environment-contract.md
+      - docs/01-reference/contracts/support-resources-contract.md
+      - docs/01-reference/contracts/environment-contract.md
       - docs/02-logs/migration-log/*.md
   - name: scripts-tooling
     code:
@@ -118,7 +118,7 @@ rules:
   - name: docs-openapi
     code:
       - docs/openapi.json
-      - docs/public/**
+      - docs/01-reference/contracts/**
     docs_required:
       - docs/00-current/Current_State.md
       - docs/00-current/Toolchain_Contract.md
