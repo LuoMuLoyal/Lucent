@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import type { DailyRecordKind } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
 
 export type OwnedRecordSnapshot = {
   kind: DailyRecordKind;
@@ -14,7 +14,7 @@ export type OwnedRecordSnapshot = {
 @Injectable()
 export class DailyRecordsOwnershipService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: DailyRecordRepositoryPort,
     private readonly i18n: I18nService,
   ) {}
 
@@ -22,10 +22,7 @@ export class DailyRecordsOwnershipService {
     userId: string,
     id: string,
   ): Promise<OwnedRecordSnapshot> {
-    const record = await this.prisma.userDailyRecord.findFirst({
-      where: { id, deletedAt: null },
-      select: { userId: true, kind: true, payload: true },
-    });
+    const record = await this.repository.findOwnershipData(id);
 
     ensureOwnedByUser(
       record,

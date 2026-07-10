@@ -13,6 +13,7 @@ import {
   dailyRecordWithAttachments,
   type DailyRecordShape,
 } from '../types/daily-records.types';
+import type { OwnedRecordSnapshot } from '../services/ownership.service';
 
 /** Query filters for listing daily records. */
 export interface DailyRecordListFilter {
@@ -50,13 +51,18 @@ export abstract class DailyRecordRepositoryPort {
     id: string,
   ): Promise<DailyRecordShape | null>;
 
+  /** Fetch only the ownership-relevant fields (userId, kind, payload). */
+  abstract findOwnershipData(
+    id: string,
+  ): Promise<(OwnedRecordSnapshot & { userId: string }) | null>;
+
   abstract findManyByDateWithAttachments(
     userId: string,
     occurredAt: Date,
   ): Promise<DailyRecordShape[]>;
 
   abstract create(
-    data: Prisma.UserDailyRecordCreateInput,
+    data: Prisma.UserDailyRecordUncheckedCreateInput,
   ): Promise<DailyRecordShape>;
 
   abstract update(
@@ -113,6 +119,15 @@ export class DailyRecordRepository implements DailyRecordRepositoryPort {
     });
   }
 
+  async findOwnershipData(
+    id: string,
+  ): Promise<(OwnedRecordSnapshot & { userId: string }) | null> {
+    return this.prisma.userDailyRecord.findFirst({
+      where: { id, deletedAt: null },
+      select: { userId: true, kind: true, payload: true },
+    });
+  }
+
   async findManyByDateWithAttachments(
     userId: string,
     occurredAt: Date,
@@ -128,7 +143,7 @@ export class DailyRecordRepository implements DailyRecordRepositoryPort {
   }
 
   async create(
-    data: Prisma.UserDailyRecordCreateInput,
+    data: Prisma.UserDailyRecordUncheckedCreateInput,
   ): Promise<DailyRecordShape> {
     return this.prisma.userDailyRecord.create({
       data,

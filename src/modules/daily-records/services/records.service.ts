@@ -1,17 +1,12 @@
-import { nonDeleted } from '../../../common/helpers/prisma.helpers';
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { parseDateOnly, now } from '../../../common/helpers/date-time.utils';
 import { Injectable } from '@nestjs/common';
 import { badRequest } from '../../../common/helpers/api-errors';
 import { DailyRecordKind, Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
 import type { CreateDailyRecordDto, UpdateDailyRecordDto } from '../dto';
 import { DailyRecordsOwnershipService } from './ownership.service';
 import { DailyRecordsMapperService } from './mapper.service';
-import {
-  dailyRecordWithAttachments,
-  type DailyRecordDbClient,
-} from '../types/daily-records.types';
+import { dailyRecordWithAttachments } from '../types/daily-records.types';
 import {
   buildConfirmedMealPayload,
   buildMealPayloadFromClientInput,
@@ -25,11 +20,12 @@ import {
 } from '../types/meal-analysis.types';
 import { MealAnalysisQueueService } from './meal-analysis/queue.service';
 import { MealDishTemplateLearningService } from './meal-dish/template-learning.service';
+import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
 
 @Injectable()
 export class DailyRecordsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: DailyRecordRepositoryPort,
     private readonly ownershipService: DailyRecordsOwnershipService,
     private readonly mapperService: DailyRecordsMapperService,
     private readonly mealAnalysisQueueService: MealAnalysisQueueService,
@@ -43,30 +39,18 @@ export class DailyRecordsService {
     page = 1,
     pageSize = 50,
   ) {
-    const where: Prisma.UserDailyRecordWhereInput = {
-      userId,
-      occurredAt: parseDateOnly(date),
-      ...nonDeleted,
-      ...(kind != null ? { kind: kind as DailyRecordKind } : {}),
-    };
-
-    const [items, total] = await Promise.all([
-      this.prisma.userDailyRecord.findMany({
-        where,
-        include: dailyRecordWithAttachments,
-        orderBy: [
-          { occurredTime: { sort: 'desc', nulls: 'last' } },
-          { createdAt: 'desc' },
-        ],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      this.prisma.userDailyRecord.count({ where }),
-    ]);
+    const result = await this.repository.findManyWithAttachments(
+      {
+        userId,
+        occurredAt: parseDateOnly(date),
+        ...(kind != null ? { kind: kind as DailyRecordKind } : {}),
+      },
+      { page, pageSize },
+    );
 
     return {
-      items: items.map((record) => this.mapperService.toItem(record)),
-      total,
+      items: result.items.map((record) => this.mapperService.toItem(record)),
+      total: result.total,
     };
   }
 
@@ -98,7 +82,7 @@ export class DailyRecordsService {
           : { payload: dto.payload as Prisma.InputJsonValue };
 
     if (createAttachments !== undefined && createAttachments.length > 0) {
-      return this.prisma.$transaction(async (tx) => {
+      return this.repository.transaction(async (tx) => {
         const record = await tx.userDailyRecord.create({
           data: { ...baseData, ...payloadField },
         });
@@ -127,7 +111,7 @@ export class DailyRecordsService {
             data: this.withMealHotFields({}, queuedPayload),
           });
         }
-        const item = await this.getItemFromDb(tx, userId, record.id);
+        const item = await this.getItemFromTx(tx, userId, record.id);
         await this.enqueueMealAnalysisIfNeeded(
           userId,
           item,
@@ -137,9 +121,9 @@ export class DailyRecordsService {
       });
     }
 
-    const record = await this.prisma.userDailyRecord.create({
-      data: { ...baseData, ...payloadField },
-      include: dailyRecordWithAttachments,
+    const record = await this.repository.create({
+      ...baseData,
+      ...payloadField,
     });
 
     const item = this.mapperService.toItem(record, {
@@ -150,7 +134,11 @@ export class DailyRecordsService {
   }
 
   async get(userId: string, id: string) {
-    return this.getItemFromDb(this.prisma, userId, id);
+    const record = await this.repository.findByIdWithAttachments(userId, id);
+    if (record == null) {
+      this.ownershipService.throwRecordNotFound();
+    }
+    return this.mapperService.toItem(record, { includeMealPayload: true });
   }
 
   async update(userId: string, id: string, dto: UpdateDailyRecordDto) {
@@ -199,7 +187,7 @@ export class DailyRecordsService {
     }
 
     if (updateAttachments !== undefined) {
-      return this.prisma.$transaction(async (tx) => {
+      return this.repository.transaction(async (tx) => {
         await tx.userDailyRecord.update({
           where: { id },
           data: this.withMealHotFields(
@@ -219,7 +207,7 @@ export class DailyRecordsService {
             ),
           });
         }
-        const item = await this.getItemFromDb(tx, userId, id);
+        const item = await this.getItemFromTx(tx, userId, id);
         if (confirmRequested) {
           await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
             parseMealRecordPayload(item.payload).mealAnalysis,
@@ -234,14 +222,13 @@ export class DailyRecordsService {
       });
     }
 
-    const record = await this.prisma.userDailyRecord.update({
-      where: { id },
-      data: this.withMealHotFields(
+    const record = await this.repository.update(
+      id,
+      this.withMealHotFields(
         this.mapperService.toRecordUpdateData(dto, existing),
         nextPayload,
       ),
-      include: dailyRecordWithAttachments,
-    });
+    );
 
     const item = this.mapperService.toItem(record, {
       includeMealPayload: true,
@@ -259,25 +246,14 @@ export class DailyRecordsService {
   async delete(userId: string, id: string) {
     await this.ownershipService.ensureOwnedByUser(userId, id);
 
-    await this.prisma.userDailyRecord.update({
-      where: { id },
-      data: { deletedAt: now() },
-    });
+    await this.repository.softDelete(id, now());
   }
 
   async summary(userId: string, date: string) {
-    const records = await this.prisma.userDailyRecord.findMany({
-      where: {
-        userId,
-        occurredAt: parseDateOnly(date),
-        ...nonDeleted,
-      },
-      include: dailyRecordWithAttachments,
-      orderBy: [
-        { occurredTime: { sort: 'desc', nulls: 'last' } },
-        { createdAt: 'desc' },
-      ],
-    });
+    const records = await this.repository.findManyByDateWithAttachments(
+      userId,
+      parseDateOnly(date),
+    );
 
     return this.mapperService.toSummaries(records);
   }
@@ -318,12 +294,12 @@ export class DailyRecordsService {
     }
   }
 
-  private async getItemFromDb(
-    db: DailyRecordDbClient,
+  private async getItemFromTx(
+    tx: Prisma.TransactionClient,
     userId: string,
     id: string,
   ) {
-    const record = await db.userDailyRecord.findFirst({
+    const record = await tx.userDailyRecord.findFirst({
       where: { id, userId, deletedAt: null },
       include: dailyRecordWithAttachments,
     });

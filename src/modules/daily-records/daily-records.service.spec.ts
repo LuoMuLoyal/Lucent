@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { DailyRecordKind } from '#generated/prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { DailyRecordRepositoryPort } from './repositories/daily-record.repository';
 import { DailyRecordsOwnershipService } from './services/ownership.service';
 import { DailyRecordsMapperService } from './services/mapper.service';
 import { DailyRecordsService } from './services/records.service';
@@ -14,7 +14,18 @@ const mockUserId = 'user-uuid-1';
 
 describe('DailyRecordsService', () => {
   let service: DailyRecordsService;
-  let prisma: jest.Mocked<PrismaService>;
+  let repository: jest.Mocked<DailyRecordRepositoryPort>;
+  let txMock: jest.Mocked<{
+    userDailyRecord: {
+      create: jest.Mock;
+      update: jest.Mock;
+      findFirst: jest.Mock;
+    };
+    userDailyRecordAttachment: {
+      createMany: jest.Mock;
+      deleteMany: jest.Mock;
+    };
+  }>;
   let mealAnalysisQueueService: { enqueue: jest.Mock };
   let mealDishTemplateLearningService: {
     learnFromConfirmedAnalysis: jest.Mock;
@@ -27,6 +38,32 @@ describe('DailyRecordsService', () => {
     mealDishTemplateLearningService = {
       learnFromConfirmedAnalysis: jest.fn().mockResolvedValue(undefined),
     };
+
+    txMock = {
+      userDailyRecord: {
+        create: jest.fn(),
+        update: jest.fn(),
+        findFirst: jest.fn(),
+      },
+      userDailyRecordAttachment: {
+        createMany: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+    };
+
+    const repositoryMock = {
+      findManyWithAttachments: jest.fn(),
+      findByIdWithAttachments: jest.fn(),
+      findOwnershipData: jest.fn(),
+      findManyByDateWithAttachments: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      softDelete: jest.fn(),
+      transaction: jest.fn(
+        async (fn: (tx: typeof txMock) => Promise<unknown>) => fn(txMock),
+      ) as jest.Mock,
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
@@ -45,51 +82,46 @@ describe('DailyRecordsService', () => {
           useValue: mealDishTemplateLearningService,
         },
         {
-          provide: PrismaService,
-          useValue: {
-            $transaction: jest.fn(),
-            userDailyRecord: {
-              findMany: jest.fn(),
-              count: jest.fn(),
-              create: jest.fn(),
-              update: jest.fn(),
-              findFirst: jest.fn(),
-            },
-            userDailyRecordAttachment: {
-              createMany: jest.fn(),
-              deleteMany: jest.fn(),
-            },
-          },
+          provide: DailyRecordRepositoryPort,
+          useValue: repositoryMock,
         },
       ],
     }).compile();
 
     service = module.get(DailyRecordsService);
-    prisma = module.get(PrismaService);
-    const runTransaction = async <T>(
-      callback: (tx: jest.Mocked<PrismaService>) => Promise<T>,
-    ): Promise<T> => callback(prisma);
-    (prisma.$transaction as jest.Mock).mockImplementation(runTransaction);
+    repository = module.get(DailyRecordRepositoryPort);
   });
 
   it('should list records for a given date', async () => {
-    (prisma.userDailyRecord.findMany as jest.Mock).mockResolvedValue([
-      {
-        id: 'r1',
-        kind: 'water',
-        occurredAt: new Date('2026-06-04'),
-        occurredTime: '09:45',
-        title: null,
-        value: '3',
-        unit: 'cups',
-        note: null,
-        source: 'manual',
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]);
-    (prisma.userDailyRecord.count as jest.Mock).mockResolvedValue(1);
+    repository.findManyWithAttachments.mockResolvedValue({
+      items: [
+        {
+          id: 'r1',
+
+          userId: mockUserId,
+
+          deletedAt: null,
+          kind: 'water',
+          occurredAt: new Date('2026-06-04'),
+          occurredTime: '09:45',
+          title: null,
+          value: '3',
+          unit: 'cups',
+          note: null,
+          source: 'manual',
+          payload: null,
+          mealAnalysisStatus: null,
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+      total: 1,
+    });
 
     const result = await service.list(mockUserId, '2026-06-04');
 
@@ -100,36 +132,47 @@ describe('DailyRecordsService', () => {
   });
 
   it('should hide heavy meal payload fields from default list reads', async () => {
-    (prisma.userDailyRecord.findMany as jest.Mock).mockResolvedValue([
-      {
-        id: 'meal-1',
-        kind: 'meal',
-        occurredAt: new Date('2026-07-01'),
-        occurredTime: '12:30',
-        title: 'Lunch',
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          mealInput: {
-            manualSummary: 'rice and egg',
-          },
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-            mealDescription:
-              'A bowl of rice with scrambled eggs and green vegetables.',
-            nutritionEstimate: {
-              energyKcal: 620,
+    repository.findManyWithAttachments.mockResolvedValue({
+      items: [
+        {
+          id: 'meal-1',
+
+          userId: mockUserId,
+
+          deletedAt: null,
+          kind: 'meal',
+          occurredAt: new Date('2026-07-01'),
+          occurredTime: '12:30',
+          title: 'Lunch',
+          value: null,
+          unit: null,
+          note: null,
+          payload: {
+            mealInput: {
+              manualSummary: 'rice and egg',
+            },
+            mealAnalysis: {
+              analysisStatus: 'confirmed',
+              mealDescription:
+                'A bowl of rice with scrambled eggs and green vegetables.',
+              nutritionEstimate: {
+                energyKcal: 620,
+              },
             },
           },
+          source: 'manual',
+          mealAnalysisStatus: 'confirmed',
+          mealAnalysisCoverage: null,
+          mealAnalysisUpdatedAt: null,
+          mealAnalysisFailureReason: null,
+          mealSourceRevision: 0,
+          attachments: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
         },
-        source: 'manual',
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]);
-    (prisma.userDailyRecord.count as jest.Mock).mockResolvedValue(1);
+      ],
+      total: 1,
+    });
 
     const result = await service.list(mockUserId, '2026-07-01');
 
@@ -137,8 +180,12 @@ describe('DailyRecordsService', () => {
   });
 
   it('should create a record', async () => {
-    (prisma.userDailyRecord.create as jest.Mock).mockResolvedValue({
+    repository.create.mockResolvedValue({
       id: 'r1',
+
+      userId: mockUserId,
+
+      deletedAt: null,
       kind: 'mood',
       occurredAt: new Date('2026-06-04'),
       occurredTime: '14:20',
@@ -147,6 +194,12 @@ describe('DailyRecordsService', () => {
       unit: null,
       note: 'good',
       source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
       attachments: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -165,11 +218,17 @@ describe('DailyRecordsService', () => {
   });
 
   it('should update a record with partial fields', async () => {
-    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+    repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
+      kind: 'mood',
+      payload: null,
     });
-    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({
+    repository.update.mockResolvedValue({
       id: 'r1',
+
+      userId: mockUserId,
+
+      deletedAt: null,
       kind: 'mood',
       occurredAt: new Date('2026-06-04'),
       occurredTime: null,
@@ -178,6 +237,12 @@ describe('DailyRecordsService', () => {
       unit: null,
       note: 'updated',
       source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
       attachments: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -185,16 +250,14 @@ describe('DailyRecordsService', () => {
 
     const result = await service.update(mockUserId, 'r1', { note: 'updated' });
 
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
-      where: { id: 'r1' },
-      data: { note: 'updated' },
-      include: { attachments: { orderBy: { createdAt: 'asc' } } },
+    expect(repository.update).toHaveBeenCalledWith('r1', {
+      note: 'updated',
     });
     expect(result.note).toBe('updated');
   });
 
   it('should preserve server-owned mealAnalysis when updating meal payload', async () => {
-    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+    repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
       kind: 'meal',
       payload: {
@@ -207,8 +270,12 @@ describe('DailyRecordsService', () => {
         },
       },
     });
-    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({
+    repository.update.mockResolvedValue({
       id: 'meal-2',
+
+      userId: mockUserId,
+
+      deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-07-01'),
       occurredTime: '18:20',
@@ -226,6 +293,11 @@ describe('DailyRecordsService', () => {
         },
       },
       source: 'manual',
+      mealAnalysisStatus: 'confirmed',
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
       attachments: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -243,14 +315,10 @@ describe('DailyRecordsService', () => {
       },
     });
 
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
-      where: { id: 'meal-2' },
-      data: {
-        mealAnalysisCoverage: null,
-        mealAnalysisFailureReason: null,
+    expect(repository.update).toHaveBeenCalledWith(
+      'meal-2',
+      expect.objectContaining({
         mealAnalysisStatus: 'confirmed',
-        mealAnalysisUpdatedAt: null,
-        mealSourceRevision: 0,
         payload: {
           mealInput: {
             manualSummary: 'new summary',
@@ -260,13 +328,12 @@ describe('DailyRecordsService', () => {
             mealDescription: 'trusted analysis',
           },
         },
-      },
-      include: { attachments: { orderBy: { createdAt: 'asc' } } },
-    });
+      }),
+    );
   });
 
   it('should keep client meal dish edits in mealInput and preserve server-owned analysis branches', async () => {
-    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+    repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
       kind: 'meal',
       payload: {
@@ -279,8 +346,12 @@ describe('DailyRecordsService', () => {
         },
       },
     });
-    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({
+    repository.update.mockResolvedValue({
       id: 'meal-3',
+
+      userId: mockUserId,
+
+      deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-07-01'),
       occurredTime: '18:20',
@@ -298,6 +369,11 @@ describe('DailyRecordsService', () => {
         },
       },
       source: 'manual',
+      mealAnalysisStatus: 'confirmed',
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
       attachments: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -311,14 +387,10 @@ describe('DailyRecordsService', () => {
       },
     });
 
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
-      where: { id: 'meal-3' },
-      data: {
-        mealAnalysisCoverage: null,
-        mealAnalysisFailureReason: null,
+    expect(repository.update).toHaveBeenCalledWith(
+      'meal-3',
+      expect.objectContaining({
         mealAnalysisStatus: 'confirmed',
-        mealAnalysisUpdatedAt: null,
-        mealSourceRevision: 0,
         payload: {
           mealInput: {
             recognizedDishes: [{ rawName: '用户改过的菜名' }],
@@ -328,13 +400,12 @@ describe('DailyRecordsService', () => {
             recognizedDishes: [{ rawName: '服务端可信菜名' }],
           },
         },
-      },
-      include: { attachments: { orderBy: { createdAt: 'asc' } } },
-    });
+      }),
+    );
   });
 
   it('should mark the current meal analysis confirmed and learn a template from grounded ingredients', async () => {
-    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+    repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
       kind: 'meal',
       payload: {
@@ -390,8 +461,12 @@ describe('DailyRecordsService', () => {
         },
       },
     });
-    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({
+    repository.update.mockResolvedValue({
       id: 'meal-4',
+
+      userId: mockUserId,
+
+      deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-07-01'),
       occurredTime: '12:20',
@@ -456,6 +531,11 @@ describe('DailyRecordsService', () => {
         },
       },
       source: 'manual',
+      mealAnalysisStatus: 'confirmed',
+      mealAnalysisCoverage: 'partial',
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
       attachments: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -469,19 +549,17 @@ describe('DailyRecordsService', () => {
       },
     });
 
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith(
+    expect(repository.update).toHaveBeenCalledWith(
+      'meal-4',
       expect.objectContaining({
-        where: { id: 'meal-4' },
-        data: expect.objectContaining({
-          mealAnalysisStatus: 'confirmed',
-          payload: expect.objectContaining({
-            mealAnalysis: expect.objectContaining({
-              analysisStatus: 'confirmed',
-              confirmedAt: expect.any(String),
-            }),
-            mealAnalysisLastConfirmed: expect.objectContaining({
-              analysisStatus: 'confirmed',
-            }),
+        mealAnalysisStatus: 'confirmed',
+        payload: expect.objectContaining({
+          mealAnalysis: expect.objectContaining({
+            analysisStatus: 'confirmed',
+            confirmedAt: expect.any(String),
+          }),
+          mealAnalysisLastConfirmed: expect.objectContaining({
+            analysisStatus: 'confirmed',
           }),
         }),
       }),
@@ -500,11 +578,17 @@ describe('DailyRecordsService', () => {
   });
 
   it('should clear nullable fields when sending null', async () => {
-    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+    repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
+      kind: 'water',
+      payload: null,
     });
-    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({
+    repository.update.mockResolvedValue({
       id: 'r1',
+
+      userId: mockUserId,
+
+      deletedAt: null,
       kind: 'water',
       occurredAt: new Date('2026-06-04'),
       occurredTime: null,
@@ -513,6 +597,12 @@ describe('DailyRecordsService', () => {
       unit: null,
       note: null,
       source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
       attachments: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -520,16 +610,19 @@ describe('DailyRecordsService', () => {
 
     await service.update(mockUserId, 'r1', { note: null, value: null });
 
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
-      where: { id: 'r1' },
-      data: { note: null, value: null },
-      include: { attachments: { orderBy: { createdAt: 'asc' } } },
+    expect(repository.update).toHaveBeenCalledWith('r1', {
+      note: null,
+      value: null,
     });
   });
 
   it('should create a record with image attachment metadata', async () => {
-    (prisma.userDailyRecord.create as jest.Mock).mockResolvedValue({
+    txMock.userDailyRecord.create.mockResolvedValue({
       id: 'r1',
+
+      userId: mockUserId,
+
+      deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-06-04'),
       occurredTime: '08:30',
@@ -538,17 +631,17 @@ describe('DailyRecordsService', () => {
       unit: null,
       note: null,
       source: 'manual',
-      attachments: [],
+      payload: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    (
-      prisma.userDailyRecordAttachment.createMany as jest.Mock
-    ).mockResolvedValue({
-      count: 1,
-    });
-    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+    txMock.userDailyRecordAttachment.createMany.mockResolvedValue({ count: 1 });
+    txMock.userDailyRecord.findFirst.mockResolvedValue({
       id: 'r1',
+
+      userId: mockUserId,
+
+      deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-06-04'),
       occurredTime: '08:30',
@@ -557,6 +650,12 @@ describe('DailyRecordsService', () => {
       unit: null,
       note: null,
       source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 1,
       attachments: [
         {
           id: 'a1',
@@ -596,7 +695,7 @@ describe('DailyRecordsService', () => {
       ],
     });
 
-    expect(prisma.userDailyRecordAttachment.createMany).toHaveBeenCalledWith({
+    expect(txMock.userDailyRecordAttachment.createMany).toHaveBeenCalledWith({
       data: [
         {
           userId: mockUserId,
@@ -626,41 +725,20 @@ describe('DailyRecordsService', () => {
   });
 
   it('should replace attachments when update includes attachments', async () => {
-    (prisma.userDailyRecord.findFirst as jest.Mock)
-      .mockResolvedValueOnce({
-        userId: mockUserId,
-      })
-      .mockResolvedValueOnce({
-        id: 'r1',
-        kind: 'meal',
-        occurredAt: new Date('2026-06-04'),
-        occurredTime: '13:40',
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        source: 'manual',
-        attachments: [
-          {
-            id: 'a2',
-            kind: 'image',
-            objectKey: 'daily-records/u1/r1/new.jpg',
-            bucket: null,
-            provider: 'tencent-cos',
-            fileName: null,
-            contentType: 'image/jpeg',
-            sizeBytes: null,
-            width: null,
-            height: null,
-            publicUrl: null,
-            createdAt: new Date('2026-06-04T00:00:00.000Z'),
-          },
-        ],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({
+    repository.findOwnershipData.mockResolvedValueOnce({
+      userId: mockUserId,
+      kind: 'meal',
+      payload: null,
+    });
+    txMock.userDailyRecord.update.mockResolvedValue({});
+    txMock.userDailyRecordAttachment.deleteMany.mockResolvedValue({ count: 1 });
+    txMock.userDailyRecordAttachment.createMany.mockResolvedValue({ count: 1 });
+    txMock.userDailyRecord.findFirst.mockResolvedValue({
       id: 'r1',
+
+      userId: mockUserId,
+
+      deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-06-04'),
       occurredTime: '13:40',
@@ -669,19 +747,30 @@ describe('DailyRecordsService', () => {
       unit: null,
       note: null,
       source: 'manual',
-      attachments: [],
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
+      attachments: [
+        {
+          id: 'a2',
+          kind: 'image',
+          objectKey: 'daily-records/u1/r1/new.jpg',
+          bucket: null,
+          provider: 'tencent-cos',
+          fileName: null,
+          contentType: 'image/jpeg',
+          sizeBytes: null,
+          width: null,
+          height: null,
+          publicUrl: null,
+          createdAt: new Date('2026-06-04T00:00:00.000Z'),
+        },
+      ],
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
-    (
-      prisma.userDailyRecordAttachment.deleteMany as jest.Mock
-    ).mockResolvedValue({
-      count: 1,
-    });
-    (
-      prisma.userDailyRecordAttachment.createMany as jest.Mock
-    ).mockResolvedValue({
-      count: 1,
     });
 
     const result = await service.update(mockUserId, 'r1', {
@@ -694,10 +783,10 @@ describe('DailyRecordsService', () => {
       ],
     });
 
-    expect(prisma.userDailyRecordAttachment.deleteMany).toHaveBeenCalledWith({
+    expect(txMock.userDailyRecordAttachment.deleteMany).toHaveBeenCalledWith({
       where: { userId: mockUserId, recordId: 'r1' },
     });
-    expect(prisma.userDailyRecordAttachment.createMany).toHaveBeenCalledWith({
+    expect(txMock.userDailyRecordAttachment.createMany).toHaveBeenCalledWith({
       data: [
         {
           userId: mockUserId,
@@ -719,23 +808,26 @@ describe('DailyRecordsService', () => {
   });
 
   it('should soft-delete a record', async () => {
-    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+    repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
+      kind: 'water',
+      payload: null,
     });
-    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({});
+    repository.softDelete.mockResolvedValue(undefined);
 
     await service.delete(mockUserId, 'r1');
 
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
-      where: { id: 'r1' },
-      data: { deletedAt: expect.any(Date) },
-    });
+    expect(repository.softDelete).toHaveBeenCalledWith('r1', expect.any(Date));
   });
 
   it('should return summary counts by kind', async () => {
-    (prisma.userDailyRecord.findMany as jest.Mock).mockResolvedValue([
+    repository.findManyByDateWithAttachments.mockResolvedValue([
       {
         id: 'r1',
+
+        userId: mockUserId,
+
+        deletedAt: null,
         kind: 'water',
         occurredAt: new Date('2026-06-04'),
         occurredTime: '10:10',
@@ -744,12 +836,22 @@ describe('DailyRecordsService', () => {
         unit: 'cups',
         note: null,
         source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
         attachments: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         id: 'r2',
+
+        userId: mockUserId,
+
+        deletedAt: null,
         kind: 'water',
         occurredAt: new Date('2026-06-04'),
         occurredTime: '09:00',
@@ -758,12 +860,22 @@ describe('DailyRecordsService', () => {
         unit: 'cups',
         note: null,
         source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
         attachments: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
         id: 'r3',
+
+        userId: mockUserId,
+
+        deletedAt: null,
         kind: 'mood',
         occurredAt: new Date('2026-06-04'),
         occurredTime: '20:30',
@@ -772,6 +884,12 @@ describe('DailyRecordsService', () => {
         unit: null,
         note: 'ok',
         source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
         attachments: [],
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -788,8 +906,10 @@ describe('DailyRecordsService', () => {
   });
 
   it('should throw NotFoundException for foreign record', async () => {
-    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+    repository.findOwnershipData.mockResolvedValue({
       userId: 'other',
+      kind: 'water',
+      payload: null,
     });
 
     await expect(service.update(mockUserId, 'r1', {})).rejects.toThrow(
@@ -798,7 +918,7 @@ describe('DailyRecordsService', () => {
   });
 
   it('should throw NotFoundException when record does not exist', async () => {
-    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue(null);
+    repository.findOwnershipData.mockResolvedValue(null);
 
     await expect(service.update(mockUserId, 'nonexistent', {})).rejects.toThrow(
       NotFoundException,
@@ -806,13 +926,17 @@ describe('DailyRecordsService', () => {
   });
 
   it('should update occurredTime when provided', async () => {
-    (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+    repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
       kind: 'water',
       payload: null,
     });
-    (prisma.userDailyRecord.update as jest.Mock).mockResolvedValue({
+    repository.update.mockResolvedValue({
       id: 'r-time-2',
+
+      userId: mockUserId,
+
+      deletedAt: null,
       kind: 'water',
       occurredAt: new Date('2026-06-04'),
       occurredTime: '21:05',
@@ -821,6 +945,12 @@ describe('DailyRecordsService', () => {
       unit: 'ml',
       note: null,
       source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
       attachments: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -830,10 +960,8 @@ describe('DailyRecordsService', () => {
       occurredTime: '21:05',
     });
 
-    expect(prisma.userDailyRecord.update).toHaveBeenCalledWith({
-      where: { id: 'r-time-2' },
-      data: { occurredTime: '21:05' },
-      include: { attachments: { orderBy: { createdAt: 'asc' } } },
+    expect(repository.update).toHaveBeenCalledWith('r-time-2', {
+      occurredTime: '21:05',
     });
   });
 
@@ -845,10 +973,14 @@ describe('DailyRecordsService', () => {
         endAt: '2026-06-13T06:30:00.000Z',
         quality: 'good',
       };
-      (prisma.userDailyRecord.create as jest.Mock).mockResolvedValue({
+      repository.create.mockResolvedValue({
         id: 'rs1',
+
+        userId: mockUserId,
+
+        deletedAt: null,
         kind: 'sleep',
-        occurredAt: new Date('2026-06-13'), // wake date
+        occurredAt: new Date('2026-06-13'),
         occurredTime: '07:10',
         title: null,
         value: null,
@@ -856,6 +988,11 @@ describe('DailyRecordsService', () => {
         note: null,
         payload: sleepPayload,
         source: 'manual',
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
         attachments: [],
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -863,19 +1000,17 @@ describe('DailyRecordsService', () => {
 
       const result = await service.create(mockUserId, {
         kind: DailyRecordKind.sleep,
-        occurredAt: '2026-06-13', // wake date
+        occurredAt: '2026-06-13',
         occurredTime: '07:10',
         payload: sleepPayload,
       });
 
       expect(result.kind).toBe('sleep');
-      expect(prisma.userDailyRecord.create).toHaveBeenCalledWith(
+      expect(repository.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            occurredAt: new Date('2026-06-13T00:00:00.000Z'),
-            occurredTime: '07:10',
-            payload: sleepPayload,
-          }),
+          occurredAt: new Date('2026-06-13T00:00:00.000Z'),
+          occurredTime: '07:10',
+          payload: sleepPayload,
         }),
       );
     });
@@ -911,7 +1046,7 @@ describe('DailyRecordsService', () => {
     });
 
     it('should validate sleep payload on update', async () => {
-      (prisma.userDailyRecord.findFirst as jest.Mock).mockResolvedValue({
+      repository.findOwnershipData.mockResolvedValue({
         userId: mockUserId,
         kind: 'sleep',
         payload: { durationMinutes: 420 },
