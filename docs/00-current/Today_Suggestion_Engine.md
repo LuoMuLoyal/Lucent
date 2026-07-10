@@ -78,6 +78,34 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 - 条件：`notificationEligible` + `triggerType=event` + `confidence=high` + `priorityScore>=700`
 - 去重：按 `(suggestionType, date)` 去重，避免通知轰炸
 - 使用 `NotificationsService.createOrReplaceScoped()` 发送
+- 操作顺序：先持久化 `notificationSentAt`，再发送通知。如果通知发送失败，建议已标记为已通知，防止重复发送
+
+## 生命周期定时刷新
+
+建议卡状态不再仅依赖用户请求触发，`@Cron` 定时任务每 5 分钟自动刷新：
+
+| 转换             | 条件                       | 常量                                                            |
+| ---------------- | -------------------------- | --------------------------------------------------------------- |
+| ACTIVE → FADING  | `activatedAt` 超过 8 小时  | `SUGGESTION_ACTIVE_DURATION_MS`                                 |
+| FADING → EXPIRED | `activatedAt` 超过 12 小时 | `SUGGESTION_ACTIVE_DURATION_MS + SUGGESTION_FADING_DURATION_MS` |
+
+- 常量定义在 `constants/lifecycle.constants.ts`
+- `LifecycleService.refreshLifecycleStates()` 由 `@nestjs/schedule` 的 `@Cron` 装饰器驱动
+
+## 安全与运维
+
+### API 限流
+
+全局 `ThrottlerGuard`（100 req/min），建议引擎端点额外配置：
+
+| 端点                                   | 限流                      |
+| -------------------------------------- | ------------------------- |
+| `POST /today/suggestions/:id/feedback` | 20 次/分钟                |
+| `POST /today/suggestions/:id/explain`  | 5 次/分钟（LLM 成本控制） |
+
+### 反馈事务
+
+`FeedbackService.recordFeedback` 中的「创建反馈记录 + 更新建议状态」包裹在 `prisma.$transaction` 中，确保原子性。
 
 ## AI 解释层
 
@@ -139,6 +167,7 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 - [x] Phase 4: AI 解释层（信号组合规则在 Phase 5 实现）
 - [x] Phase 5: 信号组合（caffeine-sleep 关联规则）+ 历史回顾 API
 - [x] Phase 6: 缓存策略 + 反馈驱动 threshold 调整 + A/B 规则版本 + mood-sleep 信号组合规则
+- [x] 审查修复: 反馈事务 + 生命周期定时刷新 + 通知顺序 + API 限流 + 类型安全
 
 ## 前端接入状态
 

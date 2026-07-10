@@ -8,6 +8,7 @@ import {
   Headers,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -82,6 +83,7 @@ export class TodaySuggestionController {
   @Post(':id/feedback')
   @ApiOperation({ summary: 'Submit feedback for a suggestion card' })
   @ApiResponse({ status: 201, type: SuggestionFeedbackResponseDto })
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async submitFeedback(
     @CurrentUser() user: UserPayload,
     @Param('id') suggestionId: string,
@@ -106,6 +108,7 @@ export class TodaySuggestionController {
   @Post(':id/explain')
   @ApiOperation({ summary: 'Get AI explanation for a suggestion card' })
   @ApiResponse({ status: 201, type: SuggestionExplanationResponseDto })
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   async explainSuggestion(
     @CurrentUser() user: UserPayload,
     @Param('id') suggestionId: string,

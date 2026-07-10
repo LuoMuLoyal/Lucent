@@ -1,8 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { now } from '../../../../common/helpers/date-time.utils';
-import { SuggestionFeedback } from '../../types';
+import { SuggestionFeedback, SuggestionLifecycleState } from '../../types';
 import type { SuggestionType } from '../../types';
+import type { Prisma } from '#generated/prisma/client';
 import {
   FEEDBACK_LATER_DURATION_MS,
   FEEDBACK_NOT_APPLICABLE_DURATION_MS,
@@ -84,23 +85,8 @@ export class FeedbackService {
     // 2. Calculate expiry based on feedback type
     const { expiresAt, appliedEffect } = this.computeEffect(feedback);
 
-    // 3. Create feedback record
-    await this.prisma.userSuggestionFeedback.create({
-      data: {
-        userId,
-        suggestionId,
-        suggestionType: suggestion.type,
-        feedback,
-        expiresAt,
-      },
-    });
-
-    // 4. Update the suggestion's feedback fields
-    const updateData: {
-      feedback: string;
-      feedbackAt: Date;
-      lifecycleState?: string;
-    } = {
+    // 3. Create feedback record + update suggestion state atomically
+    const updateData: Prisma.UserSuggestionUpdateManyMutationInput = {
       feedback,
       feedbackAt: now(),
     };
@@ -110,12 +96,24 @@ export class FeedbackService {
       feedback === SuggestionFeedback.LATER ||
       feedback === SuggestionFeedback.SUPPRESS
     ) {
-      updateData.lifecycleState = 'dismissed';
+      updateData.lifecycleState = SuggestionLifecycleState.DISMISSED;
     }
 
-    await this.prisma.userSuggestion.updateMany({
-      where: { id: suggestionId, userId },
-      data: updateData as never,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userSuggestionFeedback.create({
+        data: {
+          userId,
+          suggestionId,
+          suggestionType: suggestion.type,
+          feedback,
+          expiresAt,
+        },
+      });
+
+      await tx.userSuggestion.updateMany({
+        where: { id: suggestionId, userId },
+        data: updateData,
+      });
     });
 
     this.logger.debug(

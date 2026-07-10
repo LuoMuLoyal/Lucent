@@ -56,6 +56,16 @@ export class EscalationService {
     }
 
     try {
+      // 1. Persist the notification-sent state FIRST.
+      //    If the notification send fails afterwards, the suggestion is already
+      //    marked as notified — preventing duplicate notifications on retry.
+      //    The notification itself can be retried separately.
+      await this.prisma.userSuggestion.update({
+        where: { id: suggestionId },
+        data: { notificationSentAt: now() },
+      });
+
+      // 2. Send the notification.
       await this.notificationsService.createOrReplaceScoped(
         userId,
         {
@@ -76,12 +86,6 @@ export class EscalationService {
           date,
         },
       );
-
-      // Mark the suggestion as notified
-      await this.prisma.userSuggestion.update({
-        where: { id: suggestionId },
-        data: { notificationSentAt: now() },
-      });
 
       this.logger.debug(
         `Escalated suggestion ${suggestionId} to notification (type=${candidate.type}, rule=${candidate.ruleId})`,

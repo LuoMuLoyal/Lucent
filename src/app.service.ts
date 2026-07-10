@@ -116,7 +116,7 @@ export class AppService {
     const startedAt = Date.now();
 
     try {
-      await this.prisma.$queryRawUnsafe('SELECT 1');
+      await this.prisma.$queryRaw`SELECT 1`;
       return this.buildComponent({
         name: 'database',
         status: 'up',

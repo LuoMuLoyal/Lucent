@@ -264,8 +264,8 @@ export class MedicineDoseLogsService {
       return null;
     }
 
-    const reminder = await this.prisma.userMedicineReminder.findUnique({
-      where: { id: reminderId },
+    const reminder = await this.prisma.userMedicineReminder.findFirst({
+      where: { id: reminderId, deletedAt: null },
       select: {
         userId: true,
         currentMedicineId: true,
@@ -325,8 +325,8 @@ export class MedicineDoseLogsService {
   }
 
   private async ensureOwned(userId: string, id: string) {
-    const record = await this.prisma.userMedicineDoseLog.findUnique({
-      where: { id },
+    const record = await this.prisma.userMedicineDoseLog.findFirst({
+      where: { id, deletedAt: null },
       select: { userId: true },
     });
     if (!record || record.userId !== userId) {

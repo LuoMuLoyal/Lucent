@@ -11,3 +11,9 @@ random docs.
 `Luminous/docs/00-current/Current_State.md`, and record the completion in both today's
 `Lucent/docs/02-logs/migration-log/YYYY-MM-DD.md` and
 `Luminous/docs/02-logs/migration-log/YYYY-MM-DD.md` as cross-repo sync evidence.
+
+后续可做（不在本次范围）
+在 BullMQ 队列服务中接入 recordBullmqJob() 事件监听（3 个队列服务各加几行）
+在 LLM 调用服务中接入 recordLlmCall() / recordLlmTokens()（AI 服务 wrapper 层）
+配置 Prometheus alerting rules
+添加 synthetic uptime monitoring

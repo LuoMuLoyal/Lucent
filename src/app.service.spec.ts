@@ -8,7 +8,7 @@ import { AppService } from './app.service';
 
 describe('AppService', () => {
   let service: AppService;
-  let prisma: { $queryRawUnsafe: jest.Mock };
+  let prisma: { $queryRaw: jest.Mock };
   let cache: {
     set: jest.Mock;
     get: jest.Mock;
@@ -17,7 +17,7 @@ describe('AppService', () => {
 
   beforeEach(async () => {
     prisma = {
-      $queryRawUnsafe: jest.fn(),
+      $queryRaw: jest.fn(),
     };
     cache = {
       set: jest.fn(),
@@ -71,11 +71,11 @@ describe('AppService', () => {
     });
     expect(result.app.name).toBe('lucent');
     expect(result.app.env).toBe('test');
-    expect(prisma.$queryRawUnsafe).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
   });
 
   it('returns an ok readiness probe when database and memory cache are available', async () => {
-    prisma.$queryRawUnsafe.mockResolvedValue([{}]);
+    prisma.$queryRaw.mockResolvedValue([{}]);
 
     const result = await service.getReadyHealth();
 
@@ -109,7 +109,7 @@ describe('AppService', () => {
   });
 
   it('returns an error readiness probe when configured redis round-trip fails', async () => {
-    prisma.$queryRawUnsafe.mockResolvedValue([{}]);
+    prisma.$queryRaw.mockResolvedValue([{}]);
     cache.set.mockRejectedValue(new Error('redis unavailable'));
 
     const module: TestingModule = await Test.createTestingModule({

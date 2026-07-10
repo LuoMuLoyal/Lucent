@@ -22,7 +22,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 type MockPrisma = {
   user: {
     update: jest.Mock;
-    findUnique: jest.Mock;
+    findFirst: jest.Mock;
   };
 };
 
@@ -48,7 +48,7 @@ describe('SecurityPinService', () => {
           useValue: {
             user: {
               update: jest.fn(),
-              findUnique: jest.fn(),
+              findFirst: jest.fn(),
             },
           },
         },
@@ -85,7 +85,7 @@ describe('SecurityPinService', () => {
     (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$new-hash');
     (argon2.verify as jest.Mock).mockResolvedValue(true);
     prisma.user.update.mockResolvedValue({ id: 'user-1' });
-    prisma.user.findUnique.mockResolvedValue(mockUser);
+    prisma.user.findFirst.mockResolvedValue(mockUser);
     jwtService.signAsync.mockResolvedValue('mock-elevation-token');
     jwtService.verifyAsync.mockResolvedValue({
       sub: 'user-1',
@@ -153,7 +153,7 @@ describe('SecurityPinService', () => {
     });
 
     it('rejects when PIN is not enabled', async () => {
-      prisma.user.findUnique.mockResolvedValue({
+      prisma.user.findFirst.mockResolvedValue({
         ...mockUser,
         securityPinEnabled: false,
         securityPinHash: null,

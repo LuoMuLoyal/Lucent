@@ -17,6 +17,7 @@ describe('FeedbackService', () => {
   let updateMock: jest.Mock;
   let feedbackCreateMock: jest.Mock;
   let feedbackFindManyMock: jest.Mock;
+  let transactionMock: jest.Mock;
 
   beforeEach(() => {
     findFirstMock = jest.fn();
@@ -42,6 +43,13 @@ describe('FeedbackService', () => {
         findMany: feedbackFindManyMock,
       },
     };
+
+    // $transaction mock: execute the callback with the same prisma mock as tx client
+    transactionMock = jest.fn(
+      async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
+    );
+    (prismaMock as never as { $transaction: jest.Mock }).$transaction =
+      transactionMock;
 
     service = new FeedbackService(prismaMock as never);
   });

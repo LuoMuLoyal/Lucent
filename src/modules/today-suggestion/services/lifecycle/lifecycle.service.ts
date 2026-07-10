@@ -1,10 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { nowIsoString } from '../../../../common/helpers/date-time.utils';
+import { now, nowIsoString } from '../../../../common/helpers/date-time.utils';
 import type { SuggestionCandidate, SuggestionAction } from '../../types';
 import { SuggestionLifecycleState } from '../../types';
 import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto';
 import type { Prisma } from '#generated/prisma/client';
+import {
+  SUGGESTION_ACTIVE_DURATION_MS,
+  SUGGESTION_FADING_DURATION_MS,
+  LIFECYCLE_REFRESH_CRON,
+} from '../../constants';
 
 /** Max items returned by the history endpoint. */
 const HISTORY_MAX_LIMIT = 500;
@@ -204,5 +210,58 @@ export class LifecycleService {
     const d = new Date();
     d.setUTCDate(d.getUTCDate() - HISTORY_DEFAULT_DAYS);
     return d.toISOString().slice(0, 10);
+  }
+
+  /**
+   * Periodically transitions suggestion lifecycle states based on time elapsed
+   * since activation.
+   *
+   * - ACTIVE → FADING: after SUGGESTION_ACTIVE_DURATION_MS (8h)
+   * - FADING → EXPIRED: after SUGGESTION_ACTIVE_DURATION_MS + SUGGESTION_FADING_DURATION_MS (12h)
+   *
+   * Runs every 5 minutes via @Cron. Safe to call concurrently — updateMany is
+   * idempotent and the WHERE clause prevents double-transition.
+   */
+  @Cron(LIFECYCLE_REFRESH_CRON)
+  async refreshLifecycleStates(): Promise<void> {
+    const currentTime = now();
+    const activeThreshold = new Date(
+      currentTime.getTime() - SUGGESTION_ACTIVE_DURATION_MS,
+    );
+    const fadingThreshold = new Date(
+      currentTime.getTime() -
+        SUGGESTION_ACTIVE_DURATION_MS -
+        SUGGESTION_FADING_DURATION_MS,
+    );
+
+    // ACTIVE → FADING
+    const fadingResult = await this.prisma.userSuggestion.updateMany({
+      where: {
+        lifecycleState: SuggestionLifecycleState.ACTIVE,
+        activatedAt: { lt: activeThreshold },
+      },
+      data: {
+        lifecycleState: SuggestionLifecycleState.FADING,
+        fadingAt: nowIsoString(),
+      },
+    });
+
+    // FADING → EXPIRED
+    const expiredResult = await this.prisma.userSuggestion.updateMany({
+      where: {
+        lifecycleState: SuggestionLifecycleState.FADING,
+        activatedAt: { lt: fadingThreshold },
+      },
+      data: {
+        lifecycleState: SuggestionLifecycleState.EXPIRED,
+        expiredAt: nowIsoString(),
+      },
+    });
+
+    if (fadingResult.count > 0 || expiredResult.count > 0) {
+      this.logger.debug(
+        `Lifecycle refresh: ${String(fadingResult.count)} active→fading, ${String(expiredResult.count)} fading→expired`,
+      );
+    }
   }
 }

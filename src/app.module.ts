@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { appConfig } from './config/app.config';
 import { aiConfig } from './config/ai.config';
 import { jwtConfig } from './config/jwt.config';
@@ -54,6 +57,13 @@ import { ApiExceptionFilter } from './common/filters/api-exception.filter';
       isGlobal: true,
       useClass: CacheConfigService,
     }),
+    ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 100,
+      },
+    ]),
     I18nModule,
     LoggerModule,
     MetricsModule,
@@ -99,6 +109,13 @@ import { ApiExceptionFilter } from './common/filters/api-exception.filter';
     ]),
   ],
   controllers: [AppController],
-  providers: [AppService, ApiExceptionFilter],
+  providers: [
+    AppService,
+    ApiExceptionFilter,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

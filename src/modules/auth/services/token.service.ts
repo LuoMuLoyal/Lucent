@@ -45,7 +45,11 @@ export class AuthTokenService {
     context?: AuthRequestContext,
   ): Promise<TokenPair> {
     const config = this.jwtConfig;
-    const payload: UserPayload = { sub: user.id, email: user.email };
+    const payload: UserPayload = {
+      sub: user.id,
+      email: user.email,
+      status: user.status,
+    };
 
     const accessTokenId = randomBytes(16).toString('hex');
     const refreshToken = randomBytes(32).toString('hex');

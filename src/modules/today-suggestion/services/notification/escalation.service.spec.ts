@@ -157,7 +157,7 @@ describe('EscalationService', () => {
     expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
   });
 
-  it('should return false on notification creation error', async () => {
+  it('should return false on notification creation error but keep suggestion marked as notified', async () => {
     findUniqueMock.mockResolvedValue({
       notificationSentAt: null,
     });
@@ -172,8 +172,9 @@ describe('EscalationService', () => {
     );
 
     expect(result).toBe(false);
-    // Should not have marked the suggestion as notified
-    expect(updateMock).not.toHaveBeenCalled();
+    // Suggestion IS marked as notified (persisted first) to prevent
+    // duplicate notifications on the next generation cycle.
+    expect(updateMock).toHaveBeenCalledTimes(1);
   });
 
   it('should use suggestion type in the notification scope for deduplication', async () => {

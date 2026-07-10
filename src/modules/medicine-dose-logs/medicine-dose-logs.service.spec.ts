@@ -28,7 +28,10 @@ describe('MedicineDoseLogsService', () => {
               findFirst: jest.fn(),
             },
             userCurrentMedicine: { findUnique: jest.fn() },
-            userMedicineReminder: { findUnique: jest.fn() },
+            userMedicineReminder: {
+              findUnique: jest.fn(),
+              findFirst: jest.fn(),
+            },
           },
         },
       ],
@@ -91,7 +94,7 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should soft-delete', async () => {
-    (prisma.userMedicineDoseLog.findUnique as jest.Mock).mockResolvedValue({
+    (prisma.userMedicineDoseLog.findFirst as jest.Mock).mockResolvedValue({
       userId: 'u1',
     });
     await service.delete('u1', 'd1');
@@ -101,7 +104,7 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should update omitted fields without clearing nullable values', async () => {
-    (prisma.userMedicineDoseLog.findUnique as jest.Mock).mockResolvedValue({
+    (prisma.userMedicineDoseLog.findFirst as jest.Mock).mockResolvedValue({
       userId: 'u1',
     });
     (prisma.userMedicineDoseLog.update as jest.Mock).mockResolvedValue({
@@ -128,7 +131,7 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should clear nullable dose fields when null is provided', async () => {
-    (prisma.userMedicineDoseLog.findUnique as jest.Mock).mockResolvedValue({
+    (prisma.userMedicineDoseLog.findFirst as jest.Mock).mockResolvedValue({
       userId: 'u1',
     });
     (prisma.userMedicineDoseLog.update as jest.Mock).mockResolvedValue({
@@ -155,7 +158,7 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should reject foreign dose-log updates', async () => {
-    (prisma.userMedicineDoseLog.findUnique as jest.Mock).mockResolvedValue({
+    (prisma.userMedicineDoseLog.findFirst as jest.Mock).mockResolvedValue({
       userId: 'other',
     });
 
@@ -165,7 +168,7 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should upsert an existing reminder slot dose log when mark is called', async () => {
-    (prisma.userMedicineReminder.findUnique as jest.Mock).mockResolvedValue({
+    (prisma.userMedicineReminder.findFirst as jest.Mock).mockResolvedValue({
       id: 'reminder-1',
       userId: 'u1',
       currentMedicineId: 'medicine-1',
@@ -237,7 +240,7 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should reject foreign reminder slots on mark', async () => {
-    (prisma.userMedicineReminder.findUnique as jest.Mock).mockResolvedValue({
+    (prisma.userMedicineReminder.findFirst as jest.Mock).mockResolvedValue({
       id: 'reminder-1',
       userId: 'other',
       currentMedicineId: 'medicine-1',

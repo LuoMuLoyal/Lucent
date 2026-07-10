@@ -38,10 +38,18 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
   /**
    * Passport 验签成功后调用。
    * 返回值会挂载到 request.user。
+   *
+   * 安全检查：拒绝非 active 用户的 token（suspended / deleted）。
+   * 旧版 token 可能不含 status 字段，为兼容性允许通过。
    */
   validate(payload: UserPayload): UserPayload {
     if (!payload.sub) {
       unauthorized('无效的 access token');
+    }
+    // Reject tokens for non-active users (suspended / deleted).
+    // Old tokens without the status field are allowed for backward compatibility.
+    if (payload.status != null && payload.status !== 'active') {
+      unauthorized('用户已被禁用或删除');
     }
     return payload;
   }
