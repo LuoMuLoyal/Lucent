@@ -32,6 +32,15 @@ Last updated: 2026-07-10
 - **Metrics 集成**：BullMQ 任务和 LLM 调用接入 Prometheus 指标（`recordBullmqJob`、`recordLlmCall`），Grafana dashboard 新增 LLM 和 BullMQ 队列深度面板，修复 datasource UID 匹配问题
 - **JSONB Zod 校验**：`MealRecordPayload` 读取时通过 Zod schema `safeParse` 校验，校验失败时回退到手动解析结果
 
+## 2026-07-10 E2E 测试缺口审查与补充
+
+- **E2E 缺口审查**：对全部 ~80 个 Controller 端点与 19 个 E2E 测试文件逐端点比对，形成完整缺口矩阵（`plans/2026-07-10-test-gap-audit.md`），按 P0/P1/P2 分级
+- **Notifications 单条操作 E2E**：GET/:id、PATCH/:id/read、PATCH/:id/unread、DELETE/:id 四个端点新增 14 个用例，含跨用户隔离验证
+- **Security PIN 生命周期 E2E**：enable→verify→change→disable 全链路新增 19 个用例，含 PIN 格式校验、错误 PIN 拒绝、禁用后 verify 返回 403、用户隔离
+- **Account set-password E2E**：OAuth-only 用户设置密码全链路（验证码 → 设置 → 登录验证），含 409 冲突、400/401 验证码错误、弱密码拒绝，新增 15 个用例
+- **Session 管理 E2E**：GET /auth/sessions + DELETE /auth/sessions/:id 新增 8 个用例，含多会话场景、撤销后 refresh token 失效验证、跨用户隔离
+- **发现的问题**：`AuthTokenService.revokeById` 抛 raw Error 导致 500，应修复为 404/403
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]
