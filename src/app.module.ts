@@ -41,6 +41,7 @@ import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.mod
 import { TodaySuggestionModule } from './modules/today-suggestion/today-suggestion.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
+import { SlowRequestInterceptor } from './common/interceptors/slow-request.interceptor';
 
 /**
  * Root application module. Wires configuration, persistence, common
@@ -114,6 +115,7 @@ import { ApiExceptionFilter } from './common/filters/api-exception.filter';
   providers: [
     AppService,
     ApiExceptionFilter,
+    SlowRequestInterceptor,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
