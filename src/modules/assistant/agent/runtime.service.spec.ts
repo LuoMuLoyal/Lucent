@@ -31,7 +31,7 @@ describe('AssistantRuntimeService', () => {
       interactiveChatReady: true,
       langGraphReady: true,
       ragEnabled: false,
-      graphNodeNames: ['prepare_context', 'respond'],
+      graphNodeNames: ['prepare_context', 'agent', 'tools', 'respond'],
       toolNames: [
         'get_today_records',
         'get_records_by_date',
@@ -89,50 +89,6 @@ describe('AssistantRuntimeService', () => {
     });
   });
 
-  it('stops after the bounded retrieval loop cap', async () => {
-    const llmRuntimeService = {
-      hasRoleConfig: jest.fn().mockReturnValue(true),
-    } as unknown as LlmRuntimeService;
-
-    const leafletService = buildLeafletService(true);
-    const service = new AssistantRuntimeService(
-      llmRuntimeService,
-      leafletService as never,
-    );
-
-    const result = await service.planConversation({
-      userId: 'user-1',
-      userMessage: '布洛芬伤胃吗',
-      locale: 'zh-CN',
-      enabledContextSources: ['current_medicines'],
-    });
-
-    expect(result.loopCount).toBeLessThanOrEqual(3);
-  });
-
-  it('prioritizes leaflet then DrugBank before medical QA when multiple tools are relevant', async () => {
-    const llmRuntimeService = {
-      hasRoleConfig: jest.fn().mockReturnValue(true),
-    } as unknown as LlmRuntimeService;
-
-    const leafletService = buildLeafletService(true);
-    const service = new AssistantRuntimeService(
-      llmRuntimeService,
-      leafletService as never,
-    );
-
-    const result = await service.planConversation({
-      userId: 'user-1',
-      userMessage: '布洛芬的药理机制和说明书禁忌是什么',
-      locale: 'zh-CN',
-      enabledContextSources: ['current_medicines'],
-    });
-
-    expect(result.selectedTools).toEqual(
-      expect.arrayContaining(['search_medicine_leaflets']),
-    );
-  });
-
   it('streams assistant chunks into one final message', async () => {
     async function* buildStream() {
       await Promise.resolve();
@@ -175,6 +131,30 @@ describe('AssistantRuntimeService', () => {
     });
     expect(onChunk).toHaveBeenNthCalledWith(1, { content: 'Hello' });
     expect(onChunk).toHaveBeenNthCalledWith(2, { content: ' world' });
+  });
+
+  it('streams pre-generated content as word-level chunks', async () => {
+    const llmRuntimeService = {
+      hasRoleConfig: jest.fn().mockReturnValue(true),
+    } as unknown as LlmRuntimeService;
+
+    const leafletService = buildLeafletService(false);
+    const service = new AssistantRuntimeService(
+      llmRuntimeService,
+      leafletService as never,
+    );
+    const onChunk = jest.fn();
+
+    const result = await service.streamPreGeneratedContent(
+      'Hello world from assistant',
+      [{ name: 'get_user_profile', data: {} }],
+      onChunk,
+    );
+
+    expect(result.content).toBe('Hello world from assistant');
+    expect(result.usedToolNames).toEqual(['get_user_profile']);
+    // Chunks should have been called multiple times
+    expect(onChunk.mock.calls.length).toBeGreaterThan(1);
   });
 
   it('documents the tightened read/proposal rules in the system prompt', () => {

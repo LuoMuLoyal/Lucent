@@ -1,17 +1,22 @@
 import { Annotation } from '@langchain/langgraph';
+import type { BaseMessage } from '@langchain/core/messages';
 import type {
   AssistantContextSource,
   AssistantToolName,
 } from '../../tools/types';
+import type { AssistantToolExecutionResult } from '../../types/types';
 
-const ASSISTANT_ROUTE = 'respond' as const;
+const ASSISTANT_ROUTE_DEFAULT = 'respond' as const;
 
 export const ASSISTANT_RUNTIME_NODE_NAMES = [
   'prepare_context',
-  ASSISTANT_ROUTE,
+  'agent',
+  'tools',
+  'respond',
 ] as const;
 
 export const AssistantRuntimeState = Annotation.Root({
+  // ── Input ──────────────────────────────────────────────────────────────
   userId: Annotation<string>,
   userMessage: Annotation<string>,
   locale: Annotation<string>,
@@ -19,17 +24,47 @@ export const AssistantRuntimeState = Annotation.Root({
     reducer: (_left, right) => right,
     default: () => [],
   }),
+
+  // ── prepare_context output ─────────────────────────────────────────────
   allowedTools: Annotation<AssistantToolName[]>({
     reducer: (_left, right) => right,
     default: () => [],
   }),
-  selectedTools: Annotation<AssistantToolName[]>({
+
+  // ── LLM conversation messages ──────────────────────────────────────────
+  messages: Annotation<BaseMessage[]>({
+    reducer: (left, right) => [...left, ...right],
+    default: () => [],
+  }),
+
+  // ── Tool-loop state ────────────────────────────────────────────────────
+  /** Tools selected by the LLM in the most recent agent call. */
+  pendingToolCalls: Annotation<AssistantToolName[]>({
     reducer: (_left, right) => right,
     default: () => [],
   }),
+
+  /** Accumulated tool execution results across all iterations. */
+  toolResults: Annotation<AssistantToolExecutionResult[]>({
+    reducer: (left, right) => [...left, ...right],
+    default: () => [],
+  }),
+
   loopCount: Annotation<number>({
     reducer: (_left, right) => right,
     default: () => 0,
+  }),
+
+  /** LLM's text response when no more tools are needed. */
+  finalContent: Annotation<string | null>({
+    reducer: (_left, right) => right,
+    default: () => null,
+  }),
+
+  // ── Legacy fields (kept for backward compatibility) ────────────────────
+  selectedTools: Annotation<AssistantToolName[]>({
+    reducer: (_left, right) => right,
+    default: () => [],
   }),
   retrievalEvidence: Annotation<AssistantToolName[]>({
     reducer: (_left, right) => right,
@@ -39,9 +74,9 @@ export const AssistantRuntimeState = Annotation.Root({
     reducer: (_left, right) => right,
     default: () => null,
   }),
-  route: Annotation<'respond'>({
+  route: Annotation<'tools' | 'respond'>({
     reducer: (_left, right) => right,
-    default: () => ASSISTANT_ROUTE,
+    default: () => ASSISTANT_ROUTE_DEFAULT,
   }),
 });
 

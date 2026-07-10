@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import type { UserSettingsService } from '../user-settings/services/user-settings.service';
 import type { AssistantRuntimeService } from './agent/runtime.service';
+import type { ToolExecutorFn } from './agent/runtime';
 import type { AssistantConversationService } from './services/conversation.service';
 import type { AssistantPolicyService } from './services/policy.service';
 import type { AssistantContextService } from './tools/context.service';
@@ -155,15 +156,20 @@ describe('AssistantService', () => {
   });
 
   it('streams a chat reply with executable tools only', async () => {
-    const planConversation = jest.fn().mockResolvedValue({
-      allowedTools: [
-        'get_user_profile',
-        'get_sleep_summary_by_range',
-        'propose_create_daily_record',
-      ],
-      selectedTools: ['get_user_profile', 'propose_create_daily_record'],
-      route: 'respond',
-    });
+    const runConversation = jest
+      .fn()
+      .mockImplementation(async (_input, executeTools: ToolExecutorFn) => {
+        const toolResults = await executeTools([
+          'get_user_profile',
+          'propose_create_daily_record',
+        ] as const);
+        return {
+          finalContent: null,
+          toolResults,
+          selectedTools: ['get_user_profile', 'propose_create_daily_record'],
+          stopReason: 'answered',
+        };
+      });
     const generateStream = jest.fn().mockResolvedValue({
       content: 'Hello there',
       usedToolNames: ['get_user_profile'],
@@ -209,7 +215,7 @@ describe('AssistantService', () => {
           'current_medicines',
         ],
       }),
-      planConversation,
+      runConversation,
       generateStream,
     } as unknown as AssistantRuntimeService;
 
@@ -408,12 +414,15 @@ describe('AssistantService', () => {
         },
       },
     ]);
-    expect(planConversation).toHaveBeenCalledWith({
-      userId: 'user-1',
-      userMessage: 'What should I do next?',
-      locale: 'en',
-      enabledContextSources: ['health_profile', 'sleep_records'],
-    });
+    expect(runConversation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        userMessage: 'What should I do next?',
+        locale: 'en',
+        enabledContextSources: ['health_profile', 'sleep_records'],
+      }),
+      expect.any(Function),
+    );
     expect(assistantToolExecutor.executeMany).toHaveBeenCalledWith(
       {
         userId: 'user-1',
@@ -530,11 +539,17 @@ describe('AssistantService', () => {
         implementedToolNames: [],
         contextSources: [],
       }),
-      planConversation: jest.fn().mockResolvedValue({
-        allowedTools: [],
-        selectedTools: [],
-        route: 'respond',
-      }),
+      runConversation: jest
+        .fn()
+        .mockImplementation(async (_input, executeTools: ToolExecutorFn) => {
+          const toolResults = await executeTools([] as const);
+          return {
+            finalContent: null,
+            toolResults,
+            selectedTools: [],
+            stopReason: 'no_match',
+          };
+        }),
       generateStream,
     } as unknown as AssistantRuntimeService;
     const userSettingsService = {

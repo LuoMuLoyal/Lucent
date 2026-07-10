@@ -17,6 +17,7 @@ import { AssistantConversationService } from './conversation.service';
 import { nowIsoString } from '../../../common/helpers/date-time.utils';
 import type {
   AssistantConversationMessage,
+  AssistantMessageResult,
   AssistantStreamChunkEvent,
   AssistantToolExecutionContext,
 } from '../types/types';
@@ -117,39 +118,53 @@ export class AssistantService {
       });
     }
 
-    const plan = await this.assistantAgentService.planConversation({
+    const toolContext: AssistantToolExecutionContext = {
       userId,
-      userMessage: lastUserMessage,
       locale,
+      userMessage: lastUserMessage,
       enabledContextSources: policy.enabledContextSources,
-    });
-    const executableTools = plan.selectedTools.filter((toolName) =>
-      policy.executableToolNames.includes(toolName),
-    );
-    const toolResults = await this.assistantToolExecutor.executeMany(
+      memoryEnabled: settings.assistantMemoryEnabled,
+    };
+
+    const conversationResult = await this.assistantAgentService.runConversation(
       {
         userId,
-        locale,
         userMessage: lastUserMessage,
-        enabledContextSources: policy.enabledContextSources,
-        memoryEnabled: settings.assistantMemoryEnabled,
-      } satisfies AssistantToolExecutionContext,
-      executableTools,
-    );
-    const result = await this.assistantAgentService.generateStream(
-      {
         locale,
-        messages: await this.buildGenerationMessages(
-          userId,
-          messages,
-          toolResults,
-          settings.assistantMemoryEnabled,
-        ),
-        allowedTools: executableTools,
-        toolResults,
+        enabledContextSources: policy.enabledContextSources,
       },
-      onChunk,
+      async (toolNames) => {
+        const executable = toolNames.filter((name) =>
+          policy.executableToolNames.includes(name),
+        );
+        return this.assistantToolExecutor.executeMany(toolContext, executable);
+      },
     );
+
+    let result: AssistantMessageResult;
+    if (conversationResult.finalContent != null) {
+      result = await this.assistantAgentService.streamPreGeneratedContent(
+        conversationResult.finalContent,
+        conversationResult.toolResults,
+        onChunk,
+      );
+    } else {
+      result = await this.assistantAgentService.generateStream(
+        {
+          locale,
+          messages: await this.buildGenerationMessages(
+            userId,
+            messages,
+            conversationResult.toolResults,
+            settings.assistantMemoryEnabled,
+          ),
+          allowedTools: conversationResult.selectedTools,
+          toolResults: conversationResult.toolResults,
+        },
+        onChunk,
+      );
+    }
+
     const conversation =
       await this.assistantConversationService.persistAssistantTurn({
         userId,
@@ -164,7 +179,7 @@ export class AssistantService {
       content: result.content,
       generatedAt: nowIsoString(),
       usedTools: result.usedToolNames,
-      proposedActions: toolResults.flatMap(
+      proposedActions: conversationResult.toolResults.flatMap(
         (toolResult) => toolResult.proposedActions ?? [],
       ),
     };
