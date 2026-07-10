@@ -1,8 +1,23 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
+import type { MetricsService } from '../../../../common/metrics/metrics.service';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/constants';
 import { REPORT_RANGE_LAST_30_DAYS } from '../../dto';
 import { ReportsAiSummaryGeneratorService } from './generator.service';
+
+function buildMetricsService() {
+  return {
+    recordLlmCall: jest.fn(),
+    recordLlmTokens: jest.fn(),
+    recordBullmqJob: jest.fn(),
+    setBullmqActiveJobs: jest.fn(),
+    setBullmqWaitingJobs: jest.fn(),
+    recordHttpRequest: jest.fn(),
+    is_enabled: jest.fn().mockReturnValue(true),
+    getMetrics: jest.fn(),
+    getContentType: jest.fn(),
+  } as unknown as MetricsService;
+}
 
 describe('ReportsAiSummaryGeneratorService', () => {
   it('delegates generation to llm runtime with structured output', async () => {
@@ -17,10 +32,14 @@ describe('ReportsAiSummaryGeneratorService', () => {
     });
     const withStructuredOutput = jest.fn().mockReturnValue({ invoke });
     const createChatModel = jest.fn().mockReturnValue({ withStructuredOutput });
-    const service = new ReportsAiSummaryGeneratorService({
-      hasRoleConfig: jest.fn(),
-      createChatModel,
-    } as unknown as LlmRuntimeService);
+    const service = new ReportsAiSummaryGeneratorService(
+      {
+        hasRoleConfig: jest.fn(),
+        createChatModel,
+        getModelName: jest.fn().mockReturnValue('test-model'),
+      } as unknown as LlmRuntimeService,
+      buildMetricsService(),
+    );
 
     const result = await service.generate(
       {

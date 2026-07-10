@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { BaseLlmGeneratorService } from '../../../../common/llm/base-llm-generator.service';
 import { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
+import { MetricsService } from '../../../../common/metrics/metrics.service';
 import {
   buildDailyRecordCandidatesSystemPrompt,
   buildDailyRecordCandidatesUserPrompt,
@@ -24,8 +25,11 @@ export class DailyRecordCandidatesGeneratorService extends BaseLlmGeneratorServi
     streamName: 'Daily record candidates',
   } as const;
 
-  public constructor(llmRuntimeService: LlmRuntimeService) {
-    super(llmRuntimeService);
+  public constructor(
+    llmRuntimeService: LlmRuntimeService,
+    metricsService: MetricsService,
+  ) {
+    super(llmRuntimeService, metricsService);
   }
 
   protected buildSystemPrompt(): string {

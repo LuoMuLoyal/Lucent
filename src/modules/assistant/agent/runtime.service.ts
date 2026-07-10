@@ -6,6 +6,7 @@ import {
   SystemMessage,
 } from '@langchain/core/messages';
 import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { MetricsService } from '../../../common/metrics/metrics.service';
 import type { AssistantRuntimeCapabilities } from '../types/types';
 import type {
   AssistantMessageResult,
@@ -56,6 +57,7 @@ export class AssistantRuntimeService {
   constructor(
     private readonly llmRuntimeService: LlmRuntimeService,
     private readonly leafletReadService: AssistantToolLeafletReadService,
+    private readonly metricsService: MetricsService,
   ) {}
 
   hasChatModel(): boolean {
@@ -159,41 +161,78 @@ export class AssistantRuntimeService {
       input.allowedTools,
       input.toolResults,
     );
-    const stream = await withLlmRetry(() => model.stream(messages), {
-      onRetry: (error, attempt) => {
-        if (isRetryableLlmError(error)) {
-          this.logger.warn(
-            `Assistant stream retry #${String(attempt)}: ${(error as Error).message}`,
-          );
-        }
-      },
-    });
+    const start = performance.now();
+    const modelName = this.llmRuntimeService.getModelName('chat') ?? 'unknown';
+    let stream;
+    try {
+      stream = await withLlmRetry(() => model.stream(messages), {
+        onRetry: (error, attempt) => {
+          if (isRetryableLlmError(error)) {
+            this.logger.warn(
+              `Assistant stream retry #${String(attempt)}: ${(error as Error).message}`,
+            );
+          }
+        },
+      });
+    } catch (error) {
+      this.metricsService.recordLlmCall(
+        'chat',
+        modelName,
+        'error',
+        (performance.now() - start) / 1000,
+      );
+      throw error;
+    }
 
     let content = '';
 
-    for await (const chunk of stream) {
-      if (!(chunk instanceof AIMessageChunk)) {
-        continue;
+    try {
+      for await (const chunk of stream) {
+        if (!(chunk instanceof AIMessageChunk)) {
+          continue;
+        }
+
+        const delta = this.readChunkText(chunk);
+        if (delta.length === 0) {
+          continue;
+        }
+
+        content += delta;
+        await onChunk({ content: delta });
       }
 
-      const delta = this.readChunkText(chunk);
-      if (delta.length === 0) {
-        continue;
+      const finalContent = content.trim();
+      if (finalContent.length === 0) {
+        this.metricsService.recordLlmCall(
+          'chat',
+          modelName,
+          'error',
+          (performance.now() - start) / 1000,
+        );
+        throw new Error(
+          'Assistant stream ended without any assistant content.',
+        );
       }
 
-      content += delta;
-      await onChunk({ content: delta });
+      this.metricsService.recordLlmCall(
+        'chat',
+        modelName,
+        'success',
+        (performance.now() - start) / 1000,
+      );
+      return {
+        content: finalContent,
+        usedToolNames: input.toolResults.map((result) => result.name),
+      };
+    } catch (error) {
+      this.metricsService.recordLlmCall(
+        'chat',
+        modelName,
+        'error',
+        (performance.now() - start) / 1000,
+      );
+      throw error;
     }
-
-    const finalContent = content.trim();
-    if (finalContent.length === 0) {
-      throw new Error('Assistant stream ended without any assistant content.');
-    }
-
-    return {
-      content: finalContent,
-      usedToolNames: input.toolResults.map((result) => result.name),
-    };
   }
 
   /**

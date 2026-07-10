@@ -59,6 +59,12 @@ export class LlmRuntimeService implements LlmRuntimePort {
     return this.getConfiguredRoles().length > 0;
   }
 
+  // ─── Model info ────────────────────────────────────────────────────────
+
+  getModelName(role: LlmRole): string | null {
+    return this.config[role].model ?? null;
+  }
+
   // ─── Chat model ──────────────────────────────────────────────────────────
 
   createChatModel(

@@ -11,6 +11,7 @@ import type { ZodObject, ZodType } from 'zod';
 import type { LlmRole, LlmRuntimePort } from './llm-runtime.port';
 import { AI_MODEL_TIMEOUT_MS } from '../../config/constants';
 import { withLlmRetry, isRetryableLlmError } from './llm-retry.helper';
+import { MetricsService } from '../metrics/metrics.service';
 
 const MODEL_OPTIONS = {
   timeout: AI_MODEL_TIMEOUT_MS,
@@ -44,7 +45,10 @@ export abstract class BaseLlmGeneratorService<
 
   private readonly logger = new Logger(BaseLlmGeneratorService.name);
 
-  protected constructor(private readonly llmRuntimeService: LlmRuntimePort) {}
+  protected constructor(
+    private readonly llmRuntimeService: LlmRuntimePort,
+    private readonly metricsService: MetricsService,
+  ) {}
 
   hasAnalysisModel(): boolean {
     return this.llmRuntimeService.hasRoleConfig(this.modelRole);
@@ -53,16 +57,39 @@ export abstract class BaseLlmGeneratorService<
   async generate(context: TContext, promptCopy: TPromptCopy): Promise<TOutput> {
     const model = this.createStructuredOutputModel();
     const messages = this.buildMessages(context, promptCopy);
+    const start = performance.now();
+    const modelName =
+      this.llmRuntimeService.getModelName(this.modelRole) ?? 'unknown';
 
-    return withLlmRetry(() => model.invoke(messages) as Promise<TOutput>, {
-      onRetry: (error, attempt) => {
-        if (isRetryableLlmError(error)) {
-          this.logger.warn(
-            `${this.options.streamName} generate retry #${String(attempt)}: ${(error as Error).message}`,
-          );
-        }
-      },
-    });
+    try {
+      const result = await withLlmRetry(
+        () => model.invoke(messages) as Promise<TOutput>,
+        {
+          onRetry: (error, attempt) => {
+            if (isRetryableLlmError(error)) {
+              this.logger.warn(
+                `${this.options.streamName} generate retry #${String(attempt)}: ${(error as Error).message}`,
+              );
+            }
+          },
+        },
+      );
+      this.metricsService.recordLlmCall(
+        this.modelRole,
+        modelName,
+        'success',
+        (performance.now() - start) / 1000,
+      );
+      return result;
+    } catch (error) {
+      this.metricsService.recordLlmCall(
+        this.modelRole,
+        modelName,
+        'error',
+        (performance.now() - start) / 1000,
+      );
+      throw error;
+    }
   }
 
   async generateStream(
@@ -76,18 +103,34 @@ export abstract class BaseLlmGeneratorService<
       returnSingle: true,
       zodSchema: this.schema as never,
     });
-    const stream = await withLlmRetry(
-      () => model.stream(this.buildMessages(context, promptCopy)),
-      {
-        onRetry: (error, attempt) => {
-          if (isRetryableLlmError(error)) {
-            this.logger.warn(
-              `${this.options.streamName} stream retry #${String(attempt)}: ${(error as Error).message}`,
-            );
-          }
+    const start = performance.now();
+    const modelName =
+      this.llmRuntimeService.getModelName(this.modelRole) ?? 'unknown';
+
+    let stream: AsyncIterable<AIMessageChunk>;
+
+    try {
+      stream = await withLlmRetry(
+        () => model.stream(this.buildMessages(context, promptCopy)),
+        {
+          onRetry: (error, attempt) => {
+            if (isRetryableLlmError(error)) {
+              this.logger.warn(
+                `${this.options.streamName} stream retry #${String(attempt)}: ${(error as Error).message}`,
+              );
+            }
+          },
         },
-      },
-    );
+      );
+    } catch (error) {
+      this.metricsService.recordLlmCall(
+        this.modelRole,
+        modelName,
+        'error',
+        (performance.now() - start) / 1000,
+      );
+      throw error;
+    }
 
     let accumulated: AIMessageChunk | undefined;
     let lastSummary = '';
@@ -111,6 +154,12 @@ export abstract class BaseLlmGeneratorService<
     }
 
     if (accumulated === undefined) {
+      this.metricsService.recordLlmCall(
+        this.modelRole,
+        modelName,
+        'error',
+        (performance.now() - start) / 1000,
+      );
       throw new Error(
         `${this.options.streamName} stream ended without any message chunks.`,
       );
@@ -120,12 +169,35 @@ export abstract class BaseLlmGeneratorService<
       this.toGenerationChunk(accumulated),
     ])) as unknown; // narrowed by this.schema.parse(result) below
     if (result == null) {
+      this.metricsService.recordLlmCall(
+        this.modelRole,
+        modelName,
+        'error',
+        (performance.now() - start) / 1000,
+      );
       throw new Error(
         `${this.options.streamName} stream ended without a structured result.`,
       );
     }
 
-    return this.schema.parse(result);
+    try {
+      const parsed = this.schema.parse(result);
+      this.metricsService.recordLlmCall(
+        this.modelRole,
+        modelName,
+        'success',
+        (performance.now() - start) / 1000,
+      );
+      return parsed;
+    } catch (error) {
+      this.metricsService.recordLlmCall(
+        this.modelRole,
+        modelName,
+        'error',
+        (performance.now() - start) / 1000,
+      );
+      throw error;
+    }
   }
 
   protected abstract buildSystemPrompt(): string;

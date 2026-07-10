@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
+import { MetricsService } from '../../../../common/metrics/metrics.service';
 import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
 
 interface GeneratorInternals {
@@ -17,7 +18,17 @@ describe('DailyRecordCandidatesGeneratorService', () => {
     const module = await Test.createTestingModule({
       providers: [
         DailyRecordCandidatesGeneratorService,
-        { provide: LlmRuntimeService, useValue: { hasRoleConfig: jest.fn() } },
+        {
+          provide: LlmRuntimeService,
+          useValue: {
+            hasRoleConfig: jest.fn(),
+            getModelName: jest.fn().mockReturnValue('test-model'),
+          },
+        },
+        {
+          provide: MetricsService,
+          useValue: { recordLlmCall: jest.fn() },
+        },
       ],
     }).compile();
 

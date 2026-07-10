@@ -3,6 +3,20 @@ import type { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtim
 import { AssistantRuntimeService } from './runtime.service';
 import { buildAssistantSystemPrompt } from '../prompts/system.prompt';
 
+function buildMetricsService() {
+  return {
+    recordLlmCall: jest.fn(),
+    recordLlmTokens: jest.fn(),
+    recordBullmqJob: jest.fn(),
+    setBullmqActiveJobs: jest.fn(),
+    setBullmqWaitingJobs: jest.fn(),
+    recordHttpRequest: jest.fn(),
+    is_enabled: jest.fn().mockReturnValue(true),
+    getMetrics: jest.fn(),
+    getContentType: jest.fn(),
+  };
+}
+
 function buildLeafletService(hasChunks = false) {
   return {
     hasIndexedChunks: jest.fn().mockResolvedValue(hasChunks),
@@ -16,12 +30,15 @@ describe('AssistantRuntimeService', () => {
       hasRoleConfig: jest
         .fn()
         .mockImplementation((role: string) => role === 'chat'),
+      getModelName: jest.fn().mockReturnValue('test-model'),
     } as unknown as LlmRuntimeService;
 
     const leafletService = buildLeafletService(false);
+    const metricsService = buildMetricsService();
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       leafletService as never,
+      metricsService as never,
     );
 
     expect(service.hasChatModel()).toBe(true);
@@ -98,15 +115,18 @@ describe('AssistantRuntimeService', () => {
 
     const llmRuntimeService = {
       hasRoleConfig: jest.fn().mockReturnValue(true),
+      getModelName: jest.fn().mockReturnValue('test-model'),
       createChatModel: jest.fn().mockReturnValue({
         stream: jest.fn().mockResolvedValue(buildStream()),
       }),
     } as unknown as LlmRuntimeService;
 
     const leafletService = buildLeafletService(false);
+    const metricsService = buildMetricsService();
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       leafletService as never,
+      metricsService as never,
     );
     const onChunk = jest.fn();
 
@@ -139,9 +159,11 @@ describe('AssistantRuntimeService', () => {
     } as unknown as LlmRuntimeService;
 
     const leafletService = buildLeafletService(false);
+    const metricsService = buildMetricsService();
     const service = new AssistantRuntimeService(
       llmRuntimeService,
       leafletService as never,
+      metricsService as never,
     );
     const onChunk = jest.fn();
 

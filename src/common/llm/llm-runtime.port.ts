@@ -28,4 +28,6 @@ export interface LlmRuntimePort {
       maxRetries?: number;
     },
   ): ChatOpenAI;
+  /** Returns the configured model name for the given role, or `null`. */
+  getModelName(role: LlmRole): string | null;
 }

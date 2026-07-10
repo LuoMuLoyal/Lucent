@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Queue, Worker } from 'bullmq';
 import type { ConnectionOptions, JobsOptions } from 'bullmq';
 import { EnvKey } from '../../config/env-keys.enum';
+import { MetricsService } from '../metrics/metrics.service';
 
 /** Common defaults shared across all BullMQ queues. */
 export const DEFAULT_QUEUE_OPTIONS: JobsOptions = {
@@ -51,7 +52,10 @@ export class BullmqQueueFactory implements OnModuleDestroy {
   private readonly redisUrl: string | null;
   private readonly managed: ManagedQueue[] = [];
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly metricsService: MetricsService,
+  ) {
     const url = this.configService.get<string>(EnvKey.REDIS_URL);
     this.redisUrl = url && url.trim().length > 0 ? url : null;
   }
@@ -103,7 +107,11 @@ export class BullmqQueueFactory implements OnModuleDestroy {
         ...DEFAULT_WORKER_RETENTION,
       },
     );
+    worker.on('completed', () => {
+      this.metricsService.recordBullmqJob(options.name, 'completed');
+    });
     worker.on('failed', (job, error) => {
+      this.metricsService.recordBullmqJob(options.name, 'failed');
       this.logger.error(
         `Job in "${options.name}" failed: id=${job?.id ?? 'unknown'}, ${error.message}`,
         error.stack,
