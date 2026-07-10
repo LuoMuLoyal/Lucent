@@ -2,35 +2,39 @@ import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { Test, type TestingModule } from '@nestjs/testing';
 
-import { PrismaService } from '../../../prisma/prisma.service';
+import { MedicineReminderRepositoryPort } from '../repositories';
 import { MedicineRemindersOwnershipService } from './ownership.service';
 
 describe('MedicineRemindersOwnershipService', () => {
   let service: MedicineRemindersOwnershipService;
-  let prisma: jest.Mocked<PrismaService>;
+  let repository: {
+    findCurrentMedicine: jest.Mock;
+    findReminderById: jest.Mock;
+  };
 
   beforeEach(async () => {
+    repository = {
+      findCurrentMedicine: jest.fn(),
+      findReminderById: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        MedicineRemindersOwnershipService,
+        {
+          provide: MedicineReminderRepositoryPort,
+          useValue: repository,
+        },
         {
           provide: I18nService,
           useValue: {
             t: jest.fn().mockImplementation((key: string) => key),
           },
         },
-        MedicineRemindersOwnershipService,
-        {
-          provide: PrismaService,
-          useValue: {
-            userCurrentMedicine: { findFirst: jest.fn() },
-            userMedicineReminder: { findFirst: jest.fn() },
-          },
-        },
       ],
     }).compile();
 
     service = module.get(MedicineRemindersOwnershipService);
-    prisma = module.get(PrismaService);
   });
 
   // ── ensureCurrentMedicineOwnedByUser ──────────────────────────────────
@@ -41,7 +45,7 @@ describe('MedicineRemindersOwnershipService', () => {
         service.ensureCurrentMedicineOwnedByUser('user-1', null),
       ).resolves.toBeUndefined();
 
-      expect(prisma.userCurrentMedicine.findFirst).not.toHaveBeenCalled();
+      expect(repository.findCurrentMedicine).not.toHaveBeenCalled();
     });
 
     it('does nothing when currentMedicineId is undefined', async () => {
@@ -49,11 +53,11 @@ describe('MedicineRemindersOwnershipService', () => {
         service.ensureCurrentMedicineOwnedByUser('user-1', undefined),
       ).resolves.toBeUndefined();
 
-      expect(prisma.userCurrentMedicine.findFirst).not.toHaveBeenCalled();
+      expect(repository.findCurrentMedicine).not.toHaveBeenCalled();
     });
 
     it('does not throw when the medicine belongs to the user', async () => {
-      (prisma.userCurrentMedicine.findFirst as jest.Mock).mockResolvedValue({
+      repository.findCurrentMedicine.mockResolvedValue({
         id: 'med-1',
         userId: 'user-1',
       });
@@ -62,16 +66,14 @@ describe('MedicineRemindersOwnershipService', () => {
         service.ensureCurrentMedicineOwnedByUser('user-1', 'med-1'),
       ).resolves.toBeUndefined();
 
-      expect(prisma.userCurrentMedicine.findFirst).toHaveBeenCalledWith({
-        where: { id: 'med-1', userId: 'user-1', isCurrent: true },
-        select: { id: true, userId: true },
-      });
+      expect(repository.findCurrentMedicine).toHaveBeenCalledWith(
+        'med-1',
+        'user-1',
+      );
     });
 
     it('throws NotFoundException when the medicine does not exist', async () => {
-      (prisma.userCurrentMedicine.findFirst as jest.Mock).mockResolvedValue(
-        null,
-      );
+      repository.findCurrentMedicine.mockResolvedValue(null);
 
       await expect(
         service.ensureCurrentMedicineOwnedByUser('user-1', 'missing-med'),
@@ -79,7 +81,7 @@ describe('MedicineRemindersOwnershipService', () => {
     });
 
     it('throws NotFoundException when the medicine belongs to another user', async () => {
-      (prisma.userCurrentMedicine.findFirst as jest.Mock).mockResolvedValue({
+      repository.findCurrentMedicine.mockResolvedValue({
         id: 'med-1',
         userId: 'other-user',
       });
@@ -99,23 +101,20 @@ describe('MedicineRemindersOwnershipService', () => {
         startDate: null,
         endDate: null,
       };
-      (prisma.userMedicineReminder.findFirst as jest.Mock).mockResolvedValue(
-        existing,
-      );
+      repository.findReminderById.mockResolvedValue(existing);
 
       const result = await service.ensureOwnedByUser('user-1', 'reminder-1');
 
       expect(result).toEqual(existing);
-      expect(prisma.userMedicineReminder.findFirst).toHaveBeenCalledWith({
-        where: { id: 'reminder-1', deletedAt: null },
-        select: { userId: true, startDate: true, endDate: true },
+      expect(repository.findReminderById).toHaveBeenCalledWith('reminder-1', {
+        userId: true,
+        startDate: true,
+        endDate: true,
       });
     });
 
     it('throws NotFoundException when the reminder does not exist', async () => {
-      (prisma.userMedicineReminder.findFirst as jest.Mock).mockResolvedValue(
-        null,
-      );
+      repository.findReminderById.mockResolvedValue(null);
 
       await expect(
         service.ensureOwnedByUser('user-1', 'missing-reminder'),
@@ -123,7 +122,7 @@ describe('MedicineRemindersOwnershipService', () => {
     });
 
     it('throws NotFoundException when the reminder belongs to another user', async () => {
-      (prisma.userMedicineReminder.findFirst as jest.Mock).mockResolvedValue({
+      repository.findReminderById.mockResolvedValue({
         userId: 'other-user',
         startDate: null,
         endDate: null,

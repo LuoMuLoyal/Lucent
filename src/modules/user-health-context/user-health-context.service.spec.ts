@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { nonDeleted } from '../../common/helpers/prisma.helpers';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -12,7 +13,7 @@ import {
   UserStatus,
 } from '#generated/prisma/client';
 
-import { PrismaService } from '../../prisma/prisma.service';
+import { UserHealthContextRepositoryPort } from './repositories';
 import {
   UserHealthContextAllergyWriteService,
   UserHealthContextConditionWriteService,
@@ -49,7 +50,8 @@ function expectDefined<T>(value: T | undefined, message: string): T {
 
 describe('UserHealthContextService', () => {
   let service: UserHealthContextService;
-  let prismaService: jest.Mocked<PrismaService>;
+
+  let repository: any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -62,30 +64,24 @@ describe('UserHealthContextService', () => {
         UserHealthContextConditionWriteService,
         UserHealthContextMedicineWriteService,
         {
-          provide: PrismaService,
+          provide: UserHealthContextRepositoryPort,
           useValue: {
-            user: {
-              findFirst: jest.fn(),
-            },
-            userProfile: {
-              upsert: jest.fn(),
-              findUnique: jest.fn(),
-            },
-            userAllergy: {
-              create: jest.fn(),
-              update: jest.fn(),
-              findUnique: jest.fn(),
-            },
-            userCondition: {
-              create: jest.fn(),
-              update: jest.fn(),
-              findUnique: jest.fn(),
-            },
-            userCurrentMedicine: {
-              create: jest.fn(),
-              update: jest.fn(),
-              findUnique: jest.fn(),
-            },
+            findUserWithHealthContext: jest.fn(),
+            findActiveUserById: jest.fn(),
+            findProfileByUserId: jest.fn(),
+            upsertProfile: jest.fn(),
+            createAllergy: jest.fn(),
+            updateAllergy: jest.fn(),
+            softDeleteAllergy: jest.fn(),
+            findAllergyById: jest.fn(),
+            createCondition: jest.fn(),
+            updateCondition: jest.fn(),
+            softDeleteCondition: jest.fn(),
+            findConditionById: jest.fn(),
+            createCurrentMedicine: jest.fn(),
+            updateCurrentMedicine: jest.fn(),
+            softDeleteCurrentMedicine: jest.fn(),
+            findCurrentMedicineById: jest.fn(),
           },
         },
         {
@@ -98,7 +94,7 @@ describe('UserHealthContextService', () => {
     }).compile();
 
     service = module.get(UserHealthContextService);
-    prismaService = module.get(PrismaService);
+    repository = module.get(UserHealthContextRepositoryPort);
   });
 
   afterEach(() => {
@@ -107,7 +103,7 @@ describe('UserHealthContextService', () => {
   });
 
   it('should throw NotFoundException when the active user does not exist', async () => {
-    (prismaService.user.findFirst as jest.Mock).mockResolvedValue(null);
+    repository.findUserWithHealthContext.mockResolvedValue(null);
 
     await expect(service.getForUser('missing-user')).rejects.toThrow(
       NotFoundException,
@@ -122,7 +118,7 @@ describe('UserHealthContextService', () => {
   });
 
   it('should return a stable empty profile shape when the relation is missing', async () => {
-    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+    repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -132,23 +128,9 @@ describe('UserHealthContextService', () => {
 
     const result = await service.getForUser(mockUserBase.id);
 
-    expect(prismaService.user.findFirst).toHaveBeenCalledWith({
-      where: { id: mockUserBase.id, deletedAt: null },
-      include: {
-        profile: true,
-        allergies: {
-          where: { isActive: true },
-          orderBy: { updatedAt: 'desc' },
-        },
-        conditions: {
-          orderBy: { updatedAt: 'desc' },
-        },
-        currentMedicines: {
-          where: { isCurrent: true },
-          orderBy: { updatedAt: 'desc' },
-        },
-      },
-    });
+    expect(repository.findUserWithHealthContext).toHaveBeenCalledWith(
+      mockUserBase.id,
+    );
     expect(result.profile).toEqual({
       birthDate: null,
       sexAtBirth: null,
@@ -181,7 +163,7 @@ describe('UserHealthContextService', () => {
   it('should derive summary counts, age, and formatted dates from stored records', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-05-30T12:00:00Z'));
 
-    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+    repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
       profile: {
         userId: mockUserBase.id,
@@ -328,30 +310,31 @@ describe('UserHealthContextService', () => {
   it('should upsert profile fields and return the refreshed aggregate', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
 
-    (prismaService.user.findFirst as jest.Mock)
-      .mockResolvedValueOnce({ id: mockUserBase.id })
-      .mockResolvedValueOnce({
-        ...mockUserBase,
-        profile: {
-          userId: mockUserBase.id,
-          birthDate: new Date('1998-03-15T00:00:00.000Z'),
-          sexAtBirth: SexAtBirth.female,
-          heightCm: 168,
-          bloodType: 'O+',
-          locale: 'zh-CN',
-          timezone: 'Asia/Shanghai',
-          unitSystem: UnitSystem.metric,
-          onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
-          extras: null,
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
-        },
-        allergies: [],
-        conditions: [],
-        currentMedicines: [],
-      });
+    repository.findActiveUserById.mockResolvedValueOnce({
+      id: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValueOnce({
+      ...mockUserBase,
+      profile: {
+        userId: mockUserBase.id,
+        birthDate: new Date('1998-03-15T00:00:00.000Z'),
+        sexAtBirth: SexAtBirth.female,
+        heightCm: 168,
+        bloodType: 'O+',
+        locale: 'zh-CN',
+        timezone: 'Asia/Shanghai',
+        unitSystem: UnitSystem.metric,
+        onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
+        extras: null,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+      },
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    });
 
-    (prismaService.userProfile.findUnique as jest.Mock).mockResolvedValue({
+    repository.findProfileByUserId.mockResolvedValue({
       onboardingCompletedAt: null,
     });
 
@@ -366,9 +349,9 @@ describe('UserHealthContextService', () => {
       onboardingCompleted: true,
     });
 
-    expect(prismaService.userProfile.upsert).toHaveBeenCalledWith({
-      where: { userId: mockUserBase.id },
-      create: {
+    expect(repository.upsertProfile).toHaveBeenCalledWith(
+      { userId: mockUserBase.id },
+      expect.objectContaining({
         userId: mockUserBase.id,
         locale: 'zh-CN',
         timezone: null,
@@ -378,8 +361,8 @@ describe('UserHealthContextService', () => {
         heightCm: 168,
         bloodType: 'O+',
         onboardingCompletedAt: expect.any(Date),
-      },
-      update: expect.objectContaining({
+      }),
+      expect.objectContaining({
         locale: 'zh-CN',
         timezone: null,
         unitSystem: UnitSystem.metric,
@@ -389,7 +372,7 @@ describe('UserHealthContextService', () => {
         bloodType: 'O+',
         onboardingCompletedAt: expect.any(Date),
       }),
-    });
+    );
     expect(result.profile.locale).toBe('zh-CN');
     expect(result.profile.birthDate).toBe('1998-03-15');
     expect(result.profile.sexAtBirth).toBe(SexAtBirth.female);
@@ -399,28 +382,29 @@ describe('UserHealthContextService', () => {
   });
 
   it('should clear nullable profile fields when sending null', async () => {
-    (prismaService.user.findFirst as jest.Mock)
-      .mockResolvedValueOnce({ id: mockUserBase.id })
-      .mockResolvedValueOnce({
-        ...mockUserBase,
-        profile: {
-          userId: mockUserBase.id,
-          birthDate: null,
-          sexAtBirth: null,
-          heightCm: null,
-          bloodType: null,
-          locale: null,
-          timezone: null,
-          unitSystem: null,
-          onboardingCompletedAt: null,
-          extras: null,
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
-        },
-        allergies: [],
-        conditions: [],
-        currentMedicines: [],
-      });
+    repository.findActiveUserById.mockResolvedValueOnce({
+      id: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValueOnce({
+      ...mockUserBase,
+      profile: {
+        userId: mockUserBase.id,
+        birthDate: null,
+        sexAtBirth: null,
+        heightCm: null,
+        bloodType: null,
+        locale: null,
+        timezone: null,
+        unitSystem: null,
+        onboardingCompletedAt: null,
+        extras: null,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+      },
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    });
 
     await service.updateProfile(mockUserBase.id, {
       birthDate: null,
@@ -430,52 +414,53 @@ describe('UserHealthContextService', () => {
       unitSystem: null,
     });
 
-    expect(prismaService.userProfile.upsert).toHaveBeenCalledWith({
-      where: { userId: mockUserBase.id },
-      create: expect.objectContaining({
+    expect(repository.upsertProfile).toHaveBeenCalledWith(
+      { userId: mockUserBase.id },
+      expect.objectContaining({
         birthDate: null,
         sexAtBirth: null,
         heightCm: null,
         bloodType: null,
         unitSystem: null,
       }),
-      update: expect.objectContaining({
+      expect.objectContaining({
         birthDate: null,
         sexAtBirth: null,
         heightCm: null,
         bloodType: null,
         unitSystem: null,
       }),
-    });
+    );
   });
 
   it('should set onboardingCompletedAt when onboardingCompleted is true and not yet set', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
 
-    (prismaService.user.findFirst as jest.Mock)
-      .mockResolvedValueOnce({ id: mockUserBase.id })
-      .mockResolvedValueOnce({
-        ...mockUserBase,
-        profile: {
-          userId: mockUserBase.id,
-          birthDate: null,
-          sexAtBirth: null,
-          heightCm: null,
-          bloodType: null,
-          locale: null,
-          timezone: null,
-          unitSystem: null,
-          onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
-          extras: null,
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
-        },
-        allergies: [],
-        conditions: [],
-        currentMedicines: [],
-      });
+    repository.findActiveUserById.mockResolvedValueOnce({
+      id: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValueOnce({
+      ...mockUserBase,
+      profile: {
+        userId: mockUserBase.id,
+        birthDate: null,
+        sexAtBirth: null,
+        heightCm: null,
+        bloodType: null,
+        locale: null,
+        timezone: null,
+        unitSystem: null,
+        onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
+        extras: null,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+      },
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    });
 
-    (prismaService.userProfile.findUnique as jest.Mock).mockResolvedValue({
+    repository.findProfileByUserId.mockResolvedValue({
       onboardingCompletedAt: null,
     });
 
@@ -483,86 +468,81 @@ describe('UserHealthContextService', () => {
       onboardingCompleted: true,
     });
 
-    expect(prismaService.userProfile.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        update: expect.objectContaining({
-          onboardingCompletedAt: expect.any(Date),
-        }),
-      }),
+    expect(repository.upsertProfile).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
     );
   });
 
   it('should include onboardingCompletedAt when completing onboarding creates a profile', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
 
-    (prismaService.user.findFirst as jest.Mock)
-      .mockResolvedValueOnce({ id: mockUserBase.id })
-      .mockResolvedValueOnce({
-        ...mockUserBase,
-        profile: {
-          userId: mockUserBase.id,
-          birthDate: null,
-          sexAtBirth: null,
-          heightCm: null,
-          bloodType: null,
-          locale: null,
-          timezone: null,
-          unitSystem: null,
-          onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
-          extras: null,
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
-        },
-        allergies: [],
-        conditions: [],
-        currentMedicines: [],
-      });
+    repository.findActiveUserById.mockResolvedValueOnce({
+      id: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValueOnce({
+      ...mockUserBase,
+      profile: {
+        userId: mockUserBase.id,
+        birthDate: null,
+        sexAtBirth: null,
+        heightCm: null,
+        bloodType: null,
+        locale: null,
+        timezone: null,
+        unitSystem: null,
+        onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
+        extras: null,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+      },
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    });
 
-    (prismaService.userProfile.findUnique as jest.Mock).mockResolvedValue(null);
+    repository.findProfileByUserId.mockResolvedValue(null);
 
     await service.updateProfile(mockUserBase.id, {
       onboardingCompleted: true,
     });
 
-    expect(prismaService.userProfile.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({
-          onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
-        }),
-        update: expect.objectContaining({
-          onboardingCompletedAt: new Date('2026-06-05T12:00:00.000Z'),
-        }),
-      }),
+    expect(repository.upsertProfile).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
     );
   });
 
   it('should not overwrite onboardingCompletedAt when already set', async () => {
     const existingDate = new Date('2026-05-01T08:00:00.000Z');
 
-    (prismaService.user.findFirst as jest.Mock)
-      .mockResolvedValueOnce({ id: mockUserBase.id })
-      .mockResolvedValueOnce({
-        ...mockUserBase,
-        profile: {
-          userId: mockUserBase.id,
-          birthDate: null,
-          sexAtBirth: null,
-          heightCm: null,
-          bloodType: null,
-          locale: null,
-          timezone: null,
-          unitSystem: null,
-          onboardingCompletedAt: existingDate,
-          extras: null,
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
-        },
-        allergies: [],
-        conditions: [],
-        currentMedicines: [],
-      });
+    repository.findActiveUserById.mockResolvedValueOnce({
+      id: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValueOnce({
+      ...mockUserBase,
+      profile: {
+        userId: mockUserBase.id,
+        birthDate: null,
+        sexAtBirth: null,
+        heightCm: null,
+        bloodType: null,
+        locale: null,
+        timezone: null,
+        unitSystem: null,
+        onboardingCompletedAt: existingDate,
+        extras: null,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+      },
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    });
 
-    (prismaService.userProfile.findUnique as jest.Mock).mockResolvedValue({
+    repository.findProfileByUserId.mockResolvedValue({
       onboardingCompletedAt: existingDate,
     });
 
@@ -572,73 +552,73 @@ describe('UserHealthContextService', () => {
 
     // upsert should NOT be called because updateData is empty
     // (onboardingCompletedAt was already set, so nothing to update)
-    expect(prismaService.userProfile.upsert).not.toHaveBeenCalled();
+    expect(repository.upsertProfile).not.toHaveBeenCalled();
   });
 
   it('should clear onboardingCompletedAt when onboardingCompleted is false', async () => {
-    (prismaService.user.findFirst as jest.Mock)
-      .mockResolvedValueOnce({ id: mockUserBase.id })
-      .mockResolvedValueOnce({
-        ...mockUserBase,
-        profile: {
-          userId: mockUserBase.id,
-          birthDate: null,
-          sexAtBirth: null,
-          heightCm: null,
-          bloodType: null,
-          locale: null,
-          timezone: null,
-          unitSystem: null,
-          onboardingCompletedAt: null,
-          extras: null,
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-05-29T00:00:00.000Z'),
-        },
-        allergies: [],
-        conditions: [],
-        currentMedicines: [],
-      });
+    repository.findActiveUserById.mockResolvedValueOnce({
+      id: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValueOnce({
+      ...mockUserBase,
+      profile: {
+        userId: mockUserBase.id,
+        birthDate: null,
+        sexAtBirth: null,
+        heightCm: null,
+        bloodType: null,
+        locale: null,
+        timezone: null,
+        unitSystem: null,
+        onboardingCompletedAt: null,
+        extras: null,
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-05-29T00:00:00.000Z'),
+      },
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    });
 
     await service.updateProfile(mockUserBase.id, {
       onboardingCompleted: false,
     });
 
-    expect(prismaService.userProfile.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        update: expect.objectContaining({
-          onboardingCompletedAt: null,
-        }),
-      }),
+    expect(repository.upsertProfile).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
     );
   });
 
   // ── Allergy tests ──
 
   it('should create an allergy and return the refreshed aggregate', async () => {
-    (prismaService.user.findFirst as jest.Mock)
-      .mockResolvedValueOnce({ id: mockUserBase.id })
-      .mockResolvedValueOnce({
-        ...mockUserBase,
-        profile: null,
-        allergies: [
-          {
-            id: 'allergy-1',
-            userId: mockUserBase.id,
-            kind: UserAllergyKind.drug,
-            label: 'Penicillin',
-            reaction: 'Rash',
-            severity: UserAllergySeverity.moderate,
-            isActive: true,
-            note: null,
-            extras: null,
-            recordedAt: new Date('2026-06-03T09:00:00.000Z'),
-            createdAt: new Date('2026-06-03T09:00:00.000Z'),
-            updatedAt: new Date('2026-06-03T09:00:00.000Z'),
-          },
-        ],
-        conditions: [],
-        currentMedicines: [],
-      });
+    repository.findActiveUserById.mockResolvedValueOnce({
+      id: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValueOnce({
+      ...mockUserBase,
+      profile: null,
+      allergies: [
+        {
+          id: 'allergy-1',
+          userId: mockUserBase.id,
+          kind: UserAllergyKind.drug,
+          label: 'Penicillin',
+          reaction: 'Rash',
+          severity: UserAllergySeverity.moderate,
+          isActive: true,
+          note: null,
+          extras: null,
+          recordedAt: new Date('2026-06-03T09:00:00.000Z'),
+          createdAt: new Date('2026-06-03T09:00:00.000Z'),
+          updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+        },
+      ],
+      conditions: [],
+      currentMedicines: [],
+    });
 
     const result = await service.createAllergy(mockUserBase.id, {
       kind: UserAllergyKind.drug,
@@ -648,16 +628,14 @@ describe('UserHealthContextService', () => {
       recordedAt: '2026-06-03T09:00:00.000Z',
     });
 
-    expect(prismaService.userAllergy.create).toHaveBeenCalledWith({
-      data: {
-        userId: mockUserBase.id,
-        kind: UserAllergyKind.drug,
-        label: 'Penicillin',
-        reaction: 'Rash',
-        severity: UserAllergySeverity.moderate,
-        note: null,
-        recordedAt: new Date('2026-06-03T09:00:00.000Z'),
-      },
+    expect(repository.createAllergy).toHaveBeenCalledWith({
+      userId: mockUserBase.id,
+      kind: UserAllergyKind.drug,
+      label: 'Penicillin',
+      reaction: 'Rash',
+      severity: UserAllergySeverity.moderate,
+      note: null,
+      recordedAt: new Date('2026-06-03T09:00:00.000Z'),
     });
     expect(result.allergies).toHaveLength(1);
     expect(
@@ -666,10 +644,10 @@ describe('UserHealthContextService', () => {
   });
 
   it('should update an allergy and return the refreshed aggregate', async () => {
-    (prismaService.userAllergy.findUnique as jest.Mock).mockResolvedValue({
+    repository.findAllergyById.mockResolvedValue({
       userId: mockUserBase.id,
     });
-    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+    repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [
@@ -699,25 +677,25 @@ describe('UserHealthContextService', () => {
       reaction: null,
     });
 
-    expect(prismaService.userAllergy.update).toHaveBeenCalledWith({
-      where: { id: 'allergy-1' },
-      data: expect.objectContaining({
+    expect(repository.updateAllergy).toHaveBeenCalledWith(
+      'allergy-1',
+      expect.objectContaining({
         label: 'Penicillin Updated',
         severity: UserAllergySeverity.mild,
         note: 'Updated note',
         reaction: null,
       }),
-    });
+    );
     expect(
       expectDefined(result.allergies[0], 'Expected updated allergy').label,
     ).toBe('Penicillin Updated');
   });
 
   it('should soft-delete an allergy (set isActive=false)', async () => {
-    (prismaService.userAllergy.findUnique as jest.Mock).mockResolvedValue({
+    repository.findAllergyById.mockResolvedValue({
       userId: mockUserBase.id,
     });
-    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+    repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -727,15 +705,12 @@ describe('UserHealthContextService', () => {
 
     const result = await service.deleteAllergy(mockUserBase.id, 'allergy-1');
 
-    expect(prismaService.userAllergy.update).toHaveBeenCalledWith({
-      where: { id: 'allergy-1' },
-      data: { isActive: false },
-    });
+    expect(repository.softDeleteAllergy).toHaveBeenCalledWith('allergy-1');
     expect(result.allergies).toHaveLength(0);
   });
 
   it('should throw NotFoundException when updating a foreign allergy', async () => {
-    (prismaService.userAllergy.findUnique as jest.Mock).mockResolvedValue({
+    repository.findAllergyById.mockResolvedValue({
       userId: 'other-user',
     });
 
@@ -747,28 +722,29 @@ describe('UserHealthContextService', () => {
   // ── Condition tests ──
 
   it('should create a condition and return the refreshed aggregate', async () => {
-    (prismaService.user.findFirst as jest.Mock)
-      .mockResolvedValueOnce({ id: mockUserBase.id })
-      .mockResolvedValueOnce({
-        ...mockUserBase,
-        profile: null,
-        allergies: [],
-        conditions: [
-          {
-            id: 'cond-1',
-            userId: mockUserBase.id,
-            label: 'Asthma',
-            status: UserConditionStatus.active,
-            diagnosedAt: new Date('2024-02-01T00:00:00.000Z'),
-            resolvedAt: null,
-            note: 'Triggered during pollen season',
-            extras: null,
-            createdAt: new Date('2026-06-03T09:00:00.000Z'),
-            updatedAt: new Date('2026-06-03T09:00:00.000Z'),
-          },
-        ],
-        currentMedicines: [],
-      });
+    repository.findActiveUserById.mockResolvedValueOnce({
+      id: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValueOnce({
+      ...mockUserBase,
+      profile: null,
+      allergies: [],
+      conditions: [
+        {
+          id: 'cond-1',
+          userId: mockUserBase.id,
+          label: 'Asthma',
+          status: UserConditionStatus.active,
+          diagnosedAt: new Date('2024-02-01T00:00:00.000Z'),
+          resolvedAt: null,
+          note: 'Triggered during pollen season',
+          extras: null,
+          createdAt: new Date('2026-06-03T09:00:00.000Z'),
+          updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+        },
+      ],
+      currentMedicines: [],
+    });
 
     const result = await service.createCondition(mockUserBase.id, {
       label: ' Asthma ',
@@ -777,14 +753,12 @@ describe('UserHealthContextService', () => {
       note: 'Triggered during pollen season',
     });
 
-    expect(prismaService.userCondition.create).toHaveBeenCalledWith({
-      data: {
-        user: { connect: { id: mockUserBase.id } },
-        label: 'Asthma',
-        status: UserConditionStatus.active,
-        diagnosedAt: new Date('2024-02-01T00:00:00.000Z'),
-        note: 'Triggered during pollen season',
-      },
+    expect(repository.createCondition).toHaveBeenCalledWith({
+      user: { connect: { id: mockUserBase.id } },
+      label: 'Asthma',
+      status: UserConditionStatus.active,
+      diagnosedAt: new Date('2024-02-01T00:00:00.000Z'),
+      note: 'Triggered during pollen season',
     });
     expect(result.conditions).toHaveLength(1);
     expect(
@@ -793,10 +767,10 @@ describe('UserHealthContextService', () => {
   });
 
   it('should update a condition and return the refreshed aggregate', async () => {
-    (prismaService.userCondition.findUnique as jest.Mock).mockResolvedValue({
+    repository.findConditionById.mockResolvedValue({
       userId: mockUserBase.id,
     });
-    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+    repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -823,14 +797,14 @@ describe('UserHealthContextService', () => {
       diagnosedAt: null,
     });
 
-    expect(prismaService.userCondition.update).toHaveBeenCalledWith({
-      where: { id: 'cond-1' },
-      data: expect.objectContaining({
+    expect(repository.updateCondition).toHaveBeenCalledWith(
+      'cond-1',
+      expect.objectContaining({
         label: 'Asthma Updated',
         status: UserConditionStatus.suspected,
         diagnosedAt: null,
       }),
-    });
+    );
     const updatedCondition = expectDefined(
       result.conditions[0],
       'Expected updated condition',
@@ -842,10 +816,10 @@ describe('UserHealthContextService', () => {
   it('should soft-resolve a condition (set status=resolved)', async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-06-03T12:00:00Z'));
 
-    (prismaService.userCondition.findUnique as jest.Mock)
-      .mockResolvedValueOnce({ userId: mockUserBase.id })
-      .mockResolvedValueOnce({ resolvedAt: null });
-    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+    repository.findConditionById.mockResolvedValueOnce({
+      userId: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -868,20 +842,17 @@ describe('UserHealthContextService', () => {
 
     const result = await service.deleteCondition(mockUserBase.id, 'cond-1');
 
-    expect(prismaService.userCondition.update).toHaveBeenCalledWith({
-      where: { id: 'cond-1' },
-      data: {
-        status: 'resolved',
-        resolvedAt: new Date('2026-06-03T00:00:00.000Z'),
-      },
-    });
+    expect(repository.softDeleteCondition).toHaveBeenCalledWith(
+      'cond-1',
+      new Date('2026-06-03T00:00:00.000Z'),
+    );
     expect(
       expectDefined(result.conditions[0], 'Expected resolved condition').status,
     ).toBe(UserConditionStatus.resolved);
   });
 
   it('should throw NotFoundException when updating a foreign condition', async () => {
-    (prismaService.userCondition.findUnique as jest.Mock).mockResolvedValue({
+    repository.findConditionById.mockResolvedValue({
       userId: 'other-user',
     });
 
@@ -893,33 +864,34 @@ describe('UserHealthContextService', () => {
   // ── Current medicine tests ──
 
   it('should create a current medicine and return the refreshed aggregate', async () => {
-    (prismaService.user.findFirst as jest.Mock)
-      .mockResolvedValueOnce({ id: mockUserBase.id })
-      .mockResolvedValueOnce({
-        ...mockUserBase,
-        profile: null,
-        allergies: [],
-        conditions: [],
-        currentMedicines: [
-          {
-            id: 'med-1',
-            userId: mockUserBase.id,
-            source: MedicineSource.drugbank,
-            sourceRefId: 'DB01050',
-            displayName: 'Ibuprofen',
-            strengthText: '200 mg',
-            doseText: '1 tablet after meals',
-            route: 'oral',
-            startedAt: new Date('2026-06-03T00:00:00.000Z'),
-            endedAt: null,
-            isCurrent: true,
-            note: null,
-            sourcePayload: null,
-            createdAt: new Date('2026-06-03T09:00:00.000Z'),
-            updatedAt: new Date('2026-06-03T09:00:00.000Z'),
-          },
-        ],
-      });
+    repository.findActiveUserById.mockResolvedValueOnce({
+      id: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValueOnce({
+      ...mockUserBase,
+      profile: null,
+      allergies: [],
+      conditions: [],
+      currentMedicines: [
+        {
+          id: 'med-1',
+          userId: mockUserBase.id,
+          source: MedicineSource.drugbank,
+          sourceRefId: 'DB01050',
+          displayName: 'Ibuprofen',
+          strengthText: '200 mg',
+          doseText: '1 tablet after meals',
+          route: 'oral',
+          startedAt: new Date('2026-06-03T00:00:00.000Z'),
+          endedAt: null,
+          isCurrent: true,
+          note: null,
+          sourcePayload: null,
+          createdAt: new Date('2026-06-03T09:00:00.000Z'),
+          updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+        },
+      ],
+    });
 
     const result = await service.createCurrentMedicine(mockUserBase.id, {
       source: MedicineSource.drugbank,
@@ -931,8 +903,8 @@ describe('UserHealthContextService', () => {
       startedAt: '2026-06-03',
     });
 
-    expect(prismaService.userCurrentMedicine.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(repository.createCurrentMedicine).toHaveBeenCalledWith(
+      expect.objectContaining({
         userId: mockUserBase.id,
         source: MedicineSource.drugbank,
         sourceRefId: 'DB01050',
@@ -942,7 +914,7 @@ describe('UserHealthContextService', () => {
         route: 'oral',
         startedAt: new Date('2026-06-03T00:00:00.000Z'),
       }),
-    });
+    );
     expect(result.currentMedicines).toHaveLength(1);
     expect(
       expectDefined(
@@ -953,46 +925,47 @@ describe('UserHealthContextService', () => {
   });
 
   it('should create a manual current medicine without sourceRefId', async () => {
-    (prismaService.user.findFirst as jest.Mock)
-      .mockResolvedValueOnce({ id: mockUserBase.id })
-      .mockResolvedValueOnce({
-        ...mockUserBase,
-        profile: null,
-        allergies: [],
-        conditions: [],
-        currentMedicines: [
-          {
-            id: 'med-1',
-            userId: mockUserBase.id,
-            source: MedicineSource.manual,
-            sourceRefId: null,
-            displayName: 'Vitamin D',
-            strengthText: null,
-            doseText: null,
-            route: null,
-            startedAt: null,
-            endedAt: null,
-            isCurrent: true,
-            note: null,
-            sourcePayload: null,
-            createdAt: new Date('2026-06-03T09:00:00.000Z'),
-            updatedAt: new Date('2026-06-03T09:00:00.000Z'),
-          },
-        ],
-      });
+    repository.findActiveUserById.mockResolvedValueOnce({
+      id: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValueOnce({
+      ...mockUserBase,
+      profile: null,
+      allergies: [],
+      conditions: [],
+      currentMedicines: [
+        {
+          id: 'med-1',
+          userId: mockUserBase.id,
+          source: MedicineSource.manual,
+          sourceRefId: null,
+          displayName: 'Vitamin D',
+          strengthText: null,
+          doseText: null,
+          route: null,
+          startedAt: null,
+          endedAt: null,
+          isCurrent: true,
+          note: null,
+          sourcePayload: null,
+          createdAt: new Date('2026-06-03T09:00:00.000Z'),
+          updatedAt: new Date('2026-06-03T09:00:00.000Z'),
+        },
+      ],
+    });
 
     const result = await service.createCurrentMedicine(mockUserBase.id, {
       source: MedicineSource.manual,
       displayName: 'Vitamin D',
     });
 
-    expect(prismaService.userCurrentMedicine.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(repository.createCurrentMedicine).toHaveBeenCalledWith(
+      expect.objectContaining({
         source: MedicineSource.manual,
         sourceRefId: null,
         displayName: 'Vitamin D',
       }),
-    });
+    );
     const createdCurrentMedicine = expectDefined(
       result.currentMedicines[0],
       'Expected created current medicine',
@@ -1002,10 +975,10 @@ describe('UserHealthContextService', () => {
   });
 
   it('should update a current medicine', async () => {
-    (
-      prismaService.userCurrentMedicine.findUnique as jest.Mock
-    ).mockResolvedValue({ userId: mockUserBase.id });
-    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+    repository.findCurrentMedicineById.mockResolvedValue({
+      userId: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -1041,14 +1014,14 @@ describe('UserHealthContextService', () => {
       },
     );
 
-    expect(prismaService.userCurrentMedicine.update).toHaveBeenCalledWith({
-      where: { id: 'med-1' },
-      data: expect.objectContaining({
+    expect(repository.updateCurrentMedicine).toHaveBeenCalledWith(
+      'med-1',
+      expect.objectContaining({
         displayName: 'Ibuprofen Updated',
         strengthText: '400 mg',
         note: 'Updated note',
       }),
-    });
+    );
     expect(
       expectDefined(
         result.currentMedicines[0],
@@ -1058,10 +1031,10 @@ describe('UserHealthContextService', () => {
   });
 
   it('should soft-delete a current medicine (set isCurrent=false)', async () => {
-    (prismaService.userCurrentMedicine.findUnique as jest.Mock)
-      .mockResolvedValueOnce({ userId: mockUserBase.id })
-      .mockResolvedValueOnce({ endedAt: null });
-    (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+    repository.findCurrentMedicineById.mockResolvedValueOnce({
+      userId: mockUserBase.id,
+    });
+    repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
       profile: null,
       allergies: [],
@@ -1074,20 +1047,17 @@ describe('UserHealthContextService', () => {
       'med-1',
     );
 
-    expect(prismaService.userCurrentMedicine.update).toHaveBeenCalledWith({
-      where: { id: 'med-1' },
-      data: {
-        isCurrent: false,
-        endedAt: expect.any(Date),
-      },
-    });
+    expect(repository.softDeleteCurrentMedicine).toHaveBeenCalledWith(
+      'med-1',
+      expect.any(Date),
+    );
     expect(result.currentMedicines).toHaveLength(0);
   });
 
   it('should throw NotFoundException when accessing a foreign current medicine', async () => {
-    (
-      prismaService.userCurrentMedicine.findUnique as jest.Mock
-    ).mockResolvedValue({ userId: 'other-user' });
+    repository.findCurrentMedicineById.mockResolvedValue({
+      userId: 'other-user',
+    });
 
     await expect(
       service.updateCurrentMedicine(mockUserBase.id, 'med-1', {

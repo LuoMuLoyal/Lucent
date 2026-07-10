@@ -1,36 +1,29 @@
 import { Test } from '@nestjs/testing';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { UserHealthContextRepositoryPort } from '../repositories';
 import { UserHealthContextOwnershipService } from './ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
 import { UserHealthContextConditionWriteService } from './condition-write.service';
 
 describe('UserHealthContextConditionWriteService', () => {
   let service: UserHealthContextConditionWriteService;
-  let createCond: jest.Mock;
-  let updateCond: jest.Mock;
-  let findUniqueCond: jest.Mock;
+
+  let repository: any;
   let ensureActive: jest.Mock;
   let ensureOwned: jest.Mock;
 
   beforeEach(async () => {
-    createCond = jest.fn();
-    updateCond = jest.fn();
-    findUniqueCond = jest.fn();
+    repository = {
+      createCondition: jest.fn(),
+      updateCondition: jest.fn(),
+      softDeleteCondition: jest.fn(),
+      findConditionById: jest.fn(),
+    };
     ensureActive = jest.fn();
     ensureOwned = jest.fn();
     const module = await Test.createTestingModule({
       providers: [
         UserHealthContextConditionWriteService,
-        {
-          provide: PrismaService,
-          useValue: {
-            userCondition: {
-              create: createCond,
-              update: updateCond,
-              findUnique: findUniqueCond,
-            },
-          },
-        },
+        { provide: UserHealthContextRepositoryPort, useValue: repository },
         {
           provide: UserHealthContextOwnershipService,
           useValue: {
@@ -60,26 +53,24 @@ describe('UserHealthContextConditionWriteService', () => {
       note: null as any,
     });
     expect(ensureActive).toHaveBeenCalledWith('u1');
-    expect(createCond).toHaveBeenCalledWith({
-      data: expect.objectContaining({ user: { connect: { id: 'u1' } } }),
-    });
+    expect(repository.createCondition).toHaveBeenCalledWith(
+      expect.objectContaining({ user: { connect: { id: 'u1' } } }),
+    );
   });
 
   it('updates', async () => {
     await service.update('u1', 'c1', { label: '高血糖' });
     expect(ensureOwned).toHaveBeenCalledWith('u1', 'c1');
-    expect(updateCond).toHaveBeenCalledWith({
-      where: { id: 'c1' },
-      data: { label: '高血糖' },
+    expect(repository.updateCondition).toHaveBeenCalledWith('c1', {
+      label: '高血糖',
     });
   });
 
   it('soft-deletes', async () => {
-    findUniqueCond.mockResolvedValue({ resolvedAt: null });
     await service.softDelete('u1', 'c1');
-    expect(updateCond).toHaveBeenCalledWith({
-      where: { id: 'c1' },
-      data: expect.objectContaining({ status: 'resolved' }),
-    });
+    expect(repository.softDeleteCondition).toHaveBeenCalledWith(
+      'c1',
+      expect.any(Date),
+    );
   });
 });

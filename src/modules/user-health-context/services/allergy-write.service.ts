@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { UserHealthContextRepositoryPort } from '../repositories';
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import type {
@@ -11,7 +11,7 @@ import type {
 @Injectable()
 export class UserHealthContextAllergyWriteService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: UserHealthContextRepositoryPort,
     private readonly ownershipService: UserHealthContextOwnershipService,
   ) {}
 
@@ -20,16 +20,14 @@ export class UserHealthContextAllergyWriteService {
     dto: CreateHealthContextAllergyDto,
   ): Promise<void> {
     await this.ownershipService.ensureActiveUserExists(userId);
-    await this.prisma.userAllergy.create({
-      data: {
-        userId,
-        kind: dto.kind,
-        label: dto.label.trim(),
-        reaction: normalizeNullableText(dto.reaction),
-        severity: dto.severity ?? null,
-        note: normalizeNullableText(dto.note),
-        recordedAt: dto.recordedAt ? new Date(dto.recordedAt) : null,
-      },
+    await this.repository.createAllergy({
+      userId,
+      kind: dto.kind,
+      label: dto.label.trim(),
+      reaction: normalizeNullableText(dto.reaction),
+      severity: dto.severity ?? null,
+      note: normalizeNullableText(dto.note),
+      recordedAt: dto.recordedAt ? new Date(dto.recordedAt) : null,
     });
   }
 
@@ -49,14 +47,11 @@ export class UserHealthContextAllergyWriteService {
     if (dto.recordedAt !== undefined)
       data.recordedAt = dto.recordedAt ? new Date(dto.recordedAt) : null;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
-    await this.prisma.userAllergy.update({ where: { id: allergyId }, data });
+    await this.repository.updateAllergy(allergyId, data);
   }
 
   async softDelete(userId: string, allergyId: string): Promise<void> {
     await this.ownershipService.ensureAllergyOwnedByUser(userId, allergyId);
-    await this.prisma.userAllergy.update({
-      where: { id: allergyId },
-      data: { isActive: false },
-    });
+    await this.repository.softDeleteAllergy(allergyId);
   }
 }

@@ -9,10 +9,19 @@ import {
   UserHealthContextProfileWriteService,
   UserHealthContextService,
 } from './services';
+import {
+  UserHealthContextRepositoryPort,
+  UserHealthContextRepository,
+} from './repositories';
 
 @Module({
   controllers: [UserHealthContextController],
   providers: [
+    UserHealthContextRepository,
+    {
+      provide: UserHealthContextRepositoryPort,
+      useExisting: UserHealthContextRepository,
+    },
     UserHealthContextOwnershipService,
     UserHealthContextMapperService,
     UserHealthContextProfileWriteService,

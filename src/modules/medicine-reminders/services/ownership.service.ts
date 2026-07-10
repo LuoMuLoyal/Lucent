@@ -2,13 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { ensureOwnedByUser } from '../../../common/helpers/prisma-ownership.helper';
 
-import { PrismaService } from '../../../prisma/prisma.service';
+import { MedicineReminderRepositoryPort } from '../repositories';
 import type { OwnedMedicineReminderRecord } from '../types/types';
 
 @Injectable()
 export class MedicineRemindersOwnershipService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: MedicineReminderRepositoryPort,
     private readonly i18n: I18nService,
   ) {}
 
@@ -20,10 +20,10 @@ export class MedicineRemindersOwnershipService {
       return;
     }
 
-    const medicine = await this.prisma.userCurrentMedicine.findFirst({
-      where: { id: currentMedicineId, userId, isCurrent: true },
-      select: { id: true, userId: true },
-    });
+    const medicine = await this.repository.findCurrentMedicine(
+      currentMedicineId,
+      userId,
+    );
 
     ensureOwnedByUser(
       medicine,
@@ -36,10 +36,11 @@ export class MedicineRemindersOwnershipService {
     userId: string,
     id: string,
   ): Promise<OwnedMedicineReminderRecord> {
-    const reminder = await this.prisma.userMedicineReminder.findFirst({
-      where: { id, deletedAt: null },
-      select: { userId: true, startDate: true, endDate: true },
-    });
+    const reminder = (await this.repository.findReminderById(id, {
+      userId: true,
+      startDate: true,
+      endDate: true,
+    })) as OwnedMedicineReminderRecord | null;
 
     ensureOwnedByUser(
       reminder,

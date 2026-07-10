@@ -1,11 +1,20 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../../prisma/prisma.module';
 import { MedicineDoseLogsController } from './medicine-dose-logs.controller';
 import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
+import {
+  MedicineDoseLogRepositoryPort,
+  MedicineDoseLogRepository,
+} from './repositories';
 
 @Module({
-  imports: [PrismaModule],
   controllers: [MedicineDoseLogsController],
-  providers: [MedicineDoseLogsService],
+  providers: [
+    MedicineDoseLogRepository,
+    {
+      provide: MedicineDoseLogRepositoryPort,
+      useExisting: MedicineDoseLogRepository,
+    },
+    MedicineDoseLogsService,
+  ],
 })
 export class MedicineDoseLogsModule {}

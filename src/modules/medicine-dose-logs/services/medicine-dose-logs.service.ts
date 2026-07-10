@@ -10,7 +10,7 @@ import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { DoseLogStatus, Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { MedicineDoseLogRepositoryPort } from '../repositories';
 import type {
   CreateDoseLogDto,
   MarkDoseLogDto,
@@ -27,7 +27,7 @@ type OwnedReminderRecord = {
 @Injectable()
 export class MedicineDoseLogsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: MedicineDoseLogRepositoryPort,
     private readonly i18n: I18nService,
   ) {}
 
@@ -37,10 +37,10 @@ export class MedicineDoseLogsService {
       scheduledFor: parseDateOnly(date),
       ...nonDeleted,
     };
-    const items = await this.prisma.userMedicineDoseLog.findMany({
-      where,
-      orderBy: [{ scheduledTime: 'asc' }, { createdAt: 'desc' }],
-    });
+    const items = await this.repository.findMany(where, [
+      { scheduledTime: 'asc' },
+      { createdAt: 'desc' },
+    ]);
     return { items: items.map((record) => this.toItem(record)) };
   }
 
@@ -61,8 +61,8 @@ export class MedicineDoseLogsService {
       reminder,
     );
 
-    const record = await this.prisma.userMedicineDoseLog.create({
-      data: this.buildCreateData(userId, {
+    const record = await this.repository.create(
+      this.buildCreateData(userId, {
         currentMedicineId,
         reminderId: dto.reminderId ?? null,
         status: dto.status,
@@ -71,7 +71,7 @@ export class MedicineDoseLogsService {
         doseText: dto.doseText,
         note: dto.note,
       }),
-    });
+    );
     return this.toItem(record);
   }
 
@@ -93,21 +93,21 @@ export class MedicineDoseLogsService {
     );
     const reminderId = dto.reminderId ?? null;
 
-    const existing = await this.prisma.userMedicineDoseLog.findFirst({
-      where: this.buildMarkLookupWhere({
+    const existing = (await this.repository.findFirst(
+      this.buildMarkLookupWhere({
         userId,
         currentMedicineId,
         reminderId,
         scheduledFor,
         scheduledTime,
       }),
-      orderBy: [{ updatedAt: 'desc' }],
-    });
+      { orderBy: [{ updatedAt: 'desc' }] },
+    )) as { id: string } | null;
 
     if (existing) {
-      const record = await this.prisma.userMedicineDoseLog.update({
-        where: { id: existing.id },
-        data: this.buildMarkUpdateData({
+      const record = await this.repository.update(
+        { id: existing.id },
+        this.buildMarkUpdateData({
           currentMedicineId,
           reminderId,
           status: dto.status,
@@ -115,12 +115,12 @@ export class MedicineDoseLogsService {
           doseText: dto.doseText,
           note: dto.note,
         }),
-      });
+      );
       return this.toItem(record);
     }
 
-    const record = await this.prisma.userMedicineDoseLog.create({
-      data: this.buildCreateData(userId, {
+    const record = await this.repository.create(
+      this.buildCreateData(userId, {
         currentMedicineId,
         reminderId,
         status: dto.status,
@@ -129,7 +129,7 @@ export class MedicineDoseLogsService {
         doseText: dto.doseText,
         note: dto.note,
       }),
-    });
+    );
     return this.toItem(record);
   }
 
@@ -146,19 +146,13 @@ export class MedicineDoseLogsService {
     if (dto.note !== undefined) {
       data.note = normalizeNullableText(dto.note);
     }
-    const record = await this.prisma.userMedicineDoseLog.update({
-      where: { id },
-      data,
-    });
+    const record = await this.repository.update({ id }, data);
     return this.toItem(record);
   }
 
   async delete(userId: string, id: string) {
     await this.ensureOwned(userId, id);
-    await this.prisma.userMedicineDoseLog.update({
-      where: { id },
-      data: { deletedAt: now() },
-    });
+    await this.repository.update({ id }, { deletedAt: now() });
   }
 
   private buildCreateData(
@@ -264,15 +258,7 @@ export class MedicineDoseLogsService {
       return null;
     }
 
-    const reminder = await this.prisma.userMedicineReminder.findFirst({
-      where: { id: reminderId, deletedAt: null },
-      select: {
-        userId: true,
-        currentMedicineId: true,
-        scheduledHour: true,
-        scheduledMinute: true,
-      },
-    });
+    const reminder = await this.repository.findReminderById(reminderId);
     if (!reminder || reminder.userId !== userId) {
       notFound(this.i18n.t('medicine-reminders.reminder_not_found'));
     }
@@ -296,10 +282,9 @@ export class MedicineDoseLogsService {
       currentMedicineId ?? reminder?.currentMedicineId ?? null;
 
     if (resolvedCurrentMedicineId) {
-      const medicine = await this.prisma.userCurrentMedicine.findUnique({
-        where: { id: resolvedCurrentMedicineId },
-        select: { userId: true },
-      });
+      const medicine = await this.repository.findCurrentMedicineById(
+        resolvedCurrentMedicineId,
+      );
       if (!medicine || medicine.userId !== userId) {
         notFound(this.i18n.t('medicine-dose-logs.medicine_not_found'));
       }
@@ -325,10 +310,10 @@ export class MedicineDoseLogsService {
   }
 
   private async ensureOwned(userId: string, id: string) {
-    const record = await this.prisma.userMedicineDoseLog.findFirst({
-      where: { id, deletedAt: null },
-      select: { userId: true },
-    });
+    const record = (await this.repository.findFirst(
+      { id, deletedAt: null },
+      { select: { userId: true } },
+    )) as { userId: string } | null;
     if (!record || record.userId !== userId) {
       notFound(this.i18n.t('medicine-dose-logs.not_found'));
     }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { MedicineSource, Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { UserHealthContextRepositoryPort } from '../repositories';
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
@@ -13,7 +13,7 @@ import type {
 @Injectable()
 export class UserHealthContextMedicineWriteService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: UserHealthContextRepositoryPort,
     private readonly ownershipService: UserHealthContextOwnershipService,
     private readonly mapperService: UserHealthContextMapperService,
   ) {}
@@ -22,23 +22,19 @@ export class UserHealthContextMedicineWriteService {
     await this.ownershipService.ensureActiveUserExists(userId);
     const sourceRefId =
       dto.source === MedicineSource.manual ? null : (dto.sourceRefId ?? null);
-    await this.prisma.userCurrentMedicine.create({
-      data: {
-        userId,
-        source: dto.source,
-        sourceRefId,
-        displayName: dto.displayName.trim(),
-        strengthText: normalizeNullableText(dto.strengthText),
-        doseText: normalizeNullableText(dto.doseText),
-        route: normalizeNullableText(dto.route),
-        startedAt: this.mapperService.dateOnlyStringToUtcDate(
-          dto.startedAt ?? null,
-        ),
-        endedAt: this.mapperService.dateOnlyStringToUtcDate(
-          dto.endedAt ?? null,
-        ),
-        note: normalizeNullableText(dto.note),
-      },
+    await this.repository.createCurrentMedicine({
+      userId,
+      source: dto.source,
+      sourceRefId,
+      displayName: dto.displayName.trim(),
+      strengthText: normalizeNullableText(dto.strengthText),
+      doseText: normalizeNullableText(dto.doseText),
+      route: normalizeNullableText(dto.route),
+      startedAt: this.mapperService.dateOnlyStringToUtcDate(
+        dto.startedAt ?? null,
+      ),
+      endedAt: this.mapperService.dateOnlyStringToUtcDate(dto.endedAt ?? null),
+      note: normalizeNullableText(dto.note),
     });
   }
 
@@ -70,10 +66,7 @@ export class UserHealthContextMedicineWriteService {
       data.endedAt = this.mapperService.dateOnlyStringToUtcDate(dto.endedAt);
     if (dto.note !== undefined) data.note = normalizeNullableText(dto.note);
     if (dto.isCurrent !== undefined) data.isCurrent = dto.isCurrent;
-    await this.prisma.userCurrentMedicine.update({
-      where: { id: medicineId },
-      data,
-    });
+    await this.repository.updateCurrentMedicine(medicineId, data);
   }
 
   async softDelete(userId: string, medicineId: string): Promise<void> {
@@ -83,13 +76,6 @@ export class UserHealthContextMedicineWriteService {
     );
     const endedAt = now();
     const endedDate = this.mapperService.toUtcDateOnly(endedAt);
-    const current = await this.prisma.userCurrentMedicine.findUnique({
-      where: { id: medicineId },
-      select: { endedAt: true },
-    });
-    await this.prisma.userCurrentMedicine.update({
-      where: { id: medicineId },
-      data: { isCurrent: false, endedAt: current?.endedAt ?? endedDate },
-    });
+    await this.repository.softDeleteCurrentMedicine(medicineId, endedDate);
   }
 }

@@ -1,37 +1,30 @@
 import { Test } from '@nestjs/testing';
 import { MedicineSource } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { UserHealthContextRepositoryPort } from '../repositories';
 import { UserHealthContextOwnershipService } from './ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
 import { UserHealthContextMedicineWriteService } from './medicine-write.service';
 
 describe('UserHealthContextMedicineWriteService', () => {
   let service: UserHealthContextMedicineWriteService;
-  let createMed: jest.Mock;
-  let updateMed: jest.Mock;
-  let findUniqueMed: jest.Mock;
+
+  let repository: any;
   let ensureActive: jest.Mock;
   let ensureOwned: jest.Mock;
 
   beforeEach(async () => {
-    createMed = jest.fn();
-    updateMed = jest.fn();
-    findUniqueMed = jest.fn();
+    repository = {
+      createCurrentMedicine: jest.fn(),
+      updateCurrentMedicine: jest.fn(),
+      softDeleteCurrentMedicine: jest.fn(),
+      findCurrentMedicineById: jest.fn(),
+    };
     ensureActive = jest.fn();
     ensureOwned = jest.fn();
     const module = await Test.createTestingModule({
       providers: [
         UserHealthContextMedicineWriteService,
-        {
-          provide: PrismaService,
-          useValue: {
-            userCurrentMedicine: {
-              create: createMed,
-              update: updateMed,
-              findUnique: findUniqueMed,
-            },
-          },
-        },
+        { provide: UserHealthContextRepositoryPort, useValue: repository },
         {
           provide: UserHealthContextOwnershipService,
           useValue: {
@@ -59,9 +52,9 @@ describe('UserHealthContextMedicineWriteService', () => {
       sourceRefId: 'ext-1',
       displayName: '阿莫西林',
     });
-    expect(createMed).toHaveBeenCalledWith({
-      data: expect.objectContaining({ sourceRefId: null }),
-    });
+    expect(repository.createCurrentMedicine).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceRefId: null }),
+    );
   });
 
   it('keeps sourceRefId for non-manual', async () => {
@@ -70,26 +63,24 @@ describe('UserHealthContextMedicineWriteService', () => {
       sourceRefId: 'ext-1',
       displayName: '阿莫西林',
     });
-    expect(createMed).toHaveBeenCalledWith({
-      data: expect.objectContaining({ sourceRefId: 'ext-1' }),
-    });
+    expect(repository.createCurrentMedicine).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceRefId: 'ext-1' }),
+    );
   });
 
   it('updates', async () => {
     await service.update('u1', 'm1', { displayName: '头孢拉定' });
     expect(ensureOwned).toHaveBeenCalledWith('u1', 'm1');
-    expect(updateMed).toHaveBeenCalledWith({
-      where: { id: 'm1' },
-      data: { displayName: '头孢拉定' },
+    expect(repository.updateCurrentMedicine).toHaveBeenCalledWith('m1', {
+      displayName: '头孢拉定',
     });
   });
 
   it('soft-deletes', async () => {
-    findUniqueMed.mockResolvedValue({ endedAt: null });
     await service.softDelete('u1', 'm1');
-    expect(updateMed).toHaveBeenCalledWith({
-      where: { id: 'm1' },
-      data: expect.objectContaining({ isCurrent: false }),
-    });
+    expect(repository.softDeleteCurrentMedicine).toHaveBeenCalledWith(
+      'm1',
+      expect.any(Date),
+    );
   });
 });

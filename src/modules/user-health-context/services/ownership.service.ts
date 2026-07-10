@@ -1,28 +1,19 @@
 import { ensureOwnedByUser } from '../../../common/helpers/prisma-ownership.helper';
 import { notFound } from '../../../common/helpers/api-errors';
-import { nonDeleted } from '../../../common/helpers/prisma.helpers';
 import { Injectable } from '@nestjs/common';
 
 import { I18nService } from 'nestjs-i18n';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { UserHealthContextRepositoryPort } from '../repositories';
 
 @Injectable()
 export class UserHealthContextOwnershipService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: UserHealthContextRepositoryPort,
     private readonly i18n: I18nService,
   ) {}
 
   async ensureActiveUserExists(userId: string): Promise<void> {
-    const user = await this.prisma.user.findFirst({
-      where: {
-        id: userId,
-        ...nonDeleted,
-      },
-      select: {
-        id: true,
-      },
-    });
+    const user = await this.repository.findActiveUserById(userId);
 
     if (!user) {
       this.throwUserNotFound();
@@ -33,10 +24,7 @@ export class UserHealthContextOwnershipService {
     userId: string,
     allergyId: string,
   ): Promise<void> {
-    const allergy = await this.prisma.userAllergy.findUnique({
-      where: { id: allergyId },
-      select: { userId: true },
-    });
+    const allergy = await this.repository.findAllergyById(allergyId);
 
     ensureOwnedByUser(allergy, userId, this.i18n.t('auth.user_not_found'));
   }
@@ -45,10 +33,7 @@ export class UserHealthContextOwnershipService {
     userId: string,
     conditionId: string,
   ): Promise<void> {
-    const condition = await this.prisma.userCondition.findUnique({
-      where: { id: conditionId },
-      select: { userId: true },
-    });
+    const condition = await this.repository.findConditionById(conditionId);
 
     ensureOwnedByUser(condition, userId, this.i18n.t('auth.user_not_found'));
   }
@@ -57,10 +42,7 @@ export class UserHealthContextOwnershipService {
     userId: string,
     medicineId: string,
   ): Promise<void> {
-    const medicine = await this.prisma.userCurrentMedicine.findUnique({
-      where: { id: medicineId },
-      select: { userId: true },
-    });
+    const medicine = await this.repository.findCurrentMedicineById(medicineId);
 
     ensureOwnedByUser(medicine, userId, this.i18n.t('auth.user_not_found'));
   }

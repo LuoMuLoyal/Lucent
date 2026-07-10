@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { UserHealthContextRepositoryPort } from '../repositories';
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
@@ -13,7 +13,7 @@ import type {
 @Injectable()
 export class UserHealthContextConditionWriteService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: UserHealthContextRepositoryPort,
     private readonly ownershipService: UserHealthContextOwnershipService,
     private readonly mapperService: UserHealthContextMapperService,
   ) {}
@@ -32,7 +32,7 @@ export class UserHealthContextConditionWriteService {
       note: normalizeNullableText(dto.note),
     };
     if (dto.status !== undefined) createData.status = dto.status;
-    await this.prisma.userCondition.create({ data: createData });
+    await this.repository.createCondition(createData);
   }
 
   async update(
@@ -49,26 +49,13 @@ export class UserHealthContextConditionWriteService {
         dto.diagnosedAt,
       );
     if (dto.note !== undefined) data.note = normalizeNullableText(dto.note);
-    await this.prisma.userCondition.update({
-      where: { id: conditionId },
-      data,
-    });
+    await this.repository.updateCondition(conditionId, data);
   }
 
   async softDelete(userId: string, conditionId: string): Promise<void> {
     await this.ownershipService.ensureConditionOwnedByUser(userId, conditionId);
     const resolvedAt = now();
     const resolvedDate = this.mapperService.toUtcDateOnly(resolvedAt);
-    const current = await this.prisma.userCondition.findUnique({
-      where: { id: conditionId },
-      select: { resolvedAt: true },
-    });
-    await this.prisma.userCondition.update({
-      where: { id: conditionId },
-      data: {
-        status: 'resolved',
-        resolvedAt: current?.resolvedAt ?? resolvedDate,
-      },
-    });
+    await this.repository.softDeleteCondition(conditionId, resolvedDate);
   }
 }

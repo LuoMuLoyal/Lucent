@@ -1,6 +1,6 @@
 import { nonDeleted } from '../../../common/helpers/prisma.helpers';
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { MedicineReminderRepositoryPort } from '../repositories';
 import type {
   CreateMedicineReminderDto,
   UpdateMedicineReminderDto,
@@ -12,24 +12,24 @@ import { now } from '../../../common/helpers/date-time.utils';
 @Injectable()
 export class MedicineRemindersService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: MedicineReminderRepositoryPort,
     private readonly ownershipService: MedicineRemindersOwnershipService,
     private readonly mapperService: MedicineRemindersMapperService,
   ) {}
 
   async list(userId: string, activeOnly = false) {
-    const items = await this.prisma.userMedicineReminder.findMany({
-      where: {
+    const items = await this.repository.findManyReminders(
+      {
         userId,
         ...nonDeleted,
         ...(activeOnly ? { isActive: true } : {}),
       },
-      orderBy: [
+      [
         { scheduledHour: 'asc' },
         { scheduledMinute: 'asc' },
         { createdAt: 'asc' },
       ],
-    });
+    );
 
     return { items: items.map((item) => this.mapperService.toItem(item)) };
   }
@@ -40,9 +40,9 @@ export class MedicineRemindersService {
       dto.currentMedicineId ?? null,
     );
 
-    const record = await this.prisma.userMedicineReminder.create({
-      data: this.mapperService.toCreateData(userId, dto),
-    });
+    const record = await this.repository.createReminder(
+      this.mapperService.toCreateData(userId, dto),
+    );
 
     return this.mapperService.toItem(record);
   }
@@ -57,28 +57,28 @@ export class MedicineRemindersService {
       );
     }
 
-    const record = await this.prisma.userMedicineReminder.update({
-      where: { id },
-      data: this.mapperService.toUpdateData(dto, existing),
-    });
+    const record = await this.repository.updateReminder(
+      { id },
+      this.mapperService.toUpdateData(dto, existing),
+    );
 
     return this.mapperService.toItem(record);
   }
 
   async delete(userId: string, id: string) {
     await this.ownershipService.ensureOwnedByUser(userId, id);
-    await this.prisma.userMedicineReminder.update({
-      where: { id },
-      data: { deletedAt: now(), isActive: false },
-    });
+    await this.repository.updateReminder(
+      { id },
+      { deletedAt: now(), isActive: false },
+    );
   }
 
   async listDeliveries(userId: string, date?: string, limit = 20) {
-    const items = await this.prisma.userReminderDelivery.findMany({
-      where: this.mapperService.toDeliveryWhere(userId, date),
-      orderBy: [{ scheduledFor: 'desc' }, { createdAt: 'desc' }],
-      take: this.mapperService.capDeliveryLimit(limit),
-    });
+    const items = await this.repository.findManyDeliveries(
+      this.mapperService.toDeliveryWhere(userId, date),
+      [{ scheduledFor: 'desc' }, { createdAt: 'desc' }],
+      this.mapperService.capDeliveryLimit(limit),
+    );
 
     return {
       items: items.map((item) => this.mapperService.toDeliveryItem(item)),

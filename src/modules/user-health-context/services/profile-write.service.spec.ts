@@ -1,28 +1,27 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { parseDateOnly } from '../../../common/helpers/date-time.utils';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { UserHealthContextProfileWriteService } from './profile-write.service';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { UserHealthContextRepositoryPort } from '../repositories';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
 
 describe('UserHealthContextProfileWriteService', () => {
   let service: UserHealthContextProfileWriteService;
-  let prisma: jest.Mocked<PrismaService>;
+
+  let repository: any;
 
   beforeEach(async () => {
+    repository = {
+      findProfileByUserId: jest.fn().mockResolvedValue(null),
+      upsertProfile: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserHealthContextProfileWriteService,
-        {
-          provide: PrismaService,
-          useValue: {
-            userProfile: {
-              findUnique: jest.fn().mockResolvedValue(null),
-              upsert: jest.fn(),
-            },
-          },
-        },
+        { provide: UserHealthContextRepositoryPort, useValue: repository },
         {
           provide: UserHealthContextOwnershipService,
           useValue: {
@@ -43,7 +42,6 @@ describe('UserHealthContextProfileWriteService', () => {
     }).compile();
 
     service = module.get(UserHealthContextProfileWriteService);
-    prisma = module.get(PrismaService);
   });
 
   afterEach(() => {
@@ -54,67 +52,66 @@ describe('UserHealthContextProfileWriteService', () => {
     it('should upsert a locale field', async () => {
       await service.upsertProfile('user-1', { locale: 'zh-CN' });
 
-      expect(prisma.userProfile.upsert).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
-        create: expect.objectContaining({ locale: 'zh-CN' }) as object,
-        update: expect.objectContaining({ locale: 'zh-CN' }) as object,
-      });
+      expect(repository.upsertProfile).toHaveBeenCalledWith(
+        { userId: 'user-1' },
+        expect.objectContaining({ locale: 'zh-CN' }),
+        expect.objectContaining({ locale: 'zh-CN' }),
+      );
     });
 
     it('should upsert heightCm', async () => {
       await service.upsertProfile('user-1', { heightCm: 170 });
 
-      expect(prisma.userProfile.upsert).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
-        create: expect.objectContaining({ heightCm: 170 }) as object,
-        update: expect.objectContaining({ heightCm: 170 }) as object,
-      });
+      expect(repository.upsertProfile).toHaveBeenCalledWith(
+        { userId: 'user-1' },
+        expect.objectContaining({ heightCm: 170 }),
+        expect.objectContaining({ heightCm: 170 }),
+      );
     });
 
     it('should set onboardingCompletedAt when not yet set', async () => {
-      (prisma.userProfile.findUnique as jest.Mock).mockResolvedValueOnce({
+      repository.findProfileByUserId.mockResolvedValueOnce({
         onboardingCompletedAt: null,
       });
 
       await service.upsertProfile('user-1', { onboardingCompleted: true });
 
-      expect(prisma.userProfile.upsert).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
-        create: expect.objectContaining({
-          onboardingCompletedAt: expect.any(Date) as Date,
-        }) as object,
-        update: expect.objectContaining({
-          onboardingCompletedAt: expect.any(Date) as Date,
-        }) as object,
-      });
+      expect(repository.upsertProfile).toHaveBeenCalledWith(
+        { userId: 'user-1' },
+        expect.objectContaining({
+          onboardingCompletedAt: expect.any(Date),
+        }),
+        expect.objectContaining({
+          onboardingCompletedAt: expect.any(Date),
+        }),
+      );
     });
 
     it('should not overwrite onboardingCompletedAt when already set', async () => {
       const existingDate = new Date('2026-01-01T00:00:00Z');
-      (prisma.userProfile.findUnique as jest.Mock).mockResolvedValueOnce({
+      repository.findProfileByUserId.mockResolvedValueOnce({
         onboardingCompletedAt: existingDate,
       });
 
       await service.upsertProfile('user-1', { onboardingCompleted: true });
 
-      // upsert is skipped entirely because no fields changed
-      expect(prisma.userProfile.upsert).not.toHaveBeenCalled();
+      expect(repository.upsertProfile).not.toHaveBeenCalled();
     });
 
     it('should clear onboardingCompletedAt when false', async () => {
       await service.upsertProfile('user-1', { onboardingCompleted: false });
 
-      expect(prisma.userProfile.upsert).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
-        create: { userId: 'user-1' },
-        update: { onboardingCompletedAt: null },
-      });
+      expect(repository.upsertProfile).toHaveBeenCalledWith(
+        { userId: 'user-1' },
+        { userId: 'user-1' },
+        { onboardingCompletedAt: null },
+      );
     });
 
     it('should skip upsert when no fields changed', async () => {
       await service.upsertProfile('user-1', {});
 
-      expect(prisma.userProfile.upsert).not.toHaveBeenCalled();
+      expect(repository.upsertProfile).not.toHaveBeenCalled();
     });
   });
 });

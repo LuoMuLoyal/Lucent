@@ -1,8 +1,7 @@
-import { nonDeleted } from '../../../common/helpers/prisma.helpers';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { notFound } from '../../../common/helpers/api-errors';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { UserHealthContextRepositoryPort } from '../repositories';
 import type {
   CreateCurrentMedicineDto,
   CreateHealthContextAllergyDto,
@@ -18,12 +17,11 @@ import { UserHealthContextProfileWriteService } from './profile-write.service';
 import { UserHealthContextAllergyWriteService } from './allergy-write.service';
 import { UserHealthContextConditionWriteService } from './condition-write.service';
 import { UserHealthContextMedicineWriteService } from './medicine-write.service';
-import { userHealthContextInclude } from '../types/health-context.types';
 
 @Injectable()
 export class UserHealthContextService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: UserHealthContextRepositoryPort,
     private readonly i18n: I18nService,
     private readonly mapperService: UserHealthContextMapperService,
     private readonly profileWriteService: UserHealthContextProfileWriteService,
@@ -33,10 +31,7 @@ export class UserHealthContextService {
   ) {}
 
   async getForUser(userId: string): Promise<HealthContextResponseData> {
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, ...nonDeleted },
-      include: userHealthContextInclude,
-    });
+    const user = await this.repository.findUserWithHealthContext(userId);
     if (!user) {
       notFound(this.i18n.t('auth.user_not_found'));
     }

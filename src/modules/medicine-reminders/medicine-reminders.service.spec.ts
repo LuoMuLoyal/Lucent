@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { nonDeleted } from '../../common/helpers/prisma.helpers';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { Test } from '@nestjs/testing';
 import { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import { MedicineReminderRepositoryPort } from './repositories';
 import { MedicineRemindersOwnershipService } from './services/ownership.service';
 import { MedicineRemindersMapperService } from './services/mapper.service';
 import { MedicineRemindersService } from './services/reminders.service';
@@ -32,7 +33,8 @@ function reminderRecord(overrides: Record<string, unknown> = {}) {
 
 describe('MedicineRemindersService', () => {
   let service: MedicineRemindersService;
-  let prisma: jest.Mocked<PrismaService>;
+
+  let repository: any;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -45,35 +47,29 @@ describe('MedicineRemindersService', () => {
         MedicineRemindersOwnershipService,
         MedicineRemindersMapperService,
         {
-          provide: PrismaService,
+          provide: MedicineReminderRepositoryPort,
           useValue: {
-            userMedicineReminder: {
-              findMany: jest.fn(),
-              findFirst: jest.fn(),
-              create: jest.fn(),
-              update: jest.fn(),
-            },
-            userReminderDelivery: {
-              findMany: jest.fn(),
-            },
-            userCurrentMedicine: {
-              findFirst: jest.fn(),
-            },
+            findManyReminders: jest.fn(),
+            createReminder: jest.fn(),
+            updateReminder: jest.fn(),
+            findManyDeliveries: jest.fn(),
+            findReminderById: jest.fn(),
+            findCurrentMedicine: jest.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get(MedicineRemindersService);
-    prisma = module.get(PrismaService);
+    repository = module.get(MedicineReminderRepositoryPort);
   });
 
   it('should create a reminder with normalized text and weekdays', async () => {
-    (prisma.userCurrentMedicine.findFirst as jest.Mock).mockResolvedValue({
+    repository.findCurrentMedicine.mockResolvedValue({
       id: 'medicine-1',
       userId: 'user-1',
     });
-    (prisma.userMedicineReminder.create as jest.Mock).mockResolvedValue(
+    repository.createReminder.mockResolvedValue(
       reminderRecord({
         label: 'Morning dose',
         daysOfWeek: [1, 3, 5],
@@ -94,19 +90,17 @@ describe('MedicineRemindersService', () => {
       note: ' After breakfast ',
     });
 
-    expect(prisma.userMedicineReminder.create).toHaveBeenCalledWith({
-      data: {
-        userId: 'user-1',
-        currentMedicineId: 'medicine-1',
-        label: 'Morning dose',
-        scheduledHour: 8,
-        scheduledMinute: 30,
-        daysOfWeek: [1, 3, 5],
-        startDate: new Date('2026-06-10T00:00:00.000Z'),
-        endDate: new Date('2026-06-20T00:00:00.000Z'),
-        isActive: true,
-        note: 'After breakfast',
-      },
+    expect(repository.createReminder).toHaveBeenCalledWith({
+      userId: 'user-1',
+      currentMedicineId: 'medicine-1',
+      label: 'Morning dose',
+      scheduledHour: 8,
+      scheduledMinute: 30,
+      daysOfWeek: [1, 3, 5],
+      startDate: new Date('2026-06-10T00:00:00.000Z'),
+      endDate: new Date('2026-06-20T00:00:00.000Z'),
+      isActive: true,
+      note: 'After breakfast',
     });
     expect(result).toMatchObject({
       id: 'reminder-1',
@@ -125,7 +119,7 @@ describe('MedicineRemindersService', () => {
   });
 
   it('should treat null weekdays as every day', async () => {
-    (prisma.userMedicineReminder.create as jest.Mock).mockResolvedValue(
+    repository.createReminder.mockResolvedValue(
       reminderRecord({
         currentMedicineId: null,
         daysOfWeek: null,
@@ -138,36 +132,34 @@ describe('MedicineRemindersService', () => {
       daysOfWeek: null,
     });
 
-    expect(prisma.userMedicineReminder.create).toHaveBeenCalledWith(
+    expect(repository.createReminder).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          currentMedicineId: null,
-          daysOfWeek: Prisma.JsonNull,
-        }),
+        currentMedicineId: null,
+        daysOfWeek: Prisma.JsonNull,
       }),
     );
     expect(result.daysOfWeek).toBeNull();
   });
 
   it('should list reminders and honor activeOnly', async () => {
-    (prisma.userMedicineReminder.findMany as jest.Mock).mockResolvedValue([
+    repository.findManyReminders.mockResolvedValue([
       reminderRecord({ daysOfWeek: [2, 4] }),
     ]);
 
     const result = await service.list('user-1', true);
 
-    expect(prisma.userMedicineReminder.findMany).toHaveBeenCalledWith({
-      where: {
+    expect(repository.findManyReminders).toHaveBeenCalledWith(
+      {
         userId: 'user-1',
         ...nonDeleted,
         isActive: true,
       },
-      orderBy: [
+      [
         { scheduledHour: 'asc' },
         { scheduledMinute: 'asc' },
         { createdAt: 'asc' },
       ],
-    });
+    );
     expect(result.items[0]?.daysOfWeek).toEqual([2, 4]);
   });
 
@@ -182,7 +174,7 @@ describe('MedicineRemindersService', () => {
   });
 
   it('should enforce current medicine ownership on create', async () => {
-    (prisma.userCurrentMedicine.findFirst as jest.Mock).mockResolvedValue(null);
+    repository.findCurrentMedicine.mockResolvedValue(null);
 
     await expect(
       service.create('user-1', {
@@ -194,12 +186,12 @@ describe('MedicineRemindersService', () => {
   });
 
   it('should update fields and clear the linked medicine when null is sent', async () => {
-    (prisma.userMedicineReminder.findFirst as jest.Mock).mockResolvedValue({
+    repository.findReminderById.mockResolvedValue({
       userId: 'user-1',
       startDate: null,
       endDate: null,
     });
-    (prisma.userMedicineReminder.update as jest.Mock).mockResolvedValue(
+    repository.updateReminder.mockResolvedValue(
       reminderRecord({
         currentMedicineId: null,
         scheduledHour: 21,
@@ -221,9 +213,9 @@ describe('MedicineRemindersService', () => {
       isActive: false,
     });
 
-    expect(prisma.userMedicineReminder.update).toHaveBeenCalledWith({
-      where: { id: 'reminder-1' },
-      data: {
+    expect(repository.updateReminder).toHaveBeenCalledWith(
+      { id: 'reminder-1' },
+      {
         currentMedicine: { disconnect: true },
         scheduledHour: 21,
         scheduledMinute: 5,
@@ -232,7 +224,7 @@ describe('MedicineRemindersService', () => {
         endDate: new Date('2026-06-18T00:00:00.000Z'),
         isActive: false,
       },
-    });
+    );
   });
 
   it('should reject an end date before the start date', async () => {
@@ -247,7 +239,7 @@ describe('MedicineRemindersService', () => {
   });
 
   it('should soft-delete reminders', async () => {
-    (prisma.userMedicineReminder.findFirst as jest.Mock).mockResolvedValue({
+    repository.findReminderById.mockResolvedValue({
       userId: 'user-1',
       startDate: null,
       endDate: null,
@@ -255,14 +247,14 @@ describe('MedicineRemindersService', () => {
 
     await service.delete('user-1', 'reminder-1');
 
-    expect(prisma.userMedicineReminder.update).toHaveBeenCalledWith({
-      where: { id: 'reminder-1' },
-      data: { deletedAt: expect.any(Date), isActive: false },
-    });
+    expect(repository.updateReminder).toHaveBeenCalledWith(
+      { id: 'reminder-1' },
+      { deletedAt: expect.any(Date), isActive: false },
+    );
   });
 
   it('should reject foreign reminder updates', async () => {
-    (prisma.userMedicineReminder.findFirst as jest.Mock).mockResolvedValue({
+    repository.findReminderById.mockResolvedValue({
       userId: 'other-user',
     });
 
@@ -274,7 +266,7 @@ describe('MedicineRemindersService', () => {
   it('should list delivery logs for a date with a capped limit', async () => {
     const scheduledFor = new Date('2026-06-10T08:00:00.000Z');
     const deliveredAt = new Date('2026-06-10T08:00:10.000Z');
-    (prisma.userReminderDelivery.findMany as jest.Mock).mockResolvedValue([
+    repository.findManyDeliveries.mockResolvedValue([
       {
         id: 'delivery-1',
         userId: 'user-1',
@@ -291,17 +283,17 @@ describe('MedicineRemindersService', () => {
 
     const result = await service.listDeliveries('user-1', '2026-06-10', 200);
 
-    expect(prisma.userReminderDelivery.findMany).toHaveBeenCalledWith({
-      where: {
+    expect(repository.findManyDeliveries).toHaveBeenCalledWith(
+      {
         userId: 'user-1',
         scheduledFor: {
           gte: new Date('2026-06-10T00:00:00.000Z'),
           lt: new Date('2026-06-11T00:00:00.000Z'),
         },
       },
-      orderBy: [{ scheduledFor: 'desc' }, { createdAt: 'desc' }],
-      take: 100,
-    });
+      [{ scheduledFor: 'desc' }, { createdAt: 'desc' }],
+      100,
+    );
     expect(result.items[0]).toMatchObject({
       id: 'delivery-1',
       reminderId: 'reminder-1',

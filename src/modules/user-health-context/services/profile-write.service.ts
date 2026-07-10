@@ -1,7 +1,7 @@
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { UserHealthContextRepositoryPort } from '../repositories';
 import type { UpdateHealthContextProfileDto } from '../dto';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
@@ -10,7 +10,7 @@ import { now } from '../../../common/helpers/date-time.utils';
 @Injectable()
 export class UserHealthContextProfileWriteService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: UserHealthContextRepositoryPort,
     private readonly ownershipService: UserHealthContextOwnershipService,
     private readonly mapperService: UserHealthContextMapperService,
   ) {}
@@ -65,9 +65,8 @@ export class UserHealthContextProfileWriteService {
 
     if (dto.onboardingCompleted !== undefined) {
       if (dto.onboardingCompleted) {
-        const current = await this.prisma.userProfile.findUnique({
-          where: { userId },
-          select: { onboardingCompletedAt: true },
+        const current = await this.repository.findProfileByUserId(userId, {
+          onboardingCompletedAt: true,
         });
         if (!current?.onboardingCompletedAt) {
           const completedAt = now();
@@ -80,11 +79,7 @@ export class UserHealthContextProfileWriteService {
     }
 
     if (Object.keys(updateData).length > 0) {
-      await this.prisma.userProfile.upsert({
-        where: { userId },
-        create: createData,
-        update: updateData,
-      });
+      await this.repository.upsertProfile({ userId }, createData, updateData);
     }
   }
 }
