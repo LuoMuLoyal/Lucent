@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+import type { DeepMocked } from '../../../common/types/deep-mocked';
+
 import { DailyRecordRepository } from './daily-record.repository';
 import type { PrismaService } from '../../../prisma/prisma.service';
 
 describe('DailyRecordRepository', () => {
   let repository: DailyRecordRepository;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
@@ -16,7 +17,7 @@ describe('DailyRecordRepository', () => {
         update: jest.fn(),
       },
       $transaction: jest.fn(),
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
 
     repository = new DailyRecordRepository(prisma);
   });

@@ -1,10 +1,11 @@
+import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import { BaselineService } from './baseline.service';
 import { BaselineDimension } from '../../types';
 
 describe('BaselineService', () => {
   let service: BaselineService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
@@ -15,7 +16,7 @@ describe('BaselineService', () => {
         update: jest.fn(),
       },
       userDailyRecord: { findMany: jest.fn() },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
     service = new BaselineService(prisma);
   });
 

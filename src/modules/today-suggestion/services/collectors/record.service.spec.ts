@@ -1,3 +1,4 @@
+import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import { DailyRecordKind } from '#generated/prisma/client';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import { RecordCollectorService } from './record.service';
@@ -6,13 +7,13 @@ import { TREND_LOOKBACK_DAYS } from '../../../today-suggestion/constants';
 
 describe('RecordCollectorService', () => {
   let service: RecordCollectorService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
       userDailyRecord: { findMany: jest.fn() },
       userSetting: { findUnique: jest.fn() },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
     service = new RecordCollectorService(prisma);
   });
 

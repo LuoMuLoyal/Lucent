@@ -520,8 +520,8 @@ describe('Account API (e2e)', () => {
       // Step 3: Verify the identity is linked in the account response
       const accountData = expectData(res.body as ApiEnvelope<AccountDto>);
       expect(accountData.linkedIdentities).toHaveLength(1);
-      expect(accountData.linkedIdentities[0].provider).toBe('wechat_web');
-      expect(accountData.linkedIdentities[0].id).toBeTruthy();
+      expect(accountData.linkedIdentities[0]!.provider).toBe('wechat_web');
+      expect(accountData.linkedIdentities[0]!.id).toBeTruthy();
     });
   });
 
@@ -600,7 +600,7 @@ describe('Account API (e2e)', () => {
       // Verify the identity is linked in the account response
       const accountData = expectData(res.body as ApiEnvelope<AccountDto>);
       expect(accountData.linkedIdentities).toHaveLength(1);
-      expect(accountData.linkedIdentities[0].provider).toBe('wechat_mobile');
+      expect(accountData.linkedIdentities[0]!.provider).toBe('wechat_mobile');
     });
   });
 });

@@ -14,7 +14,7 @@ describe('request-context.middleware', () => {
     });
 
     it('calls requestContextService.run with requestId from request', () => {
-      const runSpy = jest.fn((ctx: unknown, next: NextFunction) => {
+      const runSpy = jest.fn((_ctx: unknown, next: NextFunction) => {
         next();
       });
       const requestContextService = {
@@ -48,7 +48,7 @@ describe('request-context.middleware', () => {
     });
 
     it('handles undefined requestId', () => {
-      const runSpy = jest.fn((ctx: unknown, next: NextFunction) => {
+      const runSpy = jest.fn((_ctx: unknown, next: NextFunction) => {
         next();
       });
       const requestContextService = {

@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-useless-constructor, @typescript-eslint/require-await */
+import type { DeepMocked } from '../../common/types/deep-mocked';
+/* eslint-disable @typescript-eslint/no-useless-constructor, @typescript-eslint/require-await */
 import { Logger } from '@nestjs/common';
 import type { PrismaService } from '../../prisma/prisma.service';
 import type { PromptCopy } from '../helpers/localized-copy';
@@ -98,7 +99,7 @@ function createMocks() {
     userSetting: {
       findFirst: jest.fn().mockResolvedValue({ value: true }),
     },
-  } as unknown as jest.Mocked<PrismaService>;
+  } as unknown as DeepMocked<PrismaService>;
 
   const copyService: jest.Mocked<
     LlmSummaryCopyService<TestContext, TestOutput>

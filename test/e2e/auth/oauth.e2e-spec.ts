@@ -302,9 +302,9 @@ describe('OAuth API (e2e)', () => {
         .query({ code: 'auth-code-from-wechat', state })
         .expect(302);
 
-      expect(res.header.location).toContain(callbackUri);
-      expect(res.header.location).toContain('code=auth-code-from-wechat');
-      expect(res.header.location).toContain(`state=${state}`);
+      expect(res.header['location']).toContain(callbackUri);
+      expect(res.header['location']).toContain('code=auth-code-from-wechat');
+      expect(res.header['location']).toContain(`state=${state}`);
     });
   });
 
@@ -423,7 +423,7 @@ describe('OAuth API (e2e)', () => {
       const profileNoName: OAuthProfile = {
         provider: 'apple',
         providerUserId: appleSub,
-        email: profile.email,
+        email: profile.email ?? null,
         emailVerifiedAt: new Date(),
         nickname: null,
       };

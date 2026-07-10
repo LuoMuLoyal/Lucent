@@ -117,7 +117,7 @@ describe('Session Management API (e2e)', () => {
       const sessions = expectData(res.body as ApiEnvelope<SessionDto[]>);
       expect(sessions.length).toBeGreaterThanOrEqual(1);
 
-      const session = sessions[0];
+      const session = sessions[0]!;
       expect(session.id).toBeDefined();
       expect(session.createdAt).toBeTruthy();
       expect(session.expiresAt).toBeTruthy();
@@ -271,7 +271,7 @@ describe('Session Management API (e2e)', () => {
         .expect(200);
 
       const sessionsB = expectData(listResB.body as ApiEnvelope<SessionDto[]>);
-      const targetSessionId = sessionsB[0].id;
+      const targetSessionId = sessionsB[0]!.id;
 
       // User A tries to revoke User B's session — gets 500 (raw error)
       const res = await request(app.getHttpServer())

@@ -1,4 +1,5 @@
 import type { LlmRuntimePort } from '../../../../common/llm/llm-runtime.port';
+import type { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
 import type { MetricsService } from '../../../../common/metrics/metrics.service';
 import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
 import type {
@@ -56,7 +57,10 @@ describe('ExplanationGeneratorService', () => {
       recordLlmCall: jest.fn(),
     } as unknown as jest.Mocked<MetricsService>;
 
-    service = new ExplanationGeneratorService(llmRuntimeMock, metricsMock);
+    service = new ExplanationGeneratorService(
+      llmRuntimeMock as unknown as LlmRuntimeService,
+      metricsMock,
+    );
     return { service, structuredModel, streamingModel };
   };
 

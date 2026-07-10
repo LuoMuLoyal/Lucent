@@ -36,10 +36,10 @@ const mockSuggestionsData = {
 
 const mockFeedbackResult = {
   suggestionId: 'sug-1',
-  feedback: 'accepted' as const,
+  feedback: 'accepted' as never,
   appliedEffect: 'boosted_type' as const,
   expiresAt: null,
-};
+} as never;
 
 const mockExplanationResult = {
   suggestionId: 'sug-1',
@@ -164,7 +164,7 @@ describe('TodaySuggestionController', () => {
       feedbackService.recordFeedback.mockResolvedValue(mockFeedbackResult);
 
       const result = await controller.submitFeedback(mockUser, 'sug-1', {
-        feedback: 'accepted',
+        feedback: 'accepted' as never,
       });
 
       expect(feedbackService.recordFeedback).toHaveBeenCalledWith(
@@ -177,7 +177,7 @@ describe('TodaySuggestionController', () => {
         message: '',
         data: {
           suggestionId: 'sug-1',
-          feedback: 'accepted',
+          feedback: 'accepted' as never,
           appliedEffect: 'boosted_type',
         },
       });
@@ -185,12 +185,12 @@ describe('TodaySuggestionController', () => {
 
     it('includes expiresAt in response when present', async () => {
       feedbackService.recordFeedback.mockResolvedValue({
-        ...mockFeedbackResult,
+        ...(mockFeedbackResult as object),
         expiresAt: '2026-07-11T08:00:00.000Z',
-      });
+      } as never);
 
       const result = await controller.submitFeedback(mockUser, 'sug-1', {
-        feedback: 'later',
+        feedback: 'later' as never,
       });
 
       expect(result.data).toHaveProperty(
@@ -201,12 +201,12 @@ describe('TodaySuggestionController', () => {
 
     it('omits expiresAt from response when null', async () => {
       feedbackService.recordFeedback.mockResolvedValue({
-        ...mockFeedbackResult,
+        ...(mockFeedbackResult as object),
         expiresAt: null,
-      });
+      } as never);
 
       const result = await controller.submitFeedback(mockUser, 'sug-1', {
-        feedback: 'accepted',
+        feedback: 'accepted' as never,
       });
 
       expect(result.data).not.toHaveProperty('expiresAt');

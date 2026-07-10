@@ -50,9 +50,9 @@ describe('ReportsComputationService', () => {
       const result = service.compute(facts, 'zh-CN');
 
       expect(result.metrics).toHaveLength(3);
-      expect(result.metrics[0].kind).toBe('medication');
-      expect(result.metrics[1].kind).toBe('water');
-      expect(result.metrics[2].kind).toBe('sleep');
+      expect(result.metrics[0]!.kind).toBe('medication');
+      expect(result.metrics[1]!.kind).toBe('water');
+      expect(result.metrics[2]!.kind).toBe('sleep');
 
       expect(result.score).toEqual({
         value: 80,
@@ -66,19 +66,19 @@ describe('ReportsComputationService', () => {
       );
 
       expect(result.trends).toHaveLength(3);
-      expect(result.trends[0]).toEqual({
+      expect(result.trends[0]!).toEqual({
         kind: 'medication',
         unit: '%',
         currentValue: expect.any(String),
         values: facts.medicationSeries,
       });
-      expect(result.trends[1]).toEqual({
+      expect(result.trends[1]!).toEqual({
         kind: 'water',
         unit: 'L',
         currentValue: expect.any(String),
         values: facts.waterSeries,
       });
-      expect(result.trends[2]).toEqual({
+      expect(result.trends[2]!).toEqual({
         kind: 'sleep',
         unit: 'h',
         currentValue: expect.any(String),
@@ -102,7 +102,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ medicationSeries: [0, 0, 0, 0, 0, 0, 0] }),
         'en',
       );
-      const medMetric = result.metrics[0];
+      const medMetric = result.metrics[0]!;
       expect(medMetric.value).toBe('--');
       expect(medMetric.status).toBe('insufficient_data');
       expect(medMetric.delta).toBe('--');
@@ -114,7 +114,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ medicationSeries: [90, 90, 90, 90, 90, 90, 90] }),
         'en',
       );
-      const medMetric = result.metrics[0];
+      const medMetric = result.metrics[0]!;
       expect(medMetric.status).toBe('good');
       expect(medMetric.value).toBe('90');
     });
@@ -124,7 +124,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ medicationSeries: [70, 70, 70, 70, 70, 70, 70] }),
         'en',
       );
-      const medMetric = result.metrics[0];
+      const medMetric = result.metrics[0]!;
       expect(medMetric.status).toBe('stable');
       expect(medMetric.value).toBe('70');
     });
@@ -134,7 +134,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ medicationSeries: [40, 40, 40, 40, 40, 40, 40] }),
         'en',
       );
-      const medMetric = result.metrics[0];
+      const medMetric = result.metrics[0]!;
       expect(medMetric.status).toBe('needs_attention');
     });
 
@@ -143,7 +143,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ medicationSeries: [60, 80, 80, 80, 80, 80, 80] }),
         'en',
       );
-      const medMetric = result.metrics[0];
+      const medMetric = result.metrics[0]!;
       // average of non-zero [60,80,80,80,80,80,80] = 77 (rounds)
       // delta = 77 - 60 = +17
       expect(medMetric.direction).toBe('up');
@@ -156,7 +156,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ waterSeries: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0] }),
         'en',
       );
-      const waterMetric = result.metrics[1];
+      const waterMetric = result.metrics[1]!;
       expect(waterMetric.status).toBe('good');
       expect(waterMetric.value).toBe('2.0');
     });
@@ -166,7 +166,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ waterSeries: [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5] }),
         'en',
       );
-      const waterMetric = result.metrics[1];
+      const waterMetric = result.metrics[1]!;
       expect(waterMetric.status).toBe('stable');
     });
 
@@ -175,7 +175,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ waterSeries: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5] }),
         'en',
       );
-      const waterMetric = result.metrics[1];
+      const waterMetric = result.metrics[1]!;
       expect(waterMetric.status).toBe('needs_attention');
     });
   });
@@ -186,7 +186,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ sleepSeries: [0, 0, 0, 0, 0, 0, 0] }),
         'en',
       );
-      const sleepMetric = result.metrics[2];
+      const sleepMetric = result.metrics[2]!;
       expect(sleepMetric.value).toBe('--');
       expect(sleepMetric.status).toBe('insufficient_data');
     });
@@ -196,7 +196,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ sleepSeries: [8, 8, 8, 8, 8, 8, 8] }),
         'en',
       );
-      const sleepMetric = result.metrics[2];
+      const sleepMetric = result.metrics[2]!;
       expect(sleepMetric.status).toBe('good');
       expect(sleepMetric.value).toBe('8.0');
     });
@@ -206,7 +206,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ sleepSeries: [4, 4, 4, 4, 4, 4, 4] }),
         'en',
       );
-      const sleepMetric = result.metrics[2];
+      const sleepMetric = result.metrics[2]!;
       expect(sleepMetric.status).toBe('needs_attention');
     });
   });
@@ -217,7 +217,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ waterSeries: [1.5, 1.5, 1.5, 1.5, 1.5, 1.5, 1.5] }),
         'en',
       );
-      expect(result.metrics[1].direction).toBe('flat');
+      expect(result.metrics[1]!.direction).toBe('flat');
     });
 
     it('down direction when average is lower than first value', () => {
@@ -225,7 +225,7 @@ describe('ReportsComputationService', () => {
         makeFacts({ waterSeries: [3.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0] }),
         'en',
       );
-      expect(result.metrics[1].direction).toBe('down');
+      expect(result.metrics[1]!.direction).toBe('down');
     });
   });
 });

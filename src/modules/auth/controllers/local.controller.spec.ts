@@ -79,7 +79,7 @@ describe('LocalController', () => {
           email: 'test@example.com',
           password: 'Password123!',
           nickname: 'TestUser',
-        },
+        } as never,
         mockRequest,
       );
 
@@ -108,7 +108,7 @@ describe('LocalController', () => {
 
       expect(authService.login).toHaveBeenCalled();
       expect(result.code).toBe(ResultCode.SUCCESS);
-      expect(result.data.user.email).toBe('test@example.com');
+      expect(result.data!.user.email).toBe('test@example.com');
     });
   });
 
@@ -119,7 +119,7 @@ describe('LocalController', () => {
       } as never);
 
       const result = await controller.sendVerificationCode(
-        { email: 'test@example.com', type: 'register' },
+        { email: 'test@example.com', type: 'register' } as never,
         mockRequest,
       );
 
@@ -165,7 +165,7 @@ describe('LocalController', () => {
       const result = await controller.resetPassword({
         email: 'test@example.com',
         code: '123456',
-        newPassword: 'NewPassword123!',
+        password: 'NewPassword123!',
       });
 
       expect(authService.resetPassword).toHaveBeenCalled();

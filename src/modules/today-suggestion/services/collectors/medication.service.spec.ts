@@ -1,3 +1,4 @@
+import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import { DoseLogStatus } from '#generated/prisma/client';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import { MedicationCollectorService } from './medication.service';
@@ -5,14 +6,14 @@ import { TriggerType } from '../../../today-suggestion/types';
 
 describe('MedicationCollectorService', () => {
   let service: MedicationCollectorService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
       userMedicineReminder: { findMany: jest.fn() },
       userMedicineDoseLog: { findMany: jest.fn() },
       userCurrentMedicine: { findMany: jest.fn() },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
     service = new MedicationCollectorService(prisma);
   });
 

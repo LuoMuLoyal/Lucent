@@ -1,15 +1,16 @@
+import type { DeepMocked } from '../../../common/types/deep-mocked';
 import { UserStatus } from '#generated/prisma/client';
 import { AuthAccountRepository } from './account.repository';
 import type { PrismaService } from '../../../prisma/prisma.service';
 
 describe('AuthAccountRepository', () => {
   let repository: AuthAccountRepository;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
       user: { update: jest.fn().mockResolvedValue(undefined) },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
     repository = new AuthAccountRepository(prisma);
   });
 

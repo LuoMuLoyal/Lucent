@@ -1,17 +1,18 @@
+import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import { ProfileCollectorService } from './profile.service';
 import { TriggerType } from '../../../today-suggestion/types';
 
 describe('ProfileCollectorService', () => {
   let service: ProfileCollectorService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
       userAllergy: { count: jest.fn() },
       userCondition: { count: jest.fn() },
       userProfile: { findUnique: jest.fn() },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
     service = new ProfileCollectorService(prisma);
   });
 

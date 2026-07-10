@@ -215,7 +215,7 @@ describe('AssistantService', () => {
       finalContent: 'AI response',
       toolResults: [],
       selectedTools: [],
-    };
+    } as never;
 
     const mockStreamResult = {
       content: 'AI response',
@@ -228,7 +228,7 @@ describe('AssistantService', () => {
       userSettings.getSettings.mockResolvedValue({
         ...mockSettings,
         assistantEnabled: false,
-      });
+      } as never);
 
       await expect(
         service.streamMessages('user-1', dto, 'zh-CN', onChunk),
@@ -269,9 +269,9 @@ describe('AssistantService', () => {
 
     it('generates stream when finalContent is null', async () => {
       runtime.runConversation.mockResolvedValue({
-        ...mockRunConversationResult,
+        ...(mockRunConversationResult as object),
         finalContent: null,
-      });
+      } as never);
       runtime.generateStream.mockResolvedValue(mockStreamResult);
       conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
 

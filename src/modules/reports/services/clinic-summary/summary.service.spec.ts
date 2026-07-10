@@ -1,3 +1,4 @@
+import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { ConfigService } from '@nestjs/config';
 import { ClinicSummaryService } from './summary.service';
 import type { ClinicSummaryPdfService } from './pdf.service';
@@ -5,7 +6,7 @@ import type { PrismaService } from '../../../../prisma/prisma.service';
 
 describe('ClinicSummaryService', () => {
   let service: ClinicSummaryService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
   let cacheManager: { get: jest.Mock; set: jest.Mock };
   let pdfService: jest.Mocked<ClinicSummaryPdfService>;
   let configService: jest.Mocked<ConfigService>;
@@ -15,7 +16,7 @@ describe('ClinicSummaryService', () => {
       user: {
         findFirstOrThrow: jest.fn(),
       },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
 
     cacheManager = {
       get: jest.fn(),
@@ -72,9 +73,9 @@ describe('ClinicSummaryService', () => {
       expect(result.profile.sexAtBirth).toBe('male');
       expect(result.profile.bloodType).toBe('A');
       expect(result.allergies).toHaveLength(2);
-      expect(result.allergies[0].label).toBe('青霉素');
+      expect(result.allergies[0]!.label).toBe('青霉素');
       expect(result.conditions).toHaveLength(1);
-      expect(result.conditions[0].diagnosedYear).toBe(2023);
+      expect(result.conditions[0]!.diagnosedYear).toBe(2023);
       expect(result.currentMedicines).toHaveLength(1);
       expect(result.dataRange).toBe('last_30_days');
       expect(result.disclaimer).toContain('此摘要');

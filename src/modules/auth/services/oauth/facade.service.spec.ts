@@ -136,7 +136,7 @@ describe('AuthOAuthFacadeService', () => {
         purpose: 'login',
         callbackUri: 'https://app/cb',
         createdAt: new Date(),
-      });
+      } as never);
 
       const result = await service.createWechatWebAuthorizeUrl({
         callbackUri: 'https://app/cb',

@@ -1,3 +1,4 @@
+import type { DeepMocked } from '../../common/types/deep-mocked';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
@@ -16,7 +17,7 @@ describe('MedicinesService', () => {
   let drugbankMedicinesService: jest.Mocked<DrugbankMedicinesService>;
   let cnMedicinesService: jest.Mocked<CnMedicinesService>;
   let medicinesCacheService: jest.Mocked<MedicinesCacheService>;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: DeepMocked<PrismaService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

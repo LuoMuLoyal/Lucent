@@ -1,8 +1,6 @@
 import type { I18nService } from 'nestjs-i18n';
-import {
-  LocalizedCopyService,
-  type PromptCopy,
-} from './localized-copy.service';
+import { LocalizedCopyService } from './localized-copy.service';
+import type { PromptCopy } from '../helpers/localized-copy';
 
 // ── Test fixture ───────────────────────────────────────────────────────────
 
@@ -20,7 +18,7 @@ describe('LocalizedCopyService', () => {
     i18n = {
       t: jest.fn((key: string, opts?: Record<string, unknown>) => {
         if (opts && 'args' in opts) {
-          const args = opts.args as Record<string, string>;
+          const args = opts['args'] as Record<string, string>;
           return Object.entries(args).reduce(
             (str, [k, v]) => str.replace(`{${k}}`, v),
             key,

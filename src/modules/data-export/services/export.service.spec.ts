@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+import type { DeepMocked } from '../../../common/types/deep-mocked';
+
 import { DataExportService } from './export.service';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import type { DataExportStorageService } from './storage.service';
@@ -7,7 +8,7 @@ import type { DataExportProcessorService } from './processor.service';
 
 describe('DataExportService', () => {
   let service: DataExportService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
   let storageService: jest.Mocked<DataExportStorageService>;
   let queueService: jest.Mocked<DataExportQueueService>;
   let processor: jest.Mocked<DataExportProcessorService>;
@@ -19,7 +20,7 @@ describe('DataExportService', () => {
         findFirst: jest.fn(),
         findUniqueOrThrow: jest.fn(),
       },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
 
     storageService = {
       isConfigured: jest.fn().mockReturnValue(true),
@@ -106,7 +107,7 @@ describe('DataExportService', () => {
     });
 
     it('falls back to inline processing when queue is not configured', async () => {
-      queueService.isConfigured = false;
+      (queueService as { isConfigured: boolean }).isConfigured = false;
       prisma.dataExportRequest.create.mockResolvedValue(makeRow());
       prisma.dataExportRequest.findUniqueOrThrow.mockResolvedValue(
         makeRow({ status: 'completed' }),

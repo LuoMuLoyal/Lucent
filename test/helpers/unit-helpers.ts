@@ -1,4 +1,6 @@
 import type { PrismaService } from '../../src/prisma/prisma.service';
+export type { DeepMocked } from '../../src/common/types/deep-mocked';
+import type { DeepMocked } from '../../src/common/types/deep-mocked';
 
 /**
  * Create a minimal PrismaService mock with no pre-defined methods.
@@ -8,7 +10,7 @@ import type { PrismaService } from '../../src/prisma/prisma.service';
  *   const prisma = createPrismaServiceMock();
  *   jest.spyOn(prisma.user, 'findFirst').mockResolvedValue(...);
  */
-export function createPrismaServiceMock(): jest.Mocked<PrismaService> {
+export function createPrismaServiceMock(): DeepMocked<PrismaService> {
   return {
     $transaction: jest.fn(),
     $queryRaw: jest.fn(),
@@ -118,7 +120,7 @@ export function createPrismaServiceMock(): jest.Mocked<PrismaService> {
     drugbankTarget: { findMany: jest.fn() },
     drugbankDrugTarget: { findMany: jest.fn() },
     medicineSafetyTip: { findMany: jest.fn() },
-  } as unknown as jest.Mocked<PrismaService>;
+  } as unknown as DeepMocked<PrismaService>;
 }
 
 /**
@@ -130,9 +132,9 @@ export function createPrismaServiceMock(): jest.Mocked<PrismaService> {
  *   const prisma = createPrismaServiceMock();
  *   mockTransaction(prisma);
  */
-export function mockTransaction(prisma: jest.Mocked<PrismaService>): void {
+export function mockTransaction(prisma: DeepMocked<PrismaService>): void {
   const runner = async <T>(
-    callback: (tx: jest.Mocked<PrismaService>) => Promise<T>,
+    callback: (tx: DeepMocked<PrismaService>) => Promise<T>,
   ): Promise<T> => callback(prisma);
-  (prisma.$transaction as jest.Mock).mockImplementation(runner);
+  prisma.$transaction.mockImplementation(runner);
 }

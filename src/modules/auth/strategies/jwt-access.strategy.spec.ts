@@ -2,6 +2,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 
 import { ConfigKey } from '../../../config/config-keys.enum';
+import type { UserPayload } from '../types/auth-request';
 import { JwtAccessStrategy } from './jwt-access.strategy';
 
 describe('JwtAccessStrategy', () => {
@@ -81,10 +82,9 @@ describe('JwtAccessStrategy', () => {
       const strategy = new JwtAccessStrategy(
         configService as unknown as ConfigService,
       );
-      const payload = {
+      const payload: UserPayload = {
         sub: 'user-1',
         email: 'test@example.com',
-        status: undefined,
       };
 
       const result = strategy.validate(payload);
@@ -99,8 +99,8 @@ describe('JwtAccessStrategy', () => {
       const payload = {
         sub: 'user-1',
         email: 'test@example.com',
-        status: null as unknown as undefined,
-      };
+        status: null,
+      } as unknown as UserPayload;
 
       const result = strategy.validate(payload);
 

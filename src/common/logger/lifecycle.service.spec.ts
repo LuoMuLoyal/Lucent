@@ -77,8 +77,8 @@ describe('LifecycleService', () => {
         'Application shutting down',
       );
 
-      const callArgs = logger.info.mock.calls[0][0] as Record<string, unknown>;
-      expect(typeof callArgs.uptimeSeconds).toBe('number');
+      const callArgs = logger.info.mock.calls[0]![0] as Record<string, unknown>;
+      expect(typeof callArgs['uptimeSeconds']).toBe('number');
     });
 
     it('logs shutdown with undefined signal', () => {

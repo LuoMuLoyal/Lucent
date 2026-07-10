@@ -26,7 +26,7 @@ describe('buildAdminAuthRouter', () => {
     mockConfigService.get.mockReturnValue('development');
 
     buildAdminAuthRouter(
-      mockAdmin,
+      mockAdmin as never,
       mockConfigService,
       mockBuildAuthenticatedRouter as never,
     );
@@ -46,7 +46,7 @@ describe('buildAdminAuthRouter', () => {
     mockConfigService.get.mockReturnValue('development');
 
     buildAdminAuthRouter(
-      mockAdmin,
+      mockAdmin as never,
       mockConfigService,
       mockBuildAuthenticatedRouter as never,
     );
@@ -69,7 +69,7 @@ describe('buildAdminAuthRouter', () => {
     mockConfigService.get.mockReturnValue('production');
 
     buildAdminAuthRouter(
-      mockAdmin,
+      mockAdmin as never,
       mockConfigService,
       mockBuildAuthenticatedRouter as never,
     );
@@ -86,7 +86,7 @@ describe('buildAdminAuthRouter', () => {
     mockConfigService.get.mockReturnValue('development');
 
     buildAdminAuthRouter(
-      mockAdmin,
+      mockAdmin as never,
       mockConfigService,
       mockBuildAuthenticatedRouter as never,
     );
@@ -103,7 +103,7 @@ describe('buildAdminAuthRouter', () => {
     mockConfigService.get.mockReturnValue('development');
 
     buildAdminAuthRouter(
-      mockAdmin,
+      mockAdmin as never,
       mockConfigService,
       mockBuildAuthenticatedRouter as never,
     );
@@ -125,7 +125,7 @@ describe('buildAdminAuthRouter', () => {
     mockConfigService.get.mockReturnValue('development');
 
     const result = buildAdminAuthRouter(
-      mockAdmin,
+      mockAdmin as never,
       mockConfigService,
       mockBuildAuthenticatedRouter as never,
     );

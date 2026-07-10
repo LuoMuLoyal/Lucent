@@ -1,10 +1,11 @@
+import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import { MealDishTemplateLearningService } from './template-learning.service';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import type { MealAnalysisPayload } from '../../types/meal-analysis.types';
 
 describe('MealDishTemplateLearningService', () => {
   let service: MealDishTemplateLearningService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     const txMock = {
@@ -21,7 +22,7 @@ describe('MealDishTemplateLearningService', () => {
       $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(txMock),
       ),
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
 
     service = new MealDishTemplateLearningService(prisma);
   });

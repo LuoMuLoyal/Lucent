@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+import type { DeepMocked } from '../../../common/types/deep-mocked';
+
 import { DrugbankMedicinesService } from './drugbank.service';
 import type { PrismaService } from '../../../prisma/prisma.service';
 
 describe('DrugbankMedicinesService', () => {
   let service: DrugbankMedicinesService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
@@ -13,7 +14,7 @@ describe('DrugbankMedicinesService', () => {
         count: jest.fn(),
         findUnique: jest.fn(),
       },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
 
     service = new DrugbankMedicinesService(prisma);
   });
@@ -137,10 +138,10 @@ describe('DrugbankMedicinesService', () => {
       );
 
       const result = await service.getDetail('DB00945');
-      const detail = result!.detail as Record<string, unknown>;
-      expect(detail.groups).toEqual(['approved', 'investigational']);
-      expect(detail.categories).toEqual(['Analgesics', 'Anti-inflammatory']);
-      expect(detail.synonyms).toEqual(['ASA', '2-acetoxybenzoic acid']);
+      const detail = result!.detail as unknown as Record<string, unknown>;
+      expect(detail['groups']).toEqual(['approved', 'investigational']);
+      expect(detail['categories']).toEqual(['Analgesics', 'Anti-inflammatory']);
+      expect(detail['synonyms']).toEqual(['ASA', '2-acetoxybenzoic acid']);
     });
 
     it('handles null JSONB fields as empty arrays', async () => {
@@ -149,10 +150,10 @@ describe('DrugbankMedicinesService', () => {
       );
 
       const result = await service.getDetail('DB00945');
-      const detail = result!.detail as Record<string, unknown>;
-      expect(detail.groups).toEqual([]);
-      expect(detail.categories).toEqual([]);
-      expect(detail.synonyms).toEqual([]);
+      const detail = result!.detail as unknown as Record<string, unknown>;
+      expect(detail['groups']).toEqual([]);
+      expect(detail['categories']).toEqual([]);
+      expect(detail['synonyms']).toEqual([]);
     });
 
     it('queries by drugbankId', async () => {

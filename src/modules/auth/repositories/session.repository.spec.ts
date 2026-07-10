@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+import type { DeepMocked } from '../../../common/types/deep-mocked';
+
 import { AuthSessionRepository } from './session.repository';
 import type { PrismaService } from '../../../prisma/prisma.service';
 
 describe('AuthSessionRepository', () => {
   let repository: AuthSessionRepository;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
@@ -16,7 +17,7 @@ describe('AuthSessionRepository', () => {
         deleteMany: jest.fn(),
         update: jest.fn(),
       },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
 
     repository = new AuthSessionRepository(prisma);
   });

@@ -32,7 +32,7 @@ const mockCandidateItem = {
 const mockCandidates: DailyRecordCandidateData = {
   confirmationHint: 'Did you drink 500ml water?',
   items: [mockCandidateItem],
-};
+} as never;
 
 describe('AssistantToolProposalService', () => {
   let service: AssistantToolProposalService;
@@ -61,8 +61,8 @@ describe('AssistantToolProposalService', () => {
 
       expect(result.name).toBe('propose_create_daily_record');
       expect(result.proposedActions).toHaveLength(1);
-      expect(result.proposedActions![0].type).toBe('create_daily_record');
-      expect(result.proposedActions![0].payload).toMatchObject({
+      expect(result.proposedActions![0]!.type).toBe('create_daily_record');
+      expect(result.proposedActions![0]!.payload).toMatchObject({
         type: 'create_daily_record',
         draft: { kind: 'water', value: '500', unit: 'ml' },
       });
@@ -72,7 +72,7 @@ describe('AssistantToolProposalService', () => {
       candidateGenerator.generate.mockResolvedValue({
         confirmationHint: 'No candidates',
         items: [],
-      });
+      } as never);
 
       const result = await service.buildCreateDailyRecordProposal(
         mockContext,
@@ -164,7 +164,7 @@ describe('AssistantToolProposalService', () => {
       );
 
       expect(result.proposedActions).toHaveLength(1);
-      expect(result.proposedActions![0].type).toBe('update_daily_record');
+      expect(result.proposedActions![0]!.type).toBe('update_daily_record');
     });
   });
 
@@ -217,8 +217,8 @@ describe('AssistantToolProposalService', () => {
       );
 
       expect(result.proposedActions).toHaveLength(1);
-      expect(result.proposedActions![0].type).toBe('delete_daily_record');
-      expect(result.proposedActions![0].payload).toMatchObject({
+      expect(result.proposedActions![0]!.type).toBe('delete_daily_record');
+      expect(result.proposedActions![0]!.payload).toMatchObject({
         type: 'delete_daily_record',
         recordId: 'rec-1',
       });
@@ -243,8 +243,8 @@ describe('AssistantToolProposalService', () => {
       );
 
       expect(result.proposedActions).toHaveLength(1);
-      expect(result.proposedActions![0].type).toBe('update_user_settings');
-      expect(result.proposedActions![0].payload).toMatchObject({
+      expect(result.proposedActions![0]!.type).toBe('update_user_settings');
+      expect(result.proposedActions![0]!.payload).toMatchObject({
         type: 'update_user_settings',
         draft: { assistantEnabled: false },
       });
@@ -257,7 +257,7 @@ describe('AssistantToolProposalService', () => {
       );
 
       expect(result.proposedActions).toHaveLength(1);
-      expect(result.proposedActions![0].payload).toMatchObject({
+      expect(result.proposedActions![0]!.payload).toMatchObject({
         draft: { assistantMemoryEnabled: true },
       });
     });
@@ -269,7 +269,7 @@ describe('AssistantToolProposalService', () => {
       );
 
       expect(result.proposedActions).toHaveLength(1);
-      const payload = result.proposedActions![0].payload as {
+      const payload = result.proposedActions![0]!.payload as {
         draft: { assistantContext?: { sleepRecords?: boolean } };
       };
       expect(payload.draft.assistantContext?.sleepRecords).toBe(false);

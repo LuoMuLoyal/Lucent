@@ -18,7 +18,7 @@ import { setupApp } from '../../../src/setup-app';
 
 describe('Lucent API (e2e)', () => {
   let app: INestApplication<App>;
-  let prisma: { $queryRawUnsafe: jest.Mock };
+  let prisma: { $queryRaw: jest.Mock; $queryRawUnsafe: jest.Mock };
   let cache: {
     set: jest.Mock;
     get: jest.Mock;

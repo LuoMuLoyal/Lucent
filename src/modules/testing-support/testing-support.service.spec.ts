@@ -1,3 +1,4 @@
+import type { DeepMocked } from '../../common/types/deep-mocked';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -14,7 +15,7 @@ jest.mock('argon2', () => ({
 
 describe('TestingSupportService', () => {
   let service: TestingSupportService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
   let cache: { del: jest.Mock };
 
   beforeEach(async () => {
@@ -60,7 +61,7 @@ describe('TestingSupportService', () => {
     prisma = module.get(PrismaService);
 
     const runTransaction = async <T>(
-      callback: (tx: jest.Mocked<PrismaService>) => Promise<T>,
+      callback: (tx: DeepMocked<PrismaService>) => Promise<T>,
     ): Promise<T> => callback(prisma);
     (prisma.$transaction as jest.Mock).mockImplementation(runTransaction);
     (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$e2e');

@@ -1,11 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+import type { DeepMocked } from '../../../common/types/deep-mocked';
+
 import { AiSummaryHistoryKind } from '#generated/prisma/client';
 import { AssistantSummaryRepository } from './summary.repository';
 import type { PrismaService } from '../../../prisma/prisma.service';
 
 describe('AssistantSummaryRepository', () => {
   let repository: AssistantSummaryRepository;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
@@ -14,7 +15,7 @@ describe('AssistantSummaryRepository', () => {
         findMany: jest.fn(),
         findFirst: jest.fn(),
       },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
 
     repository = new AssistantSummaryRepository(prisma);
   });

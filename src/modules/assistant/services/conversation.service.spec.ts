@@ -72,6 +72,7 @@ describe('AssistantConversationService', () => {
             createdAt: new Date('2026-07-10T08:00:00.000Z'),
             conversationId: 'conv-1',
             userId: 'user-1',
+            updatedAt: new Date(),
           },
         ],
       });
@@ -82,8 +83,8 @@ describe('AssistantConversationService', () => {
       expect(result).not.toBeNull();
       expect(result!.id).toBe('conv-1');
       expect(result!.messages).toHaveLength(1);
-      expect(result!.messages[0].role).toBe('user');
-      expect(result!.messages[0].usedTools).toEqual([]);
+      expect(result!.messages[0]!.role).toBe('user');
+      expect(result!.messages[0]!.usedTools).toEqual([]);
     });
 
     it('returns null when no active conversation', async () => {
@@ -105,8 +106,8 @@ describe('AssistantConversationService', () => {
       const result = await service.listRecentConversations('user-1');
 
       expect(result).toHaveLength(2);
-      expect(result[0].id).toBe('conv-1');
-      expect(result[1].id).toBe('conv-2');
+      expect(result[0]!.id).toBe('conv-1');
+      expect(result[1]!.id).toBe('conv-2');
     });
 
     it('returns empty array when no conversations', async () => {
@@ -217,9 +218,9 @@ describe('AssistantConversationService', () => {
         usedTools: [],
       });
 
-      const persistInput = repo.persistTurn.mock.calls[0][0];
+      const persistInput = repo.persistTurn.mock.calls[0]![0];
       expect(persistInput.messagesToAppend).toHaveLength(1);
-      expect(persistInput.messagesToAppend[0].content).toBe('Hello');
+      expect(persistInput.messagesToAppend[0]!.content).toBe('Hello');
     });
 
     it('builds title from first user message', async () => {
@@ -279,6 +280,7 @@ describe('AssistantConversationService', () => {
               createdAt: new Date('2026-07-10T08:00:00.000Z'),
               conversationId: 'conv-1',
               userId: 'user-1',
+              updatedAt: new Date(),
             },
             {
               id: 'msg-2',
@@ -288,6 +290,7 @@ describe('AssistantConversationService', () => {
               createdAt: new Date('2026-07-10T07:00:00.000Z'),
               conversationId: 'conv-1',
               userId: 'user-1',
+              updatedAt: new Date(),
             },
           ],
         }),

@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+import type { DeepMocked } from '../../../common/types/deep-mocked';
+
 import { CnMedicinesService } from './cn.service';
 import type { PrismaService } from '../../../prisma/prisma.service';
 
 describe('CnMedicinesService', () => {
   let service: CnMedicinesService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
@@ -13,7 +14,7 @@ describe('CnMedicinesService', () => {
         count: jest.fn(),
         findUnique: jest.fn(),
       },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
 
     service = new CnMedicinesService(prisma);
   });
@@ -131,7 +132,9 @@ describe('CnMedicinesService', () => {
       );
 
       const result = await service.getDetail('med-1');
-      expect(result!.detail.drugbankIds).toEqual(['DB001', 'DB002']);
+      expect(
+        (result!.detail as { drugbankIds: string[] | null }).drugbankIds,
+      ).toEqual(['DB001', 'DB002']);
     });
 
     it('returns null drugbankIds when value is null', async () => {
@@ -140,7 +143,9 @@ describe('CnMedicinesService', () => {
       );
 
       const result = await service.getDetail('med-1');
-      expect(result!.detail.drugbankIds).toBeNull();
+      expect(
+        (result!.detail as { drugbankIds: string[] | null }).drugbankIds,
+      ).toBeNull();
     });
 
     it('returns null drugbankIds when value is empty array', async () => {
@@ -149,7 +154,9 @@ describe('CnMedicinesService', () => {
       );
 
       const result = await service.getDetail('med-1');
-      expect(result!.detail.drugbankIds).toBeNull();
+      expect(
+        (result!.detail as { drugbankIds: string[] | null }).drugbankIds,
+      ).toBeNull();
     });
   });
 });

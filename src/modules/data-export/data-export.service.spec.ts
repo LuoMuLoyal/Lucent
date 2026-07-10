@@ -1,3 +1,4 @@
+import type { DeepMocked } from '../../common/types/deep-mocked';
 import type { PrismaService } from '../../prisma/prisma.service';
 import { DataExportService } from './services/export.service';
 import type { DataExportStorageService } from './services/storage.service';
@@ -222,7 +223,7 @@ describe('DataExportService', () => {
   });
 });
 
-function prismaDouble(): jest.Mocked<PrismaService> {
+function prismaDouble(): DeepMocked<PrismaService> {
   const createdAt = new Date('2026-06-15T09:30:00.000Z');
 
   const makeRow = (
@@ -287,7 +288,7 @@ function prismaDouble(): jest.Mocked<PrismaService> {
       findFirst: jest.fn(),
       findUniqueOrThrow,
     },
-  } as unknown as jest.Mocked<PrismaService>;
+  } as unknown as DeepMocked<PrismaService>;
 
   Object.defineProperty(prisma, '__lastCreateData', {
     value: () => lastCreateData,

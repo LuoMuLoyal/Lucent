@@ -1,3 +1,4 @@
+import type { DeepMocked } from '../../common/types/deep-mocked';
 import { nonDeleted } from '../../common/helpers/prisma.helpers';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -34,7 +35,7 @@ const mockIdentity = {
 
 describe('UserService', () => {
   let service: UserService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: DeepMocked<PrismaService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

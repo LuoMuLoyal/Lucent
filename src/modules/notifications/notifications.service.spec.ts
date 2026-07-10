@@ -1,3 +1,4 @@
+import type { DeepMocked } from '../../common/types/deep-mocked';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 
@@ -40,7 +41,7 @@ const mockScopedSuggestionRow = {
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
-  let prismaService: jest.Mocked<PrismaService>;
+  let prismaService: DeepMocked<PrismaService>;
 
   beforeEach(async () => {
     const prismaMock = {

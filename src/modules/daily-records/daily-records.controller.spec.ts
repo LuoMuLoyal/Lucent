@@ -54,9 +54,6 @@ describe('DailyRecordsController', () => {
 
       const result = await controller.list(mockUser, {
         date: '2026-07-10',
-        kind: undefined,
-        page: undefined,
-        pageSize: undefined,
       });
 
       expect(dailyRecordsService.list).toHaveBeenCalledWith(
@@ -79,7 +76,7 @@ describe('DailyRecordsController', () => {
         total: 0,
         page: 2,
         pageSize: 10,
-      });
+      } as never);
 
       await controller.list(mockUser, {
         date: '2026-07-10',
@@ -100,7 +97,7 @@ describe('DailyRecordsController', () => {
 
   describe('summary', () => {
     it('calls service.summary with userId and date', async () => {
-      const data = { date: '2026-07-10', counts: {} };
+      const data = { date: '2026-07-10', counts: {} } as never;
       dailyRecordsService.summary.mockResolvedValue(data);
 
       const result = await controller.summary(mockUser, '2026-07-10');
@@ -119,8 +116,15 @@ describe('DailyRecordsController', () => {
 
   describe('createImageUpload', () => {
     it('calls imageUploadService.createPresignedUpload', () => {
-      const dto = { filename: 'test.jpg', contentType: 'image/jpeg' };
-      const data = { uploadUrl: 'https://cos.example.com', objectKey: 'key-1' };
+      const dto = {
+        filename: 'test.jpg',
+        contentType: 'image/jpeg',
+        sizeBytes: 1024,
+      } as never;
+      const data = {
+        uploadUrl: 'https://cos.example.com',
+        objectKey: 'key-1',
+      } as never;
       imageUploadService.createPresignedUpload.mockReturnValue(data);
 
       const result = controller.createImageUpload(mockUser, dto);
@@ -139,8 +143,11 @@ describe('DailyRecordsController', () => {
 
   describe('generateCandidates', () => {
     it('calls candidatesService.generate with dto and language', async () => {
-      const dto = { note: '喝了一杯水', date: '2026-07-10' };
-      const data = { confirmationHint: 'Did you drink water?', items: [] };
+      const dto = { note: '喝了一杯水', date: '2026-07-10' } as never;
+      const data = {
+        confirmationHint: 'Did you drink water?',
+        items: [],
+      } as never;
       candidatesService.generate.mockResolvedValue(data);
 
       const result = await controller.generateCandidates(
@@ -160,7 +167,7 @@ describe('DailyRecordsController', () => {
 
   describe('get', () => {
     it('calls service.get with userId and id', async () => {
-      const data = { id: 'rec-1', kind: 'water', value: '500' };
+      const data = { id: 'rec-1', kind: 'water', value: '500' } as never;
       dailyRecordsService.get.mockResolvedValue(data);
 
       const result = await controller.get(mockUser, 'rec-1');
@@ -176,8 +183,13 @@ describe('DailyRecordsController', () => {
 
   describe('create', () => {
     it('calls service.create with userId and dto', async () => {
-      const dto = { kind: 'water', value: '500', unit: 'ml' };
-      const data = { id: 'rec-1', ...dto };
+      const dto = { kind: 'water', value: '500', unit: 'ml' } as never;
+      const data = {
+        id: 'rec-1',
+        kind: 'water',
+        value: '500',
+        unit: 'ml',
+      } as never;
       dailyRecordsService.create.mockResolvedValue(data);
 
       const result = await controller.create(mockUser, dto);
@@ -194,7 +206,7 @@ describe('DailyRecordsController', () => {
   describe('update', () => {
     it('calls service.update with userId, id, and dto', async () => {
       const dto = { value: '600' };
-      const data = { id: 'rec-1', kind: 'water', value: '600' };
+      const data = { id: 'rec-1', kind: 'water', value: '600' } as never;
       dailyRecordsService.update.mockResolvedValue(data);
 
       const result = await controller.update(mockUser, 'rec-1', dto);

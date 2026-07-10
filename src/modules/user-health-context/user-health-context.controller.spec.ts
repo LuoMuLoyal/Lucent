@@ -71,7 +71,11 @@ describe('UserHealthContextController', () => {
 
   describe('POST /allergies', () => {
     it('creates allergy and returns health context', async () => {
-      const dto = { label: '青霉素', reaction: '皮疹', severity: 'moderate' };
+      const dto = {
+        label: '青霉素',
+        reaction: '皮疹',
+        severity: 'moderate',
+      } as never;
       const result = await controller.createAllergy(mockUser, dto);
       expect(service.createAllergy).toHaveBeenCalledWith('user-1', dto);
       expectEnvelope(result);
@@ -80,7 +84,7 @@ describe('UserHealthContextController', () => {
 
   describe('PATCH /allergies/:id', () => {
     it('updates allergy and returns health context', async () => {
-      const dto = { severity: 'severe' };
+      const dto = { severity: 'severe' } as never;
       const result = await controller.updateAllergy(mockUser, 'allergy-1', dto);
       expect(service.updateAllergy).toHaveBeenCalledWith(
         'user-1',
@@ -103,7 +107,7 @@ describe('UserHealthContextController', () => {
 
   describe('POST /conditions', () => {
     it('creates condition and returns health context', async () => {
-      const dto = { label: '高血压', status: 'active' };
+      const dto = { label: '高血压', status: 'active' } as never;
       const result = await controller.createCondition(mockUser, dto);
       expect(service.createCondition).toHaveBeenCalledWith('user-1', dto);
       expectEnvelope(result);
@@ -112,7 +116,7 @@ describe('UserHealthContextController', () => {
 
   describe('PATCH /conditions/:id', () => {
     it('updates condition and returns health context', async () => {
-      const dto = { status: 'resolved' };
+      const dto = { status: 'resolved' } as never;
       const result = await controller.updateCondition(mockUser, 'cond-1', dto);
       expect(service.updateCondition).toHaveBeenCalledWith(
         'user-1',
@@ -135,7 +139,7 @@ describe('UserHealthContextController', () => {
 
   describe('POST /current-medicines', () => {
     it('creates current medicine and returns health context', async () => {
-      const dto = { displayName: '氨氯地平片', doseText: '5mg' };
+      const dto = { displayName: '氨氯地平片', doseText: '5mg' } as never;
       const result = await controller.createCurrentMedicine(mockUser, dto);
       expect(service.createCurrentMedicine).toHaveBeenCalledWith('user-1', dto);
       expectEnvelope(result);

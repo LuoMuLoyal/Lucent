@@ -1,3 +1,4 @@
+import type { DeepMocked } from '../../../common/types/deep-mocked';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import type { HistoricalAiSummaryService } from '../services/historical-ai-summary.service';
 import type { UserHealthContextService } from '../../user-health-context/services';
@@ -22,7 +23,7 @@ const mockContextNoSleep: AssistantToolExecutionContext = {
 
 describe('AssistantToolReadService', () => {
   let service: AssistantToolReadService;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
   let aiSummary: jest.Mocked<HistoricalAiSummaryService>;
   let healthContext: jest.Mocked<UserHealthContextService>;
   let reminders: jest.Mocked<IMedicineReminderReader>;
@@ -32,7 +33,7 @@ describe('AssistantToolReadService', () => {
   beforeEach(() => {
     prisma = {
       user: { findFirstOrThrow: jest.fn() },
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
 
     aiSummary = {
       getLatestTodaySummaryByDate: jest.fn(),

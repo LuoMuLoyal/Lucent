@@ -1,11 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
+import type { DeepMocked } from '../../../common/types/deep-mocked';
+
 import { AssistantConversationStatus } from '#generated/prisma/client';
 import { AssistantConversationRepository } from './conversation.repository';
 import type { PrismaService } from '../../../prisma/prisma.service';
 
 describe('AssistantConversationRepository', () => {
   let repository: AssistantConversationRepository;
-  let prisma: jest.Mocked<PrismaService>;
+  let prisma: DeepMocked<PrismaService>;
 
   beforeEach(() => {
     prisma = {
@@ -24,7 +25,7 @@ describe('AssistantConversationRepository', () => {
       $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(prisma),
       ),
-    } as unknown as jest.Mocked<PrismaService>;
+    } as unknown as DeepMocked<PrismaService>;
 
     repository = new AssistantConversationRepository(prisma);
   });

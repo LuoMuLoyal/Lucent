@@ -90,9 +90,9 @@ describe('ReportsLlmSummaryCopyService', () => {
 
       expect(result.summary).toBeDefined();
       expect(result.bullets).toHaveLength(3);
-      expect(result.bullets[0].kind).toBe('medication');
-      expect(result.bullets[1].kind).toBe('hydration');
-      expect(result.bullets[2].kind).toBe('sleep');
+      expect(result.bullets[0]!.kind).toBe('medication');
+      expect(result.bullets[1]!.kind).toBe('hydration');
+      expect(result.bullets[2]!.kind).toBe('sleep');
       expect(result.actionLabel).toBeDefined();
       expect(result.action).toBeDefined();
       expect(result.confidenceNote).toBeDefined();

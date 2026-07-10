@@ -84,7 +84,7 @@ describe('PrismaService', () => {
       configService.get.mockReturnValue(
         'postgresql://user:pass@localhost:5432/test',
       );
-      delete process.env.OPENAPI_EXPORT_SKIP_DB_CONNECT;
+      Reflect.deleteProperty(process.env, 'OPENAPI_EXPORT_SKIP_DB_CONNECT');
 
       const service = new PrismaService(configService);
       await service.onModuleInit();
@@ -103,7 +103,7 @@ describe('PrismaService', () => {
 
       expect(mockConnect).not.toHaveBeenCalled();
 
-      delete process.env.OPENAPI_EXPORT_SKIP_DB_CONNECT;
+      Reflect.deleteProperty(process.env, 'OPENAPI_EXPORT_SKIP_DB_CONNECT');
     });
 
     it('calls $connect when OPENAPI_EXPORT_SKIP_DB_CONNECT is "false"', async () => {
@@ -117,7 +117,7 @@ describe('PrismaService', () => {
 
       expect(mockConnect).toHaveBeenCalledTimes(1);
 
-      delete process.env.OPENAPI_EXPORT_SKIP_DB_CONNECT;
+      Reflect.deleteProperty(process.env, 'OPENAPI_EXPORT_SKIP_DB_CONNECT');
     });
   });
 

@@ -26,6 +26,14 @@ class TestGeneratorService extends BaseLlmGeneratorService<
   TestPromptCopy,
   TestOutput
 > {
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
+  constructor(
+    llmRuntimeService: LlmRuntimePort,
+    metricsService: MetricsService,
+  ) {
+    super(llmRuntimeService, metricsService);
+  }
+
   protected readonly schema = testSchema;
   protected readonly options = {
     toolName: 'test_tool',

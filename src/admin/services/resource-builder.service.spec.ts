@@ -1,15 +1,16 @@
+import type { DeepMocked } from '../../common/types/deep-mocked';
 import { buildResources } from './resource-builder.service';
 import type { PrismaService } from '../../prisma/prisma.service';
 import type { PrismaClientModule, AdminJsPrismaModule } from '../types/types';
 
 describe('buildResources', () => {
   let mockGetModelByName: jest.Mock;
-  let mockPrisma: jest.Mocked<PrismaService>;
+  let mockPrisma: DeepMocked<PrismaService>;
   let mockClientModule: PrismaClientModule;
 
   beforeEach(() => {
     mockGetModelByName = jest.fn().mockReturnValue({ name: 'Model' });
-    mockPrisma = {} as jest.Mocked<PrismaService>;
+    mockPrisma = {} as DeepMocked<PrismaService>;
     mockClientModule = {
       Prisma: {
         dmmf: {
@@ -69,7 +70,7 @@ describe('buildResources', () => {
     // posts (relation) and passwordHash (sensitive) should be hidden
     expect(options?.properties).toHaveProperty('posts');
     expect(options?.properties).toHaveProperty('passwordHash');
-    expect(options?.properties?.posts).toMatchObject({
+    expect(options?.properties?.['posts']).toMatchObject({
       isVisible: false,
       isDisabled: true,
     });

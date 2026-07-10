@@ -13,7 +13,7 @@ describe('localized-copy', () => {
     i18n = {
       t: jest.fn((key: string, opts?: Record<string, unknown>) => {
         if (opts && 'args' in opts) {
-          const args = opts.args as Record<string, string>;
+          const args = opts['args'] as Record<string, string>;
           return Object.entries(args).reduce(
             (str, [k, v]) => str.replace(`{${k}}`, v),
             key,

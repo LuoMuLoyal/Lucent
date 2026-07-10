@@ -38,9 +38,14 @@ describe('LifecycleService', () => {
       triggerType: 'timer' as never,
       title: '今日饮水还差 6 杯',
       reason: '今日已记录 2 杯，目标 8 杯。',
-      evidence: [{ kind: 'metric', label: 'water', value: '2 / 8 杯' }],
+      evidence: [{ kind: 'record', label: 'water', value: '2 / 8 杯' }],
       boundary: '仅在用户当日记录不足时展示。',
-      primaryAction: { label: '去记录', action: 'today' },
+      primaryAction: {
+        actionId: 'go_today',
+        label: '去记录',
+        route: '/today',
+        authRequired: true,
+      },
       priorityScore: 60,
       confidence: 'medium' as never,
       notificationEligible: true,
@@ -71,14 +76,26 @@ describe('LifecycleService', () => {
       createMock.mockResolvedValue({ id: 'sug-456' });
       const candidate: SuggestionCandidate = {
         ...baseCandidate,
-        secondaryActions: [{ label: '稍后提醒', action: 'snooze' }],
+        secondaryActions: [
+          {
+            actionId: 'snooze',
+            label: '稍后提醒',
+            route: '/today',
+            authRequired: true,
+          },
+        ],
       };
 
       await service.persistActive('user-1', candidate, '2026-07-10');
 
       const call = createMock.mock.calls[0]![0];
       expect(call.data.secondaryActions).toEqual([
-        { label: '稍后提醒', action: 'snooze' },
+        {
+          actionId: 'snooze',
+          label: '稍后提醒',
+          route: '/today',
+          authRequired: true,
+        },
       ]);
     });
 
