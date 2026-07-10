@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   AIMessageChunk,
   HumanMessage,
@@ -10,11 +10,12 @@ import { toJsonSchema } from '@langchain/core/utils/json_schema';
 import type { ZodObject, ZodType } from 'zod';
 import type { LlmRole, LlmRuntimePort } from './llm-runtime.port';
 import { AI_MODEL_TIMEOUT_MS } from '../../config/constants';
+import { withLlmRetry, isRetryableLlmError } from './llm-retry.helper';
 
 const MODEL_OPTIONS = {
   timeout: AI_MODEL_TIMEOUT_MS,
   temperature: 0.2,
-  maxRetries: 0,
+  maxRetries: 0, // retries handled by withLlmRetry for finer control
 } as const;
 
 export interface BaseLlmGeneratorOptions {
@@ -41,6 +42,8 @@ export abstract class BaseLlmGeneratorService<
   /** LLM model role to use (e.g. 'analysis', 'language'). */
   protected abstract readonly modelRole: LlmRole;
 
+  private readonly logger = new Logger(BaseLlmGeneratorService.name);
+
   protected constructor(private readonly llmRuntimeService: LlmRuntimePort) {}
 
   hasAnalysisModel(): boolean {
@@ -49,10 +52,17 @@ export abstract class BaseLlmGeneratorService<
 
   async generate(context: TContext, promptCopy: TPromptCopy): Promise<TOutput> {
     const model = this.createStructuredOutputModel();
+    const messages = this.buildMessages(context, promptCopy);
 
-    return model.invoke(
-      this.buildMessages(context, promptCopy),
-    ) as Promise<TOutput>;
+    return withLlmRetry(() => model.invoke(messages) as Promise<TOutput>, {
+      onRetry: (error, attempt) => {
+        if (isRetryableLlmError(error)) {
+          this.logger.warn(
+            `${this.options.streamName} generate retry #${String(attempt)}: ${(error as Error).message}`,
+          );
+        }
+      },
+    });
   }
 
   async generateStream(
@@ -66,7 +76,18 @@ export abstract class BaseLlmGeneratorService<
       returnSingle: true,
       zodSchema: this.schema as never,
     });
-    const stream = await model.stream(this.buildMessages(context, promptCopy));
+    const stream = await withLlmRetry(
+      () => model.stream(this.buildMessages(context, promptCopy)),
+      {
+        onRetry: (error, attempt) => {
+          if (isRetryableLlmError(error)) {
+            this.logger.warn(
+              `${this.options.streamName} stream retry #${String(attempt)}: ${(error as Error).message}`,
+            );
+          }
+        },
+      },
+    );
 
     let accumulated: AIMessageChunk | undefined;
     let lastSummary = '';

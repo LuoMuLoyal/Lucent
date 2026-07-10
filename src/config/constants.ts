@@ -111,6 +111,14 @@ export const DEFAULT_MAIL_QUEUE_COMPLETE_MAX_COUNT = 1_000;
 /** Default maximum number of failed mail jobs to retain. */
 export const DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT = 5_000;
 
+// ── LLM call retry ──────────────────────────────────────────────────────────
+
+/** Default maximum retry attempts for LLM invocations (excluding the first call). */
+export const LLM_RETRY_ATTEMPTS = 2;
+
+/** Base delay (ms) for exponential backoff between LLM retry attempts. */
+export const LLM_RETRY_BASE_DELAY_MS = 800;
+
 // ── Observability ─────────────────────────────────────────────────────────────
 
 /** Default threshold (ms) above which a request is logged as slow. */
