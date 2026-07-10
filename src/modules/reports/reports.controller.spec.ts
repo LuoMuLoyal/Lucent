@@ -1,4 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { HttpException, HttpStatus } from '@nestjs/common';
+import type { Response } from 'express';
 import { ResultCode } from '../../common/api';
 import {
   REPORT_RANGE_CUSTOM,
@@ -16,6 +18,7 @@ describe('ReportsController', () => {
   let controller: ReportsController;
   let service: jest.Mocked<ReportsService>;
   let aiSummaryService: jest.Mocked<ReportsAiSummaryService>;
+  let clinicSummaryService: jest.Mocked<ClinicSummaryService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -31,11 +34,18 @@ describe('ReportsController', () => {
           provide: ReportsAiSummaryService,
           useValue: {
             generate: jest.fn(),
+            generateStream: jest.fn(),
           },
         },
         {
           provide: ClinicSummaryService,
-          useValue: {},
+          useValue: {
+            buildClinicSummary: jest.fn(),
+            createShareLink: jest.fn(),
+            getSharedSummary: jest.fn(),
+            exportPdf: jest.fn(),
+            exportSharedPdf: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -43,7 +53,10 @@ describe('ReportsController', () => {
     controller = module.get(ReportsController);
     service = module.get(ReportsService);
     aiSummaryService = module.get(ReportsAiSummaryService);
+    clinicSummaryService = module.get(ClinicSummaryService);
   });
+
+  // ── getDashboard ──────────────────────────────────────────────────────
 
   it('should return report dashboard envelope', async () => {
     const dashboard = makeDashboard();
@@ -101,6 +114,8 @@ describe('ReportsController', () => {
     );
   });
 
+  // ── generateSummary ───────────────────────────────────────────────────
+
   it('should return report summary envelope', async () => {
     const summary = makeSummary();
     aiSummaryService.generate.mockResolvedValue(summary);
@@ -124,7 +139,247 @@ describe('ReportsController', () => {
       'zh-CN',
     );
   });
+
+  // ── generateSummaryStream ─────────────────────────────────────────────
+
+  it('writes SSE events for summary, result, and done on success', async () => {
+    const summaryResult = makeSummary();
+    aiSummaryService.generateStream.mockImplementation(
+      async (_userId, _dto, _lang, onSummary) => {
+        await onSummary({ summary: 'partial text' });
+        return summaryResult;
+      },
+    );
+
+    const events: Array<{ event: string; data: unknown }> = [];
+    const response = makeMockResponse(events);
+
+    await controller.generateSummaryStream(
+      { sub: 'u1', email: 'a@b.c' },
+      { range: REPORT_RANGE_LAST_30_DAYS },
+      'zh-CN',
+      response,
+    );
+
+    const eventTypes = events.map((e) => e.event);
+    expect(eventTypes).toContain('summary');
+    expect(eventTypes).toContain('result');
+    expect(eventTypes).toContain('done');
+
+    const summaryEvent = events.find((e) => e.event === 'summary')!;
+    expect(summaryEvent.data).toEqual({ summary: 'partial text' });
+
+    const resultEvent = events.find((e) => e.event === 'result')!;
+    expect(resultEvent.data).toEqual(summaryResult);
+
+    expect(response.end).toHaveBeenCalled();
+  });
+
+  it('writes SSE error event when service throws', async () => {
+    aiSummaryService.generateStream.mockRejectedValue(new Error('LLM down'));
+
+    const events: Array<{ event: string; data: unknown }> = [];
+    const response = makeMockResponse(events);
+
+    await controller.generateSummaryStream(
+      { sub: 'u1', email: 'a@b.c' },
+      { range: REPORT_RANGE_LAST_30_DAYS },
+      'zh-CN',
+      response,
+    );
+
+    const errorEvent = events.find((e) => e.event === 'error')!;
+    expect(errorEvent).toBeDefined();
+    expect(errorEvent.data).toEqual({ message: 'LLM down' });
+    expect(response.end).toHaveBeenCalled();
+  });
+
+  // ── previewClinicSummary ──────────────────────────────────────────────
+
+  it('returns clinic summary preview envelope', async () => {
+    const summary = {
+      generatedAt: '2026-07-10T08:00:00.000Z',
+      dataRange: 'last_30_days',
+      profile: {
+        nickname: '匿**',
+        age: 30,
+        sexAtBirth: 'male',
+        bloodType: 'A',
+      },
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+      disclaimer: '此摘要仅供参考。',
+    };
+    clinicSummaryService.buildClinicSummary.mockResolvedValue(summary);
+
+    const result = await controller.previewClinicSummary({
+      sub: 'u1',
+      email: 'a@b.c',
+    });
+
+    expect(clinicSummaryService.buildClinicSummary).toHaveBeenCalledWith('u1');
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: summary,
+    });
+  });
+
+  // ── shareClinicSummary ────────────────────────────────────────────────
+
+  it('returns share link envelope', async () => {
+    const shareResponse = {
+      shareUrl:
+        'http://localhost:3000/api/v1/reports/clinic-summary/shared/abc123',
+      expiresAt: '2026-07-11T08:00:00.000Z',
+    };
+    clinicSummaryService.createShareLink.mockResolvedValue(shareResponse);
+
+    const result = await controller.shareClinicSummary({
+      sub: 'u1',
+      email: 'a@b.c',
+    });
+
+    expect(clinicSummaryService.createShareLink).toHaveBeenCalledWith('u1');
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: shareResponse,
+    });
+  });
+
+  // ── getSharedClinicSummary ────────────────────────────────────────────
+
+  it('returns shared clinic summary envelope when token is valid', async () => {
+    const summary = {
+      generatedAt: '2026-07-10T08:00:00.000Z',
+      dataRange: 'last_30_days',
+      profile: {
+        nickname: '匿**',
+        age: 30,
+        sexAtBirth: 'male',
+        bloodType: 'A',
+      },
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+      disclaimer: '此摘要仅供参考。',
+    };
+    clinicSummaryService.getSharedSummary.mockResolvedValue(summary);
+
+    const result = await controller.getSharedClinicSummary('valid-token');
+
+    expect(clinicSummaryService.getSharedSummary).toHaveBeenCalledWith(
+      'valid-token',
+    );
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: summary,
+    });
+  });
+
+  it('throws HttpException 410 when shared summary not found', async () => {
+    clinicSummaryService.getSharedSummary.mockResolvedValue(null);
+
+    await expect(
+      controller.getSharedClinicSummary('expired-token'),
+    ).rejects.toThrow(HttpException);
+
+    try {
+      await controller.getSharedClinicSummary('expired-token');
+    } catch (e) {
+      expect(e).toBeInstanceOf(HttpException);
+      expect((e as HttpException).getStatus()).toBe(HttpStatus.GONE);
+    }
+  });
+
+  // ── downloadClinicSummaryPdf ──────────────────────────────────────────
+
+  it('sends PDF buffer for authenticated user', async () => {
+    const pdfBuffer = Buffer.from('%PDF-1.4 mock');
+    clinicSummaryService.exportPdf.mockResolvedValue(pdfBuffer);
+
+    const response = makeMockResponse([]);
+
+    await controller.downloadClinicSummaryPdf(
+      { sub: 'u1', email: 'a@b.c' },
+      'zh-CN',
+      response,
+    );
+
+    expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN');
+    expect(response.send).toHaveBeenCalledWith(pdfBuffer);
+  });
+
+  // ── downloadSharedClinicSummaryPdf ────────────────────────────────────
+
+  it('sends PDF buffer for valid shared token', async () => {
+    const pdfBuffer = Buffer.from('%PDF-1.4 mock');
+    clinicSummaryService.exportSharedPdf.mockResolvedValue(pdfBuffer);
+
+    const response = makeMockResponse([]);
+
+    await controller.downloadSharedClinicSummaryPdf(
+      'valid-token',
+      'zh-CN',
+      response,
+    );
+
+    expect(clinicSummaryService.exportSharedPdf).toHaveBeenCalledWith(
+      'valid-token',
+      'zh-CN',
+    );
+    expect(response.send).toHaveBeenCalledWith(pdfBuffer);
+  });
+
+  it('throws HttpException 410 when shared PDF token is expired', async () => {
+    clinicSummaryService.exportSharedPdf.mockResolvedValue(null);
+
+    const response = makeMockResponse([]);
+
+    await expect(
+      controller.downloadSharedClinicSummaryPdf(
+        'expired-token',
+        'zh-CN',
+        response,
+      ),
+    ).rejects.toThrow(HttpException);
+  });
 });
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+
+function makeMockResponse(
+  events: Array<{ event: string; data: unknown }>,
+): Response {
+  let buffer = '';
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    setHeader: jest.fn().mockReturnThis(),
+    flushHeaders: jest.fn().mockReturnThis(),
+    write: jest.fn((chunk: string) => {
+      buffer += chunk;
+      // SSE events are separated by \n\n
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() ?? '';
+      for (const part of parts) {
+        const eventMatch = part.match(/event: (\w+)/);
+        const dataMatch = part.match(/data: (.+)/);
+        if (eventMatch && dataMatch) {
+          events.push({
+            event: eventMatch[1]!,
+            data: JSON.parse(dataMatch[1]!),
+          });
+        }
+      }
+    }),
+    end: jest.fn(),
+    send: jest.fn(),
+  };
+  return res as unknown as Response;
+}
 
 function makeDashboard(
   overrides: Partial<ReportDashboardDataDto> = {},

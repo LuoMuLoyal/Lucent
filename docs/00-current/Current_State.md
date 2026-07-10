@@ -43,6 +43,8 @@ Last updated: 2026-07-10
 - **发现的问题**：`AuthTokenService.revokeById` 抛 raw Error 导致 500，应修复为 404/403
 - **P0 剩余端点全覆盖**：Reports clinic-summary（preview/share/shared/pdf 5 端点 8 用例）、Medicines safety-tips + recognize（8 用例）、Reminder Deliveries（5 用例）、Assistant open/clear/stream（9 用例）、Daily Records presign-upload（4 用例），P0 级 E2E 缺口全部补齐
 - **P1 级 E2E 全覆盖**：Health liveness/deep 探针（4 用例）、Today Analysis generate + generate/stream SSE（8 用例）、Reports summary/generate/stream SSE（4 用例）；修复 TodayAnalysisService generatedAt 丢失 bug 和 app.e2e-spec.ts 缺少 MetricsService provider 的预存问题
+- **P2 级 OAuth E2E 全覆盖**：新增 `test/e2e/auth/oauth.e2e-spec.ts`（25 用例），覆盖全部 7 个 OAuth 端点：wechat-web authorize/callback（含 302 重定向）、wechat-mobile callback、apple callback（含二次登录）、qq authorize/callback。通过 `jest.spyOn` mock provider 的 `buildAuthorizeUrl`/`fetchProfile` 方法绕过第三方依赖，测试新用户创建、已有用户登录、503 未配置、400 参数校验、401 无效 state 等场景
+- **单元测试覆盖率补充**：`auth/strategies` 从 0% 覆盖升至 100%（新增 `jwt-access.strategy.spec.ts` 11 用例）；`today-analysis` services 新增 19 个用例（context.service 15 + analysis.service 4）覆盖 water/medication/sleep/reminder 等分支；`i18n` 模块从 0% 覆盖升至有测试（3 用例）；`llm-runtime` 模块从 0% 覆盖升至有测试 + `getModelName` 方法覆盖
 
 ## 相关文档
 

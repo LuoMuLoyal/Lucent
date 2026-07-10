@@ -191,4 +191,488 @@ describe('TodayAnalysisContextService', () => {
       createdAt: '2026-07-01T04:00:00.000Z',
     });
   });
+
+  it('uses recognizedDishes when foodItems is not available', async () => {
+    const prisma = buildPrisma([
+      {
+        kind: 'meal',
+        occurredTime: '12:00',
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: {
+          mealAnalysis: {
+            analysisStatus: 'unconfirmed',
+            coverage: 'complete',
+            mealDescription: '一份面条',
+            recognizedDishes: [
+              { rawName: '牛肉面' },
+              { normalizedDishName: '面条' },
+            ],
+          },
+        },
+        createdAt: new Date('2026-07-01T04:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.recentRecords[0]?.note).toContain('牛肉面');
+  });
+
+  it('returns water target from user settings when configured', async () => {
+    const prisma = buildPrisma([]);
+    prisma.userSetting.findUnique = jest.fn().mockResolvedValue({
+      value: 12,
+    });
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.water.targetCount).toBe(12);
+  });
+
+  it('falls back to default water target when user setting is not a number', async () => {
+    const prisma = buildPrisma([]);
+    prisma.userSetting.findUnique = jest.fn().mockResolvedValue({
+      value: 'not-a-number',
+    });
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.water.targetCount).toBe(8);
+  });
+
+  it('falls back to default water target when user setting is null', async () => {
+    const prisma = buildPrisma([]);
+    prisma.userSetting.findUnique = jest.fn().mockResolvedValue(null);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.water.targetCount).toBe(8);
+  });
+
+  it('computes water remaining count as max(0, target - completed)', async () => {
+    const prisma = buildPrisma([
+      {
+        kind: 'water',
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: null,
+        createdAt: new Date('2026-07-01T01:00:00.000Z'),
+      },
+      {
+        kind: 'water',
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: null,
+        createdAt: new Date('2026-07-01T02:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.water.completedCount).toBe(2);
+    expect(context.water.targetCount).toBe(8);
+    expect(context.water.remainingCount).toBe(6);
+  });
+
+  it('clamps water remaining to 0 when completed exceeds target', async () => {
+    const records = Array.from({ length: 10 }, (_, i) => ({
+      kind: 'water',
+      occurredTime: null,
+      title: null,
+      value: null,
+      unit: null,
+      note: null,
+      payload: null,
+      createdAt: new Date(
+        `2026-07-01T${String(i).padStart(2, '0')}:00:00.000Z`,
+      ),
+    }));
+    const prisma = buildPrisma(records);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.water.completedCount).toBe(10);
+    expect(context.water.remainingCount).toBe(0);
+  });
+
+  it('includes medication context with pending count and next dose time', async () => {
+    const prisma = buildPrisma([]);
+    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+      {
+        id: 'med-1',
+        displayName: '阿司匹林',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+      {
+        id: 'med-2',
+        displayName: '维生素B族',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    prisma.userMedicineReminder.findMany = jest.fn().mockResolvedValue([
+      {
+        currentMedicineId: 'med-2',
+        scheduledHour: 8,
+        scheduledMinute: 0,
+        daysOfWeek: null,
+        startDate: null,
+        endDate: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    prisma.userMedicineDoseLog.findMany = jest
+      .fn()
+      .mockResolvedValue([{ currentMedicineId: 'med-1', status: 'taken' }]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.medication.medicineCount).toBe(2);
+    expect(context.medication.pendingCount).toBe(1);
+    expect(context.medication.nextMedicineName).toBe('维生素B族');
+    expect(context.medication.nextDoseTimeLabel).toBe('08:00');
+    expect(context.medication.currentMedicineNames).toEqual([
+      '阿司匹林',
+      '维生素B族',
+    ]);
+  });
+
+  it('shows "--" for next dose time when no pending reminder matches', async () => {
+    const prisma = buildPrisma([]);
+    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+      {
+        id: 'med-1',
+        displayName: '阿司匹林',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    prisma.userMedicineReminder.findMany = jest.fn().mockResolvedValue([]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.medication.nextDoseTimeLabel).toBe('--');
+    expect(context.medication.nextMedicineName).toBeNull();
+  });
+
+  it('extracts sleep data from daily record payload', async () => {
+    const prisma = buildPrisma([
+      {
+        kind: 'sleep',
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: {
+          durationMinutes: 480,
+          quality: 'good',
+          startAt: '2026-06-30T23:00:00.000Z',
+          endAt: '2026-07-01T07:00:00.000Z',
+          deepMinutes: 120,
+          lightMinutes: 240,
+          remMinutes: 120,
+        },
+        createdAt: new Date('2026-07-01T07:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.sleep.status).toBe('ok');
+    expect(context.sleep.durationMinutes).toBe(480);
+    expect(context.sleep.quality).toBe('good');
+    expect(context.sleep.deepMinutes).toBe(120);
+    expect(context.sleep.lightMinutes).toBe(240);
+    expect(context.sleep.remMinutes).toBe(120);
+  });
+
+  it('returns insufficient_data for sleep when duration is 0', async () => {
+    const prisma = buildPrisma([
+      {
+        kind: 'sleep',
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: {
+          durationMinutes: 0,
+        },
+        createdAt: new Date('2026-07-01T07:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.sleep.status).toBe('insufficient_data');
+  });
+
+  it('returns insufficient_data for sleep when payload is null', async () => {
+    const prisma = buildPrisma([
+      {
+        kind: 'sleep',
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: null,
+        createdAt: new Date('2026-07-01T07:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.sleep.status).toBe('insufficient_data');
+    expect(context.sleep.durationMinutes).toBeNull();
+  });
+
+  it('handles non-meal daily records in recent records', async () => {
+    const prisma = buildPrisma([
+      {
+        kind: 'weight',
+        occurredTime: '08:00',
+        title: '体重',
+        value: '65.5',
+        unit: 'kg',
+        note: '空腹',
+        payload: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.recentRecords).toHaveLength(1);
+    expect(context.recentRecords[0]).toEqual({
+      kind: 'weight',
+      title: '体重',
+      value: '65.5',
+      unit: 'kg',
+      note: '空腹',
+      createdAt: '2026-07-01T00:00:00.000Z',
+    });
+  });
+
+  it('trims whitespace from daily record text fields', async () => {
+    const prisma = buildPrisma([
+      {
+        kind: 'weight',
+        occurredTime: '08:00',
+        title: '  体重  ',
+        value: '  65.5  ',
+        unit: '  kg  ',
+        note: '  ',
+        payload: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.recentRecords[0]?.title).toBe('体重');
+    expect(context.recentRecords[0]?.value).toBe('65.5');
+    expect(context.recentRecords[0]?.unit).toBe('kg');
+    expect(context.recentRecords[0]?.note).toBeNull();
+  });
+
+  it('includes active allergy count in low-risk context', async () => {
+    const prisma = buildPrisma([]);
+    prisma.userAllergy.count = jest.fn().mockResolvedValue(3);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.lowRiskContext.activeAllergyCount).toBe(3);
+  });
+
+  it('builds record summary grouped by kind', async () => {
+    const prisma = buildPrisma([
+      {
+        kind: 'water',
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: null,
+        createdAt: new Date('2026-07-01T01:00:00.000Z'),
+      },
+      {
+        kind: 'water',
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: null,
+        createdAt: new Date('2026-07-01T02:00:00.000Z'),
+      },
+      {
+        kind: 'weight',
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: null,
+        createdAt: new Date('2026-07-01T03:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.recordSummary).toEqual([
+      { kind: 'water', count: 2 },
+      { kind: 'weight', count: 1 },
+    ]);
+  });
+
+  it('limits current medicine names to 5 entries', async () => {
+    const meds = Array.from({ length: 7 }, (_, i) => ({
+      id: `med-${i}`,
+      displayName: `药品${i}`,
+      createdAt: new Date('2026-07-01T00:00:00.000Z'),
+    }));
+    const prisma = buildPrisma([]);
+    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue(meds);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.medication.currentMedicineNames).toHaveLength(5);
+  });
+
+  it('filters out empty medicine display names', async () => {
+    const prisma = buildPrisma([]);
+    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+      {
+        id: 'med-1',
+        displayName: '阿司匹林',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+      {
+        id: 'med-2',
+        displayName: '  ',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+      {
+        id: 'med-3',
+        displayName: '',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.medication.currentMedicineNames).toEqual(['阿司匹林']);
+    expect(context.medication.medicineCount).toBe(3);
+  });
+
+  it('filters reminder by startDate and endDate', async () => {
+    const prisma = buildPrisma([]);
+    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+      {
+        id: 'med-1',
+        displayName: '药品A',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    // Reminder is for a future start date — should not match
+    prisma.userMedicineReminder.findMany = jest.fn().mockResolvedValue([
+      {
+        currentMedicineId: 'med-1',
+        scheduledHour: 8,
+        scheduledMinute: 0,
+        daysOfWeek: null,
+        startDate: new Date('2026-08-01'),
+        endDate: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.medication.nextDoseTimeLabel).toBe('--');
+  });
+
+  it('matches reminder with daysOfWeek including the current weekday', async () => {
+    const prisma = buildPrisma([]);
+    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+      {
+        id: 'med-1',
+        displayName: '药品A',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    // 2026-07-01 is a Wednesday → weekday = 3
+    prisma.userMedicineReminder.findMany = jest.fn().mockResolvedValue([
+      {
+        currentMedicineId: 'med-1',
+        scheduledHour: 14,
+        scheduledMinute: 30,
+        daysOfWeek: [1, 3, 5],
+        startDate: null,
+        endDate: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.medication.nextDoseTimeLabel).toBe('14:30');
+  });
+
+  it('does not match reminder with daysOfWeek excluding the current weekday', async () => {
+    const prisma = buildPrisma([]);
+    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+      {
+        id: 'med-1',
+        displayName: '药品A',
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    // 2026-07-01 is a Wednesday → weekday = 3
+    prisma.userMedicineReminder.findMany = jest.fn().mockResolvedValue([
+      {
+        currentMedicineId: 'med-1',
+        scheduledHour: 14,
+        scheduledMinute: 30,
+        daysOfWeek: [0, 1, 2],
+        startDate: null,
+        endDate: null,
+        createdAt: new Date('2026-07-01T00:00:00.000Z'),
+      },
+    ]);
+    const service = new TodayAnalysisContextService(prisma as never);
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.medication.nextDoseTimeLabel).toBe('--');
+  });
 });

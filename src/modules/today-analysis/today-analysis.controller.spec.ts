@@ -1,4 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { Response } from 'express';
 import { ResultCode } from '../../common/api';
 import { TodayAnalysisService } from './services/analysis.service';
 import { TodayRecommendationsService } from './services/recommendations.service';
@@ -8,6 +9,7 @@ import { TodayAnalysisController } from './today-analysis.controller';
 describe('TodayAnalysisController', () => {
   let controller: TodayAnalysisController;
   let service: jest.Mocked<TodayAnalysisService>;
+  let recommendationsService: jest.Mocked<TodayRecommendationsService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -17,15 +19,24 @@ describe('TodayAnalysisController', () => {
           provide: TodayAnalysisService,
           useValue: {
             generate: jest.fn(),
+            generateStream: jest.fn(),
           },
         },
-        TodayRecommendationsService,
+        {
+          provide: TodayRecommendationsService,
+          useValue: {
+            getRandomRecommendations: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get(TodayAnalysisController);
     service = module.get(TodayAnalysisService);
+    recommendationsService = module.get(TodayRecommendationsService);
   });
+
+  // ── generate ──────────────────────────────────────────────────────────
 
   it('should return today analysis envelope', async () => {
     const analysis = makeAnalysis();
@@ -51,7 +62,158 @@ describe('TodayAnalysisController', () => {
       'zh-CN',
     );
   });
+
+  // ── getRecommendations ────────────────────────────────────────────────
+
+  it('returns recommendations with single exclude string', () => {
+    const recs = [
+      { id: 'sleep', text: '今晚早睡 15 分钟。', category: 'sleep' },
+    ];
+    recommendationsService.getRandomRecommendations.mockReturnValue(recs);
+
+    const result = controller.getRecommendations('hydration', 'zh-CN');
+
+    expect(
+      recommendationsService.getRandomRecommendations,
+    ).toHaveBeenCalledWith(['hydration'], 'zh-CN');
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: recs,
+    });
+  });
+
+  it('returns recommendations with array exclude', () => {
+    const recs = [
+      { id: 'sleep', text: 'Go to bed 15 minutes earlier.', category: 'sleep' },
+    ];
+    recommendationsService.getRandomRecommendations.mockReturnValue(recs);
+
+    const result = controller.getRecommendations(['hydration', 'walk'], 'en');
+
+    expect(
+      recommendationsService.getRandomRecommendations,
+    ).toHaveBeenCalledWith(['hydration', 'walk'], 'en');
+    expect(result.data).toEqual(recs);
+  });
+
+  it('returns recommendations with no exclude', () => {
+    const recs = [{ id: 'hydration', text: 'Drink water.' }];
+    recommendationsService.getRandomRecommendations.mockReturnValue(recs);
+
+    const result = controller.getRecommendations(undefined, 'en');
+
+    expect(
+      recommendationsService.getRandomRecommendations,
+    ).toHaveBeenCalledWith([], 'en');
+    expect(result.data).toEqual(recs);
+  });
+
+  // ── generateStream ────────────────────────────────────────────────────
+
+  it('writes SSE events for summary, result, and done on success', async () => {
+    const analysisResult = makeAnalysis();
+    service.generateStream.mockImplementation(
+      async (_userId, _dto, _lang, onSummary) => {
+        await onSummary({ summary: 'partial text' });
+        return analysisResult;
+      },
+    );
+
+    const events: Array<{ event: string; data: unknown }> = [];
+    const response = makeMockResponse(events);
+
+    await controller.generateStream(
+      { sub: 'u1', email: 'a@b.c' },
+      { date: '2026-06-12' },
+      'zh-CN',
+      response,
+    );
+
+    const eventTypes = events.map((e) => e.event);
+    expect(eventTypes).toContain('summary');
+    expect(eventTypes).toContain('result');
+    expect(eventTypes).toContain('done');
+
+    const summaryEvent = events.find((e) => e.event === 'summary')!;
+    expect(summaryEvent.data).toEqual({ summary: 'partial text' });
+
+    const resultEvent = events.find((e) => e.event === 'result')!;
+    expect(resultEvent.data).toEqual(analysisResult);
+
+    // response.end should have been called (by endSse)
+    expect(response.end).toHaveBeenCalled();
+  });
+
+  it('writes SSE error event and ends stream when service throws', async () => {
+    service.generateStream.mockRejectedValue(new Error('LLM down'));
+
+    const events: Array<{ event: string; data: unknown }> = [];
+    const response = makeMockResponse(events);
+
+    await controller.generateStream(
+      { sub: 'u1', email: 'a@b.c' },
+      { date: '2026-06-12' },
+      'zh-CN',
+      response,
+    );
+
+    const errorEvent = events.find((e) => e.event === 'error')!;
+    expect(errorEvent).toBeDefined();
+    expect(errorEvent.data).toEqual({ message: 'LLM down' });
+
+    // Should still have ended the stream
+    expect(response.end).toHaveBeenCalled();
+  });
+
+  it('writes SSE error event with generic message for non-Error', async () => {
+    service.generateStream.mockRejectedValue('string error');
+
+    const events: Array<{ event: string; data: unknown }> = [];
+    const response = makeMockResponse(events);
+
+    await controller.generateStream(
+      { sub: 'u1', email: 'a@b.c' },
+      { date: '2026-06-12' },
+      'zh-CN',
+      response,
+    );
+
+    const errorEvent = events.find((e) => e.event === 'error')!;
+    expect(errorEvent.data).toEqual({ message: 'Unexpected error.' });
+  });
 });
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+
+function makeMockResponse(
+  events: Array<{ event: string; data: unknown }>,
+): Response {
+  let buffer = '';
+  const res = {
+    status: jest.fn().mockReturnThis(),
+    setHeader: jest.fn().mockReturnThis(),
+    flushHeaders: jest.fn().mockReturnThis(),
+    write: jest.fn((chunk: string) => {
+      buffer += chunk;
+      // SSE events are separated by \n\n
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop() ?? '';
+      for (const part of parts) {
+        const eventMatch = part.match(/event: (\w+)/);
+        const dataMatch = part.match(/data: (.+)/);
+        if (eventMatch && dataMatch) {
+          events.push({
+            event: eventMatch[1]!,
+            data: JSON.parse(dataMatch[1]!),
+          });
+        }
+      }
+    }),
+    end: jest.fn(),
+  };
+  return res as unknown as Response;
+}
 
 function makeAnalysis(
   overrides: Partial<TodayAnalysisDataDto> = {},

@@ -146,6 +146,57 @@ describe('LlmRuntimeService', () => {
     });
   });
 
+  // ── getModelName ──────────────────────────────────────────────────────
+
+  describe('getModelName', () => {
+    it('returns the model name for a configured role', () => {
+      const service = new LlmRuntimeService(baseConfig);
+
+      expect(service.getModelName('analysis')).toBe('analysis-model');
+    });
+
+    it('returns null when the role model is not set', () => {
+      const service = new LlmRuntimeService(baseConfig);
+
+      expect(service.getModelName('chat')).toBeNull();
+    });
+
+    it('returns the model name for every configured role in a full config', () => {
+      const fullConfig: AiConfig = {
+        ...baseConfig,
+        vision: {
+          apiKey: 'v-key',
+          baseUrl: 'https://v.test',
+          model: 'v-model',
+        },
+        language: {
+          apiKey: 'l-key',
+          baseUrl: 'https://l.test',
+          model: 'l-model',
+        },
+        chat: { apiKey: 'c-key', baseUrl: 'https://c.test', model: 'c-model' },
+        chatCompression: {
+          apiKey: 'cc-key',
+          baseUrl: 'https://cc.test',
+          model: 'cc-model',
+        },
+        embedding: {
+          apiKey: 'e-key',
+          baseUrl: 'https://e.test',
+          model: 'e-model',
+        },
+      };
+      const service = new LlmRuntimeService(fullConfig);
+
+      expect(service.getModelName('analysis')).toBe('analysis-model');
+      expect(service.getModelName('vision')).toBe('v-model');
+      expect(service.getModelName('language')).toBe('l-model');
+      expect(service.getModelName('chat')).toBe('c-model');
+      expect(service.getModelName('chatCompression')).toBe('cc-model');
+      expect(service.getModelName('embedding')).toBe('e-model');
+    });
+  });
+
   // ── createChatModel ────────────────────────────────────────────────────
 
   describe('createChatModel', () => {

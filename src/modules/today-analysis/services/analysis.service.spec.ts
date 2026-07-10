@@ -297,6 +297,126 @@ describe('TodayAnalysisService', () => {
     expect(result.actionLabel).toBe('查看今日记录');
   });
 
+  it('uses today UTC date when dto.date is omitted', async () => {
+    const service = createService();
+    // Override the context mock to echo the date passed to build()
+    (
+      service as unknown as {
+        contextService: { build: jest.Mock };
+      }
+    ).contextService.build.mockImplementation(
+      (_userId: string, date: string) => ({
+        ...baseContext,
+        date,
+      }),
+    );
+    modelGenerateSpy(service).mockResolvedValue({
+      summary: '今日记录良好。',
+      bullets: [
+        { kind: 'medication', text: '用药全部完成。' },
+        { kind: 'hydration', text: '饮水已达标。' },
+      ],
+      actionLabel: '查看今日记录',
+      action: 'today',
+      confidenceNote: '仅供参考。',
+    });
+
+    const result = await service.generate('u1', {}, 'zh-CN');
+
+    const today = new Date(
+      Date.UTC(
+        new Date().getUTCFullYear(),
+        new Date().getUTCMonth(),
+        new Date().getUTCDate(),
+      ),
+    )
+      .toISOString()
+      .slice(0, 10);
+
+    expect(result.date).toBe(today);
+  });
+
+  it('swallows notification failure without breaking generation', async () => {
+    const service = createService();
+    modelGenerateSpy(service).mockResolvedValue({
+      summary: '今日记录良好。',
+      bullets: [
+        { kind: 'medication', text: '用药全部完成。' },
+        { kind: 'hydration', text: '饮水已达标。' },
+      ],
+      actionLabel: '查看今日记录',
+      action: 'today',
+      confidenceNote: '仅供参考。',
+    });
+
+    // Make notificationsService.createOrReplaceScoped throw on every call
+    const notifySpy = notificationCreateOrReplaceScopedSpy(service);
+    notifySpy.mockRejectedValue(new Error('notification service down'));
+
+    // Should not throw
+    const result = await service.generate(
+      'u1',
+      { date: '2026-06-12' },
+      'zh-CN',
+    );
+
+    expect(result.summary).toBe('今日记录良好。');
+    expect(notifySpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('builds proactive suggestion notification from summary when bullets are empty', async () => {
+    const service = createService();
+    const notifySpy = notificationCreateOrReplaceScopedSpy(service);
+    modelGenerateSpy(service).mockResolvedValue({
+      summary: '今日整体状态稳定。',
+      bullets: [],
+      actionLabel: '查看今日记录',
+      action: 'today',
+      confidenceNote: '仅供参考。',
+    });
+
+    const result = await service.generate(
+      'u1',
+      { date: '2026-06-12' },
+      'zh-CN',
+    );
+
+    expect(result.bullets).toEqual([]);
+
+    // The 2nd notification call (proactive suggestion) should use the summary text
+    // because bullets[0] is undefined
+    const secondCallArgs = notifySpy.mock.calls[1];
+    expect(secondCallArgs?.[1]?.content).toBe('今日整体状态稳定。');
+  });
+
+  it('includes confidenceNote in the persisted data', async () => {
+    const service = createService();
+    const aiSummaryHistoryService = (
+      service as unknown as {
+        aiSummaryHistoryService: { save: jest.Mock };
+      }
+    ).aiSummaryHistoryService;
+
+    modelGenerateSpy(service).mockResolvedValue({
+      summary: '今日状态良好。',
+      bullets: [
+        { kind: 'medication', text: '用药完成。' },
+        { kind: 'hydration', text: '饮水达标。' },
+      ],
+      actionLabel: '查看今日记录',
+      action: 'today',
+      confidenceNote: '高置信度。',
+    });
+
+    await service.generate('u1', { date: '2026-06-12' }, 'zh-CN');
+
+    expect(aiSummaryHistoryService.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        confidenceNote: '高置信度。',
+      }),
+    );
+  });
+
   function createService(options?: {
     userSettingValue?: boolean;
     config?: AiConfig;
