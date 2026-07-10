@@ -1,0 +1,172 @@
+import { Test, type TestingModule } from '@nestjs/testing';
+import { ResultCode } from '../../common/api';
+import { UserHealthContextController } from './user-health-context.controller';
+import { UserHealthContextService } from './services';
+import type { UserPayload } from '../auth/services/auth.service';
+
+describe('UserHealthContextController', () => {
+  let controller: UserHealthContextController;
+  let service: jest.Mocked<UserHealthContextService>;
+
+  const mockUser: UserPayload = { sub: 'user-1', email: 'test@example.com' };
+  const mockResponse = {
+    profile: null,
+    allergies: [],
+    conditions: [],
+    currentMedicines: [],
+  };
+
+  beforeEach(async () => {
+    service = {
+      getForUser: jest.fn().mockResolvedValue(mockResponse),
+      updateProfile: jest.fn().mockResolvedValue(mockResponse),
+      createAllergy: jest.fn().mockResolvedValue(mockResponse),
+      updateAllergy: jest.fn().mockResolvedValue(mockResponse),
+      deleteAllergy: jest.fn().mockResolvedValue(mockResponse),
+      createCondition: jest.fn().mockResolvedValue(mockResponse),
+      updateCondition: jest.fn().mockResolvedValue(mockResponse),
+      deleteCondition: jest.fn().mockResolvedValue(mockResponse),
+      createCurrentMedicine: jest.fn().mockResolvedValue(mockResponse),
+      updateCurrentMedicine: jest.fn().mockResolvedValue(mockResponse),
+      deleteCurrentMedicine: jest.fn().mockResolvedValue(mockResponse),
+    } as unknown as jest.Mocked<UserHealthContextService>;
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [UserHealthContextController],
+      providers: [{ provide: UserHealthContextService, useValue: service }],
+    }).compile();
+
+    controller = module.get(UserHealthContextController);
+  });
+
+  const expectEnvelope = (result: unknown) => {
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: mockResponse,
+    });
+  };
+
+  describe('GET /', () => {
+    it('returns health context for user', async () => {
+      const result = await controller.getUserHealthContext(mockUser);
+      expect(service.getForUser).toHaveBeenCalledWith('user-1');
+      expectEnvelope(result);
+    });
+  });
+
+  describe('PATCH /profile', () => {
+    it('updates profile and returns health context', async () => {
+      const dto = { birthDate: '2000-01-01' };
+      const result = await controller.updateUserHealthContextProfile(
+        mockUser,
+        dto,
+      );
+      expect(service.updateProfile).toHaveBeenCalledWith('user-1', dto);
+      expectEnvelope(result);
+    });
+  });
+
+  // ── Allergy endpoints ──
+
+  describe('POST /allergies', () => {
+    it('creates allergy and returns health context', async () => {
+      const dto = { label: '青霉素', reaction: '皮疹', severity: 'moderate' };
+      const result = await controller.createAllergy(mockUser, dto);
+      expect(service.createAllergy).toHaveBeenCalledWith('user-1', dto);
+      expectEnvelope(result);
+    });
+  });
+
+  describe('PATCH /allergies/:id', () => {
+    it('updates allergy and returns health context', async () => {
+      const dto = { severity: 'severe' };
+      const result = await controller.updateAllergy(mockUser, 'allergy-1', dto);
+      expect(service.updateAllergy).toHaveBeenCalledWith(
+        'user-1',
+        'allergy-1',
+        dto,
+      );
+      expectEnvelope(result);
+    });
+  });
+
+  describe('DELETE /allergies/:id', () => {
+    it('deletes allergy and returns health context', async () => {
+      const result = await controller.deleteAllergy(mockUser, 'allergy-1');
+      expect(service.deleteAllergy).toHaveBeenCalledWith('user-1', 'allergy-1');
+      expectEnvelope(result);
+    });
+  });
+
+  // ── Condition endpoints ──
+
+  describe('POST /conditions', () => {
+    it('creates condition and returns health context', async () => {
+      const dto = { label: '高血压', status: 'active' };
+      const result = await controller.createCondition(mockUser, dto);
+      expect(service.createCondition).toHaveBeenCalledWith('user-1', dto);
+      expectEnvelope(result);
+    });
+  });
+
+  describe('PATCH /conditions/:id', () => {
+    it('updates condition and returns health context', async () => {
+      const dto = { status: 'resolved' };
+      const result = await controller.updateCondition(mockUser, 'cond-1', dto);
+      expect(service.updateCondition).toHaveBeenCalledWith(
+        'user-1',
+        'cond-1',
+        dto,
+      );
+      expectEnvelope(result);
+    });
+  });
+
+  describe('DELETE /conditions/:id', () => {
+    it('deletes condition and returns health context', async () => {
+      const result = await controller.deleteCondition(mockUser, 'cond-1');
+      expect(service.deleteCondition).toHaveBeenCalledWith('user-1', 'cond-1');
+      expectEnvelope(result);
+    });
+  });
+
+  // ── Current medicine endpoints ──
+
+  describe('POST /current-medicines', () => {
+    it('creates current medicine and returns health context', async () => {
+      const dto = { displayName: '氨氯地平片', doseText: '5mg' };
+      const result = await controller.createCurrentMedicine(mockUser, dto);
+      expect(service.createCurrentMedicine).toHaveBeenCalledWith('user-1', dto);
+      expectEnvelope(result);
+    });
+  });
+
+  describe('PATCH /current-medicines/:id', () => {
+    it('updates current medicine and returns health context', async () => {
+      const dto = { doseText: '10mg' };
+      const result = await controller.updateCurrentMedicine(
+        mockUser,
+        'med-1',
+        dto,
+      );
+      expect(service.updateCurrentMedicine).toHaveBeenCalledWith(
+        'user-1',
+        'med-1',
+        dto,
+      );
+      expectEnvelope(result);
+    });
+  });
+
+  describe('DELETE /current-medicines/:id', () => {
+    it('deletes current medicine and returns health context', async () => {
+      const result = await controller.deleteCurrentMedicine(mockUser, 'med-1');
+      expect(service.deleteCurrentMedicine).toHaveBeenCalledWith(
+        'user-1',
+        'med-1',
+      );
+      expectEnvelope(result);
+    });
+  });
+});
