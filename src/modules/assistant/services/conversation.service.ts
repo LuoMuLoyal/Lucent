@@ -3,8 +3,6 @@ import { truncate } from '../../../common/helpers/string.utils';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import { AssistantConversationStatus, Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
 import type {
   AssistantConversationMessage,
   AssistantConversationSnapshot,
@@ -17,61 +15,34 @@ import {
   MEMORY_MESSAGE_LIMIT,
   RECENT_CONVERSATION_LIMIT,
 } from '../tools/constants';
-
-const conversationWithMessagesArgs = {
-  include: {
-    messages: {
-      orderBy: { createdAt: 'asc' as const },
-    },
-  },
-} satisfies Prisma.AssistantConversationDefaultArgs;
-
-const conversationSummaryArgs = {
-  select: {
-    id: true,
-    title: true,
-    status: true,
-    lastMessageAt: true,
-    createdAt: true,
-    updatedAt: true,
-  },
-} satisfies Prisma.AssistantConversationDefaultArgs;
-
-type PersistedConversation = Prisma.AssistantConversationGetPayload<
-  typeof conversationWithMessagesArgs
->;
-
-type PersistedConversationSummary = Prisma.AssistantConversationGetPayload<
-  typeof conversationSummaryArgs
->;
+import {
+  AssistantConversationRepositoryPort,
+  type ConversationWithMessages,
+  type ConversationSummary,
+} from '../repositories/conversation.repository';
 
 @Injectable()
 export class AssistantConversationService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: AssistantConversationRepositoryPort,
     private readonly i18n: I18nService,
   ) {}
 
   async getLatestConversation(
     userId: string,
   ): Promise<AssistantConversationSnapshot | null> {
-    const conversation = await this.findLatestActiveConversation(userId);
+    const conversation =
+      await this.repository.findLatestActiveWithMessages(userId);
     return conversation == null ? null : this.toSnapshot(conversation);
   }
 
   async listRecentConversations(
     userId: string,
   ): Promise<AssistantConversationSummary[]> {
-    const conversations = await this.prisma.assistantConversation.findMany({
-      ...conversationSummaryArgs,
-      where: { userId },
-      orderBy: [
-        { lastMessageAt: 'desc' },
-        { updatedAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
-      take: RECENT_CONVERSATION_LIMIT,
-    });
+    const conversations = await this.repository.listRecentSummaries(
+      userId,
+      RECENT_CONVERSATION_LIMIT,
+    );
 
     return conversations.map((conversation) => this.toSummary(conversation));
   }
@@ -80,35 +51,18 @@ export class AssistantConversationService {
     userId: string,
     conversationId: string,
   ): Promise<AssistantConversationSnapshot> {
-    const conversation = await this.prisma.assistantConversation.findFirst({
-      ...conversationWithMessagesArgs,
-      where: { id: conversationId, userId },
-    });
+    const conversation = await this.repository.findWithMessages(
+      userId,
+      conversationId,
+    );
 
     if (conversation == null) {
       notFound(this.i18n.t('assistant.conversation_not_found'));
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.assistantConversation.updateMany({
-        where: {
-          userId,
-          status: AssistantConversationStatus.active,
-          id: { not: conversationId },
-        },
-        data: { status: AssistantConversationStatus.archived },
-      });
+    await this.repository.activateConversation(userId, conversationId);
 
-      await tx.assistantConversation.update({
-        where: { id: conversationId },
-        data: { status: AssistantConversationStatus.active },
-      });
-    });
-
-    const opened = await this.prisma.assistantConversation.findUniqueOrThrow({
-      ...conversationWithMessagesArgs,
-      where: { id: conversationId },
-    });
+    const opened = await this.repository.findWithMessagesById(conversationId);
 
     return this.toSnapshot(opened);
   }
@@ -116,16 +70,13 @@ export class AssistantConversationService {
   async clearLatestConversation(
     userId: string,
   ): Promise<AssistantConversationSnapshot | null> {
-    const conversation = await this.findLatestActiveConversation(userId);
+    const conversation =
+      await this.repository.findLatestActiveWithMessages(userId);
     if (conversation == null) {
       return null;
     }
 
-    const archived = await this.prisma.assistantConversation.update({
-      ...conversationWithMessagesArgs,
-      where: { id: conversation.id },
-      data: { status: AssistantConversationStatus.archived },
-    });
+    const archived = await this.repository.archiveConversation(conversation.id);
 
     return this.toSnapshot(archived);
   }
@@ -137,19 +88,15 @@ export class AssistantConversationService {
     usedTools: string[];
   }): Promise<AssistantConversationSnapshot> {
     const normalized = this.normalizeMessages(input.messages);
-    const activeConversation = await this.findLatestActiveConversation(
-      input.userId,
-    );
+    const activeConversation =
+      await this.repository.findLatestActiveWithMessages(input.userId);
 
     const conversation =
       activeConversation ??
-      (await this.prisma.assistantConversation.create({
-        ...conversationWithMessagesArgs,
-        data: {
-          userId: input.userId,
-          title: this.buildConversationTitle(normalized),
-        },
-      }));
+      (await this.repository.create(
+        input.userId,
+        this.buildConversationTitle(normalized),
+      ));
 
     const existingMessages = conversation.messages.map((message) => ({
       role: message.role,
@@ -162,62 +109,25 @@ export class AssistantConversationService {
     const userMessagesToAppend = normalized.slice(appendStartIndex);
     const assistantNow = now();
 
-    await this.prisma.$transaction(async (tx) => {
-      if (userMessagesToAppend.length > 0) {
-        await tx.assistantMessage.createMany({
-          data: userMessagesToAppend.map((message) => ({
-            conversationId: conversation.id,
-            userId: input.userId,
-            role: message.role,
-            content: message.content,
-            usedTools: [],
-          })),
-        });
-      }
-
-      await tx.assistantMessage.create({
-        data: {
-          conversationId: conversation.id,
-          userId: input.userId,
-          role: 'assistant',
-          content: input.assistantContent,
-          usedTools: input.usedTools,
-          createdAt: assistantNow,
-        },
-      });
-
-      await tx.assistantConversation.update({
-        where: { id: conversation.id },
-        data: {
-          title: conversation.title ?? this.buildConversationTitle(normalized),
-          lastMessageAt: assistantNow,
-        },
-      });
+    const saved = await this.repository.persistTurn({
+      conversationId: conversation.id,
+      userId: input.userId,
+      title: conversation.title ?? this.buildConversationTitle(normalized),
+      messagesToAppend: userMessagesToAppend,
+      assistantContent: input.assistantContent,
+      usedTools: input.usedTools,
+      assistantTimestamp: assistantNow,
     });
 
-    const saved = await this.prisma.assistantConversation.findUniqueOrThrow({
-      ...conversationWithMessagesArgs,
-      where: { id: conversation.id },
-    });
     return this.toSnapshot(saved);
   }
 
   async buildMemoryBlock(userId: string): Promise<string> {
-    const conversations = await this.prisma.assistantConversation.findMany({
-      where: { userId },
-      include: {
-        messages: {
-          orderBy: { createdAt: 'desc' },
-          take: MEMORY_MESSAGE_LIMIT,
-        },
-      },
-      orderBy: [
-        { lastMessageAt: 'desc' },
-        { updatedAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
-      take: MEMORY_CONVERSATION_LIMIT,
-    });
+    const conversations = await this.repository.findForMemory(
+      userId,
+      MEMORY_CONVERSATION_LIMIT,
+      MEMORY_MESSAGE_LIMIT,
+    );
 
     if (conversations.length === 0) {
       return '';
@@ -245,20 +155,6 @@ export class AssistantConversationService {
     );
 
     return lines.join('\n');
-  }
-
-  private async findLatestActiveConversation(
-    userId: string,
-  ): Promise<PersistedConversation | null> {
-    return this.prisma.assistantConversation.findFirst({
-      ...conversationWithMessagesArgs,
-      where: { userId, status: AssistantConversationStatus.active },
-      orderBy: [
-        { lastMessageAt: 'desc' },
-        { updatedAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
-    });
   }
 
   private normalizeMessages(
@@ -319,7 +215,7 @@ export class AssistantConversationService {
   }
 
   private toSnapshot(
-    conversation: PersistedConversation,
+    conversation: ConversationWithMessages,
   ): AssistantConversationSnapshot {
     return {
       id: conversation.id,
@@ -338,7 +234,7 @@ export class AssistantConversationService {
   }
 
   private toSummary(
-    conversation: PersistedConversationSummary,
+    conversation: ConversationSummary,
   ): AssistantConversationSummary {
     return {
       id: conversation.id,

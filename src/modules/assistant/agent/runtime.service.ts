@@ -119,7 +119,7 @@ export class AssistantRuntimeService {
       input.userMessage,
       allowedTools,
     );
-    return {
+    return Promise.resolve({
       userId: input.userId,
       userMessage: input.userMessage,
       locale: input.locale,
@@ -134,7 +134,7 @@ export class AssistantRuntimeService {
       retrievalEvidence: selectedTools,
       stopReason: selectedTools.length > 0 ? 'answered' : 'no_match',
       route: 'respond',
-    };
+    } as unknown as AssistantRuntimeState);
   }
 
   /**

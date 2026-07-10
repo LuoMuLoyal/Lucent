@@ -163,7 +163,7 @@ describe('AssistantFoundationGraph', () => {
         return Promise.resolve(
           new AIMessage({
             content: '',
-            tool_calls: [{ name: 'get_user_profile', id: 'call_0' }],
+            tool_calls: [{ name: 'get_user_profile', id: 'call_0', args: {} }],
           }),
         );
       }
@@ -205,7 +205,7 @@ describe('AssistantFoundationGraph', () => {
     const mockInvoke = jest.fn().mockResolvedValue(
       new AIMessage({
         content: '',
-        tool_calls: [{ name: 'get_user_profile', id: 'call_0' }],
+        tool_calls: [{ name: 'get_user_profile', id: 'call_0', args: {} }],
       }),
     );
     const mockModel = {

@@ -21,6 +21,12 @@ import {
   MEDICINE_REMINDER_READER,
 } from './types/ports';
 import {
+  AssistantConversationRepository,
+  AssistantConversationRepositoryPort,
+  AssistantSummaryRepository,
+  AssistantSummaryRepositoryPort,
+} from './repositories';
+import {
   AssistantContextService,
   AssistantToolDrugbankEntityResolveService,
   AssistantToolDrugbankSearchService,
@@ -46,6 +52,14 @@ import {
   controllers: [AssistantController],
   providers: [
     AssistantRuntimeService,
+    {
+      provide: AssistantConversationRepositoryPort,
+      useClass: AssistantConversationRepository,
+    },
+    {
+      provide: AssistantSummaryRepositoryPort,
+      useClass: AssistantSummaryRepository,
+    },
     AssistantConversationService,
     AssistantPolicyService,
     HistoricalAiSummaryService,
