@@ -8,7 +8,7 @@ Last updated: 2026-07-11
 
 - [[00-current/Assistant_Runtime]] — Assistant 运行时、检索链路、今日分析通知
 - [[00-current/Medicine_Data_RAG]] — 药品知识库、RAG 索引、slot-aware dose log 合同
-- [[00-current/Public_Support_Resources]] — 公共支持资源
+- [[00-current/Public_Support_Resources]] — 公共支持资源、法律文档管理 API
 - [[00-current/Toolchain_Contract]] — 工具链、OpenAPI 合同、环境变量解析
 - [[00-current/Auth_Security_PIN]] — 认证、OAuth、Security PIN、安全配置
 - [[00-current/Report_Export]] — 报告导出、PDF 生成
@@ -64,6 +64,14 @@ Last updated: 2026-07-11
 - **Prometheus 适配**：抓取目标改为 `app-blue:3000` + `app-green:3000`
 - **生产日志双写**：Pino stdout JSON + `pino-roll` 按天分割文件（`./logs/lucent.YYYY-MM-DD.log`，500MB 上限）
 - **优雅关闭**：`enableShutdownHooks()` + `stop_grace_period: 30s` + SIGTERM
+
+## 2026-07-11 法律文档管理 API
+
+- **新增模块**：`legal-documents`（`src/modules/legal-documents/`），公开端点 `GET /api/v1/legal-documents` 和 `GET /api/v1/legal-documents/:docType`
+- **数据模型**：Prisma `LegalDocument` 模型，存储 7 类法律文档（terms、privacy、disclaimer、minor-protection、sdk-list、permissions、account-cancellation），支持中英文双语内容
+- **语言切换**：`?lang=zh|en` 查询参数，默认 `zh`
+- **AdminJS 管理**：`LegalDocument` 资源已在 AdminJS 面板注册，可直接编辑文档内容
+- **迁移数据**：迁移脚本已插入 placeholder Markdown 内容，待法务审阅后替换
 
 ## 相关文档
 

@@ -242,4 +242,36 @@ export const coreResourceOverrides: Record<
       },
     },
   },
+  LegalDocument: {
+    navigation: 'Legal & Compliance',
+    listProperties: ['id', 'docType', 'titleZh', 'titleEn', 'isActive'],
+    showProperties: [
+      'id',
+      'docType',
+      'titleZh',
+      'titleEn',
+      'contentZh',
+      'contentEn',
+      'isActive',
+      'createdAt',
+      'updatedAt',
+    ],
+    filterProperties: ['docType', 'isActive'],
+    titleProperty: 'docType',
+    sort: { sortBy: 'updatedAt', direction: 'desc' },
+    readOnly: false,
+    properties: {
+      docType: {
+        availableValues: [
+          { value: 'terms', label: 'terms' },
+          { value: 'privacy', label: 'privacy' },
+          { value: 'disclaimer', label: 'disclaimer' },
+          { value: 'minor-protection', label: 'minor-protection' },
+          { value: 'sdk-list', label: 'sdk-list' },
+          { value: 'permissions', label: 'permissions' },
+          { value: 'account-cancellation', label: 'account-cancellation' },
+        ],
+      },
+    },
+  },
 };

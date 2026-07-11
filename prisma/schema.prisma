@@ -1166,3 +1166,19 @@ model UserSuggestionFeedback {
   @@index([userId, suggestionId])
   @@map("user_suggestion_feedbacks")
 }
+
+/// Legal / compliance documents served to the Luminous app.
+model LegalDocument {
+  id        String   @id @default(uuid())
+  docType   String   @unique @map("doc_type")
+  titleZh   String   @map("title_zh")
+  titleEn   String   @map("title_en")
+  contentZh String   @map("content_zh")
+  contentEn String   @map("content_en")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([isActive])
+  @@map("legal_documents")
+}

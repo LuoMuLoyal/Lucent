@@ -32,6 +32,7 @@ import { EnvironmentModule } from './modules/environment/environment.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { UserSettingsModule } from './modules/user-settings/user-settings.module';
 import { SupportResourcesModule } from './modules/support-resources/support-resources.module';
+import { LegalDocumentsModule } from './modules/legal-documents/legal-documents.module';
 import { DataExportModule } from './modules/data-export/data-export.module';
 import { FilesModule } from './modules/files/files.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -87,6 +88,7 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
     TodaySuggestionModule,
     UserSettingsModule,
     SupportResourcesModule,
+    LegalDocumentsModule,
     DataExportModule,
     FilesModule,
     NotificationsModule,

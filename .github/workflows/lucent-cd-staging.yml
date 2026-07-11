@@ -16,8 +16,7 @@ jobs:
   deploy:
     name: Deploy to Staging
     runs-on: ubuntu-latest
-    environment:
-      name: staging
+    environment: staging
     if: |
       (github.event_name == 'workflow_dispatch' && github.ref_name == 'main') ||
       (
