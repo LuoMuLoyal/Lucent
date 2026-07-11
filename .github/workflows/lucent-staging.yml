@@ -1,4 +1,4 @@
-name: lucent-cd-staging
+name: lucent-staging
 
 on:
   workflow_dispatch:

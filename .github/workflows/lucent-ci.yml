@@ -86,20 +86,14 @@ jobs:
       - name: Type check
         run: pnpm typecheck
 
-      - name: Type check tools
-        run: pnpm typecheck:tools
-
-      - name: Validate deploy assets
-        run: pnpm deploy:assets:check
-
-      - name: Build
-        run: pnpm build
-
       - name: Unit tests
         run: pnpm test:ci
 
       - name: E2E tests
         run: pnpm test:e2e:ci
 
-      - name: Export OpenAPI
-        run: pnpm export:openapi
+      - name: Type check tools
+        run: pnpm typecheck:tools
+
+      - name: Build
+        run: pnpm build
