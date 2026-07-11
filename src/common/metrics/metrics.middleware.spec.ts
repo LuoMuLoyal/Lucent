@@ -146,4 +146,75 @@ describe('createMetricsMiddleware', () => {
       expect.any(Number),
     );
   });
+
+  it('records POST method', () => {
+    const req = createMockReq('/api/v1/auth/login', 'POST');
+    const res = createMockRes();
+    const next = jest.fn() as unknown as NextFunction;
+
+    middleware(req, res, next);
+    res.emit('finish');
+
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+      'POST',
+      '/api/v1/auth/login',
+      200,
+      expect.any(Number),
+    );
+  });
+
+  it('records 500 status code', () => {
+    const req = createMockReq('/api/v1/broken', 'GET');
+    const res = createMockRes();
+    res.statusCode = 500;
+    const next = jest.fn() as unknown as NextFunction;
+
+    middleware(req, res, next);
+    res.emit('finish');
+
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+      'GET',
+      '/api/v1/broken',
+      500,
+      expect.any(Number),
+    );
+  });
+
+  it('normalizes mixed UUID and numeric IDs in path', () => {
+    const req = createMockReq(
+      '/api/v1/users/550e8400-e29b-41d4-a716-446655440000/items/42',
+    );
+    const res = createMockRes();
+    const next = jest.fn() as unknown as NextFunction;
+
+    middleware(req, res, next);
+    res.emit('finish');
+
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+      'GET',
+      '/api/v1/users/:id/items/:id',
+      200,
+      expect.any(Number),
+    );
+  });
+
+  it('uses originalUrl when available', () => {
+    const req = {
+      url: '/fallback',
+      originalUrl: '/api/v1/original-path',
+      method: 'PUT',
+    } as unknown as Request;
+    const res = createMockRes();
+    const next = jest.fn() as unknown as NextFunction;
+
+    middleware(req, res, next);
+    res.emit('finish');
+
+    expect(metricsService.recordHttpRequest).toHaveBeenCalledWith(
+      'PUT',
+      '/api/v1/original-path',
+      200,
+      expect.any(Number),
+    );
+  });
 });

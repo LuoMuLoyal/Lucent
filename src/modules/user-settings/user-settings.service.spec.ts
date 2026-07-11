@@ -175,4 +175,60 @@ describe('UserSettingsService', () => {
       },
     });
   });
+
+  it('does not call upsert when update payload is empty', async () => {
+    const upsert = jest.fn().mockResolvedValue(undefined);
+    const prisma = {
+      userSetting: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert,
+      },
+      user: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          securityPinEnabled: false,
+          securityPinChangedAt: null,
+        }),
+      },
+    } as unknown as PrismaService;
+
+    const service = new UserSettingsService(prisma);
+
+    await service.updateSettings('user-1', {});
+
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('upserts waterTargetCount as a setting key', async () => {
+    const upsert = jest.fn().mockResolvedValue(undefined);
+    const prisma = {
+      userSetting: {
+        findMany: jest.fn().mockResolvedValue([]),
+        upsert,
+      },
+      user: {
+        findUniqueOrThrow: jest.fn().mockResolvedValue({
+          securityPinEnabled: false,
+          securityPinChangedAt: null,
+        }),
+      },
+    } as unknown as PrismaService;
+
+    const service = new UserSettingsService(prisma);
+
+    await service.updateSettings('user-1', { waterTargetCount: 12 });
+
+    expect(upsert).toHaveBeenCalledWith({
+      where: {
+        userId_key: { userId: 'user-1', key: 'waterTargetCount' },
+      },
+      create: {
+        userId: 'user-1',
+        key: 'waterTargetCount',
+        value: 12,
+      },
+      update: {
+        value: 12,
+      },
+    });
+  });
 });

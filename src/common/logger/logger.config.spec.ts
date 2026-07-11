@@ -61,14 +61,25 @@ describe('createLoggerOptions', () => {
     expect(message).toBe('POST /api/v1/login completed 201 in 0ms');
   });
 
-  it('customErrorMessage includes status code', () => {
+  it('customErrorMessage includes 4xx status code', () => {
     const options = getPinoHttpOptions('production', '');
-    const req = createMockRequest('GET', '/api/v1/broken');
-    const res = createMockResponse(500);
-    const error = new Error('Internal failure');
+    const req = createMockRequest('GET', '/api/v1/forbidden');
+    const res = createMockResponse(403);
+    const error = new Error('Forbidden');
 
     const message = options.customErrorMessage!(req, res, error);
 
-    expect(message).toBe('GET /api/v1/broken failed 500');
+    expect(message).toBe('GET /api/v1/forbidden failed 403');
+  });
+
+  it('customErrorMessage includes 5xx status code', () => {
+    const options = getPinoHttpOptions('production', '');
+    const req = createMockRequest('POST', '/api/v1/data');
+    const res = createMockResponse(502);
+    const error = new Error('Bad gateway');
+
+    const message = options.customErrorMessage!(req, res, error);
+
+    expect(message).toBe('POST /api/v1/data failed 502');
   });
 });

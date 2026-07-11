@@ -117,5 +117,28 @@ describe('localized-copy', () => {
       expect(result).toContain(JSON.stringify(context));
       expect(result.split('\n')).toHaveLength(5);
     });
+
+    it('handles empty context object', () => {
+      const copy = {
+        userIntro: 'Hello',
+        tone: 'friendly',
+        actionLabelHint: 'Use action',
+        factsLabel: 'Facts:',
+      };
+      const result = buildUserPrompt({}, copy);
+      expect(result).toContain('{}');
+    });
+
+    it('handles context with null values', () => {
+      const copy = {
+        userIntro: 'Hello',
+        tone: 'friendly',
+        actionLabelHint: 'Use action',
+        factsLabel: 'Facts:',
+      };
+      const context = { key: null, other: undefined };
+      const result = buildUserPrompt(context, copy);
+      expect(result).toContain(JSON.stringify(context));
+    });
   });
 });

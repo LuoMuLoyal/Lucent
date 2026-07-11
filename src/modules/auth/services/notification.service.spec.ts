@@ -81,6 +81,22 @@ describe('AuthNotificationService', () => {
         }),
       );
     });
+
+    it('uses wechat_mobile label for wechat_mobile provider', async () => {
+      const profile: OAuthProfile = {
+        provider: 'wechat_mobile',
+        providerUserId: 'wx-mobile',
+      };
+
+      await service.notifyOAuthLogin('user-1', profile);
+
+      expect(notificationsService.create).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({
+          content: expect.stringContaining('微信'),
+        }),
+      );
+    });
   });
 
   describe('notifyIdentityLinked', () => {
@@ -97,6 +113,54 @@ describe('AuthNotificationService', () => {
         expect.objectContaining({
           title: '账户绑定提醒',
           content: expect.stringContaining('微信'),
+        }),
+      );
+    });
+
+    it('uses Apple label for apple provider binding', async () => {
+      const profile: OAuthProfile = {
+        provider: 'apple',
+        providerUserId: 'apple-456',
+      };
+
+      await service.notifyIdentityLinked('user-1', profile);
+
+      expect(notificationsService.create).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({
+          content: expect.stringContaining('Apple'),
+        }),
+      );
+    });
+
+    it('uses QQ label for qq provider binding', async () => {
+      const profile: OAuthProfile = {
+        provider: 'qq',
+        providerUserId: 'qq-456',
+      };
+
+      await service.notifyIdentityLinked('user-1', profile);
+
+      expect(notificationsService.create).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({
+          content: expect.stringContaining('QQ'),
+        }),
+      );
+    });
+
+    it('falls back to raw provider name for unknown provider binding', async () => {
+      const profile: OAuthProfile = {
+        provider: 'github' as never,
+        providerUserId: 'gh-1',
+      };
+
+      await service.notifyIdentityLinked('user-1', profile);
+
+      expect(notificationsService.create).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({
+          content: expect.stringContaining('github'),
         }),
       );
     });

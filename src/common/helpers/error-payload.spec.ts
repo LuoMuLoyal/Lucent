@@ -146,4 +146,53 @@ describe('httpExceptionPayload', () => {
     expect(result.message).toBe('kaboom');
     expect(result.statusCode).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
   });
+
+  // ── Additional boundary cases ─────────────────────────────────────────
+
+  it('joins empty array message to empty string', () => {
+    const exc = new HttpException(
+      { message: [], code: 400001 },
+      HttpStatus.BAD_REQUEST,
+    );
+    const result = httpExceptionPayload(exc);
+    // Empty array is joined → '' is returned directly (not falling back to error.message)
+    expect(result.message).toBe('');
+    expect(result.code).toBe(400001);
+    expect(result.statusCode).toBe(HttpStatus.BAD_REQUEST);
+  });
+
+  it('handles single-element array message', () => {
+    const exc = new HttpException(
+      { message: ['only one'], code: 400002 },
+      HttpStatus.BAD_REQUEST,
+    );
+    const result = httpExceptionPayload(exc);
+    expect(result.message).toBe('only one');
+    expect(result.code).toBe(400002);
+  });
+
+  it('handles Error subclass with custom properties', () => {
+    class CustomError extends Error {
+      constructor(
+        message: string,
+        readonly code: number,
+      ) {
+        super(message);
+        this.name = 'CustomError';
+      }
+    }
+    const result = httpExceptionPayload(new CustomError('custom broke', 5001));
+    expect(result.message).toBe('custom broke');
+    expect(result.code).toBeUndefined(); // code from Error subclass is not extracted
+  });
+
+  it('handles HttpException with zero as numeric code', () => {
+    const exc = new HttpException(
+      { message: 'zero code', code: 0 },
+      HttpStatus.BAD_REQUEST,
+    );
+    const result = httpExceptionPayload(exc);
+    expect(result.code).toBe(0);
+    expect(result.message).toBe('zero code');
+  });
 });

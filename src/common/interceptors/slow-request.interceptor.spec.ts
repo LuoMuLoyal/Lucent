@@ -105,6 +105,44 @@ describe('SlowRequestInterceptor', () => {
       });
   });
 
+  it('logs POST method and handler name when slow', (done) => {
+    configGet.mockReturnValue(0);
+    const ctx = createMockContext('AuthController');
+    const postReq = {
+      method: 'POST',
+      originalUrl: '/api/v1/auth/login',
+      url: '/api/v1/auth/login',
+    };
+    // Override the mock request for this test
+    ctx.switchToHttp = () => ({ getRequest: () => postReq }) as never;
+
+    interceptor.intercept(ctx, createMockCallHandler()).subscribe({
+      next: () => {
+        expect(loggerWarn).toHaveBeenCalledTimes(1);
+        const logData = loggerWarn.mock.calls[0][0];
+        expect(logData.method).toBe('POST');
+        expect(logData.path).toBe('/api/v1/auth/login');
+        expect(logData.handler).toBe('AuthController');
+        done();
+      },
+    });
+  });
+
+  it('includes durationMs and threshold in slow log', (done) => {
+    configGet.mockReturnValue(0);
+
+    interceptor
+      .intercept(createMockContext(), createMockCallHandler())
+      .subscribe({
+        next: () => {
+          const logData = loggerWarn.mock.calls[0][0];
+          expect(logData.durationMs).toEqual(expect.any(Number));
+          expect(logData.threshold).toBe(0);
+          done();
+        },
+      });
+  });
+
   it('uses default threshold when env is not set', (done) => {
     configGet.mockReturnValue(undefined);
 

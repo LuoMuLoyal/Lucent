@@ -104,6 +104,17 @@ describe('AuthOAuthStateService', () => {
         DEFAULT_OAUTH_STATE_TTL_MS,
       );
     });
+
+    it('should create state for link purpose', async () => {
+      const result = await service.createState('apple', 'link');
+
+      expect(result.state).toBeTruthy();
+      expect(cache.set).toHaveBeenCalledWith(
+        expect.stringContaining('auth:oauth-state:'),
+        expect.objectContaining({ purpose: 'link' }),
+        DEFAULT_OAUTH_STATE_TTL_MS,
+      );
+    });
   });
 
   // ════════════════════════════════════════════════════════════

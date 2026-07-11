@@ -316,6 +316,14 @@ describe('MedicineRemindersMapperService', () => {
     it('clamps to maximum 100', () => {
       expect(service.capDeliveryLimit(200)).toBe(100);
     });
+
+    it('returns 1 when limit is exactly 1', () => {
+      expect(service.capDeliveryLimit(1)).toBe(1);
+    });
+
+    it('returns 100 when limit is exactly 100', () => {
+      expect(service.capDeliveryLimit(100)).toBe(100);
+    });
   });
 
   // ── toItem ─────────────────────────────────────────────────────────────

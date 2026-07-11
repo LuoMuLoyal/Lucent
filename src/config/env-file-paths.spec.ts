@@ -18,9 +18,42 @@ describe('env file path helpers', () => {
     expect(getEnvFilePaths()).toEqual(['.env.test.local', '.env.test']);
   });
 
-  it('returns dotenv load order with base file first so local overrides last', () => {
-    process.env['NODE_ENV'] = 'test';
+  it('handles undefined NODE_ENV by defaulting to development', () => {
+    delete process.env['NODE_ENV'];
 
-    expect(getDotenvLoadOrder()).toEqual(['.env.test', '.env.test.local']);
+    expect(getEnvFilePaths()).toEqual([
+      '.env.development.local',
+      '.env.development',
+    ]);
+    expect(getDotenvLoadOrder()).toEqual([
+      '.env.development',
+      '.env.development.local',
+    ]);
+  });
+
+  it('returns development env files when NODE_ENV is development', () => {
+    process.env['NODE_ENV'] = 'development';
+
+    expect(getEnvFilePaths()).toEqual([
+      '.env.development.local',
+      '.env.development',
+    ]);
+    expect(getDotenvLoadOrder()).toEqual([
+      '.env.development',
+      '.env.development.local',
+    ]);
+  });
+
+  it('returns production env files when NODE_ENV is production', () => {
+    process.env['NODE_ENV'] = 'production';
+
+    expect(getEnvFilePaths()).toEqual([
+      '.env.production.local',
+      '.env.production',
+    ]);
+    expect(getDotenvLoadOrder()).toEqual([
+      '.env.production',
+      '.env.production.local',
+    ]);
   });
 });

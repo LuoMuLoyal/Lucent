@@ -84,5 +84,24 @@ describe('JwtAuthGuard', () => {
         guard.handleRequest(null, undefined, { name: 'SomeOtherError' });
       }).toThrow('Invalid or missing access token');
     });
+
+    it('throws when user is false (not a truthy object)', () => {
+      expect(() => {
+        guard.handleRequest(null, false as never, undefined);
+      }).toThrow('Invalid or missing access token');
+    });
+
+    it('throws when both error and user are present (error takes priority)', () => {
+      const user = { sub: 'user-1' };
+      expect(() => {
+        guard.handleRequest(new Error('auth error'), user, undefined);
+      }).toThrow('Invalid or missing access token');
+    });
+
+    it('throws when info is a string instead of object with name', () => {
+      expect(() => {
+        guard.handleRequest(null, undefined, 'some info string' as never);
+      }).toThrow('Invalid or missing access token');
+    });
   });
 });

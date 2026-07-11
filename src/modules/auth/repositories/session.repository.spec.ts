@@ -208,5 +208,13 @@ describe('AuthSessionRepository', () => {
         expiresAt: true,
       });
     });
+
+    it('returns empty array when user has no active sessions', async () => {
+      prisma.userSession.findMany.mockResolvedValue([] as never);
+
+      const result = await repository.listActiveSessions('user-1');
+
+      expect(result).toEqual([]);
+    });
   });
 });

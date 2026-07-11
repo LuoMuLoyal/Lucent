@@ -1,5 +1,6 @@
 import { ensureOwnedByUser } from './prisma-ownership.helper';
 import { NotFoundException } from '@nestjs/common';
+import { ResultCode } from '../api/api-envelope';
 
 describe('prisma-ownership.helper', () => {
   describe('ensureOwnedByUser', () => {
@@ -29,14 +30,34 @@ describe('prisma-ownership.helper', () => {
       }).toThrow(NotFoundException);
     });
 
-    it('throws with the provided message', () => {
+    it('throws NotFoundException with the exact provided message', () => {
       const record = { id: 'rec-1', userId: 'user-2', name: 'test' };
       try {
-        ensureOwnedByUser(record, 'user-1', 'Record not owned by user');
+        ensureOwnedByUser(record, 'user-1', 'Custom not-found message');
         fail('Should have thrown');
       } catch (e) {
         expect(e).toBeInstanceOf(NotFoundException);
+        const response = (e as NotFoundException).getResponse() as {
+          code: number;
+          message: string;
+        };
+        expect(response.message).toBe('Custom not-found message');
+        expect(response.code).toBe(ResultCode.NOT_FOUND);
       }
+    });
+
+    it('throws when record.userId is empty string and user is different', () => {
+      const record = { id: 'rec-1', userId: '', name: 'test' };
+      expect(() => {
+        ensureOwnedByUser(record, 'user-1', 'Not found');
+      }).toThrow(NotFoundException);
+    });
+
+    it('does not throw when record.userId matches exactly', () => {
+      const record = { id: 'rec-1', userId: 'user-1', name: 'test' };
+      expect(() => {
+        ensureOwnedByUser(record, 'user-1', 'Not found');
+      }).not.toThrow();
     });
   });
 });

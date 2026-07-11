@@ -161,5 +161,55 @@ describe('FilesService', () => {
       expect(result.headers).toEqual({ 'Content-Type': 'image/jpeg' });
       expect(result.objectKey).toMatch(/\.jpg$/);
     });
+
+    it('should accept sizeBytes of 0', () => {
+      const service = new FilesService(runtimeDouble(testConfig()), mockI18n);
+
+      const result = service.createPresignedUpload('user-1', {
+        contentType: 'image/png',
+        sizeBytes: 0,
+      });
+
+      expect(result.objectKey).toBeDefined();
+    });
+
+    it('should accept file at exact size limit', () => {
+      const runtime = runtimeDouble(testConfig({ maxUploadBytes: 1024 }));
+      const service = new FilesService(runtime, mockI18n);
+
+      const result = service.createPresignedUpload('user-1', {
+        contentType: 'image/png',
+        sizeBytes: 1024,
+        fileName: 'exact.png',
+      });
+
+      expect(result.objectKey).toMatch(/\.png$/);
+    });
+
+    it('should use .png extension for image/png content type', () => {
+      const runtime = runtimeDouble(testConfig());
+      const service = new FilesService(runtime, mockI18n);
+
+      const result = service.createPresignedUpload('user-1', {
+        contentType: 'image/png',
+        sizeBytes: 1024,
+        fileName: 'photo.png',
+      });
+
+      expect(result.objectKey).toMatch(/\.png$/);
+    });
+
+    it('should use .gif extension for image/gif content type', () => {
+      const runtime = runtimeDouble(testConfig());
+      const service = new FilesService(runtime, mockI18n);
+
+      const result = service.createPresignedUpload('user-1', {
+        contentType: 'image/gif',
+        sizeBytes: 1024,
+        fileName: 'animation.gif',
+      });
+
+      expect(result.objectKey).toMatch(/\.gif$/);
+    });
   });
 });

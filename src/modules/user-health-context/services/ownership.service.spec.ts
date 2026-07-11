@@ -93,5 +93,26 @@ describe('UserHealthContextOwnershipService', () => {
         service.ensureCurrentMedicineOwnedByUser('u1', 'm1'),
       ).rejects.toThrow(NotFoundException);
     });
+
+    it('throws when allergy record is null', async () => {
+      repository.findAllergyById.mockResolvedValue(null);
+      await expect(
+        service.ensureAllergyOwnedByUser('u1', 'a1'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws when condition record is null', async () => {
+      repository.findConditionById.mockResolvedValue(null);
+      await expect(
+        service.ensureConditionOwnedByUser('u1', 'c1'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws when current medicine record is null', async () => {
+      repository.findCurrentMedicineById.mockResolvedValue(null);
+      await expect(
+        service.ensureCurrentMedicineOwnedByUser('u1', 'm1'),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 });

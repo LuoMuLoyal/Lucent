@@ -120,6 +120,84 @@ describe('ApiEnvelopeInterceptor', () => {
     });
   });
 
+  it('should wrap boolean true data', async () => {
+    const result = await lastValueFrom(
+      interceptor.intercept(
+        createMockExecutionContext(),
+        createMockCallHandler(true),
+      ),
+    );
+
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: true,
+    });
+  });
+
+  it('should wrap numeric data', async () => {
+    const result = await lastValueFrom(
+      interceptor.intercept(
+        createMockExecutionContext(),
+        createMockCallHandler(42),
+      ),
+    );
+
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: 42,
+    });
+  });
+
+  it('should wrap false data (not treated as null/undefined)', async () => {
+    const result = await lastValueFrom(
+      interceptor.intercept(
+        createMockExecutionContext(),
+        createMockCallHandler(false),
+      ),
+    );
+
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: false,
+    });
+  });
+
+  it('should pass through envelope with meta field', async () => {
+    const envelope = {
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: { items: [] },
+      meta: { total: 0, page: 1 },
+    };
+    const result = await lastValueFrom(
+      interceptor.intercept(
+        createMockExecutionContext(),
+        createMockCallHandler(envelope),
+      ),
+    );
+
+    expect(result).toEqual(envelope);
+  });
+
+  it('should wrap object with code but missing data (not treated as envelope)', async () => {
+    const data = { code: 200, message: 'ok' };
+    const result = await lastValueFrom(
+      interceptor.intercept(
+        createMockExecutionContext(),
+        createMockCallHandler(data),
+      ),
+    );
+
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data,
+    });
+  });
+
   it('should skip envelope wrapping when the handler is marked to bypass it', async () => {
     const handler = {};
     Reflect.defineMetadata(SKIP_API_ENVELOPE_KEY, true, handler);
