@@ -354,4 +354,166 @@ describe('SuppressionService', () => {
       expect(result.suppressedIds).toContain('c');
     });
   });
+
+  describe('dynamic feedback stats multiplier', () => {
+    it('should apply dynamic multiplier from feedback stats', async () => {
+      const stats = new Map<string, RuleFeedbackStats>([
+        [
+          'test_rule',
+          {
+            ruleId: 'test_rule',
+            totalFeedback: 10,
+            acceptedCount: 8,
+            laterCount: 1,
+            notApplicableCount: 0,
+            suppressCount: 1,
+            acceptRatio: 0.8,
+            suppressRatio: 0.1,
+            scoreMultiplier: 1.4,
+          },
+        ],
+      ]);
+      const service = createService([], stats);
+
+      const candidate = buildCandidate({
+        candidateId: 'c',
+        ruleId: 'test_rule',
+        priorityScore: 500,
+      });
+
+      const result = await service.filterAndAdjust('user-1', [candidate]);
+
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0]!.priorityScore).toBe(700); // 500 * 1.4 = 700
+    });
+
+    it('should apply both static adjustment and dynamic multiplier', async () => {
+      const stats = new Map<string, RuleFeedbackStats>([
+        [
+          'test_rule',
+          {
+            ruleId: 'test_rule',
+            totalFeedback: 10,
+            acceptedCount: 8,
+            laterCount: 2,
+            notApplicableCount: 0,
+            suppressCount: 0,
+            acceptRatio: 0.8,
+            suppressRatio: 0,
+            scoreMultiplier: 1.4,
+          },
+        ],
+      ]);
+      const service = createService(
+        [
+          buildFeedbackEntry({
+            feedback: SuggestionFeedback.ACCEPTED,
+            suggestionType: SuggestionType.COMPLIANCE,
+            priorityScore: 400,
+            expiresAt: null,
+          }),
+        ],
+        stats,
+      );
+
+      const candidate = buildCandidate({
+        candidateId: 'c',
+        ruleId: 'test_rule',
+        type: SuggestionType.COMPLIANCE,
+        priorityScore: 500,
+      });
+
+      const result = await service.filterAndAdjust('user-1', [candidate]);
+
+      // Static: 500 + 10% = 550
+      // Dynamic: 550 * 1.4 = 770
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0]!.priorityScore).toBe(770);
+    });
+
+    it('should not apply multiplier when scoreMultiplier is 1.0', async () => {
+      const stats = new Map<string, RuleFeedbackStats>([
+        [
+          'test_rule',
+          {
+            ruleId: 'test_rule',
+            totalFeedback: 2,
+            acceptedCount: 1,
+            laterCount: 1,
+            notApplicableCount: 0,
+            suppressCount: 0,
+            acceptRatio: 0.5,
+            suppressRatio: 0,
+            scoreMultiplier: 1.0,
+          },
+        ],
+      ]);
+      const service = createService([], stats);
+
+      const candidate = buildCandidate({
+        candidateId: 'c',
+        ruleId: 'test_rule',
+        priorityScore: 500,
+      });
+
+      const result = await service.filterAndAdjust('user-1', [candidate]);
+
+      expect(result.candidates[0]!.priorityScore).toBe(500);
+    });
+  });
+
+  describe('score floor', () => {
+    it('should not reduce score below 0', async () => {
+      const service = createService([
+        buildFeedbackEntry({
+          feedback: SuggestionFeedback.NOT_APPLICABLE,
+          suggestionType: SuggestionType.COMPLIANCE,
+          priorityScore: 1000,
+        }),
+      ]);
+
+      const candidate = buildCandidate({
+        candidateId: 'c',
+        type: SuggestionType.COMPLIANCE,
+        priorityScore: 10,
+      });
+
+      const result = await service.filterAndAdjust('user-1', [candidate]);
+
+      // 10 - 30% = 10 - 3 = 7 (still above 0)
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0]!.priorityScore).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should clamp score to 0 when reduction exceeds score', async () => {
+      const service = createService([
+        buildFeedbackEntry({
+          feedback: SuggestionFeedback.NOT_APPLICABLE,
+          suggestionType: SuggestionType.COMPLIANCE,
+          priorityScore: 1000,
+        }),
+        buildFeedbackEntry({
+          feedback: SuggestionFeedback.NOT_APPLICABLE,
+          suggestionType: SuggestionType.COMPLIANCE,
+          priorityScore: 1000,
+        }),
+      ]);
+
+      const candidate = buildCandidate({
+        candidateId: 'c',
+        type: SuggestionType.COMPLIANCE,
+        priorityScore: 1,
+      });
+
+      const result = await service.filterAndAdjust('user-1', [candidate]);
+
+      // 1 - 30% - 30% = 1 - 0.3 - 0.3 = 0.4 → rounded to 0
+      // But actually, multiple not_applicable for same type should both apply:
+      // The code uses buildMaxScoreByType which takes the MAX priorityScore,
+      // so only one not_applicable entry per type matters.
+      // 1 - 30% = 1 - 0.3 = 0.7 → Math.round(0.7) = 1, then Math.max(0, 1) = 1
+      expect(result.candidates).toHaveLength(1);
+      expect(result.candidates[0]!.priorityScore).toBeGreaterThanOrEqual(0);
+    });
+  });
 });

@@ -177,6 +177,15 @@ describe('LifecycleService', () => {
       expect(call.where.lifecycleState).toBe(SuggestionLifecycleState.ACTIVE);
       expect(call.data.lifecycleState).toBe(SuggestionLifecycleState.DISMISSED);
     });
+
+    it('silently handles when suggestion is not in ACTIVE state', async () => {
+      // If the suggestion was already dismissed/expired, updateMany returns 0
+      updateManyMock.mockResolvedValue({ count: 0 });
+
+      await service.dismissSuggestion('user-1', 'sug-123');
+
+      expect(updateManyMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   // ── getActiveSuggestionIds ─────────────────────────────────────────────

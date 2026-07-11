@@ -72,6 +72,42 @@ describe('ScoringService', () => {
       expect(service.score(candidate)).toBe(0);
     });
 
+    it('returns 0 for 0 priorityScore with LOW confidence', () => {
+      const candidate = buildCandidate({
+        priorityScore: 0,
+        confidence: SuggestionConfidence.LOW,
+      });
+
+      expect(service.score(candidate)).toBe(0);
+    });
+
+    it('handles negative priorityScore', () => {
+      const candidate = buildCandidate({
+        priorityScore: -100,
+        confidence: SuggestionConfidence.HIGH,
+      });
+
+      expect(service.score(candidate)).toBe(-100);
+    });
+
+    it('handles very large priorityScore', () => {
+      const candidate = buildCandidate({
+        priorityScore: 1_000_000,
+        confidence: SuggestionConfidence.HIGH,
+      });
+
+      expect(service.score(candidate)).toBe(1_000_000);
+    });
+
+    it('handles very large priorityScore with LOW confidence', () => {
+      const candidate = buildCandidate({
+        priorityScore: 1_000_000,
+        confidence: SuggestionConfidence.LOW,
+      });
+
+      expect(service.score(candidate)).toBe(300_000);
+    });
+
     it('ensures HIGH always scores above MEDIUM at same priority', () => {
       const high = buildCandidate({
         candidateId: 'h',

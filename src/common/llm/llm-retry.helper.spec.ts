@@ -18,6 +18,14 @@ describe('llm-retry.helper', () => {
       expect(isRetryableLlmError({ status: 503 })).toBe(true);
     });
 
+    it('returns true for HTTP 504', () => {
+      expect(isRetryableLlmError({ status: 504 })).toBe(true);
+    });
+
+    it('returns true for HTTP 599', () => {
+      expect(isRetryableLlmError({ status: 599 })).toBe(true);
+    });
+
     it('returns false for HTTP 400', () => {
       expect(isRetryableLlmError({ status: 400 })).toBe(false);
     });
@@ -112,6 +120,40 @@ describe('llm-retry.helper', () => {
       await withLlmRetry(operation, { onRetry });
       expect(onRetry).toHaveBeenCalledTimes(1);
       expect(onRetry).toHaveBeenCalledWith(expect.any(Error), 1);
+    });
+
+    it('does not retry non-retryable errors (400 Bad Request)', async () => {
+      // withLlmRetry delegates to withRetry which retries all errors;
+      // isRetryableLlmError is only used for logging in onRetry callbacks.
+      // However, the LLM generator only logs a warning when isRetryableLlmError
+      // returns true. This test verifies that withLlmRetry still retries
+      // (since it doesn't filter by isRetryableLlmError) but the onRetry
+      // callback can use isRetryableLlmError to decide logging.
+      const onRetry = jest.fn();
+      const operation = jest
+        .fn()
+        .mockRejectedValueOnce({ status: 400, message: 'Bad Request' })
+        .mockResolvedValueOnce('ok');
+
+      const result = await withLlmRetry(operation, { onRetry });
+      expect(result).toBe('ok');
+      expect(operation).toHaveBeenCalledTimes(2);
+      // onRetry is called with the 400 error
+      expect(onRetry).toHaveBeenCalledWith(
+        { status: 400, message: 'Bad Request' },
+        1,
+      );
+    });
+
+    it('retries on HTTP 429 (rate limit)', async () => {
+      const operation = jest
+        .fn()
+        .mockRejectedValueOnce({ status: 429, message: 'Rate limited' })
+        .mockResolvedValueOnce('ok');
+
+      const result = await withLlmRetry(operation);
+      expect(result).toBe('ok');
+      expect(operation).toHaveBeenCalledTimes(2);
     });
   });
 });

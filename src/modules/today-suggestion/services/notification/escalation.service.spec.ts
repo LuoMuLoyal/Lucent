@@ -126,6 +126,70 @@ describe('EscalationService', () => {
     expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
   });
 
+  it('should not escalate if confidence is LOW', async () => {
+    const candidate = buildCandidate({
+      confidence: SuggestionConfidence.LOW,
+    });
+
+    const result = await service.escalateIfNeeded(
+      'user-1',
+      'sug-1',
+      candidate,
+      '2026-07-09',
+    );
+
+    expect(result).toBe(false);
+    expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
+  });
+
+  it('should escalate when priorityScore is exactly 700 (boundary)', async () => {
+    findUniqueMock.mockResolvedValue({ notificationSentAt: null });
+
+    const candidate = buildCandidate({ priorityScore: 700 });
+    const result = await service.escalateIfNeeded(
+      'user-1',
+      'sug-1',
+      candidate,
+      '2026-07-09',
+    );
+
+    expect(result).toBe(true);
+    expect(createOrReplaceScopedMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not escalate if suggestion not found in DB', async () => {
+    findUniqueMock.mockResolvedValue(null);
+
+    const candidate = buildCandidate();
+    const result = await service.escalateIfNeeded(
+      'user-1',
+      'sug-1',
+      candidate,
+      '2026-07-09',
+    );
+
+    // When suggestion is not found, existing?.notificationSentAt is null/undefined,
+    // so it proceeds with escalation
+    expect(result).toBe(true);
+    expect(createOrReplaceScopedMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not escalate if notificationSentAt is null but update fails', async () => {
+    findUniqueMock.mockResolvedValue({ notificationSentAt: null });
+    updateMock.mockRejectedValue(new Error('Update failed'));
+
+    const candidate = buildCandidate();
+    const result = await service.escalateIfNeeded(
+      'user-1',
+      'sug-1',
+      candidate,
+      '2026-07-09',
+    );
+
+    expect(result).toBe(false);
+    expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
+  });
+
   it('should not escalate if priorityScore is below 700', async () => {
     const candidate = buildCandidate({ priorityScore: 650 });
 

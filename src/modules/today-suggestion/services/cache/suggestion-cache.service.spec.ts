@@ -156,5 +156,32 @@ describe('SuggestionCacheService', () => {
         'a,b,c',
       );
     });
+
+    it('should return the single element for single-item array', () => {
+      expect(SuggestionCacheService.buildExcludeKey(['only'])).toBe('only');
+    });
+
+    it('should sort unsorted single element', () => {
+      expect(SuggestionCacheService.buildExcludeKey(['z'])).toBe('z');
+    });
+
+    it('should handle duplicate IDs by including them all', () => {
+      const result = SuggestionCacheService.buildExcludeKey(['a', 'a', 'b']);
+      // Duplicates are not removed, just sorted and joined
+      expect(result).toBe('a,a,b');
+    });
+
+    it('should not mutate the input array', () => {
+      const input = ['c', 'a', 'b'];
+      SuggestionCacheService.buildExcludeKey(input);
+      // Original array should not be sorted in-place
+      expect(input).toEqual(['c', 'a', 'b']);
+    });
+
+    it('should handle IDs with special characters', () => {
+      expect(SuggestionCacheService.buildExcludeKey(['id:1', 'id:2'])).toBe(
+        'id:1,id:2',
+      );
+    });
   });
 });

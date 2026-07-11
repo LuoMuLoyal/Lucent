@@ -34,5 +34,47 @@ describe('json.utils', () => {
       const input = '{ "key" : "value" }';
       expect(extractJsonObject(input)).toBe('{ "key" : "value" }');
     });
+
+    it('extracts the outermost JSON when multiple objects exist', () => {
+      const input = '{"outer": {"inner": 1}} and {"second": 2}';
+      // Should return from the first { to the last }
+      expect(extractJsonObject(input)).toBe(
+        '{"outer": {"inner": 1}} and {"second": 2}',
+      );
+    });
+
+    it('handles JSON with arrays inside', () => {
+      const input = '{"items": [1, 2, 3]}';
+      expect(extractJsonObject(input)).toBe('{"items": [1, 2, 3]}');
+    });
+
+    it('returns null when only opening brace exists', () => {
+      expect(extractJsonObject('{ incomplete')).toBeNull();
+    });
+
+    it('returns null when only closing brace exists', () => {
+      expect(extractJsonObject('incomplete }')).toBeNull();
+    });
+
+    it('handles JSON with nested arrays and objects', () => {
+      const input = '{"data": [{"id": 1, "tags": ["a", "b"]}, {"id": 2}]}';
+      expect(extractJsonObject(input)).toBe(
+        '{"data": [{"id": 1, "tags": ["a", "b"]}, {"id": 2}]}',
+      );
+    });
+
+    it('handles JSON with escaped braces in strings', () => {
+      const input = '{"text": "contains } and { inside"}';
+      // The function uses indexOf/lastIndexOf, so it extracts the full range
+      expect(extractJsonObject(input)).toBe(
+        '{"text": "contains } and { inside"}',
+      );
+    });
+
+    it('handles very large JSON string', () => {
+      const largeValue = 'x'.repeat(10000);
+      const input = `{"key": "${largeValue}"}`;
+      expect(extractJsonObject(input)).toBe(input);
+    });
   });
 });

@@ -341,5 +341,53 @@ describe('BaseLlmGeneratorService', () => {
         expect.any(Number),
       );
     });
+
+    it('emits updated summary when summary evolves across chunks', async () => {
+      // When two chunks are concatenated, the parser uses the first tool_call's
+      // args (returnSingle: true). So the summary from the first chunk persists.
+      // To test evolving summaries, we need a single chunk that produces a
+      // different summary than the initial partial.
+      const chunk1 = makeChunk('test_tool', {
+        summary: 'first summary',
+        result: 'partial',
+      });
+      const chunk2 = makeChunk('test_tool', {
+        summary: 'first summary',
+        result: 'final',
+      });
+      mocks.mockModel.stream.mockResolvedValue([chunk1, chunk2]);
+
+      const onSummary = jest.fn();
+      await service.generateStream(
+        { input: 'hello' },
+        { label: 'Input' },
+        onSummary,
+      );
+
+      // Since both chunks have the same summary, onSummary should be called once
+      expect(onSummary).toHaveBeenCalledWith('first summary');
+      expect(onSummary).toHaveBeenCalledTimes(1);
+    });
+
+    it('records success metric on completed stream', async () => {
+      const chunk = makeChunk('test_tool', {
+        summary: 'done',
+        result: 'final',
+      });
+      mocks.mockModel.stream.mockResolvedValue([chunk]);
+
+      await service.generateStream(
+        { input: 'hello' },
+        { label: 'Input' },
+        jest.fn(),
+      );
+
+      expect(mocks.metricsService.recordLlmCall).toHaveBeenCalledWith(
+        'analysis',
+        'test-model',
+        'success',
+        expect.any(Number),
+      );
+    });
   });
 });

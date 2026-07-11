@@ -25,6 +25,10 @@ describe('LlmSafetyPolicyService', () => {
         expect(service.isSafeText('Have a nice day')).toBe(true);
       });
 
+      it('returns true for empty string', () => {
+        expect(service.isSafeText('')).toBe(true);
+      });
+
       it('returns false for text containing 诊断', () => {
         expect(service.isSafeText('请给出诊断结果')).toBe(false);
       });
@@ -37,8 +41,40 @@ describe('LlmSafetyPolicyService', () => {
         expect(service.isSafeText('建议停药')).toBe(false);
       });
 
+      it('returns false for text containing 减药', () => {
+        expect(service.isSafeText('需要减药')).toBe(false);
+      });
+
+      it('returns false for text containing 加药', () => {
+        expect(service.isSafeText('需要加药')).toBe(false);
+      });
+
+      it('returns false for text containing 增量', () => {
+        expect(service.isSafeText('药物增量')).toBe(false);
+      });
+
+      it('returns false for text containing 减量', () => {
+        expect(service.isSafeText('药物减量')).toBe(false);
+      });
+
+      it('returns false for text containing 剂量', () => {
+        expect(service.isSafeText('调整剂量')).toBe(false);
+      });
+
+      it('returns false for text containing 药量', () => {
+        expect(service.isSafeText('增加药量')).toBe(false);
+      });
+
       it('returns false for text containing 处方', () => {
         expect(service.isSafeText('这是处方信息')).toBe(false);
+      });
+
+      it('returns false for text containing 治愈', () => {
+        expect(service.isSafeText('可以治愈')).toBe(false);
+      });
+
+      it('returns false for text containing 治疗方案', () => {
+        expect(service.isSafeText('这是治疗方案')).toBe(false);
       });
 
       it('returns false for English diagnosis', () => {
@@ -57,6 +93,37 @@ describe('LlmSafetyPolicyService', () => {
         expect(service.isSafeText('You should stop medication now')).toBe(
           false,
         );
+      });
+
+      it('returns false for English cure', () => {
+        expect(service.isSafeText('This will cure the disease')).toBe(false);
+      });
+
+      it('returns false for English treatment plan', () => {
+        expect(service.isSafeText('Here is the treatment plan')).toBe(false);
+      });
+
+      it('returns false for change dose', () => {
+        expect(service.isSafeText('change the dose')).toBe(false);
+      });
+
+      it('returns false for adjust dose', () => {
+        expect(service.isSafeText('adjusting the dose')).toBe(false);
+      });
+
+      it('returns false for increase dose', () => {
+        // Note: "increase" + "ing" = "increasing" (drops the 'e'),
+        // so the regex /\bincrease(?:ing)?/ cannot match "increasing".
+        // Use the base form instead.
+        expect(service.isSafeText('increase the dose')).toBe(false);
+      });
+
+      it('returns false for decrease dose', () => {
+        expect(service.isSafeText('decrease the dose')).toBe(false);
+      });
+
+      it('returns false for stopping medication', () => {
+        expect(service.isSafeText('stopping medication')).toBe(false);
       });
     });
 

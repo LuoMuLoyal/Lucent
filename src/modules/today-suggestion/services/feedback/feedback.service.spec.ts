@@ -5,6 +5,8 @@ import {
   FEEDBACK_LATER_DURATION_MS,
   FEEDBACK_NOT_APPLICABLE_DURATION_MS,
   FEEDBACK_SUPPRESS_DURATION_MS,
+  FEEDBACK_ACCEPTED_BOOST_PERCENT,
+  FEEDBACK_NOT_APPLICABLE_REDUCTION_PERCENT,
 } from '../../constants';
 
 describe('FeedbackService', () => {
@@ -186,6 +188,81 @@ describe('FeedbackService', () => {
       // Should mark as dismissed for suppress
       const updateCall = updateManyMock.mock.calls[0]![0];
       expect(updateCall.data.lifecycleState).toBe('dismissed');
+    });
+
+    it('should return noted effect for unknown feedback type', async () => {
+      findFirstMock.mockResolvedValue({
+        id: 'sug-1',
+        type: 'compliance',
+        ruleId: 'missed_dose_pending',
+        priorityScore: 800,
+        lifecycleState: 'active',
+      });
+      feedbackCreateMock.mockResolvedValue({});
+      updateManyMock.mockResolvedValue({ count: 1 });
+
+      const result = await service.recordFeedback(
+        'user-1',
+        'sug-1',
+        'unknown_feedback' as SuggestionFeedback,
+      );
+
+      expect(result.appliedEffect).toBe('noted');
+      expect(result.expiresAt).toBeNull();
+
+      // Should not mark as dismissed for unknown feedback
+      const updateCall = updateManyMock.mock.calls[0]![0];
+      expect(updateCall.data.lifecycleState).toBeUndefined();
+    });
+
+    it('should propagate error when transaction fails', async () => {
+      findFirstMock.mockResolvedValue({
+        id: 'sug-1',
+        type: 'compliance',
+        ruleId: 'missed_dose_pending',
+        priorityScore: 800,
+        lifecycleState: 'active',
+      });
+      transactionMock.mockRejectedValue(new Error('TX failed'));
+
+      await expect(
+        service.recordFeedback('user-1', 'sug-1', SuggestionFeedback.LATER),
+      ).rejects.toThrow('TX failed');
+    });
+
+    it('should return correct suggestionId and feedback in result', async () => {
+      findFirstMock.mockResolvedValue({
+        id: 'sug-1',
+        type: 'compliance',
+        ruleId: 'missed_dose_pending',
+        priorityScore: 800,
+        lifecycleState: 'active',
+      });
+      feedbackCreateMock.mockResolvedValue({});
+      updateManyMock.mockResolvedValue({ count: 1 });
+
+      const result = await service.recordFeedback(
+        'user-1',
+        'sug-1',
+        SuggestionFeedback.ACCEPTED,
+      );
+
+      expect(result.suggestionId).toBe('sug-1');
+      expect(result.feedback).toBe(SuggestionFeedback.ACCEPTED);
+    });
+  });
+
+  describe('static methods', () => {
+    it('getAcceptedBoostPercent returns the boost percentage', () => {
+      expect(FeedbackService.getAcceptedBoostPercent()).toBe(
+        FEEDBACK_ACCEPTED_BOOST_PERCENT,
+      );
+    });
+
+    it('getNotApplicableReductionPercent returns the reduction percentage', () => {
+      expect(FeedbackService.getNotApplicableReductionPercent()).toBe(
+        FEEDBACK_NOT_APPLICABLE_REDUCTION_PERCENT,
+      );
     });
   });
 

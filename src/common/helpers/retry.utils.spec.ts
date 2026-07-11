@@ -104,5 +104,54 @@ describe('retry.utils', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(2);
       fetchSpy.mockRestore();
     });
+
+    it('retries on network failure (fetch throws)', async () => {
+      const okResponse = { ok: true, status: 200 } as Response;
+      const fetchSpy = jest
+        .spyOn(globalThis, 'fetch')
+        .mockRejectedValueOnce(new TypeError('fetch failed'))
+        .mockResolvedValueOnce(okResponse);
+
+      const result = await fetchWithRetry('https://example.com', {
+        attempts: 2,
+        delayMs: 0,
+      });
+      expect(result).toBe(okResponse);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      fetchSpy.mockRestore();
+    });
+
+    it('passes fetch init options to fetch', async () => {
+      const mockResponse = { ok: true, status: 200 } as Response;
+      const fetchSpy = jest
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(mockResponse);
+
+      const init: RequestInit = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'value' }),
+      };
+
+      await fetchWithRetry('https://example.com', init);
+      expect(fetchSpy).toHaveBeenCalledWith('https://example.com', init);
+      fetchSpy.mockRestore();
+    });
+
+    it('throws after all attempts on persistent non-ok', async () => {
+      const failResponse = { ok: false, status: 503 } as Response;
+      const fetchSpy = jest
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(failResponse);
+
+      await expect(
+        fetchWithRetry('https://example.com', {
+          attempts: 2,
+          delayMs: 0,
+        }),
+      ).rejects.toThrow('HTTP 503');
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      fetchSpy.mockRestore();
+    });
   });
 });

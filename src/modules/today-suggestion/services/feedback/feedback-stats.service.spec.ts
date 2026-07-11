@@ -172,4 +172,170 @@ describe('FeedbackStatsService', () => {
     const result = await service.loadStats('user-1', ['rule-a']);
     expect(result.size).toBe(0);
   });
+
+  it('should apply boost when sample size is exactly at minimum (5)', async () => {
+    const pairs: Array<{
+      feedback: string;
+      suggestionId: string;
+      ruleId: string;
+    }> = [];
+    for (let i = 0; i < 4; i++) {
+      pairs.push({
+        feedback: 'accepted',
+        suggestionId: `sug-${i}`,
+        ruleId: 'rule-exact',
+      });
+    }
+    pairs.push({
+      feedback: 'later',
+      suggestionId: 'sug-4',
+      ruleId: 'rule-exact',
+    });
+    mockFeedbackRulePairs(pairs);
+
+    const result = await service.loadStats('user-1', ['rule-exact']);
+    const stats = result.get('rule-exact')!;
+    expect(stats.totalFeedback).toBe(5);
+    expect(stats.acceptRatio).toBe(0.8);
+    expect(stats.scoreMultiplier).toBeGreaterThan(1.0);
+  });
+
+  it('should include not_applicable feedback in stats', async () => {
+    const pairs: Array<{
+      feedback: string;
+      suggestionId: string;
+      ruleId: string;
+    }> = [];
+    for (let i = 0; i < 3; i++) {
+      pairs.push({
+        feedback: 'not_applicable',
+        suggestionId: `sug-${i}`,
+        ruleId: 'rule-na',
+      });
+    }
+    for (let i = 3; i < 5; i++) {
+      pairs.push({
+        feedback: 'accepted',
+        suggestionId: `sug-${i}`,
+        ruleId: 'rule-na',
+      });
+    }
+    mockFeedbackRulePairs(pairs);
+
+    const result = await service.loadStats('user-1', ['rule-na']);
+    const stats = result.get('rule-na')!;
+    expect(stats.notApplicableCount).toBe(3);
+    expect(stats.acceptedCount).toBe(2);
+    expect(stats.totalFeedback).toBe(5);
+  });
+
+  it('should cap multiplier at MAX_BOOST (1.5) for all-accepted', async () => {
+    const pairs: Array<{
+      feedback: string;
+      suggestionId: string;
+      ruleId: string;
+    }> = [];
+    for (let i = 0; i < 10; i++) {
+      pairs.push({
+        feedback: 'accepted',
+        suggestionId: `sug-${i}`,
+        ruleId: 'rule-max-boost',
+      });
+    }
+    mockFeedbackRulePairs(pairs);
+
+    const result = await service.loadStats('user-1', ['rule-max-boost']);
+    const stats = result.get('rule-max-boost')!;
+    expect(stats.scoreMultiplier).toBe(1.5);
+  });
+
+  it('should cap multiplier at MIN_REDUCTION (0.5) for all-suppressed', async () => {
+    const pairs: Array<{
+      feedback: string;
+      suggestionId: string;
+      ruleId: string;
+    }> = [];
+    for (let i = 0; i < 10; i++) {
+      pairs.push({
+        feedback: 'suppress',
+        suggestionId: `sug-${i}`,
+        ruleId: 'rule-max-reduce',
+      });
+    }
+    mockFeedbackRulePairs(pairs);
+
+    const result = await service.loadStats('user-1', ['rule-max-reduce']);
+    const stats = result.get('rule-max-reduce')!;
+    expect(stats.scoreMultiplier).toBe(0.5);
+  });
+
+  it('should round multiplier to 2 decimal places', async () => {
+    // 3 accepted, 2 later, 0 suppress → acceptRatio = 0.6
+    // multiplier = 1 + 0.6*0.5 - 0 = 1.30
+    const pairs: Array<{
+      feedback: string;
+      suggestionId: string;
+      ruleId: string;
+    }> = [];
+    for (let i = 0; i < 3; i++) {
+      pairs.push({
+        feedback: 'accepted',
+        suggestionId: `sug-${i}`,
+        ruleId: 'rule-round',
+      });
+    }
+    for (let i = 3; i < 5; i++) {
+      pairs.push({
+        feedback: 'later',
+        suggestionId: `sug-${i}`,
+        ruleId: 'rule-round',
+      });
+    }
+    mockFeedbackRulePairs(pairs);
+
+    const result = await service.loadStats('user-1', ['rule-round']);
+    const stats = result.get('rule-round')!;
+    // 1 + 0.6*0.5 = 1.30, rounded to 2 decimals = 1.3
+    expect(stats.scoreMultiplier).toBe(1.3);
+  });
+
+  it('should handle multiple rules in a single call', async () => {
+    const pairs: Array<{
+      feedback: string;
+      suggestionId: string;
+      ruleId: string;
+    }> = [];
+    // rule-multi-a: 8 accepted, 2 suppress
+    for (let i = 0; i < 8; i++) {
+      pairs.push({
+        feedback: 'accepted',
+        suggestionId: `sug-a-${i}`,
+        ruleId: 'rule-multi-a',
+      });
+    }
+    for (let i = 0; i < 2; i++) {
+      pairs.push({
+        feedback: 'suppress',
+        suggestionId: `sug-a-s-${i}`,
+        ruleId: 'rule-multi-a',
+      });
+    }
+    // rule-multi-b: 5 suppress
+    for (let i = 0; i < 5; i++) {
+      pairs.push({
+        feedback: 'suppress',
+        suggestionId: `sug-b-${i}`,
+        ruleId: 'rule-multi-b',
+      });
+    }
+    mockFeedbackRulePairs(pairs);
+
+    const result = await service.loadStats('user-1', [
+      'rule-multi-a',
+      'rule-multi-b',
+    ]);
+    expect(result.size).toBe(2);
+    expect(result.get('rule-multi-a')!.scoreMultiplier).toBeGreaterThan(1.0);
+    expect(result.get('rule-multi-b')!.scoreMultiplier).toBeLessThan(1.0);
+  });
 });

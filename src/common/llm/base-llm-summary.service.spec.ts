@@ -307,5 +307,107 @@ describe('BaseLlmSummaryService', () => {
         summary: 'unsafe text with 诊断',
       });
     });
+
+    it('returns fallback when final output is rejected by safety policy', async () => {
+      // Stream succeeds but final output is unsafe
+      mocks.generatorService.generateStream.mockImplementation(
+        async (_ctx, _copy, onSummary) => {
+          await onSummary('safe partial summary');
+          return generatedOutput;
+        },
+      );
+      // isSafeSummaryText passes for the partial, but isSafe fails for the final output
+      mocks.policyService.isSafeSummaryText.mockReturnValue(true);
+      mocks.policyService.isSafe.mockReturnValue(false);
+
+      const onSummary = jest.fn();
+      const result = await service.generateStream(
+        'user-1',
+        { targetId: 'rec-1' },
+        'zh',
+        onSummary,
+      );
+
+      expect(result).toEqual(fallbackOutput);
+      // Since a summary was already emitted during streaming, the fallback
+      // summary is NOT re-emitted (emitGuaranteedSummary skips when
+      // alreadyEmitted is true).
+      expect(onSummary).toHaveBeenCalledWith({
+        summary: 'safe partial summary',
+      });
+      expect(onSummary).not.toHaveBeenCalledWith({
+        summary: fallbackOutput.summary,
+      });
+    });
+
+    it('emits fallback summary when stream fails and no summary was emitted', async () => {
+      mocks.generatorService.generateStream.mockRejectedValue(
+        new Error('Stream error'),
+      );
+
+      const onSummary = jest.fn();
+      const result = await service.generateStream(
+        'user-1',
+        { targetId: 'rec-1' },
+        'zh',
+        onSummary,
+      );
+
+      expect(result).toEqual(fallbackOutput);
+      // Should emit the fallback summary since nothing was emitted during stream
+      expect(onSummary).toHaveBeenCalledWith({
+        summary: fallbackOutput.summary,
+      });
+    });
+
+    it('does not emit duplicate summary when stream already emitted one', async () => {
+      mocks.generatorService.generateStream.mockImplementation(
+        async (_ctx, _copy, onSummary) => {
+          await onSummary('partial summary');
+          throw new Error('Stream error after partial');
+        },
+      );
+      mocks.policyService.isSafeSummaryText.mockReturnValue(true);
+
+      const onSummary = jest.fn();
+      const result = await service.generateStream(
+        'user-1',
+        { targetId: 'rec-1' },
+        'zh',
+        onSummary,
+      );
+
+      expect(result).toEqual(fallbackOutput);
+      // Should NOT emit fallback summary because a summary was already emitted
+      expect(onSummary).not.toHaveBeenCalledWith({
+        summary: fallbackOutput.summary,
+      });
+    });
+
+    it('does not emit fallback when fallback summary is whitespace-only', async () => {
+      const whitespaceFallback: TestOutput = {
+        summary: '   ',
+        bullets: [{ text: 'Fallback bullet' }],
+        actionLabel: 'OK',
+        action: 'none',
+        confidenceNote: 'low',
+      };
+      mocks.copyService.buildFallback.mockReturnValue(whitespaceFallback);
+      mocks.generatorService.generateStream.mockRejectedValue(
+        new Error('Stream error'),
+      );
+
+      const onSummary = jest.fn();
+      const result = await service.generateStream(
+        'user-1',
+        { targetId: 'rec-1' },
+        'zh',
+        onSummary,
+      );
+
+      expect(result).toEqual(whitespaceFallback);
+      // Should not emit because summary is whitespace-only
+      expect(onSummary).not.toHaveBeenCalled();
+    });
   });
 });

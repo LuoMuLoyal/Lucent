@@ -1,6 +1,6 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-09
+Last updated: 2026-07-11
 
 - auth 模块三处静默 catch 补充 logger.warn：`auth.service.ts` refresh、`auth-oauth-state.service.ts`
   normalizeCallbackUri、`credential-auth.service.ts` \_notifyPasswordChanged，保留生产环境可观测性。
@@ -104,3 +104,13 @@ Last updated: 2026-07-09
 - Today-suggestion test coverage expanded: 5 new spec files (+65 test cases) for `MedicationCollectorService`,
   `ProfileCollectorService`, `RecordCollectorService`, `BaselineService`, and `SuggestionService`
   (the orchestrator). Total test count: 119 suites, 839 tests.
+
+- 2026-07-11 测试覆盖审查：为 6 个无测试的纯函数文件新增 spec，并为 environment.service.spec.ts 补全边界用例：
+  - `assistant/tools/date-resolver.spec.ts`（54 tests）：ISO/中文/斜杠/相对日期解析、范围截断、报告范围提取等
+  - `assistant/tools/presenters.spec.ts`（56 tests）：read envelope、coverage、confidence、preview fields、locale helpers、summary descriptions
+  - `assistant/tools/vector-cursor.spec.ts`（14 tests）：cursor 编解码、query hash、page 构建
+  - `assistant/tools/read-helpers.spec.ts`（12 tests）：reminder frequency 描述、sleep quality 映射
+  - `medicines/utils/helpers.spec.ts`（33 tests）：toStringList、uniqueNonEmptyStrings、truncateText、detectMatchedBy、toPagination
+  - `auth/controllers/auth-response.helper.spec.ts`（6 tests）：auth response 序列化、null 字段处理
+  - `environment.service.spec.ts` 边界补全（2→9 tests）：仅 lat/lon 降级、热带/高纬度/南北中纬度区域选择
+  - 测试总量：197 suites / 1743 tests（+6 suites / +176 tests）
