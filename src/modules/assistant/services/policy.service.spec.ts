@@ -1,4 +1,5 @@
 import { AssistantPolicyService } from './policy.service';
+import type { AssistantRuntimeCapabilities } from '../types/types';
 
 describe('AssistantPolicyService', () => {
   const service = new AssistantPolicyService();
@@ -335,19 +336,10 @@ describe('AssistantPolicyService', () => {
   ] as const;
 
   function buildFoundation(
-    overrides: Partial<{
-      chatModelConfigured: boolean;
-      interactiveChatReady: boolean;
-      langGraphReady: boolean;
-      ragEnabled: boolean;
-      graphNodeNames: string[];
-      toolNames: string[];
-      implementedToolNames: string[];
-      contextSources: string[];
-    }> = {},
-  ) {
+    overrides: Partial<Omit<AssistantRuntimeCapabilities, 'phase'>> = {},
+  ): AssistantRuntimeCapabilities {
     return {
-      phase: 'foundation' as const,
+      phase: 'foundation',
       chatModelConfigured: true,
       interactiveChatReady: true,
       langGraphReady: true,

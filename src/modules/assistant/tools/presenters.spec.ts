@@ -299,8 +299,8 @@ describe('presenters', () => {
         'en',
       );
       expect(fields).toHaveLength(2);
-      expect(fields[0].label).toBe('Kind');
-      expect(fields[1].label).toBe('Date');
+      expect(fields[0]!.label).toBe('Kind');
+      expect(fields[1]!.label).toBe('Date');
     });
 
     it('shows value without unit when unit is null', () => {

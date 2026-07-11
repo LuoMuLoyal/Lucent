@@ -265,8 +265,8 @@ describe('MealAnalysisMatcherService', () => {
     ]);
 
     expect(result.coverage).toBe('complete');
-    expect(result.foodItems[0].matchedFoodId).toBe('food-rice');
-    expect(result.foodItems[0].estimatedGrams).toBe(100); // default portion for 碗
+    expect(result.foodItems[0]!.matchedFoodId).toBe('food-rice');
+    expect(result.foodItems[0]!.estimatedGrams).toBe(100); // default portion for 碗
     // proteinG=2.7 < highProteinThreshold=20, fatG=0.3 < highFatThreshold=20,
     // carbohydrateG=28.2 > lowCarbThreshold=20 → no threshold triggered
     expect(result.mealCommentary).toBe('这一餐营养结果为保守估算。');
@@ -317,8 +317,8 @@ describe('MealAnalysisMatcherService', () => {
     ]);
 
     expect(result.coverage).toBe('none');
-    expect(result.foodItems[0].matchedFoodId).toBeNull();
-    expect(result.foodItems[0].estimatedGrams).toBeNull();
+    expect(result.foodItems[0]!.matchedFoodId).toBeNull();
+    expect(result.foodItems[0]!.estimatedGrams).toBeNull();
     expect(result.nutritionEstimate).toBeNull();
     expect(result.mealCommentary).toBeNull();
     // Diagnostics should exist because recognizedDishes is non-empty
@@ -477,7 +477,7 @@ describe('MealAnalysisMatcherService', () => {
       { name: '牛排', confidence: 0.9, portionText: '约250克' },
     ]);
 
-    expect(result.foodItems[0].estimatedGrams).toBe(250);
+    expect(result.foodItems[0]!.estimatedGrams).toBe(250);
   });
 
   it('estimates small portion grams for 少量 text', async () => {
@@ -544,7 +544,7 @@ describe('MealAnalysisMatcherService', () => {
     ]);
 
     // DEFAULT_MEAL_SMALL_PORTION_GRAMS is 30
-    expect(result.foodItems[0].estimatedGrams).toBe(30);
+    expect(result.foodItems[0]!.estimatedGrams).toBe(30);
   });
 
   it('filters out items with names that normalize to null', async () => {
@@ -618,6 +618,6 @@ describe('MealAnalysisMatcherService', () => {
     ]);
     // The blank item should still appear in foodItems but with no match
     expect(result.foodItems).toHaveLength(2);
-    expect(result.foodItems[1].matchedFoodId).toBeNull();
+    expect(result.foodItems[1]!.matchedFoodId).toBeNull();
   });
 });

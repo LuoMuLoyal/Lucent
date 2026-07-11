@@ -173,6 +173,7 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 
 - [x] Phase 1: OpenAPI 导出 + Flutter API 客户端生成 + 网络层注册
 - [x] Phase 2: Domain 实体层 + Remote Data Source + Repository 清理
-- [ ] Phase 3: Riverpod Provider + UI 重构（主卡/次卡/观察项）
-- [ ] Phase 4: 反馈按钮接入 + AI 解释按需加载
-- [ ] Phase 5: 深层链接导航 + 历史回顾
+- [x] Phase 3: Riverpod Provider + UI 重构（主卡/次卡/观察项）
+- [x] Phase 4: 反馈按钮接入 + AI 解释按需加载
+- [x] Phase 5: 深层链接导航（`_openRoute` → `primaryAction.route`）
+- [ ] Phase 5 剩余: Report 页历史建议回顾接入 `GET /today/suggestions/history`（data source 已就绪，无 UI 消费；Report 页当前使用通知接口替代）

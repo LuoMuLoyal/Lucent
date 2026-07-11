@@ -51,7 +51,7 @@ describe('auth-response.helper', () => {
     expect(data.user.avatar).toBe('https://example.com/avatar.png');
     expect(data.user.emailVerified).toBe(true);
     expect(data.user.emailVerifiedAt).toBe(
-      mockUser.emailVerifiedAt.toISOString(),
+      mockUser.emailVerifiedAt!.toISOString(),
     );
     expect(data.user.createdAt).toBe(mockUser.createdAt.toISOString());
     expect(data.user.updatedAt).toBe(mockUser.updatedAt.toISOString());
