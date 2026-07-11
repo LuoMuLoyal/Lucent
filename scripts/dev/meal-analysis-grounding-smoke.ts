@@ -2,13 +2,13 @@ import { config as loadEnv } from 'dotenv';
 import { ConfigService } from '@nestjs/config';
 import { aiConfig } from '../../src/config/ai.config';
 import { EnvKey } from '../../src/config/env-keys.enum';
-import { LlmRuntimeService } from '../../src/modules/llm-runtime/services/llm-runtime.service';
+import { LlmRuntimeService } from '../../src/llm-runtime/services/llm-runtime.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { MealAnalysisVisionService } from '../../src/modules/daily-records/services/meal-analysis/vision.service';
 import { MealDishDecompositionService } from '../../src/modules/daily-records/services/meal-dish/decomposition.service';
 import { MealIngredientGroundingService } from '../../src/modules/daily-records/services/meal-ingredient/grounding.service';
 import { MealAnalysisMatcherService } from '../../src/modules/daily-records/services/meal-analysis/matcher.service';
-import { AiSafetyPolicyService } from '../../src/common/ai/ai-safety-policy.service';
+import { LlmSafetyPolicyService } from '../../src/common/llm/llm-safety-policy.service';
 
 loadEnv({ path: '.env.development.local', override: false });
 loadEnv({ path: '.env.development', override: false });
@@ -27,7 +27,7 @@ async function main() {
   const configService = new ConfigService(process.env);
   const prisma = new PrismaService(configService);
   const llmRuntimeService = new LlmRuntimeService(aiConfig());
-  const safetyPolicyService = new AiSafetyPolicyService(aiConfig());
+  const safetyPolicyService = new LlmSafetyPolicyService(aiConfig());
   const mealAnalysisVisionService = new MealAnalysisVisionService(
     llmRuntimeService,
     safetyPolicyService,
@@ -38,6 +38,7 @@ async function main() {
   );
   const mealIngredientGroundingService = new MealIngredientGroundingService(
     prisma,
+    configService,
   );
   const mealAnalysisMatcherService = new MealAnalysisMatcherService(
     mealDishDecompositionService,
