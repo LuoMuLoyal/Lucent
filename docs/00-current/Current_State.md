@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 本文件只保留简介和按区域链接。具体后端实现细节见 `00-current/` 下各子文件。
 
@@ -45,6 +45,14 @@ Last updated: 2026-07-10
 - **P1 级 E2E 全覆盖**：Health liveness/deep 探针（4 用例）、Today Analysis generate + generate/stream SSE（8 用例）、Reports summary/generate/stream SSE（4 用例）；修复 TodayAnalysisService generatedAt 丢失 bug 和 app.e2e-spec.ts 缺少 MetricsService provider 的预存问题
 - **P2 级 OAuth E2E 全覆盖**：新增 `test/e2e/auth/oauth.e2e-spec.ts`（25 用例），覆盖全部 7 个 OAuth 端点：wechat-web authorize/callback（含 302 重定向）、wechat-mobile callback、apple callback（含二次登录）、qq authorize/callback。通过 `jest.spyOn` mock provider 的 `buildAuthorizeUrl`/`fetchProfile` 方法绕过第三方依赖，测试新用户创建、已有用户登录、503 未配置、400 参数校验、401 无效 state 等场景
 - **单元测试覆盖率补充**：`auth/strategies` 从 0% 覆盖升至 100%（新增 `jwt-access.strategy.spec.ts` 11 用例）；`today-analysis` services 新增 19 个用例（context.service 15 + analysis.service 4）覆盖 water/medication/sleep/reminder 等分支；`i18n` 模块从 0% 覆盖升至有测试（3 用例）；`llm-runtime` 模块从 0% 覆盖升至有测试 + `getModelName` 方法覆盖
+
+## 2026-07-11 审查报告修复
+
+- **mark 查找安全**：`MedicineDoseLogsService.mark` 入口新增运行时校验，要求 `reminderId` 或 `currentMedicineId` 至少一项非空；`buildMarkLookupWhere` 移除不安全的 fallback 分支，改为抛出 `BadRequestException`
+- **helpers barrel export**：`src/common/helpers/index.ts` 移除三行 `.spec` 文件导出，避免测试模块污染生产构建
+- **通知可观测性**：`TodayAnalysisService.createNotificationSafely` catch 块新增 `logger.warn` 日志，通知服务故障可追踪
+- **通知查询性能**：`NotificationsService.createOrReplaceScoped` 的 `findMany` 新增 `take: 50` 限制，防止大数据量全量加载
+- **通知去重兼容性**：`NotificationsService.matchesScope` 兼容数组结构 payload，数组元素中任一匹配 scope 即判定为重复
 
 ## 相关文档
 

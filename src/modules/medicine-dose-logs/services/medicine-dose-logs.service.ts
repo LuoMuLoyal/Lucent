@@ -93,6 +93,10 @@ export class MedicineDoseLogsService {
     );
     const reminderId = dto.reminderId ?? null;
 
+    if (!reminderId && !currentMedicineId) {
+      badRequest(this.i18n.t('medicine-dose-logs.missing_slot_identifier'));
+    }
+
     const existing = (await this.repository.findFirst(
       this.buildMarkLookupWhere({
         userId,
@@ -206,12 +210,8 @@ export class MedicineDoseLogsService {
       };
     }
 
-    return {
-      userId: input.userId,
-      currentMedicineId: input.currentMedicineId,
-      scheduledFor: input.scheduledFor,
-      deletedAt: null,
-    };
+    // No safe lookup criteria available — refuse rather than risk a broad match.
+    badRequest(this.i18n.t('medicine-dose-logs.missing_slot_identifier'));
   }
 
   private buildMarkUpdateData(input: {

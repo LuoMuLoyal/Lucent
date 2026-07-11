@@ -1,5 +1,6 @@
 {
   "medicine_not_found": "Medicine not found",
   "invalid_slot_identity": "Reminder and medicine do not match",
+  "missing_slot_identifier": "At least one of reminderId or currentMedicineId must be provided",
   "not_found": "Not found"
 }

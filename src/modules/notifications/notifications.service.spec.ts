@@ -186,6 +186,7 @@ describe('NotificationsService', () => {
         },
         select: expect.any(Object) as Record<string, boolean>,
         orderBy: { createdAt: 'desc' },
+        take: 50,
       });
       expect(prismaService.userNotification.deleteMany).not.toHaveBeenCalled();
       expect(result.id).toBe('notif-suggestion-new');
@@ -253,6 +254,51 @@ describe('NotificationsService', () => {
           }),
         }),
       );
+    });
+
+    it('deduplicates notifications with array payload containing matching scope', async () => {
+      (prismaService.userNotification.findMany as jest.Mock).mockResolvedValue([
+        {
+          ...mockScopedSuggestionRow,
+          id: 'notif-array-1',
+          actionPayload: [
+            { source: 'today-analysis', date: '2026-06-12' },
+            { source: 'report-summary', date: '2026-06-12' },
+          ],
+        },
+      ]);
+      (
+        prismaService.userNotification.deleteMany as jest.Mock
+      ).mockResolvedValue({ count: 1 });
+      (prismaService.userNotification.create as jest.Mock).mockResolvedValue({
+        ...mockScopedSuggestionRow,
+        id: 'notif-array-new',
+      });
+
+      await service.createOrReplaceScoped(
+        'user-uuid-1',
+        {
+          type: 'ai_proactive_suggestion',
+          title: 'AI 主动建议',
+          content: '还有 1 项今日用药待确认。',
+          action: 'today',
+          actionPayload: {
+            source: 'today-analysis',
+            date: '2026-06-12',
+          },
+        },
+        {
+          source: 'today-analysis',
+          date: '2026-06-12',
+        },
+      );
+
+      expect(prismaService.userNotification.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-uuid-1',
+          id: { in: ['notif-array-1'] },
+        },
+      });
     });
   });
 

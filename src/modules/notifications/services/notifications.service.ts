@@ -66,6 +66,7 @@ export class NotificationsService {
           },
           select: notificationSelect,
           orderBy: { createdAt: 'desc' },
+          take: 50,
         });
 
         const duplicateIds = existing
@@ -209,11 +210,22 @@ export class NotificationsService {
     payload: Prisma.JsonValue | null,
     scope: NotificationScope,
   ): boolean {
-    if (
-      payload == null ||
-      Array.isArray(payload) ||
-      typeof payload !== 'object'
-    ) {
+    if (payload == null) {
+      return false;
+    }
+
+    if (Array.isArray(payload)) {
+      return payload.some(
+        (item) =>
+          typeof item === 'object' &&
+          item !== null &&
+          !Array.isArray(item) &&
+          item['source'] === scope.source &&
+          item['date'] === scope.date,
+      );
+    }
+
+    if (typeof payload !== 'object') {
       return false;
     }
 

@@ -1,5 +1,6 @@
 {
   "medicine_not_found": "未找到药品",
   "invalid_slot_identity": "提醒与药品不匹配",
+  "missing_slot_identifier": "必须提供 reminderId 或 currentMedicineId 至少一项",
   "not_found": "未找到"
 }

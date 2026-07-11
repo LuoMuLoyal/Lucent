@@ -174,8 +174,10 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
   ): Promise<void> {
     try {
       await this.notificationsService.createOrReplaceScoped(userId, dto, scope);
-    } catch {
-      // Silently fail so notification issues do not break analysis generation.
+    } catch (error) {
+      this.logger.warn(
+        `Failed to create scoped notification for user ${userId} (source=${scope.source}, date=${scope.date}): ${String(error)}`,
+      );
     }
   }
 }

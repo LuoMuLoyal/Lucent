@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { DoseLogStatus } from '#generated/prisma/client';
 import { MedicineDoseLogRepositoryPort } from './repositories';
@@ -246,5 +246,14 @@ describe('MedicineDoseLogsService', () => {
         scheduledTime: '08:30',
       }),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('should reject mark when neither reminderId nor currentMedicineId is provided', async () => {
+    await expect(
+      service.mark('u1', {
+        status: DoseLogStatus.taken,
+        scheduledFor: '2026-07-08',
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 });
