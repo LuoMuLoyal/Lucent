@@ -88,4 +88,159 @@ describe('TodayAnalysisGeneratorService', () => {
     ]);
     expect(result.summary).toBe('ok');
   });
+
+  it('records error metric and rethrows when LLM invocation fails', async () => {
+    const invoke = jest.fn().mockRejectedValue(new Error('LLM unavailable'));
+    const withStructuredOutput = jest.fn().mockReturnValue({ invoke });
+    const createChatModel = jest.fn().mockReturnValue({ withStructuredOutput });
+    const metricsService = buildMetricsService();
+    const service = new TodayAnalysisGeneratorService(
+      {
+        hasRoleConfig: jest.fn(),
+        createChatModel,
+        getModelName: jest.fn().mockReturnValue('test-model'),
+      } as unknown as LlmRuntimeService,
+      metricsService,
+    );
+
+    await expect(
+      service.generate(
+        {
+          date: '2026-06-12',
+          water: { completedCount: 0, targetCount: 8, remainingCount: 8 },
+          medication: {
+            medicineCount: 0,
+            pendingCount: 0,
+            nextDoseTimeLabel: '',
+            nextMedicineName: null,
+            currentMedicineNames: [],
+          },
+          recordSummary: [],
+          recentRecords: [],
+          sleep: {
+            status: 'insufficient_data',
+            durationMinutes: null,
+            quality: null,
+            startAt: null,
+            endAt: null,
+            deepMinutes: null,
+            lightMinutes: null,
+            remMinutes: null,
+          },
+          lowRiskContext: {
+            activeAllergyCount: 0,
+            currentMedicineCount: 0,
+          },
+        },
+        {
+          userIntro: 'intro',
+          tone: 'tone',
+          actionLabelHint: 'hint',
+          factsLabel: 'facts',
+        },
+      ),
+    ).rejects.toThrow('LLM unavailable');
+
+    expect(metricsService.recordLlmCall).toHaveBeenCalledWith(
+      'analysis',
+      'test-model',
+      'error',
+      expect.any(Number),
+    );
+  });
+
+  it('records success metric with duration after successful generation', async () => {
+    const invoke = jest.fn().mockResolvedValue({
+      summary: 'ok',
+      bullets: [],
+      actionLabel: 'View',
+      confidenceNote: 'note',
+    });
+    const withStructuredOutput = jest.fn().mockReturnValue({ invoke });
+    const createChatModel = jest.fn().mockReturnValue({ withStructuredOutput });
+    const metricsService = buildMetricsService();
+    const service = new TodayAnalysisGeneratorService(
+      {
+        hasRoleConfig: jest.fn(),
+        createChatModel,
+        getModelName: jest.fn().mockReturnValue('test-model'),
+      } as unknown as LlmRuntimeService,
+      metricsService,
+    );
+
+    await service.generate(
+      {
+        date: '2026-06-12',
+        water: { completedCount: 4, targetCount: 8, remainingCount: 4 },
+        medication: {
+          medicineCount: 1,
+          pendingCount: 0,
+          nextDoseTimeLabel: '',
+          nextMedicineName: null,
+          currentMedicineNames: ['Vitamin C'],
+        },
+        recordSummary: [],
+        recentRecords: [],
+        sleep: {
+          status: 'insufficient_data',
+          durationMinutes: null,
+          quality: null,
+          startAt: null,
+          endAt: null,
+          deepMinutes: null,
+          lightMinutes: null,
+          remMinutes: null,
+        },
+        lowRiskContext: {
+          activeAllergyCount: 0,
+          currentMedicineCount: 1,
+        },
+      },
+      {
+        userIntro: 'intro',
+        tone: 'tone',
+        actionLabelHint: 'hint',
+        factsLabel: 'facts',
+      },
+    );
+
+    expect(metricsService.recordLlmCall).toHaveBeenCalledWith(
+      'analysis',
+      'test-model',
+      'success',
+      expect.any(Number),
+    );
+    const durationArg = (metricsService.recordLlmCall as jest.Mock).mock
+      .calls[0][3];
+    expect(typeof durationArg).toBe('number');
+    expect(durationArg).toBeGreaterThanOrEqual(0);
+  });
+
+  it('delegates hasAnalysisModel to llmRuntimeService.hasRoleConfig', () => {
+    const hasRoleConfig = jest.fn().mockReturnValue(true);
+    const service = new TodayAnalysisGeneratorService(
+      {
+        hasRoleConfig,
+        createChatModel: jest.fn(),
+        getModelName: jest.fn(),
+      } as unknown as LlmRuntimeService,
+      buildMetricsService(),
+    );
+
+    expect(service.hasAnalysisModel()).toBe(true);
+    expect(hasRoleConfig).toHaveBeenCalledWith('analysis');
+  });
+
+  it('returns false from hasAnalysisModel when role is not configured', () => {
+    const service = new TodayAnalysisGeneratorService(
+      {
+        hasRoleConfig: jest.fn().mockReturnValue(false),
+        createChatModel: jest.fn(),
+        getModelName: jest.fn(),
+      } as unknown as LlmRuntimeService,
+      buildMetricsService(),
+    );
+
+    expect(service.hasAnalysisModel()).toBe(false);
+  });
 });
