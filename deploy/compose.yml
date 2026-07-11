@@ -1,0 +1,221 @@
+# Lucent Production / Staging Compose
+# Compose v2 automatically reads .env from the project directory (/opt/lucent/).
+# All paths are relative to /opt/lucent/.
+
+# ── YAML anchor: common app config ─────────────────────────────
+x-app-common: &app-common
+  image: ${LUCENT_IMAGE}
+  restart: unless-stopped
+  env_file:
+    - .env
+  environment:
+    DATABASE_URL: postgresql://lucent:${POSTGRES_PASSWORD}@postgres:5432/lucent?schema=public
+    REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    NODE_ENV: production
+    HOST: 0.0.0.0
+    PORT: '3000'
+  expose:
+    - '3000'
+  volumes:
+    - ./logs/app:/app/logs
+  networks:
+    - backend
+    - observability
+  stop_grace_period: 30s
+  stop_signal: SIGTERM
+  healthcheck:
+    test:
+      [
+        'CMD-SHELL',
+        'wget -q -O - http://127.0.0.1:3000/api/v1/health >/dev/null 2>&1 || exit 1',
+      ]
+    interval: 10s
+    timeout: 5s
+    retries: 12
+    start_period: 20s
+  logging:
+    driver: json-file
+    options:
+      max-size: '50m'
+      max-file: '5'
+  deploy:
+    resources:
+      limits:
+        cpus: '2.0'
+        memory: 1G
+      reservations:
+        cpus: '0.5'
+        memory: 256M
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: lucent-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lucent
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: lucent
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql
+    networks:
+      - backend
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U lucent']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  redis:
+    image: redis:8-alpine
+    container_name: lucent-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    volumes:
+      - ./data/redis:/data
+    networks:
+      - backend
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep -q PONG']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+
+  app-blue:
+    <<: *app-common
+    container_name: lucent-app-blue
+
+  app-green:
+    <<: *app-common
+    container_name: lucent-app-green
+
+  nginx:
+    image: nginx:1.29.1-alpine
+    container_name: lucent-nginx
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - ./logs/nginx:/var/log/nginx
+    networks:
+      - backend
+    depends_on:
+      app-blue:
+        condition: service_started
+      app-green:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q -O - http://127.0.0.1/nginx-health >/dev/null 2>&1 || exit 1',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+  prometheus:
+    image: prom/prometheus:v3.4.2
+    container_name: lucent-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./data/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.listen-address=0.0.0.0:9090'
+    networks:
+      - observability
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    container_name: lucent-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/opt/grafana/dashboards:ro
+      - ./data/grafana:/var/lib/grafana
+    networks:
+      - observability
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+networks:
+  backend:
+    driver: bridge
+  observability:
+    driver: bridge

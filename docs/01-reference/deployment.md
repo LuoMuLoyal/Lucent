@@ -1,156 +1,243 @@
 # Lucent Deployment
 
-Last updated: 2026-07-09
+Last updated: 2026-07-11
 
-这份文档只保留当前简化后的生产部署模型。
+这份文档描述当前生产部署模型：Docker Compose 单机部署 + Blue-Green 零停机切换。
 
-## 目录
+## 目录结构
 
-服务器只保留两块：
+服务器上只有一个目录：
 
 ```text
-/opt/lucent/app
-/opt/lucent/server
+/opt/lucent/
+├── compose.yml                   ← CI 管理（每次覆盖上传）
+├── deploy.ts                     ← CI 管理
+├── smoke.ts                      ← CI 管理
+├── nginx/
+│   └── nginx.conf                ← CI 管理
+├── prometheus/
+│   └── prometheus.yml            ← CI 管理
+├── grafana/                      ← CI 管理（rsync --delete 同步整个目录）
+│   ├── provisioning/
+│   │   ├── dashboards/
+│   │   │   └── dashboards.yml
+│   │   └── datasources/
+│   │       └── prometheus.yml
+│   └── dashboards/
+│       └── lucent-backend-overview.json
+│
+├── .env                          ← 运维管理（CI 永不触碰）
+├── .env.previous                 ← deploy.ts 自动管理（回滚用）
+├── certs/                        ← 运维管理
+│   ├── fullchain.pem
+│   └── privkey.pem
+├── data/                         ← 运维管理
+│   ├── postgresql/
+│   ├── redis/
+│   ├── prometheus/
+│   └── grafana/
+└── logs/                         ← 运维管理
+    ├── app/                      ← Pino 按天分割的日志文件
+    └── nginx/
 ```
 
-- `/opt/lucent/app`
-  - 由 GitHub Actions 覆盖上传
-  - 包含 `deploy/docker-compose.yml`
-  - 包含 `deploy/deploy-server.ts`
-  - 包含 `deploy/post-deploy-smoke.ts`
-  - 包含 `deploy/validate-assets.ts`
-  - 包含 `deploy/nginx/nginx.conf`
-- `/opt/lucent/server`
-  - 只放服务器本地文件
-  - `.env.production`
-  - `certs/*`
-  - `data/postgresql`
-  - `data/redis`
-  - `data/prometheus`
-  - `data/grafana`
-  - `logs/app`
-  - `logs/nginx`
+核心原则：
 
-没有 `releases/<sha>`。
-没有 `current` 软链接。
-Prometheus / Grafana 已纳入 docker-compose（见下文可观测性章节）。
+- 一个目录 `/opt/lucent/`，不区分 `app/` 和 `server/`
+- CI 只覆盖上传具体文件（`scp`）和目录（`rsync`），不做 `rm -rf`
+- 运维文件（`.env`、`certs/`、`data/`、`logs/`）CI 永不触碰
+- `deploy.ts` 自动管理 `.env.previous`（部署成功后快照 `.env`）
+
+## .env 统一
+
+一个 `.env` 文件承载所有配置。Docker Compose v2 自动从项目目录读取 `.env` 做变量替换。app 容器通过 `env_file: .env` 读取所有变量。
+
+```bash
+# ─── Compose Project ──────────────────────────────────────────
+COMPOSE_PROJECT_NAME=lucent-production   # staging 改为 lucent-staging
+
+# ─── Image（每次部署由 deploy.ts 更新此行） ──────────────────
+LUCENT_IMAGE=hkccr.ccs.tencentyun.com/lucent/lucent:abc123
+
+# ─── Blue-Green ───────────────────────────────────────────────
+ACTIVE_SLOT=blue
+
+# ─── Postgres ─────────────────────────────────────────────────
+POSTGRES_USER=lucent
+POSTGRES_PASSWORD=<secret>
+
+# ─── Redis ────────────────────────────────────────────────────
+REDIS_PASSWORD=<secret>
+
+# ─── Grafana ──────────────────────────────────────────────────
+GRAFANA_ADMIN_PASSWORD=<secret>
+
+# ─── App Config ───────────────────────────────────────────────
+JWT_ACCESS_SECRET=<secret>
+JWT_REFRESH_SECRET=<secret>
+# ... 其他 app 环境变量
+```
+
+`DATABASE_URL` 和 `REDIS_URL` 在 compose.yml 的 `environment:` 块中用 `${POSTGRES_PASSWORD}` / `${REDIS_PASSWORD}` 拼接，不直接写在 `.env` 中。
+
+`LUCENT_IMAGE` 和 `ACTIVE_SLOT` 由 `deploy.ts` 自动更新。
 
 ## 首次准备
 
 ```bash
-mkdir -p /opt/lucent/app
-mkdir -p /opt/lucent/server/certs
-mkdir -p /opt/lucent/server/data/postgresql
-mkdir -p /opt/lucent/server/data/redis
-mkdir -p /opt/lucent/server/data/prometheus
-mkdir -p /opt/lucent/server/data/grafana
+mkdir -p /opt/lucent/{certs,data/{postgresql,redis,prometheus,grafana},logs/{app,nginx}}
 ```
-
-PostgreSQL 18 注意事项：
-
-- 生产 compose 现在把宿主机目录挂到容器内 `/var/lib/postgresql`
-- 不再使用旧的 `/var/lib/postgresql/data` 挂载方式
-- `postgres:18` 会在挂载目录里自行创建版本化子目录
-
-首次部署时，确保服务器上存在空目录 `/opt/lucent/server/data/postgresql` 即可。
 
 然后把这些本地文件放好：
 
 ```text
-/opt/lucent/server/.env.production
-/opt/lucent/server/certs/fullchain.pem
-/opt/lucent/server/certs/privkey.pem
+/opt/lucent/.env
+/opt/lucent/certs/fullchain.pem
+/opt/lucent/certs/privkey.pem
 ```
+
+PostgreSQL 18 注意事项：
+
+- 生产 compose 把宿主机目录挂到容器内 `/var/lib/postgresql`
+- 不再使用旧的 `/var/lib/postgresql/data` 挂载方式
+- `postgres:18` 会在挂载目录里自行创建版本化子目录
+- 不设 `PGDATA` 环境变量
 
 ## 部署方式
 
 GitHub Actions 做四件事：
 
-1. 构建并推送 Lucent 镜像到 TCR
-2. 覆盖上传 `/opt/lucent/app`
-3. 在服务器执行 `node deploy/deploy-server.ts`
-4. 用 `docker compose` 拉镜像并启动
+1. 构建并推送 Lucent 镜像到 TCR（只推 `<git-sha>` tag，不推 `latest`）
+2. 上传 deploy assets（scp 精确文件 + rsync grafana 目录，不做 `rm -rf`）
+3. SSH 执行：`cd /opt/lucent && LUCENT_IMAGE=<ref> node deploy.ts`
+4. `deploy.ts` 内部完成：migrate → Blue-Green 切换 → smoke test
 
-服务器不保留源码 checkout。
-服务器也不做 release 回溯。
+### Blue-Green 切换流程
+
+`deploy.ts` 接收 `LUCENT_IMAGE` 环境变量，读写 `.env` 中的 `ACTIVE_SLOT`：
+
+1. 前置检查：确认 compose.yml / nginx.conf / .env 存在
+2. 读取 `ACTIVE_SLOT`（blue/green），确定 inactive slot
+3. 更新 `.env` 中的 `LUCENT_IMAGE`
+4. 启动基础设施（postgres、redis）
+5. 独立容器执行 `prisma migrate deploy`
+6. 启动 inactive slot 的 app 容器
+7. 等待健康检查通过（失败则停止，不影响线上）
+8. 重写 `nginx.conf` 中的 upstream 块，切换 active/inactive
+9. `nginx -s reload` 热加载（零停机）
+10. 停止旧 active slot
+11. 更新 `.env` 中 `ACTIVE_SLOT`
+12. 快照 `.env` → `.env.previous`（回滚用）
+13. 运行 smoke test（失败则自动回滚）
+
+### 回滚
+
+```bash
+cd /opt/lucent && node deploy.ts --rollback
+```
+
+回滚从 `.env.previous` 读取上一次成功部署的镜像和 slot。
+
+### 镜像 tag 策略
+
+只使用 `<git-sha>` 作为镜像 tag，不使用 `latest`。TCR 需要配置镜像保留规则，至少保留最近 10 个 tag。
 
 ## 手工排障
 
-以后所有和生产 compose 相关的命令，都只在这里执行：
-
 ```bash
-cd /opt/lucent/app
-docker compose -f deploy/docker-compose.yml --env-file .env.compose ps
-docker compose -f deploy/docker-compose.yml --env-file .env.compose logs --tail=200 app
-docker compose -f deploy/docker-compose.yml --env-file .env.compose logs --tail=200 nginx
-docker compose -f deploy/docker-compose.yml --env-file .env.compose down
-docker compose -f deploy/docker-compose.yml --env-file .env.compose up -d
+cd /opt/lucent
+docker compose ps
+docker compose logs --tail=200 app-blue
+docker compose logs --tail=200 nginx
+docker compose down
+docker compose up -d
 ```
 
-不会再出现从软链接目录运行 `docker compose` 的 warning。
+## Staging 环境
+
+两台独立服务器，各自完整的 `/opt/lucent/` 部署：
+
+| 环境       | 服务器            | Compose Project Name | CD Workflow             |
+| ---------- | ----------------- | -------------------- | ----------------------- |
+| Staging    | staging 服务器    | `lucent-staging`     | `lucent-cd-staging.yml` |
+| Production | production 服务器 | `lucent-production`  | `lucent-cd.yml`         |
+
+流程：
+
+1. PR 合并到 main → 自动触发 `lucent-cd-staging.yml`，部署到 staging 服务器
+2. Staging 通过 smoke test → 通知
+3. 人工确认后手动触发 `lucent-cd.yml` 的 `workflow_dispatch`，部署到 production 服务器
 
 ## 最低上线检查
 
 ```bash
-curl http://127.0.0.1:3000/api/v1/health
-curl http://127.0.0.1:3000/api/v1/health/live
-curl http://127.0.0.1:3000/api/v1/health/ready
+curl http://127.0.0.1/api/v1/health
+curl http://127.0.0.1/api/v1/health/live
+curl http://127.0.0.1/api/v1/health/ready
 curl -k https://your-domain.example/api/v1/health/ready
 ```
 
 通过标准：
 
-- `app`、`postgres`、`redis`、`nginx`、`prometheus`、`grafana` 六个容器在运行
+- `app-blue` 或 `app-green`（至少一个）、`postgres`、`redis`、`nginx`、`prometheus`、`grafana` 容器在运行
 - `/api/v1/health/ready` 返回 `200`
 - Nginx 能正常反代 HTTPS 请求
-- `http://127.0.0.1:3000/metrics` 返回 Prometheus text format
 
-## 部署后 Smoke Checklist
-
-进入服务器应用目录后，优先跑统一脚本，而不是手工记命令：
+## 部署后 Smoke Test
 
 ```bash
-cd /opt/lucent/app
-LUCENT_APP_DIR=/opt/lucent/app \
-LUCENT_SERVER_DIR=/opt/lucent/server \
-LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain \
-pnpm deploy:smoke
+cd /opt/lucent
+LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain node smoke.ts
 ```
 
-这个脚本会检查：
+检查项：
 
-- `app / postgres / redis / nginx` 四个 compose service 都在 `running`
-- `http://127.0.0.1:3000/api/v1/health`
-- `http://127.0.0.1:3000/api/v1/health/live`
-- `http://127.0.0.1:3000/api/v1/health/ready`
+- `postgres / redis / nginx` 三个 compose service 都在 `running`
+- `app-blue` 或 `app-green` 至少一个在 `running`
+- `http://127.0.0.1/api/v1/health`
+- `http://127.0.0.1/api/v1/health/live`
+- `http://127.0.0.1/api/v1/health/ready`
 - 如果设置了 `LUCENT_PUBLIC_BASE_URL`，再检查一次公网 `https://.../api/v1/health/ready`
 
-如果你当前只有 IP 自签名证书，也可以这样跑：
+## 生产日志
+
+生产环境日志双写：
+
+1. **stdout JSON**：Pino 默认输出到 stdout，Docker json-file 驱动采集（50MB × 5 文件轮转）
+2. **文件按天分割**：Pino 通过 `pino-roll` transport 写入 `/app/logs/` 目录（挂载到宿主机 `./logs/app/`），文件名格式 `lucent.YYYY-MM-DD.log`，单文件上限 500MB
+
+日志文件清理（服务器 cron）：
 
 ```bash
-cd /opt/lucent/app
-LUCENT_APP_DIR=/opt/lucent/app \
-LUCENT_SERVER_DIR=/opt/lucent/server \
-LUCENT_PUBLIC_BASE_URL=https://106.52.105.88 \
-pnpm deploy:smoke
+# crontab -e
+# 每天凌晨删除 30 天前的日志文件
+0 3 * * * find /opt/lucent/logs/app -name "lucent.*.log" -mtime +30 -delete
 ```
 
-脚本内部已经对公网检查使用 `curl -k`，不会因为自签名证书直接失败。
+## 安全加固
 
-## 演示前最低人工核查
+- 所有容器以非 root 用户运行（app 容器使用 `lucent` 用户）
+- App 端口不暴露到宿主机（使用 `expose` 而非 `ports`）
+- Postgres / Redis 端口不暴露到宿主机
+- Redis 需要密码认证 + appendonly 持久化
+- Docker 容器日志统一轮转（50MB × 5 文件）
+- Nginx 安全头：`X-Frame-Options`、`X-Content-Type-Options`、`Referrer-Policy`、`Strict-Transport-Security`
+- Nginx gzip 压缩
+- Nginx SSL OCSP stapling
+- SSE 端点关闭缓冲，`proxy_read_timeout` 提高到 300s
 
-Smoke 通过后，再做一次人工核查：
+## 网络隔离
 
-1. 打开移动端，确认 demo 账号能登录
-2. 确认 Today 可触发 AI 总结
-3. 确认 Medicine 风险检查页能打开
-4. 确认 Report 至少一条 PDF 导出请求能成功
+```text
+backend 网络:       nginx, app-blue, app-green, postgres, redis, prometheus
+observability 网络:  app-blue, app-green, prometheus, grafana
+```
 
-这部分前端基线见 `../Luminous/docs/MVP_Demo_Baseline.md`。
+Postgres 和 Redis 只在 `backend` 网络内，不暴露端口到宿主机。
 
 ## GitHub Secrets
 
-`production` environment 至少保留：
+### Production environment
 
 ```text
 TCR_USERNAME
@@ -163,29 +250,38 @@ DEPLOY_SSH_KNOWN_HOSTS
 GRAFANA_ADMIN_PASSWORD
 ```
 
-`GRAFANA_ADMIN_PASSWORD` 用于 Grafana 容器的管理员密码。如果未设置，默认为 `admin`。
+### Staging environment
+
+```text
+STAGING_DEPLOY_HOST
+STAGING_DEPLOY_PORT
+STAGING_DEPLOY_USER
+STAGING_DEPLOY_SSH_KEY
+STAGING_DEPLOY_SSH_KNOWN_HOSTS
+```
 
 ## 可观测性
 
-生产 docker-compose 包含 Prometheus 和 Grafana 两个容器：
+生产 compose 包含 Prometheus 和 Grafana 两个容器：
 
-| 容器                | 镜像                     | 端口 | 说明                                                    |
-| ------------------- | ------------------------ | ---- | ------------------------------------------------------- |
-| `lucent-prometheus` | `prom/prometheus:v3.4.2` | 9090 | 从 `app:3000/metrics` 以 15s 间隔 scrape，15 天数据保留 |
-| `lucent-grafana`    | `grafana/grafana:12.1.0` | 3001 | 预置 Prometheus 数据源和 Lucent Backend Overview 仪表盘 |
+| 容器                | 镜像                     | 端口 | 说明                                                                                   |
+| ------------------- | ------------------------ | ---- | -------------------------------------------------------------------------------------- |
+| `lucent-prometheus` | `prom/prometheus:v3.4.2` | 9090 | 从 `app-blue:3000` 和 `app-green:3000` 的 `/metrics` 以 15s 间隔 scrape，15 天数据保留 |
+| `lucent-grafana`    | `grafana/grafana:12.1.0` | 3001 | 预置 Prometheus 数据源和 Lucent Backend Overview 仪表盘                                |
 
 这两个端口不暴露到公网，Nginx 不代理。通过 SSH 隧道访问：
 
 ```bash
 # Grafana
 ssh -L 3001:localhost:3001 user@server
-# 然后浏览器打开 http://localhost:3001
-
 # Prometheus
 ssh -L 9090:localhost:9090 user@server
-# 然后浏览器打开 http://localhost:9090
 ```
 
-Grafana 初始管理员密码由 `GRAFANA_ADMIN_PASSWORD` 环境变量控制（写在 `.env.compose` 中）。
+Prometheus 会自动标记不可达的 target（inactive slot）为 down，不影响仪表盘。
 
-应用端通过 `prom-client` 在 `/metrics` 端点暴露 Prometheus exposition format。环境变量 `METRICS_ENABLED` 控制开关（默认 `true`）。详见 ADR-0006。
+## 服务器前置要求
+
+- Docker Engine 26+（Compose v2 内置）
+- Node.js 24+（运行 `deploy.ts`）
+- `rsync`（同步 grafana 目录）

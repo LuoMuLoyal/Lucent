@@ -54,6 +54,17 @@ Last updated: 2026-07-11
 - **通知查询性能**：`NotificationsService.createOrReplaceScoped` 的 `findMany` 新增 `take: 50` 限制，防止大数据量全量加载
 - **通知去重兼容性**：`NotificationsService.matchesScope` 兼容数组结构 payload，数组元素中任一匹配 scope 即判定为重复
 
+## 2026-07-11 部署优化
+
+- **Dockerfile 重构**：三阶段构建（deps/builder/production），BuildKit cache mount（pnpm store + SWC），tini PID 1，non-root `lucent` 用户，修复 Prisma 客户端路径 bug
+- **Compose 重构**：网络隔离（backend + observability），资源限制，安全加固（Redis 密码、app 端口不暴露），相对路径，Docker 日志轮转，Blue-Green 双 slot（`app-blue` + `app-green`）
+- **Nginx 加固**：gzip、安全头、SSL OCSP stapling、SSE 端点关闭缓冲 + 300s 超时、upstream 双 slot 动态配置
+- **Blue-Green 零停机部署**：`deploy.ts` 16 步流程（migrate → 启动 inactive → 切换 nginx upstream → reload → 停止旧 slot → smoke test），支持 `--rollback`，smoke 失败自动回滚
+- **CI/CD 增强**：GHA 构建缓存，只推 git-sha tag，精确上传 assets（无 rm -rf），Staging 独立服务器 + 独立 workflow
+- **Prometheus 适配**：抓取目标改为 `app-blue:3000` + `app-green:3000`
+- **生产日志双写**：Pino stdout JSON + `pino-roll` 按天分割文件（`./logs/lucent.YYYY-MM-DD.log`，500MB 上限）
+- **优雅关闭**：`enableShutdownHooks()` + `stop_grace_period: 30s` + SIGTERM
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]

@@ -6,6 +6,6 @@ scrape_configs:
   - job_name: 'lucent'
     metrics_path: /metrics
     static_configs:
-      - targets: ['app:3000']
+      - targets: ['app-blue:3000', 'app-green:3000']
         labels:
           service: 'lucent-backend'

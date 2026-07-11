@@ -1,52 +1,57 @@
-# ── Build stage ──────────────────────────────────────────────────
-FROM node:24-alpine AS builder
+# syntax=docker/dockerfile:1
 
+# ── Stage 1: deps ──────────────────────────────────────────────
+FROM node:24-alpine AS deps
 RUN corepack enable
-
 WORKDIR /app
-
-# 安装依赖（利用缓存层，--ignore-scripts 跳过 prepare/husky 等生命周期脚本）
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --ignore-scripts
 
-# 拷贝源码 & 配置文件
+# ── Stage 2: builder ───────────────────────────────────────────
+FROM node:24-alpine AS builder
+RUN corepack enable
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 COPY tsconfig.json tsconfig.build.json .swcrc nest-cli.json ./
 COPY src ./src
-
-# 生成 Prisma Client
+# 生成 Prisma Client（输出到 generated/prisma，由 schema.prisma output 字段决定）
+# 注意：直接调用 prisma generate，不走 pnpm prisma:generate 脚本（该脚本还会跑 fix-generated-prisma-internal.js）
+# fix-generated-prisma-internal.js 仅用于本地开发（将 internal/*.ts 编译为 .js），
+# prisma 7 的 prisma-client provider 在 Docker 中直接生成 .js，不需要后处理
 RUN pnpm exec prisma generate
-
 # 编译 TypeScript（nest build 会根据 assets 配置复制 i18n JSON 到 dist/）
-RUN pnpm run build
-
-# ── Production stage ─────────────────────────────────────────────
-FROM node:24-alpine AS production
-
-RUN corepack enable
-
-WORKDIR /app
-
-# 先基于完整依赖剪出生产依赖，避免最终镜像带上整套 devDependencies
-COPY package.json pnpm-lock.yaml ./
-COPY --from=builder /app/node_modules ./node_modules
+RUN --mount=type=cache,id=swc,target=/root/.swc \
+    pnpm run build
+# 剪出生产依赖
 RUN pnpm prune --prod --ignore-scripts
 
-# 从 builder 拷贝编译产物（含 dist/i18n/ 翻译文件）
+# ── Stage 3: production ────────────────────────────────────────
+FROM node:24-alpine AS production
+RUN apk add --no-cache tini
+WORKDIR /app
+# 创建非 root 用户
+RUN addgroup -S lucent && adduser -S lucent -G lucent
+# 生产依赖（已 prune）
+COPY --from=builder /app/node_modules ./node_modules
+# 编译产物（含 dist/i18n/ 翻译文件）
 COPY --from=builder /app/dist ./dist
-
-# 拷贝 Prisma 生成的客户端（自定义 output 路径 src/generated/prisma）
-COPY --from=builder /app/src/generated/prisma ./src/generated/prisma
-
-# 拷贝 Prisma schema（用于 migrate）
+# Prisma 生成的客户端（schema.prisma output = ../generated/prisma，即仓库根 generated/）
+# package.json imports 字段 "#generated/*": "./generated/*" 依赖此路径
+COPY --from=builder /app/generated/prisma ./generated/prisma
+# Prisma schema + config（migrate 独立步骤用，见 Phase 3）
 COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
-
-# 拷贝入口脚本
-COPY docker-entrypoint.sh ./docker-entrypoint.sh
-RUN chmod +x ./docker-entrypoint.sh
-
+# src/config/env-file-paths.ts — prisma.config.ts 的导入依赖
+COPY --from=builder /app/src/config/env-file-paths.ts ./src/config/env-file-paths.ts
+# package.json（pino 等需要读取 version）
+COPY package.json ./
+# 创建日志目录并设置权限
+RUN mkdir -p /app/logs && chown -R lucent:lucent /app
+USER lucent
 EXPOSE 3000
-
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["tini", "--"]
+CMD ["node", "dist/main.js"]

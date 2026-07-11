@@ -28,10 +28,28 @@ describe('createLoggerOptions', () => {
     expect(options.level).toBe('debug');
   });
 
-  it('uses json logging without pretty transport in production', () => {
+  it('uses dual-write transport (stdout + pino-roll) in production', () => {
     const options = getPinoHttpOptions('production', '');
 
-    expect(options.transport).toBeUndefined();
+    expect(options.transport).toEqual(
+      expect.objectContaining({
+        targets: expect.arrayContaining([
+          expect.objectContaining({
+            target: 'pino/file',
+            options: expect.objectContaining({ destination: 1 }),
+          }),
+          expect.objectContaining({
+            target: 'pino-roll',
+            options: expect.objectContaining({
+              file: 'lucent',
+              frequency: 'daily',
+              dir: './logs',
+              mkdir: true,
+            }),
+          }),
+        ]),
+      }),
+    );
     expect(options.level).toBe('info');
   });
 

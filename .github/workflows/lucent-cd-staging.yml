@@ -1,4 +1,4 @@
-name: lucent-cd
+name: lucent-cd-staging
 
 on:
   workflow_dispatch:
@@ -9,15 +9,15 @@ on:
       - completed
 
 concurrency:
-  group: lucent-production-deploy
+  group: lucent-staging-deploy
   cancel-in-progress: false
 
 jobs:
   deploy:
-    name: Deploy to Production
+    name: Deploy to Staging
     runs-on: ubuntu-latest
     environment:
-      name: production
+      name: staging
     if: |
       (github.event_name == 'workflow_dispatch' && github.ref_name == 'main') ||
       (
@@ -82,17 +82,17 @@ jobs:
         run: |
           set -euo pipefail
           install -d -m 700 ~/.ssh
-          printf '%s\n' '${{ secrets.DEPLOY_SSH_KEY }}' > ~/.ssh/id_ed25519
+          printf '%s\n' '${{ secrets.STAGING_DEPLOY_SSH_KEY }}' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          printf '%s\n' '${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}' > ~/.ssh/known_hosts
+          printf '%s\n' '${{ secrets.STAGING_DEPLOY_SSH_KNOWN_HOSTS }}' > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
       - name: Upload deploy assets
         shell: bash
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.STAGING_DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.STAGING_DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.STAGING_DEPLOY_USER }}
         run: |
           set -euo pipefail
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /opt/lucent/nginx /opt/lucent/prometheus /opt/lucent/grafana"
@@ -104,47 +104,13 @@ jobs:
       - name: Run remote deploy
         shell: bash
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.STAGING_DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.STAGING_DEPLOY_PORT }}
+          DEPLOY_USER: ${{ secrets.STAGING_DEPLOY_USER }}
           IMAGE_REF: ${{ steps.image.outputs.image_ref }}
         run: |
           set -euo pipefail
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "
             cd /opt/lucent
             LUCENT_IMAGE='${IMAGE_REF}' node deploy.ts
-          "
-
-  rollback:
-    name: Rollback Production
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-    if: |
-      github.event_name == 'workflow_dispatch' &&
-      github.ref_name == 'main'
-    permissions:
-      contents: read
-    steps:
-      - name: Configure SSH
-        shell: bash
-        run: |
-          set -euo pipefail
-          install -d -m 700 ~/.ssh
-          printf '%s\n' '${{ secrets.DEPLOY_SSH_KEY }}' > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          printf '%s\n' '${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}' > ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Run rollback
-        shell: bash
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-        run: |
-          set -euo pipefail
-          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "
-            cd /opt/lucent
-            node deploy.ts --rollback
           "

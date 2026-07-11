@@ -6,7 +6,16 @@ dist
 .env.*
 !.env.example
 *.md
+*.log
 test
 coverage
 lucent-bruno
 docs
+logs
+.swc
+plans
+backend.log
+test-output.txt
+compodoc
+.claude
+.history

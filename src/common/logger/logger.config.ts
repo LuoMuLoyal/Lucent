@@ -22,7 +22,28 @@ function createPinoHttpOptions(nodeEnv: string, logLevel: string): Options {
   return {
     level,
     ...(isProduction
-      ? {}
+      ? {
+          transport: {
+            targets: [
+              {
+                target: 'pino/file',
+                options: { destination: 1 },
+                level,
+              },
+              {
+                target: 'pino-roll',
+                options: {
+                  file: 'lucent',
+                  frequency: 'daily',
+                  dir: './logs',
+                  mkdir: true,
+                  maxSize: 524288000,
+                },
+                level,
+              },
+            ],
+          },
+        }
       : {
           transport: {
             target: 'pino-pretty',
