@@ -181,6 +181,24 @@ describe('ApiExceptionFilter', () => {
     );
   });
 
+  it('maps CONFLICT status to CONFLICT code', () => {
+    const { filter } = createFilter();
+    const response = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    const request = { method: 'POST', url: '/items' };
+
+    filter.catch(
+      new HttpException('duplicate', HttpStatus.CONFLICT),
+      createHost(response, request),
+    );
+
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({ code: ResultCode.CONFLICT }),
+    );
+  });
+
   it('maps non-standard status (e.g. 418) to INTERNAL_ERROR code', () => {
     const { filter } = createFilter();
     const response = {
@@ -311,6 +329,43 @@ describe('ApiExceptionFilter', () => {
       expect.objectContaining({ path: '/fallback-url' }),
       expect.any(String),
     );
+  });
+
+  it('includes requestId in logged metadata', () => {
+    const { filter, logger, requestContext } = createFilter();
+    requestContext.getRequestId.mockReturnValue('req-abc-123');
+    const response = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    const request = { method: 'GET', url: '/test' };
+
+    filter.catch(new Error('err'), createHost(response, request));
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: 'req-abc-123' }),
+      expect.any(String),
+    );
+  });
+
+  it('handles HttpException with string array message of single element', () => {
+    const { filter } = createFilter();
+    const response = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    const request = { method: 'POST', url: '/items' };
+
+    filter.catch(
+      new BadRequestException(['single error']),
+      createHost(response, request),
+    );
+
+    expect(response.json).toHaveBeenCalledWith({
+      code: ResultCode.BAD_REQUEST,
+      message: 'single error',
+      data: null,
+    });
   });
 });
 

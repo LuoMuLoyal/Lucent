@@ -194,6 +194,24 @@ describe('presenters', () => {
       });
       expect(conf.level).toBe('medium');
     });
+
+    it('returns low when truncated and more than 2 ambiguities', () => {
+      const conf = buildReadConfidence({
+        ambiguities: ['amb1', 'amb2', 'amb3'],
+        truncated: true,
+        preferredReason: 'some reason',
+      });
+      expect(conf.level).toBe('low');
+    });
+
+    it('returns medium when truncated with 1 ambiguity', () => {
+      const conf = buildReadConfidence({
+        ambiguities: ['amb1'],
+        truncated: true,
+        preferredReason: 'some reason',
+      });
+      expect(conf.level).toBe('medium');
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -218,6 +236,15 @@ describe('presenters', () => {
     it('returns a valid ISO date string', () => {
       const expiry = buildProposalExpiryIso(5);
       expect(new Date(expiry).toISOString()).toBe(expiry);
+    });
+
+    it('returns current time when TTL is 0', () => {
+      const before = Date.now();
+      const expiry = buildProposalExpiryIso(0);
+      const after = Date.now();
+      const expiryMs = new Date(expiry).getTime();
+      expect(expiryMs).toBeGreaterThanOrEqual(before - 1000);
+      expect(expiryMs).toBeLessThanOrEqual(after + 1000);
     });
   });
 

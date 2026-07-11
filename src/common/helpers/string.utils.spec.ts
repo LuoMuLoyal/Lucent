@@ -2,6 +2,8 @@ import {
   generatePrefixedId,
   isBlank,
   normalizeNullableText,
+  normalizeEmail,
+  commonCharacterCount,
   truncate,
 } from './string.utils';
 
@@ -47,12 +49,72 @@ describe('string.utils', () => {
       expect(truncate('hello', 10)).toBe('hello');
     });
 
+    it('returns the original string when length equals maxLength', () => {
+      expect(truncate('hello', 5)).toBe('hello');
+    });
+
     it('truncates and appends the default suffix', () => {
       expect(truncate('hello world', 5)).toBe('hello...');
     });
 
     it('truncates with a custom suffix', () => {
       expect(truncate('hello world', 5, '→')).toBe('hello→');
+    });
+
+    it('truncates with empty suffix', () => {
+      expect(truncate('hello world', 5, '')).toBe('hello');
+    });
+
+    it('handles empty string input', () => {
+      expect(truncate('', 5)).toBe('');
+    });
+
+    it('handles maxLength of 0', () => {
+      expect(truncate('hello', 0)).toBe('...');
+    });
+  });
+
+  describe('normalizeEmail', () => {
+    it('trims and lowercases an email', () => {
+      expect(normalizeEmail('  John.Doe@Example.COM  ')).toBe(
+        'john.doe@example.com',
+      );
+    });
+
+    it('handles already normalized email', () => {
+      expect(normalizeEmail('user@domain.com')).toBe('user@domain.com');
+    });
+
+    it('handles email with mixed case', () => {
+      expect(normalizeEmail('User@Domain.COM')).toBe('user@domain.com');
+    });
+  });
+
+  describe('commonCharacterCount', () => {
+    it('counts common characters without double-counting', () => {
+      expect(commonCharacterCount('aab', 'abc')).toBe(2);
+    });
+
+    it('returns 0 for no common characters', () => {
+      expect(commonCharacterCount('xyz', 'abc')).toBe(0);
+    });
+
+    it('returns 0 for empty strings', () => {
+      expect(commonCharacterCount('', 'abc')).toBe(0);
+      expect(commonCharacterCount('abc', '')).toBe(0);
+    });
+
+    it('handles repeated characters correctly', () => {
+      // 'aaa' and 'a' → only 1 common (left has 3 a's, right has 1)
+      expect(commonCharacterCount('aaa', 'a')).toBe(1);
+    });
+
+    it('handles identical strings', () => {
+      expect(commonCharacterCount('abc', 'abc')).toBe(3);
+    });
+
+    it('is case-sensitive', () => {
+      expect(commonCharacterCount('Abc', 'abc')).toBe(2);
     });
   });
 });

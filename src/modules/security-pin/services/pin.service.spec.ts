@@ -121,6 +121,24 @@ describe('SecurityPinService', () => {
       );
       expect(argon2.hash).not.toHaveBeenCalled();
     });
+
+    it('rejects too-short pins (5 digits)', async () => {
+      await expect(service.enable('user-1', { pin: '12345' })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rejects too-long pins (7 digits)', async () => {
+      await expect(
+        service.enable('user-1', { pin: '1234567' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects empty pin', async () => {
+      await expect(service.enable('user-1', { pin: '' })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
   });
 
   describe('verify', () => {
@@ -197,6 +215,24 @@ describe('SecurityPinService', () => {
         service.change('user-1', { oldPin: '000000', newPin: '654321' }),
       ).rejects.toThrow(UnauthorizedException);
     });
+
+    it('rejects when PIN is not enabled', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        ...mockUser,
+        securityPinEnabled: false,
+        securityPinHash: null,
+      });
+
+      await expect(
+        service.change('user-1', { oldPin: '123456', newPin: '654321' }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('rejects malformed new PIN', async () => {
+      await expect(
+        service.change('user-1', { oldPin: '123456', newPin: 'abc123' }),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('disable', () => {
@@ -215,6 +251,32 @@ describe('SecurityPinService', () => {
         }),
       );
     });
+
+    it('rejects when PIN is not enabled', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        ...mockUser,
+        securityPinEnabled: false,
+        securityPinHash: null,
+      });
+
+      await expect(
+        service.disable('user-1', { pin: '123456' }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('rejects when PIN verification fails', async () => {
+      (argon2.verify as jest.Mock).mockResolvedValue(false);
+
+      await expect(
+        service.disable('user-1', { pin: '000000' }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('rejects malformed pin', async () => {
+      await expect(
+        service.disable('user-1', { pin: '12a456' }),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('getStatus', () => {
@@ -223,6 +285,19 @@ describe('SecurityPinService', () => {
 
       expect(status.enabled).toBe(true);
       expect(status.lastChangedAt).toBe('2026-07-03T12:00:00.000Z');
+    });
+
+    it('returns null lastChangedAt when PIN was never set', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        ...mockUser,
+        securityPinEnabled: false,
+        securityPinChangedAt: null,
+      });
+
+      const status = await service.getStatus('user-1');
+
+      expect(status.enabled).toBe(false);
+      expect(status.lastChangedAt).toBeNull();
     });
   });
 
@@ -273,6 +348,17 @@ describe('SecurityPinService', () => {
       await expect(
         service.verifyElevationToken('token', 'user-1'),
       ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('rejects when PIN is disabled after token was issued', async () => {
+      prisma.user.findFirst.mockResolvedValue({
+        ...mockUser,
+        securityPinEnabled: false,
+      });
+
+      await expect(
+        service.verifyElevationToken('token', 'user-1'),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 });

@@ -120,6 +120,8 @@ export class ApiExceptionFilter implements ExceptionFilter {
         return ResultCode.FORBIDDEN;
       case HttpStatus.NOT_FOUND:
         return ResultCode.NOT_FOUND;
+      case HttpStatus.CONFLICT:
+        return ResultCode.CONFLICT;
       default:
         return ResultCode.INTERNAL_ERROR;
     }

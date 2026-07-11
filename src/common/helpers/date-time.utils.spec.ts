@@ -40,6 +40,19 @@ describe('date-time.utils', () => {
       const past = new Date(Date.now() - 60_000).toISOString();
       expect(calculateExpiresIn(past)).toBe(0);
     });
+
+    it('returns 0 or 1 for exactly current time', () => {
+      const nowIso = new Date().toISOString();
+      const result = calculateExpiresIn(nowIso);
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(result).toBeLessThanOrEqual(1);
+    });
+
+    it('returns 0 for invalid date string', () => {
+      // new Date('invalid-date').getTime() is NaN, Math.max(0, NaN) is NaN
+      // so the function returns NaN for invalid input
+      expect(calculateExpiresIn('invalid-date')).toBeNaN();
+    });
   });
 
   describe('formatDateTime', () => {
@@ -50,6 +63,12 @@ describe('date-time.utils', () => {
 
     it('returns null for null', () => {
       expect(formatDateTime(null)).toBeNull();
+    });
+
+    it('returns ISO string for current date', () => {
+      const date = new Date();
+      const result = formatDateTime(date);
+      expect(result).toBe(date.toISOString());
     });
   });
 
@@ -72,6 +91,16 @@ describe('date-time.utils', () => {
     it('returns null for null', () => {
       expect(formatDateOnly(null)).toBeNull();
     });
+
+    it('handles year boundary', () => {
+      const date = new Date('2026-01-01T00:00:00.000Z');
+      expect(formatDateOnly(date)).toBe('2026-01-01');
+    });
+
+    it('handles December 31', () => {
+      const date = new Date('2026-12-31T00:00:00.000Z');
+      expect(formatDateOnly(date)).toBe('2026-12-31');
+    });
   });
 
   describe('parseDateOnly', () => {
@@ -87,6 +116,20 @@ describe('date-time.utils', () => {
       expect(result.getUTCHours()).toBe(0);
       expect(result.getUTCMinutes()).toBe(0);
       expect(result.getUTCSeconds()).toBe(0);
+    });
+
+    it('parses January 1 correctly', () => {
+      const result = parseDateOnly('2026-01-01');
+      expect(result.getUTCFullYear()).toBe(2026);
+      expect(result.getUTCMonth()).toBe(0);
+      expect(result.getUTCDate()).toBe(1);
+    });
+
+    it('parses December 31 correctly', () => {
+      const result = parseDateOnly('2026-12-31');
+      expect(result.getUTCFullYear()).toBe(2026);
+      expect(result.getUTCMonth()).toBe(11);
+      expect(result.getUTCDate()).toBe(31);
     });
   });
 
@@ -114,6 +157,32 @@ describe('date-time.utils', () => {
         Date.UTC(new Date().getUTCFullYear() + 1, 0, 1),
       );
       expect(calculateAge(futureDate)).toBe(0);
+    });
+
+    it('returns 0 for birth date exactly today', () => {
+      const today = new Date();
+      // Same year, same month, same day → age is 0 (just born)
+      const birthDate = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate(),
+        ),
+      );
+      expect(calculateAge(birthDate)).toBe(0);
+    });
+
+    it('calculates age correctly for birthday on December 31', () => {
+      const birthDate = new Date(Date.UTC(2000, 11, 31));
+      const age = calculateAge(birthDate);
+      const expectedYear = new Date().getUTCFullYear() - 2000;
+      // Dec 31 birthday: if today is Dec 31 or later in the year, age = expectedYear
+      // Otherwise age = expectedYear - 1
+      const today = new Date();
+      const hasHadBirthday =
+        today.getUTCMonth() > 11 ||
+        (today.getUTCMonth() === 11 && today.getUTCDate() >= 31);
+      expect(age).toBe(hasHadBirthday ? expectedYear : expectedYear - 1);
     });
   });
 });

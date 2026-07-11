@@ -123,6 +123,13 @@ describe('MetricsService', () => {
       expect(metrics).toContain('bullmq_jobs_total');
       expect(metrics).toContain('data-export');
     });
+
+    it('does not throw when disabled', () => {
+      const svc = createService('test', 'false');
+      expect(() => {
+        svc.recordBullmqJob('lucent-mail', 'completed');
+      }).not.toThrow();
+    });
   });
 
   describe('setBullmqActiveJobs / setBullmqWaitingJobs', () => {
@@ -133,6 +140,22 @@ describe('MetricsService', () => {
       const metrics = await service.getMetrics();
       expect(metrics).toContain('bullmq_active_jobs');
       expect(metrics).toContain('bullmq_waiting_jobs');
+    });
+
+    it('sets gauges to zero', async () => {
+      service.setBullmqActiveJobs('data-export', 0);
+      service.setBullmqWaitingJobs('data-export', 0);
+
+      const metrics = await service.getMetrics();
+      expect(metrics).toContain('bullmq_active_jobs');
+    });
+
+    it('does not throw when disabled', () => {
+      const svc = createService('test', 'false');
+      expect(() => {
+        svc.setBullmqActiveJobs('lucent-mail', 2);
+        svc.setBullmqWaitingJobs('lucent-mail', 5);
+      }).not.toThrow();
     });
   });
 
@@ -151,6 +174,20 @@ describe('MetricsService', () => {
       expect(metrics).toContain('llm_call_duration_seconds_bucket');
       expect(metrics).toContain('error');
     });
+
+    it('records with zero duration', async () => {
+      service.recordLlmCall('analysis', 'gpt-4o', 'success', 0);
+
+      const metrics = await service.getMetrics();
+      expect(metrics).toContain('llm_call_duration_seconds_bucket');
+    });
+
+    it('does not throw when disabled', () => {
+      const svc = createService('test', 'false');
+      expect(() => {
+        svc.recordLlmCall('analysis', 'gpt-4o', 'success', 1.0);
+      }).not.toThrow();
+    });
   });
 
   describe('recordLlmTokens', () => {
@@ -160,6 +197,20 @@ describe('MetricsService', () => {
 
       const metrics = await service.getMetrics();
       expect(metrics).toContain('llm_tokens_used_total');
+    });
+
+    it('records zero tokens', async () => {
+      service.recordLlmTokens('chat', 'deepseek-chat', 'prompt', 0);
+
+      const metrics = await service.getMetrics();
+      expect(metrics).toContain('llm_tokens_used_total');
+    });
+
+    it('does not throw when disabled', () => {
+      const svc = createService('test', 'false');
+      expect(() => {
+        svc.recordLlmTokens('analysis', 'gpt-4o', 'prompt', 100);
+      }).not.toThrow();
     });
   });
 });

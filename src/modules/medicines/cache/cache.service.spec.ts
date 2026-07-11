@@ -142,4 +142,84 @@ describe('MedicinesCacheService', () => {
       900_000,
     );
   });
+
+  it('returns cached detail when present', async () => {
+    const cachedValue = {
+      id: 'DB01050',
+      source: 'drugbank' as const,
+      name: 'Ibuprofen',
+      subtitle: 'CAS 15687-27-1',
+      detail: { kind: 'drugbank' as const },
+    };
+    const load = jest.fn();
+    cache.get.mockResolvedValue(cachedValue);
+
+    const result = await service.getOrSetDetail(
+      'drugbank',
+      'DB01050',
+      false,
+      load,
+    );
+
+    expect(result).toBe(cachedValue);
+    expect(load).not.toHaveBeenCalled();
+    expect(cache.set).not.toHaveBeenCalled();
+  });
+
+  it('returns null when load returns null for detail', async () => {
+    const load = jest.fn().mockResolvedValue(null);
+    cache.get.mockResolvedValue(undefined);
+
+    const result = await service.getOrSetDetail(
+      'drugbank',
+      'NOTFOUND',
+      false,
+      load,
+    );
+
+    expect(result).toBeNull();
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(cache.set).toHaveBeenCalledWith(
+      'medicines:detail:drugbank:NOTFOUND',
+      null,
+      900_000,
+    );
+  });
+
+  it('bypasses cache on search when explicitly requested', async () => {
+    const loadedValue = {
+      items: [{ id: 'cn_test' }],
+      pagination: { page: 1, pageSize: 10, total: 1, totalPages: 1 },
+    };
+    const load = jest.fn().mockResolvedValue(loadedValue);
+    cache.get.mockResolvedValue(loadedValue);
+
+    const result = await service.getOrSetSearch(
+      { source: 'cn', q: 'test', page: 1, pageSize: 10 },
+      true,
+      load,
+    );
+
+    expect(result).toBe(loadedValue);
+    expect(cache.get).not.toHaveBeenCalled();
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  it('encodes special characters in search query', async () => {
+    const load = jest.fn().mockResolvedValue({
+      items: [],
+      pagination: { page: 1, pageSize: 10, total: 0, totalPages: 0 },
+    });
+    cache.get.mockResolvedValue(undefined);
+
+    await service.getOrSetSearch(
+      { source: 'drugbank', q: 'a+b&c=d', page: 1, pageSize: 10 },
+      false,
+      load,
+    );
+
+    expect(cache.get).toHaveBeenCalledWith(
+      'medicines:search:drugbank:a%2Bb%26c%3Dd:1:10',
+    );
+  });
 });

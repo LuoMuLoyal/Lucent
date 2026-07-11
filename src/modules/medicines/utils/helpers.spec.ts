@@ -80,6 +80,18 @@ describe('medicines/utils/helpers', () => {
     it('skips arrays inside objects (not extracting from nested arrays)', () => {
       expect(toStringList([{ name: null, items: ['a', 'b'] }])).toEqual([]);
     });
+
+    it('skips boolean and number items in array', () => {
+      expect(toStringList([true, 42, 'keep'])).toEqual(['keep']);
+    });
+
+    it('handles empty array input', () => {
+      expect(toStringList([])).toEqual([]);
+    });
+
+    it('handles nested arrays (flattened)', () => {
+      expect(toStringList([['nested'], 'top'])).toEqual(['top']);
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -112,6 +124,24 @@ describe('medicines/utils/helpers', () => {
     it('handles empty input array', () => {
       expect(uniqueNonEmptyStrings([])).toEqual([]);
     });
+
+    it('handles limit of 0', () => {
+      // When limit=0, the first element is still added before the break check
+      // because the check happens after unique.add().
+      expect(uniqueNonEmptyStrings(['a', 'b'], 0)).toEqual(['a']);
+    });
+
+    it('handles limit larger than unique values', () => {
+      expect(uniqueNonEmptyStrings(['a', 'b'], 10)).toEqual(['a', 'b']);
+    });
+
+    it('preserves insertion order of first occurrence', () => {
+      expect(uniqueNonEmptyStrings(['c', 'a', 'b', 'a', 'c'])).toEqual([
+        'c',
+        'a',
+        'b',
+      ]);
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -140,6 +170,14 @@ describe('medicines/utils/helpers', () => {
 
     it('trims parts before joining', () => {
       expect(composeSubtitle('  A  ', '  B  ')).toBe('A / B');
+    });
+
+    it('returns null for all empty string parts', () => {
+      expect(composeSubtitle('', '', '')).toBeNull();
+    });
+
+    it('handles no arguments', () => {
+      expect(composeSubtitle()).toBeNull();
     });
   });
 
@@ -206,6 +244,18 @@ describe('medicines/utils/helpers', () => {
       const text = 'a'.repeat(50);
       expect(truncateText(text, 50)).toBe(text);
     });
+
+    it('handles maxLength of 1', () => {
+      const result = truncateText('ab', 1);
+      // slice(0, max(0, 1-1)) = '' then + '…'
+      expect(result).toBe('…');
+    });
+
+    it('handles maxLength of 0', () => {
+      const result = truncateText('ab', 0);
+      // slice(0, max(0, 0-1)) = '' then + '…'
+      expect(result).toBe('…');
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -254,6 +304,20 @@ describe('medicines/utils/helpers', () => {
         detectMatchedBy('xyz', [{ key: 'name', value: 'Aspirin' }]),
       ).toEqual([]);
     });
+
+    it('returns empty for empty candidates array', () => {
+      expect(detectMatchedBy('asp', [])).toEqual([]);
+    });
+
+    it('matches multiple fields in order', () => {
+      const result = detectMatchedBy('asp', [
+        { key: 'name', value: 'Aspirin' },
+        { key: 'alias', value: 'aspirin' },
+        { key: 'code', value: 'ASP-001' },
+        { key: 'note', value: 'no match' },
+      ]);
+      expect(result).toEqual(['name', 'alias', 'code']);
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -290,6 +354,23 @@ describe('medicines/utils/helpers', () => {
     it('rounds up totalPages for partial pages', () => {
       expect(toPagination(1, 10, 11).totalPages).toBe(2);
       expect(toPagination(1, 10, 21).totalPages).toBe(3);
+    });
+
+    it('handles pageSize of 1', () => {
+      expect(toPagination(1, 1, 5).totalPages).toBe(5);
+    });
+
+    it('handles large total with large pageSize', () => {
+      expect(toPagination(1, 1000, 5000).totalPages).toBe(5);
+    });
+
+    it('handles total of 1', () => {
+      expect(toPagination(1, 10, 1)).toEqual({
+        page: 1,
+        pageSize: 10,
+        total: 1,
+        totalPages: 1,
+      });
     });
   });
 });

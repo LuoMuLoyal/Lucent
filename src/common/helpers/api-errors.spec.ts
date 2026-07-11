@@ -96,4 +96,79 @@ describe('api-errors', () => {
       }
     });
   });
+
+  describe('edge cases', () => {
+    it('notFound throws with empty message', () => {
+      try {
+        notFound('');
+      } catch (e) {
+        expect(e).toBeInstanceOf(NotFoundException);
+        const response = (e as NotFoundException).getResponse();
+        expect(response).toMatchObject({
+          code: ResultCode.NOT_FOUND,
+          message: '',
+        });
+      }
+    });
+
+    it('badRequest throws with empty message', () => {
+      try {
+        badRequest('');
+      } catch (e) {
+        expect(e).toBeInstanceOf(BadRequestException);
+        const response = (e as BadRequestException).getResponse();
+        expect(response).toMatchObject({
+          code: ResultCode.BAD_REQUEST,
+          message: '',
+        });
+      }
+    });
+
+    it('unauthorized throws with empty message', () => {
+      try {
+        unauthorized('');
+      } catch (e) {
+        expect(e).toBeInstanceOf(UnauthorizedException);
+        const response = (e as UnauthorizedException).getResponse();
+        expect(response).toMatchObject({
+          code: ResultCode.UNAUTHORIZED,
+          message: '',
+        });
+      }
+    });
+
+    it('forbidden throws with empty message', () => {
+      try {
+        forbidden('');
+      } catch (e) {
+        expect(e).toBeInstanceOf(ForbiddenException);
+        const response = (e as ForbiddenException).getResponse();
+        expect(response).toMatchObject({
+          code: ResultCode.FORBIDDEN,
+          message: '',
+        });
+      }
+    });
+
+    it('conflict throws with empty message', () => {
+      try {
+        conflict('');
+      } catch (e) {
+        expect(e).toBeInstanceOf(ConflictException);
+        const response = (e as ConflictException).getResponse();
+        expect(response).toMatchObject({
+          code: ResultCode.CONFLICT,
+          message: '',
+        });
+      }
+    });
+
+    it('all functions throw and never return', () => {
+      expect(() => notFound('x')).toThrow();
+      expect(() => badRequest('x')).toThrow();
+      expect(() => unauthorized('x')).toThrow();
+      expect(() => forbidden('x')).toThrow();
+      expect(() => conflict('x')).toThrow();
+    });
+  });
 });

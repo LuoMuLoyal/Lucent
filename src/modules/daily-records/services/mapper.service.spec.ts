@@ -70,6 +70,28 @@ describe('DailyRecordsMapperService', () => {
       expect(result[0]?.recordId).toBe('r1');
       expect(result[0]?.objectKey).toBe('img/abc.jpg');
     });
+
+    it('maps multiple attachments', () => {
+      const result = service.toAttachmentCreateManyData('u1', 'r1', [
+        { objectKey: 'img/a.jpg' },
+        { objectKey: 'img/b.jpg' },
+        { objectKey: 'img/c.jpg' },
+      ]);
+      expect(result).toHaveLength(3);
+      expect(result[1]?.objectKey).toBe('img/b.jpg');
+    });
+
+    it('returns empty array for empty input', () => {
+      const result = service.toAttachmentCreateManyData('u1', 'r1', []);
+      expect(result).toEqual([]);
+    });
+
+    it('trims objectKey', () => {
+      const result = service.toAttachmentCreateManyData('u1', 'r1', [
+        { objectKey: '  img/abc.jpg  ' },
+      ]);
+      expect(result[0]?.objectKey).toBe('img/abc.jpg');
+    });
   });
 
   describe('toItem', () => {
@@ -149,6 +171,35 @@ describe('DailyRecordsMapperService', () => {
       expect(noteSummary).toBeDefined();
       if (!noteSummary) throw new Error('note summary not found');
       expect(noteSummary.count).toBe(2);
+    });
+
+    it('returns empty summaries for empty records', () => {
+      const result = service.toSummaries([]);
+      expect(result.summaries).toEqual([]);
+    });
+
+    it('returns single summary when all records are same kind', () => {
+      const base = {
+        occurredAt: new Date(),
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        source: null,
+        payload: null,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as unknown as DailyRecordShape;
+      const records: DailyRecordShape[] = [
+        { ...base, id: 'r1', kind: 'water' },
+        { ...base, id: 'r2', kind: 'water' },
+        { ...base, id: 'r3', kind: 'water' },
+      ];
+      const result = service.toSummaries(records);
+      expect(result.summaries).toHaveLength(1);
+      expect(result.summaries[0]?.count).toBe(3);
     });
   });
 });

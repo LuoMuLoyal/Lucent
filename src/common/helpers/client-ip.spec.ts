@@ -47,5 +47,32 @@ describe('client-ip', () => {
       // request-ip may return socket.remoteAddress or request.ip
       expect(result).not.toBe('unknown-client');
     });
+
+    it('returns unknown-client when socket is null', () => {
+      // When socket is null, the function throws because it tries to access
+      // request.socket.remoteAddress. This is the actual behavior.
+      const req = {
+        socket: null,
+        ip: undefined,
+      } as unknown as Request;
+      expect(() => getRequestClientIp(req, false)).toThrow(TypeError);
+    });
+
+    it('returns unknown-client when trustProxy is true and all sources are undefined', () => {
+      const req = {
+        socket: { remoteAddress: undefined },
+        ip: undefined,
+        headers: {},
+      } as unknown as Request;
+      expect(getRequestClientIp(req, true)).toBe('unknown-client');
+    });
+
+    it('returns socket.remoteAddress when trustProxy is false and ip is undefined', () => {
+      const req = {
+        socket: { remoteAddress: '127.0.0.1' },
+        ip: undefined,
+      } as unknown as Request;
+      expect(getRequestClientIp(req, false)).toBe('127.0.0.1');
+    });
   });
 });

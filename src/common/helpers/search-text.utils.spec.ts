@@ -27,5 +27,21 @@ describe('search-text.utils', () => {
     it('returns single part when only one non-null', () => {
       expect(buildSearchText([null, 'only', null])).toBe('only');
     });
+
+    it('trims each part before joining', () => {
+      expect(buildSearchText(['  hello  ', '  world  '])).toBe('hello world');
+    });
+
+    it('returns null when all parts are empty or whitespace', () => {
+      expect(buildSearchText(['', '  ', '\t'])).toBeNull();
+    });
+
+    it('handles mix of empty and non-empty parts', () => {
+      expect(buildSearchText(['', 'keep', '', 'this'])).toBe('keep this');
+    });
+
+    it('returns single trimmed part', () => {
+      expect(buildSearchText(['  single  '])).toBe('single');
+    });
   });
 });

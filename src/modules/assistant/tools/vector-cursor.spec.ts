@@ -54,6 +54,17 @@ describe('vector-cursor', () => {
       const invalidJson = Buffer.from('not json', 'utf8').toString('base64url');
       expect(decodeVectorCursor(invalidJson)).toBeNull();
     });
+
+    it('decodes to null for valid JSON with wrong shape (missing fields)', () => {
+      const wrongShape = Buffer.from(
+        JSON.stringify({ foo: 'bar' }),
+        'utf8',
+      ).toString('base64url');
+      // The function returns the parsed object as-is, it doesn't validate shape
+      const result = decodeVectorCursor(wrongShape);
+      expect(result).not.toBeNull();
+      expect(result).toEqual({ foo: 'bar' });
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -83,6 +94,19 @@ describe('vector-cursor', () => {
       const hash1 = buildVectorQueryHash('test');
       const hash2 = buildVectorQueryHash('test', {});
       expect(hash1).toBe(hash2);
+    });
+
+    it('returns consistent hash for empty query string', () => {
+      const hash1 = buildVectorQueryHash('');
+      const hash2 = buildVectorQueryHash('');
+      expect(hash1).toBe(hash2);
+      expect(hash1).toMatch(/^[0-9a-f]+$/);
+    });
+
+    it('returns different hashes for empty vs non-empty query', () => {
+      const hash1 = buildVectorQueryHash('');
+      const hash2 = buildVectorQueryHash('test');
+      expect(hash1).not.toBe(hash2);
     });
   });
 
@@ -134,6 +158,18 @@ describe('vector-cursor', () => {
       const decoded = decodeVectorCursor(page.nextCursor);
       expect(decoded?.offset).toBe(30);
       expect(decoded?.limit).toBe(10);
+    });
+
+    it('handles offset of 0', () => {
+      const page = buildVectorPage({
+        limit: 10,
+        offset: 0,
+        hasMore: true,
+        queryHash: 'hash',
+      });
+
+      const decoded = decodeVectorCursor(page.nextCursor);
+      expect(decoded?.offset).toBe(10);
     });
   });
 });

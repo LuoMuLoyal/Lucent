@@ -102,6 +102,65 @@ describe('sse', () => {
 
       expect(res.write).toHaveBeenCalledWith('data: null\n\n');
     });
+
+    it('serializes boolean data', () => {
+      const res = createMockResponse();
+      writeSseEvent(res as unknown as Response, {
+        event: 'result',
+        data: true,
+      });
+
+      expect(res.write).toHaveBeenCalledWith('data: true\n\n');
+    });
+
+    it('serializes undefined data', () => {
+      const res = createMockResponse();
+      writeSseEvent(res as unknown as Response, {
+        event: 'done',
+        data: undefined,
+      });
+
+      // JSON.stringify(undefined) returns undefined (not a string),
+      // so the data line becomes 'data: undefined\n\n'
+      expect(res.write).toHaveBeenCalledWith('data: undefined\n\n');
+    });
+
+    it('serializes nested object data', () => {
+      const res = createMockResponse();
+      writeSseEvent(res as unknown as Response, {
+        event: 'summary',
+        data: { nested: { key: 'value' } },
+      });
+
+      expect(res.write).toHaveBeenCalledWith(
+        'data: {"nested":{"key":"value"}}\n\n',
+      );
+    });
+
+    it('serializes array data', () => {
+      const res = createMockResponse();
+      writeSseEvent(res as unknown as Response, {
+        event: 'chunk',
+        data: [1, 'two', false],
+      });
+
+      expect(res.write).toHaveBeenCalledWith('data: [1,"two",false]\n\n');
+    });
+
+    it('writes event name before data', () => {
+      const res = createMockResponse();
+      const callOrder: string[] = [];
+      (res.write as jest.Mock).mockImplementation((chunk: string) => {
+        callOrder.push(chunk);
+      });
+
+      writeSseEvent(res as unknown as Response, {
+        event: 'summary',
+        data: 'test',
+      });
+
+      expect(callOrder).toEqual(['event: summary\n', 'data: "test"\n\n']);
+    });
   });
 
   describe('endSse', () => {

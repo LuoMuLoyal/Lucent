@@ -98,6 +98,38 @@ describe('AuthRateLimitService', () => {
         expect(response.code).toBe(ResultCode.LOGIN_RATE_LIMITED);
       }
     });
+
+    it('should allow login when lockout period has expired', async () => {
+      cache.get.mockResolvedValue({
+        count: 10,
+        resetAt: Date.now() - 600_000,
+        lockedUntil: Date.now() - 1000,
+      });
+
+      await expect(
+        service.checkLoginRateLimit('test@example.com'),
+      ).resolves.toBeUndefined();
+
+      // Should delete the expired entry
+      expect(cache.del).toHaveBeenCalledWith(
+        expect.stringContaining('login-failure'),
+      );
+    });
+
+    it('should delete expired bucket and allow login', async () => {
+      cache.get.mockResolvedValue({
+        count: 3,
+        resetAt: Date.now() - 1000,
+      });
+
+      await expect(
+        service.checkLoginRateLimit('test@example.com'),
+      ).resolves.toBeUndefined();
+
+      expect(cache.del).toHaveBeenCalledWith(
+        expect.stringContaining('login-failure'),
+      );
+    });
   });
 
   // ════════════════════════════════════════════════════════════
@@ -143,6 +175,51 @@ describe('AuthRateLimitService', () => {
         expect.any(Number),
       );
     });
+
+    it('should reset to count 1 when bucket has expired', async () => {
+      cache.get.mockResolvedValue({
+        count: 8,
+        resetAt: Date.now() - 1000,
+      });
+
+      await service.recordLoginFailure('test@example.com');
+
+      expect(cache.set).toHaveBeenCalledWith(
+        expect.stringContaining('login-failure'),
+        expect.objectContaining({ count: 1 }),
+        expect.any(Number),
+      );
+    });
+
+    it('should reset to count 1 when bucket has lockedUntil set (already locked)', async () => {
+      cache.get.mockResolvedValue({
+        count: 10,
+        resetAt: Date.now() + 600_000,
+        lockedUntil: Date.now() + 1_800_000,
+      });
+
+      await service.recordLoginFailure('test@example.com');
+
+      expect(cache.set).toHaveBeenCalledWith(
+        expect.stringContaining('login-failure'),
+        expect.objectContaining({ count: 1 }),
+        expect.any(Number),
+      );
+    });
+
+    it('should reset to count 1 when cache returns invalid bucket shape', async () => {
+      cache.get.mockResolvedValue({
+        wrong: 'shape',
+      });
+
+      await service.recordLoginFailure('test@example.com');
+
+      expect(cache.set).toHaveBeenCalledWith(
+        expect.stringContaining('login-failure'),
+        expect.objectContaining({ count: 1 }),
+        expect.any(Number),
+      );
+    });
   });
 
   // ════════════════════════════════════════════════════════════
@@ -156,6 +233,15 @@ describe('AuthRateLimitService', () => {
       expect(cache.del).toHaveBeenCalledWith(
         expect.stringContaining('login-failure'),
       );
+    });
+
+    it('should hash the email in the cache key', async () => {
+      await service.clearLoginFailures('test@example.com');
+
+      const key = (cache.del as jest.Mock).mock.calls[0][0] as string;
+      // Key should contain a SHA-256 hex digest, not the raw email
+      expect(key).not.toContain('test@example.com');
+      expect(key).toMatch(/auth:login-failure:[0-9a-f]{64}$/);
     });
   });
 });

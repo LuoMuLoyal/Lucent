@@ -96,6 +96,19 @@ describe('AuthTokenService', () => {
         }),
       );
     });
+
+    it('should not set context property when context is undefined', async () => {
+      await service.generateTokenPair(mockUser as never);
+
+      const callArg = (sessionRepo.createSession as jest.Mock).mock.calls[0][0];
+      expect(callArg.context).toBeUndefined();
+    });
+
+    it('should produce different refresh tokens across calls', async () => {
+      const a = await service.generateTokenPair(mockUser as never);
+      const b = await service.generateTokenPair(mockUser as never);
+      expect(a.refreshToken).not.toBe(b.refreshToken);
+    });
   });
 
   describe('refresh', () => {
@@ -160,6 +173,16 @@ describe('AuthTokenService', () => {
       expect(sessionRepo.deleteSessionsByUserIdAndHash).toHaveBeenCalledWith(
         'user-1',
         hash('some-token'),
+      );
+    });
+
+    it('should hash the token before deletion', async () => {
+      await service.revoke('user-1', 'another-token');
+
+      const expectedHash = hash('another-token');
+      expect(sessionRepo.deleteSessionsByUserIdAndHash).toHaveBeenCalledWith(
+        'user-1',
+        expectedHash,
       );
     });
   });
@@ -247,6 +270,23 @@ describe('AuthTokenService', () => {
     it('should return SHA-256 hex digest', () => {
       const result = service.hashRefreshToken('test-token');
       expect(result).toBe(hash('test-token'));
+    });
+
+    it('should return different hashes for different tokens', () => {
+      const a = service.hashRefreshToken('token-a');
+      const b = service.hashRefreshToken('token-b');
+      expect(a).not.toBe(b);
+    });
+
+    it('should return a 64-character hex string', () => {
+      const result = service.hashRefreshToken('any-token');
+      expect(result).toMatch(/^[0-9a-f]{64}$/);
+    });
+
+    it('should produce consistent hash for the same input', () => {
+      const a = service.hashRefreshToken('same-token');
+      const b = service.hashRefreshToken('same-token');
+      expect(a).toBe(b);
     });
   });
 

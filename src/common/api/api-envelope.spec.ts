@@ -36,6 +36,31 @@ describe('api-envelope', () => {
 
       expect(result.data).toEqual([1, 2, 3]);
     });
+
+    it('should handle undefined data', () => {
+      const result = successEnvelope(undefined);
+
+      expect(result.code).toBe(ResultCode.SUCCESS);
+      expect(result.data).toBeUndefined();
+    });
+
+    it('should handle empty object data', () => {
+      const result = successEnvelope({});
+
+      expect(result.data).toEqual({});
+    });
+
+    it('should handle nested object data', () => {
+      const data = { user: { name: 'test', age: 30 } };
+      const result = successEnvelope(data);
+
+      expect(result.data).toEqual(data);
+    });
+
+    it('should always set message to empty string', () => {
+      const result = successEnvelope('data');
+      expect(result.message).toBe('');
+    });
   });
 
   describe('errorEnvelope', () => {
@@ -62,6 +87,27 @@ describe('api-envelope', () => {
 
       expect(result.code).toBe(500_001);
       expect(result.data).toBeNull();
+    });
+
+    it('should handle empty message', () => {
+      const result = errorEnvelope(ResultCode.BAD_REQUEST, '');
+
+      expect(result.code).toBe(ResultCode.BAD_REQUEST);
+      expect(result.message).toBe('');
+      expect(result.data).toBeNull();
+    });
+
+    it('should handle CONFLICT code', () => {
+      const result = errorEnvelope(ResultCode.CONFLICT, 'duplicate');
+
+      expect(result.code).toBe(409_001);
+      expect(result.message).toBe('duplicate');
+    });
+
+    it('should handle TOKEN_EXPIRED code', () => {
+      const result = errorEnvelope(ResultCode.TOKEN_EXPIRED, 'expired');
+
+      expect(result.code).toBe(401_002);
     });
   });
 
