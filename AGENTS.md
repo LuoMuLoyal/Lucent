@@ -146,11 +146,6 @@ File name has a responsibility word (not just the module name)?
       └─ No (e.g. documents.service.ts) → Already optimal, do not change
 ```
 
-### Reference
-
-See `plans/2026-07-12-naming-cleanup.md` for the full migration plan with per-file rename
-mappings.
-
 ## Barrel Exports Rules
 
 - Every sub-directory inside a module (`services/`, `dto/`, `tools/`, `providers/`, `strategies/`,
