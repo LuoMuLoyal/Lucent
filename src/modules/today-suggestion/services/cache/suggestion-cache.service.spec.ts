@@ -3,14 +3,14 @@ import { BaselineDimension } from '../../types';
 
 describe('SuggestionCacheService', () => {
   let service: SuggestionCacheService;
-  let cacheGetMock: jest.Mock;
-  let cacheSetMock: jest.Mock;
-  let cacheDelMock: jest.Mock;
+  let cacheGetMock: vi.Mock;
+  let cacheSetMock: vi.Mock;
+  let cacheDelMock: vi.Mock;
 
   beforeEach(() => {
-    cacheGetMock = jest.fn();
-    cacheSetMock = jest.fn();
-    cacheDelMock = jest.fn();
+    cacheGetMock = vi.fn();
+    cacheSetMock = vi.fn();
+    cacheDelMock = vi.fn();
 
     const cacheMock = {
       get: cacheGetMock,

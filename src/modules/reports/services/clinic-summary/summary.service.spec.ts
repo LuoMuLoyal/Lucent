@@ -7,29 +7,29 @@ import type { PrismaService } from '../../../../prisma/prisma.service';
 describe('ClinicSummaryService', () => {
   let service: ClinicSummaryService;
   let prisma: DeepMocked<PrismaService>;
-  let cacheManager: { get: jest.Mock; set: jest.Mock };
-  let pdfService: jest.Mocked<ClinicSummaryPdfService>;
-  let configService: jest.Mocked<ConfigService>;
+  let cacheManager: { get: vi.Mock; set: vi.Mock };
+  let pdfService: vi.Mocked<ClinicSummaryPdfService>;
+  let configService: vi.Mocked<ConfigService>;
 
   beforeEach(() => {
     prisma = {
       user: {
-        findFirstOrThrow: jest.fn(),
+        findFirstOrThrow: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
 
     cacheManager = {
-      get: jest.fn(),
-      set: jest.fn(),
+      get: vi.fn(),
+      set: vi.fn(),
     };
 
     pdfService = {
-      buildPdf: jest.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
-    } as unknown as jest.Mocked<ClinicSummaryPdfService>;
+      buildPdf: vi.fn().mockResolvedValue(Buffer.from('pdf-bytes')),
+    } as unknown as vi.Mocked<ClinicSummaryPdfService>;
 
     configService = {
-      get: jest.fn(),
-    } as unknown as jest.Mocked<ConfigService>;
+      get: vi.fn(),
+    } as unknown as vi.Mocked<ConfigService>;
 
     service = new ClinicSummaryService(
       prisma,
@@ -62,9 +62,7 @@ describe('ClinicSummaryService', () => {
 
   describe('buildClinicSummary', () => {
     it('builds summary with de-identified profile', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue(
-        mockUserRow,
-      );
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
 
       const result = await service.buildClinicSummary('user-1');
 
@@ -82,7 +80,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('handles null profile', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue({
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         profile: null,
       });
@@ -95,7 +93,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('handles null nickname', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue({
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         nickname: null,
       });
@@ -105,7 +103,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('handles single-character nickname', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue({
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         nickname: 'A',
       });
@@ -115,7 +113,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('handles empty allergies and conditions', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue({
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         allergies: [],
         conditions: [],
@@ -131,9 +129,7 @@ describe('ClinicSummaryService', () => {
 
   describe('createShareLink', () => {
     it('creates share link with cache and returns URL', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue(
-        mockUserRow,
-      );
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
       configService.get.mockReturnValue({ publicBaseUrl: 'https://lumos.app' });
 
       const result = await service.createShareLink('user-1');
@@ -151,9 +147,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('falls back to localhost when config missing', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue(
-        mockUserRow,
-      );
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
       configService.get.mockReturnValue(undefined);
 
       const result = await service.createShareLink('user-1');
@@ -184,9 +178,7 @@ describe('ClinicSummaryService', () => {
 
   describe('exportPdf', () => {
     it('builds summary and generates PDF', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue(
-        mockUserRow,
-      );
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
 
       const result = await service.exportPdf('user-1', 'zh-CN');
 
@@ -234,7 +226,7 @@ describe('ClinicSummaryService', () => {
 
   describe('de-identification (maskName)', () => {
     it('masks multi-character names to first char + **', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue({
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         nickname: '张三丰',
       });
@@ -244,7 +236,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('returns 匿名用户 for null name', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue({
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         nickname: null,
       });

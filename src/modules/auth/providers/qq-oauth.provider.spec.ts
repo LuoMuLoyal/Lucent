@@ -3,19 +3,19 @@ import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
 import { QqOAuthProvider } from './qq-oauth.provider';
 
-jest.mock('../../../common/helpers/retry.utils', () => ({
-  fetchWithRetry: jest.fn(),
-  withRetry: jest.fn(),
+import * as retryUtils from '../../../common/helpers/retry.utils';
+
+vi.mock('../../../common/helpers/retry.utils', () => ({
+  fetchWithRetry: vi.fn(),
+  withRetry: vi.fn(),
 }));
 
-const { fetchWithRetry } = jest.requireMock(
-  '../../../common/helpers/retry.utils',
-) as { fetchWithRetry: jest.Mock };
+const { fetchWithRetry } = retryUtils as unknown as { fetchWithRetry: vi.Mock };
 
 describe('QqOAuthProvider', () => {
   let provider: QqOAuthProvider;
-  let configService: jest.Mocked<ConfigService>;
-  let i18n: jest.Mocked<I18nService>;
+  let configService: vi.Mocked<ConfigService>;
+  let i18n: vi.Mocked<I18nService>;
 
   const fullConfig = {
     qq: {
@@ -27,11 +27,11 @@ describe('QqOAuthProvider', () => {
 
   beforeEach(() => {
     configService = {
-      getOrThrow: jest.fn().mockReturnValue(fullConfig),
-    } as unknown as jest.Mocked<ConfigService>;
+      getOrThrow: vi.fn().mockReturnValue(fullConfig),
+    } as unknown as vi.Mocked<ConfigService>;
     i18n = {
-      t: jest.fn().mockReturnValue('translated'),
-    } as unknown as jest.Mocked<I18nService>;
+      t: vi.fn().mockReturnValue('translated'),
+    } as unknown as vi.Mocked<I18nService>;
 
     provider = new QqOAuthProvider(configService, i18n);
     fetchWithRetry.mockReset();
@@ -63,7 +63,7 @@ describe('QqOAuthProvider', () => {
     it('fetches profile through the full QQ OAuth flow', async () => {
       // Step 1: access token response (query string format)
       fetchWithRetry.mockResolvedValueOnce({
-        text: jest
+        text: vi
           .fn()
           .mockResolvedValue(
             'access_token=token123&expires_in=3600&refresh_token=rt456',
@@ -72,7 +72,7 @@ describe('QqOAuthProvider', () => {
 
       // Step 2: openid response (JSON)
       fetchWithRetry.mockResolvedValueOnce({
-        text: jest
+        text: vi
           .fn()
           .mockResolvedValue(
             JSON.stringify({ client_id: 'qq-app-id', openid: 'openid-123' }),
@@ -81,7 +81,7 @@ describe('QqOAuthProvider', () => {
 
       // Step 3: user info response
       fetchWithRetry.mockResolvedValueOnce({
-        json: jest.fn().mockResolvedValue({
+        json: vi.fn().mockResolvedValue({
           ret: 0,
           msg: '',
           nickname: 'QQUser',

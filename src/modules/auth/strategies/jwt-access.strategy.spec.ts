@@ -15,12 +15,12 @@ describe('JwtAccessStrategy', () => {
   };
 
   let configService: {
-    getOrThrow: jest.Mock;
+    getOrThrow: vi.Mock;
   };
 
   beforeEach(() => {
     configService = {
-      getOrThrow: jest.fn((key: string) => {
+      getOrThrow: vi.fn((key: string) => {
         if (key === (ConfigKey.Jwt as string)) {
           return jwtConfig;
         }

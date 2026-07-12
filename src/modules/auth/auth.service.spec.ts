@@ -30,10 +30,10 @@ import { AppleOAuthProvider } from './providers/apple-oauth.provider';
 import { QqOAuthProvider } from './providers/qq-oauth.provider';
 import { NotificationsService } from '../notifications/services/notifications.service';
 
-jest.mock('argon2', () => ({
+vi.mock('argon2', () => ({
   argon2id: 2,
-  hash: jest.fn(),
-  verify: jest.fn(),
+  hash: vi.fn(),
+  verify: vi.fn(),
   Options: {},
 }));
 
@@ -76,9 +76,9 @@ const mockTokenPair = {
 
 describe('AuthService', () => {
   let service: AuthService;
-  let authTokenService: jest.Mocked<AuthTokenService>;
-  let authAccountService: jest.Mocked<AuthAccountService>;
-  let authOAuthFacadeService: jest.Mocked<AuthOAuthFacadeService>;
+  let authTokenService: vi.Mocked<AuthTokenService>;
+  let authAccountService: vi.Mocked<AuthAccountService>;
+  let authOAuthFacadeService: vi.Mocked<AuthOAuthFacadeService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -86,11 +86,11 @@ describe('AuthService', () => {
         {
           provide: PinoLogger,
           useValue: {
-            setContext: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            info: jest.fn(),
-            debug: jest.fn(),
+            setContext: vi.fn(),
+            error: vi.fn(),
+            warn: vi.fn(),
+            info: vi.fn(),
+            debug: vi.fn(),
           },
         },
         AuthService,
@@ -105,110 +105,110 @@ describe('AuthService', () => {
         {
           provide: UserService,
           useValue: {
-            findByEmail: jest.fn(),
-            findById: jest.fn(),
-            findByIdentity: jest.fn(),
-            findByProviderUnionId: jest.fn(),
-            create: jest.fn(),
-            createOAuthUser: jest.fn(),
-            linkIdentity: jest.fn(),
-            update: jest.fn(),
-            updateByEmail: jest.fn(),
+            findByEmail: vi.fn(),
+            findById: vi.fn(),
+            findByIdentity: vi.fn(),
+            findByProviderUnionId: vi.fn(),
+            create: vi.fn(),
+            createOAuthUser: vi.fn(),
+            linkIdentity: vi.fn(),
+            update: vi.fn(),
+            updateByEmail: vi.fn(),
           },
         },
         {
           provide: JwtService,
-          useValue: { signAsync: jest.fn() },
+          useValue: { signAsync: vi.fn() },
         },
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn((_: string, defaultValue: unknown) => defaultValue),
-            getOrThrow: jest.fn().mockReturnValue(mockJwtConfig),
+            get: vi.fn((_: string, defaultValue: unknown) => defaultValue),
+            getOrThrow: vi.fn().mockReturnValue(mockJwtConfig),
           },
         },
         {
           provide: VerificationCodeService,
           useValue: {
-            assertClientRateLimit: jest.fn(),
-            send: jest.fn(),
-            verify: jest.fn(),
-            getCooldownSec: jest.fn().mockReturnValue(60),
+            assertClientRateLimit: vi.fn(),
+            send: vi.fn(),
+            verify: vi.fn(),
+            getCooldownSec: vi.fn().mockReturnValue(60),
           },
         },
         {
           provide: WechatMobileOAuthProvider,
           useValue: {
-            fetchProfile: jest.fn(),
+            fetchProfile: vi.fn(),
           },
         },
         {
           provide: WechatWebOAuthProvider,
           useValue: {
-            buildAuthorizeUrl: jest.fn(),
-            fetchProfile: jest.fn(),
+            buildAuthorizeUrl: vi.fn(),
+            fetchProfile: vi.fn(),
           },
         },
         {
           provide: AppleOAuthProvider,
           useValue: {
-            fetchProfile: jest.fn(),
+            fetchProfile: vi.fn(),
           },
         },
         {
           provide: QqOAuthProvider,
           useValue: {
-            buildAuthorizeUrl: jest.fn(),
-            fetchProfile: jest.fn(),
+            buildAuthorizeUrl: vi.fn(),
+            fetchProfile: vi.fn(),
           },
         },
         {
           provide: I18nService,
-          useValue: { t: jest.fn((key: string) => key) },
+          useValue: { t: vi.fn((key: string) => key) },
         },
         // ── Sub-service mocks ──
         {
           provide: AuthRateLimitService,
           useValue: {
-            checkLoginRateLimit: jest.fn().mockResolvedValue(undefined),
-            recordLoginFailure: jest.fn(),
-            clearLoginFailures: jest.fn(),
+            checkLoginRateLimit: vi.fn().mockResolvedValue(undefined),
+            recordLoginFailure: vi.fn(),
+            clearLoginFailures: vi.fn(),
           },
         },
         {
           provide: AuthTokenService,
           useValue: {
-            generateTokenPair: jest.fn().mockResolvedValue(mockTokenPair),
-            refresh: jest
+            generateTokenPair: vi.fn().mockResolvedValue(mockTokenPair),
+            refresh: vi
               .fn()
               .mockRejectedValue(new Error('REFRESH_TOKEN_INVALID')),
-            revoke: jest.fn(),
-            revokeAll: jest.fn(),
-            revokeById: jest.fn(),
-            listSessions: jest.fn(),
-            hashRefreshToken: jest.fn(),
+            revoke: vi.fn(),
+            revokeAll: vi.fn(),
+            revokeById: vi.fn(),
+            listSessions: vi.fn(),
+            hashRefreshToken: vi.fn(),
           },
         },
         {
           provide: AuthOAuthStateService,
           useValue: {
-            createState: jest.fn().mockResolvedValue({
+            createState: vi.fn().mockResolvedValue({
               state: 'mock-oauth-state',
               ttlSec: 600,
               callbackUri: undefined,
             }),
-            consume: jest.fn().mockResolvedValue({
+            consume: vi.fn().mockResolvedValue({
               callbackUri: 'http://localhost:8080/callback',
               targetUrl: '/',
               purpose: 'login',
             }),
-            peek: jest.fn().mockResolvedValue({
+            peek: vi.fn().mockResolvedValue({
               callbackUri: 'http://localhost:8080/callback',
               targetUrl: '/',
               purpose: 'login',
               platform: 'web',
             }),
-            buildRedirectUrl: jest
+            buildRedirectUrl: vi
               .fn()
               .mockReturnValue(
                 'http://localhost:8080/callback?code=mock-auth-code&state=mock-oauth-state',
@@ -218,95 +218,93 @@ describe('AuthService', () => {
         {
           provide: AuthOAuthService,
           useValue: {
-            findOrCreateOAuthUser: jest.fn(),
-            updateOAuthLoginUser: jest.fn(),
-            linkOAuthProfileToUser: jest.fn().mockResolvedValue(undefined),
+            findOrCreateOAuthUser: vi.fn(),
+            updateOAuthLoginUser: vi.fn(),
+            linkOAuthProfileToUser: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
           provide: NotificationsService,
           useValue: {
-            create: jest.fn(),
-            findAll: jest.fn(),
-            findOne: jest.fn(),
-            markAsRead: jest.fn(),
-            markAsUnread: jest.fn(),
-            markAllAsRead: jest.fn(),
-            remove: jest.fn(),
-            getUnreadCount: jest.fn(),
+            create: vi.fn(),
+            findAll: vi.fn(),
+            findOne: vi.fn(),
+            markAsRead: vi.fn(),
+            markAsUnread: vi.fn(),
+            markAllAsRead: vi.fn(),
+            remove: vi.fn(),
+            getUnreadCount: vi.fn(),
           },
         },
         {
           provide: CredentialAuthService,
           useValue: {
-            register: jest
+            register: vi
               .fn()
               .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
-            login: jest
+            login: vi
               .fn()
               .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
-            changePassword: jest.fn().mockResolvedValue(undefined),
-            setPassword: jest.fn().mockResolvedValue(undefined),
-            changeEmail: jest.fn().mockResolvedValue(mockUser),
-            sendVerificationCode: jest
+            changePassword: vi.fn().mockResolvedValue(undefined),
+            setPassword: vi.fn().mockResolvedValue(undefined),
+            changeEmail: vi.fn().mockResolvedValue(mockUser),
+            sendVerificationCode: vi
               .fn()
               .mockResolvedValue({ message: 'verification_code_sent' }),
-            verifyEmail: jest.fn().mockResolvedValue(undefined),
-            forgotPassword: jest
+            verifyEmail: vi.fn().mockResolvedValue(undefined),
+            forgotPassword: vi
               .fn()
               .mockResolvedValue({ message: 'forgot_password_hint' }),
-            resetPassword: jest.fn().mockResolvedValue(undefined),
+            resetPassword: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
           provide: AuthAccountService,
           useValue: {
-            getActiveUser: jest.fn().mockResolvedValue(mockUser),
-            deleteAccount: jest.fn().mockResolvedValue(undefined),
+            getActiveUser: vi.fn().mockResolvedValue(mockUser),
+            deleteAccount: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
           provide: AuthOAuthFacadeService,
           useValue: {
-            createWechatWebAuthorizeUrl: jest.fn().mockResolvedValue({
+            createWechatWebAuthorizeUrl: vi.fn().mockResolvedValue({
               url: 'https://example.com/auth',
               state: 'mock-state',
             }),
-            createWechatWebIdentityLinkAuthorizeUrl: jest
-              .fn()
-              .mockResolvedValue({
-                url: 'https://example.com/link',
-                state: 'mock-state',
-              }),
-            resolveWechatWebCallbackRedirect: jest
+            createWechatWebIdentityLinkAuthorizeUrl: vi.fn().mockResolvedValue({
+              url: 'https://example.com/link',
+              state: 'mock-state',
+            }),
+            resolveWechatWebCallbackRedirect: vi
               .fn()
               .mockResolvedValue('http://localhost:8080/callback'),
-            loginWithWechatWeb: jest
+            loginWithWechatWeb: vi
               .fn()
               .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
-            loginWithWechatMobile: jest
+            loginWithWechatMobile: vi
               .fn()
               .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
-            loginWithApple: jest
+            loginWithApple: vi
               .fn()
               .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
-            createQqAuthorizeUrl: jest.fn().mockResolvedValue({
+            createQqAuthorizeUrl: vi.fn().mockResolvedValue({
               url: 'https://example.com/qq/auth',
               state: 'mock-state',
             }),
-            loginWithQq: jest
+            loginWithQq: vi
               .fn()
               .mockResolvedValue({ user: mockUser, ...mockTokenPair }),
-            linkWechatWebIdentity: jest.fn().mockResolvedValue(undefined),
-            linkWechatMobileIdentity: jest.fn().mockResolvedValue(undefined),
+            linkWechatWebIdentity: vi.fn().mockResolvedValue(undefined),
+            linkWechatMobileIdentity: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
           provide: AuthNotificationService,
           useValue: {
-            notifyOAuthLogin: jest.fn().mockResolvedValue(undefined),
-            notifyIdentityLinked: jest.fn().mockResolvedValue(undefined),
-            providerLabel: jest.fn((provider: string) => provider),
+            notifyOAuthLogin: vi.fn().mockResolvedValue(undefined),
+            notifyIdentityLinked: vi.fn().mockResolvedValue(undefined),
+            providerLabel: vi.fn((provider: string) => provider),
           },
         },
       ],
@@ -319,7 +317,7 @@ describe('AuthService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // ══════════════════════════════════════════════════════════════
@@ -330,7 +328,7 @@ describe('AuthService', () => {
 
   describe('refresh', () => {
     it('should rotate refresh token and return a new pair', async () => {
-      (authTokenService.refresh as jest.Mock).mockResolvedValueOnce(
+      (authTokenService.refresh as vi.Mock).mockResolvedValueOnce(
         mockTokenPair,
       );
 
@@ -484,7 +482,7 @@ describe('AuthService', () => {
 
     it('should propagate errors from authOAuthFacadeService.loginWithWechatWeb', async () => {
       (
-        authOAuthFacadeService.loginWithWechatWeb as jest.Mock
+        authOAuthFacadeService.loginWithWechatWeb as vi.Mock
       ).mockRejectedValueOnce(new Error('OAUTH_STATE_MISSING'));
 
       await expect(

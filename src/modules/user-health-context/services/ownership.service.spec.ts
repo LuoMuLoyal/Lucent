@@ -9,16 +9,16 @@ describe('UserHealthContextOwnershipService', () => {
   let service: UserHealthContextOwnershipService;
 
   let repository: any;
-  let i18nT: jest.Mock;
+  let i18nT: vi.Mock;
 
   beforeEach(async () => {
     repository = {
-      findActiveUserById: jest.fn(),
-      findAllergyById: jest.fn(),
-      findConditionById: jest.fn(),
-      findCurrentMedicineById: jest.fn(),
+      findActiveUserById: vi.fn(),
+      findAllergyById: vi.fn(),
+      findConditionById: vi.fn(),
+      findCurrentMedicineById: vi.fn(),
     };
-    i18nT = jest.fn().mockReturnValue('Not found');
+    i18nT = vi.fn().mockReturnValue('Not found');
 
     const module = await Test.createTestingModule({
       providers: [

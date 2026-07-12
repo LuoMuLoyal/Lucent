@@ -1,5 +1,5 @@
 // Prevent @prisma/adapter-pg from failing at module load in test env
-jest.mock('@prisma/adapter-pg', () => ({ PrismaPg: jest.fn() }));
+vi.mock('@prisma/adapter-pg', () => ({ PrismaPg: vi.fn() }));
 
 import type { AssistantToolExecutionContext } from '../../types/types';
 import { AssistantToolLeafletReadService } from './read.service';
@@ -10,39 +10,41 @@ import {
 } from '../vector-cursor';
 
 // Mock PGVectorStore
-const mockSimilaritySearchWithScore = jest.fn();
-const mockAddDocuments = jest.fn();
-const mockEnsureTable = jest.fn();
+const mockSimilaritySearchWithScore = vi.fn();
+const mockAddDocuments = vi.fn();
+const mockEnsureTable = vi.fn();
 
-jest.mock('@langchain/community/vectorstores/pgvector', () => ({
-  PGVectorStore: jest.fn().mockImplementation(() => ({
-    similaritySearchWithScore: mockSimilaritySearchWithScore,
-    addDocuments: mockAddDocuments,
-    ensureTableInDatabase: mockEnsureTable,
-  })),
+vi.mock('@langchain/community/vectorstores/pgvector', () => ({
+  PGVectorStore: vi.fn().mockImplementation(function () {
+    return {
+      similaritySearchWithScore: mockSimilaritySearchWithScore,
+      addDocuments: mockAddDocuments,
+      ensureTableInDatabase: mockEnsureTable,
+    };
+  }),
 }));
 
-jest.mock('@langchain/openai', () => ({
-  OpenAIEmbeddings: jest.fn(),
+vi.mock('@langchain/openai', () => ({
+  OpenAIEmbeddings: vi.fn(),
 }));
 
-jest.mock('pg', () => ({
-  Pool: jest.fn(),
+vi.mock('pg', () => ({
+  Pool: vi.fn(),
 }));
 
 describe('AssistantToolLeafletReadService', () => {
   let configService: {
-    get: jest.Mock;
+    get: vi.Mock;
   };
 
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2026-06-25T12:00:00.000Z'));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-25T12:00:00.000Z'));
     mockSimilaritySearchWithScore.mockReset();
     mockEnsureTable.mockReset();
 
     configService = {
-      get: jest.fn((key: string) => {
+      get: vi.fn((key: string) => {
         if (key === 'DATABASE_URL')
           return 'postgres://test:test@localhost:5432/test';
         if (key === 'ai')
@@ -59,15 +61,15 @@ describe('AssistantToolLeafletReadService', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   function buildPrisma(overrides?: {
-    medicineLeafletChunk?: { count: jest.Mock };
+    medicineLeafletChunk?: { count: vi.Mock };
   }) {
     return {
       medicineLeafletChunk: {
-        count: overrides?.medicineLeafletChunk?.count ?? jest.fn(),
+        count: overrides?.medicineLeafletChunk?.count ?? vi.fn(),
       },
     };
   }
@@ -91,7 +93,7 @@ describe('AssistantToolLeafletReadService', () => {
 
   it('reports indexed chunks availability', async () => {
     const prisma = buildPrisma({
-      medicineLeafletChunk: { count: jest.fn().mockResolvedValue(1) },
+      medicineLeafletChunk: { count: vi.fn().mockResolvedValue(1) },
     });
     const service = new AssistantToolLeafletReadService(
       prisma as never,

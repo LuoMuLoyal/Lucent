@@ -4,19 +4,19 @@ import { MetricsService } from './metrics.service';
 
 describe('MetricsService', () => {
   let service: MetricsService;
-  let configService: jest.Mocked<ConfigService>;
+  let configService: vi.Mocked<ConfigService>;
 
   function createService(
     nodeEnv: string,
     metricsEnabled?: string,
   ): MetricsService {
     const mockConfig = {
-      get: jest.fn((key: string) => {
+      get: vi.fn((key: string) => {
         if (key === 'NODE_ENV') return nodeEnv;
         if (key === 'METRICS_ENABLED') return metricsEnabled;
         return undefined;
       }),
-    } as unknown as jest.Mocked<ConfigService>;
+    } as unknown as vi.Mocked<ConfigService>;
 
     const svc = new MetricsService(mockConfig);
     svc.onApplicationBootstrap();
@@ -25,12 +25,12 @@ describe('MetricsService', () => {
 
   beforeEach(async () => {
     configService = {
-      get: jest.fn((key: string) => {
+      get: vi.fn((key: string) => {
         if (key === 'NODE_ENV') return 'development';
         if (key === 'METRICS_ENABLED') return 'true';
         return undefined;
       }),
-    } as unknown as jest.Mocked<ConfigService>;
+    } as unknown as vi.Mocked<ConfigService>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -44,7 +44,7 @@ describe('MetricsService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('is_enabled', () => {

@@ -6,21 +6,21 @@ import { TodayAnalysisGeneratorService } from './generator.service';
 
 function buildMetricsService() {
   return {
-    recordLlmCall: jest.fn(),
-    recordLlmTokens: jest.fn(),
-    recordBullmqJob: jest.fn(),
-    setBullmqActiveJobs: jest.fn(),
-    setBullmqWaitingJobs: jest.fn(),
-    recordHttpRequest: jest.fn(),
-    is_enabled: jest.fn().mockReturnValue(true),
-    getMetrics: jest.fn(),
-    getContentType: jest.fn(),
+    recordLlmCall: vi.fn(),
+    recordLlmTokens: vi.fn(),
+    recordBullmqJob: vi.fn(),
+    setBullmqActiveJobs: vi.fn(),
+    setBullmqWaitingJobs: vi.fn(),
+    recordHttpRequest: vi.fn(),
+    is_enabled: vi.fn().mockReturnValue(true),
+    getMetrics: vi.fn(),
+    getContentType: vi.fn(),
   } as unknown as MetricsService;
 }
 
 describe('TodayAnalysisGeneratorService', () => {
   it('delegates generation to llm runtime with structured output', async () => {
-    const invoke = jest.fn().mockResolvedValue({
+    const invoke = vi.fn().mockResolvedValue({
       summary: 'ok',
       bullets: [
         { kind: 'general', text: 'a' },
@@ -29,13 +29,13 @@ describe('TodayAnalysisGeneratorService', () => {
       actionLabel: 'View today',
       confidenceNote: 'Generated from records only.',
     });
-    const withStructuredOutput = jest.fn().mockReturnValue({ invoke });
-    const createChatModel = jest.fn().mockReturnValue({ withStructuredOutput });
+    const withStructuredOutput = vi.fn().mockReturnValue({ invoke });
+    const createChatModel = vi.fn().mockReturnValue({ withStructuredOutput });
     const service = new TodayAnalysisGeneratorService(
       {
-        hasRoleConfig: jest.fn(),
+        hasRoleConfig: vi.fn(),
         createChatModel,
-        getModelName: jest.fn().mockReturnValue('test-model'),
+        getModelName: vi.fn().mockReturnValue('test-model'),
       } as unknown as LlmRuntimeService,
       buildMetricsService(),
     );
@@ -90,15 +90,15 @@ describe('TodayAnalysisGeneratorService', () => {
   });
 
   it('records error metric and rethrows when LLM invocation fails', async () => {
-    const invoke = jest.fn().mockRejectedValue(new Error('LLM unavailable'));
-    const withStructuredOutput = jest.fn().mockReturnValue({ invoke });
-    const createChatModel = jest.fn().mockReturnValue({ withStructuredOutput });
+    const invoke = vi.fn().mockRejectedValue(new Error('LLM unavailable'));
+    const withStructuredOutput = vi.fn().mockReturnValue({ invoke });
+    const createChatModel = vi.fn().mockReturnValue({ withStructuredOutput });
     const metricsService = buildMetricsService();
     const service = new TodayAnalysisGeneratorService(
       {
-        hasRoleConfig: jest.fn(),
+        hasRoleConfig: vi.fn(),
         createChatModel,
-        getModelName: jest.fn().mockReturnValue('test-model'),
+        getModelName: vi.fn().mockReturnValue('test-model'),
       } as unknown as LlmRuntimeService,
       metricsService,
     );
@@ -150,20 +150,20 @@ describe('TodayAnalysisGeneratorService', () => {
   });
 
   it('records success metric with duration after successful generation', async () => {
-    const invoke = jest.fn().mockResolvedValue({
+    const invoke = vi.fn().mockResolvedValue({
       summary: 'ok',
       bullets: [],
       actionLabel: 'View',
       confidenceNote: 'note',
     });
-    const withStructuredOutput = jest.fn().mockReturnValue({ invoke });
-    const createChatModel = jest.fn().mockReturnValue({ withStructuredOutput });
+    const withStructuredOutput = vi.fn().mockReturnValue({ invoke });
+    const createChatModel = vi.fn().mockReturnValue({ withStructuredOutput });
     const metricsService = buildMetricsService();
     const service = new TodayAnalysisGeneratorService(
       {
-        hasRoleConfig: jest.fn(),
+        hasRoleConfig: vi.fn(),
         createChatModel,
-        getModelName: jest.fn().mockReturnValue('test-model'),
+        getModelName: vi.fn().mockReturnValue('test-model'),
       } as unknown as LlmRuntimeService,
       metricsService,
     );
@@ -210,19 +210,19 @@ describe('TodayAnalysisGeneratorService', () => {
       'success',
       expect.any(Number),
     );
-    const durationArg = (metricsService.recordLlmCall as jest.Mock).mock
-      .calls[0][3];
+    const durationArg = (metricsService.recordLlmCall as vi.Mock).mock
+      .calls[0]![3];
     expect(typeof durationArg).toBe('number');
     expect(durationArg).toBeGreaterThanOrEqual(0);
   });
 
   it('delegates hasAnalysisModel to llmRuntimeService.hasRoleConfig', () => {
-    const hasRoleConfig = jest.fn().mockReturnValue(true);
+    const hasRoleConfig = vi.fn().mockReturnValue(true);
     const service = new TodayAnalysisGeneratorService(
       {
         hasRoleConfig,
-        createChatModel: jest.fn(),
-        getModelName: jest.fn(),
+        createChatModel: vi.fn(),
+        getModelName: vi.fn(),
       } as unknown as LlmRuntimeService,
       buildMetricsService(),
     );
@@ -234,9 +234,9 @@ describe('TodayAnalysisGeneratorService', () => {
   it('returns false from hasAnalysisModel when role is not configured', () => {
     const service = new TodayAnalysisGeneratorService(
       {
-        hasRoleConfig: jest.fn().mockReturnValue(false),
-        createChatModel: jest.fn(),
-        getModelName: jest.fn(),
+        hasRoleConfig: vi.fn().mockReturnValue(false),
+        createChatModel: vi.fn(),
+        getModelName: vi.fn(),
       } as unknown as LlmRuntimeService,
       buildMetricsService(),
     );

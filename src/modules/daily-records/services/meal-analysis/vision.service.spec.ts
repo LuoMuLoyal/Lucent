@@ -5,14 +5,14 @@ import type { LlmRuntimeService } from '../../../../llm-runtime/services/llm-run
 import { MealAnalysisVisionService } from '../meal-analysis/vision.service';
 
 describe('MealAnalysisVisionService', () => {
-  const createService = (invoke: jest.Mock) => {
-    const createChatModel = jest.fn().mockReturnValue({ invoke });
+  const createService = (invoke: vi.Mock) => {
+    const createChatModel = vi.fn().mockReturnValue({ invoke });
     const safetyPolicyService = new LlmSafetyPolicyService({
       safety: { forbiddenPatterns: [] },
     } as never);
     const service = new MealAnalysisVisionService(
       {
-        hasRoleConfig: jest.fn().mockReturnValue(true),
+        hasRoleConfig: vi.fn().mockReturnValue(true),
         createChatModel,
       } as unknown as LlmRuntimeService,
       safetyPolicyService,
@@ -21,7 +21,7 @@ describe('MealAnalysisVisionService', () => {
   };
 
   it('invokes the vision role with image input and parses structured JSON', async () => {
-    const invoke = jest.fn().mockResolvedValue({
+    const invoke = vi.fn().mockResolvedValue({
       content:
         '```json\n{"mealDescription":"一份鸡胸肉沙拉","foodItems":[{"name":"鸡胸肉","confidence":0.91,"portionText":"约100克"},{"name":"生菜","confidence":0.83,"portionText":"1份"}]}\n```',
     });
@@ -69,7 +69,7 @@ describe('MealAnalysisVisionService', () => {
   });
 
   it('falls back to an empty recognition result when the model response is not parseable JSON', async () => {
-    const invoke = jest.fn().mockResolvedValue({
+    const invoke = vi.fn().mockResolvedValue({
       content: '我看起来像是一顿饭，但我没按要求输出 JSON',
     });
     const { service } = createService(invoke);
@@ -87,7 +87,7 @@ describe('MealAnalysisVisionService', () => {
   it('truncates vision output to safe length limits', async () => {
     const longDescription = '米饭'.repeat(200);
     const longName = '面条'.repeat(100);
-    const invoke = jest.fn().mockResolvedValue({
+    const invoke = vi.fn().mockResolvedValue({
       content: JSON.stringify({
         mealDescription: longDescription,
         foodItems: [
@@ -113,7 +113,7 @@ describe('MealAnalysisVisionService', () => {
   });
 
   it('strips HTML tags and control characters from vision output', async () => {
-    const invoke = jest.fn().mockResolvedValue({
+    const invoke = vi.fn().mockResolvedValue({
       content: JSON.stringify({
         mealDescription: '<script>alert("xss")</script>一份米饭',
         foodItems: [
@@ -137,7 +137,7 @@ describe('MealAnalysisVisionService', () => {
   });
 
   it('rejects unsafe food items and meal descriptions based on the safety policy', async () => {
-    const invoke = jest.fn().mockResolvedValue({
+    const invoke = vi.fn().mockResolvedValue({
       content: JSON.stringify({
         mealDescription: '建议确诊后服用处方药的午餐',
         foodItems: [
@@ -146,17 +146,17 @@ describe('MealAnalysisVisionService', () => {
         ],
       }),
     });
-    const createChatModel = jest.fn().mockReturnValue({ invoke });
+    const createChatModel = vi.fn().mockReturnValue({ invoke });
     const safetyPolicyService = new LlmSafetyPolicyService({
       safety: { forbiddenPatterns: [] },
     } as never);
-    jest.spyOn(safetyPolicyService, 'isSafeText').mockImplementation((text) => {
+    vi.spyOn(safetyPolicyService, 'isSafeText').mockImplementation((text) => {
       const unsafe = /确诊|处方|治疗方案/;
       return !unsafe.test(text);
     });
     const service = new MealAnalysisVisionService(
       {
-        hasRoleConfig: jest.fn().mockReturnValue(true),
+        hasRoleConfig: vi.fn().mockReturnValue(true),
         createChatModel,
       } as unknown as LlmRuntimeService,
       safetyPolicyService,
@@ -173,7 +173,7 @@ describe('MealAnalysisVisionService', () => {
   });
 
   it('returns an empty result when every vision output item is sanitized away', async () => {
-    const invoke = jest.fn().mockResolvedValue({
+    const invoke = vi.fn().mockResolvedValue({
       content: JSON.stringify({
         mealDescription: '<script>',
         foodItems: [{ name: '<b></b>', confidence: 0.9 }],

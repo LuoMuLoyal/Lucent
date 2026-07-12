@@ -29,7 +29,7 @@ const mockDetail = {
 
 describe('NotificationsController', () => {
   let controller: NotificationsController;
-  let service: jest.Mocked<NotificationsService>;
+  let service: vi.Mocked<NotificationsService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -38,14 +38,14 @@ describe('NotificationsController', () => {
         {
           provide: NotificationsService,
           useValue: {
-            create: jest.fn(),
-            findAll: jest.fn(),
-            findOne: jest.fn(),
-            markAsRead: jest.fn(),
-            markAsUnread: jest.fn(),
-            markAllAsRead: jest.fn(),
-            remove: jest.fn(),
-            getUnreadCount: jest.fn(),
+            create: vi.fn(),
+            findAll: vi.fn(),
+            findOne: vi.fn(),
+            markAsRead: vi.fn(),
+            markAsUnread: vi.fn(),
+            markAllAsRead: vi.fn(),
+            remove: vi.fn(),
+            getUnreadCount: vi.fn(),
           },
         },
       ],
@@ -56,7 +56,7 @@ describe('NotificationsController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('POST /user/notifications', () => {

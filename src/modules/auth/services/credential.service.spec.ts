@@ -21,9 +21,10 @@ import { UserStatus } from '#generated/prisma/client';
 
 // ── Module-level argon2 mock ──────────────────────────────────
 
-jest.mock('argon2', () => ({
-  hash: jest.fn(),
-  verify: jest.fn(),
+vi.mock('argon2', () => ({
+  argon2id: 2,
+  hash: vi.fn(),
+  verify: vi.fn(),
 }));
 
 import * as argon2 from 'argon2';
@@ -89,11 +90,11 @@ function buildLoginDto(overrides: Record<string, unknown> = {}) {
 
 describe('CredentialAuthService', () => {
   let service: CredentialAuthService;
-  let userService: jest.Mocked<UserService>;
-  let verificationCodeService: jest.Mocked<VerificationCodeService>;
-  let authTokenService: jest.Mocked<AuthTokenService>;
-  let authRateLimitService: jest.Mocked<AuthRateLimitService>;
-  let notificationsService: jest.Mocked<NotificationsService>;
+  let userService: vi.Mocked<UserService>;
+  let verificationCodeService: vi.Mocked<VerificationCodeService>;
+  let authTokenService: vi.Mocked<AuthTokenService>;
+  let authRateLimitService: vi.Mocked<AuthRateLimitService>;
+  let notificationsService: vi.Mocked<NotificationsService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -101,57 +102,57 @@ describe('CredentialAuthService', () => {
         {
           provide: PinoLogger,
           useValue: {
-            setContext: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            info: jest.fn(),
-            debug: jest.fn(),
+            setContext: vi.fn(),
+            error: vi.fn(),
+            warn: vi.fn(),
+            info: vi.fn(),
+            debug: vi.fn(),
           },
         },
         CredentialAuthService,
         {
           provide: UserService,
           useValue: {
-            findByEmail: jest.fn(),
-            findById: jest.fn(),
-            create: jest.fn(),
-            update: jest.fn(),
-            updateByEmail: jest.fn(),
+            findByEmail: vi.fn(),
+            findById: vi.fn(),
+            create: vi.fn(),
+            update: vi.fn(),
+            updateByEmail: vi.fn(),
           },
         },
         {
           provide: VerificationCodeService,
           useValue: {
-            verify: jest.fn(),
-            send: jest.fn(),
-            assertClientRateLimit: jest.fn(),
+            verify: vi.fn(),
+            send: vi.fn(),
+            assertClientRateLimit: vi.fn(),
           },
         },
         {
           provide: AuthTokenService,
           useValue: {
-            generateTokenPair: jest.fn(),
-            revokeAll: jest.fn(),
+            generateTokenPair: vi.fn(),
+            revokeAll: vi.fn(),
           },
         },
         {
           provide: AuthRateLimitService,
           useValue: {
-            checkLoginRateLimit: jest.fn(),
-            recordLoginFailure: jest.fn(),
-            clearLoginFailures: jest.fn(),
+            checkLoginRateLimit: vi.fn(),
+            recordLoginFailure: vi.fn(),
+            clearLoginFailures: vi.fn(),
           },
         },
         {
           provide: NotificationsService,
           useValue: {
-            create: jest.fn(),
+            create: vi.fn(),
           },
         },
         {
           provide: I18nService,
           useValue: {
-            t: jest.fn((key: string) => key),
+            t: vi.fn((key: string) => key),
           },
         },
       ],
@@ -165,8 +166,8 @@ describe('CredentialAuthService', () => {
     notificationsService = module.get(NotificationsService);
 
     // Default mock responses
-    (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$new-hash');
-    (argon2.verify as jest.Mock).mockResolvedValue(true);
+    (argon2.hash as vi.Mock).mockResolvedValue('$argon2id$new-hash');
+    (argon2.verify as vi.Mock).mockResolvedValue(true);
     userService.findByEmail.mockResolvedValue(null);
     userService.findById.mockResolvedValue(mockUser);
     userService.create.mockResolvedValue(mockUser);
@@ -182,8 +183,8 @@ describe('CredentialAuthService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   // ════════════════════════════════════════════════════════════
@@ -286,7 +287,7 @@ describe('CredentialAuthService', () => {
     });
 
     it('should reject wrong password and record failure', async () => {
-      (argon2.verify as jest.Mock).mockResolvedValue(false);
+      (argon2.verify as vi.Mock).mockResolvedValue(false);
 
       await expect(service.login(buildLoginDto())).rejects.toThrow(
         UnauthorizedException,
@@ -366,7 +367,7 @@ describe('CredentialAuthService', () => {
     });
 
     it('should reject wrong old password', async () => {
-      (argon2.verify as jest.Mock).mockResolvedValue(false);
+      (argon2.verify as vi.Mock).mockResolvedValue(false);
 
       await expect(
         service.changePassword('user-1', {

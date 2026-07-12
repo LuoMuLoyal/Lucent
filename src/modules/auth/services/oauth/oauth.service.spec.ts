@@ -66,7 +66,7 @@ const googleProfile = {
 
 describe('AuthOAuthService', () => {
   let service: AuthOAuthService;
-  let userService: jest.Mocked<UserService>;
+  let userService: vi.Mocked<UserService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -75,18 +75,18 @@ describe('AuthOAuthService', () => {
         {
           provide: UserService,
           useValue: {
-            findByIdentity: jest.fn(),
-            findByEmail: jest.fn(),
-            findByProviderUnionId: jest.fn(),
-            createOAuthUser: jest.fn(),
-            update: jest.fn(),
-            linkIdentity: jest.fn(),
+            findByIdentity: vi.fn(),
+            findByEmail: vi.fn(),
+            findByProviderUnionId: vi.fn(),
+            createOAuthUser: vi.fn(),
+            update: vi.fn(),
+            linkIdentity: vi.fn(),
           },
         },
         {
           provide: I18nService,
           useValue: {
-            t: jest.fn((key: string) => key),
+            t: vi.fn((key: string) => key),
           },
         },
       ],
@@ -104,8 +104,8 @@ describe('AuthOAuthService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('findOrCreateOAuthUser', () => {

@@ -3,13 +3,15 @@ import type { TencentCosConfig } from '../../config/tencent-cos.config';
 import { CosStorageRuntime } from './cos-storage.runtime';
 
 const mockCos = {
-  getObjectUrl: jest.fn(),
-  putObject: jest.fn(),
+  getObjectUrl: vi.fn(),
+  putObject: vi.fn(),
 };
 
-jest.mock('cos-nodejs-sdk-v5', () => ({
+vi.mock('cos-nodejs-sdk-v5', () => ({
   __esModule: true,
-  default: jest.fn(() => mockCos),
+  default: vi.fn(function () {
+    return mockCos;
+  }),
 }));
 
 import COS from 'cos-nodejs-sdk-v5';
@@ -32,15 +34,15 @@ function buildConfig(
 
 function buildConfigService(config: TencentCosConfig): ConfigService {
   return {
-    getOrThrow: jest.fn().mockReturnValue(config),
+    getOrThrow: vi.fn().mockReturnValue(config),
   } as unknown as ConfigService;
 }
 
-const cosMock = COS as unknown as jest.Mock;
+const cosMock = COS as unknown as vi.Mock;
 
 describe('CosStorageRuntime', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('creates a COS client with secretId and secretKey from config', () => {

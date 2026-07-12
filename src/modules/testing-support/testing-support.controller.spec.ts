@@ -6,12 +6,12 @@ import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-reco
 
 describe('TestingSupportController', () => {
   let controller: TestingSupportController;
-  let service: jest.Mocked<TestingSupportService>;
+  let service: vi.Mocked<TestingSupportService>;
 
   beforeEach(async () => {
     service = {
-      prepareFullstackRecordLane: jest.fn(),
-    } as unknown as jest.Mocked<TestingSupportService>;
+      prepareFullstackRecordLane: vi.fn(),
+    } as unknown as vi.Mocked<TestingSupportService>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TestingSupportController],

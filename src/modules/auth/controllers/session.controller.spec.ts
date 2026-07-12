@@ -28,8 +28,8 @@ const mockRefreshResult = {
 
 describe('SessionController', () => {
   let controller: SessionController;
-  let authService: jest.Mocked<AuthService>;
-  let authTokenService: jest.Mocked<AuthTokenService>;
+  let authService: vi.Mocked<AuthService>;
+  let authTokenService: vi.Mocked<AuthTokenService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -38,21 +38,21 @@ describe('SessionController', () => {
         {
           provide: AuthService,
           useValue: {
-            logout: jest.fn().mockResolvedValue(undefined),
-            refresh: jest.fn().mockResolvedValue(mockRefreshResult),
+            logout: vi.fn().mockResolvedValue(undefined),
+            refresh: vi.fn().mockResolvedValue(mockRefreshResult),
           },
         },
         {
           provide: AuthTokenService,
           useValue: {
-            listSessions: jest.fn(),
-            revokeById: jest.fn().mockResolvedValue(undefined),
+            listSessions: vi.fn(),
+            revokeById: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue(false),
+            get: vi.fn().mockReturnValue(false),
           },
         },
       ],
@@ -64,7 +64,7 @@ describe('SessionController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('POST /auth/logout', () => {

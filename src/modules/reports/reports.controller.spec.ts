@@ -16,9 +16,9 @@ import { ReportsService } from './dashboard/dashboard.service';
 
 describe('ReportsController', () => {
   let controller: ReportsController;
-  let service: jest.Mocked<ReportsService>;
-  let aiSummaryService: jest.Mocked<ReportsAiSummaryService>;
-  let clinicSummaryService: jest.Mocked<ClinicSummaryService>;
+  let service: vi.Mocked<ReportsService>;
+  let aiSummaryService: vi.Mocked<ReportsAiSummaryService>;
+  let clinicSummaryService: vi.Mocked<ClinicSummaryService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -27,24 +27,24 @@ describe('ReportsController', () => {
         {
           provide: ReportsService,
           useValue: {
-            getDashboard: jest.fn(),
+            getDashboard: vi.fn(),
           },
         },
         {
           provide: ReportsAiSummaryService,
           useValue: {
-            generate: jest.fn(),
-            generateStream: jest.fn(),
+            generate: vi.fn(),
+            generateStream: vi.fn(),
           },
         },
         {
           provide: ClinicSummaryService,
           useValue: {
-            buildClinicSummary: jest.fn(),
-            createShareLink: jest.fn(),
-            getSharedSummary: jest.fn(),
-            exportPdf: jest.fn(),
-            exportSharedPdf: jest.fn(),
+            buildClinicSummary: vi.fn(),
+            createShareLink: vi.fn(),
+            getSharedSummary: vi.fn(),
+            exportPdf: vi.fn(),
+            exportSharedPdf: vi.fn(),
           },
         },
       ],
@@ -358,10 +358,10 @@ function makeMockResponse(
 ): Response {
   let buffer = '';
   const res = {
-    status: jest.fn().mockReturnThis(),
-    setHeader: jest.fn().mockReturnThis(),
-    flushHeaders: jest.fn().mockReturnThis(),
-    write: jest.fn((chunk: string) => {
+    status: vi.fn().mockReturnThis(),
+    setHeader: vi.fn().mockReturnThis(),
+    flushHeaders: vi.fn().mockReturnThis(),
+    write: vi.fn((chunk: string) => {
       buffer += chunk;
       // SSE events are separated by \n\n
       const parts = buffer.split('\n\n');
@@ -377,8 +377,8 @@ function makeMockResponse(
         }
       }
     }),
-    end: jest.fn(),
-    send: jest.fn(),
+    end: vi.fn(),
+    send: vi.fn(),
   };
   return res as unknown as Response;
 }

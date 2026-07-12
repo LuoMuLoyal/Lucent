@@ -41,7 +41,7 @@ describe('MedicineRemindersService', () => {
       providers: [
         {
           provide: I18nService,
-          useValue: { t: jest.fn().mockImplementation((key: string) => key) },
+          useValue: { t: vi.fn().mockImplementation((key: string) => key) },
         },
         MedicineRemindersService,
         MedicineRemindersOwnershipService,
@@ -49,12 +49,12 @@ describe('MedicineRemindersService', () => {
         {
           provide: MedicineReminderRepositoryPort,
           useValue: {
-            findManyReminders: jest.fn(),
-            createReminder: jest.fn(),
-            updateReminder: jest.fn(),
-            findManyDeliveries: jest.fn(),
-            findReminderById: jest.fn(),
-            findCurrentMedicine: jest.fn(),
+            findManyReminders: vi.fn(),
+            createReminder: vi.fn(),
+            updateReminder: vi.fn(),
+            findManyDeliveries: vi.fn(),
+            findReminderById: vi.fn(),
+            findCurrentMedicine: vi.fn(),
           },
         },
       ],

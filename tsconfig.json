@@ -19,7 +19,7 @@
     "incremental": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["jest", "node"],
+    "types": ["vitest/globals", "node"],
 
     "strict": true,
     "noImplicitReturns": true,

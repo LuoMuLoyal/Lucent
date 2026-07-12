@@ -58,18 +58,18 @@ describe('AccountService', () => {
       providers: [
         {
           provide: I18nService,
-          useValue: { t: jest.fn().mockImplementation((key: string) => key) },
+          useValue: { t: vi.fn().mockImplementation((key: string) => key) },
         },
         AccountService,
         {
           provide: PrismaService,
           useValue: {
             user: {
-              findFirst: jest.fn(),
-              update: jest.fn(),
+              findFirst: vi.fn(),
+              update: vi.fn(),
             },
             userIdentity: {
-              delete: jest.fn(),
+              delete: vi.fn(),
             },
           },
         },
@@ -81,12 +81,12 @@ describe('AccountService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('getAccount', () => {
     it('should return the account DTO for an active user', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue({
         ...baseUser,
         identities: [baseIdentity],
       });
@@ -120,7 +120,7 @@ describe('AccountService', () => {
     });
 
     it('should throw NotFoundException when the user does not exist', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue(null);
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
 
       await expect(service.getAccount('missing-user')).rejects.toThrow(
         NotFoundException,
@@ -134,7 +134,7 @@ describe('AccountService', () => {
     });
 
     it('should set hasPassword to false when passwordHash is null', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue({
         ...baseUser,
         passwordHash: null,
         identities: [baseIdentity],
@@ -146,7 +146,7 @@ describe('AccountService', () => {
     });
 
     it('should return null fields when dates are null', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue({
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue({
         ...baseUser,
         emailVerifiedAt: null,
         lastLoginAt: null,
@@ -169,7 +169,7 @@ describe('AccountService', () => {
 
   describe('updateAccount', () => {
     it('should update nickname and avatar', async () => {
-      (prismaService.user.findFirst as jest.Mock)
+      (prismaService.user.findFirst as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           identities: [baseIdentity],
@@ -180,7 +180,7 @@ describe('AccountService', () => {
           avatar: 'https://example.com/new-avatar.png',
           identities: [baseIdentity],
         });
-      (prismaService.user.update as jest.Mock).mockResolvedValue(undefined);
+      (prismaService.user.update as vi.Mock).mockResolvedValue(undefined);
 
       const dto: UpdateAccountDto = {
         nickname: 'NewNick',
@@ -201,7 +201,7 @@ describe('AccountService', () => {
     });
 
     it('should normalize empty string to null for clearing', async () => {
-      (prismaService.user.findFirst as jest.Mock)
+      (prismaService.user.findFirst as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           identities: [baseIdentity],
@@ -212,7 +212,7 @@ describe('AccountService', () => {
           avatar: null,
           identities: [baseIdentity],
         });
-      (prismaService.user.update as jest.Mock).mockResolvedValue(undefined);
+      (prismaService.user.update as vi.Mock).mockResolvedValue(undefined);
 
       const dto: UpdateAccountDto = { nickname: '', avatar: '' };
 
@@ -227,7 +227,7 @@ describe('AccountService', () => {
     });
 
     it('should skip fields that are undefined', async () => {
-      (prismaService.user.findFirst as jest.Mock)
+      (prismaService.user.findFirst as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           identities: [baseIdentity],
@@ -236,7 +236,7 @@ describe('AccountService', () => {
           ...baseUser,
           identities: [baseIdentity],
         });
-      (prismaService.user.update as jest.Mock).mockResolvedValue(undefined);
+      (prismaService.user.update as vi.Mock).mockResolvedValue(undefined);
 
       const dto: UpdateAccountDto = {};
 
@@ -249,7 +249,7 @@ describe('AccountService', () => {
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue(null);
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
 
       await expect(
         service.updateAccount('missing-user', { nickname: 'X' }),
@@ -259,7 +259,7 @@ describe('AccountService', () => {
 
   describe('unlinkIdentity', () => {
     it('should unlink an identity when user has password', async () => {
-      (prismaService.user.findFirst as jest.Mock)
+      (prismaService.user.findFirst as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           passwordHash: '$argon2id$exists',
@@ -270,7 +270,7 @@ describe('AccountService', () => {
           passwordHash: '$argon2id$exists',
           identities: [secondIdentity],
         });
-      (prismaService.userIdentity.delete as jest.Mock).mockResolvedValue(
+      (prismaService.userIdentity.delete as vi.Mock).mockResolvedValue(
         undefined,
       );
 
@@ -286,7 +286,7 @@ describe('AccountService', () => {
     });
 
     it('should throw ForbiddenException when unlinking the last sign-in method', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValueOnce({
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValueOnce({
         ...baseUser,
         passwordHash: null,
         identities: [baseIdentity],
@@ -303,7 +303,7 @@ describe('AccountService', () => {
     });
 
     it('should allow unlinking when user has password even with only one identity', async () => {
-      (prismaService.user.findFirst as jest.Mock)
+      (prismaService.user.findFirst as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           passwordHash: '$argon2id$exists',
@@ -314,7 +314,7 @@ describe('AccountService', () => {
           passwordHash: '$argon2id$exists',
           identities: [],
         });
-      (prismaService.userIdentity.delete as jest.Mock).mockResolvedValue(
+      (prismaService.userIdentity.delete as vi.Mock).mockResolvedValue(
         undefined,
       );
 
@@ -324,7 +324,7 @@ describe('AccountService', () => {
     });
 
     it('should throw NotFoundException when identity does not exist', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValueOnce({
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValueOnce({
         ...baseUser,
         identities: [baseIdentity],
       });
@@ -340,7 +340,7 @@ describe('AccountService', () => {
     });
 
     it('should allow unlinking when user has multiple identities and no password', async () => {
-      (prismaService.user.findFirst as jest.Mock)
+      (prismaService.user.findFirst as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           passwordHash: null,
@@ -351,7 +351,7 @@ describe('AccountService', () => {
           passwordHash: null,
           identities: [secondIdentity],
         });
-      (prismaService.userIdentity.delete as jest.Mock).mockResolvedValue(
+      (prismaService.userIdentity.delete as vi.Mock).mockResolvedValue(
         undefined,
       );
 

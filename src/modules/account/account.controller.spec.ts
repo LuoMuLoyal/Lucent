@@ -1,7 +1,7 @@
-jest.mock('otplib', () => ({
-  generateSecret: jest.fn(() => 'MOCK_SECRET'),
-  generateURI: jest.fn(() => 'otpauth://'),
-  verify: jest.fn(() => Promise.resolve({ valid: true })),
+vi.mock('otplib', () => ({
+  generateSecret: vi.fn(() => 'MOCK_SECRET'),
+  generateURI: vi.fn(() => 'otpauth://'),
+  verify: vi.fn(() => Promise.resolve({ valid: true })),
 }));
 
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -46,8 +46,8 @@ const mockAccount = {
 
 describe('AccountController', () => {
   let controller: AccountController;
-  let accountService: jest.Mocked<AccountService>;
-  let authService: jest.Mocked<AuthService>;
+  let accountService: vi.Mocked<AccountService>;
+  let authService: vi.Mocked<AuthService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -56,28 +56,28 @@ describe('AccountController', () => {
         {
           provide: AccountService,
           useValue: {
-            getAccount: jest.fn(),
-            updateAccount: jest.fn(),
-            unlinkIdentity: jest.fn(),
+            getAccount: vi.fn(),
+            updateAccount: vi.fn(),
+            unlinkIdentity: vi.fn(),
           },
         },
         {
           provide: AuthService,
           useValue: {
-            changePassword: jest.fn(),
-            setPassword: jest.fn(),
-            changeEmail: jest.fn(),
-            deleteAccount: jest.fn(),
-            createWechatWebIdentityLinkAuthorizeUrl: jest.fn(),
-            linkWechatWebIdentity: jest.fn(),
-            linkWechatMobileIdentity: jest.fn(),
+            changePassword: vi.fn(),
+            setPassword: vi.fn(),
+            changeEmail: vi.fn(),
+            deleteAccount: vi.fn(),
+            createWechatWebIdentityLinkAuthorizeUrl: vi.fn(),
+            linkWechatWebIdentity: vi.fn(),
+            linkWechatMobileIdentity: vi.fn(),
           },
         },
         SecurityElevationGuard,
         {
           provide: SecurityPinService,
           useValue: {
-            verifyElevationToken: jest.fn(),
+            verifyElevationToken: vi.fn(),
           },
         },
       ],
@@ -89,7 +89,7 @@ describe('AccountController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('GET /account', () => {

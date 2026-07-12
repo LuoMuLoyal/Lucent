@@ -11,25 +11,25 @@ import {
 
 describe('FeedbackService', () => {
   let service: FeedbackService;
-  let findFirstMock: jest.Mock;
-  let findManyMock: jest.Mock;
-  let findUniqueMock: jest.Mock;
-  let createSuggestionMock: jest.Mock;
-  let updateManyMock: jest.Mock;
-  let updateMock: jest.Mock;
-  let feedbackCreateMock: jest.Mock;
-  let feedbackFindManyMock: jest.Mock;
-  let transactionMock: jest.Mock;
+  let findFirstMock: vi.Mock;
+  let findManyMock: vi.Mock;
+  let findUniqueMock: vi.Mock;
+  let createSuggestionMock: vi.Mock;
+  let updateManyMock: vi.Mock;
+  let updateMock: vi.Mock;
+  let feedbackCreateMock: vi.Mock;
+  let feedbackFindManyMock: vi.Mock;
+  let transactionMock: vi.Mock;
 
   beforeEach(() => {
-    findFirstMock = jest.fn();
-    findManyMock = jest.fn();
-    findUniqueMock = jest.fn();
-    createSuggestionMock = jest.fn();
-    updateManyMock = jest.fn();
-    updateMock = jest.fn();
-    feedbackCreateMock = jest.fn();
-    feedbackFindManyMock = jest.fn();
+    findFirstMock = vi.fn();
+    findManyMock = vi.fn();
+    findUniqueMock = vi.fn();
+    createSuggestionMock = vi.fn();
+    updateManyMock = vi.fn();
+    updateMock = vi.fn();
+    feedbackCreateMock = vi.fn();
+    feedbackFindManyMock = vi.fn();
 
     const prismaMock = {
       userSuggestion: {
@@ -47,10 +47,10 @@ describe('FeedbackService', () => {
     };
 
     // $transaction mock: execute the callback with the same prisma mock as tx client
-    transactionMock = jest.fn(
+    transactionMock = vi.fn(
       async (fn: (tx: typeof prismaMock) => Promise<unknown>) => fn(prismaMock),
     );
-    (prismaMock as never as { $transaction: jest.Mock }).$transaction =
+    (prismaMock as never as { $transaction: vi.Mock }).$transaction =
       transactionMock;
 
     service = new FeedbackService(prismaMock as never);

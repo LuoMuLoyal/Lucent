@@ -9,17 +9,16 @@ import type { VerificationCodeService } from './verification-code.service';
 import type { AuthAccountRepositoryPort } from '../repositories/account.repository';
 import { AuthAccountService } from './account.service';
 
-jest.mock('argon2', () => ({
+import * as argon2Module from 'argon2';
+
+vi.mock('argon2', () => ({
   argon2id: 2,
-  hash: jest.fn(),
-  verify: jest.fn(),
+  hash: vi.fn(),
+  verify: vi.fn(),
   Options: {},
 }));
 
-// Import argon2 after the mock so the mock is in effect
-const argon2 = jest.requireMock('argon2') as {
-  verify: jest.Mock;
-};
+const argon2 = argon2Module as unknown as { verify: vi.Mock };
 
 const mockUser = {
   id: 'user-1',
@@ -31,24 +30,24 @@ const mockUser = {
 
 describe('AuthAccountService', () => {
   let service: AuthAccountService;
-  let accountRepo: jest.Mocked<AuthAccountRepositoryPort>;
-  let userService: jest.Mocked<UserService>;
-  let verificationCodeService: jest.Mocked<VerificationCodeService>;
-  let i18n: jest.Mocked<I18nService>;
+  let accountRepo: vi.Mocked<AuthAccountRepositoryPort>;
+  let userService: vi.Mocked<UserService>;
+  let verificationCodeService: vi.Mocked<VerificationCodeService>;
+  let i18n: vi.Mocked<I18nService>;
 
   beforeEach(() => {
     accountRepo = {
-      softDeleteUser: jest.fn().mockResolvedValue(undefined),
+      softDeleteUser: vi.fn().mockResolvedValue(undefined),
     };
     userService = {
-      findById: jest.fn(),
-    } as unknown as jest.Mocked<UserService>;
+      findById: vi.fn(),
+    } as unknown as vi.Mocked<UserService>;
     verificationCodeService = {
-      verify: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<VerificationCodeService>;
+      verify: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<VerificationCodeService>;
     i18n = {
-      t: jest.fn().mockReturnValue('translated message'),
-    } as unknown as jest.Mocked<I18nService>;
+      t: vi.fn().mockReturnValue('translated message'),
+    } as unknown as vi.Mocked<I18nService>;
 
     service = new AuthAccountService(
       accountRepo,

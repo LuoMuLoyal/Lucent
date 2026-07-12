@@ -4,18 +4,16 @@ import { buildAdminAuthRouter } from './auth-router.service';
 
 describe('buildAdminAuthRouter', () => {
   let mockAdmin: unknown;
-  let mockConfigService: jest.Mocked<ConfigService>;
-  let mockBuildAuthenticatedRouter: jest.Mock;
+  let mockConfigService: vi.Mocked<ConfigService>;
+  let mockBuildAuthenticatedRouter: vi.Mock;
 
   beforeEach(() => {
     mockAdmin = { name: 'AdminJS' };
     mockConfigService = {
-      getOrThrow: jest.fn(),
-      get: jest.fn(),
-    } as unknown as jest.Mocked<ConfigService>;
-    mockBuildAuthenticatedRouter = jest
-      .fn()
-      .mockReturnValue({ name: 'router' });
+      getOrThrow: vi.fn(),
+      get: vi.fn(),
+    } as unknown as vi.Mocked<ConfigService>;
+    mockBuildAuthenticatedRouter = vi.fn().mockReturnValue({ name: 'router' });
   });
 
   it('reads email, password, and cookie secret from config', () => {

@@ -14,61 +14,61 @@ const mockUserId = 'user-uuid-1';
 
 describe('DailyRecordsService', () => {
   let service: DailyRecordsService;
-  let repository: jest.Mocked<DailyRecordRepositoryPort>;
-  let txMock: jest.Mocked<{
+  let repository: vi.Mocked<DailyRecordRepositoryPort>;
+  let txMock: vi.Mocked<{
     userDailyRecord: {
-      create: jest.Mock;
-      update: jest.Mock;
-      findFirst: jest.Mock;
+      create: vi.Mock;
+      update: vi.Mock;
+      findFirst: vi.Mock;
     };
     userDailyRecordAttachment: {
-      createMany: jest.Mock;
-      deleteMany: jest.Mock;
+      createMany: vi.Mock;
+      deleteMany: vi.Mock;
     };
   }>;
-  let mealAnalysisQueueService: { enqueue: jest.Mock };
+  let mealAnalysisQueueService: { enqueue: vi.Mock };
   let mealDishTemplateLearningService: {
-    learnFromConfirmedAnalysis: jest.Mock;
+    learnFromConfirmedAnalysis: vi.Mock;
   };
 
   beforeEach(async () => {
     mealAnalysisQueueService = {
-      enqueue: jest.fn().mockResolvedValue(undefined),
+      enqueue: vi.fn().mockResolvedValue(undefined),
     };
     mealDishTemplateLearningService = {
-      learnFromConfirmedAnalysis: jest.fn().mockResolvedValue(undefined),
+      learnFromConfirmedAnalysis: vi.fn().mockResolvedValue(undefined),
     };
 
     txMock = {
       userDailyRecord: {
-        create: jest.fn(),
-        update: jest.fn(),
-        findFirst: jest.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        findFirst: vi.fn(),
       },
       userDailyRecordAttachment: {
-        createMany: jest.fn(),
-        deleteMany: jest.fn(),
+        createMany: vi.fn(),
+        deleteMany: vi.fn(),
       },
     };
 
     const repositoryMock = {
-      findManyWithAttachments: jest.fn(),
-      findByIdWithAttachments: jest.fn(),
-      findOwnershipData: jest.fn(),
-      findManyByDateWithAttachments: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      softDelete: jest.fn(),
-      transaction: jest.fn(
-        async (fn: (tx: typeof txMock) => Promise<unknown>) => fn(txMock),
-      ) as jest.Mock,
+      findManyWithAttachments: vi.fn(),
+      findByIdWithAttachments: vi.fn(),
+      findOwnershipData: vi.fn(),
+      findManyByDateWithAttachments: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      softDelete: vi.fn(),
+      transaction: vi.fn(async (fn: (tx: typeof txMock) => Promise<unknown>) =>
+        fn(txMock),
+      ) as vi.Mock,
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
           provide: I18nService,
-          useValue: { t: jest.fn().mockImplementation((key: string) => key) },
+          useValue: { t: vi.fn().mockImplementation((key: string) => key) },
         },
         DailyRecordsService,
         DailyRecordsOwnershipService,

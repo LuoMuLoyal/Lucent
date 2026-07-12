@@ -1,7 +1,6 @@
 // @ts-check
 import eslint from '@eslint/js';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
-import jest from 'eslint-plugin-jest';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -22,7 +21,6 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         ...globals.node,
-        ...globals.jest,
       },
       sourceType: 'commonjs',
       parserOptions: {
@@ -78,11 +76,8 @@ export default tseslint.config(
   },
   {
     files: ['**/*.spec.ts', '**/*.test.ts', 'test/**/*.ts'],
-    plugins: { jest },
     rules: {
       '@typescript-eslint/unbound-method': 'off',
-      'jest/no-jasmine-globals': 'off',
-      'jest/no-conditional-expect': 'off',
       // Jest 匹配器（expect.any、expect.objectContaining 等）天然产生 any 类型值，
       // 在严格类型检查下会触发 no-unsafe-assignment / no-unsafe-argument。
       '@typescript-eslint/no-unsafe-assignment': 'off',

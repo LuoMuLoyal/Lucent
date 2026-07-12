@@ -40,17 +40,17 @@ describe('ExplanationService', () => {
 
     const prismaMock = {
       userSuggestion: {
-        findFirst: jest.fn().mockResolvedValue(suggestion),
+        findFirst: vi.fn().mockResolvedValue(suggestion),
       },
     };
 
     const generatorMock = {
-      hasAnalysisModel: jest.fn().mockReturnValue(hasModel),
-      generate: jest.fn().mockResolvedValue(generateResult),
+      hasAnalysisModel: vi.fn().mockReturnValue(hasModel),
+      generate: vi.fn().mockResolvedValue(generateResult),
     } as unknown as ExplanationGeneratorService;
 
     const safetyMock = {
-      isSafe: jest.fn().mockReturnValue(isSafe),
+      isSafe: vi.fn().mockReturnValue(isSafe),
     } as unknown as LlmSafetyPolicyService;
 
     const service = new ExplanationService(
@@ -101,15 +101,15 @@ describe('ExplanationService', () => {
 
     it('falls back to original text when generator throws', async () => {
       const generatorMock = {
-        hasAnalysisModel: jest.fn().mockReturnValue(true),
-        generate: jest.fn().mockRejectedValue(new Error('LLM timeout')),
+        hasAnalysisModel: vi.fn().mockReturnValue(true),
+        generate: vi.fn().mockRejectedValue(new Error('LLM timeout')),
       } as unknown as ExplanationGeneratorService;
       const safetyMock = {
-        isSafe: jest.fn().mockReturnValue(true),
+        isSafe: vi.fn().mockReturnValue(true),
       } as unknown as LlmSafetyPolicyService;
       const prismaMock = {
         userSuggestion: {
-          findFirst: jest.fn().mockResolvedValue(mockSuggestion),
+          findFirst: vi.fn().mockResolvedValue(mockSuggestion),
         },
       } as unknown as PrismaService;
 
@@ -139,7 +139,7 @@ describe('ExplanationService', () => {
 
       await service.explain('user-1', 'sug-123', 'zh-CN');
 
-      const generateCall = (generatorMock.generate as jest.Mock).mock.calls[0];
+      const generateCall = (generatorMock.generate as vi.Mock).mock.calls[0]!;
       const context = generateCall[0] as { subtype?: string };
 
       expect(context.subtype).toBe('headache');
@@ -156,7 +156,7 @@ describe('ExplanationService', () => {
 
       await service.explain('user-1', 'sug-123', 'zh-CN');
 
-      const generateCall = (generatorMock.generate as jest.Mock).mock.calls[0];
+      const generateCall = (generatorMock.generate as vi.Mock).mock.calls[0]!;
       const context = generateCall[0] as { subtype?: string };
 
       expect(context.subtype).toBeUndefined();
@@ -167,7 +167,7 @@ describe('ExplanationService', () => {
 
       await service.explain('user-1', 'sug-123', 'en-US');
 
-      const generateCall = (generatorMock.generate as jest.Mock).mock.calls[0];
+      const generateCall = (generatorMock.generate as vi.Mock).mock.calls[0]!;
       const promptCopy = generateCall[1] as { userIntro: string };
 
       expect(promptCopy.userIntro).toContain('English');

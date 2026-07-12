@@ -35,70 +35,70 @@ const mockTokens = {
 
 describe('AuthOAuthFacadeService', () => {
   let service: AuthOAuthFacadeService;
-  let userService: jest.Mocked<UserService>;
-  let wechatWebProvider: jest.Mocked<WechatWebOAuthProvider>;
-  let wechatMobileProvider: jest.Mocked<WechatMobileOAuthProvider>;
-  let appleProvider: jest.Mocked<AppleOAuthProvider>;
-  let qqProvider: jest.Mocked<QqOAuthProvider>;
-  let stateService: jest.Mocked<AuthOAuthStateService>;
-  let tokenService: jest.Mocked<AuthTokenService>;
-  let oauthService: jest.Mocked<AuthOAuthService>;
-  let notificationService: jest.Mocked<AuthNotificationService>;
+  let userService: vi.Mocked<UserService>;
+  let wechatWebProvider: vi.Mocked<WechatWebOAuthProvider>;
+  let wechatMobileProvider: vi.Mocked<WechatMobileOAuthProvider>;
+  let appleProvider: vi.Mocked<AppleOAuthProvider>;
+  let qqProvider: vi.Mocked<QqOAuthProvider>;
+  let stateService: vi.Mocked<AuthOAuthStateService>;
+  let tokenService: vi.Mocked<AuthTokenService>;
+  let oauthService: vi.Mocked<AuthOAuthService>;
+  let notificationService: vi.Mocked<AuthNotificationService>;
 
   beforeEach(() => {
     userService = {
-      findById: jest.fn().mockResolvedValue(mockUser),
-    } as unknown as jest.Mocked<UserService>;
+      findById: vi.fn().mockResolvedValue(mockUser),
+    } as unknown as vi.Mocked<UserService>;
     wechatWebProvider = {
-      buildAuthorizeUrl: jest.fn().mockReturnValue('https://wx/auth?url=1'),
-      fetchProfile: jest.fn().mockResolvedValue(mockProfile),
-    } as unknown as jest.Mocked<WechatWebOAuthProvider>;
+      buildAuthorizeUrl: vi.fn().mockReturnValue('https://wx/auth?url=1'),
+      fetchProfile: vi.fn().mockResolvedValue(mockProfile),
+    } as unknown as vi.Mocked<WechatWebOAuthProvider>;
     wechatMobileProvider = {
-      fetchProfile: jest.fn().mockResolvedValue({
+      fetchProfile: vi.fn().mockResolvedValue({
         ...mockProfile,
         provider: 'wechat_mobile',
       }),
-    } as unknown as jest.Mocked<WechatMobileOAuthProvider>;
+    } as unknown as vi.Mocked<WechatMobileOAuthProvider>;
     appleProvider = {
-      fetchProfile: jest.fn().mockResolvedValue({
+      fetchProfile: vi.fn().mockResolvedValue({
         ...mockProfile,
         provider: 'apple',
       }),
-    } as unknown as jest.Mocked<AppleOAuthProvider>;
+    } as unknown as vi.Mocked<AppleOAuthProvider>;
     qqProvider = {
-      buildAuthorizeUrl: jest.fn().mockReturnValue('https://qq/auth?url=1'),
-      fetchProfile: jest.fn().mockResolvedValue({
+      buildAuthorizeUrl: vi.fn().mockReturnValue('https://qq/auth?url=1'),
+      fetchProfile: vi.fn().mockResolvedValue({
         ...mockProfile,
         provider: 'qq',
       }),
-    } as unknown as jest.Mocked<QqOAuthProvider>;
+    } as unknown as vi.Mocked<QqOAuthProvider>;
     stateService = {
-      createState: jest.fn().mockResolvedValue({
+      createState: vi.fn().mockResolvedValue({
         state: 'state-123',
         ttlSec: 300,
       }),
-      peek: jest.fn().mockResolvedValue({
+      peek: vi.fn().mockResolvedValue({
         provider: 'wechat_web',
         state: 'state-123',
         purpose: 'login',
         callbackUri: undefined,
         createdAt: new Date(),
       }),
-      consume: jest.fn().mockResolvedValue(undefined),
-      buildRedirectUrl: jest.fn().mockReturnValue('https://app/callback'),
-    } as unknown as jest.Mocked<AuthOAuthStateService>;
+      consume: vi.fn().mockResolvedValue(undefined),
+      buildRedirectUrl: vi.fn().mockReturnValue('https://app/callback'),
+    } as unknown as vi.Mocked<AuthOAuthStateService>;
     tokenService = {
-      generateTokenPair: jest.fn().mockResolvedValue(mockTokens),
-    } as unknown as jest.Mocked<AuthTokenService>;
+      generateTokenPair: vi.fn().mockResolvedValue(mockTokens),
+    } as unknown as vi.Mocked<AuthTokenService>;
     oauthService = {
-      findOrCreateOAuthUser: jest.fn().mockResolvedValue(mockUser),
-      updateOAuthLoginUser: jest.fn().mockResolvedValue(mockUser),
-      linkOAuthProfileToUser: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<AuthOAuthService>;
+      findOrCreateOAuthUser: vi.fn().mockResolvedValue(mockUser),
+      updateOAuthLoginUser: vi.fn().mockResolvedValue(mockUser),
+      linkOAuthProfileToUser: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<AuthOAuthService>;
     notificationService = {
-      notifyOAuthLogin: jest.fn().mockResolvedValue(undefined),
-      notifyIdentityLinked: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<AuthNotificationService>;
+      notifyOAuthLogin: vi.fn().mockResolvedValue(undefined),
+      notifyIdentityLinked: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<AuthNotificationService>;
 
     service = new AuthOAuthFacadeService(
       userService,

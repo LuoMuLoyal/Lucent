@@ -11,12 +11,12 @@ import { AssistantToolService } from './tool.service';
 
 describe('AssistantToolService', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2026-06-19T12:00:00.000Z'));
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-19T12:00:00.000Z'));
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   function buildContext(
@@ -34,25 +34,25 @@ describe('AssistantToolService', () => {
 
   function buildExecutor() {
     const aiSummaryHistoryService = {
-      getLatestTodaySummaryByDate: jest.fn(),
-      getLatestReportSummaryByRange: jest.fn(),
-      listRecentTodaySummaries: jest.fn(),
-      listRecentReportSummaries: jest.fn(),
+      getLatestTodaySummaryByDate: vi.fn(),
+      getLatestReportSummaryByRange: vi.fn(),
+      listRecentTodaySummaries: vi.fn(),
+      listRecentReportSummaries: vi.fn(),
     };
     const userHealthContextService = {
-      getForUser: jest.fn(),
+      getForUser: vi.fn(),
     };
     const medicineRemindersService = {
-      list: jest.fn(),
+      list: vi.fn(),
     };
     const userSettingsService = {
-      getSettings: jest.fn(),
+      getSettings: vi.fn(),
     };
     const dailyRecordsService = {
-      list: jest.fn(),
+      list: vi.fn(),
     };
     const dailyRecordCandidatesService = {
-      generate: jest.fn(),
+      generate: vi.fn(),
     };
 
     const recordQueryService = new AssistantToolRecordQueryService(
@@ -73,19 +73,19 @@ describe('AssistantToolService', () => {
     const leafletReadService = new AssistantToolLeafletReadService(
       {
         cnMedicineProduct: {
-          findMany: jest.fn().mockResolvedValue([]),
+          findMany: vi.fn().mockResolvedValue([]),
         },
         cnMedicineProductLeafletLink: {
-          count: jest.fn().mockResolvedValue(0),
+          count: vi.fn().mockResolvedValue(0),
         },
         medicineLeafletChunk: {
-          count: jest.fn().mockResolvedValue(0),
+          count: vi.fn().mockResolvedValue(0),
         },
       } as never,
-      { get: jest.fn() } as never,
+      { get: vi.fn() } as never,
     );
     const medicalKnowledgeService = {
-      searchMedicalQaCorpus: jest.fn().mockResolvedValue({
+      searchMedicalQaCorpus: vi.fn().mockResolvedValue({
         query: {},
         result: { knowledge: [] },
         coverage: { status: 'empty', reason: 'No query was provided.' },
@@ -102,18 +102,18 @@ describe('AssistantToolService', () => {
     const drugbankEntityResolveService =
       new AssistantToolDrugbankEntityResolveService({
         drugbankDrug: {
-          findMany: jest.fn().mockResolvedValue([]),
+          findMany: vi.fn().mockResolvedValue([]),
         },
       } as never);
     const drugbankSearchService = new AssistantToolDrugbankSearchService(
-      { get: jest.fn() } as never,
+      { get: vi.fn() } as never,
       drugbankEntityResolveService,
     );
     const medicineLookupService: Pick<
       AssistantToolMedicineLookupService,
       'searchCnMedicineProducts' | 'getCnMedicineDetail' | 'getDrugbankDetail'
     > = {
-      searchCnMedicineProducts: jest.fn().mockResolvedValue({
+      searchCnMedicineProducts: vi.fn().mockResolvedValue({
         query: {},
         result: { products: [] },
         coverage: { status: 'empty', reason: 'No query was provided.' },
@@ -126,7 +126,7 @@ describe('AssistantToolService', () => {
         confidence: { level: 'low', reason: 'Empty query.' },
         ambiguities: [],
       }),
-      getCnMedicineDetail: jest.fn().mockResolvedValue({
+      getCnMedicineDetail: vi.fn().mockResolvedValue({
         query: {},
         result: { product: null, candidates: [] },
         coverage: { status: 'empty', reason: 'No product query was provided.' },
@@ -139,7 +139,7 @@ describe('AssistantToolService', () => {
         confidence: { level: 'low', reason: 'Empty query.' },
         ambiguities: [],
       }),
-      getDrugbankDetail: jest.fn().mockResolvedValue({
+      getDrugbankDetail: vi.fn().mockResolvedValue({
         query: {},
         result: { drug: null, candidates: [] },
         coverage: {
@@ -205,7 +205,7 @@ describe('AssistantToolService', () => {
 
   it('passes a resolved CN product id into downstream leaflet retrieval', async () => {
     const { service, deps } = buildExecutor();
-    const leafletSpy = jest
+    const leafletSpy = vi
       .spyOn(
         AssistantToolLeafletReadService.prototype,
         'searchMedicineLeaflets',
@@ -225,7 +225,7 @@ describe('AssistantToolService', () => {
       });
 
     (
-      deps.medicineLookupService.getCnMedicineDetail as jest.Mock
+      deps.medicineLookupService.getCnMedicineDetail as vi.Mock
     ).mockResolvedValue({
       query: {
         query: '阿司匹林肠溶片',

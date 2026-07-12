@@ -24,11 +24,11 @@ function buildEntry(overrides: Partial<OAuthStateEntry> = {}): OAuthStateEntry {
 
 describe('AuthOAuthStateService', () => {
   let service: AuthOAuthStateService;
-  let cache: jest.Mocked<Cache>;
+  let cache: vi.Mocked<Cache>;
 
   beforeEach(async () => {
     const mockConfigService = {
-      get: jest.fn((key: string, fallback?: unknown) => {
+      get: vi.fn((key: string, fallback?: unknown) => {
         if (key === 'OAUTH_STATE_TTL_MS') return DEFAULT_OAUTH_STATE_TTL_MS;
         if (key === 'app.corsOrigin') return false;
         return fallback;
@@ -41,9 +41,9 @@ describe('AuthOAuthStateService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: {
-            get: jest.fn(),
-            set: jest.fn(),
-            del: jest.fn(),
+            get: vi.fn(),
+            set: vi.fn(),
+            del: vi.fn(),
           },
         },
         {
@@ -53,7 +53,7 @@ describe('AuthOAuthStateService', () => {
         {
           provide: I18nService,
           useValue: {
-            t: jest.fn((key: string) => key),
+            t: vi.fn((key: string) => key),
           },
         },
       ],
@@ -66,8 +66,8 @@ describe('AuthOAuthStateService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   // ════════════════════════════════════════════════════════════

@@ -12,16 +12,16 @@ describe('requestIdMiddleware', () => {
 
   beforeEach(() => {
     mockRequest = {
-      header: jest.fn(),
+      header: vi.fn(),
     };
     mockResponse = {
-      setHeader: jest.fn(),
+      setHeader: vi.fn(),
     };
-    nextFn = jest.fn();
+    nextFn = vi.fn();
   });
 
   it('should generate a UUID when no request id header is present', () => {
-    (mockRequest.header as jest.Mock).mockReturnValue(undefined);
+    (mockRequest.header as vi.Mock).mockReturnValue(undefined);
 
     requestIdMiddleware(
       mockRequest as Request,
@@ -43,7 +43,7 @@ describe('requestIdMiddleware', () => {
 
   it('should use incoming request id when present', () => {
     const incomingId = 'custom-request-id-123';
-    (mockRequest.header as jest.Mock).mockReturnValue(incomingId);
+    (mockRequest.header as vi.Mock).mockReturnValue(incomingId);
 
     requestIdMiddleware(
       mockRequest as Request,
@@ -59,7 +59,7 @@ describe('requestIdMiddleware', () => {
   });
 
   it('should trim whitespace from incoming request id', () => {
-    (mockRequest.header as jest.Mock).mockReturnValue('  trimmed-id  ');
+    (mockRequest.header as vi.Mock).mockReturnValue('  trimmed-id  ');
 
     requestIdMiddleware(
       mockRequest as Request,
@@ -71,7 +71,7 @@ describe('requestIdMiddleware', () => {
   });
 
   it('should generate UUID when incoming request id is empty string', () => {
-    (mockRequest.header as jest.Mock).mockReturnValue('');
+    (mockRequest.header as vi.Mock).mockReturnValue('');
 
     requestIdMiddleware(
       mockRequest as Request,
@@ -86,7 +86,7 @@ describe('requestIdMiddleware', () => {
   });
 
   it('should generate UUID when incoming request id is only whitespace', () => {
-    (mockRequest.header as jest.Mock).mockReturnValue('   ');
+    (mockRequest.header as vi.Mock).mockReturnValue('   ');
 
     requestIdMiddleware(
       mockRequest as Request,
@@ -101,7 +101,7 @@ describe('requestIdMiddleware', () => {
   });
 
   it('should always call next()', () => {
-    (mockRequest.header as jest.Mock).mockReturnValue(undefined);
+    (mockRequest.header as vi.Mock).mockReturnValue(undefined);
 
     requestIdMiddleware(
       mockRequest as Request,
@@ -113,7 +113,7 @@ describe('requestIdMiddleware', () => {
   });
 
   it('should set X-Request-Id response header', () => {
-    (mockRequest.header as jest.Mock).mockReturnValue('test-id');
+    (mockRequest.header as vi.Mock).mockReturnValue('test-id');
 
     requestIdMiddleware(
       mockRequest as Request,

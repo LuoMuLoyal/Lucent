@@ -79,6 +79,32 @@ Last updated: 2026-07-12
 - **移除 ts-jest**：项目使用 `@swc/jest` 作为 jest transform，`ts-jest` 从未被引用，已移除
 - **TS 7 阻塞项**：`@nestjs/cli@11` 不兼容 TS 7 Go 原生 API，需等 NestJS CLI 12 稳定后升级
 
+## 2026-07-12 Jest → Vitest 迁移完成
+
+- **依赖替换**：移除 `jest`、`@types/jest`、`@swc/jest`、`eslint-plugin-jest`；新增 `vitest`、`@vitest/coverage-v8`、`unplugin-swc`
+- **配置文件**：新建 `vitest.config.ts`（单元测试，SWC + ESM 模块）和 `vitest.e2e.config.ts`（E2E 测试，串行 forks 模式）；删除 `test/jest-e2e.json` 和 `package.json` 中的 `jest` 配置块
+- **TypeScript**：`tsconfig.json` `types` 从 `jest` 改为 `vitest/globals`
+- **ESLint**：移除 `eslint-plugin-jest` 和 `globals.jest`；测试文件覆盖规则保留（类型放宽）但移除 jest 专有规则
+- **全局类型桥接**：新建 `src/types/vitest-globals.d.ts`，通过 `declare global { namespace vi { ... } }` 为 `vi.Mock`、`vi.Mocked<T>`、`vi.MockInstance<T>`、`vi.SpyInstance<T>` 提供全局类型声明，使 `jest.` → `vi.` 的批量替换对类型引用也生效
+- **批量 Codemod**：
+  - 160 个文件 `jest.` → `vi.`（函数调用）
+  - 29 个文件 `jest` → `vi`（多行断句）
+  - `fail()` → `expect.fail()`（5 处）
+  - `jest.requireMock()` → `import * as` + 类型断言（3 个文件）
+  - `deep-mocked.ts`：`jest.Mock` → `import type { Mock } from 'vitest'`
+- **API 兼容性修复**：
+  - `slow-request.interceptor.spec.ts`：Jest `(done)` 回调改为 `new Promise<void>((resolve) => ...)` 模式（Vitest 不支持 done 回调）
+  - `.mockImplementation()` 无参调用改为 `.mockImplementation(() => undefined)`（Vitest 要求函数参数）
+  - `vi.fn(() => mockObject)` 箭头函数构造器改为 `vi.fn(function () { return mockObject; })`（COS SDK、PGVectorStore mock）
+  - `vi.mock('argon2', ...)` 补充 `argon2id: 2` 属性（Vitest 对 mock 属性访问更严格）
+  - `mock.calls[0]` 添加 `!` 非空断言（Vitest MockInstance 类型 + `noUncheckedIndexedAccess`）
+- **验证结果**：`pnpm build` ✓（694 文件）、`pnpm typecheck` ✓（0 错误）、`pnpm lint:check` ✓（0 警告）、`pnpm test` ✓（205 文件 / 2105 测试全部通过）
+
+## 2026-07-12 NestJS 12 升级准备
+
+- **移除 ts-loader**：`ts-loader` 是 `@nestjs/cli@11` 传递依赖的遗留物，项目已使用 SWC builder，不经过 webpack。升级到 CLI 12 后 webpack 依赖自动消失。已从 `devDependencies` 中删除
+- **Jest → Vitest 迁移**：完整迁移已完成，见上方详细记录。`plans/2026-07-12-jest-to-vitest-migration.md` 计划已全部执行
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]

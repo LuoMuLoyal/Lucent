@@ -47,8 +47,8 @@ describe('LegalDocumentsService', () => {
       .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
     return {
       legalDocument: {
-        findMany: jest.fn().mockResolvedValue(sortedActive),
-        findUnique: jest
+        findMany: vi.fn().mockResolvedValue(sortedActive),
+        findUnique: vi
           .fn()
           .mockImplementation(({ where }: { where: { docType: string } }) =>
             Promise.resolve(

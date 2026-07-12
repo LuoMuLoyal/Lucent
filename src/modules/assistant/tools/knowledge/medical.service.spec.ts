@@ -1,22 +1,24 @@
 import { AssistantToolMedicalKnowledgeService } from './medical.service';
 
-const mockSimilaritySearchWithScore = jest.fn();
-const mockEnsureTable = jest.fn();
+const mockSimilaritySearchWithScore = vi.fn();
+const mockEnsureTable = vi.fn();
 
-jest.mock('@langchain/community/vectorstores/pgvector', () => ({
-  PGVectorStore: jest.fn().mockImplementation(() => ({
-    similaritySearchWithScore: mockSimilaritySearchWithScore,
-    ensureTableInDatabase: mockEnsureTable,
-  })),
+vi.mock('@langchain/community/vectorstores/pgvector', () => ({
+  PGVectorStore: vi.fn().mockImplementation(function () {
+    return {
+      similaritySearchWithScore: mockSimilaritySearchWithScore,
+      ensureTableInDatabase: mockEnsureTable,
+    };
+  }),
 }));
 
-jest.mock('@langchain/openai', () => ({
-  OpenAIEmbeddings: jest.fn(),
+vi.mock('@langchain/openai', () => ({
+  OpenAIEmbeddings: vi.fn(),
 }));
 
 describe('AssistantToolMedicalKnowledgeService', () => {
   const configService = {
-    get: jest.fn((key: string) => {
+    get: vi.fn((key: string) => {
       if (key === 'DATABASE_URL')
         return 'postgres://test:test@localhost:5432/test';
       if (key === 'ai')
@@ -32,7 +34,7 @@ describe('AssistantToolMedicalKnowledgeService', () => {
   };
 
   const i18n = {
-    t: jest.fn().mockReturnValue('Reference only. Consult a clinician.'),
+    t: vi.fn().mockReturnValue('Reference only. Consult a clinician.'),
   };
 
   beforeEach(() => {

@@ -59,45 +59,45 @@ const mockConversation: AssistantConversationSnapshot = {
 
 describe('AssistantService', () => {
   let service: AssistantService;
-  let runtime: jest.Mocked<AssistantRuntimeService>;
-  let userSettings: jest.Mocked<UserSettingsService>;
-  let policy: jest.Mocked<AssistantPolicyService>;
-  let toolExecutor: jest.Mocked<AssistantToolService>;
-  let toolContext: jest.Mocked<AssistantContextService>;
-  let conversation: jest.Mocked<AssistantConversationService>;
+  let runtime: vi.Mocked<AssistantRuntimeService>;
+  let userSettings: vi.Mocked<UserSettingsService>;
+  let policy: vi.Mocked<AssistantPolicyService>;
+  let toolExecutor: vi.Mocked<AssistantToolService>;
+  let toolContext: vi.Mocked<AssistantContextService>;
+  let conversation: vi.Mocked<AssistantConversationService>;
 
   beforeEach(() => {
     runtime = {
-      describeFoundation: jest.fn().mockResolvedValue(mockFoundation),
-      runConversation: jest.fn(),
-      streamPreGeneratedContent: jest.fn(),
-      generateStream: jest.fn(),
-    } as unknown as jest.Mocked<AssistantRuntimeService>;
+      describeFoundation: vi.fn().mockResolvedValue(mockFoundation),
+      runConversation: vi.fn(),
+      streamPreGeneratedContent: vi.fn(),
+      generateStream: vi.fn(),
+    } as unknown as vi.Mocked<AssistantRuntimeService>;
 
     userSettings = {
-      getSettings: jest.fn().mockResolvedValue(mockSettings),
-    } as unknown as jest.Mocked<UserSettingsService>;
+      getSettings: vi.fn().mockResolvedValue(mockSettings),
+    } as unknown as vi.Mocked<UserSettingsService>;
 
     policy = {
-      evaluate: jest.fn().mockReturnValue(mockPolicy),
-    } as unknown as jest.Mocked<AssistantPolicyService>;
+      evaluate: vi.fn().mockReturnValue(mockPolicy),
+    } as unknown as vi.Mocked<AssistantPolicyService>;
 
     toolExecutor = {
-      executeMany: jest.fn().mockResolvedValue([]),
-    } as unknown as jest.Mocked<AssistantToolService>;
+      executeMany: vi.fn().mockResolvedValue([]),
+    } as unknown as vi.Mocked<AssistantToolService>;
 
     toolContext = {
-      buildToolContextBlock: jest.fn().mockReturnValue(''),
-    } as unknown as jest.Mocked<AssistantContextService>;
+      buildToolContextBlock: vi.fn().mockReturnValue(''),
+    } as unknown as vi.Mocked<AssistantContextService>;
 
     conversation = {
-      getLatestConversation: jest.fn(),
-      listRecentConversations: jest.fn(),
-      openConversation: jest.fn(),
-      clearLatestConversation: jest.fn(),
-      persistAssistantTurn: jest.fn(),
-      buildMemoryBlock: jest.fn().mockResolvedValue(''),
-    } as unknown as jest.Mocked<AssistantConversationService>;
+      getLatestConversation: vi.fn(),
+      listRecentConversations: vi.fn(),
+      openConversation: vi.fn(),
+      clearLatestConversation: vi.fn(),
+      persistAssistantTurn: vi.fn(),
+      buildMemoryBlock: vi.fn().mockResolvedValue(''),
+    } as unknown as vi.Mocked<AssistantConversationService>;
 
     service = new AssistantService(
       runtime,
@@ -222,7 +222,7 @@ describe('AssistantService', () => {
       usedToolNames: [],
     };
 
-    const onChunk = jest.fn();
+    const onChunk = vi.fn();
 
     it('throws ForbiddenException when assistant is disabled', async () => {
       userSettings.getSettings.mockResolvedValue({

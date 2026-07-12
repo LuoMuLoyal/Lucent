@@ -36,18 +36,18 @@ const mockCandidates: DailyRecordCandidateData = {
 
 describe('AssistantToolProposalService', () => {
   let service: AssistantToolProposalService;
-  let candidateGenerator: jest.Mocked<IDailyRecordCandidateGenerator>;
-  let recordQuery: jest.Mocked<AssistantToolRecordQueryService>;
+  let candidateGenerator: vi.Mocked<IDailyRecordCandidateGenerator>;
+  let recordQuery: vi.Mocked<AssistantToolRecordQueryService>;
 
   beforeEach(() => {
     candidateGenerator = {
-      generate: jest.fn().mockResolvedValue(mockCandidates),
+      generate: vi.fn().mockResolvedValue(mockCandidates),
     };
     recordQuery = {
-      resolveSingleDate: jest.fn().mockReturnValue(mockDateResolution),
-      findTargetDailyRecordForMutation: jest.fn(),
-      listToolRecords: jest.fn(),
-    } as unknown as jest.Mocked<AssistantToolRecordQueryService>;
+      resolveSingleDate: vi.fn().mockReturnValue(mockDateResolution),
+      findTargetDailyRecordForMutation: vi.fn(),
+      listToolRecords: vi.fn(),
+    } as unknown as vi.Mocked<AssistantToolRecordQueryService>;
 
     service = new AssistantToolProposalService(candidateGenerator, recordQuery);
   });

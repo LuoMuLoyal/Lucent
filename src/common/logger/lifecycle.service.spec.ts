@@ -3,19 +3,19 @@ import type { PinoLogger } from 'nestjs-pino';
 import { LifecycleService } from './lifecycle.service';
 
 describe('LifecycleService', () => {
-  let logger: jest.Mocked<PinoLogger>;
-  let configService: jest.Mocked<ConfigService>;
+  let logger: vi.Mocked<PinoLogger>;
+  let configService: vi.Mocked<ConfigService>;
   let service: LifecycleService;
 
   beforeEach(() => {
     logger = {
-      setContext: jest.fn(),
-      info: jest.fn(),
-    } as unknown as jest.Mocked<PinoLogger>;
+      setContext: vi.fn(),
+      info: vi.fn(),
+    } as unknown as vi.Mocked<PinoLogger>;
 
     configService = {
-      get: jest.fn(),
-    } as unknown as jest.Mocked<ConfigService>;
+      get: vi.fn(),
+    } as unknown as vi.Mocked<ConfigService>;
 
     service = new LifecycleService(logger, configService);
   });

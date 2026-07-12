@@ -19,12 +19,12 @@ describe('ApiExceptionFilter', () => {
 
   function createFilter() {
     const logger = {
-      error: jest.fn(),
-      warn: jest.fn(),
-      setContext: jest.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      setContext: vi.fn(),
     };
     const requestContext = {
-      getRequestId: jest.fn().mockReturnValue('req-test'),
+      getRequestId: vi.fn().mockReturnValue('req-test'),
     };
     const filter = new ApiExceptionFilter(
       logger as never,
@@ -38,8 +38,8 @@ describe('ApiExceptionFilter', () => {
   it('handles HttpException with string response', () => {
     const { filter, logger } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -62,8 +62,8 @@ describe('ApiExceptionFilter', () => {
   it('handles HttpException with object response containing numeric code', () => {
     const { filter } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
 
@@ -85,8 +85,8 @@ describe('ApiExceptionFilter', () => {
   it('handles HttpException with array message (joined with "; ")', () => {
     const { filter } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
 
@@ -108,8 +108,8 @@ describe('ApiExceptionFilter', () => {
   it('handles HttpException with response missing message (falls back to error)', () => {
     const { filter } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -127,8 +127,8 @@ describe('ApiExceptionFilter', () => {
   it('handles HttpException with response missing both message and error (falls back to default)', () => {
     const { filter } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -148,8 +148,8 @@ describe('ApiExceptionFilter', () => {
   it('maps UNAUTHORIZED status to UNAUTHORIZED code', () => {
     const { filter } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -166,8 +166,8 @@ describe('ApiExceptionFilter', () => {
   it('maps FORBIDDEN status to FORBIDDEN code', () => {
     const { filter } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -184,8 +184,8 @@ describe('ApiExceptionFilter', () => {
   it('maps CONFLICT status to CONFLICT code', () => {
     const { filter } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
 
@@ -202,8 +202,8 @@ describe('ApiExceptionFilter', () => {
   it('maps non-standard status (e.g. 418) to INTERNAL_ERROR code', () => {
     const { filter } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -222,8 +222,8 @@ describe('ApiExceptionFilter', () => {
   it('handles plain Error as INTERNAL_ERROR', () => {
     const { filter, logger } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -249,8 +249,8 @@ describe('ApiExceptionFilter', () => {
   it('handles non-Error throwables as INTERNAL_ERROR', () => {
     const { filter } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -270,8 +270,8 @@ describe('ApiExceptionFilter', () => {
   it('logs 5xx errors with err property and error level', () => {
     const { filter, logger } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = {
       method: 'GET',
@@ -295,8 +295,8 @@ describe('ApiExceptionFilter', () => {
   it('logs 4xx errors with warn level and no err property', () => {
     const { filter, logger } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'POST', url: '/api/v1/items' };
 
@@ -318,8 +318,8 @@ describe('ApiExceptionFilter', () => {
   it('uses request.url when originalUrl is not available', () => {
     const { filter, logger } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'GET', url: '/fallback-url' };
 
@@ -335,8 +335,8 @@ describe('ApiExceptionFilter', () => {
     const { filter, logger, requestContext } = createFilter();
     requestContext.getRequestId.mockReturnValue('req-abc-123');
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -351,8 +351,8 @@ describe('ApiExceptionFilter', () => {
   it('handles HttpException with string array message of single element', () => {
     const { filter } = createFilter();
     const response = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
 

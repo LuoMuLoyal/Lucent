@@ -8,21 +8,21 @@ import { AppService } from './app.service';
 
 describe('AppService', () => {
   let service: AppService;
-  let prisma: { $queryRaw: jest.Mock };
+  let prisma: { $queryRaw: vi.Mock };
   let cache: {
-    set: jest.Mock;
-    get: jest.Mock;
-    del: jest.Mock;
+    set: vi.Mock;
+    get: vi.Mock;
+    del: vi.Mock;
   };
 
   beforeEach(async () => {
     prisma = {
-      $queryRaw: jest.fn(),
+      $queryRaw: vi.fn(),
     };
     cache = {
-      set: jest.fn(),
-      get: jest.fn(),
-      del: jest.fn(),
+      set: vi.fn(),
+      get: vi.fn(),
+      del: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -39,7 +39,7 @@ describe('AppService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockImplementation((key: unknown) => {
+            get: vi.fn().mockImplementation((key: unknown) => {
               if (key === EnvKey.NODE_ENV || key === 'NODE_ENV') {
                 return 'test';
               }
@@ -126,7 +126,7 @@ describe('AppService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockImplementation((key: unknown) => {
+            get: vi.fn().mockImplementation((key: unknown) => {
               if (key === EnvKey.NODE_ENV || key === 'NODE_ENV') {
                 return 'test';
               }

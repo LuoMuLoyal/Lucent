@@ -6,7 +6,7 @@ import type { UserPayload } from '../auth/services/auth.service';
 
 describe('UserHealthContextController', () => {
   let controller: UserHealthContextController;
-  let service: jest.Mocked<UserHealthContextService>;
+  let service: vi.Mocked<UserHealthContextService>;
 
   const mockUser: UserPayload = {
     sub: 'user-1',
@@ -22,18 +22,18 @@ describe('UserHealthContextController', () => {
 
   beforeEach(async () => {
     service = {
-      getForUser: jest.fn().mockResolvedValue(mockResponse),
-      updateProfile: jest.fn().mockResolvedValue(mockResponse),
-      createAllergy: jest.fn().mockResolvedValue(mockResponse),
-      updateAllergy: jest.fn().mockResolvedValue(mockResponse),
-      deleteAllergy: jest.fn().mockResolvedValue(mockResponse),
-      createCondition: jest.fn().mockResolvedValue(mockResponse),
-      updateCondition: jest.fn().mockResolvedValue(mockResponse),
-      deleteCondition: jest.fn().mockResolvedValue(mockResponse),
-      createCurrentMedicine: jest.fn().mockResolvedValue(mockResponse),
-      updateCurrentMedicine: jest.fn().mockResolvedValue(mockResponse),
-      deleteCurrentMedicine: jest.fn().mockResolvedValue(mockResponse),
-    } as unknown as jest.Mocked<UserHealthContextService>;
+      getForUser: vi.fn().mockResolvedValue(mockResponse),
+      updateProfile: vi.fn().mockResolvedValue(mockResponse),
+      createAllergy: vi.fn().mockResolvedValue(mockResponse),
+      updateAllergy: vi.fn().mockResolvedValue(mockResponse),
+      deleteAllergy: vi.fn().mockResolvedValue(mockResponse),
+      createCondition: vi.fn().mockResolvedValue(mockResponse),
+      updateCondition: vi.fn().mockResolvedValue(mockResponse),
+      deleteCondition: vi.fn().mockResolvedValue(mockResponse),
+      createCurrentMedicine: vi.fn().mockResolvedValue(mockResponse),
+      updateCurrentMedicine: vi.fn().mockResolvedValue(mockResponse),
+      deleteCurrentMedicine: vi.fn().mockResolvedValue(mockResponse),
+    } as unknown as vi.Mocked<UserHealthContextService>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserHealthContextController],

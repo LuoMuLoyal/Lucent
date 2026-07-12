@@ -12,8 +12,8 @@ function buildFactory(queueAvailable: boolean): BullmqQueueFactory {
     } as unknown as BullmqQueueFactory;
   }
 
-  const mockQueue = { add: jest.fn(), close: jest.fn() };
-  const mockWorker = { on: jest.fn(), close: jest.fn() };
+  const mockQueue = { add: vi.fn(), close: vi.fn() };
+  const mockWorker = { on: vi.fn(), close: vi.fn() };
   return {
     isAvailable: true,
     createQueue: () => ({ queue: mockQueue, worker: mockWorker }),
@@ -23,11 +23,11 @@ function buildFactory(queueAvailable: boolean): BullmqQueueFactory {
 describe('MailQueueService', () => {
   it('should send immediately when REDIS_URL is not configured', async () => {
     const transport = {
-      send: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<MailTransportService>;
+      send: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<MailTransportService>;
     const service = new MailQueueService(
       {
-        get: jest.fn().mockReturnValue(undefined),
+        get: vi.fn().mockReturnValue(undefined),
       } as unknown as ConfigService,
       transport,
       buildFactory(false),
@@ -48,14 +48,14 @@ describe('MailQueueService', () => {
 
   it('enqueues to the BullMQ queue when REDIS_URL is configured', async () => {
     const mockQueue = {
-      add: jest.fn().mockResolvedValue(undefined),
-      close: jest.fn(),
+      add: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn(),
     };
-    const mockWorker = { on: jest.fn(), close: jest.fn() };
+    const mockWorker = { on: vi.fn(), close: vi.fn() };
 
     const transport = {
-      send: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<MailTransportService>;
+      send: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<MailTransportService>;
 
     const factory = {
       isAvailable: true,
@@ -64,7 +64,7 @@ describe('MailQueueService', () => {
 
     const service = new MailQueueService(
       {
-        get: jest.fn().mockReturnValue({
+        get: vi.fn().mockReturnValue({
           queue: {
             maxAttempts: 5,
             backoffDelayMs: 2000,
@@ -96,14 +96,14 @@ describe('MailQueueService', () => {
 
   it('propagates error when queue.add fails', async () => {
     const mockQueue = {
-      add: jest.fn().mockRejectedValue(new Error('Redis connection lost')),
-      close: jest.fn(),
+      add: vi.fn().mockRejectedValue(new Error('Redis connection lost')),
+      close: vi.fn(),
     };
-    const mockWorker = { on: jest.fn(), close: jest.fn() };
+    const mockWorker = { on: vi.fn(), close: vi.fn() };
 
     const transport = {
-      send: jest.fn(),
-    } as unknown as jest.Mocked<MailTransportService>;
+      send: vi.fn(),
+    } as unknown as vi.Mocked<MailTransportService>;
 
     // Override factory to return our specific mock
     const factory = {
@@ -113,7 +113,7 @@ describe('MailQueueService', () => {
 
     const service = new MailQueueService(
       {
-        get: jest.fn().mockReturnValue(undefined),
+        get: vi.fn().mockReturnValue(undefined),
       } as unknown as ConfigService,
       transport,
       factory,
@@ -130,13 +130,13 @@ describe('MailQueueService', () => {
 
   it('uses default job options when mail config is not available', () => {
     const transport = {
-      send: jest.fn(),
-    } as unknown as jest.Mocked<MailTransportService>;
+      send: vi.fn(),
+    } as unknown as vi.Mocked<MailTransportService>;
 
     // The constructor should not throw even without mail config
     const service = new MailQueueService(
       {
-        get: jest.fn().mockReturnValue(undefined),
+        get: vi.fn().mockReturnValue(undefined),
       } as unknown as ConfigService,
       transport,
       buildFactory(false),

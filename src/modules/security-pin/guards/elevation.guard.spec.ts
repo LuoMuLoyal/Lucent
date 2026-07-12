@@ -50,7 +50,7 @@ function createMockContext(
 
 describe('SecurityElevationGuard', () => {
   let guard: SecurityElevationGuard;
-  let securityPinService: jest.Mocked<SecurityPinService>;
+  let securityPinService: vi.Mocked<SecurityPinService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -59,7 +59,7 @@ describe('SecurityElevationGuard', () => {
         {
           provide: SecurityPinService,
           useValue: {
-            verifyElevationToken: jest.fn(),
+            verifyElevationToken: vi.fn(),
           },
         },
       ],
@@ -70,7 +70,7 @@ describe('SecurityElevationGuard', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('allows requests without the decorator to pass through', async () => {

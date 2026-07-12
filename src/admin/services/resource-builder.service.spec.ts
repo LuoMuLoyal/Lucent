@@ -4,12 +4,12 @@ import type { PrismaService } from '../../prisma/prisma.service';
 import type { PrismaClientModule, AdminJsPrismaModule } from '../types/types';
 
 describe('buildResources', () => {
-  let mockGetModelByName: jest.Mock;
+  let mockGetModelByName: vi.Mock;
   let mockPrisma: DeepMocked<PrismaService>;
   let mockClientModule: PrismaClientModule;
 
   beforeEach(() => {
-    mockGetModelByName = jest.fn().mockReturnValue({ name: 'Model' });
+    mockGetModelByName = vi.fn().mockReturnValue({ name: 'Model' });
     mockPrisma = {} as DeepMocked<PrismaService>;
     mockClientModule = {
       Prisma: {

@@ -61,11 +61,11 @@ function createService(
   stats: Map<string, RuleFeedbackStats> = new Map(),
 ): SuppressionService {
   const mockFeedbackService = {
-    loadActiveFeedbacks: jest.fn().mockResolvedValue(feedbacks),
+    loadActiveFeedbacks: vi.fn().mockResolvedValue(feedbacks),
   } as unknown as FeedbackService;
 
   const mockStatsService = {
-    loadStats: jest.fn().mockResolvedValue(stats),
+    loadStats: vi.fn().mockResolvedValue(stats),
   } as unknown as FeedbackStatsService;
 
   return new SuppressionService(mockFeedbackService, mockStatsService);

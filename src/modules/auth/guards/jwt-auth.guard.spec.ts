@@ -5,25 +5,25 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 describe('JwtAuthGuard', () => {
   let guard: JwtAuthGuard;
-  let reflector: jest.Mocked<Reflector>;
+  let reflector: vi.Mocked<Reflector>;
 
   beforeEach(() => {
     reflector = {
-      getAllAndOverride: jest.fn(),
-    } as unknown as jest.Mocked<Reflector>;
+      getAllAndOverride: vi.fn(),
+    } as unknown as vi.Mocked<Reflector>;
     guard = new JwtAuthGuard(reflector);
   });
 
   function createMockContext(): ExecutionContext {
     return {
-      getHandler: jest.fn(),
-      getClass: jest.fn(),
-      switchToHttp: jest.fn(),
-      getArgByIndex: jest.fn(),
-      getArgs: jest.fn(),
-      getType: jest.fn(),
-      switchToRpc: jest.fn(),
-      switchToWs: jest.fn(),
+      getHandler: vi.fn(),
+      getClass: vi.fn(),
+      switchToHttp: vi.fn(),
+      getArgByIndex: vi.fn(),
+      getArgs: vi.fn(),
+      getType: vi.fn(),
+      switchToRpc: vi.fn(),
+      switchToWs: vi.fn(),
     } as unknown as ExecutionContext;
   }
 

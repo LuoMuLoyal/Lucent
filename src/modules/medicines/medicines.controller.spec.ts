@@ -5,7 +5,7 @@ import { MedicinesService } from './services/medicines.service';
 
 describe('MedicinesController', () => {
   let controller: MedicinesController;
-  let service: jest.Mocked<MedicinesService>;
+  let service: vi.Mocked<MedicinesService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -14,9 +14,9 @@ describe('MedicinesController', () => {
         {
           provide: MedicinesService,
           useValue: {
-            searchWithCache: jest.fn(),
-            getDetailWithCache: jest.fn(),
-            getRandomSafetyTips: jest.fn(),
+            searchWithCache: vi.fn(),
+            getDetailWithCache: vi.fn(),
+            getRandomSafetyTips: vi.fn(),
           },
         },
       ],

@@ -14,9 +14,9 @@ import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.servic
 
 describe('MedicinesService', () => {
   let service: MedicinesService;
-  let drugbankMedicinesService: jest.Mocked<DrugbankMedicinesService>;
-  let cnMedicinesService: jest.Mocked<CnMedicinesService>;
-  let medicinesCacheService: jest.Mocked<MedicinesCacheService>;
+  let drugbankMedicinesService: vi.Mocked<DrugbankMedicinesService>;
+  let cnMedicinesService: vi.Mocked<CnMedicinesService>;
+  let medicinesCacheService: vi.Mocked<MedicinesCacheService>;
   let prismaService: DeepMocked<PrismaService>;
 
   beforeEach(async () => {
@@ -26,43 +26,43 @@ describe('MedicinesService', () => {
         {
           provide: DrugbankMedicinesService,
           useValue: {
-            search: jest.fn(),
-            getDetail: jest.fn(),
+            search: vi.fn(),
+            getDetail: vi.fn(),
           },
         },
         {
           provide: CnMedicinesService,
           useValue: {
-            search: jest.fn(),
-            getDetail: jest.fn(),
+            search: vi.fn(),
+            getDetail: vi.fn(),
           },
         },
         {
           provide: MedicinesCacheService,
           useValue: {
-            getOrSetSearch: jest.fn(),
-            getOrSetDetail: jest.fn(),
+            getOrSetSearch: vi.fn(),
+            getOrSetDetail: vi.fn(),
           },
         },
         {
           provide: I18nService,
           useValue: {
-            t: jest.fn((key: string) => key),
+            t: vi.fn((key: string) => key),
           },
         },
         {
           provide: PrismaService,
           useValue: {
             medicineSafetyTip: {
-              findMany: jest.fn(),
+              findMany: vi.fn(),
             },
           },
         },
         {
           provide: LlmRuntimeService,
           useValue: {
-            createChatModel: jest.fn().mockReturnValue({
-              invoke: jest.fn().mockResolvedValue({ content: '{}' }),
+            createChatModel: vi.fn().mockReturnValue({
+              invoke: vi.fn().mockResolvedValue({ content: '{}' }),
             }),
           },
         },
@@ -77,10 +77,10 @@ describe('MedicinesService', () => {
   });
 
   const getSafetyTipsFindManyMock = () =>
-    prismaService.medicineSafetyTip.findMany as jest.Mock;
+    prismaService.medicineSafetyTip.findMany as vi.Mock;
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should default search source to drugbank', async () => {

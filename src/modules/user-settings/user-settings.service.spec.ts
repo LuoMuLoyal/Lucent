@@ -5,11 +5,11 @@ describe('UserSettingsService', () => {
   it('returns defaults when the user has no stored settings', async () => {
     const prisma = {
       userSetting: {
-        findMany: jest.fn().mockResolvedValue([]),
-        upsert: jest.fn(),
+        findMany: vi.fn().mockResolvedValue([]),
+        upsert: vi.fn(),
       },
       user: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue({
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
           securityPinEnabled: false,
           securityPinChangedAt: null,
         }),
@@ -41,7 +41,7 @@ describe('UserSettingsService', () => {
   it('merges stored assistant setting keys and nested context permissions', async () => {
     const prisma = {
       userSetting: {
-        findMany: jest.fn().mockResolvedValue([
+        findMany: vi.fn().mockResolvedValue([
           {
             key: 'assistantMemoryEnabled',
             value: true,
@@ -63,10 +63,10 @@ describe('UserSettingsService', () => {
             updatedAt: new Date('2026-06-16T08:00:00.000Z'),
           },
         ]),
-        upsert: jest.fn(),
+        upsert: vi.fn(),
       },
       user: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue({
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
           securityPinEnabled: true,
           securityPinChangedAt: new Date('2026-07-03T12:00:00.000Z'),
         }),
@@ -96,14 +96,14 @@ describe('UserSettingsService', () => {
   });
 
   it('upserts assistant setting keys and nested context toggles', async () => {
-    const upsert = jest.fn().mockResolvedValue(undefined);
+    const upsert = vi.fn().mockResolvedValue(undefined);
     const prisma = {
       userSetting: {
-        findMany: jest.fn().mockResolvedValue([]),
+        findMany: vi.fn().mockResolvedValue([]),
         upsert,
       },
       user: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue({
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
           securityPinEnabled: false,
           securityPinChangedAt: null,
         }),
@@ -177,14 +177,14 @@ describe('UserSettingsService', () => {
   });
 
   it('does not call upsert when update payload is empty', async () => {
-    const upsert = jest.fn().mockResolvedValue(undefined);
+    const upsert = vi.fn().mockResolvedValue(undefined);
     const prisma = {
       userSetting: {
-        findMany: jest.fn().mockResolvedValue([]),
+        findMany: vi.fn().mockResolvedValue([]),
         upsert,
       },
       user: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue({
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
           securityPinEnabled: false,
           securityPinChangedAt: null,
         }),
@@ -199,14 +199,14 @@ describe('UserSettingsService', () => {
   });
 
   it('upserts waterTargetCount as a setting key', async () => {
-    const upsert = jest.fn().mockResolvedValue(undefined);
+    const upsert = vi.fn().mockResolvedValue(undefined);
     const prisma = {
       userSetting: {
-        findMany: jest.fn().mockResolvedValue([]),
+        findMany: vi.fn().mockResolvedValue([]),
         upsert,
       },
       user: {
-        findUniqueOrThrow: jest.fn().mockResolvedValue({
+        findUniqueOrThrow: vi.fn().mockResolvedValue({
           securityPinEnabled: false,
           securityPinChangedAt: null,
         }),

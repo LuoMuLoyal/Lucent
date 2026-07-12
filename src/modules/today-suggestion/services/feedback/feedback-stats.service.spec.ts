@@ -2,12 +2,12 @@ import { FeedbackStatsService } from './feedback-stats.service';
 
 describe('FeedbackStatsService', () => {
   let service: FeedbackStatsService;
-  let feedbackFindManyMock: jest.Mock;
-  let suggestionFindManyMock: jest.Mock;
+  let feedbackFindManyMock: vi.Mock;
+  let suggestionFindManyMock: vi.Mock;
 
   beforeEach(() => {
-    feedbackFindManyMock = jest.fn();
-    suggestionFindManyMock = jest.fn();
+    feedbackFindManyMock = vi.fn();
+    suggestionFindManyMock = vi.fn();
     const prismaMock = {
       userSuggestionFeedback: {
         findMany: feedbackFindManyMock,

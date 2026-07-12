@@ -10,9 +10,9 @@ describe('MedicationCollectorService', () => {
 
   beforeEach(() => {
     prisma = {
-      userMedicineReminder: { findMany: jest.fn() },
-      userMedicineDoseLog: { findMany: jest.fn() },
-      userCurrentMedicine: { findMany: jest.fn() },
+      userMedicineReminder: { findMany: vi.fn() },
+      userMedicineDoseLog: { findMany: vi.fn() },
+      userCurrentMedicine: { findMany: vi.fn() },
     } as unknown as DeepMocked<PrismaService>;
     service = new MedicationCollectorService(prisma);
   });
@@ -41,9 +41,9 @@ describe('MedicationCollectorService', () => {
     }));
 
   it('returns an empty array when the user has no current medicines', async () => {
-    (prisma.userCurrentMedicine.findMany as jest.Mock).mockResolvedValue([]);
-    (prisma.userMedicineReminder.findMany as jest.Mock).mockResolvedValue([]);
-    (prisma.userMedicineDoseLog.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue([]);
+    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
+    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
 
@@ -58,13 +58,13 @@ describe('MedicationCollectorService', () => {
   });
 
   it('emits pending_dose signal for a medicine with a matching reminder', async () => {
-    (prisma.userCurrentMedicine.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
       mockReminders(),
     );
-    (prisma.userMedicineDoseLog.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
 
@@ -81,12 +81,12 @@ describe('MedicationCollectorService', () => {
   });
 
   it('emits unconfirmed_medicine signal when no reminder matches', async () => {
-    (prisma.userCurrentMedicine.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
       mockMedicines(),
     );
     // No reminders
-    (prisma.userMedicineReminder.findMany as jest.Mock).mockResolvedValue([]);
-    (prisma.userMedicineDoseLog.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
+    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
 
@@ -99,13 +99,13 @@ describe('MedicationCollectorService', () => {
   });
 
   it('skips medicines that already have a taken dose log', async () => {
-    (prisma.userCurrentMedicine.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
       mockReminders(),
     );
-    (prisma.userMedicineDoseLog.findMany as jest.Mock).mockResolvedValue([
+    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([
       { currentMedicineId: 'med-1', status: DoseLogStatus.taken },
     ]);
 
@@ -119,13 +119,13 @@ describe('MedicationCollectorService', () => {
   });
 
   it('skips medicines that already have a skipped dose log', async () => {
-    (prisma.userCurrentMedicine.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
       mockReminders(),
     );
-    (prisma.userMedicineDoseLog.findMany as jest.Mock).mockResolvedValue([
+    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([
       { currentMedicineId: 'med-1', status: DoseLogStatus.skipped },
     ]);
 
@@ -138,14 +138,14 @@ describe('MedicationCollectorService', () => {
   });
 
   it('emits a medication_summary signal with correct counts', async () => {
-    (prisma.userCurrentMedicine.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
       mockMedicines([
         { id: 'med-1', displayName: 'Aspirin' },
         { id: 'med-2', displayName: 'Ibuprofen' },
       ]),
     );
-    (prisma.userMedicineReminder.findMany as jest.Mock).mockResolvedValue([]);
-    (prisma.userMedicineDoseLog.findMany as jest.Mock).mockResolvedValue([
+    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
+    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([
       { currentMedicineId: 'med-2', status: DoseLogStatus.taken },
     ]);
 
@@ -163,13 +163,13 @@ describe('MedicationCollectorService', () => {
 
   it('filters reminders by daysOfWeek when set', async () => {
     // 2026-07-09 is a Thursday (weekday=4)
-    (prisma.userCurrentMedicine.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
       mockReminders([{ daysOfWeek: [1, 2, 3] }]), // Mon/Tue/Wed only
     );
-    (prisma.userMedicineDoseLog.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
 
@@ -185,13 +185,13 @@ describe('MedicationCollectorService', () => {
     // but the collector computes overdueMinutes from day.getUTCHours/Minutes
     // Since parseDateOnly gives midnight, overdueMinutes will be 0 - scheduled = negative
     // and Math.max(overdueMinutes, 0) = 0, isOverdue = false
-    (prisma.userCurrentMedicine.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
       mockMedicines(),
     );
-    (prisma.userMedicineReminder.findMany as jest.Mock).mockResolvedValue(
+    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
       mockReminders(),
     );
-    (prisma.userMedicineDoseLog.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
 

@@ -4,26 +4,26 @@ import type { MealAnalysisWorkerService } from './worker.service';
 
 describe('MealAnalysisQueueService', () => {
   let service: MealAnalysisQueueService;
-  let factory: jest.Mocked<BullmqQueueFactory>;
-  let workerService: jest.Mocked<MealAnalysisWorkerService>;
-  let mockQueue: { add: jest.Mock };
+  let factory: vi.Mocked<BullmqQueueFactory>;
+  let workerService: vi.Mocked<MealAnalysisWorkerService>;
+  let mockQueue: { add: vi.Mock };
 
   beforeEach(() => {
     workerService = {
-      process: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<MealAnalysisWorkerService>;
+      process: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<MealAnalysisWorkerService>;
 
-    mockQueue = { add: jest.fn().mockResolvedValue(undefined) };
+    mockQueue = { add: vi.fn().mockResolvedValue(undefined) };
   });
 
   describe('with Redis queue available', () => {
     beforeEach(() => {
       factory = {
-        createQueue: jest.fn().mockReturnValue({
+        createQueue: vi.fn().mockReturnValue({
           queue: mockQueue,
           worker: {},
         }),
-      } as unknown as jest.Mocked<BullmqQueueFactory>;
+      } as unknown as vi.Mocked<BullmqQueueFactory>;
 
       service = new MealAnalysisQueueService(factory, workerService);
     });
@@ -83,8 +83,8 @@ describe('MealAnalysisQueueService', () => {
   describe('without Redis queue (fallback)', () => {
     beforeEach(() => {
       factory = {
-        createQueue: jest.fn().mockReturnValue({ queue: null, worker: null }),
-      } as unknown as jest.Mocked<BullmqQueueFactory>;
+        createQueue: vi.fn().mockReturnValue({ queue: null, worker: null }),
+      } as unknown as vi.Mocked<BullmqQueueFactory>;
 
       service = new MealAnalysisQueueService(factory, workerService);
     });

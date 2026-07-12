@@ -10,19 +10,19 @@ describe('BaselineService', () => {
   beforeEach(() => {
     prisma = {
       userSuggestionBaseline: {
-        findUnique: jest.fn(),
-        findMany: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
+        findUnique: vi.fn(),
+        findMany: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
       },
-      userDailyRecord: { findMany: jest.fn() },
+      userDailyRecord: { findMany: vi.fn() },
     } as unknown as DeepMocked<PrismaService>;
     service = new BaselineService(prisma);
   });
 
   describe('getBaseline', () => {
     it('returns null when no baseline record exists', async () => {
-      (prisma.userSuggestionBaseline.findUnique as jest.Mock).mockResolvedValue(
+      (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue(
         null,
       );
 
@@ -36,15 +36,13 @@ describe('BaselineService', () => {
 
     it('returns the stored baseline record', async () => {
       const establishedAt = new Date('2026-07-07');
-      (prisma.userSuggestionBaseline.findUnique as jest.Mock).mockResolvedValue(
-        {
-          userId: 'user-1',
-          dimension: BaselineDimension.WATER_INTAKE,
-          daysCollected: 5,
-          baselineValue: 6,
-          establishedAt,
-        },
-      );
+      (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue({
+        userId: 'user-1',
+        dimension: BaselineDimension.WATER_INTAKE,
+        daysCollected: 5,
+        baselineValue: 6,
+        establishedAt,
+      });
 
       const result = await service.getBaseline(
         'user-1',
@@ -63,11 +61,9 @@ describe('BaselineService', () => {
 
   describe('isBaselineReady', () => {
     it('returns true when establishedAt is set', async () => {
-      (prisma.userSuggestionBaseline.findUnique as jest.Mock).mockResolvedValue(
-        {
-          establishedAt: new Date('2026-07-07'),
-        },
-      );
+      (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue({
+        establishedAt: new Date('2026-07-07'),
+      });
 
       const result = await service.isBaselineReady(
         'user-1',
@@ -78,11 +74,9 @@ describe('BaselineService', () => {
     });
 
     it('returns false when establishedAt is null', async () => {
-      (prisma.userSuggestionBaseline.findUnique as jest.Mock).mockResolvedValue(
-        {
-          establishedAt: null,
-        },
-      );
+      (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue({
+        establishedAt: null,
+      });
 
       const result = await service.isBaselineReady(
         'user-1',
@@ -93,7 +87,7 @@ describe('BaselineService', () => {
     });
 
     it('returns false when no baseline record exists', async () => {
-      (prisma.userSuggestionBaseline.findUnique as jest.Mock).mockResolvedValue(
+      (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue(
         null,
       );
 
@@ -108,9 +102,7 @@ describe('BaselineService', () => {
 
   describe('getBaselineStatus', () => {
     it('returns a map with all dimensions set to false when no records exist', async () => {
-      (prisma.userSuggestionBaseline.findMany as jest.Mock).mockResolvedValue(
-        [],
-      );
+      (prisma.userSuggestionBaseline.findMany as vi.Mock).mockResolvedValue([]);
 
       const status = await service.getBaselineStatus('user-1');
 
@@ -120,7 +112,7 @@ describe('BaselineService', () => {
     });
 
     it('marks dimensions as ready when establishedAt is set', async () => {
-      (prisma.userSuggestionBaseline.findMany as jest.Mock).mockResolvedValue([
+      (prisma.userSuggestionBaseline.findMany as vi.Mock).mockResolvedValue([
         {
           dimension: BaselineDimension.WATER_INTAKE,
           establishedAt: new Date('2026-07-07'),
@@ -139,13 +131,13 @@ describe('BaselineService', () => {
   describe('recordObservation', () => {
     it('creates a new baseline record when none exists and baseline is not yet established', async () => {
       // countConsecutiveDays: 1 day (< BASELINE_MIN_DAYS)
-      (prisma.userDailyRecord.findMany as jest.Mock).mockResolvedValue([
+      (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([
         { occurredAt: new Date('2026-07-09T00:00:00.000Z') },
       ]);
-      (prisma.userSuggestionBaseline.findUnique as jest.Mock).mockResolvedValue(
+      (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue(
         null,
       );
-      (prisma.userSuggestionBaseline.create as jest.Mock).mockResolvedValue({});
+      (prisma.userSuggestionBaseline.create as vi.Mock).mockResolvedValue({});
 
       await service.recordObservation(
         'user-1',
@@ -167,15 +159,15 @@ describe('BaselineService', () => {
 
     it('creates a new baseline record with establishedAt when consecutive days >= min', async () => {
       // 3 consecutive days (>= BASELINE_MIN_DAYS)
-      (prisma.userDailyRecord.findMany as jest.Mock).mockResolvedValue([
+      (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([
         { occurredAt: new Date('2026-07-09T00:00:00.000Z') },
         { occurredAt: new Date('2026-07-08T00:00:00.000Z') },
         { occurredAt: new Date('2026-07-07T00:00:00.000Z') },
       ]);
-      (prisma.userSuggestionBaseline.findUnique as jest.Mock).mockResolvedValue(
+      (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue(
         null,
       );
-      (prisma.userSuggestionBaseline.create as jest.Mock).mockResolvedValue({});
+      (prisma.userSuggestionBaseline.create as vi.Mock).mockResolvedValue({});
 
       await service.recordObservation(
         'user-1',
@@ -196,17 +188,15 @@ describe('BaselineService', () => {
     });
 
     it('updates existing baseline record when it exists', async () => {
-      (prisma.userDailyRecord.findMany as jest.Mock).mockResolvedValue([
+      (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([
         { occurredAt: new Date('2026-07-09T00:00:00.000Z') },
       ]);
       const existingEstablishedAt = new Date('2026-07-05');
-      (prisma.userSuggestionBaseline.findUnique as jest.Mock).mockResolvedValue(
-        {
-          establishedAt: existingEstablishedAt,
-          baselineValue: 5,
-        },
-      );
-      (prisma.userSuggestionBaseline.update as jest.Mock).mockResolvedValue({});
+      (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue({
+        establishedAt: existingEstablishedAt,
+        baselineValue: 5,
+      });
+      (prisma.userSuggestionBaseline.update as vi.Mock).mockResolvedValue({});
 
       await service.recordObservation(
         'user-1',
@@ -231,11 +221,11 @@ describe('BaselineService', () => {
     });
 
     it('returns 0 consecutive days for dimensions without a record kind mapping', async () => {
-      (prisma.userDailyRecord.findMany as jest.Mock).mockResolvedValue([]);
-      (prisma.userSuggestionBaseline.findUnique as jest.Mock).mockResolvedValue(
+      (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([]);
+      (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue(
         null,
       );
-      (prisma.userSuggestionBaseline.create as jest.Mock).mockResolvedValue({});
+      (prisma.userSuggestionBaseline.create as vi.Mock).mockResolvedValue({});
 
       await service.recordObservation(
         'user-1',
@@ -257,17 +247,17 @@ describe('BaselineService', () => {
 
     it('counts consecutive days backwards from the target date', async () => {
       // Days: 7/9, 7/8, 7/7 present, 7/6 missing → 3 consecutive
-      (prisma.userDailyRecord.findMany as jest.Mock).mockResolvedValue([
+      (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([
         { occurredAt: new Date('2026-07-09T00:00:00.000Z') },
         { occurredAt: new Date('2026-07-08T00:00:00.000Z') },
         { occurredAt: new Date('2026-07-07T00:00:00.000Z') },
         // 7/6 missing — gap
         { occurredAt: new Date('2026-07-05T00:00:00.000Z') },
       ]);
-      (prisma.userSuggestionBaseline.findUnique as jest.Mock).mockResolvedValue(
+      (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue(
         null,
       );
-      (prisma.userSuggestionBaseline.create as jest.Mock).mockResolvedValue({});
+      (prisma.userSuggestionBaseline.create as vi.Mock).mockResolvedValue({});
 
       await service.recordObservation(
         'user-1',
@@ -276,8 +266,8 @@ describe('BaselineService', () => {
         '2026-07-09',
       );
 
-      const createCall = (prisma.userSuggestionBaseline.create as jest.Mock)
-        .mock.calls[0]?.[0];
+      const createCall = (prisma.userSuggestionBaseline.create as vi.Mock).mock
+        .calls[0]?.[0];
       expect(createCall.data.daysCollected).toBe(3);
     });
   });

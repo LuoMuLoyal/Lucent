@@ -2,23 +2,25 @@ import { AssistantToolDrugbankEntityResolveService } from './entity-resolve.serv
 import { AssistantToolDrugbankSearchService } from './search.service';
 import { decodeVectorCursor, encodeVectorCursor } from '../vector-cursor';
 
-const mockSimilaritySearchWithScore = jest.fn();
-const mockEnsureTable = jest.fn();
+const mockSimilaritySearchWithScore = vi.fn();
+const mockEnsureTable = vi.fn();
 
-jest.mock('@langchain/community/vectorstores/pgvector', () => ({
-  PGVectorStore: jest.fn().mockImplementation(() => ({
-    similaritySearchWithScore: mockSimilaritySearchWithScore,
-    ensureTableInDatabase: mockEnsureTable,
-  })),
+vi.mock('@langchain/community/vectorstores/pgvector', () => ({
+  PGVectorStore: vi.fn().mockImplementation(function () {
+    return {
+      similaritySearchWithScore: mockSimilaritySearchWithScore,
+      ensureTableInDatabase: mockEnsureTable,
+    };
+  }),
 }));
 
-jest.mock('@langchain/openai', () => ({
-  OpenAIEmbeddings: jest.fn(),
+vi.mock('@langchain/openai', () => ({
+  OpenAIEmbeddings: vi.fn(),
 }));
 
 describe('AssistantToolDrugbankSearchService', () => {
   const configService = {
-    get: jest.fn((key: string) => {
+    get: vi.fn((key: string) => {
       if (key === 'DATABASE_URL')
         return 'postgres://test:test@localhost:5432/test';
       if (key === 'ai')
@@ -71,7 +73,7 @@ describe('AssistantToolDrugbankSearchService', () => {
 
     const resolveService = new AssistantToolDrugbankEntityResolveService({
       drugbankDrug: {
-        findMany: jest.fn().mockResolvedValue([
+        findMany: vi.fn().mockResolvedValue([
           {
             drugbankId: 'DB01050',
             name: 'Ibuprofen',
@@ -101,7 +103,7 @@ describe('AssistantToolDrugbankSearchService', () => {
   it('returns empty coverage when no resolved entity scope is supplied', async () => {
     const resolveService = new AssistantToolDrugbankEntityResolveService({
       drugbankDrug: {
-        findMany: jest.fn().mockResolvedValue([]),
+        findMany: vi.fn().mockResolvedValue([]),
       },
     } as never);
 

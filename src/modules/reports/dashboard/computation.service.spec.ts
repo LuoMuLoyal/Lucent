@@ -4,19 +4,19 @@ import type { ReportDashboardFacts } from './types';
 
 describe('ReportsComputationService', () => {
   let service: ReportsComputationService;
-  let presenter: jest.Mocked<ReportsPresenterService>;
+  let presenter: vi.Mocked<ReportsPresenterService>;
 
   beforeEach(() => {
     presenter = {
-      buildScore: jest.fn().mockReturnValue({
+      buildScore: vi.fn().mockReturnValue({
         value: 80,
         maxValue: 100,
         status: 'stable',
         summary: 'Score summary',
       }),
-      buildFindings: jest.fn().mockReturnValue([]),
-      buildPatterns: jest.fn().mockReturnValue([]),
-    } as unknown as jest.Mocked<ReportsPresenterService>;
+      buildFindings: vi.fn().mockReturnValue([]),
+      buildPatterns: vi.fn().mockReturnValue([]),
+    } as unknown as vi.Mocked<ReportsPresenterService>;
 
     service = new ReportsComputationService(presenter);
   });

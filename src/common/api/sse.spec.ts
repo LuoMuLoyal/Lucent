@@ -2,16 +2,16 @@ import type { Response } from 'express';
 import { prepareSse, writeSseEvent, endSse } from './sse';
 
 describe('sse', () => {
-  function createMockResponse(): jest.Mocked<
+  function createMockResponse(): vi.Mocked<
     Pick<Response, 'status' | 'setHeader' | 'flushHeaders' | 'write' | 'end'>
   > {
     return {
-      status: jest.fn().mockReturnThis(),
-      setHeader: jest.fn().mockReturnThis(),
-      flushHeaders: jest.fn(),
-      write: jest.fn(),
-      end: jest.fn(),
-    } as unknown as jest.Mocked<
+      status: vi.fn().mockReturnThis(),
+      setHeader: vi.fn().mockReturnThis(),
+      flushHeaders: vi.fn(),
+      write: vi.fn(),
+      end: vi.fn(),
+    } as unknown as vi.Mocked<
       Pick<Response, 'status' | 'setHeader' | 'flushHeaders' | 'write' | 'end'>
     >;
   }
@@ -150,7 +150,7 @@ describe('sse', () => {
     it('writes event name before data', () => {
       const res = createMockResponse();
       const callOrder: string[] = [];
-      (res.write as jest.Mock).mockImplementation((chunk: string) => {
+      (res.write as vi.Mock).mockImplementation((chunk: string) => {
         callOrder.push(chunk);
       });
 

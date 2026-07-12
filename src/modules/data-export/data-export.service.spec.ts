@@ -10,16 +10,16 @@ describe('DataExportService', () => {
   it('marks the request unavailable when COS storage is not configured', async () => {
     const prisma = prismaDouble();
     const storageService = {
-      isConfigured: jest.fn().mockReturnValue(false),
-      createDownloadUrl: jest.fn().mockReturnValue(null),
-      uploadPdf: jest.fn(),
+      isConfigured: vi.fn().mockReturnValue(false),
+      createDownloadUrl: vi.fn().mockReturnValue(null),
+      uploadPdf: vi.fn(),
     } as unknown as DataExportStorageService;
     const queueService = {
       isConfigured: false,
-      enqueue: jest.fn(),
+      enqueue: vi.fn(),
     } as unknown as DataExportQueueService;
     const processor = {
-      process: jest.fn(),
+      process: vi.fn(),
     } as unknown as DataExportProcessorService;
     const service = new DataExportService(
       prisma,
@@ -46,17 +46,17 @@ describe('DataExportService', () => {
   it('delegates inline processing to DataExportProcessorService when queue is unavailable', async () => {
     const prisma = prismaDouble();
     const storageService = {
-      isConfigured: jest.fn().mockReturnValue(true),
-      createDownloadUrl: jest
+      isConfigured: vi.fn().mockReturnValue(true),
+      createDownloadUrl: vi
         .fn()
         .mockReturnValue('https://download.example.com/export.pdf'),
     } as unknown as DataExportStorageService;
     const queueService = {
       isConfigured: false,
-      enqueue: jest.fn(),
+      enqueue: vi.fn(),
     } as unknown as DataExportQueueService;
     const processor = {
-      process: jest.fn().mockImplementation(async () => {
+      process: vi.fn().mockImplementation(async () => {
         await prisma.dataExportRequest.update({
           where: { id: 'export-1' },
           data: {
@@ -103,15 +103,15 @@ describe('DataExportService', () => {
   it('returns the created request immediately when queue is configured', async () => {
     const prisma = prismaDouble();
     const storageService = {
-      isConfigured: jest.fn().mockReturnValue(true),
-      createDownloadUrl: jest.fn().mockReturnValue(null),
+      isConfigured: vi.fn().mockReturnValue(true),
+      createDownloadUrl: vi.fn().mockReturnValue(null),
     } as unknown as DataExportStorageService;
     const queueService = {
       isConfigured: true,
-      enqueue: jest.fn().mockResolvedValue(undefined),
+      enqueue: vi.fn().mockResolvedValue(undefined),
     } as unknown as DataExportQueueService;
     const processor = {
-      process: jest.fn(),
+      process: vi.fn(),
     } as unknown as DataExportProcessorService;
     const service = new DataExportService(
       prisma,
@@ -139,17 +139,17 @@ describe('DataExportService', () => {
   it('completes a monthly pdf export with last_30_days range', async () => {
     const prisma = prismaDouble();
     const storageService = {
-      isConfigured: jest.fn().mockReturnValue(true),
-      createDownloadUrl: jest
+      isConfigured: vi.fn().mockReturnValue(true),
+      createDownloadUrl: vi
         .fn()
         .mockReturnValue('https://download.example.com/monthly.pdf'),
     } as unknown as DataExportStorageService;
     const queueService = {
       isConfigured: false,
-      enqueue: jest.fn(),
+      enqueue: vi.fn(),
     } as unknown as DataExportQueueService;
     const processor = {
-      process: jest.fn().mockImplementation(async () => {
+      process: vi.fn().mockImplementation(async () => {
         await prisma.dataExportRequest.update({
           where: { id: 'export-1' },
           data: {
@@ -185,15 +185,15 @@ describe('DataExportService', () => {
   it('stores the normalized monthly range on the created request row', async () => {
     const prisma = prismaDouble();
     const storageService = {
-      isConfigured: jest.fn().mockReturnValue(true),
-      createDownloadUrl: jest.fn().mockReturnValue(null),
+      isConfigured: vi.fn().mockReturnValue(true),
+      createDownloadUrl: vi.fn().mockReturnValue(null),
     } as unknown as DataExportStorageService;
     const queueService = {
       isConfigured: false,
-      enqueue: jest.fn(),
+      enqueue: vi.fn(),
     } as unknown as DataExportQueueService;
     const processor = {
-      process: jest.fn().mockResolvedValue(undefined),
+      process: vi.fn().mockResolvedValue(undefined),
     } as unknown as DataExportProcessorService;
     const service = new DataExportService(
       prisma,
@@ -264,7 +264,7 @@ function prismaDouble(): DeepMocked<PrismaService> {
   let currentRow = makeRow();
   let lastCreateData: Record<string, unknown> | null = null;
 
-  const create = jest
+  const create = vi
     .fn()
     .mockImplementation(({ data }: { data: Record<string, unknown> }) => {
       lastCreateData = data;
@@ -272,20 +272,20 @@ function prismaDouble(): DeepMocked<PrismaService> {
       return currentRow;
     });
 
-  const update = jest
+  const update = vi
     .fn()
     .mockImplementation(({ data }: { data: Record<string, unknown> }) => {
       currentRow = { ...currentRow, ...data };
       return currentRow;
     });
 
-  const findUniqueOrThrow = jest.fn().mockImplementation(() => currentRow);
+  const findUniqueOrThrow = vi.fn().mockImplementation(() => currentRow);
 
   const prisma = {
     dataExportRequest: {
       create,
       update,
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
       findUniqueOrThrow,
     },
   } as unknown as DeepMocked<PrismaService>;

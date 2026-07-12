@@ -45,14 +45,14 @@ describe('NotificationsService', () => {
 
   beforeEach(async () => {
     const prismaMock = {
-      $transaction: jest.fn(),
+      $transaction: vi.fn(),
       userNotification: {
-        create: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
-        findFirst: jest.fn(),
-        updateMany: jest.fn(),
-        deleteMany: jest.fn(),
+        create: vi.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
+        findFirst: vi.fn(),
+        updateMany: vi.fn(),
+        deleteMany: vi.fn(),
       },
     };
     prismaMock.$transaction.mockImplementation(
@@ -74,12 +74,12 @@ describe('NotificationsService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('create', () => {
     it('should create a notification and return a list-item DTO', async () => {
-      (prismaService.userNotification.create as jest.Mock).mockResolvedValue(
+      (prismaService.userNotification.create as vi.Mock).mockResolvedValue(
         mockNotificationRow,
       );
 
@@ -125,7 +125,7 @@ describe('NotificationsService', () => {
     });
 
     it('should create a notification without optional fields', async () => {
-      (prismaService.userNotification.create as jest.Mock).mockResolvedValue({
+      (prismaService.userNotification.create as vi.Mock).mockResolvedValue({
         ...mockNotificationRow,
         action: null,
         actionPayload: null,
@@ -144,7 +144,7 @@ describe('NotificationsService', () => {
 
   describe('createOrReplaceScoped', () => {
     it('creates a new notification when no scoped duplicate exists', async () => {
-      (prismaService.userNotification.findMany as jest.Mock).mockResolvedValue([
+      (prismaService.userNotification.findMany as vi.Mock).mockResolvedValue([
         {
           ...mockScopedSuggestionRow,
           id: 'notif-suggestion-other-date',
@@ -155,7 +155,7 @@ describe('NotificationsService', () => {
           },
         },
       ]);
-      (prismaService.userNotification.create as jest.Mock).mockResolvedValue({
+      (prismaService.userNotification.create as vi.Mock).mockResolvedValue({
         ...mockScopedSuggestionRow,
         id: 'notif-suggestion-new',
       });
@@ -193,7 +193,7 @@ describe('NotificationsService', () => {
     });
 
     it('replaces existing scoped duplicates before creating a fresh notification', async () => {
-      (prismaService.userNotification.findMany as jest.Mock).mockResolvedValue([
+      (prismaService.userNotification.findMany as vi.Mock).mockResolvedValue([
         mockScopedSuggestionRow,
         {
           ...mockScopedSuggestionRow,
@@ -210,10 +210,10 @@ describe('NotificationsService', () => {
           },
         },
       ]);
-      (
-        prismaService.userNotification.deleteMany as jest.Mock
-      ).mockResolvedValue({ count: 2 });
-      (prismaService.userNotification.create as jest.Mock).mockResolvedValue({
+      (prismaService.userNotification.deleteMany as vi.Mock).mockResolvedValue({
+        count: 2,
+      });
+      (prismaService.userNotification.create as vi.Mock).mockResolvedValue({
         ...mockScopedSuggestionRow,
         id: 'notif-suggestion-new',
         createdAt: new Date('2026-06-12T09:00:00.000Z'),
@@ -257,7 +257,7 @@ describe('NotificationsService', () => {
     });
 
     it('deduplicates notifications with array payload containing matching scope', async () => {
-      (prismaService.userNotification.findMany as jest.Mock).mockResolvedValue([
+      (prismaService.userNotification.findMany as vi.Mock).mockResolvedValue([
         {
           ...mockScopedSuggestionRow,
           id: 'notif-array-1',
@@ -267,10 +267,10 @@ describe('NotificationsService', () => {
           ],
         },
       ]);
-      (
-        prismaService.userNotification.deleteMany as jest.Mock
-      ).mockResolvedValue({ count: 1 });
-      (prismaService.userNotification.create as jest.Mock).mockResolvedValue({
+      (prismaService.userNotification.deleteMany as vi.Mock).mockResolvedValue({
+        count: 1,
+      });
+      (prismaService.userNotification.create as vi.Mock).mockResolvedValue({
         ...mockScopedSuggestionRow,
         id: 'notif-array-new',
       });
@@ -304,10 +304,10 @@ describe('NotificationsService', () => {
 
   describe('findAll', () => {
     it('should return paginated items with total count', async () => {
-      (prismaService.userNotification.findMany as jest.Mock).mockResolvedValue([
+      (prismaService.userNotification.findMany as vi.Mock).mockResolvedValue([
         mockNotificationRow,
       ]);
-      (prismaService.userNotification.count as jest.Mock).mockResolvedValue(1);
+      (prismaService.userNotification.count as vi.Mock).mockResolvedValue(1);
 
       const result = await service.findAll('user-uuid-1', {
         page: 1,
@@ -329,10 +329,10 @@ describe('NotificationsService', () => {
     });
 
     it('should apply pagination offsets correctly', async () => {
-      (prismaService.userNotification.findMany as jest.Mock).mockResolvedValue(
+      (prismaService.userNotification.findMany as vi.Mock).mockResolvedValue(
         [],
       );
-      (prismaService.userNotification.count as jest.Mock).mockResolvedValue(0);
+      (prismaService.userNotification.count as vi.Mock).mockResolvedValue(0);
 
       await service.findAll('user-uuid-1', { page: 3, pageSize: 10 });
 
@@ -342,10 +342,10 @@ describe('NotificationsService', () => {
     });
 
     it('should return empty list when user has no notifications', async () => {
-      (prismaService.userNotification.findMany as jest.Mock).mockResolvedValue(
+      (prismaService.userNotification.findMany as vi.Mock).mockResolvedValue(
         [],
       );
-      (prismaService.userNotification.count as jest.Mock).mockResolvedValue(0);
+      (prismaService.userNotification.count as vi.Mock).mockResolvedValue(0);
 
       const result = await service.findAll('user-uuid-1', {
         page: 1,
@@ -359,7 +359,7 @@ describe('NotificationsService', () => {
 
   describe('findOne', () => {
     it('should return a notification detail DTO when found', async () => {
-      (prismaService.userNotification.findFirst as jest.Mock).mockResolvedValue(
+      (prismaService.userNotification.findFirst as vi.Mock).mockResolvedValue(
         mockReadNotificationRow,
       );
 
@@ -383,7 +383,7 @@ describe('NotificationsService', () => {
     });
 
     it('should return null when notification does not exist', async () => {
-      (prismaService.userNotification.findFirst as jest.Mock).mockResolvedValue(
+      (prismaService.userNotification.findFirst as vi.Mock).mockResolvedValue(
         null,
       );
 
@@ -395,10 +395,10 @@ describe('NotificationsService', () => {
 
   describe('markAsRead', () => {
     it('should update and return the notification', async () => {
-      (
-        prismaService.userNotification.updateMany as jest.Mock
-      ).mockResolvedValue({ count: 1 });
-      (prismaService.userNotification.findFirst as jest.Mock).mockResolvedValue(
+      (prismaService.userNotification.updateMany as vi.Mock).mockResolvedValue({
+        count: 1,
+      });
+      (prismaService.userNotification.findFirst as vi.Mock).mockResolvedValue(
         mockReadNotificationRow,
       );
 
@@ -413,10 +413,10 @@ describe('NotificationsService', () => {
     });
 
     it('should still return notification when already read', async () => {
-      (
-        prismaService.userNotification.updateMany as jest.Mock
-      ).mockResolvedValue({ count: 0 });
-      (prismaService.userNotification.findFirst as jest.Mock).mockResolvedValue(
+      (prismaService.userNotification.updateMany as vi.Mock).mockResolvedValue({
+        count: 0,
+      });
+      (prismaService.userNotification.findFirst as vi.Mock).mockResolvedValue(
         mockReadNotificationRow,
       );
 
@@ -426,10 +426,10 @@ describe('NotificationsService', () => {
     });
 
     it('should return null when notification belongs to another user', async () => {
-      (
-        prismaService.userNotification.updateMany as jest.Mock
-      ).mockResolvedValue({ count: 0 });
-      (prismaService.userNotification.findFirst as jest.Mock).mockResolvedValue(
+      (prismaService.userNotification.updateMany as vi.Mock).mockResolvedValue({
+        count: 0,
+      });
+      (prismaService.userNotification.findFirst as vi.Mock).mockResolvedValue(
         null,
       );
 
@@ -441,10 +441,10 @@ describe('NotificationsService', () => {
 
   describe('markAsUnread', () => {
     it('should mark notification as unread and return it', async () => {
-      (
-        prismaService.userNotification.updateMany as jest.Mock
-      ).mockResolvedValue({ count: 1 });
-      (prismaService.userNotification.findFirst as jest.Mock).mockResolvedValue(
+      (prismaService.userNotification.updateMany as vi.Mock).mockResolvedValue({
+        count: 1,
+      });
+      (prismaService.userNotification.findFirst as vi.Mock).mockResolvedValue(
         mockNotificationRow,
       );
 
@@ -461,9 +461,9 @@ describe('NotificationsService', () => {
 
   describe('markAllAsRead', () => {
     it('should mark all unread notifications as read and return count', async () => {
-      (
-        prismaService.userNotification.updateMany as jest.Mock
-      ).mockResolvedValue({ count: 5 });
+      (prismaService.userNotification.updateMany as vi.Mock).mockResolvedValue({
+        count: 5,
+      });
 
       const result = await service.markAllAsRead('user-uuid-1');
 
@@ -475,9 +475,9 @@ describe('NotificationsService', () => {
     });
 
     it('should return 0 when no unread notifications', async () => {
-      (
-        prismaService.userNotification.updateMany as jest.Mock
-      ).mockResolvedValue({ count: 0 });
+      (prismaService.userNotification.updateMany as vi.Mock).mockResolvedValue({
+        count: 0,
+      });
 
       const result = await service.markAllAsRead('user-uuid-1');
 
@@ -487,9 +487,9 @@ describe('NotificationsService', () => {
 
   describe('remove', () => {
     it('should delete a notification and return true', async () => {
-      (
-        prismaService.userNotification.deleteMany as jest.Mock
-      ).mockResolvedValue({ count: 1 });
+      (prismaService.userNotification.deleteMany as vi.Mock).mockResolvedValue({
+        count: 1,
+      });
 
       const result = await service.remove('user-uuid-1', 'notif-uuid-1');
 
@@ -500,9 +500,9 @@ describe('NotificationsService', () => {
     });
 
     it('should return false when notification does not exist', async () => {
-      (
-        prismaService.userNotification.deleteMany as jest.Mock
-      ).mockResolvedValue({ count: 0 });
+      (prismaService.userNotification.deleteMany as vi.Mock).mockResolvedValue({
+        count: 0,
+      });
 
       const result = await service.remove('user-uuid-1', 'nonexistent');
 
@@ -512,7 +512,7 @@ describe('NotificationsService', () => {
 
   describe('getUnreadCount', () => {
     it('should return the count of unread notifications', async () => {
-      (prismaService.userNotification.count as jest.Mock).mockResolvedValue(3);
+      (prismaService.userNotification.count as vi.Mock).mockResolvedValue(3);
 
       const result = await service.getUnreadCount('user-uuid-1');
 
@@ -523,7 +523,7 @@ describe('NotificationsService', () => {
     });
 
     it('should return 0 when there are no unread notifications', async () => {
-      (prismaService.userNotification.count as jest.Mock).mockResolvedValue(0);
+      (prismaService.userNotification.count as vi.Mock).mockResolvedValue(0);
 
       const result = await service.getUnreadCount('user-uuid-1');
 

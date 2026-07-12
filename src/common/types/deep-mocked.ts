@@ -1,7 +1,9 @@
+import type { Mock } from 'vitest';
+
 /**
  * Recursively mocks all function properties of T, including nested objects.
  *
- * Unlike `jest.Mocked<T>` which only applies `jest.MockedFunction` to
+ * Unlike `Mocked<T>` which only applies `MockedFunction` to
  * top-level function properties, `DeepMocked` traverses into nested
  * delegate objects (e.g. Prisma's `prisma.user.create`) so that
  * `.mockResolvedValue()` and `.mock` are available at every depth.
@@ -17,7 +19,7 @@
 export type DeepMocked<T> = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [P in keyof T]: T[P] extends (...args: any[]) => any
-    ? jest.Mock
+    ? Mock
     : T[P] extends object
       ? DeepMocked<T[P]>
       : T[P];

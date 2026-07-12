@@ -1,11 +1,11 @@
 import { buildPrismaClientModule } from './prisma-module.service';
 
-jest.mock('node:fs/promises', () => ({
-  readFile: jest.fn().mockResolvedValue('model User { id String @id }'),
+vi.mock('node:fs/promises', () => ({
+  readFile: vi.fn().mockResolvedValue('model User { id String @id }'),
 }));
 
-jest.mock('@prisma/internals', () => ({
-  getDMMF: jest.fn().mockResolvedValue({
+vi.mock('@prisma/internals', () => ({
+  getDMMF: vi.fn().mockResolvedValue({
     datamodel: { models: [{ name: 'User', fields: [] }] },
   }),
 }));

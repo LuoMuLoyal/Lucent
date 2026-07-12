@@ -2,10 +2,10 @@ import type { ConfigService } from '@nestjs/config';
 import { EnvKey } from '../config/env-keys.enum.js';
 
 // Mock PrismaClient and PrismaPg at module level
-const mockConnect = jest.fn().mockResolvedValue(undefined);
-const mockDisconnect = jest.fn().mockResolvedValue(undefined);
+const mockConnect = vi.fn().mockResolvedValue(undefined);
+const mockDisconnect = vi.fn().mockResolvedValue(undefined);
 
-jest.mock('#generated/prisma/client', () => {
+vi.mock('#generated/prisma/client', () => {
   return {
     PrismaClient: class MockPrismaClient {
       constructor(opts: unknown) {
@@ -21,7 +21,7 @@ jest.mock('#generated/prisma/client', () => {
   };
 });
 
-jest.mock('@prisma/adapter-pg', () => ({
+vi.mock('@prisma/adapter-pg', () => ({
   PrismaPg: class MockPrismaPg {
     connectionString: string;
     constructor(opts: { connectionString: string }) {
@@ -34,13 +34,13 @@ jest.mock('@prisma/adapter-pg', () => ({
 import { PrismaService } from './prisma.service';
 
 describe('PrismaService', () => {
-  let configService: jest.Mocked<ConfigService>;
+  let configService: vi.Mocked<ConfigService>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     configService = {
-      get: jest.fn(),
-    } as unknown as jest.Mocked<ConfigService>;
+      get: vi.fn(),
+    } as unknown as vi.Mocked<ConfigService>;
   });
 
   describe('constructor', () => {

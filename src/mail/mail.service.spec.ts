@@ -5,8 +5,8 @@ describe('MailService', () => {
   const TEST_VERIFICATION_CODE = '123456';
   it('should enqueue generic mail', async () => {
     const queue = {
-      enqueue: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<MailQueueService>;
+      enqueue: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<MailQueueService>;
     const service = new MailService(queue);
 
     await service.send('user@example.com', 'Subject', '<p>Body</p>');
@@ -20,8 +20,8 @@ describe('MailService', () => {
 
   it('should enqueue verification code mail', async () => {
     const queue = {
-      enqueue: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<MailQueueService>;
+      enqueue: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<MailQueueService>;
     const service = new MailService(queue);
 
     await service.sendVerificationCode(

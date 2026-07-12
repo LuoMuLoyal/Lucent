@@ -422,13 +422,13 @@ describe('MealAnalysisWorkerService', () => {
 
 function buildPrisma(options: {
   record: Record<string, unknown> | null;
-}): jest.Mocked<Pick<PrismaService, 'userDailyRecord'>> {
+}): vi.Mocked<Pick<PrismaService, 'userDailyRecord'>> {
   return {
     userDailyRecord: {
-      findFirst: jest.fn().mockResolvedValue(options.record),
-      update: jest.fn().mockResolvedValue(options.record),
+      findFirst: vi.fn().mockResolvedValue(options.record),
+      update: vi.fn().mockResolvedValue(options.record),
     },
-  } as unknown as jest.Mocked<Pick<PrismaService, 'userDailyRecord'>>;
+  } as unknown as vi.Mocked<Pick<PrismaService, 'userDailyRecord'>>;
 }
 
 function buildVisionService(options: {
@@ -443,8 +443,8 @@ function buildVisionService(options: {
   };
 }): Pick<MealAnalysisVisionService, 'isConfigured' | 'recognizeFromImageUrl'> {
   return {
-    isConfigured: jest.fn().mockReturnValue(options.configured),
-    recognizeFromImageUrl: jest.fn().mockResolvedValue(
+    isConfigured: vi.fn().mockReturnValue(options.configured),
+    recognizeFromImageUrl: vi.fn().mockResolvedValue(
       options.result ?? {
         mealDescription: null,
         foodItems: [],
@@ -455,7 +455,7 @@ function buildVisionService(options: {
 
 function buildUploadRuntime(): Pick<CosStorageRuntime, 'createSignedGetUrl'> {
   return {
-    createSignedGetUrl: jest
+    createSignedGetUrl: vi
       .fn()
       .mockReturnValue('https://cos.example.com/signed-meal-4.jpg'),
   };
@@ -474,7 +474,7 @@ function buildMatcherService(options?: {
   };
 }): Pick<MealAnalysisMatcherService, 'matchAndEstimate'> {
   return {
-    matchAndEstimate: jest.fn().mockResolvedValue(
+    matchAndEstimate: vi.fn().mockResolvedValue(
       options?.result ?? {
         coverage: 'none',
         foodItems: [],

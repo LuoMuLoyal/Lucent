@@ -4,7 +4,7 @@ import type { BullmqQueueFactory } from '../../../common/queue/queue.factory';
 
 function buildFactory(queueAvailable: boolean): {
   factory: BullmqQueueFactory;
-  mockQueue: { add: jest.Mock; close: jest.Mock } | null;
+  mockQueue: { add: vi.Mock; close: vi.Mock } | null;
 } {
   if (!queueAvailable) {
     return {
@@ -16,8 +16,8 @@ function buildFactory(queueAvailable: boolean): {
     };
   }
 
-  const mockQueue = { add: jest.fn(), close: jest.fn() };
-  const mockWorker = { on: jest.fn(), close: jest.fn() };
+  const mockQueue = { add: vi.fn(), close: vi.fn() };
+  const mockWorker = { on: vi.fn(), close: vi.fn() };
   return {
     factory: {
       isAvailable: true,
@@ -31,7 +31,7 @@ describe('DataExportQueueService', () => {
   it('is not configured when REDIS_URL is missing', () => {
     const { factory } = buildFactory(false);
     const processor = {
-      process: jest.fn(),
+      process: vi.fn(),
     } as unknown as DataExportProcessorService;
     const service = new DataExportQueueService(factory, processor);
 
@@ -41,7 +41,7 @@ describe('DataExportQueueService', () => {
   it('is configured when the factory has Redis available', () => {
     const { factory } = buildFactory(true);
     const processor = {
-      process: jest.fn(),
+      process: vi.fn(),
     } as unknown as DataExportProcessorService;
     const service = new DataExportQueueService(factory, processor);
 
@@ -51,7 +51,7 @@ describe('DataExportQueueService', () => {
   it('enqueues a job with retry options', async () => {
     const { factory, mockQueue } = buildFactory(true);
     const processor = {
-      process: jest.fn(),
+      process: vi.fn(),
     } as unknown as DataExportProcessorService;
     const service = new DataExportQueueService(factory, processor);
 
@@ -74,7 +74,7 @@ describe('DataExportQueueService', () => {
   it('throws when enqueue is called before the queue is configured', async () => {
     const { factory } = buildFactory(false);
     const processor = {
-      process: jest.fn(),
+      process: vi.fn(),
     } as unknown as DataExportProcessorService;
     const service = new DataExportQueueService(factory, processor);
 

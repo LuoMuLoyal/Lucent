@@ -3,8 +3,8 @@ import type { ConfigType } from '@nestjs/config';
 import type { mailConfig } from '../config/mail.config';
 import { MailTransportService } from './mail-transport.service';
 
-jest.mock('nodemailer', () => ({
-  createTransport: jest.fn(),
+vi.mock('nodemailer', () => ({
+  createTransport: vi.fn(),
 }));
 
 import * as nodemailer from 'nodemailer';
@@ -33,11 +33,13 @@ function buildConfig(overrides: Partial<MailConfigType> = {}): MailConfigType {
 }
 
 describe('MailTransportService', () => {
-  let loggerLogSpy: jest.SpyInstance;
+  let loggerLogSpy: vi.SpyInstance;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    loggerLogSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
+    vi.clearAllMocks();
+    loggerLogSpy = vi
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined);
   });
 
   afterEach(() => {
@@ -61,8 +63,8 @@ describe('MailTransportService', () => {
       pass: 'secret-pass',
     });
 
-    const mockTransporter = { sendMail: jest.fn() };
-    (nodemailer.createTransport as jest.Mock).mockReturnValue(mockTransporter);
+    const mockTransporter = { sendMail: vi.fn() };
+    (nodemailer.createTransport as vi.Mock).mockReturnValue(mockTransporter);
 
     new MailTransportService(config);
 
@@ -86,8 +88,8 @@ describe('MailTransportService', () => {
       pass: 'secret-pass',
     });
 
-    (nodemailer.createTransport as jest.Mock).mockReturnValue({
-      sendMail: jest.fn(),
+    (nodemailer.createTransport as vi.Mock).mockReturnValue({
+      sendMail: vi.fn(),
     });
 
     new MailTransportService(config);
@@ -113,8 +115,8 @@ describe('MailTransportService', () => {
   });
 
   it('sends email via transporter when driver is smtp', async () => {
-    const mockSendMail = jest.fn().mockResolvedValue(undefined);
-    (nodemailer.createTransport as jest.Mock).mockReturnValue({
+    const mockSendMail = vi.fn().mockResolvedValue(undefined);
+    (nodemailer.createTransport as vi.Mock).mockReturnValue({
       sendMail: mockSendMail,
     });
 
@@ -139,8 +141,8 @@ describe('MailTransportService', () => {
   });
 
   it('logs a success message after sending via SMTP', async () => {
-    const mockSendMail = jest.fn().mockResolvedValue(undefined);
-    (nodemailer.createTransport as jest.Mock).mockReturnValue({
+    const mockSendMail = vi.fn().mockResolvedValue(undefined);
+    (nodemailer.createTransport as vi.Mock).mockReturnValue({
       sendMail: mockSendMail,
     });
 
@@ -163,7 +165,7 @@ describe('MailTransportService', () => {
   it('throws when driver is smtp but transporter is not initialized', async () => {
     // Simulate a misconfigured state: driver is smtp but createTransport
     // returned null/undefined
-    (nodemailer.createTransport as jest.Mock).mockReturnValue(null);
+    (nodemailer.createTransport as vi.Mock).mockReturnValue(null);
 
     const config = buildConfig({
       driver: 'smtp',
@@ -181,8 +183,8 @@ describe('MailTransportService', () => {
 
   it('propagates errors from transporter.sendMail', async () => {
     const sendError = new Error('SMTP connection refused');
-    const mockSendMail = jest.fn().mockRejectedValue(sendError);
-    (nodemailer.createTransport as jest.Mock).mockReturnValue({
+    const mockSendMail = vi.fn().mockRejectedValue(sendError);
+    (nodemailer.createTransport as vi.Mock).mockReturnValue({
       sendMail: mockSendMail,
     });
 

@@ -2,7 +2,7 @@ import { MealDishDecompositionService } from '../meal-dish/decomposition.service
 
 describe('MealDishDecompositionService', () => {
   it('returns template ingredients without calling the model when a dish template exists', async () => {
-    const invoke = jest.fn();
+    const invoke = vi.fn();
     const prisma = buildPrisma([
       {
         id: 'template-1',
@@ -74,7 +74,7 @@ describe('MealDishDecompositionService', () => {
   });
 
   it('uses the language model for unresolved dishes and parses structured ingredient output', async () => {
-    const invoke = jest.fn().mockResolvedValue({
+    const invoke = vi.fn().mockResolvedValue({
       content:
         '```json\n{"normalizedDishName":"肉末茄子","ingredients":[{"ingredientName":"茄子","normalizedIngredientName":"茄子","defaultRatio":0.7,"confidence":0.95},{"ingredientName":"猪肉","normalizedIngredientName":"猪肉","defaultRatio":0.2,"confidence":0.83},{"ingredientName":"红椒","normalizedIngredientName":"红椒","defaultRatio":0.1,"confidence":0.71}]}\n```',
     });
@@ -126,7 +126,7 @@ describe('MealDishDecompositionService', () => {
   });
 
   it('marks dishes unresolved when the model response is not valid structured JSON', async () => {
-    const invoke = jest.fn().mockResolvedValue({
+    const invoke = vi.fn().mockResolvedValue({
       content: '这道菜像是麻婆豆腐，不过我没有按要求返回 JSON',
     });
     const service = new MealDishDecompositionService(
@@ -159,23 +159,23 @@ describe('MealDishDecompositionService', () => {
 
 function buildPrisma(templates: Array<Record<string, unknown>>): {
   mealDishTemplate: {
-    findMany: jest.Mock;
+    findMany: vi.Mock;
   };
 } {
   return {
     mealDishTemplate: {
-      findMany: jest.fn().mockResolvedValue(templates),
+      findMany: vi.fn().mockResolvedValue(templates),
     },
   };
 }
 
-function buildRuntime(options: { invoke: jest.Mock }): {
-  hasRoleConfig: jest.Mock;
-  createChatModel: jest.Mock;
+function buildRuntime(options: { invoke: vi.Mock }): {
+  hasRoleConfig: vi.Mock;
+  createChatModel: vi.Mock;
 } {
   return {
-    hasRoleConfig: jest.fn().mockReturnValue(true),
-    createChatModel: jest.fn().mockReturnValue({
+    hasRoleConfig: vi.fn().mockReturnValue(true),
+    createChatModel: vi.fn().mockReturnValue({
       invoke: options.invoke,
     }),
   };

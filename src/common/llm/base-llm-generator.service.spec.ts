@@ -57,21 +57,21 @@ class TestGeneratorService extends BaseLlmGeneratorService<
 
 function createMocks() {
   const mockModel = {
-    invoke: jest.fn(),
-    stream: jest.fn(),
-    withStructuredOutput: jest.fn().mockReturnThis(),
-    withConfig: jest.fn().mockReturnThis(),
+    invoke: vi.fn(),
+    stream: vi.fn(),
+    withStructuredOutput: vi.fn().mockReturnThis(),
+    withConfig: vi.fn().mockReturnThis(),
   };
 
-  const llmRuntimeService: jest.Mocked<LlmRuntimePort> = {
-    hasRoleConfig: jest.fn().mockReturnValue(true),
-    createChatModel: jest.fn().mockReturnValue(mockModel),
-    getModelName: jest.fn().mockReturnValue('test-model'),
+  const llmRuntimeService: vi.Mocked<LlmRuntimePort> = {
+    hasRoleConfig: vi.fn().mockReturnValue(true),
+    createChatModel: vi.fn().mockReturnValue(mockModel),
+    getModelName: vi.fn().mockReturnValue('test-model'),
   };
 
   const metricsService = {
-    recordLlmCall: jest.fn(),
-  } as unknown as jest.Mocked<MetricsService>;
+    recordLlmCall: vi.fn(),
+  } as unknown as vi.Mocked<MetricsService>;
 
   return { mockModel, llmRuntimeService, metricsService };
 }
@@ -158,7 +158,7 @@ describe('BaseLlmGeneratorService', () => {
       });
       mocks.mockModel.stream.mockResolvedValue([chunk]);
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       const result = await service.generateStream(
         { input: 'hello' },
         { label: 'Input' },
@@ -183,11 +183,7 @@ describe('BaseLlmGeneratorService', () => {
       mocks.mockModel.stream.mockResolvedValue([]);
 
       await expect(
-        service.generateStream(
-          { input: 'hello' },
-          { label: 'Input' },
-          jest.fn(),
-        ),
+        service.generateStream({ input: 'hello' }, { label: 'Input' }, vi.fn()),
       ).rejects.toThrow('stream ended without any message chunks');
 
       expect(mocks.metricsService.recordLlmCall).toHaveBeenCalledWith(
@@ -202,17 +198,13 @@ describe('BaseLlmGeneratorService', () => {
       // A chunk with no tool_calls → parser returns undefined
       const mockChunk = {
         content: '',
-        concat: jest.fn().mockReturnThis(),
+        concat: vi.fn().mockReturnThis(),
       };
 
       mocks.mockModel.stream.mockResolvedValue([mockChunk]);
 
       await expect(
-        service.generateStream(
-          { input: 'hello' },
-          { label: 'Input' },
-          jest.fn(),
-        ),
+        service.generateStream({ input: 'hello' }, { label: 'Input' }, vi.fn()),
       ).rejects.toThrow();
     });
 
@@ -220,11 +212,7 @@ describe('BaseLlmGeneratorService', () => {
       mocks.mockModel.stream.mockRejectedValue(new Error('stream error'));
 
       await expect(
-        service.generateStream(
-          { input: 'hello' },
-          { label: 'Input' },
-          jest.fn(),
-        ),
+        service.generateStream({ input: 'hello' }, { label: 'Input' }, vi.fn()),
       ).rejects.toThrow('stream error');
 
       expect(mocks.metricsService.recordLlmCall).toHaveBeenCalledWith(
@@ -246,7 +234,7 @@ describe('BaseLlmGeneratorService', () => {
 
       mocks.mockModel.stream.mockResolvedValue([plainObject, validChunk]);
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       const result = await service.generateStream(
         { input: 'hello' },
         { label: 'Input' },
@@ -264,7 +252,7 @@ describe('BaseLlmGeneratorService', () => {
       });
       mocks.mockModel.stream.mockResolvedValue([chunk]);
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       const result = await service.generateStream(
         { input: 'hello' },
         { label: 'Input' },
@@ -288,7 +276,7 @@ describe('BaseLlmGeneratorService', () => {
       });
       mocks.mockModel.stream.mockResolvedValue([chunk1, chunk2]);
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       const result = await service.generateStream(
         { input: 'hello' },
         { label: 'Input' },
@@ -313,11 +301,7 @@ describe('BaseLlmGeneratorService', () => {
       mocks.mockModel.stream.mockResolvedValue([chunk]);
 
       await expect(
-        service.generateStream(
-          { input: 'hello' },
-          { label: 'Input' },
-          jest.fn(),
-        ),
+        service.generateStream({ input: 'hello' }, { label: 'Input' }, vi.fn()),
       ).rejects.toThrow();
     });
 
@@ -327,11 +311,7 @@ describe('BaseLlmGeneratorService', () => {
       mocks.mockModel.stream.mockResolvedValue([chunk]);
 
       await expect(
-        service.generateStream(
-          { input: 'hello' },
-          { label: 'Input' },
-          jest.fn(),
-        ),
+        service.generateStream({ input: 'hello' }, { label: 'Input' }, vi.fn()),
       ).rejects.toThrow('stream ended without a structured result');
 
       expect(mocks.metricsService.recordLlmCall).toHaveBeenCalledWith(
@@ -357,7 +337,7 @@ describe('BaseLlmGeneratorService', () => {
       });
       mocks.mockModel.stream.mockResolvedValue([chunk1, chunk2]);
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       await service.generateStream(
         { input: 'hello' },
         { label: 'Input' },
@@ -379,7 +359,7 @@ describe('BaseLlmGeneratorService', () => {
       await service.generateStream(
         { input: 'hello' },
         { label: 'Input' },
-        jest.fn(),
+        vi.fn(),
       );
 
       expect(mocks.metricsService.recordLlmCall).toHaveBeenCalledWith(

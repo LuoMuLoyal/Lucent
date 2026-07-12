@@ -34,12 +34,12 @@ const mockOAuthConfig: OAuthConfig = {
 describe('WechatMobileOAuthProvider', () => {
   let provider: WechatMobileOAuthProvider;
   let configService: {
-    getOrThrow: jest.Mock;
+    getOrThrow: vi.Mock;
   };
 
   beforeEach(() => {
     configService = {
-      getOrThrow: jest.fn((key: string) => {
+      getOrThrow: vi.fn((key: string) => {
         if (key === 'oauth') {
           return mockOAuthConfig;
         }
@@ -50,13 +50,13 @@ describe('WechatMobileOAuthProvider', () => {
     provider = new WechatMobileOAuthProvider(
       configService as unknown as ConfigService,
       {
-        t: jest.fn((key: string) => key),
+        t: vi.fn((key: string) => key),
       } as unknown as I18nService,
     );
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should throw when WeChat mobile config is incomplete', async () => {
@@ -74,7 +74,7 @@ describe('WechatMobileOAuthProvider', () => {
   });
 
   it('should exchange mobile code for a normalized profile', async () => {
-    const fetchMock = jest
+    const fetchMock = vi
       .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce({
         ok: true,
@@ -127,7 +127,7 @@ describe('WechatMobileOAuthProvider', () => {
   });
 
   it('should reject WeChat errcode responses', async () => {
-    jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: true,
       json: () =>
         Promise.resolve({

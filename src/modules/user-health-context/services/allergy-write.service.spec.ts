@@ -7,17 +7,17 @@ describe('UserHealthContextAllergyWriteService', () => {
   let service: UserHealthContextAllergyWriteService;
 
   let repository: any;
-  let ensureActive: jest.Mock;
-  let ensureOwned: jest.Mock;
+  let ensureActive: vi.Mock;
+  let ensureOwned: vi.Mock;
 
   beforeEach(async () => {
     repository = {
-      createAllergy: jest.fn(),
-      updateAllergy: jest.fn(),
-      softDeleteAllergy: jest.fn(),
+      createAllergy: vi.fn(),
+      updateAllergy: vi.fn(),
+      softDeleteAllergy: vi.fn(),
     };
-    ensureActive = jest.fn();
-    ensureOwned = jest.fn();
+    ensureActive = vi.fn();
+    ensureOwned = vi.fn();
     const module = await Test.createTestingModule({
       providers: [
         UserHealthContextAllergyWriteService,

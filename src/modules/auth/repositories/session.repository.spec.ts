@@ -10,12 +10,12 @@ describe('AuthSessionRepository', () => {
   beforeEach(() => {
     prisma = {
       userSession: {
-        create: jest.fn(),
-        findUnique: jest.fn(),
-        findMany: jest.fn(),
-        delete: jest.fn(),
-        deleteMany: jest.fn(),
-        update: jest.fn(),
+        create: vi.fn(),
+        findUnique: vi.fn(),
+        findMany: vi.fn(),
+        delete: vi.fn(),
+        deleteMany: vi.fn(),
+        update: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
 

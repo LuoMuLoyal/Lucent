@@ -66,14 +66,12 @@ function testConfig(): TencentCosConfig {
   };
 }
 
-function runtimeDouble(
-  config: TencentCosConfig,
-): jest.Mocked<CosStorageRuntime> {
+function runtimeDouble(config: TencentCosConfig): vi.Mocked<CosStorageRuntime> {
   return {
-    getConfig: jest.fn().mockReturnValue(config),
-    uploadBuffer: jest.fn().mockResolvedValue(undefined),
-    createSignedGetUrl: jest
+    getConfig: vi.fn().mockReturnValue(config),
+    uploadBuffer: vi.fn().mockResolvedValue(undefined),
+    createSignedGetUrl: vi
       .fn()
       .mockReturnValue('https://signed-download.example.com'),
-  } as unknown as jest.Mocked<CosStorageRuntime>;
+  } as unknown as vi.Mocked<CosStorageRuntime>;
 }

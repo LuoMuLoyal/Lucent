@@ -4,7 +4,7 @@ describe('AssistantToolDrugbankEntityResolveService', () => {
   it('returns a single DrugBank entity when one clear candidate matches', async () => {
     const service = new AssistantToolDrugbankEntityResolveService({
       drugbankDrug: {
-        findMany: jest.fn().mockResolvedValue([
+        findMany: vi.fn().mockResolvedValue([
           {
             drugbankId: 'DB01050',
             name: 'Ibuprofen',
@@ -30,7 +30,7 @@ describe('AssistantToolDrugbankEntityResolveService', () => {
   it('returns partial coverage with candidates when multiple entities remain ambiguous', async () => {
     const service = new AssistantToolDrugbankEntityResolveService({
       drugbankDrug: {
-        findMany: jest.fn().mockResolvedValue([
+        findMany: vi.fn().mockResolvedValue([
           {
             drugbankId: 'DB01050',
             name: 'Ibuprofen',

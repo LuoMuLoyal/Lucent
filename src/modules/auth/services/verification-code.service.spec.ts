@@ -23,8 +23,8 @@ import {
 
 describe('VerificationCodeService', () => {
   let service: VerificationCodeService;
-  let cache: jest.Mocked<Cache>;
-  let mailService: jest.Mocked<MailService>;
+  let cache: vi.Mocked<Cache>;
+  let mailService: vi.Mocked<MailService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -33,27 +33,27 @@ describe('VerificationCodeService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: {
-            get: jest.fn(),
-            set: jest.fn(),
-            del: jest.fn(),
+            get: vi.fn(),
+            set: vi.fn(),
+            del: vi.fn(),
           },
         },
         {
           provide: MailService,
           useValue: {
-            sendVerificationCode: jest.fn(),
+            sendVerificationCode: vi.fn(),
           },
         },
         {
           provide: I18nService,
           useValue: {
-            t: jest.fn((key: string) => key),
+            t: vi.fn((key: string) => key),
           },
         },
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn((key: string, fallback?: unknown) => {
+            get: vi.fn((key: string, fallback?: unknown) => {
               if (key === 'VERIFICATION_CODE_TTL_MS')
                 return DEFAULT_VERIFICATION_CODE_TTL_MS;
               if (key === 'VERIFICATION_COOLDOWN_MS')
@@ -77,13 +77,13 @@ describe('VerificationCodeService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('send', () => {
     it('should generate code, store in cache, set cooldown, and send email', async () => {
-      (cache.get as jest.Mock).mockResolvedValue(undefined); // no cooldown
-      (cache.set as jest.Mock).mockResolvedValue(undefined);
+      (cache.get as vi.Mock).mockResolvedValue(undefined); // no cooldown
+      (cache.set as vi.Mock).mockResolvedValue(undefined);
       mailService.sendVerificationCode.mockResolvedValue(undefined);
 
       await service.send('test@example.com', 'register');
@@ -110,7 +110,7 @@ describe('VerificationCodeService', () => {
     });
 
     it('should throw BadRequestException if in cooldown', async () => {
-      (cache.get as jest.Mock).mockResolvedValue('1'); // in cooldown
+      (cache.get as vi.Mock).mockResolvedValue('1'); // in cooldown
 
       await expect(service.send('test@example.com', 'login')).rejects.toThrow(
         BadRequestException,
@@ -118,11 +118,11 @@ describe('VerificationCodeService', () => {
     });
 
     it('should throw with VERIFICATION_CODE_COOLDOWN code', async () => {
-      (cache.get as jest.Mock).mockResolvedValue('1');
+      (cache.get as vi.Mock).mockResolvedValue('1');
 
       try {
         await service.send('test@example.com', 'login');
-        fail('Expected BadRequestException');
+        expect.fail('Expected BadRequestException');
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
         const response = (error as BadRequestException).getResponse() as {
@@ -133,8 +133,8 @@ describe('VerificationCodeService', () => {
     });
 
     it('should store a client rate limit bucket when client key is provided', async () => {
-      (cache.get as jest.Mock).mockResolvedValue(undefined);
-      (cache.set as jest.Mock).mockResolvedValue(undefined);
+      (cache.get as vi.Mock).mockResolvedValue(undefined);
+      (cache.set as vi.Mock).mockResolvedValue(undefined);
       mailService.sendVerificationCode.mockResolvedValue(undefined);
 
       await service.send('test@example.com', 'register', '127.0.0.1');
@@ -151,7 +151,7 @@ describe('VerificationCodeService', () => {
 
     it('should throw 429 when client rate limit is exceeded', async () => {
       const resetAt = Date.now() + 60_000;
-      (cache.get as jest.Mock).mockResolvedValue({
+      (cache.get as vi.Mock).mockResolvedValue({
         count: DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
         resetAt,
       });
@@ -165,8 +165,8 @@ describe('VerificationCodeService', () => {
 
   describe('verify', () => {
     it('should return true for correct code and delete from cache', async () => {
-      (cache.get as jest.Mock).mockResolvedValue('123456');
-      (cache.del as jest.Mock).mockResolvedValue(undefined);
+      (cache.get as vi.Mock).mockResolvedValue('123456');
+      (cache.del as vi.Mock).mockResolvedValue(undefined);
 
       const result = await service.verify(
         'test@example.com',
@@ -179,7 +179,7 @@ describe('VerificationCodeService', () => {
     });
 
     it('should throw BadRequestException if code expired (not in cache)', async () => {
-      (cache.get as jest.Mock).mockResolvedValue(undefined);
+      (cache.get as vi.Mock).mockResolvedValue(undefined);
 
       await expect(
         service.verify('test@example.com', '123456', 'register'),
@@ -187,11 +187,11 @@ describe('VerificationCodeService', () => {
     });
 
     it('should throw with VERIFICATION_CODE_INVALID code for expired', async () => {
-      (cache.get as jest.Mock).mockResolvedValue(undefined);
+      (cache.get as vi.Mock).mockResolvedValue(undefined);
 
       try {
         await service.verify('test@example.com', '123456', 'register');
-        fail('Expected BadRequestException');
+        expect.fail('Expected BadRequestException');
       } catch (error) {
         expect(error).toBeInstanceOf(BadRequestException);
         const response = (error as BadRequestException).getResponse() as {
@@ -202,7 +202,7 @@ describe('VerificationCodeService', () => {
     });
 
     it('should throw UnauthorizedException for wrong code', async () => {
-      (cache.get as jest.Mock).mockResolvedValue('654321');
+      (cache.get as vi.Mock).mockResolvedValue('654321');
 
       await expect(
         service.verify('test@example.com', '123456', 'register'),
@@ -210,11 +210,11 @@ describe('VerificationCodeService', () => {
     });
 
     it('should throw with VERIFICATION_CODE_INVALID code for wrong code', async () => {
-      (cache.get as jest.Mock).mockResolvedValue('654321');
+      (cache.get as vi.Mock).mockResolvedValue('654321');
 
       try {
         await service.verify('test@example.com', '123456', 'register');
-        fail('Expected UnauthorizedException');
+        expect.fail('Expected UnauthorizedException');
       } catch (error) {
         expect(error).toBeInstanceOf(UnauthorizedException);
         const response = (error as UnauthorizedException).getResponse() as {
@@ -227,8 +227,8 @@ describe('VerificationCodeService', () => {
 
   describe('cache key format', () => {
     it('should use correct cache key format for code', async () => {
-      (cache.get as jest.Mock).mockResolvedValue('111111');
-      (cache.del as jest.Mock).mockResolvedValue(undefined);
+      (cache.get as vi.Mock).mockResolvedValue('111111');
+      (cache.del as vi.Mock).mockResolvedValue(undefined);
 
       await service.verify('user@test.com', '111111', 'login');
 
@@ -237,8 +237,8 @@ describe('VerificationCodeService', () => {
     });
 
     it('should use correct cache key format for cooldown', async () => {
-      (cache.get as jest.Mock).mockResolvedValue(undefined);
-      (cache.set as jest.Mock).mockResolvedValue(undefined);
+      (cache.get as vi.Mock).mockResolvedValue(undefined);
+      (cache.set as vi.Mock).mockResolvedValue(undefined);
       mailService.sendVerificationCode.mockResolvedValue(undefined);
 
       await service.send('user@test.com', 'reset-password');

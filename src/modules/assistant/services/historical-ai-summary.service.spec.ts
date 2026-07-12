@@ -10,7 +10,7 @@ import { HistoricalAiSummaryService } from './historical-ai-summary.service';
 
 describe('HistoricalAiSummaryService', () => {
   let service: HistoricalAiSummaryService;
-  let repo: jest.Mocked<AssistantSummaryRepositoryPort>;
+  let repo: vi.Mocked<AssistantSummaryRepositoryPort>;
 
   const mockTodayRow: TodaySummaryRow = {
     date: '2026-07-10',
@@ -36,11 +36,11 @@ describe('HistoricalAiSummaryService', () => {
 
   beforeEach(() => {
     repo = {
-      save: jest.fn().mockResolvedValue(undefined),
-      listRecentTodaySummaries: jest.fn(),
-      listRecentReportSummaries: jest.fn(),
-      findLatestTodaySummaryByDate: jest.fn(),
-      findLatestReportSummaryByRange: jest.fn(),
+      save: vi.fn().mockResolvedValue(undefined),
+      listRecentTodaySummaries: vi.fn(),
+      listRecentReportSummaries: vi.fn(),
+      findLatestTodaySummaryByDate: vi.fn(),
+      findLatestReportSummaryByRange: vi.fn(),
     };
     service = new HistoricalAiSummaryService(repo);
   });

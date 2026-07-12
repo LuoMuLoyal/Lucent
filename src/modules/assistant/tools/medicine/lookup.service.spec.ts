@@ -14,12 +14,12 @@ describe('AssistantToolMedicineLookupService', () => {
 
   function buildService() {
     const cnMedicinesService = {
-      search: jest.fn(),
-      getDetail: jest.fn(),
+      search: vi.fn(),
+      getDetail: vi.fn(),
     };
     const drugbankMedicinesService = {
-      search: jest.fn(),
-      getDetail: jest.fn(),
+      search: vi.fn(),
+      getDetail: vi.fn(),
     };
 
     const service = new AssistantToolMedicineLookupService(

@@ -9,9 +9,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
-jest.mock('argon2', () => ({
-  hash: jest.fn(),
-  verify: jest.fn(),
+vi.mock('argon2', () => ({
+  hash: vi.fn(),
+  verify: vi.fn(),
   argon2id: 2,
 }));
 
@@ -21,15 +21,15 @@ import { PrismaService } from '../../../prisma/prisma.service';
 
 type MockPrisma = {
   user: {
-    update: jest.Mock;
-    findFirst: jest.Mock;
+    update: vi.Mock;
+    findFirst: vi.Mock;
   };
 };
 
 describe('SecurityPinService', () => {
   let service: SecurityPinService;
   let prisma: MockPrisma;
-  let jwtService: jest.Mocked<JwtService>;
+  let jwtService: vi.Mocked<JwtService>;
 
   const mockUser = {
     id: 'user-1',
@@ -47,22 +47,22 @@ describe('SecurityPinService', () => {
           provide: PrismaService,
           useValue: {
             user: {
-              update: jest.fn(),
-              findFirst: jest.fn(),
+              update: vi.fn(),
+              findFirst: vi.fn(),
             },
           },
         },
         {
           provide: JwtService,
           useValue: {
-            signAsync: jest.fn(),
-            verifyAsync: jest.fn(),
+            signAsync: vi.fn(),
+            verifyAsync: vi.fn(),
           },
         },
         {
           provide: ConfigService,
           useValue: {
-            getOrThrow: jest.fn().mockReturnValue({
+            getOrThrow: vi.fn().mockReturnValue({
               accessSecret: 'test-access-secret',
               issuer: 'test-issuer',
               audience: 'test-audience',
@@ -72,7 +72,7 @@ describe('SecurityPinService', () => {
         {
           provide: I18nService,
           useValue: {
-            t: jest.fn((key: string) => key),
+            t: vi.fn((key: string) => key),
           },
         },
       ],
@@ -82,8 +82,8 @@ describe('SecurityPinService', () => {
     prisma = module.get(PrismaService) as unknown as MockPrisma;
     jwtService = module.get(JwtService);
 
-    (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$new-hash');
-    (argon2.verify as jest.Mock).mockResolvedValue(true);
+    (argon2.hash as vi.Mock).mockResolvedValue('$argon2id$new-hash');
+    (argon2.verify as vi.Mock).mockResolvedValue(true);
     prisma.user.update.mockResolvedValue({ id: 'user-1' });
     prisma.user.findFirst.mockResolvedValue(mockUser);
     jwtService.signAsync.mockResolvedValue('mock-elevation-token');
@@ -95,7 +95,7 @@ describe('SecurityPinService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('enable', () => {
@@ -183,7 +183,7 @@ describe('SecurityPinService', () => {
     });
 
     it('rejects when PIN verification fails', async () => {
-      (argon2.verify as jest.Mock).mockResolvedValue(false);
+      (argon2.verify as vi.Mock).mockResolvedValue(false);
 
       await expect(service.verify('user-1', { pin: '123456' })).rejects.toThrow(
         UnauthorizedException,
@@ -209,7 +209,7 @@ describe('SecurityPinService', () => {
     });
 
     it('rejects when old PIN is wrong', async () => {
-      (argon2.verify as jest.Mock).mockResolvedValue(false);
+      (argon2.verify as vi.Mock).mockResolvedValue(false);
 
       await expect(
         service.change('user-1', { oldPin: '000000', newPin: '654321' }),
@@ -265,7 +265,7 @@ describe('SecurityPinService', () => {
     });
 
     it('rejects when PIN verification fails', async () => {
-      (argon2.verify as jest.Mock).mockResolvedValue(false);
+      (argon2.verify as vi.Mock).mockResolvedValue(false);
 
       await expect(
         service.disable('user-1', { pin: '000000' }),

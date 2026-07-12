@@ -6,7 +6,7 @@ import { AppService } from './app.service';
 
 describe('AppController', () => {
   let controller: AppController;
-  let service: jest.Mocked<AppService>;
+  let service: vi.Mocked<AppService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -15,11 +15,11 @@ describe('AppController', () => {
         {
           provide: AppService,
           useValue: {
-            getHealth: jest.fn(),
-            getLiveHealth: jest.fn(),
-            getReadyHealth: jest.fn(),
-            getDeepHealth: jest.fn(),
-            isHealthy: jest.fn(),
+            getHealth: vi.fn(),
+            getLiveHealth: vi.fn(),
+            getReadyHealth: vi.fn(),
+            getDeepHealth: vi.fn(),
+            isHealthy: vi.fn(),
           },
         },
       ],
@@ -32,7 +32,7 @@ describe('AppController', () => {
   it('returns 503 for unhealthy readiness alias', async () => {
     const probe = makeProbe({ status: 'error' });
     const response = {
-      status: jest.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
     } as unknown as Response;
     service.getHealth.mockResolvedValue(probe);
     service.isHealthy.mockReturnValue(false);
@@ -44,7 +44,7 @@ describe('AppController', () => {
   it('returns 200 for healthy deep health probe', async () => {
     const probe = makeProbe({ probe: 'deep' });
     const response = {
-      status: jest.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
     } as unknown as Response;
     service.getDeepHealth.mockResolvedValue(probe);
     service.isHealthy.mockReturnValue(true);

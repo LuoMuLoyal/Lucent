@@ -22,7 +22,7 @@ describe('DailyRecordCandidatesService', () => {
 
   it('falls back to a note candidate when generation fails', async () => {
     const service = createService({
-      generateImpl: jest.fn().mockRejectedValue(new Error('model failed')),
+      generateImpl: vi.fn().mockRejectedValue(new Error('model failed')),
     });
 
     const result = await service.generate(
@@ -56,30 +56,30 @@ describe('DailyRecordCandidatesService', () => {
 
   function createService(options?: {
     hasAnalysisModel?: boolean;
-    generateImpl?: jest.Mock;
+    generateImpl?: vi.Mock;
   }) {
     const copyService = {
-      resolveLocale: jest.fn((language: string | undefined) => {
+      resolveLocale: vi.fn((language: string | undefined) => {
         const normalized = language?.trim().toLowerCase() ?? '';
         return normalized.startsWith('zh') ? 'zh-CN' : 'en';
       }),
-      serviceUnavailable: jest.fn((locale: string) =>
+      serviceUnavailable: vi.fn((locale: string) =>
         locale === 'zh-CN'
           ? '自然语言记录解析服务尚未配置'
           : 'Natural-language record parsing is not configured',
       ),
-      confirmationHint: jest.fn((locale: string) =>
+      confirmationHint: vi.fn((locale: string) =>
         locale === 'zh-CN'
           ? '这些只是候选记录，确认后再保存到今日记录中。'
           : 'Review these candidates before saving them to your daily records.',
       ),
-      buildPromptCopy: jest.fn(() => ({
+      buildPromptCopy: vi.fn(() => ({
         userIntro: 'intro',
         tone: 'tone',
         actionLabelHint: 'hint',
         factsLabel: 'facts',
       })),
-      buildFallback: jest.fn(
+      buildFallback: vi.fn(
         (text: string, occurredAt: string, locale: string) => ({
           locale,
           generatedAt: '2026-06-14T10:20:30.000Z',
@@ -110,12 +110,12 @@ describe('DailyRecordCandidatesService', () => {
     } as unknown as DailyRecordCandidatesCopyService;
 
     const generatorService = {
-      hasAnalysisModel: jest
+      hasAnalysisModel: vi
         .fn()
         .mockReturnValue(options?.hasAnalysisModel ?? true),
       generate:
         options?.generateImpl ??
-        jest.fn().mockResolvedValue({
+        vi.fn().mockResolvedValue({
           items: [
             {
               kind: 'symptom',

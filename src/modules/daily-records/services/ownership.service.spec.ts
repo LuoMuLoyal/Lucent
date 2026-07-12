@@ -6,12 +6,12 @@ import { DailyRecordsOwnershipService } from './ownership.service';
 
 describe('DailyRecordsOwnershipService', () => {
   let service: DailyRecordsOwnershipService;
-  let findOwnershipData: jest.Mock;
-  let i18nT: jest.Mock;
+  let findOwnershipData: vi.Mock;
+  let i18nT: vi.Mock;
 
   beforeEach(async () => {
-    findOwnershipData = jest.fn();
-    i18nT = jest.fn().mockReturnValue('Record not found');
+    findOwnershipData = vi.fn();
+    i18nT = vi.fn().mockReturnValue('Record not found');
 
     const module = await Test.createTestingModule({
       providers: [

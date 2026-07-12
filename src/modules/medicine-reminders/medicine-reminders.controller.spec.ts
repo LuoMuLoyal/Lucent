@@ -12,7 +12,7 @@ const mockUser: UserPayload = {
 
 describe('MedicineRemindersController', () => {
   let controller: MedicineRemindersController;
-  let service: jest.Mocked<MedicineRemindersService>;
+  let service: vi.Mocked<MedicineRemindersService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -21,10 +21,10 @@ describe('MedicineRemindersController', () => {
         {
           provide: MedicineRemindersService,
           useValue: {
-            list: jest.fn(),
-            create: jest.fn(),
-            update: jest.fn(),
-            delete: jest.fn(),
+            list: vi.fn(),
+            create: vi.fn(),
+            update: vi.fn(),
+            delete: vi.fn(),
           },
         },
       ],

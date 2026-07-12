@@ -210,7 +210,7 @@ function buildPrisma(options: {
 }): {
   foodCompositionItem: Pick<PrismaService['foodCompositionItem'], 'findMany'>;
 } {
-  const findMany = jest.fn().mockImplementation(
+  const findMany = vi.fn().mockImplementation(
     (args?: {
       where?: {
         OR?: Array<{

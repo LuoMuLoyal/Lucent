@@ -6,7 +6,7 @@ import type { ReportsContextService } from './context.service';
 describe('ReportsService', () => {
   it('builds a dashboard from facts and computed presentation', async () => {
     const contextService = {
-      build: jest.fn().mockResolvedValue({
+      build: vi.fn().mockResolvedValue({
         range: REPORT_RANGE_LAST_7_DAYS,
         startDate: new Date('2026-06-06T00:00:00.000Z'),
         endDate: new Date('2026-06-12T00:00:00.000Z'),
@@ -27,7 +27,7 @@ describe('ReportsService', () => {
       }),
     } as unknown as ReportsContextService;
     const computationService = {
-      compute: jest.fn().mockReturnValue({
+      compute: vi.fn().mockReturnValue({
         score: {
           value: 61,
           maxValue: 100,
@@ -128,7 +128,7 @@ describe('ReportsService', () => {
 
   it('passes 30-day range through to the context service', async () => {
     const contextService = {
-      build: jest.fn().mockResolvedValue({
+      build: vi.fn().mockResolvedValue({
         range: REPORT_RANGE_LAST_30_DAYS,
         startDate: new Date('2026-05-14T00:00:00.000Z'),
         endDate: new Date('2026-06-12T00:00:00.000Z'),
@@ -149,7 +149,7 @@ describe('ReportsService', () => {
       }),
     } as unknown as ReportsContextService;
     const computationService = {
-      compute: jest.fn().mockReturnValue({
+      compute: vi.fn().mockReturnValue({
         score: {
           value: 88,
           maxValue: 100,
@@ -179,7 +179,7 @@ describe('ReportsService', () => {
   it('propagates sleep trend data through the dashboard', async () => {
     const sleepSeries = [7.5, 8.0, 6.5, 7.0, 8.0, 7.5, 7.0];
     const contextService = {
-      build: jest.fn().mockResolvedValue({
+      build: vi.fn().mockResolvedValue({
         range: REPORT_RANGE_LAST_7_DAYS,
         startDate: new Date('2026-06-06T00:00:00.000Z'),
         endDate: new Date('2026-06-12T00:00:00.000Z'),
@@ -200,7 +200,7 @@ describe('ReportsService', () => {
       }),
     } as unknown as ReportsContextService;
     const computationService = {
-      compute: jest.fn().mockReturnValue({
+      compute: vi.fn().mockReturnValue({
         score: {
           value: 70,
           maxValue: 100,

@@ -347,7 +347,7 @@ describe('Account API (e2e)', () => {
 
   describe('POST /account/identities/wechat-web/authorize', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should return 401 for unauthenticated request', async () => {
@@ -368,11 +368,9 @@ describe('Account API (e2e)', () => {
     });
 
     it('should return authorize URL when WeChat OAuth is configured (mocked)', async () => {
-      jest
-        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
-        .mockReturnValue(
-          'https://open.weixin.qq.com/connect/qrconnect?appid=wx123&state=mock-state',
-        );
+      vi.spyOn(wechatWebProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://open.weixin.qq.com/connect/qrconnect?appid=wx123&state=mock-state',
+      );
 
       const res = await request(app.getHttpServer())
         .post(WECHAT_WEB_AUTHORIZE_PATH)
@@ -392,9 +390,9 @@ describe('Account API (e2e)', () => {
     });
 
     it('should include callbackUri in response when provided', async () => {
-      jest
-        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
-        .mockReturnValue('https://open.weixin.qq.com/connect/qrconnect');
+      vi.spyOn(wechatWebProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://open.weixin.qq.com/connect/qrconnect',
+      );
 
       const callbackUri = 'http://localhost:3000/login/oauth/wechat';
       const res = await request(app.getHttpServer())
@@ -421,7 +419,7 @@ describe('Account API (e2e)', () => {
 
   describe('POST /account/identities/wechat-web/callback', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should return 401 for unauthenticated request', async () => {
@@ -468,9 +466,9 @@ describe('Account API (e2e)', () => {
 
     it('should link WeChat web identity with valid state and code', async () => {
       // Mock buildAuthorizeUrl so authorize endpoint creates a valid state
-      jest
-        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
-        .mockReturnValue('https://open.weixin.qq.com/connect/qrconnect');
+      vi.spyOn(wechatWebProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://open.weixin.qq.com/connect/qrconnect',
+      );
 
       // Mock fetchProfile to return a fake WeChat profile
       const mockProfile: OAuthProfile = {
@@ -480,9 +478,9 @@ describe('Account API (e2e)', () => {
         nickname: 'WeChat Web User',
         avatar: 'https://wx.qlogo.cn/web-avatar',
       };
-      jest
-        .spyOn(wechatWebProvider, 'fetchProfile')
-        .mockResolvedValue(mockProfile);
+      vi.spyOn(wechatWebProvider, 'fetchProfile').mockResolvedValue(
+        mockProfile,
+      );
 
       // Create a fresh user for this test
       const linkEmail = uniqueEmail('wx-web-link');
@@ -531,7 +529,7 @@ describe('Account API (e2e)', () => {
 
   describe('POST /account/identities/wechat-mobile/callback', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should return 401 for unauthenticated request', async () => {
@@ -570,9 +568,9 @@ describe('Account API (e2e)', () => {
         nickname: 'WeChat Mobile User',
         avatar: 'https://wx.qlogo.cn/mobile-avatar',
       };
-      jest
-        .spyOn(wechatMobileProvider, 'fetchProfile')
-        .mockResolvedValue(mockProfile);
+      vi.spyOn(wechatMobileProvider, 'fetchProfile').mockResolvedValue(
+        mockProfile,
+      );
 
       // Create a fresh user for this test
       const linkEmail = uniqueEmail('wx-mobile-link');

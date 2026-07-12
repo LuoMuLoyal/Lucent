@@ -9,18 +9,19 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TestingSupportService } from './services/testing-support.service';
 import { ARGON2_OPTIONS } from '../auth/config/argon2-options';
 
-jest.mock('argon2', () => ({
-  hash: jest.fn(),
+vi.mock('argon2', () => ({
+  argon2id: 2,
+  hash: vi.fn(),
 }));
 
 describe('TestingSupportService', () => {
   let service: TestingSupportService;
   let prisma: DeepMocked<PrismaService>;
-  let cache: { del: jest.Mock };
+  let cache: { del: vi.Mock };
 
   beforeEach(async () => {
     cache = {
-      del: jest.fn(),
+      del: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -33,24 +34,24 @@ describe('TestingSupportService', () => {
         {
           provide: PrismaService,
           useValue: {
-            $transaction: jest.fn(),
+            $transaction: vi.fn(),
             user: {
-              findFirst: jest.fn(),
-              create: jest.fn(),
-              update: jest.fn(),
+              findFirst: vi.fn(),
+              create: vi.fn(),
+              update: vi.fn(),
             },
             userDailyRecord: {
-              findMany: jest.fn(),
-              deleteMany: jest.fn(),
+              findMany: vi.fn(),
+              deleteMany: vi.fn(),
             },
             userDailyRecordAttachment: {
-              deleteMany: jest.fn(),
+              deleteMany: vi.fn(),
             },
             userSession: {
-              deleteMany: jest.fn(),
+              deleteMany: vi.fn(),
             },
             userSetting: {
-              upsert: jest.fn(),
+              upsert: vi.fn(),
             },
           },
         },
@@ -63,17 +64,17 @@ describe('TestingSupportService', () => {
     const runTransaction = async <T>(
       callback: (tx: DeepMocked<PrismaService>) => Promise<T>,
     ): Promise<T> => callback(prisma);
-    (prisma.$transaction as jest.Mock).mockImplementation(runTransaction);
-    (argon2.hash as jest.Mock).mockResolvedValue('$argon2id$e2e');
+    (prisma.$transaction as vi.Mock).mockImplementation(runTransaction);
+    (argon2.hash as vi.Mock).mockResolvedValue('$argon2id$e2e');
   });
 
   it('should create a dedicated record-lane user when none exists', async () => {
-    (prisma.user.findFirst as jest.Mock).mockResolvedValue(null);
-    (prisma.user.create as jest.Mock).mockResolvedValue({
+    (prisma.user.findFirst as vi.Mock).mockResolvedValue(null);
+    (prisma.user.create as vi.Mock).mockResolvedValue({
       id: 'user-1',
       nickname: 'Record Lane User',
     });
-    (prisma.userDailyRecord.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([]);
 
     const result = await service.prepareFullstackRecordLane({
       email: 'RecordLane@example.com',
@@ -149,15 +150,15 @@ describe('TestingSupportService', () => {
   });
 
   it('should update an existing user and hard-delete daily records for the target date', async () => {
-    (prisma.user.findFirst as jest.Mock).mockResolvedValue({
+    (prisma.user.findFirst as vi.Mock).mockResolvedValue({
       id: 'user-1',
       nickname: 'Old Nickname',
     });
-    (prisma.user.update as jest.Mock).mockResolvedValue({
+    (prisma.user.update as vi.Mock).mockResolvedValue({
       id: 'user-1',
       nickname: 'Record Lane User',
     });
-    (prisma.userDailyRecord.findMany as jest.Mock).mockResolvedValue([
+    (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([
       { id: 'record-1' },
       { id: 'record-2' },
     ]);

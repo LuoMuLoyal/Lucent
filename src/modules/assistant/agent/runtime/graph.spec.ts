@@ -130,16 +130,16 @@ describe('AssistantFoundationGraph', () => {
   });
 
   it('runs the tool-loop graph and returns final content when LLM produces text', async () => {
-    const mockInvoke = jest
+    const mockInvoke = vi
       .fn()
       .mockResolvedValue(new AIMessage({ content: '你好，我是健康助手。' }));
     const mockModel = {
-      bindTools: jest.fn().mockReturnValue({ invoke: mockInvoke }),
+      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
     };
 
     const graph = buildAssistantRuntimeGraph({
       createModel: () => mockModel as never,
-      executeTools: jest.fn(),
+      executeTools: vi.fn(),
       buildSystemPrompt: () => 'system prompt',
     });
 
@@ -157,7 +157,7 @@ describe('AssistantFoundationGraph', () => {
 
   it('executes tools when the LLM requests them and loops back', async () => {
     let callCount = 0;
-    const mockInvoke = jest.fn().mockImplementation(() => {
+    const mockInvoke = vi.fn().mockImplementation(() => {
       callCount += 1;
       if (callCount === 1) {
         return Promise.resolve(
@@ -170,10 +170,10 @@ describe('AssistantFoundationGraph', () => {
       return Promise.resolve(new AIMessage({ content: '根据您的健康档案...' }));
     });
     const mockModel = {
-      bindTools: jest.fn().mockReturnValue({ invoke: mockInvoke }),
+      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
     };
 
-    const executeTools = jest.fn().mockResolvedValue([
+    const executeTools = vi.fn().mockResolvedValue([
       {
         name: 'get_user_profile',
         data: { summary: { activeAllergyCount: 1 } },
@@ -202,17 +202,17 @@ describe('AssistantFoundationGraph', () => {
   });
 
   it('stops at the tool-loop cap when LLM keeps requesting tools', async () => {
-    const mockInvoke = jest.fn().mockResolvedValue(
+    const mockInvoke = vi.fn().mockResolvedValue(
       new AIMessage({
         content: '',
         tool_calls: [{ name: 'get_user_profile', id: 'call_0', args: {} }],
       }),
     );
     const mockModel = {
-      bindTools: jest.fn().mockReturnValue({ invoke: mockInvoke }),
+      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
     };
 
-    const executeTools = jest.fn().mockResolvedValue([
+    const executeTools = vi.fn().mockResolvedValue([
       {
         name: 'get_user_profile',
         data: { summary: {} },

@@ -66,28 +66,28 @@ describe('UserHealthContextService', () => {
         {
           provide: UserHealthContextRepositoryPort,
           useValue: {
-            findUserWithHealthContext: jest.fn(),
-            findActiveUserById: jest.fn(),
-            findProfileByUserId: jest.fn(),
-            upsertProfile: jest.fn(),
-            createAllergy: jest.fn(),
-            updateAllergy: jest.fn(),
-            softDeleteAllergy: jest.fn(),
-            findAllergyById: jest.fn(),
-            createCondition: jest.fn(),
-            updateCondition: jest.fn(),
-            softDeleteCondition: jest.fn(),
-            findConditionById: jest.fn(),
-            createCurrentMedicine: jest.fn(),
-            updateCurrentMedicine: jest.fn(),
-            softDeleteCurrentMedicine: jest.fn(),
-            findCurrentMedicineById: jest.fn(),
+            findUserWithHealthContext: vi.fn(),
+            findActiveUserById: vi.fn(),
+            findProfileByUserId: vi.fn(),
+            upsertProfile: vi.fn(),
+            createAllergy: vi.fn(),
+            updateAllergy: vi.fn(),
+            softDeleteAllergy: vi.fn(),
+            findAllergyById: vi.fn(),
+            createCondition: vi.fn(),
+            updateCondition: vi.fn(),
+            softDeleteCondition: vi.fn(),
+            findConditionById: vi.fn(),
+            createCurrentMedicine: vi.fn(),
+            updateCurrentMedicine: vi.fn(),
+            softDeleteCurrentMedicine: vi.fn(),
+            findCurrentMedicineById: vi.fn(),
           },
         },
         {
           provide: I18nService,
           useValue: {
-            t: jest.fn((key: string) => key),
+            t: vi.fn((key: string) => key),
           },
         },
       ],
@@ -98,8 +98,8 @@ describe('UserHealthContextService', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.restoreAllMocks();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('should throw NotFoundException when the active user does not exist', async () => {
@@ -161,7 +161,7 @@ describe('UserHealthContextService', () => {
   });
 
   it('should derive summary counts, age, and formatted dates from stored records', async () => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-05-30T12:00:00Z'));
+    vi.useFakeTimers().setSystemTime(new Date('2026-05-30T12:00:00Z'));
 
     repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
@@ -308,7 +308,7 @@ describe('UserHealthContextService', () => {
   });
 
   it('should upsert profile fields and return the refreshed aggregate', async () => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
+    vi.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
 
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
@@ -434,7 +434,7 @@ describe('UserHealthContextService', () => {
   });
 
   it('should set onboardingCompletedAt when onboardingCompleted is true and not yet set', async () => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
+    vi.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
 
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
@@ -476,7 +476,7 @@ describe('UserHealthContextService', () => {
   });
 
   it('should include onboardingCompletedAt when completing onboarding creates a profile', async () => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
+    vi.useFakeTimers().setSystemTime(new Date('2026-06-05T12:00:00Z'));
 
     repository.findActiveUserById.mockResolvedValueOnce({
       id: mockUserBase.id,
@@ -814,7 +814,7 @@ describe('UserHealthContextService', () => {
   });
 
   it('should soft-resolve a condition (set status=resolved)', async () => {
-    jest.useFakeTimers().setSystemTime(new Date('2026-06-03T12:00:00Z'));
+    vi.useFakeTimers().setSystemTime(new Date('2026-06-03T12:00:00Z'));
 
     repository.findConditionById.mockResolvedValueOnce({
       userId: mockUserBase.id,

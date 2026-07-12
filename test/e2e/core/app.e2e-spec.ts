@@ -18,23 +18,23 @@ import { setupApp } from '../../../src/setup-app';
 
 describe('Lucent API (e2e)', () => {
   let app: INestApplication<App>;
-  let prisma: { $queryRaw: jest.Mock; $queryRawUnsafe: jest.Mock };
+  let prisma: { $queryRaw: vi.Mock; $queryRawUnsafe: vi.Mock };
   let cache: {
-    set: jest.Mock;
-    get: jest.Mock;
-    del: jest.Mock;
+    set: vi.Mock;
+    get: vi.Mock;
+    del: vi.Mock;
   };
 
   beforeEach(async () => {
-    const rawOk = jest.fn().mockResolvedValue([{ '?column?': 1 }]);
+    const rawOk = vi.fn().mockResolvedValue([{ '?column?': 1 }]);
     prisma = {
       $queryRaw: rawOk,
       $queryRawUnsafe: rawOk,
     };
     cache = {
-      set: jest.fn(),
-      get: jest.fn(),
-      del: jest.fn(),
+      set: vi.fn(),
+      get: vi.fn(),
+      del: vi.fn(),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -52,7 +52,7 @@ describe('Lucent API (e2e)', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockImplementation((key: string) => {
+            get: vi.fn().mockImplementation((key: string) => {
               if (key === 'NODE_ENV') {
                 return 'test';
               }
@@ -73,9 +73,9 @@ describe('Lucent API (e2e)', () => {
         {
           provide: PinoLogger,
           useValue: {
-            setContext: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
+            setContext: vi.fn(),
+            error: vi.fn(),
+            warn: vi.fn(),
           },
         },
       ],

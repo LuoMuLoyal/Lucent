@@ -12,7 +12,7 @@ import { ResultCode } from '../../../common/api';
 
 describe('AuthRateLimitService', () => {
   let service: AuthRateLimitService;
-  let cache: jest.Mocked<Cache>;
+  let cache: vi.Mocked<Cache>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -21,15 +21,15 @@ describe('AuthRateLimitService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: {
-            get: jest.fn(),
-            set: jest.fn(),
-            del: jest.fn(),
+            get: vi.fn(),
+            set: vi.fn(),
+            del: vi.fn(),
           },
         },
         {
           provide: I18nService,
           useValue: {
-            t: jest.fn((key: string) => key),
+            t: vi.fn((key: string) => key),
           },
         },
       ],
@@ -42,8 +42,8 @@ describe('AuthRateLimitService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
+    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   // ════════════════════════════════════════════════════════════
@@ -89,7 +89,7 @@ describe('AuthRateLimitService', () => {
 
       try {
         await service.checkLoginRateLimit('test@example.com');
-        fail('Expected UnauthorizedException');
+        expect.fail('Expected UnauthorizedException');
       } catch (error) {
         expect(error).toBeInstanceOf(UnauthorizedException);
         const response = (error as UnauthorizedException).getResponse() as {
@@ -238,7 +238,7 @@ describe('AuthRateLimitService', () => {
     it('should hash the email in the cache key', async () => {
       await service.clearLoginFailures('test@example.com');
 
-      const key = (cache.del as jest.Mock).mock.calls[0][0] as string;
+      const key = (cache.del as vi.Mock).mock.calls[0]![0] as string;
       // Key should contain a SHA-256 hex digest, not the raw email
       expect(key).not.toContain('test@example.com');
       expect(key).toMatch(/auth:login-failure:[0-9a-f]{64}$/);

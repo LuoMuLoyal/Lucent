@@ -6,17 +6,17 @@ import {
 } from './queue.factory';
 import type { MetricsService } from '../metrics/metrics.service';
 describe('BullmqQueueFactory', () => {
-  let configService: jest.Mocked<ConfigService>;
-  let metricsService: jest.Mocked<MetricsService>;
+  let configService: vi.Mocked<ConfigService>;
+  let metricsService: vi.Mocked<MetricsService>;
 
   beforeEach(() => {
     configService = {
-      get: jest.fn(),
-    } as unknown as jest.Mocked<ConfigService>;
+      get: vi.fn(),
+    } as unknown as vi.Mocked<ConfigService>;
 
     metricsService = {
-      recordBullmqJob: jest.fn(),
-    } as unknown as jest.Mocked<MetricsService>;
+      recordBullmqJob: vi.fn(),
+    } as unknown as vi.Mocked<MetricsService>;
   });
 
   describe('isAvailable', () => {
@@ -46,7 +46,7 @@ describe('BullmqQueueFactory', () => {
 
       const result = factory.createQueue({
         name: 'test-queue',
-        processor: jest.fn(),
+        processor: vi.fn(),
       });
 
       expect(result.queue).toBeNull();
@@ -59,7 +59,7 @@ describe('BullmqQueueFactory', () => {
 
       const result = factory.createQueue({
         name: 'test-queue',
-        processor: jest.fn(),
+        processor: vi.fn(),
       });
 
       expect(result.queue).not.toBeNull();
@@ -77,11 +77,11 @@ describe('BullmqQueueFactory', () => {
 
       const { queue, worker } = factory.createQueue({
         name: 'test-queue',
-        processor: jest.fn(),
+        processor: vi.fn(),
       });
 
-      const queueCloseSpy = jest.spyOn(queue!, 'close').mockResolvedValue();
-      const workerCloseSpy = jest.spyOn(worker!, 'close').mockResolvedValue();
+      const queueCloseSpy = vi.spyOn(queue!, 'close').mockResolvedValue();
+      const workerCloseSpy = vi.spyOn(worker!, 'close').mockResolvedValue();
 
       await factory.onModuleDestroy();
 

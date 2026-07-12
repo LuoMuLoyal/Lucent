@@ -8,9 +8,9 @@ import type { UserPayload } from '../auth/services/auth.service';
 
 describe('DailyRecordsController', () => {
   let controller: DailyRecordsController;
-  let dailyRecordsService: jest.Mocked<DailyRecordsService>;
-  let candidatesService: jest.Mocked<DailyRecordCandidatesService>;
-  let imageUploadService: jest.Mocked<DailyRecordImageUploadService>;
+  let dailyRecordsService: vi.Mocked<DailyRecordsService>;
+  let candidatesService: vi.Mocked<DailyRecordCandidatesService>;
+  let imageUploadService: vi.Mocked<DailyRecordImageUploadService>;
 
   const mockUser: UserPayload = {
     sub: 'user-1',
@@ -20,21 +20,21 @@ describe('DailyRecordsController', () => {
 
   beforeEach(async () => {
     dailyRecordsService = {
-      list: jest.fn(),
-      summary: jest.fn(),
-      get: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    } as unknown as jest.Mocked<DailyRecordsService>;
+      list: vi.fn(),
+      summary: vi.fn(),
+      get: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as vi.Mocked<DailyRecordsService>;
 
     candidatesService = {
-      generate: jest.fn(),
-    } as unknown as jest.Mocked<DailyRecordCandidatesService>;
+      generate: vi.fn(),
+    } as unknown as vi.Mocked<DailyRecordCandidatesService>;
 
     imageUploadService = {
-      createPresignedUpload: jest.fn(),
-    } as unknown as jest.Mocked<DailyRecordImageUploadService>;
+      createPresignedUpload: vi.fn(),
+    } as unknown as vi.Mocked<DailyRecordImageUploadService>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DailyRecordsController],

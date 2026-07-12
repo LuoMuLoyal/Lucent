@@ -45,14 +45,14 @@ describe('UserService', () => {
           provide: PrismaService,
           useValue: {
             user: {
-              findFirst: jest.fn(),
-              create: jest.fn(),
-              update: jest.fn(),
+              findFirst: vi.fn(),
+              create: vi.fn(),
+              update: vi.fn(),
             },
             userIdentity: {
-              findUnique: jest.fn(),
-              findFirst: jest.fn(),
-              create: jest.fn(),
+              findUnique: vi.fn(),
+              findFirst: vi.fn(),
+              create: vi.fn(),
             },
           },
         },
@@ -64,12 +64,12 @@ describe('UserService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('findById', () => {
     it('should return a user by id', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue(mockUser);
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findById('user-uuid-1');
 
@@ -80,7 +80,7 @@ describe('UserService', () => {
     });
 
     it('should return null if user not found', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue(null);
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
 
       const result = await service.findById('non-existent');
 
@@ -90,7 +90,7 @@ describe('UserService', () => {
 
   describe('findByEmail', () => {
     it('should return a user by email', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue(mockUser);
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findByEmail('test@example.com');
 
@@ -101,7 +101,7 @@ describe('UserService', () => {
     });
 
     it('should return null if email not found', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue(null);
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
 
       const result = await service.findByEmail('unknown@example.com');
 
@@ -111,7 +111,7 @@ describe('UserService', () => {
 
   describe('findByIdentity', () => {
     it('should return the active user linked to an OAuth identity', async () => {
-      (prismaService.userIdentity.findUnique as jest.Mock).mockResolvedValue({
+      (prismaService.userIdentity.findUnique as vi.Mock).mockResolvedValue({
         ...mockIdentity,
         user: mockUser,
       });
@@ -131,7 +131,7 @@ describe('UserService', () => {
     });
 
     it('should return null when identity is missing', async () => {
-      (prismaService.userIdentity.findUnique as jest.Mock).mockResolvedValue(
+      (prismaService.userIdentity.findUnique as vi.Mock).mockResolvedValue(
         null,
       );
 
@@ -141,7 +141,7 @@ describe('UserService', () => {
     });
 
     it('should return null when linked user is soft-deleted', async () => {
-      (prismaService.userIdentity.findUnique as jest.Mock).mockResolvedValue({
+      (prismaService.userIdentity.findUnique as vi.Mock).mockResolvedValue({
         ...mockIdentity,
         user: {
           ...mockUser,
@@ -157,7 +157,7 @@ describe('UserService', () => {
 
   describe('findByProviderUnionId', () => {
     it('should return the earliest active user linked to a provider union id', async () => {
-      (prismaService.userIdentity.findFirst as jest.Mock).mockResolvedValue({
+      (prismaService.userIdentity.findFirst as vi.Mock).mockResolvedValue({
         ...mockIdentity,
         providerUnionId: 'wechat-unionid-1',
         user: mockUser,
@@ -174,7 +174,7 @@ describe('UserService', () => {
     });
 
     it('should return null when the union-linked user is soft-deleted', async () => {
-      (prismaService.userIdentity.findFirst as jest.Mock).mockResolvedValue({
+      (prismaService.userIdentity.findFirst as vi.Mock).mockResolvedValue({
         ...mockIdentity,
         providerUnionId: 'wechat-unionid-1',
         user: {
@@ -191,7 +191,7 @@ describe('UserService', () => {
 
   describe('create', () => {
     it('should create a user and backfill an empty profile when one is not provided', async () => {
-      (prismaService.user.create as jest.Mock).mockResolvedValue(mockUser);
+      (prismaService.user.create as vi.Mock).mockResolvedValue(mockUser);
 
       const result = await service.create({
         email: 'test@example.com',
@@ -211,7 +211,7 @@ describe('UserService', () => {
     });
 
     it('should preserve an explicitly provided profile relation', async () => {
-      (prismaService.user.create as jest.Mock).mockResolvedValue(mockUser);
+      (prismaService.user.create as vi.Mock).mockResolvedValue(mockUser);
 
       await service.create({
         email: 'test@example.com',
@@ -245,7 +245,7 @@ describe('UserService', () => {
         passwordHash: null,
         emailVerifiedAt: verifiedAt,
       };
-      (prismaService.user.create as jest.Mock).mockResolvedValue(oauthUser);
+      (prismaService.user.create as vi.Mock).mockResolvedValue(oauthUser);
 
       const result = await service.createOAuthUser({
         email: 'test@example.com',
@@ -291,7 +291,7 @@ describe('UserService', () => {
         nickname: 'WechatUser',
         avatar: 'https://example.com/avatar.png',
       };
-      (prismaService.user.create as jest.Mock).mockResolvedValue(oauthUser);
+      (prismaService.user.create as vi.Mock).mockResolvedValue(oauthUser);
 
       const result = await service.createOAuthUser({
         nickname: 'WechatUser',
@@ -328,7 +328,7 @@ describe('UserService', () => {
 
   describe('linkIdentity', () => {
     it('should attach a provider identity to an existing user', async () => {
-      (prismaService.userIdentity.create as jest.Mock).mockResolvedValue(
+      (prismaService.userIdentity.create as vi.Mock).mockResolvedValue(
         mockIdentity,
       );
 
@@ -355,7 +355,7 @@ describe('UserService', () => {
   describe('update', () => {
     it('should update user by id', async () => {
       const updatedUser = { ...mockUser, nickname: 'UpdatedName' };
-      (prismaService.user.update as jest.Mock).mockResolvedValue(updatedUser);
+      (prismaService.user.update as vi.Mock).mockResolvedValue(updatedUser);
 
       const result = await service.update('user-uuid-1', {
         nickname: 'UpdatedName',
@@ -375,8 +375,8 @@ describe('UserService', () => {
         ...mockUser,
         emailVerifiedAt: new Date('2026-01-02T00:00:00Z'),
       };
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue(mockUser);
-      (prismaService.user.update as jest.Mock).mockResolvedValue(updatedUser);
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(mockUser);
+      (prismaService.user.update as vi.Mock).mockResolvedValue(updatedUser);
 
       const result = await service.updateByEmail('test@example.com', {
         emailVerifiedAt: updatedUser.emailVerifiedAt,
@@ -393,7 +393,7 @@ describe('UserService', () => {
     });
 
     it('should return null when no active user matches the email', async () => {
-      (prismaService.user.findFirst as jest.Mock).mockResolvedValue(null);
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
 
       const result = await service.updateByEmail('missing@example.com', {
         emailVerifiedAt: new Date(),

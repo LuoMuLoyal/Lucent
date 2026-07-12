@@ -5,17 +5,17 @@ import type { CosStorageRuntime } from '../../../common/storage';
 import { FilesService } from './files.service';
 
 const mockI18n = {
-  t: jest.fn().mockImplementation((key: string) => key),
+  t: vi.fn().mockImplementation((key: string) => key),
 } as unknown as I18nService;
 
 const mockUuid = '00000000-0000-0000-0000-000000000000';
-jest.mock('node:crypto', () => ({
+vi.mock('node:crypto', () => ({
   randomUUID: () => mockUuid,
 }));
 
 describe('FilesService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   function testConfig(overrides?: Partial<TencentCosConfig>): TencentCosConfig {
@@ -34,18 +34,18 @@ describe('FilesService', () => {
 
   function runtimeDouble(
     config: TencentCosConfig,
-  ): jest.Mocked<CosStorageRuntime> {
+  ): vi.Mocked<CosStorageRuntime> {
     const runtime: Pick<
-      jest.Mocked<CosStorageRuntime>,
+      vi.Mocked<CosStorageRuntime>,
       'getConfig' | 'createSignedPutUrl'
     > = {
-      getConfig: jest.fn().mockReturnValue(config),
-      createSignedPutUrl: jest
+      getConfig: vi.fn().mockReturnValue(config),
+      createSignedPutUrl: vi
         .fn()
         .mockReturnValue('https://signed-upload.example.com'),
     };
 
-    return runtime as jest.Mocked<CosStorageRuntime>;
+    return runtime as vi.Mocked<CosStorageRuntime>;
   }
 
   describe('createPresignedUpload', () => {

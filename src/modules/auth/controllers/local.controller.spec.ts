@@ -30,7 +30,7 @@ const mockAuthResult = {
 
 describe('LocalController', () => {
   let controller: LocalController;
-  let authService: jest.Mocked<AuthService>;
+  let authService: vi.Mocked<AuthService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -39,24 +39,24 @@ describe('LocalController', () => {
         {
           provide: AuthService,
           useValue: {
-            register: jest.fn(),
-            login: jest.fn(),
-            sendVerificationCode: jest.fn(),
-            verifyEmail: jest.fn(),
-            forgotPassword: jest.fn(),
-            resetPassword: jest.fn(),
+            register: vi.fn(),
+            login: vi.fn(),
+            sendVerificationCode: vi.fn(),
+            verifyEmail: vi.fn(),
+            forgotPassword: vi.fn(),
+            resetPassword: vi.fn(),
           },
         },
         {
           provide: VerificationCodeService,
           useValue: {
-            getCooldownSec: jest.fn().mockReturnValue(60),
+            getCooldownSec: vi.fn().mockReturnValue(60),
           },
         },
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue(false),
+            get: vi.fn().mockReturnValue(false),
           },
         },
       ],
@@ -67,7 +67,7 @@ describe('LocalController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('POST /auth/register', () => {

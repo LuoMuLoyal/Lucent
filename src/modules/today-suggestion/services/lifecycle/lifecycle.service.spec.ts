@@ -4,16 +4,16 @@ import type { SuggestionCandidate } from '../../types/candidate.types';
 
 describe('LifecycleService', () => {
   let service: LifecycleService;
-  let findManyMock: jest.Mock;
-  let countMock: jest.Mock;
-  let createMock: jest.Mock;
-  let updateManyMock: jest.Mock;
+  let findManyMock: vi.Mock;
+  let countMock: vi.Mock;
+  let createMock: vi.Mock;
+  let updateManyMock: vi.Mock;
 
   beforeEach(() => {
-    findManyMock = jest.fn();
-    countMock = jest.fn();
-    createMock = jest.fn();
-    updateManyMock = jest.fn();
+    findManyMock = vi.fn();
+    countMock = vi.fn();
+    createMock = vi.fn();
+    updateManyMock = vi.fn();
 
     const prismaMock = {
       userSuggestion: {

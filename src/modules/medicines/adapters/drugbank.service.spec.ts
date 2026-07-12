@@ -10,9 +10,9 @@ describe('DrugbankMedicinesService', () => {
   beforeEach(() => {
     prisma = {
       drugbankDrug: {
-        findMany: jest.fn(),
-        count: jest.fn(),
-        findUnique: jest.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
+        findUnique: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
 

@@ -11,9 +11,9 @@ describe('AssistantSummaryRepository', () => {
   beforeEach(() => {
     prisma = {
       assistantSummaryHistory: {
-        upsert: jest.fn(),
-        findMany: jest.fn(),
-        findFirst: jest.fn(),
+        upsert: vi.fn(),
+        findMany: vi.fn(),
+        findFirst: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
 

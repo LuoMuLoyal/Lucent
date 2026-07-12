@@ -4,12 +4,12 @@ import { AuthNotificationService } from './notification.service';
 
 describe('AuthNotificationService', () => {
   let service: AuthNotificationService;
-  let notificationsService: jest.Mocked<NotificationsService>;
+  let notificationsService: vi.Mocked<NotificationsService>;
 
   beforeEach(() => {
     notificationsService = {
-      create: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<NotificationsService>;
+      create: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<NotificationsService>;
 
     service = new AuthNotificationService(notificationsService);
   });

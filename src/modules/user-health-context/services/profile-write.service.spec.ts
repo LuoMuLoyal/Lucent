@@ -14,8 +14,8 @@ describe('UserHealthContextProfileWriteService', () => {
 
   beforeEach(async () => {
     repository = {
-      findProfileByUserId: jest.fn().mockResolvedValue(null),
-      upsertProfile: jest.fn(),
+      findProfileByUserId: vi.fn().mockResolvedValue(null),
+      upsertProfile: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -25,13 +25,13 @@ describe('UserHealthContextProfileWriteService', () => {
         {
           provide: UserHealthContextOwnershipService,
           useValue: {
-            ensureActiveUserExists: jest.fn(),
+            ensureActiveUserExists: vi.fn(),
           },
         },
         {
           provide: UserHealthContextMapperService,
           useValue: {
-            dateOnlyStringToUtcDate: jest
+            dateOnlyStringToUtcDate: vi
               .fn()
               .mockImplementation((v: string | null) =>
                 v ? parseDateOnly(v) : null,
@@ -45,7 +45,7 @@ describe('UserHealthContextProfileWriteService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('upsertProfile', () => {

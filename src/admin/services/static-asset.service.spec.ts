@@ -18,12 +18,12 @@ async function waitFor(
 }
 
 describe('registerAdminStaticAssets', () => {
-  let mockApp: { use: jest.Mock };
+  let mockApp: { use: vi.Mock };
   let tmpDir: string;
   let tmpFile: string;
 
   beforeEach(() => {
-    mockApp = { use: jest.fn() };
+    mockApp = { use: vi.fn() };
     tmpDir = join(tmpdir(), `admin-static-test-${Date.now()}`);
     mkdirSync(tmpDir, { recursive: true });
     tmpFile = join(tmpDir, 'test.txt');
@@ -67,10 +67,10 @@ describe('registerAdminStaticAssets', () => {
 
     const middleware = getMiddleware();
     const req = { method: 'POST' };
-    const res = { sendStatus: jest.fn() };
+    const res = { sendStatus: vi.fn() };
 
     // The middleware is fire-and-forget; 405 path is synchronous inside async fn
-    middleware(req, res, jest.fn());
+    middleware(req, res, vi.fn());
     await waitFor(() => res.sendStatus.mock.calls.length > 0);
 
     expect(res.sendStatus).toHaveBeenCalledWith(405);
@@ -83,12 +83,12 @@ describe('registerAdminStaticAssets', () => {
     const middleware = getMiddleware();
     const req = { method: 'GET' };
     const res = {
-      type: jest.fn(),
-      setHeader: jest.fn(),
-      end: jest.fn(),
+      type: vi.fn(),
+      setHeader: vi.fn(),
+      end: vi.fn(),
     };
 
-    middleware(req, res, jest.fn());
+    middleware(req, res, vi.fn());
     await waitFor(() => res.setHeader.mock.calls.length > 0);
 
     expect(res.type).toHaveBeenCalled();
@@ -105,12 +105,12 @@ describe('registerAdminStaticAssets', () => {
     const middleware = getMiddleware();
     const req = { method: 'HEAD' };
     const res = {
-      type: jest.fn(),
-      setHeader: jest.fn(),
-      end: jest.fn(),
+      type: vi.fn(),
+      setHeader: vi.fn(),
+      end: vi.fn(),
     };
 
-    middleware(req, res, jest.fn());
+    middleware(req, res, vi.fn());
     await waitFor(() => res.end.mock.calls.length > 0);
 
     expect(res.type).toHaveBeenCalled();
@@ -128,9 +128,9 @@ describe('registerAdminStaticAssets', () => {
     registerAdminStaticAssets(mockApp as never, '/admin', assets);
 
     const middleware = getMiddleware();
-    const nextFn = jest.fn();
+    const nextFn = vi.fn();
     const req = { method: 'GET' };
-    const res = { type: jest.fn(), setHeader: jest.fn() };
+    const res = { type: vi.fn(), setHeader: vi.fn() };
 
     middleware(req, res, nextFn);
     await waitFor(() => nextFn.mock.calls.length > 0);

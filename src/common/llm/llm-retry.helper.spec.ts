@@ -86,14 +86,14 @@ describe('llm-retry.helper', () => {
 
   describe('withLlmRetry', () => {
     it('returns result on first success', async () => {
-      const operation = jest.fn().mockResolvedValue('ok');
+      const operation = vi.fn().mockResolvedValue('ok');
       const result = await withLlmRetry(operation);
       expect(result).toBe('ok');
       expect(operation).toHaveBeenCalledTimes(1);
     });
 
     it('retries on failure and succeeds', async () => {
-      const operation = jest
+      const operation = vi
         .fn()
         .mockRejectedValueOnce(new Error('timeout'))
         .mockResolvedValueOnce('ok');
@@ -104,15 +104,15 @@ describe('llm-retry.helper', () => {
     });
 
     it('throws after 3 attempts (default)', async () => {
-      const operation = jest.fn().mockRejectedValue(new Error('persistent'));
+      const operation = vi.fn().mockRejectedValue(new Error('persistent'));
 
       await expect(withLlmRetry(operation)).rejects.toThrow('persistent');
       expect(operation).toHaveBeenCalledTimes(3);
     });
 
     it('calls onRetry callback', async () => {
-      const onRetry = jest.fn();
-      const operation = jest
+      const onRetry = vi.fn();
+      const operation = vi
         .fn()
         .mockRejectedValueOnce(new Error('fail'))
         .mockResolvedValueOnce('ok');
@@ -129,8 +129,8 @@ describe('llm-retry.helper', () => {
       // returns true. This test verifies that withLlmRetry still retries
       // (since it doesn't filter by isRetryableLlmError) but the onRetry
       // callback can use isRetryableLlmError to decide logging.
-      const onRetry = jest.fn();
-      const operation = jest
+      const onRetry = vi.fn();
+      const operation = vi
         .fn()
         .mockRejectedValueOnce({ status: 400, message: 'Bad Request' })
         .mockResolvedValueOnce('ok');
@@ -146,7 +146,7 @@ describe('llm-retry.helper', () => {
     });
 
     it('retries on HTTP 429 (rate limit)', async () => {
-      const operation = jest
+      const operation = vi
         .fn()
         .mockRejectedValueOnce({ status: 429, message: 'Rate limited' })
         .mockResolvedValueOnce('ok');

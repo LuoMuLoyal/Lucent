@@ -9,22 +9,22 @@ describe('UserHealthContextRepository', () => {
 
   beforeEach(() => {
     prisma = {
-      user: { findFirst: jest.fn() },
-      userProfile: { findUnique: jest.fn(), upsert: jest.fn() },
+      user: { findFirst: vi.fn() },
+      userProfile: { findUnique: vi.fn(), upsert: vi.fn() },
       userAllergy: {
-        create: jest.fn(),
-        update: jest.fn(),
-        findUnique: jest.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        findUnique: vi.fn(),
       },
       userCondition: {
-        create: jest.fn(),
-        update: jest.fn(),
-        findUnique: jest.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        findUnique: vi.fn(),
       },
       userCurrentMedicine: {
-        create: jest.fn(),
-        update: jest.fn(),
-        findUnique: jest.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        findUnique: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
 

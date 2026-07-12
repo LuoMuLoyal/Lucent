@@ -9,13 +9,13 @@ import { ReportsContextService } from './context.service';
 describe('ReportsContextService', () => {
   const buildPrisma = () => ({
     userSetting: {
-      findFirst: jest.fn().mockResolvedValue(null),
+      findFirst: vi.fn().mockResolvedValue(null),
     },
     userMedicineDoseLog: {
-      findMany: jest.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     userDailyRecord: {
-      findMany: jest.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockResolvedValue([]),
     },
   });
 
@@ -36,9 +36,7 @@ describe('ReportsContextService', () => {
 
   it('keeps ai summary disabled when the user setting is explicitly false', async () => {
     const prisma = buildPrisma();
-    prisma.userSetting.findFirst = jest
-      .fn()
-      .mockResolvedValue({ value: false });
+    prisma.userSetting.findFirst = vi.fn().mockResolvedValue({ value: false });
     const service = new ReportsContextService(prisma as never);
 
     const context = await service.build('u1', {
@@ -117,7 +115,7 @@ describe('ReportsContextService', () => {
 
   it('counts meal estimate days only from confirmed and unconfirmed meal analyses', async () => {
     const prisma = buildPrisma();
-    prisma.userDailyRecord.findMany = jest.fn().mockResolvedValue([
+    prisma.userDailyRecord.findMany = vi.fn().mockResolvedValue([
       {
         occurredAt: new Date('2026-06-06T00:00:00.000Z'),
         kind: 'meal',
@@ -183,7 +181,7 @@ describe('ReportsContextService', () => {
 
   it('breaks down meal estimate status per day for the AI summary', async () => {
     const prisma = buildPrisma();
-    prisma.userDailyRecord.findMany = jest.fn().mockResolvedValue([
+    prisma.userDailyRecord.findMany = vi.fn().mockResolvedValue([
       {
         occurredAt: new Date('2026-06-06T00:00:00.000Z'),
         kind: 'meal',

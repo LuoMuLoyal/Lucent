@@ -8,14 +8,14 @@ import { MedicineRemindersOwnershipService } from './ownership.service';
 describe('MedicineRemindersOwnershipService', () => {
   let service: MedicineRemindersOwnershipService;
   let repository: {
-    findCurrentMedicine: jest.Mock;
-    findReminderById: jest.Mock;
+    findCurrentMedicine: vi.Mock;
+    findReminderById: vi.Mock;
   };
 
   beforeEach(async () => {
     repository = {
-      findCurrentMedicine: jest.fn(),
-      findReminderById: jest.fn(),
+      findCurrentMedicine: vi.fn(),
+      findReminderById: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -28,7 +28,7 @@ describe('MedicineRemindersOwnershipService', () => {
         {
           provide: I18nService,
           useValue: {
-            t: jest.fn().mockImplementation((key: string) => key),
+            t: vi.fn().mockImplementation((key: string) => key),
           },
         },
       ],

@@ -10,8 +10,8 @@ import { ExplanationGeneratorService } from './explanation-generator.service';
 
 describe('ExplanationGeneratorService', () => {
   let service: ExplanationGeneratorService;
-  let llmRuntimeMock: jest.Mocked<LlmRuntimePort>;
-  let metricsMock: jest.Mocked<MetricsService>;
+  let llmRuntimeMock: vi.Mocked<LlmRuntimePort>;
+  let metricsMock: vi.Mocked<MetricsService>;
 
   const mockContext: ExplanationContext = {
     suggestionType: SuggestionType.TREND,
@@ -34,28 +34,28 @@ describe('ExplanationGeneratorService', () => {
 
   const createService = (hasRoleConfig = true) => {
     const structuredModel = {
-      invoke: jest.fn().mockResolvedValue({
+      invoke: vi.fn().mockResolvedValue({
         reason: 'AI生成的解释',
         boundary: 'AI生成的边界',
       }),
     };
     const streamingModel = {
-      stream: jest.fn(),
-      withConfig: jest.fn().mockReturnThis(),
+      stream: vi.fn(),
+      withConfig: vi.fn().mockReturnThis(),
     };
 
     llmRuntimeMock = {
-      hasRoleConfig: jest.fn().mockReturnValue(hasRoleConfig),
-      createChatModel: jest.fn().mockReturnValue({
-        withStructuredOutput: jest.fn().mockReturnValue(structuredModel),
-        withConfig: jest.fn().mockReturnValue(streamingModel),
+      hasRoleConfig: vi.fn().mockReturnValue(hasRoleConfig),
+      createChatModel: vi.fn().mockReturnValue({
+        withStructuredOutput: vi.fn().mockReturnValue(structuredModel),
+        withConfig: vi.fn().mockReturnValue(streamingModel),
       }),
-      getModelName: jest.fn().mockReturnValue('gpt-4o-mini'),
-    } as unknown as jest.Mocked<LlmRuntimePort>;
+      getModelName: vi.fn().mockReturnValue('gpt-4o-mini'),
+    } as unknown as vi.Mocked<LlmRuntimePort>;
 
     metricsMock = {
-      recordLlmCall: jest.fn(),
-    } as unknown as jest.Mocked<MetricsService>;
+      recordLlmCall: vi.fn(),
+    } as unknown as vi.Mocked<MetricsService>;
 
     service = new ExplanationGeneratorService(
       llmRuntimeMock as unknown as LlmRuntimeService,
@@ -124,7 +124,7 @@ describe('ExplanationGeneratorService', () => {
 
       await service.generate(mockContext, mockPromptCopy);
 
-      const messages = structuredModel.invoke.mock.calls[0][0] as unknown[];
+      const messages = structuredModel.invoke.mock.calls[0]![0] as unknown[];
       expect(messages).toHaveLength(2);
     });
   });

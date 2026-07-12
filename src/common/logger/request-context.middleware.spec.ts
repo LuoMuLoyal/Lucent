@@ -6,25 +6,25 @@ describe('request-context.middleware', () => {
   describe('bindRequestContextMiddleware', () => {
     it('returns a middleware function', () => {
       const requestContextService = {
-        run: jest.fn(),
-      } as unknown as jest.Mocked<RequestContextService>;
+        run: vi.fn(),
+      } as unknown as vi.Mocked<RequestContextService>;
 
       const middleware = bindRequestContextMiddleware(requestContextService);
       expect(typeof middleware).toBe('function');
     });
 
     it('calls requestContextService.run with requestId from request', () => {
-      const runSpy = jest.fn((_ctx: unknown, next: NextFunction) => {
+      const runSpy = vi.fn((_ctx: unknown, next: NextFunction) => {
         next();
       });
       const requestContextService = {
         run: runSpy,
-      } as unknown as jest.Mocked<RequestContextService>;
+      } as unknown as vi.Mocked<RequestContextService>;
 
       const middleware = bindRequestContextMiddleware(requestContextService);
       const request = { requestId: 'req-123' } as unknown as Request;
       const response = {} as Response;
-      const next: NextFunction = jest.fn();
+      const next: NextFunction = vi.fn();
 
       middleware(request, response, next);
 
@@ -32,15 +32,15 @@ describe('request-context.middleware', () => {
     });
 
     it('passes next to requestContextService.run', () => {
-      const runSpy = jest.fn();
+      const runSpy = vi.fn();
       const requestContextService = {
         run: runSpy,
-      } as unknown as jest.Mocked<RequestContextService>;
+      } as unknown as vi.Mocked<RequestContextService>;
 
       const middleware = bindRequestContextMiddleware(requestContextService);
       const request = { requestId: 'abc' } as unknown as Request;
       const response = {} as Response;
-      const next: NextFunction = jest.fn();
+      const next: NextFunction = vi.fn();
 
       middleware(request, response, next);
 
@@ -48,17 +48,17 @@ describe('request-context.middleware', () => {
     });
 
     it('handles undefined requestId', () => {
-      const runSpy = jest.fn((_ctx: unknown, next: NextFunction) => {
+      const runSpy = vi.fn((_ctx: unknown, next: NextFunction) => {
         next();
       });
       const requestContextService = {
         run: runSpy,
-      } as unknown as jest.Mocked<RequestContextService>;
+      } as unknown as vi.Mocked<RequestContextService>;
 
       const middleware = bindRequestContextMiddleware(requestContextService);
       const request = {} as Request;
       const response = {} as Response;
-      const next: NextFunction = jest.fn();
+      const next: NextFunction = vi.fn();
 
       middleware(request, response, next);
 

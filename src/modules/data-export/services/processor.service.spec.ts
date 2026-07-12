@@ -7,19 +7,19 @@ import type { NotificationsService } from '../../notifications/services/notifica
 
 type MockPrisma = {
   dataExportRequest: {
-    findUnique: jest.Mock;
-    update: jest.Mock;
+    findUnique: vi.Mock;
+    update: vi.Mock;
   };
 };
 
-type MockReports = { getDashboard: jest.Mock };
-type MockStorage = { uploadPdf: jest.Mock };
+type MockReports = { getDashboard: vi.Mock };
+type MockStorage = { uploadPdf: vi.Mock };
 type MockPdf = {
-  buildHospitalPdf: jest.Mock;
-  buildMonthlyPdf: jest.Mock;
-  buildPrintPdf: jest.Mock;
+  buildHospitalPdf: vi.Mock;
+  buildMonthlyPdf: vi.Mock;
+  buildPrintPdf: vi.Mock;
 };
-type MockNotifications = { create: jest.Mock };
+type MockNotifications = { create: vi.Mock };
 
 describe('DataExportProcessorService', () => {
   it('returns early when the export request is not found', async () => {
@@ -187,7 +187,7 @@ describe('DataExportProcessorService', () => {
 function createProcessor() {
   const prisma: MockPrisma = {
     dataExportRequest: {
-      findUnique: jest.fn().mockResolvedValue({
+      findUnique: vi.fn().mockResolvedValue({
         id: 'export-1',
         userId: 'user-1',
         kind: 'hospital',
@@ -195,16 +195,16 @@ function createProcessor() {
         range: 'last_7_days',
         status: 'requested',
       }),
-      update: jest.fn().mockResolvedValue({}),
+      update: vi.fn().mockResolvedValue({}),
     },
   };
 
   const reportsService: MockReports = {
-    getDashboard: jest.fn(),
+    getDashboard: vi.fn(),
   };
 
   const storageService: MockStorage = {
-    uploadPdf: jest.fn().mockResolvedValue({
+    uploadPdf: vi.fn().mockResolvedValue({
       objectKey: 'exports/user-1/export.pdf',
       bucket: 'lucent-bucket',
       provider: 'tencent-cos',
@@ -213,13 +213,13 @@ function createProcessor() {
   };
 
   const pdfService: MockPdf = {
-    buildHospitalPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
-    buildMonthlyPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
-    buildPrintPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')),
+    buildHospitalPdf: vi.fn().mockResolvedValue(Buffer.from('pdf')),
+    buildMonthlyPdf: vi.fn().mockResolvedValue(Buffer.from('pdf')),
+    buildPrintPdf: vi.fn().mockResolvedValue(Buffer.from('pdf')),
   };
 
   const notificationsService: MockNotifications = {
-    create: jest.fn().mockResolvedValue(undefined),
+    create: vi.fn().mockResolvedValue(undefined),
   };
 
   const processor = new DataExportProcessorService(

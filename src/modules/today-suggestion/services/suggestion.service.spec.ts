@@ -42,53 +42,53 @@ function buildRule(overrides: Partial<SuggestionRule> = {}): SuggestionRule {
     type: SuggestionType.COMPLIANCE,
     triggerType: TriggerType.EVENT,
     isBaselineRequired: false,
-    match: jest.fn().mockReturnValue(null),
+    match: vi.fn().mockReturnValue(null),
     ...overrides,
   };
 }
 
 interface MockDeps {
-  medicationCollector: { collect: jest.Mock };
-  recordCollector: { collect: jest.Mock; getTimeOfDay: jest.Mock };
-  profileCollector: { collect: jest.Mock };
-  registry: { getAll: jest.Mock };
-  suppression: { filterAndAdjust: jest.Mock };
-  arbitration: { arbitrate: jest.Mock };
-  baseline: { getBaselineStatus: jest.Mock };
-  lifecycle: { expireStaleSuggestions: jest.Mock; persistActive: jest.Mock };
-  escalation: { escalateIfNeeded: jest.Mock };
+  medicationCollector: { collect: vi.Mock };
+  recordCollector: { collect: vi.Mock; getTimeOfDay: vi.Mock };
+  profileCollector: { collect: vi.Mock };
+  registry: { getAll: vi.Mock };
+  suppression: { filterAndAdjust: vi.Mock };
+  arbitration: { arbitrate: vi.Mock };
+  baseline: { getBaselineStatus: vi.Mock };
+  lifecycle: { expireStaleSuggestions: vi.Mock; persistActive: vi.Mock };
+  escalation: { escalateIfNeeded: vi.Mock };
 }
 
 function buildMocks(): MockDeps {
   return {
-    medicationCollector: { collect: jest.fn().mockResolvedValue([]) },
+    medicationCollector: { collect: vi.fn().mockResolvedValue([]) },
     recordCollector: {
-      collect: jest.fn().mockResolvedValue([]),
-      getTimeOfDay: jest.fn().mockReturnValue('morning' as const),
+      collect: vi.fn().mockResolvedValue([]),
+      getTimeOfDay: vi.fn().mockReturnValue('morning' as const),
     },
-    profileCollector: { collect: jest.fn().mockResolvedValue([]) },
-    registry: { getAll: jest.fn().mockReturnValue([]) },
+    profileCollector: { collect: vi.fn().mockResolvedValue([]) },
+    registry: { getAll: vi.fn().mockReturnValue([]) },
     suppression: {
-      filterAndAdjust: jest.fn().mockResolvedValue({
+      filterAndAdjust: vi.fn().mockResolvedValue({
         candidates: [],
         suppressedIds: [],
       }),
     },
     arbitration: {
-      arbitrate: jest.fn().mockReturnValue({
+      arbitrate: vi.fn().mockReturnValue({
         primary: null,
         secondary: [],
         observations: [],
       }),
     },
     baseline: {
-      getBaselineStatus: jest.fn().mockResolvedValue(new Map()),
+      getBaselineStatus: vi.fn().mockResolvedValue(new Map()),
     },
     lifecycle: {
-      expireStaleSuggestions: jest.fn().mockResolvedValue(undefined),
-      persistActive: jest.fn().mockResolvedValue('suggestion-id'),
+      expireStaleSuggestions: vi.fn().mockResolvedValue(undefined),
+      persistActive: vi.fn().mockResolvedValue('suggestion-id'),
     },
-    escalation: { escalateIfNeeded: jest.fn().mockResolvedValue(undefined) },
+    escalation: { escalateIfNeeded: vi.fn().mockResolvedValue(undefined) },
   };
 }
 
@@ -140,7 +140,7 @@ describe('SuggestionService', () => {
   it('passes a primary candidate through the full pipeline', async () => {
     const candidate = buildCandidate({ candidateId: 'c1' });
     deps.registry.getAll.mockReturnValue([
-      buildRule({ match: jest.fn().mockReturnValue(candidate) }),
+      buildRule({ match: vi.fn().mockReturnValue(candidate) }),
     ]);
     deps.suppression.filterAndAdjust.mockResolvedValue({
       candidates: [candidate],
@@ -228,7 +228,7 @@ describe('SuggestionService', () => {
     const rule = buildRule({
       isBaselineRequired: true,
       baselineDimensions: [BaselineDimension.WATER_INTAKE],
-      match: jest.fn().mockReturnValue(buildCandidate()),
+      match: vi.fn().mockReturnValue(buildCandidate()),
     });
     deps.registry.getAll.mockReturnValue([rule]);
     const baselineStatus = new Map();
@@ -245,7 +245,7 @@ describe('SuggestionService', () => {
     const rule = buildRule({
       isBaselineRequired: true,
       baselineDimensions: [BaselineDimension.WATER_INTAKE],
-      match: jest.fn().mockReturnValue(candidate),
+      match: vi.fn().mockReturnValue(candidate),
     });
     deps.registry.getAll.mockReturnValue([rule]);
     const baselineStatus = new Map();
@@ -273,13 +273,13 @@ describe('SuggestionService', () => {
     });
     const throwingRule = buildRule({
       ruleId: 'throwing_rule',
-      match: jest.fn().mockImplementation(() => {
+      match: vi.fn().mockImplementation(() => {
         throw new Error('Rule exploded');
       }),
     });
     const goodRule = buildRule({
       ruleId: 'good_rule',
-      match: jest.fn().mockReturnValue(goodCandidate),
+      match: vi.fn().mockReturnValue(goodCandidate),
     });
     deps.registry.getAll.mockReturnValue([throwingRule, goodRule]);
     deps.suppression.filterAndAdjust.mockResolvedValue({

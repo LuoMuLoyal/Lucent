@@ -11,7 +11,7 @@ import type {
 
 describe('DataExportController', () => {
   let controller: DataExportController;
-  let service: jest.Mocked<DataExportService>;
+  let service: vi.Mocked<DataExportService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -20,15 +20,15 @@ describe('DataExportController', () => {
         {
           provide: DataExportService,
           useValue: {
-            createRequest: jest.fn(),
-            getLatestRequest: jest.fn(),
+            createRequest: vi.fn(),
+            getLatestRequest: vi.fn(),
           },
         },
         SecurityElevationGuard,
         {
           provide: SecurityPinService,
           useValue: {
-            verifyElevationToken: jest.fn(),
+            verifyElevationToken: vi.fn(),
           },
         },
       ],

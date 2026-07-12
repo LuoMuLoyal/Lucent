@@ -3,7 +3,7 @@ import { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
 describe('MealAnalysisMatcherService', () => {
   it('matches recognized foods to food composition items and aggregates conservative nutrition totals', async () => {
     const decompositionService = {
-      resolveRecognizedDishes: jest.fn().mockResolvedValue({
+      resolveRecognizedDishes: vi.fn().mockResolvedValue({
         recognizedDishes: [
           {
             dishKey: 'dish-1',
@@ -60,7 +60,7 @@ describe('MealAnalysisMatcherService', () => {
       }),
     };
     const groundingService = {
-      groundIngredients: jest.fn().mockResolvedValue({
+      groundIngredients: vi.fn().mockResolvedValue({
         coverage: 'partial',
         compositionMatches: [
           {
@@ -102,7 +102,7 @@ describe('MealAnalysisMatcherService', () => {
       }),
     };
     const configService = {
-      get: jest.fn().mockReturnValue(undefined),
+      get: vi.fn().mockReturnValue(undefined),
     };
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
@@ -172,20 +172,20 @@ describe('MealAnalysisMatcherService', () => {
 
   it('returns null diagnostics and null commentary for empty recognized items', async () => {
     const decompositionService = {
-      resolveRecognizedDishes: jest.fn().mockResolvedValue({
+      resolveRecognizedDishes: vi.fn().mockResolvedValue({
         recognizedDishes: [],
         resolvedIngredients: [],
         unresolvedDishes: [],
       }),
     };
     const groundingService = {
-      groundIngredients: jest.fn().mockResolvedValue({
+      groundIngredients: vi.fn().mockResolvedValue({
         coverage: 'none',
         compositionMatches: [],
         nutritionEstimate: null,
       }),
     };
-    const configService = { get: jest.fn().mockReturnValue(undefined) };
+    const configService = { get: vi.fn().mockReturnValue(undefined) };
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -203,7 +203,7 @@ describe('MealAnalysisMatcherService', () => {
 
   it('handles complete coverage with all items matched', async () => {
     const decompositionService = {
-      resolveRecognizedDishes: jest.fn().mockResolvedValue({
+      resolveRecognizedDishes: vi.fn().mockResolvedValue({
         recognizedDishes: [
           {
             dishKey: 'dish-1',
@@ -228,7 +228,7 @@ describe('MealAnalysisMatcherService', () => {
       }),
     };
     const groundingService = {
-      groundIngredients: jest.fn().mockResolvedValue({
+      groundIngredients: vi.fn().mockResolvedValue({
         coverage: 'complete',
         compositionMatches: [
           {
@@ -253,7 +253,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = { get: jest.fn().mockReturnValue(undefined) };
+    const configService = { get: vi.fn().mockReturnValue(undefined) };
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -281,7 +281,7 @@ describe('MealAnalysisMatcherService', () => {
 
   it('handles none coverage with unresolved dishes', async () => {
     const decompositionService = {
-      resolveRecognizedDishes: jest.fn().mockResolvedValue({
+      resolveRecognizedDishes: vi.fn().mockResolvedValue({
         recognizedDishes: [
           {
             dishKey: 'dish-1',
@@ -299,13 +299,13 @@ describe('MealAnalysisMatcherService', () => {
       }),
     };
     const groundingService = {
-      groundIngredients: jest.fn().mockResolvedValue({
+      groundIngredients: vi.fn().mockResolvedValue({
         coverage: 'none',
         compositionMatches: [],
         nutritionEstimate: null,
       }),
     };
-    const configService = { get: jest.fn().mockReturnValue(undefined) };
+    const configService = { get: vi.fn().mockReturnValue(undefined) };
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -331,14 +331,14 @@ describe('MealAnalysisMatcherService', () => {
 
   it('generates high-protein and high-fat commentary when thresholds are exceeded', async () => {
     const decompositionService = {
-      resolveRecognizedDishes: jest.fn().mockResolvedValue({
+      resolveRecognizedDishes: vi.fn().mockResolvedValue({
         recognizedDishes: [],
         resolvedIngredients: [],
         unresolvedDishes: [],
       }),
     };
     const groundingService = {
-      groundIngredients: jest.fn().mockResolvedValue({
+      groundIngredients: vi.fn().mockResolvedValue({
         coverage: 'complete',
         compositionMatches: [],
         nutritionEstimate: {
@@ -356,7 +356,7 @@ describe('MealAnalysisMatcherService', () => {
     };
     // Use low thresholds so commentary conditions are triggered
     const configService = {
-      get: jest.fn().mockImplementation((key: string) => {
+      get: vi.fn().mockImplementation((key: string) => {
         if (key === 'MEAL_HIGH_PROTEIN_THRESHOLD_G') return 30;
         if (key === 'MEAL_HIGH_FAT_THRESHOLD_G') return 15;
         if (key === 'MEAL_LOW_CARBOHYDRATE_THRESHOLD_G') return 60;
@@ -379,14 +379,14 @@ describe('MealAnalysisMatcherService', () => {
 
   it('returns conservative estimate commentary when no threshold is exceeded', async () => {
     const decompositionService = {
-      resolveRecognizedDishes: jest.fn().mockResolvedValue({
+      resolveRecognizedDishes: vi.fn().mockResolvedValue({
         recognizedDishes: [],
         resolvedIngredients: [],
         unresolvedDishes: [],
       }),
     };
     const groundingService = {
-      groundIngredients: jest.fn().mockResolvedValue({
+      groundIngredients: vi.fn().mockResolvedValue({
         coverage: 'complete',
         compositionMatches: [],
         nutritionEstimate: {
@@ -402,7 +402,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = { get: jest.fn().mockReturnValue(undefined) };
+    const configService = { get: vi.fn().mockReturnValue(undefined) };
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -416,7 +416,7 @@ describe('MealAnalysisMatcherService', () => {
 
   it('estimates grams from portion text containing 克', async () => {
     const decompositionService = {
-      resolveRecognizedDishes: jest.fn().mockResolvedValue({
+      resolveRecognizedDishes: vi.fn().mockResolvedValue({
         recognizedDishes: [
           {
             dishKey: 'dish-1',
@@ -441,7 +441,7 @@ describe('MealAnalysisMatcherService', () => {
       }),
     };
     const groundingService = {
-      groundIngredients: jest.fn().mockResolvedValue({
+      groundIngredients: vi.fn().mockResolvedValue({
         coverage: 'complete',
         compositionMatches: [
           {
@@ -466,7 +466,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = { get: jest.fn().mockReturnValue(undefined) };
+    const configService = { get: vi.fn().mockReturnValue(undefined) };
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -482,7 +482,7 @@ describe('MealAnalysisMatcherService', () => {
 
   it('estimates small portion grams for 少量 text', async () => {
     const decompositionService = {
-      resolveRecognizedDishes: jest.fn().mockResolvedValue({
+      resolveRecognizedDishes: vi.fn().mockResolvedValue({
         recognizedDishes: [
           {
             dishKey: 'dish-1',
@@ -507,7 +507,7 @@ describe('MealAnalysisMatcherService', () => {
       }),
     };
     const groundingService = {
-      groundIngredients: jest.fn().mockResolvedValue({
+      groundIngredients: vi.fn().mockResolvedValue({
         coverage: 'complete',
         compositionMatches: [
           {
@@ -532,7 +532,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = { get: jest.fn().mockReturnValue(undefined) };
+    const configService = { get: vi.fn().mockReturnValue(undefined) };
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,
@@ -549,7 +549,7 @@ describe('MealAnalysisMatcherService', () => {
 
   it('filters out items with names that normalize to null', async () => {
     const decompositionService = {
-      resolveRecognizedDishes: jest.fn().mockResolvedValue({
+      resolveRecognizedDishes: vi.fn().mockResolvedValue({
         recognizedDishes: [
           {
             dishKey: 'dish-1',
@@ -574,7 +574,7 @@ describe('MealAnalysisMatcherService', () => {
       }),
     };
     const groundingService = {
-      groundIngredients: jest.fn().mockResolvedValue({
+      groundIngredients: vi.fn().mockResolvedValue({
         coverage: 'complete',
         compositionMatches: [
           {
@@ -599,7 +599,7 @@ describe('MealAnalysisMatcherService', () => {
         },
       }),
     };
-    const configService = { get: jest.fn().mockReturnValue(undefined) };
+    const configService = { get: vi.fn().mockReturnValue(undefined) };
     const service = new MealAnalysisMatcherService(
       decompositionService as never,
       groundingService as never,

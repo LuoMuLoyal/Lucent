@@ -7,11 +7,11 @@ import {
 } from './localized-copy';
 
 describe('localized-copy', () => {
-  let i18n: jest.Mocked<I18nService>;
+  let i18n: vi.Mocked<I18nService>;
 
   beforeEach(() => {
     i18n = {
-      t: jest.fn((key: string, opts?: Record<string, unknown>) => {
+      t: vi.fn((key: string, opts?: Record<string, unknown>) => {
         if (opts && 'args' in opts) {
           const args = opts['args'] as Record<string, string>;
           return Object.entries(args).reduce(
@@ -21,7 +21,7 @@ describe('localized-copy', () => {
         }
         return key;
       }),
-    } as unknown as jest.Mocked<I18nService>;
+    } as unknown as vi.Mocked<I18nService>;
   });
 
   describe('resolveLocale', () => {

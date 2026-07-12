@@ -16,18 +16,18 @@ describe('MedicineDoseLogsService', () => {
       providers: [
         {
           provide: I18nService,
-          useValue: { t: jest.fn().mockImplementation((key: string) => key) },
+          useValue: { t: vi.fn().mockImplementation((key: string) => key) },
         },
         MedicineDoseLogsService,
         {
           provide: MedicineDoseLogRepositoryPort,
           useValue: {
-            findMany: jest.fn(),
-            create: jest.fn(),
-            update: jest.fn(),
-            findFirst: jest.fn(),
-            findReminderById: jest.fn(),
-            findCurrentMedicineById: jest.fn(),
+            findMany: vi.fn(),
+            create: vi.fn(),
+            update: vi.fn(),
+            findFirst: vi.fn(),
+            findReminderById: vi.fn(),
+            findCurrentMedicineById: vi.fn(),
           },
         },
       ],

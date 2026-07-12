@@ -14,19 +14,19 @@ import { AssistantService } from './services/core.service';
 
 function conversationServiceDouble() {
   return {
-    listRecentConversations: jest.fn(),
-    getLatestConversation: jest.fn(),
-    openConversation: jest.fn(),
-    clearLatestConversation: jest.fn(),
-    buildMemoryBlock: jest.fn().mockResolvedValue(''),
-    persistAssistantTurn: jest.fn(),
+    listRecentConversations: vi.fn(),
+    getLatestConversation: vi.fn(),
+    openConversation: vi.fn(),
+    clearLatestConversation: vi.fn(),
+    buildMemoryBlock: vi.fn().mockResolvedValue(''),
+    persistAssistantTurn: vi.fn(),
   } as unknown as AssistantConversationService;
 }
 
 describe('AssistantService', () => {
   it('combines user permissions with system foundation status', async () => {
     const assistantAgentService = {
-      describeFoundation: jest.fn().mockReturnValue({
+      describeFoundation: vi.fn().mockReturnValue({
         phase: 'foundation',
         chatModelConfigured: true,
         interactiveChatReady: true,
@@ -65,7 +65,7 @@ describe('AssistantService', () => {
     } as unknown as AssistantRuntimeService;
 
     const userSettingsService = {
-      getSettings: jest.fn().mockResolvedValue({
+      getSettings: vi.fn().mockResolvedValue({
         aiSummariesEnabled: true,
         dataSharingConsent: false,
         assistantEnabled: true,
@@ -81,7 +81,7 @@ describe('AssistantService', () => {
     } as unknown as UserSettingsService;
 
     const assistantPolicyService = {
-      evaluate: jest.fn().mockReturnValue({
+      evaluate: vi.fn().mockReturnValue({
         interactiveChatReady: false,
         enabledContextSources: ['health_profile', 'sleep_records'],
         contextPermittedToolNames: [
@@ -115,10 +115,10 @@ describe('AssistantService', () => {
       }),
     } as unknown as AssistantPolicyService;
     const assistantToolExecutor = {
-      executeMany: jest.fn(),
+      executeMany: vi.fn(),
     } as unknown as AssistantToolService;
     const assistantToolContextService = {
-      buildToolContextBlock: jest.fn().mockReturnValue(''),
+      buildToolContextBlock: vi.fn().mockReturnValue(''),
     } as unknown as AssistantContextService;
     const assistantConversationService = conversationServiceDouble();
 
@@ -156,7 +156,7 @@ describe('AssistantService', () => {
   });
 
   it('streams a chat reply with executable tools only', async () => {
-    const runConversation = jest
+    const runConversation = vi
       .fn()
       .mockImplementation(async (_input, executeTools: ToolExecutorFn) => {
         const toolResults = await executeTools([
@@ -170,13 +170,13 @@ describe('AssistantService', () => {
           stopReason: 'answered',
         };
       });
-    const generateStream = jest.fn().mockResolvedValue({
+    const generateStream = vi.fn().mockResolvedValue({
       content: 'Hello there',
       usedToolNames: ['get_user_profile'],
     });
 
     const assistantAgentService = {
-      describeFoundation: jest.fn().mockReturnValue({
+      describeFoundation: vi.fn().mockReturnValue({
         phase: 'foundation',
         chatModelConfigured: true,
         interactiveChatReady: true,
@@ -220,7 +220,7 @@ describe('AssistantService', () => {
     } as unknown as AssistantRuntimeService;
 
     const userSettingsService = {
-      getSettings: jest.fn().mockResolvedValue({
+      getSettings: vi.fn().mockResolvedValue({
         aiSummariesEnabled: true,
         dataSharingConsent: false,
         assistantEnabled: true,
@@ -236,7 +236,7 @@ describe('AssistantService', () => {
     } as unknown as UserSettingsService;
 
     const assistantPolicyService = {
-      evaluate: jest.fn().mockReturnValue({
+      evaluate: vi.fn().mockReturnValue({
         interactiveChatReady: true,
         enabledContextSources: ['health_profile', 'sleep_records'],
         contextPermittedToolNames: [
@@ -258,7 +258,7 @@ describe('AssistantService', () => {
       }),
     } as unknown as AssistantPolicyService;
     const assistantToolExecutor = {
-      executeMany: jest.fn().mockResolvedValue([
+      executeMany: vi.fn().mockResolvedValue([
         {
           name: 'get_user_profile',
           data: { summary: { activeAllergyCount: 1 } },
@@ -320,18 +320,18 @@ describe('AssistantService', () => {
       ]),
     } as unknown as AssistantToolService;
     const assistantToolContextService = {
-      buildToolContextBlock: jest
+      buildToolContextBlock: vi
         .fn()
         .mockReturnValue(
           'Server-approved user context tool results:\n- get_user_profile: {"summary":{"activeAllergyCount":1}}',
         ),
     } as unknown as AssistantContextService;
     const assistantConversationService = {
-      listRecentConversations: jest.fn(),
-      getLatestConversation: jest.fn(),
-      openConversation: jest.fn(),
-      clearLatestConversation: jest.fn(),
-      persistAssistantTurn: jest.fn().mockResolvedValue({
+      listRecentConversations: vi.fn(),
+      getLatestConversation: vi.fn(),
+      openConversation: vi.fn(),
+      clearLatestConversation: vi.fn(),
+      persistAssistantTurn: vi.fn().mockResolvedValue({
         id: 'conversation-1',
         title: 'What should I do next?',
         status: 'active',
@@ -350,7 +350,7 @@ describe('AssistantService', () => {
       assistantToolContextService,
       assistantConversationService,
     );
-    const onChunk = jest.fn();
+    const onChunk = vi.fn();
 
     const result = await service.streamMessages(
       'user-1',
@@ -523,12 +523,12 @@ describe('AssistantService', () => {
   });
 
   it('injects persisted memory only when memory is enabled for a new conversation', async () => {
-    const generateStream = jest.fn().mockResolvedValue({
+    const generateStream = vi.fn().mockResolvedValue({
       content: 'Memory-aware reply',
       usedToolNames: [],
     });
     const assistantAgentService = {
-      describeFoundation: jest.fn().mockReturnValue({
+      describeFoundation: vi.fn().mockReturnValue({
         phase: 'foundation',
         chatModelConfigured: true,
         interactiveChatReady: true,
@@ -539,7 +539,7 @@ describe('AssistantService', () => {
         implementedToolNames: [],
         contextSources: [],
       }),
-      runConversation: jest
+      runConversation: vi
         .fn()
         .mockImplementation(async (_input, executeTools: ToolExecutorFn) => {
           const toolResults = await executeTools([] as const);
@@ -553,7 +553,7 @@ describe('AssistantService', () => {
       generateStream,
     } as unknown as AssistantRuntimeService;
     const userSettingsService = {
-      getSettings: jest.fn().mockResolvedValue({
+      getSettings: vi.fn().mockResolvedValue({
         aiSummariesEnabled: true,
         dataSharingConsent: false,
         assistantEnabled: true,
@@ -568,7 +568,7 @@ describe('AssistantService', () => {
       }),
     } as unknown as UserSettingsService;
     const assistantPolicyService = {
-      evaluate: jest.fn().mockReturnValue({
+      evaluate: vi.fn().mockReturnValue({
         interactiveChatReady: true,
         enabledContextSources: [],
         contextPermittedToolNames: [],
@@ -577,18 +577,18 @@ describe('AssistantService', () => {
       }),
     } as unknown as AssistantPolicyService;
     const assistantToolExecutor = {
-      executeMany: jest.fn().mockResolvedValue([]),
+      executeMany: vi.fn().mockResolvedValue([]),
     } as unknown as AssistantToolService;
     const assistantToolContextService = {
-      buildToolContextBlock: jest.fn().mockReturnValue(''),
+      buildToolContextBlock: vi.fn().mockReturnValue(''),
     } as unknown as AssistantContextService;
     const assistantConversationService = conversationServiceDouble();
-    assistantConversationService.buildMemoryBlock = jest
+    assistantConversationService.buildMemoryBlock = vi
       .fn()
       .mockResolvedValue(
         'Persisted cross-conversation memory is enabled for this user.',
       );
-    assistantConversationService.persistAssistantTurn = jest
+    assistantConversationService.persistAssistantTurn = vi
       .fn()
       .mockResolvedValue({
         id: 'conversation-memory',
@@ -615,7 +615,7 @@ describe('AssistantService', () => {
         messages: [{ role: 'user', content: 'Need continuity' }],
       },
       'en-US',
-      jest.fn(),
+      vi.fn(),
     );
 
     expect(assistantConversationService.buildMemoryBlock).toHaveBeenCalledWith(
@@ -641,7 +641,7 @@ describe('AssistantService', () => {
 
   it('rejects when chat is disabled by user settings', async () => {
     const assistantAgentService = {
-      describeFoundation: jest.fn().mockReturnValue({
+      describeFoundation: vi.fn().mockReturnValue({
         phase: 'foundation',
         chatModelConfigured: true,
         interactiveChatReady: true,
@@ -655,7 +655,7 @@ describe('AssistantService', () => {
     } as unknown as AssistantRuntimeService;
 
     const userSettingsService = {
-      getSettings: jest.fn().mockResolvedValue({
+      getSettings: vi.fn().mockResolvedValue({
         aiSummariesEnabled: true,
         dataSharingConsent: false,
         assistantEnabled: false,
@@ -671,7 +671,7 @@ describe('AssistantService', () => {
     } as unknown as UserSettingsService;
 
     const assistantPolicyService = {
-      evaluate: jest.fn().mockReturnValue({
+      evaluate: vi.fn().mockReturnValue({
         interactiveChatReady: false,
         enabledContextSources: [
           'health_profile',
@@ -685,10 +685,10 @@ describe('AssistantService', () => {
       }),
     } as unknown as AssistantPolicyService;
     const assistantToolExecutor = {
-      executeMany: jest.fn(),
+      executeMany: vi.fn(),
     } as unknown as AssistantToolService;
     const assistantToolContextService = {
-      buildToolContextBlock: jest.fn().mockReturnValue(''),
+      buildToolContextBlock: vi.fn().mockReturnValue(''),
     } as unknown as AssistantContextService;
     const assistantConversationService = conversationServiceDouble();
 
@@ -708,14 +708,14 @@ describe('AssistantService', () => {
           messages: [{ role: 'user', content: 'Hi' }],
         },
         'zh-CN',
-        jest.fn(),
+        vi.fn(),
       ),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('rejects when chat model is not configured', async () => {
     const assistantAgentService = {
-      describeFoundation: jest.fn().mockReturnValue({
+      describeFoundation: vi.fn().mockReturnValue({
         phase: 'foundation',
         chatModelConfigured: false,
         interactiveChatReady: false,
@@ -729,7 +729,7 @@ describe('AssistantService', () => {
     } as unknown as AssistantRuntimeService;
 
     const userSettingsService = {
-      getSettings: jest.fn().mockResolvedValue({
+      getSettings: vi.fn().mockResolvedValue({
         aiSummariesEnabled: true,
         dataSharingConsent: false,
         assistantEnabled: true,
@@ -745,7 +745,7 @@ describe('AssistantService', () => {
     } as unknown as UserSettingsService;
 
     const assistantPolicyService = {
-      evaluate: jest.fn().mockReturnValue({
+      evaluate: vi.fn().mockReturnValue({
         interactiveChatReady: false,
         enabledContextSources: [
           'health_profile',
@@ -759,10 +759,10 @@ describe('AssistantService', () => {
       }),
     } as unknown as AssistantPolicyService;
     const assistantToolExecutor = {
-      executeMany: jest.fn(),
+      executeMany: vi.fn(),
     } as unknown as AssistantToolService;
     const assistantToolContextService = {
-      buildToolContextBlock: jest.fn().mockReturnValue(''),
+      buildToolContextBlock: vi.fn().mockReturnValue(''),
     } as unknown as AssistantContextService;
     const assistantConversationService = conversationServiceDouble();
 
@@ -782,14 +782,14 @@ describe('AssistantService', () => {
           messages: [{ role: 'user', content: 'Hi' }],
         },
         'en-US',
-        jest.fn(),
+        vi.fn(),
       ),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
   it('rejects when the last message is not a user message', async () => {
     const assistantAgentService = {
-      describeFoundation: jest.fn().mockReturnValue({
+      describeFoundation: vi.fn().mockReturnValue({
         phase: 'foundation',
         chatModelConfigured: true,
         interactiveChatReady: true,
@@ -803,17 +803,17 @@ describe('AssistantService', () => {
     } as unknown as AssistantRuntimeService;
 
     const userSettingsService = {
-      getSettings: jest.fn(),
+      getSettings: vi.fn(),
     } as unknown as UserSettingsService;
 
     const assistantPolicyService = {
-      evaluate: jest.fn(),
+      evaluate: vi.fn(),
     } as unknown as AssistantPolicyService;
     const assistantToolExecutor = {
-      executeMany: jest.fn(),
+      executeMany: vi.fn(),
     } as unknown as AssistantToolService;
     const assistantToolContextService = {
-      buildToolContextBlock: jest.fn().mockReturnValue(''),
+      buildToolContextBlock: vi.fn().mockReturnValue(''),
     } as unknown as AssistantContextService;
     const assistantConversationService = conversationServiceDouble();
 
@@ -833,14 +833,14 @@ describe('AssistantService', () => {
           messages: [{ role: 'assistant', content: 'Hi' }],
         },
         'zh-CN',
-        jest.fn(),
+        vi.fn(),
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rejects when the last user message is blank after trimming', async () => {
     const assistantAgentService = {
-      describeFoundation: jest.fn().mockReturnValue({
+      describeFoundation: vi.fn().mockReturnValue({
         phase: 'foundation',
         chatModelConfigured: true,
         interactiveChatReady: true,
@@ -854,17 +854,17 @@ describe('AssistantService', () => {
     } as unknown as AssistantRuntimeService;
 
     const userSettingsService = {
-      getSettings: jest.fn(),
+      getSettings: vi.fn(),
     } as unknown as UserSettingsService;
 
     const assistantPolicyService = {
-      evaluate: jest.fn(),
+      evaluate: vi.fn(),
     } as unknown as AssistantPolicyService;
     const assistantToolExecutor = {
-      executeMany: jest.fn(),
+      executeMany: vi.fn(),
     } as unknown as AssistantToolService;
     const assistantToolContextService = {
-      buildToolContextBlock: jest.fn().mockReturnValue(''),
+      buildToolContextBlock: vi.fn().mockReturnValue(''),
     } as unknown as AssistantContextService;
     const assistantConversationService = conversationServiceDouble();
 
@@ -884,29 +884,29 @@ describe('AssistantService', () => {
           messages: [{ role: 'user', content: '   ' }],
         },
         'en-US',
-        jest.fn(),
+        vi.fn(),
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('returns and clears the latest persisted conversation', async () => {
     const assistantAgentService = {
-      describeFoundation: jest.fn(),
+      describeFoundation: vi.fn(),
     } as unknown as AssistantRuntimeService;
     const userSettingsService = {
-      getSettings: jest.fn(),
+      getSettings: vi.fn(),
     } as unknown as UserSettingsService;
     const assistantPolicyService = {
-      evaluate: jest.fn(),
+      evaluate: vi.fn(),
     } as unknown as AssistantPolicyService;
     const assistantToolExecutor = {
-      executeMany: jest.fn(),
+      executeMany: vi.fn(),
     } as unknown as AssistantToolService;
     const assistantToolContextService = {
-      buildToolContextBlock: jest.fn(),
+      buildToolContextBlock: vi.fn(),
     } as unknown as AssistantContextService;
     const assistantConversationService = {
-      listRecentConversations: jest.fn().mockResolvedValue([
+      listRecentConversations: vi.fn().mockResolvedValue([
         {
           id: 'conversation-2',
           title: '今天头痛正常吗？',
@@ -916,7 +916,7 @@ describe('AssistantService', () => {
           updatedAt: '2026-06-18T11:00:00.000Z',
         },
       ]),
-      getLatestConversation: jest.fn().mockResolvedValue({
+      getLatestConversation: vi.fn().mockResolvedValue({
         id: 'conversation-1',
         title: '最近睡眠怎样？',
         status: 'active',
@@ -932,7 +932,7 @@ describe('AssistantService', () => {
         createdAt: '2026-06-18T10:00:00.000Z',
         updatedAt: '2026-06-18T10:00:00.000Z',
       }),
-      openConversation: jest.fn().mockResolvedValue({
+      openConversation: vi.fn().mockResolvedValue({
         id: 'conversation-2',
         title: '今天头痛正常吗？',
         status: 'active',
@@ -948,7 +948,7 @@ describe('AssistantService', () => {
         createdAt: '2026-06-18T10:55:00.000Z',
         updatedAt: '2026-06-18T11:05:00.000Z',
       }),
-      clearLatestConversation: jest.fn().mockResolvedValue({
+      clearLatestConversation: vi.fn().mockResolvedValue({
         id: 'conversation-1',
         title: '最近睡眠怎样？',
         status: 'archived',
@@ -957,7 +957,7 @@ describe('AssistantService', () => {
         createdAt: '2026-06-18T10:00:00.000Z',
         updatedAt: '2026-06-18T10:05:00.000Z',
       }),
-      persistAssistantTurn: jest.fn(),
+      persistAssistantTurn: vi.fn(),
     } as unknown as AssistantConversationService;
 
     const service = new AssistantService(

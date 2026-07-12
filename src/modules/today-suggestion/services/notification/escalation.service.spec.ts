@@ -30,14 +30,14 @@ function buildCandidate(
 
 describe('EscalationService', () => {
   let service: EscalationService;
-  let createOrReplaceScopedMock: jest.Mock;
-  let findUniqueMock: jest.Mock;
-  let updateMock: jest.Mock;
+  let createOrReplaceScopedMock: vi.Mock;
+  let findUniqueMock: vi.Mock;
+  let updateMock: vi.Mock;
 
   beforeEach(() => {
-    createOrReplaceScopedMock = jest.fn().mockResolvedValue({});
-    findUniqueMock = jest.fn();
-    updateMock = jest.fn().mockResolvedValue({});
+    createOrReplaceScopedMock = vi.fn().mockResolvedValue({});
+    findUniqueMock = vi.fn();
+    updateMock = vi.fn().mockResolvedValue({});
 
     const notificationsMock = {
       createOrReplaceScoped: createOrReplaceScopedMock,

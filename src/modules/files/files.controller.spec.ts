@@ -6,7 +6,7 @@ import { FilesService } from './services/files.service';
 
 describe('FilesController', () => {
   let controller: FilesController;
-  let filesService: jest.Mocked<Pick<FilesService, 'createPresignedUpload'>>;
+  let filesService: vi.Mocked<Pick<FilesService, 'createPresignedUpload'>>;
 
   const mockResult = {
     provider: 'tencent-cos',
@@ -21,7 +21,7 @@ describe('FilesController', () => {
 
   beforeEach(async () => {
     filesService = {
-      createPresignedUpload: jest.fn().mockReturnValue(mockResult),
+      createPresignedUpload: vi.fn().mockReturnValue(mockResult),
     };
 
     const module: TestingModule = await Test.createTestingModule({

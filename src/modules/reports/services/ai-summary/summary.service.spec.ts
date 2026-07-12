@@ -10,10 +10,10 @@ import type { ReportsComputationService } from '../../dashboard/computation.serv
 import type { ReportsContextService } from '../../dashboard/context.service';
 
 function modelGenerateSpy(service: ReportsAiSummaryService) {
-  return jest.spyOn(
+  return vi.spyOn(
     (
       service as unknown as {
-        generatorService: { generate: jest.Mock };
+        generatorService: { generate: vi.Mock };
       }
     ).generatorService,
     'generate',
@@ -349,40 +349,40 @@ describe('ReportsAiSummaryService', () => {
   }) {
     const prisma = {
       userSetting: {
-        findFirst: jest.fn().mockResolvedValue({
+        findFirst: vi.fn().mockResolvedValue({
           value: options?.userSettingValue ?? true,
         }),
       },
     };
     const aiSummaryHistoryService = {
-      save: jest.fn().mockResolvedValue(undefined),
+      save: vi.fn().mockResolvedValue(undefined),
     };
 
     const reportsContextService = {
-      build: jest.fn().mockResolvedValue(options?.facts ?? baseFacts),
+      build: vi.fn().mockResolvedValue(options?.facts ?? baseFacts),
     } as unknown as ReportsContextService;
     const reportsComputationService = {
-      compute: jest.fn().mockReturnValue(baseComputed),
+      compute: vi.fn().mockReturnValue(baseComputed),
     } as unknown as ReportsComputationService;
     const reportsAiSummaryContextService = {
-      build: jest.fn().mockReturnValue(options?.context ?? baseAiContext),
+      build: vi.fn().mockReturnValue(options?.context ?? baseAiContext),
     } as unknown as ReportsAiSummaryContextService;
     const reportsLlmSummaryCopyService = {
-      resolveLocale: jest.fn((language: string | undefined) => {
+      resolveLocale: vi.fn((language: string | undefined) => {
         const normalized = language?.trim().toLowerCase() ?? '';
         return normalized.startsWith('zh') ? 'zh-CN' : 'en';
       }),
-      serviceUnavailable: jest.fn((locale: string) =>
+      serviceUnavailable: vi.fn((locale: string) =>
         locale === 'zh-CN'
           ? '周报 AI 总结服务尚未配置'
           : 'Weekly report AI summary is not configured',
       ),
-      summariesDisabled: jest.fn((locale: string) =>
+      summariesDisabled: vi.fn((locale: string) =>
         locale === 'zh-CN'
           ? '该用户已关闭 AI 总结'
           : 'AI summaries are disabled for this user',
       ),
-      buildPromptCopy: jest.fn((locale: string) => ({
+      buildPromptCopy: vi.fn((locale: string) => ({
         userIntro:
           locale === 'zh-CN'
             ? '请基于提供的 JSON 事实生成一段简短的中文报告总结。'
@@ -397,73 +397,71 @@ describe('ReportsAiSummaryService', () => {
             : 'The actionLabel should stay close to "View report".',
         factsLabel: locale === 'zh-CN' ? '事实 JSON：' : 'Facts JSON:',
       })),
-      buildFallback: jest.fn(
-        (context: typeof baseAiContext, locale: string) => {
-          const dayLabel =
-            context.range === REPORT_RANGE_LAST_30_DAYS ? '30' : '7';
-          if (locale === 'zh-CN') {
-            return {
-              summary:
-                context.range === REPORT_RANGE_LAST_30_DAYS
-                  ? '本月记录已更新，饮水和用药可以继续按当前节奏补稳，睡眠数据仍待补充。'
-                  : '本周记录已更新，饮水和用药可以继续按当前节奏补稳，睡眠数据仍待补充。',
-              bullets: [
-                {
-                  kind: 'medication' as const,
-                  text: `近 ${dayLabel} 天里有 ${String(context.dataQuality.medicationTrackedDays)} 天有用药记录，可继续保持固定节奏。`,
-                },
-                {
-                  kind: 'hydration' as const,
-                  text: `近 ${dayLabel} 天饮水均值约 ${context.metrics[1]?.value ?? '--'}L，仍建议把偏低的几天补齐。`,
-                },
-                {
-                  kind: 'sleep' as const,
-                  text:
-                    context.range === REPORT_RANGE_LAST_30_DAYS
-                      ? '当前仍缺少真实睡眠数据，补上后月报会更完整。'
-                      : '当前仍缺少真实睡眠数据，补上后周报会更完整。',
-                },
-              ],
-              actionLabel: '查看报告',
-              confidenceNote: `仅基于近 ${dayLabel} 天已记录数据生成，不构成诊断或治疗建议。`,
-            };
-          }
-
+      buildFallback: vi.fn((context: typeof baseAiContext, locale: string) => {
+        const dayLabel =
+          context.range === REPORT_RANGE_LAST_30_DAYS ? '30' : '7';
+        if (locale === 'zh-CN') {
           return {
             summary:
               context.range === REPORT_RANGE_LAST_30_DAYS
-                ? 'This month has enough records to review medication and hydration, while sleep data is still missing.'
-                : 'This week has enough records to review medication and hydration, while sleep data is still missing.',
+                ? '本月记录已更新，饮水和用药可以继续按当前节奏补稳，睡眠数据仍待补充。'
+                : '本周记录已更新，饮水和用药可以继续按当前节奏补稳，睡眠数据仍待补充。',
             bullets: [
               {
                 kind: 'medication' as const,
-                text: '${String(context.dataQuality.medicationTrackedDays)} of the last $dayLabel days contain medication records. Keep the current rhythm steady.',
+                text: `近 ${dayLabel} 天里有 ${String(context.dataQuality.medicationTrackedDays)} 天有用药记录，可继续保持固定节奏。`,
               },
               {
                 kind: 'hydration' as const,
-                text: `Average water intake was about ${context.metrics[1]?.value ?? '--'}L across the last ${dayLabel} days, and a few lower days are still worth filling in.`,
+                text: `近 ${dayLabel} 天饮水均值约 ${context.metrics[1]?.value ?? '--'}L，仍建议把偏低的几天补齐。`,
               },
               {
                 kind: 'sleep' as const,
                 text:
                   context.range === REPORT_RANGE_LAST_30_DAYS
-                    ? 'Sleep data is still missing, so the monthly summary remains limited.'
-                    : 'Sleep data is still missing, so the weekly summary remains limited.',
+                    ? '当前仍缺少真实睡眠数据，补上后月报会更完整。'
+                    : '当前仍缺少真实睡眠数据，补上后周报会更完整。',
               },
             ],
-            actionLabel: 'View report',
-            confidenceNote: `Generated only from the last ${dayLabel} days of recorded data. This is not a diagnosis or treatment advice.`,
+            actionLabel: '查看报告',
+            confidenceNote: `仅基于近 ${dayLabel} 天已记录数据生成，不构成诊断或治疗建议。`,
           };
-        },
-      ),
+        }
+
+        return {
+          summary:
+            context.range === REPORT_RANGE_LAST_30_DAYS
+              ? 'This month has enough records to review medication and hydration, while sleep data is still missing.'
+              : 'This week has enough records to review medication and hydration, while sleep data is still missing.',
+          bullets: [
+            {
+              kind: 'medication' as const,
+              text: '${String(context.dataQuality.medicationTrackedDays)} of the last $dayLabel days contain medication records. Keep the current rhythm steady.',
+            },
+            {
+              kind: 'hydration' as const,
+              text: `Average water intake was about ${context.metrics[1]?.value ?? '--'}L across the last ${dayLabel} days, and a few lower days are still worth filling in.`,
+            },
+            {
+              kind: 'sleep' as const,
+              text:
+                context.range === REPORT_RANGE_LAST_30_DAYS
+                  ? 'Sleep data is still missing, so the monthly summary remains limited.'
+                  : 'Sleep data is still missing, so the weekly summary remains limited.',
+            },
+          ],
+          actionLabel: 'View report',
+          confidenceNote: `Generated only from the last ${dayLabel} days of recorded data. This is not a diagnosis or treatment advice.`,
+        };
+      }),
     } as unknown as ReportsLlmSummaryCopyService;
     const reportsAiSummaryGeneratorService = {
-      hasAnalysisModel: jest
+      hasAnalysisModel: vi
         .fn()
         .mockReturnValue(
           (options?.config ?? baseConfig).analysis.model != null,
         ),
-      generate: jest.fn(),
+      generate: vi.fn(),
     } as unknown as ReportsAiSummaryGeneratorService;
     return new ReportsAiSummaryService(
       prisma as never,

@@ -3,7 +3,7 @@ import { AssistantToolRecordQueryService } from './query.service';
 describe('AssistantToolRecordQueryService', () => {
   it('surfaces meal estimate status and keeps payload available for assistant reasoning', async () => {
     const dailyRecordsService = {
-      list: jest.fn().mockResolvedValue({
+      list: vi.fn().mockResolvedValue({
         items: [
           {
             id: 'meal-1',

@@ -11,7 +11,7 @@ describe('DailyRecordCandidatesCopyService', () => {
         DailyRecordCandidatesCopyService,
         {
           provide: I18nService,
-          useValue: { t: jest.fn((key: string) => key) },
+          useValue: { t: vi.fn((key: string) => key) },
         },
       ],
     }).compile();

@@ -8,12 +8,12 @@ import type { I18nService } from 'nestjs-i18n';
 import { DailyRecordImageUploadService } from './image-upload.service';
 
 const mockI18n = {
-  t: jest.fn().mockReturnValue('error'),
+  t: vi.fn().mockReturnValue('error'),
 } as unknown as I18nService;
 
 describe('DailyRecordImageUploadService', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should create a Tencent COS signed upload URL', () => {
@@ -98,18 +98,16 @@ function testConfig(): TencentCosConfig {
   };
 }
 
-function runtimeDouble(
-  config: TencentCosConfig,
-): jest.Mocked<CosStorageRuntime> {
+function runtimeDouble(config: TencentCosConfig): vi.Mocked<CosStorageRuntime> {
   const runtime: Pick<
-    jest.Mocked<CosStorageRuntime>,
+    vi.Mocked<CosStorageRuntime>,
     'getConfig' | 'createSignedPutUrl'
   > = {
-    getConfig: jest.fn().mockReturnValue(config),
-    createSignedPutUrl: jest
+    getConfig: vi.fn().mockReturnValue(config),
+    createSignedPutUrl: vi
       .fn()
       .mockReturnValue('https://signed-upload.example.com'),
   };
 
-  return runtime as jest.Mocked<CosStorageRuntime>;
+  return runtime as vi.Mocked<CosStorageRuntime>;
 }

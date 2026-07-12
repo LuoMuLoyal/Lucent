@@ -7,8 +7,8 @@ import type { UserSettingsDataDto } from './dto';
 
 describe('UserSettingsController', () => {
   let controller: UserSettingsController;
-  let service: jest.Mocked<UserSettingsService>;
-  let securityPinService: jest.Mocked<SecurityPinService>;
+  let service: vi.Mocked<UserSettingsService>;
+  let securityPinService: vi.Mocked<SecurityPinService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -17,17 +17,17 @@ describe('UserSettingsController', () => {
         {
           provide: UserSettingsService,
           useValue: {
-            getSettings: jest.fn(),
-            updateSettings: jest.fn(),
+            getSettings: vi.fn(),
+            updateSettings: vi.fn(),
           },
         },
         {
           provide: SecurityPinService,
           useValue: {
-            enable: jest.fn(),
-            change: jest.fn(),
-            disable: jest.fn(),
-            verify: jest.fn(),
+            enable: vi.fn(),
+            change: vi.fn(),
+            disable: vi.fn(),
+            verify: vi.fn(),
           },
         },
       ],

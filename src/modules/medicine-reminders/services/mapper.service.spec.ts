@@ -45,7 +45,7 @@ describe('MedicineRemindersMapperService', () => {
 
   beforeEach(() => {
     service = new MedicineRemindersMapperService({
-      t: jest.fn().mockImplementation((key: string) => key),
+      t: vi.fn().mockImplementation((key: string) => key),
     } as unknown as I18nService);
   });
 

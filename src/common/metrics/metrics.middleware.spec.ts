@@ -3,14 +3,14 @@ import { createMetricsMiddleware } from './metrics.middleware';
 import type { MetricsService } from './metrics.service';
 
 describe('createMetricsMiddleware', () => {
-  let metricsService: jest.Mocked<MetricsService>;
+  let metricsService: vi.Mocked<MetricsService>;
   let middleware: ReturnType<typeof createMetricsMiddleware>;
 
   beforeEach(() => {
     metricsService = {
-      is_enabled: jest.fn().mockReturnValue(true),
-      recordHttpRequest: jest.fn(),
-    } as unknown as jest.Mocked<MetricsService>;
+      is_enabled: vi.fn().mockReturnValue(true),
+      recordHttpRequest: vi.fn(),
+    } as unknown as vi.Mocked<MetricsService>;
     middleware = createMetricsMiddleware(metricsService);
   });
 
@@ -22,7 +22,7 @@ describe('createMetricsMiddleware', () => {
     const listeners: Record<string, (() => void)[]> = {};
     const res = {
       statusCode: 200,
-      on: jest.fn((event: string, cb: () => void) => {
+      on: vi.fn((event: string, cb: () => void) => {
         if (!listeners[event]) {
           listeners[event] = [];
         }
@@ -40,7 +40,7 @@ describe('createMetricsMiddleware', () => {
   it('calls next() immediately', () => {
     const req = createMockReq('/api/v1/test');
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
 
@@ -50,7 +50,7 @@ describe('createMetricsMiddleware', () => {
   it('records metrics on res finish event', () => {
     const req = createMockReq('/api/v1/test');
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');
@@ -66,7 +66,7 @@ describe('createMetricsMiddleware', () => {
   it('skips /metrics endpoint', () => {
     const req = createMockReq('/metrics');
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');
@@ -77,7 +77,7 @@ describe('createMetricsMiddleware', () => {
   it('skips /api/v1/health endpoints', () => {
     const req = createMockReq('/api/v1/health/ready');
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');
@@ -89,7 +89,7 @@ describe('createMetricsMiddleware', () => {
     metricsService.is_enabled.mockReturnValue(false);
     const req = createMockReq('/api/v1/test');
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');
@@ -102,7 +102,7 @@ describe('createMetricsMiddleware', () => {
       '/api/v1/users/550e8400-e29b-41d4-a716-446655440000/records',
     );
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');
@@ -118,7 +118,7 @@ describe('createMetricsMiddleware', () => {
   it('normalizes numeric IDs in the route path', () => {
     const req = createMockReq('/api/v1/medicines/42/details');
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');
@@ -134,7 +134,7 @@ describe('createMetricsMiddleware', () => {
   it('strips query strings from the route', () => {
     const req = createMockReq('/api/v1/medicines?search=aspirin&page=2');
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');
@@ -150,7 +150,7 @@ describe('createMetricsMiddleware', () => {
   it('records POST method', () => {
     const req = createMockReq('/api/v1/auth/login', 'POST');
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');
@@ -167,7 +167,7 @@ describe('createMetricsMiddleware', () => {
     const req = createMockReq('/api/v1/broken', 'GET');
     const res = createMockRes();
     res.statusCode = 500;
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');
@@ -185,7 +185,7 @@ describe('createMetricsMiddleware', () => {
       '/api/v1/users/550e8400-e29b-41d4-a716-446655440000/items/42',
     );
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');
@@ -205,7 +205,7 @@ describe('createMetricsMiddleware', () => {
       method: 'PUT',
     } as unknown as Request;
     const res = createMockRes();
-    const next = jest.fn() as unknown as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     middleware(req, res, next);
     res.emit('finish');

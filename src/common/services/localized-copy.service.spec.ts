@@ -11,12 +11,12 @@ class TestLocalizedCopyService extends LocalizedCopyService<PromptCopy> {
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe('LocalizedCopyService', () => {
-  let i18n: jest.Mocked<I18nService>;
+  let i18n: vi.Mocked<I18nService>;
   let service: TestLocalizedCopyService;
 
   beforeEach(() => {
     i18n = {
-      t: jest.fn((key: string, opts?: Record<string, unknown>) => {
+      t: vi.fn((key: string, opts?: Record<string, unknown>) => {
         if (opts && 'args' in opts) {
           const args = opts['args'] as Record<string, string>;
           return Object.entries(args).reduce(
@@ -26,7 +26,7 @@ describe('LocalizedCopyService', () => {
         }
         return key;
       }),
-    } as unknown as jest.Mocked<I18nService>;
+    } as unknown as vi.Mocked<I18nService>;
 
     service = new TestLocalizedCopyService(i18n);
   });

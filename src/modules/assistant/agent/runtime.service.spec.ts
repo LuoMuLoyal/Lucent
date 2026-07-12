@@ -5,32 +5,32 @@ import { buildAssistantSystemPrompt } from '../prompts/system.prompt';
 
 function buildMetricsService() {
   return {
-    recordLlmCall: jest.fn(),
-    recordLlmTokens: jest.fn(),
-    recordBullmqJob: jest.fn(),
-    setBullmqActiveJobs: jest.fn(),
-    setBullmqWaitingJobs: jest.fn(),
-    recordHttpRequest: jest.fn(),
-    is_enabled: jest.fn().mockReturnValue(true),
-    getMetrics: jest.fn(),
-    getContentType: jest.fn(),
+    recordLlmCall: vi.fn(),
+    recordLlmTokens: vi.fn(),
+    recordBullmqJob: vi.fn(),
+    setBullmqActiveJobs: vi.fn(),
+    setBullmqWaitingJobs: vi.fn(),
+    recordHttpRequest: vi.fn(),
+    is_enabled: vi.fn().mockReturnValue(true),
+    getMetrics: vi.fn(),
+    getContentType: vi.fn(),
   };
 }
 
 function buildLeafletService(hasChunks = false) {
   return {
-    hasIndexedChunks: jest.fn().mockResolvedValue(hasChunks),
-    searchMedicineLeaflets: jest.fn(),
+    hasIndexedChunks: vi.fn().mockResolvedValue(hasChunks),
+    searchMedicineLeaflets: vi.fn(),
   };
 }
 
 describe('AssistantRuntimeService', () => {
   it('describes the phase-1 backend foundation', async () => {
     const llmRuntimeService = {
-      hasRoleConfig: jest
+      hasRoleConfig: vi
         .fn()
         .mockImplementation((role: string) => role === 'chat'),
-      getModelName: jest.fn().mockReturnValue('test-model'),
+      getModelName: vi.fn().mockReturnValue('test-model'),
     } as unknown as LlmRuntimeService;
 
     const leafletService = buildLeafletService(false);
@@ -114,10 +114,10 @@ describe('AssistantRuntimeService', () => {
     }
 
     const llmRuntimeService = {
-      hasRoleConfig: jest.fn().mockReturnValue(true),
-      getModelName: jest.fn().mockReturnValue('test-model'),
-      createChatModel: jest.fn().mockReturnValue({
-        stream: jest.fn().mockResolvedValue(buildStream()),
+      hasRoleConfig: vi.fn().mockReturnValue(true),
+      getModelName: vi.fn().mockReturnValue('test-model'),
+      createChatModel: vi.fn().mockReturnValue({
+        stream: vi.fn().mockResolvedValue(buildStream()),
       }),
     } as unknown as LlmRuntimeService;
 
@@ -128,7 +128,7 @@ describe('AssistantRuntimeService', () => {
       leafletService as never,
       metricsService as never,
     );
-    const onChunk = jest.fn();
+    const onChunk = vi.fn();
 
     const result = await service.generateStream(
       {
@@ -155,7 +155,7 @@ describe('AssistantRuntimeService', () => {
 
   it('streams pre-generated content as word-level chunks', async () => {
     const llmRuntimeService = {
-      hasRoleConfig: jest.fn().mockReturnValue(true),
+      hasRoleConfig: vi.fn().mockReturnValue(true),
     } as unknown as LlmRuntimeService;
 
     const leafletService = buildLeafletService(false);
@@ -165,7 +165,7 @@ describe('AssistantRuntimeService', () => {
       leafletService as never,
       metricsService as never,
     );
-    const onChunk = jest.fn();
+    const onChunk = vi.fn();
 
     const result = await service.streamPreGeneratedContent(
       'Hello world from assistant',

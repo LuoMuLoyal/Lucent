@@ -84,7 +84,7 @@ describe('OAuth API (e2e)', () => {
 
   describe('POST /api/v1/auth/oauth/wechat-web/authorize', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should return 503 when WeChat OAuth is not configured', async () => {
@@ -97,11 +97,9 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should return authorize URL with state when configured (mocked)', async () => {
-      jest
-        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
-        .mockReturnValue(
-          'https://open.weixin.qq.com/connect/qrconnect?appid=wx123&state=mock-state',
-        );
+      vi.spyOn(wechatWebProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://open.weixin.qq.com/connect/qrconnect?appid=wx123&state=mock-state',
+      );
 
       const res = await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatWebAuthorize)
@@ -114,9 +112,9 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should include callbackUri in response when provided', async () => {
-      jest
-        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
-        .mockReturnValue('https://open.weixin.qq.com/connect/qrconnect');
+      vi.spyOn(wechatWebProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://open.weixin.qq.com/connect/qrconnect',
+      );
 
       const callbackUri = 'http://localhost:3000/login/oauth/wechat';
       const res = await request(app.getHttpServer())
@@ -135,7 +133,7 @@ describe('OAuth API (e2e)', () => {
 
   describe('POST /api/v1/auth/oauth/wechat-web/callback', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should reject missing code with 400', async () => {
@@ -170,9 +168,9 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should create new user and return tokens with valid state and code', async () => {
-      jest
-        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
-        .mockReturnValue('https://open.weixin.qq.com/connect/qrconnect');
+      vi.spyOn(wechatWebProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://open.weixin.qq.com/connect/qrconnect',
+      );
 
       const mockProfile: OAuthProfile = {
         provider: 'wechat_web',
@@ -181,9 +179,9 @@ describe('OAuth API (e2e)', () => {
         nickname: 'WeChat Login User',
         avatar: 'https://wx.qlogo.cn/login-avatar',
       };
-      jest
-        .spyOn(wechatWebProvider, 'fetchProfile')
-        .mockResolvedValue(mockProfile);
+      vi.spyOn(wechatWebProvider, 'fetchProfile').mockResolvedValue(
+        mockProfile,
+      );
 
       // Step 1: Get a valid state from the authorize endpoint
       const authorizeRes = await request(app.getHttpServer())
@@ -209,9 +207,9 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should login existing OAuth user with valid state and code', async () => {
-      jest
-        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
-        .mockReturnValue('https://open.weixin.qq.com/connect/qrconnect');
+      vi.spyOn(wechatWebProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://open.weixin.qq.com/connect/qrconnect',
+      );
 
       // First, register a user via OAuth to create the identity
       const firstProfile: OAuthProfile = {
@@ -221,9 +219,9 @@ describe('OAuth API (e2e)', () => {
         nickname: 'Returning WeChat User',
         avatar: 'https://wx.qlogo.cn/returning-avatar',
       };
-      jest
-        .spyOn(wechatWebProvider, 'fetchProfile')
-        .mockResolvedValue(firstProfile);
+      vi.spyOn(wechatWebProvider, 'fetchProfile').mockResolvedValue(
+        firstProfile,
+      );
 
       const authorizeRes1 = await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatWebAuthorize)
@@ -267,7 +265,7 @@ describe('OAuth API (e2e)', () => {
 
   describe('GET /api/v1/auth/oauth/wechat-web/callback', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should reject invalid state with 401', async () => {
@@ -281,9 +279,9 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should redirect to callback URI with code and state (302)', async () => {
-      jest
-        .spyOn(wechatWebProvider, 'buildAuthorizeUrl')
-        .mockReturnValue('https://open.weixin.qq.com/connect/qrconnect');
+      vi.spyOn(wechatWebProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://open.weixin.qq.com/connect/qrconnect',
+      );
 
       const callbackUri = 'http://localhost:3000/login/oauth/wechat';
 
@@ -314,7 +312,7 @@ describe('OAuth API (e2e)', () => {
 
   describe('POST /api/v1/auth/oauth/wechat-mobile/callback', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should reject missing code with 400', async () => {
@@ -342,9 +340,9 @@ describe('OAuth API (e2e)', () => {
         nickname: 'WeChat Mobile User',
         avatar: 'https://wx.qlogo.cn/mobile-avatar',
       };
-      jest
-        .spyOn(wechatMobileProvider, 'fetchProfile')
-        .mockResolvedValue(mockProfile);
+      vi.spyOn(wechatMobileProvider, 'fetchProfile').mockResolvedValue(
+        mockProfile,
+      );
 
       const res = await request(app.getHttpServer())
         .post(OAUTH_PATH.wechatMobileCallback)
@@ -365,7 +363,7 @@ describe('OAuth API (e2e)', () => {
 
   describe('POST /api/v1/auth/oauth/apple/callback', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should reject missing identityToken with 400', async () => {
@@ -383,7 +381,7 @@ describe('OAuth API (e2e)', () => {
         emailVerifiedAt: new Date(),
         nickname: 'Apple User',
       };
-      jest.spyOn(appleProvider, 'fetchProfile').mockResolvedValue(mockProfile);
+      vi.spyOn(appleProvider, 'fetchProfile').mockResolvedValue(mockProfile);
 
       const res = await request(app.getHttpServer())
         .post(OAUTH_PATH.appleCallback)
@@ -411,7 +409,7 @@ describe('OAuth API (e2e)', () => {
         emailVerifiedAt: new Date(),
         nickname: 'Apple Return User',
       };
-      jest.spyOn(appleProvider, 'fetchProfile').mockResolvedValue(profile);
+      vi.spyOn(appleProvider, 'fetchProfile').mockResolvedValue(profile);
 
       const res1 = await request(app.getHttpServer())
         .post(OAUTH_PATH.appleCallback)
@@ -427,9 +425,7 @@ describe('OAuth API (e2e)', () => {
         emailVerifiedAt: new Date(),
         nickname: null,
       };
-      jest
-        .spyOn(appleProvider, 'fetchProfile')
-        .mockResolvedValue(profileNoName);
+      vi.spyOn(appleProvider, 'fetchProfile').mockResolvedValue(profileNoName);
 
       const res2 = await request(app.getHttpServer())
         .post(OAUTH_PATH.appleCallback)
@@ -447,7 +443,7 @@ describe('OAuth API (e2e)', () => {
 
   describe('POST /api/v1/auth/oauth/qq/authorize', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should return 503 when QQ OAuth is not configured', async () => {
@@ -460,11 +456,9 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should return authorize URL with state when configured (mocked)', async () => {
-      jest
-        .spyOn(qqProvider, 'buildAuthorizeUrl')
-        .mockReturnValue(
-          'https://graph.qq.com/oauth2.0/authorize?client_id=qq123',
-        );
+      vi.spyOn(qqProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://graph.qq.com/oauth2.0/authorize?client_id=qq123',
+      );
 
       const res = await request(app.getHttpServer())
         .post(OAUTH_PATH.qqAuthorize)
@@ -477,9 +471,9 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should include callbackUri in response when provided', async () => {
-      jest
-        .spyOn(qqProvider, 'buildAuthorizeUrl')
-        .mockReturnValue('https://graph.qq.com/oauth2.0/authorize');
+      vi.spyOn(qqProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://graph.qq.com/oauth2.0/authorize',
+      );
 
       const callbackUri = 'http://localhost:3000/login/oauth/qq';
       const res = await request(app.getHttpServer())
@@ -498,7 +492,7 @@ describe('OAuth API (e2e)', () => {
 
   describe('POST /api/v1/auth/oauth/qq/callback', () => {
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it('should reject missing code with 400', async () => {
@@ -533,9 +527,9 @@ describe('OAuth API (e2e)', () => {
     });
 
     it('should create new user and return tokens with valid state and code', async () => {
-      jest
-        .spyOn(qqProvider, 'buildAuthorizeUrl')
-        .mockReturnValue('https://graph.qq.com/oauth2.0/authorize');
+      vi.spyOn(qqProvider, 'buildAuthorizeUrl').mockReturnValue(
+        'https://graph.qq.com/oauth2.0/authorize',
+      );
 
       const mockProfile: OAuthProfile = {
         provider: 'qq',
@@ -543,7 +537,7 @@ describe('OAuth API (e2e)', () => {
         nickname: 'QQ Login User',
         avatar: 'https://q.qlogo.cn/qq-avatar',
       };
-      jest.spyOn(qqProvider, 'fetchProfile').mockResolvedValue(mockProfile);
+      vi.spyOn(qqProvider, 'fetchProfile').mockResolvedValue(mockProfile);
 
       // Step 1: Get a valid state from the authorize endpoint
       const authorizeRes = await request(app.getHttpServer())

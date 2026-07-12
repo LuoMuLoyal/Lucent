@@ -6,7 +6,7 @@ import { MedicinesCacheService } from './cache.service';
 
 describe('MedicinesCacheService', () => {
   let service: MedicinesCacheService;
-  let cache: jest.Mocked<Cache>;
+  let cache: vi.Mocked<Cache>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -15,8 +15,8 @@ describe('MedicinesCacheService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: {
-            get: jest.fn(),
-            set: jest.fn(),
+            get: vi.fn(),
+            set: vi.fn(),
           },
         },
       ],
@@ -31,7 +31,7 @@ describe('MedicinesCacheService', () => {
       items: [{ id: 'DB01050' }],
       pagination: { page: 1, pageSize: 10, total: 1, totalPages: 1 },
     };
-    const load = jest.fn();
+    const load = vi.fn();
     cache.get.mockResolvedValue(cachedValue);
 
     const result = await service.getOrSetSearch(
@@ -55,7 +55,7 @@ describe('MedicinesCacheService', () => {
       items: [{ id: 'cn_ibuprofen_capsule' }],
       pagination: { page: 2, pageSize: 5, total: 7, totalPages: 2 },
     };
-    const load = jest.fn().mockResolvedValue(loadedValue);
+    const load = vi.fn().mockResolvedValue(loadedValue);
     cache.get.mockResolvedValue(undefined);
     cache.set.mockResolvedValue(loadedValue);
 
@@ -92,7 +92,7 @@ describe('MedicinesCacheService', () => {
         kind: 'drugbank' as const,
       },
     };
-    const load = jest.fn().mockResolvedValue(loadedValue);
+    const load = vi.fn().mockResolvedValue(loadedValue);
     cache.get.mockResolvedValue(undefined);
     cache.set.mockResolvedValue(loadedValue);
 
@@ -122,7 +122,7 @@ describe('MedicinesCacheService', () => {
         kind: 'drugbank' as const,
       },
     };
-    const load = jest.fn().mockResolvedValue(loadedValue);
+    const load = vi.fn().mockResolvedValue(loadedValue);
     cache.get.mockResolvedValue(loadedValue);
     cache.set.mockResolvedValue(loadedValue);
 
@@ -151,7 +151,7 @@ describe('MedicinesCacheService', () => {
       subtitle: 'CAS 15687-27-1',
       detail: { kind: 'drugbank' as const },
     };
-    const load = jest.fn();
+    const load = vi.fn();
     cache.get.mockResolvedValue(cachedValue);
 
     const result = await service.getOrSetDetail(
@@ -167,7 +167,7 @@ describe('MedicinesCacheService', () => {
   });
 
   it('returns null when load returns null for detail', async () => {
-    const load = jest.fn().mockResolvedValue(null);
+    const load = vi.fn().mockResolvedValue(null);
     cache.get.mockResolvedValue(undefined);
 
     const result = await service.getOrSetDetail(
@@ -191,7 +191,7 @@ describe('MedicinesCacheService', () => {
       items: [{ id: 'cn_test' }],
       pagination: { page: 1, pageSize: 10, total: 1, totalPages: 1 },
     };
-    const load = jest.fn().mockResolvedValue(loadedValue);
+    const load = vi.fn().mockResolvedValue(loadedValue);
     cache.get.mockResolvedValue(loadedValue);
 
     const result = await service.getOrSetSearch(
@@ -206,7 +206,7 @@ describe('MedicinesCacheService', () => {
   });
 
   it('encodes special characters in search query', async () => {
-    const load = jest.fn().mockResolvedValue({
+    const load = vi.fn().mockResolvedValue({
       items: [],
       pagination: { page: 1, pageSize: 10, total: 0, totalPages: 0 },
     });

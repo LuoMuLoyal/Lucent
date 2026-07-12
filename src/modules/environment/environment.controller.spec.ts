@@ -6,7 +6,7 @@ import { EnvironmentService } from './services/environment.service';
 
 describe('EnvironmentController', () => {
   let controller: EnvironmentController;
-  let service: jest.Mocked<EnvironmentService>;
+  let service: vi.Mocked<EnvironmentService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -15,7 +15,7 @@ describe('EnvironmentController', () => {
         {
           provide: EnvironmentService,
           useValue: {
-            getSnapshot: jest.fn(),
+            getSnapshot: vi.fn(),
           },
         },
       ],

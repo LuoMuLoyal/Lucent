@@ -51,11 +51,11 @@ describe('Daily Records API (e2e)', () => {
   let prisma: PrismaService;
   let jwtService: JwtService;
   let configService: ConfigService;
-  let candidateService: jest.Mocked<DailyRecordCandidatesService>;
+  let candidateService: vi.Mocked<DailyRecordCandidatesService>;
 
   beforeAll(async () => {
     const candidateServiceMock = {
-      generate: jest.fn(),
+      generate: vi.fn(),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({

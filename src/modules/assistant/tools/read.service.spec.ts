@@ -24,41 +24,41 @@ const mockContextNoSleep: AssistantToolExecutionContext = {
 describe('AssistantToolReadService', () => {
   let service: AssistantToolReadService;
   let prisma: DeepMocked<PrismaService>;
-  let aiSummary: jest.Mocked<HistoricalAiSummaryService>;
-  let healthContext: jest.Mocked<UserHealthContextService>;
-  let reminders: jest.Mocked<IMedicineReminderReader>;
-  let userSettings: jest.Mocked<UserSettingsService>;
-  let recordQuery: jest.Mocked<AssistantToolRecordQueryService>;
+  let aiSummary: vi.Mocked<HistoricalAiSummaryService>;
+  let healthContext: vi.Mocked<UserHealthContextService>;
+  let reminders: vi.Mocked<IMedicineReminderReader>;
+  let userSettings: vi.Mocked<UserSettingsService>;
+  let recordQuery: vi.Mocked<AssistantToolRecordQueryService>;
 
   beforeEach(() => {
     prisma = {
-      user: { findFirstOrThrow: jest.fn() },
+      user: { findFirstOrThrow: vi.fn() },
     } as unknown as DeepMocked<PrismaService>;
 
     aiSummary = {
-      getLatestTodaySummaryByDate: jest.fn(),
-      getLatestReportSummaryByRange: jest.fn(),
-      listRecentTodaySummaries: jest.fn(),
-      listRecentReportSummaries: jest.fn(),
-    } as unknown as jest.Mocked<HistoricalAiSummaryService>;
+      getLatestTodaySummaryByDate: vi.fn(),
+      getLatestReportSummaryByRange: vi.fn(),
+      listRecentTodaySummaries: vi.fn(),
+      listRecentReportSummaries: vi.fn(),
+    } as unknown as vi.Mocked<HistoricalAiSummaryService>;
 
     healthContext = {
-      getForUser: jest.fn(),
-    } as unknown as jest.Mocked<UserHealthContextService>;
+      getForUser: vi.fn(),
+    } as unknown as vi.Mocked<UserHealthContextService>;
 
     reminders = {
-      list: jest.fn(),
-    } as unknown as jest.Mocked<IMedicineReminderReader>;
+      list: vi.fn(),
+    } as unknown as vi.Mocked<IMedicineReminderReader>;
 
     userSettings = {
-      getSettings: jest.fn(),
-    } as unknown as jest.Mocked<UserSettingsService>;
+      getSettings: vi.fn(),
+    } as unknown as vi.Mocked<UserSettingsService>;
 
     recordQuery = {
-      listToolRecords: jest.fn(),
-      resolveSingleDate: jest.fn(),
-      findTargetDailyRecordForMutation: jest.fn(),
-    } as unknown as jest.Mocked<AssistantToolRecordQueryService>;
+      listToolRecords: vi.fn(),
+      resolveSingleDate: vi.fn(),
+      findTargetDailyRecordForMutation: vi.fn(),
+    } as unknown as vi.Mocked<AssistantToolRecordQueryService>;
 
     service = new AssistantToolReadService(
       prisma,
@@ -251,7 +251,7 @@ describe('AssistantToolReadService', () => {
 
   describe('getUserProfile', () => {
     it('returns profile data', async () => {
-      (prisma.user.findFirstOrThrow as jest.Mock).mockResolvedValue({
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         nickname: 'TestUser',
       });
       healthContext.getForUser.mockResolvedValue({

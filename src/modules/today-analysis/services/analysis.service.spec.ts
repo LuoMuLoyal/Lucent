@@ -8,10 +8,10 @@ import { TodayAnalysisService } from './analysis.service';
 import type { NotificationsService } from '../../notifications/services/notifications.service';
 
 function modelGenerateSpy(service: TodayAnalysisService) {
-  return jest.spyOn(
+  return vi.spyOn(
     (
       service as unknown as {
-        generatorService: { generate: jest.Mock };
+        generatorService: { generate: vi.Mock };
       }
     ).generatorService,
     'generate',
@@ -19,10 +19,10 @@ function modelGenerateSpy(service: TodayAnalysisService) {
 }
 
 function notificationCreateOrReplaceScopedSpy(service: TodayAnalysisService) {
-  return jest.spyOn(
+  return vi.spyOn(
     (
       service as unknown as {
-        notificationsService: { createOrReplaceScoped: jest.Mock };
+        notificationsService: { createOrReplaceScoped: vi.Mock };
       }
     ).notificationsService,
     'createOrReplaceScoped',
@@ -232,7 +232,7 @@ describe('TodayAnalysisService', () => {
     const generatorService = (
       service as unknown as {
         generatorService: {
-          generateStream: jest.Mock;
+          generateStream: vi.Mock;
         };
       }
     ).generatorService;
@@ -302,7 +302,7 @@ describe('TodayAnalysisService', () => {
     // Override the context mock to echo the date passed to build()
     (
       service as unknown as {
-        contextService: { build: jest.Mock };
+        contextService: { build: vi.Mock };
       }
     ).contextService.build.mockImplementation(
       (_userId: string, date: string) => ({
@@ -393,7 +393,7 @@ describe('TodayAnalysisService', () => {
     const service = createService();
     const aiSummaryHistoryService = (
       service as unknown as {
-        aiSummaryHistoryService: { save: jest.Mock };
+        aiSummaryHistoryService: { save: vi.Mock };
       }
     ).aiSummaryHistoryService;
 
@@ -423,35 +423,35 @@ describe('TodayAnalysisService', () => {
   }) {
     const prisma = {
       userSetting: {
-        findFirst: jest.fn().mockResolvedValue({
+        findFirst: vi.fn().mockResolvedValue({
           value: options?.userSettingValue ?? true,
         }),
       },
     };
 
     const contextService = {
-      build: jest.fn().mockResolvedValue(baseContext),
+      build: vi.fn().mockResolvedValue(baseContext),
     } as unknown as TodayAnalysisContextService;
     const aiSummaryHistoryService = {
-      save: jest.fn().mockResolvedValue(undefined),
+      save: vi.fn().mockResolvedValue(undefined),
     };
 
     const copyService = {
-      resolveLocale: jest.fn((language: string | undefined) => {
+      resolveLocale: vi.fn((language: string | undefined) => {
         const normalized = language?.trim().toLowerCase() ?? '';
         return normalized.startsWith('zh') ? 'zh-CN' : 'en';
       }),
-      serviceUnavailable: jest.fn((locale: string) =>
+      serviceUnavailable: vi.fn((locale: string) =>
         locale === 'zh-CN'
           ? '今日 AI 分析服务尚未配置'
           : 'Today AI analysis is not configured',
       ),
-      summariesDisabled: jest.fn((locale: string) =>
+      summariesDisabled: vi.fn((locale: string) =>
         locale === 'zh-CN'
           ? '该用户已关闭 AI 总结'
           : 'AI summaries are disabled for this user',
       ),
-      buildPromptCopy: jest.fn((locale: string) => ({
+      buildPromptCopy: vi.fn((locale: string) => ({
         userIntro:
           locale === 'zh-CN'
             ? '请基于提供的 JSON 事实生成一段简短的中文总结。'
@@ -466,7 +466,7 @@ describe('TodayAnalysisService', () => {
             : 'The actionLabel should stay close to "View today".',
         factsLabel: locale === 'zh-CN' ? '事实 JSON：' : 'Facts JSON:',
       })),
-      buildFallback: jest.fn((context: typeof baseContext, locale: string) => {
+      buildFallback: vi.fn((context: typeof baseContext, locale: string) => {
         const medicationPending = context.medication.pendingCount;
         const waterRemaining = context.water.remainingCount;
 
@@ -521,18 +521,18 @@ describe('TodayAnalysisService', () => {
       }),
     } as unknown as TodayAnalysisCopyService;
     const generatorService = {
-      hasAnalysisModel: jest
+      hasAnalysisModel: vi
         .fn()
         .mockReturnValue(
           (options?.config ?? baseConfig).analysis.model != null,
         ),
-      generate: jest.fn(),
-      generateStream: jest.fn(),
+      generate: vi.fn(),
+      generateStream: vi.fn(),
     } as unknown as TodayAnalysisGeneratorService;
 
     const notificationsService = {
-      create: jest.fn(),
-      createOrReplaceScoped: jest.fn(),
+      create: vi.fn(),
+      createOrReplaceScoped: vi.fn(),
     } as unknown as NotificationsService;
     return new TodayAnalysisService(
       prisma as never,

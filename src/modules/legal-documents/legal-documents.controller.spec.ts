@@ -37,8 +37,8 @@ describe('LegalDocumentsController', () => {
         {
           provide: LegalDocumentsService,
           useValue: {
-            findAll: jest.fn().mockResolvedValue(mockListData),
-            findOne: jest.fn().mockResolvedValue(mockDetailData),
+            findAll: vi.fn().mockResolvedValue(mockListData),
+            findOne: vi.fn().mockResolvedValue(mockDetailData),
           },
         },
       ],

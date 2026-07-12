@@ -3,14 +3,14 @@ import { withRetry, fetchWithRetry } from './retry.utils';
 describe('retry.utils', () => {
   describe('withRetry', () => {
     it('returns result on first success', async () => {
-      const operation = jest.fn().mockResolvedValue('ok');
+      const operation = vi.fn().mockResolvedValue('ok');
       const result = await withRetry(operation);
       expect(result).toBe('ok');
       expect(operation).toHaveBeenCalledTimes(1);
     });
 
     it('retries on failure and succeeds', async () => {
-      const operation = jest
+      const operation = vi
         .fn()
         .mockRejectedValueOnce(new Error('fail'))
         .mockResolvedValueOnce('ok');
@@ -22,7 +22,7 @@ describe('retry.utils', () => {
 
     it('throws last error after all attempts exhausted', async () => {
       const error = new Error('persistent failure');
-      const operation = jest.fn().mockRejectedValue(error);
+      const operation = vi.fn().mockRejectedValue(error);
 
       await expect(
         withRetry(operation, { attempts: 3, delayMs: 0 }),
@@ -31,8 +31,8 @@ describe('retry.utils', () => {
     });
 
     it('calls onRetry callback between attempts', async () => {
-      const onRetry = jest.fn();
-      const operation = jest
+      const onRetry = vi.fn();
+      const operation = vi
         .fn()
         .mockRejectedValueOnce(new Error('fail'))
         .mockResolvedValueOnce('ok');
@@ -43,7 +43,7 @@ describe('retry.utils', () => {
     });
 
     it('respects attempts option', async () => {
-      const operation = jest.fn().mockRejectedValue(new Error('fail'));
+      const operation = vi.fn().mockRejectedValue(new Error('fail'));
 
       await expect(
         withRetry(operation, { attempts: 2, delayMs: 0 }),
@@ -52,7 +52,7 @@ describe('retry.utils', () => {
     });
 
     it('uses exponential backoff', async () => {
-      const operation = jest
+      const operation = vi
         .fn()
         .mockRejectedValueOnce(new Error('fail1'))
         .mockRejectedValueOnce(new Error('fail2'))
@@ -68,7 +68,7 @@ describe('retry.utils', () => {
     });
 
     it('defaults to 1 attempt when attempts is 0', async () => {
-      const operation = jest.fn().mockResolvedValue('ok');
+      const operation = vi.fn().mockResolvedValue('ok');
       const result = await withRetry(operation, { attempts: 0 });
       expect(result).toBe('ok');
       expect(operation).toHaveBeenCalledTimes(1);
@@ -78,7 +78,7 @@ describe('retry.utils', () => {
   describe('fetchWithRetry', () => {
     it('returns successful response', async () => {
       const mockResponse = { ok: true, status: 200 } as Response;
-      const fetchSpy = jest
+      const fetchSpy = vi
         .spyOn(globalThis, 'fetch')
         .mockResolvedValue(mockResponse);
 
@@ -91,7 +91,7 @@ describe('retry.utils', () => {
     it('retries on non-ok response', async () => {
       const failResponse = { ok: false, status: 500 } as Response;
       const okResponse = { ok: true, status: 200 } as Response;
-      const fetchSpy = jest
+      const fetchSpy = vi
         .spyOn(globalThis, 'fetch')
         .mockResolvedValueOnce(failResponse)
         .mockResolvedValueOnce(okResponse);
@@ -107,7 +107,7 @@ describe('retry.utils', () => {
 
     it('retries on network failure (fetch throws)', async () => {
       const okResponse = { ok: true, status: 200 } as Response;
-      const fetchSpy = jest
+      const fetchSpy = vi
         .spyOn(globalThis, 'fetch')
         .mockRejectedValueOnce(new TypeError('fetch failed'))
         .mockResolvedValueOnce(okResponse);
@@ -123,7 +123,7 @@ describe('retry.utils', () => {
 
     it('passes fetch init options to fetch', async () => {
       const mockResponse = { ok: true, status: 200 } as Response;
-      const fetchSpy = jest
+      const fetchSpy = vi
         .spyOn(globalThis, 'fetch')
         .mockResolvedValue(mockResponse);
 
@@ -140,7 +140,7 @@ describe('retry.utils', () => {
 
     it('throws after all attempts on persistent non-ok', async () => {
       const failResponse = { ok: false, status: 503 } as Response;
-      const fetchSpy = jest
+      const fetchSpy = vi
         .spyOn(globalThis, 'fetch')
         .mockResolvedValue(failResponse);
 

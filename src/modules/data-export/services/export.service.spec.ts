@@ -9,34 +9,34 @@ import type { DataExportProcessorService } from './processor.service';
 describe('DataExportService', () => {
   let service: DataExportService;
   let prisma: DeepMocked<PrismaService>;
-  let storageService: jest.Mocked<DataExportStorageService>;
-  let queueService: jest.Mocked<DataExportQueueService>;
-  let processor: jest.Mocked<DataExportProcessorService>;
+  let storageService: vi.Mocked<DataExportStorageService>;
+  let queueService: vi.Mocked<DataExportQueueService>;
+  let processor: vi.Mocked<DataExportProcessorService>;
 
   beforeEach(() => {
     prisma = {
       dataExportRequest: {
-        create: jest.fn(),
-        findFirst: jest.fn(),
-        findUniqueOrThrow: jest.fn(),
+        create: vi.fn(),
+        findFirst: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
 
     storageService = {
-      isConfigured: jest.fn().mockReturnValue(true),
-      createDownloadUrl: jest
+      isConfigured: vi.fn().mockReturnValue(true),
+      createDownloadUrl: vi
         .fn()
         .mockReturnValue('https://cos.example.com/file'),
-    } as unknown as jest.Mocked<DataExportStorageService>;
+    } as unknown as vi.Mocked<DataExportStorageService>;
 
     queueService = {
       isConfigured: true,
-      enqueue: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<DataExportQueueService>;
+      enqueue: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<DataExportQueueService>;
 
     processor = {
-      process: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<DataExportProcessorService>;
+      process: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<DataExportProcessorService>;
 
     service = new DataExportService(
       prisma,

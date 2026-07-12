@@ -10,13 +10,13 @@ describe('DailyRecordRepository', () => {
   beforeEach(() => {
     prisma = {
       userDailyRecord: {
-        findMany: jest.fn(),
-        findFirst: jest.fn(),
-        count: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
+        findMany: vi.fn(),
+        findFirst: vi.fn(),
+        count: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
       },
-      $transaction: jest.fn(),
+      $transaction: vi.fn(),
     } as unknown as DeepMocked<PrismaService>;
 
     repository = new DailyRecordRepository(prisma);
@@ -197,7 +197,7 @@ describe('DailyRecordRepository', () => {
 
   describe('transaction', () => {
     it('delegates to prisma.$transaction', async () => {
-      const txFn = jest.fn().mockResolvedValue('result');
+      const txFn = vi.fn().mockResolvedValue('result');
       prisma.$transaction.mockImplementation(
         (_fn: never) => txFn() as Promise<string>,
       );

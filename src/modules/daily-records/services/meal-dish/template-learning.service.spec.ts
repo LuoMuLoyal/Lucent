@@ -10,16 +10,16 @@ describe('MealDishTemplateLearningService', () => {
   beforeEach(() => {
     const txMock = {
       mealDishTemplate: {
-        upsert: jest.fn().mockResolvedValue({ id: 'template-1' }),
+        upsert: vi.fn().mockResolvedValue({ id: 'template-1' }),
       },
       mealDishTemplateIngredient: {
-        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-        createMany: jest.fn().mockResolvedValue({ count: 1 }),
+        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+        createMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
     };
 
     prisma = {
-      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+      $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(txMock),
       ),
     } as unknown as DeepMocked<PrismaService>;

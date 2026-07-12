@@ -64,10 +64,10 @@ const mockHistoryResult = {
 
 describe('TodaySuggestionController', () => {
   let controller: TodaySuggestionController;
-  let suggestionService: jest.Mocked<SuggestionService>;
-  let feedbackService: jest.Mocked<FeedbackService>;
-  let explanationService: jest.Mocked<ExplanationService>;
-  let lifecycleService: jest.Mocked<LifecycleService>;
+  let suggestionService: vi.Mocked<SuggestionService>;
+  let feedbackService: vi.Mocked<FeedbackService>;
+  let explanationService: vi.Mocked<ExplanationService>;
+  let lifecycleService: vi.Mocked<LifecycleService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -76,25 +76,25 @@ describe('TodaySuggestionController', () => {
         {
           provide: SuggestionService,
           useValue: {
-            generate: jest.fn(),
+            generate: vi.fn(),
           },
         },
         {
           provide: FeedbackService,
           useValue: {
-            recordFeedback: jest.fn(),
+            recordFeedback: vi.fn(),
           },
         },
         {
           provide: ExplanationService,
           useValue: {
-            explain: jest.fn(),
+            explain: vi.fn(),
           },
         },
         {
           provide: LifecycleService,
           useValue: {
-            getHistory: jest.fn(),
+            getHistory: vi.fn(),
           },
         },
       ],
@@ -108,7 +108,7 @@ describe('TodaySuggestionController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('GET /today/suggestions', () => {
@@ -259,7 +259,7 @@ describe('TodaySuggestionController', () => {
       lifecycleService.getHistory.mockResolvedValue(mockHistoryResult as never);
 
       // Mock the static method
-      const defaultDateSpy = jest
+      const defaultDateSpy = vi
         .spyOn(LifecycleService, 'getDefaultStartDate')
         .mockReturnValue('2026-06-10');
 

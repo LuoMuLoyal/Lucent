@@ -1,8 +1,8 @@
-const prepareSse = jest.fn();
-const writeSseEvent = jest.fn();
-const endSse = jest.fn();
+const prepareSse = vi.fn();
+const writeSseEvent = vi.fn();
+const endSse = vi.fn();
 
-jest.mock('../../common/api/sse', () => ({
+vi.mock('../../common/api/sse', () => ({
   prepareSse: (...args: unknown[]): void => {
     prepareSse(...args);
   },
@@ -23,7 +23,7 @@ import { AssistantService } from './services/core.service';
 
 describe('AssistantController', () => {
   let controller: AssistantController;
-  let service: jest.Mocked<AssistantService>;
+  let service: vi.Mocked<AssistantService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,23 +32,23 @@ describe('AssistantController', () => {
         {
           provide: PinoLogger,
           useValue: {
-            setContext: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            info: jest.fn(),
-            debug: jest.fn(),
+            setContext: vi.fn(),
+            error: vi.fn(),
+            warn: vi.fn(),
+            info: vi.fn(),
+            debug: vi.fn(),
           },
         },
         {
           provide: AssistantService,
           useValue: {
-            getCapabilities: jest.fn(),
-            listRecentConversations: jest.fn(),
-            getLatestConversation: jest.fn(),
-            openConversation: jest.fn(),
-            clearLatestConversation: jest.fn(),
-            getFoundationCapabilities: jest.fn(),
-            streamMessages: jest.fn(),
+            getCapabilities: vi.fn(),
+            listRecentConversations: vi.fn(),
+            getLatestConversation: vi.fn(),
+            openConversation: vi.fn(),
+            clearLatestConversation: vi.fn(),
+            getFoundationCapabilities: vi.fn(),
+            streamMessages: vi.fn(),
           },
         },
       ],

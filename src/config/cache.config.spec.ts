@@ -8,39 +8,39 @@ type RedisStoreMock = Awaited<ReturnType<typeof redisStore>>;
 
 function createRedisStoreMock(): RedisStoreMock {
   return {
-    get: jest.fn(),
-    mget: jest.fn(),
-    set: jest.fn(),
-    mset: jest.fn(),
-    del: jest.fn(),
-    mdel: jest.fn(),
-    ttl: jest.fn(),
-    keys: jest.fn(),
-    disconnect: jest.fn(),
-    isCacheable: jest.fn().mockReturnValue(true),
+    get: vi.fn(),
+    mget: vi.fn(),
+    set: vi.fn(),
+    mset: vi.fn(),
+    del: vi.fn(),
+    mdel: vi.fn(),
+    ttl: vi.fn(),
+    keys: vi.fn(),
+    disconnect: vi.fn(),
+    isCacheable: vi.fn().mockReturnValue(true),
     client: {
-      disconnect: jest.fn(),
+      disconnect: vi.fn(),
     },
   } as unknown as RedisStoreMock;
 }
 
-jest.mock('cache-manager-ioredis-yet', () => ({
-  redisStore: jest.fn(),
+vi.mock('cache-manager-ioredis-yet', () => ({
+  redisStore: vi.fn(),
 }));
 
 describe('CacheConfigService', () => {
   const REDIS_DEFAULT_PORT = 6379;
   const REDIS_CUSTOM_PORT = 6380;
 
-  const redisStoreMock = redisStore as jest.MockedFunction<typeof redisStore>;
+  const redisStoreMock = redisStore as vi.MockedFunction<typeof redisStore>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('falls back to memory cache when REDIS_URL is missing', async () => {
     const service = new CacheConfigService({
-      get: jest.fn().mockReturnValue(undefined),
+      get: vi.fn().mockReturnValue(undefined),
     } as unknown as ConfigService);
 
     await expect(service.createCacheOptions()).resolves.toEqual({
@@ -54,7 +54,7 @@ describe('CacheConfigService', () => {
     redisStoreMock.mockResolvedValue(mockStore);
 
     const service = new CacheConfigService({
-      get: jest.fn().mockImplementation((key: string) => {
+      get: vi.fn().mockImplementation((key: string) => {
         if (key === 'REDIS_URL') {
           return `redis://:secret@cache.internal:${REDIS_CUSTOM_PORT}/2`;
         }
@@ -92,7 +92,7 @@ describe('CacheConfigService', () => {
     redisStoreMock.mockResolvedValue(createRedisStoreMock());
 
     const service = new CacheConfigService({
-      get: jest.fn().mockReturnValue('rediss://secure-cache.internal'),
+      get: vi.fn().mockReturnValue('rediss://secure-cache.internal'),
     } as unknown as ConfigService);
 
     await service.createCacheOptions();

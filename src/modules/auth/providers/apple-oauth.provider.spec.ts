@@ -4,19 +4,19 @@ import type { JwtService } from '@nestjs/jwt';
 import type { I18nService } from 'nestjs-i18n';
 import { AppleOAuthProvider } from './apple-oauth.provider';
 
-jest.mock('../../../common/helpers/retry.utils', () => ({
-  withRetry: jest.fn(),
+import * as retryUtils from '../../../common/helpers/retry.utils';
+
+vi.mock('../../../common/helpers/retry.utils', () => ({
+  withRetry: vi.fn(),
 }));
 
-const { withRetry } = jest.requireMock(
-  '../../../common/helpers/retry.utils',
-) as { withRetry: jest.Mock };
+const { withRetry } = retryUtils as unknown as { withRetry: vi.Mock };
 
 describe('AppleOAuthProvider', () => {
   let provider: AppleOAuthProvider;
-  let configService: jest.Mocked<ConfigService>;
-  let i18n: jest.Mocked<I18nService>;
-  let jwtService: jest.Mocked<JwtService>;
+  let configService: vi.Mocked<ConfigService>;
+  let i18n: vi.Mocked<I18nService>;
+  let jwtService: vi.Mocked<JwtService>;
 
   const fullConfig = {
     apple: {
@@ -28,15 +28,15 @@ describe('AppleOAuthProvider', () => {
 
   beforeEach(() => {
     configService = {
-      getOrThrow: jest.fn().mockReturnValue(fullConfig),
-    } as unknown as jest.Mocked<ConfigService>;
+      getOrThrow: vi.fn().mockReturnValue(fullConfig),
+    } as unknown as vi.Mocked<ConfigService>;
     i18n = {
-      t: jest.fn().mockReturnValue('translated'),
-    } as unknown as jest.Mocked<I18nService>;
+      t: vi.fn().mockReturnValue('translated'),
+    } as unknown as vi.Mocked<I18nService>;
     jwtService = {
-      decode: jest.fn(),
-      verifyAsync: jest.fn(),
-    } as unknown as jest.Mocked<JwtService>;
+      decode: vi.fn(),
+      verifyAsync: vi.fn(),
+    } as unknown as vi.Mocked<JwtService>;
 
     provider = new AppleOAuthProvider(configService, i18n, jwtService);
     withRetry.mockReset();
@@ -108,9 +108,9 @@ describe('AppleOAuthProvider', () => {
         return fn();
       });
 
-      global.fetch = jest.fn().mockResolvedValue({
+      global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue({ keys: [mockJwk] }),
+        json: vi.fn().mockResolvedValue({ keys: [mockJwk] }),
       });
 
       jwtService.verifyAsync.mockResolvedValue({
@@ -154,9 +154,9 @@ describe('AppleOAuthProvider', () => {
 
       withRetry.mockImplementation(async (fn: () => Promise<unknown>) => fn());
 
-      global.fetch = jest.fn().mockResolvedValue({
+      global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue({ keys: [mockJwk] }),
+        json: vi.fn().mockResolvedValue({ keys: [mockJwk] }),
       });
 
       jwtService.verifyAsync.mockResolvedValue({
@@ -193,9 +193,9 @@ describe('AppleOAuthProvider', () => {
 
       withRetry.mockImplementation(async (fn: () => Promise<unknown>) => fn());
 
-      global.fetch = jest.fn().mockResolvedValue({
+      global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue({ keys: [mockJwk] }),
+        json: vi.fn().mockResolvedValue({ keys: [mockJwk] }),
       });
 
       jwtService.verifyAsync.mockRejectedValue(

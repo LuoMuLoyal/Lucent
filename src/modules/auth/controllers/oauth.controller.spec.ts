@@ -29,7 +29,7 @@ const mockAuthResult = {
 
 describe('OAuthController', () => {
   let controller: OAuthController;
-  let authService: jest.Mocked<AuthService>;
+  let authService: vi.Mocked<AuthService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -38,19 +38,19 @@ describe('OAuthController', () => {
         {
           provide: AuthService,
           useValue: {
-            createWechatWebAuthorizeUrl: jest.fn(),
-            loginWithWechatWeb: jest.fn(),
-            resolveWechatWebCallbackRedirect: jest.fn(),
-            loginWithWechatMobile: jest.fn(),
-            loginWithApple: jest.fn(),
-            createQqAuthorizeUrl: jest.fn(),
-            loginWithQq: jest.fn(),
+            createWechatWebAuthorizeUrl: vi.fn(),
+            loginWithWechatWeb: vi.fn(),
+            resolveWechatWebCallbackRedirect: vi.fn(),
+            loginWithWechatMobile: vi.fn(),
+            loginWithApple: vi.fn(),
+            createQqAuthorizeUrl: vi.fn(),
+            loginWithQq: vi.fn(),
           },
         },
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue(false),
+            get: vi.fn().mockReturnValue(false),
           },
         },
       ],
@@ -61,7 +61,7 @@ describe('OAuthController', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('POST /auth/oauth/wechat-web/authorize', () => {
@@ -103,7 +103,7 @@ describe('OAuthController', () => {
       );
 
       const mockResponse = {
-        redirect: jest.fn(),
+        redirect: vi.fn(),
       } as unknown as Response;
 
       await controller.redirectWechatWebCallback(

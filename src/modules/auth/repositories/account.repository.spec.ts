@@ -9,7 +9,7 @@ describe('AuthAccountRepository', () => {
 
   beforeEach(() => {
     prisma = {
-      user: { update: jest.fn().mockResolvedValue(undefined) },
+      user: { update: vi.fn().mockResolvedValue(undefined) },
     } as unknown as DeepMocked<PrismaService>;
     repository = new AuthAccountRepository(prisma);
   });

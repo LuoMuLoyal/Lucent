@@ -6,26 +6,26 @@ import type {
 } from '../../constants/report-pdf.constants';
 import type { PDFDocument } from 'pdf-lib';
 
-function createMockFont(): jest.Mocked<EmbeddedFont> {
+function createMockFont(): vi.Mocked<EmbeddedFont> {
   return {
-    widthOfTextAtSize: jest.fn((text: string) => text.length * 8),
-  } as unknown as jest.Mocked<EmbeddedFont>;
+    widthOfTextAtSize: vi.fn((text: string) => text.length * 8),
+  } as unknown as vi.Mocked<EmbeddedFont>;
 }
 
-function createMockPage(): jest.Mocked<PdfPage> {
+function createMockPage(): vi.Mocked<PdfPage> {
   return {
-    drawText: jest.fn(),
-    drawRectangle: jest.fn(),
-    drawLine: jest.fn(),
-  } as unknown as jest.Mocked<PdfPage>;
+    drawText: vi.fn(),
+    drawRectangle: vi.fn(),
+    drawLine: vi.fn(),
+  } as unknown as vi.Mocked<PdfPage>;
 }
 
 function createMockContext(overrides: Partial<PageContext> = {}): PageContext {
   return {
     pdf: {
-      addPage: jest.fn().mockReturnValue(createMockPage()),
-      getPageCount: jest.fn().mockReturnValue(1),
-      getPage: jest.fn().mockReturnValue(createMockPage()),
+      addPage: vi.fn().mockReturnValue(createMockPage()),
+      getPageCount: vi.fn().mockReturnValue(1),
+      getPage: vi.fn().mockReturnValue(createMockPage()),
     } as unknown as PDFDocument,
     cjkFont: createMockFont(),
     page: createMockPage(),

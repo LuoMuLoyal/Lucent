@@ -3,7 +3,7 @@ import { TodayAnalysisCopyService } from './copy.service';
 
 describe('TodayAnalysisCopyService', () => {
   const service = new TodayAnalysisCopyService({
-    t: jest.fn(
+    t: vi.fn(
       (
         key: string,
         options?: { lang?: string; args?: Record<string, string | number> },

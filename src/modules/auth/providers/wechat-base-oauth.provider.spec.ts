@@ -11,13 +11,13 @@ import {
 class TestWechatProvider extends WechatBaseOAuthProvider {
   readonly provider = 'wechat_web' as const;
   protected readonly logger: Logger = {
-    error: jest.fn(),
-    warn: jest.fn(),
-    log: jest.fn(),
-    debug: jest.fn(),
-    verbose: jest.fn(),
-    fatal: jest.fn(),
-    setContext: jest.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    log: vi.fn(),
+    debug: vi.fn(),
+    verbose: vi.fn(),
+    fatal: vi.fn(),
+    setContext: vi.fn(),
   } as unknown as Logger;
   protected readonly i18n: I18nService;
 
@@ -42,17 +42,17 @@ class TestWechatProvider extends WechatBaseOAuthProvider {
 
 describe('WechatBaseOAuthProvider', () => {
   let provider: TestWechatProvider;
-  let i18n: jest.Mocked<I18nService>;
+  let i18n: vi.Mocked<I18nService>;
 
   beforeEach(() => {
     i18n = {
-      t: jest.fn().mockReturnValue('translated'),
-    } as unknown as jest.Mocked<I18nService>;
+      t: vi.fn().mockReturnValue('translated'),
+    } as unknown as vi.Mocked<I18nService>;
     provider = new TestWechatProvider(i18n);
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('isWechatError', () => {
@@ -100,9 +100,9 @@ describe('WechatBaseOAuthProvider', () => {
         scope: 'snsapi_userinfo',
       };
 
-      global.fetch = jest.fn().mockResolvedValue({
+      global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(mockData),
+        json: vi.fn().mockResolvedValue(mockData),
       });
 
       const result = await provider.testFetchWechat<WechatAccessTokenSuccess>(
@@ -113,7 +113,7 @@ describe('WechatBaseOAuthProvider', () => {
     });
 
     it('throws ServiceUnavailableException when fetch throws', async () => {
-      global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
       await expect(
         provider.testFetchWechat('https://api.weixin.qq.com/test'),
@@ -121,7 +121,7 @@ describe('WechatBaseOAuthProvider', () => {
     });
 
     it('throws ServiceUnavailableException when response is not ok', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
+      global.fetch = vi.fn().mockResolvedValue({
         ok: false,
         status: 500,
       });
@@ -137,9 +137,9 @@ describe('WechatBaseOAuthProvider', () => {
         errmsg: 'invalid code',
       };
 
-      global.fetch = jest.fn().mockResolvedValue({
+      global.fetch = vi.fn().mockResolvedValue({
         ok: true,
-        json: jest.fn().mockResolvedValue(errorPayload),
+        json: vi.fn().mockResolvedValue(errorPayload),
       });
 
       await expect(

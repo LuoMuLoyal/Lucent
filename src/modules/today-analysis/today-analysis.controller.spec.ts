@@ -8,8 +8,8 @@ import { TodayAnalysisController } from './today-analysis.controller';
 
 describe('TodayAnalysisController', () => {
   let controller: TodayAnalysisController;
-  let service: jest.Mocked<TodayAnalysisService>;
-  let recommendationsService: jest.Mocked<TodayRecommendationsService>;
+  let service: vi.Mocked<TodayAnalysisService>;
+  let recommendationsService: vi.Mocked<TodayRecommendationsService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -18,14 +18,14 @@ describe('TodayAnalysisController', () => {
         {
           provide: TodayAnalysisService,
           useValue: {
-            generate: jest.fn(),
-            generateStream: jest.fn(),
+            generate: vi.fn(),
+            generateStream: vi.fn(),
           },
         },
         {
           provide: TodayRecommendationsService,
           useValue: {
-            getRandomRecommendations: jest.fn(),
+            getRandomRecommendations: vi.fn(),
           },
         },
       ],
@@ -191,10 +191,10 @@ function makeMockResponse(
 ): Response {
   let buffer = '';
   const res = {
-    status: jest.fn().mockReturnThis(),
-    setHeader: jest.fn().mockReturnThis(),
-    flushHeaders: jest.fn().mockReturnThis(),
-    write: jest.fn((chunk: string) => {
+    status: vi.fn().mockReturnThis(),
+    setHeader: vi.fn().mockReturnThis(),
+    flushHeaders: vi.fn().mockReturnThis(),
+    write: vi.fn((chunk: string) => {
       buffer += chunk;
       // SSE events are separated by \n\n
       const parts = buffer.split('\n\n');
@@ -210,7 +210,7 @@ function makeMockResponse(
         }
       }
     }),
-    end: jest.fn(),
+    end: vi.fn(),
   };
   return res as unknown as Response;
 }

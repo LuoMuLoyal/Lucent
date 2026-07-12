@@ -11,8 +11,8 @@ describe('RecordCollectorService', () => {
 
   beforeEach(() => {
     prisma = {
-      userDailyRecord: { findMany: jest.fn() },
-      userSetting: { findUnique: jest.fn() },
+      userDailyRecord: { findMany: vi.fn() },
+      userSetting: { findUnique: vi.fn() },
     } as unknown as DeepMocked<PrismaService>;
     service = new RecordCollectorService(prisma);
   });
@@ -35,7 +35,7 @@ describe('RecordCollectorService', () => {
 
   describe('collect', () => {
     it('emits a water_count signal with remaining count', async () => {
-      (prisma.userDailyRecord.findMany as jest.Mock)
+      (prisma.userDailyRecord.findMany as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({ id: 'w1', kind: DailyRecordKind.water }),
@@ -46,7 +46,7 @@ describe('RecordCollectorService', () => {
           makeRecord({ id: 'w1', kind: DailyRecordKind.water }),
           makeRecord({ id: 'w2', kind: DailyRecordKind.water }),
         ]);
-      (prisma.userSetting.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
         value: 8,
       });
 
@@ -62,10 +62,10 @@ describe('RecordCollectorService', () => {
     });
 
     it('uses default water target when setting is missing', async () => {
-      (prisma.userDailyRecord.findMany as jest.Mock)
+      (prisma.userDailyRecord.findMany as vi.Mock)
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
-      (prisma.userSetting.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue(null);
 
       const signals = await service.collect('user-1', '2026-07-09');
 
@@ -78,7 +78,7 @@ describe('RecordCollectorService', () => {
 
     it('emits a sleep_record signal when a sleep record exists', async () => {
       const sleepPayload = { durationMinutes: 420, quality: 'good' };
-      (prisma.userDailyRecord.findMany as jest.Mock)
+      (prisma.userDailyRecord.findMany as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({
@@ -95,7 +95,7 @@ describe('RecordCollectorService', () => {
             payload: sleepPayload,
           }),
         ]);
-      (prisma.userSetting.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
         value: 8,
       });
 
@@ -113,7 +113,7 @@ describe('RecordCollectorService', () => {
     it('emits a sleep_trend signal when multiple days of sleep exist', async () => {
       const day1 = new Date('2026-07-08T00:00:00.000Z');
       const day2 = new Date('2026-07-09T00:00:00.000Z');
-      (prisma.userDailyRecord.findMany as jest.Mock)
+      (prisma.userDailyRecord.findMany as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({
@@ -138,7 +138,7 @@ describe('RecordCollectorService', () => {
             payload: { durationMinutes: 360 },
           }),
         ]);
-      (prisma.userSetting.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
         value: 8,
       });
 
@@ -152,7 +152,7 @@ describe('RecordCollectorService', () => {
     });
 
     it('emits a record_density signal with today and multi-day counts', async () => {
-      (prisma.userDailyRecord.findMany as jest.Mock)
+      (prisma.userDailyRecord.findMany as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({ id: 'r1', kind: DailyRecordKind.water }),
@@ -164,7 +164,7 @@ describe('RecordCollectorService', () => {
           makeRecord({ id: 'r2', kind: DailyRecordKind.sleep }),
           makeRecord({ id: 'r3', kind: DailyRecordKind.mood }),
         ]);
-      (prisma.userSetting.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
         value: 8,
       });
 
@@ -180,7 +180,7 @@ describe('RecordCollectorService', () => {
     });
 
     it('emits a caffeine_trend signal for meal records with coffee keywords', async () => {
-      (prisma.userDailyRecord.findMany as jest.Mock)
+      (prisma.userDailyRecord.findMany as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({
@@ -204,7 +204,7 @@ describe('RecordCollectorService', () => {
             occurredAt: new Date('2026-07-08T00:00:00.000Z'),
           }),
         ]);
-      (prisma.userSetting.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
         value: 8,
       });
 
@@ -218,7 +218,7 @@ describe('RecordCollectorService', () => {
     });
 
     it('emits a mood_trend signal for mood records', async () => {
-      (prisma.userDailyRecord.findMany as jest.Mock)
+      (prisma.userDailyRecord.findMany as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({
@@ -245,7 +245,7 @@ describe('RecordCollectorService', () => {
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
           }),
         ]);
-      (prisma.userSetting.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
         value: 8,
       });
 
@@ -259,7 +259,7 @@ describe('RecordCollectorService', () => {
     });
 
     it('emits a symptom_trend signal for symptom records', async () => {
-      (prisma.userDailyRecord.findMany as jest.Mock)
+      (prisma.userDailyRecord.findMany as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({
@@ -279,7 +279,7 @@ describe('RecordCollectorService', () => {
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
           }),
         ]);
-      (prisma.userSetting.findUnique as jest.Mock).mockResolvedValue({
+      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
         value: 8,
       });
 

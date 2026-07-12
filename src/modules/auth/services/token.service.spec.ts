@@ -13,7 +13,7 @@ function hash(token: string): string {
 
 describe('AuthTokenService', () => {
   let service: AuthTokenService;
-  let sessionRepo: jest.Mocked<AuthSessionRepositoryPort>;
+  let sessionRepo: vi.Mocked<AuthSessionRepositoryPort>;
 
   const mockUser: { id: string; email: string; status: string } = {
     id: 'user-1',
@@ -23,14 +23,14 @@ describe('AuthTokenService', () => {
 
   beforeEach(async () => {
     const sessionRepoMock = {
-      createSession: jest.fn().mockResolvedValue(undefined),
-      findSessionByRefreshTokenHash: jest.fn().mockResolvedValue(null),
-      deleteSessionById: jest.fn().mockResolvedValue(undefined),
-      deleteSessionsByUserIdAndHash: jest.fn().mockResolvedValue(undefined),
-      deleteSessionsByUserId: jest.fn().mockResolvedValue(undefined),
-      findSessionById: jest.fn().mockResolvedValue(null),
-      revokeSessionById: jest.fn().mockResolvedValue(undefined),
-      listActiveSessions: jest.fn().mockResolvedValue([]),
+      createSession: vi.fn().mockResolvedValue(undefined),
+      findSessionByRefreshTokenHash: vi.fn().mockResolvedValue(null),
+      deleteSessionById: vi.fn().mockResolvedValue(undefined),
+      deleteSessionsByUserIdAndHash: vi.fn().mockResolvedValue(undefined),
+      deleteSessionsByUserId: vi.fn().mockResolvedValue(undefined),
+      findSessionById: vi.fn().mockResolvedValue(null),
+      revokeSessionById: vi.fn().mockResolvedValue(undefined),
+      listActiveSessions: vi.fn().mockResolvedValue([]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -43,13 +43,13 @@ describe('AuthTokenService', () => {
         {
           provide: JwtService,
           useValue: {
-            signAsync: jest.fn().mockResolvedValue('mock-access-token'),
+            signAsync: vi.fn().mockResolvedValue('mock-access-token'),
           },
         },
         {
           provide: ConfigService,
           useValue: {
-            getOrThrow: jest.fn().mockReturnValue({
+            getOrThrow: vi.fn().mockReturnValue({
               accessSecret: 'access-secret',
               refreshSecret: 'refresh-secret',
               accessTtl: 900,
@@ -65,7 +65,7 @@ describe('AuthTokenService', () => {
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('generateTokenPair', () => {
@@ -100,7 +100,7 @@ describe('AuthTokenService', () => {
     it('should not set context property when context is undefined', async () => {
       await service.generateTokenPair(mockUser as never);
 
-      const callArg = (sessionRepo.createSession as jest.Mock).mock.calls[0][0];
+      const callArg = (sessionRepo.createSession as vi.Mock).mock.calls[0]![0];
       expect(callArg.context).toBeUndefined();
     });
 

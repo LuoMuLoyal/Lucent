@@ -3,22 +3,22 @@ import { TodayAnalysisContextService } from './context.service';
 describe('TodayAnalysisContextService', () => {
   const buildPrisma = (records: unknown[]) => ({
     userCurrentMedicine: {
-      findMany: jest.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     userMedicineReminder: {
-      findMany: jest.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     userMedicineDoseLog: {
-      findMany: jest.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     userDailyRecord: {
-      findMany: jest.fn().mockResolvedValue(records),
+      findMany: vi.fn().mockResolvedValue(records),
     },
     userAllergy: {
-      count: jest.fn().mockResolvedValue(0),
+      count: vi.fn().mockResolvedValue(0),
     },
     userSetting: {
-      findUnique: jest.fn().mockResolvedValue(null),
+      findUnique: vi.fn().mockResolvedValue(null),
     },
   });
 
@@ -224,7 +224,7 @@ describe('TodayAnalysisContextService', () => {
 
   it('returns water target from user settings when configured', async () => {
     const prisma = buildPrisma([]);
-    prisma.userSetting.findUnique = jest.fn().mockResolvedValue({
+    prisma.userSetting.findUnique = vi.fn().mockResolvedValue({
       value: 12,
     });
     const service = new TodayAnalysisContextService(prisma as never);
@@ -236,7 +236,7 @@ describe('TodayAnalysisContextService', () => {
 
   it('falls back to default water target when user setting is not a number', async () => {
     const prisma = buildPrisma([]);
-    prisma.userSetting.findUnique = jest.fn().mockResolvedValue({
+    prisma.userSetting.findUnique = vi.fn().mockResolvedValue({
       value: 'not-a-number',
     });
     const service = new TodayAnalysisContextService(prisma as never);
@@ -248,7 +248,7 @@ describe('TodayAnalysisContextService', () => {
 
   it('falls back to default water target when user setting is null', async () => {
     const prisma = buildPrisma([]);
-    prisma.userSetting.findUnique = jest.fn().mockResolvedValue(null);
+    prisma.userSetting.findUnique = vi.fn().mockResolvedValue(null);
     const service = new TodayAnalysisContextService(prisma as never);
 
     const context = await service.build('u1', '2026-07-01');
@@ -312,7 +312,7 @@ describe('TodayAnalysisContextService', () => {
 
   it('includes medication context with pending count and next dose time', async () => {
     const prisma = buildPrisma([]);
-    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+    prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
         displayName: '阿司匹林',
@@ -324,7 +324,7 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    prisma.userMedicineReminder.findMany = jest.fn().mockResolvedValue([
+    prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([
       {
         currentMedicineId: 'med-2',
         scheduledHour: 8,
@@ -335,7 +335,7 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    prisma.userMedicineDoseLog.findMany = jest
+    prisma.userMedicineDoseLog.findMany = vi
       .fn()
       .mockResolvedValue([{ currentMedicineId: 'med-1', status: 'taken' }]);
     const service = new TodayAnalysisContextService(prisma as never);
@@ -354,14 +354,14 @@ describe('TodayAnalysisContextService', () => {
 
   it('shows "--" for next dose time when no pending reminder matches', async () => {
     const prisma = buildPrisma([]);
-    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+    prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
         displayName: '阿司匹林',
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    prisma.userMedicineReminder.findMany = jest.fn().mockResolvedValue([]);
+    prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([]);
     const service = new TodayAnalysisContextService(prisma as never);
 
     const context = await service.build('u1', '2026-07-01');
@@ -499,7 +499,7 @@ describe('TodayAnalysisContextService', () => {
 
   it('includes active allergy count in low-risk context', async () => {
     const prisma = buildPrisma([]);
-    prisma.userAllergy.count = jest.fn().mockResolvedValue(3);
+    prisma.userAllergy.count = vi.fn().mockResolvedValue(3);
     const service = new TodayAnalysisContextService(prisma as never);
 
     const context = await service.build('u1', '2026-07-01');
@@ -557,7 +557,7 @@ describe('TodayAnalysisContextService', () => {
       createdAt: new Date('2026-07-01T00:00:00.000Z'),
     }));
     const prisma = buildPrisma([]);
-    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue(meds);
+    prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue(meds);
     const service = new TodayAnalysisContextService(prisma as never);
 
     const context = await service.build('u1', '2026-07-01');
@@ -567,7 +567,7 @@ describe('TodayAnalysisContextService', () => {
 
   it('filters out empty medicine display names', async () => {
     const prisma = buildPrisma([]);
-    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+    prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
         displayName: '阿司匹林',
@@ -594,7 +594,7 @@ describe('TodayAnalysisContextService', () => {
 
   it('filters reminder by startDate and endDate', async () => {
     const prisma = buildPrisma([]);
-    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+    prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
         displayName: '药品A',
@@ -602,7 +602,7 @@ describe('TodayAnalysisContextService', () => {
       },
     ]);
     // Reminder is for a future start date — should not match
-    prisma.userMedicineReminder.findMany = jest.fn().mockResolvedValue([
+    prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([
       {
         currentMedicineId: 'med-1',
         scheduledHour: 8,
@@ -622,7 +622,7 @@ describe('TodayAnalysisContextService', () => {
 
   it('matches reminder with daysOfWeek including the current weekday', async () => {
     const prisma = buildPrisma([]);
-    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+    prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
         displayName: '药品A',
@@ -630,7 +630,7 @@ describe('TodayAnalysisContextService', () => {
       },
     ]);
     // 2026-07-01 is a Wednesday → weekday = 3
-    prisma.userMedicineReminder.findMany = jest.fn().mockResolvedValue([
+    prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([
       {
         currentMedicineId: 'med-1',
         scheduledHour: 14,
@@ -650,7 +650,7 @@ describe('TodayAnalysisContextService', () => {
 
   it('does not match reminder with daysOfWeek excluding the current weekday', async () => {
     const prisma = buildPrisma([]);
-    prisma.userCurrentMedicine.findMany = jest.fn().mockResolvedValue([
+    prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
         displayName: '药品A',
@@ -658,7 +658,7 @@ describe('TodayAnalysisContextService', () => {
       },
     ]);
     // 2026-07-01 is a Wednesday → weekday = 3
-    prisma.userMedicineReminder.findMany = jest.fn().mockResolvedValue([
+    prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([
       {
         currentMedicineId: 'med-1',
         scheduledHour: 14,

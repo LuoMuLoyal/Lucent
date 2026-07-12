@@ -21,13 +21,13 @@ describe('DailyRecordCandidatesGeneratorService', () => {
         {
           provide: LlmRuntimeService,
           useValue: {
-            hasRoleConfig: jest.fn(),
-            getModelName: jest.fn().mockReturnValue('test-model'),
+            hasRoleConfig: vi.fn(),
+            getModelName: vi.fn().mockReturnValue('test-model'),
           },
         },
         {
           provide: MetricsService,
-          useValue: { recordLlmCall: jest.fn() },
+          useValue: { recordLlmCall: vi.fn() },
         },
       ],
     }).compile();

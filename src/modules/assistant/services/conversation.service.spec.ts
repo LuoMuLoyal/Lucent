@@ -38,24 +38,24 @@ function buildSummary(
 
 describe('AssistantConversationService', () => {
   let service: AssistantConversationService;
-  let repo: jest.Mocked<AssistantConversationRepositoryPort>;
-  let i18n: jest.Mocked<I18nService>;
+  let repo: vi.Mocked<AssistantConversationRepositoryPort>;
+  let i18n: vi.Mocked<I18nService>;
 
   beforeEach(() => {
     repo = {
-      findLatestActiveWithMessages: jest.fn(),
-      listRecentSummaries: jest.fn(),
-      findWithMessages: jest.fn(),
-      findWithMessagesById: jest.fn(),
-      create: jest.fn(),
-      archiveConversation: jest.fn(),
-      activateConversation: jest.fn().mockResolvedValue(undefined),
-      persistTurn: jest.fn(),
-      findForMemory: jest.fn(),
+      findLatestActiveWithMessages: vi.fn(),
+      listRecentSummaries: vi.fn(),
+      findWithMessages: vi.fn(),
+      findWithMessagesById: vi.fn(),
+      create: vi.fn(),
+      archiveConversation: vi.fn(),
+      activateConversation: vi.fn().mockResolvedValue(undefined),
+      persistTurn: vi.fn(),
+      findForMemory: vi.fn(),
     };
     i18n = {
-      t: jest.fn().mockReturnValue('Conversation not found'),
-    } as unknown as jest.Mocked<I18nService>;
+      t: vi.fn().mockReturnValue('Conversation not found'),
+    } as unknown as vi.Mocked<I18nService>;
 
     service = new AssistantConversationService(repo, i18n);
   });

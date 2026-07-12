@@ -34,7 +34,7 @@ describe('prisma-ownership.helper', () => {
       const record = { id: 'rec-1', userId: 'user-2', name: 'test' };
       try {
         ensureOwnedByUser(record, 'user-1', 'Custom not-found message');
-        fail('Should have thrown');
+        expect.fail('Should have thrown');
       } catch (e) {
         expect(e).toBeInstanceOf(NotFoundException);
         const response = (e as NotFoundException).getResponse() as {

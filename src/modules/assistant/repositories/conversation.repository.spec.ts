@@ -11,18 +11,18 @@ describe('AssistantConversationRepository', () => {
   beforeEach(() => {
     prisma = {
       assistantConversation: {
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
-        findUniqueOrThrow: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
-        updateMany: jest.fn(),
+        findFirst: vi.fn(),
+        findMany: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        updateMany: vi.fn(),
       },
       assistantMessage: {
-        createMany: jest.fn(),
-        create: jest.fn(),
+        createMany: vi.fn(),
+        create: vi.fn(),
       },
-      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+      $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
         fn(prisma),
       ),
     } as unknown as DeepMocked<PrismaService>;

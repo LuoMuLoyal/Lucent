@@ -12,16 +12,16 @@ function createCacheStoreMock(overrides?: {
 }): CacheManagerStore {
   const store: CacheManagerStore = {
     name: 'mock-store',
-    get: jest.fn(),
-    mget: jest.fn(),
-    set: jest.fn(),
-    mset: jest.fn(),
-    del: jest.fn(),
-    mdel: jest.fn(),
-    ttl: jest.fn(),
-    keys: jest.fn().mockResolvedValue([]),
-    disconnect: jest.fn(),
-    reset: jest.fn(),
+    get: vi.fn(),
+    mget: vi.fn(),
+    set: vi.fn(),
+    mset: vi.fn(),
+    del: vi.fn(),
+    mdel: vi.fn(),
+    ttl: vi.fn(),
+    keys: vi.fn().mockResolvedValue([]),
+    disconnect: vi.fn(),
+    reset: vi.fn(),
   };
   if (overrides?.keys) {
     store.keys = overrides.keys;
@@ -31,7 +31,7 @@ function createCacheStoreMock(overrides?: {
 
 describe('MedicinesCacheAdminService', () => {
   let service: MedicinesCacheAdminService;
-  let cache: jest.Mocked<Cache>;
+  let cache: vi.Mocked<Cache>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -40,7 +40,7 @@ describe('MedicinesCacheAdminService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: {
-            del: jest.fn(),
+            del: vi.fn(),
             stores: [],
           },
         },
@@ -53,7 +53,7 @@ describe('MedicinesCacheAdminService', () => {
 
   it('removes all medicines cache keys from Keyv-backed stores', async () => {
     const firstRawStore = createCacheStoreMock({
-      keys: jest
+      keys: vi
         .fn()
         .mockResolvedValue([
           'keyv:medicines:search:drugbank:ibuprofen:1:20',
@@ -62,7 +62,7 @@ describe('MedicinesCacheAdminService', () => {
         ]),
     });
     const secondRawStore = createCacheStoreMock({
-      keys: jest
+      keys: vi
         .fn()
         .mockResolvedValue(['keyv:medicines:detail:cn:cn_ibuprofen_capsule']),
     });
@@ -104,7 +104,7 @@ describe('MedicinesCacheAdminService', () => {
       new Keyv({
         store: new KeyvAdapter(
           createCacheStoreMock({
-            keys: jest
+            keys: vi
               .fn()
               .mockResolvedValue([
                 'medicines:search:cn:%E5%B8%83%E6%B4%9B%E8%8A%AC:1:20',

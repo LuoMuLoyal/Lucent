@@ -97,37 +97,36 @@ class TestSummaryService extends BaseLlmSummaryService<
 function createMocks() {
   const prisma = {
     userSetting: {
-      findFirst: jest.fn().mockResolvedValue({ value: true }),
+      findFirst: vi.fn().mockResolvedValue({ value: true }),
     },
   } as unknown as DeepMocked<PrismaService>;
 
-  const copyService: jest.Mocked<
-    LlmSummaryCopyService<TestContext, TestOutput>
-  > = {
-    resolveLocale: jest.fn().mockReturnValue('zh-CN'),
-    buildPromptCopy: jest.fn().mockReturnValue({
-      userIntro: 'intro',
-      tone: 'tone',
-      actionLabelHint: 'hint',
-      factsLabel: 'facts',
-    }),
-    summariesDisabled: jest.fn().mockReturnValue('AI summaries disabled'),
-    buildFallback: jest.fn().mockReturnValue(fallbackOutput),
-  };
+  const copyService: vi.Mocked<LlmSummaryCopyService<TestContext, TestOutput>> =
+    {
+      resolveLocale: vi.fn().mockReturnValue('zh-CN'),
+      buildPromptCopy: vi.fn().mockReturnValue({
+        userIntro: 'intro',
+        tone: 'tone',
+        actionLabelHint: 'hint',
+        factsLabel: 'facts',
+      }),
+      summariesDisabled: vi.fn().mockReturnValue('AI summaries disabled'),
+      buildFallback: vi.fn().mockReturnValue(fallbackOutput),
+    };
 
   const generatorService = {
-    hasAnalysisModel: jest.fn().mockReturnValue(true),
-    generate: jest.fn(),
-    generateStream: jest.fn(),
-  } as unknown as jest.Mocked<
+    hasAnalysisModel: vi.fn().mockReturnValue(true),
+    generate: vi.fn(),
+    generateStream: vi.fn(),
+  } as unknown as vi.Mocked<
     BaseLlmGeneratorService<TestContext, PromptCopy, TestOutput>
   >;
 
   const policyService = {
-    isSafe: jest.fn().mockReturnValue(true),
-    isSafeSummaryText: jest.fn().mockReturnValue(true),
-    isSafeText: jest.fn().mockReturnValue(true),
-  } as unknown as jest.Mocked<LlmSafetyPolicyService>;
+    isSafe: vi.fn().mockReturnValue(true),
+    isSafeSummaryText: vi.fn().mockReturnValue(true),
+    isSafeText: vi.fn().mockReturnValue(true),
+  } as unknown as vi.Mocked<LlmSafetyPolicyService>;
 
   return { prisma, copyService, generatorService, policyService };
 }
@@ -232,7 +231,7 @@ describe('BaseLlmSummaryService', () => {
   describe('generateStream', () => {
     it('returns fallback and emits summary when model is not configured', async () => {
       mocks.generatorService.hasAnalysisModel.mockReturnValue(false);
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
 
       const result = await service.generateStream(
         'user-1',
@@ -255,7 +254,7 @@ describe('BaseLlmSummaryService', () => {
         },
       );
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       const result = await service.generateStream(
         'user-1',
         { targetId: 'rec-1' },
@@ -272,7 +271,7 @@ describe('BaseLlmSummaryService', () => {
         new Error('Stream error'),
       );
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       const result = await service.generateStream(
         'user-1',
         { targetId: 'rec-1' },
@@ -294,7 +293,7 @@ describe('BaseLlmSummaryService', () => {
       // The final output also needs to pass safety check
       mocks.policyService.isSafe.mockReturnValue(true);
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       await service.generateStream(
         'user-1',
         { targetId: 'rec-1' },
@@ -320,7 +319,7 @@ describe('BaseLlmSummaryService', () => {
       mocks.policyService.isSafeSummaryText.mockReturnValue(true);
       mocks.policyService.isSafe.mockReturnValue(false);
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       const result = await service.generateStream(
         'user-1',
         { targetId: 'rec-1' },
@@ -345,7 +344,7 @@ describe('BaseLlmSummaryService', () => {
         new Error('Stream error'),
       );
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       const result = await service.generateStream(
         'user-1',
         { targetId: 'rec-1' },
@@ -369,7 +368,7 @@ describe('BaseLlmSummaryService', () => {
       );
       mocks.policyService.isSafeSummaryText.mockReturnValue(true);
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       const result = await service.generateStream(
         'user-1',
         { targetId: 'rec-1' },
@@ -397,7 +396,7 @@ describe('BaseLlmSummaryService', () => {
         new Error('Stream error'),
       );
 
-      const onSummary = jest.fn();
+      const onSummary = vi.fn();
       const result = await service.generateStream(
         'user-1',
         { targetId: 'rec-1' },

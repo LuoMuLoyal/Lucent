@@ -8,18 +8,18 @@ describe('UserHealthContextConditionWriteService', () => {
   let service: UserHealthContextConditionWriteService;
 
   let repository: any;
-  let ensureActive: jest.Mock;
-  let ensureOwned: jest.Mock;
+  let ensureActive: vi.Mock;
+  let ensureOwned: vi.Mock;
 
   beforeEach(async () => {
     repository = {
-      createCondition: jest.fn(),
-      updateCondition: jest.fn(),
-      softDeleteCondition: jest.fn(),
-      findConditionById: jest.fn(),
+      createCondition: vi.fn(),
+      updateCondition: vi.fn(),
+      softDeleteCondition: vi.fn(),
+      findConditionById: vi.fn(),
     };
-    ensureActive = jest.fn();
-    ensureOwned = jest.fn();
+    ensureActive = vi.fn();
+    ensureOwned = vi.fn();
     const module = await Test.createTestingModule({
       providers: [
         UserHealthContextConditionWriteService,
@@ -34,10 +34,10 @@ describe('UserHealthContextConditionWriteService', () => {
         {
           provide: UserHealthContextMapperService,
           useValue: {
-            dateOnlyStringToUtcDate: jest.fn((v: any) =>
+            dateOnlyStringToUtcDate: vi.fn((v: any) =>
               v ? new Date(v) : null,
             ),
-            toUtcDateOnly: jest.fn(() => new Date('2026-06-15T00:00:00Z')),
+            toUtcDateOnly: vi.fn(() => new Date('2026-06-15T00:00:00Z')),
           },
         },
       ],

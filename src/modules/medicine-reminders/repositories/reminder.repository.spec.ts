@@ -10,16 +10,16 @@ describe('MedicineReminderRepository', () => {
   beforeEach(() => {
     prisma = {
       userMedicineReminder: {
-        findMany: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn(),
-        findFirst: jest.fn(),
+        findMany: vi.fn(),
+        create: vi.fn(),
+        update: vi.fn(),
+        findFirst: vi.fn(),
       },
       userReminderDelivery: {
-        findMany: jest.fn(),
+        findMany: vi.fn(),
       },
       userCurrentMedicine: {
-        findFirst: jest.fn(),
+        findFirst: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
 
