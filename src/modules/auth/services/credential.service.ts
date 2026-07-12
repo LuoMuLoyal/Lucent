@@ -5,8 +5,7 @@ import {
   conflict,
 } from '../../../common/helpers/api-errors';
 import { normalizeEmail } from '../../../common/helpers/string.utils';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { PinoLogger } from 'nestjs-pino';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
@@ -40,17 +39,16 @@ import { now } from '../../../common/helpers/date-time.utils';
  */
 @Injectable()
 export class CredentialAuthService {
+  private readonly logger = new Logger(CredentialAuthService.name);
+
   constructor(
-    private readonly logger: PinoLogger,
     private readonly userService: UserService,
     private readonly verificationCodeService: VerificationCodeService,
     private readonly authTokenService: AuthTokenService,
     private readonly authRateLimitService: AuthRateLimitService,
     private readonly notificationsService: NotificationsService,
     private readonly i18n: I18nService,
-  ) {
-    this.logger.setContext(CredentialAuthService.name);
-  }
+  ) {}
 
   // ── Registration ─────────────────────────────────────────────
 

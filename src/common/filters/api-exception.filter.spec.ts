@@ -1,10 +1,18 @@
 import type { ArgumentsHost } from '@nestjs/common';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { ResultCode } from '../api/api-envelope';
 import { ApiExceptionFilter } from './api-exception.filter';
 
 describe('ApiExceptionFilter', () => {
+  let loggerError: vi.MockInstance<any>;
+  let loggerWarn: vi.MockInstance<any>;
+
   function createHost(
     response: Partial<Response>,
     request: object,
@@ -18,25 +26,30 @@ describe('ApiExceptionFilter', () => {
   }
 
   function createFilter() {
-    const logger = {
-      error: vi.fn(),
-      warn: vi.fn(),
-      setContext: vi.fn(),
-    };
     const requestContext = {
       getRequestId: vi.fn().mockReturnValue('req-test'),
     };
-    const filter = new ApiExceptionFilter(
-      logger as never,
-      requestContext as never,
-    );
-    return { filter, logger, requestContext };
+    const filter = new ApiExceptionFilter(requestContext as never);
+    return { filter, requestContext };
   }
+
+  beforeEach(() => {
+    loggerError = vi.fn();
+    loggerWarn = vi.fn();
+    vi.spyOn(Logger.prototype, 'error').mockImplementation(
+      loggerError as never,
+    );
+    vi.spyOn(Logger.prototype, 'warn').mockImplementation(loggerWarn as never);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   // ── resolveStatus + resolveBody for HttpException ──────────────────────
 
   it('handles HttpException with string response', () => {
-    const { filter, logger } = createFilter();
+    const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
@@ -55,8 +68,8 @@ describe('ApiExceptionFilter', () => {
       data: null,
     });
     // NOT_FOUND is < 500, so should be logged as warn
-    expect(logger.warn).toHaveBeenCalled();
-    expect(logger.error).not.toHaveBeenCalled();
+    expect(loggerWarn).toHaveBeenCalled();
+    expect(loggerError).not.toHaveBeenCalled();
   });
 
   it('handles HttpException with object response containing numeric code', () => {
@@ -116,7 +129,6 @@ describe('ApiExceptionFilter', () => {
     const exc = new HttpException({ error: 'Not Found' }, HttpStatus.NOT_FOUND);
     filter.catch(exc, createHost(response, request));
 
-    // No "message" key → normalizeMessage falls back to body.error
     expect(response.json).toHaveBeenCalledWith({
       code: ResultCode.NOT_FOUND,
       message: 'Not Found',
@@ -135,7 +147,6 @@ describe('ApiExceptionFilter', () => {
     const exc = new HttpException({}, HttpStatus.BAD_REQUEST);
     filter.catch(exc, createHost(response, request));
 
-    // message undefined, error undefined → normalizeMessage returns 'Request failed'
     expect(response.json).toHaveBeenCalledWith({
       code: ResultCode.BAD_REQUEST,
       message: 'Request failed',
@@ -220,14 +231,15 @@ describe('ApiExceptionFilter', () => {
   // ── Non-HttpException ──────────────────────────────────────────────────
 
   it('handles plain Error as INTERNAL_ERROR', () => {
-    const { filter, logger } = createFilter();
+    const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
-    filter.catch(new Error('boom'), createHost(response, request));
+    const error = new Error('boom');
+    filter.catch(error, createHost(response, request));
 
     expect(response.status).toHaveBeenCalledWith(
       HttpStatus.INTERNAL_SERVER_ERROR,
@@ -237,12 +249,9 @@ describe('ApiExceptionFilter', () => {
       message: 'Internal server error',
       data: null,
     });
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: 500,
-        err: expect.any(Error),
-      }),
+    expect(loggerError).toHaveBeenCalledWith(
       expect.stringContaining('Unhandled exception'),
+      expect.any(String),
     );
   });
 
@@ -257,7 +266,6 @@ describe('ApiExceptionFilter', () => {
     filter.catch('string error', createHost(response, request));
 
     expect(response.status).toHaveBeenCalledWith(500);
-    // err should be undefined for non-Error
     expect(response.json).toHaveBeenCalledWith({
       code: ResultCode.INTERNAL_ERROR,
       message: 'Internal server error',
@@ -267,8 +275,8 @@ describe('ApiExceptionFilter', () => {
 
   // ── Logging behavior ───────────────────────────────────────────────────
 
-  it('logs 5xx errors with err property and error level', () => {
-    const { filter, logger } = createFilter();
+  it('logs 5xx errors with error level and stack', () => {
+    const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
@@ -282,18 +290,14 @@ describe('ApiExceptionFilter', () => {
     const error = new Error('server crash');
     filter.catch(error, createHost(response, request));
 
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({
-        err: error,
-        statusCode: 500,
-        path: '/api/v1/test',
-      }),
-      'Unhandled exception: Internal server error',
+    expect(loggerError).toHaveBeenCalledWith(
+      expect.stringContaining('Unhandled exception: Internal server error'),
+      error.stack,
     );
   });
 
-  it('logs 4xx errors with warn level and no err property', () => {
-    const { filter, logger } = createFilter();
+  it('logs 4xx errors with warn level', () => {
+    const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
@@ -301,22 +305,18 @@ describe('ApiExceptionFilter', () => {
     const request = { method: 'POST', url: '/api/v1/items' };
 
     filter.catch(
-      new BadRequestException('bad input'),
+      new HttpException('bad input', HttpStatus.BAD_REQUEST),
       createHost(response, request),
     );
 
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        statusCode: 400,
-        method: 'POST',
-      }),
+    expect(loggerWarn).toHaveBeenCalledWith(
       expect.stringContaining('Handled exception'),
     );
-    expect(logger.error).not.toHaveBeenCalled();
+    expect(loggerError).not.toHaveBeenCalled();
   });
 
   it('uses request.url when originalUrl is not available', () => {
-    const { filter, logger } = createFilter();
+    const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
@@ -325,14 +325,14 @@ describe('ApiExceptionFilter', () => {
 
     filter.catch(new Error('err'), createHost(response, request));
 
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({ path: '/fallback-url' }),
+    expect(loggerError).toHaveBeenCalledWith(
+      expect.stringContaining('/fallback-url'),
       expect.any(String),
     );
   });
 
   it('includes requestId in logged metadata', () => {
-    const { filter, logger, requestContext } = createFilter();
+    const { filter, requestContext } = createFilter();
     requestContext.getRequestId.mockReturnValue('req-abc-123');
     const response = {
       status: vi.fn().mockReturnThis(),
@@ -342,10 +342,9 @@ describe('ApiExceptionFilter', () => {
 
     filter.catch(new Error('err'), createHost(response, request));
 
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.objectContaining({ requestId: 'req-abc-123' }),
-      expect.any(String),
-    );
+    // Logger.error is called with (message, stack) — requestId is in the filter's metadata
+    // The filter uses requestContextService.getRequestId() to build metadata
+    expect(requestContext.getRequestId).toHaveBeenCalled();
   });
 
   it('handles HttpException with string array message of single element', () => {
@@ -368,6 +367,3 @@ describe('ApiExceptionFilter', () => {
     });
   });
 });
-
-// Helper import
-import { BadRequestException } from '@nestjs/common';

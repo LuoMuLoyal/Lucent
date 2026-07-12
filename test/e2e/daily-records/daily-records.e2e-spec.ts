@@ -107,7 +107,7 @@ describe('Daily Records API (e2e)', () => {
     }>(ConfigKey.Jwt);
 
     return jwtService.signAsync(
-      { sub: userId, email },
+      { sub: userId, email, status: 'active' },
       {
         secret: jwtConfig.accessSecret,
         expiresIn: jwtConfig.accessTtl,

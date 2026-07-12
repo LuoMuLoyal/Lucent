@@ -152,7 +152,7 @@ export async function createAccessToken(
   }>(ConfigKey.Jwt);
 
   return jwtService.signAsync(
-    { sub: userId, email },
+    { sub: userId, email, status: 'active' },
     {
       secret: jwtCfg.accessSecret,
       expiresIn: jwtCfg.accessTtl,

@@ -256,7 +256,7 @@ grafana:
 
 ### 不变
 
-- Pino 结构化日志仍是日志支柱，不做迁移
+- ~~Pino 结构化日志仍是日志支柱，不做迁移~~ — 已被 [ADR-0007](0007-logging-pino-to-winston.md) 取代，日志框架已迁移至 Winston
 - 健康检查端点（live/ready/deep）保持不变
 - `SlowRequestInterceptor` 保留作为请求级日志补充
 - Docker Compose 部署模型不变（仍为单服务器）

@@ -391,7 +391,7 @@ describe('Medicines API (e2e)', () => {
       }>(ConfigKey.Jwt);
 
       const token = await jwtService.signAsync(
-        { sub: user.id, email: user.email! },
+        { sub: user.id, email: user.email!, status: 'active' },
         {
           secret: jwtCfg.accessSecret,
           expiresIn: jwtCfg.accessTtl,

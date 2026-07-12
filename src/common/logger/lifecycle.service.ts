@@ -1,9 +1,9 @@
 import {
   Injectable,
+  Logger,
   type OnApplicationBootstrap,
   type OnApplicationShutdown,
 } from '@nestjs/common';
-import { PinoLogger } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
 import { ConfigKey } from '../../config/config-keys.enum';
 import { EnvKey } from '../../config/env-keys.enum';
@@ -17,12 +17,9 @@ import { EnvKey } from '../../config/env-keys.enum';
 export class LifecycleService
   implements OnApplicationBootstrap, OnApplicationShutdown
 {
-  constructor(
-    private readonly logger: PinoLogger,
-    private readonly configService: ConfigService,
-  ) {
-    this.logger.setContext(LifecycleService.name);
-  }
+  private readonly logger = new Logger(LifecycleService.name);
+
+  constructor(private readonly configService: ConfigService) {}
 
   onApplicationBootstrap(): void {
     const env =
@@ -30,25 +27,14 @@ export class LifecycleService
     const host = this.configService.get<string>(`${ConfigKey.App}.host`);
     const port = this.configService.get<number>(`${ConfigKey.App}.port`);
 
-    this.logger.info(
-      {
-        env,
-        pid: process.pid,
-        host,
-        port,
-      },
-      'Application started',
+    this.logger.log(
+      `Application started (env=${env}, pid=${String(process.pid)}, host=${host ?? '?'}, port=${String(port ?? '?')})`,
     );
   }
 
   onApplicationShutdown(signal?: string): void {
-    this.logger.info(
-      {
-        signal,
-        pid: process.pid,
-        uptimeSeconds: Number(process.uptime().toFixed(3)),
-      },
-      'Application shutting down',
+    this.logger.log(
+      `Application shutting down (signal=${signal ?? '?'}, pid=${String(process.pid)}, uptime=${String(Number(process.uptime().toFixed(3)))}s)`,
     );
   }
 }

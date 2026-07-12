@@ -1,29 +1,25 @@
 import type { ConfigService } from '@nestjs/config';
-import type { PinoLogger } from 'nestjs-pino';
+import { Logger } from '@nestjs/common';
 import { LifecycleService } from './lifecycle.service';
 
 describe('LifecycleService', () => {
-  let logger: vi.Mocked<PinoLogger>;
+  let loggerLog: vi.MockInstance<any>;
   let configService: vi.Mocked<ConfigService>;
   let service: LifecycleService;
 
   beforeEach(() => {
-    logger = {
-      setContext: vi.fn(),
-      info: vi.fn(),
-    } as unknown as vi.Mocked<PinoLogger>;
+    loggerLog = vi.fn();
+    vi.spyOn(Logger.prototype, 'log').mockImplementation(loggerLog as never);
 
     configService = {
       get: vi.fn(),
     } as unknown as vi.Mocked<ConfigService>;
 
-    service = new LifecycleService(logger, configService);
+    service = new LifecycleService(configService);
   });
 
-  describe('constructor', () => {
-    it('sets context on logger', () => {
-      expect(logger.setContext).toHaveBeenCalledWith('LifecycleService');
-    });
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('onApplicationBootstrap', () => {
@@ -35,14 +31,14 @@ describe('LifecycleService', () => {
 
       service.onApplicationBootstrap();
 
-      expect(logger.info).toHaveBeenCalledWith(
-        {
-          env: 'production',
-          pid: process.pid,
-          host: '0.0.0.0',
-          port: 3000,
-        },
-        'Application started',
+      expect(loggerLog).toHaveBeenCalledWith(
+        expect.stringContaining('Application started'),
+      );
+      expect(loggerLog).toHaveBeenCalledWith(
+        expect.stringContaining('env=production'),
+      );
+      expect(loggerLog).toHaveBeenCalledWith(
+        expect.stringContaining('port=3000'),
       );
     });
 
@@ -54,13 +50,8 @@ describe('LifecycleService', () => {
 
       service.onApplicationBootstrap();
 
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.objectContaining({
-          env: 'development',
-          host: null,
-          port: undefined,
-        }),
-        'Application started',
+      expect(loggerLog).toHaveBeenCalledWith(
+        expect.stringContaining('env=development'),
       );
     });
   });
@@ -69,26 +60,22 @@ describe('LifecycleService', () => {
     it('logs shutdown info with signal and uptime', () => {
       service.onApplicationShutdown('SIGTERM');
 
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.objectContaining({
-          signal: 'SIGTERM',
-          pid: process.pid,
-        }),
-        'Application shutting down',
+      expect(loggerLog).toHaveBeenCalledWith(
+        expect.stringContaining('Application shutting down'),
       );
-
-      const callArgs = logger.info.mock.calls[0]![0] as Record<string, unknown>;
-      expect(typeof callArgs['uptimeSeconds']).toBe('number');
+      expect(loggerLog).toHaveBeenCalledWith(
+        expect.stringContaining('signal=SIGTERM'),
+      );
+      expect(loggerLog).toHaveBeenCalledWith(
+        expect.stringContaining('uptime='),
+      );
     });
 
     it('logs shutdown with undefined signal', () => {
       service.onApplicationShutdown();
 
-      expect(logger.info).toHaveBeenCalledWith(
-        expect.objectContaining({
-          signal: undefined,
-        }),
-        'Application shutting down',
+      expect(loggerLog).toHaveBeenCalledWith(
+        expect.stringContaining('signal=?'),
       );
     });
   });

@@ -4,7 +4,6 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PinoLogger } from 'nestjs-pino';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppController } from '../../../src/app.controller';
@@ -70,14 +69,6 @@ describe('Lucent API (e2e)', () => {
         ApiExceptionFilter,
         MetricsService,
         SlowRequestInterceptor,
-        {
-          provide: PinoLogger,
-          useValue: {
-            setContext: vi.fn(),
-            error: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
       ],
     }).compile();
 

@@ -1,123 +1,83 @@
-import type { Params } from 'nestjs-pino';
-import type { Options } from 'pino-http';
-import { randomUUID } from 'node:crypto';
-import type { Request, Response } from 'express';
-import type { RequestWithId } from '../middleware/request-id.middleware';
+import type { WinstonModuleOptions } from 'nest-winston';
+import { transports as winstonTransports } from 'winston';
+import DailyRotateFile from 'winston-daily-rotate-file';
+import { EnvKey } from '../../config/env-keys.enum';
+
+type LogLevel =
+  | 'error'
+  | 'warn'
+  | 'info'
+  | 'http'
+  | 'verbose'
+  | 'debug'
+  | 'silly';
 
 /**
- * Formats a response-time suffix string (e.g. ` in 42ms`) for inclusion
- * in HTTP request log messages.
+ * Resolves the effective log level.
+ *
+ * - Test: defaults to 'error' (minimal output; set LOG_LEVEL=debug to see more)
+ * - Production: defaults to 'info'
+ * - Development: defaults to 'debug'
+ *
+ * An explicit LOG_LEVEL always wins.
  */
-function formatDurationSuffix(responseTime: number): string {
-  if (responseTime < 0) {
-    return '';
+function resolveLevel(nodeEnv: string, logLevel: string): LogLevel {
+  if (logLevel) {
+    return logLevel as LogLevel;
   }
-  return ` in ${responseTime.toFixed(0)}ms`;
+  if (nodeEnv === 'test') {
+    return 'error';
+  }
+  if (nodeEnv === 'production') {
+    return 'info';
+  }
+  return 'debug';
 }
 
-function createPinoHttpOptions(nodeEnv: string, logLevel: string): Options {
-  const isProduction = nodeEnv === 'production';
-  const level = logLevel || (isProduction ? 'info' : 'debug');
+/**
+ * Winston logger configuration for nest-winston.
+ *
+ * - Development: `Console` with `format.simple()` (human-readable, colorized)
+ * - Production: `Console` (JSON) + `DailyRotateFile` (daily, 500 MB max)
+ * - Test: `Console` at `error` level only (near-silent)
+ *
+ * Per-request HTTP access logging is intentionally NOT configured here —
+ * that responsibility is delegated to:
+ *   - Nginx access_log (IP / UA / bytes / referer)
+ *   - ApiExceptionFilter (4xx/5xx with requestId + error stack)
+ *   - SlowRequestInterceptor (configurable threshold + handler name)
+ *   - Prometheus histogram + counter (aggregated latency / Grafana)
+ */
+export function createLoggerOptions(
+  nodeEnv: string,
+  logLevel: string,
+): WinstonModuleOptions {
+  const env = nodeEnv || process.env[EnvKey.NODE_ENV] || 'development';
+  const level = resolveLevel(env, logLevel);
+  const isProduction = env === 'production';
 
-  return {
+  const consoleTransport = new winstonTransports.Console({
     level,
-    ...(isProduction
-      ? {
-          transport: {
-            targets: [
-              {
-                target: 'pino/file',
-                options: { destination: 1 },
-                level,
-              },
-              {
-                target: 'pino-roll',
-                options: {
-                  file: 'lucent',
-                  frequency: 'daily',
-                  dir: './logs',
-                  mkdir: true,
-                  maxSize: 524288000,
-                },
-                level,
-              },
-            ],
-          },
-        }
-      : {
-          transport: {
-            target: 'pino-pretty',
-            options: {
-              colorize: true,
-              singleLine: true,
-              translateTime: 'HH:MM:ss.l',
-              ignore: 'pid,hostname',
-            },
-          },
-        }),
-    genReqId: (request) => {
-      const existingRequestId = (request as RequestWithId).requestId;
-      if (
-        typeof existingRequestId === 'string' &&
-        existingRequestId.length > 0
-      ) {
-        return existingRequestId;
-      }
+    handleExceptions: true,
+  });
 
-      const headerValue = request.headers['x-request-id'];
-      if (typeof headerValue === 'string' && headerValue.trim()) {
-        return headerValue.trim();
-      }
+  if (isProduction) {
+    const rotateTransport = new DailyRotateFile({
+      filename: 'lucent-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      dirname: './logs',
+      maxSize: '500m',
+      maxFiles: '14d',
+      zippedArchive: true,
+      level,
+    });
 
-      return randomUUID();
-    },
-    customLogLevel: (_request, response, error) => {
-      if (error || response.statusCode >= 500) {
-        return 'error';
-      }
-      if (response.statusCode >= 400) {
-        return 'warn';
-      }
-      return 'info';
-    },
-    autoLogging: {
-      ignore: (request) => {
-        const requestUrl = request.url ?? '';
-        return (
-          requestUrl.startsWith('/api/v1/health') ||
-          requestUrl.startsWith('/api/docs') ||
-          requestUrl.startsWith('/metrics')
-        );
-      },
-    },
-    customSuccessMessage: (request, response, responseTime) => {
-      const requestMethod = request.method ?? '';
-      const requestUrl = request.url ?? '';
-      return `${requestMethod} ${requestUrl} completed ${String(response.statusCode)}${formatDurationSuffix(responseTime)}`;
-    },
-    customErrorMessage: (request, response, _error) => {
-      const requestMethod = request.method ?? '';
-      const requestUrl = request.url ?? '';
-      return `${requestMethod} ${requestUrl} failed ${String(response.statusCode)}`;
-    },
-    serializers: {
-      req: (request: Request) => ({
-        id: (request as RequestWithId).requestId,
-        method: request.method,
-        url: request.originalUrl || request.url,
-        ip: request.ip,
-        userAgent: request.headers['user-agent'],
-      }),
-      res: (response: Response) => ({
-        statusCode: response.statusCode,
-      }),
-    },
-  };
-}
+    return {
+      transports: [consoleTransport, rotateTransport],
+    };
+  }
 
-export function createLoggerOptions(nodeEnv: string, logLevel: string): Params {
   return {
-    pinoHttp: createPinoHttpOptions(nodeEnv, logLevel),
-    renameContext: 'context',
+    transports: [consoleTransport],
   };
 }

@@ -98,12 +98,16 @@ Last updated: 2026-07-12
   - `vi.fn(() => mockObject)` 箭头函数构造器改为 `vi.fn(function () { return mockObject; })`（COS SDK、PGVectorStore mock）
   - `vi.mock('argon2', ...)` 补充 `argon2id: 2` 属性（Vitest 对 mock 属性访问更严格）
   - `mock.calls[0]` 添加 `!` 非空断言（Vitest MockInstance 类型 + `noUncheckedIndexedAccess`）
-- **验证结果**：`pnpm build` ✓（694 文件）、`pnpm typecheck` ✓（0 错误）、`pnpm lint:check` ✓（0 警告）、`pnpm test` ✓（205 文件 / 2105 测试全部通过）
+- **验证结果**：`pnpm build` ✓（694 文件）、`pnpm typecheck` ✓（0 错误）、`pnpm lint:check` ✓（0 警告）、`pnpm test` ✓（205 文件 / 2105 测试全部通过）、`pnpm test:e2e` ✓（226 文件 / 2400 测试全部通过）
+- **E2E 配置**：`vitest.e2e.config.ts` 添加 `fileParallelism: false`（等价于 Jest `--runInBand`）
+- **JWT `status` 遗漏修复**：3 个 E2E 文件的 `createAccessToken` helper 补充 `status: 'active'`（`e2e-helpers.ts`、`daily-records.e2e-spec.ts`、`medicines.e2e-spec.ts`），修复今天早些时候 `UserPayload.status` 改为必需后未同步 E2E helper 的问题
 
 ## 2026-07-12 NestJS 12 升级准备
 
 - **移除 ts-loader**：`ts-loader` 是 `@nestjs/cli@11` 传递依赖的遗留物，项目已使用 SWC builder，不经过 webpack。升级到 CLI 12 后 webpack 依赖自动消失。已从 `devDependencies` 中删除
 - **Jest → Vitest 迁移**：完整迁移已完成，见上方详细记录。`plans/2026-07-12-jest-to-vitest-migration.md` 计划已全部执行
+- **关闭 pino-http autoLogging**：每请求 HTTP 访问日志与 Nginx access_log、ApiExceptionFilter、SlowRequestInterceptor、Prometheus 指标完全重复，已关闭；保留 PinoLogger 业务日志和 genReqId request ID 关联
+- **Pino → Winston 迁移**：移除 pino 全家桶（nestjs-pino / pino / pino-http / pino-pretty / pino-roll），切换到 nest-winston + winston + winston-daily-rotate-file；6 个 PinoLogger DI 全部改为 `new Logger()` 字段方式，全项目 logger 统一；Winston 主线程执行，不再有 worker 线程绕过 console 拦截的问题
 
 ## 相关文档
 

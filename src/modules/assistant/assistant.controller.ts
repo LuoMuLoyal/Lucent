@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Logger,
   Param,
   Post,
   Res,
@@ -16,7 +17,6 @@ import {
 } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { I18nLang } from 'nestjs-i18n';
-import { PinoLogger } from 'nestjs-pino';
 import { successEnvelope } from '../../common/api';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
@@ -37,12 +37,9 @@ import {
 @UseGuards(JwtAuthGuard)
 @Controller('assistant')
 export class AssistantController {
-  constructor(
-    private readonly logger: PinoLogger,
-    private readonly assistantService: AssistantService,
-  ) {
-    this.logger.setContext(AssistantController.name);
-  }
+  private readonly logger = new Logger(AssistantController.name);
+
+  constructor(private readonly assistantService: AssistantService) {}
 
   @Get('capabilities')
   @ApiOperation({

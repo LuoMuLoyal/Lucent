@@ -2,11 +2,11 @@ import {
   type CallHandler,
   type ExecutionContext,
   Injectable,
+  Logger,
   type NestInterceptor,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { PinoLogger } from 'nestjs-pino';
 import { Observable, tap } from 'rxjs';
 import { performance } from 'node:perf_hooks';
 import type { Request } from 'express';
@@ -23,13 +23,12 @@ export const SKIP_SLOW_REQUEST_KEY = 'skipSlowRequestLog';
  */
 @Injectable()
 export class SlowRequestInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(SlowRequestInterceptor.name);
+
   constructor(
-    private readonly logger: PinoLogger,
     private readonly configService: ConfigService,
     private readonly reflector: Reflector,
-  ) {
-    this.logger.setContext(SlowRequestInterceptor.name);
-  }
+  ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (this.shouldSkip(context)) {
@@ -51,14 +50,7 @@ export class SlowRequestInterceptor implements NestInterceptor {
 
         if (durationMs >= threshold) {
           this.logger.warn(
-            {
-              method,
-              path,
-              durationMs: Number(durationMs.toFixed(2)),
-              threshold,
-              handler: handlerName,
-            },
-            `Slow request: ${method} ${path} took ${durationMs.toFixed(0)}ms (threshold ${String(threshold)}ms)`,
+            `Slow request: ${method} ${path} took ${durationMs.toFixed(0)}ms (threshold ${String(threshold)}ms) [handler=${handlerName}, durationMs=${String(Number(durationMs.toFixed(2)))}]`,
           );
         }
       }),

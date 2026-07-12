@@ -16,7 +16,6 @@ vi.mock('../../common/api/sse', () => ({
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
-import { PinoLogger } from 'nestjs-pino';
 import { ResultCode } from '../../common/api';
 import { AssistantController } from './assistant.controller';
 import { AssistantService } from './services/core.service';
@@ -29,16 +28,6 @@ describe('AssistantController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AssistantController],
       providers: [
-        {
-          provide: PinoLogger,
-          useValue: {
-            setContext: vi.fn(),
-            error: vi.fn(),
-            warn: vi.fn(),
-            info: vi.fn(),
-            debug: vi.fn(),
-          },
-        },
         {
           provide: AssistantService,
           useValue: {

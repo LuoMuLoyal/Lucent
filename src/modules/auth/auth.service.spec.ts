@@ -5,7 +5,6 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { PinoLogger } from 'nestjs-pino';
 import { I18nService } from 'nestjs-i18n';
 
 import { AuthService } from './services/auth.service';
@@ -83,16 +82,6 @@ describe('AuthService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        {
-          provide: PinoLogger,
-          useValue: {
-            setContext: vi.fn(),
-            error: vi.fn(),
-            warn: vi.fn(),
-            info: vi.fn(),
-            debug: vi.fn(),
-          },
-        },
         AuthService,
         {
           provide: AuthSessionRepositoryPort,

@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { Logger } from 'nestjs-pino';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { AppModule } from './app.module';
 import { setupApp } from './setup-app';
 import { ConfigKey } from './config/config-keys.enum';
@@ -8,7 +8,7 @@ import { registerAdminPanel } from './admin/setup';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  app.useLogger(app.get(Logger));
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   const configService = app.get(ConfigService);
   setupApp(app, configService);

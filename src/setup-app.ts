@@ -8,7 +8,6 @@ import type { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
-import { LoggerErrorInterceptor } from 'nestjs-pino';
 import { ConfigKey } from './config/config-keys.enum';
 import { ResultCode } from './common/api';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
@@ -57,7 +56,6 @@ export function setupApp(
     }),
   );
   app.useGlobalInterceptors(
-    new LoggerErrorInterceptor(),
     app.get(SlowRequestInterceptor),
     new ApiEnvelopeInterceptor(),
   );

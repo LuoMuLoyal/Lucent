@@ -5,9 +5,9 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { PinoLogger } from 'nestjs-pino';
 import { ResultCode, errorEnvelope } from '../api/api-envelope';
 import { RequestContextService } from '../logger/request-context.service';
 
@@ -24,12 +24,9 @@ interface ErrorResponseBody {
 @Catch()
 @Injectable()
 export class ApiExceptionFilter implements ExceptionFilter {
-  constructor(
-    private readonly logger: PinoLogger,
-    private readonly requestContextService: RequestContextService,
-  ) {
-    this.logger.setContext(ApiExceptionFilter.name);
-  }
+  private readonly logger = new Logger(ApiExceptionFilter.name);
+
+  constructor(private readonly requestContextService: RequestContextService) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -49,25 +46,21 @@ export class ApiExceptionFilter implements ExceptionFilter {
     status: HttpStatus,
     message: string,
   ): void {
-    const metadata = {
-      requestId: this.requestContextService.getRequestId(),
-      method: request.method,
-      path: request.originalUrl || request.url,
-      statusCode: status,
-    };
+    const requestId = this.requestContextService.getRequestId();
+    const requestIdSuffix = requestId ? ` [reqId=${requestId}]` : '';
+    const path = request.originalUrl || request.url;
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
-        {
-          ...metadata,
-          err: exception instanceof Error ? exception : undefined,
-        },
-        `Unhandled exception: ${message}`,
+        `Unhandled exception: ${message} [${request.method} ${path} ${String(status)}]${requestIdSuffix}`,
+        exception instanceof Error ? exception.stack : undefined,
       );
       return;
     }
 
-    this.logger.warn(metadata, `Handled exception: ${message}`);
+    this.logger.warn(
+      `Handled exception: ${message} [${request.method} ${path} ${String(status)}]${requestIdSuffix}`,
+    );
   }
 
   private resolveStatus(exception: unknown): HttpStatus {

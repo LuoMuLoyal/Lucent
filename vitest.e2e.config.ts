@@ -7,11 +7,10 @@ export default mergeConfig(
     test: {
       root: '.',
       include: ['test/**/*.e2e-spec.ts'],
-      // E2E 测试串行执行，避免数据库竞争
+      // E2E 测试串行执行，避免数据库竞争（等价于 Jest --runInBand）
+      fileParallelism: false,
       pool: 'forks',
-      poolOptions: {
-        forks: { singleFork: true },
-      },
+      singleFork: true,
       // E2E 不收集覆盖率
       coverage: { enabled: false },
     },

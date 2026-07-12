@@ -1,103 +1,47 @@
 import { createLoggerOptions } from './logger.config';
-import type { Options } from 'pino-http';
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { WinstonModuleOptions } from 'nest-winston';
 
-function getPinoHttpOptions(nodeEnv: string, logLevel: string): Options {
-  return createLoggerOptions(nodeEnv, logLevel).pinoHttp as Options;
+interface LeveledTransport {
+  level: string;
 }
 
-/** Creates a minimal mock `IncomingMessage` for pino-http callbacks. */
-function createMockRequest(method: string, url: string): IncomingMessage {
-  return { method, url } as unknown as IncomingMessage;
-}
-
-/** Creates a minimal mock `ServerResponse`. */
-function createMockResponse(statusCode: number): ServerResponse {
-  return { statusCode } as unknown as ServerResponse;
+function getConsoleLevel(options: WinstonModuleOptions): string {
+  const transports = options.transports;
+  const arr = Array.isArray(transports) ? transports : [transports];
+  return (arr[0] as unknown as LeveledTransport).level;
 }
 
 describe('createLoggerOptions', () => {
-  it('uses pino-pretty transport in development', () => {
-    const options = getPinoHttpOptions('development', '');
+  it('uses debug level in development', () => {
+    const options = createLoggerOptions('development', '');
 
-    expect(options.transport).toEqual(
-      expect.objectContaining({
-        target: 'pino-pretty',
-      }),
-    );
-    expect(options.level).toBe('debug');
+    expect(options.transports).toHaveLength(1);
+    expect(getConsoleLevel(options)).toBe('debug');
   });
 
-  it('uses dual-write transport (stdout + pino-roll) in production', () => {
-    const options = getPinoHttpOptions('production', '');
+  it('uses info level in production with console + rotate transports', () => {
+    const options = createLoggerOptions('production', '');
 
-    expect(options.transport).toEqual(
-      expect.objectContaining({
-        targets: expect.arrayContaining([
-          expect.objectContaining({
-            target: 'pino/file',
-            options: expect.objectContaining({ destination: 1 }),
-          }),
-          expect.objectContaining({
-            target: 'pino-roll',
-            options: expect.objectContaining({
-              file: 'lucent',
-              frequency: 'daily',
-              dir: './logs',
-              mkdir: true,
-            }),
-          }),
-        ]),
-      }),
-    );
-    expect(options.level).toBe('info');
+    expect(options.transports).toHaveLength(2);
+    expect(getConsoleLevel(options)).toBe('info');
   });
 
   it('honors an explicit log level override', () => {
-    const options = getPinoHttpOptions('production', 'warn');
+    const options = createLoggerOptions('production', 'warn');
 
-    expect(options.level).toBe('warn');
+    expect(getConsoleLevel(options)).toBe('warn');
   });
 
-  it('customSuccessMessage includes response time', () => {
-    const options = getPinoHttpOptions('production', '');
-    const req = createMockRequest('GET', '/api/v1/health');
-    const res = createMockResponse(200);
+  it('uses error level in test mode for minimal output', () => {
+    const options = createLoggerOptions('test', '');
 
-    const message = options.customSuccessMessage!(req, res, 42);
-
-    expect(message).toBe('GET /api/v1/health completed 200 in 42ms');
+    expect(getConsoleLevel(options)).toBe('error');
   });
 
-  it('customSuccessMessage formats zero response time', () => {
-    const options = getPinoHttpOptions('production', '');
-    const req = createMockRequest('POST', '/api/v1/login');
-    const res = createMockResponse(201);
+  it('falls back to process.env.NODE_ENV when nodeEnv is empty', () => {
+    // During tests, process.env.NODE_ENV is 'test', so the level should be 'error'
+    const options = createLoggerOptions('', '');
 
-    const message = options.customSuccessMessage!(req, res, 0);
-
-    expect(message).toBe('POST /api/v1/login completed 201 in 0ms');
-  });
-
-  it('customErrorMessage includes 4xx status code', () => {
-    const options = getPinoHttpOptions('production', '');
-    const req = createMockRequest('GET', '/api/v1/forbidden');
-    const res = createMockResponse(403);
-    const error = new Error('Forbidden');
-
-    const message = options.customErrorMessage!(req, res, error);
-
-    expect(message).toBe('GET /api/v1/forbidden failed 403');
-  });
-
-  it('customErrorMessage includes 5xx status code', () => {
-    const options = getPinoHttpOptions('production', '');
-    const req = createMockRequest('POST', '/api/v1/data');
-    const res = createMockResponse(502);
-    const error = new Error('Bad gateway');
-
-    const message = options.customErrorMessage!(req, res, error);
-
-    expect(message).toBe('POST /api/v1/data failed 502');
+    expect(getConsoleLevel(options)).toBe('error');
   });
 });

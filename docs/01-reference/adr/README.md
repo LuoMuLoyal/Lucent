@@ -79,3 +79,7 @@ What becomes easier or harder as a result of this decision?
   - Title: Observability Strategy — prom-client + Prometheus/Grafana, Defer OpenTelemetry
   - Status: accepted
   - Date: 2026-07-09
+- [0007](0007-logging-pino-to-winston.md)
+  - Title: Logging Framework — Pino → Winston Migration
+  - Status: accepted
+  - Date: 2026-07-12

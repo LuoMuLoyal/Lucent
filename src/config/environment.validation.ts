@@ -194,7 +194,7 @@ const envSchema = Joi.object<EnvironmentVariables>({
     .default(DEFAULT_EMBEDDING_DIMENSION),
   [EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS]: optionalString,
   [EnvKey.LOG_LEVEL]: Joi.string()
-    .valid('debug', 'info', 'warn', 'error')
+    .valid('error', 'warn', 'info', 'debug', 'verbose')
     .default('debug'),
   [EnvKey.MAIL_DRIVER]: Joi.string().valid('log', 'smtp').default('log'),
   [EnvKey.MAIL_HOST]: Joi.string().optional(),

@@ -5,7 +5,6 @@ import {
   HttpException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PinoLogger } from 'nestjs-pino';
 import { I18nService } from 'nestjs-i18n';
 
 import { CredentialAuthService } from './credential.service';
@@ -99,16 +98,6 @@ describe('CredentialAuthService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        {
-          provide: PinoLogger,
-          useValue: {
-            setContext: vi.fn(),
-            error: vi.fn(),
-            warn: vi.fn(),
-            info: vi.fn(),
-            debug: vi.fn(),
-          },
-        },
         CredentialAuthService,
         {
           provide: UserService,
