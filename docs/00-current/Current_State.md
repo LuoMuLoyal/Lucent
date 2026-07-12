@@ -109,6 +109,16 @@ Last updated: 2026-07-12
 - **关闭 pino-http autoLogging**：每请求 HTTP 访问日志与 Nginx access_log、ApiExceptionFilter、SlowRequestInterceptor、Prometheus 指标完全重复，已关闭；保留 PinoLogger 业务日志和 genReqId request ID 关联
 - **Pino → Winston 迁移**：移除 pino 全家桶（nestjs-pino / pino / pino-http / pino-pretty / pino-roll），切换到 nest-winston + winston + winston-daily-rotate-file；6 个 PinoLogger DI 全部改为 `new Logger()` 字段方式，全项目 logger 统一；Winston 主线程执行，不再有 worker 线程绕过 console 拦截的问题
 
+## 2026-07-12 新增测试类型：契约测试、性能测试、安全测试
+
+- **契约测试**：`test/contract/contract.e2e-spec.ts`，验证 API 响应匹配 OpenAPI schema（公开 + 认证端点 + 错误信封），`pnpm test:contract`
+- **性能测试**：`test/performance/` 下 3 个 k6 脚本（health / medicines / authenticated），`pnpm test:perf:*`
+- **安全测试**：`test/security/` 下 3 个测试文件
+  - `authorization.e2e-spec.ts` — 跨用户越权测试（health-context / daily-records / reminders / notifications / sessions / assistant / data-export + JWT 篡改）
+  - `fuzzing.e2e-spec.ts` — 输入模糊测试（SQL/NoSQL 注入、超大 payload、null byte、XSS、HTTP 方法 fuzzing、header 注入）
+  - `rate-limiting.e2e-spec.ts` — 速率限制集成测试（全局 Throttler、登录限流锁定、验证码冷却）
+- **package.json scripts:** `test:contract`、`test:security`、`test:perf:health`、`test:perf:medicines`、`test:perf:auth`
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]
