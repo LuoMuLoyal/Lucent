@@ -39,7 +39,13 @@ export class AuthAccountService {
           message: this.i18n.t('auth.use_code_for_oauth_account_deletion'),
         });
       }
-      const valid = await argon2.verify(user.passwordHash, dto.password);
+      let valid: boolean;
+      try {
+        valid = await argon2.verify(user.passwordHash, dto.password);
+      } catch {
+        // Corrupted or invalid hash — treat as wrong password, not a 500
+        valid = false;
+      }
       if (!valid) {
         throw new UnauthorizedException({
           code: ResultCode.WRONG_PASSWORD,

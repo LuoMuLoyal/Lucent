@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
@@ -132,8 +136,11 @@ export class AuthTokenService {
 
   async revokeById(userId: string, sessionId: string): Promise<void> {
     const record = await this.sessionRepository.findSessionById(sessionId);
-    if (!record || record.userId !== userId) {
-      throw new Error('SESSION_NOT_FOUND');
+    if (!record) {
+      throw new NotFoundException('Session not found');
+    }
+    if (record.userId !== userId) {
+      throw new ForbiddenException('Cannot revoke another user session');
     }
     await this.sessionRepository.revokeSessionById(sessionId);
   }

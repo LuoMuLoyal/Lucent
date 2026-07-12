@@ -2,6 +2,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { AuthTokenService } from './token.service';
 import { normalizeEmail } from '../../../common/helpers/string.utils';
@@ -207,20 +208,20 @@ describe('AuthTokenService', () => {
       expect(sessionRepo.revokeSessionById).toHaveBeenCalledWith('session-1');
     });
 
-    it('should throw when session is not found', async () => {
+    it('should throw NotFoundException when session is not found', async () => {
       await expect(service.revokeById('user-1', 'nonexistent')).rejects.toThrow(
-        'SESSION_NOT_FOUND',
+        NotFoundException,
       );
     });
 
-    it('should throw when session belongs to another user', async () => {
+    it('should throw ForbiddenException when session belongs to another user', async () => {
       sessionRepo.findSessionById.mockResolvedValueOnce({
         id: 'session-1',
         userId: 'user-2',
       } as never);
 
       await expect(service.revokeById('user-1', 'session-1')).rejects.toThrow(
-        'SESSION_NOT_FOUND',
+        ForbiddenException,
       );
     });
   });
