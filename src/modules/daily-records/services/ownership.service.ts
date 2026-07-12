@@ -9,6 +9,7 @@ import { DailyRecordRepositoryPort } from '../repositories/daily-record.reposito
 export type OwnedRecordSnapshot = {
   kind: DailyRecordKind;
   payload: unknown;
+  occurredAt?: Date | undefined;
 };
 
 @Injectable()
@@ -30,7 +31,11 @@ export class DailyRecordsOwnershipService {
       this.i18n.t('daily-records.record_not_found'),
     );
 
-    return { kind: record.kind, payload: record.payload };
+    return {
+      kind: record.kind,
+      payload: record.payload,
+      occurredAt: record.occurredAt,
+    };
   }
 
   throwRecordNotFound(): never {

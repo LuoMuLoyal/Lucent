@@ -120,7 +120,7 @@ describe('DailyRecordRepository', () => {
       expect(result).not.toBeNull();
       expect(prisma.userDailyRecord.findFirst).toHaveBeenCalledWith({
         where: { id: 'rec-1', deletedAt: null },
-        select: { userId: true, kind: true, payload: true },
+        select: { userId: true, kind: true, payload: true, occurredAt: true },
       });
     });
 

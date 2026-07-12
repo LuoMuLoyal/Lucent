@@ -124,7 +124,7 @@ export class DailyRecordRepository implements DailyRecordRepositoryPort {
   ): Promise<(OwnedRecordSnapshot & { userId: string }) | null> {
     return this.prisma.userDailyRecord.findFirst({
       where: { id, deletedAt: null },
-      select: { userId: true, kind: true, payload: true },
+      select: { userId: true, kind: true, payload: true, occurredAt: true },
     });
   }
 
