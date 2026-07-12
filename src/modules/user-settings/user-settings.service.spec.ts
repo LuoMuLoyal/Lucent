@@ -1,6 +1,14 @@
 import type { PrismaService } from '../../prisma/prisma.service';
 import { UserSettingsService } from './services/user-settings.service';
 
+function createMockCache() {
+  return {
+    get: vi.fn().mockResolvedValue(undefined),
+    set: vi.fn().mockResolvedValue(undefined),
+    del: vi.fn().mockResolvedValue(undefined),
+  } as never;
+}
+
 describe('UserSettingsService', () => {
   it('returns defaults when the user has no stored settings', async () => {
     const prisma = {
@@ -16,7 +24,7 @@ describe('UserSettingsService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new UserSettingsService(prisma);
+    const service = new UserSettingsService(prisma, createMockCache());
 
     await expect(service.getSettings('user-1')).resolves.toEqual({
       aiSummariesEnabled: true,
@@ -73,7 +81,7 @@ describe('UserSettingsService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new UserSettingsService(prisma);
+    const service = new UserSettingsService(prisma, createMockCache());
 
     await expect(service.getSettings('user-1')).resolves.toEqual({
       aiSummariesEnabled: true,
@@ -110,7 +118,7 @@ describe('UserSettingsService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new UserSettingsService(prisma);
+    const service = new UserSettingsService(prisma, createMockCache());
 
     await service.updateSettings('user-1', {
       assistantEnabled: false,
@@ -191,7 +199,7 @@ describe('UserSettingsService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new UserSettingsService(prisma);
+    const service = new UserSettingsService(prisma, createMockCache());
 
     await service.updateSettings('user-1', {});
 
@@ -213,7 +221,7 @@ describe('UserSettingsService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new UserSettingsService(prisma);
+    const service = new UserSettingsService(prisma, createMockCache());
 
     await service.updateSettings('user-1', { waterTargetCount: 12 });
 

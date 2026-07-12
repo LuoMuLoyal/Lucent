@@ -9,6 +9,7 @@ import { DailyRecordsMapperService } from './services/mapper.service';
 import { DailyRecordsService } from './services/records.service';
 import { MealAnalysisQueueService } from './services/meal-analysis/queue.service';
 import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service';
+import { SuggestionCacheService } from '../today-suggestion/services/cache/suggestion-cache.service';
 
 const mockUserId = 'user-uuid-1';
 
@@ -84,6 +85,12 @@ describe('DailyRecordsService', () => {
         {
           provide: DailyRecordRepositoryPort,
           useValue: repositoryMock,
+        },
+        {
+          provide: SuggestionCacheService,
+          useValue: {
+            invalidateSignals: vi.fn().mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();

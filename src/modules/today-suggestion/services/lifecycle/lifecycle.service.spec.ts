@@ -2,6 +2,13 @@ import { LifecycleService } from './lifecycle.service';
 import { SuggestionLifecycleState } from '../../types';
 import type { SuggestionCandidate } from '../../types/candidate.types';
 
+function createMockCache() {
+  return {
+    get: vi.fn().mockResolvedValue(undefined),
+    set: vi.fn().mockResolvedValue(undefined),
+  } as never;
+}
+
 describe('LifecycleService', () => {
   let service: LifecycleService;
   let findManyMock: vi.Mock;
@@ -24,7 +31,7 @@ describe('LifecycleService', () => {
       },
     };
 
-    service = new LifecycleService(prismaMock as never);
+    service = new LifecycleService(prismaMock as never, createMockCache());
   });
 
   // ── persistActive ──────────────────────────────────────────────────────

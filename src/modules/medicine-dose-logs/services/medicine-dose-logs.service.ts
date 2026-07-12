@@ -11,6 +11,7 @@ import { I18nService } from 'nestjs-i18n';
 
 import { DoseLogStatus, Prisma } from '#generated/prisma/client';
 import { MedicineDoseLogRepositoryPort } from '../repositories';
+import { SuggestionCacheService } from '../../today-suggestion/services/cache/suggestion-cache.service';
 import type {
   CreateDoseLogDto,
   MarkDoseLogDto,
@@ -29,6 +30,7 @@ export class MedicineDoseLogsService {
   constructor(
     private readonly repository: MedicineDoseLogRepositoryPort,
     private readonly i18n: I18nService,
+    private readonly suggestionCache: SuggestionCacheService,
   ) {}
 
   async list(userId: string, date: string) {
@@ -72,6 +74,7 @@ export class MedicineDoseLogsService {
         note: dto.note,
       }),
     );
+    await this.invalidateSuggestionCache(userId, scheduledFor);
     return this.toItem(record);
   }
 
@@ -120,6 +123,7 @@ export class MedicineDoseLogsService {
           note: dto.note,
         }),
       );
+      await this.invalidateSuggestionCache(userId, scheduledFor);
       return this.toItem(record);
     }
 
@@ -134,6 +138,7 @@ export class MedicineDoseLogsService {
         note: dto.note,
       }),
     );
+    await this.invalidateSuggestionCache(userId, scheduledFor);
     return this.toItem(record);
   }
 
@@ -151,12 +156,46 @@ export class MedicineDoseLogsService {
       data.note = normalizeNullableText(dto.note);
     }
     const record = await this.repository.update({ id }, data);
+    await this.invalidateSuggestionCacheById(userId, id);
     return this.toItem(record);
   }
 
   async delete(userId: string, id: string) {
     await this.ensureOwned(userId, id);
+    await this.invalidateSuggestionCacheById(userId, id);
     await this.repository.update({ id }, { deletedAt: now() });
+  }
+
+  private async invalidateSuggestionCache(
+    userId: string,
+    scheduledFor: Date,
+  ): Promise<void> {
+    try {
+      await this.suggestionCache.invalidateSignals(
+        userId,
+        formatDateOnly(scheduledFor),
+      );
+    } catch {
+      // best-effort
+    }
+  }
+
+  private async invalidateSuggestionCacheById(
+    userId: string,
+    logId: string,
+  ): Promise<void> {
+    const log = await this.repository.findFirst(
+      { id: logId, userId },
+      {
+        select: { scheduledFor: true },
+      },
+    );
+    if (log != null && typeof log === 'object' && 'scheduledFor' in log) {
+      await this.invalidateSuggestionCache(
+        userId,
+        (log as { scheduledFor: Date }).scheduledFor,
+      );
+    }
   }
 
   private buildCreateData(

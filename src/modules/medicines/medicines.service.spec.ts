@@ -42,6 +42,7 @@ describe('MedicinesService', () => {
           useValue: {
             getOrSetSearch: vi.fn(),
             getOrSetDetail: vi.fn(),
+            getOrSetSafetyTips: vi.fn(),
           },
         },
         {
@@ -315,6 +316,9 @@ describe('MedicinesService', () => {
 
     it('returns up to 4 random active tips in Chinese', async () => {
       getSafetyTipsFindManyMock().mockResolvedValue(tips);
+      medicinesCacheService.getOrSetSafetyTips.mockImplementation(
+        async (load) => load(),
+      );
 
       const result = await service.getRandomSafetyTips([], 'zh-CN');
 
@@ -327,6 +331,9 @@ describe('MedicinesService', () => {
 
     it('returns tips in English when language does not start with zh', async () => {
       getSafetyTipsFindManyMock().mockResolvedValue(tips);
+      medicinesCacheService.getOrSetSafetyTips.mockImplementation(
+        async (load) => load(),
+      );
 
       const result = await service.getRandomSafetyTips([], 'en');
 
@@ -336,6 +343,9 @@ describe('MedicinesService', () => {
 
     it('excludes previously returned tip ids', async () => {
       getSafetyTipsFindManyMock().mockResolvedValue(tips);
+      medicinesCacheService.getOrSetSafetyTips.mockImplementation(
+        async (load) => load(),
+      );
 
       const result = await service.getRandomSafetyTips([
         'id-1',
@@ -354,6 +364,9 @@ describe('MedicinesService', () => {
 
     it('returns remaining tips when excluded ids leave fewer than 4', async () => {
       getSafetyTipsFindManyMock().mockResolvedValue(tips);
+      medicinesCacheService.getOrSetSafetyTips.mockImplementation(
+        async (load) => load(),
+      );
 
       const result = await service.getRandomSafetyTips([
         'id-1',
@@ -374,6 +387,9 @@ describe('MedicinesService', () => {
 
     it('returns empty array when no active tips exist', async () => {
       getSafetyTipsFindManyMock().mockResolvedValue([]);
+      medicinesCacheService.getOrSetSafetyTips.mockImplementation(
+        async (load) => load(),
+      );
 
       const result = await service.getRandomSafetyTips([]);
 

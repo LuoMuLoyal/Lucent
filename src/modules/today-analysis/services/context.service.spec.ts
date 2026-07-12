@@ -1,5 +1,12 @@
 import { TodayAnalysisContextService } from './context.service';
 
+function createMockCache() {
+  return {
+    get: vi.fn().mockResolvedValue(undefined),
+    set: vi.fn().mockResolvedValue(undefined),
+  } as never;
+}
+
 describe('TodayAnalysisContextService', () => {
   const buildPrisma = (records: unknown[]) => ({
     userCurrentMedicine: {
@@ -42,7 +49,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T04:30:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -77,7 +87,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T10:30:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -110,7 +123,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T10:30:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -144,7 +160,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T04:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -178,7 +197,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T04:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -215,7 +237,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T04:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -227,7 +252,10 @@ describe('TodayAnalysisContextService', () => {
     prisma.userSetting.findUnique = vi.fn().mockResolvedValue({
       value: 12,
     });
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -239,7 +267,10 @@ describe('TodayAnalysisContextService', () => {
     prisma.userSetting.findUnique = vi.fn().mockResolvedValue({
       value: 'not-a-number',
     });
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -249,7 +280,10 @@ describe('TodayAnalysisContextService', () => {
   it('falls back to default water target when user setting is null', async () => {
     const prisma = buildPrisma([]);
     prisma.userSetting.findUnique = vi.fn().mockResolvedValue(null);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -279,7 +313,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T02:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -302,7 +339,10 @@ describe('TodayAnalysisContextService', () => {
       ),
     }));
     const prisma = buildPrisma(records);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -338,7 +378,10 @@ describe('TodayAnalysisContextService', () => {
     prisma.userMedicineDoseLog.findMany = vi
       .fn()
       .mockResolvedValue([{ currentMedicineId: 'med-1', status: 'taken' }]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -362,7 +405,10 @@ describe('TodayAnalysisContextService', () => {
       },
     ]);
     prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -391,7 +437,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T07:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -418,7 +467,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T07:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -438,7 +490,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T07:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -459,7 +514,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -487,7 +545,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -500,7 +561,10 @@ describe('TodayAnalysisContextService', () => {
   it('includes active allergy count in low-risk context', async () => {
     const prisma = buildPrisma([]);
     prisma.userAllergy.count = vi.fn().mockResolvedValue(3);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -540,7 +604,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T03:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -558,7 +625,10 @@ describe('TodayAnalysisContextService', () => {
     }));
     const prisma = buildPrisma([]);
     prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue(meds);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -584,7 +654,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -613,7 +686,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -641,7 +717,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 
@@ -669,7 +748,10 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    const service = new TodayAnalysisContextService(prisma as never);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      createMockCache(),
+    );
 
     const context = await service.build('u1', '2026-07-01');
 

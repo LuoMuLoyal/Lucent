@@ -21,6 +21,8 @@ import {
 import { MealAnalysisQueueService } from './meal-analysis/queue.service';
 import { MealDishTemplateLearningService } from './meal-dish/template-learning.service';
 import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
+import { SuggestionCacheService } from '../../today-suggestion/services/cache/suggestion-cache.service';
+import { formatDateOnly } from '../../../common/helpers/date-time.utils';
 
 @Injectable()
 export class DailyRecordsService {
@@ -30,6 +32,7 @@ export class DailyRecordsService {
     private readonly mapperService: DailyRecordsMapperService,
     private readonly mealAnalysisQueueService: MealAnalysisQueueService,
     private readonly mealDishTemplateLearningService: MealDishTemplateLearningService,
+    private readonly suggestionCache: SuggestionCacheService,
   ) {}
 
   async list(
@@ -130,6 +133,7 @@ export class DailyRecordsService {
       includeMealPayload: true,
     });
     await this.enqueueMealAnalysisIfNeeded(userId, item);
+    await this.invalidateSuggestionCache(userId, dto.occurredAt);
     return item;
   }
 
@@ -218,6 +222,9 @@ export class DailyRecordsService {
           item,
           nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
         );
+        if (existing.occurredAt != null) {
+          await this.invalidateSuggestionCache(userId, existing.occurredAt);
+        }
         return item;
       });
     }
@@ -237,16 +244,24 @@ export class DailyRecordsService {
       await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
         parseMealRecordPayload(item.payload).mealAnalysis,
       );
+      if (existing.occurredAt != null) {
+        await this.invalidateSuggestionCache(userId, existing.occurredAt);
+      }
       return item;
     }
     await this.enqueueMealAnalysisIfNeeded(userId, item);
+    if (existing.occurredAt != null) {
+      await this.invalidateSuggestionCache(userId, existing.occurredAt);
+    }
     return item;
   }
 
   async delete(userId: string, id: string) {
-    await this.ownershipService.ensureOwnedByUser(userId, id);
-
+    const existing = await this.ownershipService.ensureOwnedByUser(userId, id);
     await this.repository.softDelete(id, now());
+    if (existing.occurredAt != null) {
+      await this.invalidateSuggestionCache(userId, existing.occurredAt);
+    }
   }
 
   async summary(userId: string, date: string) {
@@ -256,6 +271,21 @@ export class DailyRecordsService {
     );
 
     return this.mapperService.toSummaries(records);
+  }
+
+  private async invalidateSuggestionCache(
+    userId: string,
+    occurredAt: string | Date,
+  ): Promise<void> {
+    try {
+      const dateStr =
+        typeof occurredAt === 'string'
+          ? formatDateOnly(parseDateOnly(occurredAt))
+          : formatDateOnly(occurredAt);
+      await this.suggestionCache.invalidateSignals(userId, dateStr);
+    } catch {
+      // cache invalidation is best-effort
+    }
   }
 
   private ensureValidSleepPayload(

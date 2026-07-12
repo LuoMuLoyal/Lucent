@@ -4,6 +4,7 @@ import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.servi
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { StorageModule } from '../../common/storage';
+import { TodaySuggestionModule } from '../today-suggestion/today-suggestion.module';
 import {
   DailyRecordRepository,
   DailyRecordRepositoryPort,
@@ -25,7 +26,13 @@ import { MealIngredientGroundingService } from './services/meal-ingredient/groun
 import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, LlmRuntimeModule, StorageModule],
+  imports: [
+    ConfigModule,
+    PrismaModule,
+    LlmRuntimeModule,
+    StorageModule,
+    TodaySuggestionModule,
+  ],
   controllers: [DailyRecordsController],
   providers: [
     LlmSafetyPolicyService,

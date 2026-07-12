@@ -28,6 +28,22 @@ function readPackageJson(): PackageJson {
 
 @Injectable()
 export class SupportResourcesService {
+  private readonly appInfo: AppInfoDataDto;
+
+  constructor() {
+    const pkg = readPackageJson();
+    this.appInfo = {
+      name: pkg.name,
+      version: pkg.version,
+      description: pkg.description ?? '',
+      buildDate: BUILD_DATE,
+      minClientVersion: null,
+      supportEmail: null,
+      privacyPolicyUrl: null,
+      termsOfServiceUrl: null,
+    };
+  }
+
   getResources(query: SupportResourcesQueryDto): SupportResourceListDataDto {
     const items = query.scope
       ? STATIC_SUPPORT_RESOURCES.filter((r) => r.scope === query.scope)
@@ -40,17 +56,6 @@ export class SupportResourcesService {
   }
 
   getAppInfo(): AppInfoDataDto {
-    const pkg = readPackageJson();
-
-    return {
-      name: pkg.name,
-      version: pkg.version,
-      description: pkg.description ?? '',
-      buildDate: BUILD_DATE,
-      minClientVersion: null,
-      supportEmail: null,
-      privacyPolicyUrl: null,
-      termsOfServiceUrl: null,
-    };
+    return this.appInfo;
   }
 }

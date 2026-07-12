@@ -1,6 +1,8 @@
 import { nonDeleted } from '../../../common/helpers/prisma.helpers';
 import { parseDateOnly } from '../../../common/helpers/date-time.utils';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import {
   DoseLogStatus,
   DailyRecordKind,
@@ -89,9 +91,33 @@ export interface TodayAnalysisContext {
 
 @Injectable()
 export class TodayAnalysisContextService {
-  constructor(private readonly prisma: PrismaService) {}
+  private static readonly CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+  ) {}
 
   async build(userId: string, date: string): Promise<TodayAnalysisContext> {
+    const cacheKey = `today-analysis:context:${userId}:${date}`;
+    const cached = await this.cache.get<TodayAnalysisContext>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const result = await this.fetchContext(userId, date);
+    await this.cache.set(
+      cacheKey,
+      result,
+      TodayAnalysisContextService.CACHE_TTL_MS,
+    );
+    return result;
+  }
+
+  private async fetchContext(
+    userId: string,
+    date: string,
+  ): Promise<TodayAnalysisContext> {
     const day = this.parseDate(date);
     const weekday = day.getUTCDay();
 

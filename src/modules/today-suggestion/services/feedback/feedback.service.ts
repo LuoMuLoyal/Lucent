@@ -1,6 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { now } from '../../../../common/helpers/date-time.utils';
+import {
+  now,
+  formatDateOnly,
+} from '../../../../common/helpers/date-time.utils';
 import { SuggestionFeedback, SuggestionLifecycleState } from '../../types';
 import type { SuggestionType } from '../../types';
 import type { Prisma } from '#generated/prisma/client';
@@ -11,6 +14,7 @@ import {
   FEEDBACK_ACCEPTED_BOOST_PERCENT,
   FEEDBACK_NOT_APPLICABLE_REDUCTION_PERCENT,
 } from '../../constants';
+import { SuggestionCacheService } from '../cache/suggestion-cache.service';
 
 /** Effect label returned to the client after recording feedback. */
 export type FeedbackEffect =
@@ -53,7 +57,10 @@ export interface FeedbackEntry {
 export class FeedbackService {
   private readonly logger = new Logger(FeedbackService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly suggestionCache: SuggestionCacheService,
+  ) {}
 
   /**
    * Records a user's feedback for a suggestion card.
@@ -118,6 +125,12 @@ export class FeedbackService {
 
     this.logger.debug(
       `Recorded feedback ${feedback} for suggestion ${suggestionId} (effect: ${appliedEffect})`,
+    );
+
+    // Invalidate suggestion cache so the next request reflects the feedback
+    await this.suggestionCache.invalidateSuggestions(
+      userId,
+      formatDateOnly(now()),
     );
 
     return {

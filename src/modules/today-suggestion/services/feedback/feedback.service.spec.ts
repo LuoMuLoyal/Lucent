@@ -53,7 +53,12 @@ describe('FeedbackService', () => {
     (prismaMock as never as { $transaction: vi.Mock }).$transaction =
       transactionMock;
 
-    service = new FeedbackService(prismaMock as never);
+    service = new FeedbackService(
+      prismaMock as never,
+      {
+        invalidateSuggestions: vi.fn().mockResolvedValue(undefined),
+      } as never,
+    );
   });
 
   describe('recordFeedback', () => {

@@ -101,7 +101,15 @@ describe('ReportsService', () => {
         ],
       }),
     } as unknown as ReportsComputationService;
-    const service = new ReportsService(contextService, computationService);
+    const cache = {
+      get: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockResolvedValue(undefined),
+    } as never;
+    const service = new ReportsService(
+      contextService,
+      computationService,
+      cache,
+    );
 
     const dashboard = await service.getDashboard(
       'u1',
@@ -162,7 +170,15 @@ describe('ReportsService', () => {
         patterns: [],
       }),
     } as unknown as ReportsComputationService;
-    const service = new ReportsService(contextService, computationService);
+    const cache = {
+      get: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockResolvedValue(undefined),
+    } as never;
+    const service = new ReportsService(
+      contextService,
+      computationService,
+      cache,
+    );
 
     const dashboard = await service.getDashboard(
       'u1',
@@ -238,7 +254,15 @@ describe('ReportsService', () => {
         ],
       }),
     } as unknown as ReportsComputationService;
-    const service = new ReportsService(contextService, computationService);
+    const cache = {
+      get: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockResolvedValue(undefined),
+    } as never;
+    const service = new ReportsService(
+      contextService,
+      computationService,
+      cache,
+    );
 
     const dashboard = await service.getDashboard(
       'u1',

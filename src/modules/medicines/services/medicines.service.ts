@@ -152,9 +152,12 @@ export class MedicinesService {
     const normalizedLang = (lang ?? 'en').toLowerCase();
     const useChinese = normalizedLang.startsWith('zh');
 
-    const allActiveTips = await this.prisma.medicineSafetyTip.findMany({
-      where: { isActive: true },
-    });
+    const allActiveTips = await this.medicinesCacheService.getOrSetSafetyTips(
+      () =>
+        this.prisma.medicineSafetyTip.findMany({
+          where: { isActive: true },
+        }),
+    );
 
     if (allActiveTips.length === 0) {
       return [];

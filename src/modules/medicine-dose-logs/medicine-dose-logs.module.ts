@@ -5,8 +5,10 @@ import {
   MedicineDoseLogRepositoryPort,
   MedicineDoseLogRepository,
 } from './repositories';
+import { TodaySuggestionModule } from '../today-suggestion/today-suggestion.module';
 
 @Module({
+  imports: [TodaySuggestionModule],
   controllers: [MedicineDoseLogsController],
   providers: [
     MedicineDoseLogRepository,

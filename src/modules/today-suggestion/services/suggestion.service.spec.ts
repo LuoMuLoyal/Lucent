@@ -57,6 +57,17 @@ interface MockDeps {
   baseline: { getBaselineStatus: vi.Mock };
   lifecycle: { expireStaleSuggestions: vi.Mock; persistActive: vi.Mock };
   escalation: { escalateIfNeeded: vi.Mock };
+  cache: {
+    getSuggestions: vi.Mock;
+    setSuggestions: vi.Mock;
+    getSignals: vi.Mock;
+    setSignals: vi.Mock;
+    getBaselineStatus: vi.Mock;
+    setBaselineStatus: vi.Mock;
+    invalidateSignals: vi.Mock;
+    invalidateSuggestions: vi.Mock;
+    invalidateBaseline: vi.Mock;
+  };
 }
 
 function buildMocks(): MockDeps {
@@ -89,6 +100,17 @@ function buildMocks(): MockDeps {
       persistActive: vi.fn().mockResolvedValue('suggestion-id'),
     },
     escalation: { escalateIfNeeded: vi.fn().mockResolvedValue(undefined) },
+    cache: {
+      getSuggestions: vi.fn().mockResolvedValue(undefined),
+      setSuggestions: vi.fn().mockResolvedValue(undefined),
+      getSignals: vi.fn().mockResolvedValue(undefined),
+      setSignals: vi.fn().mockResolvedValue(undefined),
+      getBaselineStatus: vi.fn().mockResolvedValue(undefined),
+      setBaselineStatus: vi.fn().mockResolvedValue(undefined),
+      invalidateSignals: vi.fn().mockResolvedValue(undefined),
+      invalidateSuggestions: vi.fn().mockResolvedValue(undefined),
+      invalidateBaseline: vi.fn().mockResolvedValue(undefined),
+    },
   };
 }
 
@@ -108,6 +130,7 @@ describe('SuggestionService', () => {
       deps.baseline as never,
       deps.lifecycle as never,
       deps.escalation as never,
+      deps.cache as never,
     );
   });
 

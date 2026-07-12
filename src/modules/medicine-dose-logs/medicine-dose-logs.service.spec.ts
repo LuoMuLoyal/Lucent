@@ -5,6 +5,7 @@ import { I18nService } from 'nestjs-i18n';
 import { DoseLogStatus } from '#generated/prisma/client';
 import { MedicineDoseLogRepositoryPort } from './repositories';
 import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
+import { SuggestionCacheService } from '../today-suggestion/services/cache/suggestion-cache.service';
 
 describe('MedicineDoseLogsService', () => {
   let service: MedicineDoseLogsService;
@@ -19,6 +20,12 @@ describe('MedicineDoseLogsService', () => {
           useValue: { t: vi.fn().mockImplementation((key: string) => key) },
         },
         MedicineDoseLogsService,
+        {
+          provide: SuggestionCacheService,
+          useValue: {
+            invalidateSignals: vi.fn().mockResolvedValue(undefined),
+          },
+        },
         {
           provide: MedicineDoseLogRepositoryPort,
           useValue: {

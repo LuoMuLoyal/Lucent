@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { now, nowIsoString } from '../../../../common/helpers/date-time.utils';
@@ -25,7 +27,12 @@ const HISTORY_DEFAULT_DAYS = 30;
 export class LifecycleService {
   private readonly logger = new Logger(LifecycleService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  private static readonly HISTORY_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+  ) {}
 
   /**
    * Persists a candidate as a new ACTIVE suggestion in the DB.
@@ -164,6 +171,24 @@ export class LifecycleService {
       HISTORY_MAX_LIMIT,
     );
 
+    const cacheKey = [
+      'suggestion:history',
+      userId,
+      startDate,
+      endDate,
+      filters?.lifecycleState ?? 'all',
+      filters?.type ?? 'all',
+      String(limit),
+    ].join(':');
+
+    const cached = await this.cache.get<{
+      items: SuggestionHistoryItemDto[];
+      total: number;
+    }>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
     const where: Prisma.UserSuggestionWhereInput = {
       userId,
       date: { gte: startDate, lte: endDate },
@@ -202,7 +227,13 @@ export class LifecycleService {
       expiredAt: r.expiredAt?.toISOString() ?? undefined,
     }));
 
-    return { items, total };
+    const result = { items, total };
+    await this.cache.set(
+      cacheKey,
+      result,
+      LifecycleService.HISTORY_CACHE_TTL_MS,
+    );
+    return result;
   }
 
   /** Returns the default start date for the history query (N days ago). */

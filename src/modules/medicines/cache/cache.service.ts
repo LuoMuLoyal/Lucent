@@ -10,6 +10,7 @@ import {
   MEDICINES_CACHE_KEY_PREFIX,
   MEDICINES_DETAIL_CACHE_TTL_MS,
   MEDICINES_SEARCH_CACHE_TTL_MS,
+  MEDICINES_SAFETY_TIPS_TTL_MS,
 } from './cache.constants';
 
 interface SearchCacheKeyInput {
@@ -40,6 +41,11 @@ export class MedicinesCacheService {
   ): Promise<MedicineDetailDataDto | null> {
     const key = this.buildDetailKey(source, id);
     return this.getOrSet(key, MEDICINES_DETAIL_CACHE_TTL_MS, bypass, load);
+  }
+
+  async getOrSetSafetyTips<T>(load: () => Promise<T>): Promise<T> {
+    const key = `${MEDICINES_CACHE_KEY_PREFIX}:safety-tips:all`;
+    return this.getOrSet(key, MEDICINES_SAFETY_TIPS_TTL_MS, false, load);
   }
 
   private async getOrSet<T>(

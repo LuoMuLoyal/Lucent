@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -101,7 +102,7 @@ export class UserHealthContextController {
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
   async updateAllergy(
     @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateHealthContextAllergyDto,
   ) {
     const healthContext = await this.userHealthContextService.updateAllergy(
@@ -120,7 +121,7 @@ export class UserHealthContextController {
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
   async deleteAllergy(
     @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     const healthContext = await this.userHealthContextService.deleteAllergy(
       user.sub,
@@ -157,7 +158,7 @@ export class UserHealthContextController {
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
   async updateCondition(
     @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateHealthContextConditionDto,
   ) {
     const healthContext = await this.userHealthContextService.updateCondition(
@@ -176,7 +177,7 @@ export class UserHealthContextController {
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
   async deleteCondition(
     @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     const healthContext = await this.userHealthContextService.deleteCondition(
       user.sub,
@@ -211,7 +212,7 @@ export class UserHealthContextController {
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
   async updateCurrentMedicine(
     @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateCurrentMedicineDto,
   ) {
     const healthContext =
@@ -233,7 +234,7 @@ export class UserHealthContextController {
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
   async deleteCurrentMedicine(
     @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     const healthContext =
       await this.userHealthContextService.deleteCurrentMedicine(user.sub, id);

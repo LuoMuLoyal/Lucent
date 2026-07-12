@@ -59,8 +59,18 @@ describe('LegalDocumentsService', () => {
     } as unknown as PrismaService;
   }
 
+  function createMockCache(): { get: vi.Mock; set: vi.Mock } {
+    return {
+      get: vi.fn().mockResolvedValue(undefined),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
+  }
+
   beforeEach(() => {
-    service = new LegalDocumentsService(createMockPrisma());
+    service = new LegalDocumentsService(
+      createMockPrisma(),
+      createMockCache() as never,
+    );
   });
 
   describe('findAll', () => {
@@ -92,7 +102,10 @@ describe('LegalDocumentsService', () => {
     });
 
     it('returns current timestamp when no documents exist', async () => {
-      service = new LegalDocumentsService(createMockPrisma([]));
+      service = new LegalDocumentsService(
+        createMockPrisma([]),
+        createMockCache() as never,
+      );
       const result = await service.findAll({});
 
       expect(result.items).toHaveLength(0);

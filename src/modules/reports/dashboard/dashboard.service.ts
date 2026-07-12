@@ -1,14 +1,19 @@
 import { formatDateOnly } from '../../../common/helpers/date-time.utils';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import type { ReportDashboardDataDto, ReportDashboardQueryDto } from '../dto';
 import { ReportsComputationService } from './computation.service';
 import { ReportsContextService } from './context.service';
 
 @Injectable()
 export class ReportsService {
+  private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
   constructor(
     private readonly contextService: ReportsContextService,
     private readonly computationService: ReportsComputationService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   async getDashboard(
@@ -16,10 +21,18 @@ export class ReportsService {
     query: ReportDashboardQueryDto,
     locale: string,
   ): Promise<ReportDashboardDataDto> {
+    const range = query.range ?? 'last_7_days';
+    const cacheKey = `reports:dashboard:${userId}:${range}:${query.startDate ?? 'auto'}:${query.endDate ?? 'auto'}:${locale}`;
+
+    const cached = await this.cache.get<ReportDashboardDataDto>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
     const facts = await this.contextService.build(userId, query);
     const computed = this.computationService.compute(facts, locale);
 
-    return {
+    const result: ReportDashboardDataDto = {
       range: facts.range,
       startDate: formatDateOnly(facts.startDate),
       endDate: formatDateOnly(facts.endDate),
@@ -31,5 +44,8 @@ export class ReportsService {
       patterns: computed.patterns,
       aiSummaryEnabled: facts.aiSummaryEnabled,
     };
+
+    await this.cache.set(cacheKey, result, ReportsService.CACHE_TTL_MS);
+    return result;
   }
 }

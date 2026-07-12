@@ -25,6 +25,7 @@ import { SuppressionService } from './arbitration/suppression.service';
 import { BaselineService } from './lifecycle/baseline.service';
 import { LifecycleService } from './lifecycle/lifecycle.service';
 import { EscalationService } from './notification/escalation.service';
+import { SuggestionCacheService } from './cache/suggestion-cache.service';
 
 /**
  * Main orchestrator for the Today suggestion engine.
@@ -53,6 +54,7 @@ export class SuggestionService {
     private readonly baseline: BaselineService,
     private readonly lifecycle: LifecycleService,
     private readonly escalation: EscalationService,
+    private readonly cache: SuggestionCacheService,
   ) {}
 
   /**
@@ -65,23 +67,44 @@ export class SuggestionService {
   ): Promise<TodaySuggestionsDataDto> {
     const targetDate = date ?? formatDateOnly(now());
     const generatedAt = nowIsoString();
+    const excludeKey = SuggestionCacheService.buildExcludeKey(excludeIds);
 
-    // 1. Collect signals
-    const [medicationSignals, recordSignals, profileSignals] =
-      await Promise.all([
-        this.medicationCollector.collect(userId, targetDate),
-        this.recordCollector.collect(userId, targetDate),
-        this.profileCollector.collect(userId, targetDate),
-      ]);
+    // 0. Check suggestion result cache
+    const cachedResult = await this.cache.getSuggestions(
+      userId,
+      targetDate,
+      excludeKey,
+    );
+    if (cachedResult != null) {
+      return {
+        generatedAt,
+        primary: cachedResult.primary,
+        secondary: cachedResult.secondary,
+        observations: cachedResult.observations,
+      };
+    }
 
-    const allSignals = [
-      ...medicationSignals,
-      ...recordSignals,
-      ...profileSignals,
-    ];
+    // 1. Collect signals (use signal cache if available)
+    let allSignals = await this.cache.getSignals(userId, targetDate);
+    if (allSignals == null) {
+      const [medicationSignals, recordSignals, profileSignals] =
+        await Promise.all([
+          this.medicationCollector.collect(userId, targetDate),
+          this.recordCollector.collect(userId, targetDate),
+          this.profileCollector.collect(userId, targetDate),
+        ]);
 
-    // 2. Build rule context
-    const baselineStatus = await this.baseline.getBaselineStatus(userId);
+      allSignals = [...medicationSignals, ...recordSignals, ...profileSignals];
+
+      await this.cache.setSignals(userId, targetDate, allSignals);
+    }
+
+    // 2. Build rule context (use baseline cache if available)
+    let baselineStatus = await this.cache.getBaselineStatus(userId);
+    if (baselineStatus == null) {
+      baselineStatus = await this.baseline.getBaselineStatus(userId);
+      await this.cache.setBaselineStatus(userId, baselineStatus);
+    }
     const context: RuleContext = {
       userId,
       date: targetDate,
@@ -119,31 +142,31 @@ export class SuggestionService {
       await this.suppression.filterAndAdjust(userId, candidates);
 
     // 5. Arbitrate
-    const result = this.arbitration.arbitrate(adjustedCandidates);
+    const arbitrationResult = this.arbitration.arbitrate(adjustedCandidates);
 
     // 6. Persist active suggestions
     await this.lifecycle.expireStaleSuggestions(userId, targetDate);
 
     const activeItems: SuggestionItemDto[] = [];
 
-    if (result.primary != null) {
+    if (arbitrationResult.primary != null) {
       const id = await this.lifecycle.persistActive(
         userId,
-        result.primary,
+        arbitrationResult.primary,
         targetDate,
       );
-      activeItems.push(this.toDto(id, result.primary));
+      activeItems.push(this.toDto(id, arbitrationResult.primary));
 
       // 7. Escalate eligible primary suggestion to notification
       await this.escalation.escalateIfNeeded(
         userId,
         id,
-        result.primary,
+        arbitrationResult.primary,
         targetDate,
       );
     }
 
-    for (const candidate of result.secondary) {
+    for (const candidate of arbitrationResult.secondary) {
       const id = await this.lifecycle.persistActive(
         userId,
         candidate,
@@ -153,7 +176,7 @@ export class SuggestionService {
     }
 
     // 8. Map observations (not persisted — they're low priority)
-    const observationDtos = result.observations.map((c, i) =>
+    const observationDtos = arbitrationResult.observations.map((c, i) =>
       this.toDto(`obs_${String(i)}`, c, SuggestionLifecycleState.ACTIVE),
     );
 
@@ -171,13 +194,18 @@ export class SuggestionService {
       (s) => !excludeSet.has(s.id),
     );
 
-    return {
+    const result: TodaySuggestionsDataDto = {
       generatedAt,
       primary: filteredPrimary,
       secondary: filteredSecondary.length > 0 ? filteredSecondary : undefined,
       observations:
         filteredObservations.length > 0 ? filteredObservations : undefined,
     };
+
+    // Cache the result for subsequent requests
+    await this.cache.setSuggestions(userId, targetDate, excludeKey, result);
+
+    return result;
   }
 
   private toDto(

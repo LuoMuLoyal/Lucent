@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { UpdateUserSettingsDto, UserSettingsDataDto } from '../dto';
 import {
@@ -13,9 +15,27 @@ type SettingValue = boolean | number;
 
 @Injectable()
 export class UserSettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private static readonly CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+  private static readonly CACHE_PREFIX = 'user-settings';
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+  ) {}
 
   async getSettings(userId: string): Promise<UserSettingsDataDto> {
+    const cacheKey = `${UserSettingsService.CACHE_PREFIX}:${userId}`;
+    const cached = await this.cache.get<UserSettingsDataDto>(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    const result = await this.fetchSettings(userId);
+    await this.cache.set(cacheKey, result, UserSettingsService.CACHE_TTL_MS);
+    return result;
+  }
+
+  private async fetchSettings(userId: string): Promise<UserSettingsDataDto> {
     const rows = await this.prisma.userSetting.findMany({
       where: { userId },
       orderBy: { updatedAt: 'desc' },
@@ -161,6 +181,8 @@ export class UserSettingsService {
       });
     }
 
+    // Invalidate cache and return fresh data
+    await this.cache.del(`${UserSettingsService.CACHE_PREFIX}:${userId}`);
     return this.getSettings(userId);
   }
 
