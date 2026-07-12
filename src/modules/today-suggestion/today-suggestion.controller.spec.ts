@@ -5,6 +5,7 @@ import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionService } from './services/suggestion.service';
 import { FeedbackService } from './services/feedback/feedback.service';
 import { ExplanationService } from './services/explanation/explanation.service';
+import { ExplanationQueueService } from './services/explanation/explanation-queue.service';
 import { LifecycleService } from './services/lifecycle/lifecycle.service';
 
 const mockUser: UserPayload = {
@@ -89,6 +90,14 @@ describe('TodaySuggestionController', () => {
           provide: ExplanationService,
           useValue: {
             explain: vi.fn(),
+          },
+        },
+        {
+          provide: ExplanationQueueService,
+          useValue: {
+            isConfigured: false,
+            enqueue: vi.fn(),
+            getStatus: vi.fn(),
           },
         },
         {

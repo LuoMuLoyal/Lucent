@@ -29,6 +29,7 @@ import { RuleVersionRegistry } from './services/rules/rule-version-registry.serv
 import { EscalationService } from './services/notification/escalation.service';
 import { ExplanationGeneratorService } from './services/explanation/explanation-generator.service';
 import { ExplanationService } from './services/explanation/explanation.service';
+import { ExplanationQueueService } from './services/explanation/explanation-queue.service';
 import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import type { SuggestionRule } from './types';
 
@@ -72,6 +73,7 @@ import type { SuggestionRule } from './types';
     // AI explanation
     ExplanationGeneratorService,
     ExplanationService,
+    ExplanationQueueService,
     LlmSafetyPolicyService,
     // Orchestrator
     SuggestionService,

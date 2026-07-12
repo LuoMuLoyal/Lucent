@@ -39,7 +39,9 @@ import {
   ClinicSummaryShareResponseDto,
 } from './dto';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
+import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
 import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
 import { ReportsService } from './dashboard/dashboard.service';
 
 @ApiTags('Reports')
@@ -52,7 +54,9 @@ export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,
     private readonly reportsAiSummaryService: ReportsAiSummaryService,
+    private readonly reportSummaryQueueService: ReportSummaryQueueService,
     private readonly clinicSummaryService: ClinicSummaryService,
+    private readonly clinicSummaryPdfQueueService: ClinicSummaryPdfQueueService,
   ) {}
 
   @Get('dashboard')
@@ -81,6 +85,67 @@ export class ReportsController {
     return successEnvelope(
       await this.reportsAiSummaryService.generate(user.sub, dto, language),
     );
+  }
+
+  @Post('summary/generate/async')
+  @ApiOperation({
+    summary: 'Enqueue async AI summary generation for report',
+  })
+  @ApiResponse({
+    status: 202,
+    description: 'Job enqueued. Returns jobId for polling.',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 0 },
+        data: {
+          type: 'object',
+          properties: {
+            jobId: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  async generateSummaryAsync(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: GenerateReportSummaryDto,
+    @I18nLang() language: string,
+  ) {
+    if (this.reportSummaryQueueService.isConfigured) {
+      const jobId = await this.reportSummaryQueueService.enqueue(
+        user.sub,
+        dto,
+        language,
+      );
+      if (jobId != null) {
+        return successEnvelope({ jobId });
+      }
+    }
+
+    // Fallback: run synchronously when Redis is not available
+    const result = await this.reportsAiSummaryService.generate(
+      user.sub,
+      dto,
+      language,
+    );
+    return successEnvelope({ result });
+  }
+
+  @Get('summary/generate/status/:jobId')
+  @ApiOperation({
+    summary: 'Poll async report AI summary generation status',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Job status (pending, completed, or failed)',
+  })
+  async generateSummaryStatus(@Param('jobId') jobId: string) {
+    const status = await this.reportSummaryQueueService.getStatus(jobId);
+    if (status == null) {
+      return successEnvelope({ status: 'not_found' });
+    }
+    return successEnvelope(status);
   }
 
   @Post('summary/generate/stream')
@@ -180,6 +245,61 @@ export class ReportsController {
       );
     }
     return successEnvelope(summary);
+  }
+
+  @Post('clinic-summary/export/async')
+  @ApiOperation({
+    summary: 'Enqueue async clinic summary PDF export',
+  })
+  @ApiResponse({
+    status: 202,
+    description: 'Job enqueued. Returns jobId for polling.',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 0 },
+        data: {
+          type: 'object',
+          properties: {
+            jobId: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  async exportClinicSummaryPdfAsync(
+    @CurrentUser() user: UserPayload,
+    @I18nLang() language: string,
+  ) {
+    if (this.clinicSummaryPdfQueueService.isConfigured) {
+      const jobId = await this.clinicSummaryPdfQueueService.enqueue(
+        user.sub,
+        language,
+      );
+      if (jobId != null) {
+        return successEnvelope({ jobId });
+      }
+    }
+
+    // Fallback: run synchronously when Redis is not available
+    const pdf = await this.clinicSummaryService.exportPdf(user.sub, language);
+    return successEnvelope({ pdfBase64: pdf.toString('base64') });
+  }
+
+  @Get('clinic-summary/export/status/:jobId')
+  @ApiOperation({
+    summary: 'Poll async clinic summary PDF export status',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Job status (pending, completed, or failed)',
+  })
+  async exportClinicSummaryPdfStatus(@Param('jobId') jobId: string) {
+    const status = await this.clinicSummaryPdfQueueService.getStatus(jobId);
+    if (status == null) {
+      return successEnvelope({ status: 'not_found' });
+    }
+    return successEnvelope(status);
   }
 
   @Get('clinic-summary/preview/pdf')

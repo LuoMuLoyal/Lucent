@@ -4,6 +4,7 @@ import {
   Get,
   HttpException,
   Logger,
+  Param,
   Post,
   Query,
   Res,
@@ -26,6 +27,7 @@ import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TodayAnalysisService } from './services/analysis.service';
+import { TodayAnalysisQueueService } from './services/analysis-queue.service';
 import { TodayRecommendationsService } from './services/recommendations.service';
 import {
   GenerateTodayAnalysisDto,
@@ -43,6 +45,7 @@ export class TodayAnalysisController {
   constructor(
     private readonly todayAnalysisService: TodayAnalysisService,
     private readonly todayRecommendationsService: TodayRecommendationsService,
+    private readonly todayAnalysisQueueService: TodayAnalysisQueueService,
   ) {}
 
   @Post('generate')
@@ -56,6 +59,63 @@ export class TodayAnalysisController {
     return successEnvelope(
       await this.todayAnalysisService.generate(user.sub, dto, language),
     );
+  }
+
+  @Post('generate/async')
+  @ApiOperation({ summary: 'Enqueue async today AI analysis generation' })
+  @ApiResponse({
+    status: 202,
+    description: 'Job enqueued. Returns jobId for polling.',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 0 },
+        data: {
+          type: 'object',
+          properties: {
+            jobId: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  async generateAsync(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: GenerateTodayAnalysisDto,
+    @I18nLang() language: string,
+  ) {
+    if (this.todayAnalysisQueueService.isConfigured) {
+      const jobId = await this.todayAnalysisQueueService.enqueue(
+        user.sub,
+        dto,
+        language,
+      );
+      if (jobId != null) {
+        return successEnvelope({ jobId });
+      }
+    }
+
+    // Fallback: run synchronously when Redis is not available
+    const result = await this.todayAnalysisService.generate(
+      user.sub,
+      dto,
+      language,
+    );
+    return successEnvelope({ result });
+  }
+
+  @Get('generate/status/:jobId')
+  @ApiOperation({ summary: 'Poll async today analysis generation status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Job status (pending, completed, or failed)',
+  })
+  async generateStatus(@Param('jobId') jobId: string) {
+    const status = await this.todayAnalysisQueueService.getStatus(jobId);
+    if (status == null) {
+      return successEnvelope({ status: 'not_found' });
+    }
+    return successEnvelope(status);
   }
 
   @Get('recommendations')

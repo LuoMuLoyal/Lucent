@@ -6,7 +6,9 @@ import { ReportsLlmSummaryCopyService } from './services/ai-summary/copy.service
 import { ReportsAiSummaryGeneratorService } from './services/ai-summary/generator.service';
 import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
+import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
 import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
 import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service';
 import { ReportsComputationService } from './dashboard/computation.service';
 import { ReportsContextService } from './dashboard/context.service';
@@ -23,7 +25,9 @@ import { ReportsController } from './reports.controller';
     ReportsAiSummaryGeneratorService,
     LlmSafetyPolicyService,
     ReportsAiSummaryService,
+    ReportSummaryQueueService,
     ClinicSummaryService,
+    ClinicSummaryPdfQueueService,
     ClinicSummaryPdfService,
     ReportsComputationService,
     ReportsContextService,

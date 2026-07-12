@@ -10,7 +10,9 @@ import {
   type ReportSummaryDataDto,
 } from './dto';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
+import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
 import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './dashboard/dashboard.service';
 
@@ -45,6 +47,22 @@ describe('ReportsController', () => {
             getSharedSummary: vi.fn(),
             exportPdf: vi.fn(),
             exportSharedPdf: vi.fn(),
+          },
+        },
+        {
+          provide: ReportSummaryQueueService,
+          useValue: {
+            isConfigured: false,
+            enqueue: vi.fn(),
+            getStatus: vi.fn(),
+          },
+        },
+        {
+          provide: ClinicSummaryPdfQueueService,
+          useValue: {
+            isConfigured: false,
+            enqueue: vi.fn(),
+            getStatus: vi.fn(),
           },
         },
       ],

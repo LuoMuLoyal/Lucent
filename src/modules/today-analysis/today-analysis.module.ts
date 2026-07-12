@@ -8,6 +8,7 @@ import { TodayAnalysisContextService } from './services/context.service';
 import { TodayAnalysisGeneratorService } from './services/generator.service';
 import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import { TodayAnalysisService } from './services/analysis.service';
+import { TodayAnalysisQueueService } from './services/analysis-queue.service';
 import { TodayRecommendationsService } from './services/recommendations.service';
 
 @Module({
@@ -19,6 +20,7 @@ import { TodayRecommendationsService } from './services/recommendations.service'
     TodayAnalysisGeneratorService,
     LlmSafetyPolicyService,
     TodayAnalysisService,
+    TodayAnalysisQueueService,
     TodayRecommendationsService,
   ],
 })

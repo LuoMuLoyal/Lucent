@@ -2,6 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { Response } from 'express';
 import { ResultCode } from '../../common/api';
 import { TodayAnalysisService } from './services/analysis.service';
+import { TodayAnalysisQueueService } from './services/analysis-queue.service';
 import { TodayRecommendationsService } from './services/recommendations.service';
 import type { TodayAnalysisDataDto } from './dto';
 import { TodayAnalysisController } from './today-analysis.controller';
@@ -20,6 +21,14 @@ describe('TodayAnalysisController', () => {
           useValue: {
             generate: vi.fn(),
             generateStream: vi.fn(),
+          },
+        },
+        {
+          provide: TodayAnalysisQueueService,
+          useValue: {
+            isConfigured: false,
+            enqueue: vi.fn(),
+            getStatus: vi.fn(),
           },
         },
         {

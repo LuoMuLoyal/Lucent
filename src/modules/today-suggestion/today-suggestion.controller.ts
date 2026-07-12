@@ -23,6 +23,7 @@ import type { UserPayload } from '../auth/types/auth-request';
 import { SuggestionService } from './services/suggestion.service';
 import { FeedbackService } from './services/feedback/feedback.service';
 import { ExplanationService } from './services/explanation/explanation.service';
+import { ExplanationQueueService } from './services/explanation/explanation-queue.service';
 import { LifecycleService } from './services/lifecycle/lifecycle.service';
 import {
   SuggestionFeedbackDto,
@@ -45,6 +46,7 @@ export class TodaySuggestionController {
     private readonly suggestionService: SuggestionService,
     private readonly feedbackService: FeedbackService,
     private readonly explanationService: ExplanationService,
+    private readonly explanationQueueService: ExplanationQueueService,
     private readonly lifecycleService: LifecycleService,
   ) {}
 
@@ -128,6 +130,66 @@ export class TodaySuggestionController {
     };
 
     return successEnvelope(response);
+  }
+
+  @Post(':id/explain/async')
+  @ApiOperation({
+    summary: 'Enqueue async AI explanation for a suggestion card',
+  })
+  @ApiResponse({
+    status: 202,
+    description: 'Job enqueued. Returns jobId for polling.',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 0 },
+        data: {
+          type: 'object',
+          properties: {
+            jobId: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  async explainSuggestionAsync(
+    @CurrentUser() user: UserPayload,
+    @Param('id') suggestionId: string,
+    @Headers('accept-language') language?: string,
+  ) {
+    if (this.explanationQueueService.isConfigured) {
+      const jobId = await this.explanationQueueService.enqueue(
+        user.sub,
+        suggestionId,
+        language,
+      );
+      if (jobId != null) {
+        return successEnvelope({ jobId });
+      }
+    }
+
+    // Fallback: run synchronously when Redis is not available
+    const result = await this.explanationService.explain(
+      user.sub,
+      suggestionId,
+      language,
+    );
+    return successEnvelope({ result });
+  }
+
+  @Get('explain/status/:jobId')
+  @ApiOperation({ summary: 'Poll async suggestion explanation status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Job status (pending, completed, or failed)',
+  })
+  async explainSuggestionStatus(@Param('jobId') jobId: string) {
+    const status = await this.explanationQueueService.getStatus(jobId);
+    if (status == null) {
+      return successEnvelope({ status: 'not_found' });
+    }
+    return successEnvelope(status);
   }
 
   @Get('history')

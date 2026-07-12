@@ -37,12 +37,16 @@ import {
 } from './dto';
 import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/cache.constants';
 import { MedicinesService } from './services/medicines.service';
+import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
 
 @ApiTags('Medicines')
 @ApiExtraModels(DrugbankMedicineDetailDto, CnMedicineDetailDto)
 @Controller('medicines')
 export class MedicinesController {
-  constructor(private readonly medicinesService: MedicinesService) {}
+  constructor(
+    private readonly medicinesService: MedicinesService,
+    private readonly recognitionQueueService: MedicineRecognitionQueueService,
+  ) {}
 
   @Get('safety-tips')
   @ApiOperation({ summary: '随机返回用药安全提示' })
@@ -153,5 +157,58 @@ export class MedicinesController {
     return successEnvelope(
       await this.medicinesService.recognizeMedicine(dto.imageUrl),
     );
+  }
+
+  @Post('recognize/async')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Enqueue async medicine box image recognition' })
+  @ApiResponse({
+    status: 200,
+    description: 'Job enqueued. Returns jobId for polling.',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'number', example: 0 },
+        data: {
+          type: 'object',
+          properties: {
+            jobId: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  async recognizeAsync(
+    @CurrentUser() _user: UserPayload,
+    @Body() dto: RecognizeMedicineDto,
+  ) {
+    if (this.recognitionQueueService.isConfigured) {
+      const jobId = await this.recognitionQueueService.enqueue(dto.imageUrl);
+      if (jobId != null) {
+        return successEnvelope({ jobId });
+      }
+    }
+
+    // Fallback: run synchronously when Redis is not available
+    const result = await this.medicinesService.recognizeMedicine(dto.imageUrl);
+    return successEnvelope({ result });
+  }
+
+  @Get('recognize/status/:jobId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Poll async medicine recognition status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Job status (pending, completed, or failed)',
+  })
+  async recognizeStatus(@Param('jobId') jobId: string) {
+    const status = await this.recognitionQueueService.getStatus(jobId);
+    if (status == null) {
+      return successEnvelope({ status: 'not_found' });
+    }
+    return successEnvelope(status);
   }
 }

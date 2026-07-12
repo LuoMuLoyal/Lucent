@@ -4,6 +4,7 @@ import { MedicinesCacheAdminService } from './cache/cache-admin.service';
 import { MedicinesCacheService } from './cache/cache.service';
 import { MedicinesController } from './medicines.controller';
 import { MedicinesService } from './services/medicines.service';
+import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
 import { CnMedicinesService } from './adapters/cn.service';
 import { DrugbankMedicinesService } from './adapters/drugbank.service';
 
@@ -12,6 +13,7 @@ import { DrugbankMedicinesService } from './adapters/drugbank.service';
   controllers: [MedicinesController],
   providers: [
     MedicinesService,
+    MedicineRecognitionQueueService,
     MedicinesCacheAdminService,
     MedicinesCacheService,
     DrugbankMedicinesService,
