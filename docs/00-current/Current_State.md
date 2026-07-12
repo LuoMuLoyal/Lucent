@@ -40,7 +40,7 @@ Last updated: 2026-07-12
 - **Account set-password E2E**：OAuth-only 用户设置密码全链路（验证码 → 设置 → 登录验证），含 409 冲突、400/401 验证码错误、弱密码拒绝，新增 15 个用例
 - **WeChat 身份关联 E2E**：mock WechatWebOAuthProvider/WechatMobileOAuthProvider 的 `buildAuthorizeUrl`/`fetchProfile`，补齐 authorize 200 + callbackUri、callback 身份关联 happy path、mobile callback 身份关联 happy path、503 未配置、401 无效 state，新增 7 个用例
 - **Session 管理 E2E**：GET /auth/sessions + DELETE /auth/sessions/:id 新增 8 个用例，含多会话场景、撤销后 refresh token 失效验证、跨用户隔离
-- **发现的问题**：`AuthTokenService.revokeById` 抛 raw Error 导致 500，应修复为 404/403
+- **发现的问题**：`AuthTokenService.revokeById` 抛 raw Error 导致 500 — **已修复**（2026-07-12：改为 NotFoundException/ForbiddenException，返回 404/403）
 - **P0 剩余端点全覆盖**：Reports clinic-summary（preview/share/shared/pdf 5 端点 8 用例）、Medicines safety-tips + recognize（8 用例）、Reminder Deliveries（5 用例）、Assistant open/clear/stream（9 用例）、Daily Records presign-upload（4 用例），P0 级 E2E 缺口全部补齐
 - **P1 级 E2E 全覆盖**：Health liveness/deep 探针（4 用例）、Today Analysis generate + generate/stream SSE（8 用例）、Reports summary/generate/stream SSE（4 用例）；修复 TodayAnalysisService generatedAt 丢失 bug 和 app.e2e-spec.ts 缺少 MetricsService provider 的预存问题
 - **P2 级 OAuth E2E 全覆盖**：新增 `test/e2e/auth/oauth.e2e-spec.ts`（25 用例），覆盖全部 7 个 OAuth 端点：wechat-web authorize/callback（含 302 重定向）、wechat-mobile callback、apple callback（含二次登录）、qq authorize/callback。通过 `jest.spyOn` mock provider 的 `buildAuthorizeUrl`/`fetchProfile` 方法绕过第三方依赖，测试新用户创建、已有用户登录、503 未配置、400 参数校验、401 无效 state 等场景
@@ -118,6 +118,12 @@ Last updated: 2026-07-12
   - `fuzzing.e2e-spec.ts` — 输入模糊测试（SQL/NoSQL 注入、超大 payload、null byte、XSS、HTTP 方法 fuzzing、header 注入）
   - `rate-limiting.e2e-spec.ts` — 速率限制集成测试（全局 Throttler、登录限流锁定、验证码冷却）
 - **package.json scripts:** `test:contract`、`test:security`、`test:perf:health`、`test:perf:medicines`、`test:perf:auth`
+
+## 2026-07-12 队列与缓存增强
+
+- **缓存增强（8 项）**：SuggestionCacheService 接入（3 层缓存 + 失效调用）、Reports Dashboard 缓存（5min TTL）、Today Analysis Context 缓存（3min TTL）、Legal Documents 缓存（1h TTL）、User Settings 缓存 + 主动失效（10min TTL）、Medicine Safety Tips 缓存（10min TTL）、Support Resources AppInfo 初始化读一次、Suggestion History 缓存（1min TTL）
+- **队列增强（5 项）**：新增 5 个 BullMQ 队列（today-analysis / report-summary / suggestion-explanation / medicine-recognition / clinic-summary-pdf），所有队列复用 `BullmqQueueFactory`，Redis 不可用时降级为同步处理。每个队列新增 `/async` 入队端点和 `/status/:jobId` 轮询端点，保留现有同步端点兼容旧客户端
+- **BullMQ 评估结论**：无需升级为 RabbitMQ，BullMQ 完全满足当前 fire-and-forget + 重试场景
 
 ## 相关文档
 

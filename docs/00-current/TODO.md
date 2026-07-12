@@ -19,7 +19,3 @@ random docs.
 - OpenTelemetry 分布式追踪
 - 配置 Prometheus alerting rules
 - 添加 synthetic uptime monitoring
-
-### 错误处理
-
-- `AuthTokenService.revokeById` 在 session 不存在或属于其他用户时抛 raw `Error('SESSION_NOT_FOUND')`，导致 HTTP 500；应改为 `NotFoundException`（不存在）或 `ForbiddenException`（跨用户）
