@@ -220,7 +220,7 @@ Use narrower commands while iterating, then run `pnpm check` before finishing a 
 For production smoke testing after CD or manual server updates:
 
 ```bash
-LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain pnpm deploy:smoke
+LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain pnpm deploy:smoke
 ```
 
 ## Source Layout

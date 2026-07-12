@@ -65,18 +65,91 @@ Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or
 
 ## File Naming Rules
 
-- **No directory-name prefix duplication**: a file must not repeat the name of its enclosing
-  directory or module.
-  - ❌ `auth/services/auth-token.service.ts` — the `auth/` directory already conveys the module.
-  - ✅ `auth/services/token.service.ts`
-- **Module root files keep the module name**: `xxx.controller.ts`, `xxx.module.ts`, and
-  `xxx.service.ts` (if the main service lives at the module root) retain the module-name prefix.
-- **`.service.ts` suffix is mandatory** for all `@Injectable()` service files, following NestJS
-  convention.
-- **Domain sub-directories**: when `services/` or `tools/` contains more than 8 files spanning 2+
-  functional areas, split into domain sub-directories (e.g. `services/oauth/`, `tools/drugbank/`).
-- **Spec files follow their source**: `*.spec.ts` must sit next to the file it tests and be
-  renamed in lockstep.
+### Core Principle: File Name = Responsibility, Not Location
+
+```
+Directory = namespace (tells you the module/layer)
+File name = specific responsibility (tells you WHAT it does, not WHERE it is)
+```
+
+### NestJS Framework Suffixes Are Not Redundant
+
+Unlike Flutter's `_provider` / `_page` suffixes (which are community habits), NestJS framework
+suffixes — `.service.ts`, `.controller.ts`, `.module.ts`, `.dto.ts`, `.guard.ts`,
+`.interceptor.ts`, `.pipe.ts`, `.filter.ts`, `.decorator.ts` — are **CLI-generated and expected by
+the framework toolchain**. These suffixes **stay**. They are file-type identifiers, not redundant
+type words.
+
+The problem in Lucent is **module-name prefix duplication**, not suffix redundancy.
+
+### Quality Hierarchy (NestJS edition)
+
+| Level     | Example (in `legal-documents/services/`) | Problem                                                     |
+| --------- | ---------------------------------------- | ----------------------------------------------------------- |
+| **Worst** | `service.ts`                             | Zero responsibility — can't distinguish from other services |
+| Redundant | `legal-documents.service.ts`             | Prefix repeats the module directory                         |
+| **Best**  | `documents.service.ts`                   | Prefix = responsibility, suffix = framework convention      |
+
+### Rules
+
+1. **No module-name prefix on files inside the module.** A file inside `legal-documents/services/`
+   must not start with `legal-documents-`; the directory already says the module.
+   - ❌ `legal-documents/services/legal-documents.service.ts` → ✅ `documents.service.ts`
+   - ❌ `user-health-context/services/health-context.service.ts` → ✅ already good (`health-context`
+     is a responsibility word, not the module name `user-health-context`)
+
+2. **Module root files keep the module name.** `xxx.controller.ts`, `xxx.module.ts`, and
+   `xxx.service.ts` (if the main service lives at the module root) retain the module-name prefix.
+   These are NestJS CLI conventions for the module entry point.
+   - ✅ `legal-documents/legal-documents.controller.ts`
+   - ✅ `legal-documents/legal-documents.module.ts`
+
+3. **Never use a bare type word as a file name.** `service.ts`, `types.ts`, `constants.ts` carry
+   zero responsibility. Always include a business word to distinguish from siblings.
+   - ❌ `services/service.ts` (when siblings exist) → ✅ `services/token.service.ts`
+   - ✅ `services/queue.service.ts` inside `services/explanation/` — when only one service lives in
+     a domain sub-directory, `service.ts` is acceptable because the directory name is the
+     responsibility word
+
+4. **`.service.ts` suffix is mandatory** for all `@Injectable()` service files, following NestJS
+   convention. Same for `.controller.ts`, `.module.ts`, `.dto.ts`, etc.
+
+5. **Sub-topic prefixes are not module-name prefixes.** `meal-analysis.constants.ts` inside
+   `daily-records/constants/` is correct — `meal-analysis` is a sub-topic, not the module name
+   `daily-records`.
+   - ❌ `daily-records/constants/daily-records.constants.ts` → ✅ `daily-records/constants/constants.ts`
+   - ✅ `daily-records/constants/meal-analysis.constants.ts` (keep — sub-topic prefix)
+
+6. **Sub-directory name prefix is redundant.** A file inside `services/explanation/` must not
+   repeat `explanation-` in the file name.
+   - ❌ `services/explanation/explanation-queue.service.ts` → ✅ `services/explanation/queue.service.ts`
+
+7. **Class names are unaffected.** NestJS DI resolves by class name (e.g., `LegalDocumentsService`),
+   not file name. File renames do not require class renames or DI changes.
+
+8. **Spec files follow their source.** `*.spec.ts` must sit next to the file it tests and be
+   renamed in lockstep.
+   - ❌ `daily-records/daily-records.service.spec.ts` (root, name mismatch)
+   - ✅ `daily-records/services/records.service.spec.ts` (co-located, name matches source)
+
+9. **Domain sub-directories**: when `services/` or `tools/` contains more than 8 files spanning 2+
+   functional areas, split into domain sub-directories (e.g. `services/oauth/`, `tools/drugbank/`).
+
+### Decision Flow
+
+```
+File name has a responsibility word (not just the module name)?
+├─ No (e.g. service.ts, types.ts) → MUST rename, add a business word
+└─ Yes (e.g. legal-documents.service.ts)
+   └─ Prefix equals the module directory name?
+      ├─ Yes → Replace with a more specific responsibility word
+      └─ No (e.g. documents.service.ts) → Already optimal, do not change
+```
+
+### Reference
+
+See `plans/2026-07-12-naming-cleanup.md` for the full migration plan with per-file rename
+mappings.
 
 ## Barrel Exports Rules
 

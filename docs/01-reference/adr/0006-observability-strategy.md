@@ -202,8 +202,8 @@ prometheus:
   container_name: lucent-prometheus
   restart: unless-stopped
   volumes:
-    - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    - ${LUCENT_SERVER_DIR}/data/prometheus:/prometheus
+    - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    - ./data/prometheus:/prometheus
   ports:
     - '9090:9090' # 仅内网访问，Nginx 不代理
 
@@ -212,16 +212,20 @@ grafana:
   container_name: lucent-grafana
   restart: unless-stopped
   env_file:
-    - ${LUCENT_SERVER_DIR}/.env.production
+    - ./.env
   environment:
     GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
   volumes:
-    - ${LUCENT_SERVER_DIR}/data/grafana:/var/lib/grafana
+    - ./data/grafana:/var/lib/grafana
   ports:
     - '3001:3000' # 仅内网访问
   depends_on:
     - prometheus
 ```
+
+> **Note**: 早期版本使用 `${LUCENT_SERVER_DIR}` 环境变量分离服务器目录，后续部署统一为
+> `/opt/lucent/` 单目录相对路径，移除了 `LUCENT_SERVER_DIR` 依赖。详见
+> [deployment.md](../deployment.md)。
 
 ### 网络隔离
 
@@ -232,8 +236,8 @@ grafana:
 
 ### 数据持久化
 
-- `${LUCENT_SERVER_DIR}/data/prometheus` — Prometheus 时序数据
-- `${LUCENT_SERVER_DIR}/data/grafana` — Grafana 仪表盘和配置
+- `./data/prometheus` — Prometheus 时序数据
+- `./data/grafana` — Grafana 仪表盘和配置
 
 ## Consequences
 

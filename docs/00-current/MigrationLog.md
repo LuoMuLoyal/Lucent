@@ -15,7 +15,7 @@ Records backend changes in date order. Detailed entries are split by date under
 
 ## Active Entries
 
-- [2026-07-12](../02-logs/migration-log/2026-07-12.md) — 历史兼容代码清理 + TypeScript 6.0.3 + Jest→Vitest 迁移 + Pino→Winston 迁移 + 套约测试/性能测试/安全测试 + 队列与缓存增强
+- [2026-07-12](../02-logs/migration-log/2026-07-12.md) — 历史兼容代码清理 + TypeScript 6.0.3 + Jest→Vitest 迁移 + Pino→Winston 迁移 + 套约测试/性能测试/安全测试 + 队列与缓存增强 + 文档与代码偏差修复
 - [2026-07-11](../02-logs/migration-log/2026-07-11.md) — 审查修复 + 测试覆盖补全（15 个 spec 文件）+ 部署优化（Dockerfile/Compose/Nginx/Blue-Green）+ 法律文档管理 API
 - [2026-07-10](../02-logs/migration-log/2026-07-10.md) — 审查修复 + 架构升级（LangGraph tool-loop + LLM 重试 + 队列工厂 + Repository 抽象 + JSONB Zod）+ E2E 测试缺口全量补齐 + 单元测试覆盖率补充
 - [2026-07-09](../02-logs/migration-log/2026-07-09.md) — 配置化 + Auth Controller 拆分 + 水分目标 DB 持久化 + pre-push 钩子 + husky 残留清理

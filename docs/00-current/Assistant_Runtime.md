@@ -5,7 +5,7 @@ Last updated: 2026-07-09
 - Assistant retrieval is source-split across Chinese leaflet RAG, assistant-only filtered medical
   QA, and entity-scoped DrugBank scientific retrieval.
 - Assistant runtime now carries bounded retrieval-loop state (`loopCount`, `selectedTools`,
-  `retrievalEvidence`, `stopReason`) and keeps tool use server-owned.
+  `stopReason`) and keeps tool use server-owned.
 - Assistant tool surface now also includes structured Chinese product search/detail
   (`search_cn_medicine_products`, `get_cn_medicine_detail`) and structured DrugBank detail reads
   (`get_drugbank_detail`) in addition to the retrieval-only tools.

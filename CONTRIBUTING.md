@@ -36,7 +36,7 @@ pnpm typecheck
 For production smoke testing:
 
 ```bash
-LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLIC_BASE_URL=https://your-host pnpm deploy:smoke
+LUCENT_PUBLIC_BASE_URL=https://your-host pnpm deploy:smoke
 ```
 
 ## What Not To Commit
