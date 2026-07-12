@@ -4,7 +4,11 @@ import type { UserPayload } from '../auth/services/token.service';
 import { MedicineRemindersController } from './medicine-reminders.controller';
 import { MedicineRemindersService } from './services/reminders.service';
 
-const mockUser: UserPayload = { sub: 'user-uuid-1', email: 'test@example.com' };
+const mockUser: UserPayload = {
+  sub: 'user-uuid-1',
+  email: 'test@example.com',
+  status: 'active',
+};
 
 describe('MedicineRemindersController', () => {
   let controller: MedicineRemindersController;

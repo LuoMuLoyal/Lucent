@@ -10,6 +10,7 @@ import { LifecycleService } from './services/lifecycle/lifecycle.service';
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',
   email: 'test@example.com',
+  status: 'active',
 };
 
 const mockSuggestionsData = {

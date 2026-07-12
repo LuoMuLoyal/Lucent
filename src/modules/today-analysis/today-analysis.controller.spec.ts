@@ -44,7 +44,7 @@ describe('TodayAnalysisController', () => {
 
     await expect(
       controller.generate(
-        { sub: 'u1', email: 'a@b.c' },
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
         { date: '2026-06-12' },
         'zh-CN',
       ),
@@ -124,7 +124,7 @@ describe('TodayAnalysisController', () => {
     const response = makeMockResponse(events);
 
     await controller.generateStream(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       { date: '2026-06-12' },
       'zh-CN',
       response,
@@ -152,7 +152,7 @@ describe('TodayAnalysisController', () => {
     const response = makeMockResponse(events);
 
     await controller.generateStream(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       { date: '2026-06-12' },
       'zh-CN',
       response,
@@ -173,7 +173,7 @@ describe('TodayAnalysisController', () => {
     const response = makeMockResponse(events);
 
     await controller.generateStream(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       { date: '2026-06-12' },
       'zh-CN',
       response,

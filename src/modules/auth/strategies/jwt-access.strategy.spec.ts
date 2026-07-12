@@ -2,7 +2,6 @@ import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 
 import { ConfigKey } from '../../../config/config-keys.enum';
-import type { UserPayload } from '../types/auth-request';
 import { JwtAccessStrategy } from './jwt-access.strategy';
 
 describe('JwtAccessStrategy', () => {
@@ -67,51 +66,37 @@ describe('JwtAccessStrategy', () => {
       expect(result).toEqual(payload);
     });
 
-    it('returns the payload for a token without status field (backward compatibility)', () => {
-      const strategy = new JwtAccessStrategy(
-        configService as unknown as ConfigService,
-      );
-      const payload = { sub: 'user-1', email: 'test@example.com' };
-
-      const result = strategy.validate(payload);
-
-      expect(result).toEqual(payload);
-    });
-
-    it('returns the payload when status is undefined', () => {
-      const strategy = new JwtAccessStrategy(
-        configService as unknown as ConfigService,
-      );
-      const payload: UserPayload = {
-        sub: 'user-1',
-        email: 'test@example.com',
-      };
-
-      const result = strategy.validate(payload);
-
-      expect(result).toEqual(payload);
-    });
-
-    it('returns the payload when status is null', () => {
+    it('throws UnauthorizedException when status is undefined', () => {
       const strategy = new JwtAccessStrategy(
         configService as unknown as ConfigService,
       );
       const payload = {
         sub: 'user-1',
         email: 'test@example.com',
-        status: null,
-      } as unknown as UserPayload;
+        status: undefined as unknown as string,
+      };
 
-      const result = strategy.validate(payload);
+      expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
+    });
 
-      expect(result).toEqual(payload);
+    it('throws UnauthorizedException when status is null', () => {
+      const strategy = new JwtAccessStrategy(
+        configService as unknown as ConfigService,
+      );
+      const payload = {
+        sub: 'user-1',
+        email: 'test@example.com',
+        status: null as unknown as string,
+      };
+
+      expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
     });
 
     it('throws UnauthorizedException when sub is missing', () => {
       const strategy = new JwtAccessStrategy(
         configService as unknown as ConfigService,
       );
-      const payload = { sub: '', email: 'test@example.com' };
+      const payload = { sub: '', email: 'test@example.com', status: 'active' };
 
       expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);
     });
@@ -123,6 +108,7 @@ describe('JwtAccessStrategy', () => {
       const payload = {
         sub: undefined as unknown as string,
         email: 'test@example.com',
+        status: 'active',
       };
 
       expect(() => strategy.validate(payload)).toThrow(UnauthorizedException);

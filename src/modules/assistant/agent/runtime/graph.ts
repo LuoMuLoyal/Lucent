@@ -71,9 +71,7 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
           toolResults: [],
           finalContent: null,
           selectedTools: [],
-          retrievalEvidence: [],
           stopReason: null,
-          route: 'respond',
         };
       })
 
@@ -84,7 +82,6 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
             pendingToolCalls: [],
             finalContent: null,
             stopReason: 'no_match' as const,
-            route: 'respond' as const,
           };
         }
 
@@ -97,7 +94,6 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
             pendingToolCalls: [],
             finalContent: null,
             stopReason: 'no_match' as const,
-            route: 'respond' as const,
           };
         }
 
@@ -114,7 +110,6 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
               pendingToolCalls: toolNames,
               finalContent: null,
               selectedTools: toolNames,
-              route: 'tools' as const,
             };
           }
 
@@ -138,9 +133,7 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
             pendingToolCalls: [],
             finalContent: content,
             selectedTools: [],
-            retrievalEvidence: state.toolResults.map((r) => r.name),
             stopReason: 'answered' as const,
-            route: 'respond' as const,
           };
         }
 
@@ -148,7 +141,6 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
           pendingToolCalls: [],
           finalContent: null,
           stopReason: 'no_match' as const,
-          route: 'respond' as const,
         };
       })
 

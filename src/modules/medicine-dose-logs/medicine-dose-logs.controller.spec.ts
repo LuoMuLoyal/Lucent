@@ -4,7 +4,11 @@ import type { UserPayload } from '../auth/services/token.service';
 import { MedicineDoseLogsController } from './medicine-dose-logs.controller';
 import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
 
-const mockUser: UserPayload = { sub: 'user-uuid-1', email: 'test@example.com' };
+const mockUser: UserPayload = {
+  sub: 'user-uuid-1',
+  email: 'test@example.com',
+  status: 'active',
+};
 
 describe('MedicineDoseLogsController', () => {
   let controller: MedicineDoseLogsController;

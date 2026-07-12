@@ -8,8 +8,7 @@ export interface TokenPair {
 export interface UserPayload {
   sub: string;
   email: string | null;
-  /** User status at token sign time. Old tokens may omit this field. */
-  status?: string;
+  status: string;
 }
 
 export interface AuthRequestContext {

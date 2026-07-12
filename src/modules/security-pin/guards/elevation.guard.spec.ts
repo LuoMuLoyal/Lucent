@@ -37,7 +37,11 @@ function createMockContext(
     switchToHttp: () => ({
       getRequest: () => ({
         headers: options.headers ?? {},
-        user: options.user ?? { sub: 'user-1', email: 'a@b.c' },
+        user: options.user ?? {
+          sub: 'user-1',
+          email: 'a@b.c',
+          status: 'active',
+        },
       }),
     }),
     getType: () => 'http',

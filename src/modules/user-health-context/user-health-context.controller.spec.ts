@@ -8,7 +8,11 @@ describe('UserHealthContextController', () => {
   let controller: UserHealthContextController;
   let service: jest.Mocked<UserHealthContextService>;
 
-  const mockUser: UserPayload = { sub: 'user-1', email: 'test@example.com' };
+  const mockUser: UserPayload = {
+    sub: 'user-1',
+    email: 'test@example.com',
+    status: 'active',
+  };
   const mockResponse = {
     profile: null,
     allergies: [],

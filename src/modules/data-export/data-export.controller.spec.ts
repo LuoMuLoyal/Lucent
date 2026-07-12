@@ -51,6 +51,7 @@ describe('DataExportController', () => {
       {
         sub: 'u1',
         email: 'a@b.c',
+        status: 'active',
       },
       dto,
       'zh-CN',
@@ -69,6 +70,7 @@ describe('DataExportController', () => {
     const result = await controller.getLatestRequest({
       sub: 'u1',
       email: 'a@b.c',
+      status: 'active',
     });
 
     expect(result.code).toBe(ResultCode.SUCCESS);
@@ -83,6 +85,7 @@ describe('DataExportController', () => {
     const result = await controller.getLatestRequest({
       sub: 'u1',
       email: 'a@b.c',
+      status: 'active',
     });
 
     expect(result.code).toBe(ResultCode.SUCCESS);

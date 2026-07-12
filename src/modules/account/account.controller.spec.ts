@@ -20,6 +20,7 @@ import type { User } from '#generated/prisma/client';
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',
   email: 'test@example.com',
+  status: 'active',
 };
 
 const mockAccount = {

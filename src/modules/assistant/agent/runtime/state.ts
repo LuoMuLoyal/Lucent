@@ -6,8 +6,6 @@ import type {
 } from '../../tools/types';
 import type { AssistantToolExecutionResult } from '../../types/types';
 
-const ASSISTANT_ROUTE_DEFAULT = 'respond' as const;
-
 export const ASSISTANT_RUNTIME_NODE_NAMES = [
   'prepare_context',
   'agent',
@@ -61,22 +59,16 @@ export const AssistantRuntimeState = Annotation.Root({
     default: () => null,
   }),
 
-  // ── Legacy fields (kept for backward compatibility) ────────────────────
+  /** Tools selected by the LLM across all iterations. */
   selectedTools: Annotation<AssistantToolName[]>({
     reducer: (_left, right) => right,
     default: () => [],
   }),
-  retrievalEvidence: Annotation<AssistantToolName[]>({
-    reducer: (_left, right) => right,
-    default: () => [],
-  }),
+
+  /** Why the agent loop terminated. */
   stopReason: Annotation<'answered' | 'no_match' | 'tool_cap_reached' | null>({
     reducer: (_left, right) => right,
     default: () => null,
-  }),
-  route: Annotation<'tools' | 'respond'>({
-    reducer: (_left, right) => right,
-    default: () => ASSISTANT_ROUTE_DEFAULT,
   }),
 });
 

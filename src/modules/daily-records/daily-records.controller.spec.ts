@@ -12,7 +12,11 @@ describe('DailyRecordsController', () => {
   let candidatesService: jest.Mocked<DailyRecordCandidatesService>;
   let imageUploadService: jest.Mocked<DailyRecordImageUploadService>;
 
-  const mockUser: UserPayload = { sub: 'user-1', email: 'test@example.com' };
+  const mockUser: UserPayload = {
+    sub: 'user-1',
+    email: 'test@example.com',
+    status: 'active',
+  };
 
   beforeEach(async () => {
     dailyRecordsService = {

@@ -42,13 +42,17 @@ describe('UserSettingsController', () => {
     const settings = makeSettings();
     service.getSettings.mockResolvedValue(settings);
 
-    expect(await controller.getSettings({ sub: 'u1', email: 'a@b.c' })).toEqual(
-      {
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: settings,
-      },
-    );
+    expect(
+      await controller.getSettings({
+        sub: 'u1',
+        email: 'a@b.c',
+        status: 'active',
+      }),
+    ).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: settings,
+    });
     expect(service.getSettings).toHaveBeenCalledWith('u1');
   });
 
@@ -57,7 +61,7 @@ describe('UserSettingsController', () => {
     service.updateSettings.mockResolvedValue(updated);
 
     const result = await controller.updateSettings(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       { aiSummariesEnabled: false },
     );
 
@@ -74,7 +78,7 @@ describe('UserSettingsController', () => {
     service.getSettings.mockResolvedValue(settings);
 
     const result = await controller.enableSecurityPin(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       { pin: '123456' },
     );
 
@@ -92,7 +96,7 @@ describe('UserSettingsController', () => {
     });
 
     const result = await controller.verifySecurityPin(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       { pin: '123456' },
     );
 
@@ -109,7 +113,7 @@ describe('UserSettingsController', () => {
     service.getSettings.mockResolvedValue(settings);
 
     const result = await controller.changeSecurityPin(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       { oldPin: '123456', newPin: '654321' },
     );
 
@@ -126,7 +130,7 @@ describe('UserSettingsController', () => {
     service.getSettings.mockResolvedValue(settings);
 
     const result = await controller.disableSecurityPin(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       { pin: '123456' },
     );
 

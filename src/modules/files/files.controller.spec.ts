@@ -46,7 +46,7 @@ describe('FilesController', () => {
       fileName: 'photo.jpg',
     };
 
-    const user = { sub: 'user-1', email: 'test@example.com' };
+    const user = { sub: 'user-1', email: 'test@example.com', status: 'active' };
 
     const result = controller.createUpload(user, dto);
 

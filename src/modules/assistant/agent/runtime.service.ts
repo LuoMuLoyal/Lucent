@@ -25,9 +25,6 @@ import { AssistantToolLeafletReadService } from '../tools/leaflet/read.service';
 import { buildAssistantSystemPrompt } from '../prompts/system.prompt';
 import {
   ASSISTANT_RUNTIME_NODE_NAMES,
-  selectAllowedToolsForContextSources,
-  selectRelevantToolsForMessage,
-  type AssistantRuntimeState,
   buildAssistantRuntimeGraph,
   type ToolExecutorFn,
 } from './runtime';
@@ -102,41 +99,6 @@ export class AssistantRuntimeService {
       selectedTools: result.selectedTools,
       stopReason: result.stopReason,
     };
-  }
-
-  /**
-   * Legacy plan-only method (keyword-based, no LLM call).
-   * Kept for backward compatibility and tests.
-   */
-  planConversation(input: {
-    userId: string;
-    userMessage: string;
-    locale: string;
-    enabledContextSources: AssistantContextSource[];
-  }): Promise<AssistantRuntimeState> {
-    const allowedTools = selectAllowedToolsForContextSources(
-      input.enabledContextSources,
-    );
-    const selectedTools = selectRelevantToolsForMessage(
-      input.userMessage,
-      allowedTools,
-    );
-    return Promise.resolve({
-      userId: input.userId,
-      userMessage: input.userMessage,
-      locale: input.locale,
-      enabledContextSources: input.enabledContextSources,
-      allowedTools,
-      messages: [],
-      pendingToolCalls: [],
-      toolResults: [],
-      loopCount: Math.min(3, selectedTools.length > 0 ? 1 : 0),
-      finalContent: null,
-      selectedTools,
-      retrievalEvidence: selectedTools,
-      stopReason: selectedTools.length > 0 ? 'answered' : 'no_match',
-      route: 'respond',
-    } as unknown as AssistantRuntimeState);
   }
 
   /**

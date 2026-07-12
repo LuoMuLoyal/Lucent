@@ -64,7 +64,7 @@ describe('ReportsController', () => {
 
     expect(
       await controller.getDashboard(
-        { sub: 'u1', email: 'a@b.c' },
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
         { range: REPORT_RANGE_LAST_7_DAYS },
         'en',
       ),
@@ -90,7 +90,7 @@ describe('ReportsController', () => {
 
     expect(
       await controller.getDashboard(
-        { sub: 'u1', email: 'a@b.c' },
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
         {
           range: REPORT_RANGE_CUSTOM,
           startDate: '2026-06-01',
@@ -122,7 +122,7 @@ describe('ReportsController', () => {
 
     expect(
       await controller.generateSummary(
-        { sub: 'u1', email: 'a@b.c' },
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
         { range: REPORT_RANGE_LAST_30_DAYS },
         'zh-CN',
       ),
@@ -155,7 +155,7 @@ describe('ReportsController', () => {
     const response = makeMockResponse(events);
 
     await controller.generateSummaryStream(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       { range: REPORT_RANGE_LAST_30_DAYS },
       'zh-CN',
       response,
@@ -182,7 +182,7 @@ describe('ReportsController', () => {
     const response = makeMockResponse(events);
 
     await controller.generateSummaryStream(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       { range: REPORT_RANGE_LAST_30_DAYS },
       'zh-CN',
       response,
@@ -216,6 +216,7 @@ describe('ReportsController', () => {
     const result = await controller.previewClinicSummary({
       sub: 'u1',
       email: 'a@b.c',
+      status: 'active',
     });
 
     expect(clinicSummaryService.buildClinicSummary).toHaveBeenCalledWith('u1');
@@ -239,6 +240,7 @@ describe('ReportsController', () => {
     const result = await controller.shareClinicSummary({
       sub: 'u1',
       email: 'a@b.c',
+      status: 'active',
     });
 
     expect(clinicSummaryService.createShareLink).toHaveBeenCalledWith('u1');
@@ -304,7 +306,7 @@ describe('ReportsController', () => {
     const response = makeMockResponse([]);
 
     await controller.downloadClinicSummaryPdf(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       'zh-CN',
       response,
     );

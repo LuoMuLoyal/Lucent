@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 本文件只保留简介和按区域链接。具体后端实现细节见 `00-current/` 下各子文件。
 
@@ -72,6 +72,12 @@ Last updated: 2026-07-11
 - **语言切换**：`?lang=zh|en` 查询参数，默认 `zh`
 - **AdminJS 管理**：`LegalDocument` 资源已在 AdminJS 面板注册，可直接编辑文档内容
 - **迁移数据**：迁移脚本已插入 placeholder Markdown 内容，待法务审阅后替换
+
+## 2026-07-12 TypeScript 升级 + 依赖清理
+
+- **TypeScript 5.9.3 → 6.0.3**：devDependency 升级到 `^6.0.3`，typecheck / build / test / lint 全部兼容
+- **移除 ts-jest**：项目使用 `@swc/jest` 作为 jest transform，`ts-jest` 从未被引用，已移除
+- **TS 7 阻塞项**：`@nestjs/cli@11` 不兼容 TS 7 Go 原生 API，需等 NestJS CLI 12 稳定后升级
 
 ## 相关文档
 

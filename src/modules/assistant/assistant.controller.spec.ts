@@ -81,7 +81,11 @@ describe('AssistantController', () => {
     });
 
     await expect(
-      controller.getCapabilities({ sub: 'u1', email: 'a@b.c' }),
+      controller.getCapabilities({
+        sub: 'u1',
+        email: 'a@b.c',
+        status: 'active',
+      }),
     ).resolves.toEqual({
       code: ResultCode.SUCCESS,
       message: '',
@@ -130,7 +134,11 @@ describe('AssistantController', () => {
     ]);
 
     await expect(
-      controller.listRecentConversations({ sub: 'u1', email: 'a@b.c' }),
+      controller.listRecentConversations({
+        sub: 'u1',
+        email: 'a@b.c',
+        status: 'active',
+      }),
     ).resolves.toEqual({
       code: ResultCode.SUCCESS,
       message: '',
@@ -221,7 +229,7 @@ describe('AssistantController', () => {
     );
 
     await controller.streamMessages(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       {
         messages: [{ role: 'user', content: 'Hi' }],
       },
@@ -316,7 +324,11 @@ describe('AssistantController', () => {
     });
 
     await expect(
-      controller.getLatestConversation({ sub: 'u1', email: 'a@b.c' }),
+      controller.getLatestConversation({
+        sub: 'u1',
+        email: 'a@b.c',
+        status: 'active',
+      }),
     ).resolves.toEqual({
       code: ResultCode.SUCCESS,
       message: '',
@@ -360,7 +372,7 @@ describe('AssistantController', () => {
 
     await expect(
       controller.openConversation(
-        { sub: 'u1', email: 'a@b.c' },
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
         'conversation-1',
       ),
     ).resolves.toEqual({
@@ -396,7 +408,11 @@ describe('AssistantController', () => {
     });
 
     await expect(
-      controller.clearLatestConversation({ sub: 'u1', email: 'a@b.c' }),
+      controller.clearLatestConversation({
+        sub: 'u1',
+        email: 'a@b.c',
+        status: 'active',
+      }),
     ).resolves.toEqual({
       code: ResultCode.SUCCESS,
       message: '',
@@ -418,7 +434,7 @@ describe('AssistantController', () => {
     );
 
     await controller.streamMessages(
-      { sub: 'u1', email: 'a@b.c' },
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
       {
         messages: [{ role: 'user', content: 'Hi' }],
       },

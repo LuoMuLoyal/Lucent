@@ -10,6 +10,7 @@ import type { UserPayload } from '../types/auth-request';
 const mockUser: UserPayload = {
   sub: 'user-1',
   email: 'test@example.com',
+  status: 'active',
 };
 
 const mockRequest = {
