@@ -8,6 +8,8 @@ import {
   bearer,
   expectData,
   uniqueEmail,
+  createSecurityElevationToken,
+  SECURITY_ELEVATION_HEADER,
 } from '../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
 import { ResultCode } from '../../src/common/api';
@@ -71,18 +73,20 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .set('Authorization', bearer(aliceToken))
         .send({ kind: 'drug', label: 'Penicillin', severity: 'severe' })
         .expect(201);
-      aliceAllergyId = expectData(
-        allergyRes.body as ApiEnvelope<{ id: string }>,
-      ).id;
+      const allergyData = expectData(
+        allergyRes.body as ApiEnvelope<{ allergies: { id: string }[] }>,
+      );
+      aliceAllergyId = allergyData.allergies[0]!.id;
 
       const condRes = await request(app.getHttpServer())
         .post('/api/v1/user/health-context/conditions')
         .set('Authorization', bearer(aliceToken))
         .send({ label: 'Hypertension', status: 'active' })
         .expect(201);
-      aliceConditionId = expectData(
-        condRes.body as ApiEnvelope<{ id: string }>,
-      ).id;
+      const condData = expectData(
+        condRes.body as ApiEnvelope<{ conditions: { id: string }[] }>,
+      );
+      aliceConditionId = condData.conditions[0]!.id;
     });
 
     it('Bob cannot read Alice health context', async () => {
@@ -141,7 +145,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .post('/api/v1/user/daily-records')
         .set('Authorization', bearer(aliceToken))
         .send({
-          date: '2026-07-12',
+          occurredAt: '2026-07-12',
           kind: 'meal',
           payload: { mealType: 'breakfast', items: [] },
         })
@@ -152,6 +156,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
     it('Bob cannot list Alice daily records', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/daily-records')
+        .query({ date: '2026-07-12' })
         .set('Authorization', bearer(bobToken))
         .expect(200);
 
@@ -198,7 +203,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .send({
           displayName: 'Test Med',
           source: 'drugbank',
-          sourceMedicineId: 'DB00001',
+          sourceRefId: 'DB00001',
         })
         .expect(201);
       const medId = expectData(medRes.body as ApiEnvelope<{ id: string }>).id;
@@ -208,8 +213,8 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .set('Authorization', bearer(aliceToken))
         .send({
           currentMedicineId: medId,
-          schedule: { times: ['08:00'], frequency: 'daily' },
-          dosageText: '1 tablet',
+          scheduledHour: 8,
+          scheduledMinute: 0,
         })
         .expect(201);
       aliceReminderId = expectData(res.body as ApiEnvelope<{ id: string }>).id;
@@ -232,7 +237,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
       await request(app.getHttpServer())
         .patch(`/api/v1/user/medicine-reminders/${aliceReminderId}`)
         .set('Authorization', bearer(bobToken))
-        .send({ dosageText: 'Hacked' })
+        .send({ note: 'Hacked' })
         .expect(404);
     });
 
@@ -353,7 +358,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
       await request(app.getHttpServer())
         .delete(`/api/v1/auth/sessions/${aliceSessionId}`)
         .set('Authorization', bearer(bobToken))
-        .expect(404);
+        .expect(403);
     });
   });
 
@@ -363,14 +368,14 @@ describe('Security: Cross-User Authorization (e2e)', () => {
     let aliceConversationId: string;
 
     beforeAll(async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/user/assistant/conversations')
-        .set('Authorization', bearer(aliceToken))
-        .send({ title: 'Alice private chat' })
-        .expect(201);
-      aliceConversationId = expectData(
-        res.body as ApiEnvelope<{ id: string }>,
-      ).id;
+      // No POST /conversations endpoint exists; create directly in DB
+      const conversation = await ctx.prisma.assistantConversation.create({
+        data: {
+          userId: alice.id,
+          title: 'Alice private chat',
+        },
+      });
+      aliceConversationId = conversation.id;
     });
 
     it('Bob cannot open Alice conversation', async () => {
@@ -387,24 +392,30 @@ describe('Security: Cross-User Authorization (e2e)', () => {
 
   describe('Data Export', () => {
     let aliceExportId: string;
+    let bobElevationToken: string;
 
     beforeAll(async () => {
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/user/data-export-requests')
-        .set('Authorization', bearer(aliceToken))
-        .send({
+      // Data export POST requires security elevation; create directly in DB
+      const exportRequest = await ctx.prisma.dataExportRequest.create({
+        data: {
+          userId: alice.id,
           kind: 'daily_records',
           format: 'json',
           range: 'last_30_days',
-        })
-        .expect(201);
-      aliceExportId = expectData(res.body as ApiEnvelope<{ id: string }>).id;
+          status: 'requested',
+        },
+      });
+      aliceExportId = exportRequest.id;
+
+      // GET /latest also requires security elevation; mint token for Bob
+      bobElevationToken = await createSecurityElevationToken(ctx, bob.id);
     });
 
     it('Bob cannot see Alice export request in latest', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/user/data-export-requests/latest')
         .set('Authorization', bearer(bobToken))
+        .set(SECURITY_ELEVATION_HEADER, `Bearer ${bobElevationToken}`)
         .expect(200);
 
       // Bob should get null or his own (non-existent) export, not Alice's

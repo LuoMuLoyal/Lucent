@@ -159,15 +159,15 @@ describe('Security: Rate Limiting (e2e)', () => {
       // First request should succeed
       const first = await request(app.getHttpServer())
         .post('/api/v1/auth/send-verification-code')
-        .send({ email, type: 'register' })
-        .expect(201);
+        .send({ email, scene: 'register' })
+        .expect(200);
 
       expect(first.body.code).toBe(ResultCode.SUCCESS);
 
       // Immediate second request should hit cooldown
       const second = await request(app.getHttpServer())
         .post('/api/v1/auth/send-verification-code')
-        .send({ email, type: 'register' });
+        .send({ email, scene: 'register' });
 
       // Should be 429 or 400 with cooldown code
       if (second.status === 429) {

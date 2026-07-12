@@ -1,5 +1,4 @@
 import request from 'supertest';
-import { ResultCode } from '../../../src/common/api';
 import type { ApiEnvelope } from '../../../src/common/api';
 import {
   createTestApp,
@@ -194,15 +193,11 @@ describe('Notifications API (e2e)', () => {
       expect(data.createdAt).toBeTruthy();
     });
 
-    it('should return null data for a non-existent id', async () => {
-      const res = await request(app.getHttpServer())
+    it('should return 404 for a non-existent id', async () => {
+      await request(app.getHttpServer())
         .get(`${NOTIFICATIONS_PATH}/nonexistent-id`)
         .set('Authorization', bearer(accessToken))
-        .expect(200);
-
-      const body = res.body as ApiEnvelope<NotificationDetail | null>;
-      expect(body.code).toBe(ResultCode.SUCCESS);
-      expect(body.data).toBeNull();
+        .expect(404);
     });
 
     it('should not return a notification belonging to another user', async () => {
@@ -227,13 +222,10 @@ describe('Notifications API (e2e)', () => {
         otherUser.email!,
       );
 
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .get(`${NOTIFICATIONS_PATH}/${created.id}`)
         .set('Authorization', bearer(otherToken))
-        .expect(200);
-
-      const body = res.body as ApiEnvelope<NotificationDetail | null>;
-      expect(body.data).toBeNull();
+        .expect(404);
     });
   });
 
@@ -396,11 +388,11 @@ describe('Notifications API (e2e)', () => {
       expect(listData.items.find((n) => n.id === created.id)).toBeUndefined();
     });
 
-    it('should return 204 even for a non-existent id', async () => {
+    it('should return 404 for a non-existent id', async () => {
       await request(app.getHttpServer())
         .delete(`${NOTIFICATIONS_PATH}/nonexistent-id`)
         .set('Authorization', bearer(accessToken))
-        .expect(204);
+        .expect(404);
     });
 
     it('should not delete a notification belonging to another user', async () => {
@@ -424,11 +416,11 @@ describe('Notifications API (e2e)', () => {
         otherUser.email!,
       );
 
-      // Other user tries to delete — should return 204 but not actually delete
+      // Other user tries to delete — should return 404
       await request(app.getHttpServer())
         .delete(`${NOTIFICATIONS_PATH}/${created.id}`)
         .set('Authorization', bearer(otherToken))
-        .expect(204);
+        .expect(404);
 
       // Original owner can still see it
       const detailRes = await request(app.getHttpServer())

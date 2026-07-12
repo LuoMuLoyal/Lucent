@@ -62,6 +62,9 @@ export async function createTestApp(): Promise<E2eTestContext> {
  */
 export async function cleanupDatabase(prisma: PrismaService): Promise<void> {
   // 1. Leaf tables with FK to parent user-tables
+  await prisma.userSuggestionFeedback.deleteMany();
+  await prisma.userSuggestion.deleteMany();
+  await prisma.userSuggestionBaseline.deleteMany();
   await prisma.userDailyRecordAttachment.deleteMany();
   await prisma.assistantMessage.deleteMany();
   await prisma.userReminderDelivery.deleteMany();

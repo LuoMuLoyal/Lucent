@@ -239,25 +239,19 @@ describe('Session Management API (e2e)', () => {
         .expect(200);
     });
 
-    it('should return 500 for non-existent session id (raw error)', async () => {
-      // NOTE: revokeById throws a raw Error('SESSION_NOT_FOUND') which surfaces
-      // as 500. This documents current behavior — should be 404 in a fix.
+    it('should return 404 for non-existent session id', async () => {
       const { tokens } = await registerUserViaApi();
 
       const res = await request(app.getHttpServer())
         .delete(`${SESSIONS_PATH}/00000000-0000-0000-0000-000000000000`)
         .set('Authorization', bearer(tokens.accessToken))
-        .expect(500);
+        .expect(404);
 
       const body = res.body as ApiEnvelope;
       expect(body.code).not.toBe(ResultCode.SUCCESS);
     });
 
-    it('should not allow revoking another user session (500 raw error)', async () => {
-      // NOTE: revokeById throws raw Error('SESSION_NOT_FOUND') when
-      // record.userId !== userId, surfacing as 500 instead of 403/404.
-      // This documents current behavior — should be 403 in a fix.
-
+    it('should not allow revoking another user session (403)', async () => {
       // User A registers and gets a session
       const userA = await registerUserViaApi();
 
@@ -273,11 +267,11 @@ describe('Session Management API (e2e)', () => {
       const sessionsB = expectData(listResB.body as ApiEnvelope<SessionDto[]>);
       const targetSessionId = sessionsB[0]!.id;
 
-      // User A tries to revoke User B's session — gets 500 (raw error)
+      // User A tries to revoke User B's session — gets 403
       const res = await request(app.getHttpServer())
         .delete(`${SESSIONS_PATH}/${targetSessionId}`)
         .set('Authorization', bearer(userA.tokens.accessToken))
-        .expect(500);
+        .expect(403);
 
       const body = res.body as ApiEnvelope;
       expect(body.code).not.toBe(ResultCode.SUCCESS);
