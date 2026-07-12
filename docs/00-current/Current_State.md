@@ -112,7 +112,7 @@ Last updated: 2026-07-12
 ## 2026-07-12 新增测试类型：契约测试、性能测试、安全测试
 
 - **契约测试**：`test/contract/contract.e2e-spec.ts`，验证 API 响应匹配 OpenAPI schema（公开 + 认证端点 + 错误信封），`pnpm test:contract`
-- **性能测试**：`test/performance/` 下 3 个 k6 脚本（health / medicines / authenticated），`pnpm test:perf:*`
+- **性能测试**：`test/performance/` 下 3 个 k6 脚本（health / medicines / authenticated），TypeScript 编写，`pnpm test:perf:*`；k6 脚本已从 `.js` 迁移到 `.ts`，从 ESLint 和 tsc typecheck 中排除（k6 运行时独立于 Node.js）
 - **安全测试**：`test/security/` 下 3 个测试文件
   - `authorization.e2e-spec.ts` — 跨用户越权测试（health-context / daily-records / reminders / notifications / sessions / assistant / data-export + JWT 篡改）
   - `fuzzing.e2e-spec.ts` — 输入模糊测试（SQL/NoSQL 注入、超大 payload、null byte、XSS、HTTP 方法 fuzzing、header 注入）

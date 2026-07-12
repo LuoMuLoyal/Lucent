@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 
-const BASE_URL = __ENV.BASE_URL || 'http://127.0.0.1:3000';
+const BASE_URL = __ENV.BASE_URL ?? 'http://127.0.0.1:3000';
 
 const searchFailureRate = new Rate('medicine_search_failures');
 const searchDuration = new Trend('medicine_search_duration', true);
@@ -28,7 +28,12 @@ export const options = {
   },
 };
 
-const searchQueries = [
+interface SearchQuery {
+  q: string;
+  source: string;
+}
+
+const searchQueries: SearchQuery[] = [
   { q: 'ibuprofen', source: 'drugbank' },
   { q: '布洛芬', source: 'cn' },
   { q: 'aspirin', source: 'drugbank' },
@@ -38,23 +43,21 @@ const searchQueries = [
 
 let queryIndex = 0;
 
-export default function () {
+export default function (): void {
   // ── Medicine search ─────────────────────────────────────
   const query = searchQueries[queryIndex % searchQueries.length];
+  if (query === undefined) return;
   queryIndex++;
 
-  const searchRes = http.get(
-    `${BASE_URL}/api/v1/medicines`,
-    {
-      searchParams: {
-        q: query.q,
-        source: query.source,
-        page: 1,
-        pageSize: 10,
-      },
-      tags: { endpoint: 'medicine_search' },
+  const searchRes = http.get(`${BASE_URL}/api/v1/medicines`, {
+    searchParams: {
+      q: query.q,
+      source: query.source,
+      page: 1,
+      pageSize: 10,
     },
-  );
+    tags: { endpoint: 'medicine_search' },
+  });
 
   searchDuration.add(searchRes.timings.duration);
 
@@ -62,7 +65,7 @@ export default function () {
     'search: status 200': (r) => r.status === 200,
     'search: has envelope': (r) => {
       try {
-        const body = JSON.parse(r.body);
+        const body = JSON.parse(r.body as string);
         return body.code === 0 && Array.isArray(body.data);
       } catch {
         return false;
@@ -70,7 +73,7 @@ export default function () {
     },
     'search: has pagination meta': (r) => {
       try {
-        const body = JSON.parse(r.body);
+        const body = JSON.parse(r.body as string);
         return body.meta?.pagination !== undefined;
       } catch {
         return false;
@@ -91,7 +94,7 @@ export default function () {
     'safety-tips: status 200': (r) => r.status === 200,
     'safety-tips: has data array': (r) => {
       try {
-        const body = JSON.parse(r.body);
+        const body = JSON.parse(r.body as string);
         return Array.isArray(body.data);
       } catch {
         return false;

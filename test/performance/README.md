@@ -45,25 +45,25 @@ Set the base URL and (optionally) an access token via environment variables:
 
 ```powershell
 # Health check load test (no auth needed)
-k6 run -e BASE_URL=http://127.0.0.1:3000 test/performance/health.k6.js
+k6 run -e BASE_URL=http://127.0.0.1:3000 test/performance/health.k6.ts
 
 # Medicine search load test (no auth needed)
-k6 run -e BASE_URL=http://127.0.0.1:3000 test/performance/medicines.k6.js
+k6 run -e BASE_URL=http://127.0.0.1:3000 test/performance/medicines.k6.ts
 
 # Authenticated endpoint load test (needs token)
 k6 run `
   -e BASE_URL=http://127.0.0.1:3000 `
   -e ACCESS_TOKEN=<your-access-token> `
-  test/performance/authenticated.k6.js
+  test/performance/authenticated.k6.ts
 ```
 
 ## Test Scenarios
 
 | Script                | Endpoint(s)                                                                                                          | VUs | Duration | Description                   |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------- | --- | -------- | ----------------------------- |
-| `health.k6.js`        | `/api/v1/health`, `/api/v1/health/ready`, `/api/v1/health/live`                                                      | 20  | 30s      | Health check baseline         |
-| `medicines.k6.js`     | `/api/v1/medicines`, `/api/v1/medicines/safety-tips`                                                                 | 10  | 30s      | Medicine search + safety tips |
-| `authenticated.k6.js` | `/api/v1/account`, `/api/v1/user/health-context`, `/api/v1/user/reports/dashboard`, `/api/v1/user/today/suggestions` | 5   | 20s      | Authenticated user endpoints  |
+| `health.k6.ts`        | `/api/v1/health`, `/api/v1/health/ready`, `/api/v1/health/live`                                                      | 20  | 30s      | Health check baseline         |
+| `medicines.k6.ts`     | `/api/v1/medicines`, `/api/v1/medicines/safety-tips`                                                                 | 10  | 30s      | Medicine search + safety tips |
+| `authenticated.k6.ts` | `/api/v1/account`, `/api/v1/user/health-context`, `/api/v1/user/reports/dashboard`, `/api/v1/user/today/suggestions` | 5   | 20s      | Authenticated user endpoints  |
 
 ## Interpreting Results
 
@@ -95,6 +95,6 @@ To run performance tests in CI against a staging environment:
     k6 run \
       -e BASE_URL=https://staging.lucent.example.com \
       -e ACCESS_TOKEN=${{ secrets.STAGING_TEST_TOKEN }} \
-      test/performance/authenticated.k6.js
+      test/performance/authenticated.k6.ts
   continue-on-error: true # Don't block PRs on perf regressions
 ```

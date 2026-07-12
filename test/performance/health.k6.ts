@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate } from 'k6/metrics';
 
-const BASE_URL = __ENV.BASE_URL || 'http://127.0.0.1:3000';
+const BASE_URL = __ENV.BASE_URL ?? 'http://127.0.0.1:3000';
 
 // Custom metric: track health check failures separately
 const healthCheckFailures = new Rate('health_check_failures');
@@ -28,13 +28,18 @@ export const options = {
   },
 };
 
-const endpoints = [
+interface HealthEndpoint {
+  path: string;
+  name: string;
+}
+
+const endpoints: HealthEndpoint[] = [
   { path: '/api/v1/health', name: 'health' },
   { path: '/api/v1/health/live', name: 'health_live' },
   { path: '/api/v1/health/ready', name: 'health_ready' },
 ];
 
-export default function () {
+export default function (): void {
   for (const ep of endpoints) {
     const res = http.get(`${BASE_URL}${ep.path}`, {
       tags: { endpoint: ep.name },
@@ -44,7 +49,7 @@ export default function () {
       [`${ep.name}: status is 200`]: (r) => r.status === 200,
       [`${ep.name}: has envelope code`]: (r) => {
         try {
-          const body = JSON.parse(r.body);
+          const body = JSON.parse(r.body as string);
           return body.code !== undefined;
         } catch {
           return false;
@@ -52,7 +57,7 @@ export default function () {
       },
       [`${ep.name}: status is ok`]: (r) => {
         try {
-          const body = JSON.parse(r.body);
+          const body = JSON.parse(r.body as string);
           return body.data?.status === 'ok' || body.data?.status === 'error';
         } catch {
           return false;

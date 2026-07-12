@@ -2,8 +2,8 @@ import http from 'k6/http';
 import { check, sleep, group } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 
-const BASE_URL = __ENV.BASE_URL || 'http://127.0.0.1:3000';
-const ACCESS_TOKEN = __ENV.ACCESS_TOKEN || '';
+const BASE_URL = __ENV.BASE_URL ?? 'http://127.0.0.1:3000';
+const ACCESS_TOKEN = __ENV.ACCESS_TOKEN ?? '';
 
 const endpointFailures = new Rate('authenticated_endpoint_failures');
 const accountDuration = new Trend('account_duration', true);
@@ -41,7 +41,7 @@ const authHeaders = {
   'Content-Type': 'application/json',
 };
 
-export default function () {
+export default function (): void {
   if (!ACCESS_TOKEN) {
     console.error('ACCESS_TOKEN environment variable is required');
     return;
@@ -60,7 +60,7 @@ export default function () {
       'account: status 200': (r) => r.status === 200,
       'account: has user data': (r) => {
         try {
-          const body = JSON.parse(r.body);
+          const body = JSON.parse(r.body as string);
           return body.code === 0 && body.data?.id !== undefined;
         } catch {
           return false;
@@ -86,7 +86,7 @@ export default function () {
       'health-context: status 200': (r) => r.status === 200,
       'health-context: has summary': (r) => {
         try {
-          const body = JSON.parse(r.body);
+          const body = JSON.parse(r.body as string);
           return body.code === 0 && body.data?.summary !== undefined;
         } catch {
           return false;
@@ -112,7 +112,7 @@ export default function () {
       'dashboard: status 200': (r) => r.status === 200,
       'dashboard: has data': (r) => {
         try {
-          const body = JSON.parse(r.body);
+          const body = JSON.parse(r.body as string);
           return body.code === 0 && body.data !== null;
         } catch {
           return false;
@@ -138,7 +138,7 @@ export default function () {
       'today-suggestions: status 200': (r) => r.status === 200,
       'today-suggestions: has suggestions array': (r) => {
         try {
-          const body = JSON.parse(r.body);
+          const body = JSON.parse(r.body as string);
           return body.code === 0 && Array.isArray(body.data?.suggestions);
         } catch {
           return false;

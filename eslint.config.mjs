@@ -12,6 +12,8 @@ export default tseslint.config(
       'deploy/**/*.ts',
       'scripts/**/*.ts',
       'scripts/**/*.js',
+      // k6 性能测试脚本运行在 k6 运行时中，不适用 Node.js / TS 类型检查
+      'test/performance/**/*.ts',
     ],
   },
   eslint.configs.recommended,
