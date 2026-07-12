@@ -1,6 +1,6 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 - auth 模块三处静默 catch 补充 logger.warn：`auth.service.ts` refresh、`auth-oauth-state.service.ts`
   normalizeCallbackUri、`credential-auth.service.ts` \_notifyPasswordChanged，保留生产环境可观测性。
@@ -62,27 +62,30 @@ Last updated: 2026-07-11
   - `architecture.md` directory example updated to match the whitelist.
 
 - Prisma-generated client moved out of `src/` to root-level `generated/prisma`.
-  - Introduced Node.js subpath import `#generated/*` with synchronized TS/SWC/Jest configuration.
+  - Introduced Node.js subpath import `#generated/*` with synchronized TS/SWC/Vitest configuration.
   - All `.../generated/prisma/client` imports across `src/` and `test/` replaced with `#generated/prisma/client`.
 
 - Shared `common/` code is now split by role instead of collecting everything under `utils/`.
   - `src/common/helpers/` holds pure helper functions and stateless shared utilities.
   - `src/common/services/` holds shared injectable services such as `LocalizedCopyService`.
   - `src/common/logger/` holds the shared Nest logging module.
-- The logging foundation now uses `nestjs-pino` / `pino-http` instead of
-  Winston.
+- The logging foundation now uses `nest-winston` / `winston` (migrated from Pino on
+  2026-07-12, see ADR-0007).
   - `requestIdMiddleware` still owns `X-Request-Id`.
   - `RequestContextService` bridges the request id into AsyncLocalStorage for
     downstream logs and exception handling.
   - `setup-app.ts` no longer emits hand-built string HTTP logs; structured
-    request/response logs and global exception logs share the same Pino
-    baseline.
-  - HTTP request logs now include response time (e.g. `GET /path completed 200 in 42ms`)
-    via pino-http v11's `responseTime` callback parameter.
+    business logs use `new Logger()` field injection consistently across all
+    services.
+  - HTTP access logging is handled by Nginx `access_log`; per-request
+    `autoLogging` was removed (redundant with Nginx, ApiExceptionFilter, and
+    Prometheus metrics).
   - `SlowRequestInterceptor` (global) warns on requests exceeding
     `SLOW_REQUEST_THRESHOLD_MS` (default 2000ms).
   - `LifecycleService` logs application start and graceful shutdown (signal, uptime).
     `main.ts` calls `enableShutdownHooks()` so SIGTERM triggers NestJS destroy hooks.
+  - Production logs dual-write: Winston JSON stdout + `winston-daily-rotate-file`
+    (500MB per file, 14-day retention, auto-gzip).
   - `MetricsService` (`src/common/metrics/metrics.service.ts`) collects Prometheus
     metrics via `prom-client`: default Node.js runtime metrics, HTTP request
     latency/counters, BullMQ job metrics, and LLM call/token metrics. Controlled by

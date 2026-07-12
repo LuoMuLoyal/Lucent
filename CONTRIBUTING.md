@@ -33,7 +33,7 @@ This runs lint, app typecheck, tool/deploy typecheck, build, unit tests, e2e tes
 pnpm typecheck
 ```
 
-For deployed-MVP smoke testing:
+For production smoke testing:
 
 ```bash
 LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLIC_BASE_URL=https://your-host pnpm deploy:smoke
@@ -81,5 +81,5 @@ When module structure, dependencies, or AI pipeline architecture changes:
 - See `docs/README.md` for the document boundaries and update map.
 - Any backend code change: append to today's `docs/02-logs/migration-log/YYYY-MM-DD.md`.
 - Completed TODO items: delete from `docs/00-current/TODO.md`, move facts to
-  `Luminous/docs/00-current/Current_State.md`.
+  `docs/00-current/Current_State.md`.
 - Active multi-step plans: `plans/YYYY-MM-DD-short-task-name.md`.

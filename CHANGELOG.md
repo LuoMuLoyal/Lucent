@@ -103,7 +103,7 @@ Detailed daily entries live in `docs/02-logs/migration-log/` and
 
 #### Infrastructure
 
-- `nestjs-pino` / `pino-http` structured logging with `X-Request-Id`
+- `nest-winston` / `winston` structured logging with `X-Request-Id`
   propagation and `AsyncLocalStorage` request context
 - AdminJS panel at `/admin` with auto-discovered Prisma resources
 - Tencent COS integration for daily-record image uploads
@@ -154,7 +154,9 @@ Detailed daily entries live in `docs/02-logs/migration-log/` and
 - **Assistant runtime** split into state, router, graph files
 - **Assistant tools** reorganized into `drugbank/`, `leaflet/`, `records/`,
   `knowledge/`, `medicine/` subdirectories
-- **Logging** migrated from Winston to Pino (`nestjs-pino` / `pino-http`)
+- **Logging** migrated from Pino back to Winston (`nest-winston` /
+  `winston` / `winston-daily-rotate-file`) for better test-framework
+  console interception and simplified DI
 - **API exception filter** resolved from DI instead of `new`-ed in bootstrap
 - **`new Date()`** calls in business code replaced with centralized `now()` /
   `nowIsoString()` from `common/helpers/date-time.utils.ts`
@@ -223,7 +225,8 @@ Detailed daily entries live in `docs/02-logs/migration-log/` and
 - Campus-scoped support resources (no reliable school-specific data source)
 - `report-chart.service.ts` and `quickchart-js` dependency (replaced by
   data-dense PDF layout)
-- `nest-winston` / `winston` / `winston-daily-rotate-file` (replaced by Pino)
+- `nestjs-pino` / `pino` / `pino-http` / `pino-pretty` / `pino-roll`
+  (replaced by Winston — see ADR-0007)
 - Stale `medicine_source_matches` from recommended durable tables
 - Legacy Gitee Go deployment path
 - Old `monitoring/` tracked repo assets (Prometheus/Grafana provisioning)

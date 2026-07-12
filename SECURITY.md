@@ -4,8 +4,7 @@
 
 If you discover a security vulnerability, please **do not** open a public issue.
 
-Send a private report to **security@lucent.local** (replace with a real address
-before production deploy) with:
+Send a private report to **luomuloyal@outlook.com** with:
 
 - A description of the vulnerability and its potential impact
 - Steps to reproduce or a proof-of-concept

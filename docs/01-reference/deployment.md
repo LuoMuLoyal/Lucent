@@ -37,7 +37,7 @@ Last updated: 2026-07-11
 │   ├── prometheus/
 │   └── grafana/
 └── logs/                         ← 运维管理
-    ├── app/                      ← Pino 按天分割的日志文件
+    ├── app/                      ← Winston 按天分割的日志文件
     └── nginx/
 ```
 
@@ -203,8 +203,8 @@ LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain node smoke.ts
 
 生产环境日志双写：
 
-1. **stdout JSON**：Pino 默认输出到 stdout，Docker json-file 驱动采集（50MB × 5 文件轮转）
-2. **文件按天分割**：Pino 通过 `pino-roll` transport 写入 `/app/logs/` 目录（挂载到宿主机 `./logs/app/`），文件名格式 `lucent.YYYY-MM-DD.log`，单文件上限 500MB
+1. **stdout JSON**：Winston 默认输出到 stdout，Docker json-file 驱动采集（50MB × 5 文件轮转）
+2. **文件按天分割**：Winston 通过 `winston-daily-rotate-file` transport 写入 `/app/logs/` 目录（挂载到宿主机 `./logs/app/`），文件名格式 `lucent.YYYY-MM-DD.log`，单文件上限 500MB
 
 日志文件清理（服务器 cron）：
 

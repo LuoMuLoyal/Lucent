@@ -89,7 +89,7 @@ committed generated contract file in git history.
 - Prisma 7 / PostgreSQL
 - Redis / BullMQ
 - Passport JWT
-- Pino / nestjs-pino structured logging
+- Winston / nest-winston structured logging
 - prom-client / Prometheus / Grafana metrics (ADR-0006)
 - WeChat Web / Mobile OAuth login
 - OpenAPI-generated client/docs
@@ -148,10 +148,10 @@ In local development the template credentials are `admin@lucent.local` /
 JWT access and refresh secrets also come from the env file now; the dev/test
 templates already include local values.
 
-Lucent runtime logging now uses `nestjs-pino` over `pino-http`. Request logs,
-Nest app logs, and global exception logs share the same structured logger
-baseline, and every request gets a propagated `X-Request-Id` plus a matching
-request context entry for downstream logs.
+Lucent runtime logging now uses `nest-winston` with Winston transports.
+Request logs, Nest app logs, and global exception logs share the same structured
+logger baseline, and every request gets a propagated `X-Request-Id` plus a
+matching request context entry for downstream logs.
 
 Daily-record image uploads are signed by Lucent for Tencent COS. Configure
 `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and
@@ -217,7 +217,7 @@ pnpm check
 
 Use narrower commands while iterating, then run `pnpm check` before finishing a backend change. `pnpm build` does not type-check `**/*spec.ts` or `test/`; use `pnpm typecheck` when you need full TypeScript coverage for unit/e2e test files. Repo helper scripts under `scripts/` and deploy CLIs under `deploy/` use their own lighter TS projects; validate them with `pnpm typecheck:tools`.
 
-For deployed-MVP smoke after CD or manual server updates:
+For production smoke testing after CD or manual server updates:
 
 ```bash
 LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain pnpm deploy:smoke
@@ -230,7 +230,7 @@ LUCENT_APP_DIR=/opt/lucent/app LUCENT_SERVER_DIR=/opt/lucent/server LUCENT_PUBLI
 - `src/common/` now separates shared code by role instead of a catch-all `utils/` bucket:
   - `helpers/` for pure helper functions and stateless utilities
   - `services/` for shared injectable services
-  - `logger/` for the shared Pino/Nest logging module plus request context helpers
+  - `logger/` for the shared Winston/Nest logging module plus request context helpers
 - `scripts/` contains a small set of local helpers grouped by purpose:
   - `scripts/dev/` for local runtime helpers
 - `scripts/contract/` for contract export helpers

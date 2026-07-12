@@ -6,7 +6,7 @@ Last updated: 2026-06-08
 
 This contract defines the Lucent API for environment data (pollen, UV, air quality)
 that can support contextual Today or Mine surfaces. Luminous does not currently
-surface environment data in the MVP mobile UI; frontend wiring is deferred until
+surface environment data in the mobile UI; frontend wiring is deferred until
 a concrete Today/Mine product job is ready.
 
 ## Boundary

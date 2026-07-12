@@ -62,7 +62,7 @@ Last updated: 2026-07-12
 - **Blue-Green 零停机部署**：`deploy.ts` 16 步流程（migrate → 启动 inactive → 切换 nginx upstream → reload → 停止旧 slot → smoke test），支持 `--rollback`，smoke 失败自动回滚
 - **CI/CD 增强**：GHA 构建缓存，只推 git-sha tag，精确上传 assets（无 rm -rf），Staging 独立服务器 + 独立 workflow
 - **Prometheus 适配**：抓取目标改为 `app-blue:3000` + `app-green:3000`
-- **生产日志双写**：Pino stdout JSON + `pino-roll` 按天分割文件（`./logs/lucent.YYYY-MM-DD.log`，500MB 上限）
+- **生产日志双写**：Winston stdout JSON + `winston-daily-rotate-file` 按天分割文件（`./logs/lucent.YYYY-MM-DD.log`，500MB 上限）
 - **优雅关闭**：`enableShutdownHooks()` + `stop_grace_period: 30s` + SIGTERM
 
 ## 2026-07-11 法律文档管理 API

@@ -41,9 +41,8 @@ communication channels related to the project.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by contacting the project team at **conduct@lucent.local** (replace
-with a real address before production deploy). All complaints will be reviewed
-and investigated promptly and fairly.
+reported by contacting the project team at **luomuloyal@outlook.com**. All
+complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 

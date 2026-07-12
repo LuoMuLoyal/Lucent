@@ -1,6 +1,6 @@
 # Lucent Migration Log
 
-Last updated: 2026-07-09
+Last updated: 2026-07-12
 
 Records backend changes in date order. Detailed entries are split by date under
 `docs/02-logs/migration-log/`.
@@ -15,6 +15,9 @@ Records backend changes in date order. Detailed entries are split by date under
 
 ## Active Entries
 
+- [2026-07-12](../02-logs/migration-log/2026-07-12.md) — 历史兼容代码清理 + TypeScript 6.0.3 + Jest→Vitest 迁移 + Pino→Winston 迁移 + 套约测试/性能测试/安全测试 + 队列与缓存增强
+- [2026-07-11](../02-logs/migration-log/2026-07-11.md) — 审查修复 + 测试覆盖补全（15 个 spec 文件）+ 部署优化（Dockerfile/Compose/Nginx/Blue-Green）+ 法律文档管理 API
+- [2026-07-10](../02-logs/migration-log/2026-07-10.md) — 审查修复 + 架构升级（LangGraph tool-loop + LLM 重试 + 队列工厂 + Repository 抽象 + JSONB Zod）+ E2E 测试缺口全量补齐 + 单元测试覆盖率补充
 - [2026-07-09](../02-logs/migration-log/2026-07-09.md) — 配置化 + Auth Controller 拆分 + 水分目标 DB 持久化 + pre-push 钩子 + husky 残留清理
 - [2026-07-08](../02-logs/migration-log/2026-07-08.md) — 7.8 审查修复 + Today analysis 主动建议通知 + Medicine dose log Phase 2 + OpenAPI 合同修复 + 生成物边界治理 + Git 钩子轻量化
 - [2026-07-07](../02-logs/migration-log/2026-07-07.md) — 审查修复（超时配置 / 错误处理工具 / DTO 边界防御 / 测试覆盖率补充）
@@ -30,23 +33,25 @@ Records backend changes in date order. Detailed entries are split by date under
 Major changes grouped by area:
 
 - **Auth / Security** (OAuth, Security PIN, rate limit, JWT)
-  - Key Dates: 07/04, 07/05, 07/08, 07/09
+  - Key Dates: 07/04, 07/05, 07/08, 07/09, 07/10, 07/12
 - **AI Pipeline** (Assistant runtime, today-analysis, meal-analysis, LLM)
-  - Key Dates: 07/01, 07/04, 07/07, 07/08, 07/09
+  - Key Dates: 07/01, 07/04, 07/07, 07/08, 07/09, 07/10, 07/12
 - **Medicine** (dose logs, reminders, knowledge base, RAG)
-  - Key Dates: 07/03, 07/08
+  - Key Dates: 07/03, 07/08, 07/11
 - **Report / Export** (dashboard, PDF, clinic summary)
-  - Key Dates: 07/05
-- **Infrastructure** (logger, Prisma, AdminJS, common/ structure, env config)
-  - Key Dates: 07/04, 07/05, 07/06
+  - Key Dates: 07/05, 07/10, 07/12
+- **Infrastructure** (logger, Prisma, AdminJS, common/ structure, env config, deployment)
+  - Key Dates: 07/04, 07/05, 07/06, 07/11, 07/12
 - **Code Quality** (审查修复, DTO validation, retry utils, test coverage)
-  - Key Dates: 07/04, 07/05, 07/06, 07/07, 07/08, 07/09
+  - Key Dates: 07/04, 07/05, 07/06, 07/07, 07/08, 07/09, 07/10, 07/11
 - **CI / Tooling** (git hooks, scripts, package.json, GitHub Actions)
-  - Key Dates: 07/05, 07/06, 07/08
+  - Key Dates: 07/05, 07/06, 07/08, 07/11, 07/12
 - **OpenAPI** (export, contract fixes, generated client boundary)
   - Key Dates: 07/04, 07/08
 - **Docs / Governance** (ROADMAP, CHANGELOG, open-source files, architecture)
-  - Key Dates: 07/03, 07/04, 07/06
+  - Key Dates: 07/03, 07/04, 07/06, 07/12
+- **Testing** (Vitest migration, contract/security/performance tests, E2E coverage)
+  - Key Dates: 07/10, 07/11, 07/12
 
 ## Archived Entries
 
