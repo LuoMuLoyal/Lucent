@@ -6,7 +6,7 @@ import type {
   ExplanationContext,
   ExplanationPromptCopy,
 } from '../../prompts/explanation.prompt';
-import { ExplanationGeneratorService } from './explanation-generator.service';
+import { ExplanationGeneratorService } from './generator.service';
 
 describe('ExplanationGeneratorService', () => {
   let service: ExplanationGeneratorService;

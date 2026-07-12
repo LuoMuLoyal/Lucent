@@ -3,13 +3,13 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { DailyRecordKind } from '#generated/prisma/client';
-import { DailyRecordRepositoryPort } from './repositories/daily-record.repository';
-import { DailyRecordsOwnershipService } from './services/ownership.service';
-import { DailyRecordsMapperService } from './services/mapper.service';
-import { DailyRecordsService } from './services/records.service';
-import { MealAnalysisQueueService } from './services/meal-analysis/queue.service';
-import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service';
-import { SuggestionCacheService } from '../today-suggestion/services/cache/suggestion-cache.service';
+import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
+import { DailyRecordsOwnershipService } from './ownership.service';
+import { DailyRecordsMapperService } from './mapper.service';
+import { DailyRecordsService } from './records.service';
+import { MealAnalysisQueueService } from './meal-analysis/queue.service';
+import { MealDishTemplateLearningService } from './meal-dish/template-learning.service';
+import { SuggestionCacheService } from '../../today-suggestion/services/cache/suggestion-cache.service';
 
 const mockUserId = 'user-uuid-1';
 

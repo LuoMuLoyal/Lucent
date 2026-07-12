@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../common/helpers/prisma.helpers';
+import { nonDeleted } from '../../common/helpers/prisma.utils';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';

@@ -6,7 +6,7 @@ import type {
   DailyRecordAttachmentInputDto,
   UpdateDailyRecordDto,
 } from '../dto';
-import type { DailyRecordShape } from '../types/daily-records.types';
+import type { DailyRecordShape } from '../types/types';
 import {
   DailyRecordAttachmentKind,
   DailyRecordKind,

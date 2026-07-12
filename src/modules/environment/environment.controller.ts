@@ -5,7 +5,7 @@ import {
   EnvironmentSnapshotQueryDto,
   EnvironmentSnapshotResponseDto,
 } from './dto';
-import { EnvironmentService } from './services/environment.service';
+import { EnvironmentService } from './services/snapshot.service';
 
 @ApiTags('Environment')
 @Controller('environment')

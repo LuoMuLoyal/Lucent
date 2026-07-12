@@ -1,8 +1,8 @@
-import { ensureOwnedByUser } from './prisma-ownership.helper';
+import { ensureOwnedByUser } from './prisma-ownership.utils';
 import { NotFoundException } from '@nestjs/common';
 import { ResultCode } from '../api/api-envelope';
 
-describe('prisma-ownership.helper', () => {
+describe('prisma-ownership.utils', () => {
   describe('ensureOwnedByUser', () => {
     it('does not throw when record belongs to user', () => {
       const record = { id: 'rec-1', userId: 'user-1', name: 'test' };

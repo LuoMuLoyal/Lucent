@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../../common/helpers/prisma.helpers';
+import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import { parseDateOnly } from '../../../common/helpers/date-time.utils';
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -13,7 +13,7 @@ import { parseMealRecordPayload } from '../../daily-records/types/meal-analysis.
 import {
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
-} from '../../user-settings/constants/user-settings.constants';
+} from '../../user-settings/constants/constants';
 
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;

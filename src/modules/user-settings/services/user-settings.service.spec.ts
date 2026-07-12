@@ -1,5 +1,5 @@
-import type { PrismaService } from '../../prisma/prisma.service';
-import { UserSettingsService } from './services/user-settings.service';
+import type { PrismaService } from '../../../prisma/prisma.service';
+import { UserSettingsService } from './user-settings.service';
 
 function createMockCache() {
   return {

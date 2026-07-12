@@ -7,7 +7,7 @@ import type {
   ExplanationContext,
   ExplanationPromptCopy,
 } from '../../prompts/explanation.prompt';
-import { ExplanationGeneratorService } from './explanation-generator.service';
+import { ExplanationGeneratorService } from './generator.service';
 
 /**
  * Result of an AI explanation request.

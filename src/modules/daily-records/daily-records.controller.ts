@@ -34,7 +34,7 @@ import {
   GenerateDailyRecordCandidatesDto,
   QueryDailyRecordDto,
 } from './dto';
-import { DailyRecordCandidatesService } from './services/candidates/candidates.service';
+import { DailyRecordCandidatesService } from './services/candidates/service';
 import { DailyRecordImageUploadService } from './services/image-upload.service';
 import { DailyRecordsService } from './services/records.service';
 import { I18nLang } from 'nestjs-i18n';

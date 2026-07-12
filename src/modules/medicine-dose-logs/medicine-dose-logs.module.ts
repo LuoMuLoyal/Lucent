@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MedicineDoseLogsController } from './medicine-dose-logs.controller';
-import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
+import { MedicineDoseLogsService } from './services/dose-logs.service';
 import {
   MedicineDoseLogRepositoryPort,
   MedicineDoseLogRepository,

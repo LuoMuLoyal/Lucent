@@ -125,6 +125,17 @@ Last updated: 2026-07-12
 - **队列增强（5 项）**：新增 5 个 BullMQ 队列（today-analysis / report-summary / suggestion-explanation / medicine-recognition / clinic-summary-pdf），所有队列复用 `BullmqQueueFactory`，Redis 不可用时降级为同步处理。每个队列新增 `/async` 入队端点和 `/status/:jobId` 轮询端点，保留现有同步端点兼容旧客户端
 - **BullMQ 评估结论**：无需升级为 RabbitMQ，BullMQ 完全满足当前 fire-and-forget + 重试场景
 
+## 2026-07-12 文件命名大重构
+
+- **全量命名清理**：根据 `plans/2026-07-12-naming-cleanup.md` 计划，清理约 49 个文件的命名冗余问题，涵盖 6 个阶段：
+  - spec 文件名称不匹配修复（3 个）+ 放置位置统一（9 个）
+  - dto/ 模块名前缀清理（16 个）
+  - services/ 模块名前缀清理（5 个）
+  - 子目录名前缀 + constants/types/config 清理（13 个）
+  - common/ 后缀统一（3 个）
+- **class 名保持不变**：NestJS DI 基于 class 名而非文件名，仅改文件名
+- **验证结果**：lint:check / typecheck / build / test 全部通过
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]

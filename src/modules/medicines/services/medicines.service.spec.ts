@@ -1,16 +1,16 @@
-import type { DeepMocked } from '../../common/types/deep-mocked';
+import type { DeepMocked } from '../../../common/types/deep-mocked';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import { MedicinesService } from './services/medicines.service';
-import { MedicinesCacheService } from './cache/cache.service';
-import { CnMedicinesService } from './adapters/cn.service';
-import { DrugbankMedicinesService } from './adapters/drugbank.service';
-import { ResultCode } from '../../common/api';
-import { PrismaService } from '../../prisma/prisma.service';
-import { LlmRuntimeService } from '../../llm-runtime/services/llm-runtime.service';
+import { MedicinesService } from './medicines.service';
+import { MedicinesCacheService } from '../cache/cache.service';
+import { CnMedicinesService } from '../adapters/cn.service';
+import { DrugbankMedicinesService } from '../adapters/drugbank.service';
+import { ResultCode } from '../../../common/api';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
 
 describe('MedicinesService', () => {
   let service: MedicinesService;

@@ -1,4 +1,4 @@
-import { LifecycleService } from './lifecycle.service';
+import { LifecycleService } from './service';
 import { SuggestionLifecycleState } from '../../types';
 import type { SuggestionCandidate } from '../../types/candidate.types';
 

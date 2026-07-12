@@ -38,8 +38,8 @@ import { AccountService } from './services/account.service';
 import {
   AccountEmailResponseDto,
   AccountResponseDto,
-} from './dto/account-response.dto';
-import { UpdateAccountDto } from './dto/update-account.dto';
+} from './dto/response.dto';
+import { UpdateAccountDto } from './dto/update.dto';
 
 @ApiTags('Account')
 @ApiBearerAuth('access-token')

@@ -1,2 +1,2 @@
-export * from './environment-snapshot-query.dto';
-export * from './environment-snapshot.dto';
+export * from './snapshot-query.dto';
+export * from './snapshot.dto';

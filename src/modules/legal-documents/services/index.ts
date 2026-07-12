@@ -1,1 +1,1 @@
-export * from './legal-documents.service';
+export * from './documents.service';

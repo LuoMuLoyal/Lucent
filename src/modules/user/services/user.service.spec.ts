@@ -1,11 +1,11 @@
-import type { DeepMocked } from '../../common/types/deep-mocked';
-import { nonDeleted } from '../../common/helpers/prisma.helpers';
+import type { DeepMocked } from '../../../common/types/deep-mocked';
+import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { UserStatus } from '#generated/prisma/client';
 
-import { UserService } from './services/user.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { UserService } from './user.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 const mockUser = {
   id: 'user-uuid-1',

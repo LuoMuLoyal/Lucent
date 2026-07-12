@@ -1,1 +1,1 @@
-export * from './notifications-response.dto';
+export * from './response.dto';

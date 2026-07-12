@@ -1,4 +1,4 @@
-import { FeedbackStatsService } from './feedback-stats.service';
+import { FeedbackStatsService } from './stats.service';
 
 describe('FeedbackStatsService', () => {
   let service: FeedbackStatsService;

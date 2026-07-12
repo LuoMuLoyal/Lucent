@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { nonDeleted } from '../../../../common/helpers/prisma.helpers';
+import { nonDeleted } from '../../../../common/helpers/prisma.utils';
 import { parseDateOnly } from '../../../../common/helpers/date-time.utils';
 import { DoseLogStatus, type Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';

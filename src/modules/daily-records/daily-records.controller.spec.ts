@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api';
 import { DailyRecordsController } from './daily-records.controller';
-import { DailyRecordCandidatesService } from './services/candidates/candidates.service';
+import { DailyRecordCandidatesService } from './services/candidates/service';
 import { DailyRecordImageUploadService } from './services/image-upload.service';
 import { DailyRecordsService } from './services/records.service';
 import type { UserPayload } from '../auth/services/auth.service';

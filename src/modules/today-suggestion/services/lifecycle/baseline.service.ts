@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { nonDeleted } from '../../../../common/helpers/prisma.helpers';
+import { nonDeleted } from '../../../../common/helpers/prisma.utils';
 import { parseDateOnly } from '../../../../common/helpers/date-time.utils';
 import { DailyRecordKind } from '#generated/prisma/client';
 import { BaselineDimension, BASELINE_MIN_DAYS } from '../../types';

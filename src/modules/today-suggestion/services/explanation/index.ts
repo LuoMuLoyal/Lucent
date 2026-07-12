@@ -1,2 +1,2 @@
-export * from './explanation-generator.service';
-export * from './explanation.service';
+export * from './generator.service';
+export * from './service';

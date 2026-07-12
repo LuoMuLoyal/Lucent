@@ -13,8 +13,8 @@ import { AccountService } from './services/account.service';
 import { AuthService } from '../auth/services/auth.service';
 import { SecurityElevationGuard } from '../security-pin/guards';
 import { SecurityPinService } from '../security-pin/services';
-import type { UpdateAccountDto } from './dto/update-account.dto';
-import type { AccountDto } from './dto/account-response.dto';
+import type { UpdateAccountDto } from './dto/update.dto';
+import type { AccountDto } from './dto/response.dto';
 import type { User } from '#generated/prisma/client';
 
 const mockUser: UserPayload = {

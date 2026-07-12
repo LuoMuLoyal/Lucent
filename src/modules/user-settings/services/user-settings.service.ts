@@ -8,7 +8,7 @@ import {
   ASSISTANT_CONTEXT_SETTING_KEYS,
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
-} from '../constants/user-settings.constants';
+} from '../constants/constants';
 
 /** Type union for settings values stored in the DB. */
 type SettingValue = boolean | number;

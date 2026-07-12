@@ -1,8 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import type { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import type { PrismaService } from '../../../../prisma/prisma.service';
-import type { ExplanationGeneratorService } from './explanation-generator.service';
-import { ExplanationService } from './explanation.service';
+import type { ExplanationGeneratorService } from './generator.service';
+import { ExplanationService } from './service';
 
 describe('ExplanationService', () => {
   const mockSuggestion = {

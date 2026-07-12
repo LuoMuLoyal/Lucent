@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import { nonDeleted } from '../../common/helpers/prisma.helpers';
+import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
@@ -13,7 +13,7 @@ import {
   UserStatus,
 } from '#generated/prisma/client';
 
-import { UserHealthContextRepositoryPort } from './repositories';
+import { UserHealthContextRepositoryPort } from '../repositories';
 import {
   UserHealthContextAllergyWriteService,
   UserHealthContextConditionWriteService,
@@ -22,8 +22,8 @@ import {
   UserHealthContextOwnershipService,
   UserHealthContextProfileWriteService,
   UserHealthContextService,
-} from './services';
-import { ResultCode } from '../../common/api';
+} from '.';
+import { ResultCode } from '../../../common/api';
 import { I18nService } from 'nestjs-i18n';
 
 const mockUserBase = {

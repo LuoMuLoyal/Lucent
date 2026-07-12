@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api';
 import { TestingSupportController } from './testing-support.controller';
-import { TestingSupportService } from './services/testing-support.service';
+import { TestingSupportService } from './services/fixtures.service';
 import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';
 
 describe('TestingSupportController', () => {

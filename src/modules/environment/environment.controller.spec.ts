@@ -2,7 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api';
 import type { EnvironmentSnapshotDto } from './dto';
 import { EnvironmentController } from './environment.controller';
-import { EnvironmentService } from './services/environment.service';
+import { EnvironmentService } from './services/snapshot.service';
 
 describe('EnvironmentController', () => {
   let controller: EnvironmentController;

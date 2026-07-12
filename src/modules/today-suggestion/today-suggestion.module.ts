@@ -17,19 +17,19 @@ import {
   MoodSleepRuleService,
   CoverageRuleService,
 } from './services/rules';
-import { ArbitrationService } from './services/arbitration/arbitration.service';
+import { ArbitrationService } from './services/arbitration/service';
 import { ScoringService } from './services/arbitration/scoring.service';
 import { SuppressionService } from './services/arbitration/suppression.service';
 import { BaselineService } from './services/lifecycle/baseline.service';
-import { LifecycleService } from './services/lifecycle/lifecycle.service';
-import { FeedbackService } from './services/feedback/feedback.service';
-import { FeedbackStatsService } from './services/feedback/feedback-stats.service';
+import { LifecycleService } from './services/lifecycle/service';
+import { FeedbackService } from './services/feedback/service';
+import { FeedbackStatsService } from './services/feedback/stats.service';
 import { SuggestionCacheService } from './services/cache/suggestion-cache.service';
 import { RuleVersionRegistry } from './services/rules/rule-version-registry.service';
 import { EscalationService } from './services/notification/escalation.service';
-import { ExplanationGeneratorService } from './services/explanation/explanation-generator.service';
-import { ExplanationService } from './services/explanation/explanation.service';
-import { ExplanationQueueService } from './services/explanation/explanation-queue.service';
+import { ExplanationGeneratorService } from './services/explanation/generator.service';
+import { ExplanationService } from './services/explanation/service';
+import { ExplanationQueueService } from './services/explanation/queue.service';
 import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import type { SuggestionRule } from './types';
 

@@ -1,5 +1,5 @@
-export * from './health-context-response.dto';
-export * from './update-health-context-profile.dto';
+export * from './response.dto';
+export * from './update-profile.dto';
 export * from './create-allergy.dto';
 export * from './update-allergy.dto';
 export * from './create-condition.dto';

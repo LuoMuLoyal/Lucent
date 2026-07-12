@@ -1,2 +1,2 @@
-export * from './feedback.service';
-export * from './feedback-stats.service';
+export * from './service';
+export * from './stats.service';

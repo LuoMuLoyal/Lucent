@@ -6,7 +6,7 @@ import { DailyRecordKind, Prisma } from '#generated/prisma/client';
 import type { CreateDailyRecordDto, UpdateDailyRecordDto } from '../dto';
 import { DailyRecordsOwnershipService } from './ownership.service';
 import { DailyRecordsMapperService } from './mapper.service';
-import { dailyRecordWithAttachments } from '../types/daily-records.types';
+import { dailyRecordWithAttachments } from '../types/types';
 import {
   buildConfirmedMealPayload,
   buildMealPayloadFromClientInput,

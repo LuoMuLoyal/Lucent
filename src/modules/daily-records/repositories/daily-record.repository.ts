@@ -8,11 +8,11 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, type DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { nonDeleted } from '../../../common/helpers/prisma.helpers';
+import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import {
   dailyRecordWithAttachments,
   type DailyRecordShape,
-} from '../types/daily-records.types';
+} from '../types/types';
 import type { OwnedRecordSnapshot } from '../services/ownership.service';
 
 /** Query filters for listing daily records. */

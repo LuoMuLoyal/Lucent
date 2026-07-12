@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { nonDeleted } from '../../../common/helpers/prisma.helpers';
-import { userHealthContextInclude } from '../types/health-context.types';
+import { nonDeleted } from '../../../common/helpers/prisma.utils';
+import { userHealthContextInclude } from '../types/types';
 
 /**
  * Abstract port for user-health-context data access.

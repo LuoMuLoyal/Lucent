@@ -1,1 +1,1 @@
-export * from './health-context.types';
+export * from './types';

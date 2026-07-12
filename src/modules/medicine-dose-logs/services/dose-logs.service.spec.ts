@@ -3,9 +3,9 @@ import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { DoseLogStatus } from '#generated/prisma/client';
-import { MedicineDoseLogRepositoryPort } from './repositories';
-import { MedicineDoseLogsService } from './services/medicine-dose-logs.service';
-import { SuggestionCacheService } from '../today-suggestion/services/cache/suggestion-cache.service';
+import { MedicineDoseLogRepositoryPort } from '../repositories';
+import { MedicineDoseLogsService } from './dose-logs.service';
+import { SuggestionCacheService } from '../../today-suggestion/services/cache/suggestion-cache.service';
 
 describe('MedicineDoseLogsService', () => {
   let service: MedicineDoseLogsService;

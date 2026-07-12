@@ -2,7 +2,7 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 
 import { successEnvelope } from '../../common/api';
-import { TestingSupportService } from './services/testing-support.service';
+import { TestingSupportService } from './services/fixtures.service';
 import { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';
 
 @ApiExcludeController()

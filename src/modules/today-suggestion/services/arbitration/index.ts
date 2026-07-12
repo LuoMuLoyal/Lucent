@@ -1,3 +1,3 @@
-export * from './arbitration.service';
+export * from './service';
 export * from './scoring.service';
 export * from './suppression.service';

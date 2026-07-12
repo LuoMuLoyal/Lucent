@@ -6,7 +6,7 @@ import type {
 import {
   type EnvironmentSnapshotLocationInput,
   getStaticEnvironmentSnapshot,
-} from '../config/environment-reference';
+} from '../config/reference';
 
 @Injectable()
 export class EnvironmentService {

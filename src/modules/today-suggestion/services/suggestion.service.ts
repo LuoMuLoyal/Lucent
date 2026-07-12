@@ -20,10 +20,10 @@ import { MedicationCollectorService } from './collectors/medication.service';
 import { RecordCollectorService } from './collectors/record.service';
 import { ProfileCollectorService } from './collectors/profile.service';
 import { RegistryService } from './rules/registry.service';
-import { ArbitrationService } from './arbitration/arbitration.service';
+import { ArbitrationService } from './arbitration/service';
 import { SuppressionService } from './arbitration/suppression.service';
 import { BaselineService } from './lifecycle/baseline.service';
-import { LifecycleService } from './lifecycle/lifecycle.service';
+import { LifecycleService } from './lifecycle/service';
 import { EscalationService } from './notification/escalation.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
 

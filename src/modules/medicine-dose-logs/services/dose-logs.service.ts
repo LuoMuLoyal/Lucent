@@ -4,7 +4,7 @@ import {
   now,
   parseDateOnly,
 } from '../../../common/helpers/date-time.utils';
-import { nonDeleted } from '../../../common/helpers/prisma.helpers';
+import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';

@@ -13,7 +13,7 @@ import { VerificationCodeService } from './verification-code.service';
 import { AuthTokenService } from './token.service';
 import { AuthRateLimitService } from './rate-limit.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
-import type { NotificationListItemDto } from '../../notifications/dto/notifications-response.dto';
+import type { NotificationListItemDto } from '../../notifications/dto/response.dto';
 import { ResultCode } from '../../../common/api';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';

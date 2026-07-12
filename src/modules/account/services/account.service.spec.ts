@@ -1,15 +1,15 @@
-import type { DeepMocked } from '../../common/types/deep-mocked';
-import { nonDeleted } from '../../common/helpers/prisma.helpers';
+import type { DeepMocked } from '../../../common/types/deep-mocked';
+import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { UserStatus } from '#generated/prisma/client';
 
-import { AccountService } from './services/account.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { ResultCode } from '../../common/api';
-import type { UpdateAccountDto } from './dto/update-account.dto';
+import { AccountService } from './account.service';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { ResultCode } from '../../../common/api';
+import type { UpdateAccountDto } from '../dto/update.dto';
 
 const baseUser = {
   id: 'user-uuid-1',

@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { FeedbackService } from './feedback.service';
+import { FeedbackService } from './service';
 import { SuggestionType, SuggestionFeedback } from '../../types';
 import {
   FEEDBACK_LATER_DURATION_MS,

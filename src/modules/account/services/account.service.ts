@@ -4,8 +4,8 @@ import { I18nService } from 'nestjs-i18n';
 
 import { PrismaService } from '../../../prisma/prisma.service';
 import { User, UserIdentity } from '#generated/prisma/client';
-import { AccountDto } from '../dto/account-response.dto';
-import { UpdateAccountDto } from '../dto/update-account.dto';
+import { AccountDto } from '../dto/response.dto';
+import { UpdateAccountDto } from '../dto/update.dto';
 
 type AccountUser = User & { identities: UserIdentity[] };
 

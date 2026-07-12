@@ -10,7 +10,7 @@ import type { HealthContextResponseData } from '../dto';
 import {
   CORE_PROFILE_FIELDS,
   type UserHealthContextRecord,
-} from '../types/health-context.types';
+} from '../types/types';
 
 @Injectable()
 export class UserHealthContextMapperService {

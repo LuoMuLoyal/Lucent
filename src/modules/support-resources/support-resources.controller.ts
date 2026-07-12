@@ -7,7 +7,7 @@ import {
   SupportResourceListResponseDto,
   SupportResourcesQueryDto,
 } from './dto';
-import { SupportResourcesService } from './services/support-resources.service';
+import { SupportResourcesService } from './services/resources.service';
 
 @ApiTags('Support Resources')
 @Controller('public')

@@ -3,7 +3,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
-import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types.constant';
+import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
 import { ResultCode } from '../../../common/api';
 import { now } from '../../../common/helpers/date-time.utils';
 import { CosStorageRuntime } from '../../../common/storage';

@@ -1,6 +1,6 @@
-import { nonDeleted } from './prisma.helpers';
+import { nonDeleted } from './prisma.utils';
 
-describe('prisma.helpers', () => {
+describe('prisma.utils', () => {
   describe('nonDeleted', () => {
     it('is a constant with deletedAt: null', () => {
       expect(nonDeleted).toEqual({ deletedAt: null });

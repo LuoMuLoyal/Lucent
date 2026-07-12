@@ -1,2 +1,2 @@
-export * from './mime-types.constant';
+export * from './mime-types';
 export * from './user-setting-keys';

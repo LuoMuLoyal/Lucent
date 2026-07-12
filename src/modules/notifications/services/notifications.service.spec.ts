@@ -1,9 +1,9 @@
-import type { DeepMocked } from '../../common/types/deep-mocked';
+import type { DeepMocked } from '../../../common/types/deep-mocked';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 
-import { NotificationsService } from './services/notifications.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from './notifications.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 const mockNotificationRow = {
   id: 'notif-uuid-1',

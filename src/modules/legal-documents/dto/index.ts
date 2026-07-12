@@ -1,2 +1,2 @@
-export * from './legal-document-response.dto';
-export * from './legal-document-query.dto';
+export * from './response.dto';
+export * from './query.dto';

@@ -1,1 +1,1 @@
-export * from './legal-documents.constants';
+export * from './constants';

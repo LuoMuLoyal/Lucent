@@ -21,10 +21,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { UserPayload } from '../auth/types/auth-request';
 import { SuggestionService } from './services/suggestion.service';
-import { FeedbackService } from './services/feedback/feedback.service';
-import { ExplanationService } from './services/explanation/explanation.service';
-import { ExplanationQueueService } from './services/explanation/explanation-queue.service';
-import { LifecycleService } from './services/lifecycle/lifecycle.service';
+import { FeedbackService } from './services/feedback/service';
+import { ExplanationService } from './services/explanation/service';
+import { ExplanationQueueService } from './services/explanation/queue.service';
+import { LifecycleService } from './services/lifecycle/service';
 import {
   SuggestionFeedbackDto,
   TodaySuggestionsDataDto,

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { nonDeleted } from '../../../../common/helpers/prisma.helpers';
+import { nonDeleted } from '../../../../common/helpers/prisma.utils';
 import { parseDateOnly, now } from '../../../../common/helpers/date-time.utils';
 import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
@@ -8,7 +8,7 @@ import { TriggerType } from '../../../today-suggestion/types';
 import {
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
-} from '../../../user-settings/constants/user-settings.constants';
+} from '../../../user-settings/constants/constants';
 import { TREND_LOOKBACK_DAYS } from '../../../today-suggestion/constants';
 
 const _recordSelect = {

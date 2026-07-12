@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../../common/helpers/prisma.helpers';
+import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import { Injectable } from '@nestjs/common';
 import { MedicineReminderRepositoryPort } from '../repositories';
 import type {

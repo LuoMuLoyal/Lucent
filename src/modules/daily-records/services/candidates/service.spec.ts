@@ -1,5 +1,5 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { DailyRecordCandidatesService } from '../candidates/candidates.service';
+import { DailyRecordCandidatesService } from './service';
 import type { DailyRecordCandidatesCopyService } from '../candidates/copy.service';
 import type { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
 

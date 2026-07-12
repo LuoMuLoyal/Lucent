@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional, IsString } from 'class-validator';
-import { SUPPORT_RESOURCE_SCOPES } from './support-resources-response.dto';
+import { SUPPORT_RESOURCE_SCOPES } from './response.dto';
 
 export class SupportResourcesQueryDto {
   @ApiPropertyOptional({

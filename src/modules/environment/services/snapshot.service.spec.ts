@@ -1,4 +1,4 @@
-import { EnvironmentService } from './services/environment.service';
+import { EnvironmentService } from './snapshot.service';
 
 describe('EnvironmentService', () => {
   let service: EnvironmentService;

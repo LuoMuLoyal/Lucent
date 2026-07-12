@@ -1,2 +1,2 @@
-export * from './support-resources-response.dto';
-export * from './support-resources-query.dto';
+export * from './response.dto';
+export * from './query.dto';

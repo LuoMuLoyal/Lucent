@@ -9,7 +9,7 @@ import { loginFailureCacheKey } from '../../auth/services/rate-limit.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserStatus } from '#generated/prisma/client';
 import type { PrepareFullstackRecordLaneDto } from '../dto/prepare-fullstack-record-lane.dto';
-import { listDefaultBooleanUserSettings } from '../../user-settings/constants/user-settings.constants';
+import { listDefaultBooleanUserSettings } from '../../user-settings/constants/constants';
 
 const DEFAULT_RECORD_LANE_NICKNAME = 'E2E Record Lane';
 
