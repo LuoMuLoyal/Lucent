@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api';
 import type { UserPayload } from '../auth/services/token.service';
@@ -143,12 +144,12 @@ describe('NotificationsController', () => {
       });
     });
 
-    it('should return null data when notification not found', async () => {
+    it('should throw NotFoundException when notification not found', async () => {
       service.findOne.mockResolvedValue(null);
 
-      const result = await controller.findOne(mockUser, 'nonexistent');
-
-      expect(result.data).toBeNull();
+      await expect(controller.findOne(mockUser, 'nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -168,6 +169,14 @@ describe('NotificationsController', () => {
         data: mockDetail,
       });
     });
+
+    it('should throw NotFoundException when notification not found', async () => {
+      service.markAsRead.mockResolvedValue(null);
+
+      await expect(
+        controller.markAsRead(mockUser, 'nonexistent'),
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('PATCH /user/notifications/:id/unread', () => {
@@ -185,6 +194,14 @@ describe('NotificationsController', () => {
         message: '',
         data: mockDetail,
       });
+    });
+
+    it('should throw NotFoundException when notification not found', async () => {
+      service.markAsUnread.mockResolvedValue(null);
+
+      await expect(
+        controller.markAsUnread(mockUser, 'nonexistent'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -210,6 +227,14 @@ describe('NotificationsController', () => {
       await controller.remove(mockUser, 'notif-uuid-1');
 
       expect(service.remove).toHaveBeenCalledWith(mockUser.sub, 'notif-uuid-1');
+    });
+
+    it('should throw NotFoundException when notification not found', async () => {
+      service.remove.mockResolvedValue(false);
+
+      await expect(controller.remove(mockUser, 'nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseIntPipe,
   Patch,
@@ -80,6 +81,7 @@ export class NotificationsController {
   @ApiResponse({ status: 200, type: NotificationDetailResponseDto })
   async findOne(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     const data = await this.notificationsService.findOne(user.sub, id);
+    if (!data) throw new NotFoundException('Notification not found');
     return successEnvelope(data);
   }
 
@@ -88,6 +90,7 @@ export class NotificationsController {
   @ApiResponse({ status: 200, type: NotificationDetailResponseDto })
   async markAsRead(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     const data = await this.notificationsService.markAsRead(user.sub, id);
+    if (!data) throw new NotFoundException('Notification not found');
     return successEnvelope(data);
   }
 
@@ -99,6 +102,7 @@ export class NotificationsController {
     @Param('id') id: string,
   ) {
     const data = await this.notificationsService.markAsUnread(user.sub, id);
+    if (!data) throw new NotFoundException('Notification not found');
     return successEnvelope(data);
   }
 
@@ -114,6 +118,7 @@ export class NotificationsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a notification' })
   async remove(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    await this.notificationsService.remove(user.sub, id);
+    const deleted = await this.notificationsService.remove(user.sub, id);
+    if (!deleted) throw new NotFoundException('Notification not found');
   }
 }
