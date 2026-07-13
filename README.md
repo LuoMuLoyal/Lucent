@@ -258,10 +258,10 @@ LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain pnpm deploy:smoke
   - upload the app deploy directory to the server over SSH
   - run one server-side deploy script remotely
 - The server does not keep a git checkout.
-- The server keeps:
-  - app files under `/opt/lucent/app`
-  - local runtime files and data under `/opt/lucent/server`
-- The app itself is always deployed from the pushed image, not built on the server.
+- The server keeps a single directory at `/opt/lucent/` containing compose assets,
+  `.env`, certs, data volumes, and logs — see
+  [docs/01-reference/deployment.md](docs/01-reference/deployment.md) for the full layout
+- The app itself is always deployed from the pushed image, not built on the server
 
 ## Docs
 

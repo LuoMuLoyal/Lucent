@@ -31,7 +31,7 @@ RUN pnpm prune --prod --ignore-scripts
 
 # ── Stage 3: production ────────────────────────────────────────
 FROM node:24-alpine AS production
-RUN apk add --no-cache tini
+RUN apk add --no-cache tini curl
 WORKDIR /app
 # 创建非 root 用户
 RUN addgroup -S lucent && adduser -S lucent -G lucent
@@ -47,7 +47,7 @@ COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 # src/config/env-file-paths.ts — prisma.config.ts 的导入依赖
 COPY --from=builder /app/src/config/env-file-paths.ts ./src/config/env-file-paths.ts
-# package.json（pino 等需要读取 version）
+# package.json（Winston 等需要读取 version）
 COPY package.json ./
 # 创建日志目录并设置权限
 RUN mkdir -p /app/logs && chown -R lucent:lucent /app

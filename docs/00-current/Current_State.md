@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 本文件只保留简介和按区域链接。具体后端实现细节见 `00-current/` 下各子文件。
 
@@ -135,6 +135,12 @@ Last updated: 2026-07-12
   - common/ 后缀统一（3 个）
 - **class 名保持不变**：NestJS DI 基于 class 名而非文件名，仅改文件名
 - **验证结果**：lint:check / typecheck / build / test 全部通过
+
+## 2026-07-13 部署预审计修复
+
+- **P0 关键修复**：生产 compose postgres 镜像改为 `pgvector/pgvector:pg18`（与 dev/CI 一致）；prometheus 服务添加 `env_file: .env`（修复 Basic Auth 变量注入）；smoke.ts `/metrics` 认证检查改为 `docker exec` 在 app 容器内执行（修复 3000 端口不暴露到宿主机导致直连失败）；Dockerfile 添加 `curl` 包
+- **P1 文档一致性**：environment.md / README.md 部署目录结构更新为单 `/opt/lucent/` 布局；`.env.production.example` 移除 `DATABASE_URL` / `REDIS_URL`（由 compose 拼接）；environment.md 生产服务列表补全；environment-variables.md `pino` → `Winston`；deployment.md CD 工作流文件名修正
+- **P2 增强规范化**：CI JWT Secret 值更新为 ≥32 字符；`deploy.ts` / `smoke.ts` 从 CommonJS 改为 ESM 风格；新建 `deploy/package.json`（`{"type":"module"}`）；CD 工作流 scp 上传列表同步更新
 
 ## 2026-07-13 安全审查修复
 

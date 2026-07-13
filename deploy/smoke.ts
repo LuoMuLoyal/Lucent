@@ -3,28 +3,40 @@
  *
  * Checks:
  *   1. All compose services are running (via docker compose ps)
- *   2. Local health endpoints through Nginx (port 80/443)
- *   3. If LUCENT_PUBLIC_BASE_URL is set, public HTTPS health/ready
+ *   2. Local health endpoints through Nginx (port 80)
+ *   3. /metrics blocked by Nginx (403)
+ *   4. /metrics Basic Auth via docker exec inside the app container
+ *   5. If LUCENT_PUBLIC_BASE_URL is set, public HTTPS health/ready
  *
- * The app container port (3000) is NOT exposed to the host, so all
- * health checks go through Nginx on port 80 or 443.
+ * The app container port (3000) is NOT exposed to the host, so direct
+ * /metrics auth checks use `docker exec` to run curl inside the container.
  */
 
-const { execSync } = require('node:child_process');
+import { execSync } from 'node:child_process';
 
 const DEPLOY_DIR = process.cwd();
 
-function optionalEnv(name, fallback) {
+interface ComposeServiceRow {
+  Service: string;
+  State: string;
+}
+
+interface CurlOptions {
+  insecure?: boolean;
+  headers?: string[];
+}
+
+function optionalEnv(name: string, fallback: string): string {
   const value = process.env[name]?.trim();
   return value || fallback;
 }
 
-function runCurl(url, { insecure = false, headers = [] } = {}) {
+function runCurl(url: string, opts: CurlOptions = {}): string {
   const args = ['-fsS'];
-  if (insecure) {
+  if (opts.insecure) {
     args.push('-k');
   }
-  for (const header of headers) {
+  for (const header of opts.headers ?? []) {
     args.push('-H', header);
   }
   args.push(url);
@@ -35,12 +47,12 @@ function runCurl(url, { insecure = false, headers = [] } = {}) {
   }).trim();
 }
 
-function runCurlStatus(url, { insecure = false, headers = [] } = {}) {
+function runCurlStatus(url: string, opts: CurlOptions = {}): number {
   const args = ['-so', '/dev/null', '-w', '%{http_code}'];
-  if (insecure) {
+  if (opts.insecure) {
     args.push('-k');
   }
-  for (const header of headers) {
+  for (const header of opts.headers ?? []) {
     args.push('-H', header);
   }
   args.push(url);
@@ -54,7 +66,65 @@ function runCurlStatus(url, { insecure = false, headers = [] } = {}) {
   );
 }
 
-function ensureServicesRunning() {
+/**
+ * Run curl inside an app container via `docker exec` to check endpoints
+ * that are not exposed to the host (port 3000 is internal-only).
+ */
+function runCurlInContainer(
+  containerName: string,
+  url: string,
+  opts: CurlOptions = {},
+): string {
+  const args = ['-fsS'];
+  if (opts.insecure) {
+    args.push('-k');
+  }
+  for (const header of opts.headers ?? []) {
+    args.push('-H', header);
+  }
+  args.push(url);
+
+  return execSync(
+    `docker exec ${containerName} curl ${args.map((a) => `'${a}'`).join(' ')}`,
+    {
+      cwd: DEPLOY_DIR,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  ).trim();
+}
+
+function runCurlStatusInContainer(
+  containerName: string,
+  url: string,
+  opts: CurlOptions = {},
+): number {
+  const args = ['-so', '/dev/null', '-w', '%{http_code}'];
+  if (opts.insecure) {
+    args.push('-k');
+  }
+  for (const header of opts.headers ?? []) {
+    args.push('-H', header);
+  }
+  args.push(url);
+
+  return parseInt(
+    execSync(
+      `docker exec ${containerName} curl ${args.map((a) => `'${a}'`).join(' ')}`,
+      {
+        cwd: DEPLOY_DIR,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    ).trim(),
+    10,
+  );
+}
+
+function ensureServicesRunning(): {
+  rows: ComposeServiceRow[];
+  appContainer: string;
+} {
   const output = execSync('docker compose ps --format json', {
     cwd: DEPLOY_DIR,
     encoding: 'utf8',
@@ -64,10 +134,8 @@ function ensureServicesRunning() {
   const rows = output
     .split(/\r?\n/)
     .filter(Boolean)
-    .map((line) => JSON.parse(line));
+    .map((line) => JSON.parse(line) as ComposeServiceRow);
 
-  // Only check services that should be running.
-  // app-blue or app-green — at least one must be running.
   const requiredServices = ['postgres', 'redis', 'nginx'];
 
   for (const service of requiredServices) {
@@ -82,32 +150,37 @@ function ensureServicesRunning() {
     }
   }
 
-  // At least one app slot must be running
+  // At least one app slot must be running — determine the container name
   const appBlue = rows.find((item) => item.Service === 'app-blue');
   const appGreen = rows.find((item) => item.Service === 'app-green');
-  if (
-    (!appBlue ||
-      !String(appBlue.State || '')
-        .toLowerCase()
-        .includes('running')) &&
-    (!appGreen ||
-      !String(appGreen.State || '')
-        .toLowerCase()
-        .includes('running'))
-  ) {
+
+  const isBlueRunning =
+    appBlue &&
+    String(appBlue.State || '')
+      .toLowerCase()
+      .includes('running');
+  const isGreenRunning =
+    appGreen &&
+    String(appGreen.State || '')
+      .toLowerCase()
+      .includes('running');
+
+  if (!isBlueRunning && !isGreenRunning) {
     throw new Error('Neither app-blue nor app-green is running.');
   }
 
-  return rows;
+  const appContainer = isBlueRunning ? 'lucent-app-blue' : 'lucent-app-green';
+
+  return { rows, appContainer };
 }
 
-function checkHttp(name, url, { insecure = false, headers = [] } = {}) {
-  const body = runCurl(url, { insecure, headers });
+function checkHttp(name: string, url: string, opts: CurlOptions = {}): string {
+  const body = runCurl(url, opts);
   console.log(`[smoke] ${name}: OK -> ${url}`);
   return body;
 }
 
-function main() {
+function main(): void {
   const publicBaseUrl = optionalEnv('LUCENT_PUBLIC_BASE_URL', '');
   const httpsReadyUrl = publicBaseUrl
     ? `${publicBaseUrl.replace(/\/$/, '')}/api/v1/health/ready`
@@ -116,14 +189,13 @@ function main() {
   const metricsPassword = optionalEnv('METRICS_PASSWORD', '');
 
   // 1. Check services
-  const rows = ensureServicesRunning();
+  const { rows, appContainer } = ensureServicesRunning();
   console.log(
     `[smoke] services running: ${rows.map((row) => `${row.Service}:${row.State}`).join(', ')}`,
   );
+  console.log(`[smoke] active app container: ${appContainer}`);
 
-  // 2. Local health checks through Nginx (HTTP → 301 redirect to HTTPS is expected for /,
-  //    but /api/v1/health should be proxied directly on port 80 or 443)
-  //    Use HTTP port 80 for local checks (nginx proxies to app regardless of TLS)
+  // 2. Local health checks through Nginx (port 80)
   checkHttp('local health', 'http://127.0.0.1/api/v1/health');
   checkHttp('local live', 'http://127.0.0.1/api/v1/health/live');
   checkHttp('local ready', 'http://127.0.0.1/api/v1/health/ready');
@@ -138,11 +210,12 @@ function main() {
     );
   }
 
-  // 4. /metrics auth check (direct to app container, bypassing Nginx)
-  //    Only run if METRICS_USER/METRICS_PASSWORD are configured
+  // 4. /metrics auth check via docker exec inside the app container
+  //    The app container port (3000) is not exposed to the host,
+  //    so we use `docker exec` to run curl inside the container.
   if (metricsUser && metricsPassword) {
     const metricsUrl = 'http://127.0.0.1:3000/metrics';
-    const noAuthStatus = runCurlStatus(metricsUrl);
+    const noAuthStatus = runCurlStatusInContainer(appContainer, metricsUrl);
     if (noAuthStatus === 401) {
       console.log(
         `[smoke] /metrics without auth rejected: OK (${noAuthStatus})`,
@@ -154,7 +227,9 @@ function main() {
     }
 
     const authHeader = `Authorization: Basic ${Buffer.from(`${metricsUser}:${metricsPassword}`).toString('base64')}`;
-    const authedBody = runCurl(metricsUrl, { headers: [authHeader] });
+    const authedBody = runCurlInContainer(appContainer, metricsUrl, {
+      headers: [authHeader],
+    });
     if (authedBody.includes('lucent_')) {
       console.log('[smoke] /metrics with auth: OK (metrics returned)');
     } else {

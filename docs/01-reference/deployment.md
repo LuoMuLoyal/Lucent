@@ -11,8 +11,9 @@ Last updated: 2026-07-13
 ```text
 /opt/lucent/
 ├── compose.yml                   ← CI 管理（每次覆盖上传）
-├── deploy.ts                     ← CI 管理
-├── smoke.ts                      ← CI 管理
+├── deploy.ts                     ← CI 管理（ESM）
+├── smoke.ts                      ← CI 管理（ESM）
+├── package.json                  ← CI 管理（{"type":"module"}，使 deploy.ts / smoke.ts 以 ESM 运行）
 ├── nginx/
 │   └── nginx.conf                ← CI 管理
 ├── prometheus/
@@ -108,9 +109,10 @@ mkdir -p /opt/lucent/{certs,data/{postgresql,redis,prometheus,grafana},logs/{app
 
 PostgreSQL 18 注意事项：
 
+- 生产 compose 使用 `pgvector/pgvector:pg18`（与本地开发和 CI 一致），内置 `vector` 扩展
 - 生产 compose 把宿主机目录挂到容器内 `/var/lib/postgresql`
 - 不再使用旧的 `/var/lib/postgresql/data` 挂载方式
-- `postgres:18` 会在挂载目录里自行创建版本化子目录
+- `pgvector/pgvector:pg18` 会在挂载目录里自行创建版本化子目录
 - 不设 `PGDATA` 环境变量
 
 ## 部署方式
@@ -169,14 +171,14 @@ docker compose up -d
 
 | 环境       | 服务器            | Compose Project Name | CD Workflow             |
 | ---------- | ----------------- | -------------------- | ----------------------- |
-| Staging    | staging 服务器    | `lucent-staging`     | `lucent-cd-staging.yml` |
-| Production | production 服务器 | `lucent-production`  | `lucent-cd.yml`         |
+| Staging    | staging 服务器    | `lucent-staging`     | `lucent-staging.yml`    |
+| Production | production 服务器 | `lucent-production`  | `lucent-production.yml` |
 
 流程：
 
-1. PR 合并到 main → 自动触发 `lucent-cd-staging.yml`，部署到 staging 服务器
+1. PR 合并到 main → 自动触发 `lucent-staging.yml`，部署到 staging 服务器
 2. Staging 通过 smoke test → 通知
-3. 人工确认后手动触发 `lucent-cd.yml` 的 `workflow_dispatch`，部署到 production 服务器
+3. 人工确认后手动触发 `lucent-production.yml` 的 `workflow_dispatch`，部署到 production 服务器
 
 ## 最低上线检查
 
@@ -189,9 +191,9 @@ curl -k https://your-domain.example/api/v1/health/ready
 # /metrics 应被 Nginx 拦截
 curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/metrics  # 预期 403
 
-# /metrics 直连 app 容器需认证
-curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/metrics  # 预期 401
-curl -u ${METRICS_USER}:${METRICS_PASSWORD} http://127.0.0.1:3000/metrics  # 预期 200 + metrics
+# /metrics 直连 app 容器需认证（app 端口不暴露到宿主机，需通过 docker exec）
+docker exec lucent-app-blue curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/metrics  # 预期 401
+docker exec lucent-app-blue curl -u ${METRICS_USER}:${METRICS_PASSWORD} http://127.0.0.1:3000/metrics  # 预期 200 + metrics
 ```
 
 通过标准：
@@ -218,8 +220,8 @@ LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain node smoke.ts
 - `http://127.0.0.1/api/v1/health/ready`
 - `/metrics` 通过 Nginx 返回 `403`（被拦截）
 - 如果配置了 `METRICS_USER` / `METRICS_PASSWORD`：
-  - `/metrics` 直连 app 容器无认证返回 `401`
-  - `/metrics` 直连 app 容器有认证返回 `200` 且包含 `lucent_` 前缀的指标
+  - `/metrics` 通过 `docker exec` 在 app 容器内检查，无认证返回 `401`
+  - `/metrics` 通过 `docker exec` 在 app 容器内检查，有认证返回 `200` 且包含 `lucent_` 前缀的指标
 - 如果设置了 `LUCENT_PUBLIC_BASE_URL`，再检查一次公网 `https://.../api/v1/health/ready`
 
 ## 生产日志
@@ -326,5 +328,6 @@ Prometheus 会自动标记不可达的 target（inactive slot）为 down，不�
 ## 服务器前置要求
 
 - Docker Engine 26+（Compose v2 内置）
-- Node.js 24+（运行 `deploy.ts`）
+- Node.js 24+（运行 `deploy.ts`，支持原生 TypeScript 类型擦除和 ESM）
+- `curl`（smoke test 健康检查）
 - `rsync`（同步 grafana 目录）

@@ -148,7 +148,7 @@ METRICS_USER
 METRICS_PASSWORD
 ```
 
-- `LOG_LEVEL` — pino log level (`debug` / `info` / `warn` / `error`). Defaults to `debug` in
+- `LOG_LEVEL` — Winston log level (`debug` / `info` / `warn` / `error`). Defaults to `debug` in
   development, `info` in production.
 - `SLOW_REQUEST_THRESHOLD_MS` — requests exceeding this duration (in ms) trigger a `warn` log
   via `SlowRequestInterceptor`. Default: `2000`. Range: 10–300000.

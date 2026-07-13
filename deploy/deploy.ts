@@ -20,21 +20,21 @@
  * test at the end.
  */
 
-const {
+import {
   existsSync,
   readFileSync,
   writeFileSync,
   copyFileSync,
   mkdirSync,
-} = require('node:fs');
-const path = require('node:path');
-const { execSync, spawnSync } = require('node:child_process');
+} from 'node:fs';
+import path from 'node:path';
+import { execSync, spawnSync } from 'node:child_process';
 
 // ── Helpers ────────────────────────────────────────────────────
 
 const DEPLOY_DIR = process.cwd(); // /opt/lucent/
 
-function requiredEnv(name) {
+function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
@@ -42,13 +42,13 @@ function requiredEnv(name) {
   return value;
 }
 
-function ensureFile(filePath) {
+function ensureFile(filePath: string): void {
   if (!existsSync(filePath)) {
     throw new Error(`${filePath} is missing.`);
   }
 }
 
-function ensureDirectories() {
+function ensureDirectories(): void {
   const dirs = [
     'certs',
     'data/postgresql',
@@ -67,9 +67,9 @@ function ensureDirectories() {
 
 // ── .env management ────────────────────────────────────────────
 
-function readEnvFile(envPath) {
+function readEnvFile(envPath: string): Record<string, string> {
   const content = readFileSync(envPath, 'utf8');
-  const map = {};
+  const map: Record<string, string> = {};
   for (const line of content.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
@@ -82,16 +82,16 @@ function readEnvFile(envPath) {
   return map;
 }
 
-function writeEnvFile(envPath, map) {
+function writeEnvFile(envPath: string, map: Record<string, string>): void {
   const lines = Object.entries(map).map(([key, value]) => `${key}=${value}`);
   writeFileSync(envPath, lines.join('\n') + '\n', 'utf8');
 }
 
-function getEnvValue(envPath, key) {
+function getEnvValue(envPath: string, key: string): string {
   return readEnvFile(envPath)[key] ?? '';
 }
 
-function setEnvValue(envPath, key, value) {
+function setEnvValue(envPath: string, key: string, value: string): void {
   const map = readEnvFile(envPath);
   map[key] = value;
   writeEnvFile(envPath, map);
@@ -99,7 +99,7 @@ function setEnvValue(envPath, key, value) {
 
 // ── Docker Compose helpers ─────────────────────────────────────
 
-function compose(args, { silent = false } = {}) {
+function compose(args: string[], { silent = false } = {}): string {
   const cmd = `docker compose ${args.map((a) => `'${a}'`).join(' ')}`;
   try {
     const output = execSync(cmd, {
@@ -112,13 +112,16 @@ function compose(args, { silent = false } = {}) {
     return output?.trim() ?? '';
   } catch (err) {
     if (silent) {
-      console.error(err.stderr || err.message);
+      console.error(
+        (err as { stderr?: string; message: string }).stderr ||
+          (err as Error).message,
+      );
     }
     throw err;
   }
 }
 
-function getContainerId(serviceName) {
+function getContainerId(serviceName: string): string {
   try {
     return compose(['ps', '-q', serviceName], { silent: true });
   } catch {
@@ -126,7 +129,7 @@ function getContainerId(serviceName) {
   }
 }
 
-function inspectHealthStatus(containerId) {
+function inspectHealthStatus(containerId: string): string {
   try {
     return execSync(
       `docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' ${containerId}`,
@@ -137,14 +140,14 @@ function inspectHealthStatus(containerId) {
   }
 }
 
-function sleep(seconds) {
+function sleep(seconds: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
 }
 
 function waitForService(
-  serviceName,
+  serviceName: string,
   { maxAttempts = 30, sleepSeconds = 5 } = {},
-) {
+): void {
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const containerId = getContainerId(serviceName);
     if (containerId) {
@@ -170,7 +173,7 @@ function waitForService(
 
 const NGINX_CONF_PATH = path.join(DEPLOY_DIR, 'nginx', 'nginx.conf');
 
-function rewriteNginxUpstream(activeSlot) {
+function rewriteNginxUpstream(activeSlot: string): void {
   const inactiveSlot = activeSlot === 'blue' ? 'green' : 'blue';
   const conf = readFileSync(NGINX_CONF_PATH, 'utf8');
 
@@ -198,7 +201,7 @@ function rewriteNginxUpstream(activeSlot) {
   );
 }
 
-function reloadNginx() {
+function reloadNginx(): void {
   console.log('  Reloading nginx...');
   execSync('docker exec lucent-nginx nginx -s reload', {
     cwd: DEPLOY_DIR,
@@ -209,7 +212,7 @@ function reloadNginx() {
 
 // ── Prisma migrate ─────────────────────────────────────────────
 
-function runMigrate(imageRef, postgresPassword) {
+function runMigrate(imageRef: string, postgresPassword: string): void {
   console.log('  Running prisma migrate deploy...');
 
   const envFile = path.join(DEPLOY_DIR, '.env');
@@ -241,7 +244,7 @@ function runMigrate(imageRef, postgresPassword) {
 
 // ── Deploy ─────────────────────────────────────────────────────
 
-function deploy() {
+function deploy(): void {
   const imageRef = requiredEnv('LUCENT_IMAGE');
 
   console.log('\n=== Lucent Blue-Green Deploy ===');
@@ -250,14 +253,14 @@ function deploy() {
   // 1. Pre-flight checks
   console.log('\n[1/16] Pre-flight checks...');
   ensureFile(path.join(DEPLOY_DIR, 'compose.yml'));
-  ensureFile(path.join(NGINX_CONF_PATH));
+  ensureFile(NGINX_CONF_PATH);
   ensureFile(path.join(DEPLOY_DIR, '.env'));
   ensureDirectories();
 
   // 2. Read ACTIVE_SLOT from .env
   console.log('[2/16] Reading ACTIVE_SLOT...');
   const envPath = path.join(DEPLOY_DIR, '.env');
-  let activeSlot = getEnvValue(envPath, 'ACTIVE_SLOT') || 'blue';
+  const activeSlot = getEnvValue(envPath, 'ACTIVE_SLOT') || 'blue';
   const inactiveSlot = activeSlot === 'blue' ? 'green' : 'blue';
   console.log(
     `  Current active: ${activeSlot}, will deploy to: ${inactiveSlot}`,
@@ -358,7 +361,7 @@ function deploy() {
 
 // ── Rollback ───────────────────────────────────────────────────
 
-function rollback() {
+function rollback(): void {
   console.log('\n=== Rolling back ===');
 
   const envPath = path.join(DEPLOY_DIR, '.env');
@@ -431,7 +434,7 @@ function rollback() {
 
 // ── Smoke test ─────────────────────────────────────────────────
 
-function runSmokeTest() {
+function runSmokeTest(): void {
   const smokeScriptPath = path.join(DEPLOY_DIR, 'smoke.ts');
   if (!existsSync(smokeScriptPath)) {
     console.log('  smoke.ts not found, skipping smoke test.');

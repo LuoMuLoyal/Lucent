@@ -22,8 +22,8 @@ jobs:
       CORS_ORIGIN: http://127.0.0.1:3000
       DATABASE_URL: postgresql://lucent:lucent_dev@127.0.0.1:5432/lucent?schema=public
       REDIS_URL: redis://127.0.0.1:6379
-      JWT_ACCESS_SECRET: ci_access_secret
-      JWT_REFRESH_SECRET: ci_refresh_secret
+      JWT_ACCESS_SECRET: ci_access_secret_min_32_chars_padchars
+      JWT_REFRESH_SECRET: ci_refresh_secret_min_32_charschars
       JWT_ACCESS_TTL: 15m
       JWT_REFRESH_TTL: 14d
       MAIL_DRIVER: log

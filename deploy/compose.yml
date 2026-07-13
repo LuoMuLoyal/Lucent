@@ -52,7 +52,7 @@ x-app-common: &app-common
 
 services:
   postgres:
-    image: postgres:18-alpine
+    image: pgvector/pgvector:pg18
     container_name: lucent-postgres
     restart: unless-stopped
     environment:
@@ -165,6 +165,8 @@ services:
     image: prom/prometheus:v3.4.2
     container_name: lucent-prometheus
     restart: unless-stopped
+    env_file:
+      - .env
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./data/prometheus:/prometheus

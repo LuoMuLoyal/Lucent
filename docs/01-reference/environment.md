@@ -128,15 +128,11 @@ NODE_ENV=test pnpm exec prisma migrate deploy
   `REDIS_URL`, cache health reports `memory` fallback and remains non-critical.
 - `GET /api/v1/health/deep` keeps the same dependency checks but includes more explicit probe detail
   for diagnosis.
-- Production compose only runs `postgres`, `redis`, `app`, and `nginx`.
-- Production deploy now uses a simple two-directory layout:
-  - app files at `/opt/lucent/app`
-  - local runtime files at `/opt/lucent/server`
-- Server-side deploy uses `/opt/lucent/app/deploy/docker-compose.yml` and
-  `/opt/lucent/app/.env.compose`.
-- Production PostgreSQL now follows the PostgreSQL 18 container layout and mounts
-  `/opt/lucent/server/data/postgresql` to container path `/var/lib/postgresql`, not the legacy
-  `/var/lib/postgresql/data`.
+- Production compose runs `postgres`, `redis`, `app-blue`, `app-green`, `nginx`, `prometheus`,
+  and `grafana`. See [[deployment]] for the full service list and architecture.
+- Production deploy uses a single `/opt/lucent/` directory layout — see [[deployment]] for details.
+- Production PostgreSQL uses `pgvector/pgvector:pg18` (same as local dev and CI) and mounts
+  `./data/postgresql` to container path `/var/lib/postgresql`.
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect
   during app startup so contract generation does not require a live DB connection.
 - Production image must include `prisma.config.ts` together with `prisma/schema.prisma`; Prisma 7
@@ -190,6 +186,7 @@ NODE_ENV=test pnpm exec prisma migrate deploy
 
 ## CI/CD Boundary
 
-`.github/workflows/lucent-ci.yml` owns GitHub-side validation. `.github/workflows/lucent-cd.yml`
-owns production image build, TCR push, deploy-asset upload, and remote deployment. For server
-bootstrap and production deployment checks, use `deployment.md`.
+`.github/workflows/lucent-ci.yml` owns GitHub-side validation. `.github/workflows/lucent-production.yml`
+and `.github/workflows/lucent-staging.yml` own production/staging image build, TCR push,
+deploy-asset upload, and remote deployment. For server bootstrap and production deployment
+checks, use `deployment.md`.

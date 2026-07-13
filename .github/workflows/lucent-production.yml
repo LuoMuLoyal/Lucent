@@ -96,7 +96,7 @@ jobs:
         run: |
           set -euo pipefail
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /opt/lucent/nginx /opt/lucent/prometheus /opt/lucent/grafana"
-          scp -P "$DEPLOY_PORT" deploy/compose.yml deploy/deploy.ts deploy/smoke.ts "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/"
+          scp -P "$DEPLOY_PORT" deploy/compose.yml deploy/deploy.ts deploy/smoke.ts deploy/package.json "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/"
           scp -P "$DEPLOY_PORT" deploy/nginx/nginx.conf "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/nginx/"
           scp -P "$DEPLOY_PORT" deploy/prometheus/prometheus.yml "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/prometheus/"
           rsync -a --delete -e "ssh -p $DEPLOY_PORT" deploy/grafana/ "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/grafana/"
@@ -186,7 +186,7 @@ jobs:
         run: |
           set -euo pipefail
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /opt/lucent/nginx /opt/lucent/prometheus /opt/lucent/grafana"
-          scp -P "$DEPLOY_PORT" deploy/compose.yml deploy/deploy.ts deploy/smoke.ts "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/"
+          scp -P "$DEPLOY_PORT" deploy/compose.yml deploy/deploy.ts deploy/smoke.ts deploy/package.json "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/"
           scp -P "$DEPLOY_PORT" deploy/nginx/nginx.conf "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/nginx/"
           scp -P "$DEPLOY_PORT" deploy/prometheus/prometheus.yml "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/prometheus/"
           rsync -a --delete -e "ssh -p $DEPLOY_PORT" deploy/grafana/ "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/grafana/"
