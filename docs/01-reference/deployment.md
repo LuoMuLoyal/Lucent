@@ -1,6 +1,6 @@
 # Lucent Deployment
 
-Last updated: 2026-07-11
+Last updated: 2026-07-13
 
 这份文档描述当前生产部署模型：Docker Compose 单机部署 + Blue-Green 零停机切换。
 
@@ -72,11 +72,21 @@ REDIS_PASSWORD=<secret>
 # ─── Grafana ──────────────────────────────────────────────────
 GRAFANA_ADMIN_PASSWORD=<secret>
 
+# ─── Metrics Auth ──────────────────────────────────────────────
+METRICS_USER=metrics_user
+METRICS_PASSWORD=<secret>
+
 # ─── App Config ───────────────────────────────────────────────
-JWT_ACCESS_SECRET=<secret>
-JWT_REFRESH_SECRET=<secret>
+JWT_ACCESS_SECRET=<secret>     # 生产环境最少 32 字符
+JWT_REFRESH_SECRET=<secret>    # 生产环境最少 32 字符
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=<secret>
+ADMIN_COOKIE_SECRET=<secret>
+CORS_ORIGIN=https://your-domain.example
 # ... 其他 app 环境变量
 ```
+
+`METRICS_USER` / `METRICS_PASSWORD` 用于 `/metrics` 端点的 Basic Auth 认证，Prometheus 抓取时需配置相同的 `basic_auth`。Nginx 层同时拦截外部对 `/metrics` 的直接访问（返回 403）。
 
 `DATABASE_URL` 和 `REDIS_URL` 在 compose.yml 的 `environment:` 块中用 `${POSTGRES_PASSWORD}` / `${REDIS_PASSWORD}` 拼接，不直接写在 `.env` 中。
 
@@ -175,6 +185,13 @@ curl http://127.0.0.1/api/v1/health
 curl http://127.0.0.1/api/v1/health/live
 curl http://127.0.0.1/api/v1/health/ready
 curl -k https://your-domain.example/api/v1/health/ready
+
+# /metrics 应被 Nginx 拦截
+curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1/metrics  # 预期 403
+
+# /metrics 直连 app 容器需认证
+curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/metrics  # 预期 401
+curl -u ${METRICS_USER}:${METRICS_PASSWORD} http://127.0.0.1:3000/metrics  # 预期 200 + metrics
 ```
 
 通过标准：
@@ -182,6 +199,8 @@ curl -k https://your-domain.example/api/v1/health/ready
 - `app-blue` 或 `app-green`（至少一个）、`postgres`、`redis`、`nginx`、`prometheus`、`grafana` 容器在运行
 - `/api/v1/health/ready` 返回 `200`
 - Nginx 能正常反代 HTTPS 请求
+- `/metrics` 通过 Nginx 返回 `403`
+- `/metrics` 直连 app 容器无认证返回 `401`，有认证返回 `200`
 
 ## 部署后 Smoke Test
 
@@ -197,6 +216,10 @@ LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain node smoke.ts
 - `http://127.0.0.1/api/v1/health`
 - `http://127.0.0.1/api/v1/health/live`
 - `http://127.0.0.1/api/v1/health/ready`
+- `/metrics` 通过 Nginx 返回 `403`（被拦截）
+- 如果配置了 `METRICS_USER` / `METRICS_PASSWORD`：
+  - `/metrics` 直连 app 容器无认证返回 `401`
+  - `/metrics` 直连 app 容器有认证返回 `200` 且包含 `lucent_` 前缀的指标
 - 如果设置了 `LUCENT_PUBLIC_BASE_URL`，再检查一次公网 `https://.../api/v1/health/ready`
 
 ## 生产日志
@@ -216,15 +239,33 @@ LUCENT_PUBLIC_BASE_URL=https://your-host-or-domain node smoke.ts
 
 ## 安全加固
 
+### 容器与网络
+
 - 所有容器以非 root 用户运行（app 容器使用 `lucent` 用户）
 - App 端口不暴露到宿主机（使用 `expose` 而非 `ports`）
 - Postgres / Redis 端口不暴露到宿主机
 - Redis 需要密码认证 + appendonly 持久化
 - Docker 容器日志统一轮转（50MB × 5 文件）
-- Nginx 安全头：`X-Frame-Options`、`X-Content-Type-Options`、`Referrer-Policy`、`Strict-Transport-Security`
-- Nginx gzip 压缩
-- Nginx SSL OCSP stapling
+
+### Nginx 层
+
+- 安全头：`X-Frame-Options`、`X-Content-Type-Options`、`Referrer-Policy`、`Strict-Transport-Security`
+- gzip 压缩
+- SSL OCSP stapling
 - SSE 端点关闭缓冲，`proxy_read_timeout` 提高到 300s
+- `/metrics` 端点在 Nginx 层直接返回 403，阻止外部访问
+
+### 应用层（Helmet + 认证）
+
+- **Helmet 中间件**：自动设置 HTTP 安全响应头（CSP、X-Content-Type-Options、X-Frame-Options、Strict-Transport-Security 等），与 Nginx 层安全头形成纵深防御
+- **`/metrics` Basic Auth**：当 `METRICS_USER` 和 `METRICS_PASSWORD` 同时配置时，`/metrics` 端点要求 Basic Auth 认证。Prometheus 通过 `basic_auth` 配置传递凭据
+- **测试端点守卫**：`/api/v1/testing/*` 端点同时要求 JWT 认证和 `TESTING_SHARED_SECRET` 共享密钥守卫，仅在 `NODE_ENV=test` 时注册
+- **Admin 面板认证**：AdminJS 凭据比较使用 `crypto.timingSafeEqual` 常量时间比较，防止计时攻击
+- **验证码安全存储**：短信/邮件验证码以 SHA-256 哈希存入 Redis，验证时使用 `timingSafeEqual` 常量时间比较
+- **报告分享链接安全**：分享 token 使用 `crypto.randomBytes(32)` 生成，缓存时仅存储 SHA-256 哈希
+- **JWT 密钥强度**：生产环境强制要求 `JWT_ACCESS_SECRET` 和 `JWT_REFRESH_SECRET` 最少 32 字符
+- **CORS**：生产环境 `CORS_ORIGIN` 显式指定允许的前端来源
+- **`TRUST_PROXY`**：生产环境设置 `TRUST_PROXY=true`，确保 Express 正确解析 `X-Forwarded-*` 头
 
 ## 网络隔离
 
@@ -248,6 +289,8 @@ DEPLOY_USER
 DEPLOY_SSH_KEY
 DEPLOY_SSH_KNOWN_HOSTS
 GRAFANA_ADMIN_PASSWORD
+METRICS_USER
+METRICS_PASSWORD
 ```
 
 ### Staging environment
@@ -264,10 +307,10 @@ STAGING_DEPLOY_SSH_KNOWN_HOSTS
 
 生产 compose 包含 Prometheus 和 Grafana 两个容器：
 
-| 容器                | 镜像                     | 端口 | 说明                                                                                   |
-| ------------------- | ------------------------ | ---- | -------------------------------------------------------------------------------------- |
-| `lucent-prometheus` | `prom/prometheus:v3.4.2` | 9090 | 从 `app-blue:3000` 和 `app-green:3000` 的 `/metrics` 以 15s 间隔 scrape，15 天数据保留 |
-| `lucent-grafana`    | `grafana/grafana:12.1.0` | 3001 | 预置 Prometheus 数据源和 Lucent Backend Overview 仪表盘                                |
+| 容器                | 镜像                     | 端口 | 说明                                                                                                 |
+| ------------------- | ------------------------ | ---- | ---------------------------------------------------------------------------------------------------- |
+| `lucent-prometheus` | `prom/prometheus:v3.4.2` | 9090 | 从 `app-blue:3000` 和 `app-green:3000` 的 `/metrics` 以 15s 间隔 scrape（Basic Auth），15 天数据保留 |
+| `lucent-grafana`    | `grafana/grafana:12.1.0` | 3001 | 预置 Prometheus 数据源和 Lucent Backend Overview 仪表盘                                              |
 
 这两个端口不暴露到公网，Nginx 不代理。通过 SSH 隧道访问：
 

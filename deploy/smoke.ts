@@ -19,10 +19,13 @@ function optionalEnv(name, fallback) {
   return value || fallback;
 }
 
-function runCurl(url, { insecure = false } = {}) {
+function runCurl(url, { insecure = false, headers = [] } = {}) {
   const args = ['-fsS'];
   if (insecure) {
     args.push('-k');
+  }
+  for (const header of headers) {
+    args.push('-H', header);
   }
   args.push(url);
 
@@ -30,6 +33,25 @@ function runCurl(url, { insecure = false } = {}) {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim();
+}
+
+function runCurlStatus(url, { insecure = false, headers = [] } = {}) {
+  const args = ['-so', '/dev/null', '-w', '%{http_code}'];
+  if (insecure) {
+    args.push('-k');
+  }
+  for (const header of headers) {
+    args.push('-H', header);
+  }
+  args.push(url);
+
+  return parseInt(
+    execSync(`curl ${args.map((a) => `'${a}'`).join(' ')}`, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim(),
+    10,
+  );
 }
 
 function ensureServicesRunning() {
@@ -79,8 +101,8 @@ function ensureServicesRunning() {
   return rows;
 }
 
-function checkHttp(name, url, { insecure = false } = {}) {
-  const body = runCurl(url, { insecure });
+function checkHttp(name, url, { insecure = false, headers = [] } = {}) {
+  const body = runCurl(url, { insecure, headers });
   console.log(`[smoke] ${name}: OK -> ${url}`);
   return body;
 }
@@ -90,6 +112,8 @@ function main() {
   const httpsReadyUrl = publicBaseUrl
     ? `${publicBaseUrl.replace(/\/$/, '')}/api/v1/health/ready`
     : '';
+  const metricsUser = optionalEnv('METRICS_USER', '');
+  const metricsPassword = optionalEnv('METRICS_PASSWORD', '');
 
   // 1. Check services
   const rows = ensureServicesRunning();
@@ -104,7 +128,45 @@ function main() {
   checkHttp('local live', 'http://127.0.0.1/api/v1/health/live');
   checkHttp('local ready', 'http://127.0.0.1/api/v1/health/ready');
 
-  // 3. Public HTTPS check (if configured)
+  // 3. /metrics security checks (through Nginx — should be blocked)
+  const metricsStatus = runCurlStatus('http://127.0.0.1/metrics');
+  if (metricsStatus === 403) {
+    console.log(`[smoke] /metrics blocked by Nginx: OK (${metricsStatus})`);
+  } else {
+    console.warn(
+      `[smoke] /metrics through Nginx returned ${metricsStatus} (expected 403)`,
+    );
+  }
+
+  // 4. /metrics auth check (direct to app container, bypassing Nginx)
+  //    Only run if METRICS_USER/METRICS_PASSWORD are configured
+  if (metricsUser && metricsPassword) {
+    const metricsUrl = 'http://127.0.0.1:3000/metrics';
+    const noAuthStatus = runCurlStatus(metricsUrl);
+    if (noAuthStatus === 401) {
+      console.log(
+        `[smoke] /metrics without auth rejected: OK (${noAuthStatus})`,
+      );
+    } else {
+      throw new Error(
+        `/metrics without auth returned ${noAuthStatus} (expected 401)`,
+      );
+    }
+
+    const authHeader = `Authorization: Basic ${Buffer.from(`${metricsUser}:${metricsPassword}`).toString('base64')}`;
+    const authedBody = runCurl(metricsUrl, { headers: [authHeader] });
+    if (authedBody.includes('lucent_')) {
+      console.log('[smoke] /metrics with auth: OK (metrics returned)');
+    } else {
+      throw new Error('/metrics with auth did not return expected metrics');
+    }
+  } else {
+    console.log(
+      '[smoke] /metrics auth check: skipped (METRICS_USER/METRICS_PASSWORD not set)',
+    );
+  }
+
+  // 5. Public HTTPS check (if configured)
   if (httpsReadyUrl) {
     checkHttp('public ready', httpsReadyUrl, { insecure: true });
   } else {

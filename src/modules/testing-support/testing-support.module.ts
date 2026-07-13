@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { TestingSupportController } from './testing-support.controller';
+import { TestingSharedSecretGuard } from './guards/testing-shared-secret.guard';
 import { TestingSupportService } from './services/fixtures.service';
 
 @Module({
   imports: [PrismaModule],
   controllers: [TestingSupportController],
-  providers: [TestingSupportService],
+  providers: [TestingSharedSecretGuard, TestingSupportService],
 })
 export class TestingSupportModule {}

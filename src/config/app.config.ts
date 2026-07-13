@@ -26,7 +26,9 @@ export const appConfig = registerAs(ConfigKey.App, () => {
     host: process.env[EnvKey.HOST] ?? (isProduction ? '127.0.0.1' : '0.0.0.0'),
     port: Number(process.env[EnvKey.PORT] ?? 3000),
     corsOrigin: parseCorsOrigin(process.env[EnvKey.CORS_ORIGIN] ?? ''),
-    trustProxy: env === 'test' || process.env[EnvKey.TRUST_PROXY] === 'true',
+    trustProxy: process.env[EnvKey.TRUST_PROXY] === 'true',
+    metricsUser: process.env[EnvKey.METRICS_USER]?.trim() || undefined,
+    metricsPassword: process.env[EnvKey.METRICS_PASSWORD]?.trim() || undefined,
     publicBaseUrl:
       process.env[EnvKey.PUBLIC_BASE_URL]?.trim() || 'http://localhost:3000',
   };

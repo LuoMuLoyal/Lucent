@@ -64,7 +64,10 @@ export class ClinicSummaryPdfQueueService {
     return job.id ?? null;
   }
 
-  async getStatus(jobId: string): Promise<{
+  async getStatus(
+    jobId: string,
+    userId: string,
+  ): Promise<{
     status: 'pending' | 'completed' | 'failed';
     pdfBase64?: string;
     error?: string;
@@ -73,6 +76,17 @@ export class ClinicSummaryPdfQueueService {
       this.resultKey(jobId),
     );
     if (cached != null) {
+      // Verify ownership via job data before returning cached result.
+      if (!this.queue) {
+        return null;
+      }
+      const job = (await this.queue.getJob(jobId)) as Job<
+        PdfExportJobData,
+        PdfExportJobResult
+      > | null;
+      if (job == null || job.data.userId !== userId) {
+        return null;
+      }
       return {
         status: cached.status,
         ...(cached.pdfBase64 != null ? { pdfBase64: cached.pdfBase64 } : {}),
@@ -88,7 +102,7 @@ export class ClinicSummaryPdfQueueService {
       PdfExportJobData,
       PdfExportJobResult
     > | null;
-    if (job == null) {
+    if (job == null || job.data.userId !== userId) {
       return null;
     }
 

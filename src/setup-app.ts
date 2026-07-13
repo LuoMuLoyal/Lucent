@@ -8,6 +8,8 @@ import type { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import helmet from 'helmet';
+import { timingSafeEqual } from 'node:crypto';
 import { ConfigKey } from './config/config-keys.enum';
 import { ResultCode } from './common/api';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
@@ -27,16 +29,52 @@ export function setupApp(
   app: INestApplication,
   configService: ConfigService,
 ): void {
+  // ── Helmet security headers ─────────────────────────────────────
+  app.use(helmet());
+
   app.use(requestIdMiddleware);
   app.use(bindRequestContextMiddleware(app.get(RequestContextService)));
 
-  // ── Prometheus metrics ──────────────────────────────────────────
+  // ── Prometheus metrics (with optional Basic Auth) ───────────────
   const metricsService = app.get(MetricsService);
+  const appConfig = configService.get<{
+    metricsUser?: string;
+    metricsPassword?: string;
+  }>(ConfigKey.App);
+  const metricsUser = appConfig?.metricsUser;
+  const metricsPassword = appConfig?.metricsPassword;
+
   app.use(createMetricsMiddleware(metricsService));
-  app.use('/metrics', async (_req: Request, res: Response) => {
-    res.type(metricsService.getContentType());
-    res.send(await metricsService.getMetrics());
-  });
+  app.use(
+    '/metrics',
+    (req: Request, res: Response, next: () => void) => {
+      if (metricsUser && metricsPassword) {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Basic ')) {
+          res.setHeader('WWW-Authenticate', 'Basic realm="Metrics"');
+          res.status(401).send('Unauthorized');
+          return;
+        }
+        const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
+        const colonIndex = decoded.indexOf(':');
+        const user = colonIndex >= 0 ? decoded.slice(0, colonIndex) : '';
+        const pass = colonIndex >= 0 ? decoded.slice(colonIndex + 1) : '';
+        if (
+          !safeEqual(user, metricsUser) ||
+          !safeEqual(pass, metricsPassword)
+        ) {
+          res.setHeader('WWW-Authenticate', 'Basic realm="Metrics"');
+          res.status(401).send('Unauthorized');
+          return;
+        }
+      }
+      next();
+    },
+    async (_req: Request, res: Response) => {
+      res.type(metricsService.getContentType());
+      res.send(await metricsService.getMetrics());
+    },
+  );
 
   app.setGlobalPrefix('api');
   app.enableVersioning({
@@ -97,6 +135,12 @@ export function setupApp(
 
 function formatValidationErrors(errors: ValidationError[]): string {
   return errors.flatMap(collectValidationMessages).join('; ');
+}
+
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && timingSafeEqual(ab, bb);
 }
 
 function collectValidationMessages(error: ValidationError): string[] {

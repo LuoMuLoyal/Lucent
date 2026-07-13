@@ -11,7 +11,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import { createHash, randomInt } from 'node:crypto';
+import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 
 import { ResultCode } from '../../../common/api';
 import {
@@ -98,8 +98,8 @@ export class VerificationCodeService {
     const code = this.generateCode();
     const codeKey = this.codeKey(scene, email);
 
-    // Store code in cache
-    await this.cache.set(codeKey, code, this.codeTtlMs);
+    // Store code hash in cache (never store plaintext codes)
+    await this.cache.set(codeKey, this.hashCode(code), this.codeTtlMs);
 
     // Set cooldown
     await this.cache.set(cooldownKey, '1', this.cooldownTtlMs);
@@ -155,16 +155,16 @@ export class VerificationCodeService {
     scene: VerificationScene,
   ): Promise<boolean> {
     const codeKey = this.codeKey(scene, email);
-    const stored = await this.cache.get<string>(codeKey);
+    const storedHash = await this.cache.get<string>(codeKey);
 
-    if (!stored) {
+    if (!storedHash) {
       throw new BadRequestException({
         code: ResultCode.VERIFICATION_CODE_INVALID,
         message: this.i18n.t('auth.verification_code_expired'),
       });
     }
 
-    if (stored !== code) {
+    if (!this.safeCompareCode(code, storedHash)) {
       throw new UnauthorizedException({
         code: ResultCode.VERIFICATION_CODE_INVALID,
         message: this.i18n.t('auth.verification_code_wrong'),
@@ -182,6 +182,17 @@ export class VerificationCodeService {
   private generateCode(): string {
     const num = randomInt(0, 10 ** this.codeLength);
     return num.toString().padStart(this.codeLength, '0');
+  }
+
+  private hashCode(code: string): string {
+    return createHash('sha256').update(code).digest('hex');
+  }
+
+  private safeCompareCode(code: string, storedHash: string): boolean {
+    const inputHash = this.hashCode(code);
+    const a = Buffer.from(inputHash);
+    const b = Buffer.from(storedHash);
+    return a.length === b.length && timingSafeEqual(a, b);
   }
 
   private codeKey(scene: string, email: string): string {

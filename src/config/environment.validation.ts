@@ -96,8 +96,8 @@ const envSchema = z.object({
   [EnvKey.PUBLIC_BASE_URL]: optionalUri,
   [EnvKey.REDIS_URL]: redisUrl,
 
-  [EnvKey.JWT_ACCESS_SECRET]: z.string(),
-  [EnvKey.JWT_REFRESH_SECRET]: z.string(),
+  [EnvKey.JWT_ACCESS_SECRET]: z.string().min(32),
+  [EnvKey.JWT_REFRESH_SECRET]: z.string().min(32),
   [EnvKey.JWT_ACCESS_TTL]: optionalString,
   [EnvKey.JWT_REFRESH_TTL]: optionalString,
   [EnvKey.JWT_ISSUER]: optionalString,
@@ -318,6 +318,9 @@ const envSchema = z.object({
     .default(DEFAULT_SLOW_REQUEST_THRESHOLD_MS),
 
   [EnvKey.METRICS_ENABLED]: z.enum(['true', 'false']).default('true'),
+  [EnvKey.METRICS_USER]: optionalString,
+  [EnvKey.METRICS_PASSWORD]: optionalString,
+  [EnvKey.TESTING_SHARED_SECRET]: optionalString,
 });
 
 /** Strongly typed shape of validated environment variables. */
@@ -434,6 +437,12 @@ function assertProductionEnvironment(config: EnvironmentVariables): void {
   const corsOrigin = config[EnvKey.CORS_ORIGIN].trim();
   if (corsOrigin === '*') {
     throw new Error('CORS_ORIGIN must not be * in production');
+  }
+
+  if (!config[EnvKey.REDIS_URL]) {
+    throw new Error(
+      'REDIS_URL is required in production for distributed rate limiting',
+    );
   }
 }
 

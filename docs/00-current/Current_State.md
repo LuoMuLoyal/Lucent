@@ -136,6 +136,22 @@ Last updated: 2026-07-12
 - **class 名保持不变**：NestJS DI 基于 class 名而非文件名，仅改文件名
 - **验证结果**：lint:check / typecheck / build / test 全部通过
 
+## 2026-07-13 安全审查修复
+
+- **来源**：2026-07-12 Luminous + Lucent 联合安全性审查，P0/P1/P2 共 12 项全部修复
+- **P0 高危**：导出任务 IDOR（job 归属校验）、`/metrics` 端点 Basic Auth、Helmet 安全头、测试端点共享密钥守卫
+- **P1 中危**：Admin 面板 `timingSafeEqual` 常量时间比较、JWT Secret `.min(32)`、诊所摘要 Token 256 位 + SHA-256 哈希存储、生产环境强制 REDIS_URL
+- **P2 低危**：验证码 SHA-256 哈希存储 + 常量时间比较、dev/test CORS 通配符改明确域名、`TRUST_PROXY` 移除 test 自动开启
+- **延后**：Refresh Token 轮换非原子（当前设计已接受风险）
+- **部署配置同步**：`deploy/` 目录下配置文件同步更新安全变更
+  - `prometheus/prometheus.yml`：抓取配置添加 `basic_auth`，使用 `METRICS_USER` / `METRICS_PASSWORD`
+  - `compose.yml`：app 容器环境变量新增 `METRICS_USER`、`METRICS_PASSWORD`、`TRUST_PROXY=true`
+  - `nginx/nginx.conf`：`/metrics` 端点在 Nginx 层返回 403，阻止外部访问
+  - `smoke.ts`：新增 `/metrics` Nginx 拦截验证（403）和直连 app 容器的 Basic Auth 验证（401 无认证 / 200 有认证）
+  - `docs/01-reference/deployment.md`：安全加固章节扩充为容器与网络 / Nginx 层 / 应用层三部分，新增 Helmet、Basic Auth、测试端点守卫、常量时间比较、验证码哈希、分享 Token 强度、JWT 密钥强度、CORS、TRUST_PROXY 等条目；.env 示例新增 `METRICS_USER` / `METRICS_PASSWORD`；GitHub Secrets 新增 `METRICS_USER` / `METRICS_PASSWORD`；最低上线检查和 Smoke Test 新增 `/metrics` 验证步骤
+  - `docs/01-reference/environment-variables.md`：新增 `METRICS_USER` / `METRICS_PASSWORD` / `TESTING_SHARED_SECRET` / `TRUST_PROXY` 变量文档
+  - `docs/01-reference/environment.md`：新增 Helmet 中间件、`/metrics` Basic Auth、测试端点守卫、`TRUST_PROXY` 运行时说明
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]

@@ -140,8 +140,14 @@ export class ReportsController {
     status: 200,
     description: 'Job status (pending, completed, or failed)',
   })
-  async generateSummaryStatus(@Param('jobId') jobId: string) {
-    const status = await this.reportSummaryQueueService.getStatus(jobId);
+  async generateSummaryStatus(
+    @CurrentUser() user: UserPayload,
+    @Param('jobId') jobId: string,
+  ) {
+    const status = await this.reportSummaryQueueService.getStatus(
+      jobId,
+      user.sub,
+    );
     if (status == null) {
       return successEnvelope({ status: 'not_found' });
     }
@@ -294,8 +300,14 @@ export class ReportsController {
     status: 200,
     description: 'Job status (pending, completed, or failed)',
   })
-  async exportClinicSummaryPdfStatus(@Param('jobId') jobId: string) {
-    const status = await this.clinicSummaryPdfQueueService.getStatus(jobId);
+  async exportClinicSummaryPdfStatus(
+    @CurrentUser() user: UserPayload,
+    @Param('jobId') jobId: string,
+  ) {
+    const status = await this.clinicSummaryPdfQueueService.getStatus(
+      jobId,
+      user.sub,
+    );
     if (status == null) {
       return successEnvelope({ status: 'not_found' });
     }

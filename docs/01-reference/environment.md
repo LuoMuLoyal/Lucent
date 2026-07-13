@@ -175,7 +175,18 @@ NODE_ENV=test pnpm exec prisma migrate deploy
 - `POST /api/v1/testing/fullstack-e2e/record-lane/prepare` exists only when Lucent runs with
   `NODE_ENV=test`. It is intentionally absent from normal development and production runtime, and is
   meant only to repair a dedicated full-stack test user plus clear that user's daily-record slice
-  for one target date.
+  for one target date. In test mode, all `/api/v1/testing/*` endpoints are protected by both
+  `JwtAuthGuard` and `TestingSharedSecretGuard` (requiring `x-testing-shared-secret` header matching
+  `TESTING_SHARED_SECRET`).
+- Production runtime enables Helmet middleware for HTTP security headers (CSP,
+  X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, etc.),
+  complementing the Nginx-layer security headers.
+- When `METRICS_USER` and `METRICS_PASSWORD` are both set, the `/metrics` endpoint
+  requires HTTP Basic Auth. Prometheus scrape config must include matching
+  `basic_auth` credentials. Nginx blocks external `/metrics` access with `403`
+  as defense-in-depth.
+- Production environment sets `TRUST_PROXY=true` so Express correctly parses
+  `X-Forwarded-*` headers from Nginx.
 
 ## CI/CD Boundary
 

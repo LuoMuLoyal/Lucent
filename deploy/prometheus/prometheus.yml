@@ -5,6 +5,9 @@ global:
 scrape_configs:
   - job_name: 'lucent'
     metrics_path: /metrics
+    basic_auth:
+      username: ${METRICS_USER}
+      password: ${METRICS_PASSWORD}
     static_configs:
       - targets: ['app-blue:3000', 'app-green:3000']
         labels:

@@ -14,7 +14,14 @@ JWT_REFRESH_SECRET
 ADMIN_EMAIL
 ADMIN_PASSWORD
 ADMIN_COOKIE_SECRET
+METRICS_USER
+METRICS_PASSWORD
 ```
+
+`METRICS_USER` and `METRICS_PASSWORD` protect the `/metrics` Prometheus endpoint
+with HTTP Basic Auth. Both must be set together; if either is missing, `/metrics`
+is served without authentication (not recommended for production). Prometheus
+scrape config must include matching `basic_auth` credentials.
 
 GitHub Actions production deploy also requires repository/environment secrets outside
 `.env.production`:
@@ -137,6 +144,8 @@ Observability:
 LOG_LEVEL
 SLOW_REQUEST_THRESHOLD_MS
 METRICS_ENABLED
+METRICS_USER
+METRICS_PASSWORD
 ```
 
 - `LOG_LEVEL` — pino log level (`debug` / `info` / `warn` / `error`). Defaults to `debug` in
@@ -147,3 +156,22 @@ METRICS_ENABLED
   Default: `true`. Set to `false` in test environment. When enabled, the `/metrics`
   endpoint exposes Prometheus exposition format for scraping. See ADR-0006 for the
   full observability strategy.
+- `METRICS_USER` — Basic Auth username for `/metrics`. When set together with
+  `METRICS_PASSWORD`, the `/metrics` endpoint requires HTTP Basic Auth.
+- `METRICS_PASSWORD` — Basic Auth password for `/metrics`. Must be set together
+  with `METRICS_USER`.
+
+Security:
+
+```text
+TESTING_SHARED_SECRET
+TRUST_PROXY
+```
+
+- `TESTING_SHARED_SECRET` — shared secret required by `TestingSharedSecretGuard`.
+  The `/api/v1/testing/*` endpoints are protected by both `JwtAuthGuard` and
+  `TestingSharedSecretGuard`; the client must send the shared secret via the
+  `x-testing-shared-secret` header. Only registered when `NODE_ENV=test`.
+- `TRUST_PROXY` — when set to `true`, Express trusts `X-Forwarded-*` headers
+  from the reverse proxy (Nginx). Required in production behind Nginx for
+  correct client IP extraction and protocol detection.

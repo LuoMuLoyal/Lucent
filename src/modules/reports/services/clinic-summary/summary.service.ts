@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
@@ -98,8 +98,9 @@ export class ClinicSummaryService {
     userId: string,
   ): Promise<ClinicSummaryShareResponseDto> {
     const summary = await this.buildClinicSummary(userId);
-    const token = randomBytes(16).toString('hex');
-    const key = `${SHARE_KEY_PREFIX}${token}`;
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = this.hashToken(token);
+    const key = `${SHARE_KEY_PREFIX}${tokenHash}`;
 
     await this.cacheManager.set(key, summary, SHARE_TTL_MS);
 
@@ -115,7 +116,8 @@ export class ClinicSummaryService {
   }
 
   async getSharedSummary(token: string): Promise<ClinicSummaryDto | null> {
-    const key = `${SHARE_KEY_PREFIX}${token}`;
+    const tokenHash = this.hashToken(token);
+    const key = `${SHARE_KEY_PREFIX}${tokenHash}`;
     const cached = await this.cacheManager.get<ClinicSummaryDto>(key);
     return cached ?? null;
   }
@@ -155,5 +157,9 @@ export class ClinicSummaryService {
     if (!name) return '匿名用户';
     if (name.length <= 1) return name;
     return name.charAt(0) + '**';
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 }

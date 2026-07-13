@@ -69,7 +69,10 @@ export class ReportSummaryQueueService {
     return job.id ?? null;
   }
 
-  async getStatus(jobId: string): Promise<{
+  async getStatus(
+    jobId: string,
+    userId: string,
+  ): Promise<{
     status: 'pending' | 'completed' | 'failed';
     result?: ReportSummaryDataDto;
     error?: string;
@@ -78,6 +81,17 @@ export class ReportSummaryQueueService {
       this.resultKey(jobId),
     );
     if (cached != null) {
+      // Verify ownership via job data before returning cached result.
+      if (!this.queue) {
+        return null;
+      }
+      const job = (await this.queue.getJob(jobId)) as Job<
+        SummaryJobData,
+        SummaryJobResult
+      > | null;
+      if (job == null || job.data.userId !== userId) {
+        return null;
+      }
       return {
         status: cached.status,
         ...(cached.result != null ? { result: cached.result } : {}),
@@ -93,7 +107,7 @@ export class ReportSummaryQueueService {
       SummaryJobData,
       SummaryJobResult
     > | null;
-    if (job == null) {
+    if (job == null || job.data.userId !== userId) {
       return null;
     }
 
