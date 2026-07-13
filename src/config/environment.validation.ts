@@ -1,4 +1,4 @@
-import Joi from 'joi';
+import { z } from 'zod';
 import {
   DEFAULT_COS_MAX_UPLOAD_BYTES,
   DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
@@ -32,143 +32,82 @@ import {
 import { EnvKey } from './env-keys.enum';
 
 /** Supported runtime environments. */
-export enum NodeEnvironment {
-  Development = 'development',
-  Test = 'test',
-  Production = 'production',
-}
+export const NodeEnvironment = {
+  Development: 'development',
+  Test: 'test',
+  Production: 'production',
+} as const;
 
-/** Strongly typed shape of validated environment variables. */
-export interface EnvironmentVariables {
-  [EnvKey.NODE_ENV]: NodeEnvironment;
-  [EnvKey.HOST]: string;
-  [EnvKey.PORT]: number;
-  [EnvKey.CORS_ORIGIN]: string;
-  [EnvKey.TRUST_PROXY]?: string;
-  [EnvKey.DATABASE_URL]?: string;
-  [EnvKey.PUBLIC_BASE_URL]?: string;
-  [EnvKey.REDIS_URL]?: string;
-  [EnvKey.JWT_ACCESS_SECRET]: string;
-  [EnvKey.JWT_REFRESH_SECRET]: string;
-  [EnvKey.JWT_ACCESS_TTL]?: string;
-  [EnvKey.JWT_REFRESH_TTL]?: string;
-  [EnvKey.JWT_ISSUER]?: string;
-  [EnvKey.JWT_AUDIENCE]?: string;
-  [EnvKey.ADMIN_EMAIL]: string;
-  [EnvKey.ADMIN_PASSWORD]: string;
-  [EnvKey.ADMIN_COOKIE_SECRET]: string;
-  [EnvKey.AI_PROVIDER]?: string;
-  [EnvKey.AI_ANALYSIS_API_KEY]?: string;
-  [EnvKey.AI_ANALYSIS_BASE_URL]?: string;
-  [EnvKey.AI_ANALYSIS_MODEL]?: string;
-  [EnvKey.AI_VISION_API_KEY]?: string;
-  [EnvKey.AI_VISION_BASE_URL]?: string;
-  [EnvKey.AI_VISION_MODEL]?: string;
-  [EnvKey.AI_LANGUAGE_API_KEY]?: string;
-  [EnvKey.AI_LANGUAGE_BASE_URL]?: string;
-  [EnvKey.AI_LANGUAGE_MODEL]?: string;
-  [EnvKey.AI_CHAT_API_KEY]?: string;
-  [EnvKey.AI_CHAT_BASE_URL]?: string;
-  [EnvKey.AI_CHAT_MODEL]?: string;
-  [EnvKey.AI_CHAT_COMPRESSION_API_KEY]?: string;
-  [EnvKey.AI_CHAT_COMPRESSION_BASE_URL]?: string;
-  [EnvKey.AI_CHAT_COMPRESSION_MODEL]?: string;
-  [EnvKey.AI_EMBEDDING_API_KEY]?: string;
-  [EnvKey.AI_EMBEDDING_BASE_URL]?: string;
-  [EnvKey.AI_EMBEDDING_MODEL]?: string;
-  [EnvKey.AI_EMBEDDING_DIMENSION]?: number;
-  [EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS]?: string;
-  [EnvKey.LOG_LEVEL]?: string;
+export type NodeEnvironment =
+  (typeof NodeEnvironment)[keyof typeof NodeEnvironment];
 
-  [EnvKey.MAIL_DRIVER]?: string;
-  [EnvKey.MAIL_HOST]?: string;
-  [EnvKey.MAIL_PORT]?: number;
-  [EnvKey.MAIL_USER]?: string;
-  [EnvKey.MAIL_PASS]?: string;
-  [EnvKey.MAIL_FROM]?: string;
+// ── Shared building blocks ──────────────────────────────────────────
 
-  [EnvKey.WECHAT_WEB_APP_ID]?: string;
-  [EnvKey.WECHAT_WEB_APP_SECRET]?: string;
-  [EnvKey.WECHAT_WEB_REDIRECT_URI]?: string;
-  [EnvKey.WECHAT_MOBILE_APP_ID]?: string;
-  [EnvKey.WECHAT_MOBILE_APP_SECRET]?: string;
+const optionalString = z.string().optional();
+const optionalUri = z.url().optional();
+const optionalEmptyUri = z.union([z.literal(''), z.url()]).optional();
 
-  [EnvKey.APPLE_APP_ID]?: string;
-  [EnvKey.QQ_APP_ID]?: string;
-  [EnvKey.QQ_APP_SECRET]?: string;
-  [EnvKey.QQ_REDIRECT_URI]?: string;
+const postgresUrl = z
+  .string()
+  .refine(
+    (v) => v.startsWith('postgres://') || v.startsWith('postgresql://'),
+    'must be a postgres or postgresql URL',
+  )
+  .optional();
 
-  [EnvKey.TENCENT_COS_SECRET_ID]?: string;
-  [EnvKey.TENCENT_COS_SECRET_KEY]?: string;
-  [EnvKey.TENCENT_COS_BUCKET]?: string;
-  [EnvKey.TENCENT_COS_REGION]?: string;
-  [EnvKey.TENCENT_COS_PUBLIC_BASE_URL]?: string;
-  [EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS]?: number;
-  [EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]?: number;
-  [EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS]?: number;
-  [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]?: string;
-  [EnvKey.MEAL_DEFAULT_PORTION_GRAMS]?: number;
-  [EnvKey.MEAL_SMALL_PORTION_GRAMS]?: number;
-  [EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G]?: number;
-  [EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G]?: number;
-  [EnvKey.MEAL_HIGH_FAT_THRESHOLD_G]?: number;
-  [EnvKey.FUZZY_ACCEPT_SCORE]?: number;
-  [EnvKey.FUZZY_MIN_LEAD]?: number;
-  [EnvKey.FUZZY_QUERY_PREFIX_LENGTH]?: number;
-  [EnvKey.VERIFICATION_CODE_TTL_MS]?: number;
-  [EnvKey.VERIFICATION_COOLDOWN_MS]?: number;
-  [EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS]?: number;
-  [EnvKey.VERIFICATION_RATE_LIMIT_MAX]?: number;
-  [EnvKey.VERIFICATION_CODE_LENGTH]?: number;
-  [EnvKey.OAUTH_STATE_TTL_MS]?: number;
-  [EnvKey.MAIL_QUEUE_MAX_ATTEMPTS]?: number;
-  [EnvKey.MAIL_QUEUE_BACKOFF_DELAY_MS]?: number;
-  [EnvKey.MAIL_QUEUE_WORKER_CONCURRENCY]?: number;
-  [EnvKey.MAIL_QUEUE_COMPLETE_AGE_SECONDS]?: number;
-  [EnvKey.MAIL_QUEUE_FAIL_AGE_SECONDS]?: number;
-  [EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT]?: number;
-  [EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT]?: number;
-  [EnvKey.SLOW_REQUEST_THRESHOLD_MS]?: number;
-  [EnvKey.METRICS_ENABLED]?: string;
-}
+const redisUrl = z
+  .string()
+  .refine(
+    (v) => v.startsWith('redis://') || v.startsWith('rediss://'),
+    'must be a redis or rediss URL',
+  )
+  .optional();
 
-const optionalString = Joi.string().allow('').optional();
-const optionalUri = Joi.string().uri().allow('').optional();
+const httpUrl = z
+  .union([
+    z.literal(''),
+    z
+      .string()
+      .refine(
+        (v) => v.startsWith('http://') || v.startsWith('https://'),
+        'must be an http or https URL',
+      ),
+  ])
+  .optional();
 
-const envSchema = Joi.object<EnvironmentVariables>({
-  [EnvKey.NODE_ENV]: Joi.string()
-    .valid(...Object.values(NodeEnvironment))
+// ── Schema ──────────────────────────────────────────────────────────
+
+const envSchema = z.object({
+  [EnvKey.NODE_ENV]: z
+    .enum([
+      NodeEnvironment.Development,
+      NodeEnvironment.Test,
+      NodeEnvironment.Production,
+    ])
     .default(NodeEnvironment.Development),
-  [EnvKey.HOST]: Joi.when('NODE_ENV', {
-    is: NodeEnvironment.Production,
-    then: Joi.string().default('127.0.0.1'),
-    otherwise: Joi.string().default('0.0.0.0'),
-  }),
-  [EnvKey.PORT]: Joi.number().integer().min(1).default(3000),
-  [EnvKey.CORS_ORIGIN]: Joi.string().allow('').default(''),
-  [EnvKey.TRUST_PROXY]: Joi.string().valid('true', 'false').optional(),
-  [EnvKey.DATABASE_URL]: Joi.string()
-    .uri({ scheme: ['postgres', 'postgresql'] })
-    .optional(),
-  [EnvKey.PUBLIC_BASE_URL]: Joi.string().uri().optional(),
-  [EnvKey.REDIS_URL]: Joi.string()
-    .uri({ scheme: ['redis', 'rediss'] })
-    .optional(),
-  [EnvKey.JWT_ACCESS_SECRET]: Joi.string().required(),
-  [EnvKey.JWT_REFRESH_SECRET]: Joi.string().required(),
-  [EnvKey.JWT_ACCESS_TTL]: Joi.string().optional(),
-  [EnvKey.JWT_REFRESH_TTL]: Joi.string().optional(),
-  [EnvKey.JWT_ISSUER]: Joi.string().allow('').optional(),
-  [EnvKey.JWT_AUDIENCE]: Joi.string().allow('').optional(),
-  [EnvKey.ADMIN_EMAIL]: Joi.string()
-    .email({ tlds: { allow: false } })
-    .required(),
-  [EnvKey.ADMIN_PASSWORD]: Joi.string().min(8).required(),
-  [EnvKey.ADMIN_COOKIE_SECRET]: Joi.string().min(32).required(),
-  [EnvKey.AI_PROVIDER]: Joi.string()
-    .valid('openai-compatible')
-    .allow('')
-    .optional(),
+
+  // HOST is resolved in validateEnvironment based on NODE_ENV.
+  [EnvKey.HOST]: z.string().optional(),
+
+  [EnvKey.PORT]: z.coerce.number().int().min(1).default(3000),
+  [EnvKey.CORS_ORIGIN]: z.string().default(''),
+  [EnvKey.TRUST_PROXY]: z.enum(['true', 'false']).optional(),
+  [EnvKey.DATABASE_URL]: postgresUrl,
+  [EnvKey.PUBLIC_BASE_URL]: optionalUri,
+  [EnvKey.REDIS_URL]: redisUrl,
+
+  [EnvKey.JWT_ACCESS_SECRET]: z.string(),
+  [EnvKey.JWT_REFRESH_SECRET]: z.string(),
+  [EnvKey.JWT_ACCESS_TTL]: optionalString,
+  [EnvKey.JWT_REFRESH_TTL]: optionalString,
+  [EnvKey.JWT_ISSUER]: optionalString,
+  [EnvKey.JWT_AUDIENCE]: optionalString,
+
+  [EnvKey.ADMIN_EMAIL]: z.email(),
+  [EnvKey.ADMIN_PASSWORD]: z.string().min(8),
+  [EnvKey.ADMIN_COOKIE_SECRET]: z.string().min(32),
+
+  [EnvKey.AI_PROVIDER]: z.enum(['openai-compatible', '']).optional(),
   [EnvKey.AI_ANALYSIS_API_KEY]: optionalString,
   [EnvKey.AI_ANALYSIS_BASE_URL]: optionalUri,
   [EnvKey.AI_ANALYSIS_MODEL]: optionalString,
@@ -187,162 +126,204 @@ const envSchema = Joi.object<EnvironmentVariables>({
   [EnvKey.AI_EMBEDDING_API_KEY]: optionalString,
   [EnvKey.AI_EMBEDDING_BASE_URL]: optionalUri,
   [EnvKey.AI_EMBEDDING_MODEL]: optionalString,
-  [EnvKey.AI_EMBEDDING_DIMENSION]: Joi.number()
-    .integer()
+  [EnvKey.AI_EMBEDDING_DIMENSION]: z.coerce
+    .number()
+    .int()
     .min(1)
     .max(MAX_EMBEDDING_DIMENSION)
     .default(DEFAULT_EMBEDDING_DIMENSION),
   [EnvKey.AI_SAFETY_FORBIDDEN_PATTERNS]: optionalString,
-  [EnvKey.LOG_LEVEL]: Joi.string()
-    .valid('error', 'warn', 'info', 'debug', 'verbose')
+
+  [EnvKey.LOG_LEVEL]: z
+    .enum(['error', 'warn', 'info', 'debug', 'verbose'])
     .default('debug'),
-  [EnvKey.MAIL_DRIVER]: Joi.string().valid('log', 'smtp').default('log'),
-  [EnvKey.MAIL_HOST]: Joi.string().optional(),
-  [EnvKey.MAIL_PORT]: Joi.number().integer().min(1).optional(),
-  [EnvKey.MAIL_USER]: Joi.string().allow('').optional(),
-  [EnvKey.MAIL_PASS]: Joi.string().allow('').optional(),
-  [EnvKey.MAIL_FROM]: Joi.string().allow('').optional(),
-  [EnvKey.WECHAT_WEB_APP_ID]: Joi.string().allow('').optional(),
-  [EnvKey.WECHAT_WEB_APP_SECRET]: Joi.string().allow('').optional(),
-  [EnvKey.WECHAT_WEB_REDIRECT_URI]: Joi.string().uri().allow('').optional(),
-  [EnvKey.WECHAT_MOBILE_APP_ID]: Joi.string().allow('').optional(),
-  [EnvKey.WECHAT_MOBILE_APP_SECRET]: Joi.string().allow('').optional(),
-  [EnvKey.TENCENT_COS_SECRET_ID]: Joi.string().allow('').optional(),
-  [EnvKey.TENCENT_COS_SECRET_KEY]: Joi.string().allow('').optional(),
-  [EnvKey.TENCENT_COS_BUCKET]: Joi.string().allow('').optional(),
-  [EnvKey.TENCENT_COS_REGION]: Joi.string().allow('').optional(),
-  [EnvKey.TENCENT_COS_PUBLIC_BASE_URL]: Joi.string()
-    .uri({ scheme: ['http', 'https'] })
-    .allow('')
-    .optional(),
-  [EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS]: Joi.number()
-    .integer()
+
+  [EnvKey.MAIL_DRIVER]: z.enum(['log', 'smtp']).default('log'),
+  [EnvKey.MAIL_HOST]: optionalString,
+  [EnvKey.MAIL_PORT]: z.coerce.number().int().min(1).optional(),
+  [EnvKey.MAIL_USER]: optionalString,
+  [EnvKey.MAIL_PASS]: optionalString,
+  [EnvKey.MAIL_FROM]: optionalString,
+
+  [EnvKey.WECHAT_WEB_APP_ID]: optionalString,
+  [EnvKey.WECHAT_WEB_APP_SECRET]: optionalString,
+  [EnvKey.WECHAT_WEB_REDIRECT_URI]: optionalEmptyUri,
+  [EnvKey.WECHAT_MOBILE_APP_ID]: optionalString,
+  [EnvKey.WECHAT_MOBILE_APP_SECRET]: optionalString,
+
+  [EnvKey.APPLE_APP_ID]: optionalString,
+  [EnvKey.QQ_APP_ID]: optionalString,
+  [EnvKey.QQ_APP_SECRET]: optionalString,
+  [EnvKey.QQ_REDIRECT_URI]: optionalUri,
+
+  [EnvKey.TENCENT_COS_SECRET_ID]: optionalString,
+  [EnvKey.TENCENT_COS_SECRET_KEY]: optionalString,
+  [EnvKey.TENCENT_COS_BUCKET]: optionalString,
+  [EnvKey.TENCENT_COS_REGION]: optionalString,
+  [EnvKey.TENCENT_COS_PUBLIC_BASE_URL]: httpUrl,
+  [EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS]: z.coerce
+    .number()
+    .int()
     .min(60)
     .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
     .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
-  [EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]: Joi.number()
-    .integer()
+  [EnvKey.TENCENT_COS_MAX_UPLOAD_BYTES]: z.coerce
+    .number()
+    .int()
     .min(1)
     .max(MAX_COS_MAX_UPLOAD_BYTES)
     .default(DEFAULT_COS_MAX_UPLOAD_BYTES),
-  [EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS]: Joi.number()
-    .integer()
+  [EnvKey.TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS]: z.coerce
+    .number()
+    .int()
     .min(60)
     .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
     .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
-  [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]: Joi.string()
-    .valid('true', 'false')
-    .optional(),
-  [EnvKey.MEAL_DEFAULT_PORTION_GRAMS]: Joi.number()
-    .integer()
+
+  [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]: z.enum(['true', 'false']).optional(),
+
+  [EnvKey.MEAL_DEFAULT_PORTION_GRAMS]: z.coerce
+    .number()
+    .int()
     .min(1)
     .max(10000)
     .default(DEFAULT_MEAL_PORTION_GRAMS),
-  [EnvKey.MEAL_SMALL_PORTION_GRAMS]: Joi.number()
-    .integer()
+  [EnvKey.MEAL_SMALL_PORTION_GRAMS]: z.coerce
+    .number()
+    .int()
     .min(1)
     .max(10000)
     .default(DEFAULT_MEAL_SMALL_PORTION_GRAMS),
-  [EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G]: Joi.number()
-    .integer()
+  [EnvKey.MEAL_HIGH_PROTEIN_THRESHOLD_G]: z.coerce
+    .number()
+    .int()
     .min(0)
     .max(500)
     .default(DEFAULT_MEAL_HIGH_PROTEIN_THRESHOLD_G),
-  [EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G]: Joi.number()
-    .integer()
+  [EnvKey.MEAL_LOW_CARBOHYDRATE_THRESHOLD_G]: z.coerce
+    .number()
+    .int()
     .min(0)
     .max(500)
     .default(DEFAULT_MEAL_LOW_CARBOHYDRATE_THRESHOLD_G),
-  [EnvKey.MEAL_HIGH_FAT_THRESHOLD_G]: Joi.number()
-    .integer()
+  [EnvKey.MEAL_HIGH_FAT_THRESHOLD_G]: z.coerce
+    .number()
+    .int()
     .min(0)
     .max(500)
     .default(DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G),
-  [EnvKey.FUZZY_ACCEPT_SCORE]: Joi.number()
+
+  [EnvKey.FUZZY_ACCEPT_SCORE]: z.coerce
+    .number()
     .min(0)
     .max(1)
     .default(DEFAULT_FUZZY_ACCEPT_SCORE),
-  [EnvKey.FUZZY_MIN_LEAD]: Joi.number()
+  [EnvKey.FUZZY_MIN_LEAD]: z.coerce
+    .number()
     .min(0)
     .max(1)
     .default(DEFAULT_FUZZY_MIN_LEAD),
-  [EnvKey.FUZZY_QUERY_PREFIX_LENGTH]: Joi.number()
-    .integer()
+  [EnvKey.FUZZY_QUERY_PREFIX_LENGTH]: z.coerce
+    .number()
+    .int()
     .min(1)
     .max(10)
     .default(DEFAULT_FUZZY_QUERY_PREFIX_LENGTH),
-  [EnvKey.VERIFICATION_CODE_TTL_MS]: Joi.number()
-    .integer()
+
+  [EnvKey.VERIFICATION_CODE_TTL_MS]: z.coerce
+    .number()
+    .int()
     .min(10_000)
     .max(3_600_000)
     .default(DEFAULT_VERIFICATION_CODE_TTL_MS),
-  [EnvKey.VERIFICATION_COOLDOWN_MS]: Joi.number()
-    .integer()
+  [EnvKey.VERIFICATION_COOLDOWN_MS]: z.coerce
+    .number()
+    .int()
     .min(0)
     .max(3_600_000)
     .default(DEFAULT_VERIFICATION_COOLDOWN_MS),
-  [EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS]: Joi.number()
-    .integer()
+  [EnvKey.VERIFICATION_RATE_LIMIT_WINDOW_MS]: z.coerce
+    .number()
+    .int()
     .min(60_000)
     .max(86_400_000)
     .default(DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS),
-  [EnvKey.VERIFICATION_RATE_LIMIT_MAX]: Joi.number()
-    .integer()
+  [EnvKey.VERIFICATION_RATE_LIMIT_MAX]: z.coerce
+    .number()
+    .int()
     .min(1)
     .max(1_000)
     .default(DEFAULT_VERIFICATION_RATE_LIMIT_MAX),
-  [EnvKey.VERIFICATION_CODE_LENGTH]: Joi.number()
-    .integer()
+  [EnvKey.VERIFICATION_CODE_LENGTH]: z.coerce
+    .number()
+    .int()
     .min(4)
     .max(10)
     .default(DEFAULT_VERIFICATION_CODE_LENGTH),
-  [EnvKey.OAUTH_STATE_TTL_MS]: Joi.number()
-    .integer()
+  [EnvKey.OAUTH_STATE_TTL_MS]: z.coerce
+    .number()
+    .int()
     .min(60_000)
     .max(3_600_000)
     .default(DEFAULT_OAUTH_STATE_TTL_MS),
-  [EnvKey.MAIL_QUEUE_MAX_ATTEMPTS]: Joi.number()
-    .integer()
+
+  [EnvKey.MAIL_QUEUE_MAX_ATTEMPTS]: z.coerce
+    .number()
+    .int()
     .min(1)
     .max(20)
     .default(DEFAULT_MAIL_QUEUE_MAX_ATTEMPTS),
-  [EnvKey.MAIL_QUEUE_BACKOFF_DELAY_MS]: Joi.number()
-    .integer()
+  [EnvKey.MAIL_QUEUE_BACKOFF_DELAY_MS]: z.coerce
+    .number()
+    .int()
     .min(100)
     .max(300_000)
     .default(DEFAULT_MAIL_QUEUE_BACKOFF_DELAY_MS),
-  [EnvKey.MAIL_QUEUE_WORKER_CONCURRENCY]: Joi.number()
-    .integer()
+  [EnvKey.MAIL_QUEUE_WORKER_CONCURRENCY]: z.coerce
+    .number()
+    .int()
     .min(1)
     .max(50)
     .default(DEFAULT_MAIL_QUEUE_WORKER_CONCURRENCY),
-  [EnvKey.MAIL_QUEUE_COMPLETE_AGE_SECONDS]: Joi.number()
-    .integer()
+  [EnvKey.MAIL_QUEUE_COMPLETE_AGE_SECONDS]: z.coerce
+    .number()
+    .int()
     .min(60)
     .max(2_592_000)
     .default(DEFAULT_MAIL_QUEUE_COMPLETE_AGE_SECONDS),
-  [EnvKey.MAIL_QUEUE_FAIL_AGE_SECONDS]: Joi.number()
-    .integer()
+  [EnvKey.MAIL_QUEUE_FAIL_AGE_SECONDS]: z.coerce
+    .number()
+    .int()
     .min(60)
     .max(2_592_000)
     .default(DEFAULT_MAIL_QUEUE_FAIL_AGE_SECONDS),
-  [EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT]: Joi.number()
-    .integer()
+  [EnvKey.MAIL_QUEUE_COMPLETE_MAX_COUNT]: z.coerce
+    .number()
+    .int()
     .min(1)
     .max(1_000_000)
     .default(DEFAULT_MAIL_QUEUE_COMPLETE_MAX_COUNT),
-  [EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT]: Joi.number()
-    .integer()
+  [EnvKey.MAIL_QUEUE_FAIL_MAX_COUNT]: z.coerce
+    .number()
+    .int()
     .min(1)
     .max(1_000_000)
     .default(DEFAULT_MAIL_QUEUE_FAIL_MAX_COUNT),
-  [EnvKey.SLOW_REQUEST_THRESHOLD_MS]: Joi.number()
-    .integer()
+
+  [EnvKey.SLOW_REQUEST_THRESHOLD_MS]: z.coerce
+    .number()
+    .int()
     .min(10)
     .max(300_000)
     .default(DEFAULT_SLOW_REQUEST_THRESHOLD_MS),
-  [EnvKey.METRICS_ENABLED]: Joi.string().valid('true', 'false').default('true'),
+
+  [EnvKey.METRICS_ENABLED]: z.enum(['true', 'false']).default('true'),
 });
+
+/** Strongly typed shape of validated environment variables. */
+export type EnvironmentVariables = z.infer<typeof envSchema>;
+
+// ── Cross-field validation helpers ──────────────────────────────────
 
 const AI_ROLE_GROUPS = [
   {
@@ -403,16 +384,24 @@ const AI_ROLE_GROUPS = [
 export function validateEnvironment(
   config: Record<string, unknown>,
 ): EnvironmentVariables {
-  const { value, error } = envSchema.validate(config, {
-    allowUnknown: true,
-    stripUnknown: false,
-  }) as { value: EnvironmentVariables; error: Joi.ValidationError | undefined };
+  const parsed = envSchema.safeParse(config);
 
-  if (error) {
-    throw new Error(`Environment validation failed: ${error.message}`);
+  if (!parsed.success) {
+    const issues = parsed.error.issues
+      .map((i) => `${i.path.join('.')}: ${i.message}`)
+      .join('; ');
+    throw new Error(`Environment validation failed: ${issues}`);
   }
 
-  const validated = value;
+  const validated = parsed.data;
+
+  // Resolve HOST default based on NODE_ENV (replaces Joi.when).
+  if (validated[EnvKey.HOST] == null) {
+    validated[EnvKey.HOST] =
+      validated[EnvKey.NODE_ENV] === NodeEnvironment.Production
+        ? '127.0.0.1'
+        : '0.0.0.0';
+  }
 
   assertProductionEnvironment(validated);
   assertTencentCosEnvironment(validated);

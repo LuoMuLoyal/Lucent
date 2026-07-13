@@ -118,9 +118,6 @@ importers:
       express-session:
         specifier: ^1.19.0
         version: 1.19.0
-      joi:
-        specifier: ^18.2.1
-        version: 18.2.1
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
@@ -2074,44 +2071,6 @@ packages:
     resolution:
       {
         integrity: sha512-h1NjCbj0OGbWSFIT5mJSxZqlycrg6nZ0yLtMS5AsSE5C/QePxcSVPm0hcE2Xa9CPmbDNiY3mQ6Ka+jBsLOx1SA==,
-      }
-
-  '@hapi/address@5.1.1':
-    resolution:
-      {
-        integrity: sha512-A+po2d/dVoY7cYajycYI43ZbYMXukuopIsqCjh5QzsBCipDtdofHntljDlpccMjIfTy6UOkg+5KPriwYch2bXA==,
-      }
-    engines: { node: '>=14.0.0' }
-
-  '@hapi/formula@3.0.2':
-    resolution:
-      {
-        integrity: sha512-hY5YPNXzw1He7s0iqkRQi+uMGh383CGdyyIGYtB+W5N3KHPXoqychklvHhKCC9M3Xtv0OCs/IHw+r4dcHtBYWw==,
-      }
-
-  '@hapi/hoek@11.0.7':
-    resolution:
-      {
-        integrity: sha512-HV5undWkKzcB4RZUusqOpcgxOaq6VOAH7zhhIr2g3G8NF/MlFO75SjOr2NfuSx0Mh40+1FqCkagKLJRykUWoFQ==,
-      }
-
-  '@hapi/pinpoint@2.0.1':
-    resolution:
-      {
-        integrity: sha512-EKQmr16tM8s16vTT3cA5L0kZZcTMU5DUOZTuvpnY738m+jyP3JIUj+Mm1xc1rsLkGBQ/gVnfKYPwOmPg1tUR4Q==,
-      }
-
-  '@hapi/tlds@1.1.6':
-    resolution:
-      {
-        integrity: sha512-xdi7A/4NZokvV0ewovme3aUO5kQhW9pQ2YD1hRqZGhhSi5rBv4usHYidVocXSi9eihYsznZxLtAiEYYUL6VBGw==,
-      }
-    engines: { node: '>=14.0.0' }
-
-  '@hapi/topo@6.0.2':
-    resolution:
-      {
-        integrity: sha512-KR3rD5inZbGMrHmgPxsJ9dbi6zEK+C3ZwUwTa+eMwWLz7oijWUTWD2pMSNNYJAU6Qq+65NkxXjqHr/7LM2Xkqg==,
       }
 
   '@hello-pangea/dnd@16.6.0':
@@ -8700,13 +8659,6 @@ packages:
       }
     hasBin: true
 
-  joi@18.2.1:
-    resolution:
-      {
-        integrity: sha512-2/OKlogiESf2Nh3TFCrRjrr9z1DRHeW0I+KReF67+4J0Ns+8hBtHRmoWAZ2OFU6I5+TWLEe6sVlSdXPjHm5UbQ==,
-      }
-    engines: { node: '>= 20' }
-
   js-tiktoken@1.0.21:
     resolution:
       {
@@ -14377,22 +14329,6 @@ snapshots:
 
   '@fontpkg/source-han-sans-sc-vf@2.5.3': {}
 
-  '@hapi/address@5.1.1':
-    dependencies:
-      '@hapi/hoek': 11.0.7
-
-  '@hapi/formula@3.0.2': {}
-
-  '@hapi/hoek@11.0.7': {}
-
-  '@hapi/pinpoint@2.0.1': {}
-
-  '@hapi/tlds@1.1.6': {}
-
-  '@hapi/topo@6.0.2':
-    dependencies:
-      '@hapi/hoek': 11.0.7
-
   '@hello-pangea/dnd@16.6.0(@types/react@19.2.15)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@babel/runtime': 7.29.7
@@ -18389,16 +18325,6 @@ snapshots:
   jiti@2.6.1: {}
 
   jiti@2.7.0: {}
-
-  joi@18.2.1:
-    dependencies:
-      '@hapi/address': 5.1.1
-      '@hapi/formula': 3.0.2
-      '@hapi/hoek': 11.0.7
-      '@hapi/pinpoint': 2.0.1
-      '@hapi/tlds': 1.1.6
-      '@hapi/topo': 6.0.2
-      '@standard-schema/spec': 1.1.0
 
   js-tiktoken@1.0.21:
     dependencies:

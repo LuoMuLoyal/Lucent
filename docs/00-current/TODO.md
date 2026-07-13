@@ -24,9 +24,8 @@ random docs.
 
 ### 2026-07-13 审查遗留项
 
-以下 7 项来自 2026-07-13 全项目审查，已确认有实际价值，暂未处理：
+以下 6 项来自 2026-07-13 全项目审查，已确认有实际价值，暂未处理：
 
-- 评估统一 `zod`/`joi` 验证库，移除 `joi` 依赖（`environment.validation.ts` + `package.json`，架构决策需单独排期）
 - 对 `today-suggestion`、`assistant`、`notifications`、`security-pin`、`data-export` 五个模块进行补充审查（本次全项目扫描未覆盖）
 - 提取 `safeParseLlmJson<T>()` 公共函数，统一 `medicines.service.ts`、`vision.service.ts`、`decomposition.service.ts` 等 LLM 返回的解析-验证逻辑
 - 确认 `repository.transaction` 是否正确传递 `Prisma.TransactionClient`，排查嵌套事务风险（`daily-records.service.ts`）
