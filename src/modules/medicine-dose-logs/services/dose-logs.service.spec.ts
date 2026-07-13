@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Test } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
+import { type Mocked } from 'vitest';
 import { DoseLogStatus } from '#generated/prisma/client';
 import { MedicineDoseLogRepositoryPort } from '../repositories';
 import { MedicineDoseLogsService } from './dose-logs.service';
@@ -10,7 +10,7 @@ import { SuggestionCacheService } from '../../today-suggestion/services/cache/su
 describe('MedicineDoseLogsService', () => {
   let service: MedicineDoseLogsService;
 
-  let repository: any;
+  let repository: Mocked<MedicineDoseLogRepositoryPort>;
 
   beforeEach(async () => {
     const m = await Test.createTestingModule({
@@ -40,7 +40,9 @@ describe('MedicineDoseLogsService', () => {
       ],
     }).compile();
     service = m.get(MedicineDoseLogsService);
-    repository = m.get(MedicineDoseLogRepositoryPort);
+    repository = m.get(
+      MedicineDoseLogRepositoryPort,
+    ) as unknown as Mocked<MedicineDoseLogRepositoryPort>;
   });
 
   it('should create and list dose logs', async () => {
@@ -55,6 +57,8 @@ describe('MedicineDoseLogsService', () => {
       doseText: null,
       note: null,
       source: 'manual',
+      deletedAt: null,
+      takenAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -70,6 +74,8 @@ describe('MedicineDoseLogsService', () => {
         doseText: null,
         note: null,
         source: 'manual',
+        deletedAt: null,
+        takenAt: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -118,6 +124,8 @@ describe('MedicineDoseLogsService', () => {
       doseText: '1 tablet',
       note: 'with food',
       source: 'manual',
+      deletedAt: null,
+      takenAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -143,6 +151,8 @@ describe('MedicineDoseLogsService', () => {
       doseText: null,
       note: null,
       source: 'manual',
+      deletedAt: null,
+      takenAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -165,7 +175,6 @@ describe('MedicineDoseLogsService', () => {
 
   it('should upsert an existing reminder slot dose log when mark is called', async () => {
     repository.findReminderById.mockResolvedValue({
-      id: 'reminder-1',
       userId: 'u1',
       currentMedicineId: 'medicine-1',
       scheduledHour: 8,
@@ -198,6 +207,7 @@ describe('MedicineDoseLogsService', () => {
       doseText: null,
       note: 'after breakfast',
       source: 'manual',
+      deletedAt: null,
       createdAt: new Date('2026-07-08T01:00:00.000Z'),
       updatedAt: new Date('2026-07-08T02:00:00.000Z'),
       takenAt: new Date('2026-07-08T02:00:00.000Z'),
@@ -237,7 +247,6 @@ describe('MedicineDoseLogsService', () => {
 
   it('should reject foreign reminder slots on mark', async () => {
     repository.findReminderById.mockResolvedValue({
-      id: 'reminder-1',
       userId: 'other',
       currentMedicineId: 'medicine-1',
       scheduledHour: 8,

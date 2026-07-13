@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
+import { type Mocked } from 'vitest';
 import { UserHealthContextRepositoryPort } from '../repositories';
 import { UserHealthContextOwnershipService } from './ownership.service';
 
 describe('UserHealthContextOwnershipService', () => {
   let service: UserHealthContextOwnershipService;
 
-  let repository: any;
+  let repository: Mocked<UserHealthContextRepositoryPort>;
   let i18nT: vi.Mock;
 
   beforeEach(async () => {
@@ -17,7 +17,7 @@ describe('UserHealthContextOwnershipService', () => {
       findAllergyById: vi.fn(),
       findConditionById: vi.fn(),
       findCurrentMedicineById: vi.fn(),
-    };
+    } as unknown as Mocked<UserHealthContextRepositoryPort>;
     i18nT = vi.fn().mockReturnValue('Not found');
 
     const module = await Test.createTestingModule({
@@ -81,14 +81,20 @@ describe('UserHealthContextOwnershipService', () => {
 
   describe('ensureCurrentMedicineOwnedByUser', () => {
     it('resolves when medicine belongs to user', async () => {
-      repository.findCurrentMedicineById.mockResolvedValue({ userId: 'u1' });
+      repository.findCurrentMedicineById.mockResolvedValue({
+        userId: 'u1',
+        endedAt: null,
+      });
       await expect(
         service.ensureCurrentMedicineOwnedByUser('u1', 'm1'),
       ).resolves.toBeUndefined();
     });
 
     it('throws when medicine belongs to different user', async () => {
-      repository.findCurrentMedicineById.mockResolvedValue({ userId: 'u2' });
+      repository.findCurrentMedicineById.mockResolvedValue({
+        userId: 'u2',
+        endedAt: null,
+      });
       await expect(
         service.ensureCurrentMedicineOwnedByUser('u1', 'm1'),
       ).rejects.toThrow(NotFoundException);

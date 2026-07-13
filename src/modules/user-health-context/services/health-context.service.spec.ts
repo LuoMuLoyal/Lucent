@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { type Mocked } from 'vitest';
 import {
   MedicineSource,
   SexAtBirth,
@@ -33,6 +33,10 @@ const mockUserBase = {
   nickname: 'TestUser',
   avatar: null,
   status: UserStatus.active,
+  securityPinEnabled: false,
+  securityPinHash: null,
+  securityPinChangedAt: null,
+  securityElevationVersion: 0,
   emailVerifiedAt: new Date('2026-01-01T00:00:00Z'),
   lastLoginAt: new Date('2026-05-28T00:00:00Z'),
   ...nonDeleted,
@@ -51,7 +55,7 @@ function expectDefined<T>(value: T | undefined, message: string): T {
 describe('UserHealthContextService', () => {
   let service: UserHealthContextService;
 
-  let repository: any;
+  let repository: Mocked<UserHealthContextRepositoryPort>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -94,7 +98,9 @@ describe('UserHealthContextService', () => {
     }).compile();
 
     service = module.get(UserHealthContextService);
-    repository = module.get(UserHealthContextRepositoryPort);
+    repository = module.get(
+      UserHealthContextRepositoryPort,
+    ) as unknown as Mocked<UserHealthContextRepositoryPort>;
   });
 
   afterEach(() => {
@@ -977,6 +983,7 @@ describe('UserHealthContextService', () => {
   it('should update a current medicine', async () => {
     repository.findCurrentMedicineById.mockResolvedValue({
       userId: mockUserBase.id,
+      endedAt: null,
     });
     repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
@@ -1033,6 +1040,7 @@ describe('UserHealthContextService', () => {
   it('should soft-delete a current medicine (set isCurrent=false)', async () => {
     repository.findCurrentMedicineById.mockResolvedValueOnce({
       userId: mockUserBase.id,
+      endedAt: null,
     });
     repository.findUserWithHealthContext.mockResolvedValue({
       ...mockUserBase,
@@ -1057,6 +1065,7 @@ describe('UserHealthContextService', () => {
   it('should throw NotFoundException when accessing a foreign current medicine', async () => {
     repository.findCurrentMedicineById.mockResolvedValue({
       userId: 'other-user',
+      endedAt: null,
     });
 
     await expect(

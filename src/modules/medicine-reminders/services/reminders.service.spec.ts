@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { Test } from '@nestjs/testing';
+import { type Mocked } from 'vitest';
 import { Prisma } from '#generated/prisma/client';
 import { MedicineReminderRepositoryPort } from '../repositories';
 import { MedicineRemindersOwnershipService } from './ownership.service';
@@ -34,7 +34,7 @@ function reminderRecord(overrides: Record<string, unknown> = {}) {
 describe('MedicineRemindersService', () => {
   let service: MedicineRemindersService;
 
-  let repository: any;
+  let repository: Mocked<MedicineReminderRepositoryPort>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -61,7 +61,9 @@ describe('MedicineRemindersService', () => {
     }).compile();
 
     service = module.get(MedicineRemindersService);
-    repository = module.get(MedicineReminderRepositoryPort);
+    repository = module.get(
+      MedicineReminderRepositoryPort,
+    ) as unknown as Mocked<MedicineReminderRepositoryPort>;
   });
 
   it('should create a reminder with normalized text and weekdays', async () => {

@@ -1,5 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { MedicineSource } from '#generated/prisma/client';
+import { type Mocked } from 'vitest';
 import { UserHealthContextRepositoryPort } from '../repositories';
 import { UserHealthContextOwnershipService } from './ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
@@ -8,7 +9,7 @@ import { UserHealthContextMedicineWriteService } from './medicine-write.service'
 describe('UserHealthContextMedicineWriteService', () => {
   let service: UserHealthContextMedicineWriteService;
 
-  let repository: any;
+  let repository: Mocked<UserHealthContextRepositoryPort>;
   let ensureActive: vi.Mock;
   let ensureOwned: vi.Mock;
 
@@ -18,7 +19,7 @@ describe('UserHealthContextMedicineWriteService', () => {
       updateCurrentMedicine: vi.fn(),
       softDeleteCurrentMedicine: vi.fn(),
       findCurrentMedicineById: vi.fn(),
-    };
+    } as unknown as Mocked<UserHealthContextRepositoryPort>;
     ensureActive = vi.fn();
     ensureOwned = vi.fn();
     const module = await Test.createTestingModule({

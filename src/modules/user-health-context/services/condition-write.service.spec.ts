@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing';
+import { type Mocked } from 'vitest';
 import { UserHealthContextRepositoryPort } from '../repositories';
 import { UserHealthContextOwnershipService } from './ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
@@ -7,7 +8,7 @@ import { UserHealthContextConditionWriteService } from './condition-write.servic
 describe('UserHealthContextConditionWriteService', () => {
   let service: UserHealthContextConditionWriteService;
 
-  let repository: any;
+  let repository: Mocked<UserHealthContextRepositoryPort>;
   let ensureActive: vi.Mock;
   let ensureOwned: vi.Mock;
 
@@ -17,7 +18,7 @@ describe('UserHealthContextConditionWriteService', () => {
       updateCondition: vi.fn(),
       softDeleteCondition: vi.fn(),
       findConditionById: vi.fn(),
-    };
+    } as unknown as Mocked<UserHealthContextRepositoryPort>;
     ensureActive = vi.fn();
     ensureOwned = vi.fn();
     const module = await Test.createTestingModule({

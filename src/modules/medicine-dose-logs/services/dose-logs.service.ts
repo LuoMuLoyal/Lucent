@@ -6,7 +6,7 @@ import {
 } from '../../../common/helpers/date-time.utils';
 import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { DoseLogStatus, Prisma } from '#generated/prisma/client';
@@ -27,6 +27,8 @@ type OwnedReminderRecord = {
 
 @Injectable()
 export class MedicineDoseLogsService {
+  private readonly logger = new Logger(MedicineDoseLogsService.name);
+
   constructor(
     private readonly repository: MedicineDoseLogRepositoryPort,
     private readonly i18n: I18nService,
@@ -96,20 +98,20 @@ export class MedicineDoseLogsService {
     );
     const reminderId = dto.reminderId ?? null;
 
-    if (!reminderId && !currentMedicineId) {
+    const where = this.buildMarkLookupWhere({
+      userId,
+      currentMedicineId,
+      reminderId,
+      scheduledFor,
+      scheduledTime,
+    });
+    if (where == null) {
       badRequest(this.i18n.t('medicine-dose-logs.missing_slot_identifier'));
     }
 
-    const existing = (await this.repository.findFirst(
-      this.buildMarkLookupWhere({
-        userId,
-        currentMedicineId,
-        reminderId,
-        scheduledFor,
-        scheduledTime,
-      }),
-      { orderBy: [{ updatedAt: 'desc' }] },
-    )) as { id: string } | null;
+    const existing = (await this.repository.findFirst(where, {
+      orderBy: [{ updatedAt: 'desc' }],
+    })) as { id: string } | null;
 
     if (existing) {
       const record = await this.repository.update(
@@ -175,8 +177,12 @@ export class MedicineDoseLogsService {
         userId,
         formatDateOnly(scheduledFor),
       );
-    } catch {
+    } catch (error) {
       // best-effort
+      this.logger.warn('Failed to invalidate suggestion cache', {
+        userId,
+        error,
+      });
     }
   }
 
@@ -229,7 +235,7 @@ export class MedicineDoseLogsService {
     reminderId: string | null;
     scheduledFor: Date;
     scheduledTime: string | null;
-  }): Prisma.UserMedicineDoseLogWhereInput {
+  }): Prisma.UserMedicineDoseLogWhereInput | null {
     if (input.reminderId != null) {
       return {
         userId: input.userId,
@@ -249,8 +255,8 @@ export class MedicineDoseLogsService {
       };
     }
 
-    // No safe lookup criteria available — refuse rather than risk a broad match.
-    badRequest(this.i18n.t('medicine-dose-logs.missing_slot_identifier'));
+    // No safe lookup criteria available — caller should reject.
+    return null;
   }
 
   private buildMarkUpdateData(input: {

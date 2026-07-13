@@ -199,7 +199,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
     // QQ me endpoint may return JSONP or JSON
     const data = text.includes('callback(')
       ? this.extractJsonp(text)
-      : (JSON.parse(text) as Record<string, unknown>);
+      : this.safeJsonParse(text);
 
     if ((data as { error?: number }).error !== undefined) {
       unauthorized(this.i18n.t('auth.oauth_code_invalid'));
@@ -260,9 +260,21 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
   private extractJsonp(text: string): Record<string, unknown> {
     const match = text.match(/callback\s*\(\s*(.*?)\s*\)\s*;?\s*$/s);
     if (match) {
-      return JSON.parse(match[1] ?? '') as Record<string, unknown>;
+      return this.safeJsonParse(match[1] ?? '');
     }
-    return JSON.parse(text) as Record<string, unknown>;
+    return this.safeJsonParse(text);
+  }
+
+  private safeJsonParse(text: string): Record<string, unknown> {
+    try {
+      return JSON.parse(text) as Record<string, unknown>;
+    } catch (error) {
+      this.logger.warn('Failed to parse QQ OAuth JSON response', {
+        text: text.slice(0, 200),
+        error,
+      });
+      unauthorized(this.i18n.t('auth.oauth_code_invalid'));
+    }
   }
 
   private parseQueryString(qs: string): Record<string, string> {

@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { parseDateOnly } from '../../../common/helpers/date-time.utils';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
+import { type Mocked } from 'vitest';
 import { UserHealthContextProfileWriteService } from './profile-write.service';
 import { UserHealthContextRepositoryPort } from '../repositories';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
@@ -10,13 +10,13 @@ import { UserHealthContextMapperService } from './mapper.service';
 describe('UserHealthContextProfileWriteService', () => {
   let service: UserHealthContextProfileWriteService;
 
-  let repository: any;
+  let repository: Mocked<UserHealthContextRepositoryPort>;
 
   beforeEach(async () => {
     repository = {
       findProfileByUserId: vi.fn().mockResolvedValue(null),
       upsertProfile: vi.fn(),
-    };
+    } as unknown as Mocked<UserHealthContextRepositoryPort>;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

@@ -98,6 +98,7 @@ export class AuthService {
       throw new UnauthorizedException({
         code: ResultCode.REFRESH_TOKEN_INVALID,
         message: this.i18n.t('auth.refresh_token_invalid'),
+        cause: error,
       });
     }
   }

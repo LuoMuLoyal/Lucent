@@ -167,6 +167,8 @@ export class MealAnalysisWorkerService {
           : {}),
       } as unknown as Prisma.InputJsonValue,
       mealAnalysisStatus: 'analysis_failed',
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: now(),
       mealAnalysisFailureReason: failureReason,
     };
   }

@@ -1,6 +1,6 @@
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { parseDateOnly, now } from '../../../common/helpers/date-time.utils';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { badRequest } from '../../../common/helpers/api-errors';
 import { DailyRecordKind, Prisma } from '#generated/prisma/client';
 import type { CreateDailyRecordDto, UpdateDailyRecordDto } from '../dto';
@@ -26,6 +26,8 @@ import { formatDateOnly } from '../../../common/helpers/date-time.utils';
 
 @Injectable()
 export class DailyRecordsService {
+  private readonly logger = new Logger(DailyRecordsService.name);
+
   constructor(
     private readonly repository: DailyRecordRepositoryPort,
     private readonly ownershipService: DailyRecordsOwnershipService,
@@ -283,8 +285,12 @@ export class DailyRecordsService {
           ? formatDateOnly(parseDateOnly(occurredAt))
           : formatDateOnly(occurredAt);
       await this.suggestionCache.invalidateSignals(userId, dateStr);
-    } catch {
+    } catch (error) {
       // cache invalidation is best-effort
+      this.logger.warn('Failed to invalidate suggestion cache', {
+        userId,
+        error,
+      });
     }
   }
 
@@ -371,27 +377,10 @@ export class DailyRecordsService {
       return data;
     }
 
-    const analysis = mealPayload['mealAnalysis'] as
-      | Record<string, unknown>
-      | undefined;
     return {
       ...data,
       payload: mealPayload as Prisma.InputJsonValue,
-      mealAnalysisStatus:
-        (analysis?.['analysisStatus'] as
-          | MealAnalysisStatus
-          | null
-          | undefined) ?? null,
-      mealAnalysisCoverage:
-        (analysis?.['coverage'] as MealAnalysisCoverage | null | undefined) ??
-        null,
-      mealAnalysisUpdatedAt:
-        typeof analysis?.['analyzedAt'] === 'string'
-          ? new Date(analysis['analyzedAt'])
-          : null,
-      mealAnalysisFailureReason:
-        (analysis?.['failureReason'] as string | null | undefined) ?? null,
-      mealSourceRevision: getMealSourceRevision(mealPayload),
+      ...this.extractMealAnalysisHotFields(mealPayload),
     };
   }
 
@@ -439,13 +428,40 @@ export class DailyRecordsService {
       return {};
     }
 
+    const hotFields = this.extractMealAnalysisHotFields(mealPayload);
+    return {
+      payload: mealPayload,
+      mealAnalysisStatus: hotFields.mealAnalysisStatus,
+      mealAnalysisCoverage: hotFields.mealAnalysisCoverage,
+      mealSourceRevision: hotFields.mealSourceRevision,
+    };
+  }
+
+  private extractMealAnalysisHotFields(mealPayload: Record<string, unknown>): {
+    mealAnalysisStatus: MealAnalysisStatus | null;
+    mealAnalysisCoverage: MealAnalysisCoverage | null;
+    mealAnalysisUpdatedAt: Date | null;
+    mealAnalysisFailureReason: string | null;
+    mealSourceRevision: number;
+  } {
     const analysis = mealPayload['mealAnalysis'] as
       | Record<string, unknown>
       | undefined;
     return {
-      payload: mealPayload,
-      mealAnalysisStatus: analysis?.['analysisStatus'] ?? null,
-      mealAnalysisCoverage: analysis?.['coverage'] ?? null,
+      mealAnalysisStatus:
+        (analysis?.['analysisStatus'] as
+          | MealAnalysisStatus
+          | null
+          | undefined) ?? null,
+      mealAnalysisCoverage:
+        (analysis?.['coverage'] as MealAnalysisCoverage | null | undefined) ??
+        null,
+      mealAnalysisUpdatedAt:
+        typeof analysis?.['analyzedAt'] === 'string'
+          ? new Date(analysis['analyzedAt'])
+          : null,
+      mealAnalysisFailureReason:
+        (analysis?.['failureReason'] as string | null | undefined) ?? null,
       mealSourceRevision: getMealSourceRevision(mealPayload),
     };
   }
