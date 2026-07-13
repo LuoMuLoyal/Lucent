@@ -108,7 +108,7 @@ rules:
       - package.json
       - tsconfig.json
       - .swcrc
-      - commitlint.config.mjs
+      - commitlint.config.ts
       - pnpm-workspace.yaml
     docs_required:
       - docs/00-current/Current_State.md

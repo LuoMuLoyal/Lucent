@@ -260,6 +260,9 @@ importers:
       globals:
         specifier: ^17.0.0
         version: 17.6.0
+      jiti:
+        specifier: ^2.7.0
+        version: 2.7.0
       lint-staged:
         specifier: ^17.0.5
         version: 17.0.5

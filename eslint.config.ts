@@ -1,4 +1,3 @@
-// @ts-check
 import eslint from '@eslint/js';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
@@ -7,11 +6,10 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   {
     ignores: [
-      'eslint.config.mjs',
-      'commitlint.config.mjs',
+      'eslint.config.ts',
+      'commitlint.config.ts',
       'deploy/**/*.ts',
       'scripts/**/*.ts',
-      'scripts/**/*.js',
       // k6 性能测试脚本运行在 k6 运行时中，不适用 Node.js / TS 类型检查
       'test/performance/**/*.ts',
     ],

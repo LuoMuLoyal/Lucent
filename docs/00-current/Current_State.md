@@ -158,6 +158,13 @@ Last updated: 2026-07-13
   - `docs/01-reference/environment-variables.md`：新增 `METRICS_USER` / `METRICS_PASSWORD` / `TESTING_SHARED_SECRET` / `TRUST_PROXY` 变量文档
   - `docs/01-reference/environment.md`：新增 Helmet 中间件、`/metrics` Basic Auth、测试端点守卫、`TRUST_PROXY` 运行时说明
 
+## 2026-07-13 JS → TS 全量迁移
+
+- **项目源码 JS 清零**：`scripts/dev/fix-generated-prisma-internal.js` → `.ts`（CommonJS 风格，Node 24 原生 type stripping）
+- **工具配置 TS 化**：`eslint.config.mjs` → `eslint.config.ts`（新增 `jiti` devDependency）；`commitlint.config.mjs` → `commitlint.config.ts`（commitlint v21 内置 `cosmiconfig-typescript-loader`）
+- **Luminous-website 同步**：`eslint.config.mjs` → `eslint.config.ts`；`commitlint.config.cjs` → `commitlint.config.ts`（CJS → ESM 语法转换）
+- 此后项目中除编译产物（`drift_worker.js`、`flutter_bootstrap.js`）外不再有 `.js`/`.mjs`/`.cjs` 文件
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]

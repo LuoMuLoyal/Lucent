@@ -1,5 +1,6 @@
-/** @type {import('@commitlint/types').UserConfig} */
-export default {
+import type { UserConfig } from '@commitlint/types';
+
+const config: UserConfig = {
   extends: ['@commitlint/config-conventional'],
   rules: {
     'scope-empty': [2, 'never'],
@@ -10,3 +11,5 @@ export default {
     'body-max-line-length': [2, 'always', 200],
   },
 };
+
+export default config;
