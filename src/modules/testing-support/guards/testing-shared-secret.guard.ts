@@ -5,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { timingSafeEqual } from 'node:crypto';
+import { safeCompare } from '../../../common/helpers/crypto.utils';
 import { EnvKey } from '../../../config/env-keys.enum';
 
 /**
@@ -27,9 +27,7 @@ export class TestingSharedSecretGuard implements CanActivate {
       EnvKey.TESTING_SHARED_SECRET,
     );
     if (!expected) {
-      throw new ForbiddenException(
-        'TESTING_SHARED_SECRET is not configured; testing endpoints are disabled',
-      );
+      throw new ForbiddenException('Invalid testing secret');
     }
 
     const request = context.switchToHttp().getRequest<{
@@ -38,7 +36,7 @@ export class TestingSharedSecretGuard implements CanActivate {
     const provided = request.headers['x-testing-secret'];
 
     if (typeof provided !== 'string' || !provided) {
-      throw new ForbiddenException('Missing x-testing-secret header');
+      throw new ForbiddenException('Invalid testing secret');
     }
 
     if (!safeCompare(provided, expected)) {
@@ -47,10 +45,4 @@ export class TestingSharedSecretGuard implements CanActivate {
 
     return true;
   }
-}
-
-function safeCompare(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  return ab.length === bb.length && timingSafeEqual(ab, bb);
 }

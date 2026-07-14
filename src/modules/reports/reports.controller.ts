@@ -24,6 +24,7 @@ import { I18nLang } from 'nestjs-i18n';
 import { successEnvelope } from '../../common/api';
 import { extractErrorInfo } from '../../common/helpers/error-info.utils';
 import { httpExceptionPayload } from '../../common/helpers/error-payload';
+import { enqueueOrFallback } from '../../common/helpers/queue-helpers';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
 import { type UserPayload } from '../auth/types/auth-request';
@@ -112,24 +113,14 @@ export class ReportsController {
     @Body() dto: GenerateReportSummaryDto,
     @I18nLang() language: string,
   ) {
-    if (this.reportSummaryQueueService.isConfigured) {
-      const jobId = await this.reportSummaryQueueService.enqueue(
-        user.sub,
-        dto,
-        language,
-      );
-      if (jobId != null) {
-        return successEnvelope({ jobId });
-      }
-    }
-
-    // Fallback: run synchronously when Redis is not available
-    const result = await this.reportsAiSummaryService.generate(
-      user.sub,
-      dto,
-      language,
+    return successEnvelope(
+      await enqueueOrFallback(
+        this.reportSummaryQueueService.isConfigured,
+        () => this.reportSummaryQueueService.enqueue(user.sub, dto, language),
+        () => this.reportsAiSummaryService.generate(user.sub, dto, language),
+        'result',
+      ),
     );
-    return successEnvelope({ result });
   }
 
   @Get('summary/generate/status/:jobId')
@@ -277,19 +268,17 @@ export class ReportsController {
     @CurrentUser() user: UserPayload,
     @I18nLang() language: string,
   ) {
-    if (this.clinicSummaryPdfQueueService.isConfigured) {
-      const jobId = await this.clinicSummaryPdfQueueService.enqueue(
-        user.sub,
-        language,
-      );
-      if (jobId != null) {
-        return successEnvelope({ jobId });
-      }
-    }
-
-    // Fallback: run synchronously when Redis is not available
-    const pdf = await this.clinicSummaryService.exportPdf(user.sub, language);
-    return successEnvelope({ pdfBase64: pdf.toString('base64') });
+    return successEnvelope(
+      await enqueueOrFallback(
+        this.clinicSummaryPdfQueueService.isConfigured,
+        () => this.clinicSummaryPdfQueueService.enqueue(user.sub, language),
+        async () =>
+          (
+            await this.clinicSummaryService.exportPdf(user.sub, language)
+          ).toString('base64'),
+        'pdfBase64',
+      ),
+    );
   }
 
   @Get('clinic-summary/export/status/:jobId')

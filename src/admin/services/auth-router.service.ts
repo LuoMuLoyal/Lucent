@@ -1,8 +1,8 @@
 import type { ConfigService } from '@nestjs/config';
 import type { Router } from 'express';
 import type AdminJSDefault from 'adminjs';
-import { timingSafeEqual } from 'node:crypto';
 
+import { safeCompare } from '../../common/helpers/crypto.utils';
 import {
   ADMIN_COOKIE_SECRET_KEY,
   ADMIN_EMAIL_KEY,
@@ -10,15 +10,6 @@ import {
   NODE_ENV_KEY,
 } from '../constants/constants';
 import type { AdminJsExpressModule, AdminUser } from '../types/types';
-
-/**
- * Constant-time string comparison to prevent timing side-channel attacks.
- */
-function safeCompare(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  return ab.length === bb.length && timingSafeEqual(ab, bb);
-}
 
 /**
  * Builds an authenticated Express router for the AdminJS panel using

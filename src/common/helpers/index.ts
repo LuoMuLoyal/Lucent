@@ -1,6 +1,7 @@
 export * from './api-errors';
 export * from './array.utils';
 export * from './client-ip';
+export * from './crypto.utils';
 export * from './date-time.utils';
 export * from './error-info.utils';
 export * from './error-payload';
@@ -9,6 +10,7 @@ export * from './localized-copy';
 export * from './number.utils';
 export * from './prisma-ownership.utils';
 export * from './prisma.utils';
+export * from './queue-helpers';
 export * from './retry.utils';
 export * from './search-text.utils';
 export * from './string.utils';

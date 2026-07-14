@@ -9,7 +9,7 @@ import type { Request, Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import helmet from 'helmet';
-import { timingSafeEqual } from 'node:crypto';
+import { safeCompare } from './common/helpers/crypto.utils';
 import { ConfigKey } from './config/config-keys.enum';
 import { ResultCode } from './common/api';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
@@ -60,8 +60,8 @@ export function setupApp(
         const user = colonIndex >= 0 ? decoded.slice(0, colonIndex) : '';
         const pass = colonIndex >= 0 ? decoded.slice(colonIndex + 1) : '';
         if (
-          !safeEqual(user, metricsUser) ||
-          !safeEqual(pass, metricsPassword)
+          !safeCompare(user, metricsUser) ||
+          !safeCompare(pass, metricsPassword)
         ) {
           res.setHeader('WWW-Authenticate', 'Basic realm="Metrics"');
           res.status(401).send('Unauthorized');
@@ -135,12 +135,6 @@ export function setupApp(
 
 function formatValidationErrors(errors: ValidationError[]): string {
   return errors.flatMap(collectValidationMessages).join('; ');
-}
-
-function safeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  return ab.length === bb.length && timingSafeEqual(ab, bb);
 }
 
 function collectValidationMessages(error: ValidationError): string[] {

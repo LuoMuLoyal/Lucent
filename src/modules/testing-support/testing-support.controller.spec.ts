@@ -1,4 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { ResultCode } from '../../common/api';
 import { TestingSupportController } from './testing-support.controller';
 import { TestingSupportService } from './services/fixtures.service';
@@ -15,7 +16,13 @@ describe('TestingSupportController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TestingSupportController],
-      providers: [{ provide: TestingSupportService, useValue: service }],
+      providers: [
+        { provide: TestingSupportService, useValue: service },
+        {
+          provide: ConfigService,
+          useValue: { get: vi.fn().mockReturnValue(undefined) },
+        },
+      ],
     }).compile();
 
     controller = module.get(TestingSupportController);
