@@ -8,7 +8,7 @@ export const DAILY_RECORD_CANDIDATE_KINDS = [
   'sleep',
 ] as const;
 
-const sleepPayloadSchema = z
+export const sleepPayloadSchema = z
   .object({
     durationMinutes: z
       .number()
