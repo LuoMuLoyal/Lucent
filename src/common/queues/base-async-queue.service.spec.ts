@@ -81,7 +81,9 @@ class TestQueueService extends BaseAsyncQueueService<TestJobData, TestResult> {
   }
 
   private execute(data: TestJobData): Promise<TestResult> {
-    return this.executeMock(data) as Promise<TestResult>;
+    return (
+      this.executeMock as unknown as (data: TestJobData) => Promise<TestResult>
+    )(data);
   }
 
   // Expose protected methods for testing
@@ -91,7 +93,12 @@ class TestQueueService extends BaseAsyncQueueService<TestJobData, TestResult> {
   }): Promise<AsyncJobResult<TestResult>> {
     return this.processJob(
       job,
-      (data) => this.executeMock(data) as Promise<TestResult>,
+      (data) =>
+        (
+          this.executeMock as unknown as (
+            data: TestJobData,
+          ) => Promise<TestResult>
+        )(data),
       'Test job failed',
     );
   }

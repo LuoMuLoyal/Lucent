@@ -44,8 +44,8 @@ describe('selectAllowedToolsForContextSources', () => {
     expect(tools).toContain('get_current_medicines');
   });
 
-  it('includes knowledge tools when medicine_knowledge is enabled', () => {
-    const tools = selectAllowedToolsForContextSources(['medicine_knowledge']);
+  it('includes knowledge tools regardless of context sources (always available)', () => {
+    const tools = selectAllowedToolsForContextSources([]);
     expect(tools).toContain('search_cn_medicine_products');
     expect(tools).toContain('search_medicine_leaflets');
     expect(tools).toContain('search_medical_qa_corpus');
