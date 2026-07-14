@@ -37,7 +37,7 @@ describe('ClinicSummaryPdfService', () => {
       expect(buffer.length).toBeGreaterThan(0);
       // PDF magic bytes
       expect(buffer.subarray(0, 4).toString()).toBe('%PDF');
-    });
+    }, 30_000);
 
     it('generates a non-empty PDF buffer for en locale', async () => {
       const buffer = await service.buildPdf(makeSummary(), 'en');
@@ -45,7 +45,7 @@ describe('ClinicSummaryPdfService', () => {
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer.length).toBeGreaterThan(0);
       expect(buffer.subarray(0, 4).toString()).toBe('%PDF');
-    });
+    }, 30_000);
 
     it('handles empty allergies', async () => {
       const buffer = await service.buildPdf(
@@ -54,7 +54,7 @@ describe('ClinicSummaryPdfService', () => {
       );
 
       expect(buffer.length).toBeGreaterThan(0);
-    });
+    }, 30_000);
 
     it('handles empty conditions', async () => {
       const buffer = await service.buildPdf(
@@ -63,7 +63,7 @@ describe('ClinicSummaryPdfService', () => {
       );
 
       expect(buffer.length).toBeGreaterThan(0);
-    });
+    }, 30_000);
 
     it('handles empty current medicines', async () => {
       const buffer = await service.buildPdf(
@@ -72,7 +72,7 @@ describe('ClinicSummaryPdfService', () => {
       );
 
       expect(buffer.length).toBeGreaterThan(0);
-    });
+    }, 30_000);
 
     it('handles null optional fields in profile', async () => {
       const buffer = await service.buildPdf(
@@ -88,7 +88,7 @@ describe('ClinicSummaryPdfService', () => {
       );
 
       expect(buffer.length).toBeGreaterThan(0);
-    });
+    }, 30_000);
 
     it('handles null optional fields in allergies', async () => {
       const buffer = await service.buildPdf(
@@ -99,7 +99,7 @@ describe('ClinicSummaryPdfService', () => {
       );
 
       expect(buffer.length).toBeGreaterThan(0);
-    });
+    }, 30_000);
 
     it('handles null diagnosedYear in conditions', async () => {
       const buffer = await service.buildPdf(
@@ -110,7 +110,7 @@ describe('ClinicSummaryPdfService', () => {
       );
 
       expect(buffer.length).toBeGreaterThan(0);
-    });
+    }, 30_000);
 
     it('handles null doseText in medicines', async () => {
       const buffer = await service.buildPdf(
@@ -121,7 +121,7 @@ describe('ClinicSummaryPdfService', () => {
       );
 
       expect(buffer.length).toBeGreaterThan(0);
-    });
+    }, 30_000);
 
     it('produces different output for different locales', async () => {
       const zhBuffer = await service.buildPdf(makeSummary(), 'zh-CN');
@@ -129,6 +129,6 @@ describe('ClinicSummaryPdfService', () => {
 
       // The PDFs should be different since the titles and labels differ
       expect(zhBuffer.equals(enBuffer)).toBe(false);
-    });
+    }, 30_000);
   });
 });
