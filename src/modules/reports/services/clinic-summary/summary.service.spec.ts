@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { ConfigService } from '@nestjs/config';
 import { ClinicSummaryService } from './summary.service';
@@ -164,7 +165,9 @@ describe('ClinicSummaryService', () => {
       const result = await service.getSharedSummary('some-token');
 
       expect(result).toEqual(cached);
-      expect(cacheManager.get).toHaveBeenCalledWith('clinic-share:some-token');
+      expect(cacheManager.get).toHaveBeenCalledWith(
+        `clinic-share:${createHash('sha256').update('some-token').digest('hex')}`,
+      );
     });
 
     it('returns null when not found in cache', async () => {

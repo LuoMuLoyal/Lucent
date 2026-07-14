@@ -105,12 +105,12 @@ describe('appConfig', () => {
     expect(config.port).toBe(8080);
   });
 
-  it('enables trustProxy in test environment', () => {
+  it('defaults trustProxy to false in test environment', () => {
     process.env[EnvKey.NODE_ENV] = 'test';
 
     const config = callFactory();
 
-    expect(config.trustProxy).toBe(true);
+    expect(config.trustProxy).toBe(false);
   });
 
   it('enables trustProxy when TRUST_PROXY is true', () => {
