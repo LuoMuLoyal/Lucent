@@ -55,15 +55,22 @@ k6 run `
   -e BASE_URL=http://127.0.0.1:3000 `
   -e ACCESS_TOKEN=<your-access-token> `
   test/performance/authenticated.k6.ts
+
+# Daily records write-path load test (needs token)
+k6 run `
+  -e BASE_URL=http://127.0.0.1:3000 `
+  -e ACCESS_TOKEN=<your-access-token> `
+  test/performance/daily-records.k6.ts
 ```
 
 ## Test Scenarios
 
-| Script                | Endpoint(s)                                                                                                          | VUs | Duration | Description                   |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------- | --- | -------- | ----------------------------- |
-| `health.k6.ts`        | `/api/v1/health`, `/api/v1/health/ready`, `/api/v1/health/live`                                                      | 20  | 30s      | Health check baseline         |
-| `medicines.k6.ts`     | `/api/v1/medicines`, `/api/v1/medicines/safety-tips`                                                                 | 10  | 30s      | Medicine search + safety tips |
-| `authenticated.k6.ts` | `/api/v1/account`, `/api/v1/user/health-context`, `/api/v1/user/reports/dashboard`, `/api/v1/user/today/suggestions` | 5   | 20s      | Authenticated user endpoints  |
+| Script                | Endpoint(s)                                                                                                          | VUs | Duration | Description                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- | --- | -------- | ---------------------------------------------- |
+| `health.k6.ts`        | `/api/v1/health`, `/api/v1/health/ready`, `/api/v1/health/live`                                                      | 20  | 30s      | Health check baseline                          |
+| `medicines.k6.ts`     | `/api/v1/medicines`, `/api/v1/medicines/safety-tips`                                                                 | 10  | 30s      | Medicine search + safety tips                  |
+| `authenticated.k6.ts` | `/api/v1/account`, `/api/v1/user/health-context`, `/api/v1/user/reports/dashboard`, `/api/v1/user/today/suggestions` | 5   | 20s      | Authenticated user endpoints                   |
+| `daily-records.k6.ts` | `POST/PATCH/GET /api/v1/user/daily-records`                                                                          | 5   | 25s      | Daily records write-path (create/update/query) |
 
 ## Interpreting Results
 
