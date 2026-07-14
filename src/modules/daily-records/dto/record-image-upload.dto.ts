@@ -40,7 +40,7 @@ export class DailyRecordImageUploadDto {
   @ApiProperty({ example: 'tencent-cos' })
   provider!: string;
 
-  @ApiProperty({ example: 'lucent-1250000000' })
+  @ApiProperty({ example: 'lucent-test-bucket' })
   bucket!: string;
 
   @ApiProperty({

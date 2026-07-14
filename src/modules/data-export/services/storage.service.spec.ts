@@ -19,7 +19,7 @@ describe('DataExportStorageService', () => {
       'application/pdf',
     );
     expect(result.provider).toBe('tencent-cos');
-    expect(result.bucket).toBe('lucent-1250000000');
+    expect(result.bucket).toBe('lucent-test-bucket');
     expect(result.objectKey).toMatch(
       /^exports\/user-1\/\d{4}\/\d{2}\/\d{2}\/[0-9a-f-]+\.pdf$/,
     );
@@ -57,7 +57,7 @@ function testConfig(): TencentCosConfig {
   return {
     secretId: 'secret-id',
     secretKey: 'secret-key',
-    bucket: 'lucent-1250000000',
+    bucket: 'lucent-test-bucket',
     region: 'ap-guangzhou',
     publicBaseUrl: '',
     uploadExpiresSeconds: 600,

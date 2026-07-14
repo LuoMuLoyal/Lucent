@@ -22,7 +22,7 @@ describe('FilesService', () => {
     return {
       secretId: 'secret-id',
       secretKey: 'secret-key',
-      bucket: 'lucent-1250000000',
+      bucket: 'lucent-test-bucket',
       region: 'ap-guangzhou',
       publicBaseUrl: 'https://cdn.example.com/',
       uploadExpiresSeconds: 600,
@@ -60,7 +60,7 @@ describe('FilesService', () => {
       });
 
       expect(result.provider).toBe('tencent-cos');
-      expect(result.bucket).toBe('lucent-1250000000');
+      expect(result.bucket).toBe('lucent-test-bucket');
       expect(result.uploadUrl).toBe('https://signed-upload.example.com');
       expect(result.headers).toEqual({ 'Content-Type': 'image/jpeg' });
       expect(result.maxSizeBytes).toBe(10_485_760);

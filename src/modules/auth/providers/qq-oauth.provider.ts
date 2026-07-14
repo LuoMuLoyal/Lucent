@@ -278,14 +278,7 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
   }
 
   private parseQueryString(qs: string): Record<string, string> {
-    const result: Record<string, string> = {};
-    for (const pair of qs.split('&')) {
-      const [key, ...rest] = pair.split('=');
-      if (key) {
-        result[key] = rest.join('=');
-      }
-    }
-    return result;
+    return Object.fromEntries(new URLSearchParams(qs));
   }
 
   // ── Config ──────────────────────────────────────────────────

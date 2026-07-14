@@ -99,7 +99,11 @@ export class VerificationCodeService {
     const codeKey = this.codeKey(scene, email);
 
     // Store code hash in cache (never store plaintext codes)
-    await this.cache.set(codeKey, this.hashCode(code), this.codeTtlMs);
+    await this.cache.set(
+      codeKey,
+      this.hashCode(code, scene, email),
+      this.codeTtlMs,
+    );
 
     // Set cooldown
     await this.cache.set(cooldownKey, '1', this.cooldownTtlMs);
@@ -164,7 +168,7 @@ export class VerificationCodeService {
       });
     }
 
-    if (!this.safeCompareCode(code, storedHash)) {
+    if (!this.safeCompareCode(code, storedHash, scene, email)) {
       throw new UnauthorizedException({
         code: ResultCode.VERIFICATION_CODE_INVALID,
         message: this.i18n.t('auth.verification_code_wrong'),
@@ -184,12 +188,19 @@ export class VerificationCodeService {
     return num.toString().padStart(this.codeLength, '0');
   }
 
-  private hashCode(code: string): string {
-    return createHash('sha256').update(code).digest('hex');
+  private hashCode(code: string, scene: string, email: string): string {
+    return createHash('sha256')
+      .update(`${scene}:${email}:${code}`)
+      .digest('hex');
   }
 
-  private safeCompareCode(code: string, storedHash: string): boolean {
-    const inputHash = this.hashCode(code);
+  private safeCompareCode(
+    code: string,
+    storedHash: string,
+    scene: string,
+    email: string,
+  ): boolean {
+    const inputHash = this.hashCode(code, scene, email);
     const a = Buffer.from(inputHash);
     const b = Buffer.from(storedHash);
     return a.length === b.length && timingSafeEqual(a, b);

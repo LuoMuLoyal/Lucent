@@ -294,11 +294,9 @@ export class DailyRecordsService {
     }
   }
 
-  private ensureValidSleepPayload(
-    kind: string,
-    payload: Record<string, unknown> | undefined,
-  ) {
-    if (kind !== DailyRecordKind.sleep) return;
+  private validateSleepPayload(
+    payload: Record<string, unknown> | null | undefined,
+  ): void {
     if (payload == null || typeof payload['durationMinutes'] !== 'number') {
       badRequest(
         'Sleep records require payload.durationMinutes as a positive number.',
@@ -307,6 +305,14 @@ export class DailyRecordsService {
     if (payload['durationMinutes'] <= 0) {
       badRequest('Sleep payload.durationMinutes must be a positive number.');
     }
+  }
+
+  private ensureValidSleepPayload(
+    kind: string,
+    payload: Record<string, unknown> | undefined,
+  ) {
+    if (kind !== DailyRecordKind.sleep) return;
+    this.validateSleepPayload(payload);
   }
 
   private ensureValidSleepFinalState(
@@ -320,14 +326,7 @@ export class DailyRecordsService {
       dto.payload !== undefined ? dto.payload : existing.payload;
     const payload = rawPayload as Record<string, unknown> | null;
 
-    if (payload == null || typeof payload['durationMinutes'] !== 'number') {
-      badRequest(
-        'Sleep records require payload.durationMinutes as a positive number.',
-      );
-    }
-    if (payload['durationMinutes'] <= 0) {
-      badRequest('Sleep payload.durationMinutes must be a positive number.');
-    }
+    this.validateSleepPayload(payload);
   }
 
   private async getItemFromTx(

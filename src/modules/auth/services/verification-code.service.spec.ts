@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import {
@@ -88,10 +90,10 @@ describe('VerificationCodeService', () => {
 
       await service.send('test@example.com', 'register');
 
-      // Should set code in cache (5 min TTL)
+      // Should set code hash in cache (5 min TTL)
       expect(cache.set).toHaveBeenCalledWith(
         'vcode:register:test@example.com',
-        expect.stringMatching(/^\d{6}$/), // 6-digit code
+        expect.stringMatching(/^[a-f0-9]{64}$/), // SHA256 hex digest
         DEFAULT_VERIFICATION_CODE_TTL_MS,
       );
 
@@ -165,7 +167,11 @@ describe('VerificationCodeService', () => {
 
   describe('verify', () => {
     it('should return true for correct code and delete from cache', async () => {
-      (cache.get as vi.Mock).mockResolvedValue('123456');
+      // Simulate a stored hash for code '123456' with scene+email salt
+      const storedHash = createHash('sha256')
+        .update('register:test@example.com:123456')
+        .digest('hex');
+      (cache.get as vi.Mock).mockResolvedValue(storedHash);
       (cache.del as vi.Mock).mockResolvedValue(undefined);
 
       const result = await service.verify(
@@ -202,7 +208,11 @@ describe('VerificationCodeService', () => {
     });
 
     it('should throw UnauthorizedException for wrong code', async () => {
-      (cache.get as vi.Mock).mockResolvedValue('654321');
+      // Simulate a stored hash for a DIFFERENT code
+      const wrongHash = createHash('sha256')
+        .update('register:test@example.com:654321')
+        .digest('hex');
+      (cache.get as vi.Mock).mockResolvedValue(wrongHash);
 
       await expect(
         service.verify('test@example.com', '123456', 'register'),
@@ -210,7 +220,11 @@ describe('VerificationCodeService', () => {
     });
 
     it('should throw with VERIFICATION_CODE_INVALID code for wrong code', async () => {
-      (cache.get as vi.Mock).mockResolvedValue('654321');
+      // Simulate a stored hash for a DIFFERENT code
+      const wrongHash = createHash('sha256')
+        .update('register:test@example.com:654321')
+        .digest('hex');
+      (cache.get as vi.Mock).mockResolvedValue(wrongHash);
 
       try {
         await service.verify('test@example.com', '123456', 'register');
@@ -227,7 +241,11 @@ describe('VerificationCodeService', () => {
 
   describe('cache key format', () => {
     it('should use correct cache key format for code', async () => {
-      (cache.get as vi.Mock).mockResolvedValue('111111');
+      // Simulate a stored hash for code '111111' with scene+email salt
+      const storedHash = createHash('sha256')
+        .update('login:user@test.com:111111')
+        .digest('hex');
+      (cache.get as vi.Mock).mockResolvedValue(storedHash);
       (cache.del as vi.Mock).mockResolvedValue(undefined);
 
       await service.verify('user@test.com', '111111', 'login');

@@ -34,7 +34,7 @@ describe('DailyRecordImageUploadService', () => {
     expect(signedPutArgs?.contentType).toBe('image/jpeg');
     expect(signedPutArgs?.objectKey).toMatch(expectedObjectKeyPattern);
     expect(result.provider).toBe('tencent-cos');
-    expect(result.bucket).toBe('lucent-1250000000');
+    expect(result.bucket).toBe('lucent-test-bucket');
     expect(result.uploadUrl).toBe('https://signed-upload.example.com');
     expect(result.publicUrl).toMatch(
       /^https:\/\/cdn\.example\.com\/daily-records\/user-1\//,
@@ -89,7 +89,7 @@ function testConfig(): TencentCosConfig {
   return {
     secretId: 'secret-id',
     secretKey: 'secret-key',
-    bucket: 'lucent-1250000000',
+    bucket: 'lucent-test-bucket',
     region: 'ap-guangzhou',
     publicBaseUrl: 'https://cdn.example.com/',
     uploadExpiresSeconds: 600,
