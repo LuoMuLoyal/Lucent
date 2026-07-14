@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { ResultCode } from '../../../common/api';
 import type { Request, Response } from 'express';
 import { OAuthController } from './oauth.controller';
@@ -45,12 +44,6 @@ describe('OAuthController', () => {
             loginWithApple: vi.fn(),
             createQqAuthorizeUrl: vi.fn(),
             loginWithQq: vi.fn(),
-          },
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: vi.fn().mockReturnValue(false),
           },
         },
       ],

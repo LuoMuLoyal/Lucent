@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { ResultCode } from '../../../common/api';
 import type { Request } from 'express';
 import { LocalController } from './local.controller';
@@ -51,12 +50,6 @@ describe('LocalController', () => {
           provide: VerificationCodeService,
           useValue: {
             getCooldownSec: vi.fn().mockReturnValue(60),
-          },
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: vi.fn().mockReturnValue(false),
           },
         },
       ],

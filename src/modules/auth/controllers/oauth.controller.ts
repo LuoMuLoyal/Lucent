@@ -19,8 +19,6 @@ import {
 import type { Request, Response } from 'express';
 
 import { successEnvelope } from '../../../common/api';
-import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../../config/config-keys.enum';
 import { getRequestClientIp } from '../../../common/helpers/client-ip';
 import { AuthService } from '../services/auth.service';
 import type { AuthRequestContext } from '../types/auth-request';
@@ -41,10 +39,7 @@ import { buildAuthResponse } from './auth-response.helper';
 @ApiTags('Auth')
 @Controller('auth')
 export class OAuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   // ── POST /api/v1/auth/oauth/wechat-web/authorize ─────────────
 
@@ -151,18 +146,11 @@ export class OAuthController {
     return buildAuthResponse(result.user, result);
   }
 
-  private get trustProxy(): boolean {
-    return this.configService.get<boolean>(
-      `${ConfigKey.App}.trustProxy`,
-      false,
-    );
-  }
-
   private getAuthRequestContext(request: Request): AuthRequestContext {
     const userAgent = request.headers['user-agent'];
 
     return {
-      ipAddress: getRequestClientIp(request, this.trustProxy),
+      ipAddress: getRequestClientIp(request),
       ...(userAgent !== undefined && { userAgent }),
     };
   }

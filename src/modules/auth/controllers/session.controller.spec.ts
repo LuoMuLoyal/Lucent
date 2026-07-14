@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { ResultCode } from '../../../common/api';
 import type { Request } from 'express';
 import { SessionController } from './session.controller';
@@ -47,12 +46,6 @@ describe('SessionController', () => {
           useValue: {
             listSessions: vi.fn(),
             revokeById: vi.fn().mockResolvedValue(undefined),
-          },
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: vi.fn().mockReturnValue(false),
           },
         },
       ],

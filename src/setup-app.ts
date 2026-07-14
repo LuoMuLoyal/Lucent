@@ -5,7 +5,7 @@ import {
   VersioningType,
 } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import type { Request, Response } from 'express';
+import type { Express, Request, Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import helmet from 'helmet';
@@ -29,6 +29,17 @@ export function setupApp(
   app: INestApplication,
   configService: ConfigService,
 ): void {
+  // ── Express trust proxy ───────────────────────────────────────
+  // When enabled, Express resolves `req.ip` from `X-Forwarded-For`
+  // instead of the raw socket address. Must be set before any middleware
+  // that reads `req.ip`.
+  const trustProxy = configService.get<boolean>(
+    `${ConfigKey.App}.trustProxy`,
+    false,
+  );
+  const expressInstance = app.getHttpAdapter().getInstance() as Express;
+  expressInstance.set('trust proxy', trustProxy);
+
   // ── Helmet security headers ─────────────────────────────────────
   app.use(helmet());
 

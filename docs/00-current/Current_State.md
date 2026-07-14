@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-13
+Last updated: 2026-07-14
 
 本文件只保留简介和按区域链接。具体后端实现细节见 `00-current/` 下各子文件。
 
@@ -164,6 +164,11 @@ Last updated: 2026-07-13
 - **工具配置 TS 化**：`eslint.config.mjs` → `eslint.config.ts`（新增 `jiti` devDependency）；`commitlint.config.mjs` → `commitlint.config.ts`（commitlint v21 内置 `cosmiconfig-typescript-loader`）
 - **Luminous-website 同步**：`eslint.config.mjs` → `eslint.config.ts`；`commitlint.config.cjs` → `commitlint.config.ts`（CJS → ESM 语法转换）
 - 此后项目中除编译产物（`drift_worker.js`、`flutter_bootstrap.js`）外不再有 `.js`/`.mjs`/`.cjs` 文件
+
+## 2026-07-14 NestJS 12 升级准备
+
+- **移除 `request-ip`**：未维护库（2019 年最后更新），由 Express 5 原生 `req.ip` + `app.set('trust proxy', ...)` 替代；3 个 auth controller 移除 `ConfigService`/`trustProxy` 耦合
+- **NestJS 12 alpha 评估**：核心包已有 `12.0.0-alpha.5`，peerDeps 仍为 rxjs 7 / reflect-metadata 0.2 / Node >=20，项目当前技术栈全部满足；生态包（throttler/jwt/passport）尚无 v12 alpha，需等待
 
 ## 相关文档
 

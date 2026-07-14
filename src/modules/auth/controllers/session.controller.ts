@@ -20,8 +20,6 @@ import type { Request } from 'express';
 
 import { successEnvelope } from '../../../common/api';
 import { getRequestClientIp } from '../../../common/helpers/client-ip';
-import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../../config/config-keys.enum';
 import { calculateExpiresIn } from '../../../common/helpers/date-time.utils';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
@@ -40,7 +38,6 @@ export class SessionController {
   constructor(
     private readonly authService: AuthService,
     private readonly authTokenService: AuthTokenService,
-    private readonly configService: ConfigService,
   ) {}
 
   // ── POST /api/v1/auth/logout ────────────────────────────────
@@ -102,18 +99,11 @@ export class SessionController {
     });
   }
 
-  private get trustProxy(): boolean {
-    return this.configService.get<boolean>(
-      `${ConfigKey.App}.trustProxy`,
-      false,
-    );
-  }
-
   private getAuthRequestContext(request: Request): AuthRequestContext {
     const userAgent = request.headers['user-agent'];
 
     return {
-      ipAddress: getRequestClientIp(request, this.trustProxy),
+      ipAddress: getRequestClientIp(request),
       ...(userAgent !== undefined && { userAgent }),
     };
   }
