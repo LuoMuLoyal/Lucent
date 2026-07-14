@@ -133,11 +133,11 @@ export function setupApp(
   );
 }
 
-function formatValidationErrors(errors: ValidationError[]): string {
+export function formatValidationErrors(errors: ValidationError[]): string {
   return errors.flatMap(collectValidationMessages).join('; ');
 }
 
-function collectValidationMessages(error: ValidationError): string[] {
+export function collectValidationMessages(error: ValidationError): string[] {
   const currentMessages = Object.values(error.constraints ?? {});
   const childMessages = (error.children ?? []).flatMap(
     collectValidationMessages,
