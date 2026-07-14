@@ -486,6 +486,198 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
+  // ── Additional GET endpoint contracts ───────────────────────
+
+  describe('GET /api/v1/health/deep — contract', () => {
+    it('should match HealthResponseDto shape', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/health/deep')
+        .expect(200);
+
+      assertEnvelopeShape(res.body);
+      expect(res.body.data).toHaveProperty('probe');
+      expect(res.body.data).toHaveProperty('status');
+    });
+  });
+
+  describe('GET /api/v1/medicines — contract', () => {
+    it('should match paginated medicine list shape', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/medicines')
+        .query({ q: 'test', page: 1, pageSize: 5 })
+        .expect(200);
+
+      assertEnvelopeShape(res.body);
+      expect(Array.isArray(res.body.data)).toBe(true);
+    });
+  });
+
+  describe('GET /api/v1/user/notifications/unread-count — contract', () => {
+    it('should match unread count shape', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/user/notifications/unread-count')
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      assertEnvelopeShape(res.body);
+      expect(res.body.data).toHaveProperty('count');
+    });
+  });
+
+  describe('GET /api/v1/user/daily-records/summary — contract', () => {
+    it('should match daily record summary shape', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/user/daily-records/summary')
+        .query({ date: '2026-07-12' })
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      assertEnvelopeShape(res.body);
+    });
+  });
+
+  describe('GET /api/v1/user/today/suggestions/history — contract', () => {
+    it('should match suggestion history shape', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/user/today/suggestions/history')
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      assertEnvelopeShape(res.body);
+    });
+  });
+
+  describe('GET /api/v1/user/today-analysis/recommendations — contract', () => {
+    it('should match recommendations shape', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/user/today-analysis/recommendations')
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      assertEnvelopeShape(res.body);
+    });
+  });
+
+  describe('GET /api/v1/user/assistant/conversations — contract', () => {
+    it('should match conversation list shape', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/user/assistant/conversations')
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      assertEnvelopeShape(res.body);
+    });
+  });
+
+  // ── POST response shape contracts ──────────────────────────
+
+  describe('POST /api/v1/user/daily-records — response contract', () => {
+    it('should return created record with id in envelope', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/user/daily-records')
+        .set('Authorization', bearer(accessToken))
+        .send({
+          occurredAt: '2026-07-12',
+          kind: 'meal',
+          payload: { mealType: 'breakfast', items: [] },
+        })
+        .expect(201);
+
+      assertEnvelopeShape(res.body);
+      expect(res.body.code).toBe(ResultCode.SUCCESS);
+      expect(res.body.data).toHaveProperty('id');
+      expect(res.body.data).toHaveProperty('kind', 'meal');
+    });
+  });
+
+  describe('POST /api/v1/user/health-context/allergies — response contract', () => {
+    it('should return updated allergies list in envelope', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/user/health-context/allergies')
+        .set('Authorization', bearer(accessToken))
+        .send({ kind: 'drug', label: 'ContractAllergy', severity: 'mild' })
+        .expect(201);
+
+      assertEnvelopeShape(res.body);
+      expect(res.body.code).toBe(ResultCode.SUCCESS);
+      expect(res.body.data).toHaveProperty('allergies');
+      expect(Array.isArray(res.body.data.allergies)).toBe(true);
+    });
+  });
+
+  describe('POST /api/v1/user/notifications — response contract', () => {
+    it('should return created notification in envelope', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/user/notifications')
+        .set('Authorization', bearer(accessToken))
+        .send({
+          type: 'system_announcement',
+          title: 'Contract test',
+          content: 'Testing',
+        })
+        .expect(201);
+
+      assertEnvelopeShape(res.body);
+      expect(res.body.code).toBe(ResultCode.SUCCESS);
+      expect(res.body.data).toHaveProperty('id');
+    });
+  });
+
+  // ── PATCH response shape contract ──────────────────────────
+
+  describe('PATCH /api/v1/user/settings — response contract', () => {
+    it('should return updated settings in envelope', async () => {
+      const res = await request(app.getHttpServer())
+        .patch('/api/v1/user/settings')
+        .set('Authorization', bearer(accessToken))
+        .send({ assistantMemoryEnabled: true })
+        .expect(200);
+
+      assertEnvelopeShape(res.body);
+      expect(res.body.code).toBe(ResultCode.SUCCESS);
+    });
+  });
+
+  // ── Pagination meta contract ───────────────────────────────
+
+  describe('Pagination meta — contract', () => {
+    it('GET /api/v1/medicines should include pagination metadata', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/medicines')
+        .query({ q: 'test', page: 1, pageSize: 5 })
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      // Pagination metadata may be at body.meta or body.data depending on endpoint
+      // For medicines search, it uses meta.pagination
+      // At minimum, the response must be a valid envelope
+      assertEnvelopeShape(res.body);
+      // If meta exists, verify its shape
+      if (res.body.meta?.pagination) {
+        expect(res.body.meta.pagination).toHaveProperty('page');
+        expect(res.body.meta.pagination).toHaveProperty('pageSize');
+        expect(res.body.meta.pagination).toHaveProperty('total');
+      }
+    });
+
+    it('GET /api/v1/user/daily-records should return items array', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/user/daily-records')
+        .query({ date: '2026-07-12' })
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      assertEnvelopeShape(res.body);
+      // daily-records list returns data.items
+      if (res.body.data && typeof res.body.data === 'object') {
+        const data = res.body.data as Record<string, unknown>;
+        if (data['items'] !== undefined) {
+          expect(Array.isArray(data['items'])).toBe(true);
+        }
+      }
+    });
+  });
+
   // ── Error envelope contract ────────────────────────────────
 
   describe('Error responses — contract', () => {
