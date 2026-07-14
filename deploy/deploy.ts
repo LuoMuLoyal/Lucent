@@ -76,7 +76,14 @@ function readEnvFile(envPath: string): Record<string, string> {
     const eqIndex = trimmed.indexOf('=');
     if (eqIndex === -1) continue;
     const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
+    // Strip surrounding matching quotes
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
     map[key] = value;
   }
   return map;
@@ -100,16 +107,23 @@ function setEnvValue(envPath: string, key: string, value: string): void {
 // ── Docker Compose helpers ─────────────────────────────────────
 
 function compose(args: string[], { silent = false } = {}): string {
-  const cmd = `docker compose ${args.map((a) => `'${a}'`).join(' ')}`;
   try {
-    const output = execSync(cmd, {
+    const result = spawnSync('docker', ['compose', ...args], {
       cwd: DEPLOY_DIR,
       encoding: 'utf8',
       stdio: silent
         ? ['ignore', 'pipe', 'pipe']
         : ['inherit', 'inherit', 'inherit'],
     });
-    return output?.trim() ?? '';
+    if (result.status !== 0) {
+      if (silent && result.stderr) {
+        console.error(result.stderr);
+      }
+      throw new Error(
+        `docker compose ${args.join(' ')} exited with code ${result.status}`,
+      );
+    }
+    return result.stdout?.trim() ?? '';
   } catch (err) {
     if (silent) {
       console.error(
@@ -141,7 +155,7 @@ function inspectHealthStatus(containerId: string): string {
 }
 
 function sleep(seconds: number): void {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, seconds * 1000);
+  execSync(`sleep ${seconds}`);
 }
 
 function waitForService(
@@ -220,7 +234,7 @@ function runMigrate(imageRef: string, postgresPassword: string): void {
     getEnvValue(envFile, 'COMPOSE_PROJECT_NAME') || 'lucent-production';
   const networkName = `${projectName}_backend`;
 
-  const databaseUrl = `postgresql://lucent:${postgresPassword}@postgres:5432/lucent?schema=public`;
+  const databaseUrl = `postgresql://lucent:${encodeURIComponent(postgresPassword)}@postgres:5432/lucent?schema=public`;
 
   execSync(
     [
@@ -348,7 +362,11 @@ function deploy(): void {
     runSmokeTest();
   } catch (err) {
     console.error('\n  Smoke test FAILED! Initiating rollback...');
-    rollback();
+    try {
+      rollback();
+    } catch (rollbackErr) {
+      console.error('  Rollback also failed:', rollbackErr);
+    }
     throw err;
   }
 

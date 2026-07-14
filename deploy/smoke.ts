@@ -12,7 +12,7 @@
  * /metrics auth checks use `docker exec` to run curl inside the container.
  */
 
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 
 const DEPLOY_DIR = process.cwd();
 
@@ -41,10 +41,14 @@ function runCurl(url: string, opts: CurlOptions = {}): string {
   }
   args.push(url);
 
-  return execSync(`curl ${args.map((a) => `'${a}'`).join(' ')}`, {
+  const result = spawnSync('curl', args, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
-  }).trim();
+  });
+  if (result.status !== 0) {
+    throw new Error(`curl failed with code ${result.status}: ${result.stderr}`);
+  }
+  return result.stdout.trim();
 }
 
 function runCurlStatus(url: string, opts: CurlOptions = {}): number {
@@ -57,13 +61,14 @@ function runCurlStatus(url: string, opts: CurlOptions = {}): number {
   }
   args.push(url);
 
-  return parseInt(
-    execSync(`curl ${args.map((a) => `'${a}'`).join(' ')}`, {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    }).trim(),
-    10,
-  );
+  const result = spawnSync('curl', args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.status !== 0) {
+    throw new Error(`curl failed with code ${result.status}: ${result.stderr}`);
+  }
+  return parseInt(result.stdout.trim(), 10);
 }
 
 /**
@@ -84,14 +89,17 @@ function runCurlInContainer(
   }
   args.push(url);
 
-  return execSync(
-    `docker exec ${containerName} curl ${args.map((a) => `'${a}'`).join(' ')}`,
-    {
-      cwd: DEPLOY_DIR,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  ).trim();
+  const result = spawnSync('docker', ['exec', containerName, 'curl', ...args], {
+    cwd: DEPLOY_DIR,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `docker exec curl failed with code ${result.status}: ${result.stderr}`,
+    );
+  }
+  return result.stdout.trim();
 }
 
 function runCurlStatusInContainer(
@@ -108,17 +116,17 @@ function runCurlStatusInContainer(
   }
   args.push(url);
 
-  return parseInt(
-    execSync(
-      `docker exec ${containerName} curl ${args.map((a) => `'${a}'`).join(' ')}`,
-      {
-        cwd: DEPLOY_DIR,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'pipe'],
-      },
-    ).trim(),
-    10,
-  );
+  const result = spawnSync('docker', ['exec', containerName, 'curl', ...args], {
+    cwd: DEPLOY_DIR,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `docker exec curl failed with code ${result.status}: ${result.stderr}`,
+    );
+  }
+  return parseInt(result.stdout.trim(), 10);
 }
 
 function ensureServicesRunning(): {
