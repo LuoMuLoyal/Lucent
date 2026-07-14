@@ -3,7 +3,7 @@
   "tsconfig": "tsconfig.json",
   "output": "docs/compodoc",
   "name": "Lucent Architecture",
-  "theme": "gitbook",
+  "theme": "stripe",
   "disableCoverage": true,
   "disablePrivate": true,
   "disableProtected": false,

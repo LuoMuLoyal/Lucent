@@ -20,10 +20,13 @@ import type { UserPayload } from '../services/auth.service';
  *    return userId;
  *  }
  */
-export const CurrentUser = createParamDecorator(
-  (data: keyof UserPayload | undefined, ctx: ExecutionContext) => {
-    const request: { user?: UserPayload } = ctx.switchToHttp().getRequest();
-    const user = request.user;
-    return data ? user?.[data] : user;
-  },
-);
+export const currentUserFactory = (
+  data: keyof UserPayload | undefined,
+  ctx: ExecutionContext,
+) => {
+  const request: { user?: UserPayload } = ctx.switchToHttp().getRequest();
+  const user = request.user;
+  return data ? user?.[data] : user;
+};
+
+export const CurrentUser = createParamDecorator(currentUserFactory);

@@ -1,6 +1,6 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-12
+Last updated: 2026-07-14
 
 - auth 模块三处静默 catch 补充 logger.warn：`auth.service.ts` refresh、`auth-oauth-state.service.ts`
   normalizeCallbackUri、`credential-auth.service.ts` \_notifyPasswordChanged，保留生产环境可观测性。
@@ -117,3 +117,18 @@ Last updated: 2026-07-12
   - `auth/controllers/auth-response.helper.spec.ts`（6 tests）：auth response 序列化、null 字段处理
   - `environment.service.spec.ts` 边界补全（2→9 tests）：仅 lat/lon 降级、热带/高纬度/南北中纬度区域选择
   - 测试总量：197 suites / 1743 tests（+6 suites / +176 tests）
+
+- 2026-07-14 测试缺口补充：为 12 个无测试的源文件新增 spec，共 +87 tests：
+  - 配置文件测试（3 个 spec，+21 tests）：`oauth.config.spec.ts`（6 tests）、`mail.config.spec.ts`（4 tests）、`tencent-cos.config.spec.ts`（5 tests）——覆盖 env 读取、默认值、自定义值场景
+  - 装饰器测试（4 个 spec，+15 tests）：`current-user.decorator.spec.ts`（6 tests，重构导出 `currentUserFactory`）、`public.decorator.spec.ts`（3 tests）、`skip-api-envelope.decorator.spec.ts`（3 tests）、`require-elevation.decorator.spec.ts`（3 tests）——覆盖 metadata 设置、字段提取、空值场景
+  - Zod schema 测试（4 个 spec，+33 tests）：`daily-record-candidates.schema.spec.ts`（23 tests，导出 `sleepPayloadSchema`）、`report-summary.schema.spec.ts`（11 tests）、`analysis.schema.spec.ts`（9 tests）、`explanation.schema.spec.ts`（6 tests）——覆盖验证约束、边界值、枚举、长度限制
+  - `setup-app.spec.ts`（8 tests）：导出 `formatValidationErrors` 和 `collectValidationMessages`，覆盖递归子错误、嵌套约束、空数组场景
+  - 源码改动：`current-user.decorator.ts` 导出 `currentUserFactory`；`setup-app.ts` 导出两个格式化函数；`daily-record-candidates.schema.ts` 导出 `sleepPayloadSchema`
+
+- 2026-07-14 测试缺口补充（第三轮）：为 6 个无测试的源文件新增 spec，共 +100 tests：
+  - `report-pdf.theme.spec.ts`（28 tests）：覆盖 `kindLabel`/`statusPalette`/`metricLabel`/`statusLabel` 四个纯函数，中英文 × 各状态/类型组合
+  - `message.schema.spec.ts`（11 tests）：覆盖 `assistantMessageRoleSchema` 枚举、`assistantMessageSchema` 长度边界/空值/trim
+  - `reference.spec.ts`（14 tests）：覆盖 `getStaticEnvironmentSnapshot` 区域选择逻辑（default/china_temperate/tropical/high_latitude/northern/southern）、边界值、深拷贝
+  - `auth.decorators.spec.ts`（23 tests）：覆盖 `IsStrongPassword`/`IsVerificationCode`/`IsEmailAddress` 装饰器及密码常量/正则
+  - `tool-definitions.spec.ts`（7 tests）：覆盖 `buildToolDefinitions` 空数组/单个/全量/顺序/描述/schema
+  - `user-settings/constants.spec.ts`（17 tests）：覆盖 `USER_SETTING_KEYS`/`ASSISTANT_CONTEXT_SETTING_KEYS`/默认值/`listDefaultBooleanUserSettings`
