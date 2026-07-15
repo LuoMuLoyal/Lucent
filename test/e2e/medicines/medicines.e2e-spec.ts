@@ -1,9 +1,11 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
+import type { Cache } from 'cache-manager';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
@@ -336,6 +338,10 @@ describe('Medicines API (e2e)', () => {
     });
 
     it('should return empty array when no active tips exist', async () => {
+      // Clear safety-tips cache so stale entries from previous tests don't interfere
+      const cache = app.get<Cache>(CACHE_MANAGER);
+      await cache.del('medicines:safety-tips:all');
+
       await prisma.medicineSafetyTip.deleteMany();
 
       const response = await request(app.getHttpServer())

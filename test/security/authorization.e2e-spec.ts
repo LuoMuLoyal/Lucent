@@ -259,7 +259,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .post('/api/v1/user/notifications')
         .set('Authorization', bearer(aliceToken))
         .send({
-          type: 'system_announcement',
+          type: 'medicine_reminder',
           title: 'Alice notification',
           content: 'Private content',
         })

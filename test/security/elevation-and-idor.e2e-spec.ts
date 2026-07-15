@@ -12,7 +12,7 @@ import {
   SECURITY_ELEVATION_HEADER,
 } from '../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
-import type { ApiEnvelope } from '../../src/common/api';
+import { ResultCode, type ApiEnvelope } from '../../src/common/api';
 
 /**
  * Security tests:
@@ -74,7 +74,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/user/data-export-requests')
         .set('Authorization', bearer(aliceToken))
-        .send({ kind: 'daily_records', format: 'json', range: 'last_30_days' })
+        .send({ kind: 'hospital', format: 'pdf', range: 'last_30_days' })
         .expect(403);
     });
 
@@ -83,7 +83,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
         .post('/api/v1/user/data-export-requests')
         .set('Authorization', bearer(aliceToken))
         .set(SECURITY_ELEVATION_HEADER, 'Bearer invalid-token')
-        .send({ kind: 'daily_records', format: 'json', range: 'last_30_days' })
+        .send({ kind: 'hospital', format: 'pdf', range: 'last_30_days' })
         .expect(403);
     });
 
@@ -94,7 +94,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
         .post('/api/v1/user/data-export-requests')
         .set('Authorization', bearer(aliceToken))
         .set(SECURITY_ELEVATION_HEADER, `Bearer ${elevationToken}`)
-        .send({ kind: 'daily_records', format: 'json', range: 'last_30_days' })
+        .send({ kind: 'hospital', format: 'pdf', range: 'last_30_days' })
         .expect(201);
 
       expect(res.body.code).toBe(0);
@@ -147,7 +147,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
         .set('Authorization', bearer(aliceToken))
         .send({
           reminderId,
-          occurredAt: '2026-07-12T08:00:00.000Z',
+          scheduledFor: '2026-07-12',
           status: 'taken',
         })
         .expect(201);
@@ -196,7 +196,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
   // ── Mass Assignment Protection ─────────────────────────────
 
   describe('Mass assignment protection', () => {
-    it('PATCH /account should ignore unknown fields like role', async () => {
+    it('PATCH /account should reject unknown fields like role (forbidNonWhitelisted)', async () => {
       const res = await request(app.getHttpServer())
         .patch('/api/v1/account')
         .set('Authorization', bearer(aliceToken))
@@ -206,18 +206,13 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
           isVerified: true,
           status: 'active',
         })
-        .expect(200);
+        .expect(400);
 
-      // Should succeed and return updated nickname
-      expect(res.body.code).toBe(0);
-      expect(res.body.data.nickname).toBe('UpdatedNick');
-
-      // Should NOT have admin role or isVerified field from the injection
-      expect(res.body.data).not.toHaveProperty('role');
-      expect(res.body.data).not.toHaveProperty('isVerified');
+      // forbidNonWhitelisted rejects the request — mass assignment is prevented
+      expect(res.body.code).toBe(ResultCode.VALIDATION_FAILED);
     });
 
-    it('POST /daily-records should ignore unknown fields', async () => {
+    it('POST /daily-records should reject unknown fields (forbidNonWhitelisted)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/user/daily-records')
         .set('Authorization', bearer(aliceToken))
@@ -228,24 +223,10 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
           userId: bob.id, // attempt to set another user's ID
           isVerified: true,
         })
-        .expect(201);
+        .expect(400);
 
-      // The record should belong to Alice, not Bob
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toHaveProperty('id');
-      // Verify the record belongs to Alice by reading it back
-      const recordId = res.body.data.id;
-      const getRes = await request(app.getHttpServer())
-        .get(`/api/v1/user/daily-records/${recordId}`)
-        .set('Authorization', bearer(aliceToken))
-        .expect(200);
-      expect(getRes.body.data.id).toBe(recordId);
-
-      // Bob should NOT be able to access this record
-      await request(app.getHttpServer())
-        .get(`/api/v1/user/daily-records/${recordId}`)
-        .set('Authorization', bearer(bobToken))
-        .expect(404);
+      // forbidNonWhitelisted rejects the request — mass assignment is prevented
+      expect(res.body.code).toBe(ResultCode.VALIDATION_FAILED);
     });
   });
 });

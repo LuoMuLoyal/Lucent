@@ -511,6 +511,7 @@ describe('Daily Records API (e2e)', () => {
     expect(data.items).toHaveLength(2);
     expect(data.items[0]?.kind).toBe('symptom');
     expect(candidateService.generate.mock.calls).toContainEqual([
+      user.id,
       {
         text: '今天头疼，早上喝了两杯水。',
         occurredAt: '2026-06-14',

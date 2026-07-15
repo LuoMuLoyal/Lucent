@@ -1,6 +1,7 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -53,16 +54,24 @@ export class SecurityElevationGuard implements CanActivate {
       request.headers['x-security-elevation'],
     );
     if (!token) {
-      throw new UnauthorizedException({
-        code: ResultCode.UNAUTHORIZED,
+      throw new ForbiddenException({
+        code: ResultCode.FORBIDDEN,
         message: this.t('security_pin.elevation_token_invalid'),
       });
     }
 
-    const payload = await this.securityPinService.verifyElevationToken(
-      token,
-      user.sub,
-    );
+    let payload: SecurityElevationPayload;
+    try {
+      payload = await this.securityPinService.verifyElevationToken(
+        token,
+        user.sub,
+      );
+    } catch {
+      throw new ForbiddenException({
+        code: ResultCode.FORBIDDEN,
+        message: this.t('security_pin.elevation_token_invalid'),
+      });
+    }
     request.securityElevation = payload;
     return true;
   }

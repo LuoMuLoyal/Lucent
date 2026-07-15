@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { ExecutionContext } from '@nestjs/common';
-import { UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException, ForbiddenException } from '@nestjs/common';
 
 import { SecurityElevationGuard } from './elevation.guard';
 import { SecurityPinService } from '../services/pin.service';
@@ -103,7 +103,7 @@ describe('SecurityElevationGuard', () => {
     const context = createMockContext({ handlerMetadata: true });
 
     await expect(guard.canActivate(context)).rejects.toThrow(
-      UnauthorizedException,
+      ForbiddenException,
     );
   });
 
@@ -114,7 +114,22 @@ describe('SecurityElevationGuard', () => {
     });
 
     await expect(guard.canActivate(context)).rejects.toThrow(
-      UnauthorizedException,
+      ForbiddenException,
+    );
+  });
+
+  it('rejects with ForbiddenException when verifyElevationToken throws', async () => {
+    securityPinService.verifyElevationToken.mockRejectedValue(
+      new UnauthorizedException('invalid'),
+    );
+
+    const context = createMockContext({
+      handlerMetadata: true,
+      headers: { 'x-security-elevation': 'Bearer bad-token' },
+    });
+
+    await expect(guard.canActivate(context)).rejects.toThrow(
+      ForbiddenException,
     );
   });
 });
