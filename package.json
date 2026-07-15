@@ -57,7 +57,6 @@
     "docs:compodoc": "compodoc -c compodoc.json"
   },
   "dependencies": {
-    "@adminjs/express": "^6.1.1",
     "@babel/plugin-syntax-import-assertions": "7.29.7",
     "@fontpkg/source-han-sans-sc-vf": "^2.5.3",
     "@langchain/community": "^1.1.29",
@@ -70,7 +69,6 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-fastify": "^11.1.0",
     "@fastify/cors": "^11.0.0",
     "@fastify/helmet": "^13.0.0",
@@ -98,9 +96,6 @@
     "cos-nodejs-sdk-v5": "^2.15.4",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
-    "express-formidable": "^1.2.0",
-    "express-session": "^1.19.0",
-    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "keyv": "^5.6.0",
     "langchain": "1.4.4",
@@ -136,7 +131,6 @@
     "@scalar/nestjs-api-reference": "^1.2.6",
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.40",
-    "@types/express": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^8.0.0",
