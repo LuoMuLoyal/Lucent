@@ -652,7 +652,6 @@ model CnMedicineProduct {
   matchQualityLeaflet    Int?              @map("match_quality_leaflet")
   matchQualityPenalty    Int?              @map("match_quality_penalty")
   matchQualityNotes      Json?             @map("match_quality_notes") @db.JsonB
-  drugbankIds            Json?             @map("drugbank_ids") @db.JsonB
   searchText             String?           @map("search_text")
   extras                 Json?             @db.JsonB
   createdAt              DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)

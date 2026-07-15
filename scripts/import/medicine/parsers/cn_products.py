@@ -129,7 +129,6 @@ def to_record(row_number: int, row: dict[str, Any]) -> dict[str, Any] | None:
         "match_quality_leaflet": parse_int_or_none(row.get("match_quality_leaflet")),
         "match_quality_penalty": parse_int_or_none(row.get("match_quality_penalty")),
         "match_quality_notes": parse_pipe_list(row.get("match_quality_notes")),
-        "drugbank_ids": parse_pipe_list(row.get("drugbank_ids")),
         "extras": None,
     }
     return record

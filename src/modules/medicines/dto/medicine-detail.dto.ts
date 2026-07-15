@@ -181,13 +181,6 @@ export class CnMedicineDetailDto {
 
   @ApiPropertyOptional({ nullable: true, type: String })
   imageUrl!: string | null;
-
-  @ApiPropertyOptional({
-    nullable: true,
-    type: [String],
-    description: 'Optional mapped DrugBank IDs used for interaction checking.',
-  })
-  drugbankIds!: string[] | null;
 }
 
 export class MedicineDetailDataDto {

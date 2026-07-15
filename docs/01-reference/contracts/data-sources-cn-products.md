@@ -76,8 +76,8 @@ cleaned yaozs rows. When no instruction matches a product, the product row still
 - **`match_quality_leaflet`** → `match_quality_leaflet` — Leaflet completeness quality component.
 - **`match_quality_penalty`** → `match_quality_penalty` — Multi-candidate / conflict penalty.
 - **`match_quality_notes`** → `match_quality_notes` — Quality notes as a JSONB array.
-- **`drugbank_ids`** → `drugbank_ids` — Optional source field, currently not populated in the local
-  V2 snapshot and not used as a runtime bridge.
+
+> **ADR-0008**: CN↔DrugBank 药品映射字段 (`drugbank_ids`) 已删除。跨源药品查询由 LLM 自主通过工具链完成，不依赖预建映射表。详见 [ADR-0008](../adr/0008-no-cn-drugbank-medicine-mapping.md)。
 
 In V2, `ProductsEnriched` no longer flattens matched instruction text into the product row.
 Structured instruction text lives in `cn_medicine_leaflets`, and `cn_medicine_products` only carries
@@ -143,8 +143,7 @@ Key V2 improvements over V1:
 - **Multiple candidates:** top-5 instruction candidates are retained per product.
 - **Normalized manufacturers:** `manufacturer_normalized` improves matching and search.
 - **Cleaned images:** placeholder image URLs are emptied.
-- **DrugBank bridge:** optional `drugbank_ids` source field; currently not populated and not used as
-  a runtime bridge.
+- **DrugBank bridge:** not maintained — CN↔DrugBank mapping is explicitly out of scope (ADR-0008). Cross-source queries are handled by the LLM assistant's tool chain.
 
 Cleaning rules applied during build:
 

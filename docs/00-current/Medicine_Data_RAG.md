@@ -22,16 +22,15 @@ Last updated: 2026-07-09
 - Local development database currently has populated `medicine_leaflet_chunks`,
   `drugbank_passage_chunks`, and `medical_qa_chunks`, but assistant vector-store bootstrap is
   still blocked until the database runtime provides the `pgvector` extension itself.
-- The locked CN master source currently has no usable built-in CN -> DrugBank bridge table or alias
-  map: the reviewed `ProductsEnriched.drugbank_ids` column exists in the local V2 workbook
-  snapshot but has 0 populated rows, so it is not treated as a runtime bridge.
-- Lucent does not maintain a runtime CN -> DrugBank mapping bridge or alias table. Cross-source
+- Lucent does not maintain a runtime CN → DrugBank mapping bridge or alias table. Cross-source
   questions are handled by the assistant's source-split structured lookup tools, which return
-  separate CN and DrugBank evidence without asserting a single merged entity.
+  separate CN and DrugBank evidence without asserting a single merged entity. This decision is
+  formalized in [ADR-0008](../adr/0008-no-cn-drugbank-medicine-mapping.md): no CN↔DrugBank
+  mapping will be built — the `drugbank_ids` field has been removed from `cn_medicine_products`.
 - Medicine dose logs now have a slot-aware contract: a single dose log can carry `reminderId` +
   `scheduledTime` to distinguish multiple reminder slots for the same medicine on the same day.
   A new idempotent `POST /api/v1/user/medicine-dose-logs/mark` endpoint matches by
   `reminderId + scheduledFor` (preferred), falling back to `currentMedicineId + scheduledFor +
-  scheduledTime`, then to `currentMedicineId + scheduledFor`.
+scheduledTime`, then to `currentMedicineId + scheduledFor`.
 - Today analysis water target is now read from the `user_settings` DB table (`waterTargetCount`,
   range 1-30) instead of a hardcoded constant, allowing per-user personalization.

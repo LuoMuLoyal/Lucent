@@ -48,7 +48,6 @@ describe('CnMedicinesService', () => {
       storage: '密封保存',
       validityPeriod: '36个月',
       sourceUrl: 'https://example.com/source',
-      drugbankIds: ['DB00945'],
       ...overrides,
     };
   }
@@ -124,39 +123,6 @@ describe('CnMedicinesService', () => {
       expect(result!.source).toBe('cn');
       expect(result!.name).toBe('阿司匹林');
       expect(result!.detail.kind).toBe('cnProduct');
-    });
-
-    it('parses drugbankIds from array', async () => {
-      prisma.cnMedicineProduct.findUnique.mockResolvedValue(
-        makeRow({ drugbankIds: ['DB001', 'DB002'] }),
-      );
-
-      const result = await service.getDetail('med-1');
-      expect(
-        (result!.detail as { drugbankIds: string[] | null }).drugbankIds,
-      ).toEqual(['DB001', 'DB002']);
-    });
-
-    it('returns null drugbankIds when value is null', async () => {
-      prisma.cnMedicineProduct.findUnique.mockResolvedValue(
-        makeRow({ drugbankIds: null }),
-      );
-
-      const result = await service.getDetail('med-1');
-      expect(
-        (result!.detail as { drugbankIds: string[] | null }).drugbankIds,
-      ).toBeNull();
-    });
-
-    it('returns null drugbankIds when value is empty array', async () => {
-      prisma.cnMedicineProduct.findUnique.mockResolvedValue(
-        makeRow({ drugbankIds: [] }),
-      );
-
-      const result = await service.getDetail('med-1');
-      expect(
-        (result!.detail as { drugbankIds: string[] | null }).drugbankIds,
-      ).toBeNull();
     });
   });
 });

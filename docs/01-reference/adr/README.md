@@ -83,3 +83,7 @@ What becomes easier or harder as a result of this decision?
   - Title: Logging Framework — Pino → Winston Migration
   - Status: accepted
   - Date: 2026-07-12
+- [0008](0008-no-cn-drugbank-medicine-mapping.md)
+  - Title: No CN ↔ DrugBank Medicine Cross-Source Mapping
+  - Status: accepted
+  - Date: 2026-07-15
