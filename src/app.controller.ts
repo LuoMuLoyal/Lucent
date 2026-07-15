@@ -1,6 +1,6 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { FastifyReply } from 'fastify';
 import { HealthResponseDto } from './app.dto';
 import { AppService } from './app.service';
 
@@ -16,9 +16,9 @@ export class AppController {
   @ApiOperation({ summary: 'Readiness probe alias used by existing scripts' })
   @ApiResponse({ status: 200, type: HealthResponseDto })
   @ApiResponse({ status: 503, type: HealthResponseDto })
-  async getHealth(@Res({ passthrough: true }) response: Response) {
+  async getHealth(@Res({ passthrough: true }) reply: FastifyReply) {
     const probe = await this.appService.getHealth();
-    response.status(
+    reply.status(
       this.appService.isHealthy(probe)
         ? HttpStatus.OK
         : HttpStatus.SERVICE_UNAVAILABLE,
@@ -39,9 +39,9 @@ export class AppController {
   })
   @ApiResponse({ status: 200, type: HealthResponseDto })
   @ApiResponse({ status: 503, type: HealthResponseDto })
-  async getReadyHealth(@Res({ passthrough: true }) response: Response) {
+  async getReadyHealth(@Res({ passthrough: true }) reply: FastifyReply) {
     const probe = await this.appService.getReadyHealth();
-    response.status(
+    reply.status(
       this.appService.isHealthy(probe)
         ? HttpStatus.OK
         : HttpStatus.SERVICE_UNAVAILABLE,
@@ -55,9 +55,9 @@ export class AppController {
   })
   @ApiResponse({ status: 200, type: HealthResponseDto })
   @ApiResponse({ status: 503, type: HealthResponseDto })
-  async getDeepHealth(@Res({ passthrough: true }) response: Response) {
+  async getDeepHealth(@Res({ passthrough: true }) reply: FastifyReply) {
     const probe = await this.appService.getDeepHealth();
-    response.status(
+    reply.status(
       this.appService.isHealthy(probe)
         ? HttpStatus.OK
         : HttpStatus.SERVICE_UNAVAILABLE,

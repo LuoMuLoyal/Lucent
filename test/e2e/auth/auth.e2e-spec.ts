@@ -12,7 +12,6 @@ import {
   bearer,
   createSecurityElevationToken,
   expectData,
-  expectDefined,
   SECURITY_ELEVATION_HEADER,
   uniqueEmail,
 } from '../../helpers/e2e-helpers';
@@ -167,41 +166,11 @@ describe('Auth API (e2e)', () => {
     return { email: userEmail, ...data };
   }
 
-  // ────────────────────────────────────────────────────────────
-  // Helper: extract verification code from in-memory cache
-  // ────────────────────────────────────────────────────────────
-
-  async function getVerificationCode(
-    scene: AuthScene,
-    email: string,
-  ): Promise<string | undefined> {
-    const key = `vcode:${scene}:${email}`;
-    return cache.get<string>(key);
-  }
-
   async function issueVerificationCode(
     scene: AuthScene,
     email: string,
   ): Promise<string> {
-    await sendVerificationCodeRequest(email, scene);
-
-    const code = await getVerificationCode(scene, email);
-    return expectDefined(
-      code,
-      `Verification code was not cached for ${scene}:${email}`,
-    );
-  }
-
-  async function sendVerificationCodeRequest(
-    email: string,
-    scene: AuthScene,
-    clientIp = uniqueClientIp(),
-  ) {
-    await request(app.getHttpServer())
-      .post(AUTH_PATH.sendVerificationCode)
-      .set('x-forwarded-for', clientIp)
-      .send({ email, scene })
-      .expect(200);
+    return seedVerificationCode(scene, email);
   }
 
   async function forgotPasswordRequest(
@@ -220,7 +189,12 @@ describe('Auth API (e2e)', () => {
     email: string,
     code = DEFAULT_VERIFICATION_CODE,
   ): Promise<string> {
-    await cache.set(`vcode:${scene}:${email}`, code, VERIFICATION_CODE_TTL_MS);
+    // The verification service stores a SHA-256 hash (not plaintext) in cache.
+    // We replicate that here so verify() can match correctly.
+    const hash = createHash('sha256')
+      .update(`${scene}:${email}:${code}`)
+      .digest('hex');
+    await cache.set(`vcode:${scene}:${email}`, hash, VERIFICATION_CODE_TTL_MS);
     return code;
   }
 
@@ -347,12 +321,7 @@ describe('Auth API (e2e)', () => {
     it('should login with verification code', async () => {
       const { email } = await registerUser();
 
-      await sendVerificationCodeRequest(email, AUTH_SCENE.login);
-
-      const code = expectDefined(
-        await getVerificationCode(AUTH_SCENE.login, email),
-        `Verification code was not cached for ${AUTH_SCENE.login}:${email}`,
-      );
+      const code = await seedVerificationCode(AUTH_SCENE.login, email);
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.login)
@@ -616,11 +585,7 @@ describe('Auth API (e2e)', () => {
       const { email } = await registerUser();
 
       await forgotPasswordRequest(email);
-
-      const code = expectDefined(
-        await getVerificationCode(AUTH_SCENE.resetPassword, email),
-        `Verification code was not cached for ${AUTH_SCENE.resetPassword}:${email}`,
-      );
+      const code = await seedVerificationCode(AUTH_SCENE.resetPassword, email);
 
       const newPassword = RESET_PASSWORD;
       const res = await request(app.getHttpServer())
@@ -785,12 +750,7 @@ describe('Auth API (e2e)', () => {
       const newEmail = uniqueEmail('auth');
       const elevationToken = await createSecurityElevationToken(ctx, user.id);
 
-      await sendVerificationCodeRequest(newEmail, AUTH_SCENE.changeEmail);
-
-      const code = expectDefined(
-        await getVerificationCode(AUTH_SCENE.changeEmail, newEmail),
-        `Verification code was not cached for ${AUTH_SCENE.changeEmail}:${newEmail}`,
-      );
+      const code = await seedVerificationCode(AUTH_SCENE.changeEmail, newEmail);
 
       const res = await request(app.getHttpServer())
         .post(AUTH_PATH.accountEmail)
@@ -843,11 +803,9 @@ describe('Auth API (e2e)', () => {
           `${localPart.toUpperCase()}@${domain.toUpperCase()}`,
       );
 
-      await sendVerificationCodeRequest(mixedCaseEmail, AUTH_SCENE.changeEmail);
-
-      const code = expectDefined(
-        await getVerificationCode(AUTH_SCENE.changeEmail, normalizedEmail),
-        `Verification code was not cached for ${AUTH_SCENE.changeEmail}:${normalizedEmail}`,
+      const code = await seedVerificationCode(
+        AUTH_SCENE.changeEmail,
+        normalizedEmail,
       );
 
       const res = await request(app.getHttpServer())

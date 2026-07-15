@@ -44,10 +44,11 @@ export async function createTestApp(): Promise<E2eTestContext> {
 
   const app: E2eApp =
     moduleFixture.createNestApplication<NestFastifyApplication>(
-      new FastifyAdapter(),
+      new FastifyAdapter({ trustProxy: true }),
     );
   await setupApp(app, app.get(ConfigService));
   await app.init();
+  await app.getHttpAdapter().getInstance().ready();
 
   const prisma = app.get(PrismaService);
   const jwtService = app.get(JwtService);

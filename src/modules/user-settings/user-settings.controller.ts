@@ -68,6 +68,7 @@ export class UserSettingsController {
     @Body() dto: EnableSecurityPinDto,
   ) {
     await this.securityPinService.enable(user.sub, dto);
+    await this.settingsService.invalidateUserCache(user.sub);
     return successEnvelope(await this.settingsService.getSettings(user.sub));
   }
 
@@ -91,6 +92,7 @@ export class UserSettingsController {
     @Body() dto: ChangeSecurityPinDto,
   ) {
     await this.securityPinService.change(user.sub, dto);
+    await this.settingsService.invalidateUserCache(user.sub);
     return successEnvelope(await this.settingsService.getSettings(user.sub));
   }
 
@@ -103,6 +105,7 @@ export class UserSettingsController {
     @Body() dto: DisableSecurityPinDto,
   ) {
     await this.securityPinService.disable(user.sub, dto);
+    await this.settingsService.invalidateUserCache(user.sub);
     return successEnvelope(await this.settingsService.getSettings(user.sub));
   }
 }

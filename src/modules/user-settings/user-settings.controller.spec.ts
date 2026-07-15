@@ -19,6 +19,7 @@ describe('UserSettingsController', () => {
           useValue: {
             getSettings: vi.fn(),
             updateSettings: vi.fn(),
+            invalidateUserCache: vi.fn(),
           },
         },
         {

@@ -52,6 +52,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
@@ -76,6 +77,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
@@ -99,6 +101,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
@@ -122,6 +125,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
@@ -140,6 +144,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
@@ -160,6 +165,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
@@ -178,6 +184,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
@@ -196,6 +203,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
@@ -214,6 +222,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
@@ -234,6 +243,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
@@ -259,6 +269,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
@@ -279,6 +290,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = {
@@ -299,6 +311,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'POST', url: '/api/v1/items' };
@@ -318,6 +331,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'GET', url: '/fallback-url' };
@@ -335,6 +349,7 @@ describe('ApiExceptionFilter', () => {
     requestContext.getRequestId.mockReturnValue('req-abc-123');
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
@@ -350,6 +365,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };

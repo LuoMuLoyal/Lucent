@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import type { Response } from 'express';
+import type { FastifyReply } from 'fastify';
 import { ResultCode } from '../../common/api';
 import {
   REPORT_RANGE_CUSTOM,
@@ -170,13 +170,13 @@ describe('ReportsController', () => {
     );
 
     const events: Array<{ event: string; data: unknown }> = [];
-    const response = makeMockResponse(events);
+    const reply = makeMockReply(events);
 
     await controller.generateSummaryStream(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       { range: REPORT_RANGE_LAST_30_DAYS },
       'zh-CN',
-      response,
+      reply,
     );
 
     const eventTypes = events.map((e) => e.event);
@@ -190,26 +190,26 @@ describe('ReportsController', () => {
     const resultEvent = events.find((e) => e.event === 'result')!;
     expect(resultEvent.data).toEqual(summaryResult);
 
-    expect(response.end).toHaveBeenCalled();
+    expect(reply.raw.end).toHaveBeenCalled();
   });
 
   it('writes SSE error event when service throws', async () => {
     aiSummaryService.generateStream.mockRejectedValue(new Error('LLM down'));
 
     const events: Array<{ event: string; data: unknown }> = [];
-    const response = makeMockResponse(events);
+    const reply = makeMockReply(events);
 
     await controller.generateSummaryStream(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       { range: REPORT_RANGE_LAST_30_DAYS },
       'zh-CN',
-      response,
+      reply,
     );
 
     const errorEvent = events.find((e) => e.event === 'error')!;
     expect(errorEvent).toBeDefined();
     expect(errorEvent.data).toEqual({ message: 'LLM down' });
-    expect(response.end).toHaveBeenCalled();
+    expect(reply.raw.end).toHaveBeenCalled();
   });
 
   // ── previewClinicSummary ──────────────────────────────────────────────
@@ -321,16 +321,16 @@ describe('ReportsController', () => {
     const pdfBuffer = Buffer.from('%PDF-1.4 mock');
     clinicSummaryService.exportPdf.mockResolvedValue(pdfBuffer);
 
-    const response = makeMockResponse([]);
+    const reply = makeMockReply([]);
 
     await controller.downloadClinicSummaryPdf(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       'zh-CN',
-      response,
+      reply,
     );
 
     expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN');
-    expect(response.send).toHaveBeenCalledWith(pdfBuffer);
+    expect(reply.send).toHaveBeenCalledWith(pdfBuffer);
   });
 
   // ── downloadSharedClinicSummaryPdf ────────────────────────────────────
@@ -339,31 +339,31 @@ describe('ReportsController', () => {
     const pdfBuffer = Buffer.from('%PDF-1.4 mock');
     clinicSummaryService.exportSharedPdf.mockResolvedValue(pdfBuffer);
 
-    const response = makeMockResponse([]);
+    const reply = makeMockReply([]);
 
     await controller.downloadSharedClinicSummaryPdf(
       'valid-token',
       'zh-CN',
-      response,
+      reply,
     );
 
     expect(clinicSummaryService.exportSharedPdf).toHaveBeenCalledWith(
       'valid-token',
       'zh-CN',
     );
-    expect(response.send).toHaveBeenCalledWith(pdfBuffer);
+    expect(reply.send).toHaveBeenCalledWith(pdfBuffer);
   });
 
   it('throws HttpException 410 when shared PDF token is expired', async () => {
     clinicSummaryService.exportSharedPdf.mockResolvedValue(null);
 
-    const response = makeMockResponse([]);
+    const reply = makeMockReply([]);
 
     await expect(
       controller.downloadSharedClinicSummaryPdf(
         'expired-token',
         'zh-CN',
-        response,
+        reply,
       ),
     ).rejects.toThrow(HttpException);
   });
@@ -371,14 +371,12 @@ describe('ReportsController', () => {
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
-function makeMockResponse(
+function makeMockReply(
   events: Array<{ event: string; data: unknown }>,
-): Response {
+): FastifyReply {
   let buffer = '';
-  const res = {
-    status: vi.fn().mockReturnThis(),
-    setHeader: vi.fn().mockReturnThis(),
-    flushHeaders: vi.fn().mockReturnThis(),
+  const raw = {
+    writeHead: vi.fn(),
     write: vi.fn((chunk: string) => {
       buffer += chunk;
       // SSE events are separated by \n\n
@@ -396,9 +394,12 @@ function makeMockResponse(
       }
     }),
     end: vi.fn(),
+  };
+  const reply = {
+    raw,
     send: vi.fn(),
   };
-  return res as unknown as Response;
+  return reply as unknown as FastifyReply;
 }
 
 function makeDashboard(

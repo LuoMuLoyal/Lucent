@@ -1,6 +1,6 @@
 ﻿# Lucent: Express → Fastify 迁移计划
 
-> 状态：Phase 2 已完成，Phase 3 待执行
+> 状态：迁移完成，所有 Phase 已完成
 > 创建日期：2026-07-14
 > 最后审查：2026-07-15（与代码库逐文件对照）
 > 预估工时：8-10 人天
@@ -867,30 +867,50 @@ await app.init();
 - 3 个 auth 控制器因 `client-ip.ts` 类型变更导致 build 失败，提前迁移：`local.controller.ts`、`oauth.controller.ts`、`session.controller.ts`（含 `@Req()` → `FastifyRequest`，`@Res()` → `FastifyReply`，`redirect(code, url)` → `redirect(url, code)`）
 - 对应 3 个 `.spec.ts` 文件同步更新
 
-### Phase 3：控制器迁移（0.5 天）
+### ~~Phase 3：控制器迁移（0.5 天）~~ ✅ 已完成
 
-13. `src/app.controller.ts`
+13. ~~`src/app.controller.ts`~~
 14. ~~`src/modules/auth/controllers/local.controller.ts`~~ — Phase 2 已完成
 15. ~~`src/modules/auth/controllers/oauth.controller.ts`~~ — Phase 2 已完成
 16. ~~`src/modules/auth/controllers/session.controller.ts`~~ — Phase 2 已完成
-17. `src/modules/today-analysis/today-analysis.controller.ts`
-18. `src/modules/reports/reports.controller.ts`
-19. `src/modules/assistant/assistant.controller.ts`
+17. ~~`src/modules/today-analysis/today-analysis.controller.ts`~~
+18. ~~`src/modules/reports/reports.controller.ts`~~
+19. ~~`src/modules/assistant/assistant.controller.ts`~~
 
-### Phase 4：AdminJS 迁移（1 天）
+**同步修改的 spec 文件：**
 
-20. 修改 `src/admin/types/types.ts` — `AdminJsExpressModule` → `AdminJsFastifyModule`
-21. 修改 `src/admin/setup.ts` — 使用 `@adminjs/fastify`
-22. 修改 `src/admin/services/auth-router.service.ts` — 异步 + `FastifyInstance`
-23. 删除 `src/admin/services/static-asset.service.ts` + 其 spec
+- `src/app.controller.spec.ts` — mock 类型从 `Response` 改为 `FastifyReply`
+- `src/modules/today-analysis/today-analysis.controller.spec.ts` — `makeMockResponse` 改为 `makeMockReply`，返回 `{ raw: { writeHead, write, end } }`
+- `src/modules/reports/reports.controller.spec.ts` — 同上，额外保留 `send` 方法用于 PDF 端点
+- `src/modules/assistant/assistant.controller.spec.ts` — mock response 从 `{} as never` 改为 `{ raw: {} } as unknown as FastifyReply`，断言从 `response` 改为 `response.raw`
+
+### ~~Phase 4：AdminJS 迁移（1 天）~~ ✅ 已完成
+
+20. ~~修改 `src/admin/types/types.ts`~~ — `AdminJsExpressModule` → `AdminJsFastifyModule`，移除 `Router` express 导入，改用 `FastifyInstance`
+21. ~~修改 `src/admin/setup.ts`~~ — `@adminjs/express` → `@adminjs/fastify`，`INestApplication` → `NestFastifyApplication`，移除 `registerAdminStaticAssets` 和 `app.use()`，改用 `fastifyInstance` 参数传给 `buildAdminAuthRouter`
+22. ~~修改 `src/admin/services/auth-router.service.ts`~~ — 函数从同步返回 `Router` 改为 `async` 返回 `Promise<void>`，新增 `fastifyInstance: FastifyInstance` 参数，移除 `predefinedRouter: null` 和 Express session 选项（`resave`/`saveUninitialized`/`secret`/`name`），仅保留 `cookie` 配置
+23. ~~删除 `src/admin/services/static-asset.service.ts` + spec~~ — `@adminjs/fastify` 的 `buildRouter` 内部已处理静态资源路由
+
+**前置验证结果（@adminjs/fastify@4.2.0 源码）：**
+
+- `buildAuthenticatedRouter(admin, auth, fastifyApp, sessionOptions)` — async，返回 `Promise<void>`
+- `auth.cookiePassword` 用作 `@fastify/cookie` 和 `@fastify/session` 的 `secret`
+- `auth.cookieName` 用作 session cookie 名
+- `sessionOptions` 仅需传 `cookie` 配置，`secret`/`cookieName` 由 `auth` 提供
+- `buildRouter(admin, fastifyApp)` 内部注册所有 AdminJS 路由 + 静态资源路由（`assets.forEach(...)`）
+
+**同步修改的 spec 文件：**
+
+- `src/admin/services/auth-router.service.spec.ts` — mock 从 `mockReturnValue` 改为 `mockResolvedValue`，新增 `mockFastifyInstance` 参数，所有调用改为 `await`，删除"returns the router"用例，新增"passes fastifyInstance"用例
+- `src/admin/services/index.ts` — 移除 `static-asset.service` 导出
 
 ### Phase 5：测试修复（2-3 天）
 
-24. 修改/创建 E2E helper — `FastifyAdapter` + `await setupApp`
-25. 修复 15 个单元 spec 文件的 Express 类型替换（含 `auth-router.service.spec.ts`）
-26. 删除 3 个随源文件删除的 middleware spec（或合并到 setup-app.spec.ts）
-27. 删除 `static-asset.service.spec.ts`
-28. 修复 `src/admin/services/auth-router.service.spec.ts`（async 签名 + mock 更新）
+24. ~~修改/创建 E2E helper~~ — Phase 1 已完成
+25. ~~修复 15 个单元 spec 文件的 Express 类型替换（含 `auth-router.service.spec.ts`）~~ — Phase 2/3/4 已完成
+26. ~~删除 3 个随源文件删除的 middleware spec~~ — Phase 2 已完成
+27. ~~删除 `static-asset.service.spec.ts`~~ — Phase 4 已完成
+28. ~~修复 `src/admin/services/auth-router.service.spec.ts`（async 签名 + mock 更新）~~ — Phase 4 已完成
 29. 运行 `pnpm test:ci` 全量通过
 30. 运行 `pnpm test:e2e:ci` 全量通过
 

@@ -1,6 +1,6 @@
 import type { BaseDatabase, BaseResource, ResourceOptions } from 'adminjs';
 import type AdminJSDefault from 'adminjs';
-import type { Router } from 'express';
+import type { FastifyInstance } from 'fastify';
 
 export type DynamicImport = <T>(specifier: string) => Promise<T>;
 
@@ -13,7 +13,7 @@ export interface AdminJsModule {
   };
 }
 
-export interface AdminJsExpressModule {
+export interface AdminJsFastifyModule {
   buildAuthenticatedRouter: (
     admin: AdminJSDefault,
     auth: {
@@ -21,19 +21,15 @@ export interface AdminJsExpressModule {
       cookiePassword: string;
       authenticate: (email: string, password: string) => AdminUser | null;
     },
-    predefinedRouter: null,
-    sessionOptions: {
-      resave: boolean;
-      saveUninitialized: boolean;
-      secret: string;
-      name: string;
-      cookie: {
-        httpOnly: boolean;
-        sameSite: 'lax';
-        secure: boolean;
+    fastifyApp: FastifyInstance,
+    sessionOptions?: {
+      cookie?: {
+        httpOnly?: boolean;
+        sameSite?: 'lax' | 'strict' | 'none';
+        secure?: boolean;
       };
     },
-  ) => Router;
+  ) => Promise<void>;
 }
 
 export interface AdminJsPrismaModule {

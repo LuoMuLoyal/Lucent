@@ -1,14 +1,13 @@
-import type { INestApplication } from '@nestjs/common';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { ConfigService } from '@nestjs/config';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { ADMIN_ROOT_PATH } from './constants/constants';
 import { buildPrismaClientModule } from './services/prisma-module.service';
 import { buildResources } from './services/resource-builder.service';
-import { registerAdminStaticAssets } from './services/static-asset.service';
 import { buildAdminAuthRouter } from './services/auth-router.service';
 import type {
-  AdminJsExpressModule,
+  AdminJsFastifyModule,
   AdminJsModule,
   AdminJsPrismaModule,
   DynamicImport,
@@ -19,7 +18,7 @@ import type {
  * SWC compiles standard `import()` to `require()` in this CJS build, which
  * breaks ESM interop. Using `new Function` bypasses SWC's transform so the
  * runtime `import()` is preserved as-is. This is safe because the specifiers
- * are hardcoded string literals ('adminjs', '@adminjs/express',
+ * are hardcoded string literals ('adminjs', '@adminjs/fastify',
  * '@sergiyiva/adminjs-prisma') and never come from user input.
  */
 const dynamicImport = new Function(
@@ -28,22 +27,23 @@ const dynamicImport = new Function(
 ) as DynamicImport;
 
 /**
- * Registers the AdminJS panel, authenticated router, and static assets on the
- * given NestJS application.
+ * Registers the AdminJS panel and authenticated router on the given NestJS
+ * Fastify application. Static assets and routes are handled internally by
+ * @adminjs/fastify's buildAuthenticatedRouter → buildRouter.
  */
 export async function registerAdminPanel(
-  app: INestApplication,
+  app: NestFastifyApplication,
   configService: ConfigService,
 ): Promise<void> {
-  const [adminJsModule, adminExpressModule, adminPrismaModule] =
+  const [adminJsModule, adminFastifyModule, adminPrismaModule] =
     await Promise.all([
       dynamicImport<AdminJsModule>('adminjs'),
-      dynamicImport<AdminJsExpressModule>('@adminjs/express'),
+      dynamicImport<AdminJsFastifyModule>('@adminjs/fastify'),
       dynamicImport<AdminJsPrismaModule>('@sergiyiva/adminjs-prisma'),
     ]);
 
   const AdminJS = adminJsModule.default;
-  const { buildAuthenticatedRouter } = adminExpressModule;
+  const { buildAuthenticatedRouter } = adminFastifyModule;
   const { Database, Resource, getModelByName } = adminPrismaModule;
 
   AdminJS.registerAdapter({ Database, Resource });
@@ -60,16 +60,11 @@ export async function registerAdminPanel(
     resources,
   });
 
-  const router = buildAdminAuthRouter(
+  const fastifyInstance = app.getHttpAdapter().getInstance();
+  await buildAdminAuthRouter(
     admin,
     configService,
     buildAuthenticatedRouter,
+    fastifyInstance,
   );
-
-  registerAdminStaticAssets(
-    app,
-    admin.options.rootPath,
-    adminJsModule.Router.assets,
-  );
-  app.use(admin.options.rootPath, router);
 }

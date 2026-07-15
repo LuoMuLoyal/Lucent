@@ -16,6 +16,8 @@ const DAILY_RECORDS_PATH = '/api/v1/user/daily-records';
 const USER_SETTINGS_PATH = '/api/v1/user/settings';
 const AUTHORIZATION_HEADER = 'Authorization';
 const BEARER = 'Bearer';
+const TESTING_SECRET_HEADER = 'x-testing-secret';
+const TESTING_SECRET = 'e2e-test-shared-secret';
 
 const TEST_EMAIL = 'fullstack-record-lane@example.com';
 const TEST_PASSWORD = 'RecordLane123';
@@ -35,15 +37,17 @@ describe('Testing Support API (e2e)', () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
+    process.env['TESTING_SHARED_SECRET'] = TESTING_SECRET;
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(
-      new FastifyAdapter(),
+      new FastifyAdapter({ trustProxy: true }),
     );
     await setupApp(app, app.get(ConfigService));
     await app.init();
+    await app.getHttpAdapter().getInstance().ready();
   });
 
   afterAll(async () => {
@@ -60,6 +64,7 @@ describe('Testing Support API (e2e)', () => {
 
     const firstPrepareRes = await request(app.getHttpServer())
       .post(TESTING_PATH)
+      .set(TESTING_SECRET_HEADER, TESTING_SECRET)
       .send(preparePayload)
       .expect(200);
 
@@ -137,6 +142,7 @@ describe('Testing Support API (e2e)', () => {
 
     const secondPrepareRes = await request(app.getHttpServer())
       .post(TESTING_PATH)
+      .set(TESTING_SECRET_HEADER, TESTING_SECRET)
       .send(preparePayload)
       .expect(200);
 

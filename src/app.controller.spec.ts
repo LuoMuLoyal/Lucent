@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { Response } from 'express';
+import type { FastifyReply } from 'fastify';
 import { AppController } from './app.controller';
 import type { HealthProbeDto } from './app.dto';
 import { AppService } from './app.service';
@@ -33,7 +33,7 @@ describe('AppController', () => {
     const probe = makeProbe({ status: 'error' });
     const response = {
       status: vi.fn().mockReturnThis(),
-    } as unknown as Response;
+    } as unknown as FastifyReply;
     service.getHealth.mockResolvedValue(probe);
     service.isHealthy.mockReturnValue(false);
 
@@ -45,7 +45,7 @@ describe('AppController', () => {
     const probe = makeProbe({ probe: 'deep' });
     const response = {
       status: vi.fn().mockReturnThis(),
-    } as unknown as Response;
+    } as unknown as FastifyReply;
     service.getDeepHealth.mockResolvedValue(probe);
     service.isHealthy.mockReturnValue(true);
 

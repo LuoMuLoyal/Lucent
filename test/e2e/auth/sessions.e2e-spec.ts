@@ -10,7 +10,6 @@ import {
   cleanupDatabase,
   bearer,
   expectData,
-  expectDefined,
   uniqueEmail,
 } from '../../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
@@ -77,12 +76,13 @@ describe('Session Management API (e2e)', () => {
       .send({ email, scene: 'register' })
       .expect(200);
 
-    // Read code from cache
+    // Seed verification code hash directly (service stores hash, not plaintext)
+    const code = '123456';
+    const hash = createHash('sha256')
+      .update(`register:${email}:${code}`)
+      .digest('hex');
     const cache = app.get<Cache>(CACHE_MANAGER);
-    const code = expectDefined(
-      await cache.get<string>(`vcode:register:${email}`),
-      `Verification code not cached for register:${email}`,
-    );
+    await cache.set(`vcode:register:${email}`, hash, 5 * 60 * 1000);
 
     const res = await request(app.getHttpServer())
       .post(REGISTER_PATH)

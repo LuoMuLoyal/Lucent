@@ -16,6 +16,7 @@ vi.mock('../../common/api/sse', () => ({
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { ResultCode } from '../../common/api';
 import { AssistantController } from './assistant.controller';
 import { AssistantService } from './services/core.service';
@@ -154,7 +155,7 @@ describe('AssistantController', () => {
   });
 
   it('streams chunk, result, and done SSE events', async () => {
-    const response = {} as never;
+    const response = { raw: {} } as unknown as FastifyReply;
 
     service.streamMessages.mockImplementation(
       async (_userId, _dto, _language, onChunk) => {
@@ -226,12 +227,12 @@ describe('AssistantController', () => {
       response,
     );
 
-    expect(prepareSse).toHaveBeenCalledWith(response);
-    expect(writeSseEvent).toHaveBeenNthCalledWith(1, response, {
+    expect(prepareSse).toHaveBeenCalledWith(response.raw);
+    expect(writeSseEvent).toHaveBeenNthCalledWith(1, response.raw, {
       event: 'chunk',
       data: { content: 'Hello' },
     });
-    expect(writeSseEvent).toHaveBeenNthCalledWith(2, response, {
+    expect(writeSseEvent).toHaveBeenNthCalledWith(2, response.raw, {
       event: 'result',
       data: {
         conversationId: 'conversation-1',
@@ -287,11 +288,11 @@ describe('AssistantController', () => {
         ],
       },
     });
-    expect(writeSseEvent).toHaveBeenNthCalledWith(3, response, {
+    expect(writeSseEvent).toHaveBeenNthCalledWith(3, response.raw, {
       event: 'done',
       data: {},
     });
-    expect(endSse).toHaveBeenCalledWith(response);
+    expect(endSse).toHaveBeenCalledWith(response.raw);
   });
 
   it('returns the latest persisted conversation envelope', async () => {
@@ -414,7 +415,7 @@ describe('AssistantController', () => {
   });
 
   it('streams an error SSE event when service throws', async () => {
-    const response = {} as never;
+    const response = { raw: {} } as unknown as FastifyReply;
     service.streamMessages.mockRejectedValue(
       new ForbiddenException({
         code: ResultCode.FORBIDDEN,
@@ -431,12 +432,12 @@ describe('AssistantController', () => {
       response,
     );
 
-    expect(writeSseEvent).toHaveBeenCalledWith(response, {
+    expect(writeSseEvent).toHaveBeenCalledWith(response.raw, {
       event: 'error',
       data: {
         message: 'forbidden',
       },
     });
-    expect(endSse).toHaveBeenCalledWith(response);
+    expect(endSse).toHaveBeenCalledWith(response.raw);
   });
 });

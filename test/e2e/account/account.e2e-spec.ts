@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { createHash } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 
@@ -178,15 +179,16 @@ describe('Account API (e2e)', () => {
         oauthUser.email!,
       );
 
-      // Send verification code for set-password scene
-      await request(app.getHttpServer())
-        .post(SEND_VERIFICATION_CODE_PATH)
-        .send({ email: oauthEmail, scene: 'set-password' })
-        .expect(200);
-
-      // Retrieve code from cache
-      const code = await cache.get<string>(`vcode:set-password:${oauthEmail}`);
-      expect(code).toBeDefined();
+      // Seed verification code hash directly (service stores hash, not plaintext)
+      const code = '123456';
+      const hash = createHash('sha256')
+        .update(`set-password:${oauthEmail}:${code}`)
+        .digest('hex');
+      await cache.set(
+        `vcode:set-password:${oauthEmail}`,
+        hash,
+        VERIFICATION_CODE_TTL_MS,
+      );
 
       // Set password
       await request(app.getHttpServer())
@@ -215,10 +217,14 @@ describe('Account API (e2e)', () => {
 
     it('should reject set-password when user already has a password (409)', async () => {
       // The main test user has a passwordHash
+      // Seed verification code hash (service stores hash, not plaintext)
       const code = '123456';
+      const hash = createHash('sha256')
+        .update(`set-password:${user.email}:${code}`)
+        .digest('hex');
       await cache.set(
         `vcode:set-password:${user.email}`,
-        code,
+        hash,
         VERIFICATION_CODE_TTL_MS,
       );
 

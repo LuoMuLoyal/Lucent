@@ -9,13 +9,14 @@ import {
 import { ApiExcludeController } from '@nestjs/swagger';
 
 import { successEnvelope } from '../../common/api';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
 import { TestingSharedSecretGuard } from './guards/testing-shared-secret.guard';
 import { TestingSupportService } from './services/fixtures.service';
 import { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';
 
 @ApiExcludeController()
-@UseGuards(JwtAuthGuard, TestingSharedSecretGuard)
+@Public()
+@UseGuards(TestingSharedSecretGuard)
 @Controller('testing/fullstack-e2e')
 export class TestingSupportController {
   constructor(private readonly testingSupportService: TestingSupportService) {}

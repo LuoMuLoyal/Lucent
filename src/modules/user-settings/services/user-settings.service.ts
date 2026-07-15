@@ -23,6 +23,10 @@ export class UserSettingsService {
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
+  async invalidateUserCache(userId: string): Promise<void> {
+    await this.cache.del(`${UserSettingsService.CACHE_PREFIX}:${userId}`);
+  }
+
   async getSettings(userId: string): Promise<UserSettingsDataDto> {
     const cacheKey = `${UserSettingsService.CACHE_PREFIX}:${userId}`;
     const cached = await this.cache.get<UserSettingsDataDto>(cacheKey);

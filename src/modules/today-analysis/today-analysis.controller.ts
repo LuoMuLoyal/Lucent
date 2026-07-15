@@ -17,7 +17,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 import { successEnvelope } from '../../common/api';
 import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
@@ -168,9 +168,9 @@ export class TodayAnalysisController {
     @CurrentUser() user: UserPayload,
     @Body() dto: GenerateTodayAnalysisDto,
     @I18nLang() language: string,
-    @Res() response: Response,
+    @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(response);
+    prepareSse(reply.raw);
 
     try {
       const result = await this.todayAnalysisService.generateStream(
@@ -178,18 +178,18 @@ export class TodayAnalysisController {
         dto,
         language,
         ({ summary }) => {
-          writeSseEvent(response, {
+          writeSseEvent(reply.raw, {
             event: 'summary',
             data: { summary },
           });
         },
       );
 
-      writeSseEvent(response, {
+      writeSseEvent(reply.raw, {
         event: 'result',
         data: result,
       });
-      writeSseEvent(response, {
+      writeSseEvent(reply.raw, {
         event: 'done',
         data: {},
       });
@@ -199,12 +199,12 @@ export class TodayAnalysisController {
         `Today analysis stream failed for user ${user.sub}: ${reason}`,
         stack,
       );
-      writeSseEvent(response, {
+      writeSseEvent(reply.raw, {
         event: 'error',
         data: httpExceptionPayload(error),
       });
     } finally {
-      endSse(response);
+      endSse(reply.raw);
     }
   }
 }

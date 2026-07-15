@@ -45,16 +45,19 @@ async function createNotification(
     actionPayload: Record<string, unknown>;
   }> = {},
 ): Promise<NotificationDetail> {
+  const body: Record<string, unknown> = {
+    type: overrides.type ?? 'medicine_reminder',
+    title: overrides.title ?? 'Test notification',
+    content: overrides.content ?? 'Test content body.',
+  };
+  if (overrides.action !== undefined) body['action'] = overrides.action;
+  if (overrides.actionPayload !== undefined)
+    body['actionPayload'] = overrides.actionPayload;
+
   const res = await request(app.getHttpServer())
     .post(NOTIFICATIONS_PATH)
     .set('Authorization', bearer(token))
-    .send({
-      type: overrides.type ?? 'system_announcement',
-      title: overrides.title ?? 'Test notification',
-      content: overrides.content ?? 'Test content body.',
-      action: overrides.action,
-      actionPayload: overrides.actionPayload,
-    })
+    .send(body)
     .expect(201);
 
   return expectData(res.body as ApiEnvelope<NotificationDetail>);
@@ -116,7 +119,7 @@ describe('Notifications API (e2e)', () => {
       .post(NOTIFICATIONS_PATH)
       .set('Authorization', bearer(accessToken))
       .send({
-        type: 'system_announcement',
+        type: 'medicine_reminder',
         title: 'Test notification',
         content: 'This is a test notification content.',
       })
@@ -127,7 +130,7 @@ describe('Notifications API (e2e)', () => {
     );
     expect(data.id).toBeTruthy();
     expect(data.title).toBe('Test notification');
-    expect(data.type).toBe('system_announcement');
+    expect(data.type).toBe('medicine_reminder');
   });
 
   it('should return unread count greater than zero after creation', async () => {

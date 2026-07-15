@@ -37,7 +37,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
     this.logException(exception, request, status, body.message);
 
-    response.status(status).send(errorEnvelope(body.code, body.message));
+    response
+      .status(status)
+      .type('application/json')
+      .send(errorEnvelope(body.code, body.message));
   }
 
   private logException(

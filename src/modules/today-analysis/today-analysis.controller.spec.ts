@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { Response } from 'express';
+import type { FastifyReply } from 'fastify';
 import { ResultCode } from '../../common/api';
 import { TodayAnalysisService } from './services/analysis.service';
 import { TodayAnalysisQueueService } from './services/analysis-queue.service';
@@ -130,13 +130,13 @@ describe('TodayAnalysisController', () => {
     );
 
     const events: Array<{ event: string; data: unknown }> = [];
-    const response = makeMockResponse(events);
+    const reply = makeMockReply(events);
 
     await controller.generateStream(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       { date: '2026-06-12' },
       'zh-CN',
-      response,
+      reply,
     );
 
     const eventTypes = events.map((e) => e.event);
@@ -151,20 +151,20 @@ describe('TodayAnalysisController', () => {
     expect(resultEvent.data).toEqual(analysisResult);
 
     // response.end should have been called (by endSse)
-    expect(response.end).toHaveBeenCalled();
+    expect(reply.raw.end).toHaveBeenCalled();
   });
 
   it('writes SSE error event and ends stream when service throws', async () => {
     service.generateStream.mockRejectedValue(new Error('LLM down'));
 
     const events: Array<{ event: string; data: unknown }> = [];
-    const response = makeMockResponse(events);
+    const reply = makeMockReply(events);
 
     await controller.generateStream(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       { date: '2026-06-12' },
       'zh-CN',
-      response,
+      reply,
     );
 
     const errorEvent = events.find((e) => e.event === 'error')!;
@@ -172,20 +172,20 @@ describe('TodayAnalysisController', () => {
     expect(errorEvent.data).toEqual({ message: 'LLM down' });
 
     // Should still have ended the stream
-    expect(response.end).toHaveBeenCalled();
+    expect(reply.raw.end).toHaveBeenCalled();
   });
 
   it('writes SSE error event with generic message for non-Error', async () => {
     service.generateStream.mockRejectedValue('string error');
 
     const events: Array<{ event: string; data: unknown }> = [];
-    const response = makeMockResponse(events);
+    const reply = makeMockReply(events);
 
     await controller.generateStream(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       { date: '2026-06-12' },
       'zh-CN',
-      response,
+      reply,
     );
 
     const errorEvent = events.find((e) => e.event === 'error')!;
@@ -195,14 +195,12 @@ describe('TodayAnalysisController', () => {
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
-function makeMockResponse(
+function makeMockReply(
   events: Array<{ event: string; data: unknown }>,
-): Response {
+): FastifyReply {
   let buffer = '';
-  const res = {
-    status: vi.fn().mockReturnThis(),
-    setHeader: vi.fn().mockReturnThis(),
-    flushHeaders: vi.fn().mockReturnThis(),
+  const raw = {
+    writeHead: vi.fn(),
     write: vi.fn((chunk: string) => {
       buffer += chunk;
       // SSE events are separated by \n\n
@@ -221,7 +219,7 @@ function makeMockResponse(
     }),
     end: vi.fn(),
   };
-  return res as unknown as Response;
+  return { raw } as unknown as FastifyReply;
 }
 
 function makeAnalysis(

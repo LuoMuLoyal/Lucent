@@ -64,10 +64,11 @@ describe('Daily Records API (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(
-      new FastifyAdapter(),
+      new FastifyAdapter({ trustProxy: true }),
     );
     await setupApp(app, app.get(ConfigService));
     await app.init();
+    await app.getHttpAdapter().getInstance().ready();
 
     prisma = app.get(PrismaService);
     jwtService = app.get(JwtService);

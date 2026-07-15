@@ -24,7 +24,7 @@ describe('Lucent API (e2e)', () => {
     del: vi.Mock;
   };
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     const rawOk = vi.fn().mockResolvedValue([{ '?column?': 1 }]);
     prisma = {
       $queryRaw: rawOk,
@@ -73,10 +73,21 @@ describe('Lucent API (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(
-      new FastifyAdapter(),
+      new FastifyAdapter({ trustProxy: true }),
     );
     await setupApp(app, app.get(ConfigService));
     await app.init();
+    await app.getHttpAdapter().getInstance().ready();
+  }, 30_000);
+
+  // Reset prisma mock to "ok" before each test
+  beforeEach(() => {
+    const rawOk = vi.fn().mockResolvedValue([{ '?column?': 1 }]);
+    prisma.$queryRaw.mockResolvedValue([{ '?column?': 1 }]);
+    prisma.$queryRawUnsafe.mockResolvedValue([{ '?column?': 1 }]);
+    // Re-assign the mock function to ensure clean state
+    prisma.$queryRaw = rawOk;
+    prisma.$queryRawUnsafe = rawOk;
   });
 
   it('/api/v1/health (GET)', () => {
@@ -267,9 +278,9 @@ describe('Lucent API (e2e)', () => {
       });
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close();
-  });
+  }, 30_000);
 });
 
 @Controller({

@@ -611,7 +611,7 @@ describe('API Contract Tests (e2e)', () => {
         .post('/api/v1/user/notifications')
         .set('Authorization', bearer(accessToken))
         .send({
-          type: 'system_announcement',
+          type: 'medicine_reminder',
           title: 'Contract test',
           content: 'Testing',
         })

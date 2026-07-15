@@ -1,5 +1,5 @@
 import type { ConfigService } from '@nestjs/config';
-import type { Router } from 'express';
+import type { FastifyInstance } from 'fastify';
 import type AdminJSDefault from 'adminjs';
 
 import { safeCompare } from '../../common/helpers/crypto.utils';
@@ -9,17 +9,18 @@ import {
   ADMIN_PASSWORD_KEY,
   NODE_ENV_KEY,
 } from '../constants/constants';
-import type { AdminJsExpressModule, AdminUser } from '../types/types';
+import type { AdminJsFastifyModule, AdminUser } from '../types/types';
 
 /**
- * Builds an authenticated Express router for the AdminJS panel using
+ * Registers an authenticated Fastify router for the AdminJS panel using
  * credentials and cookie configuration from the application config service.
  */
-export function buildAdminAuthRouter(
+export async function buildAdminAuthRouter(
   admin: AdminJSDefault,
   configService: ConfigService,
-  buildAuthenticatedRouter: AdminJsExpressModule['buildAuthenticatedRouter'],
-): Router {
+  buildAuthenticatedRouter: AdminJsFastifyModule['buildAuthenticatedRouter'],
+  fastifyInstance: FastifyInstance,
+): Promise<void> {
   const adminEmail = configService.getOrThrow<string>(ADMIN_EMAIL_KEY);
   const adminPassword = configService.getOrThrow<string>(ADMIN_PASSWORD_KEY);
   const cookieSecret = configService.getOrThrow<string>(
@@ -27,7 +28,7 @@ export function buildAdminAuthRouter(
   );
   const isProduction = configService.get<string>(NODE_ENV_KEY) === 'production';
 
-  return buildAuthenticatedRouter(
+  await buildAuthenticatedRouter(
     admin,
     {
       cookieName: 'lucent-admin',
@@ -37,12 +38,8 @@ export function buildAdminAuthRouter(
           ? { email: adminEmail }
           : null,
     },
-    null,
+    fastifyInstance,
     {
-      resave: false,
-      saveUninitialized: false,
-      secret: cookieSecret,
-      name: 'lucent-admin',
       cookie: {
         httpOnly: true,
         sameSite: 'lax',

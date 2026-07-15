@@ -18,7 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../common/api';
@@ -164,9 +164,9 @@ export class ReportsController {
     @CurrentUser() user: UserPayload,
     @Body() dto: GenerateReportSummaryDto,
     @I18nLang() language: string,
-    @Res() response: Response,
+    @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(response);
+    prepareSse(reply.raw);
 
     try {
       const result = await this.reportsAiSummaryService.generateStream(
@@ -174,18 +174,18 @@ export class ReportsController {
         dto,
         language,
         ({ summary }) => {
-          writeSseEvent(response, {
+          writeSseEvent(reply.raw, {
             event: 'summary',
             data: { summary },
           });
         },
       );
 
-      writeSseEvent(response, {
+      writeSseEvent(reply.raw, {
         event: 'result',
         data: result,
       });
-      writeSseEvent(response, {
+      writeSseEvent(reply.raw, {
         event: 'done',
         data: {},
       });
@@ -195,12 +195,12 @@ export class ReportsController {
         `Report summary stream failed for user ${user.sub}: ${reason}`,
         stack,
       );
-      writeSseEvent(response, {
+      writeSseEvent(reply.raw, {
         event: 'error',
         data: httpExceptionPayload(error),
       });
     } finally {
-      endSse(response);
+      endSse(reply.raw);
     }
   }
 
@@ -317,10 +317,10 @@ export class ReportsController {
   async downloadClinicSummaryPdf(
     @CurrentUser() user: UserPayload,
     @I18nLang() language: string,
-    @Res({ passthrough: false }) response: Response,
+    @Res({ passthrough: false }) reply: FastifyReply,
   ): Promise<void> {
     const pdf = await this.clinicSummaryService.exportPdf(user.sub, language);
-    response.send(pdf);
+    reply.send(pdf);
   }
 
   @Public()
@@ -338,7 +338,7 @@ export class ReportsController {
   async downloadSharedClinicSummaryPdf(
     @Param('token') token: string,
     @I18nLang() language: string,
-    @Res({ passthrough: false }) response: Response,
+    @Res({ passthrough: false }) reply: FastifyReply,
   ): Promise<void> {
     const pdf = await this.clinicSummaryService.exportSharedPdf(
       token,
@@ -350,6 +350,6 @@ export class ReportsController {
         HttpStatus.GONE,
       );
     }
-    response.send(pdf);
+    reply.send(pdf);
   }
 }

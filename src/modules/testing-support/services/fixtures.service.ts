@@ -117,6 +117,7 @@ export class TestingSupportService {
     });
 
     await this.cache.del(loginFailureCacheKey(email));
+    await this.cache.del(`user-settings:${result.user.id}`);
 
     return {
       createdUser: result.createdUser,

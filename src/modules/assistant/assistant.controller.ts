@@ -15,7 +15,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 import { successEnvelope } from '../../common/api';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
@@ -121,9 +121,9 @@ export class AssistantController {
     @CurrentUser() user: UserPayload,
     @Body() dto: StreamAssistantMessagesDto,
     @I18nLang() language: string,
-    @Res() response: Response,
+    @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(response);
+    prepareSse(reply.raw);
 
     try {
       const result = await this.assistantService.streamMessages(
@@ -131,18 +131,18 @@ export class AssistantController {
         dto,
         language,
         ({ content }) => {
-          writeSseEvent(response, {
+          writeSseEvent(reply.raw, {
             event: 'chunk',
             data: { content },
           });
         },
       );
 
-      writeSseEvent(response, {
+      writeSseEvent(reply.raw, {
         event: 'result',
         data: result,
       });
-      writeSseEvent(response, {
+      writeSseEvent(reply.raw, {
         event: 'done',
         data: {},
       });
@@ -152,12 +152,12 @@ export class AssistantController {
         `Assistant stream failed for user ${user.sub}: ${payload.logMessage}`,
         error instanceof Error ? error.stack : undefined,
       );
-      writeSseEvent(response, {
+      writeSseEvent(reply.raw, {
         event: 'error',
         data: { message: payload.clientMessage },
       });
     } finally {
-      endSse(response);
+      endSse(reply.raw);
     }
   }
   private resolveErrorPayload(error: unknown): {
