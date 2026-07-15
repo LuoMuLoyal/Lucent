@@ -1,52 +1,67 @@
-import type { INestApplication, ValidationError } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { performance } from 'node:perf_hooks';
+import type { ValidationError } from '@nestjs/common';
 import {
   BadRequestException,
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import type { Express, Request, Response } from 'express';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import type { FastifyRequest, FastifyReply } from 'fastify';
+import type { ServerResponse } from 'node:http';
+import fastifyHelmet from '@fastify/helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
-import helmet from 'helmet';
 import { safeCompare } from './common/helpers/crypto.utils';
 import { ConfigKey } from './config/config-keys.enum';
 import { ResultCode } from './common/api';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ApiEnvelopeInterceptor } from './common/interceptors/api-envelope.interceptor';
 import { SlowRequestInterceptor } from './common/interceptors/slow-request.interceptor';
-import { requestIdMiddleware } from './common/middleware/request-id.middleware';
-import { bindRequestContextMiddleware } from './common/logger/request-context.middleware';
+import {
+  REQUEST_ID_HEADER,
+  type FastifyRequestWithId,
+} from './common/middleware/request-id.types';
 import { RequestContextService } from './common/logger/request-context.service';
 import { MetricsService } from './common/metrics/metrics.service';
-import { createMetricsMiddleware } from './common/metrics/metrics.middleware';
+import { normalizeRoute, shouldSkip } from './common/metrics/metrics.utils';
 
 /**
  * Configures the NestJS application with global middleware, pipes, filters,
  * interceptors, API versioning, CORS, and OpenAPI documentation.
  */
-export function setupApp(
-  app: INestApplication,
+export async function setupApp(
+  app: NestFastifyApplication,
   configService: ConfigService,
-): void {
-  // ── Express trust proxy ───────────────────────────────────────
-  // When enabled, Express resolves `req.ip` from `X-Forwarded-For`
-  // instead of the raw socket address. Must be set before any middleware
-  // that reads `req.ip`.
-  const trustProxy = configService.get<boolean>(
-    `${ConfigKey.App}.trustProxy`,
-    false,
-  );
-  const expressInstance = app.getHttpAdapter().getInstance() as Express;
-  expressInstance.set('trust proxy', trustProxy);
+): Promise<void> {
+  const fastify = app.getHttpAdapter().getInstance();
+  const requestContextService = app.get(RequestContextService);
 
   // ── Helmet security headers ─────────────────────────────────────
-  app.use(helmet());
+  await app.register(fastifyHelmet);
 
-  app.use(requestIdMiddleware);
-  app.use(bindRequestContextMiddleware(app.get(RequestContextService)));
+  // ── Request ID ──────────────────────────────────────────────────
+  void fastify.addHook('preHandler', (request, reply, done) => {
+    const incoming = request.headers[REQUEST_ID_HEADER.toLowerCase()];
+    const requestId =
+      typeof incoming === 'string' && incoming.trim()
+        ? incoming.trim()
+        : randomUUID();
+    (request as FastifyRequestWithId).requestId = requestId;
+    reply.header(REQUEST_ID_HEADER, requestId);
+    done();
+  });
 
-  // ── Prometheus metrics (with optional Basic Auth) ───────────────
+  // ── Request context (AsyncLocalStorage) ─────────────────────────
+  void fastify.addHook('preHandler', (request, _reply, done) => {
+    requestContextService.run(
+      { requestId: (request as FastifyRequestWithId).requestId },
+      done,
+    );
+  });
+
+  // ── Prometheus metrics ──────────────────────────────────────────
   const metricsService = app.get(MetricsService);
   const appConfig = configService.get<{
     metricsUser?: string;
@@ -55,38 +70,59 @@ export function setupApp(
   const metricsUser = appConfig?.metricsUser;
   const metricsPassword = appConfig?.metricsPassword;
 
-  app.use(createMetricsMiddleware(metricsService));
-  app.use(
-    '/metrics',
-    (req: Request, res: Response, next: () => void) => {
-      if (metricsUser && metricsPassword) {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Basic ')) {
-          res.setHeader('WWW-Authenticate', 'Basic realm="Metrics"');
-          res.status(401).send('Unauthorized');
-          return;
-        }
-        const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
-        const colonIndex = decoded.indexOf(':');
-        const user = colonIndex >= 0 ? decoded.slice(0, colonIndex) : '';
-        const pass = colonIndex >= 0 ? decoded.slice(colonIndex + 1) : '';
-        if (
-          !safeCompare(user, metricsUser) ||
-          !safeCompare(pass, metricsPassword)
-        ) {
-          res.setHeader('WWW-Authenticate', 'Basic realm="Metrics"');
-          res.status(401).send('Unauthorized');
-          return;
-        }
-      }
-      next();
-    },
-    async (_req: Request, res: Response) => {
-      res.type(metricsService.getContentType());
-      res.send(await metricsService.getMetrics());
-    },
-  );
+  void fastify.addHook('preHandler', (request, _reply, done) => {
+    if (!metricsService.is_enabled() || shouldSkip(request.url)) {
+      done();
+      return;
+    }
+    (request as FastifyRequestWithId).__metricsStart = performance.now();
+    done();
+  });
 
+  void fastify.addHook('onResponse', (request, reply, done) => {
+    const req = request as FastifyRequestWithId;
+    if (!req.__metricsStart) {
+      done();
+      return;
+    }
+    const durationSeconds = (performance.now() - req.__metricsStart) / 1000;
+    const route = normalizeRoute(request.url);
+    metricsService.recordHttpRequest(
+      request.method,
+      route,
+      reply.statusCode,
+      durationSeconds,
+    );
+    done();
+  });
+
+  // ── Metrics endpoint (with optional Basic Auth) ─────────────────
+  void fastify.get('/metrics', async (request, reply) => {
+    if (metricsUser && metricsPassword) {
+      const authHeader = request.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Basic ')) {
+        reply.header('WWW-Authenticate', 'Basic realm="Metrics"');
+        reply.code(401).send('Unauthorized');
+        return;
+      }
+      const decoded = Buffer.from(authHeader.slice(6), 'base64').toString();
+      const colonIndex = decoded.indexOf(':');
+      const user = colonIndex >= 0 ? decoded.slice(0, colonIndex) : '';
+      const pass = colonIndex >= 0 ? decoded.slice(colonIndex + 1) : '';
+      if (
+        !safeCompare(user, metricsUser) ||
+        !safeCompare(pass, metricsPassword)
+      ) {
+        reply.header('WWW-Authenticate', 'Basic realm="Metrics"');
+        reply.code(401).send('Unauthorized');
+        return;
+      }
+    }
+    reply.type(metricsService.getContentType());
+    reply.send(await metricsService.getMetrics());
+  });
+
+  // ── NestJS global configuration ─────────────────────────────────
   app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,
@@ -134,13 +170,21 @@ export function setupApp(
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
-  app.use(
+
+  // `withFastify: true` makes apiReference return a function that expects
+  // (FastifyRequest, ServerResponse). The Scalar type definition incorrectly
+  // intersects with Express Request, so we cast the handler type.
+  const docsHandler = apiReference({
+    spec: { content: document },
+    theme: 'purple',
+    _integration: 'nestjs',
+    withFastify: true,
+  }) as (req: FastifyRequest, res: ServerResponse) => void;
+  void fastify.get(
     '/api/docs',
-    apiReference({
-      spec: { content: document },
-      theme: 'purple',
-      _integration: 'nestjs',
-    }),
+    (request: FastifyRequest, reply: FastifyReply) => {
+      docsHandler(request, reply.raw);
+    },
   );
 }
 

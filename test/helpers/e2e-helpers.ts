@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import type { App } from 'supertest/types';
+import { FastifyAdapter } from '@nestjs/platform-fastify';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 
 import { AppModule } from '../../src/app.module';
 import { setupApp } from '../../src/setup-app';
@@ -21,8 +21,8 @@ export const DEFAULT_SECURITY_PIN = '123456';
 
 // ── E2E Test App Setup ─────────────────────────────────────────
 
-/** Convenience type alias for a NestJS app wired to the supertest App type. */
-export type E2eApp = INestApplication<App>;
+/** Convenience type alias for a NestJS Fastify app wired to the supertest App type. */
+export type E2eApp = NestFastifyApplication;
 
 export interface E2eTestContext {
   app: E2eApp;
@@ -42,8 +42,11 @@ export async function createTestApp(): Promise<E2eTestContext> {
     imports: [AppModule],
   }).compile();
 
-  const app: E2eApp = moduleFixture.createNestApplication();
-  setupApp(app, app.get(ConfigService));
+  const app: E2eApp =
+    moduleFixture.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter(),
+    );
+  await setupApp(app, app.get(ConfigService));
   await app.init();
 
   const prisma = app.get(PrismaService);

@@ -2,10 +2,10 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Controller, Get } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { FastifyAdapter } from '@nestjs/platform-fastify';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
-import type { App } from 'supertest/types';
 import { AppController } from '../../../src/app.controller';
 import { AppService } from '../../../src/app.service';
 import { ApiExceptionFilter } from '../../../src/common/filters/api-exception.filter';
@@ -16,7 +16,7 @@ import { PrismaService } from '../../../src/prisma/prisma.service';
 import { setupApp } from '../../../src/setup-app';
 
 describe('Lucent API (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: NestFastifyApplication;
   let prisma: { $queryRaw: vi.Mock; $queryRawUnsafe: vi.Mock };
   let cache: {
     set: vi.Mock;
@@ -72,8 +72,10 @@ describe('Lucent API (e2e)', () => {
       ],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
+    app = moduleFixture.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter(),
+    );
+    await setupApp(app, app.get(ConfigService));
     await app.init();
   });
 

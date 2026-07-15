@@ -4,6 +4,7 @@ const { pathToFileURL } = require('node:url');
 const { NestFactory } = require('@nestjs/core');
 const { ConfigService } = require('@nestjs/config');
 const { SwaggerModule } = require('@nestjs/swagger');
+const { FastifyAdapter } = require('@nestjs/platform-fastify');
 
 async function main() {
   delete process.env.REDIS_URL;
@@ -23,8 +24,10 @@ async function main() {
   const setupAppImport = await import(setupAppPath);
   const setupApp = setupAppImport.setupApp ?? setupAppImport.default?.setupApp;
 
-  const app = await NestFactory.create(AppModule, { logger: false });
-  setupApp(app, app.get(ConfigService));
+  const app = await NestFactory.create(AppModule, new FastifyAdapter(), {
+    logger: false,
+  });
+  await setupApp(app, app.get(ConfigService));
 
   const document = SwaggerModule.createDocument(app, {
     openapi: '3.0.0',

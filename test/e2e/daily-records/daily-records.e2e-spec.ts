@@ -1,12 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import {
-  ServiceUnavailableException,
-  type INestApplication,
-} from '@nestjs/common';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { FastifyAdapter } from '@nestjs/platform-fastify';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
-import type { App } from 'supertest/types';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
@@ -47,7 +45,7 @@ function expectData<T>(body: ApiEnvelope<T>): T {
 }
 
 describe('Daily Records API (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: NestFastifyApplication;
   let prisma: PrismaService;
   let jwtService: JwtService;
   let configService: ConfigService;
@@ -65,8 +63,10 @@ describe('Daily Records API (e2e)', () => {
       .useValue(candidateServiceMock)
       .compile();
 
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
+    app = moduleFixture.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter(),
+    );
+    await setupApp(app, app.get(ConfigService));
     await app.init();
 
     prisma = app.get(PrismaService);

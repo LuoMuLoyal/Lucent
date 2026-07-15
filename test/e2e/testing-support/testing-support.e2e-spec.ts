@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { FastifyAdapter } from '@nestjs/platform-fastify';
+import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import request from 'supertest';
-import type { App } from 'supertest/types';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
@@ -32,15 +32,17 @@ function expectData<T>(body: ApiEnvelope<T>): T {
 }
 
 describe('Testing Support API (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: NestFastifyApplication;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
 
-    app = moduleFixture.createNestApplication();
-    setupApp(app, app.get(ConfigService));
+    app = moduleFixture.createNestApplication<NestFastifyApplication>(
+      new FastifyAdapter(),
+    );
+    await setupApp(app, app.get(ConfigService));
     await app.init();
   });
 
