@@ -12,6 +12,17 @@ export const USER_NOTIFICATION_TYPES = [
   'system_announcement',
 ] as const;
 
+/**
+ * Notification types that a regular user is allowed to create via the
+ * public POST /notifications endpoint.  System-level types such as
+ * `system_announcement` are excluded — only internal services should
+ * create those.
+ */
+export const USER_CREATABLE_NOTIFICATION_TYPES = USER_NOTIFICATION_TYPES.filter(
+  (t): t is Exclude<typeof t, 'system_announcement'> =>
+    t !== 'system_announcement',
+) as unknown as readonly UserNotificationType[];
+
 export class NotificationListItemDto {
   @ApiProperty({ description: 'Unique notification identifier.' })
   id!: string;
@@ -98,10 +109,12 @@ export class UnreadCountResponseDto {
 
 export class CreateNotificationDto {
   @ApiProperty({
-    enum: USER_NOTIFICATION_TYPES,
+    enum: USER_CREATABLE_NOTIFICATION_TYPES,
     enumName: 'UserNotificationType',
+    description:
+      'Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications.',
   })
-  @IsIn(USER_NOTIFICATION_TYPES)
+  @IsIn(USER_CREATABLE_NOTIFICATION_TYPES)
   type!: UserNotificationType;
 
   @ApiProperty({ description: 'Notification title.' })

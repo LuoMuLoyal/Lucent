@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 本文件只保留简介和按区域链接。具体后端实现细节见 `00-current/` 下各子文件。
 
@@ -169,6 +169,15 @@ Last updated: 2026-07-14
 
 - **移除 `request-ip`**：未维护库（2019 年最后更新），由 Express 5 原生 `req.ip` + `app.set('trust proxy', ...)` 替代；3 个 auth controller 移除 `ConfigService`/`trustProxy` 耦合
 - **NestJS 12 alpha 评估**：核心包已有 `12.0.0-alpha.5`，peerDeps 仍为 rxjs 7 / reflect-metadata 0.2 / Node >=20，项目当前技术栈全部满足；生态包（throttler/jwt/passport）尚无 v12 alpha，需等待
+
+## 2026-07-15 审查报告修复
+
+- **health-context TOCTOU 消除**：`findAllergyById`/`findConditionById`/`findCurrentMedicineById` 改为 `(userId, id)` 签名，DB 层 `where: { id, userId }` 过滤，消除竞态窗口
+- **通知类型白名单**：`CreateNotificationDto` 禁止用户创建 `system_announcement` 类型，新增 `USER_CREATABLE_NOTIFICATION_TYPES` 白名单
+- **候选记录关联用户**：`generateCandidates` 传入 `userId` 用于日志追踪，`DailyRecordCandidatesService.generate` 签名新增 `userId` 参数
+- **服药记录分页**：`medicine-dose-logs` 列表查询新增 `page`/`pageSize` 参数（默认 50 条上限），返回 `total` 总数
+- **OpenAPI 导出修复**：`export-openapi.ts` CJS/ESM 互操作修复，`pnpm export:openapi` 恢复正常
+- **medicine-dose-logs TOCTOU 消除**：`findReminderById`/`findCurrentMedicineById`/`ensureOwned` 改为 DB 层 `where: { id, userId }` 过滤，与 health-context 修复模式一致
 
 ## 相关文档
 

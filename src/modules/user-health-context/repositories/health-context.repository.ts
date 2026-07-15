@@ -43,7 +43,10 @@ export abstract class UserHealthContextRepositoryPort {
     data: Prisma.UserAllergyUpdateInput,
   ): Promise<void>;
   abstract softDeleteAllergy(id: string): Promise<void>;
-  abstract findAllergyById(id: string): Promise<{ userId: string } | null>;
+  abstract findAllergyById(
+    userId: string,
+    id: string,
+  ): Promise<{ userId: string } | null>;
 
   // ── Condition ───────────────────────────────────────────────────────────
 
@@ -55,7 +58,10 @@ export abstract class UserHealthContextRepositoryPort {
     data: Prisma.UserConditionUpdateInput,
   ): Promise<void>;
   abstract softDeleteCondition(id: string, resolvedAt: Date): Promise<void>;
-  abstract findConditionById(id: string): Promise<{ userId: string } | null>;
+  abstract findConditionById(
+    userId: string,
+    id: string,
+  ): Promise<{ userId: string } | null>;
 
   // ── Current Medicine ────────────────────────────────────────────────────
 
@@ -68,6 +74,7 @@ export abstract class UserHealthContextRepositoryPort {
   ): Promise<void>;
   abstract softDeleteCurrentMedicine(id: string, endedAt: Date): Promise<void>;
   abstract findCurrentMedicineById(
+    userId: string,
     id: string,
   ): Promise<{ userId: string; endedAt: Date | null } | null>;
 
@@ -124,9 +131,9 @@ export class UserHealthContextRepository extends UserHealthContextRepositoryPort
     });
   }
 
-  override findAllergyById(id: string) {
-    return this.prisma.userAllergy.findUnique({
-      where: { id },
+  override findAllergyById(userId: string, id: string) {
+    return this.prisma.userAllergy.findFirst({
+      where: { id, userId },
       select: { userId: true },
     });
   }
@@ -154,9 +161,9 @@ export class UserHealthContextRepository extends UserHealthContextRepositoryPort
     });
   }
 
-  override findConditionById(id: string) {
-    return this.prisma.userCondition.findUnique({
-      where: { id },
+  override findConditionById(userId: string, id: string) {
+    return this.prisma.userCondition.findFirst({
+      where: { id, userId },
       select: { userId: true },
     });
   }
@@ -188,9 +195,9 @@ export class UserHealthContextRepository extends UserHealthContextRepositoryPort
     });
   }
 
-  override findCurrentMedicineById(id: string) {
-    return this.prisma.userCurrentMedicine.findUnique({
-      where: { id },
+  override findCurrentMedicineById(userId: string, id: string) {
+    return this.prisma.userCurrentMedicine.findFirst({
+      where: { id, userId },
       select: { userId: true, endedAt: true },
     });
   }

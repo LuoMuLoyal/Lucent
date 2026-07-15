@@ -14,11 +14,13 @@ describe('MedicineDoseLogRepository', () => {
         findFirst: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
+        count: vi.fn(),
       },
       userMedicineReminder: {
         findFirst: vi.fn(),
       },
       userCurrentMedicine: {
+        findFirst: vi.fn(),
         findUnique: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
@@ -47,6 +49,50 @@ describe('MedicineDoseLogRepository', () => {
       expect(prisma.userMedicineDoseLog.findMany).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
         orderBy: [{ scheduledFor: 'desc' }],
+      });
+    });
+  });
+
+  describe('findManyWithCount', () => {
+    it('queries with pagination and returns total', async () => {
+      prisma.userMedicineDoseLog.findMany.mockResolvedValue([
+        { id: 'log-1' } as never,
+      ]);
+      prisma.userMedicineDoseLog.count.mockResolvedValue(1 as never);
+
+      const result = await repository.findManyWithCount(
+        { userId: 'user-1' } as never,
+        [{ scheduledFor: 'desc' as const }],
+        { page: 1, pageSize: 50 },
+      );
+
+      expect(result).toEqual({ items: [{ id: 'log-1' }], total: 1 });
+      expect(prisma.userMedicineDoseLog.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        orderBy: [{ scheduledFor: 'desc' }],
+        skip: 0,
+        take: 50,
+      });
+      expect(prisma.userMedicineDoseLog.count).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+      });
+    });
+
+    it('calculates skip for page 2', async () => {
+      prisma.userMedicineDoseLog.findMany.mockResolvedValue([] as never);
+      prisma.userMedicineDoseLog.count.mockResolvedValue(0 as never);
+
+      await repository.findManyWithCount(
+        { userId: 'user-1' } as never,
+        [{ scheduledFor: 'desc' as const }],
+        { page: 2, pageSize: 20 },
+      );
+
+      expect(prisma.userMedicineDoseLog.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        orderBy: [{ scheduledFor: 'desc' }],
+        skip: 20,
+        take: 20,
       });
     });
   });
@@ -113,7 +159,7 @@ describe('MedicineDoseLogRepository', () => {
   });
 
   describe('findReminderById', () => {
-    it('queries reminder with ownership fields', async () => {
+    it('queries reminder by id+userId with ownership fields', async () => {
       prisma.userMedicineReminder.findFirst.mockResolvedValue({
         userId: 'user-1',
         currentMedicineId: 'med-1',
@@ -121,7 +167,7 @@ describe('MedicineDoseLogRepository', () => {
         scheduledMinute: 30,
       } as never);
 
-      const result = await repository.findReminderById('rem-1');
+      const result = await repository.findReminderById('user-1', 'rem-1');
 
       expect(result).toMatchObject({
         userId: 'user-1',
@@ -130,7 +176,7 @@ describe('MedicineDoseLogRepository', () => {
         scheduledMinute: 30,
       });
       expect(prisma.userMedicineReminder.findFirst).toHaveBeenCalledWith({
-        where: { id: 'rem-1', deletedAt: null },
+        where: { id: 'rem-1', userId: 'user-1', deletedAt: null },
         select: {
           userId: true,
           currentMedicineId: true,
@@ -142,28 +188,33 @@ describe('MedicineDoseLogRepository', () => {
 
     it('returns null when not found', async () => {
       prisma.userMedicineReminder.findFirst.mockResolvedValue(null);
-      expect(await repository.findReminderById('missing')).toBeNull();
+      expect(await repository.findReminderById('user-1', 'missing')).toBeNull();
     });
   });
 
   describe('findCurrentMedicineById', () => {
-    it('queries by id and selects userId', async () => {
-      prisma.userCurrentMedicine.findUnique.mockResolvedValue({
+    it('queries by id+userId and selects userId', async () => {
+      prisma.userCurrentMedicine.findFirst.mockResolvedValue({
         userId: 'user-1',
       } as never);
 
-      const result = await repository.findCurrentMedicineById('med-1');
+      const result = await repository.findCurrentMedicineById(
+        'user-1',
+        'med-1',
+      );
 
       expect(result).toMatchObject({ userId: 'user-1' });
-      expect(prisma.userCurrentMedicine.findUnique).toHaveBeenCalledWith({
-        where: { id: 'med-1' },
+      expect(prisma.userCurrentMedicine.findFirst).toHaveBeenCalledWith({
+        where: { id: 'med-1', userId: 'user-1' },
         select: { userId: true },
       });
     });
 
     it('returns null when not found', async () => {
-      prisma.userCurrentMedicine.findUnique.mockResolvedValue(null);
-      expect(await repository.findCurrentMedicineById('missing')).toBeNull();
+      prisma.userCurrentMedicine.findFirst.mockResolvedValue(null);
+      expect(
+        await repository.findCurrentMedicineById('user-1', 'missing'),
+      ).toBeNull();
     });
   });
 });

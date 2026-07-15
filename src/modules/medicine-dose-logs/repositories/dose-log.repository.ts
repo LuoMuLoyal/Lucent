@@ -15,6 +15,15 @@ export abstract class MedicineDoseLogRepositoryPort {
     orderBy?: Prisma.UserMedicineDoseLogOrderByWithRelationInput[],
   ): Promise<Prisma.UserMedicineDoseLogGetPayload<object>[]>;
 
+  abstract findManyWithCount(
+    where: Prisma.UserMedicineDoseLogWhereInput,
+    orderBy: Prisma.UserMedicineDoseLogOrderByWithRelationInput[],
+    pagination: { page: number; pageSize: number },
+  ): Promise<{
+    items: Prisma.UserMedicineDoseLogGetPayload<object>[];
+    total: number;
+  }>;
+
   abstract findFirst(
     where: Prisma.UserMedicineDoseLogWhereInput,
     options?: {
@@ -34,7 +43,10 @@ export abstract class MedicineDoseLogRepositoryPort {
       | Prisma.UserMedicineDoseLogUncheckedUpdateInput,
   ): Promise<Prisma.UserMedicineDoseLogGetPayload<object>>;
 
-  abstract findReminderById(id: string): Promise<{
+  abstract findReminderById(
+    userId: string,
+    id: string,
+  ): Promise<{
     userId: string;
     currentMedicineId: string | null;
     scheduledHour: number;
@@ -42,6 +54,7 @@ export abstract class MedicineDoseLogRepositoryPort {
   } | null>;
 
   abstract findCurrentMedicineById(
+    userId: string,
     id: string,
   ): Promise<{ userId: string } | null>;
 }
@@ -61,6 +74,23 @@ export class MedicineDoseLogRepository extends MedicineDoseLogRepositoryPort {
     >[0] = { where };
     if (orderBy !== undefined) args.orderBy = orderBy;
     return this.prisma.userMedicineDoseLog.findMany(args);
+  }
+
+  override async findManyWithCount(
+    where: Prisma.UserMedicineDoseLogWhereInput,
+    orderBy: Prisma.UserMedicineDoseLogOrderByWithRelationInput[],
+    pagination: { page: number; pageSize: number },
+  ) {
+    const [items, total] = await Promise.all([
+      this.prisma.userMedicineDoseLog.findMany({
+        where,
+        orderBy,
+        skip: (pagination.page - 1) * pagination.pageSize,
+        take: pagination.pageSize,
+      }),
+      this.prisma.userMedicineDoseLog.count({ where }),
+    ]);
+    return { items, total };
   }
 
   override findFirst(
@@ -91,9 +121,9 @@ export class MedicineDoseLogRepository extends MedicineDoseLogRepositoryPort {
     return this.prisma.userMedicineDoseLog.update({ where, data });
   }
 
-  override findReminderById(id: string) {
+  override findReminderById(userId: string, id: string) {
     return this.prisma.userMedicineReminder.findFirst({
-      where: { id, deletedAt: null },
+      where: { id, userId, deletedAt: null },
       select: {
         userId: true,
         currentMedicineId: true,
@@ -103,9 +133,9 @@ export class MedicineDoseLogRepository extends MedicineDoseLogRepositoryPort {
     });
   }
 
-  override findCurrentMedicineById(id: string) {
-    return this.prisma.userCurrentMedicine.findUnique({
-      where: { id },
+  override findCurrentMedicineById(userId: string, id: string) {
+    return this.prisma.userCurrentMedicine.findFirst({
+      where: { id, userId },
       select: { userId: true },
     });
   }

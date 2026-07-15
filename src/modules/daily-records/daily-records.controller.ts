@@ -106,11 +106,12 @@ export class DailyRecordsController {
   })
   @ApiResponse({ status: 200, type: DailyRecordCandidateResponseDto })
   async generateCandidates(
-    @CurrentUser() _user: UserPayload,
+    @CurrentUser() user: UserPayload,
     @Body() dto: GenerateDailyRecordCandidatesDto,
     @I18nLang() language: string,
   ) {
     const result = await this.dailyRecordCandidatesService.generate(
+      user.sub,
       dto,
       language,
     );

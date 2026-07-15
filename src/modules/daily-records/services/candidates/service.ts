@@ -29,6 +29,7 @@ export class DailyRecordCandidatesService {
   ) {}
 
   async generate(
+    userId: string,
     dto: GenerateDailyRecordCandidatesDto,
     language: string,
   ): Promise<DailyRecordCandidateData> {
@@ -58,7 +59,7 @@ export class DailyRecordCandidatesService {
     } catch (error) {
       const { message: reason } = extractErrorInfo(error);
       this.logger.warn(
-        `Daily record candidate generation failed for ${dto.occurredAt}; falling back: ${reason}`,
+        `Daily record candidate generation failed for userId=${userId}, occurredAt=${dto.occurredAt}; falling back: ${reason}`,
       );
 
       return this.copyService.buildFallback(dto.text, dto.occurredAt, locale);

@@ -35,17 +35,26 @@ export class MedicineDoseLogsService {
     private readonly suggestionCache: SuggestionCacheService,
   ) {}
 
-  async list(userId: string, date: string) {
+  async list(
+    userId: string,
+    date: string,
+    page: number = 1,
+    pageSize: number = 50,
+  ) {
     const where: Prisma.UserMedicineDoseLogWhereInput = {
       userId,
       scheduledFor: parseDateOnly(date),
       ...nonDeleted,
     };
-    const items = await this.repository.findMany(where, [
-      { scheduledTime: 'asc' },
-      { createdAt: 'desc' },
-    ]);
-    return { items: items.map((record) => this.toItem(record)) };
+    const { items, total } = await this.repository.findManyWithCount(
+      where,
+      [{ scheduledTime: 'asc' }, { createdAt: 'desc' }],
+      { page, pageSize },
+    );
+    return {
+      items: items.map((record) => this.toItem(record)),
+      total,
+    };
   }
 
   async create(userId: string, dto: CreateDoseLogDto) {
@@ -303,8 +312,8 @@ export class MedicineDoseLogsService {
       return null;
     }
 
-    const reminder = await this.repository.findReminderById(reminderId);
-    if (!reminder || reminder.userId !== userId) {
+    const reminder = await this.repository.findReminderById(userId, reminderId);
+    if (!reminder) {
       notFound(this.i18n.t('medicine-reminders.reminder_not_found'));
     }
     if (
@@ -328,9 +337,10 @@ export class MedicineDoseLogsService {
 
     if (resolvedCurrentMedicineId) {
       const medicine = await this.repository.findCurrentMedicineById(
+        userId,
         resolvedCurrentMedicineId,
       );
-      if (!medicine || medicine.userId !== userId) {
+      if (!medicine) {
         notFound(this.i18n.t('medicine-dose-logs.medicine_not_found'));
       }
     }
@@ -356,10 +366,10 @@ export class MedicineDoseLogsService {
 
   private async ensureOwned(userId: string, id: string) {
     const record = (await this.repository.findFirst(
-      { id, deletedAt: null },
+      { id, userId, deletedAt: null },
       { select: { userId: true } },
     )) as { userId: string } | null;
-    if (!record || record.userId !== userId) {
+    if (!record) {
       notFound(this.i18n.t('medicine-dose-logs.not_found'));
     }
   }

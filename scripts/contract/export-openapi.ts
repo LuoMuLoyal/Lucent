@@ -17,8 +17,11 @@ async function main() {
     path.resolve(repoRoot, 'dist', 'setup-app.js'),
   ).href;
 
-  const { AppModule } = await import(appModulePath);
-  const { setupApp } = await import(setupAppPath);
+  const appModuleImport = await import(appModulePath);
+  const AppModule =
+    appModuleImport.AppModule ?? appModuleImport.default?.AppModule;
+  const setupAppImport = await import(setupAppPath);
+  const setupApp = setupAppImport.setupApp ?? setupAppImport.default?.setupApp;
 
   const app = await NestFactory.create(AppModule, { logger: false });
   setupApp(app, app.get(ConfigService));

@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -40,9 +41,19 @@ export class MedicineDoseLogsController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List dose logs for a date' })
   @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'pageSize', required: false, example: 50 })
   @ApiResponse({ status: 200, type: DoseLogListResponseDto })
-  async list(@CurrentUser() user: UserPayload, @Query('date') date: string) {
-    return successEnvelope(await this.service.list(user.sub, date));
+  async list(
+    @CurrentUser() user: UserPayload,
+    @Query('date') date: string,
+    @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
+    @Query('pageSize', new ParseIntPipe({ optional: true }))
+    pageSize: number = 50,
+  ) {
+    return successEnvelope(
+      await this.service.list(user.sub, date, page, pageSize),
+    );
   }
 
   @Post()

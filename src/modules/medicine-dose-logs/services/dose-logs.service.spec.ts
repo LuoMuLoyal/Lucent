@@ -30,6 +30,7 @@ describe('MedicineDoseLogsService', () => {
           provide: MedicineDoseLogRepositoryPort,
           useValue: {
             findMany: vi.fn(),
+            findManyWithCount: vi.fn(),
             create: vi.fn(),
             update: vi.fn(),
             findFirst: vi.fn(),
@@ -62,24 +63,27 @@ describe('MedicineDoseLogsService', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    repository.findMany.mockResolvedValue([
-      {
-        id: 'd1',
-        userId: 'u1',
-        currentMedicineId: null,
-        status: 'taken',
-        scheduledFor: new Date('2026-06-04'),
-        reminderId: null,
-        scheduledTime: null,
-        doseText: null,
-        note: null,
-        source: 'manual',
-        deletedAt: null,
-        takenAt: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ]);
+    repository.findManyWithCount.mockResolvedValue({
+      items: [
+        {
+          id: 'd1',
+          userId: 'u1',
+          currentMedicineId: null,
+          status: 'taken',
+          scheduledFor: new Date('2026-06-04'),
+          reminderId: null,
+          scheduledTime: null,
+          doseText: null,
+          note: null,
+          source: 'manual',
+          deletedAt: null,
+          takenAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+      total: 1,
+    });
 
     await service.create('u1', {
       status: DoseLogStatus.taken,
@@ -87,12 +91,11 @@ describe('MedicineDoseLogsService', () => {
     });
     const list = await service.list('u1', '2026-06-04');
     expect(list.items).toHaveLength(1);
+    expect(list.total).toBe(1);
   });
 
   it('should enforce medicine ownership on create', async () => {
-    repository.findCurrentMedicineById.mockResolvedValue({
-      userId: 'other',
-    });
+    repository.findCurrentMedicineById.mockResolvedValue(null);
     await expect(
       service.create('u1', {
         status: DoseLogStatus.taken,
@@ -166,7 +169,7 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should reject foreign dose-log updates', async () => {
-    repository.findFirst.mockResolvedValue({ userId: 'other' });
+    repository.findFirst.mockResolvedValue(null);
 
     await expect(
       service.update('u1', 'd1', { status: DoseLogStatus.taken }),
@@ -246,12 +249,7 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should reject foreign reminder slots on mark', async () => {
-    repository.findReminderById.mockResolvedValue({
-      userId: 'other',
-      currentMedicineId: 'medicine-1',
-      scheduledHour: 8,
-      scheduledMinute: 30,
-    });
+    repository.findReminderById.mockResolvedValue(null);
 
     await expect(
       service.mark('u1', {

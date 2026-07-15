@@ -67,6 +67,7 @@ export const DAILY_RECORD_READER = Symbol('DAILY_RECORD_READER');
  */
 export interface IDailyRecordCandidateGenerator {
   generate(
+    userId: string,
     dto: GenerateDailyRecordCandidatesDto,
     language: string,
   ): Promise<DailyRecordCandidateData>;

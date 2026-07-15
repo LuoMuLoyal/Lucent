@@ -24,7 +24,7 @@ export class UserHealthContextOwnershipService {
     userId: string,
     allergyId: string,
   ): Promise<void> {
-    const allergy = await this.repository.findAllergyById(allergyId);
+    const allergy = await this.repository.findAllergyById(userId, allergyId);
 
     ensureOwnedByUser(allergy, userId, this.i18n.t('auth.user_not_found'));
   }
@@ -33,7 +33,10 @@ export class UserHealthContextOwnershipService {
     userId: string,
     conditionId: string,
   ): Promise<void> {
-    const condition = await this.repository.findConditionById(conditionId);
+    const condition = await this.repository.findConditionById(
+      userId,
+      conditionId,
+    );
 
     ensureOwnedByUser(condition, userId, this.i18n.t('auth.user_not_found'));
   }
@@ -42,7 +45,10 @@ export class UserHealthContextOwnershipService {
     userId: string,
     medicineId: string,
   ): Promise<void> {
-    const medicine = await this.repository.findCurrentMedicineById(medicineId);
+    const medicine = await this.repository.findCurrentMedicineById(
+      userId,
+      medicineId,
+    );
 
     ensureOwnedByUser(medicine, userId, this.i18n.t('auth.user_not_found'));
   }

@@ -14,16 +14,19 @@ describe('UserHealthContextRepository', () => {
       userAllergy: {
         create: vi.fn(),
         update: vi.fn(),
+        findFirst: vi.fn(),
         findUnique: vi.fn(),
       },
       userCondition: {
         create: vi.fn(),
         update: vi.fn(),
+        findFirst: vi.fn(),
         findUnique: vi.fn(),
       },
       userCurrentMedicine: {
         create: vi.fn(),
         update: vi.fn(),
+        findFirst: vi.fn(),
         findUnique: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
@@ -126,16 +129,16 @@ describe('UserHealthContextRepository', () => {
   });
 
   describe('findAllergyById', () => {
-    it('queries by id and selects userId', async () => {
-      prisma.userAllergy.findUnique.mockResolvedValue({
+    it('queries by id+userId and selects userId', async () => {
+      prisma.userAllergy.findFirst.mockResolvedValue({
         userId: 'user-1',
       } as never);
 
-      const result = await repository.findAllergyById('allergy-1');
+      const result = await repository.findAllergyById('user-1', 'allergy-1');
 
       expect(result).toMatchObject({ userId: 'user-1' });
-      expect(prisma.userAllergy.findUnique).toHaveBeenCalledWith({
-        where: { id: 'allergy-1' },
+      expect(prisma.userAllergy.findFirst).toHaveBeenCalledWith({
+        where: { id: 'allergy-1', userId: 'user-1' },
         select: { userId: true },
       });
     });
@@ -181,16 +184,16 @@ describe('UserHealthContextRepository', () => {
   });
 
   describe('findConditionById', () => {
-    it('queries by id and selects userId', async () => {
-      prisma.userCondition.findUnique.mockResolvedValue({
+    it('queries by id+userId and selects userId', async () => {
+      prisma.userCondition.findFirst.mockResolvedValue({
         userId: 'user-1',
       } as never);
 
-      const result = await repository.findConditionById('cond-1');
+      const result = await repository.findConditionById('user-1', 'cond-1');
 
       expect(result).toMatchObject({ userId: 'user-1' });
-      expect(prisma.userCondition.findUnique).toHaveBeenCalledWith({
-        where: { id: 'cond-1' },
+      expect(prisma.userCondition.findFirst).toHaveBeenCalledWith({
+        where: { id: 'cond-1', userId: 'user-1' },
         select: { userId: true },
       });
     });
@@ -257,17 +260,17 @@ describe('UserHealthContextRepository', () => {
   });
 
   describe('findCurrentMedicineById', () => {
-    it('queries by id and selects userId and endedAt', async () => {
-      prisma.userCurrentMedicine.findUnique.mockResolvedValue({
+    it('queries by id+userId and selects userId and endedAt', async () => {
+      prisma.userCurrentMedicine.findFirst.mockResolvedValue({
         userId: 'user-1',
         endedAt: null,
       } as never);
 
-      const result = await repository.findCurrentMedicineById('cm-1');
+      const result = await repository.findCurrentMedicineById('user-1', 'cm-1');
 
       expect(result).toMatchObject({ userId: 'user-1', endedAt: null });
-      expect(prisma.userCurrentMedicine.findUnique).toHaveBeenCalledWith({
-        where: { id: 'cm-1' },
+      expect(prisma.userCurrentMedicine.findFirst).toHaveBeenCalledWith({
+        where: { id: 'cm-1', userId: 'user-1' },
         select: { userId: true, endedAt: true },
       });
     });

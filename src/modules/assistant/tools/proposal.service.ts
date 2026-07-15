@@ -50,6 +50,7 @@ export class AssistantToolProposalService {
       },
     );
     const candidates = await this.dailyRecordCandidatesService.generate(
+      context.userId,
       {
         text: context.userMessage,
         occurredAt: occurredAtResolution.date,

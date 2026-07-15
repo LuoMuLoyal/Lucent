@@ -497,6 +497,7 @@ describe('AssistantToolService', () => {
     );
 
     expect(deps.dailyRecordCandidatesService.generate).toHaveBeenCalledWith(
+      'user-1',
       {
         text: 'I drank 300ml water today',
         occurredAt: '2026-06-19',

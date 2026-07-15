@@ -8,6 +8,7 @@ describe('DailyRecordCandidatesService', () => {
     const service = createService();
 
     const result = await service.generate(
+      'user-1',
       {
         text: '今天头疼，早上喝了两杯水。',
         occurredAt: '2026-06-14',
@@ -26,6 +27,7 @@ describe('DailyRecordCandidatesService', () => {
     });
 
     const result = await service.generate(
+      'user-1',
       {
         text: '今天头疼，早上喝了两杯水。',
         occurredAt: '2026-06-14',
@@ -45,6 +47,7 @@ describe('DailyRecordCandidatesService', () => {
 
     await expect(
       service.generate(
+        'user-1',
         {
           text: '今天头疼，早上喝了两杯水。',
           occurredAt: '2026-06-14',

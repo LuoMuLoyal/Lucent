@@ -47,6 +47,9 @@ class DoseLogItemDto {
 class DoseLogListDataDto {
   @ApiProperty({ type: () => DoseLogItemDto, isArray: true })
   items!: DoseLogItemDto[];
+
+  @ApiProperty({ description: 'Total count of dose logs for the date.' })
+  total!: number;
 }
 
 export class DoseLogListResponseDto {

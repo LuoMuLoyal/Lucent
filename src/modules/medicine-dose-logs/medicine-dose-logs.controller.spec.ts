@@ -37,15 +37,20 @@ describe('MedicineDoseLogsController', () => {
 
   describe('GET /user/medicine-dose-logs', () => {
     it('should list dose logs for a date', async () => {
-      service.list.mockResolvedValue({ items: [] } as any);
+      service.list.mockResolvedValue({ items: [], total: 0 } as any);
 
       const result = await controller.list(mockUser, '2026-06-10');
 
-      expect(service.list).toHaveBeenCalledWith(mockUser.sub, '2026-06-10');
+      expect(service.list).toHaveBeenCalledWith(
+        mockUser.sub,
+        '2026-06-10',
+        1,
+        50,
+      );
       expect(result).toEqual({
         code: ResultCode.SUCCESS,
         message: '',
-        data: { items: [] },
+        data: { items: [], total: 0 },
       });
     });
   });
