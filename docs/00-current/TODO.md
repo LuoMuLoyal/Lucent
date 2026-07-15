@@ -1,6 +1,6 @@
 # Lucent TODO
 
-Last updated: 2026-07-13
+Last updated: 2026-07-15
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -24,11 +24,7 @@ random docs.
 
 ### 2026-07-13 审查遗留项
 
-以下 6 项来自 2026-07-13 全项目审查，已确认有实际价值，暂未处理：
+以下 2 项来自 2026-07-13 全项目审查，7-15 已完成 4 项（safeParseLlmJson、嵌套事务、深比较、pnpm check），剩余待处理：
 
-- 对 `today-suggestion`、`assistant`、`notifications`、`security-pin`、`data-export` 五个模块进行补充审查（本次全项目扫描未覆盖）
-- 提取 `safeParseLlmJson<T>()` 公共函数，统一 `medicines.service.ts`、`vision.service.ts`、`decomposition.service.ts` 等 LLM 返回的解析-验证逻辑
-- 确认 `repository.transaction` 是否正确传递 `Prisma.TransactionClient`，排查嵌套事务风险（`daily-records.service.ts`）
+- 对 `auth`、`assistant`、`reports`、`medicines`、`today-suggestion` 五个模块进行补充审查（逐模块产出审查报告，审查维度：IDOR/注入/越权、错误处理/边界/超时、N+1/索引、类型安全/重复代码/死代码）
 - 提取 `safeJsonPayload()` 工具函数，消除 `as unknown as Prisma.InputJsonValue` 重复（`worker.service.ts` 等）
-- 用 `fast-deep-equal` 替代 `JSON.stringify` 深比较（`meal-analysis.types.ts:293`）
-- 运行 `pnpm check` 验证命名重构后的文档一致性

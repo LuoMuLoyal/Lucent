@@ -94,6 +94,18 @@ export class DrugbankMedicinesService {
     };
   }
 
+  /**
+   * Builds the search WHERE clause for DrugBank drugs.
+   *
+   * `searchText` is a pre-built text field (see import script
+   * `drugbank_drugs.py`) that includes the drug name, CAS number, UNII,
+   * secondary IDs, groups, and the first 20 synonyms. This provides broad
+   * discovery but may cause over-matching on common synonym substrings.
+   *
+   * The `matchedBy` field in search results helps callers distinguish
+   * whether a match came from `name`, `casNumber`, `unii`, `searchText`,
+   * or `synonyms`.
+   */
   private buildWhere(q: string): Prisma.DrugbankDrugWhereInput {
     if (!q) {
       return {};
@@ -122,6 +134,7 @@ export class DrugbankMedicinesService {
       4,
     );
 
+    const synonymList = toStringList(row.synonyms);
     return {
       id: row.drugbankId,
       source: 'drugbank',
@@ -135,6 +148,10 @@ export class DrugbankMedicinesService {
         { key: 'casNumber', value: row.casNumber },
         { key: 'unii', value: row.unii },
         { key: 'searchText', value: row.searchText },
+        ...synonymList.map((synonym) => ({
+          key: 'synonyms',
+          value: synonym,
+        })),
       ]),
     };
   }

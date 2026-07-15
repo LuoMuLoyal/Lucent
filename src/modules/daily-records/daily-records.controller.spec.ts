@@ -160,7 +160,11 @@ describe('DailyRecordsController', () => {
         'zh-CN',
       );
 
-      expect(candidatesService.generate).toHaveBeenCalledWith(dto, 'zh-CN');
+      expect(candidatesService.generate).toHaveBeenCalledWith(
+        'user-1',
+        dto,
+        'zh-CN',
+      );
       expect(result).toEqual({
         code: ResultCode.SUCCESS,
         message: '',

@@ -87,7 +87,7 @@ export class DailyRecordsService {
           : { payload: dto.payload as Prisma.InputJsonValue };
 
     if (createAttachments !== undefined && createAttachments.length > 0) {
-      return this.repository.transaction(async (tx) => {
+      const item = await this.repository.transaction(async (tx) => {
         const record = await tx.userDailyRecord.create({
           data: { ...baseData, ...payloadField },
         });
@@ -116,14 +116,17 @@ export class DailyRecordsService {
             data: this.withMealHotFields({}, queuedPayload),
           });
         }
-        const item = await this.getItemFromTx(tx, userId, record.id);
-        await this.enqueueMealAnalysisIfNeeded(
-          userId,
-          item,
-          queuedRevision ?? undefined,
-        );
-        return item;
+        const txItem = await this.getItemFromTx(tx, userId, record.id);
+        return { item: txItem, queuedRevision };
       });
+
+      await this.enqueueMealAnalysisIfNeeded(
+        userId,
+        item.item,
+        item.queuedRevision ?? undefined,
+      );
+      await this.invalidateSuggestionCache(userId, dto.occurredAt);
+      return item.item;
     }
 
     const record = await this.repository.create({
@@ -193,7 +196,7 @@ export class DailyRecordsService {
     }
 
     if (updateAttachments !== undefined) {
-      return this.repository.transaction(async (tx) => {
+      const item = await this.repository.transaction(async (tx) => {
         await tx.userDailyRecord.update({
           where: { id },
           data: this.withMealHotFields(
@@ -213,22 +216,23 @@ export class DailyRecordsService {
             ),
           });
         }
-        const item = await this.getItemFromTx(tx, userId, id);
-        if (confirmRequested) {
-          await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
-            parseMealRecordPayload(item.payload).mealAnalysis,
-          );
-        }
-        await this.enqueueMealAnalysisIfNeeded(
-          userId,
-          item,
-          nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
-        );
-        if (existing.occurredAt != null) {
-          await this.invalidateSuggestionCache(userId, existing.occurredAt);
-        }
-        return item;
+        return this.getItemFromTx(tx, userId, id);
       });
+
+      if (confirmRequested) {
+        await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
+          parseMealRecordPayload(item.payload).mealAnalysis,
+        );
+      }
+      await this.enqueueMealAnalysisIfNeeded(
+        userId,
+        item,
+        nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
+      );
+      if (existing.occurredAt != null) {
+        await this.invalidateSuggestionCache(userId, existing.occurredAt);
+      }
+      return item;
     }
 
     const record = await this.repository.update(

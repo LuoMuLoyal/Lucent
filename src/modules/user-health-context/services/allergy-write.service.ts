@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client';
+import { Prisma, UserAllergySeverity } from '#generated/prisma/client';
 import { UserHealthContextRepositoryPort } from '../repositories';
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
@@ -25,7 +25,7 @@ export class UserHealthContextAllergyWriteService {
       kind: dto.kind,
       label: dto.label.trim(),
       reaction: normalizeNullableText(dto.reaction),
-      severity: dto.severity ?? null,
+      severity: dto.severity ?? UserAllergySeverity.unknown,
       note: normalizeNullableText(dto.note),
       recordedAt: dto.recordedAt ? new Date(dto.recordedAt) : null,
     });

@@ -72,6 +72,16 @@ export abstract class DailyRecordRepositoryPort {
 
   abstract softDelete(id: string, deletedAt: Date): Promise<void>;
 
+  /**
+   * Executes a Prisma transaction.
+   *
+   * WARNING: The callback MUST NOT call any method that internally uses
+   * `$transaction` (e.g. `MealDishTemplateLearningService.learnFromConfirmedAnalysis`).
+   * Prisma nested transactions silently degrade to independent connections,
+   * losing atomicity. Side effects (queue enqueue, cache invalidation, etc.)
+   * must also be moved outside the callback — only DB writes that need
+   * atomicity belong here.
+   */
   abstract transaction<T>(
     fn: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T>;

@@ -1,5 +1,6 @@
 import { nowIsoString } from '../../../common/helpers/date-time.utils';
 import { mealRecordPayloadSchema } from '../../../common/validators/jsonb-schemas';
+import { isDeepStrictEqual } from 'node:util';
 
 export const MEAL_ANALYSIS_STATUSES = [
   'analyzing',
@@ -290,7 +291,7 @@ export function hasMealDishInputChanges(
   const nextMealInput = parseMealRecordPayload(nextPayload).mealInput ?? null;
   const existingMealInput =
     parseMealRecordPayload(existingPayload).mealInput ?? null;
-  return JSON.stringify(nextMealInput) !== JSON.stringify(existingMealInput);
+  return !isDeepStrictEqual(nextMealInput, existingMealInput);
 }
 
 export function buildConfirmedMealPayload(

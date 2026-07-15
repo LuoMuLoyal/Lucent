@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { type Prisma } from '#generated/prisma/client';
-import { extractJsonObject } from '../../../../common/helpers/json.utils';
-import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
+import { safeParseLlmJson } from '../../../../common/helpers/json.utils';
+
 import { buildSearchText } from '../../../../common/helpers/search-text.utils';
 import { normalizeNullableNumber } from '../../../../common/helpers/number.utils';
 import { normalizeNullableText } from '../../../../common/helpers/string.utils';
@@ -212,70 +212,64 @@ function parseDecompositionResponse(
     confidence: number | null;
   }>;
 } | null {
-  try {
-    const jsonText = extractJsonObject(rawText);
-    if (jsonText == null) {
-      return null;
-    }
+  const parsed = safeParseLlmJson(rawText, {
+    logger,
+    context: 'meal dish decomposition',
+  }) as {
+    normalizedDishName?: unknown;
+    ingredients?: unknown;
+  } | null;
 
-    const parsed = JSON.parse(jsonText) as {
-      normalizedDishName?: unknown;
-      ingredients?: unknown;
-    };
-    const normalizedDishName = normalizeMealEntityName(
-      normalizeNullableText(parsed.normalizedDishName),
-    );
-    if (normalizedDishName == null || !Array.isArray(parsed.ingredients)) {
-      return null;
-    }
-
-    const ingredients = parsed.ingredients
-      .map((item) => {
-        if (item == null || typeof item !== 'object') {
-          return null;
-        }
-        const candidate = item as Record<string, unknown>;
-        const ingredientName = normalizeNullableText(
-          candidate['ingredientName'],
-        );
-        const normalizedIngredientName = normalizeMealEntityName(
-          normalizeNullableText(candidate['normalizedIngredientName']) ??
-            ingredientName,
-        );
-        if (ingredientName == null || normalizedIngredientName == null) {
-          return null;
-        }
-
-        return {
-          ingredientName,
-          normalizedIngredientName,
-          defaultRatio: normalizeNullableNumber(candidate['defaultRatio']),
-          confidence: normalizeNullableNumber(candidate['confidence']),
-        };
-      })
-      .filter(
-        (
-          item,
-        ): item is {
-          ingredientName: string;
-          normalizedIngredientName: string;
-          defaultRatio: number | null;
-          confidence: number | null;
-        } => item != null,
-      );
-
-    if (ingredients.length === 0) {
-      return null;
-    }
-
-    return {
-      normalizedDishName,
-      ingredients,
-    };
-  } catch (error) {
-    logger.warn(
-      `Failed to parse meal dish decomposition response: ${extractErrorInfo(error).message}`,
-    );
+  if (parsed == null) {
     return null;
   }
+
+  const normalizedDishName = normalizeMealEntityName(
+    normalizeNullableText(parsed.normalizedDishName),
+  );
+  if (normalizedDishName == null || !Array.isArray(parsed.ingredients)) {
+    return null;
+  }
+
+  const ingredients = parsed.ingredients
+    .map((item) => {
+      if (item == null || typeof item !== 'object') {
+        return null;
+      }
+      const candidate = item as Record<string, unknown>;
+      const ingredientName = normalizeNullableText(candidate['ingredientName']);
+      const normalizedIngredientName = normalizeMealEntityName(
+        normalizeNullableText(candidate['normalizedIngredientName']) ??
+          ingredientName,
+      );
+      if (ingredientName == null || normalizedIngredientName == null) {
+        return null;
+      }
+
+      return {
+        ingredientName,
+        normalizedIngredientName,
+        defaultRatio: normalizeNullableNumber(candidate['defaultRatio']),
+        confidence: normalizeNullableNumber(candidate['confidence']),
+      };
+    })
+    .filter(
+      (
+        item,
+      ): item is {
+        ingredientName: string;
+        normalizedIngredientName: string;
+        defaultRatio: number | null;
+        confidence: number | null;
+      } => item != null,
+    );
+
+  if (ingredients.length === 0) {
+    return null;
+  }
+
+  return {
+    normalizedDishName,
+    ingredients,
+  };
 }

@@ -4,6 +4,7 @@ import { I18nService } from 'nestjs-i18n';
 
 import { notFound, badRequest } from '../../../common/helpers/api-errors';
 import { shuffleArray } from '../../../common/helpers/array.utils';
+import { safeParseLlmJson } from '../../../common/helpers/json.utils';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   DEFAULT_MEDICINE_SOURCE,
@@ -62,27 +63,24 @@ export class MedicinesService {
         ? response.content
         : JSON.stringify(response.content);
 
-    try {
-      const jsonStart = text.indexOf('{');
-      const jsonEnd = text.lastIndexOf('}') + 1;
-      if (jsonStart >= 0 && jsonEnd > jsonStart) {
-        return JSON.parse(text.slice(jsonStart, jsonEnd)) as {
-          name: string | null;
-          approvalNumber: string | null;
-          specification: string | null;
-          manufacturer: string | null;
-        };
-      }
-    } catch (err) {
-      this.logger.error('Failed to parse medicine recognition response', err);
-    }
+    const parsed = safeParseLlmJson(text, {
+      logger: this.logger,
+      context: 'medicine recognition',
+    }) as {
+      name: string | null;
+      approvalNumber: string | null;
+      specification: string | null;
+      manufacturer: string | null;
+    } | null;
 
-    return {
-      name: null,
-      approvalNumber: null,
-      specification: null,
-      manufacturer: null,
-    };
+    return (
+      parsed ?? {
+        name: null,
+        approvalNumber: null,
+        specification: null,
+        manufacturer: null,
+      }
+    );
   }
 
   async search(query: MedicineSearchQueryDto): Promise<MedicineSearchResult> {

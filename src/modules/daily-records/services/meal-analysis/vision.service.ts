@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
-import { extractJsonObject } from '../../../../common/helpers/json.utils';
-import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
+import { safeParseLlmJson } from '../../../../common/helpers/json.utils';
+
 import { normalizeNullableText } from '../../../../common/helpers/string.utils';
 import { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
 
@@ -204,65 +204,60 @@ function parseRecognitionResponse(
   rawText: string,
   logger: Logger,
 ): MealVisionRecognitionResult | null {
-  try {
-    const jsonText = extractJsonObject(rawText);
-    if (jsonText == null) {
-      return null;
-    }
+  const parsed = safeParseLlmJson(rawText, {
+    logger,
+    context: 'meal vision recognition',
+  }) as {
+    mealDescription?: unknown;
+    foodItems?: unknown;
+  } | null;
 
-    const parsed = JSON.parse(jsonText) as {
-      mealDescription?: unknown;
-      foodItems?: unknown;
-    };
-
-    const mealDescription =
-      typeof parsed.mealDescription === 'string'
-        ? normalizeNullableText(parsed.mealDescription)
-        : null;
-
-    const foodItems = Array.isArray(parsed.foodItems)
-      ? parsed.foodItems
-          .map((item) => {
-            if (item == null || typeof item !== 'object') {
-              return null;
-            }
-
-            const candidate = item as Record<string, unknown>;
-            const name = normalizeNullableText(candidate['name']);
-            if (name == null) {
-              return null;
-            }
-
-            return {
-              name,
-              confidence:
-                typeof candidate['confidence'] === 'number'
-                  ? candidate['confidence']
-                  : null,
-              portionText: normalizeNullableText(candidate['portionText']),
-            };
-          })
-          .filter(
-            (
-              item,
-            ): item is {
-              name: string;
-              confidence: number | null;
-              portionText: string | null;
-            } => item != null,
-          )
-      : [];
-
-    return {
-      mealDescription,
-      foodItems,
-    };
-  } catch (error) {
-    logger.warn(
-      `Failed to parse meal vision response: ${extractErrorInfo(error).message}`,
-    );
+  if (parsed == null) {
     return null;
   }
+
+  const mealDescription =
+    typeof parsed.mealDescription === 'string'
+      ? normalizeNullableText(parsed.mealDescription)
+      : null;
+
+  const foodItems = Array.isArray(parsed.foodItems)
+    ? parsed.foodItems
+        .map((item) => {
+          if (item == null || typeof item !== 'object') {
+            return null;
+          }
+
+          const candidate = item as Record<string, unknown>;
+          const name = normalizeNullableText(candidate['name']);
+          if (name == null) {
+            return null;
+          }
+
+          return {
+            name,
+            confidence:
+              typeof candidate['confidence'] === 'number'
+                ? candidate['confidence']
+                : null,
+            portionText: normalizeNullableText(candidate['portionText']),
+          };
+        })
+        .filter(
+          (
+            item,
+          ): item is {
+            name: string;
+            confidence: number | null;
+            portionText: string | null;
+          } => item != null,
+        )
+    : [];
+
+  return {
+    mealDescription,
+    foodItems,
+  };
 }
 
 function emptyRecognitionResult(): MealVisionRecognitionResult {
