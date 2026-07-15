@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { FastifyRequest } from 'fastify';
 
 import { successEnvelope } from '../../../common/api';
 import { getRequestClientIp } from '../../../common/helpers/client-ip';
@@ -87,7 +87,7 @@ export class SessionController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '刷新令牌' })
   @ApiResponse({ status: 200, type: RefreshResponseDto })
-  async refresh(@Body() dto: RefreshDto, @Req() request: Request) {
+  async refresh(@Body() dto: RefreshDto, @Req() request: FastifyRequest) {
     const result = await this.authService.refresh(
       dto.refreshToken,
       this.getAuthRequestContext(request),
@@ -99,7 +99,7 @@ export class SessionController {
     });
   }
 
-  private getAuthRequestContext(request: Request): AuthRequestContext {
+  private getAuthRequestContext(request: FastifyRequest): AuthRequestContext {
     const userAgent = request.headers['user-agent'];
 
     return {

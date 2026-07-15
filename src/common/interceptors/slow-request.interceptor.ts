@@ -9,7 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { Observable, tap } from 'rxjs';
 import { performance } from 'node:perf_hooks';
-import type { Request } from 'express';
+import type { FastifyRequest } from 'fastify';
 import { EnvKey } from '../../config/env-keys.enum';
 import { DEFAULT_SLOW_REQUEST_THRESHOLD_MS } from '../../config/constants';
 
@@ -36,10 +36,10 @@ export class SlowRequestInterceptor implements NestInterceptor {
     }
 
     const start = performance.now();
-    const request = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<FastifyRequest>();
     const handlerName = context.getClass().name;
     const method = request.method;
-    const path = request.originalUrl || request.url;
+    const path = request.url;
 
     return next.handle().pipe(
       tap(() => {

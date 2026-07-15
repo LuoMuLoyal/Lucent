@@ -1,4 +1,4 @@
-import type { Response } from 'express';
+import type { ServerResponse } from 'node:http';
 
 /** Named event types used by Server-Sent Event streams. */
 export type SseEventName = 'summary' | 'chunk' | 'result' | 'error' | 'done';
@@ -9,19 +9,19 @@ export interface SseMessage<T = unknown> {
   data: T;
 }
 
-/** Prepares an Express response for Server-Sent Events. */
-export function prepareSse(response: Response): void {
-  response.status(200);
-  response.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
-  response.setHeader('Cache-Control', 'no-cache, no-transform');
-  response.setHeader('Connection', 'keep-alive');
-  response.setHeader('X-Accel-Buffering', 'no');
-  response.flushHeaders();
+/** Prepares a raw Node.js response for Server-Sent Events. */
+export function prepareSse(response: ServerResponse): void {
+  response.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
 }
 
 /** Writes a single event to an SSE stream. */
 export function writeSseEvent<T>(
-  response: Response,
+  response: ServerResponse,
   message: SseMessage<T>,
 ): void {
   response.write(`event: ${message.event}\n`);
@@ -29,6 +29,6 @@ export function writeSseEvent<T>(
 }
 
 /** Ends an SSE stream gracefully. */
-export function endSse(response: Response): void {
+export function endSse(response: ServerResponse): void {
   response.end();
 }

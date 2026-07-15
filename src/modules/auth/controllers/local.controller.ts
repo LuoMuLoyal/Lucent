@@ -7,7 +7,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import type { Request } from 'express';
+import type { FastifyRequest } from 'fastify';
 
 import { successEnvelope } from '../../../common/api';
 import { getRequestClientIp } from '../../../common/helpers/client-ip';
@@ -47,7 +47,7 @@ export class LocalController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: '用户注册' })
   @ApiResponse({ status: 201, type: RegisterResponseDto })
-  async register(@Body() dto: RegisterDto, @Req() request: Request) {
+  async register(@Body() dto: RegisterDto, @Req() request: FastifyRequest) {
     const result = await this.authService.register(
       dto,
       this.getAuthRequestContext(request),
@@ -61,7 +61,7 @@ export class LocalController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '用户登录' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
-  async login(@Body() dto: LoginDto, @Req() request: Request) {
+  async login(@Body() dto: LoginDto, @Req() request: FastifyRequest) {
     const result = await this.authService.login(
       dto,
       this.getAuthRequestContext(request),
@@ -78,7 +78,7 @@ export class LocalController {
   @ApiResponse({ status: 429, description: '验证码接口请求过多' })
   async sendVerificationCode(
     @Body() dto: SendVerificationCodeDto,
-    @Req() request: Request,
+    @Req() request: FastifyRequest,
   ) {
     const result = await this.authService.sendVerificationCode(
       dto,
@@ -111,7 +111,7 @@ export class LocalController {
   @ApiResponse({ status: 429, description: '验证码接口请求过多' })
   async forgotPassword(
     @Body() dto: ForgotPasswordDto,
-    @Req() request: Request,
+    @Req() request: FastifyRequest,
   ) {
     const result = await this.authService.forgotPassword(
       dto,
@@ -135,7 +135,7 @@ export class LocalController {
     return successEnvelope(null);
   }
 
-  private getAuthRequestContext(request: Request): AuthRequestContext {
+  private getAuthRequestContext(request: FastifyRequest): AuthRequestContext {
     const userAgent = request.headers['user-agent'];
 
     return {

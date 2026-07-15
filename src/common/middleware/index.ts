@@ -1,2 +1,1 @@
-export * from './request-id.middleware.spec';
-export * from './request-id.middleware';
+export * from './request-id.types';

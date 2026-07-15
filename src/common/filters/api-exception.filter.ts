@@ -7,7 +7,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import { ResultCode, errorEnvelope } from '../api/api-envelope';
 import { RequestContextService } from '../logger/request-context.service';
 
@@ -30,25 +30,25 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const response = ctx.getResponse<FastifyReply>();
+    const request = ctx.getRequest<FastifyRequest>();
     const status = this.resolveStatus(exception);
     const body = this.resolveBody(exception, status);
 
     this.logException(exception, request, status, body.message);
 
-    response.status(status).json(errorEnvelope(body.code, body.message));
+    response.status(status).send(errorEnvelope(body.code, body.message));
   }
 
   private logException(
     exception: unknown,
-    request: Request,
+    request: FastifyRequest,
     status: HttpStatus,
     message: string,
   ): void {
     const requestId = this.requestContextService.getRequestId();
     const requestIdSuffix = requestId ? ` [reqId=${requestId}]` : '';
-    const path = request.originalUrl || request.url;
+    const path = request.url;
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(

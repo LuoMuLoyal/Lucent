@@ -16,7 +16,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Request, Response } from 'express';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 
 import { successEnvelope } from '../../../common/api';
 import { getRequestClientIp } from '../../../common/helpers/client-ip';
@@ -61,7 +61,7 @@ export class OAuthController {
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async loginWithWechatWeb(
     @Body() dto: OAuthCallbackDto,
-    @Req() request: Request,
+    @Req() request: FastifyRequest,
   ) {
     const result = await this.authService.loginWithWechatWeb(
       dto,
@@ -79,11 +79,11 @@ export class OAuthController {
   @ApiResponse({ status: 302, description: 'Redirect to desktop callback URI' })
   async redirectWechatWebCallback(
     @Query() dto: OAuthCallbackDto,
-    @Res() response: Response,
+    @Res() reply: FastifyReply,
   ) {
     const redirectUrl =
       await this.authService.resolveWechatWebCallbackRedirect(dto);
-    response.redirect(HttpStatus.FOUND, redirectUrl);
+    reply.redirect(redirectUrl, HttpStatus.FOUND);
   }
 
   // ── POST /api/v1/auth/oauth/wechat-mobile/callback ───────────
@@ -94,7 +94,7 @@ export class OAuthController {
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async loginWithWechatMobile(
     @Body() dto: OAuthCodeCallbackDto,
-    @Req() request: Request,
+    @Req() request: FastifyRequest,
   ) {
     const result = await this.authService.loginWithWechatMobile(
       dto,
@@ -111,7 +111,7 @@ export class OAuthController {
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async loginWithApple(
     @Body() dto: AppleOAuthCallbackDto,
-    @Req() request: Request,
+    @Req() request: FastifyRequest,
   ) {
     const result = await this.authService.loginWithApple(
       dto,
@@ -138,7 +138,10 @@ export class OAuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'QQ 登录回调' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
-  async loginWithQq(@Body() dto: QqOAuthCallbackDto, @Req() request: Request) {
+  async loginWithQq(
+    @Body() dto: QqOAuthCallbackDto,
+    @Req() request: FastifyRequest,
+  ) {
     const result = await this.authService.loginWithQq(
       dto,
       this.getAuthRequestContext(request),
@@ -146,7 +149,7 @@ export class OAuthController {
     return buildAuthResponse(result.user, result);
   }
 
-  private getAuthRequestContext(request: Request): AuthRequestContext {
+  private getAuthRequestContext(request: FastifyRequest): AuthRequestContext {
     const userAgent = request.headers['user-agent'];
 
     return {

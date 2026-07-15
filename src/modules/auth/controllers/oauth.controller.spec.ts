@@ -1,14 +1,14 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../../common/api';
-import type { Request, Response } from 'express';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import { OAuthController } from './oauth.controller';
 import { AuthService } from '../services/auth.service';
 
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },
   ip: '127.0.0.1',
-  socket: { remoteAddress: '127.0.0.1' },
-} as unknown as Request;
+  raw: { socket: { remoteAddress: '127.0.0.1' } },
+} as unknown as FastifyRequest;
 
 const mockAuthResult = {
   user: {
@@ -95,18 +95,18 @@ describe('OAuthController', () => {
         'https://app/cb?code=wx-code&state=state-123',
       );
 
-      const mockResponse = {
+      const mockReply = {
         redirect: vi.fn(),
-      } as unknown as Response;
+      } as unknown as FastifyReply;
 
       await controller.redirectWechatWebCallback(
         { code: 'wx-code', state: 'state-123' },
-        mockResponse,
+        mockReply,
       );
 
-      expect(mockResponse.redirect).toHaveBeenCalledWith(
-        302,
+      expect(mockReply.redirect).toHaveBeenCalledWith(
         'https://app/cb?code=wx-code&state=state-123',
+        302,
       );
     });
   });

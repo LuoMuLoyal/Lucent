@@ -1,6 +1,6 @@
 ﻿# Lucent: Express → Fastify 迁移计划
 
-> 状态：Phase 1 已完成，Phase 2 待执行
+> 状态：Phase 2 已完成，Phase 3 待执行
 > 创建日期：2026-07-14
 > 最后审查：2026-07-15（与代码库逐文件对照）
 > 预估工时：8-10 人天
@@ -852,22 +852,27 @@ await app.init();
 - 创建 `src/common/metrics/metrics.utils.ts`（原计划 Phase 2 第 12 项）
 - 同步更新 5 个 e2e 测试文件的 `setupApp` 调用（原计划 Phase 5 范围）
 
-### Phase 2：公共工具迁移（1 天）
+### ~~Phase 2：公共工具迁移（1 天）~~ ✅ 已完成
 
-6. 修改 `src/common/api/sse.ts` — 改用 `ServerResponse`
-7. 修改 `src/common/filters/api-exception.filter.ts` — Fastify 类型
-8. 修改 `src/common/interceptors/slow-request.interceptor.ts` — Fastify 类型
-9. 修改 `src/common/helpers/client-ip.ts` — Fastify 类型
-10. ~~删除 `src/common/middleware/request-id.middleware.ts`，创建 `src/common/middleware/request-id.types.ts`~~ — types 已在 Phase 1 创建，middleware 待删除
-11. 删除 `src/common/logger/request-context.middleware.ts`
-12. ~~删除 `src/common/metrics/metrics.middleware.ts`，创建 `src/common/metrics/metrics.utils.ts`~~ — utils 已在 Phase 1 创建，middleware 待删除
+6. ~~修改 `src/common/api/sse.ts` — 改用 `ServerResponse`~~
+7. ~~修改 `src/common/filters/api-exception.filter.ts` — Fastify 类型~~
+8. ~~修改 `src/common/interceptors/slow-request.interceptor.ts` — Fastify 类型~~
+9. ~~修改 `src/common/helpers/client-ip.ts` — Fastify 类型~~
+10. ~~删除 `src/common/middleware/request-id.middleware.ts`，创建 `src/common/middleware/request-id.types.ts`~~ — types 已在 Phase 1 创建，middleware + spec 已删除
+11. ~~删除 `src/common/logger/request-context.middleware.ts`~~ — middleware + spec 已删除
+12. ~~删除 `src/common/metrics/metrics.middleware.ts`，创建 `src/common/metrics/metrics.utils.ts`~~ — utils 已在 Phase 1 创建，middleware + spec 已删除
+
+**附带完成项（提前从 Phase 3 拉入）：**
+
+- 3 个 auth 控制器因 `client-ip.ts` 类型变更导致 build 失败，提前迁移：`local.controller.ts`、`oauth.controller.ts`、`session.controller.ts`（含 `@Req()` → `FastifyRequest`，`@Res()` → `FastifyReply`，`redirect(code, url)` → `redirect(url, code)`）
+- 对应 3 个 `.spec.ts` 文件同步更新
 
 ### Phase 3：控制器迁移（0.5 天）
 
 13. `src/app.controller.ts`
-14. `src/modules/auth/controllers/local.controller.ts`
-15. `src/modules/auth/controllers/oauth.controller.ts`
-16. `src/modules/auth/controllers/session.controller.ts`
+14. ~~`src/modules/auth/controllers/local.controller.ts`~~ — Phase 2 已完成
+15. ~~`src/modules/auth/controllers/oauth.controller.ts`~~ — Phase 2 已完成
+16. ~~`src/modules/auth/controllers/session.controller.ts`~~ — Phase 2 已完成
 17. `src/modules/today-analysis/today-analysis.controller.ts`
 18. `src/modules/reports/reports.controller.ts`
 19. `src/modules/assistant/assistant.controller.ts`

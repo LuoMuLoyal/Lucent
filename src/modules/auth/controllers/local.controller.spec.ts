@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../../common/api';
-import type { Request } from 'express';
+import type { FastifyRequest } from 'fastify';
 import { LocalController } from './local.controller';
 import { AuthService } from '../services/auth.service';
 import { VerificationCodeService } from '../services/verification-code.service';
@@ -8,8 +8,8 @@ import { VerificationCodeService } from '../services/verification-code.service';
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },
   ip: '127.0.0.1',
-  socket: { remoteAddress: '127.0.0.1' },
-} as unknown as Request;
+  raw: { socket: { remoteAddress: '127.0.0.1' } },
+} as unknown as FastifyRequest;
 
 const mockAuthResult = {
   user: {

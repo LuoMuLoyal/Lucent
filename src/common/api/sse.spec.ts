@@ -1,69 +1,36 @@
-import type { Response } from 'express';
+import type { ServerResponse } from 'node:http';
 import { prepareSse, writeSseEvent, endSse } from './sse';
 
 describe('sse', () => {
   function createMockResponse(): vi.Mocked<
-    Pick<Response, 'status' | 'setHeader' | 'flushHeaders' | 'write' | 'end'>
+    Pick<ServerResponse, 'writeHead' | 'write' | 'end'>
   > {
     return {
-      status: vi.fn().mockReturnThis(),
-      setHeader: vi.fn().mockReturnThis(),
-      flushHeaders: vi.fn(),
+      writeHead: vi.fn(),
       write: vi.fn(),
       end: vi.fn(),
     } as unknown as vi.Mocked<
-      Pick<Response, 'status' | 'setHeader' | 'flushHeaders' | 'write' | 'end'>
+      Pick<ServerResponse, 'writeHead' | 'write' | 'end'>
     >;
   }
 
   describe('prepareSse', () => {
-    it('sets status to 200', () => {
+    it('calls writeHead with 200 and SSE headers', () => {
       const res = createMockResponse();
-      prepareSse(res as unknown as Response);
-      expect(res.status).toHaveBeenCalledWith(200);
-    });
-
-    it('sets Content-Type header', () => {
-      const res = createMockResponse();
-      prepareSse(res as unknown as Response);
-      expect(res.setHeader).toHaveBeenCalledWith(
-        'Content-Type',
-        'text/event-stream; charset=utf-8',
-      );
-    });
-
-    it('sets Cache-Control header', () => {
-      const res = createMockResponse();
-      prepareSse(res as unknown as Response);
-      expect(res.setHeader).toHaveBeenCalledWith(
-        'Cache-Control',
-        'no-cache, no-transform',
-      );
-    });
-
-    it('sets Connection header', () => {
-      const res = createMockResponse();
-      prepareSse(res as unknown as Response);
-      expect(res.setHeader).toHaveBeenCalledWith('Connection', 'keep-alive');
-    });
-
-    it('sets X-Accel-Buffering header', () => {
-      const res = createMockResponse();
-      prepareSse(res as unknown as Response);
-      expect(res.setHeader).toHaveBeenCalledWith('X-Accel-Buffering', 'no');
-    });
-
-    it('calls flushHeaders', () => {
-      const res = createMockResponse();
-      prepareSse(res as unknown as Response);
-      expect(res.flushHeaders).toHaveBeenCalled();
+      prepareSse(res as unknown as ServerResponse);
+      expect(res.writeHead).toHaveBeenCalledWith(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      });
     });
   });
 
   describe('writeSseEvent', () => {
     it('writes event and data lines', () => {
       const res = createMockResponse();
-      writeSseEvent(res as unknown as Response, {
+      writeSseEvent(res as unknown as ServerResponse, {
         event: 'summary',
         data: { text: 'hello' },
       });
@@ -74,7 +41,7 @@ describe('sse', () => {
 
     it('serializes string data', () => {
       const res = createMockResponse();
-      writeSseEvent(res as unknown as Response, {
+      writeSseEvent(res as unknown as ServerResponse, {
         event: 'chunk',
         data: 'plain text',
       });
@@ -85,7 +52,7 @@ describe('sse', () => {
 
     it('serializes number data', () => {
       const res = createMockResponse();
-      writeSseEvent(res as unknown as Response, {
+      writeSseEvent(res as unknown as ServerResponse, {
         event: 'result',
         data: 42,
       });
@@ -95,7 +62,7 @@ describe('sse', () => {
 
     it('serializes null data', () => {
       const res = createMockResponse();
-      writeSseEvent(res as unknown as Response, {
+      writeSseEvent(res as unknown as ServerResponse, {
         event: 'done',
         data: null,
       });
@@ -105,7 +72,7 @@ describe('sse', () => {
 
     it('serializes boolean data', () => {
       const res = createMockResponse();
-      writeSseEvent(res as unknown as Response, {
+      writeSseEvent(res as unknown as ServerResponse, {
         event: 'result',
         data: true,
       });
@@ -115,7 +82,7 @@ describe('sse', () => {
 
     it('serializes undefined data', () => {
       const res = createMockResponse();
-      writeSseEvent(res as unknown as Response, {
+      writeSseEvent(res as unknown as ServerResponse, {
         event: 'done',
         data: undefined,
       });
@@ -127,7 +94,7 @@ describe('sse', () => {
 
     it('serializes nested object data', () => {
       const res = createMockResponse();
-      writeSseEvent(res as unknown as Response, {
+      writeSseEvent(res as unknown as ServerResponse, {
         event: 'summary',
         data: { nested: { key: 'value' } },
       });
@@ -139,7 +106,7 @@ describe('sse', () => {
 
     it('serializes array data', () => {
       const res = createMockResponse();
-      writeSseEvent(res as unknown as Response, {
+      writeSseEvent(res as unknown as ServerResponse, {
         event: 'chunk',
         data: [1, 'two', false],
       });
@@ -154,7 +121,7 @@ describe('sse', () => {
         callOrder.push(chunk);
       });
 
-      writeSseEvent(res as unknown as Response, {
+      writeSseEvent(res as unknown as ServerResponse, {
         event: 'summary',
         data: 'test',
       });
@@ -166,7 +133,7 @@ describe('sse', () => {
   describe('endSse', () => {
     it('calls response.end', () => {
       const res = createMockResponse();
-      endSse(res as unknown as Response);
+      endSse(res as unknown as ServerResponse);
       expect(res.end).toHaveBeenCalled();
     });
   });

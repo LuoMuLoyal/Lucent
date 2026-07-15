@@ -13,7 +13,6 @@ describe('SlowRequestInterceptor', () => {
 
   const mockRequest = {
     method: 'GET',
-    originalUrl: '/api/v1/medicines',
     url: '/api/v1/medicines',
   };
 
@@ -115,7 +114,6 @@ describe('SlowRequestInterceptor', () => {
       const ctx = createMockContext('AuthController');
       const postReq = {
         method: 'POST',
-        originalUrl: '/api/v1/auth/login',
         url: '/api/v1/auth/login',
       };
       ctx.switchToHttp = () => ({ getRequest: () => postReq }) as never;

@@ -5,7 +5,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import type { Response } from 'express';
+import type { FastifyReply } from 'fastify';
 import { ResultCode } from '../api/api-envelope';
 import { ApiExceptionFilter } from './api-exception.filter';
 
@@ -14,7 +14,7 @@ describe('ApiExceptionFilter', () => {
   let loggerWarn: vi.MockInstance<any>;
 
   function createHost(
-    response: Partial<Response>,
+    response: Partial<FastifyReply>,
     request: object,
   ): ArgumentsHost {
     return {
@@ -52,7 +52,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -62,7 +62,7 @@ describe('ApiExceptionFilter', () => {
     );
 
     expect(response.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
-    expect(response.json).toHaveBeenCalledWith({
+    expect(response.send).toHaveBeenCalledWith({
       code: ResultCode.NOT_FOUND,
       message: 'string message',
       data: null,
@@ -76,7 +76,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
 
@@ -88,7 +88,7 @@ describe('ApiExceptionFilter', () => {
       createHost(response, request),
     );
 
-    expect(response.json).toHaveBeenCalledWith({
+    expect(response.send).toHaveBeenCalledWith({
       code: 409001,
       message: 'conflict occurred',
       data: null,
@@ -99,7 +99,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
 
@@ -111,7 +111,7 @@ describe('ApiExceptionFilter', () => {
       createHost(response, request),
     );
 
-    expect(response.json).toHaveBeenCalledWith({
+    expect(response.send).toHaveBeenCalledWith({
       code: ResultCode.BAD_REQUEST,
       message: 'fieldA is required; fieldB must be a string',
       data: null,
@@ -122,14 +122,14 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
     const exc = new HttpException({ error: 'Not Found' }, HttpStatus.NOT_FOUND);
     filter.catch(exc, createHost(response, request));
 
-    expect(response.json).toHaveBeenCalledWith({
+    expect(response.send).toHaveBeenCalledWith({
       code: ResultCode.NOT_FOUND,
       message: 'Not Found',
       data: null,
@@ -140,14 +140,14 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
     const exc = new HttpException({}, HttpStatus.BAD_REQUEST);
     filter.catch(exc, createHost(response, request));
 
-    expect(response.json).toHaveBeenCalledWith({
+    expect(response.send).toHaveBeenCalledWith({
       code: ResultCode.BAD_REQUEST,
       message: 'Request failed',
       data: null,
@@ -160,7 +160,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -169,7 +169,7 @@ describe('ApiExceptionFilter', () => {
       createHost(response, request),
     );
 
-    expect(response.json).toHaveBeenCalledWith(
+    expect(response.send).toHaveBeenCalledWith(
       expect.objectContaining({ code: ResultCode.UNAUTHORIZED }),
     );
   });
@@ -178,7 +178,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -187,7 +187,7 @@ describe('ApiExceptionFilter', () => {
       createHost(response, request),
     );
 
-    expect(response.json).toHaveBeenCalledWith(
+    expect(response.send).toHaveBeenCalledWith(
       expect.objectContaining({ code: ResultCode.FORBIDDEN }),
     );
   });
@@ -196,7 +196,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
 
@@ -205,7 +205,7 @@ describe('ApiExceptionFilter', () => {
       createHost(response, request),
     );
 
-    expect(response.json).toHaveBeenCalledWith(
+    expect(response.send).toHaveBeenCalledWith(
       expect.objectContaining({ code: ResultCode.CONFLICT }),
     );
   });
@@ -214,7 +214,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -223,7 +223,7 @@ describe('ApiExceptionFilter', () => {
       createHost(response, request),
     );
 
-    expect(response.json).toHaveBeenCalledWith(
+    expect(response.send).toHaveBeenCalledWith(
       expect.objectContaining({ code: ResultCode.INTERNAL_ERROR }),
     );
   });
@@ -234,7 +234,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -244,7 +244,7 @@ describe('ApiExceptionFilter', () => {
     expect(response.status).toHaveBeenCalledWith(
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
-    expect(response.json).toHaveBeenCalledWith({
+    expect(response.send).toHaveBeenCalledWith({
       code: ResultCode.INTERNAL_ERROR,
       message: 'Internal server error',
       data: null,
@@ -259,14 +259,14 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
     filter.catch('string error', createHost(response, request));
 
     expect(response.status).toHaveBeenCalledWith(500);
-    expect(response.json).toHaveBeenCalledWith({
+    expect(response.send).toHaveBeenCalledWith({
       code: ResultCode.INTERNAL_ERROR,
       message: 'Internal server error',
       data: null,
@@ -279,12 +279,11 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = {
       method: 'GET',
-      originalUrl: '/api/v1/test',
-      url: '/test',
+      url: '/api/v1/test',
     };
 
     const error = new Error('server crash');
@@ -300,7 +299,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'POST', url: '/api/v1/items' };
 
@@ -319,7 +318,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'GET', url: '/fallback-url' };
 
@@ -336,7 +335,7 @@ describe('ApiExceptionFilter', () => {
     requestContext.getRequestId.mockReturnValue('req-abc-123');
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'GET', url: '/test' };
 
@@ -351,7 +350,7 @@ describe('ApiExceptionFilter', () => {
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn(),
+      send: vi.fn(),
     };
     const request = { method: 'POST', url: '/items' };
 
@@ -360,7 +359,7 @@ describe('ApiExceptionFilter', () => {
       createHost(response, request),
     );
 
-    expect(response.json).toHaveBeenCalledWith({
+    expect(response.send).toHaveBeenCalledWith({
       code: ResultCode.BAD_REQUEST,
       message: 'single error',
       data: null,
