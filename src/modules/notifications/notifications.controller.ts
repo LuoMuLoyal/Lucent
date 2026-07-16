@@ -21,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 
 import { successEnvelope } from '../../common/api';
+import { clampPage, clampPageSize } from '../../common/helpers';
 import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -62,8 +63,8 @@ export class NotificationsController {
     pageSize: number = 20,
   ) {
     const { items, total } = await this.notificationsService.findAll(user.sub, {
-      page,
-      pageSize,
+      page: clampPage(page),
+      pageSize: clampPageSize(pageSize),
     });
     return successEnvelope({ items, total });
   }

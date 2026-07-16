@@ -19,6 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
+import { clampPage, clampPageSize } from '../../common/helpers';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { UserPayload } from '../auth/services/auth.service';
@@ -52,7 +53,12 @@ export class MedicineDoseLogsController {
     pageSize: number = 50,
   ) {
     return successEnvelope(
-      await this.service.list(user.sub, date, page, pageSize),
+      await this.service.list(
+        user.sub,
+        date,
+        clampPage(page),
+        clampPageSize(pageSize),
+      ),
     );
   }
 

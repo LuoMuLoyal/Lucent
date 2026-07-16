@@ -173,13 +173,17 @@ export async function setupApp(
 
   // `withFastify: true` makes apiReference return a function that expects
   // (FastifyRequest, ServerResponse). The Scalar type definition incorrectly
-  // intersects with Express Request, so we cast the handler type.
-  const docsHandler = apiReference({
-    spec: { content: document },
-    theme: 'purple',
-    _integration: 'nestjs',
-    withFastify: true,
-  }) as (req: FastifyRequest, res: ServerResponse) => void;
+  // intersects with Express Request, so we use @ts-expect-error to suppress
+  // the assignment error — when Scalar fixes their types this directive will
+  // become unused and TS will alert us.
+  // @ts-expect-error — Scalar 类型定义未正确区分 Fastify/Express 集成
+  const docsHandler: (req: FastifyRequest, res: ServerResponse) => void =
+    apiReference({
+      spec: { content: document },
+      theme: 'purple',
+      _integration: 'nestjs',
+      withFastify: true,
+    });
   void fastify.get(
     '/api/docs',
     (request: FastifyRequest, reply: FastifyReply) => {

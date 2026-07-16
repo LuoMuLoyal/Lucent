@@ -8,6 +8,7 @@ export * from './error-payload';
 export * from './json.utils';
 export * from './localized-copy';
 export * from './number.utils';
+export * from './pagination.utils';
 export * from './prisma-ownership.utils';
 export * from './prisma.utils';
 export * from './queue-helpers';

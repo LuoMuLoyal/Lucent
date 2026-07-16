@@ -42,17 +42,20 @@ export async function createTestApp(): Promise<E2eTestContext> {
     imports: [AppModule],
   }).compile();
 
+  const configService = moduleFixture.get(ConfigService);
+  const trustProxy =
+    configService.get<boolean>(`${ConfigKey.App}.trustProxy`) ?? false;
+
   const app: E2eApp =
     moduleFixture.createNestApplication<NestFastifyApplication>(
-      new FastifyAdapter({ trustProxy: true }),
+      new FastifyAdapter({ trustProxy }),
     );
-  await setupApp(app, app.get(ConfigService));
+  await setupApp(app, configService);
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 
   const prisma = app.get(PrismaService);
   const jwtService = app.get(JwtService);
-  const configService = app.get(ConfigService);
   const securityPinService = app.get(SecurityPinService);
 
   return { app, prisma, jwtService, configService, securityPinService };
