@@ -1,0 +1,180 @@
+# Lucent 架构审查改进计划（2026-07-16）
+
+来源：2026-07-16 全库架构审查（src/ 728 个 TS 文件、21 个 feature module、prisma/schema.prisma 40 模型、architecture.md + 8 个 ADR 交叉核对）。
+
+总体评价：基建质量不错（统一信封/异常过滤器、Winston + requestId、Prometheus 指标、BullMQ 共享工厂、五层测试体系、assistant port 注入模式）。主要问题集中在**数据访问治理缺位**和**文档/规范与代码漂移**。
+
+每条完成并落地到 docs 后，从本文件删除对应章节。
+
+---
+
+## 高优先级
+
+### 1. 跨模块数据访问治理：直查他表泛滥，两套集成模式并存
+
+**问题**：assistant 走 port + 服务注入的显式契约（`assistant/types/ports.ts`），但其他模块直接注入 `PrismaService` 查询他模块的表，`User` 表被 5 个模块写，软删除/字段语义变更需同步 N 处，`userId` + `deletedAt` 过滤全靠各查询点手写。
+
+**证据**：
+
+- `today-suggestion/services/collectors/*.ts`、`lifecycle/`、`feedback/`、`explanation/` 直查 9 张他模块表
+- `today-analysis/services/context.service.ts:144-190` 直查 6 张他模块表
+- `reports/dashboard/context.service.ts:42-70` 直查 `userDailyRecord`/`userMedicineDoseLog`/`userSetting`/`user`
+- `medicine-dose-logs/repositories/dose-log.repository.ts` 直查 `userMedicineReminder` + `userCurrentMedicine`
+- `medicine-reminders/repositories/reminder.repository.ts` 直查 `userCurrentMedicine`
+- `assistant/repositories/conversation.repository.ts`、`tools/leaflet/read.service.ts` 直查 `user`、`drugbankDrug`、`medicineLeafletChunk`
+- `account/services/account.service.ts`、`security-pin/services/pin.service.ts` 直接 `prisma.user.update` 绕过 user 模块
+
+**行动**：
+
+1. 写 ADR 明文确立规则：读模型模块（today-\*/reports）允许直查他表但必须用共享的 `nonDeleted`/ownership helper（`common/helpers/prisma.utils.ts`）；写路径一律经过 owning module 的 service/port。
+2. 高频被跨读的表（dose logs、daily records）收敛出只读 port（如 `IDoseLogReader`），与 assistant 的 port 模式对齐。
+
+**影响范围**：today-suggestion、today-analysis、reports、medicine-dose-logs、medicine-reminders、assistant、account、security-pin、user。
+
+### 2. 建议引擎缓存失效覆盖不完整 + 反向分层依赖
+
+**问题**：`today-suggestion/services/cache/suggestion-cache.service.ts` 的信号缓存（TTL 5 分钟）采集自 reminders + currentMedicines + profile + settings + records，但只有两处失效调用（`daily-records/services/records.service.ts:292`、`medicine-dose-logs/services/dose-logs.service.ts:185`）。`medicine-reminders.module.ts` imports 为空——提醒增删改不失效缓存；user-health-context、user-settings 写路径同样不失效。同时失效机制迫使 daily-records / medicine-dose-logs **imports TodaySuggestionModule**（资源层反向依赖聚合层），`records.service.ts:25` 还深引用 today-suggestion 的 `cache/` 内部文件。
+
+**行动**：
+
+1. 失效改为事件驱动（`@nestjs/event-emitter` 或轻量 domain event），today-suggestion 订阅 `record.created` / `reminder.changed` / `health-context.changed` / `settings.changed`，解除反向 imports。
+2. 或退一步：在 medicine-reminders、user-health-context、user-settings 写路径补齐失效调用并提取共享失效端口。
+
+**影响范围**：today-suggestion、daily-records、medicine-dose-logs、medicine-reminders、user-health-context、user-settings。
+
+### 3. PrismaService 裸客户端：软删除/查询可观测性零强制
+
+**问题**：`prisma/prisma.service.ts` 只做 connect/disconnect。全库 4 个模型有 `deletedAt`（User、UserDailyRecord、UserMedicineReminder、UserMedicineDoseLog），过滤正确性完全依赖每个 where 手写，而跨模块直查点已超 20 处。无查询日志、无慢查询记录。
+
+**行动**：
+
+1. 用 Prisma client extension（`$extends`）为含 `deletedAt` 的模型提供默认 `nonDeleted` 查询变体。
+2. 加 `query` 事件日志（慢查询阈值告警，接入现有 Winston）。
+
+**影响范围**：`prisma/` + 各查询点逐步迁移。
+
+### 4. 架构文档与代码漂移
+
+**证据**：
+
+- `docs/01-reference/architecture.md` 的 mermaid 依赖图没有 today-suggestion 节点（实为 75 文件、44 providers 的第二大域，daily-records/dose-logs 都 imports 它）
+- architecture.md 全文 0 次提及 queue/BullMQ——实际存在 7+1 个队列服务（meal-analysis、data-export、medicine-recognition、report-summary、clinic-pdf、today-analysis、suggestion-explanation + mail）
+- 根 `AGENTS.md` 写 `common/ai/`——实际是 `common/llm/`；`common/` 下 `metrics/`、`queue/`、`queues/`、`storage/`、`types/` 未记录
+- `common/queue/`（工厂 + 模块）与 `common/queues/`（`base-async-queue.service.ts`）双子目录割裂
+
+**行动**：
+
+1. architecture.md 增加 today-suggestion 子系统图和队列拓扑图。
+2. 修正 AGENTS.md `ai/` → `llm/`，补全 common/ 目录清单。
+3. 合并 `common/queue` 与 `common/queues` 为一个目录。
+
+**影响范围**：文档 + 一次目录移动。
+
+---
+
+## 中优先级
+
+### 5. 三个向量检索工具重复实现 PGVectorStore 初始化
+
+**证据**：`assistant/tools/leaflet/read.service.ts`、`assistant/tools/drugbank/search.service.ts`、`assistant/tools/knowledge/medical.service.ts` 各自维护 `vectorStore` + `initPromise` + `createEmbeddings()` + `new PGVectorStore(...)` + `ensureTableInDatabase()`（近乎逐行重复），各自 `new OpenAIEmbeddings`（而 `llm-runtime/services/llm-runtime.service.ts:136` 已有共享 `createEmbeddingModel()`），三份 pg 连接池放大数据库连接数。
+
+**行动**：抽 `VectorStoreFactory`（注入 llm-runtime 的 embedding model + 统一连接池），三个工具只声明表名/列名差异。
+
+**影响范围**：assistant/tools 的 leaflet、drugbank、knowledge + llm-runtime。
+
+### 6. Repository 模式落地一半，绑定方式不一致
+
+**证据**：6 个模块有 Port + Repository，14 个模块（user-settings、notifications、legal-documents、today-suggestion、today-analysis、reports、account、security-pin、user、medicines、data-export 等）service 直接注入 `PrismaService`。绑定方式混用 `useClass` / `useExisting` 双注册。`DailyRecordRepositoryPort` 在 exports 中但全库无外部消费者（违反 AGENTS.md "exported iff" 规则）。
+
+**行动**：
+
+1. 明确"哪些模块必须有 Port"的标准（read-model 模块可豁免），写进 ADR。
+2. 统一 port 绑定写法；移除未使用的 export。
+
+**影响范围**：模块定义文件为主，低风险。
+
+### 7. BullMQ Worker 和 Cron 全部跑在 API 进程内，与蓝绿双 slot 拓扑冲突
+
+**证据**：`common/queue/queue.factory.ts` 在 API 进程内创建 `Worker`；7 个队列 worker（含 PDF 生成、LLM 调用）与 HTTP 请求争用同一事件循环。`today-suggestion/services/lifecycle/service.ts:256` 的 `@Cron` 每 5 分钟执行，蓝绿双 slot 部署重叠期会在两个进程同时触发（靠 updateMany 幂等"碰巧安全"）。全库唯一 cron 无分布式锁。
+
+**行动**：
+
+1. 短期：cron 加 Redis 锁（`SET NX PX`）。
+2. 中期：worker 拆为独立进程/容器（同一镜像不同 command），ADR-0004 部署模型补队列拓扑章节。
+
+**影响范围**：common/queue、today-suggestion lifecycle、deploy 配置。
+
+### 8. 异步任务结果无持久化，失败无死信告警
+
+**证据**：`common/queues/base-async-queue.service.ts` 把 `AsyncJobResult` 只写 cache-manager（TTL 30 分钟），客户端轮询 `getStatus`（5 个 controller）。30 分钟未轮询结果即丢；job 重试 3 次进 failed 集合仅保留 7 天，无告警；Prometheus 有 `bullmq_jobs_total` 指标但 alert rules 未做。
+
+**行动**：
+
+1. failed 任务落 UserNotification 或至少结构化 error 日志 + Grafana alert。
+2. 长结果（如 AI 摘要）考虑写回业务表而非只放缓存。
+
+**影响范围**：common/queues、5 个队列消费模块、notifications。
+
+### 9. 认证 guard 逐 controller 手动挂载（默认不安全）
+
+**证据**：`app.module.ts` 只全局注册 `ThrottlerGuard`；`JwtAuthGuard` 靠 16 个 controller 各自手写 `@UseGuards`。新增 controller 忘挂即裸奔。`auth/decorators/public.decorator.ts` 已存在，全局 guard + 白名单模式设计过却没落地。
+
+**行动**：`JwtAuthGuard` 注册为 `APP_GUARD` + `@Public()` 白名单，公开端点收敛为显式标注。用 `test/security/authorization.e2e-spec.ts` 做回归网。
+
+**影响范围**：全部 controller + auth 模块。
+
+### 10. SSE 与轮询端点消耗全局 Throttler 预算
+
+**证据**：全局 `ThrottlerModule` 100 req/60s/IP；SSE 流端点（`assistant.controller.ts:126`、reports、today-analysis）和 5 个队列 `getStatus` 轮询端点均无 `@SkipThrottle` 或自定义 limit（全库仅 today-suggestion.controller 有端点级 `@Throttle`）。前端轮询易触发 429。
+
+**行动**：SSE 握手和 getStatus 轮询加 `@SkipThrottle`（或更高 limit 的 named throttler），保留 AI 生成类端点的严格限流。
+
+**影响范围**：assistant、reports、today-analysis、today-suggestion、data-export controller。
+
+### 11. auth 巨型模块职责过载（78 文件、17 providers）
+
+**证据**：`auth/auth.module.ts` 承载本地凭证、4 个 OAuth provider、session 管理、验证码、登录限流、OAuth state、通知编排。`auth.service.spec.ts` 孤置模块根目录而被测源码在 `services/auth.service.ts`（违反规范第 8 条）。
+
+**行动**：按边界拆 `identity/`（凭证 + 验证码 + 限流）与 `oauth/` 子模块；移动孤儿 spec。不急，但每加一个 OAuth 渠道都在加重。
+
+**影响范围**：auth 模块内部。
+
+---
+
+## 低优先级
+
+### 12. Barrel 规则无工具强制，深路径引用普遍
+
+**证据**：`llm-runtime/services/` 无 `index.ts`，全项目深引用（`daily-records/services/meal-analysis/vision.service.ts:7` 等 4+ 处）；`assistant/services/core.service.ts:12`、`tools/read.service.ts:6` 深引用 user-settings 内部文件；`daily-records/services/records.service.ts:25` 深引用 today-suggestion `cache/` 内部文件。
+
+**行动**：补 `llm-runtime/services/index.ts`；用 ESLint `no-restricted-imports` 禁止跨模块深路径。
+
+### 13. `LlmSafetyPolicyService` 在 4 个模块重复注册
+
+**证据**：daily-records、reports、today-analysis、today-suggestion 各自 providers 注册（4 份实例，无状态所以无害）。
+
+**行动**：收进共享 `LlmCommonModule`（连 `common/llm/` 的 base generator 一起管理）。
+
+### 14. data-export 名不副实
+
+**证据**：`data-export/services/processor.service.ts:46` 只调 `reportsService.getDashboard` 生成 PDF——不导出任何原始用户数据。模块命名和 `DataExportRequest` 表语义误导。
+
+**行动**：文档明确边界（报告下载）或重新命名；若定位是合规数据导出则范围需补齐。
+
+### 15. 读模型查询无条数上限
+
+**证据**：`today-suggestion/services/collectors/record.service.ts:48-65`（lookback N 天 findMany）、`reports/dashboard/context.service.ts:42-70`、`today-analysis/services/context.service.ts` 均无 `take` 上限。用户数据增长后 context 构建拖慢整个 AI 管道（notifications 2026-07-11 已修复过同类问题并加 `take: 50`）。
+
+**行动**：给三处 context/collector 查询加 `take` 上限。
+
+---
+
+## 附：做得好的（不建议改动）
+
+- assistant 模块 port 注入 + LangGraph tool-loop + 工具按域分目录是全库最好的模块边界示范
+- 队列基建统一（`BullmqQueueFactory` 集中连接与生命周期，Redis 缺失时降级同步执行）
+- 测试体系完整（单测/e2e/contract/security/perf 五层）
+- metrics、requestId、慢请求拦截、健康三探针齐全
+- Security Elevation（PIN + 短期 elevation token）设计严谨有专项安全测试
+
+**观察项**：vitest.config.ts 配了 coverage 输出但无 thresholds 门槛，测试覆盖率无 CI 强制（未深入 CI workflow 确认）。
