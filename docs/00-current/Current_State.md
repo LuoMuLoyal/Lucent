@@ -179,6 +179,18 @@ Last updated: 2026-07-15
 - **OpenAPI 导出修复**：`export-openapi.ts` CJS/ESM 互操作修复，`pnpm export:openapi` 恢复正常
 - **medicine-dose-logs TOCTOU 消除**：`findReminderById`/`findCurrentMedicineById`/`ensureOwned` 改为 DB 层 `where: { id, userId }` 过滤，与 health-context 修复模式一致
 
+## 2026-07-16 代码审查修复 + 五模块补充审查
+
+- **pageSize 上限限制**：新增 `pagination.utils.ts` 统一分页参数范围限制（page ≥ 1，1 ≤ pageSize ≤ 100），`medicine-dose-logs` 和 `notifications` 控制器同步应用
+- **E2E trustProxy 从配置读取**：`e2e-helpers.ts` 的 `trustProxy` 从硬编码改为从 `ConfigService` 读取
+- **apiReference 类型断言**：`setup-app.ts` 改用 `@ts-expect-error` 指令
+- **safeJsonPayload 提取**：新增 `json.utils.ts`（`toInputJsonValue` + `toNullableInputJsonValue`），替换全项目 8 处 `as Prisma.InputJsonValue` 类型断言
+- **五模块补充审查**（auth / assistant / reports / medicines / today-suggestion）：
+  - **P2 IDOR 修复**：`today-suggestion` 的 `explainSuggestionStatus` 和 `medicines` 的 `recognizeStatus` 缺少 userId 归属校验 — 已修复，队列 `getStatus` 和 `enqueue` 新增 `userId` 参数
+  - **P3 重复代码修复**：`auth` 三个控制器的 `getAuthRequestContext` 提取为共享 `extractAuthRequestContext` 函数
+  - **P3 防御性编程修复**：`assistant` 的 `findWithMessagesById` 和 `archiveConversation` 新增 `userId` 参数，DB 层强制所有权过滤
+  - **审查通过**：`reports` 模块队列服务 IDOR 防护完整、诊所摘要分享链接安全；`auth` 开放重定向防护、验证码哈希、登录限流均正确；`today-suggestion` feedback/explain/dismiss 均正确验证 userId
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]

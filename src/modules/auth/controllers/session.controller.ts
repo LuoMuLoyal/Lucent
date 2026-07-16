@@ -19,13 +19,13 @@ import {
 import type { FastifyRequest } from 'fastify';
 
 import { successEnvelope } from '../../../common/api';
-import { getRequestClientIp } from '../../../common/helpers/client-ip';
+import { extractAuthRequestContext } from '../../../common/helpers/client-ip';
 import { calculateExpiresIn } from '../../../common/helpers/date-time.utils';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import type { AuthRequestContext, UserPayload } from '../types/auth-request';
+import type { UserPayload } from '../types/auth-request';
 
 import { LogoutDto } from '../dto/logout.dto';
 import { RefreshDto } from '../dto/refresh.dto';
@@ -90,21 +90,12 @@ export class SessionController {
   async refresh(@Body() dto: RefreshDto, @Req() request: FastifyRequest) {
     const result = await this.authService.refresh(
       dto.refreshToken,
-      this.getAuthRequestContext(request),
+      extractAuthRequestContext(request),
     );
     return successEnvelope({
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
       expiresIn: calculateExpiresIn(result.accessTokenExpiresAt),
     });
-  }
-
-  private getAuthRequestContext(request: FastifyRequest): AuthRequestContext {
-    const userAgent = request.headers['user-agent'];
-
-    return {
-      ipAddress: getRequestClientIp(request),
-      ...(userAgent !== undefined && { userAgent }),
-    };
   }
 }

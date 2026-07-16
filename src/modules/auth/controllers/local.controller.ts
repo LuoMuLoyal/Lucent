@@ -10,10 +10,12 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 
 import { successEnvelope } from '../../../common/api';
-import { getRequestClientIp } from '../../../common/helpers/client-ip';
+import {
+  extractAuthRequestContext,
+  getRequestClientIp,
+} from '../../../common/helpers/client-ip';
 import { AuthService } from '../services/auth.service';
 import { VerificationCodeService } from '../services/verification-code.service';
-import type { AuthRequestContext } from '../types/auth-request';
 
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
@@ -50,7 +52,7 @@ export class LocalController {
   async register(@Body() dto: RegisterDto, @Req() request: FastifyRequest) {
     const result = await this.authService.register(
       dto,
-      this.getAuthRequestContext(request),
+      extractAuthRequestContext(request),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -64,7 +66,7 @@ export class LocalController {
   async login(@Body() dto: LoginDto, @Req() request: FastifyRequest) {
     const result = await this.authService.login(
       dto,
-      this.getAuthRequestContext(request),
+      extractAuthRequestContext(request),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -133,14 +135,5 @@ export class LocalController {
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto);
     return successEnvelope(null);
-  }
-
-  private getAuthRequestContext(request: FastifyRequest): AuthRequestContext {
-    const userAgent = request.headers['user-agent'];
-
-    return {
-      ipAddress: getRequestClientIp(request),
-      ...(userAgent !== undefined && { userAgent }),
-    };
   }
 }

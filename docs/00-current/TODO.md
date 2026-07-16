@@ -21,9 +21,3 @@ random docs.
 - OpenTelemetry 分布式追踪
 - 配置 Prometheus alerting rules
 - 添加 synthetic uptime monitoring
-
-### 2026-07-13 审查遗留项
-
-以下 1 项来自 2026-07-13 全项目审查，7-15 已完成 4 项（safeParseLlmJson、嵌套事务、深比较、pnpm check），7-16 已完成 1 项（safeJsonPayload 提取），剩余待处理：
-
-- 对 `auth`、`assistant`、`reports`、`medicines`、`today-suggestion` 五个模块进行补充审查（逐模块产出审查报告，审查维度：IDOR/注入/越权、错误处理/边界/超时、N+1/索引、类型安全/重复代码/死代码）

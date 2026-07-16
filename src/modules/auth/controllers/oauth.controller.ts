@@ -19,9 +19,8 @@ import {
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
 import { successEnvelope } from '../../../common/api';
-import { getRequestClientIp } from '../../../common/helpers/client-ip';
+import { extractAuthRequestContext } from '../../../common/helpers/client-ip';
 import { AuthService } from '../services/auth.service';
-import type { AuthRequestContext } from '../types/auth-request';
 
 import {
   OAuthAuthorizeDto,
@@ -65,7 +64,7 @@ export class OAuthController {
   ) {
     const result = await this.authService.loginWithWechatWeb(
       dto,
-      this.getAuthRequestContext(request),
+      extractAuthRequestContext(request),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -98,7 +97,7 @@ export class OAuthController {
   ) {
     const result = await this.authService.loginWithWechatMobile(
       dto,
-      this.getAuthRequestContext(request),
+      extractAuthRequestContext(request),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -115,7 +114,7 @@ export class OAuthController {
   ) {
     const result = await this.authService.loginWithApple(
       dto,
-      this.getAuthRequestContext(request),
+      extractAuthRequestContext(request),
     );
     return buildAuthResponse(result.user, result);
   }
@@ -144,17 +143,8 @@ export class OAuthController {
   ) {
     const result = await this.authService.loginWithQq(
       dto,
-      this.getAuthRequestContext(request),
+      extractAuthRequestContext(request),
     );
     return buildAuthResponse(result.user, result);
-  }
-
-  private getAuthRequestContext(request: FastifyRequest): AuthRequestContext {
-    const userAgent = request.headers['user-agent'];
-
-    return {
-      ipAddress: getRequestClientIp(request),
-      ...(userAgent !== undefined && { userAgent }),
-    };
   }
 }
