@@ -152,7 +152,7 @@ describe('AssistantConversationService', () => {
 
       const result = await service.clearLatestConversation('user-1');
 
-      expect(repo.archiveConversation).toHaveBeenCalledWith('conv-1');
+      expect(repo.archiveConversation).toHaveBeenCalledWith('user-1', 'conv-1');
       expect(result).not.toBeNull();
       expect(result!.status).toBe('archived');
     });

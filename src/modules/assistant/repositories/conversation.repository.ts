@@ -70,6 +70,7 @@ export abstract class AssistantConversationRepositoryPort {
   ): Promise<ConversationWithMessages | null>;
 
   abstract findWithMessagesById(
+    userId: string,
     conversationId: string,
   ): Promise<ConversationWithMessages>;
 
@@ -79,6 +80,7 @@ export abstract class AssistantConversationRepositoryPort {
   ): Promise<ConversationWithMessages>;
 
   abstract archiveConversation(
+    userId: string,
     conversationId: string,
   ): Promise<ConversationWithMessages>;
 
@@ -143,11 +145,12 @@ export class AssistantConversationRepository implements AssistantConversationRep
   }
 
   async findWithMessagesById(
+    userId: string,
     conversationId: string,
   ): Promise<ConversationWithMessages> {
-    return this.prisma.assistantConversation.findUniqueOrThrow({
+    return this.prisma.assistantConversation.findFirstOrThrow({
       ...conversationWithMessagesArgs,
-      where: { id: conversationId },
+      where: { id: conversationId, userId },
     });
   }
 
@@ -162,11 +165,12 @@ export class AssistantConversationRepository implements AssistantConversationRep
   }
 
   async archiveConversation(
+    userId: string,
     conversationId: string,
   ): Promise<ConversationWithMessages> {
     return this.prisma.assistantConversation.update({
       ...conversationWithMessagesArgs,
-      where: { id: conversationId },
+      where: { id: conversationId, userId },
       data: { status: AssistantConversationStatus.archived },
     });
   }
@@ -228,7 +232,7 @@ export class AssistantConversationRepository implements AssistantConversationRep
       });
     });
 
-    return this.findWithMessagesById(input.conversationId);
+    return this.findWithMessagesById(input.userId, input.conversationId);
   }
 
   async findForMemory(

@@ -62,7 +62,10 @@ export class AssistantConversationService {
 
     await this.repository.activateConversation(userId, conversationId);
 
-    const opened = await this.repository.findWithMessagesById(conversationId);
+    const opened = await this.repository.findWithMessagesById(
+      userId,
+      conversationId,
+    );
 
     return this.toSnapshot(opened);
   }
@@ -76,7 +79,10 @@ export class AssistantConversationService {
       return null;
     }
 
-    const archived = await this.repository.archiveConversation(conversation.id);
+    const archived = await this.repository.archiveConversation(
+      userId,
+      conversation.id,
+    );
 
     return this.toSnapshot(archived);
   }

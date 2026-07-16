@@ -13,7 +13,7 @@ describe('AssistantConversationRepository', () => {
       assistantConversation: {
         findFirst: vi.fn(),
         findMany: vi.fn(),
-        findUniqueOrThrow: vi.fn(),
+        findFirstOrThrow: vi.fn(),
         create: vi.fn(),
         update: vi.fn(),
         updateMany: vi.fn(),
@@ -77,19 +77,21 @@ describe('AssistantConversationRepository', () => {
   });
 
   describe('findWithMessagesById', () => {
-    it('queries by conversationId only', async () => {
+    it('queries by conversationId and userId', async () => {
       const conv = { id: 'conv-1', messages: [] };
-      prisma.assistantConversation.findUniqueOrThrow.mockResolvedValue(
+      prisma.assistantConversation.findFirstOrThrow.mockResolvedValue(
         conv as never,
       );
 
-      const result = await repository.findWithMessagesById('conv-1');
+      const result = await repository.findWithMessagesById('user-1', 'conv-1');
 
       expect(result).toBe(conv);
       expect(
-        prisma.assistantConversation.findUniqueOrThrow,
+        prisma.assistantConversation.findFirstOrThrow,
       ).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'conv-1' } }),
+        expect.objectContaining({
+          where: { id: 'conv-1', userId: 'user-1' },
+        }),
       );
     });
   });
@@ -123,14 +125,14 @@ describe('AssistantConversationRepository', () => {
   });
 
   describe('archiveConversation', () => {
-    it('updates status to archived', async () => {
+    it('updates status to archived with userId filter', async () => {
       prisma.assistantConversation.update.mockResolvedValue({} as never);
 
-      await repository.archiveConversation('conv-1');
+      await repository.archiveConversation('user-1', 'conv-1');
 
       expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'conv-1' },
+          where: { id: 'conv-1', userId: 'user-1' },
           data: { status: AssistantConversationStatus.archived },
         }),
       );
@@ -169,7 +171,7 @@ describe('AssistantConversationRepository', () => {
       } as never);
       prisma.assistantMessage.create.mockResolvedValue({} as never);
       prisma.assistantConversation.update.mockResolvedValue({} as never);
-      prisma.assistantConversation.findUniqueOrThrow.mockResolvedValue({
+      prisma.assistantConversation.findFirstOrThrow.mockResolvedValue({
         id: 'conv-1',
         messages: [],
       } as never);
@@ -201,7 +203,7 @@ describe('AssistantConversationRepository', () => {
     it('skips createMany when no messages to append', async () => {
       prisma.assistantMessage.create.mockResolvedValue({} as never);
       prisma.assistantConversation.update.mockResolvedValue({} as never);
-      prisma.assistantConversation.findUniqueOrThrow.mockResolvedValue({
+      prisma.assistantConversation.findFirstOrThrow.mockResolvedValue({
         id: 'conv-1',
       } as never);
 
