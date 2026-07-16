@@ -191,6 +191,14 @@ Last updated: 2026-07-15
   - **P3 防御性编程修复**：`assistant` 的 `findWithMessagesById` 和 `archiveConversation` 新增 `userId` 参数，DB 层强制所有权过滤
   - **审查通过**：`reports` 模块队列服务 IDOR 防护完整、诊所摘要分享链接安全；`auth` 开放重定向防护、验证码哈希、登录限流均正确；`today-suggestion` feedback/explain/dismiss 均正确验证 userId
 
+## 2026-07-16 数据库索引优化
+
+- **冗余索引删除（P0）**：10 个被唯一约束或复合索引前缀覆盖的冗余 `@@index` 从 `schema.prisma` 删除，减少写入开销
+- **缺失索引补充（P1）**：`UserSession.expiresAt` 和 `UserReminderDelivery.scheduledFor` 新增跨用户索引，服务后台定时任务
+- **低基数索引清理（P2）**：3 个保留 partial index（`UserCurrentMedicine`、`UserMedicineReminder`、`UserNotification`），3 个仅删除不重建（`User.status`、`MedicineSafetyTip`、`LegalDocument` — 表极小或无运行时查询），1 个 partial index（`MealDishTemplate`），1 个 B-tree on JSONB 删除（`CnMedicineLeaflet.approvalCodes`）
+- **GIN trigram 索引（P3）**：启用 `pg_trgm` 扩展，为 `cn_medicine_products`（6 列）和 `drugbank_drugs`（4 列）的所有 ILIKE 搜索列添加 GIN trigram 索引；为 `food_composition_items` 的 `normalized_name` 和 `search_text` 添加 GIN trigram 索引（服务 `startsWith` 前缀匹配）
+- **Migration**：`20260716120000_optimize_indexes` 包含所有 DROP/CREATE INDEX 语句
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]

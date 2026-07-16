@@ -164,7 +164,7 @@ model User {
   suggestionBaselines    UserSuggestionBaseline[]
   suggestionFeedbacks    UserSuggestionFeedback[]
 
-  @@index([status])
+  // status index removed — no runtime query filters by status; PK serves all lookups
   @@map("users")
 }
 
@@ -226,6 +226,7 @@ model UserSession {
 
   @@index([userId, revokedAt])
   @@index([userId, expiresAt])
+  @@index([expiresAt])
   @@map("user_sessions")
 }
 
@@ -304,7 +305,7 @@ model UserCurrentMedicine {
   doseLogs      UserMedicineDoseLog[]
   reminders     UserMedicineReminder[]
 
-  @@index([userId, isCurrent])
+  // isCurrent index replaced by partial index in migration (WHERE is_current = true)
   @@index([userId, source])
   @@map("user_current_medicines")
 }
@@ -329,7 +330,7 @@ model UserMedicineReminder {
   deliveries        UserReminderDelivery[]
   doseLogs          UserMedicineDoseLog[]
 
-  @@index([userId, isActive])
+  // isActive index replaced by partial index in migration (WHERE is_active = true AND deleted_at IS NULL)
   @@index([userId, currentMedicineId])
   @@index([userId, deletedAt])
   @@index([userId, startDate, endDate])
@@ -353,6 +354,7 @@ model UserReminderDelivery {
   @@index([userId, scheduledFor])
   @@index([userId, reminderId])
   @@index([userId, channel, status])
+  @@index([scheduledFor])
   @@map("user_reminder_deliveries")
 }
 
@@ -383,7 +385,7 @@ model UserMedicineDoseLog {
   reminder          UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
 
   @@index([userId, scheduledFor])
-  @@index([userId, currentMedicineId])
+  // userId+currentMedicineId index removed — redundant prefix of (userId, currentMedicineId, scheduledFor, scheduledTime)
   @@index([userId, reminderId, scheduledFor])
   @@index([userId, currentMedicineId, scheduledFor, scheduledTime])
   @@index([userId, deletedAt])
@@ -413,7 +415,7 @@ model UserDailyRecord {
   user                      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
   attachments               UserDailyRecordAttachment[]
 
-  @@index([userId, occurredAt])
+  // userId+occurredAt index removed — redundant prefix of (userId, occurredAt, occurredTime)
   @@index([userId, occurredAt, occurredTime])
   @@index([userId, kind])
   @@index([userId, mealAnalysisStatus])
@@ -582,7 +584,7 @@ model MealDishTemplate {
   ingredients        MealDishTemplateIngredient[]
 
   @@index([displayName])
-  @@index([status])
+  // status index replaced by partial index in migration (WHERE status = 'active')
   @@index([searchText])
   @@map("meal_dish_templates")
 }
@@ -665,8 +667,7 @@ model CnMedicineProduct {
   @@index([manufacturerNormalized])
   @@index([barcode])
   @@index([nationalDrugCode])
-  @@index([bestMatchType])
-  @@index([matchQualityOverall])
+  // bestMatchType and matchQualityOverall indexes removed — import-time only, not used in runtime queries
   @@index([searchText])
   @@map("cn_medicine_products")
 }
@@ -715,7 +716,7 @@ model CnMedicineLeaflet {
 
   @@index([genericName])
   @@index([manufacturer])
-  @@index([approvalCodes])
+  // approvalCodes B-tree index removed — B-tree on JSONB is not usable; no runtime query filters on this column
   @@map("cn_medicine_leaflets")
 }
 
@@ -735,7 +736,7 @@ model CnMedicineProductLeafletLink {
   leaflet         CnMedicineLeaflet @relation(fields: [leafletId], references: [id], onDelete: Cascade)
 
   @@unique([productId, leafletId])
-  @@index([productId])
+  // productId index removed — redundant prefix of unique(productId, leafletId)
   @@index([leafletId])
   @@index([approvalCode])
   @@map("cn_medicine_product_leaflet_links")
@@ -756,7 +757,7 @@ model MedicineLeafletChunk {
   leaflet       CnMedicineLeaflet @relation(fields: [leafletId], references: [id], onDelete: Cascade)
 
   @@unique([leafletId, sourceField, chunkIndex])
-  @@index([leafletId])
+  // leafletId index removed — redundant prefix of unique(leafletId, sourceField, chunkIndex)
   @@index([sourceField])
   @@map("medicine_leaflet_chunks")
 }
@@ -836,7 +837,7 @@ model DrugbankPassageChunk {
   drug          DrugbankDrug @relation(fields: [drugbankId], references: [drugbankId], onDelete: Cascade)
 
   @@unique([drugbankId, sourceField, chunkIndex])
-  @@index([drugbankId])
+  // drugbankId index removed — redundant prefix of unique(drugbankId, sourceField, chunkIndex)
   @@index([sourceField])
   @@map("drugbank_passage_chunks")
 }
@@ -930,7 +931,7 @@ model UserSetting {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, key])
-  @@index([userId])
+  // userId index removed — redundant prefix of unique(userId, key)
   @@map("user_settings")
 }
 
@@ -953,7 +954,7 @@ model DataExportRequest {
   updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, createdAt])
+  // userId+createdAt index removed — redundant prefix of (userId, kind, createdAt)
   @@index([userId, kind, createdAt])
   @@map("data_export_requests")
 }
@@ -969,7 +970,7 @@ model AssistantConversation {
   user          User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages      AssistantMessage[]
 
-  @@index([userId, updatedAt])
+  // userId+updatedAt index removed — redundant, covered by (userId, status, updatedAt)
   @@index([userId, lastMessageAt])
   @@index([userId, status, updatedAt])
   @@map("assistant_conversations")
@@ -1033,7 +1034,7 @@ model UserNotification {
   user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
-  @@index([userId, isRead, createdAt])
+  // isRead index replaced by partial index in migration (WHERE is_read = false)
   @@map("user_notifications")
 }
 
@@ -1047,7 +1048,7 @@ model MedicineSafetyTip {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  @@index([isActive, sortOrder])
+  // isActive+sortOrder index removed — table is tiny, seq scan sufficient
   @@map("medicine_safety_tips")
 }
 
@@ -1145,7 +1146,7 @@ model UserSuggestionBaseline {
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, dimension])
-  @@index([userId, dimension, establishedAt])
+  // userId+dimension+establishedAt index removed — redundant prefix of unique(userId, dimension), establishedAt rarely queried
   @@map("user_suggestion_baselines")
 }
 
@@ -1178,6 +1179,6 @@ model LegalDocument {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  @@index([isActive])
+  // isActive index removed — table is tiny, seq scan sufficient
   @@map("legal_documents")
 }
