@@ -14,9 +14,9 @@ import { I18nService } from 'nestjs-i18n';
 import { ResultCode } from '../../../common/api';
 import { unauthorized } from '../../../common/helpers/api-errors';
 import { withRetry } from '../../../common/helpers/retry.utils';
+import { toInputJsonValue } from '../../../common/helpers/json.utils';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type { OAuthConfig } from '../../../config/oauth.config';
-import type { Prisma } from '#generated/prisma/client';
 import { OAUTH_PROVIDER_APPLE, type OAuthProfile } from '../types/oauth.types';
 import type { OAuthProvider } from './oauth-provider.interface';
 import { now } from '../../../common/helpers/date-time.utils';
@@ -92,13 +92,13 @@ export class AppleOAuthProvider implements OAuthProvider, OnModuleInit {
         (givenName ?? familyName)
           ? [givenName, familyName].filter(Boolean).join(' ') || null
           : null,
-      rawProfile: {
+      rawProfile: toInputJsonValue({
         sub: appleUserId,
         email: payload.email ?? null,
         ...(payload.is_private_email !== undefined && {
           isPrivateEmail: payload.is_private_email,
         }),
-      } as Prisma.InputJsonValue,
+      }),
     };
   }
 

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
 import { normalizeNullableText } from '../../../../common/helpers/string.utils';
+import { toInputJsonValue } from '../../../../common/helpers/json.utils';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { CosStorageRuntime } from '../../../../common/storage';
 import {
@@ -111,7 +112,7 @@ export class MealAnalysisWorkerService {
     await this.prisma.userDailyRecord.update({
       where: { id: record.id },
       data: {
-        payload: {
+        payload: toInputJsonValue({
           ...(mealPayload.mealInput != null
             ? { mealInput: mealPayload.mealInput }
             : {}),
@@ -139,7 +140,7 @@ export class MealAnalysisWorkerService {
                   mealPayload.mealAnalysisLastConfirmed,
               }
             : {}),
-        } as unknown as Prisma.InputJsonValue,
+        }),
         mealAnalysisStatus: 'unconfirmed',
         mealAnalysisCoverage: coverage,
         mealAnalysisUpdatedAt: analyzedAt,
@@ -153,7 +154,7 @@ export class MealAnalysisWorkerService {
     failureReason: string,
   ): Prisma.UserDailyRecordUpdateInput {
     return {
-      payload: {
+      payload: toInputJsonValue({
         ...(mealPayload.mealInput != null
           ? { mealInput: mealPayload.mealInput }
           : {}),
@@ -165,7 +166,7 @@ export class MealAnalysisWorkerService {
         ...(mealPayload.mealAnalysisLastConfirmed != null
           ? { mealAnalysisLastConfirmed: mealPayload.mealAnalysisLastConfirmed }
           : {}),
-      } as unknown as Prisma.InputJsonValue,
+      }),
       mealAnalysisStatus: 'analysis_failed',
       mealAnalysisCoverage: null,
       mealAnalysisUpdatedAt: now(),

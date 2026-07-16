@@ -3,6 +3,7 @@ import { parseDateOnly, now } from '../../../common/helpers/date-time.utils';
 import { Injectable, Logger } from '@nestjs/common';
 import { badRequest } from '../../../common/helpers/api-errors';
 import { DailyRecordKind, Prisma } from '#generated/prisma/client';
+import { toInputJsonValue } from '../../../common/helpers/json.utils';
 import type { CreateDailyRecordDto, UpdateDailyRecordDto } from '../dto';
 import { DailyRecordsOwnershipService } from './ownership.service';
 import { DailyRecordsMapperService } from './mapper.service';
@@ -84,7 +85,7 @@ export class DailyRecordsService {
         ? this.buildMealCreateFields(initialMealPayload)
         : dto.payload === undefined
           ? {}
-          : { payload: dto.payload as Prisma.InputJsonValue };
+          : { payload: toInputJsonValue(dto.payload) };
 
     if (createAttachments !== undefined && createAttachments.length > 0) {
       const item = await this.repository.transaction(async (tx) => {
@@ -382,7 +383,7 @@ export class DailyRecordsService {
 
     return {
       ...data,
-      payload: mealPayload as Prisma.InputJsonValue,
+      payload: toInputJsonValue(mealPayload),
       ...this.extractMealAnalysisHotFields(mealPayload),
     };
   }

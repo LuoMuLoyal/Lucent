@@ -1,6 +1,7 @@
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { formatDateOnly } from '../../../common/helpers/date-time.utils';
 import { parseDateOnly } from '../../../common/helpers/date-time.utils';
+import { toNullableInputJsonValue } from '../../../common/helpers/json.utils';
 import { Injectable } from '@nestjs/common';
 import type {
   DailyRecordAttachmentInputDto,
@@ -58,13 +59,9 @@ export class DailyRecordsMapperService {
           dto.payload,
           existing?.payload,
         );
-        data.payload =
-          payload == null ? Prisma.DbNull : (payload as Prisma.InputJsonValue);
+        data.payload = toNullableInputJsonValue(payload);
       } else {
-        data.payload =
-          dto.payload === null
-            ? Prisma.DbNull
-            : (dto.payload as Prisma.InputJsonValue);
+        data.payload = toNullableInputJsonValue(dto.payload);
       }
     }
 

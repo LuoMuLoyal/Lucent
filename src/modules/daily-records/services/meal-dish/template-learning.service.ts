@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { buildSearchText } from '../../../../common/helpers/search-text.utils';
+import { toInputJsonValue } from '../../../../common/helpers/json.utils';
 import type { MealAnalysisPayload } from '../../types/meal-analysis.types';
 
 type MealDishTemplateWriteAccess = PrismaService & {
@@ -92,7 +92,7 @@ export class MealDishTemplateLearningService {
             create: {
               normalizedDishName: dish.normalizedDishName,
               displayName: dish.rawName,
-              aliases: [] as Prisma.InputJsonValue,
+              aliases: toInputJsonValue([]),
               status: 'active',
               source: 'learned',
               searchText: buildSearchText([

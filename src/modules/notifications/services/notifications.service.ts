@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { now } from '../../../common/helpers/date-time.utils';
+import { toInputJsonValue } from '../../../common/helpers/json.utils';
 import {
   type CreateNotificationDto,
   type NotificationListItemDto,
@@ -44,7 +45,7 @@ export class NotificationsService {
         title: dto.title,
         content: dto.content,
         action: dto.action ?? null,
-        actionPayload: (dto.actionPayload ?? null) as Prisma.InputJsonValue,
+        actionPayload: toInputJsonValue(dto.actionPayload ?? null),
       },
       select: notificationSelect,
     });
@@ -91,7 +92,7 @@ export class NotificationsService {
             title: dto.title,
             content: dto.content,
             action: dto.action ?? null,
-            actionPayload: (dto.actionPayload ?? null) as Prisma.InputJsonValue,
+            actionPayload: toInputJsonValue(dto.actionPayload ?? null),
           },
           select: notificationSelect,
         });

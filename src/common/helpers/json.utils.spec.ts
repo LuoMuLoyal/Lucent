@@ -1,4 +1,9 @@
-import { extractJsonObject } from './json.utils';
+import {
+  extractJsonObject,
+  toInputJsonValue,
+  toNullableInputJsonValue,
+} from './json.utils';
+import { Prisma } from '#generated/prisma/client';
 
 describe('json.utils', () => {
   describe('extractJsonObject', () => {
@@ -75,6 +80,47 @@ describe('json.utils', () => {
       const largeValue = 'x'.repeat(10000);
       const input = `{"key": "${largeValue}"}`;
       expect(extractJsonObject(input)).toBe(input);
+    });
+  });
+
+  describe('toInputJsonValue', () => {
+    it('casts an object to InputJsonValue', () => {
+      const value = { key: 'value' };
+      const result = toInputJsonValue(value);
+      expect(result).toEqual(value);
+    });
+
+    it('casts an array to InputJsonValue', () => {
+      const value = [1, 2, 3];
+      const result = toInputJsonValue(value);
+      expect(result).toEqual(value);
+    });
+
+    it('casts a string to InputJsonValue', () => {
+      const result = toInputJsonValue('hello');
+      expect(result).toBe('hello');
+    });
+  });
+
+  describe('toNullableInputJsonValue', () => {
+    it('returns Prisma.DbNull for null', () => {
+      expect(toNullableInputJsonValue(null)).toBe(Prisma.DbNull);
+    });
+
+    it('returns Prisma.DbNull for undefined', () => {
+      expect(toNullableInputJsonValue(undefined)).toBe(Prisma.DbNull);
+    });
+
+    it('casts non-null value to InputJsonValue', () => {
+      const value = { key: 'value' };
+      const result = toNullableInputJsonValue(value);
+      expect(result).toEqual(value);
+    });
+
+    it('casts empty array to InputJsonValue (not DbNull)', () => {
+      const result = toNullableInputJsonValue([]);
+      expect(result).toEqual([]);
+      expect(result).not.toBe(Prisma.DbNull);
     });
   });
 });

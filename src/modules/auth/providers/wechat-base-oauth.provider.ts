@@ -1,5 +1,6 @@
 import { unauthorized } from '../../../common/helpers/api-errors';
 import { extractErrorInfo } from '../../../common/helpers/error-info.utils';
+import { toInputJsonValue } from '../../../common/helpers/json.utils';
 import type { Logger } from '@nestjs/common';
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
@@ -88,6 +89,6 @@ export abstract class WechatBaseOAuthProvider {
   }
 
   protected toJsonValue(value: unknown): Prisma.InputJsonValue {
-    return value as Prisma.InputJsonValue;
+    return toInputJsonValue(value);
   }
 }

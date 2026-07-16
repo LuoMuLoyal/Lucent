@@ -1,6 +1,7 @@
 import { unauthorized } from '../../../common/helpers/api-errors';
 import { extractErrorInfo } from '../../../common/helpers/error-info.utils';
 import { fetchWithRetry } from '../../../common/helpers/retry.utils';
+import { toInputJsonValue } from '../../../common/helpers/json.utils';
 import {
   Injectable,
   Logger,
@@ -9,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import type { Prisma } from '#generated/prisma/client';
 import { ResultCode } from '../../../common/api';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type { OAuthConfig } from '../../../config/oauth.config';
@@ -116,13 +116,13 @@ export class QqOAuthProvider implements OAuthProvider, OnModuleInit {
         userInfo.figureurl_qq_1 ??
         userInfo.figureurl ??
         null,
-      rawProfile: {
+      rawProfile: toInputJsonValue({
         openid,
         nickname: userInfo.nickname ?? null,
         gender: userInfo.gender ?? null,
         figureurl: userInfo.figureurl ?? null,
         figureurl_qq_2: userInfo.figureurl_qq_2 ?? null,
-      } as Prisma.InputJsonValue,
+      }),
     };
   }
 
