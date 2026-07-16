@@ -181,11 +181,14 @@ export class MedicinesController {
     },
   })
   async recognizeAsync(
-    @CurrentUser() _user: UserPayload,
+    @CurrentUser() user: UserPayload,
     @Body() dto: RecognizeMedicineDto,
   ) {
     if (this.recognitionQueueService.isConfigured) {
-      const jobId = await this.recognitionQueueService.enqueue(dto.imageUrl);
+      const jobId = await this.recognitionQueueService.enqueue(
+        user.sub,
+        dto.imageUrl,
+      );
       if (jobId != null) {
         return successEnvelope({ jobId });
       }
@@ -204,8 +207,14 @@ export class MedicinesController {
     status: 200,
     description: 'Job status (pending, completed, or failed)',
   })
-  async recognizeStatus(@Param('jobId') jobId: string) {
-    const status = await this.recognitionQueueService.getStatus(jobId);
+  async recognizeStatus(
+    @CurrentUser() user: UserPayload,
+    @Param('jobId') jobId: string,
+  ) {
+    const status = await this.recognitionQueueService.getStatus(
+      jobId,
+      user.sub,
+    );
     if (status == null) {
       return successEnvelope({ status: 'not_found' });
     }

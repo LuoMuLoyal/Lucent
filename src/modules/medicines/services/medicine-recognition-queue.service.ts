@@ -6,6 +6,7 @@ import { BaseAsyncQueueService } from '../../../common/queues/base-async-queue.s
 import { MedicinesService } from './medicines.service';
 
 interface RecognitionJobData {
+  userId: string;
   imageUrl: string;
 }
 
@@ -48,15 +49,15 @@ export class MedicineRecognitionQueueService extends BaseAsyncQueueService<
     );
   }
 
-  async enqueue(imageUrl: string): Promise<string | null> {
+  async enqueue(userId: string, imageUrl: string): Promise<string | null> {
     if (!this.queue) {
       return null;
     }
-    const job = await this.queue.add(JOB_NAME, { imageUrl });
+    const job = await this.queue.add(JOB_NAME, { userId, imageUrl });
     return job.id ?? null;
   }
 
-  async getStatus(jobId: string) {
-    return this.pollStatus(jobId);
+  async getStatus(jobId: string, userId: string) {
+    return this.pollStatus(jobId, userId);
   }
 }

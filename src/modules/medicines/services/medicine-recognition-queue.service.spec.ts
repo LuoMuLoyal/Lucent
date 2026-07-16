@@ -68,7 +68,7 @@ describe('MedicineRecognitionQueueService', () => {
       mockCache,
       mockMedicinesService,
     );
-    const result = await svc.enqueue('https://example.com/med.jpg');
+    const result = await svc.enqueue('user-1', 'https://example.com/med.jpg');
     expect(result).toBeNull();
   });
 
@@ -79,9 +79,10 @@ describe('MedicineRecognitionQueueService', () => {
       mockCache,
       mockMedicinesService,
     );
-    const result = await svc.enqueue('https://example.com/med.jpg');
+    const result = await svc.enqueue('user-1', 'https://example.com/med.jpg');
     expect(result).toBe('job-1');
     expect(mockQueue!.add).toHaveBeenCalledWith('recognize', {
+      userId: 'user-1',
       imageUrl: 'https://example.com/med.jpg',
     });
   });
