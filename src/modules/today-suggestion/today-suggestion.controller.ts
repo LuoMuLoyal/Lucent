@@ -184,8 +184,14 @@ export class TodaySuggestionController {
     status: 200,
     description: 'Job status (pending, completed, or failed)',
   })
-  async explainSuggestionStatus(@Param('jobId') jobId: string) {
-    const status = await this.explanationQueueService.getStatus(jobId);
+  async explainSuggestionStatus(
+    @CurrentUser() user: UserPayload,
+    @Param('jobId') jobId: string,
+  ) {
+    const status = await this.explanationQueueService.getStatus(
+      jobId,
+      user.sub,
+    );
     if (status == null) {
       return successEnvelope({ status: 'not_found' });
     }

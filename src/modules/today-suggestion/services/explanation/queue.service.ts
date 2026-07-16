@@ -64,7 +64,7 @@ export class ExplanationQueueService extends BaseAsyncQueueService<
     return job.id ?? null;
   }
 
-  async getStatus(jobId: string) {
-    return this.pollStatus(jobId);
+  async getStatus(jobId: string, userId: string) {
+    return this.pollStatus(jobId, userId);
   }
 }
