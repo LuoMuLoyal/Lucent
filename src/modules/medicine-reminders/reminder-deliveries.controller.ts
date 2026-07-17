@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -9,7 +9,6 @@ import {
 import { successEnvelope } from '../../common/api';
 import type { UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ReminderDeliveryListResponseDto } from './dto';
 import { MedicineRemindersService } from './services/reminders.service';
 
@@ -19,7 +18,6 @@ export class ReminderDeliveriesController {
   constructor(private readonly service: MedicineRemindersService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List reminder delivery audit logs' })
   @ApiQuery({

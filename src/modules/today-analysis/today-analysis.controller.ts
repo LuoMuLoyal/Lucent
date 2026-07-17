@@ -8,8 +8,8 @@ import {
   Post,
   Query,
   Res,
-  UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -26,7 +26,6 @@ import { extractErrorInfo } from '../../common/helpers/error-info.utils';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { TodayAnalysisService } from './services/analysis.service';
 import { TodayAnalysisQueueService } from './services/analysis-queue.service';
 import { TodayRecommendationsService } from './services/recommendations.service';
@@ -38,7 +37,6 @@ import {
 
 @ApiTags('Today Analysis')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
 @Controller('today-analysis')
 export class TodayAnalysisController {
   private readonly logger = new Logger(TodayAnalysisController.name);
@@ -106,6 +104,7 @@ export class TodayAnalysisController {
     return successEnvelope({ result });
   }
 
+  @SkipThrottle()
   @Get('generate/status/:jobId')
   @ApiOperation({ summary: 'Poll async today analysis generation status' })
   @ApiResponse({
@@ -151,6 +150,7 @@ export class TodayAnalysisController {
     return successEnvelope(recommendations);
   }
 
+  @SkipThrottle()
   @Post('generate/stream')
   @SkipApiEnvelope()
   @ApiOperation({

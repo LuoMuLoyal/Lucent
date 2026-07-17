@@ -18,7 +18,6 @@ import { I18nLang } from 'nestjs-i18n';
 import { successEnvelope } from '../../common/api';
 import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SecurityElevationGuard } from '../security-pin/guards';
 import { RequireSecurityElevation } from '../security-pin/decorators';
 import { DataExportService } from './services/export.service';
@@ -30,7 +29,7 @@ import {
 
 @ApiTags('Data Export')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard, SecurityElevationGuard)
+@UseGuards(SecurityElevationGuard)
 @Controller('data-export-requests')
 export class DataExportController {
   constructor(private readonly exportService: DataExportService) {}

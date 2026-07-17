@@ -2,6 +2,7 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { successEnvelope } from '../../common/api';
+import { Public } from '../auth/decorators/public.decorator';
 import {
   AppInfoResponseDto,
   SupportResourceListResponseDto,
@@ -10,6 +11,7 @@ import {
 import { SupportResourcesService } from './services/resources.service';
 
 @ApiTags('Support Resources')
+@Public()
 @Controller('public')
 export class SupportResourcesController {
   constructor(private readonly service: SupportResourcesService) {}

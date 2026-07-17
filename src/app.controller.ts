@@ -1,10 +1,12 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
+import { Public } from './modules/auth/decorators/public.decorator';
 import { HealthResponseDto } from './app.dto';
 import { AppService } from './app.service';
 
 @ApiTags('Health')
+@Public()
 @Controller({
   path: 'health',
   version: '1',

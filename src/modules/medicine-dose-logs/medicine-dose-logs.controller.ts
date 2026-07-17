@@ -8,7 +8,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -21,7 +20,6 @@ import {
 import { successEnvelope } from '../../common/api';
 import { clampPage, clampPageSize } from '../../common/helpers';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { UserPayload } from '../auth/services/auth.service';
 import {
   CreateDoseLogDto,
@@ -38,7 +36,6 @@ export class MedicineDoseLogsController {
   constructor(private readonly service: MedicineDoseLogsService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List dose logs for a date' })
   @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
@@ -63,7 +60,6 @@ export class MedicineDoseLogsController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a dose log' })
   @ApiResponse({ status: 201, type: DoseLogResponseDto })
@@ -75,7 +71,6 @@ export class MedicineDoseLogsController {
   }
 
   @Post('mark')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Mark a dose log idempotently for one reminder slot',
@@ -86,7 +81,6 @@ export class MedicineDoseLogsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a dose log' })
   @ApiParam({ name: 'id' })
@@ -100,7 +94,6 @@ export class MedicineDoseLogsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Soft-delete a dose log' })
   @ApiParam({ name: 'id' })

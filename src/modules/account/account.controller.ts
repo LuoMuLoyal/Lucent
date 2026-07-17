@@ -21,7 +21,6 @@ import {
 import { successEnvelope } from '../../common/api';
 import { AuthService, type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SecurityElevationGuard } from '../security-pin/guards';
 import { RequireSecurityElevation } from '../security-pin/decorators';
 import { ChangeEmailDto } from '../auth/dto/change-email.dto';
@@ -43,7 +42,7 @@ import { UpdateAccountDto } from './dto/update.dto';
 
 @ApiTags('Account')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard, SecurityElevationGuard)
+@UseGuards(SecurityElevationGuard)
 @Controller('account')
 export class AccountController {
   constructor(

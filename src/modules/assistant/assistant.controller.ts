@@ -7,8 +7,8 @@ import {
   Param,
   Post,
   Res,
-  UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -23,7 +23,6 @@ import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
 import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
 import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AssistantService } from './services/core.service';
 import {
   AssistantCapabilitiesResponseDto,
@@ -35,7 +34,6 @@ import {
 
 @ApiTags('Assistant')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
 @Controller('assistant')
 export class AssistantController {
   private readonly logger = new Logger(AssistantController.name);
@@ -106,6 +104,7 @@ export class AssistantController {
     );
   }
 
+  @SkipThrottle()
   @Post('messages/stream')
   @SkipApiEnvelope()
   @ApiOperation({

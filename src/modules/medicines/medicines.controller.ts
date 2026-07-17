@@ -8,8 +8,8 @@ import {
   Param,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiExtraModels,
@@ -22,7 +22,6 @@ import {
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
 import { ResultCode, successEnvelope } from '../../common/api';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserPayload } from '../auth/services/auth.service';
 import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
@@ -146,7 +145,6 @@ export class MedicinesController {
   // ── AI Medicine Box Recognition ──────────────────────────────────
 
   @Post('recognize')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'AI识别药盒图片，提取药品信息' })
@@ -160,7 +158,6 @@ export class MedicinesController {
   }
 
   @Post('recognize/async')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Enqueue async medicine box image recognition' })
@@ -199,8 +196,8 @@ export class MedicinesController {
     return successEnvelope({ result });
   }
 
+  @SkipThrottle()
   @Get('recognize/status/:jobId')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Poll async medicine recognition status' })
   @ApiResponse({

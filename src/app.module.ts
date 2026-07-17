@@ -6,6 +6,7 @@ import { RouterModule } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { appConfig } from './config/app.config';
 import { aiConfig } from './config/ai.config';
 import { jwtConfig } from './config/jwt.config';
@@ -127,6 +128,10 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
     },
   ],
 })

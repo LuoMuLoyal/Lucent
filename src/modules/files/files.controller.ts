@@ -1,13 +1,5 @@
-import {
-  Body,
-  Controller,
-  HttpCode,
-  HttpStatus,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { UserPayload } from '../auth/services/auth.service';
 import { successEnvelope } from '../../common/api';
@@ -16,7 +8,6 @@ import { CreateFileUploadDto } from './dto/create-file-upload.dto';
 
 @ApiTags('Files')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}

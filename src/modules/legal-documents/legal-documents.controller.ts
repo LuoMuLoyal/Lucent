@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
+import { Public } from '../auth/decorators/public.decorator';
 import {
   LegalDocumentDetailResponseDto,
   LegalDocumentListResponseDto,
@@ -9,6 +10,7 @@ import {
 import { LegalDocumentsService } from './services';
 
 @ApiTags('Legal Documents')
+@Public()
 @Controller('legal-documents')
 export class LegalDocumentsController {
   constructor(private readonly service: LegalDocumentsService) {}

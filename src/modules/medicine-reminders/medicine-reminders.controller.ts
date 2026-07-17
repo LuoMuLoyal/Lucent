@@ -7,7 +7,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -20,7 +19,6 @@ import {
 import { successEnvelope } from '../../common/api';
 import type { UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   CreateMedicineReminderDto,
   MedicineReminderListResponseDto,
@@ -35,7 +33,6 @@ export class MedicineRemindersController {
   constructor(private readonly service: MedicineRemindersService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List medicine reminder schedules' })
   @ApiQuery({
@@ -54,7 +51,6 @@ export class MedicineRemindersController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a medicine reminder schedule' })
   @ApiResponse({ status: 201, type: MedicineReminderResponseDto })
@@ -66,7 +62,6 @@ export class MedicineRemindersController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a medicine reminder schedule' })
   @ApiParam({ name: 'id' })
@@ -80,7 +75,6 @@ export class MedicineRemindersController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Soft-delete a medicine reminder schedule' })
   @ApiParam({ name: 'id' })

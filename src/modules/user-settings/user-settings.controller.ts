@@ -6,7 +6,6 @@ import {
   HttpStatus,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -18,7 +17,6 @@ import {
 import { successEnvelope } from '../../common/api';
 import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserSettingsService } from './services/user-settings.service';
 import { UpdateUserSettingsDto, UserSettingsResponseDto } from './dto';
 import { SecurityPinService } from '../security-pin/services';
@@ -32,7 +30,6 @@ import {
 
 @ApiTags('User Settings')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
 @Controller('settings')
 export class UserSettingsController {
   constructor(

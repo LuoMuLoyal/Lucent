@@ -8,7 +8,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -20,7 +19,6 @@ import {
 } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { UserPayload } from '../auth/services/auth.service';
 import {
   CreateDailyRecordDto,
@@ -49,7 +47,6 @@ export class DailyRecordsController {
   ) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List daily records for a given date' })
   @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
@@ -72,7 +69,6 @@ export class DailyRecordsController {
   }
 
   @Get('summary')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get daily record summary (counts by kind)' })
   @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
@@ -83,7 +79,6 @@ export class DailyRecordsController {
   }
 
   @Post('attachments/images/presign-upload')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Create a Tencent COS signed URL for daily record image upload',
@@ -99,7 +94,6 @@ export class DailyRecordsController {
 
   @Post('candidate-records/generate')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Generate AI candidate daily records from a natural-language note',
@@ -119,7 +113,6 @@ export class DailyRecordsController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get a daily record by id' })
   @ApiParam({ name: 'id' })
@@ -130,7 +123,6 @@ export class DailyRecordsController {
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a daily record' })
   @ApiResponse({ status: 201, type: DailyRecordResponseDto })
@@ -143,7 +135,6 @@ export class DailyRecordsController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a daily record' })
   @ApiParam({ name: 'id' })
@@ -158,7 +149,6 @@ export class DailyRecordsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Soft-delete a daily record' })
   @ApiParam({ name: 'id' })

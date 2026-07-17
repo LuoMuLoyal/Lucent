@@ -244,6 +244,14 @@ Last updated: 2026-07-17
 - **AGENTS.md**：`common/ai/` → `common/llm/`；补全 `queue/`、`metrics/`、`events/`、`storage/`、`types/`
 - **目录合并**：`common/queues/` 并入 `common/queue/`（`base-async-queue.service.ts` + spec 移入，barrel 统一导出）
 
+## 2026-07-17 全局 JwtAuthGuard + SSE/轮询限流豁免（架构审查 #9/#10）
+
+来源：`plans/2026-07-16-architecture-review.md` 中优先级 #9、#10。
+
+- **全局 JWT 认证**：`JwtAuthGuard` 注册为 `APP_GUARD`，所有 controller 默认受保护；新增 controller 无需手动挂载 guard
+- **`@Public()` 白名单**：health、auth local/oauth、environment、support-resources、legal-documents 等公开端点显式标注 `@Public()`
+- **`@SkipThrottle()` 豁免**：7 个 SSE 流和 getStatus 轮询端点豁免全局 Throttler 限流，避免前端轮询触发 429
+
 ## 2026-07-17 向量检索工具去重 + 队列可观测性增强（架构审查 #5/#7/#8）
 
 来源：`plans/2026-07-16-architecture-review.md` 中优先级 #5、#7、#8。

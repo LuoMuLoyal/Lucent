@@ -8,7 +8,6 @@ import {
   Param,
   Post,
   Req,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -24,7 +23,6 @@ import { calculateExpiresIn } from '../../../common/helpers/date-time.utils';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import type { UserPayload } from '../types/auth-request';
 
 import { LogoutDto } from '../dto/logout.dto';
@@ -43,7 +41,6 @@ export class SessionController {
   // ── POST /api/v1/auth/logout ────────────────────────────────
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '用户登出' })
@@ -56,7 +53,6 @@ export class SessionController {
   // ── GET /api/v1/auth/sessions ──────────────────────────────
 
   @Get('sessions')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '列出当前用户的活跃会话' })
@@ -68,7 +64,6 @@ export class SessionController {
   // ── DELETE /api/v1/auth/sessions/:sessionId ────────────────
 
   @Delete('sessions/:sessionId')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '撤销指定会话' })

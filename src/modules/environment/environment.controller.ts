@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
+import { Public } from '../auth/decorators/public.decorator';
 import {
   EnvironmentSnapshotQueryDto,
   EnvironmentSnapshotResponseDto,
@@ -8,6 +9,7 @@ import {
 import { EnvironmentService } from './services/snapshot.service';
 
 @ApiTags('Environment')
+@Public()
 @Controller('environment')
 export class EnvironmentController {
   constructor(private readonly environmentService: EnvironmentService) {}

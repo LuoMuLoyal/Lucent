@@ -10,8 +10,8 @@ import {
   Post,
   Query,
   Res,
-  UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -31,7 +31,6 @@ import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.
 import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   GenerateReportSummaryDto,
   ReportDashboardQueryDto,
@@ -48,7 +47,6 @@ import { ReportsService } from './dashboard/dashboard.service';
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
 @Controller('reports')
 export class ReportsController {
   private readonly logger = new Logger(ReportsController.name);
@@ -125,6 +123,7 @@ export class ReportsController {
     );
   }
 
+  @SkipThrottle()
   @Get('summary/generate/status/:jobId')
   @ApiOperation({
     summary: 'Poll async report AI summary generation status',
@@ -147,6 +146,7 @@ export class ReportsController {
     return successEnvelope(status);
   }
 
+  @SkipThrottle()
   @Post('summary/generate/stream')
   @SkipApiEnvelope()
   @ApiOperation({
@@ -283,6 +283,7 @@ export class ReportsController {
     );
   }
 
+  @SkipThrottle()
   @Get('clinic-summary/export/status/:jobId')
   @ApiOperation({
     summary: 'Poll async clinic summary PDF export status',

@@ -25,22 +25,6 @@
 
 **影响范围**：模块定义文件为主，低风险。
 
-### 9. 认证 guard 逐 controller 手动挂载（默认不安全）
-
-**证据**：`app.module.ts` 只全局注册 `ThrottlerGuard`；`JwtAuthGuard` 靠 16 个 controller 各自手写 `@UseGuards`。新增 controller 忘挂即裸奔。`auth/decorators/public.decorator.ts` 已存在，全局 guard + 白名单模式设计过却没落地。
-
-**行动**：`JwtAuthGuard` 注册为 `APP_GUARD` + `@Public()` 白名单，公开端点收敛为显式标注。用 `test/security/authorization.e2e-spec.ts` 做回归网。
-
-**影响范围**：全部 controller + auth 模块。
-
-### 10. SSE 与轮询端点消耗全局 Throttler 预算
-
-**证据**：全局 `ThrottlerModule` 100 req/60s/IP；SSE 流端点（`assistant.controller.ts:126`、reports、today-analysis）和 5 个队列 `getStatus` 轮询端点均无 `@SkipThrottle` 或自定义 limit（全库仅 today-suggestion.controller 有端点级 `@Throttle`）。前端轮询易触发 429。
-
-**行动**：SSE 握手和 getStatus 轮询加 `@SkipThrottle`（或更高 limit 的 named throttler），保留 AI 生成类端点的严格限流。
-
-**影响范围**：assistant、reports、today-analysis、today-suggestion、data-export controller。
-
 ### 11. auth 巨型模块职责过载（78 文件、17 providers）
 
 **证据**：`auth/auth.module.ts` 承载本地凭证、4 个 OAuth provider、session 管理、验证码、登录限流、OAuth state、通知编排。`auth.service.spec.ts` 孤置模块根目录而被测源码在 `services/auth.service.ts`（违反规范第 8 条）。

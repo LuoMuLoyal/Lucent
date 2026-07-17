@@ -6,9 +6,8 @@ import {
   Body,
   Query,
   Headers,
-  UseGuards,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -18,7 +17,6 @@ import {
 } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { UserPayload } from '../auth/types/auth-request';
 import { SuggestionService } from './services/suggestion.service';
 import { FeedbackService } from './services/feedback/service';
@@ -39,7 +37,6 @@ import {
 
 @ApiTags('Today Suggestion')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
 @Controller('today/suggestions')
 export class TodaySuggestionController {
   constructor(
@@ -178,6 +175,7 @@ export class TodaySuggestionController {
     return successEnvelope({ result });
   }
 
+  @SkipThrottle()
   @Get('explain/status/:jobId')
   @ApiOperation({ summary: 'Poll async suggestion explanation status' })
   @ApiResponse({

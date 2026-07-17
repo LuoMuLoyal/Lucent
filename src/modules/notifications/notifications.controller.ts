@@ -11,7 +11,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -24,7 +23,6 @@ import { successEnvelope } from '../../common/api';
 import { clampPage, clampPageSize } from '../../common/helpers';
 import { type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotificationsService } from './services/notifications.service';
 import {
   NotificationListResponseDto,
@@ -35,7 +33,6 @@ import {
 
 @ApiTags('Notifications')
 @ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
 @Controller('notifications')
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}

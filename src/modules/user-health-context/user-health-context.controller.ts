@@ -7,7 +7,6 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -20,7 +19,6 @@ import {
 
 import { successEnvelope } from '../../common/api';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { UserPayload } from '../auth/services/auth.service';
 import {
   CreateCurrentMedicineDto,
@@ -42,7 +40,6 @@ export class UserHealthContextController {
   ) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get the current user health context aggregate' })
   @ApiResponse({ status: 200, type: HealthContextResponseDto })
@@ -55,7 +52,6 @@ export class UserHealthContextController {
   }
 
   @Patch('profile')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Update the current user health-context profile',
@@ -77,7 +73,6 @@ export class UserHealthContextController {
   // ── Allergy endpoints ──
 
   @Post('allergies')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create an allergy record' })
   @ApiBody({ type: CreateHealthContextAllergyDto })
@@ -94,7 +89,6 @@ export class UserHealthContextController {
   }
 
   @Patch('allergies/:id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update an allergy record' })
   @ApiParam({ name: 'id', description: 'Allergy id' })
@@ -114,7 +108,6 @@ export class UserHealthContextController {
   }
 
   @Delete('allergies/:id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Deactivate an allergy record (soft delete)' })
   @ApiParam({ name: 'id', description: 'Allergy id' })
@@ -133,7 +126,6 @@ export class UserHealthContextController {
   // ── Condition endpoints ──
 
   @Post('conditions')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a condition record' })
   @ApiBody({ type: CreateHealthContextConditionDto })
@@ -150,7 +142,6 @@ export class UserHealthContextController {
   }
 
   @Patch('conditions/:id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a condition record' })
   @ApiParam({ name: 'id', description: 'Condition id' })
@@ -170,7 +161,6 @@ export class UserHealthContextController {
   }
 
   @Delete('conditions/:id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Resolve a condition record (soft delete)' })
   @ApiParam({ name: 'id', description: 'Condition id' })
@@ -189,7 +179,6 @@ export class UserHealthContextController {
   // ── Current medicine endpoints ──
 
   @Post('current-medicines')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Add a current medicine record' })
   @ApiBody({ type: CreateCurrentMedicineDto })
@@ -204,7 +193,6 @@ export class UserHealthContextController {
   }
 
   @Patch('current-medicines/:id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a current medicine record' })
   @ApiParam({ name: 'id', description: 'Current medicine id' })
@@ -225,7 +213,6 @@ export class UserHealthContextController {
   }
 
   @Delete('current-medicines/:id')
-  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Deactivate a current medicine record (soft delete)',

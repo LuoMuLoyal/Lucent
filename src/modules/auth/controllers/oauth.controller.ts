@@ -34,8 +34,10 @@ import {
 import { LoginResponseDto, OAuthAuthorizeResponseDto } from '../dto';
 
 import { buildAuthResponse } from './auth-response.helper';
+import { Public } from '../decorators/public.decorator';
 
 @ApiTags('Auth')
+@Public()
 @Controller('auth')
 export class OAuthController {
   constructor(private readonly authService: AuthService) {}
