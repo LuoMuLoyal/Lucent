@@ -48,6 +48,16 @@ export abstract class AuthSessionRepositoryPort {
 
   abstract deleteSessionById(id: string): Promise<void>;
 
+  /**
+   * Atomically claims a session for token refresh by deleting it only if it is
+   * still valid (not revoked, not expired). Returns true if the session was
+   * claimed, false if it was already claimed/revoked/expired.
+   *
+   * This prevents the race condition where two concurrent refresh requests
+   * both pass validation and each generate a new session.
+   */
+  abstract claimSessionForRefresh(id: string): Promise<boolean>;
+
   abstract deleteSessionsByUserIdAndHash(
     userId: string,
     hash: string,
@@ -100,6 +110,13 @@ export class AuthSessionRepository implements AuthSessionRepositoryPort {
 
   async deleteSessionById(id: string): Promise<void> {
     await this.prisma.userSession.delete({ where: { id } });
+  }
+
+  async claimSessionForRefresh(id: string): Promise<boolean> {
+    const result = await this.prisma.userSession.deleteMany({
+      where: { id, revokedAt: null, expiresAt: { gt: now() } },
+    });
+    return result.count > 0;
   }
 
   async deleteSessionsByUserIdAndHash(

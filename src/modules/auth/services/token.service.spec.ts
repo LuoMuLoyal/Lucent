@@ -27,6 +27,7 @@ describe('AuthTokenService', () => {
       createSession: vi.fn().mockResolvedValue(undefined),
       findSessionByRefreshTokenHash: vi.fn().mockResolvedValue(null),
       deleteSessionById: vi.fn().mockResolvedValue(undefined),
+      claimSessionForRefresh: vi.fn().mockResolvedValue(true),
       deleteSessionsByUserIdAndHash: vi.fn().mockResolvedValue(undefined),
       deleteSessionsByUserId: vi.fn().mockResolvedValue(undefined),
       findSessionById: vi.fn().mockResolvedValue(null),
@@ -123,11 +124,34 @@ describe('AuthTokenService', () => {
         userId: 'user-1',
         user: mockUser as never,
       });
+      sessionRepo.claimSessionForRefresh.mockResolvedValueOnce(true);
 
       const result = await service.refresh(oldToken);
 
       expect(result.accessToken).toBe('mock-access-token');
-      expect(sessionRepo.deleteSessionById).toHaveBeenCalledWith('session-1');
+      expect(sessionRepo.claimSessionForRefresh).toHaveBeenCalledWith(
+        'session-1',
+      );
+    });
+
+    it('should throw when session was already claimed by a concurrent refresh', async () => {
+      const oldToken = 'concurrent-refresh-token';
+      sessionRepo.findSessionByRefreshTokenHash.mockResolvedValueOnce({
+        id: 'session-2',
+        refreshTokenHash: hash(oldToken),
+        expiresAt: new Date(Date.now() + 86400000),
+        revokedAt: null,
+        userId: 'user-1',
+        user: mockUser as never,
+      });
+      sessionRepo.claimSessionForRefresh.mockResolvedValueOnce(false);
+
+      await expect(service.refresh(oldToken)).rejects.toThrow(
+        'REFRESH_TOKEN_INVALID',
+      );
+      expect(sessionRepo.claimSessionForRefresh).toHaveBeenCalledWith(
+        'session-2',
+      );
     });
 
     it('should throw for missing session', async () => {

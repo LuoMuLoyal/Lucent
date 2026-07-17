@@ -115,11 +115,20 @@ export class AuthTokenService {
       throw new Error('REFRESH_TOKEN_INVALID');
     }
 
-    // Generate the new token pair first so that a failure during generation
-    // does not leave the user without a valid session. If creation succeeds but
-    // deletion fails, the old session will eventually expire on its own.
+    // Atomically claim the session by deleting it before generating new tokens.
+    // This prevents the race condition where two concurrent refresh requests
+    // both pass validation and each create a new session. Only the first
+    // caller claims the session; subsequent callers find it gone and fail.
+    // If token generation fails after claiming, the user must re-authenticate,
+    // which is preferable to session duplication.
+    const claimed = await this.sessionRepository.claimSessionForRefresh(
+      record.id,
+    );
+    if (!claimed) {
+      throw new Error('REFRESH_TOKEN_INVALID');
+    }
+
     const tokens = await this.generateTokenPair(record.user, context);
-    await this.sessionRepository.deleteSessionById(record.id);
     return tokens;
   }
 

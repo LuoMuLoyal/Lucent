@@ -121,6 +121,31 @@ describe('AuthSessionRepository', () => {
     });
   });
 
+  describe('claimSessionForRefresh', () => {
+    it('returns true when session is successfully claimed', async () => {
+      prisma.userSession.deleteMany.mockResolvedValue({ count: 1 } as never);
+
+      const result = await repository.claimSessionForRefresh('session-1');
+
+      expect(result).toBe(true);
+      expect(prisma.userSession.deleteMany).toHaveBeenCalledWith({
+        where: {
+          id: 'session-1',
+          revokedAt: null,
+          expiresAt: { gt: expect.any(Date) },
+        },
+      });
+    });
+
+    it('returns false when session was already claimed', async () => {
+      prisma.userSession.deleteMany.mockResolvedValue({ count: 0 } as never);
+
+      const result = await repository.claimSessionForRefresh('session-1');
+
+      expect(result).toBe(false);
+    });
+  });
+
   describe('deleteSessionsByUserIdAndHash', () => {
     it('deletes many by userId and hash', async () => {
       prisma.userSession.deleteMany.mockResolvedValue({ count: 2 } as never);

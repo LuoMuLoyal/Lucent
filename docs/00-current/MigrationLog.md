@@ -15,7 +15,7 @@ Records backend changes in date order. Detailed entries are split by date under
 
 ## Active Entries
 
-- [2026-07-17](../02-logs/migration-log/2026-07-17.md) — 部署加固：单 slot 停机部署 + 人工生产发布 + 告警通道 + 数据库备份 + SSE 优雅关闭 + CI 加固
+- [2026-07-17](../02-logs/migration-log/2026-07-17.md) — 部署加固：单 slot 停机部署 + 人工生产发布 + 告警通道 + 数据库备份 + SSE 优雅关闭 + CI 加固；代码审查安全修复：Assistant IDOR 越权 ×2 + 刷新令牌竞态条件 + 通知去重防御性加固
 - [2026-07-16](../02-logs/migration-log/2026-07-16.md) — 代码审查修复 + 五模块补充审查（IDOR）+ 数据库索引优化（GIN trigram）
 - [2026-07-15](../02-logs/migration-log/2026-07-15.md) — 审查报告修复（TOCTOU 消除 / 通知白名单 / 分页 / OpenAPI 导出）
 - [2026-07-14](../02-logs/migration-log/2026-07-14.md) — 7.14 审查报告改写为 Bug 修复计划文档（15 个 BUG 任务）

@@ -215,6 +215,14 @@ Last updated: 2026-07-17
 - **文档**：`deployment.md` 全面重写（单 slot 流程、migration 纪律、备份、告警、TLS），ADR-0004 补记拓扑变更
 - **遗留**：LLM 调用熔断器未实现（已有超时 + 错误分类重试，见 TODO）
 
+## 2026-07-17 代码审查安全修复
+
+来源：`plans/lucent-review-2026-07-17.md`（3 个 🔴 + 2 个 🟡）。
+
+- **Assistant IDOR 越权修复（🔴 ×2）**：`activateConversation` 和 `persistTurn` 的 `assistantConversation.update` where 条件从 `{ id }` 改为 `{ id, userId }`，与 `archiveConversation` 写法一致，阻断跨用户对话操作
+- **刷新令牌竞态条件修复（🟡）**：`AuthSessionRepository` 新增 `claimSessionForRefresh` 原子性声明方法（`deleteMany` + 条件 where），`AuthTokenService.refresh` 从「先生成后删除」改为「先声明后生成」，消除同一 refresh token 并发产生多个有效会话的窗口
+- **通知去重防御性加固（🟡）**：`matchesScope` 对 `source`/`date` 字段增加 `typeof === 'string'` 类型守卫，`duplicateIds` 增加 `.slice(0, 50)` 显式上限
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]

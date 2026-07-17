@@ -190,7 +190,7 @@ export class AssistantConversationRepository implements AssistantConversationRep
       });
 
       await tx.assistantConversation.update({
-        where: { id: conversationId },
+        where: { id: conversationId, userId },
         data: { status: AssistantConversationStatus.active },
       });
     });
@@ -224,7 +224,7 @@ export class AssistantConversationRepository implements AssistantConversationRep
       });
 
       await tx.assistantConversation.update({
-        where: { id: input.conversationId },
+        where: { id: input.conversationId, userId: input.userId },
         data: {
           title: input.title,
           lastMessageAt: input.assistantTimestamp,

@@ -72,7 +72,8 @@ export class NotificationsService {
 
         const duplicateIds = existing
           .filter((row) => this.matchesScope(row.actionPayload, scope))
-          .map((row) => row.id);
+          .map((row) => row.id)
+          .slice(0, 50);
 
         if (duplicateIds.length > 0) {
           await tx.userNotification.deleteMany({
@@ -221,6 +222,8 @@ export class NotificationsService {
           typeof item === 'object' &&
           item !== null &&
           !Array.isArray(item) &&
+          typeof item['source'] === 'string' &&
+          typeof item['date'] === 'string' &&
           item['source'] === scope.source &&
           item['date'] === scope.date,
       );
@@ -230,6 +233,11 @@ export class NotificationsService {
       return false;
     }
 
-    return payload['source'] === scope.source && payload['date'] === scope.date;
+    return (
+      typeof payload['source'] === 'string' &&
+      typeof payload['date'] === 'string' &&
+      payload['source'] === scope.source &&
+      payload['date'] === scope.date
+    );
   }
 }

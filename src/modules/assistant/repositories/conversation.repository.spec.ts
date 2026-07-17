@@ -158,7 +158,7 @@ describe('AssistantConversationRepository', () => {
         data: { status: AssistantConversationStatus.archived },
       });
       expect(prisma.assistantConversation.update).toHaveBeenCalledWith({
-        where: { id: 'conv-1' },
+        where: { id: 'conv-1', userId: 'user-1' },
         data: { status: AssistantConversationStatus.active },
       });
     });
@@ -191,7 +191,7 @@ describe('AssistantConversationRepository', () => {
       expect(prisma.assistantMessage.create).toHaveBeenCalled();
       expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'conv-1' },
+          where: { id: 'conv-1', userId: 'user-1' },
           data: {
             title: 'Title',
             lastMessageAt: new Date('2026-07-10T12:00:00.000Z'),
