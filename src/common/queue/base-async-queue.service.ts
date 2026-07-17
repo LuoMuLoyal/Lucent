@@ -200,7 +200,16 @@ export abstract class BaseAsyncQueueService<TData, TResult> {
       return jobResult;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`${errorLabel}: ${message}`);
+      this.logger.error(
+        `${errorLabel}: ${message}`,
+        error instanceof Error ? error.stack : undefined,
+        {
+          queue: this.queueName,
+          jobId: job.id,
+          errorLabel,
+          errorMessage: message,
+        },
+      );
       const jobResult: AsyncJobResult<TResult> = {
         status: 'failed',
         error: message,

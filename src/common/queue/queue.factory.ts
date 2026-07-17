@@ -120,6 +120,12 @@ export class BullmqQueueFactory implements OnModuleDestroy {
       this.logger.error(
         `Job in "${options.name}" failed: id=${job?.id ?? 'unknown'}, ${error.message}`,
         error.stack,
+        {
+          queue: options.name,
+          jobId: job?.id,
+          attemptsMade: job?.attemptsMade,
+          failedReason: error.message,
+        },
       );
     });
     worker.on('error', (error) => {
