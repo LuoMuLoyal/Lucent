@@ -269,6 +269,19 @@ Last updated: 2026-07-17
 - **刷新令牌竞态条件修复（🟡）**：`AuthSessionRepository` 新增 `claimSessionForRefresh` 原子性声明方法（`deleteMany` + 条件 where），`AuthTokenService.refresh` 从「先生成后删除」改为「先声明后生成」，消除同一 refresh token 并发产生多个有效会话的窗口
 - **通知去重防御性加固（🟡）**：`matchesScope` 对 `source`/`date` 字段增加 `typeof === 'string'` 类型守卫，`duplicateIds` 增加 `.slice(0, 50)` 显式上限
 
+## 2026-07-17 架构审查剩余项落地（#6/#11/#12/#13/#14/#15）
+
+来源：`plans/2026-07-16-architecture-review.md` 中低优先级剩余 6 项全部落地。
+
+- **#15 读模型查询条数上限**：`DailyRecordReaderPort` 和 `MedicineDoseLogReaderPort` 的 `listFactsInRange` 新增 `take: 500` 上限，防止用户数据增长后 context 构建拖慢 AI 管道
+- **#13 LlmSafetyPolicyService 收敛**：新建 `common/llm/llm-common.module.ts` 共享模块，4 个 feature 模块（daily-records / reports / today-analysis / today-suggestion）从各自 providers 注册改为 import `LlmCommonModule`，消除 4 份重复实例
+- **#12 Barrel 规则 + ESLint 强制**：新建 `llm-runtime/services/index.ts` 和 `llm-runtime/index.ts` barrel；16 个文件的深路径引用 `llm-runtime/services/llm-runtime.service` 改为 barrel 导入；ESLint `no-restricted-imports` 新增 pattern 禁止 `**/llm-runtime/services/*` 深路径引用
+- **#14 data-export 名不副实**：模块、`DataExportService`、`DataExportProcessorService` 新增文档注释明确边界——此模块是报告 PDF 生成下载管道，不导出原始用户数据；若未来需 GDPR 式数据导出应另建模块
+- **#6 Repository 模式统一**：ADR-0009 新增「Port 标准」章节（哪些模块必须有 Port、绑定规范 `useExisting`、export 规则）；auth 模块 `AuthSessionRepositoryPort`/`AuthAccountRepositoryPort` 从 `useClass` 改为 `useExisting`（单实例）；`DailyRecordRepositoryPort` 从 daily-records exports 移除（无外部消费者）
+- **#11 auth 模块拆分**：`services/identity/` 子目录新建，`CredentialAuthService`/`VerificationCodeService`/`AuthRateLimitService` 及其 spec 移入；`services/identity/index.ts` barrel 导出；孤儿 spec `auth/auth.service.spec.ts` 移至 `services/auth.service.spec.ts`（spec-next-to-source）；外部引用统一经 barrel
+- **附带修复**：`tool.service.spec.ts` 中 `VectorStoreFactory` mock 从 `{ get: vi.fn() }` 修正为 `{ getStore: vi.fn() }`（#5 遗留 mock 不匹配）
+- **验证**：`pnpm lint:check` ✓、`pnpm typecheck` ✓、`pnpm build` ✓（744 文件）、`pnpm test` ✓（103 文件 / 1165 测试全部通过）
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]

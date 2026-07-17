@@ -82,7 +82,7 @@ describe('AssistantToolService', () => {
           count: vi.fn().mockResolvedValue(0),
         },
       } as never,
-      { get: vi.fn() } as never,
+      { getStore: vi.fn() } as never,
     );
     const medicalKnowledgeService = {
       searchMedicalQaCorpus: vi.fn().mockResolvedValue({
@@ -106,7 +106,7 @@ describe('AssistantToolService', () => {
         },
       } as never);
     const drugbankSearchService = new AssistantToolDrugbankSearchService(
-      { get: vi.fn() } as never,
+      { getStore: vi.fn() } as never,
       drugbankEntityResolveService,
     );
     const medicineLookupService: Pick<
