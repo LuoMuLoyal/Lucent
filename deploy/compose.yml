@@ -2,59 +2,14 @@
 # Compose v2 automatically reads .env from the project directory (/opt/lucent/).
 # All paths are relative to /opt/lucent/.
 
-# ── YAML anchor: common app config ─────────────────────────────
-x-app-common: &app-common
-  image: ${LUCENT_IMAGE}
-  restart: unless-stopped
-  env_file:
-    - .env
-  environment:
-    DATABASE_URL: postgresql://lucent:${POSTGRES_PASSWORD}@postgres:5432/lucent?schema=public
-    REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-    NODE_ENV: production
-    HOST: 0.0.0.0
-    PORT: '3000'
-    METRICS_USER: ${METRICS_USER}
-    METRICS_PASSWORD: ${METRICS_PASSWORD}
-    TRUST_PROXY: 'true'
-  expose:
-    - '3000'
-  volumes:
-    - ./logs/app:/app/logs
-  networks:
-    - backend
-    - observability
-  stop_grace_period: 30s
-  stop_signal: SIGTERM
-  healthcheck:
-    test:
-      [
-        'CMD-SHELL',
-        'wget -q -O - http://127.0.0.1:3000/api/v1/health >/dev/null 2>&1 || exit 1',
-      ]
-    interval: 10s
-    timeout: 5s
-    retries: 12
-    start_period: 20s
-  logging:
-    driver: json-file
-    options:
-      max-size: '50m'
-      max-file: '5'
-  deploy:
-    resources:
-      limits:
-        cpus: '2.0'
-        memory: 1G
-      reservations:
-        cpus: '0.5'
-        memory: 256M
-
 services:
   postgres:
     image: pgvector/pgvector:pg18
     container_name: lucent-postgres
     restart: unless-stopped
+    # 慢查询日志：超过 500ms 的语句写入容器日志（docker logs lucent-postgres）。
+    # 保留 postgres 官方镜像 entrypoint（docker-entrypoint.sh）兼容写法。
+    command: ['postgres', '-c', 'log_min_duration_statement=500']
     environment:
       POSTGRES_USER: lucent
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -111,13 +66,58 @@ services:
           cpus: '0.25'
           memory: 64M
 
-  app-blue:
-    <<: *app-common
-    container_name: lucent-app-blue
-
-  app-green:
-    <<: *app-common
-    container_name: lucent-app-green
+  # ── Single app slot ──────────────────────────────────────────
+  # deploy.ts stops this service, migrates the DB, then starts it with the
+  # new image on every release (15–45s planned downtime, no blue-green).
+  app:
+    image: ${LUCENT_IMAGE}
+    container_name: lucent-app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://lucent:${POSTGRES_PASSWORD}@postgres:5432/lucent?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: '3000'
+      METRICS_USER: ${METRICS_USER}
+      METRICS_PASSWORD: ${METRICS_PASSWORD}
+      TRUST_PROXY: 'true'
+    expose:
+      - '3000'
+    volumes:
+      - ./logs/app:/app/logs
+    networks:
+      - backend
+      - observability
+    # SIGTERM 后给应用 60s 排空：SSE 注册表会先推终止事件再关闭连接，
+    # BullMQ worker 等进行中任务收尾（见 src/common/api/sse-connection-registry.service.ts）。
+    stop_grace_period: 60s
+    stop_signal: SIGTERM
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q -O - http://127.0.0.1:3000/api/v1/health >/dev/null 2>&1 || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
 
   nginx:
     image: nginx:1.29.1-alpine
@@ -133,9 +133,7 @@ services:
     networks:
       - backend
     depends_on:
-      app-blue:
-        condition: service_started
-      app-green:
+      app:
         condition: service_started
     healthcheck:
       test:
@@ -165,10 +163,14 @@ services:
     image: prom/prometheus:v3.4.2
     container_name: lucent-prometheus
     restart: unless-stopped
-    env_file:
-      - .env
+    ports:
+      # 仅本机回环：配合 SSH 隧道访问（ssh -L 9090:127.0.0.1:9090 <server>）
+      - '127.0.0.1:9090:9090'
     volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # 渲染产物由宿主机 ./render-configs.sh 生成（含 METRICS_* 密钥，不入库）。
+      # 首次启动或修改 .env 后先执行 ./render-configs.sh，再重启本服务。
+      - ./prometheus/.rendered/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
       - ./data/prometheus:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -196,6 +198,9 @@ services:
     image: grafana/grafana:12.1.0
     container_name: lucent-grafana
     restart: unless-stopped
+    ports:
+      # 仅本机回环：配合 SSH 隧道访问（ssh -L 3001:127.0.0.1:3001 <server>）
+      - '127.0.0.1:3001:3000'
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: 'false'
@@ -218,6 +223,120 @@ services:
         reservations:
           cpus: '0.1'
           memory: 64M
+
+  # ── Alertmanager（企业微信应用消息告警） ────────────────────────
+  # 默认不启动（profile=alerting）。启用步骤：
+  #   1. .env 配好 WECOM_CORP_ID / WECOM_CORP_SECRET / WECOM_AGENT_ID / WECOM_TO_USER
+  #   2. ./render-configs.sh（WECOM_* 配齐时才会生成 .rendered/alertmanager.yml）
+  #   3. docker compose --profile alerting up -d
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    container_name: lucent-alertmanager
+    restart: unless-stopped
+    profiles: ['alerting']
+    volumes:
+      # 渲染产物由宿主机 ./render-configs.sh 生成（含 WECOM_* 密钥，不入库）。
+      # 未渲染时本服务挂载不到有效配置会启动失败——先跑 render-configs.sh。
+      - ./alertmanager/.rendered/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./data/alertmanager:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.listen-address=0.0.0.0:9093'
+    networks:
+      - observability
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+  # ── 基础设施 exporters（默认启动） ──────────────────────────────
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.18.1
+    container_name: lucent-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: postgresql://lucent:${POSTGRES_PASSWORD}@postgres:5432/lucent?sslmode=disable
+    networks:
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.75.0
+    container_name: lucent-redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    networks:
+      - backend
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+  # node-exporter 走 bridge 网络，network 指标只反映容器 netns（已知取舍，
+  # 不换 host 网络是为了不把 9100 端口暴露到宿主机网卡）；CPU/内存/磁盘/
+  # textfile 指标均来自挂载的宿主机 /proc、/sys、/，不受影响。
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    container_name: lucent-node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.textfile.directory=/textfile'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host:ro,rslave
+      - ./data/node-exporter-textfile:/textfile:ro
+    networks:
+      - observability
+    logging:
+      driver: json-file
+      options:
+        max-size: '50m'
+        max-file: '5'
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
 
 networks:
   backend:

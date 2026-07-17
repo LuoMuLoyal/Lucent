@@ -15,12 +15,14 @@ import { ClinicSummaryService } from './services/clinic-summary/summary.service'
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './dashboard/dashboard.service';
+import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
 
 describe('ReportsController', () => {
   let controller: ReportsController;
   let service: vi.Mocked<ReportsService>;
   let aiSummaryService: vi.Mocked<ReportsAiSummaryService>;
   let clinicSummaryService: vi.Mocked<ClinicSummaryService>;
+  let sseRegistry: SseConnectionRegistry;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -65,6 +67,14 @@ describe('ReportsController', () => {
             getStatus: vi.fn(),
           },
         },
+        {
+          provide: SseConnectionRegistry,
+          useValue: {
+            register: vi.fn(),
+            unregister: vi.fn(),
+            closeAll: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -72,6 +82,7 @@ describe('ReportsController', () => {
     service = module.get(ReportsService);
     aiSummaryService = module.get(ReportsAiSummaryService);
     clinicSummaryService = module.get(ClinicSummaryService);
+    sseRegistry = module.get(SseConnectionRegistry);
   });
 
   // ── getDashboard ──────────────────────────────────────────────────────
@@ -191,6 +202,8 @@ describe('ReportsController', () => {
     expect(resultEvent.data).toEqual(summaryResult);
 
     expect(reply.raw.end).toHaveBeenCalled();
+    expect(sseRegistry.register).toHaveBeenCalledWith(reply.raw);
+    expect(sseRegistry.unregister).toHaveBeenCalledWith(reply.raw);
   });
 
   it('writes SSE error event when service throws', async () => {

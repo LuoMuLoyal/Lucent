@@ -80,6 +80,24 @@ jobs:
       - name: Apply test migrations
         run: pnpm exec prisma migrate deploy
 
+      # 对比 base 分支与本 PR 的 schema，检测破坏性 migration（DROP/TRUNCATE/
+      # 改列类型），只打警告不阻断——用于评估停机窗口时长与回滚风险
+      # （单 slot 部署下回滚不回退 schema，见 docs/01-reference/deployment.md）。
+      - name: Destructive migration check
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          git show "origin/${{ github.base_ref }}:prisma/schema.prisma" > /tmp/base-schema.prisma
+          pnpm exec prisma migrate diff \
+            --from-schema-datamodel /tmp/base-schema.prisma \
+            --to-schema-datamodel prisma/schema.prisma \
+            --script > /tmp/migration-diff.sql
+          if grep -nE 'DROP TABLE|DROP COLUMN|TRUNCATE|SET DATA TYPE' /tmp/migration-diff.sql; then
+            echo "::warning file=prisma/schema.prisma::本次变更含破坏性 migration（DROP/TRUNCATE/改列类型）。请评估停机窗口时长；注意回滚只回应用版本、不回退 schema。"
+          else
+            echo "No destructive migration detected."
+          fi
+
       - name: Lint
         run: pnpm lint:check
 
@@ -97,3 +115,39 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  docker:
+    name: Docker Build + Trivy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: lucent-ci:scan
+
+      # 严格模式：HIGH/CRITICAL 直接 fail。基线未建立，先严格观察，
+      # 若误报过多再考虑加 .trivyignore 白名单，而不是放宽 exit-code。
+      - name: Trivy scan (strict)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: lucent-ci:scan
+          severity: HIGH,CRITICAL
+          exit-code: '1'

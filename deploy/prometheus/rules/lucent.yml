@@ -1,0 +1,103 @@
+# Lucent 告警规则
+# 挂载到 prometheus 容器的 /etc/prometheus/rules（见 deploy/compose.yml）。
+# severity 约定：critical = 立即处理（可用性/错误率/磁盘/证书红线）；
+#                 warning  = 关注排队与资源趋势。
+
+groups:
+  - name: lucent-app
+    rules:
+      - alert: LucentDown
+        expr: up{job="lucent"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Lucent 后端不可达'
+          description: 'Prometheus 已连续 1 分钟无法抓取 app:3000/metrics，后端大概率已挂或网络分区。'
+
+      - alert: LucentHigh5xxRate
+        expr: |
+          sum(rate(http_requests_total{job="lucent",status=~"5.."}[5m]))
+            /
+          sum(rate(http_requests_total{job="lucent"}[5m]))
+          > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Lucent HTTP 5xx 比例超过 5%'
+          description: '最近 5 分钟 5xx 请求占比持续超过 5%（当前值 {{ $value | humanizePercentage }}）。'
+
+      - alert: BullMQJobFailures
+        expr: sum(increase(bullmq_jobs_total{job="lucent",status="failed"}[15m])) > 5
+        labels:
+          severity: warning
+        annotations:
+          summary: 'BullMQ 失败任务增多'
+          description: '最近 15 分钟全部队列累计失败任务数 {{ $value }}，超过阈值 5。'
+
+      - alert: BullMQWaitingBacklog
+        expr: sum(bullmq_waiting_jobs{job="lucent"}) > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'BullMQ 等待任务积压'
+          description: '全部队列等待中任务总数持续 10 分钟超过 100（当前值 {{ $value }}），worker 消费能力可能不足。'
+
+      - alert: NodeEventLoopLagHigh
+        expr: nodejs_eventloop_lag_seconds{job="lucent",quantile="0.99"} > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Node.js event loop lag p99 超过 0.5s'
+          description: 'event loop lag p99 持续 10 分钟超过 0.5s（当前值 {{ $value }}s），事件循环被阻塞，检查 CPU 密集任务或同步调用。'
+
+  - name: lucent-host
+    rules:
+      # 磁盘只盯宿主机根分区（node-exporter 以 --path.rootfs=/host 运行，
+      # mountpoint="/" 即宿主机根文件系统；overlay/tmpfs 已被默认过滤）。
+      - alert: HostDiskSpaceLow
+        expr: |
+          node_filesystem_avail_bytes{job="node",mountpoint="/"}
+            /
+          node_filesystem_size_bytes{job="node",mountpoint="/"}
+          < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: '宿主机磁盘可用空间低于 15%'
+          description: '根分区可用比例 {{ $value | humanizePercentage }}，注意清理日志/备份/镜像。'
+
+      - alert: HostDiskSpaceCritical
+        expr: |
+          node_filesystem_avail_bytes{job="node",mountpoint="/"}
+            /
+          node_filesystem_size_bytes{job="node",mountpoint="/"}
+          < 0.10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: '宿主机磁盘可用空间低于 10%'
+          description: '根分区可用比例 {{ $value | humanizePercentage }}，postgres/redis 随时可能写盘失败，立即清理。'
+
+      # 指标由 deploy/check-cert.sh 经 node-exporter textfile collector 提供，
+      # cron 每小时刷新一次。
+      - alert: LucentCertExpiryWarning
+        expr: lucent_cert_expiry_days < 14
+        labels:
+          severity: warning
+        annotations:
+          summary: 'TLS 证书剩余有效期不足 14 天'
+          description: 'certs/fullchain.pem 还剩 {{ $value }} 天过期，尽快续期。'
+
+      - alert: LucentCertExpiryCritical
+        expr: lucent_cert_expiry_days < 7
+        labels:
+          severity: critical
+        annotations:
+          summary: 'TLS 证书剩余有效期不足 7 天'
+          description: 'certs/fullchain.pem 还剩 {{ $value }} 天过期，立即续期，否则全站 HTTPS 中断。'

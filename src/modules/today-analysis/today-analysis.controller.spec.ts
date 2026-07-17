@@ -6,11 +6,13 @@ import { TodayAnalysisQueueService } from './services/analysis-queue.service';
 import { TodayRecommendationsService } from './services/recommendations.service';
 import type { TodayAnalysisDataDto } from './dto';
 import { TodayAnalysisController } from './today-analysis.controller';
+import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
 
 describe('TodayAnalysisController', () => {
   let controller: TodayAnalysisController;
   let service: vi.Mocked<TodayAnalysisService>;
   let recommendationsService: vi.Mocked<TodayRecommendationsService>;
+  let sseRegistry: SseConnectionRegistry;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -37,12 +39,21 @@ describe('TodayAnalysisController', () => {
             getRandomRecommendations: vi.fn(),
           },
         },
+        {
+          provide: SseConnectionRegistry,
+          useValue: {
+            register: vi.fn(),
+            unregister: vi.fn(),
+            closeAll: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get(TodayAnalysisController);
     service = module.get(TodayAnalysisService);
     recommendationsService = module.get(TodayRecommendationsService);
+    sseRegistry = module.get(SseConnectionRegistry);
   });
 
   // ── generate ──────────────────────────────────────────────────────────
@@ -152,6 +163,8 @@ describe('TodayAnalysisController', () => {
 
     // response.end should have been called (by endSse)
     expect(reply.raw.end).toHaveBeenCalled();
+    expect(sseRegistry.register).toHaveBeenCalledWith(reply.raw);
+    expect(sseRegistry.unregister).toHaveBeenCalledWith(reply.raw);
   });
 
   it('writes SSE error event and ends stream when service throws', async () => {

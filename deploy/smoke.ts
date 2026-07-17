@@ -2,14 +2,15 @@
  * Lucent Post-Deploy Smoke Test
  *
  * Checks:
- *   1. All compose services are running (via docker compose ps)
+ *   1. All compose services are running (postgres, redis, nginx, app)
  *   2. Local health endpoints through Nginx (port 80)
  *   3. /metrics blocked by Nginx (403)
  *   4. /metrics Basic Auth via docker exec inside the app container
  *   5. If LUCENT_PUBLIC_BASE_URL is set, public HTTPS health/ready
  *
- * The app container port (3000) is NOT exposed to the host, so direct
- * /metrics auth checks use `docker exec` to run curl inside the container.
+ * Single-slot deploy: the app container is always `lucent-app`. Its port
+ * (3000) is NOT exposed to the host, so direct /metrics auth checks use
+ * `docker exec` to run curl inside the container.
  */
 
 import { execSync, spawnSync } from 'node:child_process';
@@ -144,7 +145,7 @@ function ensureServicesRunning(): {
     .filter(Boolean)
     .map((line) => JSON.parse(line) as ComposeServiceRow);
 
-  const requiredServices = ['postgres', 'redis', 'nginx'];
+  const requiredServices = ['postgres', 'redis', 'nginx', 'app'];
 
   for (const service of requiredServices) {
     const row = rows.find((item) => item.Service === service);
@@ -158,28 +159,8 @@ function ensureServicesRunning(): {
     }
   }
 
-  // At least one app slot must be running — determine the container name
-  const appBlue = rows.find((item) => item.Service === 'app-blue');
-  const appGreen = rows.find((item) => item.Service === 'app-green');
-
-  const isBlueRunning =
-    appBlue &&
-    String(appBlue.State || '')
-      .toLowerCase()
-      .includes('running');
-  const isGreenRunning =
-    appGreen &&
-    String(appGreen.State || '')
-      .toLowerCase()
-      .includes('running');
-
-  if (!isBlueRunning && !isGreenRunning) {
-    throw new Error('Neither app-blue nor app-green is running.');
-  }
-
-  const appContainer = isBlueRunning ? 'lucent-app-blue' : 'lucent-app-green';
-
-  return { rows, appContainer };
+  // Single-slot deploy: the app container name is fixed
+  return { rows, appContainer: 'lucent-app' };
 }
 
 function checkHttp(name: string, url: string, opts: CurlOptions = {}): string {

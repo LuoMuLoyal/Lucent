@@ -439,11 +439,10 @@ function assertProductionEnvironment(config: EnvironmentVariables): void {
     throw new Error('CORS_ORIGIN must not be * in production');
   }
 
-  if (!config[EnvKey.REDIS_URL]) {
-    throw new Error(
-      'REDIS_URL is required in production for distributed rate limiting',
-    );
-  }
+  // NOTE: REDIS_URL is required in production (checked above) for the BullMQ
+  // queues, not for rate limiting. Rate limiting (ThrottlerModule in
+  // app.module.ts) intentionally uses in-process memory storage, which is
+  // sufficient for the single-instance deployment; counters reset on restart.
 }
 
 function assertTencentCosEnvironment(config: EnvironmentVariables): void {

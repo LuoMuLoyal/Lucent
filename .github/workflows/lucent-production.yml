@@ -11,110 +11,12 @@ on:
         options:
           - deploy
           - rollback
-  workflow_run:
-    workflows:
-      - lucent-ci
-    types:
-      - completed
 
 concurrency:
   group: lucent-production-deploy
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    environment: production
-    if: |
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main'
-    permissions:
-      contents: read
-    env:
-      REGISTRY_HOST: hkccr.ccs.tencentyun.com
-      REGISTRY_NAMESPACE: lucent
-      REGISTRY_IMAGE_NAME: lucent
-    steps:
-      - name: Checkout workflow-run commit
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to Tencent TCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY_HOST }}
-          username: ${{ secrets.TCR_USERNAME }}
-          password: ${{ secrets.TCR_PASSWORD }}
-
-      - name: Resolve image metadata
-        id: image
-        shell: bash
-        run: |
-          set -euo pipefail
-          image_tag="$(git rev-parse HEAD)"
-          image_ref="${REGISTRY_HOST}/${REGISTRY_NAMESPACE}/${REGISTRY_IMAGE_NAME}:${image_tag}"
-          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
-          echo "image_ref=${image_ref}" >> "$GITHUB_OUTPUT"
-
-      - name: Build and push Lucent image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          platforms: linux/amd64
-          provenance: false
-          sbom: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          tags: |
-            ${{ steps.image.outputs.image_ref }}
-
-      - name: Configure SSH
-        shell: bash
-        run: |
-          set -euo pipefail
-          install -d -m 700 ~/.ssh
-          printf '%s\n' '${{ secrets.DEPLOY_SSH_KEY }}' > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          printf '%s\n' '${{ secrets.DEPLOY_SSH_KNOWN_HOSTS }}' > ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Upload deploy assets
-        shell: bash
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-        run: |
-          set -euo pipefail
-          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /opt/lucent/nginx /opt/lucent/prometheus /opt/lucent/grafana"
-          scp -P "$DEPLOY_PORT" deploy/compose.yml deploy/deploy.ts deploy/smoke.ts deploy/package.json "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/"
-          scp -P "$DEPLOY_PORT" deploy/nginx/nginx.conf "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/nginx/"
-          scp -P "$DEPLOY_PORT" deploy/prometheus/prometheus.yml "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/prometheus/"
-          rsync -a --delete -e "ssh -p $DEPLOY_PORT" deploy/grafana/ "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/grafana/"
-
-      - name: Run remote deploy
-        shell: bash
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          IMAGE_REF: ${{ steps.image.outputs.image_ref }}
-        run: |
-          set -euo pipefail
-          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "
-            cd /opt/lucent
-            LUCENT_IMAGE='${IMAGE_REF}' node deploy.ts
-          "
-
   deploy-manual:
     name: Deploy to Production (Manual)
     runs-on: ubuntu-latest
@@ -185,10 +87,12 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
         run: |
           set -euo pipefail
-          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /opt/lucent/nginx /opt/lucent/prometheus /opt/lucent/grafana"
-          scp -P "$DEPLOY_PORT" deploy/compose.yml deploy/deploy.ts deploy/smoke.ts deploy/package.json "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/"
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /opt/lucent/nginx /opt/lucent/prometheus/rules /opt/lucent/alertmanager /opt/lucent/grafana"
+          scp -P "$DEPLOY_PORT" deploy/compose.yml deploy/deploy.ts deploy/smoke.ts deploy/package.json deploy/backup.sh deploy/check-cert.sh deploy/render-configs.sh "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/"
           scp -P "$DEPLOY_PORT" deploy/nginx/nginx.conf "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/nginx/"
           scp -P "$DEPLOY_PORT" deploy/prometheus/prometheus.yml "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/prometheus/"
+          scp -P "$DEPLOY_PORT" deploy/prometheus/rules/lucent.yml "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/prometheus/rules/"
+          scp -P "$DEPLOY_PORT" deploy/alertmanager/alertmanager.yml "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/alertmanager/"
           rsync -a --delete -e "ssh -p $DEPLOY_PORT" deploy/grafana/ "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/grafana/"
 
       - name: Run remote deploy
@@ -202,6 +106,7 @@ jobs:
           set -euo pipefail
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "
             cd /opt/lucent
+            chmod +x backup.sh check-cert.sh render-configs.sh
             LUCENT_IMAGE='${IMAGE_REF}' node deploy.ts
           "
 

@@ -10,3 +10,4 @@
 - [[sync-openapi-client]] — 导出 OpenAPI 并再生 Flutter 客户端
 - [[run-medicine-import]] — 运行药品数据导入
 - [[deploy]] — 生产部署快速路径
+- [[restore-database-backup]] — 数据库备份恢复演练（每季度）与灾难恢复

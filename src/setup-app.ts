@@ -13,6 +13,8 @@ import type { ServerResponse } from 'node:http';
 import fastifyHelmet from '@fastify/helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import type { Logger as WinstonLogger } from 'winston';
 import { safeCompare } from './common/helpers/crypto.utils';
 import { ConfigKey } from './config/config-keys.enum';
 import { ResultCode } from './common/api';
@@ -24,6 +26,7 @@ import {
   type FastifyRequestWithId,
 } from './common/middleware/request-id.types';
 import { RequestContextService } from './common/logger/request-context.service';
+import { buildAccessLogEntry } from './common/logger/access-log.utils';
 import { MetricsService } from './common/metrics/metrics.service';
 import { normalizeRoute, shouldSkip } from './common/metrics/metrics.utils';
 
@@ -93,6 +96,28 @@ export async function setupApp(
       reply.statusCode,
       durationSeconds,
     );
+    done();
+  });
+
+  // ── HTTP access log (one structured entry per completed request) ──
+  const winstonLogger = app.get<WinstonLogger>(WINSTON_MODULE_PROVIDER);
+
+  void fastify.addHook('onResponse', (request, reply, done) => {
+    // Skip high-frequency probes (/api/v1/health*, /metrics) to avoid noise.
+    if (shouldSkip(request.url)) {
+      done();
+      return;
+    }
+    const entry = buildAccessLogEntry({
+      requestId: (request as FastifyRequestWithId).requestId,
+      method: request.method,
+      routeUrl: request.routeOptions.url,
+      rawUrl: request.url,
+      statusCode: reply.statusCode,
+      elapsedMs: reply.elapsedTime,
+    });
+    const { level, message, ...meta } = entry;
+    winstonLogger.log(level, message, meta);
     done();
   });
 

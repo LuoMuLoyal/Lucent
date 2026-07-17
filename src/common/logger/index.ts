@@ -1,3 +1,4 @@
+export * from './access-log.utils';
 export * from './lifecycle.service';
 export * from './logger.config.spec';
 export * from './logger.config';

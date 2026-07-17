@@ -20,6 +20,7 @@ import { I18nLang } from 'nestjs-i18n';
 import { successEnvelope } from '../../common/api';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
+import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
 import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -39,7 +40,10 @@ import {
 export class AssistantController {
   private readonly logger = new Logger(AssistantController.name);
 
-  constructor(private readonly assistantService: AssistantService) {}
+  constructor(
+    private readonly assistantService: AssistantService,
+    private readonly sseRegistry: SseConnectionRegistry,
+  ) {}
 
   @Get('capabilities')
   @ApiOperation({
@@ -123,7 +127,7 @@ export class AssistantController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw);
+    prepareSse(reply.raw, this.sseRegistry);
 
     try {
       const result = await this.assistantService.streamMessages(
@@ -157,7 +161,7 @@ export class AssistantController {
         data: { message: payload.clientMessage },
       });
     } finally {
-      endSse(reply.raw);
+      endSse(reply.raw, this.sseRegistry);
     }
   }
   private resolveErrorPayload(error: unknown): {

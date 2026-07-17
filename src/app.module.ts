@@ -21,6 +21,7 @@ import { AppService } from './app.service';
 import { I18nModule } from './i18n/i18n.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { MetricsModule } from './common/metrics/metrics.module';
+import { SseModule } from './common/api/sse.module';
 import { BullmqModule } from './common/queue/queue.module';
 import { MedicinesModule } from './modules/medicines/medicines.module';
 import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
@@ -61,6 +62,8 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
       useClass: CacheConfigService,
     }),
     ScheduleModule.forRoot(),
+    // In-process (memory) rate limiting by design: sufficient for the
+    // single-instance deployment; counters reset on process restart.
     ThrottlerModule.forRoot([
       {
         ttl: 60_000,
@@ -70,6 +73,7 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
     I18nModule,
     LoggerModule,
     MetricsModule,
+    SseModule,
     BullmqModule,
     PrismaModule,
     MailModule,

@@ -128,8 +128,10 @@ NODE_ENV=test pnpm exec prisma migrate deploy
   `REDIS_URL`, cache health reports `memory` fallback and remains non-critical.
 - `GET /api/v1/health/deep` keeps the same dependency checks but includes more explicit probe detail
   for diagnosis.
-- Production compose runs `postgres`, `redis`, `app-blue`, `app-green`, `nginx`, `prometheus`,
-  and `grafana`. See [[deployment]] for the full service list and architecture.
+- Production compose runs `postgres`, `redis`, `app` (single slot), `nginx`, `prometheus`,
+  `grafana`, plus `postgres-exporter`, `redis-exporter`, and `node-exporter`; `alertmanager`
+  runs only when the `alerting` profile is enabled. See [[deployment]] for the full service
+  list and architecture.
 - Production deploy uses a single `/opt/lucent/` directory layout — see [[deployment]] for details.
 - Production PostgreSQL uses `pgvector/pgvector:pg18` (same as local dev and CI) and mounts
   `./data/postgresql` to container path `/var/lib/postgresql`.

@@ -1,6 +1,6 @@
 # Lucent TODO
 
-Last updated: 2026-07-16
+Last updated: 2026-07-17
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -16,8 +16,7 @@ random docs.
 
 ### 高级可观测性（基础已完成）
 
-基础可观测性已就位（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标）。以下为进阶项：
+基础可观测性已就位（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标 + Alertmanager 告警规则）。以下为进阶项：
 
 - OpenTelemetry 分布式追踪
-- 配置 Prometheus alerting rules
 - 添加 synthetic uptime monitoring

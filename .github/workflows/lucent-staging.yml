@@ -94,10 +94,12 @@ jobs:
           DEPLOY_USER: ${{ secrets.STAGING_DEPLOY_USER }}
         run: |
           set -euo pipefail
-          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /opt/lucent/nginx /opt/lucent/prometheus /opt/lucent/grafana"
-          scp -P "$DEPLOY_PORT" deploy/compose.yml deploy/deploy.ts deploy/smoke.ts deploy/package.json "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/"
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p /opt/lucent/nginx /opt/lucent/prometheus/rules /opt/lucent/alertmanager /opt/lucent/grafana"
+          scp -P "$DEPLOY_PORT" deploy/compose.yml deploy/deploy.ts deploy/smoke.ts deploy/package.json deploy/backup.sh deploy/check-cert.sh deploy/render-configs.sh "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/"
           scp -P "$DEPLOY_PORT" deploy/nginx/nginx.conf "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/nginx/"
           scp -P "$DEPLOY_PORT" deploy/prometheus/prometheus.yml "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/prometheus/"
+          scp -P "$DEPLOY_PORT" deploy/prometheus/rules/lucent.yml "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/prometheus/rules/"
+          scp -P "$DEPLOY_PORT" deploy/alertmanager/alertmanager.yml "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/alertmanager/"
           rsync -a --delete -e "ssh -p $DEPLOY_PORT" deploy/grafana/ "$DEPLOY_USER@$DEPLOY_HOST:/opt/lucent/grafana/"
 
       - name: Run remote deploy
@@ -111,5 +113,6 @@ jobs:
           set -euo pipefail
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "
             cd /opt/lucent
+            chmod +x backup.sh check-cert.sh render-configs.sh
             LUCENT_IMAGE='${IMAGE_REF}' node deploy.ts
           "

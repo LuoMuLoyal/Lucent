@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-15
+Last updated: 2026-07-17
 
 本文件只保留简介和按区域链接。具体后端实现细节见 `00-current/` 下各子文件。
 
@@ -198,6 +198,22 @@ Last updated: 2026-07-15
 - **低基数索引清理（P2）**：3 个保留 partial index（`UserCurrentMedicine`、`UserMedicineReminder`、`UserNotification`），3 个仅删除不重建（`User.status`、`MedicineSafetyTip`、`LegalDocument` — 表极小或无运行时查询），1 个 partial index（`MealDishTemplate`），1 个 B-tree on JSONB 删除（`CnMedicineLeaflet.approvalCodes`）
 - **GIN trigram 索引（P3）**：启用 `pg_trgm` 扩展，为 `cn_medicine_products`（6 列）和 `drugbank_drugs`（4 列）的所有 ILIKE 搜索列添加 GIN trigram 索引；为 `food_composition_items` 的 `normalized_name` 和 `search_text` 添加 GIN trigram 索引（服务 `startsWith` 前缀匹配）
 - **Migration**：`20260716120000_optimize_indexes` 包含所有 DROP/CREATE INDEX 语句
+
+## 2026-07-17 部署加固（单 slot + 可观测性补全）
+
+来源：`plans/2026-07-16-deployment-hardening.md`（15 项，除 LLM 熔断器外全部落地）。
+
+- **单 slot 停机部署**：砍掉蓝绿双 slot（共享 DB 下挡不住 schema 风险，且 `.env.previous` 快照时机 bug 导致回滚失效），`deploy.ts` 重写为 12 步流程：部署前 `pg_dump` 快照（失败即中止、零停机）→ stop app → `prisma migrate deploy` → 启动新镜像 → 健康门禁（~150s，失败自动恢复上一镜像并打印日志）→ reload nginx（重解析 upstream 缓存 IP）→ smoke test；每次发布 15~45s 停机窗口，回滚 = `--rollback` 重部上一镜像 tag（schema 不回退）。决策补记在 ADR-0004
+- **生产改人工发布**：`lucent-production.yml` 删除 `workflow_run` 自动触发，仅保留 `workflow_dispatch`（deploy/rollback，限 main），发布时间人工可控；staging 保持 CI 成功自动部署
+- **告警通道**：新增 Alertmanager（profile=alerting，企业微信应用消息原生 `wechat_configs`）+ `prometheus/rules/lucent.yml` 告警规则（app 不可达、5xx 率、BullMQ 失败/积压、event loop lag、磁盘水位、证书过期）；发布成功/失败/回滚走独立的 `WECOM_WEBHOOK_URL` 群机器人通知；prometheus/alertmanager 配置改为模板 + 服务器本地 `render-configs.sh` 渲染（密钥不入库）
+- **数据库备份**：`backup.sh` 每日 `pg_dump`（本地保留 7 份）+ 可选 COS 异地副本（coscli/coscmd，COS 生命周期 30 天）；部署前快照保留 10 份；恢复演练 runbook 见 `docs/01-reference/how-to/restore-database-backup.md`（每季度一次）
+- **SSE 优雅关闭**：新增 `SseConnectionRegistry` 追踪活跃 SSE 连接，SIGTERM 时先推终止 `error` 事件（`reason: 'server_shutdown'`）再关闭；`stop_grace_period` 30s → 60s
+- **基础设施指标**：新增 postgres-exporter / redis-exporter / node-exporter（磁盘水位可见）；Grafana/Prometheus 端口绑定 `127.0.0.1` 发布（SSH 隧道访问方式恢复可用）
+- **请求级日志**：Fastify `onResponse` hook 写结构化完成日志，Winston 从 AsyncLocalStorage 注入顶层 `requestId` 字段；Postgres `log_min_duration_statement=500` 慢查询日志；Prisma log 配置 `['warn','error']`
+- **CI 加固**：PR 上 `prisma migrate diff` 检测破坏性 migration 打 warning；新增 docker job（`docker build` 不推送 + Trivy HIGH/CRITICAL 严格扫描）
+- **零散硬化**：BullMQ 队列深度 gauge 接线（30s 轮询 `getJobCounts()`）；nginx `limit_req`（20r/s burst 40）+ `limit_conn`（50，SSE 路径只限连接）；`.env` 行级写入保留注释 + `chmod 600`；限流确认为进程内存存储并修正注释；TLS 证书过期监控（`check-cert.sh` → textfile 指标 → 告警，续期仍手工）
+- **文档**：`deployment.md` 全面重写（单 slot 流程、migration 纪律、备份、告警、TLS），ADR-0004 补记拓扑变更
+- **遗留**：LLM 调用熔断器未实现（已有超时 + 错误分类重试，见 TODO）
 
 ## 相关文档
 

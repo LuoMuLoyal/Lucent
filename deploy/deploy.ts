@@ -1,9 +1,9 @@
 /**
- * Lucent Blue-Green Deploy Script
+ * Lucent Single-Slot Deploy Script
  *
  * Usage:
- *   LUCENT_IMAGE=<image-ref> node deploy.ts          # deploy
- *   node deploy.ts --rollback                         # rollback to previous
+ *   LUCENT_IMAGE=<image-ref> node deploy.ts          # deploy (15–45s downtime)
+ *   node deploy.ts --rollback                        # rollback to previous image
  *
  * Prerequisites on the server:
  *   /opt/lucent/
@@ -12,12 +12,15 @@
  *   ├── .env            (contains COMPOSE_PROJECT_NAME, POSTGRES_PASSWORD, REDIS_PASSWORD, etc.)
  *   ├── .env.previous   (auto-managed by this script, for rollback)
  *   ├── certs/
- *   ├── data/
+ *   ├── data/           (incl. data/backups — pre-deploy pg_dump snapshots + daily backups)
  *   └── logs/
  *
- * The script reads ACTIVE_SLOT and LUCENT_IMAGE from .env, performs blue-green
- * switching via nginx upstream rewrite + `nginx -s reload`, and runs a smoke
- * test at the end.
+ * Strategy: single app slot with planned downtime (~15–45s per release).
+ * The app container is stopped, the DB schema is migrated, then the new
+ * container is started and health-gated. .env is snapshotted to
+ * .env.previous BEFORE any modification so rollback always finds the
+ * previous image. After the app container is recreated, nginx is reloaded
+ * to re-resolve the cached upstream container IP (otherwise 502s).
  */
 
 import {
@@ -26,6 +29,10 @@ import {
   writeFileSync,
   copyFileSync,
   mkdirSync,
+  chmodSync,
+  statSync,
+  readdirSync,
+  rmSync,
 } from 'node:fs';
 import path from 'node:path';
 import { execSync, spawnSync } from 'node:child_process';
@@ -33,6 +40,8 @@ import { execSync, spawnSync } from 'node:child_process';
 // ── Helpers ────────────────────────────────────────────────────
 
 const DEPLOY_DIR = process.cwd(); // /opt/lucent/
+const NGINX_CONF_PATH = path.join(DEPLOY_DIR, 'nginx', 'nginx.conf');
+const DB_BACKUP_KEEP = 10;
 
 function requiredEnv(name: string): string {
   const value = process.env[name]?.trim();
@@ -55,13 +64,41 @@ function ensureDirectories(): void {
     'data/redis',
     'data/prometheus',
     'data/grafana',
+    'data/backups',
+    'data/alertmanager',
+    'data/node-exporter-textfile',
     'logs/app',
     'logs/nginx',
     'nginx',
     'prometheus',
+    'prometheus/rules',
+    'alertmanager',
   ];
   for (const dir of dirs) {
     mkdirSync(path.join(DEPLOY_DIR, dir), { recursive: true });
+  }
+}
+
+/**
+ * Render prometheus/alertmanager configs from .env via render-configs.sh.
+ * Best-effort: monitoring is not on the deploy critical path, so a render
+ * failure only warns (prometheus keeps running with its previous config).
+ */
+function runRenderConfigs(): void {
+  const scriptPath = path.join(DEPLOY_DIR, 'render-configs.sh');
+  if (!existsSync(scriptPath)) {
+    console.log('  render-configs.sh not found, skipping config render.');
+    return;
+  }
+  const result = spawnSync('sh', [scriptPath], {
+    cwd: DEPLOY_DIR,
+    encoding: 'utf8',
+    stdio: ['ignore', 'inherit', 'inherit'],
+  });
+  if (result.status !== 0) {
+    console.warn(
+      '  WARNING: render-configs.sh failed — prometheus/alertmanager configs may be stale. Continuing deploy.',
+    );
   }
 }
 
@@ -89,19 +126,87 @@ function readEnvFile(envPath: string): Record<string, string> {
   return map;
 }
 
-function writeEnvFile(envPath: string, map: Record<string, string>): void {
-  const lines = Object.entries(map).map(([key, value]) => `${key}=${value}`);
-  writeFileSync(envPath, lines.join('\n') + '\n', 'utf8');
+/**
+ * Write .env lines verbatim, then tighten permissions to 600
+ * (best-effort — chmod is unsupported on Windows and ignored there).
+ */
+function writeEnvFile(envPath: string, lines: string[]): void {
+  writeFileSync(envPath, lines.join('\n'), 'utf8');
+  try {
+    chmodSync(envPath, 0o600);
+  } catch {
+    // Ignore — e.g. on Windows hosts where chmod is not supported.
+  }
 }
 
 function getEnvValue(envPath: string, key: string): string {
   return readEnvFile(envPath)[key] ?? '';
 }
 
+/**
+ * Line-level in-place update: rewrite the line starting with `KEY=` to
+ * `KEY=value` and keep every other line (comments, blank lines, unrelated
+ * keys) exactly as-is. If the key is absent, append it at the end.
+ */
 function setEnvValue(envPath: string, key: string, value: string): void {
-  const map = readEnvFile(envPath);
-  map[key] = value;
-  writeEnvFile(envPath, map);
+  const lines = readFileSync(envPath, 'utf8').split('\n');
+  const prefix = `${key}=`;
+  let replaced = false;
+  const updated = lines.map((line) => {
+    if (!replaced && line.startsWith(prefix)) {
+      replaced = true;
+      return `${key}=${value}`;
+    }
+    return line;
+  });
+  if (!replaced) {
+    // Insert before the trailing empty line so EOF keeps a single newline.
+    if (updated.length > 0 && updated[updated.length - 1] === '') {
+      updated.splice(updated.length - 1, 0, `${key}=${value}`);
+    } else {
+      updated.push(`${key}=${value}`);
+    }
+  }
+  writeEnvFile(envPath, updated);
+}
+
+// ── Deploy event notification (WeCom group-bot webhook) ───────
+
+/**
+ * Best-effort notification via a WeCom group-bot webhook
+ * (WECOM_WEBHOOK_URL in .env; unset = notifications disabled).
+ * Never throws and never blocks the deploy outcome.
+ */
+function notifyDeploy(message: string): void {
+  const webhookUrl = getEnvValue(
+    path.join(DEPLOY_DIR, '.env'),
+    'WECOM_WEBHOOK_URL',
+  );
+  if (!webhookUrl) return;
+  try {
+    const payload = JSON.stringify({
+      msgtype: 'text',
+      text: { content: `[Lucent] ${message}` },
+    });
+    spawnSync(
+      'curl',
+      [
+        '-sS',
+        '--max-time',
+        '10',
+        '-X',
+        'POST',
+        '-H',
+        'Content-Type: application/json',
+        '-d',
+        payload,
+        webhookUrl,
+      ],
+      { cwd: DEPLOY_DIR, stdio: ['ignore', 'ignore', 'ignore'] },
+    );
+  } catch {
+    // Best-effort: notification failure must not affect the deploy.
+  }
 }
 
 // ── Docker Compose helpers ─────────────────────────────────────
@@ -183,37 +288,10 @@ function waitForService(
   throw new Error(`Timed out waiting for ${serviceName}.`);
 }
 
-// ── Nginx upstream rewrite ─────────────────────────────────────
-
-const NGINX_CONF_PATH = path.join(DEPLOY_DIR, 'nginx', 'nginx.conf');
-
-function rewriteNginxUpstream(activeSlot: string): void {
-  const inactiveSlot = activeSlot === 'blue' ? 'green' : 'blue';
-  const conf = readFileSync(NGINX_CONF_PATH, 'utf8');
-
-  // Replace the upstream block — active slot without `down`, inactive with `down`
-  const newUpstream = `upstream lucent_app {
-    server app-${activeSlot}:3000 max_fails=3 fail_timeout=10s;
-    server app-${inactiveSlot}:3000 max_fails=3 fail_timeout=10s down;
-    keepalive 32;
-  }`;
-
-  const updated = conf.replace(
-    /upstream lucent_app \{[\s\S]*?keepalive 32;\s*\}/,
-    newUpstream,
-  );
-
-  if (updated === conf) {
-    throw new Error(
-      'Failed to rewrite nginx upstream block — pattern not matched.',
-    );
-  }
-
-  writeFileSync(NGINX_CONF_PATH, updated, 'utf8');
-  console.log(
-    `  nginx upstream rewritten: active=${activeSlot}, inactive=${inactiveSlot} (down)`,
-  );
-}
+// ── Nginx reload ───────────────────────────────────────────────
+// The nginx upstream resolves `app` to a container IP at config-load time
+// and caches it. After the app container is recreated (new IP), nginx MUST
+// be reloaded or every proxied request 502s.
 
 function reloadNginx(): void {
   console.log('  Reloading nginx...');
@@ -256,131 +334,203 @@ function runMigrate(imageRef: string, postgresPassword: string): void {
   console.log('  Migrate completed.');
 }
 
+// ── Pre-deploy DB snapshot ─────────────────────────────────────
+
+/**
+ * Dump the database to data/backups/pre-deploy-<UTC timestamp>.sql.gz and
+ * keep only the newest DB_BACKUP_KEEP snapshots. Runs BEFORE the app is
+ * stopped — if the dump fails the deploy aborts with zero downtime.
+ */
+function snapshotDatabase(): void {
+  const backupDir = path.join(DEPLOY_DIR, 'data', 'backups');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const fileName = `pre-deploy-${timestamp}.sql.gz`;
+  const filePath = path.join(backupDir, fileName);
+
+  try {
+    execSync(
+      `set -o pipefail && docker exec lucent-postgres pg_dump -U lucent -d lucent | gzip > "${filePath}"`,
+      { cwd: DEPLOY_DIR, shell: '/bin/bash' },
+    );
+    if (statSync(filePath).size === 0) {
+      throw new Error('snapshot file is empty');
+    }
+  } catch (err) {
+    rmSync(filePath, { force: true });
+    throw new Error(
+      `Pre-deploy DB snapshot failed — aborting deploy (app is still running, no impact): ${
+        err instanceof Error ? err.message : err
+      }`,
+    );
+  }
+  console.log(`  DB snapshot written: data/backups/${fileName}`);
+
+  // Retain only the newest DB_BACKUP_KEEP snapshots (ISO timestamps sort by time)
+  const backups = readdirSync(backupDir)
+    .filter((name) => /^pre-deploy-.*\.sql\.gz$/.test(name))
+    .sort();
+  const excess = backups.length - DB_BACKUP_KEEP;
+  for (const name of backups.slice(0, Math.max(excess, 0))) {
+    rmSync(path.join(backupDir, name));
+    console.log(`  Pruned old snapshot: ${name}`);
+  }
+}
+
+// ── Restore previous image ─────────────────────────────────────
+
+/**
+ * Best-effort restore after a failed health gate / smoke test: print the
+ * failed container's logs (before it is recreated), point .env back at the
+ * previous image and bring it up. Note: prisma migrate may already have
+ * advanced the DB schema — the previous image must tolerate that.
+ */
+function restorePreviousImage(envPath: string, previousImage: string): void {
+  if (!previousImage) {
+    console.error(
+      '  No previous image recorded — cannot restore automatically.',
+    );
+    return;
+  }
+  console.error('  Recent logs from the failed container:');
+  try {
+    compose(['logs', '--tail=200', 'app']);
+  } catch {
+    console.error('  (could not read app logs)');
+  }
+  console.error(`  Restoring previous image: ${previousImage}`);
+  console.error('  Note: DB schema may already have been migrated forward.');
+  setEnvValue(envPath, 'LUCENT_IMAGE', previousImage);
+  try {
+    compose(['up', '-d', 'app']);
+    waitForService('app');
+    console.error('  Previous image restored and healthy.');
+  } catch (restoreErr) {
+    console.error(
+      '  Restore FAILED — manual intervention required:',
+      restoreErr,
+    );
+  }
+}
+
 // ── Deploy ─────────────────────────────────────────────────────
 
 function deploy(): void {
   const imageRef = requiredEnv('LUCENT_IMAGE');
 
-  console.log('\n=== Lucent Blue-Green Deploy ===');
+  console.log('\n=== Lucent Single-Slot Deploy ===');
   console.log(`  Image: ${imageRef}`);
+  console.log('  Note: single-slot deploy — expect ~15–45s downtime.');
 
   // 1. Pre-flight checks
-  console.log('\n[1/16] Pre-flight checks...');
+  console.log('\n[1/12] Pre-flight checks...');
   ensureFile(path.join(DEPLOY_DIR, 'compose.yml'));
   ensureFile(NGINX_CONF_PATH);
   ensureFile(path.join(DEPLOY_DIR, '.env'));
   ensureDirectories();
+  runRenderConfigs();
 
-  // 2. Read ACTIVE_SLOT from .env
-  console.log('[2/16] Reading ACTIVE_SLOT...');
+  // 2. Read current LUCENT_IMAGE as rollback target
+  console.log('[2/12] Reading current image (rollback target)...');
   const envPath = path.join(DEPLOY_DIR, '.env');
-  const activeSlot = getEnvValue(envPath, 'ACTIVE_SLOT') || 'blue';
-  const inactiveSlot = activeSlot === 'blue' ? 'green' : 'blue';
-  console.log(
-    `  Current active: ${activeSlot}, will deploy to: ${inactiveSlot}`,
-  );
+  const previousImage = getEnvValue(envPath, 'LUCENT_IMAGE');
+  if (!previousImage) {
+    console.log('  No previous LUCENT_IMAGE recorded — first deployment.');
+  } else if (previousImage === imageRef) {
+    console.log('  New image matches current image — redeploying.');
+  } else {
+    console.log(`  Previous image: ${previousImage}`);
+  }
 
   const postgresPassword = getEnvValue(envPath, 'POSTGRES_PASSWORD');
   if (!postgresPassword) {
     throw new Error('POSTGRES_PASSWORD not set in .env');
   }
 
-  // 3. Update LUCENT_IMAGE in .env
-  console.log('[3/16] Updating LUCENT_IMAGE in .env...');
-  setEnvValue(envPath, 'LUCENT_IMAGE', imageRef);
+  // 3. Snapshot .env BEFORE any modification (source for rollback)
+  console.log('[3/12] Snapshotting .env → .env.previous...');
+  copyFileSync(envPath, path.join(DEPLOY_DIR, '.env.previous'));
 
-  // 4. Pull infrastructure images
-  console.log('[4/16] Pulling infrastructure images...');
+  // 4. Pull + start infrastructure
+  console.log('[4/12] Pulling infra images, starting postgres + redis...');
   compose(['pull', 'postgres', 'redis', 'nginx']);
-
-  // 5. Start infrastructure
-  console.log('[5/16] Starting postgres + redis...');
   compose(['up', '-d', 'postgres', 'redis']);
-
-  // 6. Wait for infrastructure health
-  console.log('[6/16] Waiting for postgres + redis...');
   waitForService('postgres');
   waitForService('redis');
 
-  // 7. Run migrate
-  console.log('[7/16] Running prisma migrate deploy...');
-  runMigrate(imageRef, postgresPassword);
+  // 5. Pre-deploy DB snapshot (abort on failure — app still running)
+  console.log('[5/12] Taking pre-deploy DB snapshot...');
+  snapshotDatabase();
 
-  // 8. Start inactive app slot
-  console.log(`[8/16] Starting app-${inactiveSlot}...`);
-  compose(['up', '-d', `app-${inactiveSlot}`]);
-
-  // 9. Wait for app health
-  console.log(`[9/16] Waiting for app-${inactiveSlot} health...`);
+  // 6. Stop app — downtime window starts
+  console.log('[6/12] Stopping app (downtime starts)...');
   try {
-    waitForService(`app-${inactiveSlot}`);
+    compose(['stop', 'app']);
+  } catch {
+    console.log('  app was not running — continuing.');
+  }
+
+  // 7. Run migrate with the new image (app stopped, .env still on old image)
+  console.log('[7/12] Running prisma migrate deploy...');
+  try {
+    runMigrate(imageRef, postgresPassword);
   } catch (err) {
-    console.error(`  app-${inactiveSlot} failed to start. Stopping it.`);
-    compose(['stop', `app-${inactiveSlot}`]);
+    console.error('  Migrate failed — restarting previous app version...');
+    try {
+      compose(['up', '-d', 'app']);
+      waitForService('app');
+      console.error('  Previous app version restored.');
+    } catch (restoreErr) {
+      console.error('  Failed to restart previous app:', restoreErr);
+    }
     throw err;
   }
 
-  // 10. Rewrite nginx upstream
-  console.log(`[10/16] Rewriting nginx upstream (active=${inactiveSlot})...`);
-  rewriteNginxUpstream(inactiveSlot);
+  // 8. Point .env at the new image
+  console.log('[8/12] Updating LUCENT_IMAGE in .env...');
+  setEnvValue(envPath, 'LUCENT_IMAGE', imageRef);
 
-  // 11. Start/reload nginx
+  // 9. Start app + health gate
+  console.log('[9/12] Starting app, waiting for health...');
+  try {
+    compose(['up', '-d', 'app']);
+    waitForService('app');
+  } catch (err) {
+    console.error('  New app failed to become healthy.');
+    restorePreviousImage(envPath, previousImage);
+    throw err;
+  }
+
+  // 10. nginx: reload to re-resolve the upstream IP (or start if not running)
   const nginxRunning = getContainerId('nginx');
   if (!nginxRunning) {
-    console.log('[11/16] Starting nginx (first time)...');
+    console.log('[10/12] Starting nginx (first time)...');
     compose(['up', '-d', 'nginx']);
     waitForService('nginx');
   } else {
-    console.log('[11/16] Reloading nginx...');
+    console.log('[10/12] Reloading nginx (re-resolve app upstream IP)...');
     reloadNginx();
   }
 
-  // 12. Stop old active slot
-  if (activeSlot !== inactiveSlot) {
-    const oldSlotRunning = getContainerId(`app-${activeSlot}`);
-    if (oldSlotRunning) {
-      console.log(`[12/16] Stopping app-${activeSlot} (old active)...`);
-      compose(['stop', `app-${activeSlot}`]);
-    } else {
-      console.log(`[12/16] app-${activeSlot} not running, skipping stop.`);
-    }
-  } else {
-    console.log('[12/16] First deployment, no old slot to stop.');
-  }
-
-  // 13. Update ACTIVE_SLOT in .env
-  console.log('[13/16] Updating ACTIVE_SLOT...');
-  setEnvValue(envPath, 'ACTIVE_SLOT', inactiveSlot);
-
-  // 14. Snapshot .env → .env.previous
-  console.log('[14/16] Snapshotting .env → .env.previous...');
-  copyFileSync(envPath, path.join(DEPLOY_DIR, '.env.previous'));
-
-  // 15. Run smoke test
-  console.log('[15/16] Running smoke test...');
+  // 11. Smoke test
+  console.log('[11/12] Running smoke test...');
   try {
     runSmokeTest();
   } catch (err) {
-    console.error('\n  Smoke test FAILED! Initiating rollback...');
-    try {
-      rollback();
-    } catch (rollbackErr) {
-      console.error('  Rollback also failed:', rollbackErr);
-    }
+    console.error('  Smoke test FAILED!');
+    restorePreviousImage(envPath, previousImage);
     throw err;
   }
 
-  // 16. Done
-  console.log('[16/16] Deploy complete!');
+  // 12. Done
+  console.log('[12/12] Deploy complete!');
   compose(['ps']);
-  console.log(`\n  Active slot: ${inactiveSlot}`);
-  console.log(`  Image: ${imageRef}`);
+  console.log(`\n  Image: ${imageRef}`);
 }
 
 // ── Rollback ───────────────────────────────────────────────────
 
 function rollback(): void {
-  console.log('\n=== Rolling back ===');
+  console.log('\n=== Lucent Rollback (single slot) ===');
 
   const envPath = path.join(DEPLOY_DIR, '.env');
   const prevEnvPath = path.join(DEPLOY_DIR, '.env.previous');
@@ -389,64 +539,49 @@ function rollback(): void {
     throw new Error('No .env.previous found — cannot rollback.');
   }
 
-  // 1. Read previous state
-  const prevEnv = readEnvFile(prevEnvPath);
-  const prevImage = prevEnv['LUCENT_IMAGE'];
-  const prevActiveSlot = prevEnv['ACTIVE_SLOT'] || 'blue';
-
+  const prevImage = getEnvValue(prevEnvPath, 'LUCENT_IMAGE');
   if (!prevImage) {
     throw new Error('.env.previous does not contain LUCENT_IMAGE.');
   }
-
   console.log(`  Rolling back to image: ${prevImage}`);
-  console.log(`  Previous active slot: ${prevActiveSlot}`);
 
-  // 2. Set LUCENT_IMAGE to previous value
+  // 1. Point .env back at the previous image
+  console.log('[1/5] Restoring LUCENT_IMAGE in .env...');
   setEnvValue(envPath, 'LUCENT_IMAGE', prevImage);
 
-  // 3. Determine current active slot (to stop later)
-  const currentActiveSlot = getEnvValue(envPath, 'ACTIVE_SLOT') || 'blue';
-  const rollbackTargetSlot = prevActiveSlot;
-
-  // 4. Start the rollback target slot
-  console.log(`  Starting app-${rollbackTargetSlot} with old image...`);
-  compose(['up', '-d', `app-${rollbackTargetSlot}`]);
-
-  // 5. Wait for health
+  // 2. Stop current app
+  console.log('[2/5] Stopping app...');
   try {
-    waitForService(`app-${rollbackTargetSlot}`);
-  } catch (err) {
-    console.error(
-      `  app-${rollbackTargetSlot} failed to start during rollback!`,
-    );
-    throw err;
+    compose(['stop', 'app']);
+  } catch {
+    console.log('  app was not running — continuing.');
   }
 
-  // 6. Rewrite nginx upstream
-  rewriteNginxUpstream(rollbackTargetSlot);
+  // 3. Start app with the previous image + health gate
+  console.log('[3/5] Starting app with previous image...');
+  compose(['up', '-d', 'app']);
+  waitForService('app');
 
-  // 7. Reload nginx
+  // 4. nginx: reload to re-resolve the upstream IP (or start if not running)
   const nginxRunning = getContainerId('nginx');
   if (!nginxRunning) {
+    console.log('[4/5] Starting nginx...');
     compose(['up', '-d', 'nginx']);
     waitForService('nginx');
   } else {
+    console.log('[4/5] Reloading nginx...');
     reloadNginx();
   }
 
-  // 8. Stop current active slot
-  if (currentActiveSlot !== rollbackTargetSlot) {
-    const currentRunning = getContainerId(`app-${currentActiveSlot}`);
-    if (currentRunning) {
-      console.log(`  Stopping app-${currentActiveSlot}...`);
-      compose(['stop', `app-${currentActiveSlot}`]);
-    }
-  }
-
-  // 9. Update ACTIVE_SLOT
-  setEnvValue(envPath, 'ACTIVE_SLOT', rollbackTargetSlot);
+  // 5. Smoke test
+  console.log('[5/5] Running smoke test...');
+  runSmokeTest();
 
   console.log('  Rollback complete.');
+  console.log(
+    '  注意：数据库 schema 未回退（prisma migrate 只前进，不后退）。',
+  );
+  notifyDeploy(`已回滚至镜像 ${prevImage}（schema 未回退）。`);
   compose(['ps']);
 }
 
@@ -483,6 +618,10 @@ try {
     deploy();
   }
 } catch (error) {
-  console.error(error instanceof Error ? error.message : error);
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(message);
+  notifyDeploy(
+    `${process.argv.includes('--rollback') ? '回滚' : '发布'}失败：${message}`,
+  );
   process.exit(1);
 }

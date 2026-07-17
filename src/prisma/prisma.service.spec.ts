@@ -77,6 +77,17 @@ describe('PrismaService', () => {
       expect(opts.adapter).toBeDefined();
       expect(opts.adapter.connectionString).toBe(connStr);
     });
+
+    it('passes warn and error log levels to PrismaClient', () => {
+      configService.get.mockReturnValue(
+        'postgresql://user:pass@localhost:5432/db',
+      );
+
+      const service = new PrismaService(configService);
+
+      const opts = (service as unknown as { _opts: { log?: string[] } })._opts;
+      expect(opts.log).toEqual(['warn', 'error']);
+    });
   });
 
   describe('onModuleInit', () => {

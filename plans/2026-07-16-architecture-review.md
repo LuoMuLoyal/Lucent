@@ -93,14 +93,15 @@
 
 **影响范围**：模块定义文件为主，低风险。
 
-### 7. BullMQ Worker 和 Cron 全部跑在 API 进程内，与蓝绿双 slot 拓扑冲突
+### 7. BullMQ Worker 和 Cron 全部跑在 API 进程内
 
-**证据**：`common/queue/queue.factory.ts` 在 API 进程内创建 `Worker`；7 个队列 worker（含 PDF 生成、LLM 调用）与 HTTP 请求争用同一事件循环。`today-suggestion/services/lifecycle/service.ts:256` 的 `@Cron` 每 5 分钟执行，蓝绿双 slot 部署重叠期会在两个进程同时触发（靠 updateMany 幂等"碰巧安全"）。全库唯一 cron 无分布式锁。
+**证据**：`common/queue/queue.factory.ts` 在 API 进程内创建 `Worker`；7 个队列 worker（含 PDF 生成、LLM 调用）与 HTTP 请求争用同一事件循环。`today-suggestion/services/lifecycle/service.ts:256` 的 `@Cron` 每 5 分钟执行。
+
+**更新（2026-07-16）**：已决定砍掉蓝绿双 slot 改单 slot 停机部署（见 `2026-07-16-deployment-hardening.md`），cron 双进程同时触发的顾虑随之消失，无需再加分布式锁。
 
 **行动**：
 
-1. 短期：cron 加 Redis 锁（`SET NX PX`）。
-2. 中期：worker 拆为独立进程/容器（同一镜像不同 command），ADR-0004 部署模型补队列拓扑章节。
+1. 中期：worker 拆为独立进程/容器（同一镜像不同 command），ADR-0004 部署模型补队列拓扑章节。
 
 **影响范围**：common/queue、today-suggestion lifecycle、deploy 配置。
 

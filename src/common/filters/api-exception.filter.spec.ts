@@ -26,11 +26,8 @@ describe('ApiExceptionFilter', () => {
   }
 
   function createFilter() {
-    const requestContext = {
-      getRequestId: vi.fn().mockReturnValue('req-test'),
-    };
-    const filter = new ApiExceptionFilter(requestContext as never);
-    return { filter, requestContext };
+    const filter = new ApiExceptionFilter();
+    return { filter };
   }
 
   beforeEach(() => {
@@ -344,9 +341,10 @@ describe('ApiExceptionFilter', () => {
     );
   });
 
-  it('includes requestId in logged metadata', () => {
-    const { filter, requestContext } = createFilter();
-    requestContext.getRequestId.mockReturnValue('req-abc-123');
+  it('logs method, path, and status without embedding requestId in the message text', () => {
+    // requestId is a top-level structured field (winston requestIdFormat),
+    // not a `[reqId=]` suffix in the message.
+    const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
       type: vi.fn().mockReturnThis(),
@@ -356,9 +354,10 @@ describe('ApiExceptionFilter', () => {
 
     filter.catch(new Error('err'), createHost(response, request));
 
-    // Logger.error is called with (message, stack) — requestId is in the filter's metadata
-    // The filter uses requestContextService.getRequestId() to build metadata
-    expect(requestContext.getRequestId).toHaveBeenCalled();
+    expect(loggerError).toHaveBeenCalledWith(
+      'Unhandled exception: Internal server error [GET /test 500]',
+      expect.any(String),
+    );
   });
 
   it('handles HttpException with string array message of single element', () => {

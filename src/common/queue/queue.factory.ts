@@ -24,6 +24,9 @@ export const DEFAULT_WORKER_RETENTION = {
   removeOnFail: { age: 7 * 24 * 60 * 60, count: 5_000 },
 } as const;
 
+/** How often queue job counts are sampled into the depth gauges. */
+export const QUEUE_METRICS_POLL_INTERVAL_MS = 30_000;
+
 export interface QueueCreateOptions<TData, TResult> {
   name: string;
   defaultJobOptions?: JobsOptions;
@@ -35,6 +38,7 @@ interface ManagedQueue {
   queue: Queue;
   worker: Worker;
   name: string;
+  metricsInterval: ReturnType<typeof setInterval>;
 }
 
 /**
@@ -42,6 +46,7 @@ interface ManagedQueue {
  *
  * - Reads `REDIS_URL` once and reuses connection options.
  * - Creates Queue + Worker pairs with unified error handling.
+ * - Polls job counts into the queue depth gauges on a fixed interval.
  * - Tracks all created workers/queues for graceful shutdown.
  * - Returns `null` queue/worker when Redis is not configured, so callers
  *   can fall back to inline processing.
@@ -124,7 +129,12 @@ export class BullmqQueueFactory implements OnModuleDestroy {
       );
     });
 
-    this.managed.push({ queue, worker, name: options.name });
+    this.managed.push({
+      queue,
+      worker,
+      name: options.name,
+      metricsInterval: this.startMetricsPolling(queue, options.name),
+    });
     this.logger.log(`Queue enabled: ${options.name}`);
 
     return { queue, worker };
@@ -133,10 +143,41 @@ export class BullmqQueueFactory implements OnModuleDestroy {
   async onModuleDestroy(): Promise<void> {
     await Promise.all(
       this.managed.map(async (m) => {
+        clearInterval(m.metricsInterval);
         await m.worker.close();
         await m.queue.close();
       }),
     );
+  }
+
+  /**
+   * Samples `queue.getJobCounts()` on a fixed interval and feeds the
+   * active/waiting depth gauges. The MetricsService setters are no-ops when
+   * metrics are disabled, so polling stays wired unconditionally.
+   */
+  private startMetricsPolling(
+    queue: Queue,
+    name: string,
+  ): ReturnType<typeof setInterval> {
+    const interval = setInterval(() => {
+      void this.pollJobCounts(queue, name);
+    }, QUEUE_METRICS_POLL_INTERVAL_MS);
+    interval.unref();
+    return interval;
+  }
+
+  private async pollJobCounts(queue: Queue, name: string): Promise<void> {
+    try {
+      const counts = await queue.getJobCounts('active', 'waiting');
+      this.metricsService.setBullmqActiveJobs(name, counts['active'] ?? 0);
+      this.metricsService.setBullmqWaitingJobs(name, counts['waiting'] ?? 0);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to poll job counts for queue "${name}": ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private createConnection(retryOptions: {

@@ -18,12 +18,14 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { ResultCode } from '../../common/api';
+import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
 import { AssistantController } from './assistant.controller';
 import { AssistantService } from './services/core.service';
 
 describe('AssistantController', () => {
   let controller: AssistantController;
   let service: vi.Mocked<AssistantService>;
+  let sseRegistry: SseConnectionRegistry;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -41,11 +43,20 @@ describe('AssistantController', () => {
             streamMessages: vi.fn(),
           },
         },
+        {
+          provide: SseConnectionRegistry,
+          useValue: {
+            register: vi.fn(),
+            unregister: vi.fn(),
+            closeAll: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
     controller = module.get(AssistantController);
     service = module.get(AssistantService);
+    sseRegistry = module.get(SseConnectionRegistry);
   });
 
   it('returns the authenticated user assistant capability envelope', async () => {
@@ -227,7 +238,7 @@ describe('AssistantController', () => {
       response,
     );
 
-    expect(prepareSse).toHaveBeenCalledWith(response.raw);
+    expect(prepareSse).toHaveBeenCalledWith(response.raw, sseRegistry);
     expect(writeSseEvent).toHaveBeenNthCalledWith(1, response.raw, {
       event: 'chunk',
       data: { content: 'Hello' },
@@ -292,7 +303,7 @@ describe('AssistantController', () => {
       event: 'done',
       data: {},
     });
-    expect(endSse).toHaveBeenCalledWith(response.raw);
+    expect(endSse).toHaveBeenCalledWith(response.raw, sseRegistry);
   });
 
   it('returns the latest persisted conversation envelope', async () => {
@@ -438,6 +449,6 @@ describe('AssistantController', () => {
         message: 'forbidden',
       },
     });
-    expect(endSse).toHaveBeenCalledWith(response.raw);
+    expect(endSse).toHaveBeenCalledWith(response.raw, sseRegistry);
   });
 });

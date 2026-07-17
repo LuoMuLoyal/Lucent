@@ -1,0 +1,29 @@
+# Lucent Alertmanager 配置模板
+# 注意：本文件是【模板】。alertmanager 原生不支持配置内环境变量插值，
+# 由宿主机 deploy/render-configs.sh 把 ${WECOM_*} 渲染为
+# alertmanager/.rendered/alertmanager.yml 后挂载使用（WECOM_* 配齐才生成）。
+# 通知通道：企业微信应用消息（alertmanager 原生 wechat_configs，无第三方
+# webhook adapter）。变量在 .env 中配置：
+#   WECOM_CORP_ID      企业 ID（我的企业 → 企业信息）
+#   WECOM_CORP_SECRET  自建应用的 Secret（应用管理 → 自建应用）
+#   WECOM_AGENT_ID     自建应用的 AgentId
+#   WECOM_TO_USER      接收人 userid，多个用 | 分隔；@all 表示全员
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: wecom
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: wecom
+    wechat_configs:
+      - corp_id: ${WECOM_CORP_ID}
+        # 注意字段名是 api_secret（alertmanager 源码字段名，值填企业微信应用的 Secret）
+        api_secret: ${WECOM_CORP_SECRET}
+        agent_id: ${WECOM_AGENT_ID}
+        to_user: ${WECOM_TO_USER}

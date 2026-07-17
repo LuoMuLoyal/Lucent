@@ -5,19 +5,26 @@ export interface RequestContextStore {
   requestId: string;
 }
 
+/**
+ * Shared AsyncLocalStorage holding the per-request context. Exported at
+ * module level so non-DI consumers (the winston `requestIdFormat` in
+ * `logger.config.ts`) can read the active context; `RequestContextService`
+ * remains the injectable facade for application code.
+ */
+export const requestContextStorage =
+  new AsyncLocalStorage<RequestContextStore>();
+
 @Injectable()
 export class RequestContextService {
-  private readonly storage = new AsyncLocalStorage<RequestContextStore>();
-
   run<T>(store: RequestContextStore, callback: () => T): T {
-    return this.storage.run(store, callback);
+    return requestContextStorage.run(store, callback);
   }
 
   getStore(): RequestContextStore | undefined {
-    return this.storage.getStore();
+    return requestContextStorage.getStore();
   }
 
   getRequestId(): string | undefined {
-    return this.storage.getStore()?.requestId;
+    return requestContextStorage.getStore()?.requestId;
   }
 }

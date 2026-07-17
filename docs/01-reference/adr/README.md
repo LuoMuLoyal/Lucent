@@ -69,7 +69,7 @@ What becomes easier or harder as a result of this decision?
   - Date: 2026-05-27
 - [0004](0004-deployment-model.md)
   - Title: GitHub Actions + Tencent TCR Deployment Model
-  - Status: accepted
+  - Status: accepted (amended 2026-07-17: blue-green → single-slot downtime deploy)
   - Date: 2026-06-14
 - [0005](0005-meal-analysis-write-time-pipeline.md)
   - Title: Write-Time Meal Analysis With Imported Food Composition Data

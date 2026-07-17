@@ -48,13 +48,13 @@ CI/CD is operational, but the project has not yet shipped a stable release.
   k6 performance tests, full E2E coverage of all ~80 endpoints
 - Deployment: Dockerfile 3-stage build, Docker Compose with network isolation +
   resource limits, Nginx with gzip/security headers/SSE optimization,
-  Blue-Green deploy script with smoke test + auto-rollback, staging environment
+  single-slot deploy script with pre-deploy DB snapshot + health gate + smoke
+  test + tag rollback, staging environment
 
 **What's missing**
 
 - Push notification delivery (FCM / APNs)
 - Audit logging
-- Database backup strategy
 - Data retention and deletion policies
 
 ---
@@ -74,8 +74,9 @@ Ship the first stable release. Most infrastructure items are complete.
 - **✅ AI Rate Limiting** — per-endpoint Redis-backed throttling with
   configurable thresholds
 - **✅ Staging Environment** — dedicated GitHub Environment, auto-deploy on main
-- **Backup & Recovery** — PostgreSQL scheduled backups, encrypted offsite
-  storage, documented restore procedure
+- **✅ Backup & Recovery** — daily `pg_dump` via `deploy/backup.sh` (7 local copies +
+  optional COS offsite with 30-day lifecycle), pre-deploy snapshots (10 kept), documented
+  restore drill (`docs/01-reference/how-to/restore-database-backup.md`)
 - **Audit Logging** — `audit_logs` table for security-sensitive operations
   (password changes, identity binding, data exports, admin panel writes)
 - **Quality Gate** — raise coverage thresholds, add AI safety policy edge-case

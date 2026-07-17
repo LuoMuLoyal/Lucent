@@ -3,6 +3,7 @@ import {
   BullmqQueueFactory,
   DEFAULT_QUEUE_OPTIONS,
   DEFAULT_WORKER_RETENTION,
+  QUEUE_METRICS_POLL_INTERVAL_MS,
 } from './queue.factory';
 import type { MetricsService } from '../metrics/metrics.service';
 describe('BullmqQueueFactory', () => {
@@ -16,6 +17,8 @@ describe('BullmqQueueFactory', () => {
 
     metricsService = {
       recordBullmqJob: vi.fn(),
+      setBullmqActiveJobs: vi.fn(),
+      setBullmqWaitingJobs: vi.fn(),
     } as unknown as vi.Mocked<MetricsService>;
   });
 
@@ -87,6 +90,65 @@ describe('BullmqQueueFactory', () => {
 
       expect(workerCloseSpy).toHaveBeenCalled();
       expect(queueCloseSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('metrics polling', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('writes active/waiting job counts to the gauges on each interval', async () => {
+      configService.get.mockReturnValue('redis://127.0.0.1:6379');
+      const factory = new BullmqQueueFactory(configService, metricsService);
+
+      const { queue, worker } = factory.createQueue({
+        name: 'test-queue',
+        processor: vi.fn(),
+      });
+      const getJobCountsSpy = vi
+        .spyOn(queue!, 'getJobCounts')
+        .mockResolvedValue({ active: 3, waiting: 7 });
+
+      await vi.advanceTimersByTimeAsync(QUEUE_METRICS_POLL_INTERVAL_MS);
+
+      expect(getJobCountsSpy).toHaveBeenCalledWith('active', 'waiting');
+      expect(metricsService.setBullmqActiveJobs).toHaveBeenCalledWith(
+        'test-queue',
+        3,
+      );
+      expect(metricsService.setBullmqWaitingJobs).toHaveBeenCalledWith(
+        'test-queue',
+        7,
+      );
+
+      vi.spyOn(queue!, 'close').mockResolvedValue();
+      vi.spyOn(worker!, 'close').mockResolvedValue();
+      await factory.onModuleDestroy();
+    });
+
+    it('stops polling after onModuleDestroy', async () => {
+      configService.get.mockReturnValue('redis://127.0.0.1:6379');
+      const factory = new BullmqQueueFactory(configService, metricsService);
+
+      const { queue, worker } = factory.createQueue({
+        name: 'test-queue',
+        processor: vi.fn(),
+      });
+      const getJobCountsSpy = vi
+        .spyOn(queue!, 'getJobCounts')
+        .mockResolvedValue({ active: 0, waiting: 0 });
+      vi.spyOn(queue!, 'close').mockResolvedValue();
+      vi.spyOn(worker!, 'close').mockResolvedValue();
+
+      await factory.onModuleDestroy();
+      await vi.advanceTimersByTimeAsync(QUEUE_METRICS_POLL_INTERVAL_MS * 2);
+
+      expect(getJobCountsSpy).not.toHaveBeenCalled();
     });
   });
 

@@ -27,6 +27,7 @@ import { httpExceptionPayload } from '../../common/helpers/error-payload';
 import { enqueueOrFallback } from '../../common/helpers/queue-helpers';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
+import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
 import { type UserPayload } from '../auth/types/auth-request';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
@@ -58,6 +59,7 @@ export class ReportsController {
     private readonly reportSummaryQueueService: ReportSummaryQueueService,
     private readonly clinicSummaryService: ClinicSummaryService,
     private readonly clinicSummaryPdfQueueService: ClinicSummaryPdfQueueService,
+    private readonly sseRegistry: SseConnectionRegistry,
   ) {}
 
   @Get('dashboard')
@@ -166,7 +168,7 @@ export class ReportsController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw);
+    prepareSse(reply.raw, this.sseRegistry);
 
     try {
       const result = await this.reportsAiSummaryService.generateStream(
@@ -200,7 +202,7 @@ export class ReportsController {
         data: httpExceptionPayload(error),
       });
     } finally {
-      endSse(reply.raw);
+      endSse(reply.raw, this.sseRegistry);
     }
   }
 

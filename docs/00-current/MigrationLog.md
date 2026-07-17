@@ -1,6 +1,6 @@
 # Lucent Migration Log
 
-Last updated: 2026-07-14
+Last updated: 2026-07-17
 
 Records backend changes in date order. Detailed entries are split by date under
 `docs/02-logs/migration-log/`.
@@ -15,6 +15,9 @@ Records backend changes in date order. Detailed entries are split by date under
 
 ## Active Entries
 
+- [2026-07-17](../02-logs/migration-log/2026-07-17.md) — 部署加固：单 slot 停机部署 + 人工生产发布 + 告警通道 + 数据库备份 + SSE 优雅关闭 + CI 加固
+- [2026-07-16](../02-logs/migration-log/2026-07-16.md) — 代码审查修复 + 五模块补充审查（IDOR）+ 数据库索引优化（GIN trigram）
+- [2026-07-15](../02-logs/migration-log/2026-07-15.md) — 审查报告修复（TOCTOU 消除 / 通知白名单 / 分页 / OpenAPI 导出）
 - [2026-07-14](../02-logs/migration-log/2026-07-14.md) — 7.14 审查报告改写为 Bug 修复计划文档（15 个 BUG 任务）
 - [2026-07-12](../02-logs/migration-log/2026-07-12.md) — 历史兼容代码清理 + TypeScript 6.0.3 + Jest→Vitest 迁移 + Pino→Winston 迁移 + 套约测试/性能测试/安全测试 + 队列与缓存增强 + 文档与代码偏差修复
 - [2026-07-11](../02-logs/migration-log/2026-07-11.md) — 审查修复 + 测试覆盖补全（15 个 spec 文件）+ 部署优化（Dockerfile/Compose/Nginx/Blue-Green）+ 法律文档管理 API

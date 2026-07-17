@@ -1,7 +1,11 @@
 import type { WinstonModuleOptions } from 'nest-winston';
-import { transports as winstonTransports } from 'winston';
+import {
+  format as winstonFormat,
+  transports as winstonTransports,
+} from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import { EnvKey } from '../../config/env-keys.enum';
+import { requestContextStorage } from './request-context.service';
 
 type LogLevel =
   | 'error'
@@ -35,16 +39,40 @@ function resolveLevel(nodeEnv: string, logLevel: string): LogLevel {
 }
 
 /**
+ * Lifts the request ID stored in AsyncLocalStorage (populated by the
+ * preHandler hook in `setupApp`) onto the log entry as a top-level
+ * `requestId` field, so every line emitted while handling a request can be
+ * correlated by it. Entries logged outside a request lifecycle (bootstrap,
+ * cron, queue workers) simply carry no `requestId`. An explicitly supplied
+ * `requestId` in the log metadata always wins.
+ */
+const requestIdFormat = winstonFormat((info) => {
+  if (info['requestId'] === undefined) {
+    const requestId = requestContextStorage.getStore()?.requestId;
+    if (requestId) {
+      info['requestId'] = requestId;
+    }
+  }
+  return info;
+});
+
+/**
  * Winston logger configuration for nest-winston.
  *
- * - Development: `Console` with `format.simple()` (human-readable, colorized)
- * - Production: `Console` (JSON) + `DailyRotateFile` (daily, 500 MB max)
+ * - Format: single-line JSON on every transport; `requestIdFormat` injects
+ *   the AsyncLocalStorage request ID as a top-level `requestId` field.
+ * - Development: `Console` at debug level
+ * - Production: `Console` + `DailyRotateFile` (daily, 500 MB max)
  * - Test: `Console` at `error` level only (near-silent)
  *
- * Per-request HTTP access logging is intentionally NOT configured here —
- * that responsibility is delegated to:
+ * Per-request HTTP access logging IS emitted, but not from this file:
+ * a Fastify `onResponse` hook in `setupApp` writes one structured entry per
+ * completed request (requestId, method, route pattern, statusCode,
+ * durationMs; `error` level for 5xx, `info` otherwise) and skips
+ * high-frequency probes (`/api/v1/health*`, `/metrics`).
+ * Complementary signals remain:
  *   - Nginx access_log (IP / UA / bytes / referer)
- *   - ApiExceptionFilter (4xx/5xx with requestId + error stack)
+ *   - ApiExceptionFilter (4xx/5xx with error stack)
  *   - SlowRequestInterceptor (configurable threshold + handler name)
  *   - Prometheus histogram + counter (aggregated latency / Grafana)
  */
@@ -55,6 +83,8 @@ export function createLoggerOptions(
   const env = nodeEnv || process.env[EnvKey.NODE_ENV] || 'development';
   const level = resolveLevel(env, logLevel);
   const isProduction = env === 'production';
+
+  const format = winstonFormat.combine(requestIdFormat(), winstonFormat.json());
 
   const consoleTransport = new winstonTransports.Console({
     level,
@@ -73,11 +103,13 @@ export function createLoggerOptions(
     });
 
     return {
+      format,
       transports: [consoleTransport, rotateTransport],
     };
   }
 
   return {
+    format,
     transports: [consoleTransport],
   };
 }

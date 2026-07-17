@@ -21,6 +21,7 @@ import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 import { successEnvelope } from '../../common/api';
 import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
+import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
 import { extractErrorInfo } from '../../common/helpers/error-info.utils';
 import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
 import { type UserPayload } from '../auth/types/auth-request';
@@ -46,6 +47,7 @@ export class TodayAnalysisController {
     private readonly todayAnalysisService: TodayAnalysisService,
     private readonly todayRecommendationsService: TodayRecommendationsService,
     private readonly todayAnalysisQueueService: TodayAnalysisQueueService,
+    private readonly sseRegistry: SseConnectionRegistry,
   ) {}
 
   @Post('generate')
@@ -170,7 +172,7 @@ export class TodayAnalysisController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw);
+    prepareSse(reply.raw, this.sseRegistry);
 
     try {
       const result = await this.todayAnalysisService.generateStream(
@@ -204,7 +206,7 @@ export class TodayAnalysisController {
         data: httpExceptionPayload(error),
       });
     } finally {
-      endSse(reply.raw);
+      endSse(reply.raw, this.sseRegistry);
     }
   }
 }

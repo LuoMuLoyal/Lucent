@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { ResultCode, errorEnvelope } from '../api/api-envelope';
-import { RequestContextService } from '../logger/request-context.service';
 
 interface ErrorResponseBody {
   code?: string | number;
@@ -25,8 +24,6 @@ interface ErrorResponseBody {
 @Injectable()
 export class ApiExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(ApiExceptionFilter.name);
-
-  constructor(private readonly requestContextService: RequestContextService) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -49,20 +46,21 @@ export class ApiExceptionFilter implements ExceptionFilter {
     status: HttpStatus,
     message: string,
   ): void {
-    const requestId = this.requestContextService.getRequestId();
-    const requestIdSuffix = requestId ? ` [reqId=${requestId}]` : '';
+    // The request ID is attached to every in-request log entry as a
+    // top-level structured field by the winston `requestIdFormat`
+    // (AsyncLocalStorage), so it is not embedded in the message text.
     const path = request.url;
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
-        `Unhandled exception: ${message} [${request.method} ${path} ${String(status)}]${requestIdSuffix}`,
+        `Unhandled exception: ${message} [${request.method} ${path} ${String(status)}]`,
         exception instanceof Error ? exception.stack : undefined,
       );
       return;
     }
 
     this.logger.warn(
-      `Handled exception: ${message} [${request.method} ${path} ${String(status)}]${requestIdSuffix}`,
+      `Handled exception: ${message} [${request.method} ${path} ${String(status)}]`,
     );
   }
 
