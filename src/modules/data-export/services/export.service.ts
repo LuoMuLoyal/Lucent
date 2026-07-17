@@ -31,6 +31,15 @@ type DataExportRequestRow = Prisma.DataExportRequestGetPayload<{
   select: typeof dataExportSelect;
 }>;
 
+/**
+ * Manages report PDF generation requests.
+ *
+ * Despite the class name, this service does NOT export raw user data. It
+ * creates `DataExportRequest` records and enqueues PDF report generation
+ * via `DataExportProcessorService`.
+ *
+ * (Architecture review #14 — naming boundary documented.)
+ */
 @Injectable()
 export class DataExportService {
   constructor(

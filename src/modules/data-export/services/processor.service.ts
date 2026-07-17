@@ -13,6 +13,15 @@ export interface DataExportProcessorInput {
   language: string;
 }
 
+/**
+ * Processes report PDF generation requests.
+ *
+ * Despite the class name, this service does NOT export raw user data. It
+ * calls `ReportsService.getDashboard` to obtain aggregated report data,
+ * renders it as a PDF, and uploads to object storage.
+ *
+ * (Architecture review #14 — naming boundary documented.)
+ */
 @Injectable()
 export class DataExportProcessorService {
   private readonly logger = new Logger(DataExportProcessorService.name);
