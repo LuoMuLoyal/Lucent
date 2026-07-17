@@ -1,6 +1,41 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '#generated/prisma/client';
+import { Prisma, type DoseLogStatus } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { nonDeleted } from '../../../common/helpers/prisma.utils';
+
+/**
+ * Lean read-model shape for cross-module consumers (ADR-0009). Exposes
+ * dose-log fields only — no Prisma query DSL. Canonical order is
+ * `scheduledFor asc`.
+ */
+export interface DoseLogFact {
+  currentMedicineId: string | null;
+  status: DoseLogStatus;
+  scheduledTime: string | null;
+  scheduledFor: Date;
+}
+
+const doseLogFactSelect = {
+  currentMedicineId: true,
+  status: true,
+  scheduledTime: true,
+  scheduledFor: true,
+} satisfies Prisma.UserMedicineDoseLogSelect;
+
+/**
+ * Read-only port for cross-module reads of UserMedicineDoseLog (ADR-0009).
+ * Implemented by MedicineDoseLogRepository and exported from
+ * MedicineDoseLogsModule; write paths stay behind MedicineDoseLogsService /
+ * MedicineDoseLogRepositoryPort.
+ */
+export abstract class MedicineDoseLogReaderPort {
+  /** Lists non-deleted dose logs with `scheduledFor` in [from, to] (inclusive). */
+  abstract listFactsInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<DoseLogFact[]>;
+}
 
 /**
  * Abstract port for medicine dose-log data access.
@@ -60,9 +95,28 @@ export abstract class MedicineDoseLogRepositoryPort {
 }
 
 @Injectable()
-export class MedicineDoseLogRepository extends MedicineDoseLogRepositoryPort {
+export class MedicineDoseLogRepository
+  extends MedicineDoseLogRepositoryPort
+  implements MedicineDoseLogReaderPort
+{
   constructor(private readonly prisma: PrismaService) {
     super();
+  }
+
+  async listFactsInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<DoseLogFact[]> {
+    return this.prisma.userMedicineDoseLog.findMany({
+      where: {
+        userId,
+        ...nonDeleted,
+        scheduledFor: { gte: from, lte: to },
+      },
+      select: doseLogFactSelect,
+      orderBy: [{ scheduledFor: 'asc' }],
+    });
   }
 
   override findMany(

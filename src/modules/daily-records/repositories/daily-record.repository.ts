@@ -35,6 +35,53 @@ export interface PaginatedResult<T> {
 }
 
 /**
+ * Lean read-model shape for cross-module consumers (ADR-0009). Exposes
+ * record fields only — no Prisma query DSL. Canonical order is
+ * `occurredAt asc, createdAt asc`; consumers needing another order
+ * re-sort in memory.
+ */
+export interface DailyRecordFact {
+  id: string;
+  kind: DailyRecordKind;
+  occurredAt: Date;
+  occurredTime: string | null;
+  title: string | null;
+  value: string | null;
+  unit: string | null;
+  note: string | null;
+  payload: Prisma.JsonValue;
+  createdAt: Date;
+}
+
+const dailyRecordFactSelect = {
+  id: true,
+  kind: true,
+  occurredAt: true,
+  occurredTime: true,
+  title: true,
+  value: true,
+  unit: true,
+  note: true,
+  payload: true,
+  createdAt: true,
+} satisfies Prisma.UserDailyRecordSelect;
+
+/**
+ * Read-only port for cross-module reads of UserDailyRecord (ADR-0009).
+ * Implemented by DailyRecordRepository and exported from DailyRecordsModule;
+ * write paths stay behind DailyRecordsService / DailyRecordRepositoryPort.
+ */
+export abstract class DailyRecordReaderPort {
+  /** Lists non-deleted records with `occurredAt` in [from, to] (inclusive). */
+  abstract listFactsInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+    kinds?: DailyRecordKind[],
+  ): Promise<DailyRecordFact[]>;
+}
+
+/**
  * Repository interface for daily record data access.
  *
  * Services depend on this interface rather than PrismaService directly,
@@ -88,8 +135,28 @@ export abstract class DailyRecordRepositoryPort {
 }
 
 @Injectable()
-export class DailyRecordRepository implements DailyRecordRepositoryPort {
+export class DailyRecordRepository
+  implements DailyRecordRepositoryPort, DailyRecordReaderPort
+{
   constructor(private readonly prisma: PrismaService) {}
+
+  async listFactsInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+    kinds?: DailyRecordKind[],
+  ): Promise<DailyRecordFact[]> {
+    return this.prisma.userDailyRecord.findMany({
+      where: {
+        userId,
+        ...nonDeleted,
+        occurredAt: { gte: from, lte: to },
+        ...(kinds != null && kinds.length > 0 ? { kind: { in: kinds } } : {}),
+      },
+      select: dailyRecordFactSelect,
+      orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
 
   async findManyWithAttachments(
     filter: DailyRecordListFilter,

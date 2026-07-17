@@ -53,6 +53,7 @@ describe('UserService', () => {
               findUnique: vi.fn(),
               findFirst: vi.fn(),
               create: vi.fn(),
+              delete: vi.fn(),
             },
           },
         },
@@ -349,6 +350,45 @@ describe('UserService', () => {
         },
       });
       expect(result).toEqual(mockIdentity);
+    });
+  });
+
+  describe('findByIdWithIdentities', () => {
+    it('should return the user with identities ordered by creation time', async () => {
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue({
+        ...mockUser,
+        identities: [mockIdentity],
+      });
+
+      const result = await service.findByIdWithIdentities('user-uuid-1');
+
+      expect(prismaService.user.findFirst).toHaveBeenCalledWith({
+        where: { id: 'user-uuid-1', deletedAt: null },
+        include: { identities: { orderBy: { createdAt: 'asc' } } },
+      });
+      expect(result).toEqual({ ...mockUser, identities: [mockIdentity] });
+    });
+
+    it('should return null if user not found', async () => {
+      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
+
+      const result = await service.findByIdWithIdentities('non-existent');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('unlinkIdentity', () => {
+    it('should delete the identity row by id', async () => {
+      (prismaService.userIdentity.delete as vi.Mock).mockResolvedValue(
+        mockIdentity,
+      );
+
+      await service.unlinkIdentity('identity-uuid-1');
+
+      expect(prismaService.userIdentity.delete).toHaveBeenCalledWith({
+        where: { id: 'identity-uuid-1' },
+      });
     });
   });
 

@@ -7,21 +7,27 @@ import {
 import { ReportsContextService } from './context.service';
 
 describe('ReportsContextService', () => {
-  const buildPrisma = () => ({
-    userSetting: {
-      findFirst: vi.fn().mockResolvedValue(null),
+  const buildMocks = () => ({
+    prisma: {
+      userSetting: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
     },
-    userMedicineDoseLog: {
-      findMany: vi.fn().mockResolvedValue([]),
+    dailyRecordReader: {
+      listFactsInRange: vi.fn().mockResolvedValue([]),
     },
-    userDailyRecord: {
-      findMany: vi.fn().mockResolvedValue([]),
+    doseLogReader: {
+      listFactsInRange: vi.fn().mockResolvedValue([]),
     },
   });
 
   it('defaults ai summary to enabled when the user setting is missing', async () => {
-    const prisma = buildPrisma();
-    const service = new ReportsContextService(prisma as never);
+    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const service = new ReportsContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
 
     const context = await service.build('u1', {
       range: REPORT_RANGE_LAST_7_DAYS,
@@ -35,9 +41,13 @@ describe('ReportsContextService', () => {
   });
 
   it('keeps ai summary disabled when the user setting is explicitly false', async () => {
-    const prisma = buildPrisma();
+    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
     prisma.userSetting.findFirst = vi.fn().mockResolvedValue({ value: false });
-    const service = new ReportsContextService(prisma as never);
+    const service = new ReportsContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
 
     const context = await service.build('u1', {
       range: REPORT_RANGE_LAST_7_DAYS,
@@ -47,8 +57,12 @@ describe('ReportsContextService', () => {
   });
 
   it('resolves last_30_days start date', async () => {
-    const prisma = buildPrisma();
-    const service = new ReportsContextService(prisma as never);
+    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const service = new ReportsContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
 
     const context = await service.build('u1', {
       range: REPORT_RANGE_LAST_30_DAYS,
@@ -62,8 +76,12 @@ describe('ReportsContextService', () => {
   });
 
   it('resolves custom range from query dates', async () => {
-    const prisma = buildPrisma();
-    const service = new ReportsContextService(prisma as never);
+    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const service = new ReportsContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
 
     const context = await service.build('u1', {
       range: REPORT_RANGE_CUSTOM,
@@ -77,8 +95,12 @@ describe('ReportsContextService', () => {
   });
 
   it('throws when custom range is missing startDate', async () => {
-    const prisma = buildPrisma();
-    const service = new ReportsContextService(prisma as never);
+    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const service = new ReportsContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
 
     await expect(
       service.build('u1', {
@@ -89,8 +111,12 @@ describe('ReportsContextService', () => {
   });
 
   it('throws when custom range is missing endDate', async () => {
-    const prisma = buildPrisma();
-    const service = new ReportsContextService(prisma as never);
+    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const service = new ReportsContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
 
     await expect(
       service.build('u1', {
@@ -101,8 +127,12 @@ describe('ReportsContextService', () => {
   });
 
   it('throws when custom startDate is after endDate', async () => {
-    const prisma = buildPrisma();
-    const service = new ReportsContextService(prisma as never);
+    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const service = new ReportsContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
 
     await expect(
       service.build('u1', {
@@ -114,8 +144,8 @@ describe('ReportsContextService', () => {
   });
 
   it('counts meal estimate days only from confirmed and unconfirmed meal analyses', async () => {
-    const prisma = buildPrisma();
-    prisma.userDailyRecord.findMany = vi.fn().mockResolvedValue([
+    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    dailyRecordReader.listFactsInRange = vi.fn().mockResolvedValue([
       {
         occurredAt: new Date('2026-06-06T00:00:00.000Z'),
         kind: 'meal',
@@ -160,7 +190,11 @@ describe('ReportsContextService', () => {
         payload: null,
       },
     ]);
-    const service = new ReportsContextService(prisma as never);
+    const service = new ReportsContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
 
     const context = await service.build('u1', {
       range: REPORT_RANGE_CUSTOM,
@@ -180,8 +214,8 @@ describe('ReportsContextService', () => {
   });
 
   it('breaks down meal estimate status per day for the AI summary', async () => {
-    const prisma = buildPrisma();
-    prisma.userDailyRecord.findMany = vi.fn().mockResolvedValue([
+    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    dailyRecordReader.listFactsInRange = vi.fn().mockResolvedValue([
       {
         occurredAt: new Date('2026-06-06T00:00:00.000Z'),
         kind: 'meal',
@@ -219,7 +253,11 @@ describe('ReportsContextService', () => {
         },
       },
     ]);
-    const service = new ReportsContextService(prisma as never);
+    const service = new ReportsContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
 
     const context = await service.build('u1', {
       range: REPORT_RANGE_CUSTOM,

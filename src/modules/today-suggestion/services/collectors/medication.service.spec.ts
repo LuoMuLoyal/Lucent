@@ -1,20 +1,24 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import { DoseLogStatus } from '#generated/prisma/client';
 import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/repositories';
 import { MedicationCollectorService } from './medication.service';
 import { TriggerType } from '../../../today-suggestion/types';
 
 describe('MedicationCollectorService', () => {
   let service: MedicationCollectorService;
   let prisma: DeepMocked<PrismaService>;
+  let doseLogReader: DeepMocked<MedicineDoseLogReaderPort>;
 
   beforeEach(() => {
     prisma = {
       userMedicineReminder: { findMany: vi.fn() },
-      userMedicineDoseLog: { findMany: vi.fn() },
       userCurrentMedicine: { findMany: vi.fn() },
     } as unknown as DeepMocked<PrismaService>;
-    service = new MedicationCollectorService(prisma);
+    doseLogReader = {
+      listFactsInRange: vi.fn(),
+    } as unknown as DeepMocked<MedicineDoseLogReaderPort>;
+    service = new MedicationCollectorService(prisma, doseLogReader);
   });
 
   const mockReminders = (
@@ -43,7 +47,7 @@ describe('MedicationCollectorService', () => {
   it('returns an empty array when the user has no current medicines', async () => {
     (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue([]);
     (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
-    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([]);
+    (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
 
@@ -64,7 +68,7 @@ describe('MedicationCollectorService', () => {
     (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
       mockReminders(),
     );
-    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([]);
+    (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
 
@@ -86,7 +90,7 @@ describe('MedicationCollectorService', () => {
     );
     // No reminders
     (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
-    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([]);
+    (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
 
@@ -105,7 +109,7 @@ describe('MedicationCollectorService', () => {
     (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
       mockReminders(),
     );
-    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([
+    (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
       { currentMedicineId: 'med-1', status: DoseLogStatus.taken },
     ]);
 
@@ -125,7 +129,7 @@ describe('MedicationCollectorService', () => {
     (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
       mockReminders(),
     );
-    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([
+    (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
       { currentMedicineId: 'med-1', status: DoseLogStatus.skipped },
     ]);
 
@@ -145,7 +149,7 @@ describe('MedicationCollectorService', () => {
       ]),
     );
     (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
-    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([
+    (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
       { currentMedicineId: 'med-2', status: DoseLogStatus.taken },
     ]);
 
@@ -169,7 +173,7 @@ describe('MedicationCollectorService', () => {
     (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
       mockReminders([{ daysOfWeek: [1, 2, 3] }]), // Mon/Tue/Wed only
     );
-    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([]);
+    (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
 
@@ -191,7 +195,7 @@ describe('MedicationCollectorService', () => {
     (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
       mockReminders(),
     );
-    (prisma.userMedicineDoseLog.findMany as vi.Mock).mockResolvedValue([]);
+    (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
 
     const signals = await service.collect('user-1', '2026-07-09');
 

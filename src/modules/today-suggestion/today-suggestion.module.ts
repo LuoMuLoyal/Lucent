@@ -1,7 +1,9 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module, OnModuleInit, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
+import { DailyRecordsModule } from '../daily-records/daily-records.module';
+import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionService } from './services/suggestion.service';
 import { MedicationCollectorService } from './services/collectors/medication.service';
@@ -39,7 +41,17 @@ import type { SuggestionRule } from './types';
  * Pipeline: Signal → Candidate (rule engine) → Suppression → Arbitration → Lifecycle → Notification → DTO
  */
 @Module({
-  imports: [PrismaModule, NotificationsModule, LlmRuntimeModule],
+  // forwardRef on DailyRecordsModule / MedicineDoseLogsModule: both import
+  // this module for suggestion-cache invalidation, while collectors here
+  // consume their reader ports (ADR-0009). The reverse edge is removed once
+  // architecture-review #2 moves invalidation to domain events.
+  imports: [
+    PrismaModule,
+    NotificationsModule,
+    LlmRuntimeModule,
+    forwardRef(() => DailyRecordsModule),
+    forwardRef(() => MedicineDoseLogsModule),
+  ],
   controllers: [TodaySuggestionController],
   providers: [
     // Collectors

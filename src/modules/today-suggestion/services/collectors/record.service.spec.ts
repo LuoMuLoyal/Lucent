@@ -1,6 +1,7 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import { DailyRecordKind } from '#generated/prisma/client';
 import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { DailyRecordReaderPort } from '../../../daily-records/repositories';
 import { RecordCollectorService } from './record.service';
 import { USER_SETTINGS_DEFAULTS } from '../../../user-settings/constants/constants';
 import { TREND_LOOKBACK_DAYS } from '../../../today-suggestion/constants';
@@ -8,13 +9,16 @@ import { TREND_LOOKBACK_DAYS } from '../../../today-suggestion/constants';
 describe('RecordCollectorService', () => {
   let service: RecordCollectorService;
   let prisma: DeepMocked<PrismaService>;
+  let dailyRecordReader: DeepMocked<DailyRecordReaderPort>;
 
   beforeEach(() => {
     prisma = {
-      userDailyRecord: { findMany: vi.fn() },
       userSetting: { findUnique: vi.fn() },
     } as unknown as DeepMocked<PrismaService>;
-    service = new RecordCollectorService(prisma);
+    dailyRecordReader = {
+      listFactsInRange: vi.fn(),
+    } as unknown as DeepMocked<DailyRecordReaderPort>;
+    service = new RecordCollectorService(prisma, dailyRecordReader);
   });
 
   function makeRecord(overrides: Partial<Record<string, unknown>> = {}) {
@@ -35,7 +39,7 @@ describe('RecordCollectorService', () => {
 
   describe('collect', () => {
     it('emits a water_count signal with remaining count', async () => {
-      (prisma.userDailyRecord.findMany as vi.Mock)
+      (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({ id: 'w1', kind: DailyRecordKind.water }),
@@ -62,7 +66,7 @@ describe('RecordCollectorService', () => {
     });
 
     it('uses default water target when setting is missing', async () => {
-      (prisma.userDailyRecord.findMany as vi.Mock)
+      (dailyRecordReader.listFactsInRange as vi.Mock)
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
       (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue(null);
@@ -78,7 +82,7 @@ describe('RecordCollectorService', () => {
 
     it('emits a sleep_record signal when a sleep record exists', async () => {
       const sleepPayload = { durationMinutes: 420, quality: 'good' };
-      (prisma.userDailyRecord.findMany as vi.Mock)
+      (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({
@@ -113,7 +117,7 @@ describe('RecordCollectorService', () => {
     it('emits a sleep_trend signal when multiple days of sleep exist', async () => {
       const day1 = new Date('2026-07-08T00:00:00.000Z');
       const day2 = new Date('2026-07-09T00:00:00.000Z');
-      (prisma.userDailyRecord.findMany as vi.Mock)
+      (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({
@@ -152,7 +156,7 @@ describe('RecordCollectorService', () => {
     });
 
     it('emits a record_density signal with today and multi-day counts', async () => {
-      (prisma.userDailyRecord.findMany as vi.Mock)
+      (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({ id: 'r1', kind: DailyRecordKind.water }),
@@ -180,7 +184,7 @@ describe('RecordCollectorService', () => {
     });
 
     it('emits a caffeine_trend signal for meal records with coffee keywords', async () => {
-      (prisma.userDailyRecord.findMany as vi.Mock)
+      (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({
@@ -218,7 +222,7 @@ describe('RecordCollectorService', () => {
     });
 
     it('emits a mood_trend signal for mood records', async () => {
-      (prisma.userDailyRecord.findMany as vi.Mock)
+      (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({
@@ -259,7 +263,7 @@ describe('RecordCollectorService', () => {
     });
 
     it('emits a symptom_trend signal for symptom records', async () => {
-      (prisma.userDailyRecord.findMany as vi.Mock)
+      (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
           makeRecord({

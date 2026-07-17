@@ -10,27 +10,6 @@
 
 ## 高优先级
 
-### 1. 跨模块数据访问治理：直查他表泛滥，两套集成模式并存
-
-**问题**：assistant 走 port + 服务注入的显式契约（`assistant/types/ports.ts`），但其他模块直接注入 `PrismaService` 查询他模块的表，`User` 表被 5 个模块写，软删除/字段语义变更需同步 N 处，`userId` + `deletedAt` 过滤全靠各查询点手写。
-
-**证据**：
-
-- `today-suggestion/services/collectors/*.ts`、`lifecycle/`、`feedback/`、`explanation/` 直查 9 张他模块表
-- `today-analysis/services/context.service.ts:144-190` 直查 6 张他模块表
-- `reports/dashboard/context.service.ts:42-70` 直查 `userDailyRecord`/`userMedicineDoseLog`/`userSetting`/`user`
-- `medicine-dose-logs/repositories/dose-log.repository.ts` 直查 `userMedicineReminder` + `userCurrentMedicine`
-- `medicine-reminders/repositories/reminder.repository.ts` 直查 `userCurrentMedicine`
-- `assistant/repositories/conversation.repository.ts`、`tools/leaflet/read.service.ts` 直查 `user`、`drugbankDrug`、`medicineLeafletChunk`
-- `account/services/account.service.ts`、`security-pin/services/pin.service.ts` 直接 `prisma.user.update` 绕过 user 模块
-
-**行动**：
-
-1. 写 ADR 明文确立规则：读模型模块（today-\*/reports）允许直查他表但必须用共享的 `nonDeleted`/ownership helper（`common/helpers/prisma.utils.ts`）；写路径一律经过 owning module 的 service/port。
-2. 高频被跨读的表（dose logs、daily records）收敛出只读 port（如 `IDoseLogReader`），与 assistant 的 port 模式对齐。
-
-**影响范围**：today-suggestion、today-analysis、reports、medicine-dose-logs、medicine-reminders、assistant、account、security-pin、user。
-
 ### 2. 建议引擎缓存失效覆盖不完整 + 反向分层依赖
 
 **问题**：`today-suggestion/services/cache/suggestion-cache.service.ts` 的信号缓存（TTL 5 分钟）采集自 reminders + currentMedicines + profile + settings + records，但只有两处失效调用（`daily-records/services/records.service.ts:292`、`medicine-dose-logs/services/dose-logs.service.ts:185`）。`medicine-reminders.module.ts` imports 为空——提醒增删改不失效缓存；user-health-context、user-settings 写路径同样不失效。同时失效机制迫使 daily-records / medicine-dose-logs **imports TodaySuggestionModule**（资源层反向依赖聚合层），`records.service.ts:25` 还深引用 today-suggestion 的 `cache/` 内部文件。

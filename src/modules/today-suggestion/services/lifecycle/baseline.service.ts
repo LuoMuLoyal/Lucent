@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { nonDeleted } from '../../../../common/helpers/prisma.utils';
 import { parseDateOnly } from '../../../../common/helpers/date-time.utils';
 import { DailyRecordKind } from '#generated/prisma/client';
+import { DailyRecordReaderPort } from '../../../daily-records/repositories';
 import { BaselineDimension, BASELINE_MIN_DAYS } from '../../types';
 import type { BaselineRecord } from '../../types';
 
@@ -15,7 +15,10 @@ import type { BaselineRecord } from '../../types';
  */
 @Injectable()
 export class BaselineService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly dailyRecordReader: DailyRecordReaderPort,
+  ) {}
 
   /**
    * Returns whether the baseline is ready for the given dimension.
@@ -142,16 +145,12 @@ export class BaselineService {
     const lookbackStart = new Date(endDate);
     lookbackStart.setUTCDate(lookbackStart.getUTCDate() - 30); // look back up to 30 days
 
-    const records = await this.prisma.userDailyRecord.findMany({
-      where: {
-        userId,
-        ...nonDeleted,
-        kind: recordKind,
-        occurredAt: { gte: lookbackStart, lte: endDate },
-      },
-      select: { occurredAt: true },
-      orderBy: { occurredAt: 'desc' },
-    });
+    const records = await this.dailyRecordReader.listFactsInRange(
+      userId,
+      lookbackStart,
+      endDate,
+      [recordKind],
+    );
 
     // Deduplicate by date
     const uniqueDates = new Set(

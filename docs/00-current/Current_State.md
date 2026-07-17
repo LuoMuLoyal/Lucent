@@ -215,6 +215,18 @@ Last updated: 2026-07-17
 - **文档**：`deployment.md` 全面重写（单 slot 流程、migration 纪律、备份、告警、TLS），ADR-0004 补记拓扑变更
 - **遗留**：LLM 调用熔断器未实现（已有超时 + 错误分类重试，见 TODO）
 
+## 2026-07-17 跨模块数据访问治理（架构审查 #1）
+
+来源：`plans/2026-07-16-architecture-review.md` 高优先级 #1。
+
+- **ADR-0009 确立规则**：表归属表（含 User 表字段分组：`securityPin*`/`securityElevationVersion` 归 security-pin 域）；跨模块读允许但软删除模型必须用共享 `nonDeleted` helper；跨模块写必须经 owning module 导出 service（具名例外：testing-support 夹具、AdminJS、security-pin 字段组、`common/llm` 读 userSetting）；被 ≥2 个外部模块高频跨读的表收敛提供方只读 reader port
+- **DailyRecordReaderPort**：8 处跨模块直查中的 5 处 `userDailyRecord` 查询（today-suggestion collectors/record、lifecycle/baseline、today-analysis context、reports dashboard context）收敛为 `listFactsInRange(userId, from, to, kinds?)`，实现于 `DailyRecordRepository`，规范排序 `occurredAt asc, createdAt asc`；需要 `createdAt desc` 的消费方内存重排
+- **MedicineDoseLogReaderPort**：3 处 `userMedicineDoseLog` 直查（collectors/medication、today-analysis、reports dashboard）收敛为 `listFactsInRange(userId, from, to)`；`MedicineDoseLogsModule` 首次有了 exports
+- **account 写路径改道**：`AccountService` 不再注入 `PrismaService`，昵称/头像更新经 `UserService.update`，解绑经新增的 `UserService.unlinkIdentity`，账户+身份读取经新增的 `UserService.findByIdWithIdentities`；`AccountModule` 新增 `UserModule` import
+- **临时 forwardRef**：today-suggestion ⇄ daily-records / medicine-dose-logs（反向边是缓存失效调用），计划 #2 事件驱动失效落地后移除
+- **模块绑定统一**：daily-records 的 repository 注册从 `useClass` 改为具体类 + `useExisting`（与 dose-logs/health-context 一致，单实例挂两个 port）
+- **附带补齐**：`daily-records/repositories/index.ts` barrel 新建（该子目录此前无 barrel）
+
 ## 2026-07-17 代码审查安全修复
 
 来源：`plans/lucent-review-2026-07-17.md`（3 个 🔴 + 2 个 🟡）。

@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { nonDeleted } from '../../../../common/helpers/prisma.utils';
 import { parseDateOnly, now } from '../../../../common/helpers/date-time.utils';
-import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
+import { DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import {
+  DailyRecordReaderPort,
+  type DailyRecordFact,
+} from '../../../daily-records/repositories';
 import type { SuggestionSignal } from '../../../today-suggestion/types';
 import { TriggerType } from '../../../today-suggestion/types';
 import {
@@ -11,30 +14,16 @@ import {
 } from '../../../user-settings/constants/constants';
 import { TREND_LOOKBACK_DAYS } from '../../../today-suggestion/constants';
 
-const _recordSelect = {
-  id: true,
-  kind: true,
-  occurredAt: true,
-  occurredTime: true,
-  title: true,
-  value: true,
-  unit: true,
-  note: true,
-  payload: true,
-  createdAt: true,
-} satisfies Prisma.UserDailyRecordSelect;
-
-type RecordShape = Prisma.UserDailyRecordGetPayload<{
-  select: typeof _recordSelect;
-}>;
-
 /**
  * Collects daily-record signals: water count, sleep data,
  * symptom records (multi-day for trend), and mood records.
  */
 @Injectable()
 export class RecordCollectorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly dailyRecordReader: DailyRecordReaderPort,
+  ) {}
 
   async collect(userId: string, date: string): Promise<SuggestionSignal[]> {
     const day = parseDateOnly(date);
@@ -43,26 +32,10 @@ export class RecordCollectorService {
       lookbackStart.getUTCDate() - (TREND_LOOKBACK_DAYS - 1),
     );
 
-    const [todayRecords, multiDayRecords, waterTargetSetting] =
-      await Promise.all([
-        this.prisma.userDailyRecord.findMany({
-          where: {
-            userId,
-            ...nonDeleted,
-            occurredAt: day,
-          },
-          select: _recordSelect,
-          orderBy: [{ createdAt: 'desc' }],
-        }),
-        this.prisma.userDailyRecord.findMany({
-          where: {
-            userId,
-            ...nonDeleted,
-            occurredAt: { gte: lookbackStart, lte: day },
-          },
-          select: _recordSelect,
-          orderBy: [{ occurredAt: 'asc' }],
-        }),
+    const [todayFacts, multiDayRecords, waterTargetSetting] = await Promise.all(
+      [
+        this.dailyRecordReader.listFactsInRange(userId, day, day),
+        this.dailyRecordReader.listFactsInRange(userId, lookbackStart, day),
         this.prisma.userSetting.findUnique({
           where: {
             userId_key: {
@@ -72,7 +45,14 @@ export class RecordCollectorService {
           },
           select: { value: true },
         }),
-      ]);
+      ],
+    );
+
+    // Reader returns canonical `occurredAt asc, createdAt asc`; the original
+    // single-day query was `createdAt desc` (latest record wins on `.find`).
+    const todayRecords = [...todayFacts].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
 
     const signals: SuggestionSignal[] = [];
 
@@ -262,7 +242,7 @@ export class RecordCollectorService {
   }
 
   private buildDailyCounts(
-    records: RecordShape[],
+    records: DailyRecordFact[],
   ): Array<{ date: string; count: number }> {
     const byDate = new Map<string, number>();
     for (const record of records) {
@@ -275,7 +255,7 @@ export class RecordCollectorService {
     }));
   }
 
-  private buildSymptomTrend(records: RecordShape[]): Array<{
+  private buildSymptomTrend(records: DailyRecordFact[]): Array<{
     date: string;
     title: string;
     value: string | null;
@@ -305,7 +285,7 @@ export class RecordCollectorService {
    * Infers caffeine from title/note containing coffee, tea, energy drink keywords.
    * Returns estimated intake count per date.
    */
-  private buildCaffeineTrend(records: RecordShape[]): Array<{
+  private buildCaffeineTrend(records: DailyRecordFact[]): Array<{
     date: string;
     count: number;
   }> {
@@ -338,7 +318,7 @@ export class RecordCollectorService {
    * Builds a per-date summary of mood from mood records.
    * Maps mood title/value to a numeric scale (1–5).
    */
-  private buildMoodTrend(records: RecordShape[]): Array<{
+  private buildMoodTrend(records: DailyRecordFact[]): Array<{
     date: string;
     moodScore: number;
     label: string;

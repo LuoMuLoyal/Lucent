@@ -2,8 +2,8 @@ import { notFound, forbidden } from '../../../common/helpers/api-errors';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import { PrismaService } from '../../../prisma/prisma.service';
 import { User, UserIdentity } from '#generated/prisma/client';
+import { UserService } from '../../user/services/user.service';
 import { AccountDto } from '../dto/response.dto';
 import { UpdateAccountDto } from '../dto/update.dto';
 
@@ -12,7 +12,7 @@ type AccountUser = User & { identities: UserIdentity[] };
 @Injectable()
 export class AccountService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly userService: UserService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -29,12 +29,9 @@ export class AccountService {
     const nickname = dto.nickname === '' ? null : dto.nickname;
     const avatar = dto.avatar === '' ? null : dto.avatar;
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...(dto.nickname !== undefined && { nickname }),
-        ...(dto.avatar !== undefined && { avatar }),
-      },
+    await this.userService.update(userId, {
+      ...(dto.nickname !== undefined && { nickname }),
+      ...(dto.avatar !== undefined && { avatar }),
     });
     return this.getAccount(userId);
   }
@@ -53,15 +50,12 @@ export class AccountService {
       forbidden(this.i18n.t('account.cannot_unlink_last_method'));
     }
 
-    await this.prisma.userIdentity.delete({ where: { id: identityId } });
+    await this.userService.unlinkIdentity(identityId);
     return this.getAccount(userId);
   }
 
   private async getActiveAccountUser(userId: string): Promise<AccountUser> {
-    const user = await this.prisma.user.findFirst({
-      where: { id: userId, deletedAt: null },
-      include: { identities: { orderBy: { createdAt: 'asc' } } },
-    });
+    const user = await this.userService.findByIdWithIdentities(userId);
 
     if (!user) {
       notFound(this.i18n.t('account.user_not_found'));

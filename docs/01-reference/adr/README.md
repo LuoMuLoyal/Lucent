@@ -87,3 +87,7 @@ What becomes easier or harder as a result of this decision?
   - Title: No CN ↔ DrugBank Medicine Cross-Source Mapping
   - Status: accepted
   - Date: 2026-07-15
+- [0009](0009-cross-module-data-access.md)
+  - Title: 跨模块数据访问治理（表归属 + 读/写规则 + 提供方 reader port）
+  - Status: accepted
+  - Date: 2026-07-17

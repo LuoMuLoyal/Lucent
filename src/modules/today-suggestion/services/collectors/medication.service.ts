@@ -3,6 +3,7 @@ import { nonDeleted } from '../../../../common/helpers/prisma.utils';
 import { parseDateOnly } from '../../../../common/helpers/date-time.utils';
 import { DoseLogStatus, type Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/repositories';
 import type { SuggestionSignal } from '../../../today-suggestion/types';
 import { TriggerType } from '../../../today-suggestion/types';
 
@@ -26,7 +27,10 @@ type ReminderShape = Prisma.UserMedicineReminderGetPayload<{
  */
 @Injectable()
 export class MedicationCollectorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly doseLogReader: MedicineDoseLogReaderPort,
+  ) {}
 
   async collect(userId: string, date: string): Promise<SuggestionSignal[]> {
     const day = parseDateOnly(date);
@@ -38,18 +42,7 @@ export class MedicationCollectorService {
         select: _reminderSelect,
         orderBy: [{ scheduledHour: 'asc' }, { scheduledMinute: 'asc' }],
       }),
-      this.prisma.userMedicineDoseLog.findMany({
-        where: {
-          userId,
-          ...nonDeleted,
-          scheduledFor: day,
-        },
-        select: {
-          currentMedicineId: true,
-          status: true,
-          scheduledTime: true,
-        },
-      }),
+      this.doseLogReader.listFactsInRange(userId, day, day),
       this.prisma.userCurrentMedicine.findMany({
         where: { userId, isCurrent: true },
         select: {

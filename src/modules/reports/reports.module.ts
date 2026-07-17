@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AssistantModule } from '../assistant/assistant.module';
+import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
+import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
 import { ReportsAiSummaryContextService } from './services/ai-summary/context.service';
 import { ReportsLlmSummaryCopyService } from './services/ai-summary/copy.service';
 import { ReportsAiSummaryGeneratorService } from './services/ai-summary/generator.service';
@@ -17,7 +19,12 @@ import { ReportsService } from './dashboard/dashboard.service';
 import { ReportsController } from './reports.controller';
 
 @Module({
-  imports: [LlmRuntimeModule, AssistantModule],
+  imports: [
+    LlmRuntimeModule,
+    AssistantModule,
+    DailyRecordsModule,
+    MedicineDoseLogsModule,
+  ],
   controllers: [ReportsController],
   providers: [
     ReportsAiSummaryContextService,

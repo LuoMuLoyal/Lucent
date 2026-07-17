@@ -223,3 +223,4 @@ Every module directory must only contain the following subdirectories. New direc
 - A service should be exported from its module (`exports` array in `@Module`) **iff** another module directly imports and uses it.
 - Mapper services follow the naming convention `mapper.service.ts` (placed in the module's `services/` directory; no module-name prefix).
 - Ownership services (for record/medicine checks) follow the naming convention `ownership.service.ts` and are placed in the owning module's `services/` directory.
+- Cross-module data access (table ownership, read/write rules, reader ports) is governed by [ADR-0009](docs/01-reference/adr/0009-cross-module-data-access.md): cross-module writes must go through the owning module's exported service; cross-module reads on soft-delete models must use the shared `nonDeleted` helper.

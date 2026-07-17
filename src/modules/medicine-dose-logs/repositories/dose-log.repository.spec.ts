@@ -53,6 +53,27 @@ describe('MedicineDoseLogRepository', () => {
     });
   });
 
+  describe('listFactsInRange (MedicineDoseLogReaderPort)', () => {
+    it('queries non-deleted dose logs in range with canonical order', async () => {
+      const from = new Date('2026-07-01');
+      const to = new Date('2026-07-07');
+      prisma.userMedicineDoseLog.findMany.mockResolvedValue([] as never);
+
+      await repository.listFactsInRange('user-1', from, to);
+
+      expect(prisma.userMedicineDoseLog.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId: 'user-1',
+            deletedAt: null,
+            scheduledFor: { gte: from, lte: to },
+          },
+          orderBy: [{ scheduledFor: 'asc' }],
+        }),
+      );
+    });
+  });
+
   describe('findManyWithCount', () => {
     it('queries with pagination and returns total', async () => {
       prisma.userMedicineDoseLog.findMany.mockResolvedValue([

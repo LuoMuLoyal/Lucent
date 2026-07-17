@@ -109,6 +109,25 @@ export class UserService {
     return this.prisma.user.update({ where: { id }, data });
   }
 
+  /** Fetch a non-deleted user together with linked identities (oldest first). */
+  async findByIdWithIdentities(
+    id: string,
+  ): Promise<(User & { identities: UserIdentity[] }) | null> {
+    return this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+      include: { identities: { orderBy: { createdAt: 'asc' } } },
+    });
+  }
+
+  /**
+   * Delete an identity row by id. Callers own the business rules (existence,
+   * last-login-method protection) — this is the single write path for
+   * unlinking identities (ADR-0009).
+   */
+  async unlinkIdentity(identityId: string): Promise<void> {
+    await this.prisma.userIdentity.delete({ where: { id: identityId } });
+  }
+
   async updateByEmail(
     email: string,
     data: Prisma.UserUpdateInput,

@@ -7,7 +7,7 @@ import { I18nService } from 'nestjs-i18n';
 import { UserStatus } from '#generated/prisma/client';
 
 import { AccountService } from './account.service';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { UserService } from '../../user/services/user.service';
 import { ResultCode } from '../../../common/api';
 import type { UpdateAccountDto } from '../dto/update.dto';
 
@@ -51,7 +51,7 @@ const secondIdentity = {
 
 describe('AccountService', () => {
   let service: AccountService;
-  let prismaService: DeepMocked<PrismaService>;
+  let userService: DeepMocked<UserService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -62,22 +62,18 @@ describe('AccountService', () => {
         },
         AccountService,
         {
-          provide: PrismaService,
+          provide: UserService,
           useValue: {
-            user: {
-              findFirst: vi.fn(),
-              update: vi.fn(),
-            },
-            userIdentity: {
-              delete: vi.fn(),
-            },
+            findByIdWithIdentities: vi.fn(),
+            update: vi.fn(),
+            unlinkIdentity: vi.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get(AccountService);
-    prismaService = module.get(PrismaService);
+    userService = module.get(UserService);
   });
 
   afterEach(() => {
@@ -86,17 +82,16 @@ describe('AccountService', () => {
 
   describe('getAccount', () => {
     it('should return the account DTO for an active user', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue({
+      (userService.findByIdWithIdentities as vi.Mock).mockResolvedValue({
         ...baseUser,
         identities: [baseIdentity],
       });
 
       const result = await service.getAccount(baseUser.id);
 
-      expect(prismaService.user.findFirst).toHaveBeenCalledWith({
-        where: { id: baseUser.id, deletedAt: null },
-        include: { identities: { orderBy: { createdAt: 'asc' } } },
-      });
+      expect(userService.findByIdWithIdentities).toHaveBeenCalledWith(
+        baseUser.id,
+      );
       expect(result).toEqual({
         id: baseUser.id,
         email: baseUser.email,
@@ -120,7 +115,7 @@ describe('AccountService', () => {
     });
 
     it('should throw NotFoundException when the user does not exist', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
+      (userService.findByIdWithIdentities as vi.Mock).mockResolvedValue(null);
 
       await expect(service.getAccount('missing-user')).rejects.toThrow(
         NotFoundException,
@@ -134,7 +129,7 @@ describe('AccountService', () => {
     });
 
     it('should set hasPassword to false when passwordHash is null', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue({
+      (userService.findByIdWithIdentities as vi.Mock).mockResolvedValue({
         ...baseUser,
         passwordHash: null,
         identities: [baseIdentity],
@@ -146,7 +141,7 @@ describe('AccountService', () => {
     });
 
     it('should return null fields when dates are null', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue({
+      (userService.findByIdWithIdentities as vi.Mock).mockResolvedValue({
         ...baseUser,
         emailVerifiedAt: null,
         lastLoginAt: null,
@@ -169,7 +164,7 @@ describe('AccountService', () => {
 
   describe('updateAccount', () => {
     it('should update nickname and avatar', async () => {
-      (prismaService.user.findFirst as vi.Mock)
+      (userService.findByIdWithIdentities as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           identities: [baseIdentity],
@@ -180,7 +175,7 @@ describe('AccountService', () => {
           avatar: 'https://example.com/new-avatar.png',
           identities: [baseIdentity],
         });
-      (prismaService.user.update as vi.Mock).mockResolvedValue(undefined);
+      (userService.update as vi.Mock).mockResolvedValue(undefined);
 
       const dto: UpdateAccountDto = {
         nickname: 'NewNick',
@@ -189,19 +184,16 @@ describe('AccountService', () => {
 
       const result = await service.updateAccount(baseUser.id, dto);
 
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: baseUser.id },
-        data: {
-          nickname: 'NewNick',
-          avatar: 'https://example.com/new-avatar.png',
-        },
+      expect(userService.update).toHaveBeenCalledWith(baseUser.id, {
+        nickname: 'NewNick',
+        avatar: 'https://example.com/new-avatar.png',
       });
       expect(result.nickname).toBe('NewNick');
       expect(result.avatar).toBe('https://example.com/new-avatar.png');
     });
 
     it('should normalize empty string to null for clearing', async () => {
-      (prismaService.user.findFirst as vi.Mock)
+      (userService.findByIdWithIdentities as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           identities: [baseIdentity],
@@ -212,22 +204,22 @@ describe('AccountService', () => {
           avatar: null,
           identities: [baseIdentity],
         });
-      (prismaService.user.update as vi.Mock).mockResolvedValue(undefined);
+      (userService.update as vi.Mock).mockResolvedValue(undefined);
 
       const dto: UpdateAccountDto = { nickname: '', avatar: '' };
 
       const result = await service.updateAccount(baseUser.id, dto);
 
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: baseUser.id },
-        data: { nickname: null, avatar: null },
+      expect(userService.update).toHaveBeenCalledWith(baseUser.id, {
+        nickname: null,
+        avatar: null,
       });
       expect(result.nickname).toBeNull();
       expect(result.avatar).toBeNull();
     });
 
     it('should skip fields that are undefined', async () => {
-      (prismaService.user.findFirst as vi.Mock)
+      (userService.findByIdWithIdentities as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           identities: [baseIdentity],
@@ -236,20 +228,17 @@ describe('AccountService', () => {
           ...baseUser,
           identities: [baseIdentity],
         });
-      (prismaService.user.update as vi.Mock).mockResolvedValue(undefined);
+      (userService.update as vi.Mock).mockResolvedValue(undefined);
 
       const dto: UpdateAccountDto = {};
 
       await service.updateAccount(baseUser.id, dto);
 
-      expect(prismaService.user.update).toHaveBeenCalledWith({
-        where: { id: baseUser.id },
-        data: {},
-      });
+      expect(userService.update).toHaveBeenCalledWith(baseUser.id, {});
     });
 
     it('should throw NotFoundException when user does not exist', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
+      (userService.findByIdWithIdentities as vi.Mock).mockResolvedValue(null);
 
       await expect(
         service.updateAccount('missing-user', { nickname: 'X' }),
@@ -259,7 +248,7 @@ describe('AccountService', () => {
 
   describe('unlinkIdentity', () => {
     it('should unlink an identity when user has password', async () => {
-      (prismaService.user.findFirst as vi.Mock)
+      (userService.findByIdWithIdentities as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           passwordHash: '$argon2id$exists',
@@ -270,15 +259,11 @@ describe('AccountService', () => {
           passwordHash: '$argon2id$exists',
           identities: [secondIdentity],
         });
-      (prismaService.userIdentity.delete as vi.Mock).mockResolvedValue(
-        undefined,
-      );
+      (userService.unlinkIdentity as vi.Mock).mockResolvedValue(undefined);
 
       const result = await service.unlinkIdentity(baseUser.id, baseIdentity.id);
 
-      expect(prismaService.userIdentity.delete).toHaveBeenCalledWith({
-        where: { id: baseIdentity.id },
-      });
+      expect(userService.unlinkIdentity).toHaveBeenCalledWith(baseIdentity.id);
       expect(result.linkedIdentities).toHaveLength(1);
       const firstIdentity = result.linkedIdentities[0];
       if (!firstIdentity) throw new Error('no identity');
@@ -286,7 +271,7 @@ describe('AccountService', () => {
     });
 
     it('should throw ForbiddenException when unlinking the last sign-in method', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValueOnce({
+      (userService.findByIdWithIdentities as vi.Mock).mockResolvedValueOnce({
         ...baseUser,
         passwordHash: null,
         identities: [baseIdentity],
@@ -303,7 +288,7 @@ describe('AccountService', () => {
     });
 
     it('should allow unlinking when user has password even with only one identity', async () => {
-      (prismaService.user.findFirst as vi.Mock)
+      (userService.findByIdWithIdentities as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           passwordHash: '$argon2id$exists',
@@ -314,9 +299,7 @@ describe('AccountService', () => {
           passwordHash: '$argon2id$exists',
           identities: [],
         });
-      (prismaService.userIdentity.delete as vi.Mock).mockResolvedValue(
-        undefined,
-      );
+      (userService.unlinkIdentity as vi.Mock).mockResolvedValue(undefined);
 
       const result = await service.unlinkIdentity(baseUser.id, baseIdentity.id);
 
@@ -324,7 +307,7 @@ describe('AccountService', () => {
     });
 
     it('should throw NotFoundException when identity does not exist', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValueOnce({
+      (userService.findByIdWithIdentities as vi.Mock).mockResolvedValueOnce({
         ...baseUser,
         identities: [baseIdentity],
       });
@@ -340,7 +323,7 @@ describe('AccountService', () => {
     });
 
     it('should allow unlinking when user has multiple identities and no password', async () => {
-      (prismaService.user.findFirst as vi.Mock)
+      (userService.findByIdWithIdentities as vi.Mock)
         .mockResolvedValueOnce({
           ...baseUser,
           passwordHash: null,
@@ -351,15 +334,11 @@ describe('AccountService', () => {
           passwordHash: null,
           identities: [secondIdentity],
         });
-      (prismaService.userIdentity.delete as vi.Mock).mockResolvedValue(
-        undefined,
-      );
+      (userService.unlinkIdentity as vi.Mock).mockResolvedValue(undefined);
 
       const result = await service.unlinkIdentity(baseUser.id, baseIdentity.id);
 
-      expect(prismaService.userIdentity.delete).toHaveBeenCalledWith({
-        where: { id: baseIdentity.id },
-      });
+      expect(userService.unlinkIdentity).toHaveBeenCalledWith(baseIdentity.id);
       expect(result.linkedIdentities).toHaveLength(1);
     });
   });

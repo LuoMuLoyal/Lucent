@@ -9,6 +9,11 @@ import {
   type Prisma,
 } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  DailyRecordReaderPort,
+  type DailyRecordFact,
+} from '../../daily-records/repositories';
+import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs/repositories';
 import { parseMealRecordPayload } from '../../daily-records/types/meal-analysis.types';
 import {
   USER_SETTING_KEYS,
@@ -17,21 +22,6 @@ import {
 
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;
-
-const _dailyRecordSelect = {
-  kind: true,
-  occurredTime: true,
-  title: true,
-  value: true,
-  unit: true,
-  note: true,
-  payload: true,
-  createdAt: true,
-} satisfies Prisma.UserDailyRecordSelect;
-
-type DailyRecordShape = Prisma.UserDailyRecordGetPayload<{
-  select: typeof _dailyRecordSelect;
-}>;
 
 const _reminderSelect = {
   currentMedicineId: true,
@@ -95,6 +85,8 @@ export class TodayAnalysisContextService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly dailyRecordReader: DailyRecordReaderPort,
+    private readonly doseLogReader: MedicineDoseLogReaderPort,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
@@ -162,35 +154,14 @@ export class TodayAnalysisContextService {
           { createdAt: 'asc' },
         ],
       }),
-      this.prisma.userMedicineDoseLog.findMany({
-        where: {
-          userId,
-          ...nonDeleted,
-          scheduledFor: day,
-        },
-        select: {
-          currentMedicineId: true,
-          status: true,
-        },
-      }),
-      this.prisma.userDailyRecord.findMany({
-        where: {
-          userId,
-          ...nonDeleted,
-          occurredAt: day,
-        },
-        select: {
-          kind: true,
-          occurredTime: true,
-          title: true,
-          value: true,
-          unit: true,
-          note: true,
-          payload: true,
-          createdAt: true,
-        },
-        orderBy: [{ createdAt: 'desc' }],
-      }),
+      this.doseLogReader.listFactsInRange(userId, day, day),
+      this.dailyRecordReader
+        .listFactsInRange(userId, day, day)
+        // Reader returns canonical `occurredAt asc, createdAt asc`; the
+        // original query was `createdAt desc` (latest records first).
+        .then((facts) =>
+          facts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+        ),
       this.prisma.userAllergy.count({
         where: {
           userId,
@@ -277,7 +248,7 @@ export class TodayAnalysisContextService {
     };
   }
 
-  private buildRecordSummary(dailyRecords: DailyRecordShape[]) {
+  private buildRecordSummary(dailyRecords: DailyRecordFact[]) {
     const counts = new Map<string, number>();
     for (const record of dailyRecords) {
       counts.set(record.kind, (counts.get(record.kind) ?? 0) + 1);
@@ -292,7 +263,7 @@ export class TodayAnalysisContextService {
   // Sleep date convention: a sleep record's `occurredAt` is the wake date
   // (the morning the user wakes up). Querying by `occurredAt = day` returns
   // the sleep the user woke up on that calendar day.
-  private buildSleepContext(dailyRecords: DailyRecordShape[]): {
+  private buildSleepContext(dailyRecords: DailyRecordFact[]): {
     status: 'ok' | 'insufficient_data';
     durationMinutes: number | null;
     quality: string | null;
@@ -362,7 +333,7 @@ export class TodayAnalysisContextService {
     };
   }
 
-  private toRecentRecord(record: DailyRecordShape) {
+  private toRecentRecord(record: DailyRecordFact) {
     const mealPresentation = this.toMealRecentRecord(record);
     if (mealPresentation != null) {
       return mealPresentation;
@@ -378,7 +349,7 @@ export class TodayAnalysisContextService {
     };
   }
 
-  private toMealRecentRecord(record: DailyRecordShape) {
+  private toMealRecentRecord(record: DailyRecordFact) {
     if (record.kind !== DailyRecordKind.meal) {
       return null;
     }

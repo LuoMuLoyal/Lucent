@@ -148,6 +148,55 @@ describe('DailyRecordRepository', () => {
     });
   });
 
+  describe('listFactsInRange (DailyRecordReaderPort)', () => {
+    it('queries non-deleted records in range with canonical order', async () => {
+      const from = new Date('2026-07-01');
+      const to = new Date('2026-07-07');
+      prisma.userDailyRecord.findMany.mockResolvedValue([] as never);
+
+      await repository.listFactsInRange('user-1', from, to);
+
+      expect(prisma.userDailyRecord.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId: 'user-1',
+            deletedAt: null,
+            occurredAt: { gte: from, lte: to },
+          },
+          orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
+        }),
+      );
+    });
+
+    it('adds kind IN filter when kinds are provided', async () => {
+      prisma.userDailyRecord.findMany.mockResolvedValue([] as never);
+
+      await repository.listFactsInRange(
+        'user-1',
+        new Date('2026-07-01'),
+        new Date('2026-07-07'),
+        ['water'],
+      );
+
+      const call = prisma.userDailyRecord.findMany.mock.calls[0]?.[0];
+      expect(call?.where).toHaveProperty('kind', { in: ['water'] });
+    });
+
+    it('omits kind filter when kinds is empty', async () => {
+      prisma.userDailyRecord.findMany.mockResolvedValue([] as never);
+
+      await repository.listFactsInRange(
+        'user-1',
+        new Date('2026-07-01'),
+        new Date('2026-07-07'),
+        [],
+      );
+
+      const call = prisma.userDailyRecord.findMany.mock.calls[0]?.[0];
+      expect(call?.where).not.toHaveProperty('kind');
+    });
+  });
+
   describe('create', () => {
     it('creates with provided data and includes attachments', async () => {
       const data = { userId: 'user-1', kind: 'water', occurredAt: new Date() };

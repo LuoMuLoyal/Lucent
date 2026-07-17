@@ -1,11 +1,13 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { DailyRecordReaderPort } from '../../../daily-records/repositories';
 import { BaselineService } from './baseline.service';
 import { BaselineDimension } from '../../types';
 
 describe('BaselineService', () => {
   let service: BaselineService;
   let prisma: DeepMocked<PrismaService>;
+  let dailyRecordReader: DeepMocked<DailyRecordReaderPort>;
 
   beforeEach(() => {
     prisma = {
@@ -15,9 +17,11 @@ describe('BaselineService', () => {
         create: vi.fn(),
         update: vi.fn(),
       },
-      userDailyRecord: { findMany: vi.fn() },
     } as unknown as DeepMocked<PrismaService>;
-    service = new BaselineService(prisma);
+    dailyRecordReader = {
+      listFactsInRange: vi.fn(),
+    } as unknown as DeepMocked<DailyRecordReaderPort>;
+    service = new BaselineService(prisma, dailyRecordReader);
   });
 
   describe('getBaseline', () => {
@@ -131,7 +135,7 @@ describe('BaselineService', () => {
   describe('recordObservation', () => {
     it('creates a new baseline record when none exists and baseline is not yet established', async () => {
       // countConsecutiveDays: 1 day (< BASELINE_MIN_DAYS)
-      (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([
+      (dailyRecordReader.listFactsInRange as vi.Mock).mockResolvedValue([
         { occurredAt: new Date('2026-07-09T00:00:00.000Z') },
       ]);
       (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue(
@@ -159,7 +163,7 @@ describe('BaselineService', () => {
 
     it('creates a new baseline record with establishedAt when consecutive days >= min', async () => {
       // 3 consecutive days (>= BASELINE_MIN_DAYS)
-      (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([
+      (dailyRecordReader.listFactsInRange as vi.Mock).mockResolvedValue([
         { occurredAt: new Date('2026-07-09T00:00:00.000Z') },
         { occurredAt: new Date('2026-07-08T00:00:00.000Z') },
         { occurredAt: new Date('2026-07-07T00:00:00.000Z') },
@@ -188,7 +192,7 @@ describe('BaselineService', () => {
     });
 
     it('updates existing baseline record when it exists', async () => {
-      (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([
+      (dailyRecordReader.listFactsInRange as vi.Mock).mockResolvedValue([
         { occurredAt: new Date('2026-07-09T00:00:00.000Z') },
       ]);
       const existingEstablishedAt = new Date('2026-07-05');
@@ -221,7 +225,7 @@ describe('BaselineService', () => {
     });
 
     it('returns 0 consecutive days for dimensions without a record kind mapping', async () => {
-      (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([]);
+      (dailyRecordReader.listFactsInRange as vi.Mock).mockResolvedValue([]);
       (prisma.userSuggestionBaseline.findUnique as vi.Mock).mockResolvedValue(
         null,
       );
@@ -247,7 +251,7 @@ describe('BaselineService', () => {
 
     it('counts consecutive days backwards from the target date', async () => {
       // Days: 7/9, 7/8, 7/7 present, 7/6 missing → 3 consecutive
-      (prisma.userDailyRecord.findMany as vi.Mock).mockResolvedValue([
+      (dailyRecordReader.listFactsInRange as vi.Mock).mockResolvedValue([
         { occurredAt: new Date('2026-07-09T00:00:00.000Z') },
         { occurredAt: new Date('2026-07-08T00:00:00.000Z') },
         { occurredAt: new Date('2026-07-07T00:00:00.000Z') },

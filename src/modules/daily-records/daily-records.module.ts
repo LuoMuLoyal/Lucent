@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
@@ -6,9 +6,10 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { StorageModule } from '../../common/storage';
 import { TodaySuggestionModule } from '../today-suggestion/today-suggestion.module';
 import {
+  DailyRecordReaderPort,
   DailyRecordRepository,
   DailyRecordRepositoryPort,
-} from './repositories/daily-record.repository';
+} from './repositories';
 import { DailyRecordCandidatesCopyService } from './services/candidates/copy.service';
 import { DailyRecordCandidatesGeneratorService } from './services/candidates/generator.service';
 import { DailyRecordCandidatesService } from './services/candidates/service';
@@ -31,14 +32,22 @@ import { MealDishTemplateLearningService } from './services/meal-dish/template-l
     PrismaModule,
     LlmRuntimeModule,
     StorageModule,
-    TodaySuggestionModule,
+    // forwardRef: today-suggestion imports this module for DailyRecordReaderPort
+    // (ADR-0009); the reverse edge (suggestion cache invalidation) is removed
+    // once architecture-review #2 moves invalidation to domain events.
+    forwardRef(() => TodaySuggestionModule),
   ],
   controllers: [DailyRecordsController],
   providers: [
     LlmSafetyPolicyService,
+    DailyRecordRepository,
     {
       provide: DailyRecordRepositoryPort,
-      useClass: DailyRecordRepository,
+      useExisting: DailyRecordRepository,
+    },
+    {
+      provide: DailyRecordReaderPort,
+      useExisting: DailyRecordRepository,
     },
     DailyRecordCandidatesCopyService,
     DailyRecordCandidatesGeneratorService,
@@ -59,6 +68,7 @@ import { MealDishTemplateLearningService } from './services/meal-dish/template-l
     DailyRecordsService,
     DailyRecordCandidatesService,
     DailyRecordRepositoryPort,
+    DailyRecordReaderPort,
   ],
 })
 export class DailyRecordsModule {}

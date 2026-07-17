@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { badRequest } from '../../../common/helpers/api-errors';
-import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import {
   formatDateOnly,
   parseDateOnly,
@@ -9,6 +8,8 @@ import {
 } from '../../../common/helpers/date-time.utils';
 import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { DailyRecordReaderPort } from '../../daily-records/repositories';
+import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs/repositories';
 import {
   MealAnalysisStatus,
   parseMealRecordPayload,
@@ -24,7 +25,11 @@ import type { ReportDashboardFacts } from './types';
 
 @Injectable()
 export class ReportsContextService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly dailyRecordReader: DailyRecordReaderPort,
+    private readonly doseLogReader: MedicineDoseLogReaderPort,
+  ) {}
 
   async build(
     userId: string,
@@ -39,39 +44,8 @@ export class ReportsContextService {
         where: { userId, key: USER_SETTING_KEYS.aiSummariesEnabled },
         select: { value: true },
       }),
-      this.prisma.userMedicineDoseLog.findMany({
-        where: {
-          userId,
-          ...nonDeleted,
-          scheduledFor: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-        select: {
-          scheduledFor: true,
-          status: true,
-        },
-        orderBy: { scheduledFor: 'asc' },
-      }),
-      this.prisma.userDailyRecord.findMany({
-        where: {
-          userId,
-          ...nonDeleted,
-          occurredAt: {
-            gte: startDate,
-            lte: endDate,
-          },
-        },
-        select: {
-          occurredAt: true,
-          kind: true,
-          value: true,
-          unit: true,
-          payload: true,
-        },
-        orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
-      }),
+      this.doseLogReader.listFactsInRange(userId, startDate, endDate),
+      this.dailyRecordReader.listFactsInRange(userId, startDate, endDate),
     ]);
 
     const mealEstimateFacts = this.buildMealEstimateFacts(
