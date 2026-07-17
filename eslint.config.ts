@@ -55,6 +55,22 @@ export default tseslint.config(
       '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/no-confusing-void-expression': 'error',
 
+      // ── 跨模块深路径引用禁止 ──
+      // 有 barrel 的基础设施模块必须经 barrel 导入，不得深路径引用内部文件。
+      // 新增 barrel 后在此追加对应 pattern。(Architecture review #12)
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/llm-runtime/services/*'],
+              message:
+                "Use the barrel 'llm-runtime' or 'llm-runtime/services' instead of deep-path imports.",
+            },
+          ],
+        },
+      ],
+
       // Prettier 由 eslint-plugin-prettier/recommended 自动从 .prettierrc 读取配置，不再显式覆盖
     },
   },

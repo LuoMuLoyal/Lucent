@@ -16,7 +16,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
-import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { LlmRuntimeService } from '../../../llm-runtime';
 import { EnvKey } from '../../../config/env-keys.enum';
 
 /** Column layout shared by all three embedding tables. */

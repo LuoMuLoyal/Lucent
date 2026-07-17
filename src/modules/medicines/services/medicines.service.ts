@@ -18,7 +18,7 @@ import {
 import { MedicinesCacheService } from '../cache/cache.service';
 import { CnMedicinesService } from '../adapters/cn.service';
 import { DrugbankMedicinesService } from '../adapters/drugbank.service';
-import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { LlmRuntimeService } from '../../../llm-runtime';
 
 @Injectable()
 export class MedicinesService {

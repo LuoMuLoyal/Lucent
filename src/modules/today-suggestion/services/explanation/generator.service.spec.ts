@@ -1,5 +1,5 @@
 import type { LlmRuntimePort } from '../../../../common/llm/llm-runtime.port';
-import type { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
+import type { LlmRuntimeService } from '../../../../llm-runtime';
 import type { MetricsService } from '../../../../common/metrics/metrics.service';
 import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
 import type {

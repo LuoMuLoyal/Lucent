@@ -10,7 +10,7 @@ import { CnMedicinesService } from '../adapters/cn.service';
 import { DrugbankMedicinesService } from '../adapters/drugbank.service';
 import { ResultCode } from '../../../common/api';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import { LlmRuntimeService } from '../../../llm-runtime';
 
 describe('MedicinesService', () => {
   let service: MedicinesService;

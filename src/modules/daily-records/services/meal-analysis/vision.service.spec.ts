@@ -1,7 +1,7 @@
 import { SystemMessage } from '@langchain/core/messages';
 import type { HumanMessage } from '@langchain/core/messages';
 import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
-import type { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
+import type { LlmRuntimeService } from '../../../../llm-runtime';
 import { MealAnalysisVisionService } from '../meal-analysis/vision.service';
 
 describe('MealAnalysisVisionService', () => {

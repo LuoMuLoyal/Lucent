@@ -4,7 +4,7 @@ import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy
 import { safeParseLlmJson } from '../../../../common/helpers/json.utils';
 
 import { normalizeNullableText } from '../../../../common/helpers/string.utils';
-import { LlmRuntimeService } from '../../../../llm-runtime/services/llm-runtime.service';
+import { LlmRuntimeService } from '../../../../llm-runtime';
 
 const MEAL_DESCRIPTION_MAX_LENGTH = 200;
 const FOOD_NAME_MAX_LENGTH = 100;

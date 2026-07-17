@@ -1,7 +1,7 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { AiConfig } from '../config/ai.config';
 import { AI_MODEL_TIMEOUT_MS } from '../config/constants';
-import { LlmRuntimeService } from './services/llm-runtime.service';
+import { LlmRuntimeService } from './services';
 
 describe('LlmRuntimeService', () => {
   const baseConfig: AiConfig = {

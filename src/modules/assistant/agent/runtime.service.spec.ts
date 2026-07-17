@@ -1,5 +1,5 @@
 import { AIMessageChunk } from '@langchain/core/messages';
-import type { LlmRuntimeService } from '../../../llm-runtime/services/llm-runtime.service';
+import type { LlmRuntimeService } from '../../../llm-runtime';
 import { AssistantRuntimeService } from './runtime.service';
 import { buildAssistantSystemPrompt } from '../prompts/system.prompt';
 
