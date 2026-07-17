@@ -15,6 +15,13 @@ export interface DoseLogFact {
   scheduledFor: Date;
 }
 
+/**
+ * Hard upper bound on facts returned by reader ports. Prevents unbounded
+ * context queries from slowing the AI pipeline as user data grows.
+ * (ADR-0009 reader ports; architecture review #15)
+ */
+const MAX_READER_FACTS = 500;
+
 const doseLogFactSelect = {
   currentMedicineId: true,
   status: true,
@@ -116,6 +123,7 @@ export class MedicineDoseLogRepository
       },
       select: doseLogFactSelect,
       orderBy: [{ scheduledFor: 'asc' }],
+      take: MAX_READER_FACTS,
     });
   }
 

@@ -53,6 +53,13 @@ export interface DailyRecordFact {
   createdAt: Date;
 }
 
+/**
+ * Hard upper bound on facts returned by reader ports. Prevents unbounded
+ * context queries from slowing the AI pipeline as user data grows.
+ * (ADR-0009 reader ports; architecture review #15)
+ */
+const MAX_READER_FACTS = 500;
+
 const dailyRecordFactSelect = {
   id: true,
   kind: true,
@@ -155,6 +162,7 @@ export class DailyRecordRepository
       },
       select: dailyRecordFactSelect,
       orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
+      take: MAX_READER_FACTS,
     });
   }
 

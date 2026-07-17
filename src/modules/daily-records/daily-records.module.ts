@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
+import { LlmCommonModule } from '../../common/llm';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { StorageModule } from '../../common/storage';
@@ -26,10 +26,15 @@ import { MealIngredientGroundingService } from './services/meal-ingredient/groun
 import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service';
 
 @Module({
-  imports: [ConfigModule, PrismaModule, LlmRuntimeModule, StorageModule],
+  imports: [
+    ConfigModule,
+    PrismaModule,
+    LlmRuntimeModule,
+    StorageModule,
+    LlmCommonModule,
+  ],
   controllers: [DailyRecordsController],
   providers: [
-    LlmSafetyPolicyService,
     DailyRecordRepository,
     {
       provide: DailyRecordRepositoryPort,
@@ -57,7 +62,6 @@ import { MealDishTemplateLearningService } from './services/meal-dish/template-l
   exports: [
     DailyRecordsService,
     DailyRecordCandidatesService,
-    DailyRecordRepositoryPort,
     DailyRecordReaderPort,
   ],
 })
