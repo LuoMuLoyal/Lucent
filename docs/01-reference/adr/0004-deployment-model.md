@@ -94,3 +94,37 @@ auto-deploy on CI success.
 - Accepted cost: 15–45s downtime per release → releases happen in off-peak hours, and active
   SSE streams receive a terminal `server_shutdown` event before connections close
   (`SseConnectionRegistry`, 60s `stop_grace_period`)
+
+## Update 2026-07-17: BullMQ Worker Topology (Architecture Review #7)
+
+### Context
+
+All 7 BullMQ queue workers + the `@Cron` lifecycle service run inside the API
+process. Workers that perform CPU-intensive tasks (PDF generation, LLM calls)
+compete with HTTP request handling for the same event loop.
+
+### Current State (Accepted)
+
+- `BullmqQueueFactory` creates `Worker` instances in-process; Redis unavailable
+  → graceful degradation to synchronous inline execution.
+- Single-slot deployment means no cron double-fire concern.
+- Prometheus metrics (`bullmq_active_jobs`, `bullmq_waiting_jobs`) and alert
+  rules (`BullMQJobFailures`, `BullMQWaitingBacklog`) are in place.
+
+### Future Plan (Mid-term)
+
+When queue throughput or LLM latency begins impacting HTTP response times:
+
+1. Split workers into a separate process/container using the same Docker image
+   with a different entrypoint command (e.g., `node dist/main.js --worker-only`).
+2. `BullmqQueueFactory` gains a `--worker-only` flag that skips HTTP
+   controllers but still registers workers.
+3. `@Cron` lifecycle service moves to the worker process.
+4. `compose.yml` adds a `worker` service alongside `app`, both pointing to the
+   same image but with different commands.
+5. No code changes needed in queue consumer services — BullMQ workers
+   automatically distribute across connections to the same Redis instance.
+
+This is intentionally deferred: current traffic levels do not cause measurable
+event loop contention, and the single-slot deployment model keeps operational
+complexity low.
