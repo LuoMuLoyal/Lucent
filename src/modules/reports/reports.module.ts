@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AssistantModule } from '../assistant/assistant.module';
 import { DailyRecordsModule } from '../daily-records/daily-records.module';
+import { LlmCommonModule } from '../../common/llm';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
 import { ReportsAiSummaryContextService } from './services/ai-summary/context.service';
 import { ReportsLlmSummaryCopyService } from './services/ai-summary/copy.service';
 import { ReportsAiSummaryGeneratorService } from './services/ai-summary/generator.service';
-import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
 import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
 import { ClinicSummaryService } from './services/clinic-summary/summary.service';
@@ -21,6 +21,7 @@ import { ReportsController } from './reports.controller';
 @Module({
   imports: [
     LlmRuntimeModule,
+    LlmCommonModule,
     AssistantModule,
     DailyRecordsModule,
     MedicineDoseLogsModule,
@@ -30,7 +31,6 @@ import { ReportsController } from './reports.controller';
     ReportsAiSummaryContextService,
     ReportsLlmSummaryCopyService,
     ReportsAiSummaryGeneratorService,
-    LlmSafetyPolicyService,
     ReportsAiSummaryService,
     ReportSummaryQueueService,
     ClinicSummaryService,

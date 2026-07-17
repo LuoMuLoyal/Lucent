@@ -1,6 +1,7 @@
 import { Module, OnModuleInit } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { LlmCommonModule } from '../../common/llm';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
@@ -33,7 +34,6 @@ import { EscalationService } from './services/notification/escalation.service';
 import { ExplanationGeneratorService } from './services/explanation/generator.service';
 import { ExplanationService } from './services/explanation/service';
 import { ExplanationQueueService } from './services/explanation/queue.service';
-import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import type { SuggestionRule } from './types';
 
 /**
@@ -46,6 +46,7 @@ import type { SuggestionRule } from './types';
     PrismaModule,
     NotificationsModule,
     LlmRuntimeModule,
+    LlmCommonModule,
     DailyRecordsModule,
     MedicineDoseLogsModule,
   ],
@@ -84,7 +85,6 @@ import type { SuggestionRule } from './types';
     ExplanationGeneratorService,
     ExplanationService,
     ExplanationQueueService,
-    LlmSafetyPolicyService,
     // Orchestrator
     SuggestionService,
   ],
