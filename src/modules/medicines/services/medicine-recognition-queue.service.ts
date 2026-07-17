@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../common/queue/queue.factory';
-import { BaseAsyncQueueService } from '../../../common/queues/base-async-queue.service';
+import { BaseAsyncQueueService } from '../../../common/queue';
 import { MedicinesService } from './medicines.service';
 
 interface RecognitionJobData {

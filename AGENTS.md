@@ -211,7 +211,12 @@ Every module directory must only contain the following subdirectories. New direc
   - `helpers/` — pure helper functions and stateless shared utilities
   - `services/` — shared injectable services
   - `logger/` — shared Nest logging module
-  - `ai/` — shared AI services (safety policy, base generators, LLM runtime port)
+  - `llm/` — shared AI services (safety policy, base generators, LLM runtime port)
+  - `queue/` — BullMQ factory, module, and `BaseAsyncQueueService` abstract base
+  - `metrics/` — Prometheus metrics module and service
+  - `events/` — domain event constants and payload types
+  - `storage/` — Tencent COS storage runtime and module
+  - `types/` — shared TypeScript type helpers
   - existing capability folders such as `filters/`, `interceptors/`, `middleware/`,
     `constants/`, `validators/`
 - If a file needs Nest DI (`@Injectable()`, module wiring, env-based runtime assembly), it should

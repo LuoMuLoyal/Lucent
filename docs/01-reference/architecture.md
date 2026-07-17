@@ -22,6 +22,7 @@ graph TD
         notifications["notifications"]
         reports["reports"]
         today["today-analysis"]
+        todaySuggestion["today-suggestion<br>(75 files, 44 providers)<br>第二大 feature module"]
         healthCtx["user-health-context"]
         settings["user-settings"]
     end
@@ -54,11 +55,20 @@ graph TD
     assistant --> healthCtx
     assistant --> settings
     daily --> llm
+    daily --> todaySuggestion
+    doseLogs --> todaySuggestion
     reports --> llm
     reports --> assistant
     today --> llm
     today --> assistant
     today --> notifications
+    todaySuggestion --> llm
+    todaySuggestion --> daily
+    todaySuggestion --> doseLogs
+    todaySuggestion --> reminders
+    todaySuggestion --> healthCtx
+    todaySuggestion --> settings
+    todaySuggestion --> notifications
     dataExport --> reports
     dataExport --> notifications
     dataExport --> security
@@ -74,6 +84,7 @@ graph TD
     notifications --> prisma
     reports --> prisma
     today --> prisma
+    todaySuggestion --> prisma
     healthCtx --> prisma
 ```
 
@@ -133,7 +144,8 @@ particular, `mail/`, `prisma/`, `config/`, and `i18n/` remain root-level runtime
 - `common/services/` — shared injectable services
 - `common/logger/` — shared Nest logging module
 - `common/llm/`, `common/filters/`, `common/interceptors/`, `common/middleware/`,
-  `common/constants/`, `common/validators/` — capability-specific shared code
+  `common/constants/`, `common/validators/`, `common/queue/`, `common/metrics/`,
+  `common/events/`, `common/storage/`, `common/types/` — capability-specific shared code
 
 ```
 src/modules/{module}/
@@ -231,6 +243,59 @@ with `requestId`, method, path, status, and stack metadata.
   explosion.
 - `METRICS_ENABLED` env var controls activation (default `true`, forced off in
   test environment). See ADR-0006 for the full observability strategy.
+
+## Queue Topology
+
+All BullMQ queues share a single Redis connection managed by `BullmqQueueFactory`
+(`src/common/queue/queue.factory.ts`). Each queue has an `enqueue` endpoint
+(POST `/async`) and a `getStatus` polling endpoint (GET `/status/:jobId`).
+`BaseAsyncQueueService` (`src/common/queue/base-async-queue.service.ts`) provides
+the shared enqueue/poll/cache lifecycle; subclasses implement `executeJob`.
+
+```mermaid
+graph TD
+    subgraph "Queue Infrastructure"
+        factory["BullmqQueueFactory<br>src/common/queue/queue.factory.ts"]
+        base["BaseAsyncQueueService<br>src/common/queue/base-async-queue.service.ts"]
+        factory --> base
+    end
+
+    subgraph "Queue Services (7 + 1 mail)"
+        meal["meal-analysis<br>(daily-records)"]
+        export["data-export<br>(data-export)"]
+        recog["medicine-recognition<br>(medicines)"]
+        report["report-summary<br>(reports/ai-summary)"]
+        clinic["clinic-pdf<br>(reports/clinic-summary)"]
+        analysis["today-analysis<br>(today-analysis)"]
+        explain["suggestion-explanation<br>(today-suggestion)"]
+        mail["mail<br>(mail/)"]
+    end
+
+    base --> meal
+    base --> export
+    base --> recog
+    base --> report
+    base --> clinic
+    base --> analysis
+    base --> explain
+    factory --> mail
+```
+
+### Queue Service Details
+
+| Queue                  | Module                 | Concurrency | Result TTL | Notes                                  |
+| ---------------------- | ---------------------- | ----------- | ---------- | -------------------------------------- |
+| meal-analysis          | daily-records          | 1           | 30 min     | Image → LLM vision analysis            |
+| data-export            | data-export            | 1           | 30 min     | Dashboard PDF generation               |
+| medicine-recognition   | medicines              | 1           | 30 min     | Image → LLM medicine recognition       |
+| report-summary         | reports/ai-summary     | 1           | 30 min     | LLM dashboard summary                  |
+| clinic-pdf             | reports/clinic-summary | 1           | 30 min     | Clinic PDF with LLM summary            |
+| today-analysis         | today-analysis         | 1           | 30 min     | LLM today analysis + SSE stream        |
+| suggestion-explanation | today-suggestion       | 1           | 30 min     | LLM suggestion explanation             |
+| mail                   | mail                   | 3           | —          | Transactional email (no async polling) |
+
+When Redis is unavailable, `BullmqQueueFactory` degrades to synchronous execution
+(the job processor runs inline, results cached in cache-manager).
 
 ## Security Elevation
 

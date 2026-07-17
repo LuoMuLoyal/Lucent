@@ -10,23 +10,6 @@
 
 ## 高优先级
 
-### 4. 架构文档与代码漂移
-
-**证据**：
-
-- `docs/01-reference/architecture.md` 的 mermaid 依赖图没有 today-suggestion 节点（实为 75 文件、44 providers 的第二大域，daily-records/dose-logs 都 imports 它）
-- architecture.md 全文 0 次提及 queue/BullMQ——实际存在 7+1 个队列服务（meal-analysis、data-export、medicine-recognition、report-summary、clinic-pdf、today-analysis、suggestion-explanation + mail）
-- 根 `AGENTS.md` 写 `common/ai/`——实际是 `common/llm/`；`common/` 下 `metrics/`、`queue/`、`queues/`、`storage/`、`types/` 未记录
-- `common/queue/`（工厂 + 模块）与 `common/queues/`（`base-async-queue.service.ts`）双子目录割裂
-
-**行动**：
-
-1. architecture.md 增加 today-suggestion 子系统图和队列拓扑图。
-2. 修正 AGENTS.md `ai/` → `llm/`，补全 common/ 目录清单。
-3. 合并 `common/queue` 与 `common/queues` 为一个目录。
-
-**影响范围**：文档 + 一次目录移动。
-
 ---
 
 ## 中优先级

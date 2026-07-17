@@ -1,6 +1,6 @@
 import type { Cache } from 'cache-manager';
 import type { Job } from 'bullmq';
-import type { BullmqQueueFactory } from '../queue/queue.factory';
+import type { BullmqQueueFactory } from './queue.factory';
 import {
   BaseAsyncQueueService,
   DEFAULT_RESULT_TTL_MS,

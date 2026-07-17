@@ -236,6 +236,14 @@ Last updated: 2026-07-17
 - **慢查询可观测性**：`PrismaService` 构造函数注入 Winston logger，`$on('query')` 注册慢查询处理器（默认阈值 `SLOW_QUERY_THRESHOLD_MS=500ms`），记录参数化 SQL + duration + requestId
 - **迁移路径**：现有 `deletedAt: null` 手写查询点可逐步迁移到 `prisma.nonDeleted.<model>.findMany(...)`，非破坏性变更
 
+## 2026-07-17 架构文档与代码漂移修复（架构审查 #4）
+
+来源：`plans/2026-07-16-architecture-review.md` 高优先级 #4。
+
+- **architecture.md**：依赖图新增 today-suggestion 节点及全部边；新增队列拓扑 mermaid 图 + 7+1 队列服务表格；common/ 目录清单补全
+- **AGENTS.md**：`common/ai/` → `common/llm/`；补全 `queue/`、`metrics/`、`events/`、`storage/`、`types/`
+- **目录合并**：`common/queues/` 并入 `common/queue/`（`base-async-queue.service.ts` + spec 移入，barrel 统一导出）
+
 ## 2026-07-17 代码审查安全修复
 
 来源：`plans/lucent-review-2026-07-17.md`（3 个 🔴 + 2 个 🟡）。

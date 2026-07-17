@@ -14,6 +14,10 @@ random docs.
 
 ## 后续可做
 
+### nonDeleted 查询迁移（非破坏性，可渐进）
+
+`PrismaService` 已通过 `$extends` 提供 `prisma.nonDeleted.<model>.findMany(...)` 等查询变体（自动注入 `deletedAt: null`）。现有 20+ 处手写 `{ ..., deletedAt: null }` 或 `...nonDeleted` 的查询点可逐步迁移到新 API。非破坏性变更，旧写法继续工作。
+
 ### 高级可观测性（基础已完成）
 
 基础可观测性已就位（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标 + Alertmanager 告警规则）。以下为进阶项：

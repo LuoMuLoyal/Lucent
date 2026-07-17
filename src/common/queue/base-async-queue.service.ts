@@ -3,7 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import type { Queue, Job } from 'bullmq';
-import { BullmqQueueFactory } from '../queue/queue.factory';
+import { BullmqQueueFactory } from './queue.factory';
 
 /** Default TTL for cached job results (30 minutes). */
 export const DEFAULT_RESULT_TTL_MS = 30 * 60 * 1000;
