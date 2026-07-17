@@ -228,6 +228,14 @@ Last updated: 2026-07-17
 - **模块绑定统一**：daily-records 的 repository 注册从 `useClass` 改为具体类 + `useExisting`（与 dose-logs/health-context 一致，单实例挂两个 port）
 - **附带补齐**：`daily-records/repositories/index.ts` barrel 新建（该子目录此前无 barrel）
 
+## 2026-07-17 PrismaService 软删除扩展 + 慢查询日志（架构审查 #3）
+
+来源：`plans/2026-07-16-architecture-review.md` 高优先级 #3。
+
+- **Prisma `$extends` 软删除扩展**：`src/prisma/prisma.extension.ts` 使用 `Prisma.defineExtension` 为 4 个含 `deletedAt` 的模型（User、UserDailyRecord、UserMedicineReminder、UserMedicineDoseLog）添加 `nonDeleted` 查询命名空间；`PrismaService.nonDeleted` getter 暴露这些变体
+- **慢查询可观测性**：`PrismaService` 构造函数注入 Winston logger，`$on('query')` 注册慢查询处理器（默认阈值 `SLOW_QUERY_THRESHOLD_MS=500ms`），记录参数化 SQL + duration + requestId
+- **迁移路径**：现有 `deletedAt: null` 手写查询点可逐步迁移到 `prisma.nonDeleted.<model>.findMany(...)`，非破坏性变更
+
 ## 2026-07-17 代码审查安全修复
 
 来源：`plans/lucent-review-2026-07-17.md`（3 个 🔴 + 2 个 🟡）。

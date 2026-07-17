@@ -10,17 +10,6 @@
 
 ## 高优先级
 
-### 3. PrismaService 裸客户端：软删除/查询可观测性零强制
-
-**问题**：`prisma/prisma.service.ts` 只做 connect/disconnect。全库 4 个模型有 `deletedAt`（User、UserDailyRecord、UserMedicineReminder、UserMedicineDoseLog），过滤正确性完全依赖每个 where 手写，而跨模块直查点已超 20 处。无查询日志、无慢查询记录。
-
-**行动**：
-
-1. 用 Prisma client extension（`$extends`）为含 `deletedAt` 的模型提供默认 `nonDeleted` 查询变体。
-2. 加 `query` 事件日志（慢查询阈值告警，接入现有 Winston）。
-
-**影响范围**：`prisma/` + 各查询点逐步迁移。
-
 ### 4. 架构文档与代码漂移
 
 **证据**：

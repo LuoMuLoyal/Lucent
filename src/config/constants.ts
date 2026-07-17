@@ -123,3 +123,6 @@ export const LLM_RETRY_BASE_DELAY_MS = 800;
 
 /** Default threshold (ms) above which a request is logged as slow. */
 export const DEFAULT_SLOW_REQUEST_THRESHOLD_MS = 2_000;
+
+/** Default threshold (ms) above which a Prisma query is logged as slow. */
+export const DEFAULT_SLOW_QUERY_THRESHOLD_MS = 500;

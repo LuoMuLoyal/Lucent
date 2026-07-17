@@ -7,6 +7,7 @@ import {
   DEFAULT_FUZZY_MIN_LEAD,
   DEFAULT_FUZZY_QUERY_PREFIX_LENGTH,
   DEFAULT_SLOW_REQUEST_THRESHOLD_MS,
+  DEFAULT_SLOW_QUERY_THRESHOLD_MS,
   DEFAULT_MAIL_QUEUE_BACKOFF_DELAY_MS,
   DEFAULT_MAIL_QUEUE_COMPLETE_AGE_SECONDS,
   DEFAULT_MAIL_QUEUE_COMPLETE_MAX_COUNT,
@@ -316,6 +317,13 @@ const envSchema = z.object({
     .min(10)
     .max(300_000)
     .default(DEFAULT_SLOW_REQUEST_THRESHOLD_MS),
+
+  [EnvKey.SLOW_QUERY_THRESHOLD_MS]: z.coerce
+    .number()
+    .int()
+    .min(10)
+    .max(60_000)
+    .default(DEFAULT_SLOW_QUERY_THRESHOLD_MS),
 
   [EnvKey.METRICS_ENABLED]: z.enum(['true', 'false']).default('true'),
   [EnvKey.METRICS_USER]: optionalString,
