@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import { OpenAIEmbeddings } from '@langchain/openai';
-import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
-import { ConfigKey } from '../../../../config/config-keys.enum';
-import { EnvKey } from '../../../../config/env-keys.enum';
-import type { AiConfig } from '../../../../config/ai.config';
+import { VectorStoreFactory } from '../vector-store.factory';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
@@ -26,11 +21,8 @@ const EMBEDDINGS_TABLE = 'medical_qa_embeddings';
 
 @Injectable()
 export class AssistantToolMedicalKnowledgeService {
-  private vectorStore: PGVectorStore | null = null;
-  private initPromise: Promise<void> | null = null;
-
   constructor(
-    private readonly configService: ConfigService,
+    private readonly vectorStoreFactory: VectorStoreFactory,
     private readonly i18n: I18nService,
   ) {}
 
@@ -69,7 +61,7 @@ export class AssistantToolMedicalKnowledgeService {
       });
     }
 
-    const store = await this.getVectorStore();
+    const store = await this.vectorStoreFactory.getStore(EMBEDDINGS_TABLE);
     if (!store) {
       return buildReadEnvelope({
         toolName: 'search_medical_qa_corpus',
@@ -168,59 +160,6 @@ export class AssistantToolMedicalKnowledgeService {
       }),
       ambiguities: [],
       tables: [EMBEDDINGS_TABLE],
-    });
-  }
-
-  private async getVectorStore(): Promise<PGVectorStore | null> {
-    if (this.vectorStore) return this.vectorStore;
-    if (this.initPromise) {
-      await this.initPromise;
-      return this.vectorStore;
-    }
-
-    this.initPromise = this.initializeStore();
-    await this.initPromise;
-    return this.vectorStore;
-  }
-
-  private async initializeStore(): Promise<void> {
-    const dbUrl = this.configService.get<string>(EnvKey.DATABASE_URL);
-    if (!dbUrl) return;
-
-    const embeddings = this.createEmbeddings();
-    if (!embeddings) return;
-
-    this.vectorStore = new PGVectorStore(embeddings, {
-      postgresConnectionOptions: { connectionString: dbUrl },
-      tableName: EMBEDDINGS_TABLE,
-      columns: {
-        idColumnName: 'id',
-        vectorColumnName: 'embedding',
-        contentColumnName: 'document',
-        metadataColumnName: 'cmetadata',
-      },
-      distanceStrategy: 'cosine',
-    });
-
-    await this.vectorStore.ensureTableInDatabase();
-  }
-
-  private createEmbeddings(): OpenAIEmbeddings | null {
-    const aiConfig = this.configService.get<AiConfig>(ConfigKey.Ai);
-    const embedding = aiConfig?.embedding;
-    if (
-      !embedding ||
-      !embedding.apiKey ||
-      !embedding.baseUrl ||
-      !embedding.model
-    ) {
-      return null;
-    }
-
-    return new OpenAIEmbeddings({
-      apiKey: embedding.apiKey,
-      configuration: { baseURL: embedding.baseUrl },
-      model: embedding.model,
     });
   }
 }

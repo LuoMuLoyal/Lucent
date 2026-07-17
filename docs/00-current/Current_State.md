@@ -244,6 +244,15 @@ Last updated: 2026-07-17
 - **AGENTS.md**：`common/ai/` → `common/llm/`；补全 `queue/`、`metrics/`、`events/`、`storage/`、`types/`
 - **目录合并**：`common/queues/` 并入 `common/queue/`（`base-async-queue.service.ts` + spec 移入，barrel 统一导出）
 
+## 2026-07-17 向量检索工具去重 + 队列可观测性增强（架构审查 #5/#7/#8）
+
+来源：`plans/2026-07-16-architecture-review.md` 中优先级 #5、#7、#8。
+
+- **VectorStoreFactory**：抽取共享工厂，复用 `LlmRuntimeService.createEmbeddingModel()` + 按 tableName 缓存 PGVectorStore；三个 assistant 工具（leaflet/drugbank/knowledge）消除约 120 行重复代码、三份 `OpenAIEmbeddings` 实例、三份 pg 连接池
+- **ADR-0004 队列拓扑**：补记 BullMQ worker 全部跑在 API 进程内的设计决策 + 中期拆分计划
+- **failed job 结构化日志**：`BaseAsyncQueueService.processJob` 和 `BullmqQueueFactory` worker failed 事件升级为 Winston 结构化日志（含 queue/jobId/attemptsMade/errorLabel）
+- **Grafana alert rules**：已有 `BullMQJobFailures` 和 `BullMQWaitingBacklog`，无需新增
+
 ## 2026-07-17 代码审查安全修复
 
 来源：`plans/lucent-review-2026-07-17.md`（3 个 🔴 + 2 个 🟡）。

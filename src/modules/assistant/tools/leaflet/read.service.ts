@@ -1,11 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { OpenAIEmbeddings } from '@langchain/openai';
-import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
+import type { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { PrismaService } from '../../../../prisma/prisma.service';
-import { ConfigKey } from '../../../../config/config-keys.enum';
-import { EnvKey } from '../../../../config/env-keys.enum';
-import type { AiConfig } from '../../../../config/ai.config';
+import { VectorStoreFactory } from '../vector-store.factory';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
@@ -29,12 +25,9 @@ const EMBEDDINGS_TABLE = 'leaflet_embeddings';
 
 @Injectable()
 export class AssistantToolLeafletReadService {
-  private vectorStore: PGVectorStore | null = null;
-  private initPromise: Promise<void> | null = null;
-
   constructor(
     private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
+    private readonly vectorStoreFactory: VectorStoreFactory,
   ) {}
 
   async hasIndexedChunks(): Promise<boolean> {
@@ -65,7 +58,7 @@ export class AssistantToolLeafletReadService {
       });
     }
 
-    const store = await this.getVectorStore();
+    const store = await this.vectorStoreFactory.getStore(EMBEDDINGS_TABLE);
     if (!store) {
       return this.buildEmptyEnvelope({
         medicineQuery: query,
@@ -338,63 +331,6 @@ export class AssistantToolLeafletReadService {
       resolvedProductName: topProduct.productName,
       ambiguities: [...new Set(ambiguities)],
     };
-  }
-
-  /**
-   * Lazily initializes the PGVectorStore backed by the leaflet_embeddings table.
-   * Returns null when embedding is not configured.
-   */
-  private async getVectorStore(): Promise<PGVectorStore | null> {
-    if (this.vectorStore) return this.vectorStore;
-    if (this.initPromise) {
-      await this.initPromise;
-      return this.vectorStore;
-    }
-
-    this.initPromise = this.initializeStore();
-    await this.initPromise;
-    return this.vectorStore;
-  }
-
-  private async initializeStore(): Promise<void> {
-    const dbUrl = this.configService.get<string>(EnvKey.DATABASE_URL);
-    if (!dbUrl) return;
-
-    const embeddings = this.createEmbeddings();
-    if (!embeddings) return;
-
-    this.vectorStore = new PGVectorStore(embeddings, {
-      postgresConnectionOptions: { connectionString: dbUrl },
-      tableName: EMBEDDINGS_TABLE,
-      columns: {
-        idColumnName: 'id',
-        vectorColumnName: 'embedding',
-        contentColumnName: 'document',
-        metadataColumnName: 'cmetadata',
-      },
-      distanceStrategy: 'cosine',
-    });
-
-    await this.vectorStore.ensureTableInDatabase();
-  }
-
-  private createEmbeddings(): OpenAIEmbeddings | null {
-    const aiConfig = this.configService.get<AiConfig>(ConfigKey.Ai);
-    const embedding = aiConfig?.embedding;
-    if (
-      !embedding ||
-      !embedding.apiKey ||
-      !embedding.baseUrl ||
-      !embedding.model
-    ) {
-      return null;
-    }
-
-    return new OpenAIEmbeddings({
-      apiKey: embedding.apiKey,
-      configuration: { baseURL: embedding.baseUrl },
-      model: embedding.model,
-    });
   }
 
   private buildEmptyEnvelope(input: {

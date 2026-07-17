@@ -7,6 +7,7 @@ export * from './proposal.service';
 export * from './read.service';
 export * from './read-helpers';
 export * from './vector-cursor';
+export * from './vector-store.factory';
 export * from './constants';
 export * from './drugbank';
 export * from './leaflet';

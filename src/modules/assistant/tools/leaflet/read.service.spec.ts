@@ -14,13 +14,15 @@ const mockSimilaritySearchWithScore = vi.fn();
 const mockAddDocuments = vi.fn();
 const mockEnsureTable = vi.fn();
 
+const mockVectorStore = {
+  similaritySearchWithScore: mockSimilaritySearchWithScore,
+  addDocuments: mockAddDocuments,
+  ensureTableInDatabase: mockEnsureTable,
+};
+
 vi.mock('@langchain/community/vectorstores/pgvector', () => ({
   PGVectorStore: vi.fn().mockImplementation(function () {
-    return {
-      similaritySearchWithScore: mockSimilaritySearchWithScore,
-      addDocuments: mockAddDocuments,
-      ensureTableInDatabase: mockEnsureTable,
-    };
+    return mockVectorStore;
   }),
 }));
 
@@ -32,32 +34,21 @@ vi.mock('pg', () => ({
   Pool: vi.fn(),
 }));
 
-describe('AssistantToolLeafletReadService', () => {
-  let configService: {
-    get: vi.Mock;
-  };
+/**
+ * Mock VectorStoreFactory that returns the shared mockVectorStore.
+ * Replaces the old per-service ConfigService + getVectorStore pattern.
+ */
+const mockVectorStoreFactory = {
+  getStore: vi.fn().mockResolvedValue(mockVectorStore),
+};
 
+describe('AssistantToolLeafletReadService', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-25T12:00:00.000Z'));
     mockSimilaritySearchWithScore.mockReset();
     mockEnsureTable.mockReset();
-
-    configService = {
-      get: vi.fn((key: string) => {
-        if (key === 'DATABASE_URL')
-          return 'postgres://test:test@localhost:5432/test';
-        if (key === 'ai')
-          return {
-            embedding: {
-              apiKey: 'test-key',
-              baseUrl: 'https://test.api',
-              model: 'test-model',
-            },
-          };
-        return undefined;
-      }),
-    };
+    mockVectorStoreFactory.getStore.mockResolvedValue(mockVectorStore);
   });
 
   afterEach(() => {
@@ -97,7 +88,7 @@ describe('AssistantToolLeafletReadService', () => {
     });
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
 
     await expect(service.hasIndexedChunks()).resolves.toBe(true);
@@ -123,7 +114,7 @@ describe('AssistantToolLeafletReadService', () => {
     const prisma = buildPrisma();
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
 
     const result = await service.searchMedicineLeaflets(buildContext('   '));
@@ -136,7 +127,7 @@ describe('AssistantToolLeafletReadService', () => {
     mockSimilaritySearchWithScore.mockResolvedValue([]);
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
 
     const result = await service.searchMedicineLeaflets(
@@ -172,7 +163,7 @@ describe('AssistantToolLeafletReadService', () => {
     ]);
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
 
     const result = await service.searchMedicineLeaflets(
@@ -213,7 +204,7 @@ describe('AssistantToolLeafletReadService', () => {
 
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
 
     const result = await service.searchMedicineLeaflets(
@@ -258,7 +249,7 @@ describe('AssistantToolLeafletReadService', () => {
 
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
 
     const result = await service.searchMedicineLeaflets(
@@ -306,7 +297,7 @@ describe('AssistantToolLeafletReadService', () => {
 
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
     const queryHash = buildVectorQueryHash('阿司匹林禁忌', {});
     const result = await service.searchMedicineLeaflets(
@@ -349,7 +340,7 @@ describe('AssistantToolLeafletReadService', () => {
 
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
 
     const result = await service.searchMedicineLeaflets(
@@ -394,7 +385,7 @@ describe('AssistantToolLeafletReadService', () => {
 
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
 
     const result = await service.searchMedicineLeaflets(
@@ -448,7 +439,7 @@ describe('AssistantToolLeafletReadService', () => {
 
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
 
     const result = await service.searchMedicineLeaflets(
@@ -499,7 +490,7 @@ describe('AssistantToolLeafletReadService', () => {
 
     const service = new AssistantToolLeafletReadService(
       prisma as never,
-      configService as never,
+      mockVectorStoreFactory as never,
     );
 
     const result = await service.searchMedicineLeaflets(

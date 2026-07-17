@@ -37,6 +37,7 @@ import {
   AssistantToolReadService,
   AssistantToolRecordQueryService,
   AssistantToolService,
+  VectorStoreFactory,
 } from './tools';
 
 @Module({
@@ -52,6 +53,7 @@ import {
   controllers: [AssistantController],
   providers: [
     AssistantRuntimeService,
+    VectorStoreFactory,
     {
       provide: AssistantConversationRepositoryPort,
       useClass: AssistantConversationRepository,

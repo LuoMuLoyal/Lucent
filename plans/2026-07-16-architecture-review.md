@@ -14,14 +14,6 @@
 
 ## 中优先级
 
-### 5. 三个向量检索工具重复实现 PGVectorStore 初始化
-
-**证据**：`assistant/tools/leaflet/read.service.ts`、`assistant/tools/drugbank/search.service.ts`、`assistant/tools/knowledge/medical.service.ts` 各自维护 `vectorStore` + `initPromise` + `createEmbeddings()` + `new PGVectorStore(...)` + `ensureTableInDatabase()`（近乎逐行重复），各自 `new OpenAIEmbeddings`（而 `llm-runtime/services/llm-runtime.service.ts:136` 已有共享 `createEmbeddingModel()`），三份 pg 连接池放大数据库连接数。
-
-**行动**：抽 `VectorStoreFactory`（注入 llm-runtime 的 embedding model + 统一连接池），三个工具只声明表名/列名差异。
-
-**影响范围**：assistant/tools 的 leaflet、drugbank、knowledge + llm-runtime。
-
 ### 6. Repository 模式落地一半，绑定方式不一致
 
 **证据**：6 个模块有 Port + Repository，14 个模块（user-settings、notifications、legal-documents、today-suggestion、today-analysis、reports、account、security-pin、user、medicines、data-export 等）service 直接注入 `PrismaService`。绑定方式混用 `useClass` / `useExisting` 双注册。`DailyRecordRepositoryPort` 在 exports 中但全库无外部消费者（违反 AGENTS.md "exported iff" 规则）。
@@ -32,29 +24,6 @@
 2. 统一 port 绑定写法；移除未使用的 export。
 
 **影响范围**：模块定义文件为主，低风险。
-
-### 7. BullMQ Worker 和 Cron 全部跑在 API 进程内
-
-**证据**：`common/queue/queue.factory.ts` 在 API 进程内创建 `Worker`；7 个队列 worker（含 PDF 生成、LLM 调用）与 HTTP 请求争用同一事件循环。`today-suggestion/services/lifecycle/service.ts:256` 的 `@Cron` 每 5 分钟执行。
-
-**更新（2026-07-16）**：已决定砍掉蓝绿双 slot 改单 slot 停机部署（见 `2026-07-16-deployment-hardening.md`），cron 双进程同时触发的顾虑随之消失，无需再加分布式锁。
-
-**行动**：
-
-1. 中期：worker 拆为独立进程/容器（同一镜像不同 command），ADR-0004 部署模型补队列拓扑章节。
-
-**影响范围**：common/queue、today-suggestion lifecycle、deploy 配置。
-
-### 8. 异步任务结果无持久化，失败无死信告警
-
-**证据**：`common/queues/base-async-queue.service.ts` 把 `AsyncJobResult` 只写 cache-manager（TTL 30 分钟），客户端轮询 `getStatus`（5 个 controller）。30 分钟未轮询结果即丢；job 重试 3 次进 failed 集合仅保留 7 天，无告警；Prometheus 有 `bullmq_jobs_total` 指标但 alert rules 未做。
-
-**行动**：
-
-1. failed 任务落 UserNotification 或至少结构化 error 日志 + Grafana alert。
-2. 长结果（如 AI 摘要）考虑写回业务表而非只放缓存。
-
-**影响范围**：common/queues、5 个队列消费模块、notifications。
 
 ### 9. 认证 guard 逐 controller 手动挂载（默认不安全）
 

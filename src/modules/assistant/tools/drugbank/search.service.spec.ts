@@ -5,12 +5,14 @@ import { decodeVectorCursor, encodeVectorCursor } from '../vector-cursor';
 const mockSimilaritySearchWithScore = vi.fn();
 const mockEnsureTable = vi.fn();
 
+const mockVectorStore = {
+  similaritySearchWithScore: mockSimilaritySearchWithScore,
+  ensureTableInDatabase: mockEnsureTable,
+};
+
 vi.mock('@langchain/community/vectorstores/pgvector', () => ({
   PGVectorStore: vi.fn().mockImplementation(function () {
-    return {
-      similaritySearchWithScore: mockSimilaritySearchWithScore,
-      ensureTableInDatabase: mockEnsureTable,
-    };
+    return mockVectorStore;
   }),
 }));
 
@@ -18,23 +20,14 @@ vi.mock('@langchain/openai', () => ({
   OpenAIEmbeddings: vi.fn(),
 }));
 
-describe('AssistantToolDrugbankSearchService', () => {
-  const configService = {
-    get: vi.fn((key: string) => {
-      if (key === 'DATABASE_URL')
-        return 'postgres://test:test@localhost:5432/test';
-      if (key === 'ai')
-        return {
-          embedding: {
-            apiKey: 'test-key',
-            baseUrl: 'https://test.api',
-            model: 'test-model',
-          },
-        };
-      return undefined;
-    }),
-  };
+/**
+ * Mock VectorStoreFactory that returns the shared mockVectorStore.
+ */
+const mockVectorStoreFactory = {
+  getStore: vi.fn().mockResolvedValue(mockVectorStore),
+};
 
+describe('AssistantToolDrugbankSearchService', () => {
   beforeEach(() => {
     mockSimilaritySearchWithScore.mockReset();
     mockEnsureTable.mockReset();
@@ -85,7 +78,7 @@ describe('AssistantToolDrugbankSearchService', () => {
     } as never);
 
     const service = new AssistantToolDrugbankSearchService(
-      configService as never,
+      mockVectorStoreFactory as never,
       resolveService,
     );
     const result = await service.search({
@@ -108,7 +101,7 @@ describe('AssistantToolDrugbankSearchService', () => {
     } as never);
 
     const service = new AssistantToolDrugbankSearchService(
-      configService as never,
+      mockVectorStoreFactory as never,
       resolveService,
     );
     const result = await service.search({
