@@ -3,35 +3,35 @@ import {
   badRequest,
   unauthorized,
   conflict,
-} from '../../../common/helpers/api-errors';
-import { normalizeEmail } from '../../../common/helpers/string.utils';
+} from '../../../../common/helpers/api-errors';
+import { normalizeEmail } from '../../../../common/helpers/string.utils';
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
-import { ARGON2_OPTIONS } from '../config/argon2-options';
-import { NotificationsService } from '../../notifications/services/notifications.service';
+import { ARGON2_OPTIONS } from '../../config/argon2-options';
+import { NotificationsService } from '../../../notifications/services/notifications.service';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
-import { UserService } from '../../user/services/user.service';
+import { UserService } from '../../../user/services/user.service';
 import { VerificationCodeService } from './verification-code.service';
-import { ResultCode } from '../../../common/api';
-import { RegisterDto } from '../dto/register.dto';
-import { LoginDto } from '../dto/login.dto';
-import { ChangePasswordDto } from '../dto/change-password.dto';
-import { ChangeEmailDto } from '../dto/change-email.dto';
-import { ResetPasswordDto } from '../dto/reset-password.dto';
-import { SetPasswordDto } from '../dto/set-password.dto';
-import { ForgotPasswordDto } from '../dto/forgot-password.dto';
-import { SendVerificationCodeDto } from '../dto/send-verification-code.dto';
-import { VerifyEmailDto } from '../dto/verify-email.dto';
+import { ResultCode } from '../../../../common/api';
+import { RegisterDto } from '../../dto/register.dto';
+import { LoginDto } from '../../dto/login.dto';
+import { ChangePasswordDto } from '../../dto/change-password.dto';
+import { ChangeEmailDto } from '../../dto/change-email.dto';
+import { ResetPasswordDto } from '../../dto/reset-password.dto';
+import { SetPasswordDto } from '../../dto/set-password.dto';
+import { ForgotPasswordDto } from '../../dto/forgot-password.dto';
+import { SendVerificationCodeDto } from '../../dto/send-verification-code.dto';
+import { VerifyEmailDto } from '../../dto/verify-email.dto';
 import {
   AuthTokenService,
   type AuthRequestContext,
   type TokenPair,
-} from './token.service';
+} from '../token.service';
 import { AuthRateLimitService } from './rate-limit.service';
-import { now } from '../../../common/helpers/date-time.utils';
+import { now } from '../../../../common/helpers/date-time.utils';
 
 /**
  * Handles email/password credential flows: registration, login,

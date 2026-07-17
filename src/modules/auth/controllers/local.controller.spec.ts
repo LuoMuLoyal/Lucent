@@ -3,7 +3,7 @@ import { ResultCode } from '../../../common/api';
 import type { FastifyRequest } from 'fastify';
 import { LocalController } from './local.controller';
 import { AuthService } from '../services/auth.service';
-import { VerificationCodeService } from '../services/verification-code.service';
+import { VerificationCodeService } from '../services/identity';
 
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },

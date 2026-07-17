@@ -15,7 +15,7 @@ import {
   getRequestClientIp,
 } from '../../../common/helpers/client-ip';
 import { AuthService } from '../services/auth.service';
-import { VerificationCodeService } from '../services/verification-code.service';
+import { VerificationCodeService } from '../services/identity';
 
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';

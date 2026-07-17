@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../common/helpers/prisma.utils';
+import { nonDeleted } from '../../../common/helpers/prisma.utils';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -7,27 +7,27 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 
-import { AuthService } from './services/auth.service';
+import { AuthService } from './auth.service';
 import {
   AuthSessionRepositoryPort,
   AuthAccountRepositoryPort,
-} from './repositories';
-import { UserService } from '../user/services/user.service';
-import { VerificationCodeService } from './services/verification-code.service';
-import { AuthRateLimitService } from './services/rate-limit.service';
-import { AuthTokenService } from './services/token.service';
-import { AuthOAuthStateService } from './services/oauth/state.service';
-import { AuthOAuthService } from './services/oauth/oauth.service';
-import { CredentialAuthService } from './services/credential.service';
-import { AuthAccountService } from './services/account.service';
-import { AuthOAuthFacadeService } from './services/oauth/facade.service';
-import { AuthNotificationService } from './services/notification.service';
+} from '../repositories';
+import { UserService } from '../../user/services/user.service';
+import { VerificationCodeService } from './identity';
+import { AuthRateLimitService } from './identity';
+import { AuthTokenService } from './token.service';
+import { AuthOAuthStateService } from './oauth/state.service';
+import { AuthOAuthService } from './oauth/oauth.service';
+import { CredentialAuthService } from './identity';
+import { AuthAccountService } from './account.service';
+import { AuthOAuthFacadeService } from './oauth/facade.service';
+import { AuthNotificationService } from './notification.service';
 import { UserStatus } from '#generated/prisma/client';
-import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
-import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
-import { AppleOAuthProvider } from './providers/apple-oauth.provider';
-import { QqOAuthProvider } from './providers/qq-oauth.provider';
-import { NotificationsService } from '../notifications/services/notifications.service';
+import { WechatMobileOAuthProvider } from '../providers/wechat-mobile-oauth.provider';
+import { WechatWebOAuthProvider } from '../providers/wechat-web-oauth.provider';
+import { AppleOAuthProvider } from '../providers/apple-oauth.provider';
+import { QqOAuthProvider } from '../providers/qq-oauth.provider';
+import { NotificationsService } from '../../notifications/services/notifications.service';
 
 vi.mock('argon2', () => ({
   argon2id: 2,

@@ -26,7 +26,7 @@ import { OAuthAuthorizeResult } from '../types/oauth.types';
 import { AuthAccountService } from './account.service';
 import { AuthOAuthFacadeService } from './oauth/facade.service';
 import { AuthTokenService } from './token.service';
-import { CredentialAuthService } from './credential.service';
+import { CredentialAuthService } from './identity';
 
 export type { AuthRequestContext, UserPayload } from '../types/auth-request';
 

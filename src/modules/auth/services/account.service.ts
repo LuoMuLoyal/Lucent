@@ -9,7 +9,7 @@ import { normalizeEmail } from '../../../common/helpers/string.utils';
 import { now } from '../../../common/helpers/date-time.utils';
 import { UserService } from '../../user/services/user.service';
 import { DeleteAccountDto } from '../dto/delete-account.dto';
-import { VerificationCodeService } from './verification-code.service';
+import { VerificationCodeService } from './identity';
 import { AuthAccountRepositoryPort } from '../repositories/account.repository';
 
 @Injectable()

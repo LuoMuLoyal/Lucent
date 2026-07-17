@@ -61,7 +61,39 @@ update/delete`。具名例外：
 - AdminJS（整个 client 交给 `@sergiyiva/adminjs-prisma`，由资源配置受控）
 - security-pin 写 User 表的 `securityPin*` 字段组（见字段分组归属）
 - `common/llm/base-llm-summary.service.ts` 读 `userSetting`（现状保留，随
-  `LlmCommonModule` 收敛时一并处理）
+  `LlmCommonModule` 收敛时一并处理）（✅ `LlmCommonModule` 已于 2026-07-17 落地）
+
+### Port 标准（架构审查 #6 补充）
+
+#### 哪些模块必须有 Port
+
+| 场景                                         | 是否需要 Port         | 说明                                                                 |
+| -------------------------------------------- | --------------------- | -------------------------------------------------------------------- |
+| 写路径被跨模块调用                           | **必须**              | owning module 的写 service 导出，消费方经 service 调用               |
+| 表被 ≥2 个外部模块高频跨读                   | **必须有 ReaderPort** | 收敛查询语义，防止 select/排序漂移                                   |
+| 读模型模块（today-\*/reports）               | **豁免**              | 聚合查询多、查询形态各异，强制 port = 过度设计                       |
+| 纯 CRUD 模块（仅 controller→service→prisma） | **豁免**              | 无跨模块消费者时不需要 port；service 直接注入 PrismaService          |
+| assistant 模式（消费方定义 port）            | **保留**              | assistant/types/ports.ts 是全库最好的边界示范，不强制改为提供方 port |
+
+#### Port 绑定规范
+
+统一使用 **concrete class + `useExisting`** 模式，禁止 `useClass` 双实例：
+
+```typescript
+// ✅ 正确：单实例，port 和 concrete 共享同一对象
+MyRepository,                          // concrete class 作为 provider
+{ provide: MyRepositoryPort, useExisting: MyRepository },
+{ provide: MyReaderPort, useExisting: MyRepository },
+
+// ❌ 错误：useClass 创建第二个实例，与 concrete 不同步
+{ provide: MyRepositoryPort, useClass: MyRepository },
+```
+
+#### Export 规则
+
+- Port token **仅在存在外部消费者时** export（对齐 AGENTS.md "exported iff"）
+- 模块内部使用的 Port（如 `DailyRecordRepositoryPort`）不 export
+- ReaderPort 有外部消费者时 export（如 `DailyRecordReaderPort`、`MedicineDoseLogReaderPort`）
 
 ### 过渡说明
 
@@ -86,6 +118,6 @@ medicine-dose-logs 之间存在 `forwardRef` 双向模块引用——反向边�
 - **变清晰**：写路径唯一入口（owning module service），User 表不再被随意 update
 - **新增约束**：新增跨模块查询需自查本 ADR 读/写规则；review 时以表归属表为准
 - **临时债**：today-suggestion ⇄ daily-records / medicine-dose-logs 的 `forwardRef`，
-  计划 #2 落地后移除
+  计划 #2 落地后移除（✅ 已于 2026-07-17 移除）
 - **不做**：reminder / currentMedicine / settings / allergy 的重复直查本次保留，由读
   规则约束，达到"高频"标准时再收敛

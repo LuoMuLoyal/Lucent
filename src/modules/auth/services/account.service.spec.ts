@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
 import type { UserService } from '../../user/services/user.service';
-import type { VerificationCodeService } from './verification-code.service';
+import type { VerificationCodeService } from './identity';
 import type { AuthAccountRepositoryPort } from '../repositories/account.repository';
 import { AuthAccountService } from './account.service';
 

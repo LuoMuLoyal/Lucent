@@ -14,15 +14,15 @@ import { AuthService } from './services/auth.service';
 import { LocalController } from './controllers/local.controller';
 import { OAuthController } from './controllers/oauth.controller';
 import { SessionController } from './controllers/session.controller';
-import { AuthRateLimitService } from './services/rate-limit.service';
+import { AuthRateLimitService } from './services/identity';
 import { AuthTokenService } from './services/token.service';
 import { AuthOAuthStateService } from './services/oauth/state.service';
 import { AuthOAuthService } from './services/oauth/oauth.service';
-import { CredentialAuthService } from './services/credential.service';
+import { CredentialAuthService } from './services/identity';
 import { AuthAccountService } from './services/account.service';
 import { AuthOAuthFacadeService } from './services/oauth/facade.service';
 import { AuthNotificationService } from './services/notification.service';
-import { VerificationCodeService } from './services/verification-code.service';
+import { VerificationCodeService } from './services/identity';
 import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';
 import { AppleOAuthProvider } from './providers/apple-oauth.provider';
@@ -38,13 +38,15 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
   ],
   controllers: [LocalController, OAuthController, SessionController],
   providers: [
+    AuthSessionRepository,
     {
       provide: AuthSessionRepositoryPort,
-      useClass: AuthSessionRepository,
+      useExisting: AuthSessionRepository,
     },
+    AuthAccountRepository,
     {
       provide: AuthAccountRepositoryPort,
-      useClass: AuthAccountRepository,
+      useExisting: AuthAccountRepository,
     },
     AuthService,
     AuthAccountService,

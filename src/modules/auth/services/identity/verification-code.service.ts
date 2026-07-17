@@ -13,17 +13,17 @@ import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 
-import { ResultCode } from '../../../common/api';
+import { ResultCode } from '../../../../common/api';
 import {
   DEFAULT_VERIFICATION_CODE_LENGTH,
   DEFAULT_VERIFICATION_CODE_TTL_MS,
   DEFAULT_VERIFICATION_COOLDOWN_MS,
   DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
   DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
-} from '../../../config/constants';
-import { EnvKey } from '../../../config/env-keys.enum';
-import { MailService } from '../../../mail/mail.service';
-import type { VerificationScene } from '../dto/send-verification-code.dto';
+} from '../../../../config/constants';
+import { EnvKey } from '../../../../config/env-keys.enum';
+import { MailService } from '../../../../mail/mail.service';
+import type { VerificationScene } from '../../dto/send-verification-code.dto';
 
 interface RateLimitBucket {
   count: number;
