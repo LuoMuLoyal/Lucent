@@ -10,17 +10,6 @@
 
 ## 高优先级
 
-### 2. 建议引擎缓存失效覆盖不完整 + 反向分层依赖
-
-**问题**：`today-suggestion/services/cache/suggestion-cache.service.ts` 的信号缓存（TTL 5 分钟）采集自 reminders + currentMedicines + profile + settings + records，但只有两处失效调用（`daily-records/services/records.service.ts:292`、`medicine-dose-logs/services/dose-logs.service.ts:185`）。`medicine-reminders.module.ts` imports 为空——提醒增删改不失效缓存；user-health-context、user-settings 写路径同样不失效。同时失效机制迫使 daily-records / medicine-dose-logs **imports TodaySuggestionModule**（资源层反向依赖聚合层），`records.service.ts:25` 还深引用 today-suggestion 的 `cache/` 内部文件。
-
-**行动**：
-
-1. 失效改为事件驱动（`@nestjs/event-emitter` 或轻量 domain event），today-suggestion 订阅 `record.created` / `reminder.changed` / `health-context.changed` / `settings.changed`，解除反向 imports。
-2. 或退一步：在 medicine-reminders、user-health-context、user-settings 写路径补齐失效调用并提取共享失效端口。
-
-**影响范围**：today-suggestion、daily-records、medicine-dose-logs、medicine-reminders、user-health-context、user-settings。
-
 ### 3. PrismaService 裸客户端：软删除/查询可观测性零强制
 
 **问题**：`prisma/prisma.service.ts` 只做 connect/disconnect。全库 4 个模型有 `deletedAt`（User、UserDailyRecord、UserMedicineReminder、UserMedicineDoseLog），过滤正确性完全依赖每个 where 手写，而跨模块直查点已超 20 处。无查询日志、无慢查询记录。

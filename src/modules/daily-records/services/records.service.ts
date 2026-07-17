@@ -1,6 +1,11 @@
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
-import { parseDateOnly, now } from '../../../common/helpers/date-time.utils';
+import {
+  parseDateOnly,
+  now,
+  formatDateOnly,
+} from '../../../common/helpers/date-time.utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { badRequest } from '../../../common/helpers/api-errors';
 import { DailyRecordKind, Prisma } from '#generated/prisma/client';
 import { toInputJsonValue } from '../../../common/helpers/json.utils';
@@ -22,8 +27,10 @@ import {
 import { MealAnalysisQueueService } from './meal-analysis/queue.service';
 import { MealDishTemplateLearningService } from './meal-dish/template-learning.service';
 import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
-import { SuggestionCacheService } from '../../today-suggestion/services/cache/suggestion-cache.service';
-import { formatDateOnly } from '../../../common/helpers/date-time.utils';
+import {
+  DAILY_RECORD_CHANGED,
+  type DailyRecordChangedPayload,
+} from '../../../common/events/domain-events.js';
 
 @Injectable()
 export class DailyRecordsService {
@@ -35,7 +42,7 @@ export class DailyRecordsService {
     private readonly mapperService: DailyRecordsMapperService,
     private readonly mealAnalysisQueueService: MealAnalysisQueueService,
     private readonly mealDishTemplateLearningService: MealDishTemplateLearningService,
-    private readonly suggestionCache: SuggestionCacheService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async list(
@@ -289,10 +296,13 @@ export class DailyRecordsService {
         typeof occurredAt === 'string'
           ? formatDateOnly(parseDateOnly(occurredAt))
           : formatDateOnly(occurredAt);
-      await this.suggestionCache.invalidateSignals(userId, dateStr);
+      await this.eventEmitter.emitAsync(DAILY_RECORD_CHANGED, {
+        userId,
+        date: dateStr,
+      } satisfies DailyRecordChangedPayload);
     } catch (error) {
       // cache invalidation is best-effort
-      this.logger.warn('Failed to invalidate suggestion cache', {
+      this.logger.warn('Failed to emit daily-record.changed event', {
         userId,
         error,
       });

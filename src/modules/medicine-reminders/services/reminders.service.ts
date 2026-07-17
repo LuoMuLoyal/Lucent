@@ -1,5 +1,6 @@
 import { nonDeleted } from '../../../common/helpers/prisma.utils';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MedicineReminderRepositoryPort } from '../repositories';
 import type {
   CreateMedicineReminderDto,
@@ -8,13 +9,20 @@ import type {
 import { MedicineRemindersOwnershipService } from './ownership.service';
 import { MedicineRemindersMapperService } from './mapper.service';
 import { now } from '../../../common/helpers/date-time.utils';
+import {
+  REMINDER_CHANGED,
+  type ReminderChangedPayload,
+} from '../../../common/events/domain-events.js';
 
 @Injectable()
 export class MedicineRemindersService {
+  private readonly logger = new Logger(MedicineRemindersService.name);
+
   constructor(
     private readonly repository: MedicineReminderRepositoryPort,
     private readonly ownershipService: MedicineRemindersOwnershipService,
     private readonly mapperService: MedicineRemindersMapperService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async list(userId: string, activeOnly = false) {
@@ -44,6 +52,7 @@ export class MedicineRemindersService {
       this.mapperService.toCreateData(userId, dto),
     );
 
+    await this.emitReminderChanged(userId);
     return this.mapperService.toItem(record);
   }
 
@@ -62,6 +71,7 @@ export class MedicineRemindersService {
       this.mapperService.toUpdateData(dto, existing),
     );
 
+    await this.emitReminderChanged(userId);
     return this.mapperService.toItem(record);
   }
 
@@ -71,6 +81,20 @@ export class MedicineRemindersService {
       { id },
       { deletedAt: now(), isActive: false },
     );
+    await this.emitReminderChanged(userId);
+  }
+
+  private async emitReminderChanged(userId: string): Promise<void> {
+    try {
+      await this.eventEmitter.emitAsync(REMINDER_CHANGED, {
+        userId,
+      } satisfies ReminderChangedPayload);
+    } catch (error) {
+      this.logger.warn('Failed to emit reminder.changed event', {
+        userId,
+        error,
+      });
+    }
   }
 
   async listDeliveries(userId: string, date?: string, limit = 20) {

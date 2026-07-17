@@ -223,7 +223,8 @@ Last updated: 2026-07-17
 - **DailyRecordReaderPort**：8 处跨模块直查中的 5 处 `userDailyRecord` 查询（today-suggestion collectors/record、lifecycle/baseline、today-analysis context、reports dashboard context）收敛为 `listFactsInRange(userId, from, to, kinds?)`，实现于 `DailyRecordRepository`，规范排序 `occurredAt asc, createdAt asc`；需要 `createdAt desc` 的消费方内存重排
 - **MedicineDoseLogReaderPort**：3 处 `userMedicineDoseLog` 直查（collectors/medication、today-analysis、reports dashboard）收敛为 `listFactsInRange(userId, from, to)`；`MedicineDoseLogsModule` 首次有了 exports
 - **account 写路径改道**：`AccountService` 不再注入 `PrismaService`，昵称/头像更新经 `UserService.update`，解绑经新增的 `UserService.unlinkIdentity`，账户+身份读取经新增的 `UserService.findByIdWithIdentities`；`AccountModule` 新增 `UserModule` import
-- **临时 forwardRef**：today-suggestion ⇄ daily-records / medicine-dose-logs（反向边是缓存失效调用），计划 #2 事件驱动失效落地后移除
+- **事件驱动缓存失效**：缓存失效从直接调用改为 `@nestjs/event-emitter` 事件驱动；5 个资源模块（daily-records / medicine-dose-logs / medicine-reminders / user-health-context / user-settings）写路径 emit domain event，today-suggestion 内 `SuggestionCacheInvalidationListener` 订阅并触发 `invalidateSignals` / `invalidateBaseline`；移除 `forwardRef(DailyRecordsModule/MedicineDoseLogsModule)` 反向依赖和 `SuggestionCacheService` export
+- **Domain event 定义**：`src/common/events/domain-events.ts`，5 个事件（`DAILY_RECORD_CHANGED` / `DOSE_LOG_CHANGED` / `REMINDER_CHANGED` / `HEALTH_CONTEXT_CHANGED` / `SETTINGS_CHANGED`）及对应 payload 类型
 - **模块绑定统一**：daily-records 的 repository 注册从 `useClass` 改为具体类 + `useExisting`（与 dose-logs/health-context 一致，单实例挂两个 port）
 - **附带补齐**：`daily-records/repositories/index.ts` barrel 新建（该子目录此前无 barrel）
 

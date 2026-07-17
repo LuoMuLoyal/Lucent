@@ -1,4 +1,4 @@
-import { Module, OnModuleInit, forwardRef } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
@@ -27,6 +27,7 @@ import { LifecycleService } from './services/lifecycle/service';
 import { FeedbackService } from './services/feedback/service';
 import { FeedbackStatsService } from './services/feedback/stats.service';
 import { SuggestionCacheService } from './services/cache/suggestion-cache.service';
+import { SuggestionCacheInvalidationListener } from './services/cache/suggestion-cache-invalidation.listener';
 import { RuleVersionRegistry } from './services/rules/rule-version-registry.service';
 import { EscalationService } from './services/notification/escalation.service';
 import { ExplanationGeneratorService } from './services/explanation/generator.service';
@@ -41,16 +42,12 @@ import type { SuggestionRule } from './types';
  * Pipeline: Signal → Candidate (rule engine) → Suppression → Arbitration → Lifecycle → Notification → DTO
  */
 @Module({
-  // forwardRef on DailyRecordsModule / MedicineDoseLogsModule: both import
-  // this module for suggestion-cache invalidation, while collectors here
-  // consume their reader ports (ADR-0009). The reverse edge is removed once
-  // architecture-review #2 moves invalidation to domain events.
   imports: [
     PrismaModule,
     NotificationsModule,
     LlmRuntimeModule,
-    forwardRef(() => DailyRecordsModule),
-    forwardRef(() => MedicineDoseLogsModule),
+    DailyRecordsModule,
+    MedicineDoseLogsModule,
   ],
   controllers: [TodaySuggestionController],
   providers: [
@@ -80,6 +77,7 @@ import type { SuggestionRule } from './types';
     FeedbackStatsService,
     // Cache
     SuggestionCacheService,
+    SuggestionCacheInvalidationListener,
     // Notification escalation
     EscalationService,
     // AI explanation
@@ -90,12 +88,7 @@ import type { SuggestionRule } from './types';
     // Orchestrator
     SuggestionService,
   ],
-  exports: [
-    SuggestionService,
-    FeedbackService,
-    ExplanationService,
-    SuggestionCacheService,
-  ],
+  exports: [SuggestionService, FeedbackService, ExplanationService],
 })
 export class TodaySuggestionModule implements OnModuleInit {
   constructor(

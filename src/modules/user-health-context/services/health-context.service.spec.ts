@@ -2,6 +2,7 @@ import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { type Mocked } from 'vitest';
 import {
   MedicineSource,
@@ -93,6 +94,10 @@ describe('UserHealthContextService', () => {
           useValue: {
             t: vi.fn((key: string) => key),
           },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: { emitAsync: vi.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();

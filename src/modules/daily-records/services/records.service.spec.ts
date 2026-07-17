@@ -9,7 +9,7 @@ import { DailyRecordsMapperService } from './mapper.service';
 import { DailyRecordsService } from './records.service';
 import { MealAnalysisQueueService } from './meal-analysis/queue.service';
 import { MealDishTemplateLearningService } from './meal-dish/template-learning.service';
-import { SuggestionCacheService } from '../../today-suggestion/services/cache/suggestion-cache.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const mockUserId = 'user-uuid-1';
 
@@ -87,10 +87,8 @@ describe('DailyRecordsService', () => {
           useValue: repositoryMock,
         },
         {
-          provide: SuggestionCacheService,
-          useValue: {
-            invalidateSignals: vi.fn().mockResolvedValue(undefined),
-          },
+          provide: EventEmitter2,
+          useValue: { emitAsync: vi.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();

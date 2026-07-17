@@ -1,6 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../prisma/prisma.service';
 import type { UpdateUserSettingsDto, UserSettingsDataDto } from '../dto';
 import {
@@ -9,6 +10,10 @@ import {
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
 } from '../constants/constants';
+import {
+  SETTINGS_CHANGED,
+  type SettingsChangedPayload,
+} from '../../../common/events/domain-events.js';
 
 /** Type union for settings values stored in the DB. */
 type SettingValue = boolean | number;
@@ -17,10 +22,12 @@ type SettingValue = boolean | number;
 export class UserSettingsService {
   private static readonly CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
   private static readonly CACHE_PREFIX = 'user-settings';
+  private readonly logger = new Logger(UserSettingsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async invalidateUserCache(userId: string): Promise<void> {
@@ -187,7 +194,21 @@ export class UserSettingsService {
 
     // Invalidate cache and return fresh data
     await this.cache.del(`${UserSettingsService.CACHE_PREFIX}:${userId}`);
+    await this.emitSettingsChanged(userId);
     return this.getSettings(userId);
+  }
+
+  private async emitSettingsChanged(userId: string): Promise<void> {
+    try {
+      await this.eventEmitter.emitAsync(SETTINGS_CHANGED, {
+        userId,
+      } satisfies SettingsChangedPayload);
+    } catch (error) {
+      this.logger.warn('Failed to emit settings.changed event', {
+        userId,
+        error,
+      });
+    }
   }
 
   private readBool(

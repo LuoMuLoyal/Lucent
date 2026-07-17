@@ -1,0 +1,132 @@
+import { SuggestionCacheInvalidationListener } from './suggestion-cache-invalidation.listener';
+
+describe('SuggestionCacheInvalidationListener', () => {
+  let listener: SuggestionCacheInvalidationListener;
+  let cache: {
+    invalidateSignals: vi.Mock;
+    invalidateSuggestions: vi.Mock;
+    invalidateBaseline: vi.Mock;
+  };
+
+  beforeEach(() => {
+    cache = {
+      invalidateSignals: vi.fn().mockResolvedValue(undefined),
+      invalidateSuggestions: vi.fn().mockResolvedValue(undefined),
+      invalidateBaseline: vi.fn().mockResolvedValue(undefined),
+    };
+
+    listener = new SuggestionCacheInvalidationListener(cache as never);
+  });
+
+  describe('handleDailyRecordChanged', () => {
+    it('should invalidate signals for the given user and date', async () => {
+      await listener.handleDailyRecordChanged({
+        userId: 'user-1',
+        date: '2026-07-17',
+      });
+
+      expect(cache.invalidateSignals).toHaveBeenCalledWith(
+        'user-1',
+        '2026-07-17',
+      );
+    });
+
+    it('should not throw when cache invalidation fails', async () => {
+      cache.invalidateSignals.mockRejectedValue(new Error('cache error'));
+
+      await listener.handleDailyRecordChanged({
+        userId: 'user-1',
+        date: '2026-07-17',
+      });
+
+      // Should resolve without throwing
+      expect(cache.invalidateSignals).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleDoseLogChanged', () => {
+    it('should invalidate signals for the given user and date', async () => {
+      await listener.handleDoseLogChanged({
+        userId: 'user-2',
+        date: '2026-07-16',
+      });
+
+      expect(cache.invalidateSignals).toHaveBeenCalledWith(
+        'user-2',
+        '2026-07-16',
+      );
+    });
+
+    it('should not throw when cache invalidation fails', async () => {
+      cache.invalidateSignals.mockRejectedValue(new Error('cache error'));
+
+      await listener.handleDoseLogChanged({
+        userId: 'user-2',
+        date: '2026-07-16',
+      });
+
+      expect(cache.invalidateSignals).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleReminderChanged', () => {
+    it('should invalidate signals for today and baseline for the user', async () => {
+      await listener.handleReminderChanged({ userId: 'user-3' });
+
+      expect(cache.invalidateSignals).toHaveBeenCalledWith(
+        'user-3',
+        expect.any(String), // today's date
+      );
+      expect(cache.invalidateBaseline).toHaveBeenCalledWith('user-3');
+    });
+
+    it('should not throw when cache invalidation fails', async () => {
+      cache.invalidateSignals.mockRejectedValue(new Error('cache error'));
+
+      await listener.handleReminderChanged({ userId: 'user-3' });
+
+      expect(cache.invalidateSignals).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleHealthContextChanged', () => {
+    it('should invalidate signals for today and baseline for the user', async () => {
+      await listener.handleHealthContextChanged({ userId: 'user-4' });
+
+      expect(cache.invalidateSignals).toHaveBeenCalledWith(
+        'user-4',
+        expect.any(String),
+      );
+      expect(cache.invalidateBaseline).toHaveBeenCalledWith('user-4');
+    });
+
+    it('should not throw when cache invalidation fails', async () => {
+      cache.invalidateBaseline.mockRejectedValue(new Error('cache error'));
+
+      await listener.handleHealthContextChanged({ userId: 'user-4' });
+
+      expect(cache.invalidateSignals).toHaveBeenCalled();
+      expect(cache.invalidateBaseline).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleSettingsChanged', () => {
+    it('should invalidate signals for today and baseline for the user', async () => {
+      await listener.handleSettingsChanged({ userId: 'user-5' });
+
+      expect(cache.invalidateSignals).toHaveBeenCalledWith(
+        'user-5',
+        expect.any(String),
+      );
+      expect(cache.invalidateBaseline).toHaveBeenCalledWith('user-5');
+    });
+
+    it('should not throw when cache invalidation fails', async () => {
+      cache.invalidateSignals.mockRejectedValue(new Error('cache error'));
+
+      await listener.handleSettingsChanged({ userId: 'user-5' });
+
+      expect(cache.invalidateSignals).toHaveBeenCalled();
+    });
+  });
+});

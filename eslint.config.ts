@@ -75,6 +75,17 @@ export default tseslint.config(
     },
   },
   {
+    // NestJS @OnEvent 装饰器使用 string event name，无法将 payload 类型映射到方法参数。
+    // ESLint 将参数推断为 any，触发 no-unsafe-* 规则。
+    // 这是框架固有限制，listener 方法参数已使用明确的 payload 类型注解。
+    files: ['**/*-invalidation.listener.ts'],
+    rules: {
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
+  {
     files: ['**/*.spec.ts', '**/*.test.ts', 'test/**/*.ts'],
     rules: {
       '@typescript-eslint/unbound-method': 'off',

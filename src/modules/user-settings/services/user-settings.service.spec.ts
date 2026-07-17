@@ -24,7 +24,9 @@ describe('UserSettingsService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new UserSettingsService(prisma, createMockCache());
+    const service = new UserSettingsService(prisma, createMockCache(), {
+      emitAsync: vi.fn().mockResolvedValue(undefined),
+    } as never);
 
     await expect(service.getSettings('user-1')).resolves.toEqual({
       aiSummariesEnabled: true,
@@ -81,7 +83,9 @@ describe('UserSettingsService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new UserSettingsService(prisma, createMockCache());
+    const service = new UserSettingsService(prisma, createMockCache(), {
+      emitAsync: vi.fn().mockResolvedValue(undefined),
+    } as never);
 
     await expect(service.getSettings('user-1')).resolves.toEqual({
       aiSummariesEnabled: true,
@@ -118,7 +122,9 @@ describe('UserSettingsService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new UserSettingsService(prisma, createMockCache());
+    const service = new UserSettingsService(prisma, createMockCache(), {
+      emitAsync: vi.fn().mockResolvedValue(undefined),
+    } as never);
 
     await service.updateSettings('user-1', {
       assistantEnabled: false,
@@ -199,7 +205,9 @@ describe('UserSettingsService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new UserSettingsService(prisma, createMockCache());
+    const service = new UserSettingsService(prisma, createMockCache(), {
+      emitAsync: vi.fn().mockResolvedValue(undefined),
+    } as never);
 
     await service.updateSettings('user-1', {});
 
@@ -221,7 +229,9 @@ describe('UserSettingsService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new UserSettingsService(prisma, createMockCache());
+    const service = new UserSettingsService(prisma, createMockCache(), {
+      emitAsync: vi.fn().mockResolvedValue(undefined),
+    } as never);
 
     await service.updateSettings('user-1', { waterTargetCount: 12 });
 

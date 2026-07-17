@@ -7,11 +7,15 @@ import {
 import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import { normalizeNullableText } from '../../../common/helpers/string.utils';
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { I18nService } from 'nestjs-i18n';
 
 import { DoseLogStatus, Prisma } from '#generated/prisma/client';
 import { MedicineDoseLogRepositoryPort } from '../repositories';
-import { SuggestionCacheService } from '../../today-suggestion/services/cache/suggestion-cache.service';
+import {
+  DOSE_LOG_CHANGED,
+  type DoseLogChangedPayload,
+} from '../../../common/events/domain-events.js';
 import type {
   CreateDoseLogDto,
   MarkDoseLogDto,
@@ -32,7 +36,7 @@ export class MedicineDoseLogsService {
   constructor(
     private readonly repository: MedicineDoseLogRepositoryPort,
     private readonly i18n: I18nService,
-    private readonly suggestionCache: SuggestionCacheService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async list(
@@ -182,13 +186,13 @@ export class MedicineDoseLogsService {
     scheduledFor: Date,
   ): Promise<void> {
     try {
-      await this.suggestionCache.invalidateSignals(
+      await this.eventEmitter.emitAsync(DOSE_LOG_CHANGED, {
         userId,
-        formatDateOnly(scheduledFor),
-      );
+        date: formatDateOnly(scheduledFor),
+      } satisfies DoseLogChangedPayload);
     } catch (error) {
       // best-effort
-      this.logger.warn('Failed to invalidate suggestion cache', {
+      this.logger.warn('Failed to emit dose-log.changed event', {
         userId,
         error,
       });

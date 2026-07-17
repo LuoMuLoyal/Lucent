@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
@@ -62,6 +63,7 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
       useClass: CacheConfigService,
     }),
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
     // In-process (memory) rate limiting by design: sufficient for the
     // single-instance deployment; counters reset on process restart.
     ThrottlerModule.forRoot([

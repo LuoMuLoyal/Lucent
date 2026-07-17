@@ -5,7 +5,7 @@ import { type Mocked } from 'vitest';
 import { DoseLogStatus } from '#generated/prisma/client';
 import { MedicineDoseLogRepositoryPort } from '../repositories';
 import { MedicineDoseLogsService } from './dose-logs.service';
-import { SuggestionCacheService } from '../../today-suggestion/services/cache/suggestion-cache.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('MedicineDoseLogsService', () => {
   let service: MedicineDoseLogsService;
@@ -21,10 +21,8 @@ describe('MedicineDoseLogsService', () => {
         },
         MedicineDoseLogsService,
         {
-          provide: SuggestionCacheService,
-          useValue: {
-            invalidateSignals: vi.fn().mockResolvedValue(undefined),
-          },
+          provide: EventEmitter2,
+          useValue: { emitAsync: vi.fn().mockResolvedValue(undefined) },
         },
         {
           provide: MedicineDoseLogRepositoryPort,

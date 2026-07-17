@@ -8,6 +8,7 @@ import { MedicineReminderRepositoryPort } from '../repositories';
 import { MedicineRemindersOwnershipService } from './ownership.service';
 import { MedicineRemindersMapperService } from './mapper.service';
 import { MedicineRemindersService } from './reminders.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const now = new Date('2026-06-08T12:00:00.000Z');
 
@@ -56,6 +57,10 @@ describe('MedicineRemindersService', () => {
             findReminderById: vi.fn(),
             findCurrentMedicine: vi.fn(),
           },
+        },
+        {
+          provide: EventEmitter2,
+          useValue: { emitAsync: vi.fn().mockResolvedValue(undefined) },
         },
       ],
     }).compile();

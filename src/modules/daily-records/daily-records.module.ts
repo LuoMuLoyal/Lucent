@@ -1,10 +1,9 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { LlmSafetyPolicyService } from '../../common/llm/llm-safety-policy.service';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { StorageModule } from '../../common/storage';
-import { TodaySuggestionModule } from '../today-suggestion/today-suggestion.module';
 import {
   DailyRecordReaderPort,
   DailyRecordRepository,
@@ -27,16 +26,7 @@ import { MealIngredientGroundingService } from './services/meal-ingredient/groun
 import { MealDishTemplateLearningService } from './services/meal-dish/template-learning.service';
 
 @Module({
-  imports: [
-    ConfigModule,
-    PrismaModule,
-    LlmRuntimeModule,
-    StorageModule,
-    // forwardRef: today-suggestion imports this module for DailyRecordReaderPort
-    // (ADR-0009); the reverse edge (suggestion cache invalidation) is removed
-    // once architecture-review #2 moves invalidation to domain events.
-    forwardRef(() => TodaySuggestionModule),
-  ],
+  imports: [ConfigModule, PrismaModule, LlmRuntimeModule, StorageModule],
   controllers: [DailyRecordsController],
   providers: [
     LlmSafetyPolicyService,
