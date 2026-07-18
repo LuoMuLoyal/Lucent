@@ -9,6 +9,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { Public } from '../auth/decorators/public.decorator';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
@@ -47,6 +48,7 @@ export class MedicinesController {
     private readonly recognitionQueueService: MedicineRecognitionQueueService,
   ) {}
 
+  @Public()
   @Get('safety-tips')
   @ApiOperation({ summary: '随机返回用药安全提示' })
   @ApiQuery({
@@ -73,6 +75,7 @@ export class MedicinesController {
     return successEnvelope(tips);
   }
 
+  @Public()
   @Get()
   @ApiOperation({
     summary: 'Search medicines from a selected knowledge source',
@@ -103,6 +106,7 @@ export class MedicinesController {
     };
   }
 
+  @Public()
   @Get(':id')
   @ApiOperation({
     summary: 'Get medicine detail from a selected knowledge source',

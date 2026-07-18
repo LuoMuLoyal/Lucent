@@ -1,6 +1,7 @@
 import {
   Injectable,
   Logger,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 
@@ -92,8 +93,13 @@ export class LlmCircuitBreakerService {
   private openedAt: number | null = null;
   private halfOpenInFlight = 0;
 
-  constructor(options: Partial<CircuitBreakerOptions> = {}) {
-    this.options = { ...DEFAULT_OPTIONS, ...options };
+  /**
+   * @param options optional tuning overrides. When instantiated by NestJS DI
+   * (no provider for the options object), `@Optional()` lets the container
+   * pass `undefined` and the defaults are used.
+   */
+  constructor(@Optional() options?: Partial<CircuitBreakerOptions>) {
+    this.options = { ...DEFAULT_OPTIONS, ...(options ?? {}) };
   }
 
   /**

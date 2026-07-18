@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import request from 'supertest';
 import { AppController } from '../../../src/app.controller';
 import { AppService } from '../../../src/app.service';
@@ -64,6 +65,10 @@ describe('Lucent API (e2e)', () => {
               return undefined;
             }),
           },
+        },
+        {
+          provide: WINSTON_MODULE_PROVIDER,
+          useValue: { log: vi.fn() },
         },
         RequestContextService,
         ApiExceptionFilter,

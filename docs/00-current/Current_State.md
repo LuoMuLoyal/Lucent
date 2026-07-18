@@ -300,6 +300,12 @@ Last updated: 2026-07-18
 - **测试依赖修复**：`DailyRecordCandidatesGeneratorService` 接入熔断器后新增了 `LlmCircuitBreakerService` 构造参数，但 `generator.service.spec.ts` 未同步补 provider，4 个测试全部失败；补上 `useValue: new LlmCircuitBreakerService()` 后通过。
 - **CI 版本修复**：`lucent-ci.yml` 的 trivy-action 从已删除的 `@0.28.0` 升级到 `@v0.36.0`（trivy-action 供应链攻击后所有 tag 迁移到 `v` 前缀）。
 
+## 2026-07-18 修复 LlmCircuitBreakerService 破坏全部 E2E 测试 + medicines 公开端点 401
+
+- **E2E 引导崩溃修复**：`LlmCircuitBreakerService` 构造函数的 `options: Partial<CircuitBreakerOptions> = {}` 参数在 NestJS DI 中无法解析（TS 默认参数值无效、接口类型无 provider），导致全部 ~16 个 E2E 测试 `beforeAll` 失败，连锁抛出 `Cannot read properties of undefined (reading 'prisma'/'close'/…)`。修复：参数加 `@Optional()` + `?? {}` 回退默认值。
+- **medicines 公开端点修复**：E2E 引导修复后暴露 `GET /api/v1/medicines`（搜索）、`GET /api/v1/medicines/:id`（详情）、`GET /api/v1/medicines/safety-tips` 缺少 `@Public()` 装饰器（2026-07-17 全局 `JwtAuthGuard` 启用时遗漏），8 个测试 401。修复：三个 GET 端点加 `@Public()`，`recognize` 系列保持需认证。
+- **app.e2e-spec.ts 缺少 Winston provider**：2026-07-17 部署加固在 `setup-app.ts` 新增 `app.get(WINSTON_MODULE_PROVIDER)` 用于 HTTP 访问日志，但精简测试模块 `app.e2e-spec.ts` 未同步补 provider。修复：providers 数组新增 `{ provide: WINSTON_MODULE_PROVIDER, useValue: { log: vi.fn() } }`。完整 E2E 套件 261 文件全部通过。
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]
