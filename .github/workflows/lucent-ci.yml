@@ -146,7 +146,7 @@ jobs:
       # 严格模式：HIGH/CRITICAL 直接 fail。基线未建立，先严格观察，
       # 若误报过多再考虑加 .trivyignore 白名单，而不是放宽 exit-code。
       - name: Trivy scan (strict)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: lucent-ci:scan
           severity: HIGH,CRITICAL

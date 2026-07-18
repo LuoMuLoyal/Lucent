@@ -295,6 +295,11 @@ Last updated: 2026-07-18
 - **修复**：`session.controller.ts` 的 `refresh` 方法添加 `@Public()` 装饰器（方法级别，不影响同控制器中 `logout`/`sessions`/`revokeSession` 的认证要求）；运行 `pnpm export:openapi` 重新生成 `docs/openapi.json`，refresh 端点不再包含 `security` 字段。
 - **验证**：lint:check / typecheck / build / session.controller.spec.ts（4 测试）全部通过。
 
+## 2026-07-18 修复 daily-records 候选记录生成器测试 + CI trivy-action 版本
+
+- **测试依赖修复**：`DailyRecordCandidatesGeneratorService` 接入熔断器后新增了 `LlmCircuitBreakerService` 构造参数，但 `generator.service.spec.ts` 未同步补 provider，4 个测试全部失败；补上 `useValue: new LlmCircuitBreakerService()` 后通过。
+- **CI 版本修复**：`lucent-ci.yml` 的 trivy-action 从已删除的 `@0.28.0` 升级到 `@v0.36.0`（trivy-action 供应链攻击后所有 tag 迁移到 `v` 前缀）。
+
 ## 相关文档
 
 - 延后项：[[00-current/TODO]]

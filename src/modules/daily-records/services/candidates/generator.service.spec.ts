@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { LlmRuntimeService } from '../../../../llm-runtime';
 import { MetricsService } from '../../../../common/metrics/metrics.service';
+import { LlmCircuitBreakerService } from '../../../../common/llm/llm-circuit-breaker.service';
 import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
 
 interface GeneratorInternals {
@@ -28,6 +29,10 @@ describe('DailyRecordCandidatesGeneratorService', () => {
         {
           provide: MetricsService,
           useValue: { recordLlmCall: vi.fn() },
+        },
+        {
+          provide: LlmCircuitBreakerService,
+          useValue: new LlmCircuitBreakerService(),
         },
       ],
     }).compile();
