@@ -1,6 +1,7 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { LlmRuntimeService } from '../../../llm-runtime';
 import type { MetricsService } from '../../../common/metrics/metrics.service';
+import { LlmCircuitBreakerService } from '../../../common/llm/llm-circuit-breaker.service';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import { TodayAnalysisGeneratorService } from './generator.service';
 
@@ -38,6 +39,7 @@ describe('TodayAnalysisGeneratorService', () => {
         getModelName: vi.fn().mockReturnValue('test-model'),
       } as unknown as LlmRuntimeService,
       buildMetricsService(),
+      new LlmCircuitBreakerService(),
     );
 
     const result = await service.generate(
@@ -101,6 +103,7 @@ describe('TodayAnalysisGeneratorService', () => {
         getModelName: vi.fn().mockReturnValue('test-model'),
       } as unknown as LlmRuntimeService,
       metricsService,
+      new LlmCircuitBreakerService(),
     );
 
     await expect(
@@ -166,6 +169,7 @@ describe('TodayAnalysisGeneratorService', () => {
         getModelName: vi.fn().mockReturnValue('test-model'),
       } as unknown as LlmRuntimeService,
       metricsService,
+      new LlmCircuitBreakerService(),
     );
 
     await service.generate(
@@ -225,6 +229,7 @@ describe('TodayAnalysisGeneratorService', () => {
         getModelName: vi.fn(),
       } as unknown as LlmRuntimeService,
       buildMetricsService(),
+      new LlmCircuitBreakerService(),
     );
 
     expect(service.hasAnalysisModel()).toBe(true);
@@ -239,6 +244,7 @@ describe('TodayAnalysisGeneratorService', () => {
         getModelName: vi.fn(),
       } as unknown as LlmRuntimeService,
       buildMetricsService(),
+      new LlmCircuitBreakerService(),
     );
 
     expect(service.hasAnalysisModel()).toBe(false);

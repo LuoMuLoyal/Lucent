@@ -20,7 +20,7 @@ Last updated: 2026-07-18
 ## 2026-07-10 架构升级
 
 - **AI 管道**：LangGraph 重构为 `prepare_context → agent ↔ tools → respond` 真正的 tool-loop 图；LLM 通过 function calling 决定工具调用，替代旧的 keyword 路由
-- **LLM 重试**：`BaseLlmGeneratorService` 和 `AssistantRuntimeService` 增加 `withLlmRetry`（指数退避，区分可重试/不可重试错误）
+- **LLM 重试 + 熔断器**：`BaseLlmGeneratorService` 和 `AssistantRuntimeService` 增加 `withLlmRetry`（指数退避，区分可重试/不可重试错误）；外层包裹 `LlmCircuitBreakerService`（5 次连续失败触发熔断，30s 恢复，`halfOpen` 探测成功关闭）
 - **队列基础设施**：新增 `BullmqQueueFactory` + `BullmqModule`，三个队列服务（mail、meal-analysis、data-export）统一使用共享 Redis 连接和 Worker 生命周期管理
 - **Repository 抽象**：六个模块完成 Repository 层抽象：
   - `daily-records`：`DailyRecordRepositoryPort` + `DailyRecordRepository`，`DailyRecordsService` 和 `DailyRecordsOwnershipService` 全量迁移到 Port
@@ -213,7 +213,7 @@ Last updated: 2026-07-18
 - **CI 加固**：PR 上 `prisma migrate diff` 检测破坏性 migration 打 warning；新增 docker job（`docker build` 不推送 + Trivy HIGH/CRITICAL 严格扫描）
 - **零散硬化**：BullMQ 队列深度 gauge 接线（30s 轮询 `getJobCounts()`）；nginx `limit_req`（20r/s burst 40）+ `limit_conn`（50，SSE 路径只限连接）；`.env` 行级写入保留注释 + `chmod 600`；限流确认为进程内存存储并修正注释；TLS 证书过期监控（`check-cert.sh` → textfile 指标 → 告警，续期仍手工）
 - **文档**：`deployment.md` 全面重写（单 slot 流程、migration 纪律、备份、告警、TLS），ADR-0004 补记拓扑变更
-- **遗留**：LLM 调用熔断器未实现（已有超时 + 错误分类重试，见 TODO）
+- **遗留**：LLM 调用熔断器已完成（2026-07-18），见今日迁移日志
 
 ## 2026-07-17 跨模块数据访问治理（架构审查 #1）
 

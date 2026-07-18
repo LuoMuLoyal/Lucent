@@ -1,6 +1,10 @@
 import { AIMessageChunk } from '@langchain/core/messages';
 import { z } from 'zod';
 import { BaseLlmGeneratorService } from './base-llm-generator.service';
+import {
+  LlmCircuitBreakerService,
+  LlmCircuitOpenError,
+} from './llm-circuit-breaker.service';
 import type { LlmRuntimePort, LlmRole } from './llm-runtime.port';
 import type { MetricsService } from '../metrics/metrics.service';
 
@@ -30,8 +34,9 @@ class TestGeneratorService extends BaseLlmGeneratorService<
   constructor(
     llmRuntimeService: LlmRuntimePort,
     metricsService: MetricsService,
+    circuitBreaker: LlmCircuitBreakerService,
   ) {
-    super(llmRuntimeService, metricsService);
+    super(llmRuntimeService, metricsService, circuitBreaker);
   }
 
   protected readonly schema = testSchema;
@@ -73,7 +78,9 @@ function createMocks() {
     recordLlmCall: vi.fn(),
   } as unknown as vi.Mocked<MetricsService>;
 
-  return { mockModel, llmRuntimeService, metricsService };
+  const circuitBreaker = new LlmCircuitBreakerService();
+
+  return { mockModel, llmRuntimeService, metricsService, circuitBreaker };
 }
 
 /** Creates a real AIMessageChunk with tool_calls set. */
@@ -98,6 +105,7 @@ describe('BaseLlmGeneratorService', () => {
     service = new TestGeneratorService(
       mocks.llmRuntimeService,
       mocks.metricsService,
+      mocks.circuitBreaker,
     );
   });
 
@@ -368,6 +376,46 @@ describe('BaseLlmGeneratorService', () => {
         'success',
         expect.any(Number),
       );
+    });
+  });
+
+  describe('circuit breaker integration', () => {
+    it('throws LlmCircuitOpenError when breaker is open', async () => {
+      // Trip the breaker by recording enough failures
+      for (let i = 0; i < 5; i++) {
+        mocks.circuitBreaker.recordFailure();
+      }
+      expect(mocks.circuitBreaker.snapshot().state).toBe('open');
+
+      await expect(
+        service.generate({ input: 'hello' }, { label: 'Input' }),
+      ).rejects.toThrow(LlmCircuitOpenError);
+
+      // Model.invoke should not have been called at all
+      expect(mocks.mockModel.invoke).not.toHaveBeenCalled();
+    });
+
+    it('records failure on circuit open (not double-counted by breaker)', async () => {
+      for (let i = 0; i < 5; i++) {
+        mocks.circuitBreaker.recordFailure();
+      }
+
+      await expect(
+        service.generate({ input: 'hello' }, { label: 'Input' }),
+      ).rejects.toThrow(LlmCircuitOpenError);
+
+      // recordFailure is still called, but breaker is already open so it's a no-op
+      expect(mocks.circuitBreaker.snapshot().state).toBe('open');
+    });
+
+    it('records success on breaker after successful generate', async () => {
+      const output: TestOutput = { summary: 'ok', result: 'done' };
+      mocks.mockModel.invoke.mockResolvedValue(output);
+
+      await service.generate({ input: 'hello' }, { label: 'Input' });
+
+      expect(mocks.circuitBreaker.snapshot().state).toBe('closed');
+      expect(mocks.circuitBreaker.snapshot().consecutiveFailures).toBe(0);
     });
   });
 });

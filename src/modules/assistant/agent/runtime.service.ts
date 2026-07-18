@@ -32,6 +32,7 @@ import {
   withLlmRetry,
   isRetryableLlmError,
 } from '../../../common/llm/llm-retry.helper';
+import { LlmCircuitBreakerService } from '../../../common/llm/llm-circuit-breaker.service';
 
 const CHAT_MODEL_OPTIONS = {
   timeout: AI_MODEL_TIMEOUT_MS,
@@ -55,6 +56,7 @@ export class AssistantRuntimeService {
     private readonly llmRuntimeService: LlmRuntimeService,
     private readonly leafletReadService: AssistantToolLeafletReadService,
     private readonly metricsService: MetricsService,
+    private readonly circuitBreaker: LlmCircuitBreakerService,
   ) {}
 
   hasChatModel(): boolean {
@@ -127,6 +129,7 @@ export class AssistantRuntimeService {
     const modelName = this.llmRuntimeService.getModelName('chat') ?? 'unknown';
     let stream;
     try {
+      this.circuitBreaker.acquire();
       stream = await withLlmRetry(() => model.stream(messages), {
         onRetry: (error, attempt) => {
           if (isRetryableLlmError(error)) {
@@ -136,7 +139,9 @@ export class AssistantRuntimeService {
           }
         },
       });
+      this.circuitBreaker.recordSuccess();
     } catch (error) {
+      this.circuitBreaker.recordFailure();
       this.metricsService.recordLlmCall(
         'chat',
         modelName,

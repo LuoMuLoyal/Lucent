@@ -3,6 +3,7 @@ import { AuthModule } from '../auth/auth.module';
 import { DailyRecordCandidatesService } from '../daily-records/services';
 import { DailyRecordsService } from '../daily-records/services';
 import { DailyRecordsModule } from '../daily-records/daily-records.module';
+import { LlmCommonModule } from '../../common/llm';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module';
 import { MedicineRemindersService } from '../medicine-reminders/services';
@@ -43,6 +44,7 @@ import {
 @Module({
   imports: [
     AuthModule,
+    LlmCommonModule,
     LlmRuntimeModule,
     MedicinesModule,
     UserSettingsModule,

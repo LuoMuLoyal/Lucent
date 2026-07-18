@@ -1,4 +1,5 @@
 import type { LlmRuntimePort } from '../../../../common/llm/llm-runtime.port';
+import { LlmCircuitBreakerService } from '../../../../common/llm/llm-circuit-breaker.service';
 import type { LlmRuntimeService } from '../../../../llm-runtime';
 import type { MetricsService } from '../../../../common/metrics/metrics.service';
 import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
@@ -60,6 +61,7 @@ describe('ExplanationGeneratorService', () => {
     service = new ExplanationGeneratorService(
       llmRuntimeMock as unknown as LlmRuntimeService,
       metricsMock,
+      new LlmCircuitBreakerService(),
     );
     return { service, structuredModel, streamingModel };
   };

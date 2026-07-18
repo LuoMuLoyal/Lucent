@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { BaseLlmGeneratorService } from '../../../../common/llm/base-llm-generator.service';
+import { LlmCircuitBreakerService } from '../../../../common/llm/llm-circuit-breaker.service';
 import { LlmRuntimeService } from '../../../../llm-runtime';
 import { MetricsService } from '../../../../common/metrics/metrics.service';
 import {
@@ -29,8 +30,9 @@ export class ReportsAiSummaryGeneratorService extends BaseLlmGeneratorService<
   public constructor(
     llmRuntimeService: LlmRuntimeService,
     metricsService: MetricsService,
+    circuitBreaker: LlmCircuitBreakerService,
   ) {
-    super(llmRuntimeService, metricsService);
+    super(llmRuntimeService, metricsService, circuitBreaker);
   }
 
   protected buildSystemPrompt(): string {

@@ -1,5 +1,6 @@
 import { AIMessageChunk } from '@langchain/core/messages';
 import type { LlmRuntimeService } from '../../../llm-runtime';
+import { LlmCircuitBreakerService } from '../../../common/llm/llm-circuit-breaker.service';
 import { AssistantRuntimeService } from './runtime.service';
 import { buildAssistantSystemPrompt } from '../prompts/system.prompt';
 
@@ -39,6 +40,7 @@ describe('AssistantRuntimeService', () => {
       llmRuntimeService,
       leafletService as never,
       metricsService as never,
+      new LlmCircuitBreakerService(),
     );
 
     expect(service.hasChatModel()).toBe(true);
@@ -127,6 +129,7 @@ describe('AssistantRuntimeService', () => {
       llmRuntimeService,
       leafletService as never,
       metricsService as never,
+      new LlmCircuitBreakerService(),
     );
     const onChunk = vi.fn();
 
@@ -164,6 +167,7 @@ describe('AssistantRuntimeService', () => {
       llmRuntimeService,
       leafletService as never,
       metricsService as never,
+      new LlmCircuitBreakerService(),
     );
     const onChunk = vi.fn();
 

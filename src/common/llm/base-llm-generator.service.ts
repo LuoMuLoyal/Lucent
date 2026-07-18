@@ -11,6 +11,7 @@ import type { ZodObject, ZodType } from 'zod';
 import type { LlmRole, LlmRuntimePort } from './llm-runtime.port';
 import { AI_MODEL_TIMEOUT_MS } from '../../config/constants';
 import { withLlmRetry, isRetryableLlmError } from './llm-retry.helper';
+import { LlmCircuitBreakerService } from './llm-circuit-breaker.service';
 import { MetricsService } from '../metrics/metrics.service';
 
 const MODEL_OPTIONS = {
@@ -48,6 +49,7 @@ export abstract class BaseLlmGeneratorService<
   protected constructor(
     private readonly llmRuntimeService: LlmRuntimePort,
     private readonly metricsService: MetricsService,
+    private readonly circuitBreaker: LlmCircuitBreakerService,
   ) {}
 
   hasAnalysisModel(): boolean {
@@ -62,6 +64,7 @@ export abstract class BaseLlmGeneratorService<
       this.llmRuntimeService.getModelName(this.modelRole) ?? 'unknown';
 
     try {
+      this.circuitBreaker.acquire();
       const result = await withLlmRetry(
         () => model.invoke(messages) as Promise<TOutput>,
         {
@@ -74,6 +77,7 @@ export abstract class BaseLlmGeneratorService<
           },
         },
       );
+      this.circuitBreaker.recordSuccess();
       this.metricsService.recordLlmCall(
         this.modelRole,
         modelName,
@@ -82,6 +86,7 @@ export abstract class BaseLlmGeneratorService<
       );
       return result;
     } catch (error) {
+      this.circuitBreaker.recordFailure();
       this.metricsService.recordLlmCall(
         this.modelRole,
         modelName,
@@ -110,6 +115,7 @@ export abstract class BaseLlmGeneratorService<
     let stream: AsyncIterable<AIMessageChunk>;
 
     try {
+      this.circuitBreaker.acquire();
       stream = await withLlmRetry(
         () => model.stream(this.buildMessages(context, promptCopy)),
         {
@@ -122,7 +128,9 @@ export abstract class BaseLlmGeneratorService<
           },
         },
       );
+      this.circuitBreaker.recordSuccess();
     } catch (error) {
+      this.circuitBreaker.recordFailure();
       this.metricsService.recordLlmCall(
         this.modelRole,
         modelName,

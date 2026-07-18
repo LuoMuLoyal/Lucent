@@ -38,6 +38,11 @@ Last updated: 2026-07-14
 - AI model invocation timeout is centralized as `AI_MODEL_TIMEOUT_MS` in `src/config/constants.ts`;
   `BaseLlmGeneratorService` and `AssistantRuntimeService` both reference the same constant instead
   of hardcoding `10_000`.
+- LLM calls are protected by a circuit breaker (`LlmCircuitBreakerService`) that wraps
+  `withLlmRetry`. After 5 consecutive failures the breaker trips to `open`, fast-failing
+  subsequent calls with HTTP 503 for 30s before entering `halfOpen` probe mode. The breaker
+  is a shared singleton in `LlmCommonModule`, consumed by all 4 `BaseLlmGeneratorService`
+  subclasses and `AssistantRuntimeService`.
 - Error-info extraction is centralized in `src/common/helpers/error-info.utils.ts`
   (`extractErrorInfo`); 13 catch blocks across 11 files now share the same message/stack extraction
   pattern instead of repeating `error instanceof Error ? error.message : String(error)`.

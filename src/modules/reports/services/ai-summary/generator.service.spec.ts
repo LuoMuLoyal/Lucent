@@ -1,6 +1,7 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import type { LlmRuntimeService } from '../../../../llm-runtime';
 import type { MetricsService } from '../../../../common/metrics/metrics.service';
+import { LlmCircuitBreakerService } from '../../../../common/llm/llm-circuit-breaker.service';
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/constants';
 import { REPORT_RANGE_LAST_30_DAYS } from '../../dto';
 import { ReportsAiSummaryGeneratorService } from './generator.service';
@@ -39,6 +40,7 @@ describe('ReportsAiSummaryGeneratorService', () => {
         getModelName: vi.fn().mockReturnValue('test-model'),
       } as unknown as LlmRuntimeService,
       buildMetricsService(),
+      new LlmCircuitBreakerService(),
     );
 
     const result = await service.generate(
@@ -131,6 +133,7 @@ describe('ReportsAiSummaryGeneratorService', () => {
         getModelName: vi.fn().mockReturnValue('test-model'),
       } as unknown as LlmRuntimeService,
       metricsService,
+      new LlmCircuitBreakerService(),
     );
 
     await expect(
@@ -200,6 +203,7 @@ describe('ReportsAiSummaryGeneratorService', () => {
         getModelName: vi.fn().mockReturnValue('test-model'),
       } as unknown as LlmRuntimeService,
       metricsService,
+      new LlmCircuitBreakerService(),
     );
 
     await service.generate(
@@ -254,6 +258,7 @@ describe('ReportsAiSummaryGeneratorService', () => {
         getModelName: vi.fn(),
       } as unknown as LlmRuntimeService,
       buildMetricsService(),
+      new LlmCircuitBreakerService(),
     );
 
     expect(service.hasAnalysisModel()).toBe(true);
@@ -268,6 +273,7 @@ describe('ReportsAiSummaryGeneratorService', () => {
         getModelName: vi.fn(),
       } as unknown as LlmRuntimeService,
       buildMetricsService(),
+      new LlmCircuitBreakerService(),
     );
 
     expect(service.hasAnalysisModel()).toBe(false);
