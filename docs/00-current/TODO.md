@@ -1,6 +1,6 @@
 # Lucent TODO
 
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to

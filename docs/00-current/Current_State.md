@@ -282,6 +282,13 @@ Last updated: 2026-07-18
 - **附带修复**：`tool.service.spec.ts` 中 `VectorStoreFactory` mock 从 `{ get: vi.fn() }` 修正为 `{ getStore: vi.fn() }`（#5 遗留 mock 不匹配）
 - **验证**：`pnpm lint:check` ✓、`pnpm typecheck` ✓、`pnpm build` ✓（744 文件）、`pnpm test` ✓（103 文件 / 1165 测试全部通过）
 
+## 2026-07-18 LLM 调用熔断器
+
+- **新增 `LlmCircuitBreakerService`**（`src/common/llm/llm-circuit-breaker.service.ts`）：三态机 `closed → open → halfOpen → closed`，5 次连续失败触发熔断，30s 恢复超时，`halfOpen` 单探测成功后关闭；`open`/`halfOpen` 容量耗尽时 `acquire()` 抛出 `LlmCircuitOpenError`（HTTP 503）
+- **接入点**：`LlmCommonModule` 注册并导出熔断器；`BaseLlmGeneratorService`（4 个子类）和 `AssistantRuntimeService` 所有 LLM 调用包裹 `acquire/recordSuccess/recordFailure`；`AssistantModule` 新增 `LlmCommonModule` 导入
+- **设计决策**：不引入 `opossum` 依赖（单 slot 单进程计数器够用）；全局单例而非 per-role（同一提供商宕机影响所有 role）；熔断器在 `withLlmRetry` 外层，`open` 时快速失败不重试
+- **计划清零**：`plans/2026-07-16-deployment-hardening.md` 全部章节已清空
+
 ## 2026-07-18 修复 refresh token 接口缺少 @Public() 装饰器
 
 - **问题**：`SessionController.refresh`（`POST /api/v1/auth/refresh`）缺少 `@Public()` 装饰器。全局 `JwtAuthGuard`（`APP_GUARD` 注册）会对所有未标记 `@Public()` 的路由执行 JWT 验证，导致 access token 过期后 refresh 接口返回 401，形成死循环——用户无法刷新令牌只能重新登录。代码注释 `// No auth guard` 与实际行为矛盾。
