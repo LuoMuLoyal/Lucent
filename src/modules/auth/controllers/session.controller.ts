@@ -23,6 +23,7 @@ import { calculateExpiresIn } from '../../../common/helpers/date-time.utils';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
+import { Public } from '../decorators/public.decorator';
 import type { UserPayload } from '../types/auth-request';
 
 import { LogoutDto } from '../dto/logout.dto';
@@ -76,8 +77,9 @@ export class SessionController {
   }
 
   // ── POST /api/v1/auth/refresh ───────────────────────────────
-  // No auth guard — accessToken may be expired
+  // Public — accessToken may be expired, refresh uses the refreshToken body
 
+  @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '刷新令牌' })

@@ -1,6 +1,6 @@
 # Lucent Current State
 
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 本文件只保留简介和按区域链接。具体后端实现细节见 `00-current/` 下各子文件。
 
@@ -281,6 +281,12 @@ Last updated: 2026-07-17
 - **#11 auth 模块拆分**：`services/identity/` 子目录新建，`CredentialAuthService`/`VerificationCodeService`/`AuthRateLimitService` 及其 spec 移入；`services/identity/index.ts` barrel 导出；孤儿 spec `auth/auth.service.spec.ts` 移至 `services/auth.service.spec.ts`（spec-next-to-source）；外部引用统一经 barrel
 - **附带修复**：`tool.service.spec.ts` 中 `VectorStoreFactory` mock 从 `{ get: vi.fn() }` 修正为 `{ getStore: vi.fn() }`（#5 遗留 mock 不匹配）
 - **验证**：`pnpm lint:check` ✓、`pnpm typecheck` ✓、`pnpm build` ✓（744 文件）、`pnpm test` ✓（103 文件 / 1165 测试全部通过）
+
+## 2026-07-18 修复 refresh token 接口缺少 @Public() 装饰器
+
+- **问题**：`SessionController.refresh`（`POST /api/v1/auth/refresh`）缺少 `@Public()` 装饰器。全局 `JwtAuthGuard`（`APP_GUARD` 注册）会对所有未标记 `@Public()` 的路由执行 JWT 验证，导致 access token 过期后 refresh 接口返回 401，形成死循环——用户无法刷新令牌只能重新登录。代码注释 `// No auth guard` 与实际行为矛盾。
+- **修复**：`session.controller.ts` 的 `refresh` 方法添加 `@Public()` 装饰器（方法级别，不影响同控制器中 `logout`/`sessions`/`revokeSession` 的认证要求）；运行 `pnpm export:openapi` 重新生成 `docs/openapi.json`，refresh 端点不再包含 `security` 字段。
+- **验证**：lint:check / typecheck / build / session.controller.spec.ts（4 测试）全部通过。
 
 ## 相关文档
 
