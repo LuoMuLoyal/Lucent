@@ -1,4 +1,40 @@
+# Lucent 文档覆盖映射
+#
+# scripts/hooks/check-docs-updated.ts 读取本文件：
+# - 阻断模式（默认，pre-commit）：有代码变更但无任何 docs/ 文件变更 → exit(1)
+# - 警告模式（--warning-only）：每条规则的 docs_required 中未被触及的文档输出警告
+# - 旁路：SKIP_DOC_CHECK=1
+#
+# 运行 `pnpm docs:check` 可在不阻断的情况下查看需要更新哪些文档。
+#
+# glob 规则：* 匹配单层路径，** 匹配多层路径。
+# docs/02-logs/migration-log/*.md 在每条规则中都列出——任何代码变更都应记录迁移日志。
+
 rules:
+  # ──────────────────────────────────────────────
+  # 工具链与治理
+  # ──────────────────────────────────────────────
+  - name: docs-tooling
+    code:
+      - scripts/hooks/check-docs-updated.ts
+      - scripts/**
+      - .github/**
+      - package.json
+      - tsconfig.json
+      - .swcrc
+      - commitlint.config.ts
+      - pnpm-workspace.yaml
+      - AGENTS.md
+      - docs/doc-map.yaml
+    docs_required:
+      - docs/00-current/Toolchain_Contract.md
+      - docs/00-current/Code_Quality_Maintainability.md
+      - docs/01-reference/environment.md
+      - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # 基础设施（bootstrap、配置、Prisma、i18n、Admin、邮件）
+  # ──────────────────────────────────────────────
   - name: infrastructure
     code:
       - src/main.ts
@@ -12,54 +48,73 @@ rules:
       - prisma/schema.prisma
       - prisma/migrations/**
     docs_required:
-      - docs/00-current/Current_State.md
       - docs/00-current/Toolchain_Contract.md
       - docs/00-current/Code_Quality_Maintainability.md
       - docs/01-reference/architecture.md
       - docs/01-reference/environment.md
       - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # 共享层（common/）
+  # ──────────────────────────────────────────────
   - name: common-shared
     code:
       - src/common/**
     docs_required:
-      - docs/00-current/Current_State.md
       - docs/00-current/Code_Quality_Maintainability.md
       - docs/01-reference/architecture.md
       - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # 认证与安全（auth、security-pin、account）
+  # ──────────────────────────────────────────────
   - name: auth-security
     code:
       - src/modules/auth/**
       - src/modules/security-pin/**
       - src/modules/account/**
     docs_required:
-      - docs/00-current/Current_State.md
       - docs/00-current/Auth_Security_PIN.md
       - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # 用户域（user、health-context、settings）
+  # ──────────────────────────────────────────────
   - name: user-domain
     code:
       - src/modules/user/**
       - src/modules/user-health-context/**
       - src/modules/user-settings/**
     docs_required:
-      - docs/00-current/Current_State.md
+      - docs/01-reference/contracts/mine-settings-contract.md
       - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # 日常记录与餐食分析
+  # ──────────────────────────────────────────────
   - name: daily-records
     code:
       - src/modules/daily-records/**
     docs_required:
-      - docs/00-current/Current_State.md
       - docs/00-current/Meal_Analysis.md
       - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # 药品域（medicines、dose-logs、reminders）
+  # ──────────────────────────────────────────────
   - name: medicine
     code:
       - src/modules/medicines/**
       - src/modules/medicine-dose-logs/**
       - src/modules/medicine-reminders/**
     docs_required:
-      - docs/00-current/Current_State.md
       - docs/00-current/Medicine_Data_RAG.md
       - docs/01-reference/contracts/reminder-contract.md
       - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # Assistant AI 管道
+  # ──────────────────────────────────────────────
   - name: assistant-ai
     code:
       - src/modules/assistant/**
@@ -67,59 +122,68 @@ rules:
       - src/llm-runtime/**
       - src/common/llm/**
     docs_required:
-      - docs/00-current/Current_State.md
       - docs/00-current/Assistant_Runtime.md
+      - docs/00-current/Today_Suggestion_Engine.md
       - docs/01-reference/architecture.md
       - docs/01-reference/contracts/assistant-capabilities.md
       - docs/01-reference/contracts/assistant-contract.md
       - docs/01-reference/contracts/assistant-safety.md
       - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # Today 主动建议引擎
+  # ──────────────────────────────────────────────
+  - name: today-suggestion
+    code:
+      - src/modules/today-suggestion/**
+    docs_required:
+      - docs/00-current/Today_Suggestion_Engine.md
+      - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # 报告与导出
+  # ──────────────────────────────────────────────
   - name: report-export
     code:
       - src/modules/reports/**
       - src/modules/data-export/**
     docs_required:
-      - docs/00-current/Current_State.md
       - docs/00-current/Report_Export.md
       - docs/01-reference/contracts/data-export-contract.md
       - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # 通知
+  # ──────────────────────────────────────────────
   - name: notifications
     code:
       - src/modules/notifications/**
     docs_required:
-      - docs/00-current/Current_State.md
       - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # 支持文件、环境快照、测试支持
+  # ──────────────────────────────────────────────
   - name: support-files-env
     code:
       - src/modules/support-resources/**
       - src/modules/files/**
       - src/modules/environment/**
       - src/modules/testing-support/**
+      - src/modules/legal-documents/**
     docs_required:
-      - docs/00-current/Current_State.md
       - docs/00-current/Public_Support_Resources.md
       - docs/01-reference/contracts/support-resources-contract.md
       - docs/01-reference/contracts/environment-contract.md
       - docs/02-logs/migration-log/*.md
-  - name: scripts-tooling
-    code:
-      - scripts/**
-      - .github/**
-      - package.json
-      - tsconfig.json
-      - .swcrc
-      - commitlint.config.ts
-      - pnpm-workspace.yaml
-    docs_required:
-      - docs/00-current/Current_State.md
-      - docs/00-current/Toolchain_Contract.md
-      - docs/01-reference/environment.md
-      - docs/02-logs/migration-log/*.md
+
+  # ──────────────────────────────────────────────
+  # OpenAPI 合同与公共合同文件
+  # ──────────────────────────────────────────────
   - name: docs-openapi
     code:
       - docs/openapi.json
       - docs/01-reference/contracts/**
     docs_required:
-      - docs/00-current/Current_State.md
       - docs/00-current/Toolchain_Contract.md
       - docs/02-logs/migration-log/*.md

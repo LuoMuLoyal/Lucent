@@ -114,8 +114,11 @@ export abstract class BaseLlmGeneratorService<
 
     let stream: AsyncIterable<AIMessageChunk>;
 
+    // Acquire outside the try block so that an `LlmCircuitOpenError` thrown
+    // by `acquire()` does not trigger `recordFailure()` (which would be a
+    // no-op once fix-3 is applied, but is clearer this way).
+    this.circuitBreaker.acquire();
     try {
-      this.circuitBreaker.acquire();
       stream = await withLlmRetry(
         () => model.stream(this.buildMessages(context, promptCopy)),
         {
@@ -128,7 +131,6 @@ export abstract class BaseLlmGeneratorService<
           },
         },
       );
-      this.circuitBreaker.recordSuccess();
     } catch (error) {
       this.circuitBreaker.recordFailure();
       this.metricsService.recordLlmCall(
@@ -143,53 +145,47 @@ export abstract class BaseLlmGeneratorService<
     let accumulated: AIMessageChunk | undefined;
     let lastSummary = '';
 
-    for await (const chunk of stream) {
-      if (!(chunk instanceof AIMessageChunk)) {
-        continue;
-      }
-
-      accumulated =
-        accumulated === undefined ? chunk : accumulated.concat(chunk);
-      const partial = (await parser.parsePartialResult([
-        this.toGenerationChunk(accumulated),
-      ])) as unknown; // parsePartialResult returns a partial that doesn't conform to the full schema
-      const summary = this.readSummary(partial);
-
-      if (summary.trim().length > 0 && summary !== lastSummary) {
-        lastSummary = summary;
-        await onSummary(summary);
-      }
-    }
-
-    if (accumulated === undefined) {
-      this.metricsService.recordLlmCall(
-        this.modelRole,
-        modelName,
-        'error',
-        (performance.now() - start) / 1000,
-      );
-      throw new Error(
-        `${this.options.streamName} stream ended without any message chunks.`,
-      );
-    }
-
-    const result = (await parser.parseResult([
-      this.toGenerationChunk(accumulated),
-    ])) as unknown; // narrowed by this.schema.parse(result) below
-    if (result == null) {
-      this.metricsService.recordLlmCall(
-        this.modelRole,
-        modelName,
-        'error',
-        (performance.now() - start) / 1000,
-      );
-      throw new Error(
-        `${this.options.streamName} stream ended without a structured result.`,
-      );
-    }
-
+    // Wrap the entire stream-processing phase so that stream-level failures
+    // (empty stream, JSON/schema parse errors, mid-stream network drops) are
+    // reported to the circuit breaker via `recordFailure()`. `recordSuccess()`
+    // is deferred until the full result is validated, so a "half-available"
+    // provider that connects but returns garbage will still trip the breaker.
     try {
+      for await (const chunk of stream) {
+        if (!(chunk instanceof AIMessageChunk)) {
+          continue;
+        }
+
+        accumulated =
+          accumulated === undefined ? chunk : accumulated.concat(chunk);
+        const partial = (await parser.parsePartialResult([
+          this.toGenerationChunk(accumulated),
+        ])) as unknown; // parsePartialResult returns a partial that doesn't conform to the full schema
+        const summary = this.readSummary(partial);
+
+        if (summary.trim().length > 0 && summary !== lastSummary) {
+          lastSummary = summary;
+          await onSummary(summary);
+        }
+      }
+
+      if (accumulated === undefined) {
+        throw new Error(
+          `${this.options.streamName} stream ended without any message chunks.`,
+        );
+      }
+
+      const result = (await parser.parseResult([
+        this.toGenerationChunk(accumulated),
+      ])) as unknown; // narrowed by this.schema.parse(result) below
+      if (result == null) {
+        throw new Error(
+          `${this.options.streamName} stream ended without a structured result.`,
+        );
+      }
+
       const parsed = this.schema.parse(result);
+      this.circuitBreaker.recordSuccess();
       this.metricsService.recordLlmCall(
         this.modelRole,
         modelName,
@@ -198,6 +194,7 @@ export abstract class BaseLlmGeneratorService<
       );
       return parsed;
     } catch (error) {
+      this.circuitBreaker.recordFailure();
       this.metricsService.recordLlmCall(
         this.modelRole,
         modelName,

@@ -4,7 +4,7 @@
 
 ## 00-current — 当前状态与计划
 
-- [[00-current/Current_State]] — 当前后端实现状态入口，链接到各区域详情
+- [[00-current/Current_State]] — 当前后端实现状态入口（索引页），链接到各区域详情
 - [[00-current/TODO]] — 活跃延后后端项
 - [[00-current/MigrationLog]] — 变更日志索引
 - [[00-current/Assistant_Runtime]] — 助手运行时

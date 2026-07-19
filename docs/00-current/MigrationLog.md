@@ -1,6 +1,6 @@
 # Lucent Migration Log
 
-Last updated: 2026-07-18
+Last updated: 2026-07-19
 
 Records backend changes in date order. Detailed entries are split by date under
 `docs/02-logs/migration-log/`.
@@ -15,6 +15,7 @@ Records backend changes in date order. Detailed entries are split by date under
 
 ## Active Entries
 
+- [2026-07-19](../02-logs/migration-log/2026-07-19.md) — 审查报告修复（熔断器集成 / 流处理 recordSuccess 时机 / open 状态保护）+ 文档重构（文档覆盖校验工具增强 + Current_State 精简 + AGENTS.md 口径改为运行文档校验工具）
 - [2026-07-18](../02-logs/migration-log/2026-07-18.md) — 修复 refresh token 接口缺少 @Public() 装饰器（全局 JwtAuthGuard 拦截导致 access token 过期后无法刷新）
 - [2026-07-17](../02-logs/migration-log/2026-07-17.md) — 部署加固：单 slot 停机部署 + 人工生产发布 + 告警通道 + 数据库备份 + SSE 优雅关闭 + CI 加固；跨模块数据访问治理（ADR-0009 + reader port 收敛 + account 写路径改道）；代码审查安全修复：Assistant IDOR 越权 ×2 + 刷新令牌竞态条件 + 通知去重防御性加固
 - [2026-07-16](../02-logs/migration-log/2026-07-16.md) — 代码审查修复 + 五模块补充审查（IDOR）+ 数据库索引优化（GIN trigram）

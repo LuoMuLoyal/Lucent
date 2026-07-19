@@ -4,9 +4,18 @@ Lucent NestJS 后端的文档 vault。本目录是后端运行时、部署、生
 
 ## 快速导航
 
-- [[00-current/Current_State]] — 当前后端实现状态入口
+- [[00-current/Current_State]] — 当前后端实现状态入口（索引页）
 - [[00-current/TODO]] — 活跃延后项
 - [[00-current/MigrationLog]] — 变更日志索引
+
+## 文档覆盖校验
+
+`docs/doc-map.yaml` 定义了代码路径到期望文档的映射。`scripts/hooks/check-docs-updated.ts`
+读取该映射并提供两种模式：
+
+- **`pnpm docs:check`**（warning-only）：扫描工作区变更，输出每条规则中未被触及的文档列表，不阻断。
+- **pre-commit hook**（blocking）：`src/**/*.ts` 源文件已暂存但无 `docs/` 文件暂存时阻断提交。
+  旁路：`SKIP_DOC_CHECK=1` 或 `git commit --no-verify`。
 - [[01-reference/architecture]] — 模块依赖、AI 管道、路由、数据库约定
 - [[01-reference/environment]] — 本地环境、Docker 与快速命令总览
 - [[01-reference/environment-variables]] — 环境变量参考
@@ -108,6 +117,8 @@ only foreign-key scalars are exposed in forms.
 Product direction and current product state are owned by the workspace path `Luminous/docs/`.
 
 ## Update Map
+
+运行 `pnpm docs:check` 查看当前变更需要更新哪些文档。以下为手动参考：
 
 - Environment variables, local Docker, scripts, runtime baseline
   - Update: `01-reference/environment.md` and root `README.md`

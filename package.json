@@ -54,7 +54,8 @@
     "export:openapi": "pnpm prisma:generate && pnpm build && cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
     "deploy:smoke": "node deploy/smoke.ts",
     "deploy:server": "node deploy/deploy.ts",
-    "docs:compodoc": "compodoc -c compodoc.json"
+    "docs:compodoc": "compodoc -c compodoc.json",
+    "docs:check": "node scripts/hooks/check-docs-updated.ts --warning-only"
   },
   "dependencies": {
     "@babel/plugin-syntax-import-assertions": "7.29.7",

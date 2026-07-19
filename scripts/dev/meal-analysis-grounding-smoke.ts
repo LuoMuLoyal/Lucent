@@ -1,5 +1,6 @@
 import { config as loadEnv } from 'dotenv';
 import { ConfigService } from '@nestjs/config';
+import winston from 'winston';
 import { aiConfig } from '../../src/config/ai.config';
 import { EnvKey } from '../../src/config/env-keys.enum';
 import { LlmRuntimeService } from '../../src/llm-runtime/services/llm-runtime.service';
@@ -25,7 +26,10 @@ const imageUrls = [
 
 async function main() {
   const configService = new ConfigService(process.env);
-  const prisma = new PrismaService(configService);
+  const logger = winston.createLogger({
+    transports: [new winston.transports.Console()],
+  });
+  const prisma = new PrismaService(configService, logger);
   const llmRuntimeService = new LlmRuntimeService(aiConfig());
   const safetyPolicyService = new LlmSafetyPolicyService(aiConfig());
   const mealAnalysisVisionService = new MealAnalysisVisionService(

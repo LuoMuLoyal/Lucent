@@ -164,9 +164,17 @@ export class LlmCircuitBreakerService {
 
   /**
    * Records a failed call and may trip the breaker to `open`.
+   *
+   * When the breaker is already `open`, this is a no-op: the failure was
+   * rejected by `acquire()` before the call was made, so it should not
+   * inflate `consecutiveFailures` and skew `snapshot()` metrics.
    */
   recordFailure(): void {
     const state = this.getState();
+
+    if (state === 'open') {
+      return;
+    }
 
     if (state === 'halfOpen') {
       this.halfOpenInFlight = Math.max(0, this.halfOpenInFlight - 1);

@@ -88,19 +88,30 @@ export class AssistantRuntimeService {
       buildSystemPrompt: buildAssistantSystemPrompt,
     });
 
-    const result = await graph.invoke({
-      userId: input.userId,
-      userMessage: input.userMessage,
-      locale: input.locale,
-      enabledContextSources: input.enabledContextSources,
-    });
-
-    return {
-      toolResults: result.toolResults,
-      finalContent: result.finalContent,
-      selectedTools: result.selectedTools,
-      stopReason: result.stopReason,
-    };
+    // Acquire the circuit breaker before invoking the graph. The LangGraph
+    // agent↔tools loop may issue multiple LLM calls inside a single
+    // `graph.invoke()`; wrapping the whole invocation ensures that any LLM
+    // failure surfaces to the breaker while avoiding double-counting retries
+    // within one user request.
+    this.circuitBreaker.acquire();
+    try {
+      const result = await graph.invoke({
+        userId: input.userId,
+        userMessage: input.userMessage,
+        locale: input.locale,
+        enabledContextSources: input.enabledContextSources,
+      });
+      this.circuitBreaker.recordSuccess();
+      return {
+        toolResults: result.toolResults,
+        finalContent: result.finalContent,
+        selectedTools: result.selectedTools,
+        stopReason: result.stopReason,
+      };
+    } catch (error) {
+      this.circuitBreaker.recordFailure();
+      throw error;
+    }
   }
 
   /**
@@ -128,8 +139,8 @@ export class AssistantRuntimeService {
     const start = performance.now();
     const modelName = this.llmRuntimeService.getModelName('chat') ?? 'unknown';
     let stream;
+    this.circuitBreaker.acquire();
     try {
-      this.circuitBreaker.acquire();
       stream = await withLlmRetry(() => model.stream(messages), {
         onRetry: (error, attempt) => {
           if (isRetryableLlmError(error)) {
@@ -139,7 +150,6 @@ export class AssistantRuntimeService {
           }
         },
       });
-      this.circuitBreaker.recordSuccess();
     } catch (error) {
       this.circuitBreaker.recordFailure();
       this.metricsService.recordLlmCall(
@@ -170,17 +180,12 @@ export class AssistantRuntimeService {
 
       const finalContent = content.trim();
       if (finalContent.length === 0) {
-        this.metricsService.recordLlmCall(
-          'chat',
-          modelName,
-          'error',
-          (performance.now() - start) / 1000,
-        );
         throw new Error(
           'Assistant stream ended without any assistant content.',
         );
       }
 
+      this.circuitBreaker.recordSuccess();
       this.metricsService.recordLlmCall(
         'chat',
         modelName,
@@ -192,6 +197,7 @@ export class AssistantRuntimeService {
         usedToolNames: input.toolResults.map((result) => result.name),
       };
     } catch (error) {
+      this.circuitBreaker.recordFailure();
       this.metricsService.recordLlmCall(
         'chat',
         modelName,

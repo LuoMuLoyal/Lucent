@@ -2,25 +2,35 @@
 
 ## Documentation Rules
 
-After every code change, the following docs **MUST** be updated:
+After every code change, run the documentation coverage check to see which docs
+need updating:
 
-- Any backend code change
-  - Update target: `docs/02-logs/migration-log/YYYY-MM-DD.md`
-  - Action: Append change entry
-- Current runtime/architecture state change
-  - Update target: `docs/00-current/Current_State.md`
-  - Action: Add/update completed item (create if missing)
-- Closing a TODO item
-  - Update target: `docs/00-current/TODO.md`
-  - Action: Delete the line
-- Finishing a plan section
-  - Update target: `plans/*.md`
-  - Action: Delete the entire section
-- Env, Docker, or import flow change
-  - Update target: `docs/01-reference/environment.md` + `README.md`
-  - Action: Sync both
+```powershell
+pnpm docs:check
+```
 
-Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or any other marker.
+The tool reads `docs/doc-map.yaml` and maps your code changes to the expected
+documentation targets. It runs in warning-only mode by default — it prints the
+per-rule report (which docs each touched code area expects) without blocking.
+
+The pre-commit hook runs the same tool in **blocking** mode: if `src/**/*.ts`
+source files are staged but no `docs/` file is included, the commit is blocked.
+Bypass with `SKIP_DOC_CHECK=1` or `git commit --no-verify`.
+
+### Standing rules
+
+- **Migration log**: any backend code change must append a dated entry to
+  `docs/02-logs/migration-log/YYYY-MM-DD.md` (create the file if it doesn't exist).
+- **Current state**: runtime/architecture state changes go into the relevant
+  `docs/00-current/*.md` sub-file, not into `Current_State.md` (which is an index
+  only).
+- **Closing a TODO item**: delete the line from `docs/00-current/TODO.md`.
+- **Finishing a plan section**: delete the entire section from `plans/*.md`.
+- **Env, Docker, or import flow change**: sync `docs/01-reference/environment.md`
+  and `README.md`.
+
+Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or
+any other marker.
 
 ## Read First
 
@@ -57,7 +67,7 @@ Completed items are **deleted** outright — no `✅`, `DONE`, strikethrough, or
 - Medicine import or source strategy changed: update `docs/01-reference/contracts/data-sources.md` and the
   relevant source-specific file (`data-sources-cn-products.md`, `data-sources-drugbank.md`,
   `data-sources-medical-qa.md`, or `data-sources-food-composition.md`).
-- Backend code changed: append a dated entry to `docs/02-logs/migration-log/YYYY-MM-DD.md` (create the file if it doesn't exist). Keep `docs/00-current/MigrationLog.md` as the index only.
+- Backend code changed: run `pnpm docs:check` to see which docs need updating, then append a dated entry to `docs/02-logs/migration-log/YYYY-MM-DD.md` (create the file if it doesn't exist). Keep `docs/00-current/MigrationLog.md` as the index only.
 - Significant architectural decision made: create an ADR in `docs/01-reference/adr/NNNN-title.md` following the template in `docs/01-reference/adr/README.md`.
 - For localized backend copy, keep `AcceptLanguageResolver + I18nService` as the default path. Use `@I18nLang()` only when a controller/service flow must explicitly branch on the resolved locale and pass that locale deeper into AI/prompt/runtime code.
 - Fix the requested problem directly; do not loosen TS/ESLint rules or refactor nearby working code.
