@@ -24,11 +24,11 @@ export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findById(id: string): Promise<User | null> {
-    return this.prisma.user.findFirst({ where: { id, deletedAt: null } });
+    return this.prisma.nonDeleted.user.findFirst({ where: { id } });
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findFirst({ where: { email, deletedAt: null } });
+    return this.prisma.nonDeleted.user.findFirst({ where: { email } });
   }
 
   async findByIdentity(
@@ -113,8 +113,8 @@ export class UserService {
   async findByIdWithIdentities(
     id: string,
   ): Promise<(User & { identities: UserIdentity[] }) | null> {
-    return this.prisma.user.findFirst({
-      where: { id, deletedAt: null },
+    return this.prisma.nonDeleted.user.findFirst({
+      where: { id },
       include: { identities: { orderBy: { createdAt: 'asc' } } },
     });
   }

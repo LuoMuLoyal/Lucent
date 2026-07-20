@@ -15,6 +15,11 @@ describe('MedicineReminderRepository', () => {
         update: vi.fn(),
         findFirst: vi.fn(),
       },
+      nonDeleted: {
+        userMedicineReminder: {
+          findFirst: vi.fn(),
+        },
+      },
       userReminderDelivery: {
         findMany: vi.fn(),
       },
@@ -119,13 +124,13 @@ describe('MedicineReminderRepository', () => {
   });
 
   describe('findReminderById', () => {
-    it('queries with id and deletedAt:null filter', async () => {
-      prisma.userMedicineReminder.findFirst.mockResolvedValue(null);
+    it('queries with id and nonDeleted filter', async () => {
+      prisma.nonDeleted.userMedicineReminder.findFirst.mockResolvedValue(null);
 
       await repository.findReminderById('rem-1', { id: true } as never);
 
-      expect(prisma.userMedicineReminder.findFirst).toHaveBeenCalledWith({
-        where: { id: 'rem-1', deletedAt: null },
+      expect(prisma.nonDeleted.userMedicineReminder.findFirst).toHaveBeenCalledWith({
+        where: { id: 'rem-1' },
         select: { id: true },
       });
     });

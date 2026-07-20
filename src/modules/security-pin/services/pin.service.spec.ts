@@ -24,6 +24,11 @@ type MockPrisma = {
     update: vi.Mock;
     findFirst: vi.Mock;
   };
+  nonDeleted: {
+    user: {
+      findFirst: vi.Mock;
+    };
+  };
 };
 
 describe('SecurityPinService', () => {
@@ -45,12 +50,20 @@ describe('SecurityPinService', () => {
         SecurityPinService,
         {
           provide: PrismaService,
-          useValue: {
-            user: {
-              update: vi.fn(),
-              findFirst: vi.fn(),
-            },
-          },
+          useValue: (() => {
+            const userFindFirst = vi.fn();
+            return {
+              user: {
+                update: vi.fn(),
+                findFirst: userFindFirst,
+              },
+              nonDeleted: {
+                user: {
+                  findFirst: userFindFirst,
+                },
+              },
+            };
+          })(),
         },
         {
           provide: JwtService,

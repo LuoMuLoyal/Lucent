@@ -14,6 +14,10 @@ function buildPrisma() {
     userSuggestionFeedback: {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
   };
 }
 
@@ -76,6 +80,35 @@ describe('DataRetentionService', () => {
     // Other cleanup steps should still run
     expect(prisma.userNotification.deleteMany).toHaveBeenCalled();
     expect(prisma.userSuggestionFeedback.deleteMany).toHaveBeenCalled();
+  });
+
+  it('permanently deletes soft-deleted accounts past 30-day retention', async () => {
+    prisma.user.findMany.mockResolvedValue([
+      { id: 'user-deleted-1' },
+      { id: 'user-deleted-2' },
+    ]);
+    prisma.user.deleteMany.mockResolvedValue({ count: 2 });
+
+    await service.cleanupExpiredData();
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
+      where: {
+        deletedAt: { lt: new Date('2026-06-20T03:00:00.000Z') },
+        status: 'deleted',
+      },
+      select: { id: true },
+    });
+    expect(prisma.user.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['user-deleted-1', 'user-deleted-2'] } },
+    });
+  });
+
+  it('skips account hard-delete when no expired accounts', async () => {
+    prisma.user.findMany.mockResolvedValue([]);
+
+    await service.cleanupExpiredData();
+
+    expect(prisma.user.deleteMany).not.toHaveBeenCalled();
   });
 
   it('logs nothing when zero records deleted', async () => {

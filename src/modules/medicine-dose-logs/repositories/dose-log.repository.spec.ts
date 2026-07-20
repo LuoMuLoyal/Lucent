@@ -19,6 +19,11 @@ describe('MedicineDoseLogRepository', () => {
       userMedicineReminder: {
         findFirst: vi.fn(),
       },
+      nonDeleted: {
+        userMedicineReminder: {
+          findFirst: vi.fn(),
+        },
+      },
       userCurrentMedicine: {
         findFirst: vi.fn(),
         findUnique: vi.fn(),
@@ -181,7 +186,7 @@ describe('MedicineDoseLogRepository', () => {
 
   describe('findReminderById', () => {
     it('queries reminder by id+userId with ownership fields', async () => {
-      prisma.userMedicineReminder.findFirst.mockResolvedValue({
+      prisma.nonDeleted.userMedicineReminder.findFirst.mockResolvedValue({
         userId: 'user-1',
         currentMedicineId: 'med-1',
         scheduledHour: 8,
@@ -196,8 +201,8 @@ describe('MedicineDoseLogRepository', () => {
         scheduledHour: 8,
         scheduledMinute: 30,
       });
-      expect(prisma.userMedicineReminder.findFirst).toHaveBeenCalledWith({
-        where: { id: 'rem-1', userId: 'user-1', deletedAt: null },
+      expect(prisma.nonDeleted.userMedicineReminder.findFirst).toHaveBeenCalledWith({
+        where: { id: 'rem-1', userId: 'user-1' },
         select: {
           userId: true,
           currentMedicineId: true,
@@ -208,7 +213,7 @@ describe('MedicineDoseLogRepository', () => {
     });
 
     it('returns null when not found', async () => {
-      prisma.userMedicineReminder.findFirst.mockResolvedValue(null);
+      prisma.nonDeleted.userMedicineReminder.findFirst.mockResolvedValue(null);
       expect(await repository.findReminderById('user-1', 'missing')).toBeNull();
     });
   });

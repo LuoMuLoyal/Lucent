@@ -184,8 +184,8 @@ export class MedicineDoseLogRepository
   }
 
   override findReminderById(userId: string, id: string) {
-    return this.prisma.userMedicineReminder.findFirst({
-      where: { id, userId, deletedAt: null },
+return this.prisma.nonDeleted.userMedicineReminder.findFirst({
+where: { id, userId },
       select: {
         userId: true,
         currentMedicineId: true,

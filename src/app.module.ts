@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerConfigService } from './config/throttler.config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { appConfig } from './config/app.config';
@@ -68,14 +69,10 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
     }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
-    // In-process (memory) rate limiting by design: sufficient for the
-    // single-instance deployment; counters reset on process restart.
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60_000,
-        limit: 100,
-      },
-    ]),
+    // Rate limiting: Redis-backed when REDIS_URL is set, in-memory fallback
+    ThrottlerModule.forRootAsync({
+      useClass: ThrottlerConfigService,
+    }),
     I18nModule,
     LoggerModule,
     MetricsModule,

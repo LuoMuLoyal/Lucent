@@ -17,6 +17,11 @@ describe('ClinicSummaryService', () => {
       user: {
         findFirstOrThrow: vi.fn(),
       },
+      nonDeleted: {
+        user: {
+          findFirstOrThrow: vi.fn(),
+        },
+      },
     } as unknown as DeepMocked<PrismaService>;
 
     cacheManager = {
@@ -63,7 +68,7 @@ describe('ClinicSummaryService', () => {
 
   describe('buildClinicSummary', () => {
     it('builds summary with de-identified profile', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      (prisma.nonDeleted.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
 
       const result = await service.buildClinicSummary('user-1');
 
@@ -81,7 +86,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('handles null profile', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
+      (prisma.nonDeleted.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         profile: null,
       });
@@ -94,7 +99,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('handles null nickname', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
+      (prisma.nonDeleted.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         nickname: null,
       });
@@ -104,7 +109,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('handles single-character nickname', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
+      (prisma.nonDeleted.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         nickname: 'A',
       });
@@ -114,7 +119,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('handles empty allergies and conditions', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
+      (prisma.nonDeleted.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         allergies: [],
         conditions: [],
@@ -130,7 +135,7 @@ describe('ClinicSummaryService', () => {
 
   describe('createShareLink', () => {
     it('creates share link with cache and returns URL', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      (prisma.nonDeleted.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
       configService.get.mockReturnValue({ publicBaseUrl: 'https://lumos.app' });
 
       const result = await service.createShareLink('user-1');
@@ -148,7 +153,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('falls back to localhost when config missing', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      (prisma.nonDeleted.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
       configService.get.mockReturnValue(undefined);
 
       const result = await service.createShareLink('user-1');
@@ -181,7 +186,7 @@ describe('ClinicSummaryService', () => {
 
   describe('exportPdf', () => {
     it('builds summary and generates PDF', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      (prisma.nonDeleted.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
 
       const result = await service.exportPdf('user-1', 'zh-CN');
 
@@ -229,7 +234,7 @@ describe('ClinicSummaryService', () => {
 
   describe('de-identification (maskName)', () => {
     it('masks multi-character names to first char + **', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
+      (prisma.nonDeleted.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         nickname: '张三丰',
       });
@@ -239,7 +244,7 @@ describe('ClinicSummaryService', () => {
     });
 
     it('returns 匿名用户 for null name', async () => {
-      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
+      (prisma.nonDeleted.user.findFirstOrThrow as vi.Mock).mockResolvedValue({
         ...mockUserRow,
         nickname: null,
       });

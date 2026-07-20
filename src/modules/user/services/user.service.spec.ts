@@ -49,6 +49,12 @@ describe('UserService', () => {
               create: vi.fn(),
               update: vi.fn(),
             },
+            nonDeleted: {
+              user: {
+                findFirst: vi.fn(),
+                findFirstOrThrow: vi.fn(),
+              },
+            },
             userIdentity: {
               findUnique: vi.fn(),
               findFirst: vi.fn(),
@@ -70,18 +76,18 @@ describe('UserService', () => {
 
   describe('findById', () => {
     it('should return a user by id', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(mockUser);
+      (prismaService.nonDeleted.user.findFirst as vi.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findById('user-uuid-1');
 
-      expect(prismaService.user.findFirst).toHaveBeenCalledWith({
-        where: { id: 'user-uuid-1', deletedAt: null },
+      expect(prismaService.nonDeleted.user.findFirst).toHaveBeenCalledWith({
+        where: { id: 'user-uuid-1' },
       });
       expect(result).toEqual(mockUser);
     });
 
     it('should return null if user not found', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
+      (prismaService.nonDeleted.user.findFirst as vi.Mock).mockResolvedValue(null);
 
       const result = await service.findById('non-existent');
 
@@ -91,18 +97,18 @@ describe('UserService', () => {
 
   describe('findByEmail', () => {
     it('should return a user by email', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(mockUser);
+      (prismaService.nonDeleted.user.findFirst as vi.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findByEmail('test@example.com');
 
-      expect(prismaService.user.findFirst).toHaveBeenCalledWith({
-        where: { email: 'test@example.com', deletedAt: null },
+      expect(prismaService.nonDeleted.user.findFirst).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' },
       });
       expect(result).toEqual(mockUser);
     });
 
     it('should return null if email not found', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
+      (prismaService.nonDeleted.user.findFirst as vi.Mock).mockResolvedValue(null);
 
       const result = await service.findByEmail('unknown@example.com');
 
@@ -355,22 +361,22 @@ describe('UserService', () => {
 
   describe('findByIdWithIdentities', () => {
     it('should return the user with identities ordered by creation time', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue({
+      (prismaService.nonDeleted.user.findFirst as vi.Mock).mockResolvedValue({
         ...mockUser,
         identities: [mockIdentity],
       });
 
       const result = await service.findByIdWithIdentities('user-uuid-1');
 
-      expect(prismaService.user.findFirst).toHaveBeenCalledWith({
-        where: { id: 'user-uuid-1', deletedAt: null },
+      expect(prismaService.nonDeleted.user.findFirst).toHaveBeenCalledWith({
+        where: { id: 'user-uuid-1' },
         include: { identities: { orderBy: { createdAt: 'asc' } } },
       });
       expect(result).toEqual({ ...mockUser, identities: [mockIdentity] });
     });
 
     it('should return null if user not found', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
+      (prismaService.nonDeleted.user.findFirst as vi.Mock).mockResolvedValue(null);
 
       const result = await service.findByIdWithIdentities('non-existent');
 
@@ -415,15 +421,15 @@ describe('UserService', () => {
         ...mockUser,
         emailVerifiedAt: new Date('2026-01-02T00:00:00Z'),
       };
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(mockUser);
+      (prismaService.nonDeleted.user.findFirst as vi.Mock).mockResolvedValue(mockUser);
       (prismaService.user.update as vi.Mock).mockResolvedValue(updatedUser);
 
       const result = await service.updateByEmail('test@example.com', {
         emailVerifiedAt: updatedUser.emailVerifiedAt,
       });
 
-      expect(prismaService.user.findFirst).toHaveBeenCalledWith({
-        where: { email: 'test@example.com', deletedAt: null },
+      expect(prismaService.nonDeleted.user.findFirst).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' },
       });
       expect(prismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'user-uuid-1' },
@@ -433,7 +439,7 @@ describe('UserService', () => {
     });
 
     it('should return null when no active user matches the email', async () => {
-      (prismaService.user.findFirst as vi.Mock).mockResolvedValue(null);
+      (prismaService.nonDeleted.user.findFirst as vi.Mock).mockResolvedValue(null);
 
       const result = await service.updateByEmail('missing@example.com', {
         emailVerifiedAt: new Date(),

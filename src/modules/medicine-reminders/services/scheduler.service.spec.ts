@@ -24,9 +24,15 @@ function buildReminderRow(overrides: Record<string, unknown> = {}) {
 }
 
 function buildPrisma(overrides: Record<string, unknown> = {}) {
+  const reminderFindMany = vi.fn().mockResolvedValue([]);
   return {
     userMedicineReminder: {
-      findMany: vi.fn().mockResolvedValue([]),
+      findMany: reminderFindMany,
+    },
+    nonDeleted: {
+      userMedicineReminder: {
+        findMany: reminderFindMany,
+      },
     },
     userReminderDelivery: {
       findFirst: vi.fn().mockResolvedValue(null),

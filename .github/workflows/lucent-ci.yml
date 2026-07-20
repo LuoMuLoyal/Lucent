@@ -107,6 +107,9 @@ jobs:
       - name: Unit tests
         run: pnpm test:ci
 
+      - name: Export OpenAPI spec
+        run: pnpm export:openapi
+
       - name: E2E tests
         run: pnpm test:e2e:ci
 

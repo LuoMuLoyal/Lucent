@@ -115,7 +115,7 @@ export class ReminderSchedulerService {
    */
   private async findDueReminders(currentTime: Date): Promise<DueReminder[]> {
     const rows = await this.prisma.userMedicineReminder.findMany({
-      where: { isActive: true, deletedAt: null },
+      where: { isActive: true },
       select: {
         id: true,
         userId: true,

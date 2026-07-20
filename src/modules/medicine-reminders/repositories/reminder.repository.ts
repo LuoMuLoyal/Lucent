@@ -91,8 +91,8 @@ export class MedicineReminderRepository extends MedicineReminderRepositoryPort {
     id: string,
     select: Prisma.UserMedicineReminderSelect,
   ) {
-    return this.prisma.userMedicineReminder.findFirst({
-      where: { id, deletedAt: null },
+return this.prisma.nonDeleted.userMedicineReminder.findFirst({
+where: { id },
       select,
     });
   }

@@ -9,6 +9,9 @@ export const DATA_RETENTION_CRON = '0 3 * * *';
 /** Retention period for read notifications (30 days). */
 const READ_NOTIFICATION_RETENTION_DAYS = 30;
 
+/** Retention period before soft-deleted accounts are permanently deleted (30 days). */
+const SOFT_DELETED_ACCOUNT_RETENTION_DAYS = 30;
+
 /**
  * Periodically cleans up expired and stale data to prevent database bloat.
  *
@@ -16,6 +19,7 @@ const READ_NOTIFICATION_RETENTION_DAYS = 30;
  * - Expired user sessions (`expiresAt` has passed)
  * - Read notifications older than 30 days
  * - Expired suggestion feedback suppressions (`expiresAt` has passed)
+ * - Soft-deleted accounts past the 30-day retention window (permanent cascade delete)
  *
  * Uses `deleteMany` for bulk deletion. Errors are logged but do not
  * prevent the next cleanup category from running.
@@ -33,6 +37,7 @@ export class DataRetentionService {
     await this.cleanupExpiredSessions(currentTime);
     await this.cleanupOldReadNotifications(currentTime);
     await this.cleanupExpiredFeedback(currentTime);
+    await this.cleanupSoftDeletedAccounts(currentTime);
   }
 
   /** Deletes user sessions whose `expiresAt` has passed. */
@@ -98,6 +103,44 @@ export class DataRetentionService {
     } catch (error) {
       this.logger.error(
         `Failed to cleanup expired feedback: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  /** Permanently deletes soft-deleted accounts past the retention window. */
+  private async cleanupSoftDeletedAccounts(currentTime: Date): Promise<void> {
+    try {
+      const threshold = new Date(currentTime);
+      threshold.setUTCDate(threshold.getUTCDate() - SOFT_DELETED_ACCOUNT_RETENTION_DAYS);
+
+      // Find soft-deleted accounts past retention
+      const expiredUsers = await this.prisma.user.findMany({
+        where: {
+          deletedAt: { lt: threshold },
+          status: 'deleted',
+        },
+        select: { id: true },
+      });
+
+      if (expiredUsers.length === 0) {
+        return;
+      }
+
+      // Hard-delete via deleteMany to avoid findUnique → delete round-trip.
+      // Prisma cascade deletes all related records (sessions, notifications,
+      // reminders, daily records, etc.) via onDelete: Cascade.
+      const userIds = expiredUsers.map((u) => u.id);
+      const result = await this.prisma.user.deleteMany({
+        where: { id: { in: userIds } },
+      });
+
+      this.logger.log(
+        `Permanently deleted ${result.count} soft-deleted account(s) past ${SOFT_DELETED_ACCOUNT_RETENTION_DAYS}-day retention`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to cleanup soft-deleted accounts: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
     }
