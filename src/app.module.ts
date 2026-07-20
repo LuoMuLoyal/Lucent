@@ -44,6 +44,8 @@ import { LlmRuntimeModule } from './llm-runtime/llm-runtime.module';
 import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module';
 import { TodaySuggestionModule } from './modules/today-suggestion/today-suggestion.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { UserDevicesModule } from './modules/user-devices/user-devices.module';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { SlowRequestInterceptor } from './common/interceptors/slow-request.interceptor';
 
@@ -79,6 +81,8 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
     SseModule,
     BullmqModule,
     PrismaModule,
+    AuditLogModule,
+    UserDevicesModule,
     MailModule,
     AuthModule,
     AccountModule,
@@ -111,6 +115,7 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
           UserHealthContextModule,
           MedicineDoseLogsModule,
           MedicineRemindersModule,
+          UserDevicesModule,
           NotificationsModule,
           ReportsModule,
           UserSettingsModule,

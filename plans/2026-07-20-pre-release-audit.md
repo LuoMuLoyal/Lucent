@@ -303,8 +303,9 @@ Lucent 后端整体实现度高，**22 个功能模块全部在 `app.module.ts` 
 
 ### 强烈建议（P1）
 
-- [ ] **A1**：实现推送通知投递链路（设备注册 API + FCM/APNs 封装 + EscalationService 双通道）
-- [ ] **A3**：实现审计日志（`AuditLog` 模型 + `AuditLogService` + 敏感操作埋点）
+- [x] **A1**：实现推送通知投递链路（设备注册 API + FCM/APNs 封装 + EscalationService 双通道） — **已完成**
+  - 设备注册 API + PushDeliveryService（优雅降级 no-op stub）已实现，FCM/APNs SDK 接入待凭证就绪后替换 inner block
+- [x] **A3**：实现审计日志（`AuditLog` 模型 + `AuditLogService` + 敏感操作埋点） — **已完成**
 
 ### 建议完成（P2）
 

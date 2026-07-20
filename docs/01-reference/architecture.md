@@ -14,17 +14,19 @@ graph TD
 
     subgraph "User Resources (RouterModule /user/*)"
         assistant["assistant"]
+        auditLog["audit-log<br>(@Global, audit trail)"]
         daily["daily-records"]
         dataExport["data-export"]
         files["files"]
         doseLogs["medicine-dose-logs"]
-        reminders["medicine-reminders"]
-        notifications["notifications"]
+        reminders["medicine-reminders<br>(+ scheduler @Cron)"]
+        notifications["notifications<br>(+ push delivery)"]
         reports["reports"]
         today["today-analysis"]
         todaySuggestion["today-suggestion<br>(75 files, 44 providers)<br>第二大 feature module"]
         healthCtx["user-health-context"]
         settings["user-settings"]
+        userDevices["user-devices<br>(device registration)"]
     end
 
     subgraph "Internal Services"
@@ -46,6 +48,7 @@ graph TD
     auth --> notifications
     auth --> jwt
     account --> auth
+    account --> auditLog
     account --> security
 
     %% User resource dependencies
@@ -190,7 +193,8 @@ the prefix is centralized.
   - Via: Controller `@Controller('testing/fullstack-e2e')`
 - `/user/*`
   - Modules: assistant, daily-records, data-export, files, health-context, medicine-dose-logs,
-    medicine-reminders, notifications, reports, settings, today-analysis
+    medicine-reminders, notifications, reports, settings, today-analysis, today-suggestion,
+    user-devices
   - Via: `RouterModule.register()`
 
 ## Error Handling
@@ -305,6 +309,15 @@ decorator. Elevation is granted by a short-lived signed JWT minted after verifyi
 <token>` and stores the decoded payload on the request as `securityElevation`. Any PIN
 enable/change/disable operation increments the user's `securityElevationVersion`, invalidating
 prior elevation tokens.
+
+## Audit Logging
+
+`AuditLogModule` is a `@Global()` module that provides `AuditLogService` for recording
+security-sensitive operations. `AccountController` calls `logFireAndForget()` after each
+sensitive action (password change, email change, identity link/unlink, account deletion),
+recording `userId`, `action`, `resourceType`/`resourceId`, `metadata`, `ipAddress`, and
+`userAgent`. Write failures are swallowed (warn-level log) so audit never blocks user-facing
+operations.
 
 ## Database
 

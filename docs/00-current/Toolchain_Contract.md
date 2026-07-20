@@ -1,6 +1,6 @@
 # Toolchain / Contract
 
-Last updated: 2026-07-19
+Last updated: 2026-07-20
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -32,3 +32,6 @@ Last updated: 2026-07-19
   - `pnpm docs:check`（`--warning-only`）：扫描工作区变更，输出每条规则中未被触及的文档列表，不阻断。
   - Pre-commit hook（blocking，`simple-git-hooks`）：`src/**/*.ts` 源文件已暂存但无 `docs/` 文件
     暂存时阻断提交。旁路：`SKIP_DOC_CHECK=1` 或 `--no-verify`。
+- **新增模块**（2026-07-20）：`audit-log`（`@Global()` 审计日志）、`user-devices`（设备注册 API）。
+  新增 API 端点 `POST/GET/DELETE /api/v1/user/user-devices`。`pnpm export:openapi` 需重新执行以更新
+  `docs/openapi.json` 契约文件，Luminous 需重新生成 API 客户端。
