@@ -395,7 +395,7 @@ describe('BaseLlmGeneratorService', () => {
       expect(mocks.mockModel.invoke).not.toHaveBeenCalled();
     });
 
-    it('records failure on circuit open (not double-counted by breaker)', async () => {
+    it('does not call recordFailure when acquire throws in open state', async () => {
       for (let i = 0; i < 5; i++) {
         mocks.circuitBreaker.recordFailure();
       }
@@ -404,8 +404,52 @@ describe('BaseLlmGeneratorService', () => {
         service.generate({ input: 'hello' }, { label: 'Input' }),
       ).rejects.toThrow(LlmCircuitOpenError);
 
-      // recordFailure is still called, but breaker is already open so it's a no-op
+      // acquire() is outside the try block, so recordFailure() is never
+      // called when the breaker rejects the call.
       expect(mocks.circuitBreaker.snapshot().state).toBe('open');
+      expect(mocks.circuitBreaker.snapshot().consecutiveFailures).toBe(0);
+    });
+
+    it('does not trip breaker when halfOpen probe capacity is exhausted', async () => {
+      // Use fake timers so the open→halfOpen transition is deterministic.
+      // With recoveryTimeoutMs: 0, getState() would immediately transition
+      // open→halfOpen, making it impossible to distinguish the fixed code
+      // from the buggy code (which would cycle halfOpen→open→halfOpen).
+      vi.useFakeTimers();
+      try {
+        const breaker = new LlmCircuitBreakerService();
+        const serviceWithBreaker = new TestGeneratorService(
+          mocks.llmRuntimeService,
+          mocks.metricsService,
+          breaker,
+        );
+
+        // Trip to open (time is frozen at 0)
+        for (let i = 0; i < 5; i++) {
+          breaker.recordFailure();
+        }
+        expect(breaker.snapshot().state).toBe('open');
+
+        // Advance time past the 30s recovery timeout → halfOpen
+        vi.advanceTimersByTime(31_000);
+        expect(breaker.getState()).toBe('halfOpen');
+
+        // Exhaust the single allowed probe
+        breaker.acquire();
+
+        // generate() should throw because probe capacity is exhausted
+        await expect(
+          serviceWithBreaker.generate({ input: 'hello' }, { label: 'Input' }),
+        ).rejects.toThrow(LlmCircuitOpenError);
+
+        // The breaker must remain halfOpen — the rejected call must NOT
+        // trigger recordFailure() which would trip the breaker back to
+        // open (and time has not advanced past the new openedAt).
+        expect(breaker.snapshot().state).toBe('halfOpen');
+        expect(mocks.mockModel.invoke).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('records success on breaker after successful generate', async () => {

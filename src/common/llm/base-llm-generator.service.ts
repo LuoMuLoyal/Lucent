@@ -63,8 +63,11 @@ export abstract class BaseLlmGeneratorService<
     const modelName =
       this.llmRuntimeService.getModelName(this.modelRole) ?? 'unknown';
 
+    // Acquire outside the try block so that an `LlmCircuitOpenError` thrown
+    // by `acquire()` does not trigger `recordFailure()`, which would corrupt
+    // the half-open probe counter and prematurely trip the breaker.
+    this.circuitBreaker.acquire();
     try {
-      this.circuitBreaker.acquire();
       const result = await withLlmRetry(
         () => model.invoke(messages) as Promise<TOutput>,
         {
