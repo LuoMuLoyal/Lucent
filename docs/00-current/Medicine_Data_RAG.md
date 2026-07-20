@@ -37,3 +37,5 @@ scheduledTime`, then to `currentMedicineId + scheduledFor`.
 - **药品提醒调度器**：`ReminderSchedulerService`（`@Cron('* * * * *')`）每分钟扫描活跃提醒，
   按用户时区匹配 `scheduledHour:Minute` + `daysOfWeek` + 日期窗口，创建 `UserReminderDelivery`
   记录并发送站内通知 + 推送通知（best-effort）。
+- **nonDeleted 迁移**：`reminder.repository.ts` 和 `dose-log.repository.ts` 的软删除查询
+  已从手动 `deletedAt: null` 迁移到 `prisma.nonDeleted` API。

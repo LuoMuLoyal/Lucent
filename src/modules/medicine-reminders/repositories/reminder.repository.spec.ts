@@ -129,7 +129,9 @@ describe('MedicineReminderRepository', () => {
 
       await repository.findReminderById('rem-1', { id: true } as never);
 
-      expect(prisma.nonDeleted.userMedicineReminder.findFirst).toHaveBeenCalledWith({
+      expect(
+        prisma.nonDeleted.userMedicineReminder.findFirst,
+      ).toHaveBeenCalledWith({
         where: { id: 'rem-1' },
         select: { id: true },
       });

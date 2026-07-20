@@ -116,7 +116,7 @@ export class UserService {
     return this.prisma.nonDeleted.user.findFirst({
       where: { id },
       include: { identities: { orderBy: { createdAt: 'asc' } } },
-    });
+    }) as Promise<(User & { identities: UserIdentity[] }) | null>;
   }
 
   /**

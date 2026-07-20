@@ -184,3 +184,4 @@ UserReminderDelivery {
    `AuditLogModule` added for sensitive operation audit trail.
 
 At every phase, Luminous remains the notification display layer; Lucent owns the schedule data.
+Reminder and dose-log repository queries migrated to `prisma.nonDeleted` API.

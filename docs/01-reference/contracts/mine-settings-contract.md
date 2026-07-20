@@ -227,3 +227,4 @@ The elevation token proves a recent PIN verification. Clients must send it as `B
 - Enabling, changing, or disabling a PIN bumps the user's elevation version, invalidating previously
   issued elevation tokens.
 - A disabled PIN removes the hash; re-enabling requires setting a new PIN from scratch.
+- User queries in `UserService` and `SecurityPinService` use `prisma.nonDeleted` API (soft-delete-aware).

@@ -191,8 +191,8 @@ export class SecurityPinService {
   }
 
   private async loadSecurityPinUser(userId: string): Promise<SecurityPinUser> {
-const user = await this.prisma.nonDeleted.user.findFirst({
-where: { id: userId },
+    const user = await this.prisma.nonDeleted.user.findFirst({
+      where: { id: userId },
       select: {
         id: true,
         securityPinEnabled: true,

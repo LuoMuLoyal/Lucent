@@ -33,8 +33,8 @@ export class ClinicSummaryService {
   ) {}
 
   async buildClinicSummary(userId: string): Promise<ClinicSummaryDto> {
-    const user = await this.prisma.nonDeleted.user.findFirstOrThrow({
-      where: { id: userId },
+    const user = await this.prisma.user.findFirstOrThrow({
+      where: { id: userId, deletedAt: null },
       include: {
         profile: {
           select: { birthDate: true, sexAtBirth: true, bloodType: true },

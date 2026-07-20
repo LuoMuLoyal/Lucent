@@ -34,5 +34,6 @@ Last updated: 2026-07-20
     暂存时阻断提交。旁路：`SKIP_DOC_CHECK=1` 或 `--no-verify`。
 - **新增模块**（2026-07-20）：`audit-log`（`@Global()` 审计日志）、`user-devices`（设备注册 API）、
   `data-retention`（`@Cron` 数据保留清理）。新增 API 端点 `POST/GET/DELETE /api/v1/user/user-devices`。
-  `UserNotificationType` 枚举新增 `oauth_login`、`identity_linked`。`pnpm export:openapi` 需重新执行以更新
+  `UserNotificationType` 枚举新增 `oauth_login`、`identity_linked`。限流从内存存储升级为条件性
+  Redis 存储（`ThrottlerConfigService`）。`pnpm export:openapi` 需重新执行以更新
   `docs/openapi.json` 契约文件，Luminous 需重新生成 API 客户端。

@@ -36,3 +36,4 @@ Last updated: 2026-07-20
   可直接注入 `AuditLogService`。
 - `AuthNotificationService` 通知类型语义已修正：`notifyOAuthLogin` 使用 `type: 'oauth_login'`，
   `notifyIdentityLinked` 使用 `type: 'identity_linked'`（原均误用 `password_changed`）。
+- `SecurityPinService.loadSecurityPinUser()` 已迁移到 `prisma.nonDeleted.user.findFirst` API。

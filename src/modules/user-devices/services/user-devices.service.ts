@@ -14,13 +14,16 @@ import type { DeviceItemDto } from '../dto';
 export class UserDevicesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async register(userId: string, dto: RegisterDeviceDto): Promise<DeviceItemDto> {
+  async register(
+    userId: string,
+    dto: RegisterDeviceDto,
+  ): Promise<DeviceItemDto> {
     const record = await this.prisma.userDevice.upsert({
       where: { pushToken: dto.pushToken },
       create: {
         userId,
         pushToken: dto.pushToken,
-        platform: dto.platform,
+        platform: dto.platform as never,
         deviceName: dto.deviceName ?? null,
         locale: dto.locale ?? null,
         timezone: dto.timezone ?? null,
@@ -29,7 +32,7 @@ export class UserDevicesService {
       },
       update: {
         userId,
-        platform: dto.platform,
+        platform: dto.platform as never,
         deviceName: dto.deviceName ?? null,
         locale: dto.locale ?? null,
         timezone: dto.timezone ?? null,
@@ -60,9 +63,9 @@ export class UserDevicesService {
 
   private toItem(row: {
     id: string;
-    platform: string;
+    platform: unknown;
     deviceName: string | null;
-    pushToken: string;
+    pushToken: string | null;
     notificationsEnabled: boolean;
     locale: string | null;
     timezone: string | null;
@@ -72,7 +75,7 @@ export class UserDevicesService {
   }): DeviceItemDto {
     return {
       id: row.id,
-      platform: row.platform,
+      platform: row.platform as string,
       deviceName: row.deviceName,
       notificationsEnabled: row.notificationsEnabled,
       locale: row.locale,

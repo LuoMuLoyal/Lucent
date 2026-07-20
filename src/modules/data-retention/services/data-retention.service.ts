@@ -48,9 +48,7 @@ export class DataRetentionService {
       });
 
       if (result.count > 0) {
-        this.logger.log(
-          `Deleted ${result.count} expired session(s)`,
-        );
+        this.logger.log(`Deleted ${String(result.count)} expired session(s)`);
       }
     } catch (error) {
       this.logger.error(
@@ -64,7 +62,9 @@ export class DataRetentionService {
   private async cleanupOldReadNotifications(currentTime: Date): Promise<void> {
     try {
       const threshold = new Date(currentTime);
-      threshold.setUTCDate(threshold.getUTCDate() - READ_NOTIFICATION_RETENTION_DAYS);
+      threshold.setUTCDate(
+        threshold.getUTCDate() - READ_NOTIFICATION_RETENTION_DAYS,
+      );
 
       const result = await this.prisma.userNotification.deleteMany({
         where: {
@@ -75,7 +75,7 @@ export class DataRetentionService {
 
       if (result.count > 0) {
         this.logger.log(
-          `Deleted ${result.count} read notification(s) older than ${READ_NOTIFICATION_RETENTION_DAYS} days`,
+          `Deleted ${String(result.count)} read notification(s) older than ${String(READ_NOTIFICATION_RETENTION_DAYS)} days`,
         );
       }
     } catch (error) {
@@ -97,7 +97,7 @@ export class DataRetentionService {
 
       if (result.count > 0) {
         this.logger.log(
-          `Deleted ${result.count} expired feedback suppression(s)`,
+          `Deleted ${String(result.count)} expired feedback suppression(s)`,
         );
       }
     } catch (error) {
@@ -112,7 +112,9 @@ export class DataRetentionService {
   private async cleanupSoftDeletedAccounts(currentTime: Date): Promise<void> {
     try {
       const threshold = new Date(currentTime);
-      threshold.setUTCDate(threshold.getUTCDate() - SOFT_DELETED_ACCOUNT_RETENTION_DAYS);
+      threshold.setUTCDate(
+        threshold.getUTCDate() - SOFT_DELETED_ACCOUNT_RETENTION_DAYS,
+      );
 
       // Find soft-deleted accounts past retention
       const expiredUsers = await this.prisma.user.findMany({
@@ -136,7 +138,7 @@ export class DataRetentionService {
       });
 
       this.logger.log(
-        `Permanently deleted ${result.count} soft-deleted account(s) past ${SOFT_DELETED_ACCOUNT_RETENTION_DAYS}-day retention`,
+        `Permanently deleted ${String(result.count)} soft-deleted account(s) past ${String(SOFT_DELETED_ACCOUNT_RETENTION_DAYS)}-day retention`,
       );
     } catch (error) {
       this.logger.error(

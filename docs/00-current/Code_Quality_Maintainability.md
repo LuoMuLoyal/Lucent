@@ -149,3 +149,7 @@ Last updated: 2026-07-20
   `notifyIdentityLinked` → `identity_linked`（原均误用 `password_changed`）
 - `DataRetentionService`（`@Cron('0 3 * * *')`）每日清理过期会话、已读通知（30天）、
   过期反馈抑制记录，各清理步骤独立容错，单步失败不阻断其他清理
+- `ThrottlerConfigService` 条件性启用 Redis 限流存储：`REDIS_URL` 存在时使用 ioredis
+  INCR+PEXPIRE，否则回退内存；动态 import 避免传递依赖问题
+- B5 nonDeleted 迁移：6 个源文件从手动 `deletedAt: null` 迁移到 `prisma.nonDeleted` API，
+  事务内代码保留手动写法（Prisma 扩展在事务客户端不可用）

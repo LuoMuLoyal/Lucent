@@ -202,3 +202,5 @@ checks, use `deployment.md`.
   `PushDeliveryService` degrades gracefully when FCM/APNs credentials are absent (no-op stub).
 - `UserNotificationType` enum extended with `oauth_login` and `identity_linked` (2026-07-20).
   `DataRetentionModule` (`@Global()`) runs daily `@Cron` cleanup — no env vars required.
+- `ThrottlerConfigService` conditionally enables Redis-backed throttling when `REDIS_URL` is set;
+  `ioredis` is a direct dependency (dynamic import, no static import).

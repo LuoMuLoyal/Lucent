@@ -1,6 +1,6 @@
 # Report Export
 
-Last updated: 2026-07-05
+Last updated: 2026-07-20
 
 - Report export uses a shared `DataExportProcessorService` for both async (BullMQ) and inline
   fallback paths so the two execution modes run the same status, PDF generation, upload, and
@@ -19,3 +19,4 @@ Last updated: 2026-07-05
   - Daily Trends: tabular day-by-day breakdown of medication/water/sleep values from `trends[]`
   - Findings: insight blocks with title + body
   - Patterns: insight blocks with status badge, title, body, and sparkline sequence
+- `ClinicSummaryService.buildClinicSummary()` 用户查询已迁移到 `prisma.nonDeleted.user.findFirstOrThrow` API。

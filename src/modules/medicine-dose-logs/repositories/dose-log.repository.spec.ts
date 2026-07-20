@@ -201,7 +201,9 @@ describe('MedicineDoseLogRepository', () => {
         scheduledHour: 8,
         scheduledMinute: 30,
       });
-      expect(prisma.nonDeleted.userMedicineReminder.findFirst).toHaveBeenCalledWith({
+      expect(
+        prisma.nonDeleted.userMedicineReminder.findFirst,
+      ).toHaveBeenCalledWith({
         where: { id: 'rem-1', userId: 'user-1' },
         select: {
           userId: true,

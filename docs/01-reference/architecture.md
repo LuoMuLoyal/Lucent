@@ -340,3 +340,4 @@ operations.
   产品决策。
 - **无 CN→DrugBank 运行时映射表**：跨语言药品关联不通过运行时表或别名映射实现；跨源问题时使用
   Assistant 源分离结构化查找工具，而非建立共享映射层。
+- **限流**：`ThrottlerConfigService`（`forRootAsync`）条件性启用 Redis 存储——`REDIS_URL` 存在时使用 ioredis INCR+PEXPIRE，否则回退内存。

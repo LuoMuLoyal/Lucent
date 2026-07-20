@@ -1,12 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { ThrottlerOptionsFactory, ThrottlerModuleOptions } from '@nestjs/throttler';
 import {
-  ThrottlerStorage,
-  type ThrottlerStorageRecord,
+  type ThrottlerOptionsFactory,
+  type ThrottlerModuleOptions,
+  type ThrottlerStorage as IThrottlerStorage,
 } from '@nestjs/throttler';
 import type Redis from 'ioredis';
 import { EnvKey } from './env-keys.enum';
+
+interface ThrottlerStorageRecord {
+  totalHits: number;
+  timeToExpire: number;
+  isBlocked: boolean;
+  timeToBlockExpire: number;
+}
 
 /**
  * Redis-backed implementation of `ThrottlerStorage` using INCR + PEXPIRE.
@@ -16,7 +23,7 @@ import { EnvKey } from './env-keys.enum';
  * simply INCR the counter. If the counter exceeds the limit, the record is
  * marked as blocked with a separate block-expiry key.
  */
-class RedisThrottlerStorage implements ThrottlerStorage {
+class RedisThrottlerStorage implements IThrottlerStorage {
   private readonly redis: Redis;
 
   constructor(redis: Redis) {
@@ -89,8 +96,11 @@ export class ThrottlerConfigService implements ThrottlerOptionsFactory {
     };
 
     if (redisUrl) {
-      const { default: RedisConstructor } = await import('ioredis');
-      options.storage = new RedisThrottlerStorage(new RedisConstructor(redisUrl));
+      const mod = await import('ioredis');
+      const RedisCtor = mod.default ?? mod;
+      options.storage = new RedisThrottlerStorage(
+        new (RedisCtor as unknown as new (url: string) => Redis)(redisUrl),
+      );
     }
 
     return options;

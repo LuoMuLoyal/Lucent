@@ -97,7 +97,11 @@ export class EscalationService {
       await this.pushDeliveryService.sendToUser(userId, {
         title: candidate.title,
         body: candidate.reason,
-        data: { suggestionId, suggestionType: candidate.type, action: 'ai_proactive_suggestion' },
+        data: {
+          suggestionId,
+          suggestionType: candidate.type,
+          action: 'ai_proactive_suggestion',
+        },
       });
 
       return true;

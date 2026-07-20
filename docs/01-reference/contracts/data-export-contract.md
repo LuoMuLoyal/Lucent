@@ -69,3 +69,4 @@ interface DataExportRequestDto {
   status before downloading again instead of caching the URL permanently.
 - `monthly` requests are normalized to `last_30_days` before Lucent stores and generates the export,
   even if the caller passes another range value.
+- `ClinicSummaryService` user lookup migrated to `prisma.nonDeleted.user.findFirstOrThrow` API.

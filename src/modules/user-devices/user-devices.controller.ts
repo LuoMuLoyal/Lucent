@@ -33,7 +33,9 @@ export class UserDevicesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Register or update a device for push notifications' })
+  @ApiOperation({
+    summary: 'Register or update a device for push notifications',
+  })
   @ApiResponse({ status: 201, type: DeviceResponseDto })
   async register(
     @CurrentUser() user: UserPayload,
@@ -54,10 +56,7 @@ export class UserDevicesController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Unregister a device' })
-  async remove(
-    @CurrentUser() user: UserPayload,
-    @Param('id') id: string,
-  ) {
+  async remove(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     await this.userDevicesService.remove(user.sub, id);
   }
 }

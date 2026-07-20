@@ -43,6 +43,9 @@ export class DeviceResponseDto extends DeviceItemDto {}
  * Response shape for GET /user-devices (list).
  */
 export class DeviceListResponseDto {
-  @ApiProperty({ type: [DeviceItemDto], description: 'List of registered devices.' })
+  @ApiProperty({
+    type: [DeviceItemDto],
+    description: 'List of registered devices.',
+  })
   items!: DeviceItemDto[];
 }
