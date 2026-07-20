@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { NotificationsService } from '../../../notifications/services/notifications.service';
+import { PushDeliveryService } from '../../../notifications/services/push-delivery.service';
 import { now } from '../../../../common/helpers/date-time.utils';
 import type { SuggestionCandidate } from '../../types';
 import { SuggestionConfidence, TriggerType } from '../../types';
@@ -28,6 +29,7 @@ export class EscalationService {
 
   constructor(
     private readonly notificationsService: NotificationsService,
+    private readonly pushDeliveryService: PushDeliveryService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -90,6 +92,13 @@ export class EscalationService {
       this.logger.debug(
         `Escalated suggestion ${suggestionId} to notification (type=${candidate.type}, rule=${candidate.ruleId})`,
       );
+
+      // Push notification (best-effort — no-op when not configured)
+      await this.pushDeliveryService.sendToUser(userId, {
+        title: candidate.title,
+        body: candidate.reason,
+        data: { suggestionId, suggestionType: candidate.type, action: 'ai_proactive_suggestion' },
+      });
 
       return true;
     } catch (error) {

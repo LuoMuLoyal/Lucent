@@ -43,6 +43,10 @@ describe('EscalationService', () => {
       createOrReplaceScoped: createOrReplaceScopedMock,
     };
 
+    const pushDeliveryMock = {
+      sendToUser: vi.fn().mockResolvedValue(undefined),
+    };
+
     const prismaMock = {
       userSuggestion: {
         findUnique: findUniqueMock,
@@ -52,6 +56,7 @@ describe('EscalationService', () => {
 
     service = new EscalationService(
       notificationsMock as never,
+      pushDeliveryMock as never,
       prismaMock as never,
     );
   });
