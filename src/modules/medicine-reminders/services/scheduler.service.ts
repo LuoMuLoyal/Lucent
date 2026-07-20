@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
+import { PushDeliveryService } from '../../notifications/services/push-delivery.service';
 import { now } from '../../../common/helpers/date-time.utils';
 import { formatDateOnly } from '../../../common/helpers/date-time.utils';
 
@@ -73,6 +74,7 @@ export class ReminderSchedulerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly pushDeliveryService: PushDeliveryService,
   ) {}
 
   @Cron(REMINDER_SCHEDULER_CRON)
@@ -234,6 +236,13 @@ export class ReminderSchedulerService {
       this.logger.debug(
         `Dispatched reminder ${reminder.id} to user ${reminder.userId}`,
       );
+
+      // Push notification (best-effort — no-op when not configured)
+      await this.pushDeliveryService.sendToUser(reminder.userId, {
+        title: label,
+        body: `该吃药了：${label}`,
+        data: { reminderId: reminder.id, action: 'medicine_reminder' },
+      });
     } catch (error) {
       this.logger.error(
         `Failed to dispatch reminder ${reminder.id}: ${this.formatError(error)}`,

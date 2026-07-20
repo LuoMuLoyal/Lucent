@@ -1,6 +1,6 @@
 # Reminder / Notification Contract
 
-Last updated: 2026-06-10
+Last updated: 2026-07-20
 
 ## Boundary
 
@@ -34,10 +34,10 @@ Lucent's notification system is split into two layers with a clear ownership bou
   - Status: Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example
     only
 - Push delivery (FCM/APNs)
-  - Status: Not implemented — no credentials, no infrastructure
+  - Status: `PushDeliveryService` implemented as no-op stub (queries `UserDevice` where `notificationsEnabled=true`, logs attempt at debug level). FCM/APNs SDK integration is deferred until credentials are provisioned — replace the inner block in `sendToUser()` to enable real delivery.
+  - Device registration API: `POST /api/v1/user/user-devices` (upsert by pushToken), `GET` (list), `DELETE` (unregister).
 - Reminder delivery log
-  - Status: Implemented model + read-only `/api/v1/user/reminder-deliveries`; no worker writes rows
-    yet
+  - Status: `ReminderSchedulerService` (`@Cron('* * * * *')`) now writes `UserReminderDelivery` rows every minute for due reminders — matching `scheduledHour:Minute` in user timezone + `daysOfWeek` + date window. Channel=`in_app`, status=`delivered`. Deduplicated by `(reminderId, scheduledFor)`.
 - Notification content templates
   - Status: Not implemented
 
@@ -129,8 +129,7 @@ UserMedicineReminder {
 
 ### 3. Reminder Delivery Log (read-only, audit)
 
-**Status:** implemented as read-only storage/API. No Lucent worker writes delivery rows yet, and no
-SMS/push/local delivery is implied by this table.
+**Status:** implemented. `ReminderSchedulerService` (`@Cron('* * * * *')`) writes delivery rows every minute for due reminders, creating `UserReminderDelivery` records with `channel='in_app'` and `status='delivered'`. Push delivery via `PushDeliveryService` is integrated as a best-effort second channel (no-op stub until FCM/APNs credentials are provisioned).
 
 **Model:** `UserReminderDelivery` (new Prisma model)
 
@@ -157,18 +156,14 @@ UserReminderDelivery {
 
 ## Explicit Non-Goals
 
-1. **No push notification delivery (FCM/APNs).** This contract defines schedules and preferences
-   only. Actual push delivery requires: Firebase project setup, APNs key/certificate, FCM server
-   key, push token registration flow, and a delivery worker — none of which are in scope.
-
-2. **No real-time / WebSocket notification.** The initial delivery model is polling-based: Luminous
+1. **No real-time / WebSocket notification.** The initial delivery model is polling-based: Luminous
    reads the schedule and triggers local notifications on-device.
 
-3. **No third-party notification services** (OneSignal, Pusher, etc.).
+2. **No third-party notification services** (OneSignal, Pusher, etc.).
 
-4. **No email/SMS notification delivery** in this contract.
+3. **No email/SMS notification delivery** in this contract.
 
-5. **No calendar integration** (Google Calendar, Apple Health, etc.).
+4. **No calendar integration** (Google Calendar, Apple Health, etc.).
 
 ## Migration Path
 
@@ -182,7 +177,10 @@ UserReminderDelivery {
 5. **Phase E (done on 2026-06-10):** Luminous creates/edits reminder schedules, supports optional
    start/end dates, stores local sound preference, shows SMS as unavailable, and displays the
    backend read-only delivery log.
-6. **Phase F (future):** On-device notification scheduling from backend schedules, followed later
-   by push delivery infrastructure (FCM/APNs), worker writes, and delivery-log population.
+6. **Phase F (done on 2026-07-20):** `ReminderSchedulerService` implemented — `@Cron` every
+   minute scans due reminders by user timezone, writes `UserReminderDelivery` rows, and sends
+   in-app notifications via `NotificationsService`. `PushDeliveryService` integrated as
+   best-effort push channel (no-op stub). Device registration API (`user-devices` module) added.
+   `AuditLogModule` added for sensitive operation audit trail.
 
 At every phase, Luminous remains the notification display layer; Lucent owns the schedule data.

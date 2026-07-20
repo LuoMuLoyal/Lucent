@@ -1,6 +1,6 @@
 # Medicine Data / RAG
 
-Last updated: 2026-07-09
+Last updated: 2026-07-20
 
 - Chinese leaflet assistant retrieval uses Lucent-owned `medicine_leaflet_chunks` plus a dedicated
   leaflet vector store.
@@ -34,3 +34,6 @@ Last updated: 2026-07-09
 scheduledTime`, then to `currentMedicineId + scheduledFor`.
 - Today analysis water target is now read from the `user_settings` DB table (`waterTargetCount`,
   range 1-30) instead of a hardcoded constant, allowing per-user personalization.
+- **药品提醒调度器**：`ReminderSchedulerService`（`@Cron('* * * * *')`）每分钟扫描活跃提醒，
+  按用户时区匹配 `scheduledHour:Minute` + `daysOfWeek` + 日期窗口，创建 `UserReminderDelivery`
+  记录并发送站内通知 + 推送通知（best-effort）。
