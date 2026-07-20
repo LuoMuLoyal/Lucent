@@ -9,7 +9,7 @@ export class AuthNotificationService {
 
   async notifyOAuthLogin(userId: string, profile: OAuthProfile): Promise<void> {
     await this.notificationsService.create(userId, {
-      type: 'password_changed',
+      type: 'oauth_login',
       title: '账户登录提醒',
       content: `您的账户通过${this.providerLabel(profile.provider)}登录。如非本人操作，请尽快联系客服。`,
       action: '/account',
@@ -21,7 +21,7 @@ export class AuthNotificationService {
     profile: OAuthProfile,
   ): Promise<void> {
     await this.notificationsService.create(userId, {
-      type: 'password_changed',
+      type: 'identity_linked',
       title: '账户绑定提醒',
       content: `您的账户已绑定${this.providerLabel(profile.provider)}身份。如非本人操作，请尽快联系客服。`,
       action: '/account',

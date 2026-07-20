@@ -10,92 +10,11 @@
 
 Lucent 后端整体实现度高，**22 个功能模块全部在 `app.module.ts` 中注册**，核心链路（LLM 管道、助手 tool-loop、Today 建议、餐食分析、报告导出、COS 存储、BullMQ 队列、认证授权）**均为真实实现，无 mock/stub 代码**。源码中零 `TODO`/`FIXME` 标记，零 `console.log` 泄露，零硬编码密钥，零跳过测试。
 
-发版前需要关注的 **3 个未打通链路** 和 **5 个潜在隐患** 如下。
+发版前需关注的 **5 个潜在隐患** 如下（原 3 个阻断级问题 A1/A2/A3 已全部修复并提交）。
 
 ---
 
-## 二、未打通链路（阻断级）
-
-### A1. 推送通知投递链路完全缺失
-
-**现状**：
-
-- Prisma `UserDevice` 模型已定义 `pushToken`、`notificationsEnabled`、`platform` 字段
-- `UserReminderDelivery` 模型已定义 `deviceId`、`channel`、`status` 字段
-- `NotificationsService` 仅实现站内通知 CRUD（`create` → 写 `UserNotification` 表）
-- `EscalationService.escalateIfNeeded()` 注释写 "escalated to a push notification"，实际仅调用 `notificationsService.createOrReplaceScoped()` 写入站内通知
-- **全仓库无 FCM / APNs / Firebase 代码**，无设备注册 API，无 `pushToken` 读写代码
-
-**影响**：
-
-- 药品提醒、AI 建议升级、报告导出完成等通知仅能通过 App 内站内消息查看
-- 用户关闭 App 后无法收到任何推送
-- `UserDevice` 表始终为空，`UserReminderDelivery.channel` 无可用投递通道
-
-**建议**：
-
-1. 新增 `DeviceRegistrationService`：注册/更新/删除设备 token（`POST /user/devices`、`DELETE /user/devices/:id`）
-2. 新增 `PushDeliveryService`：封装 FCM (Android) + APNs (iOS) 调用
-3. 修改 `EscalationService`：站内通知 + 推送通知双通道
-4. 在 `notifications.module.ts` 导出 `PushDeliveryService`
-
-**优先级**：P1（ROADMAP v1.1.0 已规划）
-
----
-
-### A2. 药品提醒调度器缺失
-
-**现状**：
-
-- `UserMedicineReminder` 模型有 `scheduledHour`、`scheduledMinute`、`daysOfWeek`、`startDate`、`endDate`、`isActive`
-- `MedicineRemindersService` 实现完整 CRUD + 事件发射（`REMINDER_CHANGED`）
-- `ReminderDeliveriesController` 可查询投递记录（`GET /reminder-deliveries`）
-- **全仓库仅 1 处 `@Cron`（`today-suggestion` 生命周期刷新）**
-- **无任何 `@Cron`/`@Interval` 调度器扫描到期的药品提醒**
-- **无代码创建 `UserReminderDelivery` 记录**
-
-**影响**：
-
-- 用户设置的药品提醒永远不会被触发
-- `UserReminderDelivery` 表始终为空，投递审计接口无数据
-- 核心功能链路断裂
-
-**建议**：
-
-1. 新增 `ReminderSchedulerService`：`@Cron(CronExpression.EVERY_MINUTE)` 扫描到期提醒
-2. 调度器查询 `UserMedicineReminder` where `isActive=true` 且当前时间匹配 `scheduledHour:scheduledMinute`
-3. 创建 `UserReminderDelivery` 记录 → 调用推送投递（依赖 A1）
-4. 在 `medicine-reminders.module.ts` 注册调度器
-
-**优先级**：P0（发版阻断项）
-
----
-
-### A3. 审计日志缺失
-
-**现状**：
-
-- ROADMAP 明确列为 "What's missing"：`audit_logs` table for security-sensitive operations
-- 无 `AuditLog` Prisma 模型，无 `AuditLogService`
-- 密码变更、身份绑定、数据导出、Admin 面板写入等敏感操作无审计记录
-
-**影响**：
-
-- 安全事件无法追溯
-- 合规审计无数据支撑
-
-**建议**：
-
-1. 新增 `AuditLog` Prisma 模型（`userId`、`action`、`resourceType`、`resourceId`、`metadata`、`ipAddress`、`userAgent`、`createdAt`）
-2. 新增 `AuditLogService`：通过 Nest EventEmitter 异步记录
-3. 在 `AuthController`（密码变更、身份绑定/解绑）、`AccountController`（账户删除）、`DataExportController`、Admin 面板写入点发射审计事件
-4. Admin 面板新增审计日志查看页
-
-**优先级**：P1（ROADMAP v1.0.0 已规划但未完成）
-
----
-
-## 三、潜在维护隐患（非阻断）
+## 二、潜在维护隐患（非阻断）
 
 ### B1. AuthNotificationService 通知类型语义错误
 
@@ -213,7 +132,7 @@ Lucent 后端整体实现度高，**22 个功能模块全部在 `app.module.ts` 
 
 ---
 
-## 四、已验证完整的模块清单
+## 三、已验证完整的模块清单
 
 以下模块经代码审查确认**完全实现，无 mock/stub，无空方法**：
 
@@ -228,12 +147,12 @@ Lucent 后端整体实现度高，**22 个功能模块全部在 `app.module.ts` 
 | **daily-records**       | 8 种记录类型 + 仓储模式 Port + 图片附件                                    |
 | **meal-analysis**       | 视觉 LLM 识别 + BullMQ 队列 + 菜品分解 + 食材匹配 + 模板学习               |
 | **medicine-dose-logs**  | 服药记录 CRUD + 状态追踪                                                   |
-| **medicine-reminders**  | 提醒 CRUD + 事件发射（投递调度缺失，见 A2）                                |
+| **medicine-reminders**  | 提醒 CRUD + 事件发射 + `@Cron` 调度器 + 双通道投递                          |
 | **medicines**           | 药品搜索 + 安全提示                                                        |
 | **reports**             | 仪表盘计算 + AI 摘要 + 诊所摘要 + PDF 生成（pdf-lib + CJK 字体）           |
 | **data-export**         | BullMQ 异步 PDF 导出 + 内联回退 + COS 上传 + 通知                          |
 | **files**               | 腾讯 COS 预签名上传 URL                                                    |
-| **notifications**       | 站内通知 CRUD + 去重作用域（推送投递缺失，见 A1）                          |
+| **notifications**       | 站内通知 CRUD + 去重作用域 + 推送投递服务（no-op stub）                      |
 | **today-analysis**      | LLM 生成 + 流式 SSE + BullMQ 队列 + 上下文聚合                             |
 | **today-suggestion**    | 信号采集 → 规则引擎 → 评分仲裁 → 生命周期 → 反馈 → 3 层缓存 + `@Cron` 刷新 |
 | **assistant**           | LangGraph tool-loop + SSE 流式 + 会话持久化 + 记忆块 + 3 源 RAG            |
@@ -244,7 +163,7 @@ Lucent 后端整体实现度高，**22 个功能模块全部在 `app.module.ts` 
 
 ---
 
-## 五、基础设施验证
+## 四、基础设施验证
 
 | 基础设施         | 状态    | 验证要点                                                            |
 | ---------------- | ------- | ------------------------------------------------------------------- |
@@ -266,7 +185,7 @@ Lucent 后端整体实现度高，**22 个功能模块全部在 `app.module.ts` 
 
 ---
 
-## 六、测试覆盖验证
+## 五、测试覆盖验证
 
 | 测试类型 | 状态 | 详情                                                           |
 | -------- | ---- | -------------------------------------------------------------- |
@@ -279,7 +198,7 @@ Lucent 后端整体实现度高，**22 个功能模块全部在 `app.module.ts` 
 
 ---
 
-## 七、安全验证
+## 六、安全验证
 
 | 检查项             | 状态 | 详情                                                                                                                                           |
 | ------------------ | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -294,18 +213,7 @@ Lucent 后端整体实现度高，**22 个功能模块全部在 `app.module.ts` 
 
 ---
 
-## 八、发版前行动清单
-
-### 必须完成（P0）
-
-- [x] **A2**：实现药品提醒调度器 `ReminderSchedulerService`（`@Cron(EVERY_MINUTE)` 扫描到期提醒 → 创建 `UserReminderDelivery` → 站内通知） — **已完成**
-  - 推送投递可后续接入（依赖 A1），先保证站内通知 + 投递记录
-
-### 强烈建议（P1）
-
-- [x] **A1**：实现推送通知投递链路（设备注册 API + FCM/APNs 封装 + EscalationService 双通道） — **已完成**
-  - 设备注册 API + PushDeliveryService（优雅降级 no-op stub）已实现，FCM/APNs SDK 接入待凭证就绪后替换 inner block
-- [x] **A3**：实现审计日志（`AuditLog` 模型 + `AuditLogService` + 敏感操作埋点） — **已完成**
+## 七、剩余行动清单
 
 ### 建议完成（P2）
 
@@ -320,7 +228,7 @@ Lucent 后端整体实现度高，**22 个功能模块全部在 `app.module.ts` 
 
 ---
 
-## 九、审计方法说明
+## 八、审计方法说明
 
 本次审计采用以下手段进行全仓库扫描：
 

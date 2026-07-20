@@ -2,10 +2,7 @@
 
 ## Documentation Rules
 
-After every code change, run `pnpm docs:check`. It reads `docs/doc-map.yaml` and prints
-a per-rule report of which docs each touched code area expects. The pre-commit hook runs
-the same tool in **blocking** mode: `src/**/*.ts` staged but no `docs/` file staged →
-commit blocked. Bypass with `SKIP_DOC_CHECK=1`.
+After every code change, run the documentation check tool (`pnpm docs:check`) to confirm which documents need updating. It reads `docs/doc-map.yaml` and prints a per-rule report of which docs each touched code area expects. The pre-commit hook runs the same tool in **blocking** mode: `src/**/*.ts` staged but no `docs/` file staged → commit blocked. Bypass with `SKIP_DOC_CHECK=1`.
 
 ### Standing rules
 

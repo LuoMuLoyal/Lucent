@@ -10,17 +10,24 @@ export const USER_NOTIFICATION_TYPES = [
   'report_generated',
   'medicine_reminder',
   'system_announcement',
+  'oauth_login',
+  'identity_linked',
 ] as const;
 
 /**
  * Notification types that a regular user is allowed to create via the
  * public POST /notifications endpoint.  System-level types such as
- * `system_announcement` are excluded — only internal services should
- * create those.
+ * `system_announcement`, `oauth_login`, and `identity_linked` are excluded —
+ * only internal services should create those.
  */
+const SYSTEM_ONLY_NOTIFICATION_TYPES = new Set([
+  'system_announcement',
+  'oauth_login',
+  'identity_linked',
+]);
+
 export const USER_CREATABLE_NOTIFICATION_TYPES = USER_NOTIFICATION_TYPES.filter(
-  (t): t is Exclude<typeof t, 'system_announcement'> =>
-    t !== 'system_announcement',
+  (t) => !SYSTEM_ONLY_NOTIFICATION_TYPES.has(t),
 ) as unknown as readonly UserNotificationType[];
 
 export class NotificationListItemDto {

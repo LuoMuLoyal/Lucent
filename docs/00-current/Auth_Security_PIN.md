@@ -34,3 +34,5 @@ Last updated: 2026-07-20
   `resourceType`/`resourceId`、`metadata`、`ipAddress`、`userAgent`。审计写入失败不阻塞
   请求（错误吞咽 + warn 日志）。`AuditLogModule` 是 `@Global()` 模块，任何 controller
   可直接注入 `AuditLogService`。
+- `AuthNotificationService` 通知类型语义已修正：`notifyOAuthLogin` 使用 `type: 'oauth_login'`，
+  `notifyIdentityLinked` 使用 `type: 'identity_linked'`（原均误用 `password_changed`）。

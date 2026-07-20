@@ -117,13 +117,15 @@ enum AiSummaryHistoryKind {
 }
 
 enum UserNotificationType {
-  ai_today_summary
-  ai_proactive_suggestion
-  medicine_missed_dose
-  password_changed
-  report_generated
-  medicine_reminder
-  system_announcement
+ai_today_summary
+ai_proactive_suggestion
+medicine_missed_dose
+password_changed
+report_generated
+medicine_reminder
+system_announcement
+oauth_login
+identity_linked
 }
 
 model User {

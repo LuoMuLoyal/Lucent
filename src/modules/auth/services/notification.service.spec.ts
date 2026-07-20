@@ -27,6 +27,7 @@ describe('AuthNotificationService', () => {
       expect(notificationsService.create).toHaveBeenCalledWith(
         'user-1',
         expect.objectContaining({
+          type: 'oauth_login',
           title: '账户登录提醒',
           content: expect.stringContaining('微信'),
           action: '/account',
@@ -111,6 +112,7 @@ describe('AuthNotificationService', () => {
       expect(notificationsService.create).toHaveBeenCalledWith(
         'user-1',
         expect.objectContaining({
+          type: 'identity_linked',
           title: '账户绑定提醒',
           content: expect.stringContaining('微信'),
         }),
