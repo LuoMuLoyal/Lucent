@@ -97,7 +97,7 @@ export class ThrottlerConfigService implements ThrottlerOptionsFactory {
 
     if (redisUrl) {
       const mod = await import('ioredis');
-      const RedisCtor = mod.default ?? mod;
+      const RedisCtor = mod.default;
       options.storage = new RedisThrottlerStorage(
         new (RedisCtor as unknown as new (url: string) => Redis)(redisUrl),
       );

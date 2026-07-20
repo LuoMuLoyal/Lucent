@@ -50,7 +50,7 @@ export class PushDeliveryService {
       // TODO(v1.1.0): dispatch via FCM/APNs SDK based on `platform`.
       // For now, log the attempt so the call path is visible.
       this.logger.debug(
-        `Push notification stub: userId=${userId}, devices=${devices.length}, title="${payload.title}"`,
+        `Push notification stub: userId=${userId}, devices=${String(devices.length)}, title="${payload.title}"`,
       );
     } catch (error) {
       this.logger.warn(
