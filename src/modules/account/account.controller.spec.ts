@@ -11,6 +11,7 @@ import type { UserPayload } from '../auth/services/token.service';
 import { AccountController } from './account.controller';
 import { AccountService } from './services/account.service';
 import { AuthService } from '../auth/services/auth.service';
+import { AuditLogService } from '../audit-log/services';
 import { SecurityElevationGuard } from '../security-pin/guards';
 import { SecurityPinService } from '../security-pin/services';
 import type { UpdateAccountDto } from './dto/update.dto';
@@ -22,6 +23,12 @@ const mockUser: UserPayload = {
   email: 'test@example.com',
   status: 'active',
 };
+
+const mockRequest = {
+  ip: '10.0.0.1',
+  headers: { 'user-agent': 'Luminous/1.0' },
+  raw: { socket: { remoteAddress: '10.0.0.1' } },
+} as never;
 
 const mockAccount = {
   id: 'user-uuid-1',
@@ -80,6 +87,13 @@ describe('AccountController', () => {
             verifyElevationToken: vi.fn(),
           },
         },
+        {
+          provide: AuditLogService,
+          useValue: {
+            log: vi.fn(),
+            logFireAndForget: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -134,10 +148,14 @@ describe('AccountController', () => {
     it('should change password and return null data', async () => {
       authService.changePassword.mockResolvedValue(undefined);
 
-      const result = await controller.changePassword(mockUser, {
-        oldPassword: 'OldPass1',
-        newPassword: 'NewPass1',
-      });
+      const result = await controller.changePassword(
+        mockUser,
+        {
+          oldPassword: 'OldPass1',
+          newPassword: 'NewPass1',
+        },
+        mockRequest,
+      );
 
       expect(authService.changePassword).toHaveBeenCalledWith(mockUser.sub, {
         oldPassword: 'OldPass1',
@@ -155,10 +173,14 @@ describe('AccountController', () => {
     it('should set initial password and return null data', async () => {
       authService.setPassword.mockResolvedValue(undefined);
 
-      const result = await controller.setPassword(mockUser, {
-        code: '123456',
-        password: 'NewPass1',
-      });
+      const result = await controller.setPassword(
+        mockUser,
+        {
+          code: '123456',
+          password: 'NewPass1',
+        },
+        mockRequest,
+      );
 
       expect(authService.setPassword).toHaveBeenCalledWith(mockUser.sub, {
         code: '123456',
@@ -180,10 +202,14 @@ describe('AccountController', () => {
       };
       authService.changeEmail.mockResolvedValue(updatedUser as unknown as User);
 
-      const result = await controller.changeEmail(mockUser, {
-        newEmail: 'new@example.com',
-        code: '123456',
-      });
+      const result = await controller.changeEmail(
+        mockUser,
+        {
+          newEmail: 'new@example.com',
+          code: '123456',
+        },
+        mockRequest,
+      );
 
       expect(authService.changeEmail).toHaveBeenCalledWith(mockUser.sub, {
         newEmail: 'new@example.com',
@@ -205,10 +231,14 @@ describe('AccountController', () => {
         emailVerifiedAt: null,
       } as unknown as User);
 
-      const result = await controller.changeEmail(mockUser, {
-        newEmail: 'unverified@example.com',
-        code: '123456',
-      });
+      const result = await controller.changeEmail(
+        mockUser,
+        {
+          newEmail: 'unverified@example.com',
+          code: '123456',
+        },
+        mockRequest,
+      );
 
       expect(result.data?.emailVerifiedAt).toBeNull();
     });
@@ -225,6 +255,7 @@ describe('AccountController', () => {
       const result = await controller.unlinkIdentity(
         mockUser,
         'identity-uuid-1',
+        mockRequest,
       );
 
       expect(accountService.unlinkIdentity).toHaveBeenCalledWith(
@@ -289,10 +320,14 @@ describe('AccountController', () => {
       authService.linkWechatWebIdentity.mockResolvedValue(undefined);
       accountService.getAccount.mockResolvedValue(mockAccount);
 
-      const result = await controller.linkWechatWebIdentity(mockUser, {
-        code: 'auth-code',
-        state: 'state-xxx',
-      });
+      const result = await controller.linkWechatWebIdentity(
+        mockUser,
+        {
+          code: 'auth-code',
+          state: 'state-xxx',
+        },
+        mockRequest,
+      );
 
       expect(authService.linkWechatWebIdentity).toHaveBeenCalledWith(
         mockUser.sub,
@@ -312,9 +347,13 @@ describe('AccountController', () => {
       authService.linkWechatMobileIdentity.mockResolvedValue(undefined);
       accountService.getAccount.mockResolvedValue(mockAccount);
 
-      const result = await controller.linkWechatMobileIdentity(mockUser, {
-        code: 'mobile-auth-code',
-      });
+      const result = await controller.linkWechatMobileIdentity(
+        mockUser,
+        {
+          code: 'mobile-auth-code',
+        },
+        mockRequest,
+      );
 
       expect(authService.linkWechatMobileIdentity).toHaveBeenCalledWith(
         mockUser.sub,
@@ -333,9 +372,13 @@ describe('AccountController', () => {
     it('should delete account and return null data', async () => {
       authService.deleteAccount.mockResolvedValue(undefined);
 
-      const result = await controller.deleteAccount(mockUser, {
-        password: 'Passw0rd123',
-      });
+      const result = await controller.deleteAccount(
+        mockUser,
+        {
+          password: 'Passw0rd123',
+        },
+        mockRequest,
+      );
 
       expect(authService.deleteAccount).toHaveBeenCalledWith(mockUser.sub, {
         password: 'Passw0rd123',

@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -17,8 +18,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import type { FastifyRequest } from 'fastify';
 
 import { successEnvelope } from '../../common/api';
+import { extractAuthRequestContext } from '../../common/helpers/client-ip';
+import { AuditLogService } from '../audit-log/services';
 import { AuthService, type UserPayload } from '../auth/services/auth.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SecurityElevationGuard } from '../security-pin/guards';
@@ -48,6 +52,7 @@ export class AccountController {
   constructor(
     private readonly accountService: AccountService,
     private readonly authService: AuthService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   @Get()
@@ -77,8 +82,14 @@ export class AccountController {
   async changePassword(
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangePasswordDto,
+    @Req() request: FastifyRequest,
   ) {
     await this.authService.changePassword(user.sub, dto);
+    this.auditLogService.logFireAndForget({
+      ...extractAuthRequestContext(request),
+      userId: user.sub,
+      action: 'password.change',
+    });
     return successEnvelope(null);
   }
 
@@ -92,8 +103,14 @@ export class AccountController {
   async setPassword(
     @CurrentUser() user: UserPayload,
     @Body() dto: SetPasswordDto,
+    @Req() request: FastifyRequest,
   ) {
     await this.authService.setPassword(user.sub, dto);
+    this.auditLogService.logFireAndForget({
+      ...extractAuthRequestContext(request),
+      userId: user.sub,
+      action: 'password.set',
+    });
     return successEnvelope(null);
   }
 
@@ -105,8 +122,15 @@ export class AccountController {
   async changeEmail(
     @CurrentUser() user: UserPayload,
     @Body() dto: ChangeEmailDto,
+    @Req() request: FastifyRequest,
   ) {
     const updated = await this.authService.changeEmail(user.sub, dto);
+    this.auditLogService.logFireAndForget({
+      ...extractAuthRequestContext(request),
+      userId: user.sub,
+      action: 'email.change',
+      metadata: { email: updated.email },
+    });
     return successEnvelope({
       email: updated.email,
       emailVerifiedAt: updated.emailVerifiedAt?.toISOString() ?? null,
@@ -121,10 +145,20 @@ export class AccountController {
   async unlinkIdentity(
     @CurrentUser() user: UserPayload,
     @Param('identityId') identityId: string,
+    @Req() request: FastifyRequest,
   ) {
-    return successEnvelope(
-      await this.accountService.unlinkIdentity(user.sub, identityId),
+    const result = await this.accountService.unlinkIdentity(
+      user.sub,
+      identityId,
     );
+    this.auditLogService.logFireAndForget({
+      ...extractAuthRequestContext(request),
+      userId: user.sub,
+      action: 'identity.unlink',
+      resourceType: 'identity',
+      resourceId: identityId,
+    });
+    return successEnvelope(result);
   }
 
   @Post('identities/wechat-web/authorize')
@@ -151,8 +185,16 @@ export class AccountController {
   async linkWechatWebIdentity(
     @CurrentUser() user: UserPayload,
     @Body() dto: OAuthCallbackDto,
+    @Req() request: FastifyRequest,
   ) {
     await this.authService.linkWechatWebIdentity(user.sub, dto);
+    this.auditLogService.logFireAndForget({
+      ...extractAuthRequestContext(request),
+      userId: user.sub,
+      action: 'identity.link',
+      resourceType: 'oauth',
+      resourceId: 'wechat_web',
+    });
     return successEnvelope(await this.accountService.getAccount(user.sub));
   }
 
@@ -165,8 +207,16 @@ export class AccountController {
   async linkWechatMobileIdentity(
     @CurrentUser() user: UserPayload,
     @Body() dto: OAuthCodeCallbackDto,
+    @Req() request: FastifyRequest,
   ) {
     await this.authService.linkWechatMobileIdentity(user.sub, dto);
+    this.auditLogService.logFireAndForget({
+      ...extractAuthRequestContext(request),
+      userId: user.sub,
+      action: 'identity.link',
+      resourceType: 'oauth',
+      resourceId: 'wechat_mobile',
+    });
     return successEnvelope(await this.accountService.getAccount(user.sub));
   }
 
@@ -177,8 +227,14 @@ export class AccountController {
   async deleteAccount(
     @CurrentUser() user: UserPayload,
     @Body() dto: DeleteAccountDto,
+    @Req() request: FastifyRequest,
   ) {
     await this.authService.deleteAccount(user.sub, dto);
+    this.auditLogService.logFireAndForget({
+      ...extractAuthRequestContext(request),
+      userId: user.sub,
+      action: 'account.delete',
+    });
     return successEnvelope(null);
   }
 }

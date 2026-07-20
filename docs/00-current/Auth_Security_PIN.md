@@ -1,6 +1,6 @@
 # Auth / Security PIN
 
-Last updated: 2026-07-18
+Last updated: 2026-07-20
 
 - The optional TOTP 2FA system has been replaced with an in-app 6-digit Security PIN.
 - `User` carries `securityPinEnabled`, `securityPinHash`, `securityPinChangedAt`, and
@@ -29,3 +29,8 @@ Last updated: 2026-07-18
 - Multiple security parameters are now environment-configurable with Joi validation: verification
   code TTL/cooldown/rate-limit, OAuth state TTL, and mail queue tuning (attempts, backoff,
   concurrency, retention).
+- **审计日志**：敏感操作（密码变更/设置、邮箱变更、OAuth 身份绑定/解绑、账户删除）通过
+  `AuditLogService.logFireAndForget()` 异步写入 `audit_logs` 表，记录 `userId`、`action`、
+  `resourceType`/`resourceId`、`metadata`、`ipAddress`、`userAgent`。审计写入失败不阻塞
+  请求（错误吞咽 + warn 日志）。`AuditLogModule` 是 `@Global()` 模块，任何 controller
+  可直接注入 `AuditLogService`。

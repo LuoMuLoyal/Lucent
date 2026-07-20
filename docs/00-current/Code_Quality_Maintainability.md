@@ -1,6 +1,6 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-14
+Last updated: 2026-07-20
 
 - auth 模块三处静默 catch 补充 logger.warn：`auth.service.ts` refresh、`auth-oauth-state.service.ts`
   normalizeCallbackUri、`credential-auth.service.ts` \_notifyPasswordChanged，保留生产环境可观测性。
@@ -137,3 +137,11 @@ Last updated: 2026-07-14
   - `auth.decorators.spec.ts`（23 tests）：覆盖 `IsStrongPassword`/`IsVerificationCode`/`IsEmailAddress` 装饰器及密码常量/正则
   - `tool-definitions.spec.ts`（7 tests）：覆盖 `buildToolDefinitions` 空数组/单个/全量/顺序/描述/schema
   - `user-settings/constants.spec.ts`（17 tests）：覆盖 `USER_SETTING_KEYS`/`ASSISTANT_CONTEXT_SETTING_KEYS`/默认值/`listDefaultBooleanUserSettings`
+
+- 2026-07-20 审计日志 + 推送通知投递链路：
+  - `AuditLogService` 采用 fire-and-forget 模式（`logFireAndForget()`），审计写入失败不阻塞
+    请求（warn 日志 + 错误吞咽），确保用户操作不受审计基础设施影响
+  - `PushDeliveryService` 优雅降级：未配置 FCM/APNs 时为 no-op stub（仅 log.debug），
+    替换 inner block 即可接入真实 SDK，无需修改调用方
+  - `ReminderSchedulerService` 和 `EscalationService` 均集成双通道投递（站内 + 推送），
+    推送失败不影响站内通知已创建的记录
