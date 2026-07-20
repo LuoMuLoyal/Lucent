@@ -192,3 +192,11 @@ NODE_ENV=test pnpm exec prisma migrate deploy
 and `.github/workflows/lucent-staging.yml` own production/staging image build, TCR push,
 deploy-asset upload, and remote deployment. For server bootstrap and production deployment
 checks, use `deployment.md`.
+
+## New Tables (2026-07-20)
+
+- `audit_logs` — security audit trail (userId, action, resourceType, resourceId, metadata JSONB,
+  ipAddress, userAgent, createdAt). Indexes: `(userId, createdAt)`, `(action, createdAt)`.
+  No environment variables required — `AuditLogService` is always available via `@Global()` module.
+- No new environment variables were introduced for the `audit-log` or `user-devices` modules.
+  `PushDeliveryService` degrades gracefully when FCM/APNs credentials are absent (no-op stub).
