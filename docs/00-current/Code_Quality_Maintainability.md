@@ -145,3 +145,7 @@ Last updated: 2026-07-20
     替换 inner block 即可接入真实 SDK，无需修改调用方
   - `ReminderSchedulerService` 和 `EscalationService` 均集成双通道投递（站内 + 推送），
     推送失败不影响站内通知已创建的记录
+- `AuthNotificationService` 通知类型语义已修正：`notifyOAuthLogin` → `oauth_login`，
+  `notifyIdentityLinked` → `identity_linked`（原均误用 `password_changed`）
+- `DataRetentionService`（`@Cron('0 3 * * *')`）每日清理过期会话、已读通知（30天）、
+  过期反馈抑制记录，各清理步骤独立容错，单步失败不阻断其他清理

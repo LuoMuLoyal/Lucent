@@ -17,6 +17,7 @@ graph TD
         auditLog["audit-log<br>(@Global, audit trail)"]
         daily["daily-records"]
         dataExport["data-export"]
+        dataRetention["data-retention<br>(@Cron cleanup)"]
         files["files"]
         doseLogs["medicine-dose-logs"]
         reminders["medicine-reminders<br>(+ scheduler @Cron)"]

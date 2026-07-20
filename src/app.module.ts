@@ -45,6 +45,7 @@ import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.mod
 import { TodaySuggestionModule } from './modules/today-suggestion/today-suggestion.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { DataRetentionModule } from './modules/data-retention/data-retention.module';
 import { UserDevicesModule } from './modules/user-devices/user-devices.module';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { SlowRequestInterceptor } from './common/interceptors/slow-request.interceptor';
@@ -82,6 +83,7 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
     BullmqModule,
     PrismaModule,
     AuditLogModule,
+    DataRetentionModule,
     UserDevicesModule,
     MailModule,
     AuthModule,

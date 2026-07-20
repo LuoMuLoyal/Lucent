@@ -200,3 +200,5 @@ checks, use `deployment.md`.
   No environment variables required — `AuditLogService` is always available via `@Global()` module.
 - No new environment variables were introduced for the `audit-log` or `user-devices` modules.
   `PushDeliveryService` degrades gracefully when FCM/APNs credentials are absent (no-op stub).
+- `UserNotificationType` enum extended with `oauth_login` and `identity_linked` (2026-07-20).
+  `DataRetentionModule` (`@Global()`) runs daily `@Cron` cleanup — no env vars required.
