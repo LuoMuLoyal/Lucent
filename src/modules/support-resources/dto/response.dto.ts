@@ -89,12 +89,6 @@ export class AppInfoDataDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   supportEmail!: string | null;
-
-  @ApiPropertyOptional({ type: String, nullable: true })
-  privacyPolicyUrl!: string | null;
-
-  @ApiPropertyOptional({ type: String, nullable: true })
-  termsOfServiceUrl!: string | null;
 }
 
 export class AppInfoResponseDto {

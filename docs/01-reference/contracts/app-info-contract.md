@@ -23,8 +23,6 @@ interface AppInfoDto {
   buildDate: string; // ISO-8601, build/publish timestamp
   minClientVersion: string | null; // minimum Luminous version hint
   supportEmail: string | null;
-  privacyPolicyUrl: string | null;
-  termsOfServiceUrl: string | null;
 }
 ```
 

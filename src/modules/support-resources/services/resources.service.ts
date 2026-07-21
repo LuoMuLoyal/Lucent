@@ -39,8 +39,6 @@ export class SupportResourcesService {
       buildDate: BUILD_DATE,
       minClientVersion: null,
       supportEmail: null,
-      privacyPolicyUrl: null,
-      termsOfServiceUrl: null,
     };
   }
 
