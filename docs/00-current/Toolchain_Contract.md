@@ -1,6 +1,6 @@
 # Toolchain / Contract
 
-Last updated: 2026-07-20
+Last updated: 2026-07-21
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -9,7 +9,10 @@ Last updated: 2026-07-20
 - The current exported contract now includes meal-analysis read hot fields on `DailyRecordItemDto`:
   status, coverage, updated-at, failure-reason, short-description, and top-foods.
 - Lucent CI now re-exports `docs/openapi.json` as a local build artifact instead of diffing a
-  committed generated contract file.
+  committed generated contract file. The export step runs **before** E2E tests because the
+  contract test suite loads `docs/openapi.json` at startup (the file is gitignored).
+- `vitest.e2e.config.ts` is a standalone `defineConfig` (not `mergeConfig` with the base config)
+  to prevent `include` array concatenation from pulling unit tests into the E2E run.
 - `pnpm prisma:generate` now also transpiles `generated/prisma/internal/*.ts` to `.js`, because
   Prisma 7's custom-output client currently leaves those runtime files missing while `client.js`
   still requires them for `pnpm build`, `pnpm export:openapi`, and other compiled-runtime flows.
