@@ -31,13 +31,11 @@ function buildCandidate(
 describe('EscalationService', () => {
   let service: EscalationService;
   let createOrReplaceScopedMock: vi.Mock;
-  let findUniqueMock: vi.Mock;
-  let updateMock: vi.Mock;
+  let updateManyMock: vi.Mock;
 
   beforeEach(() => {
     createOrReplaceScopedMock = vi.fn().mockResolvedValue({});
-    findUniqueMock = vi.fn();
-    updateMock = vi.fn().mockResolvedValue({});
+    updateManyMock = vi.fn().mockResolvedValue({ count: 1 });
 
     const notificationsMock = {
       createOrReplaceScoped: createOrReplaceScopedMock,
@@ -49,8 +47,7 @@ describe('EscalationService', () => {
 
     const prismaMock = {
       userSuggestion: {
-        findUnique: findUniqueMock,
-        update: updateMock,
+        updateMany: updateManyMock,
       },
     };
 
@@ -62,10 +59,6 @@ describe('EscalationService', () => {
   });
 
   it('should escalate an eligible candidate', async () => {
-    findUniqueMock.mockResolvedValue({
-      notificationSentAt: null,
-    });
-
     const candidate = buildCandidate();
     const result = await service.escalateIfNeeded(
       'user-1',
@@ -84,7 +77,10 @@ describe('EscalationService', () => {
     expect(callArgs[2].source).toBe('today_suggestion_compliance');
     expect(callArgs[2].date).toBe('2026-07-09');
 
-    expect(updateMock).toHaveBeenCalledTimes(1);
+    expect(updateManyMock).toHaveBeenCalledWith({
+      where: { id: 'sug-1', notificationSentAt: null },
+      data: expect.objectContaining({ notificationSentAt: expect.any(Date) }),
+    });
   });
 
   it('should not escalate if notificationEligible is false', async () => {
@@ -148,8 +144,6 @@ describe('EscalationService', () => {
   });
 
   it('should escalate when priorityScore is exactly 700 (boundary)', async () => {
-    findUniqueMock.mockResolvedValue({ notificationSentAt: null });
-
     const candidate = buildCandidate({ priorityScore: 700 });
     const result = await service.escalateIfNeeded(
       'user-1',
@@ -162,8 +156,8 @@ describe('EscalationService', () => {
     expect(createOrReplaceScopedMock).toHaveBeenCalledTimes(1);
   });
 
-  it('should not escalate if suggestion not found in DB', async () => {
-    findUniqueMock.mockResolvedValue(null);
+  it('should not escalate if suggestion does not exist in DB (updateMany returns 0)', async () => {
+    updateManyMock.mockResolvedValue({ count: 0 });
 
     const candidate = buildCandidate();
     const result = await service.escalateIfNeeded(
@@ -173,15 +167,12 @@ describe('EscalationService', () => {
       '2026-07-09',
     );
 
-    // When suggestion is not found, existing?.notificationSentAt is null/undefined,
-    // so it proceeds with escalation
-    expect(result).toBe(true);
-    expect(createOrReplaceScopedMock).toHaveBeenCalledTimes(1);
+    expect(result).toBe(false);
+    expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
   });
 
-  it('should not escalate if notificationSentAt is null but update fails', async () => {
-    findUniqueMock.mockResolvedValue({ notificationSentAt: null });
-    updateMock.mockRejectedValue(new Error('Update failed'));
+  it('should not escalate if notification was already sent (updateMany returns 0)', async () => {
+    updateManyMock.mockResolvedValue({ count: 0 });
 
     const candidate = buildCandidate();
     const result = await service.escalateIfNeeded(
@@ -209,10 +200,25 @@ describe('EscalationService', () => {
     expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
   });
 
-  it('should not escalate if notification was already sent', async () => {
-    findUniqueMock.mockResolvedValue({
-      notificationSentAt: new Date('2026-07-09T10:00:00.000Z'),
-    });
+  it('should return false on notification creation error but keep suggestion marked as notified', async () => {
+    createOrReplaceScopedMock.mockRejectedValue(new Error('DB error'));
+
+    const candidate = buildCandidate();
+    const result = await service.escalateIfNeeded(
+      'user-1',
+      'sug-1',
+      candidate,
+      '2026-07-09',
+    );
+
+    expect(result).toBe(false);
+    // Suggestion IS marked as notified (updateMany succeeded with count=1)
+    // to prevent duplicate notifications on the next generation cycle.
+    expect(updateManyMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return false when updateMany itself fails', async () => {
+    updateManyMock.mockRejectedValue(new Error('Update failed'));
 
     const candidate = buildCandidate();
     const result = await service.escalateIfNeeded(
@@ -226,31 +232,7 @@ describe('EscalationService', () => {
     expect(createOrReplaceScopedMock).not.toHaveBeenCalled();
   });
 
-  it('should return false on notification creation error but keep suggestion marked as notified', async () => {
-    findUniqueMock.mockResolvedValue({
-      notificationSentAt: null,
-    });
-    createOrReplaceScopedMock.mockRejectedValue(new Error('DB error'));
-
-    const candidate = buildCandidate();
-    const result = await service.escalateIfNeeded(
-      'user-1',
-      'sug-1',
-      candidate,
-      '2026-07-09',
-    );
-
-    expect(result).toBe(false);
-    // Suggestion IS marked as notified (persisted first) to prevent
-    // duplicate notifications on the next generation cycle.
-    expect(updateMock).toHaveBeenCalledTimes(1);
-  });
-
   it('should use suggestion type in the notification scope for deduplication', async () => {
-    findUniqueMock.mockResolvedValue({
-      notificationSentAt: null,
-    });
-
     const candidate = buildCandidate({
       type: SuggestionType.BEHAVIOR_ADVICE,
       notificationEligible: true,

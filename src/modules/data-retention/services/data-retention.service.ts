@@ -116,30 +116,21 @@ export class DataRetentionService {
         threshold.getUTCDate() - SOFT_DELETED_ACCOUNT_RETENTION_DAYS,
       );
 
-      // Find soft-deleted accounts past retention
-      const expiredUsers = await this.prisma.user.findMany({
+      // Delete directly with the same WHERE clause to avoid loading all
+      // expired user IDs into memory and to avoid an oversized IN clause.
+      // Prisma cascade deletes all related records via onDelete: Cascade.
+      const result = await this.prisma.user.deleteMany({
         where: {
           deletedAt: { lt: threshold },
           status: 'deleted',
         },
-        select: { id: true },
       });
 
-      if (expiredUsers.length === 0) {
-        return;
+      if (result.count > 0) {
+        this.logger.log(
+          `Permanently deleted ${String(result.count)} soft-deleted account(s) past ${String(SOFT_DELETED_ACCOUNT_RETENTION_DAYS)}-day retention`,
+        );
       }
-
-      // Hard-delete via deleteMany to avoid findUnique → delete round-trip.
-      // Prisma cascade deletes all related records (sessions, notifications,
-      // reminders, daily records, etc.) via onDelete: Cascade.
-      const userIds = expiredUsers.map((u) => u.id);
-      const result = await this.prisma.user.deleteMany({
-        where: { id: { in: userIds } },
-      });
-
-      this.logger.log(
-        `Permanently deleted ${String(result.count)} soft-deleted account(s) past ${String(SOFT_DELETED_ACCOUNT_RETENTION_DAYS)}-day retention`,
-      );
     } catch (error) {
       this.logger.error(
         `Failed to cleanup soft-deleted accounts: ${error instanceof Error ? error.message : String(error)}`,

@@ -36,6 +36,12 @@ export class EscalationService {
   /**
    * Checks escalation conditions and sends a notification if eligible.
    * Returns true if a notification was sent, false otherwise.
+   *
+   * Uses an atomic conditional update (`updateMany` with
+   * `notificationSentAt: null` in the WHERE clause) to prevent the
+   * race condition where two concurrent requests both read `null`,
+   * then both send a notification. Only the first request gets
+   * `count === 1`; the second gets `count === 0` and bails out.
    */
   async escalateIfNeeded(
     userId: string,
@@ -47,25 +53,18 @@ export class EscalationService {
       return false;
     }
 
-    // Check if a notification was already sent for this suggestion
-    const existing = await this.prisma.userSuggestion.findUnique({
-      where: { id: suggestionId },
-      select: { notificationSentAt: true },
-    });
-
-    if (existing?.notificationSentAt != null) {
-      return false;
-    }
-
     try {
-      // 1. Persist the notification-sent state FIRST.
-      //    If the notification send fails afterwards, the suggestion is already
-      //    marked as notified — preventing duplicate notifications on retry.
-      //    The notification itself can be retried separately.
-      await this.prisma.userSuggestion.update({
-        where: { id: suggestionId },
+      // 1. Atomically claim the notification slot.
+      //    If another concurrent request already set notificationSentAt,
+      //    this updateMany returns count=0 and we bail out — no duplicate.
+      const claimed = await this.prisma.userSuggestion.updateMany({
+        where: { id: suggestionId, notificationSentAt: null },
         data: { notificationSentAt: now() },
       });
+
+      if (claimed.count === 0) {
+        return false;
+      }
 
       // 2. Send the notification.
       await this.notificationsService.createOrReplaceScoped(

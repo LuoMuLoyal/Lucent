@@ -8,7 +8,10 @@ type ObjectThrottlerOptions = Extract<
   { throttlers: unknown }
 >;
 
-// Mock ioredis so we can intercept the Redis constructor call
+// Flag to make the mock Redis constructor throw — set per test.
+const mockState = vi.hoisted(() => ({ shouldThrowOnConstruct: false }));
+
+/** Shared mock Redis instance methods. */
 const mockRedisInstance = {
   pttl: vi.fn(),
   incr: vi.fn(),
@@ -25,6 +28,12 @@ vi.mock('ioredis', () => {
     pexpire = mockRedisInstance.pexpire;
     set = mockRedisInstance.set;
     del = mockRedisInstance.del;
+
+    constructor() {
+      if (mockState.shouldThrowOnConstruct) {
+        throw new Error('ECONNREFUSED');
+      }
+    }
   }
   return { default: MockRedis };
 });
@@ -44,6 +53,11 @@ describe('ThrottlerConfigService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    mockState.shouldThrowOnConstruct = false;
+  });
+
+  afterEach(() => {
+    mockState.shouldThrowOnConstruct = false;
   });
 
   // ── createThrottlerOptions without REDIS_URL ───────────────────────────
@@ -67,6 +81,17 @@ describe('ThrottlerConfigService', () => {
     expect(options.throttlers).toEqual([{ ttl: 60_000, limit: 100 }]);
     expect(options.storage).toBeDefined();
     expect(typeof options.storage?.increment).toBe('function');
+  });
+
+  it('falls back to in-memory storage when Redis constructor throws', async () => {
+    mockState.shouldThrowOnConstruct = true;
+
+    const service = createConfigService('redis://127.0.0.1:6379');
+    const options =
+      (await service.createThrottlerOptions()) as ObjectThrottlerOptions;
+
+    expect(options.throttlers).toEqual([{ ttl: 60_000, limit: 100 }]);
+    expect(options.storage).toBeUndefined();
   });
 
   // ── RedisThrottlerStorage.increment ─────────────────────────────────────

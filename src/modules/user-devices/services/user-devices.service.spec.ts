@@ -1,5 +1,7 @@
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { UserDevicesService } from './user-devices.service';
 import type { PrismaService } from '../../../prisma/prisma.service';
+import { DevicePlatform } from '../dto';
 
 const now = new Date('2026-07-20T12:00:00.000Z');
 
@@ -23,7 +25,10 @@ function buildDeviceRow(overrides: Record<string, unknown> = {}) {
 function buildPrisma() {
   return {
     userDevice: {
-      upsert: vi.fn().mockResolvedValue(buildDeviceRow()),
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue(buildDeviceRow()),
+      update: vi.fn().mockResolvedValue(buildDeviceRow()),
+      delete: vi.fn().mockResolvedValue(buildDeviceRow()),
       findMany: vi.fn().mockResolvedValue([buildDeviceRow()]),
       deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
@@ -40,26 +45,28 @@ describe('UserDevicesService', () => {
   });
 
   describe('register', () => {
-    it('upserts a device by pushToken and returns the DTO', async () => {
+    it('creates a new device when pushToken does not exist', async () => {
+      prisma.userDevice.findUnique.mockResolvedValue(null);
+
       const result = await service.register('user-1', {
         pushToken: 'token-abc',
-        platform: 'ios',
+        platform: DevicePlatform.ios,
         deviceName: 'iPhone 15',
         notificationsEnabled: true,
       });
 
-      expect(prisma.userDevice.upsert).toHaveBeenCalledWith({
+      expect(prisma.userDevice.findUnique).toHaveBeenCalledWith({
         where: { pushToken: 'token-abc' },
-        create: expect.objectContaining({
+        select: { id: true, userId: true },
+      });
+      expect(prisma.userDevice.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
           userId: 'user-1',
           pushToken: 'token-abc',
           platform: 'ios',
         }),
-        update: expect.objectContaining({
-          userId: 'user-1',
-          platform: 'ios',
-        }),
       });
+      expect(prisma.userDevice.update).not.toHaveBeenCalled();
 
       expect(result).toEqual(
         expect.objectContaining({
@@ -69,6 +76,54 @@ describe('UserDevicesService', () => {
           notificationsEnabled: true,
         }),
       );
+    });
+
+    it('updates metadata when the same user re-registers the same token', async () => {
+      prisma.userDevice.findUnique.mockResolvedValue({
+        id: 'device-1',
+        userId: 'user-1',
+      });
+
+      const result = await service.register('user-1', {
+        pushToken: 'token-abc',
+        platform: DevicePlatform.android,
+        deviceName: 'Pixel 8',
+        notificationsEnabled: true,
+      });
+
+      expect(prisma.userDevice.update).toHaveBeenCalledWith({
+        where: { id: 'device-1' },
+        data: expect.objectContaining({
+          platform: 'android',
+          deviceName: 'Pixel 8',
+        }),
+      });
+      // userId must NOT be in the update data
+      const updateCall = (prisma.userDevice.update as ReturnType<typeof vi.fn>)
+        .mock.calls[0]![0];
+      expect(updateCall.data).not.toHaveProperty('userId');
+      expect(prisma.userDevice.create).not.toHaveBeenCalled();
+
+      expect(result).toEqual(
+        expect.objectContaining({ id: 'device-1', platform: 'ios' }),
+      );
+    });
+
+    it('throws ForbiddenException when pushToken belongs to another user', async () => {
+      prisma.userDevice.findUnique.mockResolvedValue({
+        id: 'device-1',
+        userId: 'user-other',
+      });
+
+      await expect(
+        service.register('user-1', {
+          pushToken: 'token-abc',
+          platform: DevicePlatform.ios,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(prisma.userDevice.create).not.toHaveBeenCalled();
+      expect(prisma.userDevice.update).not.toHaveBeenCalled();
     });
   });
 
@@ -87,20 +142,40 @@ describe('UserDevicesService', () => {
   });
 
   describe('remove', () => {
-    it('deletes the device and returns true when found', async () => {
-      const result = await service.remove('user-1', 'device-1');
-
-      expect(prisma.userDevice.deleteMany).toHaveBeenCalledWith({
-        where: { id: 'device-1', userId: 'user-1' },
+    it('deletes the device when it belongs to the user', async () => {
+      prisma.userDevice.findUnique.mockResolvedValue({
+        userId: 'user-1',
       });
-      expect(result).toBe(true);
+
+      await service.remove('user-1', 'device-1');
+
+      expect(prisma.userDevice.findUnique).toHaveBeenCalledWith({
+        where: { id: 'device-1' },
+        select: { userId: true },
+      });
+      expect(prisma.userDevice.delete).toHaveBeenCalledWith({
+        where: { id: 'device-1' },
+      });
     });
 
-    it('returns false when device not found', async () => {
-      prisma.userDevice.deleteMany.mockResolvedValue({ count: 0 });
+    it('throws NotFoundException when device does not exist', async () => {
+      prisma.userDevice.findUnique.mockResolvedValue(null);
 
-      const result = await service.remove('user-1', 'nonexistent');
-      expect(result).toBe(false);
+      await expect(service.remove('user-1', 'nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(prisma.userDevice.delete).not.toHaveBeenCalled();
+    });
+
+    it('throws ForbiddenException when device belongs to another user', async () => {
+      prisma.userDevice.findUnique.mockResolvedValue({
+        userId: 'user-other',
+      });
+
+      await expect(service.remove('user-1', 'device-1')).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(prisma.userDevice.delete).not.toHaveBeenCalled();
     });
   });
 });

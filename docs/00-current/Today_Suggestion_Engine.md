@@ -78,7 +78,7 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 - 条件：`notificationEligible` + `triggerType=event` + `confidence=high` + `priorityScore>=700`
 - 去重：按 `(suggestionType, date)` 去重，避免通知轰炸
 - 使用 `NotificationsService.createOrReplaceScoped()` 发送
-- 操作顺序：先持久化 `notificationSentAt`，再发送通知。如果通知发送失败，建议已标记为已通知，防止重复发送
+- 操作顺序：使用原子条件 `updateMany({ where: { id, notificationSentAt: null } })` 抢占通知槽位（`count=0` 表示已被其他并发请求处理，直接跳过），成功后再发送通知。如果通知发送失败，建议已标记为已通知，防止重复发送
 - **双通道投递**：站内通知后，额外调用 `PushDeliveryService.sendToUser()` 向已注册设备
   发送推送通知（best-effort，未配置 FCM/APNs 时为 no-op stub）。`EscalationService` 内部用户查询已迁移到 `prisma.nonDeleted` API。
 

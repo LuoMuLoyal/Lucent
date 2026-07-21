@@ -1,6 +1,6 @@
 # Reminder / Notification Contract
 
-Last updated: 2026-07-20
+Last updated: 2026-07-21
 
 ## Boundary
 
@@ -35,9 +35,9 @@ Lucent's notification system is split into two layers with a clear ownership bou
     only
 - Push delivery (FCM/APNs)
   - Status: `PushDeliveryService` implemented as no-op stub (queries `UserDevice` where `notificationsEnabled=true`, logs attempt at debug level). FCM/APNs SDK integration is deferred until credentials are provisioned — replace the inner block in `sendToUser()` to enable real delivery.
-  - Device registration API: `POST /api/v1/user/user-devices` (upsert by pushToken), `GET` (list), `DELETE` (unregister).
+  - Device registration API: `POST /api/v1/user/user-devices` (register or update by pushToken — cross-user hijack protected, returns 403 if token owned by another user), `GET` (list), `DELETE` (unregister — returns 404 if not found, 403 if owned by another user).
 - Reminder delivery log
-  - Status: `ReminderSchedulerService` (`@Cron('* * * * *')`) now writes `UserReminderDelivery` rows every minute for due reminders — matching `scheduledHour:Minute` in user timezone + `daysOfWeek` + date window. Channel=`in_app`, status=`delivered`. Deduplicated by `(reminderId, scheduledFor)`.
+  - Status: `ReminderSchedulerService` (`@Cron('* * * * *')`) now writes `UserReminderDelivery` rows every minute for due reminders — matching `scheduledHour:Minute` in user timezone + `daysOfWeek` + date window. Channel=`in_app`, status=`delivered`. Deduplicated by `(reminderId, scheduledFor)`. Uses cursor-based pagination (batch size 500) to avoid OOM on large datasets. Overlap guard prevents concurrent tick execution.
 - Notification content templates
   - Status: Not implemented
 
@@ -129,7 +129,7 @@ UserMedicineReminder {
 
 ### 3. Reminder Delivery Log (read-only, audit)
 
-**Status:** implemented. `ReminderSchedulerService` (`@Cron('* * * * *')`) writes delivery rows every minute for due reminders, creating `UserReminderDelivery` records with `channel='in_app'` and `status='delivered'`. Push delivery via `PushDeliveryService` is integrated as a best-effort second channel (no-op stub until FCM/APNs credentials are provisioned).
+**Status:** implemented. `ReminderSchedulerService` (`@Cron('* * * * *')`) writes delivery rows every minute for due reminders, creating `UserReminderDelivery` records with `channel='in_app'` and `status='delivered'`. Push delivery via `PushDeliveryService` is integrated as a best-effort second channel (no-op stub until FCM/APNs credentials are provisioned). Uses cursor-based pagination (batch size 500) to avoid OOM and an in-process overlap guard to prevent concurrent tick execution.
 
 **Model:** `UserReminderDelivery` (new Prisma model)
 
@@ -182,6 +182,12 @@ UserReminderDelivery {
    in-app notifications via `NotificationsService`. `PushDeliveryService` integrated as
    best-effort push channel (no-op stub). Device registration API (`user-devices` module) added.
    `AuditLogModule` added for sensitive operation audit trail.
+7. **Phase G (done on 2026-07-21):** Security and reliability hardening — device registration
+   cross-user hijack protection (403), device delete semantic correctness (404/403), scheduler
+   cursor-based pagination (OOM prevention), scheduler overlap guard, escalation atomic
+   conditional update (race condition fix), throttler Redis connection failure graceful
+   degradation, data retention direct `deleteMany` (no ID pre-load), `DevicePlatform` enum
+   exported and DTO type-safe.
 
 At every phase, Luminous remains the notification display layer; Lucent owns the schedule data.
 Reminder and dose-log repository queries migrated to `prisma.nonDeleted` API.

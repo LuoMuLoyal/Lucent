@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   type ThrottlerOptionsFactory,
@@ -86,6 +86,8 @@ class RedisThrottlerStorage implements IThrottlerStorage {
  */
 @Injectable()
 export class ThrottlerConfigService implements ThrottlerOptionsFactory {
+  private readonly logger = new Logger(ThrottlerConfigService.name);
+
   constructor(private readonly configService: ConfigService) {}
 
   async createThrottlerOptions(): Promise<ThrottlerModuleOptions> {
@@ -96,11 +98,17 @@ export class ThrottlerConfigService implements ThrottlerOptionsFactory {
     };
 
     if (redisUrl) {
-      const mod = await import('ioredis');
-      const RedisCtor = mod.default;
-      options.storage = new RedisThrottlerStorage(
-        new (RedisCtor as unknown as new (url: string) => Redis)(redisUrl),
-      );
+      try {
+        const mod = await import('ioredis');
+        const RedisCtor = mod.default;
+        options.storage = new RedisThrottlerStorage(
+          new (RedisCtor as unknown as new (url: string) => Redis)(redisUrl),
+        );
+      } catch (error) {
+        this.logger.warn(
+          `Failed to connect Redis for throttler storage — falling back to in-memory storage: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
 
     return options;

@@ -233,15 +233,14 @@ describe('User Devices API (e2e)', () => {
       expect(list.items.find((d) => d.id === device.id)).toBeUndefined();
     });
 
-    it('should return 204 even for non-existent device id', async () => {
-      // deleteMany returns count=0, which is not an error
+    it('should return 404 for non-existent device id', async () => {
       await request(app.getHttpServer())
         .delete(`${BASE_PATH}/non-existent-id`)
         .set('Authorization', bearer(accessToken))
-        .expect(204);
+        .expect(404);
     });
 
-    it('should not allow deleting another user device', async () => {
+    it('should return 403 when deleting another user device', async () => {
       // Register a device as the main user
       const createRes = await request(app.getHttpServer())
         .post(BASE_PATH)
@@ -267,11 +266,11 @@ describe('User Devices API (e2e)', () => {
         otherUser.email,
       );
 
-      // Other user tries to delete — should succeed (204) but not actually delete
+      // Other user tries to delete — should be forbidden (403)
       await request(app.getHttpServer())
         .delete(`${BASE_PATH}/${device.id}`)
         .set('Authorization', bearer(otherToken))
-        .expect(204);
+        .expect(403);
 
       // Verify the device still exists for the original user
       const listRes = await request(app.getHttpServer())
@@ -283,6 +282,41 @@ describe('User Devices API (e2e)', () => {
         listRes.body as ApiEnvelope<{ items: DeviceItemDto[] }>,
       );
       expect(list.items.find((d) => d.id === device.id)).toBeDefined();
+    });
+
+    it('should return 403 when registering a pushToken owned by another user', async () => {
+      // Register a device as the main user
+      await request(app.getHttpServer())
+        .post(BASE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({
+          pushToken: 'push-token-e2e-hijack',
+          platform: 'ios',
+        })
+        .expect(201);
+
+      // Create a second user
+      const otherUser = await createTestUser(
+        ctx.prisma,
+        uniqueEmail('devices-hijack'),
+        'HijackUser',
+      );
+      const otherToken = await createAccessToken(
+        ctx.jwtService,
+        ctx.configService,
+        otherUser.id,
+        otherUser.email,
+      );
+
+      // Other user tries to register with the same pushToken — should be forbidden
+      await request(app.getHttpServer())
+        .post(BASE_PATH)
+        .set('Authorization', bearer(otherToken))
+        .send({
+          pushToken: 'push-token-e2e-hijack',
+          platform: 'android',
+        })
+        .expect(403);
     });
   });
 });

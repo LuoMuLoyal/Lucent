@@ -1,7 +1,8 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 
-enum DevicePlatform {
+/** Supported device platforms for push notifications. */
+export enum DevicePlatform {
   ios = 'ios',
   android = 'android',
   web = 'web',
@@ -23,7 +24,7 @@ export class RegisterDeviceDto {
     enumName: 'UserDevicePlatform',
   })
   @IsEnum(DevicePlatform)
-  platform!: string;
+  platform!: DevicePlatform;
 
   @ApiPropertyOptional({ description: 'Human-readable device name.' })
   @IsOptional()

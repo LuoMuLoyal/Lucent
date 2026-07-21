@@ -18,6 +18,9 @@ const DELIVERY_CHANNEL_IN_APP = 'in_app';
 /** Delivery status when a notification is successfully sent. */
 const DELIVERY_STATUS_DELIVERED = 'delivered';
 
+/** Batch size for paginated reminder queries. */
+const REMINDER_QUERY_BATCH_SIZE = 500;
+
 /** Maps weekday short names to ISO weekday numbers (0 = Sunday). */
 const WEEKDAY_MAP: Record<string, number> = {
   Sun: 0,
@@ -70,6 +73,7 @@ interface LocalTime {
 @Injectable()
 export class ReminderSchedulerService {
   private readonly logger = new Logger(ReminderSchedulerService.name);
+  private isDispatching = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -79,6 +83,20 @@ export class ReminderSchedulerService {
 
   @Cron(REMINDER_SCHEDULER_CRON)
   async dispatchDueReminders(): Promise<void> {
+    if (this.isDispatching) {
+      this.logger.warn('Previous dispatch still running — skipping this tick');
+      return;
+    }
+
+    this.isDispatching = true;
+    try {
+      await this.runDispatch();
+    } finally {
+      this.isDispatching = false;
+    }
+  }
+
+  private async runDispatch(): Promise<void> {
     const currentTime = now();
     const scheduledFor = this.truncateToMinute(currentTime);
 
@@ -110,45 +128,61 @@ export class ReminderSchedulerService {
 
   /**
    * Queries all active, non-deleted reminders (with user profile timezone)
-   * and filters to those whose local hour:minute, weekday, and date window
-   * match the current time.
+   * in batches and filters to those whose local hour:minute, weekday, and
+   * date window match the current time.
+   *
+   * Uses cursor-based pagination to avoid loading the entire table into
+   * memory when the number of active reminders grows large.
    */
   private async findDueReminders(currentTime: Date): Promise<DueReminder[]> {
-    const rows = await this.prisma.userMedicineReminder.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        userId: true,
-        label: true,
-        scheduledHour: true,
-        scheduledMinute: true,
-        daysOfWeek: true,
-        startDate: true,
-        endDate: true,
-        user: {
-          select: {
-            profile: { select: { timezone: true } },
+    const due: DueReminder[] = [];
+    let cursor: string | undefined;
+
+    for (;;) {
+      const rows = await this.prisma.userMedicineReminder.findMany({
+        where: { isActive: true, deletedAt: null },
+        take: REMINDER_QUERY_BATCH_SIZE,
+        ...(cursor !== undefined ? { cursor: { id: cursor }, skip: 1 } : {}),
+        select: {
+          id: true,
+          userId: true,
+          label: true,
+          scheduledHour: true,
+          scheduledMinute: true,
+          daysOfWeek: true,
+          startDate: true,
+          endDate: true,
+          user: {
+            select: {
+              profile: { select: { timezone: true } },
+            },
           },
         },
-      },
-    });
+      });
 
-    const due: DueReminder[] = [];
+      for (const row of rows) {
+        const timezone = row.user.profile?.timezone ?? null;
+        const local = this.getLocalTime(currentTime, timezone);
 
-    for (const row of rows) {
-      const timezone = row.user.profile?.timezone ?? null;
-      const local = this.getLocalTime(currentTime, timezone);
+        if (!this.isReminderDue(row, local)) {
+          continue;
+        }
 
-      if (!this.isReminderDue(row, local)) {
-        continue;
+        due.push({
+          id: row.id,
+          userId: row.userId,
+          label: row.label,
+          timezone,
+        });
       }
 
-      due.push({
-        id: row.id,
-        userId: row.userId,
-        label: row.label,
-        timezone,
-      });
+      if (rows.length < REMINDER_QUERY_BATCH_SIZE) {
+        break;
+      }
+
+      const lastRow = rows[rows.length - 1];
+      if (lastRow === undefined) break;
+      cursor = lastRow.id;
     }
 
     return due;

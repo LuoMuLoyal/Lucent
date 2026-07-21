@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserDevicesController } from './user-devices.controller';
 import { UserDevicesService } from './services';
+import { DevicePlatform } from './dto';
 
 describe('UserDevicesController', () => {
   let controller: UserDevicesController;
@@ -28,7 +29,7 @@ describe('UserDevicesController', () => {
     userDevicesService = {
       register: vi.fn().mockResolvedValue(mockDeviceItem),
       list: vi.fn().mockResolvedValue({ items: [mockDeviceItem] }),
-      remove: vi.fn().mockResolvedValue(true),
+      remove: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -53,7 +54,7 @@ describe('UserDevicesController', () => {
   it('should call service.register and return success envelope', async () => {
     const dto = {
       pushToken: 'token-abc',
-      platform: 'ios',
+      platform: DevicePlatform.ios,
       deviceName: 'iPhone 15',
       locale: 'zh-CN',
       timezone: 'Asia/Shanghai',

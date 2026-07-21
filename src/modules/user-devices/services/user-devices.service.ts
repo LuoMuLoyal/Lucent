@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { now } from '../../../common/helpers/date-time.utils';
 import type { RegisterDeviceDto } from '../dto';
@@ -7,8 +11,10 @@ import type { DeviceItemDto } from '../dto';
 /**
  * Manages user device registration for push notifications.
  *
- * Devices are upserted by `pushToken` — a device that re-registers with the
- * same token updates its metadata instead of creating a duplicate row.
+ * Devices are keyed by `pushToken` (globally unique). When a device
+ * re-registers with the same token, its metadata is updated — but only
+ * if the token still belongs to the same user. A token owned by another
+ * user cannot be hijacked via the registration endpoint.
  */
 @Injectable()
 export class UserDevicesService {
@@ -18,28 +24,35 @@ export class UserDevicesService {
     userId: string,
     dto: RegisterDeviceDto,
   ): Promise<DeviceItemDto> {
-    const record = await this.prisma.userDevice.upsert({
+    // Check whether this pushToken already exists.
+    const existing = await this.prisma.userDevice.findUnique({
       where: { pushToken: dto.pushToken },
-      create: {
-        userId,
-        pushToken: dto.pushToken,
-        platform: dto.platform as never,
-        deviceName: dto.deviceName ?? null,
-        locale: dto.locale ?? null,
-        timezone: dto.timezone ?? null,
-        notificationsEnabled: dto.notificationsEnabled ?? false,
-        lastSeenAt: now(),
-      },
-      update: {
-        userId,
-        platform: dto.platform as never,
-        deviceName: dto.deviceName ?? null,
-        locale: dto.locale ?? null,
-        timezone: dto.timezone ?? null,
-        notificationsEnabled: dto.notificationsEnabled ?? false,
-        lastSeenAt: now(),
-      },
+      select: { id: true, userId: true },
     });
+
+    if (existing !== null && existing.userId !== userId) {
+      throw new ForbiddenException('This device is registered to another user');
+    }
+
+    const commonData = {
+      platform: dto.platform as never,
+      deviceName: dto.deviceName ?? null,
+      locale: dto.locale ?? null,
+      timezone: dto.timezone ?? null,
+      notificationsEnabled: dto.notificationsEnabled ?? false,
+      lastSeenAt: now(),
+    };
+
+    const record =
+      existing !== null
+        ? await this.prisma.userDevice.update({
+            where: { id: existing.id },
+            // userId intentionally omitted — never reassign ownership on update.
+            data: commonData,
+          })
+        : await this.prisma.userDevice.create({
+            data: { userId, pushToken: dto.pushToken, ...commonData },
+          });
 
     return this.toItem(record);
   }
@@ -53,12 +66,21 @@ export class UserDevicesService {
     return { items: records.map((r) => this.toItem(r)) };
   }
 
-  async remove(userId: string, id: string): Promise<boolean> {
-    const result = await this.prisma.userDevice.deleteMany({
-      where: { id, userId },
+  async remove(userId: string, id: string): Promise<void> {
+    const existing = await this.prisma.userDevice.findUnique({
+      where: { id },
+      select: { userId: true },
     });
 
-    return result.count > 0;
+    if (existing === null) {
+      throw new NotFoundException('Device not found');
+    }
+
+    if (existing.userId !== userId) {
+      throw new ForbiddenException('Device belongs to another user');
+    }
+
+    await this.prisma.userDevice.delete({ where: { id } });
   }
 
   private toItem(row: {
