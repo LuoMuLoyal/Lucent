@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
-import type { AiConfig } from '../../../config/ai.config';
+import type { LlmConfig } from '../../../config/llm.config';
 import type { TodayAnalysisCopyService } from './copy.service';
 import type { TodayAnalysisContextService } from './context.service';
 import type { TodayAnalysisGeneratorService } from './generator.service';
@@ -30,7 +30,7 @@ function notificationCreateOrReplaceScopedSpy(service: TodayAnalysisService) {
 }
 
 describe('TodayAnalysisService', () => {
-  const baseConfig: AiConfig = {
+  const baseConfig: LlmConfig = {
     provider: 'openai-compatible',
     analysis: {
       apiKey: 'analysis-key',
@@ -419,7 +419,7 @@ describe('TodayAnalysisService', () => {
 
   function createService(options?: {
     userSettingValue?: boolean;
-    config?: AiConfig;
+    config?: LlmConfig;
   }) {
     const prisma = {
       userSetting: {

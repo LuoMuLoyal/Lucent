@@ -1,10 +1,10 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import type { AiConfig } from '../config/ai.config';
+import type { LlmConfig } from '../config/llm.config';
 import { AI_MODEL_TIMEOUT_MS } from '../config/constants';
 import { LlmRuntimeService } from './services';
 
 describe('LlmRuntimeService', () => {
-  const baseConfig: AiConfig = {
+  const baseConfig: LlmConfig = {
     provider: 'openai-compatible',
     analysis: {
       apiKey: 'analysis-key',
@@ -75,7 +75,7 @@ describe('LlmRuntimeService', () => {
     });
 
     it('returns true for all roles when every role is configured', () => {
-      const fullConfig: AiConfig = {
+      const fullConfig: LlmConfig = {
         ...baseConfig,
         vision: {
           apiKey: 'v-key',
@@ -162,7 +162,7 @@ describe('LlmRuntimeService', () => {
     });
 
     it('returns the model name for every configured role in a full config', () => {
-      const fullConfig: AiConfig = {
+      const fullConfig: LlmConfig = {
         ...baseConfig,
         vision: {
           apiKey: 'v-key',

@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
-import type { AiConfig } from '../../../../config/ai.config';
+import type { LlmConfig } from '../../../../config/llm.config';
 import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from '../../dto';
 import type { ReportsAiSummaryContextService } from './context.service';
 import type { ReportsLlmSummaryCopyService } from './copy.service';
@@ -21,7 +21,7 @@ function modelGenerateSpy(service: ReportsAiSummaryService) {
 }
 
 describe('ReportsAiSummaryService', () => {
-  const baseConfig: AiConfig = {
+  const baseConfig: LlmConfig = {
     provider: 'openai-compatible',
     analysis: {
       apiKey: 'analysis-key',
@@ -343,7 +343,7 @@ describe('ReportsAiSummaryService', () => {
 
   function createService(options?: {
     userSettingValue?: boolean;
-    config?: AiConfig;
+    config?: LlmConfig;
     facts?: typeof baseFacts;
     context?: typeof baseAiContext;
   }) {

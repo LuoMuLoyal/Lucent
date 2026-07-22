@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { aiConfig } from '../../config/ai.config';
+import { llmConfig } from '../../config/llm.config';
 
 const DEFAULT_FORBIDDEN_PATTERNS = [
   /诊断/u,
@@ -40,8 +40,8 @@ export class LlmSafetyPolicyService {
   private readonly forbiddenPatterns: RegExp[];
 
   constructor(
-    @Inject(aiConfig.KEY)
-    config: ConfigType<typeof aiConfig>,
+    @Inject(llmConfig.KEY)
+    config: ConfigType<typeof llmConfig>,
   ) {
     const configured = config.safety.forbiddenPatterns;
     this.forbiddenPatterns =

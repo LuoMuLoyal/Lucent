@@ -1,7 +1,7 @@
 import { EnvKey } from './env-keys.enum';
-import { aiConfig } from './ai.config';
+import { llmConfig } from './llm.config';
 
-describe('aiConfig', () => {
+describe('llmConfig', () => {
   const saved: Record<string, string | undefined> = {};
   const keysToClean = [
     EnvKey.AI_PROVIDER,
@@ -45,7 +45,7 @@ describe('aiConfig', () => {
   });
 
   function callFactory() {
-    return aiConfig() as {
+    return llmConfig() as {
       provider: string | null;
       analysis: {
         apiKey: string | null;

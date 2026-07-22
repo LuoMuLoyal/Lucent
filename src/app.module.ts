@@ -9,7 +9,7 @@ import { ThrottlerConfigService } from './config/throttler.config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { appConfig } from './config/app.config';
-import { aiConfig } from './config/ai.config';
+import { llmConfig } from './config/llm.config';
 import { jwtConfig } from './config/jwt.config';
 import { oauthConfig } from './config/oauth.config';
 import { tencentCosConfig } from './config/tencent-cos.config';
@@ -60,7 +60,7 @@ import { SlowRequestInterceptor } from './common/interceptors/slow-request.inter
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: getEnvFilePaths(),
-      load: [appConfig, aiConfig, jwtConfig, oauthConfig, tencentCosConfig],
+      load: [appConfig, llmConfig, jwtConfig, oauthConfig, tencentCosConfig],
       validate: validateEnvironment,
     }),
     CacheModule.registerAsync({

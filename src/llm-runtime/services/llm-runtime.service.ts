@@ -10,7 +10,7 @@ import type {
   LlmRole,
   LlmRuntimePort,
 } from '../../common/llm/llm-runtime.port';
-import { aiConfig } from '../../config/ai.config';
+import { llmConfig } from '../../config/llm.config';
 
 /**
  * Concrete LLM runtime service.
@@ -25,8 +25,8 @@ export class LlmRuntimeService implements LlmRuntimePort {
   private readonly logger = new Logger(LlmRuntimeService.name);
 
   constructor(
-    @Inject(aiConfig.KEY)
-    private readonly config: ConfigType<typeof aiConfig>,
+    @Inject(llmConfig.KEY)
+    private readonly config: ConfigType<typeof llmConfig>,
   ) {}
 
   // ─── Availability ────────────────────────────────────────────────────────

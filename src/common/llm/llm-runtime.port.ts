@@ -2,8 +2,8 @@ import type { ChatOpenAI } from '@langchain/openai';
 
 /**
  * Supported LLM model roles. Kept as an explicit union so that `common/llm`
- * does not need to know about the concrete `AiConfig` shape defined in
- * `src/config/ai.config.ts`.
+ * does not need to know about the concrete `LlmConfig` shape defined in
+ * `src/config/llm.config.ts`.
  */
 export type LlmRole =
   | 'analysis'

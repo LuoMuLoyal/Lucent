@@ -7,23 +7,23 @@ function readOptionalEnv(key: EnvKey): string | null {
   return value ? value : null;
 }
 
-interface AiRoleConfig {
+interface LlmRoleConfig {
   apiKey: string | null;
   baseUrl: string | null;
   model: string | null;
   dimension?: number;
 }
 
-export interface AiConfig {
+export interface LlmConfig {
   provider: string | null;
-  analysis: AiRoleConfig;
-  vision: AiRoleConfig;
-  language: AiRoleConfig;
-  chat: AiRoleConfig;
-  chatCompression: AiRoleConfig;
-  embedding: AiRoleConfig;
+  analysis: LlmRoleConfig;
+  vision: LlmRoleConfig;
+  language: LlmRoleConfig;
+  chat: LlmRoleConfig;
+  chatCompression: LlmRoleConfig;
+  embedding: LlmRoleConfig;
   safety: {
-    /** Regex strings used by the AI safety policy. */
+    /** Regex strings used by the LLM safety policy. */
     forbiddenPatterns: string[];
   };
 }
@@ -33,8 +33,8 @@ function buildRoleConfig(keys: {
   baseUrl: EnvKey;
   model: EnvKey;
   dimension?: EnvKey;
-}): AiRoleConfig {
-  const config: AiRoleConfig = {
+}): LlmRoleConfig {
+  const config: LlmRoleConfig = {
     apiKey: readOptionalEnv(keys.apiKey),
     baseUrl: readOptionalEnv(keys.baseUrl),
     model: readOptionalEnv(keys.model),
@@ -55,9 +55,9 @@ function readOptionalNumericEnv(key: EnvKey): number | undefined {
   return Number.isNaN(parsed) ? undefined : parsed;
 }
 
-export const aiConfig = registerAs(
-  ConfigKey.Ai,
-  (): AiConfig => ({
+export const llmConfig = registerAs(
+  ConfigKey.Llm,
+  (): LlmConfig => ({
     provider: readOptionalEnv(EnvKey.AI_PROVIDER),
     analysis: buildRoleConfig({
       apiKey: EnvKey.AI_ANALYSIS_API_KEY,
