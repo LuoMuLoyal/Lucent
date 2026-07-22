@@ -34,6 +34,8 @@ import { EscalationService } from './services/notification/escalation.service';
 import { ExplanationGeneratorService } from './services/explanation/generator.service';
 import { ExplanationService } from './services/explanation/service';
 import { ExplanationQueueService } from './services/explanation/queue.service';
+import { CopyGeneratorService } from './services/copy/generator.service';
+import { SuggestionCopyService } from './services/copy/copy.service';
 import type { SuggestionRule } from './types';
 
 /**
@@ -85,6 +87,9 @@ import type { SuggestionRule } from './types';
     ExplanationGeneratorService,
     ExplanationService,
     ExplanationQueueService,
+    // AI copy generation
+    CopyGeneratorService,
+    SuggestionCopyService,
     // Orchestrator
     SuggestionService,
   ],

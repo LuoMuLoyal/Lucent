@@ -4,10 +4,12 @@ import type { Cache } from 'cache-manager';
 import type { SuggestionSignal } from '../../types';
 import type { BaselineDimension } from '../../types';
 import type { TodaySuggestionsDataDto } from '../../dto/suggestion-history.dto';
+import type { GeneratedCopy } from '../../schemas';
 import {
   SIGNAL_CACHE_TTL_MS,
   SUGGESTION_CACHE_TTL_MS,
   BASELINE_CACHE_TTL_MS,
+  COPY_CACHE_TTL_MS,
 } from '../../constants';
 
 const CACHE_KEY_PREFIX = 'today_suggestion';
@@ -130,6 +132,16 @@ export class SuggestionCacheService {
     this.logger.debug(`Invalidated baseline cache for user ${userId}`);
   }
 
+  // ─── Copy generation cache ───
+
+  async getCopy(cacheKey: string): Promise<GeneratedCopy | undefined> {
+    return this.cache.get<GeneratedCopy>(this.copyKey(cacheKey));
+  }
+
+  async setCopy(cacheKey: string, copy: GeneratedCopy): Promise<void> {
+    await this.cache.set(this.copyKey(cacheKey), copy, COPY_CACHE_TTL_MS);
+  }
+
   // ─── Key builders ───
 
   private signalKey(userId: string, date: string): string {
@@ -146,6 +158,10 @@ export class SuggestionCacheService {
 
   private baselineKey(userId: string): string {
     return `${CACHE_KEY_PREFIX}:baseline:${userId}`;
+  }
+
+  private copyKey(cacheKey: string): string {
+    return `${CACHE_KEY_PREFIX}:copy:${cacheKey}`;
   }
 
   /** Builds a cache-safe exclude key from an array of IDs. */

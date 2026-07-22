@@ -131,6 +131,16 @@ export class DeterioratingTrendRuleService implements SuggestionRule {
             : SuggestionConfidence.MEDIUM,
         notificationEligible: false,
         subtype: 'symptom',
+        copyGeneration: {
+          templateKey: 'symptom.deteriorating.trend',
+          params: {
+            symptomTitle: title,
+            daysCount,
+            latestValue,
+            totalRecords,
+            confidence: daysCount >= 4 ? 'high' : 'medium',
+          },
+        },
       };
     }
 

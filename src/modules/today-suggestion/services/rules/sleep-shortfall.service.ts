@@ -100,6 +100,15 @@ export class SleepShortfallRuleService implements SuggestionRule {
       confidence: SuggestionConfidence.MEDIUM,
       notificationEligible: false,
       subtype: 'sleep',
+      copyGeneration: {
+        templateKey: 'sleep.shortfall',
+        params: {
+          hours,
+          mins,
+          durationMinutes,
+          consecutiveDays,
+        },
+      },
     };
   }
 }

@@ -161,6 +161,19 @@ export class MoodSleepRuleService implements SuggestionRule {
       confidence: SuggestionConfidence.MEDIUM,
       notificationEligible: false,
       subtype: 'mood',
+      copyGeneration: {
+        templateKey: 'mood.sleep.correlation',
+        params: {
+          avgMood,
+          latestMoodScore: latestMood.moodScore,
+          latestMoodLabel: latestMood.label,
+          hours,
+          mins,
+          durationMinutes: latestDuration,
+          moodDays,
+          overlappingDays: overlappingDates.length,
+        },
+      },
     };
   }
 }

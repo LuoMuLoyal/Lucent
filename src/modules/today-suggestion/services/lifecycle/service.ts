@@ -53,8 +53,11 @@ export class LifecycleService {
         triggerType: candidate.triggerType,
         ruleId: candidate.ruleId,
         ruleVersion: candidate.ruleVersion,
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Persisting legacy field during migration
         title: candidate.title,
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Persisting legacy field during migration
         reason: candidate.reason,
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Persisting legacy field during migration
         boundary: candidate.boundary,
         evidence: candidate.evidence as never,
         primaryAction: candidate.primaryAction as never,

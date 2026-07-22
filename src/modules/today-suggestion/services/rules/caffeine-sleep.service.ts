@@ -158,6 +158,18 @@ export class CaffeineSleepRuleService implements SuggestionRule {
       confidence: SuggestionConfidence.MEDIUM,
       notificationEligible: false,
       subtype: 'caffeine',
+      copyGeneration: {
+        templateKey: 'caffeine.sleep.correlation',
+        params: {
+          caffeineDays,
+          totalCaffeine,
+          decline,
+          hours,
+          mins,
+          latestDuration,
+          overlappingDays: overlappingDates.length,
+        },
+      },
     };
   }
 

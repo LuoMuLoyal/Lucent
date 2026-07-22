@@ -26,6 +26,7 @@ import { BaselineService } from './lifecycle/baseline.service';
 import { LifecycleService } from './lifecycle/service';
 import { EscalationService } from './notification/escalation.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
+import { SuggestionCopyService, type CopyGenerationRequest } from './copy';
 
 /**
  * Main orchestrator for the Today suggestion engine.
@@ -55,6 +56,7 @@ export class SuggestionService {
     private readonly lifecycle: LifecycleService,
     private readonly escalation: EscalationService,
     private readonly cache: SuggestionCacheService,
+    private readonly copyService: SuggestionCopyService,
   ) {}
 
   /**
@@ -64,6 +66,9 @@ export class SuggestionService {
     userId: string,
     date?: string,
     excludeIds?: string[],
+    options?: {
+      locale?: string;
+    },
   ): Promise<TodaySuggestionsDataDto> {
     const targetDate = date ?? formatDateOnly(now());
     const generatedAt = nowIsoString();
@@ -144,7 +149,24 @@ export class SuggestionService {
     // 5. Arbitrate
     const arbitrationResult = this.arbitration.arbitrate(adjustedCandidates);
 
-    // 6. Persist active suggestions
+    // 6. Generate AI copy for all candidates
+    const locale = options?.locale ?? 'zh-CN';
+    const allCandidates = [
+      arbitrationResult.primary,
+      ...arbitrationResult.secondary,
+      ...arbitrationResult.observations,
+    ].filter((c): c is SuggestionCandidate => c != null);
+
+    const copyRequests: CopyGenerationRequest[] = allCandidates.map((c) => ({
+      templateKey: c.copyGeneration.templateKey,
+      params: c.copyGeneration.params,
+      locale,
+      tone: 'gentle',
+    }));
+
+    const copyResults = await this.copyService.generateBatch(copyRequests);
+
+    // 7. Persist active suggestions
     await this.lifecycle.expireStaleSuggestions(userId, targetDate);
 
     const activeItems: SuggestionItemDto[] = [];
@@ -155,9 +177,19 @@ export class SuggestionService {
         arbitrationResult.primary,
         targetDate,
       );
-      activeItems.push(this.toDto(id, arbitrationResult.primary));
+      const copy = copyResults.get(
+        arbitrationResult.primary.copyGeneration.templateKey,
+      );
+      activeItems.push(
+        this.toDto(
+          id,
+          arbitrationResult.primary,
+          SuggestionLifecycleState.ACTIVE,
+          copy,
+        ),
+      );
 
-      // 7. Escalate eligible primary suggestion to notification
+      // 8. Escalate eligible primary suggestion to notification
       await this.escalation.escalateIfNeeded(
         userId,
         id,
@@ -172,13 +204,22 @@ export class SuggestionService {
         candidate,
         targetDate,
       );
-      activeItems.push(this.toDto(id, candidate));
+      const copy = copyResults.get(candidate.copyGeneration.templateKey);
+      activeItems.push(
+        this.toDto(id, candidate, SuggestionLifecycleState.ACTIVE, copy),
+      );
     }
 
-    // 8. Map observations (not persisted — they're low priority)
-    const observationDtos = arbitrationResult.observations.map((c, i) =>
-      this.toDto(`obs_${String(i)}`, c, SuggestionLifecycleState.ACTIVE),
-    );
+    // 9. Map observations (not persisted — they're low priority)
+    const observationDtos = arbitrationResult.observations.map((c, i) => {
+      const copy = copyResults.get(c.copyGeneration.templateKey);
+      return this.toDto(
+        `obs_${String(i)}`,
+        c,
+        SuggestionLifecycleState.ACTIVE,
+        copy,
+      );
+    });
 
     // Apply excludeIds filter
     const excludeSet = new Set(excludeIds ?? []);
@@ -212,17 +253,34 @@ export class SuggestionService {
     id: string,
     candidate: SuggestionCandidate,
     lifecycleState: SuggestionLifecycleState = SuggestionLifecycleState.ACTIVE,
+    copy?: {
+      title: string;
+      reason: string;
+      boundary: string;
+      actionLabel: string;
+    },
   ): SuggestionItemDto {
+    // Use AI-generated copy if available, otherwise fall back to rule-provided copy
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Fallback during migration
+    const title = copy?.title ?? candidate.title;
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Fallback during migration
+    const reason = copy?.reason ?? candidate.reason;
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Fallback during migration
+    const boundary = copy?.boundary ?? candidate.boundary;
+    const primaryAction = copy?.actionLabel
+      ? { ...candidate.primaryAction, label: copy.actionLabel }
+      : { ...candidate.primaryAction };
+
     return {
       id,
       type: candidate.type,
       cardTone: this.cardToneFor(candidate.type),
       icon: this.iconFor(candidate),
-      title: candidate.title,
-      reason: candidate.reason,
+      title,
+      reason,
       evidence: candidate.evidence.map((e) => ({ ...e })),
-      boundary: candidate.boundary,
-      primaryAction: { ...candidate.primaryAction },
+      boundary,
+      primaryAction,
       secondaryActions: candidate.secondaryActions?.map((a) => ({ ...a })),
       confidence: candidate.confidence,
       ruleId: candidate.ruleId,

@@ -31,6 +31,10 @@ function buildCandidate(
     priorityScore: 500,
     confidence: SuggestionConfidence.HIGH,
     notificationEligible: false,
+    copyGeneration: {
+      templateKey: 'test.template',
+      params: {},
+    },
     ...overrides,
   };
 }
@@ -67,6 +71,9 @@ interface MockDeps {
     invalidateSignals: vi.Mock;
     invalidateSuggestions: vi.Mock;
     invalidateBaseline: vi.Mock;
+  };
+  copyService: {
+    generateBatch: vi.Mock;
   };
 }
 
@@ -111,6 +118,9 @@ function buildMocks(): MockDeps {
       invalidateSuggestions: vi.fn().mockResolvedValue(undefined),
       invalidateBaseline: vi.fn().mockResolvedValue(undefined),
     },
+    copyService: {
+      generateBatch: vi.fn().mockResolvedValue(new Map()),
+    },
   };
 }
 
@@ -131,6 +141,7 @@ describe('SuggestionService', () => {
       deps.lifecycle as never,
       deps.escalation as never,
       deps.cache as never,
+      deps.copyService as never,
     );
   });
 

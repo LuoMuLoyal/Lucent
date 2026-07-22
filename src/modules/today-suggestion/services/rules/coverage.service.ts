@@ -77,6 +77,13 @@ export class CoverageRuleService implements SuggestionRule {
           confidence: SuggestionConfidence.HIGH,
           notificationEligible: false,
           subtype: 'profile',
+          copyGeneration: {
+            templateKey: 'coverage.profile.incomplete',
+            params: {
+              missingFields: missingLabels.join('、'),
+              fieldCount: missingFields.length,
+            },
+          },
         };
       }
     }
@@ -111,6 +118,12 @@ export class CoverageRuleService implements SuggestionRule {
           confidence: SuggestionConfidence.HIGH,
           notificationEligible: false,
           subtype: 'empty_today',
+          copyGeneration: {
+            templateKey: 'coverage.record.empty_today',
+            params: {
+              todayCount: 0,
+            },
+          },
         };
       }
     }

@@ -66,6 +66,7 @@ export class TodaySuggestionController {
     @CurrentUser() user: UserPayload,
     @Query('date') date?: string,
     @Query('excludeIds') excludeIds?: string | string[],
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
     const normalizedExclude = Array.isArray(excludeIds)
       ? excludeIds
@@ -74,7 +75,9 @@ export class TodaySuggestionController {
         : [];
 
     const result: TodaySuggestionsDataDto =
-      await this.suggestionService.generate(user.sub, date, normalizedExclude);
+      await this.suggestionService.generate(user.sub, date, normalizedExclude, {
+        locale: acceptLanguage ?? 'zh-CN',
+      });
 
     return successEnvelope(result);
   }

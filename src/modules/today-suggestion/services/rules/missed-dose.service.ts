@@ -111,6 +111,16 @@ export class MissedDoseRuleService implements SuggestionRule {
         Math.floor(overdueMinutes / MISSED_DOSE_OVERDUE_DIVISOR),
       confidence: SuggestionConfidence.HIGH,
       notificationEligible: true,
+      copyGeneration: {
+        templateKey: 'missed.dose.pending',
+        params: {
+          medicineName,
+          timeLabel,
+          hoursOverdue,
+          minsRemainder,
+          overdueMinutes,
+        },
+      },
     };
   }
 }

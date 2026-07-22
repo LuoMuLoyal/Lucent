@@ -56,6 +56,10 @@ describe('LifecycleService', () => {
       priorityScore: 60,
       confidence: 'medium' as never,
       notificationEligible: true,
+      copyGeneration: {
+        templateKey: 'test.template',
+        params: {},
+      },
     };
 
     it('persists a candidate and returns the generated id', async () => {

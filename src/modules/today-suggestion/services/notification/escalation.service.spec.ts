@@ -24,6 +24,10 @@ function buildCandidate(
     priorityScore: 800,
     confidence: SuggestionConfidence.HIGH,
     notificationEligible: true,
+    copyGeneration: {
+      templateKey: 'test.template',
+      params: {},
+    },
     ...overrides,
   };
 }

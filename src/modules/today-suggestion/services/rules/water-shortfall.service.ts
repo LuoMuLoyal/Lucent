@@ -109,6 +109,16 @@ export class WaterShortfallRuleService implements SuggestionRule {
       confidence: SuggestionConfidence.MEDIUM,
       notificationEligible: false,
       subtype: 'water',
+      copyGeneration: {
+        templateKey: 'water.behind.target',
+        params: {
+          completedCount,
+          targetCount,
+          remainingCount,
+          completionRate: Math.round((completedCount / targetCount) * 100),
+          consecutiveDays,
+        },
+      },
     };
   }
 }

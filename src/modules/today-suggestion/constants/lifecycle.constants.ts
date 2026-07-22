@@ -16,3 +16,6 @@ export const SUGGESTION_FADING_DURATION_MS = 4 * 60 * 60 * 1000; // 4 hours
 
 /** Cron interval for the lifecycle refresh job. */
 export const LIFECYCLE_REFRESH_CRON = '*/5 * * * *'; // every 5 minutes
+
+/** Copy generation cache TTL (1 hour) — copy doesn't change often. */
+export const COPY_CACHE_TTL_MS = 60 * 60 * 1000;

@@ -71,7 +71,9 @@ export class EscalationService {
         userId,
         {
           type: 'ai_proactive_suggestion',
+          // eslint-disable-next-line @typescript-eslint/no-deprecated -- Using legacy field during migration
           title: candidate.title,
+          // eslint-disable-next-line @typescript-eslint/no-deprecated -- Using legacy field during migration
           content: candidate.reason,
           action: candidate.primaryAction.route,
           actionPayload: {
@@ -94,7 +96,9 @@ export class EscalationService {
 
       // Push notification (best-effort — no-op when not configured)
       await this.pushDeliveryService.sendToUser(userId, {
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Using legacy field during migration
         title: candidate.title,
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Using legacy field during migration
         body: candidate.reason,
         data: {
           suggestionId,

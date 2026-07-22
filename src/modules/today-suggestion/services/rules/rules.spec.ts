@@ -74,6 +74,7 @@ describe('TodaySuggestion Rules', () => {
       expect(candidate!.type).toBe(SuggestionType.COMPLIANCE);
       expect(candidate!.confidence).toBe(SuggestionConfidence.HIGH);
       expect(candidate!.notificationEligible).toBe(true);
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Testing legacy field during migration
       expect(candidate!.title).toContain('Test Medicine');
     });
 
@@ -125,6 +126,7 @@ describe('TodaySuggestion Rules', () => {
 
       const candidate = rule.match(signals, buildContext());
       expect(candidate).not.toBeNull();
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Testing legacy field during migration
       expect(candidate!.title).toContain('Med B');
     });
   });
@@ -283,6 +285,7 @@ describe('TodaySuggestion Rules', () => {
       const candidate = rule.match(signals, buildContext());
       expect(candidate).not.toBeNull();
       expect(candidate!.type).toBe(SuggestionType.TREND);
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Testing legacy field during migration
       expect(candidate!.title).toContain('头痛');
     });
 
@@ -442,6 +445,7 @@ describe('TodaySuggestion Rules', () => {
       expect(candidate!.type).toBe(SuggestionType.BEHAVIOR_ADVICE);
       expect(candidate!.subtype).toBe('caffeine');
       expect(candidate!.confidence).toBe(SuggestionConfidence.MEDIUM);
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Testing legacy field during migration
       expect(candidate!.title).toContain('咖啡因');
     });
 
@@ -644,6 +648,7 @@ describe('TodaySuggestion Rules', () => {
       const candidate = rule.match(signals, buildContext());
       expect(candidate).not.toBeNull();
       expect(candidate!.subtype).toBe('mood');
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Testing legacy field during migration
       expect(candidate!.title).toContain('情绪');
     });
 

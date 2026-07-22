@@ -132,6 +132,7 @@ describe('TodaySuggestionController', () => {
         mockUser.sub,
         undefined,
         [],
+        { locale: 'zh-CN' },
       );
       expect(result).toEqual({
         code: ResultCode.SUCCESS,
@@ -151,6 +152,7 @@ describe('TodaySuggestionController', () => {
         mockUser.sub,
         '2026-07-10',
         ['sug-dismissed'],
+        { locale: 'zh-CN' },
       );
     });
 
@@ -165,6 +167,7 @@ describe('TodaySuggestionController', () => {
         mockUser.sub,
         undefined,
         ['sug-1', 'sug-2'],
+        { locale: 'zh-CN' },
       );
     });
   });
