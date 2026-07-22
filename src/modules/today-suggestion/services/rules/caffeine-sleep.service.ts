@@ -123,8 +123,6 @@ export class CaffeineSleepRuleService implements SuggestionRule {
       ruleVersion: this.ruleVersion,
       type: this.type,
       triggerType: this.triggerType,
-      title: '咖啡因可能影响睡眠',
-      reason: `近期咖啡因摄入 ${String(caffeineDays)} 天共 ${String(totalCaffeine)} 次，同时睡眠时长从近期高点下降了 ${String(decline)} 分钟，最新睡眠仅 ${String(hours)} 小时 ${String(mins)} 分钟。`,
       evidence: [
         {
           kind: 'record',
@@ -147,7 +145,6 @@ export class CaffeineSleepRuleService implements SuggestionRule {
           value: `${String(hours)}h ${String(mins)}m`,
         },
       ],
-      boundary: '咖啡因与睡眠的关系因人而异，如有持续睡眠问题请咨询医生。',
       primaryAction: {
         actionId: 'go_record_meal',
         label: '记录饮食',

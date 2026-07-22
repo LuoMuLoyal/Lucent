@@ -79,8 +79,6 @@ export class WaterShortfallRuleService implements SuggestionRule {
       ruleVersion: this.ruleVersion,
       type: this.type,
       triggerType: this.triggerType,
-      title: `今日饮水还差 ${String(remainingCount)} 杯`,
-      reason: `今日已记录 ${String(completedCount)} 杯，目标 ${String(targetCount)} 杯，完成度不足 50%。`,
       evidence: [
         {
           kind: 'record',
@@ -98,7 +96,6 @@ export class WaterShortfallRuleService implements SuggestionRule {
           value: `${String(consecutiveDays)} 天`,
         },
       ],
-      boundary: '饮水建议仅供参考，请根据个人情况调整。',
       primaryAction: {
         actionId: 'go_record_water',
         label: '去记录',

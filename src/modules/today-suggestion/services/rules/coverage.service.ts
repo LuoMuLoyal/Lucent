@@ -57,8 +57,6 @@ export class CoverageRuleService implements SuggestionRule {
           ruleVersion: this.ruleVersion,
           type: this.type,
           triggerType: this.triggerType,
-          title: '健康档案信息不完整',
-          reason: `缺少 ${missingLabels.join('、')}，完善后可获得更准确的建议。`,
           evidence: [
             {
               kind: 'profile',
@@ -66,7 +64,6 @@ export class CoverageRuleService implements SuggestionRule {
               value: missingLabels.join('、'),
             },
           ],
-          boundary: '完善档案有助于提供更准确的个性化建议。',
           primaryAction: {
             actionId: 'go_complete_profile',
             label: '完善档案',
@@ -98,8 +95,6 @@ export class CoverageRuleService implements SuggestionRule {
           ruleVersion: this.ruleVersion,
           type: this.type,
           triggerType: this.triggerType,
-          title: '今日还没有记录',
-          reason: '记录饮水、症状或睡眠后，系统可以生成更有针对性的建议。',
           evidence: [
             {
               kind: 'record',
@@ -107,7 +102,6 @@ export class CoverageRuleService implements SuggestionRule {
               value: '0',
             },
           ],
-          boundary: '数据不足时，系统只能提供通用建议。',
           primaryAction: {
             actionId: 'go_record',
             label: '去记录',

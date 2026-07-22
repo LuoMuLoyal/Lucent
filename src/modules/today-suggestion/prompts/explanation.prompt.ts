@@ -18,9 +18,9 @@ export interface ExplanationContext {
   ruleId: string;
   subtype?: string;
   evidence: EvidenceItem[];
-  /** The original rule-generated reason, for reference. */
+  /** The persisted copy reason (AI or fallback), for reference. */
   originalReason: string;
-  /** The original rule-generated boundary, for reference. */
+  /** The persisted copy boundary (AI or fallback), for reference. */
   originalBoundary: string;
 }
 

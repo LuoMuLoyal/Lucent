@@ -8,6 +8,16 @@ import {
   BaselineDimension,
 } from '../types';
 import type { SuggestionCandidate, SuggestionRule } from '../types';
+import type { CopyGenerationResult } from '../services/copy';
+
+const mockCopyResult: CopyGenerationResult = {
+  title: 'AI Title',
+  reason: 'AI Reason',
+  boundary: 'AI Boundary',
+  actionLabel: 'Go',
+  aiGenerated: true,
+  fromCache: false,
+};
 
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},
@@ -18,10 +28,7 @@ function buildCandidate(
     ruleVersion: '1.0.0',
     type: SuggestionType.COMPLIANCE,
     triggerType: TriggerType.EVENT,
-    title: 'Test Suggestion',
-    reason: 'Test reason',
     evidence: [],
-    boundary: 'Test boundary',
     primaryAction: {
       actionId: 'go',
       label: 'Go',
@@ -124,8 +131,12 @@ function buildMocks(): MockDeps {
       invalidateBaseline: vi.fn().mockResolvedValue(undefined),
     },
     copyService: {
-      getOrEnqueueBatch: vi.fn().mockResolvedValue(new Map()),
-      generateSyncBatch: vi.fn().mockResolvedValue(new Map()),
+      getOrEnqueueBatch: vi
+        .fn()
+        .mockResolvedValue(new Map([['test.template', mockCopyResult]])),
+      generateSyncBatch: vi
+        .fn()
+        .mockResolvedValue(new Map([['test.template', mockCopyResult]])),
     },
     copyQueue: {
       isConfigured: true,
@@ -210,12 +221,14 @@ describe('SuggestionService', () => {
       'user-1',
       candidate,
       '2026-07-09',
+      mockCopyResult,
     );
     expect(deps.escalation.escalateIfNeeded).toHaveBeenCalledWith(
       'user-1',
       'db-id-1',
       candidate,
       '2026-07-09',
+      mockCopyResult,
     );
   });
 

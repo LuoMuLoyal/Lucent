@@ -27,9 +27,6 @@ describe('SuggestionCopyLlmService', () => {
       { kind: 'record', label: '当前杯数', value: '2 杯' },
       { kind: 'record', label: '目标杯数', value: '8 杯' },
     ],
-    originalTitle: '今日饮水还差 6 杯',
-    originalReason: '今日已记录 2 杯，目标 8 杯',
-    originalBoundary: '饮水建议仅供参考',
   };
 
   const mockPromptCopy: CopyPromptCopy = {

@@ -16,7 +16,7 @@ export interface ExplanationResult {
   suggestionId: string;
   reason: string;
   boundary: string;
-  /** Whether the AI model was used (false = fallback to original rule text). */
+  /** Whether the AI model was used (false = fallback to persisted copy text). */
   aiGenerated: boolean;
 }
 
@@ -28,7 +28,7 @@ export interface ExplanationResult {
  * - AI generates enhanced reason/boundary variants on demand, not blocking first screen.
  * - All LLM output must be grounded in the suggestion's evidence[].
  * - All LLM output passes through LlmSafetyPolicyService.
- * - If the model is not configured or fails, falls back to original rule text.
+ * - If the model is not configured or fails, falls back to persisted copy text.
  */
 @Injectable()
 export class ExplanationService {

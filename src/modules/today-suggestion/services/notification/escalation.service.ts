@@ -48,6 +48,7 @@ export class EscalationService {
     suggestionId: string,
     candidate: SuggestionCandidate,
     date: string,
+    copy: { title: string; reason: string },
   ): Promise<boolean> {
     if (!this.isEligible(candidate)) {
       return false;
@@ -71,10 +72,8 @@ export class EscalationService {
         userId,
         {
           type: 'ai_proactive_suggestion',
-          // eslint-disable-next-line @typescript-eslint/no-deprecated -- Using legacy field during migration
-          title: candidate.title,
-          // eslint-disable-next-line @typescript-eslint/no-deprecated -- Using legacy field during migration
-          content: candidate.reason,
+          title: copy.title,
+          content: copy.reason,
           action: candidate.primaryAction.route,
           actionPayload: {
             source: `today_suggestion_${candidate.type}`,
@@ -96,10 +95,8 @@ export class EscalationService {
 
       // Push notification (best-effort — no-op when not configured)
       await this.pushDeliveryService.sendToUser(userId, {
-        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Using legacy field during migration
-        title: candidate.title,
-        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Using legacy field during migration
-        body: candidate.reason,
+        title: copy.title,
+        body: copy.reason,
         data: {
           suggestionId,
           suggestionType: candidate.type,

@@ -74,8 +74,7 @@ describe('TodaySuggestion Rules', () => {
       expect(candidate!.type).toBe(SuggestionType.COMPLIANCE);
       expect(candidate!.confidence).toBe(SuggestionConfidence.HIGH);
       expect(candidate!.notificationEligible).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Testing legacy field during migration
-      expect(candidate!.title).toContain('Test Medicine');
+      expect(candidate!.copyGeneration.templateKey).toBe('missed.dose.pending');
     });
 
     it('should not match when no pending dose signals exist', () => {
@@ -126,8 +125,8 @@ describe('TodaySuggestion Rules', () => {
 
       const candidate = rule.match(signals, buildContext());
       expect(candidate).not.toBeNull();
-      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Testing legacy field during migration
-      expect(candidate!.title).toContain('Med B');
+      expect(candidate!.copyGeneration.templateKey).toBe('missed.dose.pending');
+      expect(candidate!.copyGeneration.params['medicineName']).toBe('Med B');
     });
   });
 
@@ -285,8 +284,10 @@ describe('TodaySuggestion Rules', () => {
       const candidate = rule.match(signals, buildContext());
       expect(candidate).not.toBeNull();
       expect(candidate!.type).toBe(SuggestionType.TREND);
-      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Testing legacy field during migration
-      expect(candidate!.title).toContain('头痛');
+      expect(candidate!.copyGeneration.templateKey).toBe(
+        'symptom.deteriorating.trend',
+      );
+      expect(candidate!.copyGeneration.params['symptomTitle']).toBe('头痛');
     });
 
     it('should not match when symptoms are improving', () => {
@@ -445,8 +446,9 @@ describe('TodaySuggestion Rules', () => {
       expect(candidate!.type).toBe(SuggestionType.BEHAVIOR_ADVICE);
       expect(candidate!.subtype).toBe('caffeine');
       expect(candidate!.confidence).toBe(SuggestionConfidence.MEDIUM);
-      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Testing legacy field during migration
-      expect(candidate!.title).toContain('咖啡因');
+      expect(candidate!.copyGeneration.templateKey).toBe(
+        'caffeine.sleep.correlation',
+      );
     });
 
     it('should not match when caffeine signal is missing', () => {
@@ -648,8 +650,9 @@ describe('TodaySuggestion Rules', () => {
       const candidate = rule.match(signals, buildContext());
       expect(candidate).not.toBeNull();
       expect(candidate!.subtype).toBe('mood');
-      // eslint-disable-next-line @typescript-eslint/no-deprecated -- Testing legacy field during migration
-      expect(candidate!.title).toContain('情绪');
+      expect(candidate!.copyGeneration.templateKey).toBe(
+        'mood.sleep.correlation',
+      );
     });
 
     it('should not match when mood is not low', () => {

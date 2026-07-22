@@ -13,10 +13,7 @@ function buildCandidate(
     ruleVersion: '1.0.0',
     type: SuggestionType.COMPLIANCE,
     triggerType: TriggerType.EVENT,
-    title: 'Test',
-    reason: 'Test reason',
     evidence: [],
-    boundary: 'Test boundary',
     primaryAction: {
       actionId: 'go',
       label: 'Go',

@@ -117,7 +117,7 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 - 所有 LLM 输出必须基于 `evidence[]`，禁止生成 evidence 之外的内容
 - 所有 LLM 输出经过 `LlmSafetyPolicyService` 安全检查（禁止诊断/处方/停药等表述）
 - 不阻塞首屏：前端先拿到规则生成的卡片，AI 解释按需加载
-- 模型未配置或调用失败时，回退到规则原始文案
+- 模型未配置或调用失败时，回退到持久化的 AI/兜底文案
 - 继承 `BaseLlmGeneratorService`，使用 `language` 角色模型，结构化输出 (Zod schema)
 
 ## 数据库表
@@ -215,6 +215,9 @@ SuggestionCopyService.getOrEnqueue()
 - LLM 上下文丰富：传入 evidence、confidence、suggestionType 等信息，使生成的文案更有依据
 - 继承 `BaseLlmGeneratorService`，使用 `language` 角色模型，结构化输出 (Zod schema)
 - 模型未配置或调用失败时，回退到预写兜底文案
+- 规则不再生成硬编码文案（`title`/`reason`/`boundary` 已从 `SuggestionCandidate` 中删除）
+- `persistActive` 将 AI/兜底文案写入 DB `title`/`reason`/`boundary` 列，历史接口直接读取
+- 通知升级使用 AI/兜底文案作为标题和内容
 
 ### 核心组件
 

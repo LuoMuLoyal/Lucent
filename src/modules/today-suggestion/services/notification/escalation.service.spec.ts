@@ -11,10 +11,7 @@ function buildCandidate(
     ruleVersion: '1.0.0',
     type: SuggestionType.COMPLIANCE,
     triggerType: TriggerType.EVENT,
-    title: 'Test suggestion',
-    reason: 'Test reason',
     evidence: [],
-    boundary: 'Test boundary',
     primaryAction: {
       actionId: 'go',
       label: 'Go',
@@ -28,6 +25,17 @@ function buildCandidate(
       templateKey: 'test.template',
       params: {},
     },
+    ...overrides,
+  };
+}
+
+function buildCopy(
+  overrides: Partial<{ title: string; reason: string; boundary: string }> = {},
+): { title: string; reason: string; boundary: string } {
+  return {
+    title: 'Test suggestion',
+    reason: 'Test reason',
+    boundary: 'Test boundary',
     ...overrides,
   };
 }
@@ -64,11 +72,13 @@ describe('EscalationService', () => {
 
   it('should escalate an eligible candidate', async () => {
     const candidate = buildCandidate();
+    const copy = buildCopy();
     const result = await service.escalateIfNeeded(
       'user-1',
       'sug-1',
       candidate,
       '2026-07-09',
+      copy,
     );
 
     expect(result).toBe(true);
@@ -95,6 +105,7 @@ describe('EscalationService', () => {
       'sug-1',
       candidate,
       '2026-07-09',
+      buildCopy(),
     );
 
     expect(result).toBe(false);
@@ -109,6 +120,7 @@ describe('EscalationService', () => {
       'sug-1',
       candidate,
       '2026-07-09',
+      buildCopy(),
     );
 
     expect(result).toBe(false);
@@ -125,6 +137,7 @@ describe('EscalationService', () => {
       'sug-1',
       candidate,
       '2026-07-09',
+      buildCopy(),
     );
 
     expect(result).toBe(false);
@@ -141,6 +154,7 @@ describe('EscalationService', () => {
       'sug-1',
       candidate,
       '2026-07-09',
+      buildCopy(),
     );
 
     expect(result).toBe(false);
@@ -154,6 +168,7 @@ describe('EscalationService', () => {
       'sug-1',
       candidate,
       '2026-07-09',
+      buildCopy(),
     );
 
     expect(result).toBe(true);
@@ -169,6 +184,7 @@ describe('EscalationService', () => {
       'sug-1',
       candidate,
       '2026-07-09',
+      buildCopy(),
     );
 
     expect(result).toBe(false);
@@ -184,6 +200,7 @@ describe('EscalationService', () => {
       'sug-1',
       candidate,
       '2026-07-09',
+      buildCopy(),
     );
 
     expect(result).toBe(false);
@@ -198,6 +215,7 @@ describe('EscalationService', () => {
       'sug-1',
       candidate,
       '2026-07-09',
+      buildCopy(),
     );
 
     expect(result).toBe(false);
@@ -213,6 +231,7 @@ describe('EscalationService', () => {
       'sug-1',
       candidate,
       '2026-07-09',
+      buildCopy(),
     );
 
     expect(result).toBe(false);
@@ -230,6 +249,7 @@ describe('EscalationService', () => {
       'sug-1',
       candidate,
       '2026-07-09',
+      buildCopy(),
     );
 
     expect(result).toBe(false);
@@ -245,7 +265,13 @@ describe('EscalationService', () => {
       priorityScore: 750,
     });
 
-    await service.escalateIfNeeded('user-1', 'sug-1', candidate, '2026-07-09');
+    await service.escalateIfNeeded(
+      'user-1',
+      'sug-1',
+      candidate,
+      '2026-07-09',
+      buildCopy(),
+    );
 
     const callArgs = createOrReplaceScopedMock.mock.calls[0]!;
     expect(callArgs[2].source).toBe('today_suggestion_behavior_advice');

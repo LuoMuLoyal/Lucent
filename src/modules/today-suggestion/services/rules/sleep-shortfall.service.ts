@@ -75,8 +75,6 @@ export class SleepShortfallRuleService implements SuggestionRule {
       ruleVersion: this.ruleVersion,
       type: this.type,
       triggerType: this.triggerType,
-      title: '昨晚睡眠不足',
-      reason: `睡眠时长仅 ${String(hours)} 小时 ${String(mins)} 分钟，低于 6 小时，可能影响今日状态。`,
       evidence: [
         {
           kind: 'record',
@@ -89,7 +87,6 @@ export class SleepShortfallRuleService implements SuggestionRule {
           value: `${String(consecutiveDays)} 天`,
         },
       ],
-      boundary: '睡眠建议仅供参考，持续睡眠问题请咨询医生。',
       primaryAction: {
         actionId: 'go_record_sleep',
         label: '记录睡眠',

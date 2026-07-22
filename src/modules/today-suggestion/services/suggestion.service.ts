@@ -27,7 +27,9 @@ import { LifecycleService } from './lifecycle/service';
 import { EscalationService } from './notification/escalation.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
 import { SuggestionCopyService, SuggestionCopyQueueService } from './copy';
+import type { CopyGenerationResult } from './copy';
 import type { CopyJobData } from '../types';
+import { getFallbackCopy } from '../constants';
 
 /**
  * Main orchestrator for the Today suggestion engine.
@@ -169,12 +171,6 @@ export class SuggestionService {
       ruleId: c.ruleId,
       ...(c.subtype != null ? { subtype: c.subtype } : {}),
       evidence: c.evidence.map((e) => ({ ...e })),
-      // eslint-disable-next-line @typescript-eslint/no-deprecated -- fallback during migration
-      originalTitle: c.title,
-      // eslint-disable-next-line @typescript-eslint/no-deprecated -- fallback during migration
-      originalReason: c.reason,
-      // eslint-disable-next-line @typescript-eslint/no-deprecated -- fallback during migration
-      originalBoundary: c.boundary,
     }));
 
     const copyResults = this.copyQueue.isConfigured
@@ -187,13 +183,16 @@ export class SuggestionService {
     const activeItems: SuggestionItemDto[] = [];
 
     if (arbitrationResult.primary != null) {
+      const copy = this.resolveCopy(
+        copyResults,
+        arbitrationResult.primary.copyGeneration.templateKey,
+        locale,
+      );
       const id = await this.lifecycle.persistActive(
         userId,
         arbitrationResult.primary,
         targetDate,
-      );
-      const copy = copyResults.get(
-        arbitrationResult.primary.copyGeneration.templateKey,
+        copy,
       );
       activeItems.push(
         this.toDto(
@@ -210,16 +209,22 @@ export class SuggestionService {
         id,
         arbitrationResult.primary,
         targetDate,
+        copy,
       );
     }
 
     for (const candidate of arbitrationResult.secondary) {
+      const copy = this.resolveCopy(
+        copyResults,
+        candidate.copyGeneration.templateKey,
+        locale,
+      );
       const id = await this.lifecycle.persistActive(
         userId,
         candidate,
         targetDate,
+        copy,
       );
-      const copy = copyResults.get(candidate.copyGeneration.templateKey);
       activeItems.push(
         this.toDto(id, candidate, SuggestionLifecycleState.ACTIVE, copy),
       );
@@ -227,7 +232,11 @@ export class SuggestionService {
 
     // 9. Map observations (not persisted — they're low priority)
     const observationDtos = arbitrationResult.observations.map((c, i) => {
-      const copy = copyResults.get(c.copyGeneration.templateKey);
+      const copy = this.resolveCopy(
+        copyResults,
+        c.copyGeneration.templateKey,
+        locale,
+      );
       return this.toDto(
         `obs_${String(i)}`,
         c,
@@ -264,25 +273,46 @@ export class SuggestionService {
     return result;
   }
 
+  private resolveCopy(
+    results: Map<string, CopyGenerationResult>,
+    templateKey: string,
+    locale: string,
+  ): CopyGenerationResult {
+    const result = results.get(templateKey);
+    if (result != null) return result;
+
+    this.logger.warn(
+      `Missing copy result for template: ${templateKey}, using fallback`,
+    );
+    const fallback = getFallbackCopy(templateKey, locale);
+    if (fallback) {
+      return {
+        title: fallback.title,
+        reason: fallback.reason,
+        boundary: fallback.boundary,
+        actionLabel: fallback.actionLabel,
+        aiGenerated: false,
+        fromCache: false,
+      };
+    }
+    this.logger.error(`No fallback copy found for template: ${templateKey}`);
+    return {
+      title: '建议',
+      reason: '系统检测到相关健康信号。',
+      boundary: '此建议仅供参考，不能替代专业医疗意见。',
+      actionLabel: '查看',
+      aiGenerated: false,
+      fromCache: false,
+    };
+  }
+
   private toDto(
     id: string,
     candidate: SuggestionCandidate,
     lifecycleState: SuggestionLifecycleState = SuggestionLifecycleState.ACTIVE,
-    copy?: {
-      title: string;
-      reason: string;
-      boundary: string;
-      actionLabel: string;
-    },
+    copy: CopyGenerationResult,
   ): SuggestionItemDto {
-    // Use AI-generated copy if available, otherwise fall back to rule-provided copy
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Fallback during migration
-    const title = copy?.title ?? candidate.title;
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Fallback during migration
-    const reason = copy?.reason ?? candidate.reason;
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- Fallback during migration
-    const boundary = copy?.boundary ?? candidate.boundary;
-    const primaryAction = copy?.actionLabel
+    const primaryAction = copy.actionLabel
       ? { ...candidate.primaryAction, label: copy.actionLabel }
       : { ...candidate.primaryAction };
 
@@ -291,10 +321,10 @@ export class SuggestionService {
       type: candidate.type,
       cardTone: this.cardToneFor(candidate.type),
       icon: this.iconFor(candidate),
-      title,
-      reason,
+      title: copy.title,
+      reason: copy.reason,
       evidence: candidate.evidence.map((e) => ({ ...e })),
-      boundary,
+      boundary: copy.boundary,
       primaryAction,
       secondaryActions: candidate.secondaryActions?.map((a) => ({ ...a })),
       confidence: candidate.confidence,

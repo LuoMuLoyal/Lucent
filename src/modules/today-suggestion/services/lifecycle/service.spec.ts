@@ -43,10 +43,7 @@ describe('LifecycleService', () => {
       ruleVersion: '1.0.0',
       type: 'behavior_advice' as never,
       triggerType: 'timer' as never,
-      title: '今日饮水还差 6 杯',
-      reason: '今日已记录 2 杯，目标 8 杯。',
       evidence: [{ kind: 'record', label: 'water', value: '2 / 8 杯' }],
-      boundary: '仅在用户当日记录不足时展示。',
       primaryAction: {
         actionId: 'go_today',
         label: '去记录',
@@ -62,6 +59,12 @@ describe('LifecycleService', () => {
       },
     };
 
+    const baseCopy = {
+      title: '今日饮水还差 6 杯',
+      reason: '今日已记录 2 杯，目标 8 杯。',
+      boundary: '仅在用户当日记录不足时展示。',
+    };
+
     it('persists a candidate and returns the generated id', async () => {
       createMock.mockResolvedValue({ id: 'sug-123' });
 
@@ -69,6 +72,7 @@ describe('LifecycleService', () => {
         'user-1',
         baseCandidate,
         '2026-07-10',
+        baseCopy,
       );
 
       expect(id).toBe('sug-123');
@@ -97,7 +101,7 @@ describe('LifecycleService', () => {
         ],
       };
 
-      await service.persistActive('user-1', candidate, '2026-07-10');
+      await service.persistActive('user-1', candidate, '2026-07-10', baseCopy);
 
       const call = createMock.mock.calls[0]![0];
       expect(call.data.secondaryActions).toEqual([
@@ -113,7 +117,12 @@ describe('LifecycleService', () => {
     it('omits secondaryActions when undefined', async () => {
       createMock.mockResolvedValue({ id: 'sug-789' });
 
-      await service.persistActive('user-1', baseCandidate, '2026-07-10');
+      await service.persistActive(
+        'user-1',
+        baseCandidate,
+        '2026-07-10',
+        baseCopy,
+      );
 
       const call = createMock.mock.calls[0]![0];
       expect(call.data.secondaryActions).toBeUndefined();
@@ -126,7 +135,7 @@ describe('LifecycleService', () => {
         subtype: 'water',
       };
 
-      await service.persistActive('user-1', candidate, '2026-07-10');
+      await service.persistActive('user-1', candidate, '2026-07-10', baseCopy);
 
       const call = createMock.mock.calls[0]![0];
       expect(call.data.subtype).toBe('water');
@@ -135,7 +144,12 @@ describe('LifecycleService', () => {
     it('omits subtype when undefined', async () => {
       createMock.mockResolvedValue({ id: 'sug-nosub' });
 
-      await service.persistActive('user-1', baseCandidate, '2026-07-10');
+      await service.persistActive(
+        'user-1',
+        baseCandidate,
+        '2026-07-10',
+        baseCopy,
+      );
 
       const call = createMock.mock.calls[0]![0];
       expect(call.data.subtype).toBeUndefined();

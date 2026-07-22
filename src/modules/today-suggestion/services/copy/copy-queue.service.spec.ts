@@ -53,9 +53,6 @@ const buildJobData = (overrides: Partial<CopyJobData> = {}): CopyJobData => ({
   ruleId: 'water_behind_target',
   subtype: 'water',
   evidence: [{ kind: 'record', label: '当前杯数', value: '2 杯' }],
-  originalTitle: '今日饮水还差 6 杯',
-  originalReason: '今日已记录 2 杯',
-  originalBoundary: '饮水建议仅供参考',
   ...overrides,
 });
 

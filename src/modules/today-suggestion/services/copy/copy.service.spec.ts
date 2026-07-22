@@ -25,9 +25,6 @@ function buildRequest(overrides: Partial<CopyJobData> = {}): CopyJobData {
       { kind: 'record', label: '当前杯数', value: '2 杯' },
       { kind: 'record', label: '目标杯数', value: '8 杯' },
     ],
-    originalTitle: '今日饮水还差 6 杯',
-    originalReason: '今日已记录 2 杯',
-    originalBoundary: '饮水建议仅供参考',
     ...overrides,
   };
 }
@@ -101,7 +98,6 @@ describe('SuggestionCopyService', () => {
       expect(enqueuedData.suggestionType).toBe(SuggestionType.BEHAVIOR_ADVICE);
       expect(enqueuedData.confidence).toBe(SuggestionConfidence.MEDIUM);
       expect(enqueuedData.evidence).toHaveLength(2);
-      expect(enqueuedData.originalTitle).toBe('今日饮水还差 6 杯');
     });
 
     it('returns fallback without enqueuing when queue is not configured', async () => {
@@ -139,9 +135,6 @@ describe('SuggestionCopyService', () => {
         ruleId: 'water_behind_target',
         subtype: 'water',
         evidence: [],
-        originalTitle: 'title',
-        originalReason: 'reason',
-        originalBoundary: 'boundary',
       });
 
       expect(result.fromCache).toBe(true);
@@ -159,9 +152,6 @@ describe('SuggestionCopyService', () => {
         ruleId: 'water_behind_target',
         subtype: 'water',
         evidence: [],
-        originalTitle: 'title',
-        originalReason: 'reason',
-        originalBoundary: 'boundary',
       });
 
       expect(result.aiGenerated).toBe(true);
@@ -181,9 +171,6 @@ describe('SuggestionCopyService', () => {
         confidence: SuggestionConfidence.MEDIUM,
         ruleId: 'water_behind_target',
         evidence: [],
-        originalTitle: 'title',
-        originalReason: 'reason',
-        originalBoundary: 'boundary',
       });
 
       expect(result.aiGenerated).toBe(false);

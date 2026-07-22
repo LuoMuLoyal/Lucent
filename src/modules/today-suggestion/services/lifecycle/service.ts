@@ -37,11 +37,14 @@ export class LifecycleService {
   /**
    * Persists a candidate as a new ACTIVE suggestion in the DB.
    * Returns the generated suggestion id.
+   *
+   * @param copy - The copy result (AI or fallback) to persist as title/reason/boundary.
    */
   async persistActive(
     userId: string,
     candidate: SuggestionCandidate,
     date: string,
+    copy: { title: string; reason: string; boundary: string },
   ): Promise<string> {
     const now = nowIsoString();
 
@@ -53,12 +56,9 @@ export class LifecycleService {
         triggerType: candidate.triggerType,
         ruleId: candidate.ruleId,
         ruleVersion: candidate.ruleVersion,
-        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Persisting legacy field during migration
-        title: candidate.title,
-        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Persisting legacy field during migration
-        reason: candidate.reason,
-        // eslint-disable-next-line @typescript-eslint/no-deprecated -- Persisting legacy field during migration
-        boundary: candidate.boundary,
+        title: copy.title,
+        reason: copy.reason,
+        boundary: copy.boundary,
         evidence: candidate.evidence as never,
         primaryAction: candidate.primaryAction as never,
         ...this.optionalSecondaryActions(candidate.secondaryActions),

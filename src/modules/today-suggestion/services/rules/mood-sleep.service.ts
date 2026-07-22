@@ -126,8 +126,6 @@ export class MoodSleepRuleService implements SuggestionRule {
       ruleVersion: this.ruleVersion,
       type: this.type,
       triggerType: this.triggerType,
-      title: '情绪低落与睡眠不足可能相关',
-      reason: `近期情绪评分平均 ${avgMood}/5（最新 ${String(latestMood.moodScore)}/5），同时最新睡眠仅 ${String(hours)} 小时 ${String(mins)} 分钟，两者可能相互影响。`,
       evidence: [
         {
           kind: 'record',
@@ -150,7 +148,6 @@ export class MoodSleepRuleService implements SuggestionRule {
           value: `${String(moodDays)} 天`,
         },
       ],
-      boundary: '情绪与睡眠的关系因人而异，持续情绪低落请寻求专业帮助。',
       primaryAction: {
         actionId: 'go_record_mood',
         label: '记录情绪',

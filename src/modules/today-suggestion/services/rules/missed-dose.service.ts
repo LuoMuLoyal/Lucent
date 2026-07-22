@@ -76,8 +76,6 @@ export class MissedDoseRuleService implements SuggestionRule {
       ruleVersion: this.ruleVersion,
       type: this.type,
       triggerType: this.triggerType,
-      title: `${timeLabel} 的 ${medicineName} 尚未确认`,
-      reason: `计划服药时间为 ${timeLabel}，当前已超时 ${String(hoursOverdue)} 小时 ${String(minsRemainder)} 分钟且未标记服用。`,
       evidence: [
         {
           kind: 'reminder',
@@ -91,7 +89,6 @@ export class MissedDoseRuleService implements SuggestionRule {
           value: '未确认',
         },
       ],
-      boundary: '此提醒基于您的用药计划，不能替代医生或药师建议。',
       primaryAction: {
         actionId: 'go_confirm',
         label: '去确认',

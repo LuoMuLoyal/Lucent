@@ -57,7 +57,6 @@ Respond with a JSON object containing:
 8. Reason should reference specific items from the evidence array when available
 9. For high confidence suggestions, use more direct language; for low confidence, hedge appropriately
 10. suggestionType indicates the card's priority: confirmed_risk/compliance are urgent, behavior_advice is encouraging, coverage is informational
-11. Use originalReason/originalBoundary as semantic reference, but improve phrasing — do not copy verbatim
 
 ## Templates Reference
 - coverage.profile.incomplete: Profile missing fields
@@ -94,9 +93,6 @@ export function buildCopyUserPrompt(
         ...(context.subtype != null ? { subtype: context.subtype } : {}),
         params: context.params,
         evidence: context.evidence,
-        originalTitle: context.originalTitle,
-        originalReason: context.originalReason,
-        originalBoundary: context.originalBoundary,
       },
       null,
       2,

@@ -98,8 +98,6 @@ export class DeterioratingTrendRuleService implements SuggestionRule {
         ruleVersion: this.ruleVersion,
         type: this.type,
         triggerType: this.triggerType,
-        title: `${title} 似乎在加重`,
-        reason: `最近 ${String(daysCount)} 天内「${title}」记录显示恶化趋势，请关注。`,
         evidence: [
           {
             kind: 'trend',
@@ -117,7 +115,6 @@ export class DeterioratingTrendRuleService implements SuggestionRule {
             value: `${String(daysCount)} 天`,
           },
         ],
-        boundary: '请尽快线下就医或咨询医生。',
         primaryAction: {
           actionId: 'go_record_symptom',
           label: '记录症状',
