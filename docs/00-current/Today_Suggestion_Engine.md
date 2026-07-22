@@ -185,58 +185,69 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 
 - `coverage.service.ts` 的 `primaryAction.route` 从 `/mine/health-context` 改为 `/mine/profile/edit`，修复前端点击"去完善"按钮时路由不存在的问题。前端已存在 `/mine/profile/edit` 页面（ProfileEditPage），功能与"完善健康档案"一致。
 
-## 2026-07-22 AI 文案生成层
+## AI 文案生成层
 
-新增 AI 驱动的建议卡文案生成系统，替代规则硬编码文案：
+为建议卡异步生成 AI 驱动的 `title`, `reason`, `boundary`, `actionLabel` 文案。
 
-### 架构变更
+### 架构
 
 ```
-规则引擎 (Rules)
-    ↓ 返回结构化信号 (copyGeneration: { templateKey, params })
-AI 文案生成层 (CopyService)
-    ↓ 调用 LLM 生成多语言文案
-缓存层 (Redis)
-    ↓ 缓存生成结果 (TTL 1小时)
-DTO 映射 → API 响应
+用户请求 GET /suggestions
+    ↓
+SuggestionCopyService.getOrEnqueue()
+    ↓ 查 Redis cache
+    ├─ HIT → 返回 AI 文案（无 LLM 调用）
+    └─ MISS → 返回兜底文案 + 入队 BullMQ
+                    ↓ [后台异步]
+              SuggestionCopyQueueService (BullMQ Worker, concurrency: 3)
+                    ↓ 二次 cache check（并发去重）
+                    ↓ SuggestionCopyLlmService.generate()（BaseLlmGeneratorService）
+                    ↓ 存入 Redis cache（TTL 1h）
 ```
+
+### 设计原则
+
+- **读时优先缓存**：用户请求时先查 Redis cache，命中则直接返回 AI 文案
+- **Cache miss 返回兜底 + 入队**：未命中时返回兜底文案，同时向 BullMQ 队列入队异步生成
+- **Worker 写回缓存**：BullMQ worker 调用 LLM 生成后写入 Redis cache（按 templateKey+params+locale hash，1h TTL）
+- **Redis 不可用时降级**：同步调用 LLM（与 `ExplanationQueueService` 同一降级模式）
+- **跨用户去重**：相同 templateKey+params+locale 的请求共享同一 cache 条目
+- LLM 上下文丰富：传入 evidence、confidence、suggestionType 等信息，使生成的文案更有依据
+- 继承 `BaseLlmGeneratorService`，使用 `language` 角色模型，结构化输出 (Zod schema)
+- 模型未配置或调用失败时，回退到预写兜底文案
 
 ### 核心组件
 
-| 组件                  | 文件                                 | 职责                     |
-| --------------------- | ------------------------------------ | ------------------------ |
-| CopyGeneratorService  | `services/copy/generator.service.ts` | 调用 LLM 生成文案        |
-| SuggestionCopyService | `services/copy/copy.service.ts`      | 编排缓存、生成、降级逻辑 |
-| Copy Templates        | `constants/copy-templates.ts`        | 定义模板参数规范         |
-| Copy Fallback         | `constants/copy-fallback.ts`         | 多语言兜底文案           |
-| Copy Prompts          | `prompts/copy.prompt.ts`             | LLM 提示词工程           |
-| Copy Schema           | `schemas/copy.schema.ts`             | 结构化输出校验           |
+| 组件                       | 文件                                          | 职责                                             |
+| -------------------------- | --------------------------------------------- | ------------------------------------------------ |
+| SuggestionCopyLlmService   | `services/copy/copy-llm-generator.service.ts` | LLM 生成器（extends BaseLlmGeneratorService）    |
+| SuggestionCopyQueueService | `services/copy/copy-queue.service.ts`         | BullMQ 异步队列（extends BaseAsyncQueueService） |
+| SuggestionCopyService      | `services/copy/copy.service.ts`               | 编排缓存查询、入队、降级逻辑                     |
+| Copy Templates             | `constants/copy-templates.ts`                 | 定义模板参数规范                                 |
+| Copy Fallback              | `constants/copy-fallback.ts`                  | 多语言兜底文案                                   |
+| Copy Prompts               | `prompts/copy.prompt.ts`                      | LLM 提示词工程                                   |
+| Copy Schema                | `schemas/copy.schema.ts`                      | 结构化输出校验                                   |
 
 ### 文案生成流程
 
-1. **规则层**：规则服务返回 `copyGeneration: { templateKey, params }` 而非硬编码字符串
-2. **生成层**：`SuggestionCopyService.generate()` 按以下优先级获取文案：
-   - 缓存命中 → 直接返回
-   - 调用 LLM (gpt-4o-mini) → 解析结构化输出 → 写入缓存
-   - LLM 失败/未配置 → 返回预写兜底文案
-3. **降级策略**：兜底文案支持 `zh-CN` 和 `en-US`，按 `Accept-Language` 匹配
-
-### API 变更
-
-- `GET /user/today/suggestions` 新增接收 `Accept-Language` 请求头
-- `SuggestionService.generate()` 新增 `options.locale` 参数
-- 响应中的 `title`, `reason`, `boundary`, `primaryAction.label` 可能由 AI 生成
+1. **读路径**（用户请求）：`SuggestionCopyService.getOrEnqueue()` 按以下优先级获取文案：
+   - 缓存命中 → 直接返回 AI 文案
+   - 缓存未命中 → 返回兜底文案 + 入队 BullMQ 异步生成
+2. **写路径**（BullMQ Worker）：`SuggestionCopyService.generateViaLlm()`：
+   - 二次 cache check（并发去重）
+   - 调用 LLM → 解析结构化输出 → 写入缓存
+   - LLM 失败 → BullMQ 自动重试（3 次指数退避）
+3. **降级路径**（Redis 不可用）：`SuggestionCopyService.generateSync()`：
+   - 同步调用 LLM → 写入缓存
+   - LLM 失败 → 返回兜底文案
+4. **兜底策略**：兜底文案支持 `zh-CN` 和 `en-US`，按 `Accept-Language` 匹配
 
 ### 缓存策略
 
 - Key: `today_suggestion:copy:{hash(templateKey+params+locale)}`
 - TTL: 1 小时（文案不常变化）
-- 缓存命中率预计 >80%（用户每天看到的建议类型有限）
+- Cache key 不包含 evidence 等上下文字段（evidence 由 rule+params 确定性生成，不影响去重）
 
 ### 配置项
 
-| 环境变量                  | 默认值        | 说明                                 |
-| ------------------------- | ------------- | ------------------------------------ |
-| `OPENAI_API_KEY`          | -             | LLM API 密钥（未配置则使用兜底文案） |
-| `COPY_GENERATION_MODEL`   | `gpt-4o-mini` | 文案生成模型                         |
-| `COPY_GENERATION_ENABLED` | `true`        | 是否启用 AI 生成                     |
+复用现有 LLM 配置（`language` role），无需额外环境变量。

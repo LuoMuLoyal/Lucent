@@ -26,7 +26,8 @@ import { BaselineService } from './lifecycle/baseline.service';
 import { LifecycleService } from './lifecycle/service';
 import { EscalationService } from './notification/escalation.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
-import { SuggestionCopyService, type CopyGenerationRequest } from './copy';
+import { SuggestionCopyService, SuggestionCopyQueueService } from './copy';
+import type { CopyJobData } from '../types';
 
 /**
  * Main orchestrator for the Today suggestion engine.
@@ -57,6 +58,7 @@ export class SuggestionService {
     private readonly escalation: EscalationService,
     private readonly cache: SuggestionCacheService,
     private readonly copyService: SuggestionCopyService,
+    private readonly copyQueue: SuggestionCopyQueueService,
   ) {}
 
   /**
@@ -157,14 +159,27 @@ export class SuggestionService {
       ...arbitrationResult.observations,
     ].filter((c): c is SuggestionCandidate => c != null);
 
-    const copyRequests: CopyGenerationRequest[] = allCandidates.map((c) => ({
+    const copyRequests: CopyJobData[] = allCandidates.map((c) => ({
       templateKey: c.copyGeneration.templateKey,
       params: c.copyGeneration.params,
       locale,
       tone: 'gentle',
+      suggestionType: c.type,
+      confidence: c.confidence,
+      ruleId: c.ruleId,
+      ...(c.subtype != null ? { subtype: c.subtype } : {}),
+      evidence: c.evidence.map((e) => ({ ...e })),
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- fallback during migration
+      originalTitle: c.title,
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- fallback during migration
+      originalReason: c.reason,
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- fallback during migration
+      originalBoundary: c.boundary,
     }));
 
-    const copyResults = await this.copyService.generateBatch(copyRequests);
+    const copyResults = this.copyQueue.isConfigured
+      ? await this.copyService.getOrEnqueueBatch(copyRequests)
+      : await this.copyService.generateSyncBatch(copyRequests);
 
     // 7. Persist active suggestions
     await this.lifecycle.expireStaleSuggestions(userId, targetDate);

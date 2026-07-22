@@ -2,6 +2,11 @@
  * Prompts for AI-powered suggestion copy generation.
  */
 
+import type {
+  CopyGenerationContext,
+  CopyPromptCopy,
+} from '../types/copy-generation.types';
+
 export interface CopyGenerationOptions {
   locale: string;
   tone?: 'gentle' | 'direct' | 'professional';
@@ -32,7 +37,7 @@ Generate suggestion card copy based on the provided template key and parameters.
 Generate ALL output in: ${locale}
 
 ## Tone
-${toneInstructions[toneKey] ?? toneInstructions.gentle ?? 'gentle'}
+${toneInstructions[toneKey] ?? toneInstructions['gentle'] ?? 'gentle'}
 
 ## Output Format
 Respond with a JSON object containing:
@@ -49,6 +54,10 @@ Respond with a JSON object containing:
 5. Never make absolute medical claims (use "可能", "建议", "有助于" etc.)
 6. For medication reminders, emphasize user agency ("请确认" not "您必须")
 7. For trend alerts, use cautious language ("显示趋势" not "确诊")
+8. Reason should reference specific items from the evidence array when available
+9. For high confidence suggestions, use more direct language; for low confidence, hedge appropriately
+10. suggestionType indicates the card's priority: confirmed_risk/compliance are urgent, behavior_advice is encouraging, coverage is informational
+11. Use originalReason/originalBoundary as semantic reference, but improve phrasing — do not copy verbatim
 
 ## Templates Reference
 - coverage.profile.incomplete: Profile missing fields
@@ -63,67 +72,34 @@ Respond with a JSON object containing:
 
 /**
  * Builds the user prompt for copy generation.
+ *
+ * Passes the full context (evidence, confidence, suggestionType, etc.)
+ * so the LLM can produce more grounded copy.
  */
 export function buildCopyUserPrompt(
-  templateKey: string,
-  params: Record<string, string | number>,
+  context: CopyGenerationContext,
+  copy: CopyPromptCopy,
 ): string {
-  return `Generate suggestion copy for:
-
-Template: ${templateKey}
-Parameters: ${JSON.stringify(params, null, 2)}
-
-Respond with valid JSON only.`;
-}
-
-/**
- * Builds a few-shot example prompt for better copy quality.
- */
-export function buildCopyFewShotExamples(locale: string): string {
-  if (locale.startsWith('zh')) {
-    return `## Examples
-
-Template: water.behind.target
-Params: {"completedCount": 2, "targetCount": 8, "remainingCount": 6, "completionRate": 25}
-Output:
-{
-  "title": "今日饮水还差 6 杯",
-  "reason": "目前已记录 2 杯，距离目标还有 6 杯，完成度 25%。",
-  "boundary": "饮水建议仅供参考，请根据个人情况调整。",
-  "actionLabel": "去记录"
-}
-
-Template: missed.dose.pending
-Params: {"medicineName": "维生素 D", "timeLabel": "08:00", "hoursOverdue": 2, "minsRemainder": 30}
-Output:
-{
-  "title": "08:00 维生素 D 待确认",
-  "reason": "计划服药时间已过 2 小时 30 分钟，请确认是否已服用。",
-  "boundary": "此提醒基于您的用药计划，不能替代医生或药师建议。",
-  "actionLabel": "去确认"
-}`;
-  }
-
-  // English examples
-  return `## Examples
-
-Template: water.behind.target
-Params: {"completedCount": 2, "targetCount": 8, "remainingCount": 6, "completionRate": 25}
-Output:
-{
-  "title": "6 cups of water to go",
-  "reason": "You've logged 2 cups so far, with 6 more to reach your daily goal of 8.",
-  "boundary": "Hydration advice is for reference only. Adjust to your personal needs.",
-  "actionLabel": "Log now"
-}
-
-Template: missed.dose.pending
-Params: {"medicineName": "Vitamin D", "timeLabel": "08:00", "hoursOverdue": 2, "minsRemainder": 30}
-Output:
-{
-  "title": "08:00 Vitamin D pending",
-  "reason": "Your scheduled dose is 2 hours 30 minutes overdue. Please confirm if taken.",
-  "boundary": "This reminder is based on your schedule and does not replace medical advice.",
-  "actionLabel": "Confirm"
-}`;
+  return [
+    copy.userIntro,
+    copy.tone,
+    copy.constraints,
+    copy.factsLabel,
+    JSON.stringify(
+      {
+        templateKey: context.templateKey,
+        suggestionType: context.suggestionType,
+        confidence: context.confidence,
+        ruleId: context.ruleId,
+        ...(context.subtype != null ? { subtype: context.subtype } : {}),
+        params: context.params,
+        evidence: context.evidence,
+        originalTitle: context.originalTitle,
+        originalReason: context.originalReason,
+        originalBoundary: context.originalBoundary,
+      },
+      null,
+      2,
+    ),
+  ].join('\n');
 }

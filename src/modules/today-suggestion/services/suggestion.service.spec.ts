@@ -73,7 +73,12 @@ interface MockDeps {
     invalidateBaseline: vi.Mock;
   };
   copyService: {
-    generateBatch: vi.Mock;
+    getOrEnqueueBatch: vi.Mock;
+    generateSyncBatch: vi.Mock;
+  };
+  copyQueue: {
+    isConfigured: boolean;
+    enqueue: vi.Mock;
   };
 }
 
@@ -119,7 +124,12 @@ function buildMocks(): MockDeps {
       invalidateBaseline: vi.fn().mockResolvedValue(undefined),
     },
     copyService: {
-      generateBatch: vi.fn().mockResolvedValue(new Map()),
+      getOrEnqueueBatch: vi.fn().mockResolvedValue(new Map()),
+      generateSyncBatch: vi.fn().mockResolvedValue(new Map()),
+    },
+    copyQueue: {
+      isConfigured: true,
+      enqueue: vi.fn().mockResolvedValue('job-1'),
     },
   };
 }
@@ -142,6 +152,7 @@ describe('SuggestionService', () => {
       deps.escalation as never,
       deps.cache as never,
       deps.copyService as never,
+      deps.copyQueue as never,
     );
   });
 
