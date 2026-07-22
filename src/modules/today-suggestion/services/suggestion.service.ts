@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import {
   now,
   nowIsoString,
@@ -61,6 +62,7 @@ export class SuggestionService {
     private readonly cache: SuggestionCacheService,
     private readonly copyService: SuggestionCopyService,
     private readonly copyQueue: SuggestionCopyQueueService,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -200,6 +202,7 @@ export class SuggestionService {
           arbitrationResult.primary,
           SuggestionLifecycleState.ACTIVE,
           copy,
+          locale,
         ),
       );
 
@@ -226,7 +229,13 @@ export class SuggestionService {
         copy,
       );
       activeItems.push(
-        this.toDto(id, candidate, SuggestionLifecycleState.ACTIVE, copy),
+        this.toDto(
+          id,
+          candidate,
+          SuggestionLifecycleState.ACTIVE,
+          copy,
+          locale,
+        ),
       );
     }
 
@@ -242,6 +251,7 @@ export class SuggestionService {
         c,
         SuggestionLifecycleState.ACTIVE,
         copy,
+        locale,
       );
     });
 
@@ -297,10 +307,14 @@ export class SuggestionService {
     }
     this.logger.error(`No fallback copy found for template: ${templateKey}`);
     return {
-      title: '建议',
-      reason: '系统检测到相关健康信号。',
-      boundary: '此建议仅供参考，不能替代专业医疗意见。',
-      actionLabel: '查看',
+      title: this.i18n.t('today-suggestion.fallback.title', { lang: locale }),
+      reason: this.i18n.t('today-suggestion.fallback.reason', { lang: locale }),
+      boundary: this.i18n.t('today-suggestion.fallback.boundary', {
+        lang: locale,
+      }),
+      actionLabel: this.i18n.t('today-suggestion.fallback.action_label', {
+        lang: locale,
+      }),
       aiGenerated: false,
       fromCache: false,
     };
@@ -311,10 +325,17 @@ export class SuggestionService {
     candidate: SuggestionCandidate,
     lifecycleState: SuggestionLifecycleState = SuggestionLifecycleState.ACTIVE,
     copy: CopyGenerationResult,
+    locale: string,
   ): SuggestionItemDto {
     const primaryAction = copy.actionLabel
       ? { ...candidate.primaryAction, label: copy.actionLabel }
-      : { ...candidate.primaryAction };
+      : {
+          ...candidate.primaryAction,
+          label: this.localizeActionLabel(
+            candidate.primaryAction.label,
+            locale,
+          ),
+        };
 
     return {
       id,
@@ -323,10 +344,17 @@ export class SuggestionService {
       icon: this.iconFor(candidate),
       title: copy.title,
       reason: copy.reason,
-      evidence: candidate.evidence.map((e) => ({ ...e })),
+      evidence: candidate.evidence.map((e) => ({
+        ...e,
+        label: this.localizeEvidenceLabel(e.label, locale),
+        value: this.localizeEvidenceValue(e.value, locale),
+      })),
       boundary: copy.boundary,
       primaryAction,
-      secondaryActions: candidate.secondaryActions?.map((a) => ({ ...a })),
+      secondaryActions: candidate.secondaryActions?.map((a) => ({
+        ...a,
+        label: this.localizeActionLabel(a.label, locale),
+      })),
       confidence: candidate.confidence,
       ruleId: candidate.ruleId,
       ruleVersion: candidate.ruleVersion,
@@ -390,5 +418,23 @@ export class SuggestionService {
       SuggestionFeedback.NOT_APPLICABLE,
       SuggestionFeedback.SUPPRESS,
     ];
+  }
+
+  private localizeEvidenceLabel(label: string, locale: string): string {
+    return this.i18n.t(`today-suggestion.evidence.${label}`, { lang: locale });
+  }
+
+  private localizeEvidenceValue(value: string, locale: string): string {
+    const translated = this.i18n.t(`today-suggestion.evidence_value.${value}`, {
+      lang: locale,
+    });
+    // If the key wasn't found, i18n returns the key path itself — fall back to raw value
+    return translated.startsWith('today-suggestion.evidence_value.')
+      ? value
+      : translated;
+  }
+
+  private localizeActionLabel(label: string, locale: string): string {
+    return this.i18n.t(`today-suggestion.action.${label}`, { lang: locale });
   }
 }

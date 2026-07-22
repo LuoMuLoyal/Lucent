@@ -82,23 +82,23 @@ export class WaterShortfallRuleService implements SuggestionRule {
       evidence: [
         {
           kind: 'record',
-          label: '当前杯数',
-          value: `${String(completedCount)} 杯`,
+          label: 'current_count',
+          value: String(completedCount),
         },
         {
           kind: 'record',
-          label: '目标杯数',
-          value: `${String(targetCount)} 杯`,
+          label: 'target_count',
+          value: String(targetCount),
         },
         {
           kind: 'baseline',
-          label: '近期记录天数',
-          value: `${String(consecutiveDays)} 天`,
+          label: 'recent_days',
+          value: String(consecutiveDays),
         },
       ],
       primaryAction: {
         actionId: 'go_record_water',
-        label: '去记录',
+        label: 'go_record',
         route: '/record/create?kind=water',
         authRequired: true,
       },

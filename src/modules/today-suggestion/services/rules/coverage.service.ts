@@ -44,13 +44,6 @@ export class CoverageRuleService implements SuggestionRule {
       const isComplete = profileSignal.payload['isComplete'] as boolean;
 
       if (!isComplete && missingFields.length > 0) {
-        const fieldLabels: Record<string, string> = {
-          birthDate: '出生日期',
-          sexAtBirth: '出生性别',
-          heightCm: '身高',
-        };
-        const missingLabels = missingFields.map((f) => fieldLabels[f] ?? f);
-
         return {
           candidateId: randomUUID(),
           ruleId: this.ruleId,
@@ -60,13 +53,13 @@ export class CoverageRuleService implements SuggestionRule {
           evidence: [
             {
               kind: 'profile',
-              label: '缺失字段',
-              value: missingLabels.join('、'),
+              label: 'missing_fields',
+              value: missingFields.join(','),
             },
           ],
           primaryAction: {
             actionId: 'go_complete_profile',
-            label: '完善档案',
+            label: 'complete_profile',
             route: '/mine/profile/edit',
             authRequired: true,
           },
@@ -77,7 +70,7 @@ export class CoverageRuleService implements SuggestionRule {
           copyGeneration: {
             templateKey: 'coverage.profile.incomplete',
             params: {
-              missingFields: missingLabels.join('、'),
+              missingFields: missingFields.join(','),
               fieldCount: missingFields.length,
             },
           },
@@ -98,13 +91,13 @@ export class CoverageRuleService implements SuggestionRule {
           evidence: [
             {
               kind: 'record',
-              label: '今日记录数',
+              label: 'today_record_count',
               value: '0',
             },
           ],
           primaryAction: {
             actionId: 'go_record',
-            label: '去记录',
+            label: 'go_record',
             route: '/record',
             authRequired: true,
           },

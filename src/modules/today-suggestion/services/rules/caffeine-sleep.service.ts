@@ -126,28 +126,28 @@ export class CaffeineSleepRuleService implements SuggestionRule {
       evidence: [
         {
           kind: 'record',
-          label: '咖啡因记录天数',
-          value: `${String(caffeineDays)} 天`,
+          label: 'caffeine_record_days',
+          value: String(caffeineDays),
         },
         {
           kind: 'record',
-          label: '咖啡因总次数',
-          value: `${String(totalCaffeine)} 次`,
+          label: 'caffeine_total_count',
+          value: String(totalCaffeine),
         },
         {
           kind: 'trend',
-          label: '睡眠下降幅度',
-          value: `${String(decline)} 分钟`,
+          label: 'sleep_decline',
+          value: String(decline),
         },
         {
           kind: 'record',
-          label: '最新睡眠时长',
+          label: 'latest_sleep_duration',
           value: `${String(hours)}h ${String(mins)}m`,
         },
       ],
       primaryAction: {
         actionId: 'go_record_meal',
-        label: '记录饮食',
+        label: 'record_meal',
         route: '/record/create?kind=meal',
         authRequired: true,
       },

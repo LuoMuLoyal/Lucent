@@ -78,18 +78,18 @@ export class SleepShortfallRuleService implements SuggestionRule {
       evidence: [
         {
           kind: 'record',
-          label: '睡眠时长',
+          label: 'sleep_duration',
           value: `${String(hours)}h ${String(mins)}m`,
         },
         {
           kind: 'baseline',
-          label: '近期记录天数',
-          value: `${String(consecutiveDays)} 天`,
+          label: 'recent_days',
+          value: String(consecutiveDays),
         },
       ],
       primaryAction: {
         actionId: 'go_record_sleep',
-        label: '记录睡眠',
+        label: 'record_sleep',
         route: '/record/create?kind=sleep',
         authRequired: true,
       },

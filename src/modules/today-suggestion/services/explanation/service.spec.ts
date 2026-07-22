@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import type { I18nService } from 'nestjs-i18n';
 import type { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import type { ExplanationGeneratorService } from './generator.service';
@@ -53,13 +54,20 @@ describe('ExplanationService', () => {
       isSafe: vi.fn().mockReturnValue(isSafe),
     } as unknown as LlmSafetyPolicyService;
 
+    const i18nMock = {
+      t: vi.fn((key: string, opts?: { lang?: string }) =>
+        opts?.lang ? `${key} [${opts.lang}]` : key,
+      ),
+    } as unknown as I18nService;
+
     const service = new ExplanationService(
       prismaMock as unknown as PrismaService,
       generatorMock,
       safetyMock,
+      i18nMock,
     );
 
-    return { service, prismaMock, generatorMock, safetyMock };
+    return { service, prismaMock, generatorMock, safetyMock, i18nMock };
   };
 
   describe('explain', () => {
@@ -112,11 +120,17 @@ describe('ExplanationService', () => {
           findFirst: vi.fn().mockResolvedValue(mockSuggestion),
         },
       } as unknown as PrismaService;
+      const i18nMock = {
+        t: vi.fn((key: string, opts?: { lang?: string }) =>
+          opts?.lang ? `${key} [${opts.lang}]` : key,
+        ),
+      } as unknown as I18nService;
 
       const service = new ExplanationService(
         prismaMock,
         generatorMock,
         safetyMock,
+        i18nMock,
       );
 
       const result = await service.explain('user-1', 'sug-123', 'zh-CN');
@@ -163,14 +177,19 @@ describe('ExplanationService', () => {
     });
 
     it('uses English prompt copy for non-Chinese locale', async () => {
-      const { service, generatorMock } = createService({});
+      const { service, generatorMock, i18nMock } = createService({});
 
       await service.explain('user-1', 'sug-123', 'en-US');
+
+      expect(i18nMock.t).toHaveBeenCalledWith(
+        'today-suggestion.prompt.explanation_user_intro',
+        { lang: 'en' },
+      );
 
       const generateCall = (generatorMock.generate as vi.Mock).mock.calls[0]!;
       const promptCopy = generateCall[1] as { userIntro: string };
 
-      expect(promptCopy.userIntro).toContain('English');
+      expect(promptCopy.userIntro).toContain('[en]');
     });
   });
 });

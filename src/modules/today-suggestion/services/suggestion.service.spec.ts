@@ -1,3 +1,4 @@
+import type { I18nService } from 'nestjs-i18n';
 import { SuggestionService } from './suggestion.service';
 import {
   SuggestionType,
@@ -164,6 +165,11 @@ describe('SuggestionService', () => {
       deps.cache as never,
       deps.copyService as never,
       deps.copyQueue as never,
+      {
+        t: vi.fn((key: string, opts?: { lang?: string }) =>
+          opts?.lang ? `${key} [${opts.lang}]` : key,
+        ),
+      } as unknown as I18nService,
     );
   });
 

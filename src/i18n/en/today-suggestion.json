@@ -1,0 +1,58 @@
+{
+  "evidence": {
+    "current_count": "Current cups",
+    "target_count": "Target cups",
+    "recent_days": "Recent record days",
+    "sleep_duration": "Sleep duration",
+    "scheduled_time": "Scheduled time",
+    "today_status": "Today status",
+    "latest_mood_score": "Latest mood score",
+    "avg_mood_score": "Average mood score",
+    "latest_sleep_duration": "Latest sleep duration",
+    "mood_record_days": "Mood record days",
+    "caffeine_record_days": "Caffeine record days",
+    "caffeine_total_count": "Total caffeine count",
+    "sleep_decline": "Sleep decline",
+    "latest_severity": "Latest severity",
+    "trend_direction": "Trend direction",
+    "consecutive_days": "Consecutive days",
+    "missing_fields": "Missing fields",
+    "today_record_count": "Today record count"
+  },
+  "evidence_value": {
+    "unconfirmed": "Unconfirmed",
+    "worsening": "Worsening"
+  },
+  "action": {
+    "go_record": "Record",
+    "record_sleep": "Log sleep",
+    "go_confirm": "Confirm",
+    "skip_dose": "Skip dose",
+    "record_mood": "Log mood",
+    "record_meal": "Log meal",
+    "record_symptom": "Log symptom",
+    "complete_profile": "Complete profile"
+  },
+  "field": {
+    "birthDate": "Date of birth",
+    "sexAtBirth": "Sex at birth",
+    "heightCm": "Height"
+  },
+  "fallback": {
+    "title": "Suggestion",
+    "reason": "A relevant health signal was detected.",
+    "boundary": "This suggestion is for reference only and cannot replace professional medical advice.",
+    "action_label": "View"
+  },
+  "prompt": {
+    "copy_user_intro": "Generate natural copy for the following health suggestion card.",
+    "copy_constraints": "Use ONLY the provided parameters. Do not invent data.",
+    "explanation_user_intro": "Generate a more natural English explanation for the following health suggestion card.",
+    "explanation_tone": "The tone should be gentle, objective, and avoid absolute statements.",
+    "explanation_constraints": "Use ONLY the provided evidence array. Do not invent data or reference records not in the evidence.",
+    "facts_label": "Suggestion context:"
+  },
+  "error": {
+    "not_found": "Suggestion not found"
+  }
+}

@@ -79,26 +79,26 @@ export class MissedDoseRuleService implements SuggestionRule {
       evidence: [
         {
           kind: 'reminder',
-          label: '计划时间',
+          label: 'scheduled_time',
           value: timeLabel,
           medicineId: signal.payload['medicineId'] as string,
         },
         {
           kind: 'record',
-          label: '今日状态',
-          value: '未确认',
+          label: 'today_status',
+          value: 'unconfirmed',
         },
       ],
       primaryAction: {
         actionId: 'go_confirm',
-        label: '去确认',
+        label: 'go_confirm',
         route: '/medicine',
         authRequired: true,
       },
       secondaryActions: [
         {
           actionId: 'skip_dose',
-          label: '跳过此次',
+          label: 'skip_dose',
           route: '/medicine?action=skip',
           authRequired: true,
         },

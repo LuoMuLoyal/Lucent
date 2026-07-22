@@ -129,28 +129,28 @@ export class MoodSleepRuleService implements SuggestionRule {
       evidence: [
         {
           kind: 'record',
-          label: '最新情绪评分',
+          label: 'latest_mood_score',
           value: `${String(latestMood.moodScore)}/5 (${latestMood.label})`,
         },
         {
           kind: 'record',
-          label: '平均情绪评分',
+          label: 'avg_mood_score',
           value: `${avgMood}/5`,
         },
         {
           kind: 'record',
-          label: '最新睡眠时长',
+          label: 'latest_sleep_duration',
           value: `${String(hours)}h ${String(mins)}m`,
         },
         {
           kind: 'baseline',
-          label: '情绪记录天数',
-          value: `${String(moodDays)} 天`,
+          label: 'mood_record_days',
+          value: String(moodDays),
         },
       ],
       primaryAction: {
         actionId: 'go_record_mood',
-        label: '记录情绪',
+        label: 'record_mood',
         route: '/record/create?kind=mood',
         authRequired: true,
       },

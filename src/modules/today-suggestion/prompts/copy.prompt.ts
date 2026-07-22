@@ -8,7 +8,6 @@ import type {
 } from '../types/copy-generation.types';
 
 export interface CopyGenerationOptions {
-  locale: string;
   tone?: 'gentle' | 'direct' | 'professional';
 }
 
@@ -16,7 +15,7 @@ export interface CopyGenerationOptions {
  * Builds the system prompt for copy generation.
  */
 export function buildCopySystemPrompt(options: CopyGenerationOptions): string {
-  const { locale, tone = 'gentle' } = options;
+  const { tone = 'gentle' } = options;
 
   const toneInstructions: Record<string, string> = {
     gentle:
@@ -34,7 +33,7 @@ export function buildCopySystemPrompt(options: CopyGenerationOptions): string {
 Generate suggestion card copy based on the provided template key and parameters. The copy should feel natural, helpful, and appropriately cautious about health claims.
 
 ## Language
-Generate ALL output in: ${locale}
+Generate ALL output in the locale specified in the user context JSON.
 
 ## Tone
 ${toneInstructions[toneKey] ?? toneInstructions['gentle'] ?? 'gentle'}
@@ -43,7 +42,7 @@ ${toneInstructions[toneKey] ?? toneInstructions['gentle'] ?? 'gentle'}
 Respond with a JSON object containing:
 - title: string (max 20 characters, action-oriented, no punctuation at end)
 - reason: string (1-2 sentences explaining the situation, include specific numbers from params)
-- boundary: string (1 sentence clarifying limitations, always include "仅供参考" or equivalent)
+- boundary: string (1 sentence clarifying limitations, always include a disclaimer that this is algorithmic advice, not medical diagnosis)
 - actionLabel: string (max 6 characters, verb-first, imperative mood)
 
 ## Rules
@@ -51,9 +50,9 @@ Respond with a JSON object containing:
 2. Reason should incorporate the provided parameters naturally
 3. Boundary must acknowledge that this is algorithmic advice, not medical diagnosis
 4. ActionLabel should be a clear call-to-action
-5. Never make absolute medical claims (use "可能", "建议", "有助于" etc.)
-6. For medication reminders, emphasize user agency ("请确认" not "您必须")
-7. For trend alerts, use cautious language ("显示趋势" not "确诊")
+5. Never make absolute medical claims — use hedging language (e.g., "may", "suggests", "could help")
+6. For medication reminders, emphasize user agency (e.g., "please confirm" rather than imperative commands)
+7. For trend alerts, use cautious language (e.g., "shows a trend" rather than "diagnosed")
 8. Reason should reference specific items from the evidence array when available
 9. For high confidence suggestions, use more direct language; for low confidence, hedge appropriately
 10. suggestionType indicates the card's priority: confirmed_risk/compliance are urgent, behavior_advice is encouraging, coverage is informational

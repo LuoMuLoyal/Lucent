@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
@@ -38,6 +39,7 @@ export class ExplanationService {
     private readonly prisma: PrismaService,
     private readonly generatorService: ExplanationGeneratorService,
     private readonly policyService: LlmSafetyPolicyService,
+    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -60,7 +62,9 @@ export class ExplanationService {
     });
 
     if (suggestion == null) {
-      throw new NotFoundException('Suggestion not found');
+      throw new NotFoundException(
+        this.i18n.t('today-suggestion.error.not_found', { lang: locale }),
+      );
     }
 
     const context = this.buildContext(suggestion);
@@ -151,19 +155,20 @@ export class ExplanationService {
   }
 
   private buildPromptCopy(locale: string): ExplanationPromptCopy {
-    const isZh = locale === 'zh-CN';
-
     return {
-      userIntro: isZh
-        ? '请为以下健康建议卡生成更自然的中文解释文案。'
-        : 'Generate a more natural English explanation for the following health suggestion card.',
-      tone: isZh
-        ? '语气应温和、客观，避免绝对化表述。'
-        : 'The tone should be gentle, objective, and avoid absolute statements.',
-      constraints: isZh
-        ? '只能基于提供的 evidence 数组生成内容，不得虚构数据或引用不在证据中的记录。'
-        : 'Use ONLY the provided evidence array. Do not invent data or reference records not in the evidence.',
-      factsLabel: 'Suggestion context:',
+      userIntro: this.i18n.t('today-suggestion.prompt.explanation_user_intro', {
+        lang: locale,
+      }),
+      tone: this.i18n.t('today-suggestion.prompt.explanation_tone', {
+        lang: locale,
+      }),
+      constraints: this.i18n.t(
+        'today-suggestion.prompt.explanation_constraints',
+        { lang: locale },
+      ),
+      factsLabel: this.i18n.t('today-suggestion.prompt.facts_label', {
+        lang: locale,
+      }),
     };
   }
 }

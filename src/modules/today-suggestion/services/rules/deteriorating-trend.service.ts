@@ -101,23 +101,23 @@ export class DeterioratingTrendRuleService implements SuggestionRule {
         evidence: [
           {
             kind: 'trend',
-            label: '最新严重度',
+            label: 'latest_severity',
             value: latestValue,
           },
           {
             kind: 'trend',
-            label: '趋势方向',
-            value: '加重',
+            label: 'trend_direction',
+            value: 'worsening',
           },
           {
             kind: 'trend',
-            label: '连续天数',
-            value: `${String(daysCount)} 天`,
+            label: 'consecutive_days',
+            value: String(daysCount),
           },
         ],
         primaryAction: {
           actionId: 'go_record_symptom',
-          label: '记录症状',
+          label: 'record_symptom',
           route: '/record/create?kind=symptom',
           authRequired: true,
         },

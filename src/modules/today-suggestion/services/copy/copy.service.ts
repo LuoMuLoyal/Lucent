@@ -11,6 +11,7 @@
  *   generateSync() — inline LLM call with cache check.
  */
 import { Injectable, Logger } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { createHash } from 'crypto';
 import { SuggestionCopyLlmService } from './copy-llm-generator.service';
 import { SuggestionCopyQueueService } from './copy-queue.service';
@@ -38,6 +39,7 @@ export class SuggestionCopyService {
     private readonly llmService: SuggestionCopyLlmService,
     private readonly cache: SuggestionCacheService,
     private readonly queue: SuggestionCopyQueueService,
+    private readonly i18n: I18nService,
   ) {}
 
   // ─── Read path: called on user request ───
@@ -229,16 +231,17 @@ export class SuggestionCopyService {
     tone: 'gentle' | 'direct' | 'professional',
     locale: string,
   ): CopyPromptCopy {
-    const isZh = locale.startsWith('zh');
     return {
       tone,
-      userIntro: isZh
-        ? '请为以下健康建议卡生成更自然的中文文案。'
-        : 'Generate natural copy for the following health suggestion card.',
-      constraints: isZh
-        ? '只能基于提供的参数生成内容，不得虚构数据。'
-        : 'Use ONLY the provided parameters. Do not invent data.',
-      factsLabel: 'Suggestion context:',
+      userIntro: this.i18n.t('today-suggestion.prompt.copy_user_intro', {
+        lang: locale,
+      }),
+      constraints: this.i18n.t('today-suggestion.prompt.copy_constraints', {
+        lang: locale,
+      }),
+      factsLabel: this.i18n.t('today-suggestion.prompt.facts_label', {
+        lang: locale,
+      }),
     };
   }
 
@@ -259,10 +262,14 @@ export class SuggestionCopyService {
     }
     this.logger.error(`No fallback copy found for template: ${templateKey}`);
     return {
-      title: '建议',
-      reason: '系统检测到相关健康信号。',
-      boundary: '此建议仅供参考，不能替代专业医疗意见。',
-      actionLabel: '查看',
+      title: this.i18n.t('today-suggestion.fallback.title', { lang: locale }),
+      reason: this.i18n.t('today-suggestion.fallback.reason', { lang: locale }),
+      boundary: this.i18n.t('today-suggestion.fallback.boundary', {
+        lang: locale,
+      }),
+      actionLabel: this.i18n.t('today-suggestion.fallback.action_label', {
+        lang: locale,
+      }),
       aiGenerated: false,
       fromCache: false,
     };

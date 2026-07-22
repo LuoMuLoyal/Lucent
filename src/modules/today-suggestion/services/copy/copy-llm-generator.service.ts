@@ -46,7 +46,7 @@ export class SuggestionCopyLlmService extends BaseLlmGeneratorService<
   }
 
   protected buildSystemPrompt(): string {
-    return buildCopySystemPrompt({ locale: 'zh-CN', tone: 'gentle' });
+    return buildCopySystemPrompt({ tone: 'gentle' });
   }
 
   protected buildUserPrompt(

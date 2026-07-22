@@ -1,3 +1,4 @@
+import type { I18nService } from 'nestjs-i18n';
 import type { SuggestionCopyLlmService } from './copy-llm-generator.service';
 import type { SuggestionCopyQueueService } from './copy-queue.service';
 import type { SuggestionCacheService } from '../cache/suggestion-cache.service';
@@ -22,8 +23,8 @@ function buildRequest(overrides: Partial<CopyJobData> = {}): CopyJobData {
     ruleId: 'water_behind_target',
     subtype: 'water',
     evidence: [
-      { kind: 'record', label: '当前杯数', value: '2 杯' },
-      { kind: 'record', label: '目标杯数', value: '8 杯' },
+      { kind: 'record', label: 'current_count', value: '2' },
+      { kind: 'record', label: 'target_count', value: '8' },
     ],
     ...overrides,
   };
@@ -69,6 +70,11 @@ describe('SuggestionCopyService', () => {
       llmServiceMock as unknown as SuggestionCopyLlmService,
       cacheMock as unknown as SuggestionCacheService,
       queueMock as unknown as SuggestionCopyQueueService,
+      {
+        t: vi.fn((key: string, opts?: { lang?: string }) =>
+          opts?.lang ? `${key} [${opts.lang}]` : key,
+        ),
+      } as unknown as I18nService,
     );
   });
 

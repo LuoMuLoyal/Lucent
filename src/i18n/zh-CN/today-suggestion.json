@@ -1,0 +1,58 @@
+{
+  "evidence": {
+    "current_count": "当前杯数",
+    "target_count": "目标杯数",
+    "recent_days": "近期记录天数",
+    "sleep_duration": "睡眠时长",
+    "scheduled_time": "计划时间",
+    "today_status": "今日状态",
+    "latest_mood_score": "最新情绪评分",
+    "avg_mood_score": "平均情绪评分",
+    "latest_sleep_duration": "最新睡眠时长",
+    "mood_record_days": "情绪记录天数",
+    "caffeine_record_days": "咖啡因记录天数",
+    "caffeine_total_count": "咖啡因总次数",
+    "sleep_decline": "睡眠下降幅度",
+    "latest_severity": "最新严重度",
+    "trend_direction": "趋势方向",
+    "consecutive_days": "连续天数",
+    "missing_fields": "缺失字段",
+    "today_record_count": "今日记录数"
+  },
+  "evidence_value": {
+    "unconfirmed": "未确认",
+    "worsening": "加重"
+  },
+  "action": {
+    "go_record": "去记录",
+    "record_sleep": "记录睡眠",
+    "go_confirm": "去确认",
+    "skip_dose": "跳过此次",
+    "record_mood": "记录情绪",
+    "record_meal": "记录饮食",
+    "record_symptom": "记录症状",
+    "complete_profile": "完善档案"
+  },
+  "field": {
+    "birthDate": "出生日期",
+    "sexAtBirth": "出生性别",
+    "heightCm": "身高"
+  },
+  "fallback": {
+    "title": "建议",
+    "reason": "系统检测到相关健康信号。",
+    "boundary": "此建议仅供参考，不能替代专业医疗意见。",
+    "action_label": "查看"
+  },
+  "prompt": {
+    "copy_user_intro": "请为以下健康建议卡生成更自然的中文文案。",
+    "copy_constraints": "只能基于提供的参数生成内容，不得虚构数据。",
+    "explanation_user_intro": "请为以下健康建议卡生成更自然的中文解释文案。",
+    "explanation_tone": "语气应温和、客观，避免绝对化表述。",
+    "explanation_constraints": "只能基于提供的 evidence 数组生成内容，不得虚构数据或引用不在证据中的记录。",
+    "facts_label": "Suggestion context:"
+  },
+  "error": {
+    "not_found": "未找到建议"
+  }
+}
