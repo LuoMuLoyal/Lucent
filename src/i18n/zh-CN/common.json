@@ -1,4 +1,5 @@
 {
   "internal_server_error": "服务器内部错误",
-  "request_failed": "请求失败"
+  "request_failed": "请求失败",
+  "invalid_testing_secret": "无效的测试密钥"
 }

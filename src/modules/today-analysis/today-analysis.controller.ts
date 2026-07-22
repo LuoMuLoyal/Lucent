@@ -120,13 +120,14 @@ export class TodayAnalysisController {
   }
 
   @Get('recommendations')
-  @ApiOperation({ summary: '随机返回今日健康推荐' })
+  @ApiOperation({ summary: 'Get random daily health recommendations' })
   @ApiQuery({
     name: 'exclude',
     required: false,
     isArray: true,
     type: String,
-    description: '上一次返回的推荐 id 列表，用于相邻两次去重',
+    description:
+      'Recommendation IDs from the last response, used for deduplication',
   })
   @ApiResponse({
     status: 200,

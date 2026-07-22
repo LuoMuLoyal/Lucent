@@ -16,6 +16,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
+import { I18nLang } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../../common/api';
 import { extractAuthRequestContext } from '../../../common/helpers/client-ip';
@@ -44,7 +45,7 @@ export class SessionController {
   @Post('logout')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '用户登出' })
+  @ApiOperation({ summary: 'User logout' })
   @ApiResponse({ status: 200, type: SuccessResponseDto })
   async logout(@CurrentUser() user: UserPayload, @Body() dto: LogoutDto) {
     await this.authService.logout(user.sub, dto.refreshToken);
@@ -56,7 +57,7 @@ export class SessionController {
   @Get('sessions')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '列出当前用户的活跃会话' })
+  @ApiOperation({ summary: 'List active sessions for the current user' })
   async listSessions(@CurrentUser() user: UserPayload) {
     const sessions = await this.authTokenService.listSessions(user.sub);
     return successEnvelope(sessions);
@@ -67,12 +68,13 @@ export class SessionController {
   @Delete('sessions/:sessionId')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '撤销指定会话' })
+  @ApiOperation({ summary: 'Revoke a specific session' })
   async revokeSession(
     @CurrentUser() user: UserPayload,
     @Param('sessionId') sessionId: string,
+    @I18nLang() lang: string,
   ) {
-    await this.authTokenService.revokeById(user.sub, sessionId);
+    await this.authTokenService.revokeById(user.sub, sessionId, lang);
     return successEnvelope(null);
   }
 
@@ -82,7 +84,7 @@ export class SessionController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '刷新令牌' })
+  @ApiOperation({ summary: 'Refresh token' })
   @ApiResponse({ status: 200, type: RefreshResponseDto })
   async refresh(@Body() dto: RefreshDto, @Req() request: FastifyRequest) {
     const result = await this.authService.refresh(

@@ -96,11 +96,12 @@ describe('SessionController', () => {
 
   describe('DELETE /auth/sessions/:sessionId', () => {
     it('revokes session and returns null envelope', async () => {
-      const result = await controller.revokeSession(mockUser, 'sess-1');
+      const result = await controller.revokeSession(mockUser, 'sess-1', 'en');
 
       expect(authTokenService.revokeById).toHaveBeenCalledWith(
         'user-1',
         'sess-1',
+        'en',
       );
       expect(result.data).toBeNull();
     });

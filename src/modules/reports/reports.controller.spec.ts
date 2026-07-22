@@ -1,6 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
+import { I18nService } from 'nestjs-i18n';
 import { ResultCode } from '../../common/api';
 import {
   REPORT_RANGE_CUSTOM,
@@ -73,6 +74,12 @@ describe('ReportsController', () => {
             register: vi.fn(),
             unregister: vi.fn(),
             closeAll: vi.fn(),
+          },
+        },
+        {
+          provide: I18nService,
+          useValue: {
+            t: vi.fn((key: string) => key),
           },
         },
       ],
@@ -244,13 +251,19 @@ describe('ReportsController', () => {
     };
     clinicSummaryService.buildClinicSummary.mockResolvedValue(summary);
 
-    const result = await controller.previewClinicSummary({
-      sub: 'u1',
-      email: 'a@b.c',
-      status: 'active',
-    });
+    const result = await controller.previewClinicSummary(
+      {
+        sub: 'u1',
+        email: 'a@b.c',
+        status: 'active',
+      },
+      'zh-CN',
+    );
 
-    expect(clinicSummaryService.buildClinicSummary).toHaveBeenCalledWith('u1');
+    expect(clinicSummaryService.buildClinicSummary).toHaveBeenCalledWith(
+      'u1',
+      'zh-CN',
+    );
     expect(result).toEqual({
       code: ResultCode.SUCCESS,
       message: '',
@@ -268,13 +281,19 @@ describe('ReportsController', () => {
     };
     clinicSummaryService.createShareLink.mockResolvedValue(shareResponse);
 
-    const result = await controller.shareClinicSummary({
-      sub: 'u1',
-      email: 'a@b.c',
-      status: 'active',
-    });
+    const result = await controller.shareClinicSummary(
+      {
+        sub: 'u1',
+        email: 'a@b.c',
+        status: 'active',
+      },
+      'zh-CN',
+    );
 
-    expect(clinicSummaryService.createShareLink).toHaveBeenCalledWith('u1');
+    expect(clinicSummaryService.createShareLink).toHaveBeenCalledWith(
+      'u1',
+      'zh-CN',
+    );
     expect(result).toEqual({
       code: ResultCode.SUCCESS,
       message: '',
@@ -301,7 +320,10 @@ describe('ReportsController', () => {
     };
     clinicSummaryService.getSharedSummary.mockResolvedValue(summary);
 
-    const result = await controller.getSharedClinicSummary('valid-token');
+    const result = await controller.getSharedClinicSummary(
+      'valid-token',
+      'zh-CN',
+    );
 
     expect(clinicSummaryService.getSharedSummary).toHaveBeenCalledWith(
       'valid-token',
@@ -317,11 +339,11 @@ describe('ReportsController', () => {
     clinicSummaryService.getSharedSummary.mockResolvedValue(null);
 
     await expect(
-      controller.getSharedClinicSummary('expired-token'),
+      controller.getSharedClinicSummary('expired-token', 'zh-CN'),
     ).rejects.toThrow(HttpException);
 
     try {
-      await controller.getSharedClinicSummary('expired-token');
+      await controller.getSharedClinicSummary('expired-token', 'zh-CN');
     } catch (e) {
       expect(e).toBeInstanceOf(HttpException);
       expect((e as HttpException).getStatus()).toBe(HttpStatus.GONE);

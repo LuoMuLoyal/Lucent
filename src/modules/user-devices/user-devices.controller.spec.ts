@@ -61,9 +61,13 @@ describe('UserDevicesController', () => {
       notificationsEnabled: true,
     };
 
-    const result = await controller.register(user, dto);
+    const result = await controller.register(user, dto, 'en');
 
-    expect(userDevicesService.register).toHaveBeenCalledWith('user-1', dto);
+    expect(userDevicesService.register).toHaveBeenCalledWith(
+      'user-1',
+      dto,
+      'en',
+    );
     expect(result).toEqual({
       code: 0,
       message: '',
@@ -99,15 +103,18 @@ describe('UserDevicesController', () => {
   // ── remove ─────────────────────────────────────────────────────────────
 
   it('should call service.remove with user id and device id', async () => {
-    await controller.remove(user, 'device-1');
+    await controller.remove(user, 'device-1', 'en');
 
     expect(userDevicesService.remove).toHaveBeenCalledWith(
       'user-1',
       'device-1',
+      'en',
     );
   });
 
   it('should not throw when remove succeeds', async () => {
-    await expect(controller.remove(user, 'device-1')).resolves.toBeUndefined();
+    await expect(
+      controller.remove(user, 'device-1', 'en'),
+    ).resolves.toBeUndefined();
   });
 });

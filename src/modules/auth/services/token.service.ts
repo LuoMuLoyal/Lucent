@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
+import { I18nService } from 'nestjs-i18n';
 import { User } from '#generated/prisma/client';
 import { ConfigKey } from '../../../config/config-keys.enum';
 
@@ -41,6 +42,7 @@ export class AuthTokenService {
     private readonly sessionRepository: AuthSessionRepositoryPort,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly i18n: I18nService,
   ) {}
 
   private get jwtConfig(): JwtConfigShape {
@@ -143,13 +145,23 @@ export class AuthTokenService {
     await this.sessionRepository.deleteSessionsByUserId(userId);
   }
 
-  async revokeById(userId: string, sessionId: string): Promise<void> {
+  async revokeById(
+    userId: string,
+    sessionId: string,
+    locale: string = 'en',
+  ): Promise<void> {
     const record = await this.sessionRepository.findSessionById(sessionId);
     if (!record) {
-      throw new NotFoundException('Session not found');
+      throw new NotFoundException(
+        this.i18n.t('auth.session_not_found', { lang: locale }),
+      );
     }
     if (record.userId !== userId) {
-      throw new ForbiddenException('Cannot revoke another user session');
+      throw new ForbiddenException(
+        this.i18n.t('auth.cannot_revoke_another_user_session', {
+          lang: locale,
+        }),
+      );
     }
     await this.sessionRepository.revokeSessionById(sessionId);
   }

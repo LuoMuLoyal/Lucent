@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { I18nService } from 'nestjs-i18n';
 import { ResultCode } from '../../common/api';
 import { TestingSupportController } from './testing-support.controller';
 import { TestingSupportService } from './services/fixtures.service';
@@ -21,6 +22,10 @@ describe('TestingSupportController', () => {
         {
           provide: ConfigService,
           useValue: { get: vi.fn().mockReturnValue(undefined) },
+        },
+        {
+          provide: I18nService,
+          useValue: { t: vi.fn((key: string) => key) },
         },
       ],
     }).compile();

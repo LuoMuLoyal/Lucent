@@ -1,6 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
 import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
+import type { I18nService } from 'nestjs-i18n';
 import { TestingSharedSecretGuard } from './testing-shared-secret.guard';
 
 describe('TestingSharedSecretGuard', () => {
@@ -11,7 +12,10 @@ describe('TestingSharedSecretGuard', () => {
     configService = {
       get: vi.fn(),
     } as unknown as vi.Mocked<ConfigService>;
-    guard = new TestingSharedSecretGuard(configService);
+    const i18nMock = {
+      t: vi.fn((key: string) => key),
+    } as unknown as I18nService;
+    guard = new TestingSharedSecretGuard(configService, i18nMock);
   });
 
   function buildContext(

@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { now } from '../../../common/helpers/date-time.utils';
 import type { RegisterDeviceDto } from '../dto';
@@ -18,11 +19,15 @@ import type { DeviceItemDto } from '../dto';
  */
 @Injectable()
 export class UserDevicesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly i18n: I18nService,
+  ) {}
 
   async register(
     userId: string,
     dto: RegisterDeviceDto,
+    locale: string = 'en',
   ): Promise<DeviceItemDto> {
     // Check whether this pushToken already exists.
     const existing = await this.prisma.userDevice.findUnique({
@@ -31,7 +36,11 @@ export class UserDevicesService {
     });
 
     if (existing !== null && existing.userId !== userId) {
-      throw new ForbiddenException('This device is registered to another user');
+      throw new ForbiddenException(
+        this.i18n.t('user-devices.device_registered_to_another_user', {
+          lang: locale,
+        }),
+      );
     }
 
     const commonData = {
@@ -66,18 +75,28 @@ export class UserDevicesService {
     return { items: records.map((r) => this.toItem(r)) };
   }
 
-  async remove(userId: string, id: string): Promise<void> {
+  async remove(
+    userId: string,
+    id: string,
+    locale: string = 'en',
+  ): Promise<void> {
     const existing = await this.prisma.userDevice.findUnique({
       where: { id },
       select: { userId: true },
     });
 
     if (existing === null) {
-      throw new NotFoundException('Device not found');
+      throw new NotFoundException(
+        this.i18n.t('user-devices.device_not_found', { lang: locale }),
+      );
     }
 
     if (existing.userId !== userId) {
-      throw new ForbiddenException('Device belongs to another user');
+      throw new ForbiddenException(
+        this.i18n.t('user-devices.device_belongs_to_another_user', {
+          lang: locale,
+        }),
+      );
     }
 
     await this.prisma.userDevice.delete({ where: { id } });

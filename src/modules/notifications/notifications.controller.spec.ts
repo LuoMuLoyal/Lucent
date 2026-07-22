@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { I18nService } from 'nestjs-i18n';
 import { ResultCode } from '../../common/api';
 import type { UserPayload } from '../auth/services/token.service';
 
@@ -47,6 +48,12 @@ describe('NotificationsController', () => {
             markAllAsRead: vi.fn(),
             remove: vi.fn(),
             getUnreadCount: vi.fn(),
+          },
+        },
+        {
+          provide: I18nService,
+          useValue: {
+            t: vi.fn((key: string) => key),
           },
         },
       ],
@@ -131,7 +138,7 @@ describe('NotificationsController', () => {
     it('should return notification detail envelope', async () => {
       service.findOne.mockResolvedValue(mockDetail);
 
-      const result = await controller.findOne(mockUser, 'notif-uuid-1');
+      const result = await controller.findOne(mockUser, 'notif-uuid-1', 'en');
 
       expect(service.findOne).toHaveBeenCalledWith(
         mockUser.sub,
@@ -147,9 +154,9 @@ describe('NotificationsController', () => {
     it('should throw NotFoundException when notification not found', async () => {
       service.findOne.mockResolvedValue(null);
 
-      await expect(controller.findOne(mockUser, 'nonexistent')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        controller.findOne(mockUser, 'nonexistent', 'en'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -157,7 +164,11 @@ describe('NotificationsController', () => {
     it('should mark as read and return envelope', async () => {
       service.markAsRead.mockResolvedValue(mockDetail);
 
-      const result = await controller.markAsRead(mockUser, 'notif-uuid-1');
+      const result = await controller.markAsRead(
+        mockUser,
+        'notif-uuid-1',
+        'en',
+      );
 
       expect(service.markAsRead).toHaveBeenCalledWith(
         mockUser.sub,
@@ -174,7 +185,7 @@ describe('NotificationsController', () => {
       service.markAsRead.mockResolvedValue(null);
 
       await expect(
-        controller.markAsRead(mockUser, 'nonexistent'),
+        controller.markAsRead(mockUser, 'nonexistent', 'en'),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -183,7 +194,11 @@ describe('NotificationsController', () => {
     it('should mark as unread and return envelope', async () => {
       service.markAsUnread.mockResolvedValue(mockDetail);
 
-      const result = await controller.markAsUnread(mockUser, 'notif-uuid-1');
+      const result = await controller.markAsUnread(
+        mockUser,
+        'notif-uuid-1',
+        'en',
+      );
 
       expect(service.markAsUnread).toHaveBeenCalledWith(
         mockUser.sub,
@@ -200,7 +215,7 @@ describe('NotificationsController', () => {
       service.markAsUnread.mockResolvedValue(null);
 
       await expect(
-        controller.markAsUnread(mockUser, 'nonexistent'),
+        controller.markAsUnread(mockUser, 'nonexistent', 'en'),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -224,7 +239,7 @@ describe('NotificationsController', () => {
     it('should delete notification', async () => {
       service.remove.mockResolvedValue(true);
 
-      await controller.remove(mockUser, 'notif-uuid-1');
+      await controller.remove(mockUser, 'notif-uuid-1', 'en');
 
       expect(service.remove).toHaveBeenCalledWith(mockUser.sub, 'notif-uuid-1');
     });
@@ -232,9 +247,9 @@ describe('NotificationsController', () => {
     it('should throw NotFoundException when notification not found', async () => {
       service.remove.mockResolvedValue(false);
 
-      await expect(controller.remove(mockUser, 'nonexistent')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        controller.remove(mockUser, 'nonexistent', 'en'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

@@ -19,7 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
-import { I18nLang } from 'nestjs-i18n';
+import { I18nLang, I18nService } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../common/api';
 import { extractErrorInfo } from '../../common/helpers/error-info.utils';
@@ -58,6 +58,7 @@ export class ReportsController {
     private readonly clinicSummaryService: ClinicSummaryService,
     private readonly clinicSummaryPdfQueueService: ClinicSummaryPdfQueueService,
     private readonly sseRegistry: SseConnectionRegistry,
+    private readonly i18n: I18nService,
   ) {}
 
   @Get('dashboard')
@@ -212,9 +213,12 @@ export class ReportsController {
       'Generate a de-identified clinic summary for sharing with a doctor',
   })
   @ApiResponse({ status: 200, type: ClinicSummaryDto })
-  async previewClinicSummary(@CurrentUser() user: UserPayload) {
+  async previewClinicSummary(
+    @CurrentUser() user: UserPayload,
+    @I18nLang() language: string,
+  ) {
     return successEnvelope(
-      await this.clinicSummaryService.buildClinicSummary(user.sub),
+      await this.clinicSummaryService.buildClinicSummary(user.sub, language),
     );
   }
 
@@ -223,9 +227,12 @@ export class ReportsController {
     summary: 'Create a shareable link for the clinic summary (24h expiry)',
   })
   @ApiResponse({ status: 200, type: ClinicSummaryShareResponseDto })
-  async shareClinicSummary(@CurrentUser() user: UserPayload) {
+  async shareClinicSummary(
+    @CurrentUser() user: UserPayload,
+    @I18nLang() language: string,
+  ) {
     return successEnvelope(
-      await this.clinicSummaryService.createShareLink(user.sub),
+      await this.clinicSummaryService.createShareLink(user.sub, language),
     );
   }
 
@@ -235,11 +242,16 @@ export class ReportsController {
     summary: 'Access a shared clinic summary by token (no auth required)',
   })
   @ApiResponse({ status: 200, type: ClinicSummaryDto })
-  async getSharedClinicSummary(@Param('token') token: string) {
+  async getSharedClinicSummary(
+    @Param('token') token: string,
+    @I18nLang() language: string,
+  ) {
     const summary = await this.clinicSummaryService.getSharedSummary(token);
     if (!summary) {
       throw new HttpException(
-        'Share link expired or invalid.',
+        await this.i18n.t('reports-clinic-summary.share_link_expired', {
+          lang: language,
+        }),
         HttpStatus.GONE,
       );
     }
@@ -349,7 +361,9 @@ export class ReportsController {
     );
     if (!pdf) {
       throw new HttpException(
-        'Share link expired or invalid.',
+        await this.i18n.t('reports-clinic-summary.share_link_expired', {
+          lang: language,
+        }),
         HttpStatus.GONE,
       );
     }

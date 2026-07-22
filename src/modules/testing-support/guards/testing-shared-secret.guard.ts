@@ -5,6 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { I18nService } from 'nestjs-i18n';
 import { safeCompare } from '../../../common/helpers/crypto.utils';
 import { EnvKey } from '../../../config/env-keys.enum';
 
@@ -20,14 +21,19 @@ import { EnvKey } from '../../../config/env-keys.enum';
  */
 @Injectable()
 export class TestingSharedSecretGuard implements CanActivate {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly i18n: I18nService,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
     const expected = this.configService.get<string>(
       EnvKey.TESTING_SHARED_SECRET,
     );
     if (!expected) {
-      throw new ForbiddenException('Invalid testing secret');
+      throw new ForbiddenException(
+        this.i18n.t('common.invalid_testing_secret'),
+      );
     }
 
     const request = context.switchToHttp().getRequest<{
@@ -36,11 +42,15 @@ export class TestingSharedSecretGuard implements CanActivate {
     const provided = request.headers['x-testing-secret'];
 
     if (typeof provided !== 'string' || !provided) {
-      throw new ForbiddenException('Invalid testing secret');
+      throw new ForbiddenException(
+        this.i18n.t('common.invalid_testing_secret'),
+      );
     }
 
     if (!safeCompare(provided, expected)) {
-      throw new ForbiddenException('Invalid testing secret');
+      throw new ForbiddenException(
+        this.i18n.t('common.invalid_testing_secret'),
+      );
     }
 
     return true;

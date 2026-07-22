@@ -50,13 +50,14 @@ export class MedicinesController {
 
   @Public()
   @Get('safety-tips')
-  @ApiOperation({ summary: '随机返回用药安全提示' })
+  @ApiOperation({ summary: 'Get random medication safety tips' })
   @ApiQuery({
     name: 'exclude',
     required: false,
     isArray: true,
     type: String,
-    description: '上一次返回的提示 id 列表，用于相邻两次去重',
+    description:
+      'Safety tip IDs from the last response, used for deduplication',
   })
   @ApiResponse({ status: 200, type: [MedicineSafetyTipResponseDto] })
   async getSafetyTips(
@@ -151,7 +152,9 @@ export class MedicinesController {
   @Post('recognize')
   @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'AI识别药盒图片，提取药品信息' })
+  @ApiOperation({
+    summary: 'AI recognize medicine box image and extract medicine info',
+  })
   async recognize(
     @CurrentUser() _user: UserPayload,
     @Body() dto: RecognizeMedicineDto,

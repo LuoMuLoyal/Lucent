@@ -1,4 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import type { I18nService } from 'nestjs-i18n';
 import { UserDevicesService } from './user-devices.service';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import { DevicePlatform } from '../dto';
@@ -41,7 +42,13 @@ describe('UserDevicesService', () => {
 
   beforeEach(() => {
     prisma = buildPrisma();
-    service = new UserDevicesService(prisma as unknown as PrismaService);
+    const i18nMock = {
+      t: vi.fn((key: string) => key),
+    } as unknown as I18nService;
+    service = new UserDevicesService(
+      prisma as unknown as PrismaService,
+      i18nMock,
+    );
   });
 
   describe('register', () => {

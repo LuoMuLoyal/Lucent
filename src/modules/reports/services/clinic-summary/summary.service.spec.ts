@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { ConfigService } from '@nestjs/config';
+import type { I18nService } from 'nestjs-i18n';
 import { ClinicSummaryService } from './summary.service';
 import type { ClinicSummaryPdfService } from './pdf.service';
 import type { PrismaService } from '../../../../prisma/prisma.service';
@@ -11,6 +12,15 @@ describe('ClinicSummaryService', () => {
   let cacheManager: { get: vi.Mock; set: vi.Mock };
   let pdfService: vi.Mocked<ClinicSummaryPdfService>;
   let configService: vi.Mocked<ConfigService>;
+
+  const i18nMock = {
+    t: vi.fn((key: string) => {
+      if (key.includes('disclaimer')) return 'disclaimer-text';
+      if (key.includes('anonymous_name')) return '匿名用户';
+      if (key.includes('share_link_expired')) return 'Share link expired.';
+      return key;
+    }),
+  } as unknown as I18nService;
 
   beforeEach(() => {
     prisma = {
@@ -37,6 +47,7 @@ describe('ClinicSummaryService', () => {
       cacheManager as never,
       pdfService,
       configService,
+      i18nMock,
     );
   });
 
@@ -65,7 +76,7 @@ describe('ClinicSummaryService', () => {
     it('builds summary with de-identified profile', async () => {
       (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
 
-      const result = await service.buildClinicSummary('user-1');
+      const result = await service.buildClinicSummary('user-1', 'zh-CN');
 
       expect(result.profile.nickname).toBe('张**');
       expect(result.profile.age).toBeGreaterThan(0);
@@ -77,7 +88,7 @@ describe('ClinicSummaryService', () => {
       expect(result.conditions[0]!.diagnosedYear).toBe(2023);
       expect(result.currentMedicines).toHaveLength(1);
       expect(result.dataRange).toBe('last_30_days');
-      expect(result.disclaimer).toContain('此摘要');
+      expect(result.disclaimer).toContain('disclaimer-text');
     });
 
     it('handles null profile', async () => {
@@ -86,7 +97,7 @@ describe('ClinicSummaryService', () => {
         profile: null,
       });
 
-      const result = await service.buildClinicSummary('user-1');
+      const result = await service.buildClinicSummary('user-1', 'zh-CN');
 
       expect(result.profile.age).toBeNull();
       expect(result.profile.sexAtBirth).toBeNull();
@@ -99,7 +110,7 @@ describe('ClinicSummaryService', () => {
         nickname: null,
       });
 
-      const result = await service.buildClinicSummary('user-1');
+      const result = await service.buildClinicSummary('user-1', 'zh-CN');
       expect(result.profile.nickname).toBe('匿名用户');
     });
 
@@ -109,7 +120,7 @@ describe('ClinicSummaryService', () => {
         nickname: 'A',
       });
 
-      const result = await service.buildClinicSummary('user-1');
+      const result = await service.buildClinicSummary('user-1', 'zh-CN');
       expect(result.profile.nickname).toBe('A');
     });
 
@@ -121,7 +132,7 @@ describe('ClinicSummaryService', () => {
         currentMedicines: [],
       });
 
-      const result = await service.buildClinicSummary('user-1');
+      const result = await service.buildClinicSummary('user-1', 'zh-CN');
       expect(result.allergies).toHaveLength(0);
       expect(result.conditions).toHaveLength(0);
       expect(result.currentMedicines).toHaveLength(0);
@@ -133,7 +144,7 @@ describe('ClinicSummaryService', () => {
       (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
       configService.get.mockReturnValue({ publicBaseUrl: 'https://lumos.app' });
 
-      const result = await service.createShareLink('user-1');
+      const result = await service.createShareLink('user-1', 'zh-CN');
 
       expect(result.shareUrl).toContain('https://lumos.app');
       expect(result.shareUrl).toContain(
@@ -151,7 +162,7 @@ describe('ClinicSummaryService', () => {
       (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
       configService.get.mockReturnValue(undefined);
 
-      const result = await service.createShareLink('user-1');
+      const result = await service.createShareLink('user-1', 'zh-CN');
 
       expect(result.shareUrl).toContain('localhost:3000');
     });
@@ -234,7 +245,7 @@ describe('ClinicSummaryService', () => {
         nickname: '张三丰',
       });
 
-      const result = await service.buildClinicSummary('user-1');
+      const result = await service.buildClinicSummary('user-1', 'zh-CN');
       expect(result.profile.nickname).toBe('张**');
     });
 
@@ -244,7 +255,7 @@ describe('ClinicSummaryService', () => {
         nickname: null,
       });
 
-      const result = await service.buildClinicSummary('user-1');
+      const result = await service.buildClinicSummary('user-1', 'zh-CN');
       expect(result.profile.nickname).toBe('匿名用户');
     });
   });

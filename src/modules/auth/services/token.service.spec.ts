@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import { I18nService } from 'nestjs-i18n';
 import { AuthTokenService } from './token.service';
 import { normalizeEmail } from '../../../common/helpers/string.utils';
 import { AuthSessionRepositoryPort } from '../repositories/session.repository';
@@ -57,6 +58,12 @@ describe('AuthTokenService', () => {
               accessTtl: 900,
               refreshTtl: 604800,
             }),
+          },
+        },
+        {
+          provide: I18nService,
+          useValue: {
+            t: vi.fn((key: string) => key),
           },
         },
       ],

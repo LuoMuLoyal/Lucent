@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
+import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import {
   calculateAge,
@@ -30,9 +31,13 @@ export class ClinicSummaryService {
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly pdfService: ClinicSummaryPdfService,
     private readonly configService: ConfigService,
+    private readonly i18n: I18nService,
   ) {}
 
-  async buildClinicSummary(userId: string): Promise<ClinicSummaryDto> {
+  async buildClinicSummary(
+    userId: string,
+    locale: string = 'en',
+  ): Promise<ClinicSummaryDto> {
     const user = await this.prisma.user.findFirstOrThrow({
       where: { id: userId, deletedAt: null },
       include: {
@@ -57,7 +62,7 @@ export class ClinicSummaryService {
       },
     });
 
-    const profile = this.deidentifyProfile(user);
+    const profile = this.deidentifyProfile(user, locale);
     const allergies = user.allergies.map(
       (a) =>
         ({
@@ -89,15 +94,17 @@ export class ClinicSummaryService {
       allergies,
       conditions,
       currentMedicines,
-      disclaimer:
-        '此摘要基于用户自述健康数据生成，仅供参考，不能替代专业医疗诊断。用药详情以实际药品说明书为准。',
+      disclaimer: this.i18n.t('reports-clinic-summary.disclaimer', {
+        lang: locale,
+      }),
     };
   }
 
   async createShareLink(
     userId: string,
+    locale: string = 'en',
   ): Promise<ClinicSummaryShareResponseDto> {
-    const summary = await this.buildClinicSummary(userId);
+    const summary = await this.buildClinicSummary(userId, locale);
     const token = randomBytes(32).toString('hex');
     const tokenHash = this.hashToken(token);
     const key = `${SHARE_KEY_PREFIX}${tokenHash}`;
@@ -123,7 +130,7 @@ export class ClinicSummaryService {
   }
 
   async exportPdf(userId: string, locale: string): Promise<Buffer> {
-    const summary = await this.buildClinicSummary(userId);
+    const summary = await this.buildClinicSummary(userId, locale);
     return this.pdfService.buildPdf(summary, locale);
   }
 
@@ -135,26 +142,32 @@ export class ClinicSummaryService {
 
   // ── De-identification ──────────────────────────────────────
 
-  private deidentifyProfile(user: {
-    nickname: string | null;
-    profile: {
-      birthDate: Date | null;
-      sexAtBirth: string | null;
-      bloodType: string | null;
-    } | null;
-  }): ClinicSummaryProfileDto {
+  private deidentifyProfile(
+    user: {
+      nickname: string | null;
+      profile: {
+        birthDate: Date | null;
+        sexAtBirth: string | null;
+        bloodType: string | null;
+      } | null;
+    },
+    locale: string,
+  ): ClinicSummaryProfileDto {
     const p = user.profile;
 
     return {
-      nickname: this.maskName(user.nickname),
+      nickname: this.maskName(user.nickname, locale),
       age: p?.birthDate ? calculateAge(p.birthDate) : null,
       sexAtBirth: p?.sexAtBirth ?? null,
       bloodType: p?.bloodType ?? null,
     };
   }
 
-  private maskName(name: string | null): string {
-    if (!name) return '匿名用户';
+  private maskName(name: string | null, locale: string): string {
+    if (!name)
+      return this.i18n.t('reports-clinic-summary.anonymous_name', {
+        lang: locale,
+      });
     if (name.length <= 1) return name;
     return name.charAt(0) + '**';
   }

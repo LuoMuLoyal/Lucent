@@ -14,6 +14,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { I18nLang } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../common/api';
 import type { UserPayload } from '../auth/services/auth.service';
@@ -40,9 +41,10 @@ export class UserDevicesController {
   async register(
     @CurrentUser() user: UserPayload,
     @Body() dto: RegisterDeviceDto,
+    @I18nLang() lang: string,
   ) {
     return successEnvelope(
-      await this.userDevicesService.register(user.sub, dto),
+      await this.userDevicesService.register(user.sub, dto, lang),
     );
   }
 
@@ -56,7 +58,11 @@ export class UserDevicesController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Unregister a device' })
-  async remove(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    await this.userDevicesService.remove(user.sub, id);
+  async remove(
+    @CurrentUser() user: UserPayload,
+    @Param('id') id: string,
+    @I18nLang() lang: string,
+  ) {
+    await this.userDevicesService.remove(user.sub, id, lang);
   }
 }
