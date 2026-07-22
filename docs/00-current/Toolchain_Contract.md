@@ -1,6 +1,6 @@
 # Toolchain / Contract
 
-Last updated: 2026-07-21
+Last updated: 2026-07-22
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -35,6 +35,12 @@ Last updated: 2026-07-21
   - `pnpm docs:check`（`--warning-only`）：扫描工作区变更，输出每条规则中未被触及的文档列表，不阻断。
   - Pre-commit hook（blocking，`simple-git-hooks`）：`src/**/*.ts` 源文件已暂存但无 `docs/` 文件
     暂存时阻断提交。旁路：`SKIP_DOC_CHECK=1` 或 `--no-verify`。
+- **stack-trace override**（2026-07-22）：`pnpm-workspace.yaml` 新增 `overrides.stack-trace: 0.0.10`，
+  修复 `winston@3.19.0` 依赖的 `stack-trace@0.0.1` 缺少 `parse()` 函数导致异常处理器二次崩溃的问题。
+- **Body parser 冲突修复**（2026-07-22）：`main.ts` 的 `NestFactory.create` 新增 `bodyParser: false`，
+  `setup-app.ts` 手动注册 JSON content-type parser。原因：`@adminjs/fastify` 的 `buildAuthenticatedRouter`
+  内部注册 `@fastify/formbody`（urlencoded parser），与 NestJS 默认 parser 冲突，在 Node.js v24 下
+  导致 `FastifyError: Content type parser already present`。
 - **新增模块**（2026-07-20）：`audit-log`（`@Global()` 审计日志）、`user-devices`（设备注册 API）、
   `data-retention`（`@Cron` 数据保留清理）。新增 API 端点 `POST/GET/DELETE /api/v1/user/user-devices`。
   `UserNotificationType` 枚举新增 `oauth_login`、`identity_linked`。限流从内存存储升级为条件性

@@ -41,6 +41,23 @@ export async function setupApp(
   const fastify = app.getHttpAdapter().getInstance();
   const requestContextService = app.get(RequestContextService);
 
+  // ── JSON body parser ───────────────────────────────────────────
+  // NestJS's default body parser is disabled (bodyParser: false in
+  // main.ts) because AdminJS's @fastify/formbody registers the
+  // urlencoded parser and NestJS's built-in would conflict with it.
+  // We register the JSON parser manually here.
+  fastify.addContentTypeParser(
+    'application/json',
+    { parseAs: 'string' },
+    (_req, body, done) => {
+      try {
+        done(null, JSON.parse(body as string));
+      } catch (err) {
+        done(err as Error, undefined);
+      }
+    },
+  );
+
   // ── Helmet security headers ─────────────────────────────────────
   await app.register(fastifyHelmet);
 

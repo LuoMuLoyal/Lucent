@@ -15,7 +15,11 @@ async function bootstrap() {
     new FastifyAdapter({
       trustProxy: process.env[EnvKey.TRUST_PROXY] === 'true',
     }),
-    { bufferLogs: true },
+    // bodyParser: false — AdminJS's @fastify/formbody registers the
+    // urlencoded content-type parser; NestJS's default parser would
+    // duplicate it and crash with "Content type parser already present".
+    // JSON parsing is registered manually in setupApp().
+    { bufferLogs: true, bodyParser: false },
   );
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
