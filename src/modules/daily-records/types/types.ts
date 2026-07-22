@@ -1,5 +1,6 @@
 import { Prisma } from '#generated/prisma/client';
 import type { PrismaService } from '../../../prisma/prisma.service';
+import type { DailyRecordKind } from '#generated/prisma/client';
 
 const _dailyRecordAttachmentSelect = {
   id: true,
@@ -35,3 +36,9 @@ export const dailyRecordWithAttachments = {
 export type DailyRecordShape = Prisma.UserDailyRecordGetPayload<{
   include: typeof dailyRecordWithAttachments;
 }>;
+
+export type OwnedRecordSnapshot = {
+  kind: DailyRecordKind;
+  payload: unknown;
+  occurredAt?: Date | undefined;
+};

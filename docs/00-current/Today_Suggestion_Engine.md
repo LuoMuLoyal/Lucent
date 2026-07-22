@@ -204,7 +204,7 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 ```
 用户请求 GET /suggestions
     ↓
-SuggestionCopyService.getOrEnqueue()
+SuggestionCopyService.getOrEnqueue(queue)
     ↓ 查 Redis cache
     ├─ HIT → 返回 AI 文案（无 LLM 调用）
     └─ MISS → 返回兜底文案 + 入队 BullMQ
@@ -221,6 +221,7 @@ SuggestionCopyService.getOrEnqueue()
 - **Cache miss 返回兜底 + 入队**：未命中时返回兜底文案，同时向 BullMQ 队列入队异步生成
 - **Worker 写回缓存**：BullMQ worker 调用 LLM 生成后写入 Redis cache（按 templateKey+params+locale hash，1h TTL）
 - **Redis 不可用时降级**：同步调用 LLM（与 `ExplanationQueueService` 同一降级模式）
+- **无循环依赖**：`SuggestionCopyService` 不构造函数注入 `SuggestionCopyQueueService`，而是由 `SuggestionService` 在调用 `getOrEnqueueBatch()` 时将 queue 作为方法参数传入（`CopyQueueLike` 接口），与 `ExplanationService` 模式一致
 - **跨用户去重**：相同 templateKey+params+locale 的请求共享同一 cache 条目
 - LLM 上下文丰富：传入 evidence、confidence、suggestionType 等信息，使生成的文案更有依据
 - 继承 `BaseLlmGeneratorService`，使用 `language` 角色模型，结构化输出 (Zod schema)

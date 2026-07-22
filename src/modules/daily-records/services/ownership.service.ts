@@ -3,14 +3,10 @@ import { notFound } from '../../../common/helpers/api-errors';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
-import type { DailyRecordKind } from '#generated/prisma/client';
 import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
+import type { OwnedRecordSnapshot } from '../types/types';
 
-export type OwnedRecordSnapshot = {
-  kind: DailyRecordKind;
-  payload: unknown;
-  occurredAt?: Date | undefined;
-};
+export type { OwnedRecordSnapshot };
 
 @Injectable()
 export class DailyRecordsOwnershipService {

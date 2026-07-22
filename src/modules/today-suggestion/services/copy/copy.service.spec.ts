@@ -1,6 +1,6 @@
 import type { I18nService } from 'nestjs-i18n';
 import type { SuggestionCopyLlmService } from './copy-llm-generator.service';
-import type { SuggestionCopyQueueService } from './copy-queue.service';
+import type { CopyQueueLike } from './copy.service';
 import type { SuggestionCacheService } from '../cache/suggestion-cache.service';
 import { SuggestionCopyService } from './copy.service';
 import { SuggestionType, SuggestionConfidence } from '../../types';
@@ -44,6 +44,7 @@ describe('SuggestionCopyService', () => {
     enqueue: ReturnType<typeof vi.fn>;
   };
   let service: SuggestionCopyService;
+  let queue: CopyQueueLike;
 
   const generatedCopy = {
     title: '今日饮水还差 6 杯',
@@ -65,11 +66,11 @@ describe('SuggestionCopyService', () => {
       isConfigured: true,
       enqueue: vi.fn().mockResolvedValue('job-1'),
     };
+    queue = queueMock as unknown as CopyQueueLike;
 
     service = new SuggestionCopyService(
       llmServiceMock as unknown as SuggestionCopyLlmService,
       cacheMock as unknown as SuggestionCacheService,
-      queueMock as unknown as SuggestionCopyQueueService,
       {
         t: vi.fn((key: string, opts?: { lang?: string }) =>
           opts?.lang ? `${key} [${opts.lang}]` : key,
@@ -84,7 +85,7 @@ describe('SuggestionCopyService', () => {
     it('returns cached AI copy on cache hit', async () => {
       cacheMock.getCopy.mockResolvedValue(generatedCopy);
 
-      const result = await service.getOrEnqueue(buildRequest());
+      const result = await service.getOrEnqueue(buildRequest(), queue);
 
       expect(result.aiGenerated).toBe(true);
       expect(result.fromCache).toBe(true);
@@ -93,7 +94,7 @@ describe('SuggestionCopyService', () => {
     });
 
     it('returns fallback and enqueues on cache miss when queue is configured', async () => {
-      const result = await service.getOrEnqueue(buildRequest());
+      const result = await service.getOrEnqueue(buildRequest(), queue);
 
       expect(result.aiGenerated).toBe(false);
       expect(result.fromCache).toBe(false);
@@ -109,7 +110,7 @@ describe('SuggestionCopyService', () => {
     it('returns fallback without enqueuing when queue is not configured', async () => {
       queueMock.isConfigured = false;
 
-      const result = await service.getOrEnqueue(buildRequest());
+      const result = await service.getOrEnqueue(buildRequest(), queue);
 
       expect(result.aiGenerated).toBe(false);
       expect(queueMock.enqueue).not.toHaveBeenCalled();
@@ -118,6 +119,7 @@ describe('SuggestionCopyService', () => {
     it('returns fallback for invalid template params', async () => {
       const result = await service.getOrEnqueue(
         buildRequest({ templateKey: 'nonexistent.template' }),
+        queue,
       );
 
       expect(result.aiGenerated).toBe(false);

@@ -12,8 +12,8 @@ import { nonDeleted } from '../../../common/helpers/prisma.utils';
 import {
   dailyRecordWithAttachments,
   type DailyRecordShape,
+  type OwnedRecordSnapshot,
 } from '../types/types';
-import type { OwnedRecordSnapshot } from '../services/ownership.service';
 
 /** Query filters for listing daily records. */
 export interface DailyRecordListFilter {

@@ -14,7 +14,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { createHash } from 'crypto';
 import { SuggestionCopyLlmService } from './copy-llm-generator.service';
-import { SuggestionCopyQueueService } from './copy-queue.service';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service';
 import { getFallbackCopy, validateCopyTemplate } from '../../constants';
 import type {
@@ -31,6 +30,15 @@ export interface CopyGenerationResult {
   fromCache: boolean;
 }
 
+/**
+ * Minimal interface for the queue dependency used by the read path.
+ * This avoids a circular import between `copy.service.ts` and `copy-queue.service.ts`.
+ */
+export interface CopyQueueLike {
+  readonly isConfigured: boolean;
+  enqueue(data: CopyJobData): Promise<string | null>;
+}
+
 @Injectable()
 export class SuggestionCopyService {
   private readonly logger = new Logger(SuggestionCopyService.name);
@@ -38,7 +46,6 @@ export class SuggestionCopyService {
   constructor(
     private readonly llmService: SuggestionCopyLlmService,
     private readonly cache: SuggestionCacheService,
-    private readonly queue: SuggestionCopyQueueService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -51,7 +58,10 @@ export class SuggestionCopyService {
    * Does not block the user request and does not call LLM directly
    * (when Redis/BullMQ is available).
    */
-  async getOrEnqueue(request: CopyJobData): Promise<CopyGenerationResult> {
+  async getOrEnqueue(
+    request: CopyJobData,
+    queue?: CopyQueueLike,
+  ): Promise<CopyGenerationResult> {
     const { templateKey, params, locale } = request;
 
     // 1. Validate template
@@ -78,8 +88,8 @@ export class SuggestionCopyService {
     }
 
     // 3. Cache miss — enqueue async generation (with full context)
-    if (this.queue.isConfigured) {
-      await this.queue.enqueue(request);
+    if (queue?.isConfigured) {
+      await queue.enqueue(request);
     }
 
     // 4. Return fallback copy
@@ -91,11 +101,12 @@ export class SuggestionCopyService {
    */
   async getOrEnqueueBatch(
     requests: CopyJobData[],
+    queue?: CopyQueueLike,
   ): Promise<Map<string, CopyGenerationResult>> {
     const results = new Map<string, CopyGenerationResult>();
     await Promise.all(
       requests.map(async (request) => {
-        const result = await this.getOrEnqueue(request);
+        const result = await this.getOrEnqueue(request, queue);
         results.set(request.templateKey, result);
       }),
     );

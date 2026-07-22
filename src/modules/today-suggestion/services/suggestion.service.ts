@@ -176,7 +176,7 @@ export class SuggestionService {
     }));
 
     const copyResults = this.copyQueue.isConfigured
-      ? await this.copyService.getOrEnqueueBatch(copyRequests)
+      ? await this.copyService.getOrEnqueueBatch(copyRequests, this.copyQueue)
       : await this.copyService.generateSyncBatch(copyRequests);
 
     // 7. Persist active suggestions

@@ -7,7 +7,7 @@ import type {
   DailyRecordAttachmentInputDto,
   UpdateDailyRecordDto,
 } from '../dto';
-import type { DailyRecordShape } from '../types/types';
+import type { DailyRecordShape, OwnedRecordSnapshot } from '../types/types';
 import {
   DailyRecordAttachmentKind,
   DailyRecordKind,
@@ -17,7 +17,6 @@ import {
   buildMealPayloadFromClientInput,
   getMealListSummary,
 } from '../types/meal-analysis.types';
-import type { OwnedRecordSnapshot } from './ownership.service';
 
 interface DailyRecordItemOptions {
   includeMealPayload?: boolean;
