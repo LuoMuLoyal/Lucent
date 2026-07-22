@@ -49,7 +49,7 @@ export class LocalController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: '用户注册' })
+  @ApiOperation({ summary: 'User registration' })
   @ApiResponse({ status: 201, type: RegisterResponseDto })
   async register(@Body() dto: RegisterDto, @Req() request: FastifyRequest) {
     const result = await this.authService.register(
@@ -63,7 +63,7 @@ export class LocalController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '用户登录' })
+  @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async login(@Body() dto: LoginDto, @Req() request: FastifyRequest) {
     const result = await this.authService.login(
@@ -77,9 +77,12 @@ export class LocalController {
 
   @Post('send-verification-code')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '发送邮箱验证码' })
+  @ApiOperation({ summary: 'Send email verification code' })
   @ApiResponse({ status: 200, type: SendVerificationCodeResponseDto })
-  @ApiResponse({ status: 429, description: '验证码接口请求过多' })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many verification code requests',
+  })
   async sendVerificationCode(
     @Body() dto: SendVerificationCodeDto,
     @Req() request: FastifyRequest,
@@ -99,7 +102,7 @@ export class LocalController {
 
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '验证邮箱' })
+  @ApiOperation({ summary: 'Verify email' })
   @ApiResponse({ status: 200, type: VerifyEmailResponseDto })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     await this.authService.verifyEmail(dto);
@@ -110,9 +113,12 @@ export class LocalController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '忘记密码' })
+  @ApiOperation({ summary: 'Forgot password' })
   @ApiResponse({ status: 200, type: ForgotPasswordResponseDto })
-  @ApiResponse({ status: 429, description: '验证码接口请求过多' })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many verification code requests',
+  })
   async forgotPassword(
     @Body() dto: ForgotPasswordDto,
     @Req() request: FastifyRequest,
@@ -132,7 +138,7 @@ export class LocalController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '重置密码' })
+  @ApiOperation({ summary: 'Reset password' })
   @ApiResponse({ status: 200, type: SuccessResponseDto })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto);

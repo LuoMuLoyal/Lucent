@@ -46,7 +46,7 @@ export class OAuthController {
 
   @Post('oauth/wechat-web/authorize')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '创建微信网页登录授权地址' })
+  @ApiOperation({ summary: 'Create WeChat web OAuth authorize URL' })
   @ApiBody({ type: OAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   async createWechatWebAuthorizeUrl(@Body() dto?: OAuthAuthorizeDto) {
@@ -58,7 +58,7 @@ export class OAuthController {
 
   @Post('oauth/wechat-web/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '微信网页登录回调登录' })
+  @ApiOperation({ summary: 'WeChat web OAuth callback login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async loginWithWechatWeb(
     @Body() dto: OAuthCallbackDto,
@@ -74,7 +74,7 @@ export class OAuthController {
   // ── GET /api/v1/auth/oauth/wechat-web/callback ───────────────
 
   @Get('oauth/wechat-web/callback')
-  @ApiOperation({ summary: '微信网页登录浏览器回跳' })
+  @ApiOperation({ summary: 'WeChat web OAuth browser redirect' })
   @ApiQuery({ name: 'code', required: true })
   @ApiQuery({ name: 'state', required: true })
   @ApiResponse({ status: 302, description: 'Redirect to desktop callback URI' })
@@ -91,7 +91,7 @@ export class OAuthController {
 
   @Post('oauth/wechat-mobile/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '微信移动端登录回调' })
+  @ApiOperation({ summary: 'WeChat mobile OAuth callback login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async loginWithWechatMobile(
     @Body() dto: OAuthCodeCallbackDto,
@@ -108,7 +108,7 @@ export class OAuthController {
 
   @Post('oauth/apple/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Apple 登录回调' })
+  @ApiOperation({ summary: 'Apple Sign-In callback' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async loginWithApple(
     @Body() dto: AppleOAuthCallbackDto,
@@ -125,7 +125,7 @@ export class OAuthController {
 
   @Post('oauth/qq/authorize')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: '创建 QQ 登录授权地址' })
+  @ApiOperation({ summary: 'Create QQ OAuth authorize URL' })
   @ApiBody({ type: QqOAuthAuthorizeDto, required: false })
   @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
   async createQqAuthorizeUrl(@Body() dto?: QqOAuthAuthorizeDto) {
@@ -137,7 +137,7 @@ export class OAuthController {
 
   @Post('oauth/qq/callback')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'QQ 登录回调' })
+  @ApiOperation({ summary: 'QQ OAuth callback login' })
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async loginWithQq(
     @Body() dto: QqOAuthCallbackDto,

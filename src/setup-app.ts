@@ -198,14 +198,14 @@ export async function setupApp(
   // ── Scalar API Reference ───────────────────────────────────────
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Lucent API')
-    .setDescription('Lucent 后端 API 文档')
+    .setDescription('Lucent backend API documentation')
     .setVersion('1.0')
     .addBearerAuth(
       {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: '输入 accessToken',
+        description: 'Enter accessToken',
       },
       'access-token',
     )
