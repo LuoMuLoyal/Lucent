@@ -180,3 +180,7 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 - [x] Phase 4: 反馈按钮接入 + AI 解释按需加载
 - [x] Phase 5: 深层链接导航（`_openRoute` → `primaryAction.route`）
 - [ ] Phase 5 剩余: Report 页历史建议回顾接入 `GET /today/suggestions/history`（data source 已就绪，无 UI 消费；Report 页当前使用通知接口替代）
+
+## 2026-07-22 路由修复
+
+- `coverage.service.ts` 的 `primaryAction.route` 从 `/mine/health-context` 改为 `/mine/profile/edit`，修复前端点击"去完善"按钮时路由不存在的问题。前端已存在 `/mine/profile/edit` 页面（ProfileEditPage），功能与"完善健康档案"一致。

@@ -70,7 +70,7 @@ export class CoverageRuleService implements SuggestionRule {
           primaryAction: {
             actionId: 'go_complete_profile',
             label: '完善档案',
-            route: '/mine/health-context',
+            route: '/mine/profile/edit',
             authRequired: true,
           },
           priorityScore: COVERAGE_BASE_SCORE,

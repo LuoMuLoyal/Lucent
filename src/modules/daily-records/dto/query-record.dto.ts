@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
@@ -23,14 +24,27 @@ export class QueryDailyRecordDto {
   @IsEnum(DailyRecordKind)
   kind?: DailyRecordKind;
 
-  @ApiPropertyOptional({ description: 'Page number (1-based).', example: 1 })
+  @ApiPropertyOptional({
+    description: 'Page number (1-based).',
+    example: 1,
+    default: 1,
+    type: Number,
+  })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   page?: number;
 
-  @ApiPropertyOptional({ description: 'Page size (1-100).', example: 50 })
+  @ApiPropertyOptional({
+    description: 'Page size (1-100).',
+    example: 50,
+    default: 50,
+    maximum: 100,
+    type: Number,
+  })
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @Max(100)

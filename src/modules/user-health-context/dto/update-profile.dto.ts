@@ -41,7 +41,6 @@ export class UpdateHealthContextProfileDto {
     enum: UnitSystem,
     enumName: 'UnitSystem',
     example: UnitSystem.metric,
-    nullable: true,
   })
   @IsOptional()
   @IsEnum(UnitSystem)
@@ -65,7 +64,6 @@ export class UpdateHealthContextProfileDto {
     enum: SexAtBirth,
     enumName: 'SexAtBirth',
     example: SexAtBirth.female,
-    nullable: true,
   })
   @IsOptional()
   @IsEnum(SexAtBirth)

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   MedicineSource,
   SexAtBirth,
@@ -60,12 +60,11 @@ class UserHealthProfileDto {
   })
   birthDate!: string | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Sex assigned at birth.',
     enum: SexAtBirth,
     enumName: 'SexAtBirth',
     example: SexAtBirth.female,
-    nullable: true,
   })
   sexAtBirth!: SexAtBirth | null;
 
@@ -101,12 +100,11 @@ class UserHealthProfileDto {
   })
   timezone!: string | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Preferred unit system.',
     enum: UnitSystem,
     enumName: 'UnitSystem',
     example: UnitSystem.metric,
-    nullable: true,
   })
   unitSystem!: UnitSystem | null;
 
@@ -157,12 +155,11 @@ class UserAllergyItemDto {
   })
   reaction!: string | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Severity level.',
     enum: UserAllergySeverity,
     enumName: 'UserAllergySeverity',
     example: UserAllergySeverity.moderate,
-    nullable: true,
   })
   severity!: UserAllergySeverity | null;
 
