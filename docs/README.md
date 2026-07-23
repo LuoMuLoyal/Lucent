@@ -141,7 +141,7 @@ Product direction and current product state are owned by the workspace path `Lum
 - Deferred backend follow-up list
   - Update: `00-current/TODO.md`
 - Lucent API code
-  - Action: Run `pnpm export:openapi` and keep `openapi.json` generated
+  - Action: Run `pnpm export:openapi` and commit `docs/openapi.json`
 - Backend architecture / module structure change
   - Action: Run `pnpm docs:compodoc` to regenerate architecture docs
 - Module dependency, AI pipeline, route, or DB convention change

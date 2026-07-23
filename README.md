@@ -43,7 +43,7 @@ Prerequisites: Node.js `24.x`, pnpm `11.x`, Docker (for `dev:stack`).
 | Environment setup     | [docs/01-reference/environment.md](docs/01-reference/environment.md)                     |
 | Environment variables | [docs/01-reference/environment-variables.md](docs/01-reference/environment-variables.md) |
 | Deployment            | [docs/01-reference/deployment.md](docs/01-reference/deployment.md)                       |
-| API contract          | local `docs/openapi.json` export (generated, ignored)                                    |
+| API contract          | `docs/openapi.json` (generated, tracked)                                                 |
 | ADRs                  | [docs/01-reference/adr/](docs/01-reference/adr/)                                         |
 | Current state         | [docs/00-current/Current_State.md](docs/00-current/Current_State.md)                     |
 | Roadmap               | [ROADMAP.md](ROADMAP.md)                                                                 |
@@ -77,7 +77,7 @@ Generated artifact policy in this repo:
 
 - `generated/prisma/` is intentionally local-only and stays ignored. Regenerate it from
   `prisma/schema.prisma` plus migrations through the normal Prisma flow instead of committing it.
-- `docs/openapi.json` is also local-only and stays ignored. Export it with `pnpm export:openapi`
+- `docs/openapi.json` is tracked in git (marked as `linguist-generated`). Regenerate it with `pnpm export:openapi` after API changes, then commit.
   before regenerating the Luminous client or validating cross-repo contract sync.
 
 Lucent CI now exports `docs/openapi.json` as a local build artifact instead of enforcing a
@@ -277,7 +277,7 @@ Active docs:
 - [docs/01-reference/deployment.md](docs/01-reference/deployment.md)
 - [docs/01-reference/architecture.md](docs/01-reference/architecture.md)
 - [docs/01-reference/adr/](docs/01-reference/adr/) — Architecture Decision Records
-- local `docs/openapi.json` export (generated, ignored)
+- `docs/openapi.json` (generated, tracked in git)
 - [docs/01-reference/contracts/data-sources.md](docs/01-reference/contracts/data-sources.md)
 - [docs/01-reference/contracts/data-sources-cn-products.md](docs/01-reference/contracts/data-sources-cn-products.md)
 - [docs/01-reference/contracts/data-sources-drugbank.md](docs/01-reference/contracts/data-sources-drugbank.md)

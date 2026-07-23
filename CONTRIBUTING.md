@@ -58,7 +58,7 @@ LUCENT_PUBLIC_BASE_URL=https://your-host pnpm deploy:smoke
 
 When controller or DTO code changes:
 
-1. Run `pnpm export:openapi` to regenerate `docs/openapi.json`.
+1. Run `pnpm export:openapi` to regenerate `docs/openapi.json`, then commit the file.
 2. In the Luminous repo, regenerate the Flutter client:
    ```bash
    cd ../Luminous

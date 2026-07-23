@@ -13,7 +13,7 @@ cd Lucent
 pnpm export:openapi
 ```
 
-此命令会先 `pnpm build`，然后导出 `docs/openapi.json`。该文件是本地生成物（git-ignored），不手动编辑。
+此命令会先 `pnpm build`，然后导出 `docs/openapi.json`。该文件已跟踪在 git 中（标记为 `linguist-generated`），不手动编辑。API 变更后重新导出并提交。
 
 验证导出结果：
 

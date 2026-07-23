@@ -75,7 +75,7 @@ code area expects. The pre-commit hook runs the same tool in **blocking** mode:
 
 ## Working Rules
 
-- API contract changed → `pnpm export:openapi`. Do not hand-write endpoint docs.
+- API contract changed → `pnpm export:openapi` then commit `docs/openapi.json`. Do not hand-write endpoint docs.
 - Architecture/module structure changed → `pnpm docs:compodoc`.
 - Medicine import strategy changed → update `data-sources.md` + relevant source file.
 - Significant architectural decision → create ADR in `docs/01-reference/adr/NNNN-title.md`.
@@ -135,7 +135,7 @@ The single source of truth for the API is **Lucent controller/DTO code +
 `docs/openapi.json`**. When Lucent API code changes:
 
 1. In `Lucent`: `pnpm export:openapi` (this builds first, then regenerates
-   `docs/openapi.json`).
+   `docs/openapi.json`), then commit the file.
 2. In `Luminous`: `cd generated/lucent_api && dart run build_runner build` — this
    regenerates `generated/lucent_api`.
 

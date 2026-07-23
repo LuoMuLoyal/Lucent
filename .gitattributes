@@ -9,3 +9,6 @@
 
 # Mark generated API client as linguist-generated to reduce diff noise
 generated/lucent_api/** linguist-generated=true
+
+# Mark generated OpenAPI spec as linguist-generated to reduce diff noise
+docs/openapi.json linguist-generated=true

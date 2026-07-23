@@ -108,8 +108,8 @@ jobs:
         run: pnpm test:ci
 
       # OpenAPI spec must be generated before E2E tests — the contract test
-      # suite (test/contract/) loads docs/openapi.json at startup.  The file
-      # is gitignored, so it does not exist after checkout.
+      # suite (test/contract/) loads docs/openapi.json at startup. The file is
+      # tracked in git, but re-export here to ensure it matches the current code.
       - name: Export OpenAPI spec
         run: pnpm export:openapi
 

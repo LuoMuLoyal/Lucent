@@ -8,9 +8,9 @@ Last updated: 2026-07-22
   regenerates its `generated/lucent_api/` client from.
 - The current exported contract now includes meal-analysis read hot fields on `DailyRecordItemDto`:
   status, coverage, updated-at, failure-reason, short-description, and top-foods.
-- Lucent CI now re-exports `docs/openapi.json` as a local build artifact instead of diffing a
-  committed generated contract file. The export step runs **before** E2E tests because the
-  contract test suite loads `docs/openapi.json` at startup (the file is gitignored).
+- Lucent CI re-exports `docs/openapi.json` before E2E tests to ensure the contract file matches
+  the current code. The file is tracked in git (marked as `linguist-generated`), so the export
+  step overwrites the committed copy with a fresh build during CI.
 - `vitest.e2e.config.ts` is a standalone `defineConfig` (not `mergeConfig` with the base config)
   to prevent `include` array concatenation from pulling unit tests into the E2E run.
 - `pnpm prisma:generate` now also transpiles `generated/prisma/internal/*.ts` to `.js`, because
