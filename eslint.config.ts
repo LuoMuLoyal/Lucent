@@ -67,6 +67,41 @@ export default tseslint.config(
               message:
                 "Use the barrel 'llm-runtime' or 'llm-runtime/services' instead of deep-path imports.",
             },
+            {
+              group: ['**/auth/services/*'],
+              message:
+                "Use the barrel '../auth/services' instead of deep-path imports.",
+            },
+            {
+              group: ['**/auth/decorators/*'],
+              message:
+                "Use the barrel '../auth/decorators' instead of deep-path imports.",
+            },
+            {
+              group: ['**/auth/types/*'],
+              message:
+                "Use the barrel '../auth/types' instead of deep-path imports.",
+            },
+            {
+              group: ['**/prisma/prisma.*'],
+              message:
+                "Use the barrel '../../prisma' instead of deep-path imports.",
+            },
+            {
+              group: ['**/common/helpers/*'],
+              message:
+                "Use the barrel '../../common/helpers' instead of deep-path imports.",
+            },
+            {
+              group: ['**/common/interceptors/*'],
+              message:
+                "Use the barrel '../../common/interceptors' instead of deep-path imports.",
+            },
+            {
+              group: ['**/common/api/*'],
+              message:
+                "Use the barrel '../../common/api' instead of deep-path imports.",
+            },
           ],
         },
       ],
