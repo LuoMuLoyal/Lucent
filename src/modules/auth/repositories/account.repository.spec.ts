@@ -1,7 +1,7 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 import { UserStatus } from '#generated/prisma/client';
 import { AuthAccountRepository } from './account.repository';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 
 describe('AuthAccountRepository', () => {
   let repository: AuthAccountRepository;

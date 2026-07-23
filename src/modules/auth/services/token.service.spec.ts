@@ -6,7 +6,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { I18nService } from 'nestjs-i18n';
 import { AuthTokenService } from './token.service';
-import { normalizeEmail } from '../../../common/helpers/string.utils';
+import { normalizeEmail } from '../../../common/helpers';
 import { AuthSessionRepositoryPort } from '../repositories/session.repository';
 
 function hash(token: string): string {

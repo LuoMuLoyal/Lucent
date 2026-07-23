@@ -4,9 +4,9 @@ import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
 import { ResultCode } from '../../../common/api';
-import { badRequest, notFound } from '../../../common/helpers/api-errors';
-import { normalizeEmail } from '../../../common/helpers/string.utils';
-import { now } from '../../../common/helpers/date-time.utils';
+import { badRequest, notFound } from '../../../common/helpers';
+import { normalizeEmail } from '../../../common/helpers';
+import { now } from '../../../common/helpers';
 import { UserService } from '../../user/services/user.service';
 import { DeleteAccountDto } from '../dto/delete-account.dto';
 import { VerificationCodeService } from './identity';

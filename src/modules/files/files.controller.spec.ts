@@ -2,7 +2,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FilesController } from './files.controller';
-import { FilesService } from './services/files.service';
+import { FilesService } from './services';
 
 describe('FilesController', () => {
   let controller: FilesController;

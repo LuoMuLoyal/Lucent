@@ -3,7 +3,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 
 import { NotificationsService } from './notifications.service';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma';
 
 const mockNotificationRow = {
   id: 'notif-uuid-1',

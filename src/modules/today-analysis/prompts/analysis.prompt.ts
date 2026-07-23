@@ -1,7 +1,4 @@
-import {
-  buildUserPrompt,
-  type PromptCopy,
-} from '../../../common/helpers/localized-copy';
+import { buildUserPrompt, type PromptCopy } from '../../../common/helpers';
 import type { TodayAnalysisContext } from '../services/context.service';
 
 export function buildTodayAnalysisSystemPrompt(): string {

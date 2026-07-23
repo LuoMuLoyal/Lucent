@@ -14,10 +14,7 @@ import {
   REPORT_RANGE_LAST_7_DAYS,
   REPORT_RANGE_LAST_30_DAYS,
 } from '../../reports/dto/report-dashboard-query.dto';
-import {
-  formatDateOnly,
-  parseDateOnly,
-} from '../../../common/helpers/date-time.utils';
+import { formatDateOnly, parseDateOnly } from '../../../common/helpers';
 
 describe('date-resolver', () => {
   // -----------------------------------------------------------------------

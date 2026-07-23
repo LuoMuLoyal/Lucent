@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { toNullableInputJsonValue } from '../../../common/helpers/json.utils';
+import { PrismaService } from '../../../prisma';
+import { toNullableInputJsonValue } from '../../../common/helpers';
 
 /** Input for a single audit log entry. */
 export interface AuditLogEntry {

@@ -16,13 +16,15 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { UserPayload } from '../auth/types/auth-request';
-import { SuggestionService } from './services/suggestion.service';
-import { FeedbackService } from './services/feedback/service';
-import { ExplanationService } from './services/explanation/service';
-import { ExplanationQueueService } from './services/explanation/queue.service';
-import { LifecycleService } from './services/lifecycle/service';
+import { CurrentUser } from '../auth/decorators';
+import type { UserPayload } from '../auth/services';
+import { SuggestionService } from './services';
+import { FeedbackService } from './services/feedback';
+import {
+  ExplanationQueueService,
+  ExplanationService,
+} from './services/explanation';
+import { LifecycleService } from './services/lifecycle';
 import {
   SuggestionFeedbackDto,
   TodaySuggestionsDataDto,

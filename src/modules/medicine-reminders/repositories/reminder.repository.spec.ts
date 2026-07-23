@@ -1,7 +1,7 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 
 import { MedicineReminderRepository } from './reminder.repository';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 
 describe('MedicineReminderRepository', () => {
   let repository: MedicineReminderRepository;

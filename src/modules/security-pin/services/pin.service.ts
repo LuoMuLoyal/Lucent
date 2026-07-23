@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import { ARGON2_OPTIONS } from '../../auth/config/argon2-options';
 import {
@@ -12,8 +12,8 @@ import {
   forbidden,
   notFound,
   unauthorized,
-} from '../../../common/helpers/api-errors';
-import { now } from '../../../common/helpers/date-time.utils';
+} from '../../../common/helpers';
+import { now } from '../../../common/helpers';
 import {
   SECURITY_ELEVATION_SCOPE,
   SECURITY_ELEVATION_TTL_SECONDS,

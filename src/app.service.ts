@@ -10,9 +10,9 @@ import {
   type HealthProbeType,
 } from './app.dto';
 import { EnvKey } from './config/env-keys.enum';
-import { PrismaService } from './prisma/prisma.service';
-import { nowIsoString } from './common/helpers/date-time.utils';
-import { extractErrorInfo } from './common/helpers/error-info.utils';
+import { PrismaService } from './prisma';
+import { nowIsoString } from './common/helpers';
+import { extractErrorInfo } from './common/helpers';
 
 type HealthComponent = HealthProbeDto['components'][number];
 

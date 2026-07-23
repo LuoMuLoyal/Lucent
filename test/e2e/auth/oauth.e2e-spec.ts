@@ -13,7 +13,7 @@ import { WechatWebOAuthProvider } from '../../../src/modules/auth/providers/wech
 import { WechatMobileOAuthProvider } from '../../../src/modules/auth/providers/wechat-mobile-oauth.provider';
 import { AppleOAuthProvider } from '../../../src/modules/auth/providers/apple-oauth.provider';
 import { QqOAuthProvider } from '../../../src/modules/auth/providers/qq-oauth.provider';
-import type { OAuthProfile } from '../../../src/modules/auth/types/oauth.types';
+import type { OAuthProfile } from '../../../src/modules/auth/types';
 
 // ── Constants ─────────────────────────────────────────────────
 

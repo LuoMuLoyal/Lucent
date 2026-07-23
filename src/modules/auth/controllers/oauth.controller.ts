@@ -19,7 +19,7 @@ import {
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
 import { successEnvelope } from '../../../common/api';
-import { extractAuthRequestContext } from '../../../common/helpers/client-ip';
+import { extractAuthRequestContext } from '../../../common/helpers';
 import { AuthService } from '../services/auth.service';
 
 import {

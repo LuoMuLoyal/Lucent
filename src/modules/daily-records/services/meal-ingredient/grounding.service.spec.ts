@@ -1,4 +1,4 @@
-import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { PrismaService } from '../../../../prisma';
 import { MealIngredientGroundingService } from '../meal-ingredient/grounding.service';
 
 describe('MealIngredientGroundingService', () => {

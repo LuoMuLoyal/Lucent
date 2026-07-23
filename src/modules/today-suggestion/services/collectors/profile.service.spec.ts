@@ -1,5 +1,5 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
-import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { PrismaService } from '../../../../prisma';
 import { ProfileCollectorService } from './profile.service';
 import { TriggerType } from '../../../today-suggestion/types';
 

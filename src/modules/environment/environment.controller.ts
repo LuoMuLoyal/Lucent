@@ -1,12 +1,12 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '../auth/decorators';
 import {
   EnvironmentSnapshotQueryDto,
   EnvironmentSnapshotResponseDto,
 } from './dto';
-import { EnvironmentService } from './services/snapshot.service';
+import { EnvironmentService } from './services';
 
 @ApiTags('Environment')
 @Public()

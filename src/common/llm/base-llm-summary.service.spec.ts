@@ -1,7 +1,7 @@
 import type { DeepMocked } from '../../common/types/deep-mocked';
 /* eslint-disable @typescript-eslint/no-useless-constructor, @typescript-eslint/require-await */
 import { Logger } from '@nestjs/common';
-import type { PrismaService } from '../../prisma/prisma.service';
+import type { PrismaService } from '../../prisma';
 import type { PromptCopy } from '../helpers/localized-copy';
 import type { LlmSafetyPolicyService } from './llm-safety-policy.service';
 import type { BaseLlmGeneratorService } from './base-llm-generator.service';

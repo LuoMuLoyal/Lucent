@@ -1,7 +1,7 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
 import { UserDevicesService } from './user-devices.service';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 import { DevicePlatform } from '../dto';
 
 const now = new Date('2026-07-20T12:00:00.000Z');

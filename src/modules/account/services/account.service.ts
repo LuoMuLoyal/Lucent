@@ -1,4 +1,4 @@
-import { notFound, forbidden } from '../../../common/helpers/api-errors';
+import { notFound, forbidden } from '../../../common/helpers';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 

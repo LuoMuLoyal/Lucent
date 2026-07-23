@@ -6,11 +6,11 @@ import type {
   SupportResourceListDataDto,
   SupportResourcesQueryDto,
 } from '../dto';
-import { nowIsoString } from '../../../common/helpers/date-time.utils';
+import { nowIsoString } from '../../../common/helpers';
 import {
   REFERENCE_DATA_UPDATED_AT,
   STATIC_SUPPORT_RESOURCES,
-} from './support-resources-reference';
+} from '../constants';
 
 const BUILD_DATE = nowIsoString();
 

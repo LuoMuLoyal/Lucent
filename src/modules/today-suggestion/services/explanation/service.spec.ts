@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
 import type { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
-import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { PrismaService } from '../../../../prisma';
 import type { ExplanationGeneratorService } from './generator.service';
 import { ExplanationService } from './service';
 

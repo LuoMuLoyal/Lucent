@@ -21,10 +21,10 @@ import {
 import type { FastifyRequest } from 'fastify';
 
 import { successEnvelope } from '../../common/api';
-import { extractAuthRequestContext } from '../../common/helpers/client-ip';
+import { extractAuthRequestContext } from '../../common/helpers';
 import { AuditLogService } from '../audit-log/services';
-import { AuthService, type UserPayload } from '../auth/services/auth.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuthService, type UserPayload } from '../auth/services';
+import { CurrentUser } from '../auth/decorators';
 import { SecurityElevationGuard } from '../security-pin/guards';
 import { RequireSecurityElevation } from '../security-pin/decorators';
 import { ChangeEmailDto } from '../auth/dto/change-email.dto';
@@ -37,12 +37,12 @@ import {
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
 } from '../auth/dto/oauth.dto';
-import { AccountService } from './services/account.service';
+import { AccountService } from './services';
 import {
   AccountEmailResponseDto,
   AccountResponseDto,
-} from './dto/response.dto';
-import { UpdateAccountDto } from './dto/update.dto';
+  UpdateAccountDto,
+} from './dto';
 
 @ApiTags('Account')
 @ApiBearerAuth('access-token')

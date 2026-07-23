@@ -1,5 +1,5 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
-import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { PrismaService } from '../../../../prisma';
 import type { DailyRecordReaderPort } from '../../../daily-records/repositories';
 import { BaselineService } from './baseline.service';
 import { BaselineDimension } from '../../types';

@@ -1,42 +1,50 @@
 import { Module, OnModuleInit } from '@nestjs/common';
-import { PrismaModule } from '../../prisma/prisma.module';
+import { PrismaModule } from '../../prisma';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { LlmCommonModule } from '../../common/llm';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
 import { TodaySuggestionController } from './today-suggestion.controller';
-import { SuggestionService } from './services/suggestion.service';
-import { MedicationCollectorService } from './services/collectors/medication.service';
-import { RecordCollectorService } from './services/collectors/record.service';
-import { ProfileCollectorService } from './services/collectors/profile.service';
-import { RegistryService } from './services/rules/registry.service';
+import { SuggestionService } from './services';
 import {
-  MissedDoseRuleService,
-  WaterShortfallRuleService,
-  SleepShortfallRuleService,
-  DeterioratingTrendRuleService,
+  MedicationCollectorService,
+  ProfileCollectorService,
+  RecordCollectorService,
+} from './services/collectors';
+import {
   CaffeineSleepRuleService,
-  MoodSleepRuleService,
   CoverageRuleService,
+  DeterioratingTrendRuleService,
+  MissedDoseRuleService,
+  MoodSleepRuleService,
+  RegistryService,
+  RuleVersionRegistry,
+  SleepShortfallRuleService,
+  WaterShortfallRuleService,
 } from './services/rules';
-import { ArbitrationService } from './services/arbitration/service';
-import { ScoringService } from './services/arbitration/scoring.service';
-import { SuppressionService } from './services/arbitration/suppression.service';
-import { BaselineService } from './services/lifecycle/baseline.service';
-import { LifecycleService } from './services/lifecycle/service';
-import { FeedbackService } from './services/feedback/service';
-import { FeedbackStatsService } from './services/feedback/stats.service';
-import { SuggestionCacheService } from './services/cache/suggestion-cache.service';
-import { SuggestionCacheInvalidationListener } from './services/cache/suggestion-cache-invalidation.listener';
-import { RuleVersionRegistry } from './services/rules/rule-version-registry.service';
-import { EscalationService } from './services/notification/escalation.service';
-import { ExplanationGeneratorService } from './services/explanation/generator.service';
-import { ExplanationService } from './services/explanation/service';
-import { ExplanationQueueService } from './services/explanation/queue.service';
-import { SuggestionCopyLlmService } from './services/copy/copy-llm-generator.service';
-import { SuggestionCopyQueueService } from './services/copy/copy-queue.service';
-import { SuggestionCopyService } from './services/copy/copy.service';
+import {
+  ArbitrationService,
+  ScoringService,
+  SuppressionService,
+} from './services/arbitration';
+import { BaselineService, LifecycleService } from './services/lifecycle';
+import { FeedbackService, FeedbackStatsService } from './services/feedback';
+import {
+  SuggestionCacheInvalidationListener,
+  SuggestionCacheService,
+} from './services/cache';
+import { EscalationService } from './services/notification';
+import {
+  ExplanationGeneratorService,
+  ExplanationQueueService,
+  ExplanationService,
+} from './services/explanation';
+import {
+  SuggestionCopyLlmService,
+  SuggestionCopyQueueService,
+  SuggestionCopyService,
+} from './services/copy';
 import type { SuggestionRule } from './types';
 
 /**

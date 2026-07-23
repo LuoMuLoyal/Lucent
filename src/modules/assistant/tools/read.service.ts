@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma';
 import type { IMedicineReminderReader } from '../types/ports';
 import { MEDICINE_REMINDER_READER } from '../types/ports';
 import { UserHealthContextService } from '../../user-health-context/services';
@@ -8,7 +8,7 @@ import { HistoricalAiSummaryService } from '../services/historical-ai-summary.se
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../types/types';
+} from '../types';
 import { DEFAULT_HISTORY_LIMIT, MAX_RANGE_DAYS } from './constants';
 import {
   enumerateDates,

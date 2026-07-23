@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../../common/helpers/prisma.utils';
+import { nonDeleted } from '../../../common/helpers';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MedicineReminderRepositoryPort } from '../repositories';
@@ -8,7 +8,7 @@ import type {
 } from '../dto';
 import { MedicineRemindersOwnershipService } from './ownership.service';
 import { MedicineRemindersMapperService } from './mapper.service';
-import { now } from '../../../common/helpers/date-time.utils';
+import { now } from '../../../common/helpers';
 import {
   REMINDER_CHANGED,
   type ReminderChangedPayload,

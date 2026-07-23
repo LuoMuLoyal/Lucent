@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { I18nService } from 'nestjs-i18n';
-import { notFound } from '../../../common/helpers/api-errors';
+import { notFound } from '../../../common/helpers';
 import { UserHealthContextRepositoryPort } from '../repositories';
 import type {
   CreateCurrentMedicineDto,

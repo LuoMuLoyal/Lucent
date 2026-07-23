@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma/prisma.service';
-import { parseDateOnly } from '../../../../common/helpers/date-time.utils';
+import { PrismaService } from '../../../../prisma';
+import { parseDateOnly } from '../../../../common/helpers';
 import type { SuggestionSignal } from '../../../today-suggestion/types';
 import { TriggerType } from '../../../today-suggestion/types';
 

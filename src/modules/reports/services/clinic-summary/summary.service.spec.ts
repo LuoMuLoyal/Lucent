@@ -4,7 +4,7 @@ import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
 import { ClinicSummaryService } from './summary.service';
 import type { ClinicSummaryPdfService } from './pdf.service';
-import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { PrismaService } from '../../../../prisma';
 
 describe('ClinicSummaryService', () => {
   let service: ClinicSummaryService;

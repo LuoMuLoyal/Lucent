@@ -1,8 +1,8 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { ConfigService } from '@nestjs/config';
 
-import { PrismaService } from '../prisma/prisma.service';
-import { ADMIN_ROOT_PATH } from './constants/constants';
+import { PrismaService } from '../prisma';
+import { ADMIN_ROOT_PATH } from './constants/admin.constants';
 import { buildPrismaClientModule } from './services/prisma-module.service';
 import { buildResources } from './services/resource-builder.service';
 import { buildAdminAuthRouter } from './services/auth-router.service';
@@ -11,7 +11,7 @@ import type {
   AdminJsModule,
   AdminJsPrismaModule,
   DynamicImport,
-} from './types/types';
+} from './types/admin.types';
 
 /**
  * AdminJS packages are ESM-only and must be imported dynamically.

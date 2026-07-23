@@ -1,7 +1,7 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 
 import { DailyRecordRepository } from './daily-record.repository';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 
 describe('DailyRecordRepository', () => {
   let repository: DailyRecordRepository;

@@ -1,4 +1,4 @@
-import { badRequest, forbidden } from '../../../common/helpers/api-errors';
+import { badRequest, forbidden } from '../../../common/helpers';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ResultCode } from '../../../common/api';
 import type {
@@ -7,20 +7,20 @@ import type {
   AssistantMessageDataDto,
   StreamAssistantMessagesDto,
 } from '../dto';
-import type { AssistantRuntimeCapabilities } from '../types/types';
+import type { AssistantRuntimeCapabilities } from '../types';
 import { AssistantRuntimeService } from '../agent/runtime.service';
 import { UserSettingsService } from '../../user-settings/services/user-settings.service';
 import { AssistantPolicyService } from './policy.service';
 import { AssistantContextService } from '../tools/context.service';
 import { AssistantToolService } from '../tools/tool.service';
 import { AssistantConversationService } from './conversation.service';
-import { nowIsoString } from '../../../common/helpers/date-time.utils';
+import { nowIsoString } from '../../../common/helpers';
 import type {
   AssistantConversationMessage,
   AssistantMessageResult,
   AssistantStreamChunkEvent,
   AssistantToolExecutionContext,
-} from '../types/types';
+} from '../types';
 
 @Injectable()
 export class AssistantService {

@@ -4,7 +4,7 @@ import type {
   AssistantContextSource,
   AssistantToolName,
 } from '../../tools/types';
-import type { AssistantToolExecutionResult } from '../../types/types';
+import type { AssistantToolExecutionResult } from '../../types';
 
 export const ASSISTANT_RUNTIME_NODE_NAMES = [
   'prepare_context',

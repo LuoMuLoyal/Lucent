@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { normalizeNullableText } from '../../../../common/helpers/string.utils';
+import { normalizeNullableText } from '../../../../common/helpers';
 import { EnvKey } from '../../../../config/env-keys.enum';
 import {
   DEFAULT_MEAL_HIGH_FAT_THRESHOLD_G,

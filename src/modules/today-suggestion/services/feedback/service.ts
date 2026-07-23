@@ -1,9 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma/prisma.service';
-import {
-  now,
-  formatDateOnly,
-} from '../../../../common/helpers/date-time.utils';
+import { PrismaService } from '../../../../prisma';
+import { now, formatDateOnly } from '../../../../common/helpers';
 import { SuggestionFeedback, SuggestionLifecycleState } from '../../types';
 import type { SuggestionType } from '../../types';
 import type { Prisma } from '#generated/prisma/client';

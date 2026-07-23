@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { nonDeleted } from '../../../../common/helpers/prisma.utils';
-import { parseDateOnly } from '../../../../common/helpers/date-time.utils';
+import { nonDeleted } from '../../../../common/helpers';
+import { parseDateOnly } from '../../../../common/helpers';
 import { DoseLogStatus, type Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { PrismaService } from '../../../../prisma';
 import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/repositories';
 import type { SuggestionSignal } from '../../../today-suggestion/types';
 import { TriggerType } from '../../../today-suggestion/types';

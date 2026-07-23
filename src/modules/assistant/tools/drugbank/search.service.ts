@@ -3,7 +3,7 @@ import { VectorStoreFactory } from '../vector-store.factory';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types/types';
+} from '../../types';
 import { buildReadConfidence, buildReadEnvelope } from '../presenters';
 import {
   buildVectorPage,

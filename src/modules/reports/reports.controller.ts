@@ -21,16 +21,21 @@ import {
 import type { FastifyReply } from 'fastify';
 import { I18nLang, I18nService } from 'nestjs-i18n';
 
-import { successEnvelope } from '../../common/api';
-import { extractErrorInfo } from '../../common/helpers/error-info.utils';
-import { httpExceptionPayload } from '../../common/helpers/error-payload';
-import { enqueueOrFallback } from '../../common/helpers/queue-helpers';
-import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
-import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
-import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
-import { type UserPayload } from '../auth/types/auth-request';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Public } from '../auth/decorators/public.decorator';
+import {
+  successEnvelope,
+  endSse,
+  prepareSse,
+  writeSseEvent,
+  SseConnectionRegistry,
+} from '../../common/api';
+import {
+  extractErrorInfo,
+  httpExceptionPayload,
+  enqueueOrFallback,
+} from '../../common/helpers';
+import { SkipApiEnvelope } from '../../common/interceptors';
+import { type UserPayload } from '../auth/services';
+import { CurrentUser, Public } from '../auth/decorators';
 import {
   GenerateReportSummaryDto,
   ReportDashboardQueryDto,
@@ -39,11 +44,15 @@ import {
   ClinicSummaryDto,
   ClinicSummaryShareResponseDto,
 } from './dto';
-import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
-import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
-import { ClinicSummaryService } from './services/clinic-summary/summary.service';
-import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
-import { ReportsService } from './dashboard/dashboard.service';
+import {
+  ReportSummaryQueueService,
+  ReportsAiSummaryService,
+} from './services/ai-summary';
+import {
+  ClinicSummaryPdfQueueService,
+  ClinicSummaryService,
+} from './services/clinic-summary';
+import { ReportsService } from './dashboard';
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')

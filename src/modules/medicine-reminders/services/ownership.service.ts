@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { ensureOwnedByUser } from '../../../common/helpers/prisma-ownership.utils';
+import { ensureOwnedByUser } from '../../../common/helpers';
 
 import { MedicineReminderRepositoryPort } from '../repositories';
-import type { OwnedMedicineReminderRecord } from '../types/types';
+import type { OwnedMedicineReminderRecord } from '../types';
 
 @Injectable()
 export class MedicineRemindersOwnershipService {

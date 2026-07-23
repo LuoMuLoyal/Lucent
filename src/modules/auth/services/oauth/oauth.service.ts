@@ -1,5 +1,5 @@
-import { conflict } from '../../../../common/helpers/api-errors';
-import { normalizeEmail } from '../../../../common/helpers/string.utils';
+import { conflict } from '../../../../common/helpers';
+import { normalizeEmail } from '../../../../common/helpers';
 import { Injectable } from '@nestjs/common';
 
 import { I18nService } from 'nestjs-i18n';

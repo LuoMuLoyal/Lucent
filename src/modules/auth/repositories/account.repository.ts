@@ -5,7 +5,7 @@
  */
 import { Injectable } from '@nestjs/common';
 import { UserStatus } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma';
 
 export abstract class AuthAccountRepositoryPort {
   abstract softDeleteUser(userId: string, deletedAt: Date): Promise<void>;

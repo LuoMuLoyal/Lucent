@@ -25,11 +25,11 @@ import { ReportsModule } from '../reports/reports.module';
 import { SecurityPinModule } from '../security-pin/security-pin.module';
 import { StorageModule } from '../../common/storage';
 import { DataExportController } from './data-export.controller';
-import { DataExportProcessorService } from './services/processor.service';
-import { DataExportService } from './services/export.service';
-import { DataExportStorageService } from './services/storage.service';
-import { DataExportQueueService } from './services/queue.service';
-import { ReportExportPdfService } from './services/report-pdf/pdf.service';
+import { DataExportProcessorService } from './services';
+import { DataExportService } from './services';
+import { DataExportStorageService } from './services';
+import { DataExportQueueService } from './services';
+import { ReportExportPdfService } from './services/report-pdf';
 
 @Module({
   imports: [

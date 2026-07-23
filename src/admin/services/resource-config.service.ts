@@ -2,12 +2,12 @@ import {
   AUTO_TITLE_PROPERTY_CANDIDATES,
   DEFAULT_SENSITIVE_FIELDS,
   coreResourceOverrides,
-} from '../constants/constants';
+} from '../constants';
 import type {
   AdminResourceConfig,
   PrismaClientModule,
   PrismaDmmfModel,
-} from '../types/types';
+} from '../types';
 
 export function generateAdminResourceConfigs(
   clientModule: PrismaClientModule,

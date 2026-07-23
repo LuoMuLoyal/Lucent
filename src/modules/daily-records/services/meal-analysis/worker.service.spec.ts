@@ -1,4 +1,4 @@
-import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { PrismaService } from '../../../../prisma';
 import type { CosStorageRuntime } from '../../../../common/storage';
 import type { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
 import type { MealAnalysisVisionService } from '../meal-analysis/vision.service';

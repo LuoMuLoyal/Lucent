@@ -22,7 +22,7 @@ import type {
 import { UserStatus } from '#generated/prisma/client';
 import { WechatWebOAuthProvider } from '../../../src/modules/auth/providers/wechat-web-oauth.provider';
 import { WechatMobileOAuthProvider } from '../../../src/modules/auth/providers/wechat-mobile-oauth.provider';
-import type { OAuthProfile } from '../../../src/modules/auth/types/oauth.types';
+import type { OAuthProfile } from '../../../src/modules/auth/types';
 
 const ACCOUNT_PATH = '/api/v1/account';
 const SET_PASSWORD_PATH = `${ACCOUNT_PATH}/set-password`;

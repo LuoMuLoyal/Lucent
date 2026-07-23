@@ -1,6 +1,6 @@
 import { buildAuthResponse } from './auth-response.helper';
 import { successEnvelope } from '../../../common/api';
-import { calculateExpiresIn } from '../../../common/helpers/date-time.utils';
+import { calculateExpiresIn } from '../../../common/helpers';
 import type { User } from '#generated/prisma/client';
 import type { TokenPair } from '../types/auth-request';
 

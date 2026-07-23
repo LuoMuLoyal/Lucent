@@ -6,16 +6,16 @@ vi.mock('otplib', () => ({
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api';
-import type { UserPayload } from '../auth/services/token.service';
+import type { UserPayload } from '../auth/services';
 
 import { AccountController } from './account.controller';
-import { AccountService } from './services/account.service';
-import { AuthService } from '../auth/services/auth.service';
+import { AccountService } from './services';
+import { AuthService } from '../auth/services';
 import { AuditLogService } from '../audit-log/services';
 import { SecurityElevationGuard } from '../security-pin/guards';
 import { SecurityPinService } from '../security-pin/services';
-import type { UpdateAccountDto } from './dto/update.dto';
-import type { AccountDto } from './dto/response.dto';
+import type { UpdateAccountDto } from './dto';
+import type { AccountDto } from './dto';
 import type { User } from '#generated/prisma/client';
 
 const mockUser: UserPayload = {

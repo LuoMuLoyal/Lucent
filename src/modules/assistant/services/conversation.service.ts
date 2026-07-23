@@ -1,5 +1,5 @@
-import { notFound } from '../../../common/helpers/api-errors';
-import { truncate } from '../../../common/helpers/string.utils';
+import { notFound } from '../../../common/helpers';
+import { truncate } from '../../../common/helpers';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
@@ -7,8 +7,8 @@ import type {
   AssistantConversationMessage,
   AssistantConversationSnapshot,
   AssistantConversationSummary,
-} from '../types/types';
-import { now } from '../../../common/helpers/date-time.utils';
+} from '../types';
+import { now } from '../../../common/helpers';
 import {
   MAX_COMPACT_LENGTH,
   MEMORY_CONVERSATION_LIMIT,

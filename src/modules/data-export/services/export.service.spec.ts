@@ -1,7 +1,7 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 
 import { DataExportService } from './export.service';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 import type { DataExportStorageService } from './storage.service';
 import type { DataExportQueueService } from './queue.service';
 import type { DataExportProcessorService } from './processor.service';

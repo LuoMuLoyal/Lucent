@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { AssistantReadResultEnvelope } from '../../types/types';
-import type { AssistantToolExecutionContext } from '../../types/types';
+import type { AssistantReadResultEnvelope } from '../../types';
+import type { AssistantToolExecutionContext } from '../../types';
 import type { MedicineSearchItemDto } from '../../../medicines/dto';
 import { CnMedicinesService } from '../../../medicines/adapters/cn.service';
 import { DrugbankMedicinesService } from '../../../medicines/adapters/drugbank.service';

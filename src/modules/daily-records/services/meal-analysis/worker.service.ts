@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
-import { normalizeNullableText } from '../../../../common/helpers/string.utils';
-import { toInputJsonValue } from '../../../../common/helpers/json.utils';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { normalizeNullableText } from '../../../../common/helpers';
+import { toInputJsonValue } from '../../../../common/helpers';
+import { PrismaService } from '../../../../prisma';
 import { CosStorageRuntime } from '../../../../common/storage';
 import {
   getMealSourceRevision,
@@ -10,7 +10,7 @@ import {
 } from '../../types/meal-analysis.types';
 import { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
 import { MealAnalysisVisionService } from '../meal-analysis/vision.service';
-import { now } from '../../../../common/helpers/date-time.utils';
+import { now } from '../../../../common/helpers';
 
 interface MealAnalysisJobData {
   userId: string;

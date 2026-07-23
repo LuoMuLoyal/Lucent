@@ -10,18 +10,18 @@ import {
   AuthAccountRepository,
   AuthAccountRepositoryPort,
 } from './repositories';
-import { AuthService } from './services/auth.service';
+import { AuthService } from './services';
 import { LocalController } from './controllers/local.controller';
 import { OAuthController } from './controllers/oauth.controller';
 import { SessionController } from './controllers/session.controller';
 import { AuthRateLimitService } from './services/identity';
-import { AuthTokenService } from './services/token.service';
-import { AuthOAuthStateService } from './services/oauth/state.service';
-import { AuthOAuthService } from './services/oauth/oauth.service';
+import { AuthTokenService } from './services';
+import { AuthOAuthStateService } from './services/oauth';
+import { AuthOAuthService } from './services/oauth';
 import { CredentialAuthService } from './services/identity';
-import { AuthAccountService } from './services/account.service';
-import { AuthOAuthFacadeService } from './services/oauth/facade.service';
-import { AuthNotificationService } from './services/notification.service';
+import { AuthAccountService } from './services';
+import { AuthOAuthFacadeService } from './services/oauth';
+import { AuthNotificationService } from './services';
 import { VerificationCodeService } from './services/identity';
 import { WechatMobileOAuthProvider } from './providers/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './providers/wechat-web-oauth.provider';

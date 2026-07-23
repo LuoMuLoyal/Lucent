@@ -17,14 +17,14 @@ import { getEnvFilePaths } from './config/env-file-paths';
 import { validateEnvironment } from './config/environment.validation';
 import { AuthModule } from './modules/auth/auth.module';
 import { MailModule } from './mail/mail.module';
-import { PrismaModule } from './prisma/prisma.module';
+import { PrismaModule } from './prisma';
 import { CacheConfigService } from './config/cache.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { I18nModule } from './i18n/i18n.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { MetricsModule } from './common/metrics/metrics.module';
-import { SseModule } from './common/api/sse.module';
+import { SseModule } from './common/api';
 import { BullmqModule } from './common/queue/queue.module';
 import { MedicinesModule } from './modules/medicines/medicines.module';
 import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
@@ -49,7 +49,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { DataRetentionModule } from './modules/data-retention/data-retention.module';
 import { UserDevicesModule } from './modules/user-devices/user-devices.module';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
-import { SlowRequestInterceptor } from './common/interceptors/slow-request.interceptor';
+import { SlowRequestInterceptor } from './common/interceptors';
 
 /**
  * Root application module. Wires configuration, persistence, common

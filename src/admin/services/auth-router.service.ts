@@ -2,14 +2,14 @@ import type { ConfigService } from '@nestjs/config';
 import type { FastifyInstance } from 'fastify';
 import type AdminJSDefault from 'adminjs';
 
-import { safeCompare } from '../../common/helpers/crypto.utils';
+import { safeCompare } from '../../common/helpers';
 import {
   ADMIN_COOKIE_SECRET_KEY,
   ADMIN_EMAIL_KEY,
   ADMIN_PASSWORD_KEY,
   NODE_ENV_KEY,
-} from '../constants/constants';
-import type { AdminJsFastifyModule, AdminUser } from '../types/types';
+} from '../constants';
+import type { AdminJsFastifyModule, AdminUser } from '../types';
 
 /**
  * Registers an authenticated Fastify router for the AdminJS panel using

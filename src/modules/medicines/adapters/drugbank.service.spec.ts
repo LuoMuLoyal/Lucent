@@ -1,7 +1,7 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
 
 import { DrugbankMedicinesService } from './drugbank.service';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 
 describe('DrugbankMedicinesService', () => {
   let service: DrugbankMedicinesService;

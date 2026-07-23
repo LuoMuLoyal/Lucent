@@ -18,8 +18,8 @@ import {
 } from '@nestjs/swagger';
 
 import { successEnvelope } from '../../common/api';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { UserPayload } from '../auth/services/auth.service';
+import { CurrentUser } from '../auth/decorators';
+import type { UserPayload } from '../auth/services';
 import {
   CreateCurrentMedicineDto,
   CreateHealthContextAllergyDto,

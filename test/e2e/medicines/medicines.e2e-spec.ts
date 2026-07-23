@@ -11,7 +11,7 @@ import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
 import type { ApiEnvelope } from '../../../src/common/api';
 import { ResultCode } from '../../../src/common/api';
-import { PrismaService } from '../../../src/prisma/prisma.service';
+import { PrismaService } from '../../../src/prisma';
 import { ConfigKey } from '../../../src/config/config-keys.enum';
 import { UserStatus } from '#generated/prisma/client';
 

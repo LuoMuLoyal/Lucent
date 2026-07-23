@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import { safeCompare } from '../../../common/helpers/crypto.utils';
+import { safeCompare } from '../../../common/helpers';
 import { EnvKey } from '../../../config/env-keys.enum';
 
 /**

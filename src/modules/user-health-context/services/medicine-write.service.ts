@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { MedicineSource, Prisma } from '#generated/prisma/client';
 import { UserHealthContextRepositoryPort } from '../repositories';
-import { normalizeNullableText } from '../../../common/helpers/string.utils';
+import { normalizeNullableText } from '../../../common/helpers';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
-import { now } from '../../../common/helpers/date-time.utils';
+import { now } from '../../../common/helpers';
 import type {
   CreateCurrentMedicineDto,
   UpdateCurrentMedicineDto,

@@ -4,8 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { now } from '../../../common/helpers/date-time.utils';
+import { PrismaService } from '../../../prisma';
+import { now } from '../../../common/helpers';
 import type { RegisterDeviceDto } from '../dto';
 import type { DeviceItemDto } from '../dto';
 

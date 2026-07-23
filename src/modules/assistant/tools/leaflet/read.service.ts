@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { PrismaService } from '../../../../prisma';
 import { VectorStoreFactory } from '../vector-store.factory';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types/types';
+} from '../../types';
 import { buildReadConfidence, buildReadEnvelope } from '../presenters';
 import {
   buildVectorPage,

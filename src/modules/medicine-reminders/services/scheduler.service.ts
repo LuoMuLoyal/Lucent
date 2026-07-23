@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { PushDeliveryService } from '../../notifications/services/push-delivery.service';
-import { now } from '../../../common/helpers/date-time.utils';
-import { formatDateOnly } from '../../../common/helpers/date-time.utils';
+import { now } from '../../../common/helpers';
+import { formatDateOnly } from '../../../common/helpers';
 
 /** Cron expression for the reminder scheduler — every minute. */
 export const REMINDER_SCHEDULER_CRON = '* * * * *';

@@ -5,7 +5,7 @@ import type {
   AssistantRuntimeCapabilities,
   AssistantPolicySnapshot,
   AssistantToolCapabilitySnapshot,
-} from '../types/types';
+} from '../types';
 import {
   ASSISTANT_CONTEXT_SOURCES,
   ASSISTANT_TOOL_NAMES,

@@ -11,11 +11,11 @@ import { MedicinesModule } from '../medicines/medicines.module';
 import { UserHealthContextModule } from '../user-health-context/user-health-context.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { AssistantRuntimeService } from './agent/runtime.service';
-import { AssistantConversationService } from './services/conversation.service';
+import { AssistantConversationService } from './services';
 import { AssistantController } from './assistant.controller';
-import { AssistantPolicyService } from './services/policy.service';
-import { HistoricalAiSummaryService } from './services/historical-ai-summary.service';
-import { AssistantService } from './services/core.service';
+import { AssistantPolicyService } from './services';
+import { HistoricalAiSummaryService } from './services';
+import { AssistantService } from './services';
 import {
   DAILY_RECORD_CANDIDATE_GENERATOR,
   DAILY_RECORD_READER,

@@ -1,6 +1,6 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import { DoseLogStatus } from '#generated/prisma/client';
-import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { PrismaService } from '../../../../prisma';
 import type { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/repositories';
 import { MedicationCollectorService } from './medication.service';
 import { TriggerType } from '../../../today-suggestion/types';

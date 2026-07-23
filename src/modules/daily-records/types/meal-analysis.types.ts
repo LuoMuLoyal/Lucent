@@ -1,4 +1,4 @@
-import { nowIsoString } from '../../../common/helpers/date-time.utils';
+import { nowIsoString } from '../../../common/helpers';
 import { mealRecordPayloadSchema } from '../../../common/validators/jsonb-schemas';
 import { isDeepStrictEqual } from 'node:util';
 

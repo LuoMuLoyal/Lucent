@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { badRequest } from '../../../../common/helpers/api-errors';
+import { badRequest } from '../../../../common/helpers';
 
 import { HistoricalAiSummaryService } from '../../../assistant/services/historical-ai-summary.service';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { PrismaService } from '../../../../prisma';
 import { BaseLlmSummaryService } from '../../../../common/llm/base-llm-summary.service';
 import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
 import type {

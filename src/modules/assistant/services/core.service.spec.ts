@@ -12,7 +12,7 @@ import type {
   AssistantRuntimeCapabilities,
   AssistantPolicySnapshot,
   AssistantConversationSnapshot,
-} from '../types/types';
+} from '../types';
 import { AssistantService } from './core.service';
 
 const mockFoundation: AssistantRuntimeCapabilities = {

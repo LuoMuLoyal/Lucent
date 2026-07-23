@@ -3,8 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { ResultCode } from '../../common/api';
 import { TestingSupportController } from './testing-support.controller';
-import { TestingSupportService } from './services/fixtures.service';
-import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';
+import { TestingSupportService } from './services';
+import type { PrepareFullstackRecordLaneDto } from './dto';
 
 describe('TestingSupportController', () => {
   let controller: TestingSupportController;

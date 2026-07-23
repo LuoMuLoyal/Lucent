@@ -1,5 +1,5 @@
 import { AuditLogService } from './audit-log.service';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 
 function buildPrisma() {
   return {

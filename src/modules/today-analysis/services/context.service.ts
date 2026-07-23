@@ -1,5 +1,5 @@
-import { nonDeleted } from '../../../common/helpers/prisma.utils';
-import { parseDateOnly } from '../../../common/helpers/date-time.utils';
+import { nonDeleted } from '../../../common/helpers';
+import { parseDateOnly } from '../../../common/helpers';
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
@@ -8,7 +8,7 @@ import {
   DailyRecordKind,
   type Prisma,
 } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma';
 import {
   DailyRecordReaderPort,
   type DailyRecordFact,
@@ -18,7 +18,7 @@ import { parseMealRecordPayload } from '../../daily-records/types/meal-analysis.
 import {
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
-} from '../../user-settings/constants/constants';
+} from '../../user-settings/constants';
 
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;

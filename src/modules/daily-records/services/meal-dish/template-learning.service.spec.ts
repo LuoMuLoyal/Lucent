@@ -1,6 +1,6 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import { MealDishTemplateLearningService } from './template-learning.service';
-import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { PrismaService } from '../../../../prisma';
 import type { MealAnalysisPayload } from '../../types/meal-analysis.types';
 
 describe('MealDishTemplateLearningService', () => {

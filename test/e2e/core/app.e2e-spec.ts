@@ -12,8 +12,8 @@ import { AppService } from '../../../src/app.service';
 import { ApiExceptionFilter } from '../../../src/common/filters/api-exception.filter';
 import { RequestContextService } from '../../../src/common/logger/request-context.service';
 import { MetricsService } from '../../../src/common/metrics/metrics.service';
-import { SlowRequestInterceptor } from '../../../src/common/interceptors/slow-request.interceptor';
-import { PrismaService } from '../../../src/prisma/prisma.service';
+import { SlowRequestInterceptor } from '../../../src/common/interceptors';
+import { PrismaService } from '../../../src/prisma';
 import { setupApp } from '../../../src/setup-app';
 
 describe('Lucent API (e2e)', () => {

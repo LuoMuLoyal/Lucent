@@ -1,7 +1,7 @@
 import type { DeepMocked } from '../../common/types/deep-mocked';
 import { buildResources } from './resource-builder.service';
-import type { PrismaService } from '../../prisma/prisma.service';
-import type { PrismaClientModule, AdminJsPrismaModule } from '../types/types';
+import type { PrismaService } from '../../prisma';
+import type { PrismaClientModule, AdminJsPrismaModule } from '../types';
 
 describe('buildResources', () => {
   let mockGetModelByName: vi.Mock;

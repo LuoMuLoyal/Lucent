@@ -19,8 +19,8 @@ import type { FastifyRequest } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../../common/api';
-import { extractAuthRequestContext } from '../../../common/helpers/client-ip';
-import { calculateExpiresIn } from '../../../common/helpers/date-time.utils';
+import { extractAuthRequestContext } from '../../../common/helpers';
+import { calculateExpiresIn } from '../../../common/helpers';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
 import { CurrentUser } from '../decorators/current-user.decorator';

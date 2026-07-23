@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { roundNumber } from '../../../../common/helpers/number.utils';
-import { commonCharacterCount } from '../../../../common/helpers/string.utils';
+import { roundNumber } from '../../../../common/helpers';
+import { commonCharacterCount } from '../../../../common/helpers';
 import { EnvKey } from '../../../../config/env-keys.enum';
 import {
   DEFAULT_FUZZY_ACCEPT_SCORE,
   DEFAULT_FUZZY_MIN_LEAD,
   DEFAULT_FUZZY_QUERY_PREFIX_LENGTH,
 } from '../../../../config/constants';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { PrismaService } from '../../../../prisma';
 import {
   type MealCompositionMatch,
   type MealResolvedIngredient,

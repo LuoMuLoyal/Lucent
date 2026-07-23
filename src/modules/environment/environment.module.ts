@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { EnvironmentController } from './environment.controller';
-import { EnvironmentService } from './services/snapshot.service';
+import { EnvironmentService } from './services';
 
 @Module({
   controllers: [EnvironmentController],

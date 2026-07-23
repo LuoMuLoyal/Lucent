@@ -2,25 +2,28 @@ const prepareSse = vi.fn();
 const writeSseEvent = vi.fn();
 const endSse = vi.fn();
 
-vi.mock('../../common/api/sse', () => ({
-  prepareSse: (...args: unknown[]): void => {
-    prepareSse(...args);
-  },
-  writeSseEvent: (...args: unknown[]): void => {
-    writeSseEvent(...args);
-  },
-  endSse: (...args: unknown[]): void => {
-    endSse(...args);
-  },
-}));
+vi.mock('../../common/api', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    prepareSse: (...args: unknown[]): void => {
+      prepareSse(...args);
+    },
+    writeSseEvent: (...args: unknown[]): void => {
+      writeSseEvent(...args);
+    },
+    endSse: (...args: unknown[]): void => {
+      endSse(...args);
+    },
+  };
+});
 
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import { ResultCode } from '../../common/api';
-import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
+import { ResultCode, SseConnectionRegistry } from '../../common/api';
 import { AssistantController } from './assistant.controller';
-import { AssistantService } from './services/core.service';
+import { AssistantService } from './services';
 
 describe('AssistantController', () => {
   let controller: AssistantController;

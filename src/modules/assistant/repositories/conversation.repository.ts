@@ -9,7 +9,7 @@ import {
   AssistantConversationStatus,
   type Prisma,
 } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma';
 
 const conversationWithMessagesArgs = {
   include: {

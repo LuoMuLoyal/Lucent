@@ -7,13 +7,13 @@ import {
 } from '@langchain/core/messages';
 import { LlmRuntimeService } from '../../../llm-runtime';
 import { MetricsService } from '../../../common/metrics/metrics.service';
-import type { AssistantRuntimeCapabilities } from '../types/types';
+import type { AssistantRuntimeCapabilities } from '../types';
 import type {
   AssistantMessageResult,
   AssistantConversationMessage,
   AssistantStreamChunkEvent,
   AssistantToolExecutionResult,
-} from '../types/types';
+} from '../types';
 import {
   ASSISTANT_CONTEXT_SOURCES,
   ASSISTANT_IMPLEMENTED_TOOL_NAMES,

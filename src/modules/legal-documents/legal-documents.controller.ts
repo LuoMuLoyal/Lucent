@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '../auth/decorators';
 import {
   LegalDocumentDetailResponseDto,
   LegalDocumentListResponseDto,

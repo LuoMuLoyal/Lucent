@@ -1,2 +1,2 @@
-export * from './types';
+export * from './assistant.types';
 export * from './ports';

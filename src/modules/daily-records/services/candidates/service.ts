@@ -10,8 +10,8 @@ import type {
 } from '../../dto';
 import { DailyRecordCandidatesCopyService } from '../candidates/copy.service';
 import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
-import { nowIsoString } from '../../../../common/helpers/date-time.utils';
-import { extractErrorInfo } from '../../../../common/helpers/error-info.utils';
+import { nowIsoString } from '../../../../common/helpers';
+import { extractErrorInfo } from '../../../../common/helpers';
 
 interface DailyRecordCandidatesContext {
   text: string;

@@ -3,8 +3,8 @@ import {
   badRequest,
   unauthorized,
   conflict,
-} from '../../../../common/helpers/api-errors';
-import { normalizeEmail } from '../../../../common/helpers/string.utils';
+} from '../../../../common/helpers';
+import { normalizeEmail } from '../../../../common/helpers';
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
@@ -31,7 +31,7 @@ import {
   type TokenPair,
 } from '../token.service';
 import { AuthRateLimitService } from './rate-limit.service';
-import { now } from '../../../../common/helpers/date-time.utils';
+import { now } from '../../../../common/helpers';
 
 /**
  * Handles email/password credential flows: registration, login,

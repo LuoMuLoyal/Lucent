@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { SupportResourcesController } from './support-resources.controller';
-import { SupportResourcesService } from './services/resources.service';
+import { SupportResourcesService } from './services';
 
 @Module({
   controllers: [SupportResourcesController],

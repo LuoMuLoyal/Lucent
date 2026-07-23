@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api';
 import { UserSettingsController } from './user-settings.controller';
-import { UserSettingsService } from './services/user-settings.service';
+import { UserSettingsService } from './services';
 import { SecurityPinService } from '../security-pin/services';
 import type { UserSettingsDataDto } from './dto';
 

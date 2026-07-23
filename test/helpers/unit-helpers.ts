@@ -1,4 +1,4 @@
-import type { PrismaService } from '../../src/prisma/prisma.service';
+import type { PrismaService } from '../../src/prisma';
 export type { DeepMocked } from '../../src/common/types/deep-mocked';
 import type { DeepMocked } from '../../src/common/types/deep-mocked';
 

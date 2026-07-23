@@ -2,7 +2,7 @@ import type { DeepMocked } from '../../../common/types/deep-mocked';
 
 import { AiSummaryHistoryKind } from '#generated/prisma/client';
 import { AssistantSummaryRepository } from './summary.repository';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 
 describe('AssistantSummaryRepository', () => {
   let repository: AssistantSummaryRepository;

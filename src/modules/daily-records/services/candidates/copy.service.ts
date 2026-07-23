@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { LocalizedCopyService } from '../../../../common/services/localized-copy.service';
 import type { DailyRecordCandidateData } from '../../dto/record-candidate-response.dto';
 import type { DailyRecordCandidatesPromptCopy } from '../../prompts/daily-record-candidates.prompt';
-import { nowIsoString } from '../../../../common/helpers/date-time.utils';
+import { nowIsoString } from '../../../../common/helpers';
 
 @Injectable()
 export class DailyRecordCandidatesCopyService extends LocalizedCopyService<DailyRecordCandidatesPromptCopy> {

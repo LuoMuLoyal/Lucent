@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AI_SUMMARIES_ENABLED_SETTING_KEY } from '../constants/user-setting-keys';
 import { forbidden } from '../helpers/api-errors';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../prisma';
 import type { PromptCopy } from '../helpers/localized-copy';
 import type { StreamSummaryEvent } from '../api/stream-summary';
 import { LlmSafetyPolicyService } from './llm-safety-policy.service';

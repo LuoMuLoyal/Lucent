@@ -1,4 +1,4 @@
-import { formatDateOnly } from '../../../../common/helpers/date-time.utils';
+import { formatDateOnly } from '../../../../common/helpers';
 import { Injectable } from '@nestjs/common';
 import type {
   ReportDashboardComputed,

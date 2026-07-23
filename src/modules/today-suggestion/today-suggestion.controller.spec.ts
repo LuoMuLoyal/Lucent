@@ -1,11 +1,11 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api';
-import type { UserPayload } from '../auth/types/auth-request';
+import type { UserPayload } from '../auth/services';
 import { TodaySuggestionController } from './today-suggestion.controller';
-import { SuggestionService } from './services/suggestion.service';
+import { SuggestionService } from './services';
 import { FeedbackService } from './services/feedback/service';
 import { ExplanationService } from './services/explanation/service';
-import { ExplanationQueueService } from './services/explanation/queue.service';
+import { ExplanationQueueService } from './services/explanation';
 import { LifecycleService } from './services/lifecycle/service';
 
 const mockUser: UserPayload = {

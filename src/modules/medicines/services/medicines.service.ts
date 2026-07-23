@@ -2,10 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { I18nService } from 'nestjs-i18n';
 
-import { notFound, badRequest } from '../../../common/helpers/api-errors';
-import { shuffleArray } from '../../../common/helpers/array.utils';
-import { safeParseLlmJson } from '../../../common/helpers/json.utils';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { notFound, badRequest } from '../../../common/helpers';
+import { shuffleArray } from '../../../common/helpers';
+import { safeParseLlmJson } from '../../../common/helpers';
+import { PrismaService } from '../../../prisma';
 import {
   DEFAULT_MEDICINE_SOURCE,
   MedicineSafetyTipResponseDto,

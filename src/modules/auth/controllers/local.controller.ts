@@ -13,7 +13,7 @@ import { successEnvelope } from '../../../common/api';
 import {
   extractAuthRequestContext,
   getRequestClientIp,
-} from '../../../common/helpers/client-ip';
+} from '../../../common/helpers';
 import { AuthService } from '../services/auth.service';
 import { VerificationCodeService } from '../services/identity';
 

@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api';
 import { DataExportController } from './data-export.controller';
-import { DataExportService } from './services/export.service';
+import { DataExportService } from './services';
 import { SecurityElevationGuard } from '../security-pin/guards';
 import { SecurityPinService } from '../security-pin/services';
 import type {

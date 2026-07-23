@@ -1,7 +1,4 @@
-import {
-  buildUserPrompt,
-  type PromptCopy,
-} from '../../../common/helpers/localized-copy';
+import { buildUserPrompt, type PromptCopy } from '../../../common/helpers';
 
 export function buildDailyRecordCandidatesSystemPrompt(): string {
   return [

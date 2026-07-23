@@ -1,1 +1,1 @@
-export * from './constants';
+export * from './admin.constants';

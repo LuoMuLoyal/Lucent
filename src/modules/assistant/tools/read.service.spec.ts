@@ -1,11 +1,11 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 import type { HistoricalAiSummaryService } from '../services/historical-ai-summary.service';
 import type { UserHealthContextService } from '../../user-health-context/services';
 import type { IMedicineReminderReader } from '../types/ports';
 import type { UserSettingsService } from '../../user-settings/services/user-settings.service';
 import type { AssistantToolRecordQueryService } from './records/query.service';
-import type { AssistantToolExecutionContext } from '../types/types';
+import type { AssistantToolExecutionContext } from '../types';
 import { AssistantToolReadService } from './read.service';
 
 const mockContext: AssistantToolExecutionContext = {

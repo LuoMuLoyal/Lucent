@@ -15,9 +15,9 @@ import {
 } from '@nestjs/swagger';
 
 import { successEnvelope } from '../../common/api';
-import { type UserPayload } from '../auth/services/auth.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserSettingsService } from './services/user-settings.service';
+import { type UserPayload } from '../auth/services';
+import { CurrentUser } from '../auth/decorators';
+import { UserSettingsService } from './services';
 import { UpdateUserSettingsDto, UserSettingsResponseDto } from './dto';
 import { SecurityPinService } from '../security-pin/services';
 import {

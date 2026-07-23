@@ -1,4 +1,4 @@
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 import { NotFoundException } from '@nestjs/common';
 import { LegalDocumentsService } from '.';
 

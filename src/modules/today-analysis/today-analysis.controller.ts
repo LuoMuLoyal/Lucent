@@ -19,16 +19,22 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
-import { successEnvelope } from '../../common/api';
-import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
-import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
-import { extractErrorInfo } from '../../common/helpers/error-info.utils';
-import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
-import { type UserPayload } from '../auth/types/auth-request';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { TodayAnalysisService } from './services/analysis.service';
-import { TodayAnalysisQueueService } from './services/analysis-queue.service';
-import { TodayRecommendationsService } from './services/recommendations.service';
+import {
+  successEnvelope,
+  endSse,
+  prepareSse,
+  writeSseEvent,
+  SseConnectionRegistry,
+} from '../../common/api';
+import { extractErrorInfo } from '../../common/helpers';
+import { SkipApiEnvelope } from '../../common/interceptors';
+import { type UserPayload } from '../auth/services';
+import { CurrentUser } from '../auth/decorators';
+import {
+  TodayAnalysisQueueService,
+  TodayAnalysisService,
+  TodayRecommendationsService,
+} from './services';
 import {
   GenerateTodayAnalysisDto,
   TodayAnalysisResponseDto,

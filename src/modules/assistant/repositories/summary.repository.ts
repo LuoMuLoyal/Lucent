@@ -5,11 +5,8 @@
  */
 import { Injectable } from '@nestjs/common';
 import { AiSummaryHistoryKind, type Prisma } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
-import {
-  formatDateOnly,
-  parseDateOnly,
-} from '../../../common/helpers/date-time.utils';
+import { PrismaService } from '../../../prisma';
+import { formatDateOnly, parseDateOnly } from '../../../common/helpers';
 import type { AssistantReportRange } from '../types/ports';
 
 export type SummaryBullet = {

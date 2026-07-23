@@ -7,10 +7,10 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
-import type { UserPayload } from '../auth/services/auth.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { UserPayload } from '../auth/services';
+import { CurrentUser } from '../auth/decorators';
 import { ReminderDeliveryListResponseDto } from './dto';
-import { MedicineRemindersService } from './services/reminders.service';
+import { MedicineRemindersService } from './services';
 
 @ApiTags('Reminder Deliveries')
 @Controller('reminder-deliveries')

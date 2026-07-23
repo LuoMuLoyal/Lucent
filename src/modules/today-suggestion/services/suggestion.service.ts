@@ -1,10 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import {
-  now,
-  nowIsoString,
-  formatDateOnly,
-} from '../../../common/helpers/date-time.utils';
+import { now, nowIsoString, formatDateOnly } from '../../../common/helpers';
 import type {
   SuggestionCandidate,
   RuleContext,

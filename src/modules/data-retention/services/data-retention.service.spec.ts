@@ -1,5 +1,5 @@
 import { DataRetentionService } from './data-retention.service';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 
 const NOW = new Date('2026-07-20T03:00:00.000Z');
 

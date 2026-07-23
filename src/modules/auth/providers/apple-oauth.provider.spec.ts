@@ -4,11 +4,15 @@ import type { JwtService } from '@nestjs/jwt';
 import type { I18nService } from 'nestjs-i18n';
 import { AppleOAuthProvider } from './apple-oauth.provider';
 
-import * as retryUtils from '../../../common/helpers/retry.utils';
+import * as retryUtils from '../../../common/helpers';
 
-vi.mock('../../../common/helpers/retry.utils', () => ({
-  withRetry: vi.fn(),
-}));
+vi.mock('../../../common/helpers', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    withRetry: vi.fn(),
+  };
+});
 
 const { withRetry } = retryUtils as unknown as { withRetry: vi.Mock };
 

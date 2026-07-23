@@ -1,5 +1,5 @@
 import { generateAdminResourceConfigs } from './resource-config.service';
-import type { PrismaClientModule } from '../types/types';
+import type { PrismaClientModule } from '../types';
 
 function makeClientModule(
   models: {

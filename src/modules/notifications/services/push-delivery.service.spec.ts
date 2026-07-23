@@ -1,5 +1,5 @@
 import { PushDeliveryService } from './push-delivery.service';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 
 function buildPrisma(overrides: Record<string, unknown> = {}) {
   return {

@@ -2,7 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ResultCode } from '../../common/api';
 import { UserHealthContextController } from './user-health-context.controller';
 import { UserHealthContextService } from './services';
-import type { UserPayload } from '../auth/services/auth.service';
+import type { UserPayload } from '../auth/services';
 
 describe('UserHealthContextController', () => {
   let controller: UserHealthContextController;

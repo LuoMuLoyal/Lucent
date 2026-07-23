@@ -17,13 +17,17 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
-import { successEnvelope } from '../../common/api';
-import { SkipApiEnvelope } from '../../common/interceptors/skip-api-envelope.decorator';
-import { endSse, prepareSse, writeSseEvent } from '../../common/api/sse';
-import { SseConnectionRegistry } from '../../common/api/sse-connection-registry.service';
-import { type UserPayload } from '../auth/types/auth-request';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { AssistantService } from './services/core.service';
+import {
+  successEnvelope,
+  endSse,
+  prepareSse,
+  writeSseEvent,
+  SseConnectionRegistry,
+} from '../../common/api';
+import { SkipApiEnvelope } from '../../common/interceptors';
+import { type UserPayload } from '../auth/services';
+import { CurrentUser } from '../auth/decorators';
+import { AssistantService } from './services';
 import {
   AssistantCapabilitiesResponseDto,
   AssistantClearResultResponseDto,

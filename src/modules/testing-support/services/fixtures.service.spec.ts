@@ -5,7 +5,7 @@ import { Test } from '@nestjs/testing';
 import { createHash } from 'node:crypto';
 
 import * as argon2 from 'argon2';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma';
 import { TestingSupportService } from './fixtures.service';
 import { ARGON2_OPTIONS } from '../../auth/config/argon2-options';
 

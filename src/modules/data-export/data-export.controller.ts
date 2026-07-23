@@ -16,11 +16,11 @@ import {
 import { I18nLang } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../common/api';
-import { type UserPayload } from '../auth/services/auth.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { type UserPayload } from '../auth/services';
+import { CurrentUser } from '../auth/decorators';
 import { SecurityElevationGuard } from '../security-pin/guards';
 import { RequireSecurityElevation } from '../security-pin/decorators';
-import { DataExportService } from './services/export.service';
+import { DataExportService } from './services';
 import {
   CreateDataExportRequestDto,
   DataExportLatestResponseDto,

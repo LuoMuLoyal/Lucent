@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
 import type { CnMedicineProduct } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma';
 import type {
   CnMedicineDetailDto,
   MedicineDetailDataDto,

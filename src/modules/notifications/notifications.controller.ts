@@ -22,9 +22,9 @@ import { I18nLang, I18nService } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../common/api';
 import { clampPage, clampPageSize } from '../../common/helpers';
-import { type UserPayload } from '../auth/services/auth.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { NotificationsService } from './services/notifications.service';
+import { type UserPayload } from '../auth/services';
+import { CurrentUser } from '../auth/decorators';
+import { NotificationsService } from './services';
 import {
   NotificationListResponseDto,
   NotificationDetailResponseDto,

@@ -1,11 +1,11 @@
-import { normalizeNullableText } from '../../../common/helpers/string.utils';
+import { normalizeNullableText } from '../../../common/helpers';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
 import { UserHealthContextRepositoryPort } from '../repositories';
 import type { UpdateHealthContextProfileDto } from '../dto';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
-import { now } from '../../../common/helpers/date-time.utils';
+import { now } from '../../../common/helpers';
 
 @Injectable()
 export class UserHealthContextProfileWriteService {

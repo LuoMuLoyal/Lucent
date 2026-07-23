@@ -1,4 +1,4 @@
-import { unauthorized } from '../../../common/helpers/api-errors';
+import { unauthorized } from '../../../common/helpers';
 import {
   Injectable,
   Logger,

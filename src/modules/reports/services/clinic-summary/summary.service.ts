@@ -4,11 +4,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
-import { PrismaService } from '../../../../prisma/prisma.service';
-import {
-  calculateAge,
-  nowIsoString,
-} from '../../../../common/helpers/date-time.utils';
+import { PrismaService } from '../../../../prisma';
+import { calculateAge, nowIsoString } from '../../../../common/helpers';
 import { ConfigKey } from '../../../../config/config-keys.enum';
 import type {
   ClinicSummaryDto,

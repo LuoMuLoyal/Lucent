@@ -17,8 +17,8 @@ import {
 import { I18nLang } from 'nestjs-i18n';
 
 import { successEnvelope } from '../../common/api';
-import type { UserPayload } from '../auth/services/auth.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { UserPayload } from '../auth/services';
+import { CurrentUser } from '../auth/decorators';
 import { UserDevicesService } from './services';
 import {
   DeviceListResponseDto,

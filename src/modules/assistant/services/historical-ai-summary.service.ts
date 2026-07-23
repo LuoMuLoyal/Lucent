@@ -6,7 +6,7 @@ import {
   type ReportSummaryRow,
   type ReportRangeInput,
 } from '../repositories/summary.repository';
-import { parseDateOnly } from '../../../common/helpers/date-time.utils';
+import { parseDateOnly } from '../../../common/helpers';
 import type { AssistantReportRange } from '../types/ports';
 
 export type {

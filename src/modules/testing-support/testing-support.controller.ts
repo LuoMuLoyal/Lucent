@@ -9,10 +9,10 @@ import {
 import { ApiExcludeController } from '@nestjs/swagger';
 
 import { successEnvelope } from '../../common/api';
-import { Public } from '../auth/decorators/public.decorator';
+import { Public } from '../auth/decorators';
 import { TestingSharedSecretGuard } from './guards/testing-shared-secret.guard';
-import { TestingSupportService } from './services/fixtures.service';
-import { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';
+import { TestingSupportService } from './services';
+import { PrepareFullstackRecordLaneDto } from './dto';
 
 @ApiExcludeController()
 @Public()

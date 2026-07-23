@@ -1,10 +1,10 @@
-import { ensureOwnedByUser } from '../../../common/helpers/prisma-ownership.utils';
-import { notFound } from '../../../common/helpers/api-errors';
+import { ensureOwnedByUser } from '../../../common/helpers';
+import { notFound } from '../../../common/helpers';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
-import type { OwnedRecordSnapshot } from '../types/types';
+import type { OwnedRecordSnapshot } from '../types';
 
 export type { OwnedRecordSnapshot };
 

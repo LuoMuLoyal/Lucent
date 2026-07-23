@@ -11,7 +11,7 @@ import { setupApp } from '../../../src/setup-app';
 import { ResultCode } from '../../../src/common/api';
 import type { ApiEnvelope } from '../../../src/common/api';
 import { DailyRecordCandidatesService } from '../../../src/modules/daily-records/services';
-import { PrismaService } from '../../../src/prisma/prisma.service';
+import { PrismaService } from '../../../src/prisma';
 import { DailyRecordKind, UserStatus } from '#generated/prisma/client';
 import { ConfigKey } from '../../../src/config/config-keys.enum';
 

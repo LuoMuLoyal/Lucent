@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { PrismaService } from '../../../../prisma';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types/types';
+} from '../../types';
 import { buildReadConfidence, buildReadEnvelope } from '../presenters';
 
 const DRUGBANK_ENTITY_LIMIT = 5;

@@ -5,8 +5,8 @@ import type {
   AdminJsPrismaModule,
   AdminResourceConfig,
   PrismaClientModule,
-} from '../types/types';
-import type { PrismaService } from '../../prisma/prisma.service';
+} from '../types';
+import type { PrismaService } from '../../prisma';
 
 export function buildResources(
   getModelByName: AdminJsPrismaModule['getModelByName'],

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { PrismaService } from '../../../../prisma';
 import { NotificationsService } from '../../../notifications/services/notifications.service';
 import { PushDeliveryService } from '../../../notifications/services/push-delivery.service';
-import { now } from '../../../../common/helpers/date-time.utils';
+import { now } from '../../../../common/helpers';
 import type { SuggestionCandidate } from '../../types';
 import { SuggestionConfidence, TriggerType } from '../../types';
 

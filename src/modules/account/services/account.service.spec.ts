@@ -1,5 +1,5 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
-import { nonDeleted } from '../../../common/helpers/prisma.utils';
+import { nonDeleted } from '../../../common/helpers';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';

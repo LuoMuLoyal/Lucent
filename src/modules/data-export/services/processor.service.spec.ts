@@ -1,5 +1,5 @@
 import { DataExportProcessorService } from './processor.service';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 import type { ReportsService } from '../../reports/dashboard';
 import type { DataExportStorageService } from './storage.service';
 import type { ReportExportPdfService } from './report-pdf/pdf.service';

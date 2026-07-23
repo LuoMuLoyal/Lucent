@@ -1,5 +1,5 @@
 import { Prisma } from '#generated/prisma/client';
-import type { PrismaService } from '../../../prisma/prisma.service';
+import type { PrismaService } from '../../../prisma';
 import type { DailyRecordKind } from '#generated/prisma/client';
 
 const _dailyRecordAttachmentSelect = {
