@@ -51,7 +51,10 @@ export default tseslint.config(
 
       // ── 代码质量 ──
       '@typescript-eslint/no-non-null-assertion': 'error',
-      '@typescript-eslint/consistent-type-imports': 'error',
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { fixStyle: 'inline-type-imports' },
+      ],
       '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/no-confusing-void-expression': 'error',
 
