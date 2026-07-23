@@ -422,7 +422,8 @@ export class SuggestionService {
 
   private localizeEvidenceValue(value: string, locale: string): string {
     const key = `today-suggestion.evidence_value.${value}`;
-    const translated = this.i18n.t(key, { lang: locale });
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- tsc infers unknown (variable assignment loses generic inference), ESLint infers string
+    const translated = this.i18n.t(key, { lang: locale }) as string;
     // When i18n can't find the key, it returns the key path itself — fall back to raw value
     return translated === key ? value : translated;
   }
