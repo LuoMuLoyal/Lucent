@@ -79,6 +79,7 @@ describe('Medicines API (e2e)', () => {
 
     app = moduleFixture.createNestApplication<NestFastifyApplication>(
       new FastifyAdapter({ trustProxy: true }),
+      { bodyParser: false },
     );
     await setupApp(app, app.get(ConfigService));
     await app.init();
