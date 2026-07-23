@@ -19,8 +19,8 @@ import {
 } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
 import { clampPage, clampPageSize } from '../../common/helpers';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { UserPayload } from '../auth/services/auth.service';
+import { CurrentUser } from '../auth/decorators';
+import type { UserPayload } from '../auth/services';
 import {
   CreateDoseLogDto,
   DoseLogListResponseDto,
@@ -28,15 +28,15 @@ import {
   DoseLogResponseDto,
   UpdateDoseLogDto,
 } from './dto';
-import { MedicineDoseLogsService } from './services/dose-logs.service';
+import { MedicineDoseLogsService } from './services';
 
 @ApiTags('Medicine Dose Logs')
+@ApiBearerAuth('access-token')
 @Controller('medicine-dose-logs')
 export class MedicineDoseLogsController {
-  constructor(private readonly service: MedicineDoseLogsService) {}
+  constructor(private readonly doseLogsService: MedicineDoseLogsService) {}
 
   @Get()
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List dose logs for a date' })
   @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
   @ApiQuery({ name: 'page', required: false, example: 1 })
@@ -50,7 +50,7 @@ export class MedicineDoseLogsController {
     pageSize: number = 50,
   ) {
     return successEnvelope(
-      await this.service.list(
+      await this.doseLogsService.list(
         user.sub,
         date,
         clampPage(page),
@@ -60,28 +60,25 @@ export class MedicineDoseLogsController {
   }
 
   @Post()
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a dose log' })
   @ApiResponse({ status: 201, type: DoseLogResponseDto })
   async create(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateDoseLogDto,
   ) {
-    return successEnvelope(await this.service.create(user.sub, dto));
+    return successEnvelope(await this.doseLogsService.create(user.sub, dto));
   }
 
   @Post('mark')
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Mark a dose log idempotently for one reminder slot',
   })
   @ApiResponse({ status: 201, type: DoseLogResponseDto })
   async mark(@CurrentUser() user: UserPayload, @Body() dto: MarkDoseLogDto) {
-    return successEnvelope(await this.service.mark(user.sub, dto));
+    return successEnvelope(await this.doseLogsService.mark(user.sub, dto));
   }
 
   @Patch(':id')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a dose log' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: DoseLogResponseDto })
@@ -90,16 +87,17 @@ export class MedicineDoseLogsController {
     @Param('id') id: string,
     @Body() dto: UpdateDoseLogDto,
   ) {
-    return successEnvelope(await this.service.update(user.sub, id, dto));
+    return successEnvelope(
+      await this.doseLogsService.update(user.sub, id, dto),
+    );
   }
 
   @Delete(':id')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Soft-delete a dose log' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200 })
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    await this.service.delete(user.sub, id);
+    await this.doseLogsService.delete(user.sub, id);
     return successEnvelope(null);
   }
 }

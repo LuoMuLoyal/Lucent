@@ -9,7 +9,6 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { Public } from '../auth/decorators/public.decorator';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
@@ -23,9 +22,8 @@ import {
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
 import { ResultCode, successEnvelope } from '../../common/api';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { UserPayload } from '../auth/services/auth.service';
-import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
+import { CurrentUser, Public } from '../auth/decorators';
+import type { UserPayload } from '../auth/services';
 import {
   CnMedicineDetailDto,
   DrugbankMedicineDetailDto,
@@ -34,13 +32,14 @@ import {
   MedicineSafetyTipResponseDto,
   MedicineSearchQueryDto,
   MedicineSearchResponseDto,
+  RecognizeMedicineDto,
 } from './dto';
 import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/cache.constants';
-import { MedicinesService } from './services/medicines.service';
-import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
+import { MedicinesService, MedicineRecognitionQueueService } from './services';
 
 @ApiTags('Medicines')
 @ApiExtraModels(DrugbankMedicineDetailDto, CnMedicineDetailDto)
+@ApiBearerAuth('access-token')
 @Controller('medicines')
 export class MedicinesController {
   constructor(
@@ -150,7 +149,6 @@ export class MedicinesController {
   // ── AI Medicine Box Recognition ──────────────────────────────────
 
   @Post('recognize')
-  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'AI recognize medicine box image and extract medicine info',
@@ -165,7 +163,6 @@ export class MedicinesController {
   }
 
   @Post('recognize/async')
-  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Enqueue async medicine box image recognition' })
   @ApiResponse({
@@ -205,7 +202,6 @@ export class MedicinesController {
 
   @SkipThrottle()
   @Get('recognize/status/:jobId')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Poll async medicine recognition status' })
   @ApiResponse({
     status: 200,

@@ -17,23 +17,23 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
-import type { UserPayload } from '../auth/services/auth.service';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { UserPayload } from '../auth/services';
+import { CurrentUser } from '../auth/decorators';
 import {
   CreateMedicineReminderDto,
   MedicineReminderListResponseDto,
   MedicineReminderResponseDto,
   UpdateMedicineReminderDto,
 } from './dto';
-import { MedicineRemindersService } from './services/reminders.service';
+import { MedicineRemindersService } from './services';
 
 @ApiTags('Medicine Reminders')
+@ApiBearerAuth('access-token')
 @Controller('medicine-reminders')
 export class MedicineRemindersController {
-  constructor(private readonly service: MedicineRemindersService) {}
+  constructor(private readonly remindersService: MedicineRemindersService) {}
 
   @Get()
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List medicine reminder schedules' })
   @ApiQuery({
     name: 'activeOnly',
@@ -46,23 +46,21 @@ export class MedicineRemindersController {
     @Query('activeOnly') activeOnly?: string,
   ) {
     return successEnvelope(
-      await this.service.list(user.sub, this.parseBoolean(activeOnly)),
+      await this.remindersService.list(user.sub, this.parseBoolean(activeOnly)),
     );
   }
 
   @Post()
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a medicine reminder schedule' })
   @ApiResponse({ status: 201, type: MedicineReminderResponseDto })
   async create(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateMedicineReminderDto,
   ) {
-    return successEnvelope(await this.service.create(user.sub, dto));
+    return successEnvelope(await this.remindersService.create(user.sub, dto));
   }
 
   @Patch(':id')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a medicine reminder schedule' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: MedicineReminderResponseDto })
@@ -71,16 +69,17 @@ export class MedicineRemindersController {
     @Param('id') id: string,
     @Body() dto: UpdateMedicineReminderDto,
   ) {
-    return successEnvelope(await this.service.update(user.sub, id, dto));
+    return successEnvelope(
+      await this.remindersService.update(user.sub, id, dto),
+    );
   }
 
   @Delete(':id')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Soft-delete a medicine reminder schedule' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200 })
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
-    await this.service.delete(user.sub, id);
+    await this.remindersService.delete(user.sub, id);
     return successEnvelope(null);
   }
 

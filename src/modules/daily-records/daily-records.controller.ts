@@ -18,8 +18,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { successEnvelope } from '../../common/api';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import type { UserPayload } from '../auth/services/auth.service';
+import { CurrentUser } from '../auth/decorators';
+import type { UserPayload } from '../auth/services';
 import {
   CreateDailyRecordDto,
   UpdateDailyRecordDto,
@@ -33,11 +33,12 @@ import {
   QueryDailyRecordDto,
 } from './dto';
 import { DailyRecordCandidatesService } from './services/candidates/service';
-import { DailyRecordImageUploadService } from './services/image-upload.service';
-import { DailyRecordsService } from './services/records.service';
+import { DailyRecordImageUploadService } from './services';
+import { DailyRecordsService } from './services';
 import { I18nLang } from 'nestjs-i18n';
 
 @ApiTags('Daily Records')
+@ApiBearerAuth('access-token')
 @Controller('daily-records')
 export class DailyRecordsController {
   constructor(
@@ -47,7 +48,6 @@ export class DailyRecordsController {
   ) {}
 
   @Get()
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List daily records for a given date' })
   @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
   @ApiQuery({ name: 'kind', required: false })
@@ -69,7 +69,6 @@ export class DailyRecordsController {
   }
 
   @Get('summary')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get daily record summary (counts by kind)' })
   @ApiQuery({ name: 'date', required: true, example: '2026-06-04' })
   @ApiResponse({ status: 200, type: DailyRecordSummaryResponseDto })
@@ -79,7 +78,6 @@ export class DailyRecordsController {
   }
 
   @Post('attachments/images/presign-upload')
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Create a Tencent COS signed URL for daily record image upload',
   })
@@ -94,7 +92,6 @@ export class DailyRecordsController {
 
   @Post('candidate-records/generate')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Generate AI candidate daily records from a natural-language note',
   })
@@ -113,7 +110,6 @@ export class DailyRecordsController {
   }
 
   @Get(':id')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get a daily record by id' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: DailyRecordResponseDto })
@@ -123,7 +119,6 @@ export class DailyRecordsController {
   }
 
   @Post()
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Create a daily record' })
   @ApiResponse({ status: 201, type: DailyRecordResponseDto })
   async create(
@@ -135,7 +130,6 @@ export class DailyRecordsController {
   }
 
   @Patch(':id')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Update a daily record' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200, type: DailyRecordResponseDto })
@@ -149,7 +143,6 @@ export class DailyRecordsController {
   }
 
   @Delete(':id')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Soft-delete a daily record' })
   @ApiParam({ name: 'id' })
   @ApiResponse({ status: 200 })
