@@ -425,13 +425,10 @@ export class SuggestionService {
   }
 
   private localizeEvidenceValue(value: string, locale: string): string {
-    const translated = this.i18n.t(`today-suggestion.evidence_value.${value}`, {
-      lang: locale,
-    });
-    // If the key wasn't found, i18n returns the key path itself — fall back to raw value
-    return translated.startsWith('today-suggestion.evidence_value.')
-      ? value
-      : translated;
+    const key = `today-suggestion.evidence_value.${value}`;
+    const translated = this.i18n.t(key, { lang: locale });
+    // When i18n can't find the key, it returns the key path itself — fall back to raw value
+    return translated === key ? value : translated;
   }
 
   private localizeActionLabel(label: string, locale: string): string {

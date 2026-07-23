@@ -261,6 +261,7 @@ SuggestionCopyService.getOrEnqueue(queue)
 - Key: `today_suggestion:copy:{hash(templateKey+params+locale)}`
 - TTL: 1 小时（文案不常变化）
 - Cache key 不包含 evidence 等上下文字段（evidence 由 rule+params 确定性生成，不影响去重）
+- Cache key 不包含 userId（跨用户共享）。这是有意设计——copy 文案仅来源于规则逻辑（evidence 值、建议类型等），不包含用户敏感信息。`buildCacheKey()` 方法注释中明确禁止在 params 中传入 userId 等用户敏感数据
 
 ### 配置项
 

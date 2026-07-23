@@ -286,6 +286,16 @@ export class SuggestionCopyService {
     };
   }
 
+  /**
+   * Builds a deterministic cache key from template key, params, and locale.
+   *
+   * IMPORTANT: This cache is intentionally shared across users — the same
+   * template + params + locale always produces the same copy. This is safe
+   * because copy text is derived from rule logic (evidence values, suggestion
+   * types, etc.), not from user-specific data. Never include userId or other
+   * user-sensitive information in `params`, or one user's copy may be served
+   * to another.
+   */
   private buildCacheKey(
     templateKey: string,
     params: Record<string, string | number>,
