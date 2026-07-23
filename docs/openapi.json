@@ -1321,6 +1321,11 @@
             }
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Get random medication safety tips",
         "tags": ["Medicines"]
       }
@@ -1396,6 +1401,11 @@
             }
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Search medicines from a selected knowledge source",
         "tags": ["Medicines"]
       }
@@ -1446,6 +1456,11 @@
             }
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Get medicine detail from a selected knowledge source",
         "tags": ["Medicines"]
       }

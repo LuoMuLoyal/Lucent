@@ -1,6 +1,10 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-20
+Last updated: 2026-07-23
+
+- Barrel files (`index.ts`) must never export `.spec.ts` files — spec exports cause `nest build` to
+  compile test files into `dist/`, and runtime barrel loading triggers `describe`/`it` calls that
+  fail with `ReferenceError` in non-test contexts (e.g. `pnpm export:openapi`).
 
 - auth 模块三处静默 catch 补充 logger.warn：`auth.service.ts` refresh、`auth-oauth-state.service.ts`
   normalizeCallbackUri、`credential-auth.service.ts` \_notifyPasswordChanged，保留生产环境可观测性。
