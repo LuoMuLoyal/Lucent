@@ -5878,14 +5878,20 @@
         },
         "required": ["page", "pageSize", "total", "totalPages"]
       },
-      "MedicineSearchMetaDto": {
+      "MedicineSearchDataDto": {
         "type": "object",
         "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSearchItemDto"
+            }
+          },
           "pagination": {
             "$ref": "#/components/schemas/MedicinePaginationDto"
           }
         },
-        "required": ["pagination"]
+        "required": ["items", "pagination"]
       },
       "MedicineSearchResponseDto": {
         "type": "object",
@@ -5899,16 +5905,10 @@
             "example": ""
           },
           "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineSearchItemDto"
-            }
-          },
-          "meta": {
-            "$ref": "#/components/schemas/MedicineSearchMetaDto"
+            "$ref": "#/components/schemas/MedicineSearchDataDto"
           }
         },
-        "required": ["code", "message", "data", "meta"]
+        "required": ["code", "message", "data"]
       },
       "MedicineDetailDataDto": {
         "type": "object",
@@ -9456,6 +9456,10 @@
             "items": {
               "$ref": "#/components/schemas/SuggestionItemDto"
             }
+          },
+          "degraded": {
+            "type": "object",
+            "description": "When true, one or more suggestion rules threw an error during evaluation — the returned list may be incomplete."
           }
         },
         "required": ["generatedAt"]

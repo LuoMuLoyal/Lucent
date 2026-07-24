@@ -26,13 +26,16 @@ interface MedicineSearchItem {
   matchedBy: string[];
 }
 
-interface MedicineSearchMeta {
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
+interface MedicinePagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+interface MedicineSearchData {
+  items: MedicineSearchItem[];
+  pagination: MedicinePagination;
 }
 
 interface MedicineDetailData {
@@ -138,26 +141,23 @@ describe('Medicines API (e2e)', () => {
       .query({ q: 'ibu', page: 1, pageSize: 10 })
       .expect(200);
 
-    const body = response.body as ApiEnvelope<MedicineSearchItem[]> & {
-      meta: MedicineSearchMeta;
-    };
+    const body = response.body as ApiEnvelope<MedicineSearchData>;
     expect(body.code).toBe(ResultCode.SUCCESS);
-    expect(body.meta.pagination).toEqual({
+    expect(body.data.pagination).toEqual({
       page: 1,
       pageSize: 10,
       total: 1,
       totalPages: 1,
     });
 
-    const data = expectData(body);
-    expect(data).toHaveLength(1);
-    expect(data[0]).toMatchObject({
+    expect(body.data.items).toHaveLength(1);
+    expect(body.data.items[0]).toMatchObject({
       id: 'DB01050',
       source: 'drugbank',
       name: 'Ibuprofen',
       subtitle: 'CAS 15687-27-1 / approved / small molecule',
     });
-    expect(data[0]?.matchedBy).toContain('name');
+    expect(body.data.items[0]?.matchedBy).toContain('name');
   });
 
   it('should search the chinese source when requested', async () => {
@@ -182,14 +182,11 @@ describe('Medicines API (e2e)', () => {
       .query({ source: 'cn', q: '布洛芬', page: 1, pageSize: 10 })
       .expect(200);
 
-    const body = response.body as ApiEnvelope<MedicineSearchItem[]> & {
-      meta: MedicineSearchMeta;
-    };
+    const body = response.body as ApiEnvelope<MedicineSearchData>;
     expect(body.code).toBe(ResultCode.SUCCESS);
 
-    const data = expectData(body);
-    expect(data).toHaveLength(1);
-    expect(data[0]).toMatchObject({
+    expect(body.data.items).toHaveLength(1);
+    expect(body.data.items[0]).toMatchObject({
       id: 'cn_ibuprofen_capsule',
       source: 'cn',
       name: '布洛芬缓释胶囊',

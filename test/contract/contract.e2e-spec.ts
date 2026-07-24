@@ -508,7 +508,8 @@ describe('API Contract Tests (e2e)', () => {
         .expect(200);
 
       assertEnvelopeShape(res.body);
-      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(res.body.data).toHaveProperty('items');
+      expect(res.body.data).toHaveProperty('pagination');
     });
   });
 
@@ -641,23 +642,19 @@ describe('API Contract Tests (e2e)', () => {
   // ── Pagination meta contract ───────────────────────────────
 
   describe('Pagination meta — contract', () => {
-    it('GET /api/v1/medicines should include pagination metadata', async () => {
+    it('GET /api/v1/medicines should include pagination in data', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/medicines')
         .query({ q: 'test', page: 1, pageSize: 5 })
         .set('Authorization', bearer(accessToken))
         .expect(200);
 
-      // Pagination metadata may be at body.meta or body.data depending on endpoint
-      // For medicines search, it uses meta.pagination
-      // At minimum, the response must be a valid envelope
+      // Pagination is embedded inside data, not at the top-level meta
       assertEnvelopeShape(res.body);
-      // If meta exists, verify its shape
-      if (res.body.meta?.pagination) {
-        expect(res.body.meta.pagination).toHaveProperty('page');
-        expect(res.body.meta.pagination).toHaveProperty('pageSize');
-        expect(res.body.meta.pagination).toHaveProperty('total');
-      }
+      expect(res.body.data).toHaveProperty('pagination');
+      expect(res.body.data.pagination).toHaveProperty('page');
+      expect(res.body.data.pagination).toHaveProperty('pageSize');
+      expect(res.body.data.pagination).toHaveProperty('total');
     });
 
     it('GET /api/v1/user/daily-records should return items array', async () => {

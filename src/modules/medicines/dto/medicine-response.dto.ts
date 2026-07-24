@@ -1,10 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 import { MedicineDetailDataDto } from './medicine-detail.dto';
-import {
-  MedicineSearchItemDto,
-  MedicineSearchMetaDto,
-} from './medicine-search.dto';
+import { MedicineSearchDataDto } from './medicine-search.dto';
 
 export class MedicineSearchResponseDto {
   @ApiProperty({ example: 0 })
@@ -13,11 +10,8 @@ export class MedicineSearchResponseDto {
   @ApiProperty({ example: '' })
   message!: string;
 
-  @ApiProperty({ type: () => MedicineSearchItemDto, isArray: true })
-  data!: MedicineSearchItemDto[];
-
-  @ApiProperty({ type: () => MedicineSearchMetaDto })
-  meta!: MedicineSearchMetaDto;
+  @ApiProperty({ type: () => MedicineSearchDataDto })
+  data!: MedicineSearchDataDto;
 }
 
 export class MedicineDetailResponseDto {

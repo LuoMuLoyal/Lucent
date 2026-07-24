@@ -74,4 +74,60 @@ describe('MedicinesController', () => {
       );
     });
   });
+
+  describe('search', () => {
+    it('returns a standard envelope with items and pagination in data', async () => {
+      const searchResult = {
+        items: [
+          {
+            id: 'DB01050',
+            source: 'drugbank' as const,
+            name: 'Ibuprofen',
+            subtitle: 'CAS 15687-27-1',
+            summary: 'A non-steroidal anti-inflammatory drug.',
+            tags: ['approved', 'small molecule'],
+            imageUrl: null,
+            matchedBy: ['name'],
+          },
+        ],
+        pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+      };
+      service.searchWithCache.mockResolvedValue(searchResult);
+
+      const result = await controller.search(
+        { source: 'drugbank', q: 'ibu', page: 1, pageSize: 20 } as never,
+        undefined,
+      );
+
+      expect(result).toEqual({
+        code: 0,
+        message: '',
+        data: {
+          items: searchResult.items,
+          pagination: searchResult.pagination,
+        },
+      });
+      expect(service.searchWithCache).toHaveBeenCalledWith(
+        { source: 'drugbank', q: 'ibu', page: 1, pageSize: 20 },
+        false,
+      );
+    });
+
+    it('bypasses cache when header is set to true', async () => {
+      service.searchWithCache.mockResolvedValue({
+        items: [],
+        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+      });
+
+      await controller.search(
+        { source: 'drugbank', q: 'test', page: 1, pageSize: 20 } as never,
+        'true',
+      );
+
+      expect(service.searchWithCache).toHaveBeenCalledWith(
+        { source: 'drugbank', q: 'test', page: 1, pageSize: 20 },
+        true,
+      );
+    });
+  });
 });

@@ -21,7 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
-import { ResultCode, successEnvelope } from '../../common/api';
+import { successEnvelope } from '../../common/api';
 import { CurrentUser, Public } from '../auth/decorators';
 import type { UserPayload } from '../auth/services';
 import {
@@ -96,14 +96,10 @@ export class MedicinesController {
       this.shouldBypassCache(bypassCacheHeader),
     );
 
-    return {
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: result.items,
-      meta: {
-        pagination: result.pagination,
-      },
-    };
+    return successEnvelope({
+      items: result.items,
+      pagination: result.pagination,
+    });
   }
 
   @Public()

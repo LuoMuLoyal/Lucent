@@ -73,7 +73,10 @@ export class MedicinePaginationDto {
   totalPages!: number;
 }
 
-export class MedicineSearchMetaDto {
+export class MedicineSearchDataDto {
+  @ApiProperty({ type: () => MedicineSearchItemDto, isArray: true })
+  items!: MedicineSearchItemDto[];
+
   @ApiProperty({ type: () => MedicinePaginationDto })
   pagination!: MedicinePaginationDto;
 }
