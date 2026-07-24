@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -38,6 +39,8 @@ interface JwtConfigShape {
 
 @Injectable()
 export class AuthTokenService {
+  private readonly logger = new Logger(AuthTokenService.name);
+
   constructor(
     private readonly sessionRepository: AuthSessionRepositoryPort,
     private readonly jwtService: JwtService,
@@ -68,15 +71,12 @@ export class AuthTokenService {
     const accessTokenExpiresInMs = config.accessTtl * 1000;
     const refreshTokenExpiresInMs = config.refreshTtl * 1000;
 
-    const accessToken = await this.jwtService.signAsync(payload, {
-      secret: config.accessSecret,
-      expiresIn: config.accessTtl,
-      algorithm: 'HS512',
-      jwtid: accessTokenId,
-      issuer: config.issuer,
-      audience: config.audience,
-    });
-
+    // Create the session record BEFORE signing the JWT. If signAsync fails
+    // after the session is created, the refreshToken is never returned to the
+    // caller so the orphaned session is harmless and will expire via TTL.
+    // The previous order (sign JWT first, then create session) could leave the
+    // user with a valid accessToken but no session record, making refresh
+    // impossible and forcing a full re-login.
     const sessionInput: Parameters<
       AuthSessionRepositoryPort['createSession']
     >[0] = {
@@ -90,6 +90,24 @@ export class AuthTokenService {
       sessionInput.context = contextData;
     }
     await this.sessionRepository.createSession(sessionInput);
+
+    let accessToken: string;
+    try {
+      accessToken = await this.jwtService.signAsync(payload, {
+        secret: config.accessSecret,
+        expiresIn: config.accessTtl,
+        algorithm: 'HS512',
+        jwtid: accessTokenId,
+        issuer: config.issuer,
+        audience: config.audience,
+      });
+    } catch (error) {
+      this.logger.error(
+        `JWT signing failed for user ${user.id} after session creation: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
 
     return {
       accessToken,

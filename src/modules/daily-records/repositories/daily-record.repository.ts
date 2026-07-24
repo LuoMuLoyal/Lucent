@@ -5,7 +5,8 @@
  * usage, making queries reusable and testable without mocking the full
  * PrismaClient surface.
  */
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Prisma, type DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
 import { nonDeleted } from '../../../common/helpers';
@@ -145,6 +146,16 @@ export abstract class DailyRecordRepositoryPort {
 export class DailyRecordRepository
   implements DailyRecordRepositoryPort, DailyRecordReaderPort
 {
+  private readonly logger = new Logger(DailyRecordRepository.name);
+
+  /**
+   * Tracks whether the current async context is already inside a
+   * `transaction()` call. Used to detect and warn about nested
+   * transactions, which Prisma silently degrades to independent
+   * connections (losing atomicity).
+   */
+  private static readonly transactionAls = new AsyncLocalStorage<boolean>();
+
   constructor(private readonly prisma: PrismaService) {}
 
   async listFactsInRange(
@@ -257,6 +268,18 @@ export class DailyRecordRepository
   async transaction<T>(
     fn: (tx: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
-    return this.prisma.$transaction(fn);
+    const isNested = DailyRecordRepository.transactionAls.getStore() === true;
+    if (isNested) {
+      this.logger.warn(
+        'Nested Prisma transaction detected — Prisma will silently degrade ' +
+          'to an independent connection, losing atomicity. Move side effects ' +
+          'outside the callback and ensure only DB writes that need atomicity ' +
+          'are inside.',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      return DailyRecordRepository.transactionAls.run(true, () => fn(tx));
+    });
   }
 }

@@ -117,13 +117,24 @@ export abstract class BaseLlmGeneratorService<
 
     let stream: AsyncIterable<AIMessageChunk>;
 
+    // Track the most recent stream reference so we can attempt cleanup if
+    // withLlmRetry ultimately fails. Each retry call to model.stream()
+    // may establish an HTTP connection; if the overall retry sequence
+    // throws, we try to close the last obtained stream to avoid leaking
+    // the underlying connection.
+    let lastStream: AsyncIterable<AIMessageChunk> | undefined;
+
     // Acquire outside the try block so that an `LlmCircuitOpenError` thrown
     // by `acquire()` does not trigger `recordFailure()` (which would be a
     // no-op once fix-3 is applied, but is clearer this way).
     this.circuitBreaker.acquire();
     try {
       stream = await withLlmRetry(
-        () => model.stream(this.buildMessages(context, promptCopy)),
+        async () => {
+          const s = await model.stream(this.buildMessages(context, promptCopy));
+          lastStream = s;
+          return s;
+        },
         {
           onRetry: (error, attempt) => {
             if (isRetryableLlmError(error)) {
@@ -135,6 +146,24 @@ export abstract class BaseLlmGeneratorService<
         },
       );
     } catch (error) {
+      // Best-effort cleanup of any stream created during a failed retry.
+      // LangChain streams are typically AsyncGenerators; calling return()
+      // triggers their cleanup logic and releases the underlying HTTP
+      // connection.
+      if (lastStream != null) {
+        const maybeReturn = (
+          lastStream as {
+            return?: (...args: unknown[]) => Promise<unknown>;
+          }
+        ).return;
+        if (typeof maybeReturn === 'function') {
+          try {
+            await maybeReturn.call(lastStream, undefined);
+          } catch {
+            // best-effort — ignore cleanup errors
+          }
+        }
+      }
       this.circuitBreaker.recordFailure();
       this.metricsService.recordLlmCall(
         this.modelRole,

@@ -121,6 +121,7 @@ export class SuggestionService {
 
     // 3. Run all rules
     const candidates: SuggestionCandidate[] = [];
+    let degraded = false;
     for (const rule of this.registry.getAll()) {
       if (rule.isBaselineRequired && rule.baselineDimensions != null) {
         const allReady = rule.baselineDimensions.every(
@@ -137,6 +138,7 @@ export class SuggestionService {
           candidates.push(candidate);
         }
       } catch (error) {
+        degraded = true;
         this.logger.error(
           `Rule ${rule.ruleId} threw an error: ${error instanceof Error ? error.message : String(error)}`,
           error instanceof Error ? error.stack : undefined,
@@ -271,6 +273,7 @@ export class SuggestionService {
       secondary: filteredSecondary.length > 0 ? filteredSecondary : undefined,
       observations:
         filteredObservations.length > 0 ? filteredObservations : undefined,
+      ...(degraded ? { degraded: true } : {}),
     };
 
     // Cache the result for subsequent requests

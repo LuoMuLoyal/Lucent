@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { User } from '#generated/prisma/client';
 import { UserService } from '../../../user/services/user.service';
@@ -28,6 +28,8 @@ import type { AuthRequestContext } from '../../types/auth-request';
 
 @Injectable()
 export class AuthOAuthFacadeService {
+  private readonly logger = new Logger(AuthOAuthFacadeService.name);
+
   constructor(
     private readonly userService: UserService,
     private readonly wechatWebOAuthProvider: WechatWebOAuthProvider,
@@ -183,8 +185,10 @@ export class AuthOAuthFacadeService {
     await this.authOAuthService.linkOAuthProfileToUser(userId, profile);
     this.authNotificationService
       .notifyIdentityLinked(userId, profile)
-      .catch(() => {
-        // notification failure is non-fatal
+      .catch((error: unknown) => {
+        this.logger.warn(
+          `Failed to send identity-linked notification for user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       });
   }
 
@@ -214,8 +218,10 @@ export class AuthOAuthFacadeService {
     );
     this.authNotificationService
       .notifyOAuthLogin(updatedUser.id, profile)
-      .catch(() => {
-        // notification failure is non-fatal
+      .catch((error: unknown) => {
+        this.logger.warn(
+          `Failed to send oauth-login notification for user ${updatedUser.id}: ${error instanceof Error ? error.message : String(error)}`,
+        );
       });
     return { user: updatedUser, ...tokens };
   }

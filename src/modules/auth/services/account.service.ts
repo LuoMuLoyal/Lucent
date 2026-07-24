@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { I18nService } from 'nestjs-i18n';
 
@@ -14,6 +14,8 @@ import { AuthAccountRepositoryPort } from '../repositories/account.repository';
 
 @Injectable()
 export class AuthAccountService {
+  private readonly logger = new Logger(AuthAccountService.name);
+
   constructor(
     private readonly accountRepository: AuthAccountRepositoryPort,
     private readonly userService: UserService,
@@ -42,8 +44,13 @@ export class AuthAccountService {
       let valid: boolean;
       try {
         valid = await argon2.verify(user.passwordHash, dto.password);
-      } catch {
-        // Corrupted or invalid hash — treat as wrong password, not a 500
+      } catch (error) {
+        // Corrupted or invalid hash — treat as wrong password, not a 500,
+        // but log the underlying error so infrastructure issues (argon2
+        // module misconfiguration, OOM, etc.) are not silently masked.
+        this.logger.warn(
+          `argon2.verify threw for user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
         valid = false;
       }
       if (!valid) {

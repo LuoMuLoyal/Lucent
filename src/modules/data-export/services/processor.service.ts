@@ -98,7 +98,9 @@ export class DataExportProcessorService {
         data: { status: 'failed', errorMessage: message },
       });
 
-      throw error;
+      throw new Error(
+        `Export processing failed for request ${exportRequestId}`,
+      );
     }
   }
 

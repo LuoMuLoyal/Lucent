@@ -234,20 +234,14 @@ export class ReminderSchedulerService {
         return;
       }
 
-      await this.prisma.userReminderDelivery.create({
-        data: {
-          userId: reminder.userId,
-          reminderId: reminder.id,
-          channel: DELIVERY_CHANNEL_IN_APP,
-          status: DELIVERY_STATUS_DELIVERED,
-          scheduledFor,
-          deliveredAt: now(),
-        },
-      });
-
       const localDate = this.formatLocalDate(scheduledFor, reminder.timezone);
       const label = reminder.label ?? '用药提醒';
 
+      // Send the notification FIRST. If it fails, no delivery record is
+      // created, so the next scheduler tick will retry. The previous order
+      // (create delivery record first, then send notification) meant that a
+      // notification failure would permanently block the reminder because the
+      // dedup check would find the delivery record and skip.
       await this.notificationsService.createOrReplaceScoped(
         reminder.userId,
         {
@@ -266,6 +260,18 @@ export class ReminderSchedulerService {
           date: localDate,
         },
       );
+
+      // Notification succeeded — now persist the delivery record for dedup.
+      await this.prisma.userReminderDelivery.create({
+        data: {
+          userId: reminder.userId,
+          reminderId: reminder.id,
+          channel: DELIVERY_CHANNEL_IN_APP,
+          status: DELIVERY_STATUS_DELIVERED,
+          scheduledFor,
+          deliveredAt: now(),
+        },
+      });
 
       this.logger.debug(
         `Dispatched reminder ${reminder.id} to user ${reminder.userId}`,

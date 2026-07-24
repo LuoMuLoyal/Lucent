@@ -298,16 +298,17 @@ describe('ReminderSchedulerService', () => {
       buildReminderRow({ id: 'r-fail' }),
       buildReminderRow({ id: 'r-ok' }),
     ]);
-    // First delivery check succeeds, first create fails
-    prisma.userReminderDelivery.create
-      .mockRejectedValueOnce(new Error('write conflict'))
-      .mockResolvedValueOnce({});
+    // First notification send fails, second succeeds — the first reminder
+    // should be skipped (no delivery record) and the second should dispatch.
+    notifications.createOrReplaceScoped
+      .mockRejectedValueOnce(new Error('notify conflict'))
+      .mockResolvedValueOnce({} as never);
 
     await service.dispatchDueReminders();
 
-    // Second reminder should still be dispatched
-    expect(prisma.userReminderDelivery.create).toHaveBeenCalledTimes(2);
-    expect(notifications.createOrReplaceScoped).toHaveBeenCalledTimes(1);
+    // Only the second reminder's delivery record should be created
+    expect(prisma.userReminderDelivery.create).toHaveBeenCalledTimes(1);
+    expect(notifications.createOrReplaceScoped).toHaveBeenCalledTimes(2);
   });
 
   // ── daysOfWeek edge cases ───────────────────────────────────────

@@ -126,7 +126,7 @@ describe('DataExportProcessorService', () => {
     expect(pdfService.buildPrintPdf).toHaveBeenCalledTimes(1);
   });
 
-  it('marks the request failed when generation throws and re-throws the error', async () => {
+  it('marks the request failed when generation throws and wraps the error', async () => {
     const { prisma, reportsService, processor } = createProcessor();
     reportsService.getDashboard.mockRejectedValue(new Error('report failed'));
 
@@ -136,7 +136,7 @@ describe('DataExportProcessorService', () => {
         userId: 'user-1',
         language: 'zh-CN',
       }),
-    ).rejects.toThrow('report failed');
+    ).rejects.toThrow('Export processing failed for request export-1');
 
     expect(prisma.dataExportRequest.update).toHaveBeenLastCalledWith({
       where: { id: 'export-1' },
@@ -147,7 +147,7 @@ describe('DataExportProcessorService', () => {
     });
   });
 
-  it('uses a generic error message when thrown value is not an Error', async () => {
+  it('wraps non-Error throwables into a safe error message', async () => {
     const { prisma, reportsService, processor } = createProcessor();
     reportsService.getDashboard.mockRejectedValue('unknown failure');
 
@@ -157,7 +157,7 @@ describe('DataExportProcessorService', () => {
         userId: 'user-1',
         language: 'zh-CN',
       }),
-    ).rejects.toBe('unknown failure');
+    ).rejects.toThrow('Export processing failed for request export-1');
 
     expect(prisma.dataExportRequest.update).toHaveBeenLastCalledWith({
       where: { id: 'export-1' },

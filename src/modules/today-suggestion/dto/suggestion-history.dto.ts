@@ -23,6 +23,12 @@ export class TodaySuggestionsDataDto {
     description: 'Low-confidence observations',
   })
   observations?: SuggestionItemDto[] | undefined;
+
+  @ApiPropertyOptional({
+    description:
+      'When true, one or more suggestion rules threw an error during evaluation — the returned list may be incomplete.',
+  })
+  degraded?: boolean | undefined;
 }
 
 /** Envelope response for GET /today/suggestions. */
