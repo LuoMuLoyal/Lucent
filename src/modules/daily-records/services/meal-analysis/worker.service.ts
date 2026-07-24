@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
-import { normalizeNullableText } from '../../../../common/helpers';
-import { toInputJsonValue } from '../../../../common/helpers';
+import { normalizeNullableText } from '../../../../common';
+import { toInputJsonValue } from '../../../../common';
 import { PrismaService } from '../../../../prisma';
-import { CosStorageRuntime } from '../../../../common/storage';
+import { CosStorageRuntime } from '../../../../common';
 import {
   getMealSourceRevision,
   parseMealRecordPayload,
 } from '../../types/meal-analysis.types';
 import { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
 import { MealAnalysisVisionService } from '../meal-analysis/vision.service';
-import { now } from '../../../../common/helpers';
+import { now } from '../../../../common';
 
 interface MealAnalysisJobData {
   userId: string;

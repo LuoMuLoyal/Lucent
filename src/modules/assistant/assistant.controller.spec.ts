@@ -2,7 +2,7 @@ const prepareSse = vi.fn();
 const writeSseEvent = vi.fn();
 const endSse = vi.fn();
 
-vi.mock('../../common/api', async (importOriginal) => {
+vi.mock('../../common', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
@@ -21,9 +21,9 @@ vi.mock('../../common/api', async (importOriginal) => {
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import { ResultCode, SseConnectionRegistry } from '../../common/api';
+import { ResultCode, SseConnectionRegistry } from '../../common';
 import { AssistantController } from './assistant.controller';
-import { AssistantService } from './services';
+import { AssistantService } from './services/core.service';
 
 describe('AssistantController', () => {
   let controller: AssistantController;

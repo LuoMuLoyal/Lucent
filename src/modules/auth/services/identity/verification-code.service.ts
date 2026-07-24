@@ -13,7 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 
-import { ResultCode } from '../../../../common/api';
+import { ResultCode } from '../../../../common';
 import {
   DEFAULT_VERIFICATION_CODE_LENGTH,
   DEFAULT_VERIFICATION_CODE_TTL_MS,

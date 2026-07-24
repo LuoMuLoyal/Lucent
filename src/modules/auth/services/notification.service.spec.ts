@@ -1,4 +1,4 @@
-import type { NotificationsService } from '../../notifications/services/notifications.service';
+import type { NotificationsService } from '../../notifications';
 import type { OAuthProfile } from '../types/oauth.types';
 import { AuthNotificationService } from './notification.service';
 

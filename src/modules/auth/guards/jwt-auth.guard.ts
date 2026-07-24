@@ -1,4 +1,4 @@
-import { unauthorized } from '../../../common/helpers';
+import { unauthorized } from '../../../common';
 import {
   ExecutionContext,
   Injectable,
@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 import { I18nContext } from 'nestjs-i18n';
-import { ResultCode } from '../../../common/api';
+import { ResultCode } from '../../../common';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 /**

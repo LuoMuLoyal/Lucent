@@ -1,13 +1,13 @@
-import { badRequest } from '../../../common/helpers';
+import { badRequest } from '../../../common';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
-import { ResultCode } from '../../../common/api';
-import { now } from '../../../common/helpers';
-import { CosStorageRuntime } from '../../../common/storage';
-import type { CreateDailyRecordImageUploadDto } from '../dto';
+import { ResultCode } from '../../../common';
+import { now } from '../../../common';
+import { CosStorageRuntime } from '../../../common';
+import type { CreateDailyRecordImageUploadDto } from '../dto/record-image-upload.dto';
 
 const PROVIDER = 'tencent-cos';
 

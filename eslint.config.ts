@@ -59,53 +59,13 @@ export default tseslint.config(
       '@typescript-eslint/no-confusing-void-expression': 'error',
 
       // ── 跨模块深路径引用禁止 ──
-      // 有 barrel 的基础设施模块必须经 barrel 导入，不得深路径引用内部文件。
-      // 新增 barrel 后在此追加对应 pattern。(Architecture review #12)
+      // All barrel-restricted-imports patterns removed — barrel-cleanup refactoring
+      // replaced sub-directory barrels with module root barrels and deep-path imports.
+      // See AGENTS.md "Barrel Exports" for the current convention.
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['**/llm-runtime/services/*'],
-              message:
-                "Use the barrel 'llm-runtime' or 'llm-runtime/services' instead of deep-path imports.",
-            },
-            {
-              group: ['**/auth/services/*'],
-              message:
-                "Use the barrel '../auth/services' instead of deep-path imports.",
-            },
-            {
-              group: ['**/auth/decorators/*'],
-              message:
-                "Use the barrel '../auth/decorators' instead of deep-path imports.",
-            },
-            {
-              group: ['**/auth/types/*'],
-              message:
-                "Use the barrel '../auth/types' instead of deep-path imports.",
-            },
-            {
-              group: ['**/prisma/prisma.*'],
-              message:
-                "Use the barrel '../../prisma' instead of deep-path imports.",
-            },
-            {
-              group: ['**/common/helpers/*'],
-              message:
-                "Use the barrel '../../common/helpers' instead of deep-path imports.",
-            },
-            {
-              group: ['**/common/interceptors/*'],
-              message:
-                "Use the barrel '../../common/interceptors' instead of deep-path imports.",
-            },
-            {
-              group: ['**/common/api/*'],
-              message:
-                "Use the barrel '../../common/api' instead of deep-path imports.",
-            },
-          ],
+          patterns: [],
         },
       ],
 

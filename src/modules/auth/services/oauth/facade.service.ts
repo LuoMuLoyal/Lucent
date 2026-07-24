@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import { User } from '#generated/prisma/client';
-import { UserService } from '../../../user/services/user.service';
+import { UserService } from '../../../user';
 import {
   AppleOAuthCallbackDto,
   OAuthAuthorizeDto,

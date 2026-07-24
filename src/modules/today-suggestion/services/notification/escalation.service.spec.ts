@@ -1,6 +1,10 @@
 import { EscalationService } from './escalation.service';
-import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
-import type { SuggestionCandidate } from '../../types';
+import {
+  SuggestionType,
+  TriggerType,
+  SuggestionConfidence,
+} from '../../types/suggestion.types';
+import type { SuggestionCandidate } from '../../types/candidate.types';
 
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},

@@ -16,16 +16,18 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common/api';
-import type { UserPayload } from '../auth/services';
-import { CurrentUser } from '../auth/decorators';
+import { successEnvelope } from '../../common';
+import type { UserPayload } from '../auth';
+import { CurrentUser } from '../auth';
+import { CreateMedicineReminderDto } from './dto/create.dto';
+
 import {
-  CreateMedicineReminderDto,
   MedicineReminderListResponseDto,
   MedicineReminderResponseDto,
-  UpdateMedicineReminderDto,
-} from './dto';
-import { MedicineRemindersService } from './services';
+} from './dto/response.dto';
+
+import { UpdateMedicineReminderDto } from './dto/update.dto';
+import { MedicineRemindersService } from './services/reminders.service';
 
 @ApiTags('Medicine Reminders')
 @ApiBearerAuth('access-token')

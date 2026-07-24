@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../../common/helpers';
+import { nonDeleted } from '../../../common';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -8,17 +8,16 @@ import { JwtService } from '@nestjs/jwt';
 import { I18nService } from 'nestjs-i18n';
 
 import { AuthService } from './auth.service';
-import {
-  AuthSessionRepositoryPort,
-  AuthAccountRepositoryPort,
-} from '../repositories';
-import { UserService } from '../../user/services/user.service';
-import { VerificationCodeService } from './identity';
-import { AuthRateLimitService } from './identity';
+import { AuthSessionRepositoryPort } from '../repositories/session.repository';
+
+import { AuthAccountRepositoryPort } from '../repositories/account.repository';
+import { UserService } from '../../user';
+import { VerificationCodeService } from './identity/verification-code.service';
+import { AuthRateLimitService } from './identity/rate-limit.service';
 import { AuthTokenService } from './token.service';
 import { AuthOAuthStateService } from './oauth/state.service';
 import { AuthOAuthService } from './oauth/oauth.service';
-import { CredentialAuthService } from './identity';
+import { CredentialAuthService } from './identity/credential.service';
 import { AuthAccountService } from './account.service';
 import { AuthOAuthFacadeService } from './oauth/facade.service';
 import { AuthNotificationService } from './notification.service';
@@ -27,7 +26,7 @@ import { WechatMobileOAuthProvider } from '../providers/wechat-mobile-oauth.prov
 import { WechatWebOAuthProvider } from '../providers/wechat-web-oauth.provider';
 import { AppleOAuthProvider } from '../providers/apple-oauth.provider';
 import { QqOAuthProvider } from '../providers/qq-oauth.provider';
-import { NotificationsService } from '../../notifications/services/notifications.service';
+import { NotificationsService } from '../../notifications';
 
 vi.mock('argon2', () => ({
   argon2id: 2,

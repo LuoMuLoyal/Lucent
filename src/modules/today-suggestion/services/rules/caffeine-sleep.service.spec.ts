@@ -1,5 +1,8 @@
 import { CaffeineSleepRuleService } from './caffeine-sleep.service';
-import { SuggestionType, SuggestionConfidence } from '../../types';
+import {
+  SuggestionType,
+  SuggestionConfidence,
+} from '../../types/suggestion.types';
 import { buildContext, buildSignal } from './test-helpers';
 
 describe('CaffeineSleepRuleService', () => {

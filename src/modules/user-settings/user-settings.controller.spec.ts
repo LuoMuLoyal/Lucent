@@ -1,9 +1,9 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api';
+import { ResultCode } from '../../common';
 import { UserSettingsController } from './user-settings.controller';
-import { UserSettingsService } from './services';
-import { SecurityPinService } from '../security-pin/services';
-import type { UserSettingsDataDto } from './dto';
+import { UserSettingsService } from './services/user-settings.service';
+import { SecurityPinService } from '../security-pin';
+import type { UserSettingsDataDto } from './dto/response.dto';
 
 describe('UserSettingsController', () => {
   let controller: UserSettingsController;

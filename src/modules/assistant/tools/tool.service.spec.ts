@@ -1,5 +1,5 @@
 import { DailyRecordKind } from '#generated/prisma/client';
-import type { AssistantToolExecutionContext } from '../types';
+import type { AssistantToolExecutionContext } from '../types/assistant.types';
 import { AssistantToolLeafletReadService } from './leaflet/read.service';
 import { AssistantToolDrugbankEntityResolveService } from './drugbank/entity-resolve.service';
 import { AssistantToolDrugbankSearchService } from './drugbank/search.service';

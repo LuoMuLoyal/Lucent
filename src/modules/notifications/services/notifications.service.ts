@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import { now } from '../../../common/helpers';
-import { toInputJsonValue } from '../../../common/helpers';
-import {
-  type CreateNotificationDto,
-  type NotificationListItemDto,
-  type NotificationDetailDto,
-} from '../dto';
+import { now } from '../../../common';
+import { toInputJsonValue } from '../../../common';
+import type {
+  CreateNotificationDto,
+  NotificationListItemDto,
+  NotificationDetailDto,
+} from '../dto/response.dto';
 
 const notificationSelect = {
   id: true,

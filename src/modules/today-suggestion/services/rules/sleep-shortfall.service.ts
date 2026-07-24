@@ -1,18 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type {
-  SuggestionRule,
-  SuggestionSignal,
-  RuleContext,
-  SuggestionCandidate,
-} from '../../types';
-import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
-import { BaselineDimension } from '../../types';
+import type { SuggestionRule, RuleContext } from '../../types/rule.types';
+
+import type { SuggestionSignal } from '../../types/signal.types';
+
+import type { SuggestionCandidate } from '../../types/candidate.types';
+import {
+  SuggestionType,
+  TriggerType,
+  SuggestionConfidence,
+} from '../../types/suggestion.types';
+import { BaselineDimension } from '../../types/baseline.types';
 import {
   SLEEP_SHORTFALL_BASE_SCORE,
   SLEEP_SHORTFALL_MINUTES,
   SLEEP_SHORTFALL_MIN_DAYS,
-} from '../../constants';
+} from '../../constants/thresholds.constants';
 
 /**
  * Rule: sleep_shortfall

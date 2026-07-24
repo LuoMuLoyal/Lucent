@@ -1,21 +1,21 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
-import { DailyRecordCandidatesService } from '../daily-records/services';
-import { DailyRecordsService } from '../daily-records/services';
+import { DailyRecordCandidatesService } from '../daily-records';
+import { DailyRecordsService } from '../daily-records';
 import { DailyRecordsModule } from '../daily-records/daily-records.module';
-import { LlmCommonModule } from '../../common/llm';
+import { LlmCommonModule } from '../../common';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module';
-import { MedicineRemindersService } from '../medicine-reminders/services';
+import { MedicineRemindersService } from '../medicine-reminders';
 import { MedicinesModule } from '../medicines/medicines.module';
 import { UserHealthContextModule } from '../user-health-context/user-health-context.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { AssistantRuntimeService } from './agent/runtime.service';
-import { AssistantConversationService } from './services';
+import { AssistantConversationService } from './services/conversation.service';
 import { AssistantController } from './assistant.controller';
-import { AssistantPolicyService } from './services';
-import { HistoricalAiSummaryService } from './services';
-import { AssistantService } from './services';
+import { AssistantPolicyService } from './services/policy.service';
+import { HistoricalAiSummaryService } from './services/historical-ai-summary.service';
+import { AssistantService } from './services/core.service';
 import {
   DAILY_RECORD_CANDIDATE_GENERATOR,
   DAILY_RECORD_READER,
@@ -24,22 +24,33 @@ import {
 import {
   AssistantConversationRepository,
   AssistantConversationRepositoryPort,
+} from './repositories/conversation.repository';
+
+import {
   AssistantSummaryRepository,
   AssistantSummaryRepositoryPort,
-} from './repositories';
-import {
-  AssistantContextService,
-  AssistantToolDrugbankEntityResolveService,
-  AssistantToolDrugbankSearchService,
-  AssistantToolLeafletReadService,
-  AssistantToolMedicalKnowledgeService,
-  AssistantToolMedicineLookupService,
-  AssistantToolProposalService,
-  AssistantToolReadService,
-  AssistantToolRecordQueryService,
-  AssistantToolService,
-  VectorStoreFactory,
-} from './tools';
+} from './repositories/summary.repository';
+import { AssistantContextService } from './tools/context.service';
+
+import { AssistantToolDrugbankEntityResolveService } from './tools/drugbank/entity-resolve.service';
+
+import { AssistantToolDrugbankSearchService } from './tools/drugbank/search.service';
+
+import { AssistantToolLeafletReadService } from './tools/leaflet/read.service';
+
+import { AssistantToolMedicalKnowledgeService } from './tools/knowledge/medical.service';
+
+import { AssistantToolMedicineLookupService } from './tools/medicine/lookup.service';
+
+import { AssistantToolProposalService } from './tools/proposal.service';
+
+import { AssistantToolReadService } from './tools/read.service';
+
+import { AssistantToolRecordQueryService } from './tools/records/query.service';
+
+import { AssistantToolService } from './tools/tool.service';
+
+import { VectorStoreFactory } from './tools/vector-store.factory';
 
 @Module({
   imports: [

@@ -18,8 +18,8 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-import { successEnvelope } from '../../../common/api';
-import { extractAuthRequestContext } from '../../../common/helpers';
+import { successEnvelope } from '../../../common';
+import { extractAuthRequestContext } from '../../../common';
 import { AuthService } from '../services/auth.service';
 
 import {
@@ -31,7 +31,10 @@ import {
   QqOAuthAuthorizeDto,
 } from '../dto/oauth.dto';
 
-import { LoginResponseDto, OAuthAuthorizeResponseDto } from '../dto';
+import {
+  LoginResponseDto,
+  OAuthAuthorizeResponseDto,
+} from '../dto/auth-responses.dto';
 
 import { buildAuthResponse } from './auth-response.helper';
 import { Public } from '../decorators/public.decorator';

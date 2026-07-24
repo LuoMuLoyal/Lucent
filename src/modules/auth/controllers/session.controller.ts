@@ -18,9 +18,9 @@ import {
 import type { FastifyRequest } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 
-import { successEnvelope } from '../../../common/api';
-import { extractAuthRequestContext } from '../../../common/helpers';
-import { calculateExpiresIn } from '../../../common/helpers';
+import { successEnvelope } from '../../../common';
+import { extractAuthRequestContext } from '../../../common';
+import { calculateExpiresIn } from '../../../common';
 import { AuthService } from '../services/auth.service';
 import { AuthTokenService } from '../services/token.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
@@ -30,7 +30,10 @@ import type { UserPayload } from '../types/auth-request';
 import { LogoutDto } from '../dto/logout.dto';
 import { RefreshDto } from '../dto/refresh.dto';
 
-import { RefreshResponseDto, SuccessResponseDto } from '../dto';
+import {
+  RefreshResponseDto,
+  SuccessResponseDto,
+} from '../dto/auth-responses.dto';
 
 @ApiTags('Auth')
 @Controller('auth')

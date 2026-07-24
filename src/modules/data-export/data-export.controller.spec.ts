@@ -1,13 +1,13 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api';
+import { ResultCode } from '../../common';
 import { DataExportController } from './data-export.controller';
-import { DataExportService } from './services';
-import { SecurityElevationGuard } from '../security-pin/guards';
-import { SecurityPinService } from '../security-pin/services';
+import { DataExportService } from './services/export.service';
+import { SecurityElevationGuard } from '../security-pin';
+import { SecurityPinService } from '../security-pin';
 import type {
   CreateDataExportRequestDto,
   DataExportRequestDataDto,
-} from './dto';
+} from './dto/export-response.dto';
 
 describe('DataExportController', () => {
   let controller: DataExportController;

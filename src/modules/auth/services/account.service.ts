@@ -3,13 +3,13 @@ import * as argon2 from 'argon2';
 import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
-import { ResultCode } from '../../../common/api';
-import { badRequest, notFound } from '../../../common/helpers';
-import { normalizeEmail } from '../../../common/helpers';
-import { now } from '../../../common/helpers';
-import { UserService } from '../../user/services/user.service';
+import { ResultCode } from '../../../common';
+import { badRequest, notFound } from '../../../common';
+import { normalizeEmail } from '../../../common';
+import { now } from '../../../common';
+import { UserService } from '../../user';
 import { DeleteAccountDto } from '../dto/delete-account.dto';
-import { VerificationCodeService } from './identity';
+import { VerificationCodeService } from './identity/verification-code.service';
 import { AuthAccountRepositoryPort } from '../repositories/account.repository';
 
 @Injectable()

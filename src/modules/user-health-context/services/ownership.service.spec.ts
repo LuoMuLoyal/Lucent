@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { type Mocked } from 'vitest';
-import { UserHealthContextRepositoryPort } from '../repositories';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
 import { UserHealthContextOwnershipService } from './ownership.service';
 
 describe('UserHealthContextOwnershipService', () => {

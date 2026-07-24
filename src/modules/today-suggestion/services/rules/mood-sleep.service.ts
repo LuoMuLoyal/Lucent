@@ -1,18 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type {
-  SuggestionRule,
-  SuggestionSignal,
-  RuleContext,
-  SuggestionCandidate,
-} from '../../types';
-import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
-import { BaselineDimension } from '../../types';
+import type { SuggestionRule, RuleContext } from '../../types/rule.types';
+
+import type { SuggestionSignal } from '../../types/signal.types';
+
+import type { SuggestionCandidate } from '../../types/candidate.types';
+import {
+  SuggestionType,
+  TriggerType,
+  SuggestionConfidence,
+} from '../../types/suggestion.types';
+import { BaselineDimension } from '../../types/baseline.types';
 import {
   MOOD_SLEEP_BASE_SCORE,
   MOOD_SLEEP_MIN_DAYS,
   MOOD_LOW_THRESHOLD,
-} from '../../constants';
+} from '../../constants/thresholds.constants';
 
 interface DailyMood {
   date: string;

@@ -1,15 +1,15 @@
-import { parseDateOnly, now } from '../../../common/helpers';
+import { parseDateOnly, now } from '../../../common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import * as argon2 from 'argon2';
 
-import { ARGON2_OPTIONS } from '../../auth/config/argon2-options';
-import { loginFailureCacheKey } from '../../auth/services';
+import { ARGON2_OPTIONS } from '../../auth';
+import { loginFailureCacheKey } from '../../auth';
 import { PrismaService } from '../../../prisma';
 import { UserStatus } from '#generated/prisma/client';
 import type { PrepareFullstackRecordLaneDto } from '../dto/prepare-fullstack-record-lane.dto';
-import { listDefaultBooleanUserSettings } from '../../user-settings/constants';
+import { listDefaultBooleanUserSettings } from '../../user-settings';
 
 const DEFAULT_RECORD_LANE_NICKNAME = 'E2E Record Lane';
 

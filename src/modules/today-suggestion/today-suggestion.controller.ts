@@ -15,27 +15,35 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common/api';
-import { CurrentUser } from '../auth/decorators';
-import type { UserPayload } from '../auth/services';
-import { SuggestionService } from './services';
-import { FeedbackService } from './services/feedback';
-import {
-  ExplanationQueueService,
-  ExplanationService,
-} from './services/explanation';
-import { LifecycleService } from './services/lifecycle';
+import { successEnvelope } from '../../common';
+import { CurrentUser } from '../auth';
+import type { UserPayload } from '../auth';
+import { SuggestionService } from './services/suggestion.service';
+import { FeedbackService } from './services/feedback/service';
+import { ExplanationQueueService } from './services/explanation/queue.service';
+
+import { ExplanationService } from './services/explanation/service';
+import { LifecycleService } from './services/lifecycle/service';
 import {
   SuggestionFeedbackDto,
-  TodaySuggestionsDataDto,
   SuggestionFeedbackDataDto,
-  SuggestionExplanationDataDto,
-  SuggestionHistoryDataDto,
   SuggestionFeedbackResponseDto,
-  SuggestionExplanationResponseDto,
-  SuggestionHistoryResponseDto,
+} from './dto/feedback.dto';
+
+import {
+  TodaySuggestionsDataDto,
   TodaySuggestionsResponseDto,
-} from './dto';
+} from './dto/suggestion-history.dto';
+
+import {
+  SuggestionExplanationDataDto,
+  SuggestionExplanationResponseDto,
+} from './dto/explanation.dto';
+
+import {
+  SuggestionHistoryDataDto,
+  SuggestionHistoryResponseDto,
+} from './dto/suggestion-history-query.dto';
 
 @ApiTags('Today Suggestion')
 @ApiBearerAuth('access-token')

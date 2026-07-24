@@ -2,13 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma';
 import type { IMedicineReminderReader } from '../types/ports';
 import { MEDICINE_REMINDER_READER } from '../types/ports';
-import { UserHealthContextService } from '../../user-health-context/services';
-import { UserSettingsService } from '../../user-settings/services/user-settings.service';
+import { UserHealthContextService } from '../../user-health-context';
+import { UserSettingsService } from '../../user-settings';
 import { HistoricalAiSummaryService } from '../services/historical-ai-summary.service';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../types';
+} from '../types/assistant.types';
 import { DEFAULT_HISTORY_LIMIT, MAX_RANGE_DAYS } from './constants';
 import {
   enumerateDates,

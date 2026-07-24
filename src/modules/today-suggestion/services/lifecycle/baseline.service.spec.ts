@@ -1,8 +1,8 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { PrismaService } from '../../../../prisma';
-import type { DailyRecordReaderPort } from '../../../daily-records/repositories';
+import type { DailyRecordReaderPort } from '../../../daily-records';
 import { BaselineService } from './baseline.service';
-import { BaselineDimension } from '../../types';
+import { BaselineDimension } from '../../types/baseline.types';
 
 describe('BaselineService', () => {
   let service: BaselineService;

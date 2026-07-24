@@ -1,5 +1,9 @@
 import { MissedDoseRuleService } from './missed-dose.service';
-import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
+import {
+  SuggestionType,
+  TriggerType,
+  SuggestionConfidence,
+} from '../../types/suggestion.types';
 import { buildContext, buildSignal } from './test-helpers';
 
 describe('MissedDoseRuleService', () => {

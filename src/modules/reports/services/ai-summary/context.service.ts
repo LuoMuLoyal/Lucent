@@ -1,4 +1,4 @@
-import { formatDateOnly } from '../../../../common/helpers';
+import { formatDateOnly } from '../../../../common';
 import { Injectable } from '@nestjs/common';
 import type {
   ReportDashboardComputed,

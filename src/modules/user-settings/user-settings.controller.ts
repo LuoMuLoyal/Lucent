@@ -14,19 +14,21 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { successEnvelope } from '../../common/api';
-import { type UserPayload } from '../auth/services';
-import { CurrentUser } from '../auth/decorators';
-import { UserSettingsService } from './services';
-import { UpdateUserSettingsDto, UserSettingsResponseDto } from './dto';
-import { SecurityPinService } from '../security-pin/services';
+import { successEnvelope } from '../../common';
+import type { UserPayload } from '../auth';
+import { CurrentUser } from '../auth';
+import { UserSettingsService } from './services/user-settings.service';
+import { UpdateUserSettingsDto } from './dto/update.dto';
+
+import { UserSettingsResponseDto } from './dto/response.dto';
+import { SecurityPinService } from '../security-pin';
 import {
   ChangeSecurityPinDto,
   DisableSecurityPinDto,
   EnableSecurityPinDto,
   SecurityPinElevationResponseDto,
   VerifySecurityPinDto,
-} from '../security-pin/dto/pin.dto';
+} from '../security-pin';
 
 @ApiTags('User Settings')
 @ApiBearerAuth('access-token')

@@ -1,2 +1,2 @@
-export * from './services';
-export * from './llm-runtime.module';
+export { LlmRuntimeModule } from './llm-runtime.module';
+export { LlmRuntimeService } from './services/llm-runtime.service';

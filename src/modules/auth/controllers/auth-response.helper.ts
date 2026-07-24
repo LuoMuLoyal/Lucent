@@ -2,8 +2,8 @@ import {
   calculateExpiresIn,
   formatDateTime,
   toEmailVerified,
-} from '../../../common/helpers';
-import { successEnvelope } from '../../../common/api';
+} from '../../../common';
+import { successEnvelope } from '../../../common';
 import type { User } from '#generated/prisma/client';
 import type { TokenPair } from '../services/token.service';
 

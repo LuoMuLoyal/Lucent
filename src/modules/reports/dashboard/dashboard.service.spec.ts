@@ -1,5 +1,8 @@
 import { ReportsService } from './dashboard.service';
-import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from '../dto';
+import {
+  REPORT_RANGE_LAST_30_DAYS,
+  REPORT_RANGE_LAST_7_DAYS,
+} from '../dto/report-dashboard-query.dto';
 import type { ReportsComputationService } from './computation.service';
 import type { ReportsContextService } from './context.service';
 

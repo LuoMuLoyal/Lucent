@@ -3,7 +3,7 @@ import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-} from '../dto';
+} from '../dto/report-dashboard-query.dto';
 import { ReportsContextService } from './context.service';
 
 describe('ReportsContextService', () => {

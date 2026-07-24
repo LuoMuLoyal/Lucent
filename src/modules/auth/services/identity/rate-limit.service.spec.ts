@@ -6,7 +6,7 @@ import { I18nService } from 'nestjs-i18n';
 
 import { AuthRateLimitService } from './rate-limit.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ResultCode } from '../../../../common/api';
+import { ResultCode } from '../../../../common';
 
 // ── Suite ─────────────────────────────────────────────────────
 

@@ -1,10 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma';
-import { NotificationsService } from '../../../notifications/services/notifications.service';
-import { PushDeliveryService } from '../../../notifications/services/push-delivery.service';
-import { now } from '../../../../common/helpers';
-import type { SuggestionCandidate } from '../../types';
-import { SuggestionConfidence, TriggerType } from '../../types';
+import { NotificationsService } from '../../../notifications';
+import { PushDeliveryService } from '../../../notifications';
+import { now } from '../../../../common';
+import type { SuggestionCandidate } from '../../types/candidate.types';
+import {
+  SuggestionConfidence,
+  TriggerType,
+} from '../../types/suggestion.types';
 
 /** Minimum priority score for a candidate to be eligible for notification escalation. */
 const ESCALATION_MIN_PRIORITY_SCORE = 700;

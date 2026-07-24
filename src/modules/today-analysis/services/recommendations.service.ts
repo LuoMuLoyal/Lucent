@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { shuffleArray } from '../../../common/helpers';
-import type { TodayRecommendationResponseDto } from '../dto';
+import { shuffleArray } from '../../../common';
+import type { TodayRecommendationResponseDto } from '../dto/recommendation-response.dto';
 
 interface RecommendationSource {
   id: string;

@@ -2,7 +2,7 @@ import fontkit from '@pdf-lib/fontkit';
 import { Injectable } from '@nestjs/common';
 import { PDFDocument, rgb } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
-import type { ReportDashboardDataDto } from '../../../reports/dto';
+import type { ReportDashboardDataDto } from '../../../reports';
 import {
   kindLabel,
   statusLabel,

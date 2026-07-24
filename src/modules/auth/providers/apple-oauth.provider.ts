@@ -11,15 +11,15 @@ import { JwtService } from '@nestjs/jwt';
 
 import { I18nService } from 'nestjs-i18n';
 
-import { ResultCode } from '../../../common/api';
-import { unauthorized } from '../../../common/helpers';
-import { withRetry } from '../../../common/helpers';
-import { toInputJsonValue } from '../../../common/helpers';
+import { ResultCode } from '../../../common';
+import { unauthorized } from '../../../common';
+import { withRetry } from '../../../common';
+import { toInputJsonValue } from '../../../common';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type { OAuthConfig } from '../../../config/oauth.config';
 import { OAUTH_PROVIDER_APPLE, type OAuthProfile } from '../types/oauth.types';
 import type { OAuthProvider } from './oauth-provider.interface';
-import { now } from '../../../common/helpers';
+import { now } from '../../../common';
 
 interface AppleJwk {
   kty: string;

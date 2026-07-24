@@ -1,5 +1,5 @@
 import type { PrismaService } from '../../../../prisma';
-import type { CosStorageRuntime } from '../../../../common/storage';
+import type { CosStorageRuntime } from '../../../../common';
 import type { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
 import type { MealAnalysisVisionService } from '../meal-analysis/vision.service';
 import { MealAnalysisWorkerService } from '../meal-analysis/worker.service';

@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { type Mocked } from 'vitest';
-import { UserHealthContextRepositoryPort } from '../repositories';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
 import { UserHealthContextOwnershipService } from './ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
 import { UserHealthContextConditionWriteService } from './condition-write.service';

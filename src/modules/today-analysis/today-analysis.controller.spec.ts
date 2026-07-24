@@ -1,10 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyReply } from 'fastify';
-import { ResultCode, SseConnectionRegistry } from '../../common/api';
-import { TodayAnalysisService } from './services';
-import { TodayAnalysisQueueService } from './services';
-import { TodayRecommendationsService } from './services';
-import type { TodayAnalysisDataDto } from './dto';
+import { ResultCode, SseConnectionRegistry } from '../../common';
+import { TodayAnalysisService } from './services/analysis.service';
+import { TodayAnalysisQueueService } from './services/analysis-queue.service';
+import { TodayRecommendationsService } from './services/recommendations.service';
+import type { TodayAnalysisDataDto } from './dto/analysis-response.dto';
 import { TodayAnalysisController } from './today-analysis.controller';
 
 describe('TodayAnalysisController', () => {

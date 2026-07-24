@@ -2,8 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
-import { BaseAsyncQueueService } from '../../../../common/queue';
-import type { GenerateReportSummaryDto, ReportSummaryDataDto } from '../../dto';
+import { BaseAsyncQueueService } from '../../../../common';
+import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto';
+
+import type { ReportSummaryDataDto } from '../../dto/report-summary-response.dto';
 import { ReportsAiSummaryService } from './summary.service';
 
 interface SummaryJobData {

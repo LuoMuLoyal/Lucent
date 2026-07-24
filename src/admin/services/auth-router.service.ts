@@ -2,7 +2,7 @@ import type { ConfigService } from '@nestjs/config';
 import type { FastifyInstance } from 'fastify';
 import type AdminJSDefault from 'adminjs';
 
-import { safeCompare } from '../../common/helpers';
+import { safeCompare } from '../../common';
 import {
   ADMIN_COOKIE_SECRET_KEY,
   ADMIN_EMAIL_KEY,

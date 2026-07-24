@@ -3,15 +3,14 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { ResultCode } from '../../../../common/api';
-import type {
-  DailyRecordCandidateData,
-  GenerateDailyRecordCandidatesDto,
-} from '../../dto';
+import { ResultCode } from '../../../../common';
+import type { DailyRecordCandidateData } from '../../dto/record-candidate-response.dto';
+
+import type { GenerateDailyRecordCandidatesDto } from '../../dto/generate-record-candidates.dto';
 import { DailyRecordCandidatesCopyService } from '../candidates/copy.service';
 import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
-import { nowIsoString } from '../../../../common/helpers';
-import { extractErrorInfo } from '../../../../common/helpers';
+import { nowIsoString } from '../../../../common';
+import { extractErrorInfo } from '../../../../common';
 
 interface DailyRecordCandidatesContext {
   text: string;

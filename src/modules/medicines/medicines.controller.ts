@@ -21,21 +21,33 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
-import { successEnvelope } from '../../common/api';
-import { CurrentUser, Public } from '../auth/decorators';
-import type { UserPayload } from '../auth/services';
+import { successEnvelope } from '../../common';
+import { CurrentUser } from '../auth';
+
+import { Public } from '../auth';
+import type { UserPayload } from '../auth';
 import {
   CnMedicineDetailDto,
   DrugbankMedicineDetailDto,
+} from './dto/medicine-detail.dto';
+
+import {
   MedicineDetailQueryDto,
-  MedicineDetailResponseDto,
-  MedicineSafetyTipResponseDto,
   MedicineSearchQueryDto,
+} from './dto/medicine-query.dto';
+
+import {
+  MedicineDetailResponseDto,
   MedicineSearchResponseDto,
-  RecognizeMedicineDto,
-} from './dto';
+} from './dto/medicine-response.dto';
+
+import { MedicineSafetyTipResponseDto } from './dto/medicine-safety-tip-response.dto';
+
+import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
 import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/cache.constants';
-import { MedicinesService, MedicineRecognitionQueueService } from './services';
+import { MedicinesService } from './services/medicines.service';
+
+import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
 
 @ApiTags('Medicines')
 @ApiExtraModels(DrugbankMedicineDetailDto, CnMedicineDetailDto)

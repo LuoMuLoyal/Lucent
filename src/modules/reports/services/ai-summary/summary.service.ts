@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { badRequest } from '../../../../common/helpers';
+import { badRequest } from '../../../../common';
 
-import { HistoricalAiSummaryService } from '../../../assistant/services/historical-ai-summary.service';
+import { HistoricalAiSummaryService } from '../../../assistant';
 import { PrismaService } from '../../../../prisma';
 import { BaseLlmSummaryService } from '../../../../common/llm/base-llm-summary.service';
 import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
-import type {
-  GenerateReportSummaryDto,
-  ReportDashboardQueryDto,
-  ReportSummaryDataDto,
-} from '../../dto';
+import type { GenerateReportSummaryDto } from '../../dto/generate-report-summary.dto';
+
+import type { ReportDashboardQueryDto } from '../../dto/report-dashboard-query.dto';
+
+import type { ReportSummaryDataDto } from '../../dto/report-summary-response.dto';
 import {
   ReportsAiSummaryContextService,
   type ReportsAiSummaryContext,

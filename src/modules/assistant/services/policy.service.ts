@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { IAssistantUserSettings } from '../types/ports';
-import { selectAllowedToolsForContextSources } from '../agent/runtime';
+import { selectAllowedToolsForContextSources } from '../agent/runtime/router';
 import type {
   AssistantRuntimeCapabilities,
   AssistantPolicySnapshot,
   AssistantToolCapabilitySnapshot,
-} from '../types';
+} from '../types/assistant.types';
 import {
   ASSISTANT_CONTEXT_SOURCES,
   ASSISTANT_TOOL_NAMES,

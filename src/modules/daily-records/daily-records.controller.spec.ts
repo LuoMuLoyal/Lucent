@@ -1,10 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api';
+import { ResultCode } from '../../common';
 import { DailyRecordsController } from './daily-records.controller';
 import { DailyRecordCandidatesService } from './services/candidates/service';
-import { DailyRecordImageUploadService } from './services';
-import { DailyRecordsService } from './services';
-import type { UserPayload } from '../auth/services';
+import { DailyRecordImageUploadService } from './services/image-upload.service';
+import { DailyRecordsService } from './services/records.service';
+import type { UserPayload } from '../auth';
 
 describe('DailyRecordsController', () => {
   let controller: DailyRecordsController;

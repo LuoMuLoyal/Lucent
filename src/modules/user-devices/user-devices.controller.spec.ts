@@ -1,9 +1,9 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth';
 import { UserDevicesController } from './user-devices.controller';
-import { UserDevicesService } from './services';
-import { DevicePlatform } from './dto';
+import { UserDevicesService } from './services/user-devices.service';
+import { DevicePlatform } from './dto/register-device.dto';
 
 describe('UserDevicesController', () => {
   let controller: UserDevicesController;

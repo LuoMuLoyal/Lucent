@@ -1,26 +1,27 @@
-import { badRequest, forbidden } from '../../../common/helpers';
+import { badRequest, forbidden } from '../../../common';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { ResultCode } from '../../../common/api';
-import type {
-  AssistantCapabilitiesDataDto,
-  AssistantConversationDataDto,
-  AssistantMessageDataDto,
-  StreamAssistantMessagesDto,
-} from '../dto';
-import type { AssistantRuntimeCapabilities } from '../types';
+import { ResultCode } from '../../../common';
+import type { AssistantCapabilitiesDataDto } from '../dto/capabilities-response.dto';
+
+import type { AssistantConversationDataDto } from '../dto/conversation-response.dto';
+
+import type { AssistantMessageDataDto } from '../dto/stream-response.dto';
+
+import type { StreamAssistantMessagesDto } from '../dto/stream-messages.dto';
+import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
 import { AssistantRuntimeService } from '../agent/runtime.service';
-import { UserSettingsService } from '../../user-settings/services/user-settings.service';
+import { UserSettingsService } from '../../user-settings';
 import { AssistantPolicyService } from './policy.service';
 import { AssistantContextService } from '../tools/context.service';
 import { AssistantToolService } from '../tools/tool.service';
 import { AssistantConversationService } from './conversation.service';
-import { nowIsoString } from '../../../common/helpers';
+import { nowIsoString } from '../../../common';
 import type {
   AssistantConversationMessage,
   AssistantMessageResult,
   AssistantStreamChunkEvent,
   AssistantToolExecutionContext,
-} from '../types';
+} from '../types/assistant.types';
 
 @Injectable()
 export class AssistantService {

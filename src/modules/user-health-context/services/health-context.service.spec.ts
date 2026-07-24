@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../../common/helpers';
+import { nonDeleted } from '../../../common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
@@ -14,17 +14,21 @@ import {
   UserStatus,
 } from '#generated/prisma/client';
 
-import { UserHealthContextRepositoryPort } from '../repositories';
-import {
-  UserHealthContextAllergyWriteService,
-  UserHealthContextConditionWriteService,
-  UserHealthContextMapperService,
-  UserHealthContextMedicineWriteService,
-  UserHealthContextOwnershipService,
-  UserHealthContextProfileWriteService,
-  UserHealthContextService,
-} from '.';
-import { ResultCode } from '../../../common/api';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
+import { UserHealthContextAllergyWriteService } from './allergy-write.service';
+
+import { UserHealthContextConditionWriteService } from './condition-write.service';
+
+import { UserHealthContextMapperService } from './mapper.service';
+
+import { UserHealthContextMedicineWriteService } from './medicine-write.service';
+
+import { UserHealthContextOwnershipService } from './ownership.service';
+
+import { UserHealthContextProfileWriteService } from './profile-write.service';
+
+import { UserHealthContextService } from './health-context.service';
+import { ResultCode } from '../../../common';
 import { I18nService } from 'nestjs-i18n';
 
 const mockUserBase = {

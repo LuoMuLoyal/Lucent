@@ -6,14 +6,9 @@ import * as argon2 from 'argon2';
 
 import { PrismaService } from '../../../prisma';
 import { ConfigKey } from '../../../config/config-keys.enum';
-import { ARGON2_OPTIONS } from '../../auth/config/argon2-options';
-import {
-  badRequest,
-  forbidden,
-  notFound,
-  unauthorized,
-} from '../../../common/helpers';
-import { now } from '../../../common/helpers';
+import { ARGON2_OPTIONS } from '../../auth';
+import { badRequest, forbidden, notFound, unauthorized } from '../../../common';
+import { now } from '../../../common';
 import {
   SECURITY_ELEVATION_SCOPE,
   SECURITY_ELEVATION_TTL_SECONDS,

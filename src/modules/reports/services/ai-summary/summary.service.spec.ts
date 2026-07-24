@@ -1,6 +1,9 @@
 import { ForbiddenException } from '@nestjs/common';
 import type { LlmConfig } from '../../../../config/llm.config';
-import { REPORT_RANGE_LAST_30_DAYS, REPORT_RANGE_LAST_7_DAYS } from '../../dto';
+import {
+  REPORT_RANGE_LAST_30_DAYS,
+  REPORT_RANGE_LAST_7_DAYS,
+} from '../../dto/report-dashboard-query.dto';
 import type { ReportsAiSummaryContextService } from './context.service';
 import type { ReportsLlmSummaryCopyService } from './copy.service';
 import type { ReportsAiSummaryGeneratorService } from './generator.service';

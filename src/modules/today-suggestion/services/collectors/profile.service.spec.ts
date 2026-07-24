@@ -1,7 +1,7 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { PrismaService } from '../../../../prisma';
 import { ProfileCollectorService } from './profile.service';
-import { TriggerType } from '../../../today-suggestion/types';
+import { TriggerType } from '../../types/suggestion.types';
 
 describe('ProfileCollectorService', () => {
   let service: ProfileCollectorService;

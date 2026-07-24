@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { NotificationsService } from '../../notifications/services/notifications.service';
+import { NotificationsService } from '../../notifications';
 import type { OAuthProfile } from '../types/oauth.types';
 
 @Injectable()

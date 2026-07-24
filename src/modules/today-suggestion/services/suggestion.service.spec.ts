@@ -6,10 +6,13 @@ import {
   SuggestionConfidence,
   SuggestionLifecycleState,
   SuggestionFeedback,
-  BaselineDimension,
-} from '../types';
-import type { SuggestionCandidate, SuggestionRule } from '../types';
-import type { CopyGenerationResult } from '../services/copy';
+} from '../types/suggestion.types';
+
+import { BaselineDimension } from '../types/baseline.types';
+import type { SuggestionCandidate } from '../types/candidate.types';
+
+import type { SuggestionRule } from '../types/rule.types';
+import type { CopyGenerationResult } from './copy/copy.service';
 
 const mockCopyResult: CopyGenerationResult = {
   title: 'AI Title',

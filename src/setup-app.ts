@@ -15,12 +15,12 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import type { Logger as WinstonLogger } from 'winston';
-import { safeCompare } from './common/helpers';
+import { safeCompare } from './common';
 import { ConfigKey } from './config/config-keys.enum';
-import { ResultCode } from './common/api';
+import { ResultCode } from './common';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
-import { ApiEnvelopeInterceptor } from './common/interceptors';
-import { SlowRequestInterceptor } from './common/interceptors';
+import { ApiEnvelopeInterceptor } from './common';
+import { SlowRequestInterceptor } from './common';
 import {
   REQUEST_ID_HEADER,
   type FastifyRequestWithId,

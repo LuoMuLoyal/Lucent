@@ -3,7 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { type Mocked } from 'vitest';
 import { DoseLogStatus } from '#generated/prisma/client';
-import { MedicineDoseLogRepositoryPort } from '../repositories';
+import { MedicineDoseLogRepositoryPort } from '../repositories/dose-log.repository';
 import { MedicineDoseLogsService } from './dose-logs.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 

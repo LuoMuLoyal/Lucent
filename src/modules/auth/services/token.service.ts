@@ -11,7 +11,7 @@ import { I18nService } from 'nestjs-i18n';
 import { User } from '#generated/prisma/client';
 import { ConfigKey } from '../../../config/config-keys.enum';
 
-import { now } from '../../../common/helpers';
+import { now } from '../../../common';
 import type {
   AuthRequestContext,
   TokenPair,

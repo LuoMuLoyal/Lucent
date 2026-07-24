@@ -1,9 +1,9 @@
-import { ensureOwnedByUser } from '../../../common/helpers';
-import { notFound } from '../../../common/helpers';
+import { ensureOwnedByUser } from '../../../common';
+import { notFound } from '../../../common';
 import { Injectable } from '@nestjs/common';
 
 import { I18nService } from 'nestjs-i18n';
-import { UserHealthContextRepositoryPort } from '../repositories';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
 
 @Injectable()
 export class UserHealthContextOwnershipService {

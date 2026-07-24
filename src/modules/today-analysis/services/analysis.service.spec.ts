@@ -5,7 +5,7 @@ import type { TodayAnalysisContextService } from './context.service';
 import type { TodayAnalysisGeneratorService } from './generator.service';
 import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
 import { TodayAnalysisService } from './analysis.service';
-import type { NotificationsService } from '../../notifications/services/notifications.service';
+import type { NotificationsService } from '../../notifications';
 
 function modelGenerateSpy(service: TodayAnalysisService) {
   return vi.spyOn(

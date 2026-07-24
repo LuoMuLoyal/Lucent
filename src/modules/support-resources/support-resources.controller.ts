@@ -1,14 +1,15 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { successEnvelope } from '../../common/api';
-import { Public } from '../auth/decorators';
+import { successEnvelope } from '../../common';
+import { Public } from '../auth';
 import {
   AppInfoResponseDto,
   SupportResourceListResponseDto,
-  SupportResourcesQueryDto,
-} from './dto';
-import { SupportResourcesService } from './services';
+} from './dto/response.dto';
+
+import { SupportResourcesQueryDto } from './dto/query.dto';
+import { SupportResourcesService } from './services/resources.service';
 
 @ApiTags('Support Resources')
 @Public()

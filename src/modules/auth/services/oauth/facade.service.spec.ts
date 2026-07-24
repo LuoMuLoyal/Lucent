@@ -1,4 +1,4 @@
-import type { UserService } from '../../../user/services/user.service';
+import type { UserService } from '../../../user';
 import type { WechatWebOAuthProvider } from '../../providers/wechat-web-oauth.provider';
 import type { WechatMobileOAuthProvider } from '../../providers/wechat-mobile-oauth.provider';
 import type { AppleOAuthProvider } from '../../providers/apple-oauth.provider';

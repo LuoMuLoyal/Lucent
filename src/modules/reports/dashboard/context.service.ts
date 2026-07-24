@@ -1,26 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { badRequest } from '../../../common/helpers';
+import { badRequest } from '../../../common';
 import {
   formatDateOnly,
   parseDateOnly,
   now,
   nowIsoString,
-} from '../../../common/helpers';
+} from '../../../common';
 import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import { DailyRecordReaderPort } from '../../daily-records/repositories';
-import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs/repositories';
+import { DailyRecordReaderPort } from '../../daily-records';
+import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs';
 import {
   MealAnalysisStatus,
   parseMealRecordPayload,
-} from '../../daily-records/types/meal-analysis.types';
-import { USER_SETTING_KEYS } from '../../user-settings/constants';
+} from '../../daily-records';
+import { USER_SETTING_KEYS } from '../../user-settings';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
   type ReportDashboardQueryDto,
-} from '../dto';
+} from '../dto/report-dashboard-query.dto';
 import type { ReportDashboardFacts } from './types';
 
 @Injectable()

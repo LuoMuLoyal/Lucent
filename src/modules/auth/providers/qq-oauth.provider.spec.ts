@@ -3,9 +3,9 @@ import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
 import { QqOAuthProvider } from './qq-oauth.provider';
 
-import * as retryUtils from '../../../common/helpers';
+import * as commonUtils from '../../../common';
 
-vi.mock('../../../common/helpers', async (importOriginal) => {
+vi.mock('../../../common', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
@@ -14,7 +14,9 @@ vi.mock('../../../common/helpers', async (importOriginal) => {
   };
 });
 
-const { fetchWithRetry } = retryUtils as unknown as { fetchWithRetry: vi.Mock };
+const { fetchWithRetry } = commonUtils as unknown as {
+  fetchWithRetry: vi.Mock;
+};
 
 describe('QqOAuthProvider', () => {
   let provider: QqOAuthProvider;

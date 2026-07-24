@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import {
-  type CreateDataExportRequestDto,
-  type DataExportRequestDataDto,
-} from '../dto';
+import type {
+  CreateDataExportRequestDto,
+  DataExportRequestDataDto,
+} from '../dto/export-response.dto';
 import { DataExportStorageService } from './storage.service';
 import { DataExportQueueService } from './queue.service';
 import { DataExportProcessorService } from './processor.service';

@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../../common/api';
+import { ResultCode } from '../../../common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { OAuthController } from './oauth.controller';
 import { AuthService } from '../services/auth.service';

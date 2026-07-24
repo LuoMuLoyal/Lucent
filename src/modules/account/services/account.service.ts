@@ -1,9 +1,9 @@
-import { notFound, forbidden } from '../../../common/helpers';
+import { notFound, forbidden } from '../../../common';
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { User, UserIdentity } from '#generated/prisma/client';
-import { UserService } from '../../user/services/user.service';
+import { UserService } from '../../user';
 import { AccountDto } from '../dto/response.dto';
 import { UpdateAccountDto } from '../dto/update.dto';
 

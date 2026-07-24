@@ -1,8 +1,10 @@
-import { formatDateOnly } from '../../../common/helpers';
+import { formatDateOnly } from '../../../common';
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import type { ReportDashboardDataDto, ReportDashboardQueryDto } from '../dto';
+import type { ReportDashboardDataDto } from '../dto/report-dashboard-response.dto';
+
+import type { ReportDashboardQueryDto } from '../dto/report-dashboard-query.dto';
 import { ReportsComputationService } from './computation.service';
 import { ReportsContextService } from './context.service';
 

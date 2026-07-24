@@ -1,5 +1,5 @@
 import { LifecycleService } from './service';
-import { SuggestionLifecycleState } from '../../types';
+import { SuggestionLifecycleState } from '../../types/suggestion.types';
 import type { SuggestionCandidate } from '../../types/candidate.types';
 
 function createMockCache() {

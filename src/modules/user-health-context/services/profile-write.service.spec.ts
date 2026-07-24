@@ -1,9 +1,9 @@
-import { parseDateOnly } from '../../../common/helpers';
+import { parseDateOnly } from '../../../common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { type Mocked } from 'vitest';
 import { UserHealthContextProfileWriteService } from './profile-write.service';
-import { UserHealthContextRepositoryPort } from '../repositories';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
 

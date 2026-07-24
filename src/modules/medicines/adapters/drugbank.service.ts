@@ -5,9 +5,12 @@ import { PrismaService } from '../../../prisma';
 import type {
   DrugbankMedicineDetailDto,
   MedicineDetailDataDto,
+} from '../dto/medicine-detail.dto';
+
+import type {
   MedicineSearchItemDto,
   MedicineSearchResult,
-} from '../dto';
+} from '../dto/medicine-search.dto';
 import {
   composeSubtitle,
   detectMatchedBy,

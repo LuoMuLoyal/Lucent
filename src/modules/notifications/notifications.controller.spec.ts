@@ -1,11 +1,11 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../common/api';
-import type { UserPayload } from '../auth/services';
+import { ResultCode } from '../../common';
+import type { UserPayload } from '../auth';
 
 import { NotificationsController } from './notifications.controller';
-import { NotificationsService } from './services';
+import { NotificationsService } from './services/notifications.service';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

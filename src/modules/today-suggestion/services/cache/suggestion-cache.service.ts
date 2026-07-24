@@ -1,16 +1,17 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
-import type { SuggestionSignal } from '../../types';
-import type { BaselineDimension } from '../../types';
+import type { SuggestionSignal } from '../../types/signal.types';
+import type { BaselineDimension } from '../../types/baseline.types';
 import type { TodaySuggestionsDataDto } from '../../dto/suggestion-history.dto';
-import type { GeneratedCopy } from '../../schemas';
+import type { GeneratedCopy } from '../../schemas/copy.schema';
 import {
   SIGNAL_CACHE_TTL_MS,
   SUGGESTION_CACHE_TTL_MS,
   BASELINE_CACHE_TTL_MS,
-  COPY_CACHE_TTL_MS,
-} from '../../constants';
+} from '../../constants/thresholds.constants';
+
+import { COPY_CACHE_TTL_MS } from '../../constants/lifecycle.constants';
 
 const CACHE_KEY_PREFIX = 'today_suggestion';
 

@@ -1,18 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type {
-  SuggestionRule,
-  SuggestionSignal,
-  RuleContext,
-  SuggestionCandidate,
-} from '../../types';
-import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
-import { BaselineDimension } from '../../types';
+import type { SuggestionRule, RuleContext } from '../../types/rule.types';
+
+import type { SuggestionSignal } from '../../types/signal.types';
+
+import type { SuggestionCandidate } from '../../types/candidate.types';
+import {
+  SuggestionType,
+  TriggerType,
+  SuggestionConfidence,
+} from '../../types/suggestion.types';
+import { BaselineDimension } from '../../types/baseline.types';
 import {
   TREND_MIN_CONSECUTIVE_DAYS,
   TREND_MIN_RECORDS,
   DETERIORATING_TREND_BASE_SCORE,
-} from '../../constants';
+} from '../../constants/thresholds.constants';
 
 interface SymptomEntry {
   date: string;

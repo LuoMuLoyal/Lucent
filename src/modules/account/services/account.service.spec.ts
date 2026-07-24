@@ -1,5 +1,5 @@
 import type { DeepMocked } from '../../../common/types/deep-mocked';
-import { nonDeleted } from '../../../common/helpers';
+import { nonDeleted } from '../../../common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
@@ -7,8 +7,8 @@ import { I18nService } from 'nestjs-i18n';
 import { UserStatus } from '#generated/prisma/client';
 
 import { AccountService } from './account.service';
-import { UserService } from '../../user/services/user.service';
-import { ResultCode } from '../../../common/api';
+import { UserService } from '../../user';
+import { ResultCode } from '../../../common';
 import type { UpdateAccountDto } from '../dto/update.dto';
 
 const baseUser = {

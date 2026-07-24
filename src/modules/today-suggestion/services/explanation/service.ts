@@ -2,8 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma';
 import { LlmSafetyPolicyService } from '../../../../common/llm/llm-safety-policy.service';
-import { extractErrorInfo } from '../../../../common/helpers';
-import { resolveLocale } from '../../../../common/helpers';
+import { extractErrorInfo } from '../../../../common';
+import { resolveLocale } from '../../../../common';
 import type {
   ExplanationContext,
   ExplanationPromptCopy,

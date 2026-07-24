@@ -1,18 +1,22 @@
 import { Module } from '@nestjs/common';
 import { UserHealthContextController } from './user-health-context.controller';
-import {
-  UserHealthContextAllergyWriteService,
-  UserHealthContextConditionWriteService,
-  UserHealthContextMapperService,
-  UserHealthContextMedicineWriteService,
-  UserHealthContextOwnershipService,
-  UserHealthContextProfileWriteService,
-  UserHealthContextService,
-} from './services';
+import { UserHealthContextAllergyWriteService } from './services/allergy-write.service';
+
+import { UserHealthContextConditionWriteService } from './services/condition-write.service';
+
+import { UserHealthContextMapperService } from './services/mapper.service';
+
+import { UserHealthContextMedicineWriteService } from './services/medicine-write.service';
+
+import { UserHealthContextOwnershipService } from './services/ownership.service';
+
+import { UserHealthContextProfileWriteService } from './services/profile-write.service';
+
+import { UserHealthContextService } from './services/health-context.service';
 import {
   UserHealthContextRepositoryPort,
   UserHealthContextRepository,
-} from './repositories';
+} from './repositories/health-context.repository';
 
 @Module({
   controllers: [UserHealthContextController],

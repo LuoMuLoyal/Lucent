@@ -4,13 +4,14 @@ import { resolve } from 'node:path';
 import type {
   AppInfoDataDto,
   SupportResourceListDataDto,
-  SupportResourcesQueryDto,
-} from '../dto';
-import { nowIsoString } from '../../../common/helpers';
+} from '../dto/response.dto';
+
+import type { SupportResourcesQueryDto } from '../dto/query.dto';
+import { nowIsoString } from '../../../common';
 import {
   REFERENCE_DATA_UPDATED_AT,
   STATIC_SUPPORT_RESOURCES,
-} from '../constants';
+} from '../constants/support-resources-reference';
 
 const BUILD_DATE = nowIsoString();
 

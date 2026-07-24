@@ -17,18 +17,21 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common/api';
-import { clampPage, clampPageSize } from '../../common/helpers';
-import { CurrentUser } from '../auth/decorators';
-import type { UserPayload } from '../auth/services';
+import { successEnvelope } from '../../common';
+import { clampPage, clampPageSize } from '../../common';
+import { CurrentUser } from '../auth';
+import type { UserPayload } from '../auth';
+import { CreateDoseLogDto } from './dto/create-dose-log.dto';
+
 import {
-  CreateDoseLogDto,
   DoseLogListResponseDto,
-  MarkDoseLogDto,
   DoseLogResponseDto,
-  UpdateDoseLogDto,
-} from './dto';
-import { MedicineDoseLogsService } from './services';
+} from './dto/dose-log-response.dto';
+
+import { MarkDoseLogDto } from './dto/mark-dose-log.dto';
+
+import { UpdateDoseLogDto } from './dto/update-dose-log.dto';
+import { MedicineDoseLogsService } from './services/dose-logs.service';
 
 @ApiTags('Medicine Dose Logs')
 @ApiBearerAuth('access-token')

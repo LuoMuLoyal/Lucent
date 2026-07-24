@@ -2,9 +2,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../common/queue/queue.factory';
-import { BaseAsyncQueueService } from '../../../common/queue';
+import { BaseAsyncQueueService } from '../../../common';
 import { TodayAnalysisService } from './analysis.service';
-import type { TodayAnalysisDataDto, GenerateTodayAnalysisDto } from '../dto';
+import type { TodayAnalysisDataDto } from '../dto/analysis-response.dto';
+
+import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto';
 
 interface AnalysisJobData {
   userId: string;

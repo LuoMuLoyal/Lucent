@@ -13,8 +13,8 @@ import { DEFAULT_RANGE_DAYS, MAX_RANGE_DAYS } from './constants';
 import {
   REPORT_RANGE_LAST_7_DAYS,
   REPORT_RANGE_LAST_30_DAYS,
-} from '../../reports/dto/report-dashboard-query.dto';
-import { formatDateOnly, parseDateOnly } from '../../../common/helpers';
+} from '../../reports';
+import { formatDateOnly, parseDateOnly } from '../../../common';
 
 describe('date-resolver', () => {
   // -----------------------------------------------------------------------

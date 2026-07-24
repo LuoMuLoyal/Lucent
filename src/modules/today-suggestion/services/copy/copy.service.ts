@@ -15,7 +15,9 @@ import { I18nService } from 'nestjs-i18n';
 import { createHash } from 'crypto';
 import { SuggestionCopyLlmService } from './copy-llm-generator.service';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service';
-import { getFallbackCopy, validateCopyTemplate } from '../../constants';
+import { getFallbackCopy } from '../../constants/copy-fallback';
+
+import { validateCopyTemplate } from '../../constants/copy-templates';
 import type {
   CopyJobData,
   CopyPromptCopy,

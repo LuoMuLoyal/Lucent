@@ -1,9 +1,9 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
-import { ResultCode } from '../../../common/api';
-import { now } from '../../../common/helpers';
-import { CosStorageRuntime } from '../../../common/storage';
+import { ResultCode } from '../../../common';
+import { now } from '../../../common';
+import { CosStorageRuntime } from '../../../common';
 
 const PROVIDER = 'tencent-cos';
 

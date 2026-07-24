@@ -1,18 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { parseDateOnly, now } from '../../../../common/helpers';
+import { parseDateOnly, now } from '../../../../common';
 import { DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma';
-import {
-  DailyRecordReaderPort,
-  type DailyRecordFact,
-} from '../../../daily-records/repositories';
-import type { SuggestionSignal } from '../../../today-suggestion/types';
-import { TriggerType } from '../../../today-suggestion/types';
+import { DailyRecordReaderPort } from '../../../daily-records';
+
+import type { DailyRecordFact } from '../../../daily-records';
+import type { SuggestionSignal } from '../../types/signal.types';
+import { TriggerType } from '../../types/suggestion.types';
 import {
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
-} from '../../../user-settings/constants';
-import { TREND_LOOKBACK_DAYS } from '../../../today-suggestion/constants';
+} from '../../../user-settings';
+import { TREND_LOOKBACK_DAYS } from '../../constants/thresholds.constants';
 
 /**
  * Collects daily-record signals: water count, sleep data,

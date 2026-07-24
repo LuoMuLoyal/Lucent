@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import type { DailyRecordKind } from '#generated/prisma/client';
-import type { DailyRecordShape } from '../types';
+import type { DailyRecordShape } from '../types/record.types';
 import { DailyRecordsMapperService } from './mapper.service';
 
 describe('DailyRecordsMapperService', () => {

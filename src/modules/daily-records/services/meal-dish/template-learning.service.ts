@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma';
-import { buildSearchText } from '../../../../common/helpers';
-import { toInputJsonValue } from '../../../../common/helpers';
+import { buildSearchText } from '../../../../common';
+import { toInputJsonValue } from '../../../../common';
 import type { MealAnalysisPayload } from '../../types/meal-analysis.types';
 
 type MealDishTemplateWriteAccess = PrismaService & {

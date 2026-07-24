@@ -7,7 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerConfigService } from './config/throttler.config';
 import { APP_GUARD } from '@nestjs/core';
-import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from './modules/auth';
 import { appConfig } from './config/app.config';
 import { llmConfig } from './config/llm.config';
 import { jwtConfig } from './config/jwt.config';
@@ -24,7 +24,7 @@ import { AppService } from './app.service';
 import { I18nModule } from './i18n/i18n.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { MetricsModule } from './common/metrics/metrics.module';
-import { SseModule } from './common/api';
+import { SseModule } from './common';
 import { BullmqModule } from './common/queue/queue.module';
 import { MedicinesModule } from './modules/medicines/medicines.module';
 import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
@@ -49,7 +49,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { DataRetentionModule } from './modules/data-retention/data-retention.module';
 import { UserDevicesModule } from './modules/user-devices/user-devices.module';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
-import { SlowRequestInterceptor } from './common/interceptors';
+import { SlowRequestInterceptor } from './common';
 
 /**
  * Root application module. Wires configuration, persistence, common

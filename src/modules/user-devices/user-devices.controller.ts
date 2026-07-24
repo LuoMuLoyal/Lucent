@@ -16,15 +16,16 @@ import {
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
 
-import { successEnvelope } from '../../common/api';
-import type { UserPayload } from '../auth/services';
-import { CurrentUser } from '../auth/decorators';
-import { UserDevicesService } from './services';
+import { successEnvelope } from '../../common';
+import type { UserPayload } from '../auth';
+import { CurrentUser } from '../auth';
+import { UserDevicesService } from './services/user-devices.service';
 import {
   DeviceListResponseDto,
   DeviceResponseDto,
-  RegisterDeviceDto,
-} from './dto';
+} from './dto/device-response.dto';
+
+import { RegisterDeviceDto } from './dto/register-device.dto';
 
 @ApiTags('User Devices')
 @ApiBearerAuth('access-token')

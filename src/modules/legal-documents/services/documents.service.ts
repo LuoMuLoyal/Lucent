@@ -6,9 +6,12 @@ import type {
   LegalDocumentDetailDto,
   LegalDocumentListDataDto,
   LegalDocumentListItemDto,
-} from '../dto';
-import type { LegalDocumentQueryDto } from '../dto';
-import { DEFAULT_LEGAL_LANG, type LegalLang } from '../constants';
+} from '../dto/response.dto';
+import type { LegalDocumentQueryDto } from '../dto/query.dto';
+import {
+  DEFAULT_LEGAL_LANG,
+  type LegalLang,
+} from '../constants/legal.constants';
 
 @Injectable()
 export class LegalDocumentsService {

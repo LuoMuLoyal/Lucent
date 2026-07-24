@@ -9,13 +9,10 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 
-import { successEnvelope } from '../../../common/api';
-import {
-  extractAuthRequestContext,
-  getRequestClientIp,
-} from '../../../common/helpers';
+import { successEnvelope } from '../../../common';
+import { extractAuthRequestContext, getRequestClientIp } from '../../../common';
 import { AuthService } from '../services/auth.service';
-import { VerificationCodeService } from '../services/identity';
+import { VerificationCodeService } from '../services/identity/verification-code.service';
 
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
@@ -31,7 +28,7 @@ import {
   SendVerificationCodeResponseDto,
   SuccessResponseDto,
   VerifyEmailResponseDto,
-} from '../dto';
+} from '../dto/auth-responses.dto';
 
 import { buildAuthResponse } from './auth-response.helper';
 import { Public } from '../decorators/public.decorator';

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { UserService } from './services';
+import { UserService } from './services/user.service';
 
 /**
  * Pure internal service module — provides user CRUD operations to auth/account.

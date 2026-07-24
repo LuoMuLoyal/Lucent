@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma';
-import { calculateAge, nowIsoString } from '../../../../common/helpers';
+import { calculateAge, nowIsoString } from '../../../../common';
 import { ConfigKey } from '../../../../config/config-keys.enum';
 import type {
   ClinicSummaryDto,

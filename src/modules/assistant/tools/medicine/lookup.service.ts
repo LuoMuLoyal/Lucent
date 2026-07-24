@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import type { AssistantReadResultEnvelope } from '../../types';
-import type { AssistantToolExecutionContext } from '../../types';
-import type { MedicineSearchItemDto } from '../../../medicines/dto';
-import { CnMedicinesService } from '../../../medicines/adapters/cn.service';
-import { DrugbankMedicinesService } from '../../../medicines/adapters/drugbank.service';
+import type { AssistantReadResultEnvelope } from '../../types/assistant.types';
+import type { AssistantToolExecutionContext } from '../../types/assistant.types';
+import type { MedicineSearchItemDto } from '../../../medicines';
+import { CnMedicinesService } from '../../../medicines';
+import { DrugbankMedicinesService } from '../../../medicines';
 import { buildReadConfidence, buildReadEnvelope } from '../presenters';
 import { parseSearchPayload } from '../drugbank/entity-resolve.service';
 

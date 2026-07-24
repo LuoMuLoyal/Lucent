@@ -3,13 +3,15 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../prisma';
-import type { UpdateUserSettingsDto, UserSettingsDataDto } from '../dto';
+import type { UpdateUserSettingsDto } from '../dto/update.dto';
+
+import type { UserSettingsDataDto } from '../dto/response.dto';
 import {
   ASSISTANT_CONTEXT_DEFAULTS,
   ASSISTANT_CONTEXT_SETTING_KEYS,
   USER_SETTING_KEYS,
   USER_SETTINGS_DEFAULTS,
-} from '../constants';
+} from '../constants/settings.constants';
 import {
   SETTINGS_CHANGED,
   type SettingsChangedPayload,

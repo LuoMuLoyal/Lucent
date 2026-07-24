@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SecurityPinSettingsDto } from '../../security-pin/dto/pin.dto';
+import { SecurityPinSettingsDto } from '../../security-pin';
 
 export class AssistantContextSettingsDto {
   @ApiProperty({

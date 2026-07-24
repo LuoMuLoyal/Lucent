@@ -7,13 +7,13 @@ import {
 } from '@langchain/core/messages';
 import { LlmRuntimeService } from '../../../llm-runtime';
 import { MetricsService } from '../../../common/metrics/metrics.service';
-import type { AssistantRuntimeCapabilities } from '../types';
+import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
 import type {
   AssistantMessageResult,
   AssistantConversationMessage,
   AssistantStreamChunkEvent,
   AssistantToolExecutionResult,
-} from '../types';
+} from '../types/assistant.types';
 import {
   ASSISTANT_CONTEXT_SOURCES,
   ASSISTANT_IMPLEMENTED_TOOL_NAMES,
@@ -23,11 +23,12 @@ import type { AssistantContextSource, AssistantToolName } from '../tools/types';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import { AssistantToolLeafletReadService } from '../tools/leaflet/read.service';
 import { buildAssistantSystemPrompt } from '../prompts/system.prompt';
+import { ASSISTANT_RUNTIME_NODE_NAMES } from './runtime/state';
+
 import {
-  ASSISTANT_RUNTIME_NODE_NAMES,
   buildAssistantRuntimeGraph,
   type ToolExecutorFn,
-} from './runtime';
+} from './runtime/graph';
 import {
   withLlmRetry,
   isRetryableLlmError,

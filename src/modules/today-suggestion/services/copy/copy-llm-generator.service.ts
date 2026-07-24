@@ -7,7 +7,10 @@ import {
   GeneratedCopySchema,
   type GeneratedCopy,
 } from '../../schemas/copy.schema';
-import type { CopyGenerationContext, CopyPromptCopy } from '../../types';
+import type {
+  CopyGenerationContext,
+  CopyPromptCopy,
+} from '../../types/copy-generation.types';
 import {
   buildCopySystemPrompt,
   buildCopyUserPrompt,

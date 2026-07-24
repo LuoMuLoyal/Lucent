@@ -1,13 +1,16 @@
 import { NotFoundException } from '@nestjs/common';
 import { FeedbackService } from './service';
-import { SuggestionType, SuggestionFeedback } from '../../types';
+import {
+  SuggestionType,
+  SuggestionFeedback,
+} from '../../types/suggestion.types';
 import {
   FEEDBACK_LATER_DURATION_MS,
   FEEDBACK_NOT_APPLICABLE_DURATION_MS,
   FEEDBACK_SUPPRESS_DURATION_MS,
   FEEDBACK_ACCEPTED_BOOST_PERCENT,
   FEEDBACK_NOT_APPLICABLE_REDUCTION_PERCENT,
-} from '../../constants';
+} from '../../constants/feedback.constants';
 
 describe('FeedbackService', () => {
   let service: FeedbackService;

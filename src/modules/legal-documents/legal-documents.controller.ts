@@ -1,13 +1,14 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { successEnvelope } from '../../common/api';
-import { Public } from '../auth/decorators';
+import { successEnvelope } from '../../common';
+import { Public } from '../auth';
 import {
   LegalDocumentDetailResponseDto,
   LegalDocumentListResponseDto,
-  LegalDocumentQueryDto,
-} from './dto';
-import { LegalDocumentsService } from './services';
+} from './dto/response.dto';
+
+import { LegalDocumentQueryDto } from './dto/query.dto';
+import { LegalDocumentsService } from './services/documents.service';
 
 @ApiTags('Legal Documents')
 @Public()

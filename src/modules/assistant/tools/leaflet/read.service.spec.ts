@@ -1,7 +1,7 @@
 // Prevent @prisma/adapter-pg from failing at module load in test env
 vi.mock('@prisma/adapter-pg', () => ({ PrismaPg: vi.fn() }));
 
-import type { AssistantToolExecutionContext } from '../../types';
+import type { AssistantToolExecutionContext } from '../../types/assistant.types';
 import { AssistantToolLeafletReadService } from './read.service';
 import {
   buildVectorQueryHash,

@@ -3,19 +3,19 @@ import {
   badRequest,
   unauthorized,
   conflict,
-} from '../../../../common/helpers';
-import { normalizeEmail } from '../../../../common/helpers';
+} from '../../../../common';
+import { normalizeEmail } from '../../../../common';
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
 import { ARGON2_OPTIONS } from '../../config/argon2-options';
-import { NotificationsService } from '../../../notifications/services/notifications.service';
+import { NotificationsService } from '../../../notifications';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
-import { UserService } from '../../../user/services/user.service';
+import { UserService } from '../../../user';
 import { VerificationCodeService } from './verification-code.service';
-import { ResultCode } from '../../../../common/api';
+import { ResultCode } from '../../../../common';
 import { RegisterDto } from '../../dto/register.dto';
 import { LoginDto } from '../../dto/login.dto';
 import { ChangePasswordDto } from '../../dto/change-password.dto';
@@ -31,7 +31,7 @@ import {
   type TokenPair,
 } from '../token.service';
 import { AuthRateLimitService } from './rate-limit.service';
-import { now } from '../../../../common/helpers';
+import { now } from '../../../../common';
 
 /**
  * Handles email/password credential flows: registration, login,

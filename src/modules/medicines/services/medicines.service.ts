@@ -2,19 +2,25 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { I18nService } from 'nestjs-i18n';
 
-import { notFound, badRequest } from '../../../common/helpers';
-import { shuffleArray } from '../../../common/helpers';
-import { safeParseLlmJson } from '../../../common/helpers';
+import { notFound, badRequest } from '../../../common';
+import { shuffleArray } from '../../../common';
+import { safeParseLlmJson } from '../../../common';
 import { PrismaService } from '../../../prisma';
 import {
   DEFAULT_MEDICINE_SOURCE,
-  MedicineSafetyTipResponseDto,
-  type MedicineDetailDataDto,
-  type MedicineDetailQueryDto,
   type MedicineKnowledgeSource,
-  type MedicineSearchQueryDto,
-  type MedicineSearchResult,
-} from '../dto';
+} from '../dto/medicine-source.dto';
+
+import { MedicineSafetyTipResponseDto } from '../dto/medicine-safety-tip-response.dto';
+
+import type { MedicineDetailDataDto } from '../dto/medicine-detail.dto';
+
+import type {
+  MedicineDetailQueryDto,
+  MedicineSearchQueryDto,
+} from '../dto/medicine-query.dto';
+
+import type { MedicineSearchResult } from '../dto/medicine-search.dto';
 import { MedicinesCacheService } from '../cache/cache.service';
 import { CnMedicinesService } from '../adapters/cn.service';
 import { DrugbankMedicinesService } from '../adapters/drugbank.service';

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { MedicineDoseLogsController } from './medicine-dose-logs.controller';
-import { MedicineDoseLogsService } from './services';
+import { MedicineDoseLogsService } from './services/dose-logs.service';
 import {
   MedicineDoseLogReaderPort,
   MedicineDoseLogRepositoryPort,
   MedicineDoseLogRepository,
-} from './repositories';
+} from './repositories/dose-log.repository';
 @Module({
   controllers: [MedicineDoseLogsController],
   providers: [

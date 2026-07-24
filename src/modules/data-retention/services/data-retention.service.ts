@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../prisma';
-import { now } from '../../../common/helpers';
+import { now } from '../../../common';
 
 /** Cron expression for daily cleanup — 3:00 AM UTC. */
 export const DATA_RETENTION_CRON = '0 3 * * *';

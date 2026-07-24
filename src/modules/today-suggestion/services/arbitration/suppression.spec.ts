@@ -8,8 +8,8 @@ import {
   TriggerType,
   SuggestionConfidence,
   SuggestionFeedback,
-} from '../../types';
-import type { SuggestionCandidate } from '../../types';
+} from '../../types/suggestion.types';
+import type { SuggestionCandidate } from '../../types/candidate.types';
 
 function buildCandidate(
   overrides: Partial<SuggestionCandidate> = {},

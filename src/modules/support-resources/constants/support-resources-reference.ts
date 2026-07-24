@@ -1,4 +1,4 @@
-import type { SupportResourceDto } from '../dto';
+import type { SupportResourceDto } from '../dto/response.dto';
 
 /** Static reference data revision timestamp. */
 export const REFERENCE_DATA_UPDATED_AT = '2026-07-02T00:00:00.000Z';

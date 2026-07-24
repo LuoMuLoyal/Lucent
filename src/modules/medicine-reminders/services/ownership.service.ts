@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { ensureOwnedByUser } from '../../../common/helpers';
+import { ensureOwnedByUser } from '../../../common';
 
-import { MedicineReminderRepositoryPort } from '../repositories';
-import type { OwnedMedicineReminderRecord } from '../types';
+import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
+import type { OwnedMedicineReminderRecord } from '../types/reminder.types';
 
 @Injectable()
 export class MedicineRemindersOwnershipService {

@@ -2,8 +2,11 @@ import type { Cache } from 'cache-manager';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
 import { SuggestionCopyQueueService } from './copy-queue.service';
 import type { SuggestionCopyService } from './copy.service';
-import type { CopyJobData } from '../../types';
-import { SuggestionType, SuggestionConfidence } from '../../types';
+import type { CopyJobData } from '../../types/copy-generation.types';
+import {
+  SuggestionType,
+  SuggestionConfidence,
+} from '../../types/suggestion.types';
 
 function buildFactory(available: boolean): {
   factory: BullmqQueueFactory;

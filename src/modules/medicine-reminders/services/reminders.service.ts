@@ -1,14 +1,13 @@
-import { nonDeleted } from '../../../common/helpers';
+import { nonDeleted } from '../../../common';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { MedicineReminderRepositoryPort } from '../repositories';
-import type {
-  CreateMedicineReminderDto,
-  UpdateMedicineReminderDto,
-} from '../dto';
+import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
+import type { CreateMedicineReminderDto } from '../dto/create.dto';
+
+import type { UpdateMedicineReminderDto } from '../dto/update.dto';
 import { MedicineRemindersOwnershipService } from './ownership.service';
 import { MedicineRemindersMapperService } from './mapper.service';
-import { now } from '../../../common/helpers';
+import { now } from '../../../common';
 import {
   REMINDER_CHANGED,
   type ReminderChangedPayload,

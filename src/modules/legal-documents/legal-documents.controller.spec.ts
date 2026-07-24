@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api';
+import { ResultCode } from '../../common';
 import { LegalDocumentsController } from './legal-documents.controller';
-import { LegalDocumentsService } from './services';
+import { LegalDocumentsService } from './services/documents.service';
 
 describe('LegalDocumentsController', () => {
   let controller: LegalDocumentsController;

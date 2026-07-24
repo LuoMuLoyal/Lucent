@@ -1,10 +1,10 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../common/api';
+import { ResultCode } from '../../common';
 import { TestingSupportController } from './testing-support.controller';
-import { TestingSupportService } from './services';
-import type { PrepareFullstackRecordLaneDto } from './dto';
+import { TestingSupportService } from './services/fixtures.service';
+import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';
 
 describe('TestingSupportController', () => {
   let controller: TestingSupportController;

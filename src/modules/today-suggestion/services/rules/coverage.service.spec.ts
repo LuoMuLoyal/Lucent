@@ -1,5 +1,5 @@
 import { CoverageRuleService } from './coverage.service';
-import { SuggestionType } from '../../types';
+import { SuggestionType } from '../../types/suggestion.types';
 import { buildContext, buildSignal } from './test-helpers';
 
 describe('CoverageRuleService', () => {

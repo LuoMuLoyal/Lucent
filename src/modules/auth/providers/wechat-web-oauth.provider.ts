@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../../common/api';
+import { ResultCode } from '../../../common';
 import { ConfigKey } from '../../../config/config-keys.enum';
 import type {
   OAuthConfig,

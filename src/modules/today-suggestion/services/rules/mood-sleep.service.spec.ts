@@ -1,5 +1,5 @@
 import { MoodSleepRuleService } from './mood-sleep.service';
-import { SuggestionType } from '../../types';
+import { SuggestionType } from '../../types/suggestion.types';
 import { buildContext, buildSignal } from './test-helpers';
 
 describe('MoodSleepRuleService', () => {

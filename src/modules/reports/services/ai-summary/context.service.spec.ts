@@ -3,7 +3,7 @@ import type {
   ReportDashboardComputed,
   ReportDashboardFacts,
 } from '../../dashboard/types';
-import { REPORT_RANGE_LAST_7_DAYS } from '../../dto';
+import { REPORT_RANGE_LAST_7_DAYS } from '../../dto/report-dashboard-query.dto';
 
 describe('ReportsAiSummaryContextService', () => {
   const service = new ReportsAiSummaryContextService();

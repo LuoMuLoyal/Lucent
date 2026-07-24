@@ -2,9 +2,9 @@ import type {
   ReportDashboardDataDto,
   ReportMetricDto,
   ReportPatternDto,
-  ReportRange,
   ReportTrendDto,
-} from '../dto';
+} from '../dto/report-dashboard-response.dto';
+import type { ReportRange } from '../dto/report-dashboard-query.dto';
 
 export type MetricStatus =
   | 'good'

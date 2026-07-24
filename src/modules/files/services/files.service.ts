@@ -5,8 +5,8 @@ import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
-import { badRequest } from '../../../common/helpers';
-import { CosStorageRuntime } from '../../../common/storage';
+import { badRequest } from '../../../common';
+import { CosStorageRuntime } from '../../../common';
 import type { CreateFileUploadDto } from '../dto/create-file-upload.dto';
 
 const PROVIDER = 'tencent-cos';

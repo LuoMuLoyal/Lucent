@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, type DoseLogStatus } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import { nonDeleted } from '../../../common/helpers';
+import { nonDeleted } from '../../../common';
 
 /**
  * Lean read-model shape for cross-module consumers (ADR-0009). Exposes

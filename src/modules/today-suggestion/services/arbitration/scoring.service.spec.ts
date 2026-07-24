@@ -1,5 +1,9 @@
-import { SuggestionType, TriggerType, SuggestionConfidence } from '../../types';
-import type { SuggestionCandidate } from '../../types';
+import {
+  SuggestionType,
+  TriggerType,
+  SuggestionConfidence,
+} from '../../types/suggestion.types';
+import type { SuggestionCandidate } from '../../types/candidate.types';
 import { ScoringService } from './scoring.service';
 
 function buildCandidate(

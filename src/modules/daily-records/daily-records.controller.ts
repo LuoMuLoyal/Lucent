@@ -17,24 +17,32 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common/api';
-import { CurrentUser } from '../auth/decorators';
-import type { UserPayload } from '../auth/services';
+import { successEnvelope } from '../../common';
+import { CurrentUser } from '../auth';
+import type { UserPayload } from '../auth';
+import { CreateDailyRecordDto } from './dto/create-record.dto';
+
+import { UpdateDailyRecordDto } from './dto/update-record.dto';
+
 import {
-  CreateDailyRecordDto,
-  UpdateDailyRecordDto,
   DailyRecordListResponseDto,
   DailyRecordSummaryResponseDto,
   DailyRecordResponseDto,
+} from './dto/record-response.dto';
+
+import {
   CreateDailyRecordImageUploadDto,
   DailyRecordImageUploadResponseDto,
-  DailyRecordCandidateResponseDto,
-  GenerateDailyRecordCandidatesDto,
-  QueryDailyRecordDto,
-} from './dto';
+} from './dto/record-image-upload.dto';
+
+import { DailyRecordCandidateResponseDto } from './dto/record-candidate-response.dto';
+
+import { GenerateDailyRecordCandidatesDto } from './dto/generate-record-candidates.dto';
+
+import { QueryDailyRecordDto } from './dto/query-record.dto';
 import { DailyRecordCandidatesService } from './services/candidates/service';
-import { DailyRecordImageUploadService } from './services';
-import { DailyRecordsService } from './services';
+import { DailyRecordImageUploadService } from './services/image-upload.service';
+import { DailyRecordsService } from './services/records.service';
 import { I18nLang } from 'nestjs-i18n';
 
 @ApiTags('Daily Records')

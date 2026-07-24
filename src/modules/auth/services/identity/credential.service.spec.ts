@@ -8,13 +8,13 @@ import {
 import { I18nService } from 'nestjs-i18n';
 
 import { CredentialAuthService } from './credential.service';
-import { UserService } from '../../../user/services/user.service';
+import { UserService } from '../../../user';
 import { VerificationCodeService } from './verification-code.service';
 import { AuthTokenService } from '../token.service';
 import { AuthRateLimitService } from './rate-limit.service';
-import { NotificationsService } from '../../../notifications/services/notifications.service';
-import type { NotificationListItemDto } from '../../../notifications/dto/response.dto';
-import { ResultCode } from '../../../../common/api';
+import { NotificationsService } from '../../../notifications';
+import type { NotificationListItemDto } from '../../../notifications';
+import { ResultCode } from '../../../../common';
 import type { User } from '#generated/prisma/client';
 import { UserStatus } from '#generated/prisma/client';
 

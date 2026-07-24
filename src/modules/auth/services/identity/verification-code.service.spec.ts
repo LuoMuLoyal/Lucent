@@ -14,7 +14,7 @@ import { I18nService } from 'nestjs-i18n';
 import { VerificationCodeService } from './verification-code.service';
 import { MailService } from '../../../../mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ResultCode } from '../../../../common/api';
+import { ResultCode } from '../../../../common';
 import {
   DEFAULT_VERIFICATION_CODE_LENGTH,
   DEFAULT_VERIFICATION_CODE_TTL_MS,

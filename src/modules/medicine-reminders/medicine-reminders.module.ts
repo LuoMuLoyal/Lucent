@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { MedicineRemindersController } from './medicine-reminders.controller';
-import { MedicineRemindersOwnershipService } from './services';
-import { MedicineRemindersMapperService } from './services';
-import { MedicineRemindersService } from './services';
-import { ReminderSchedulerService } from './services';
+import { MedicineRemindersOwnershipService } from './services/ownership.service';
+import { MedicineRemindersMapperService } from './services/mapper.service';
+import { MedicineRemindersService } from './services/reminders.service';
+import { ReminderSchedulerService } from './services/scheduler.service';
 import { ReminderDeliveriesController } from './reminder-deliveries.controller';
 import {
   MedicineReminderRepositoryPort,
   MedicineReminderRepository,
-} from './repositories';
+} from './repositories/reminder.repository';
 
 @Module({
   imports: [NotificationsModule],

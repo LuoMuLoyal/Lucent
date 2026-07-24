@@ -6,7 +6,7 @@ import {
   type AssistantToolDisabledReason,
   type AssistantToolName,
 } from '../tools/types';
-import { AssistantContextSettingsDto } from '../../user-settings/dto';
+import { AssistantContextSettingsDto } from '../../user-settings';
 
 export class AssistantToolCapabilityDto {
   @ApiProperty({

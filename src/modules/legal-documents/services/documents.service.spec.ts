@@ -1,6 +1,6 @@
 import type { PrismaService } from '../../../prisma';
 import { NotFoundException } from '@nestjs/common';
-import { LegalDocumentsService } from '.';
+import { LegalDocumentsService } from './documents.service';
 
 describe('LegalDocumentsService', () => {
   let service: LegalDocumentsService;

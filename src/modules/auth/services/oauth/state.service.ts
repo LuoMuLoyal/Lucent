@@ -1,5 +1,5 @@
-import { badRequest, unauthorized } from '../../../../common/helpers';
-import { extractErrorInfo } from '../../../../common/helpers';
+import { badRequest, unauthorized } from '../../../../common';
+import { extractErrorInfo } from '../../../../common';
 import {
   BadRequestException,
   Inject,
@@ -14,7 +14,7 @@ import { I18nService } from 'nestjs-i18n';
 import { ConfigKey } from '../../../../config/config-keys.enum';
 import { EnvKey } from '../../../../config/env-keys.enum';
 import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/constants';
-import { ResultCode } from '../../../../common/api';
+import { ResultCode } from '../../../../common';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
   type OAuthProviderName,

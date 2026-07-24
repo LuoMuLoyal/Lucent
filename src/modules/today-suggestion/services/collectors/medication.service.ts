@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { nonDeleted } from '../../../../common/helpers';
-import { parseDateOnly } from '../../../../common/helpers';
+import { nonDeleted } from '../../../../common';
+import { parseDateOnly } from '../../../../common';
 import { DoseLogStatus, type Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma';
-import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs/repositories';
-import type { SuggestionSignal } from '../../../today-suggestion/types';
-import { TriggerType } from '../../../today-suggestion/types';
+import { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs';
+import type { SuggestionSignal } from '../../types/signal.types';
+import { TriggerType } from '../../types/suggestion.types';
 
 const _reminderSelect = {
   id: true,

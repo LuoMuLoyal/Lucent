@@ -1,7 +1,7 @@
 import type { IDailyRecordCandidateGenerator } from '../types/ports';
 import type { AssistantToolRecordQueryService } from './records/query.service';
-import type { AssistantToolExecutionContext } from '../types';
-import type { DailyRecordCandidateData } from '../../daily-records/dto';
+import type { AssistantToolExecutionContext } from '../types/assistant.types';
+import type { DailyRecordCandidateData } from '../../daily-records';
 import { AssistantToolProposalService } from './proposal.service';
 
 const mockContext: AssistantToolExecutionContext = {

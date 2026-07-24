@@ -17,20 +17,25 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { successEnvelope } from '../../common/api';
-import { CurrentUser } from '../auth/decorators';
-import type { UserPayload } from '../auth/services';
-import {
-  CreateCurrentMedicineDto,
-  CreateHealthContextAllergyDto,
-  CreateHealthContextConditionDto,
-  HealthContextResponseDto,
-  UpdateCurrentMedicineDto,
-  UpdateHealthContextAllergyDto,
-  UpdateHealthContextConditionDto,
-  UpdateHealthContextProfileDto,
-} from './dto';
-import { UserHealthContextService } from './services';
+import { successEnvelope } from '../../common';
+import { CurrentUser } from '../auth';
+import type { UserPayload } from '../auth';
+import { CreateCurrentMedicineDto } from './dto/create-current-medicine.dto';
+
+import { CreateHealthContextAllergyDto } from './dto/create-allergy.dto';
+
+import { CreateHealthContextConditionDto } from './dto/create-condition.dto';
+
+import { HealthContextResponseDto } from './dto/response.dto';
+
+import { UpdateCurrentMedicineDto } from './dto/update-current-medicine.dto';
+
+import { UpdateHealthContextAllergyDto } from './dto/update-allergy.dto';
+
+import { UpdateHealthContextConditionDto } from './dto/update-condition.dto';
+
+import { UpdateHealthContextProfileDto } from './dto/update-profile.dto';
+import { UserHealthContextService } from './services/health-context.service';
 
 @ApiTags('User Health Context')
 @Controller('health-context')

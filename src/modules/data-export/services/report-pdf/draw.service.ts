@@ -21,7 +21,7 @@ import type {
   ReportDashboardDataDto,
   ReportMetricDto,
   ReportTrendDto,
-} from '../../../reports/dto';
+} from '../../../reports';
 
 export type PdfColor = ReturnType<typeof rgb>;
 

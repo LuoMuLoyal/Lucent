@@ -20,17 +20,17 @@ import {
 } from '@nestjs/swagger';
 import { I18nLang, I18nService } from 'nestjs-i18n';
 
-import { successEnvelope } from '../../common/api';
-import { clampPage, clampPageSize } from '../../common/helpers';
-import { type UserPayload } from '../auth/services';
-import { CurrentUser } from '../auth/decorators';
-import { NotificationsService } from './services';
+import { successEnvelope } from '../../common';
+import { clampPage, clampPageSize } from '../../common';
+import type { UserPayload } from '../auth';
+import { CurrentUser } from '../auth';
+import { NotificationsService } from './services/notifications.service';
 import {
   NotificationListResponseDto,
   NotificationDetailResponseDto,
   UnreadCountResponseDto,
   CreateNotificationDto,
-} from './dto';
+} from './dto/response.dto';
 
 @ApiTags('Notifications')
 @ApiBearerAuth('access-token')

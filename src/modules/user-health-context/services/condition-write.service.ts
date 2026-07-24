@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
-import { UserHealthContextRepositoryPort } from '../repositories';
-import { normalizeNullableText } from '../../../common/helpers';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
+import { normalizeNullableText } from '../../../common';
 import { UserHealthContextOwnershipService } from '../services/ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
-import { now } from '../../../common/helpers';
-import type {
-  CreateHealthContextConditionDto,
-  UpdateHealthContextConditionDto,
-} from '../dto';
+import { now } from '../../../common';
+import type { CreateHealthContextConditionDto } from '../dto/create-condition.dto';
+
+import type { UpdateHealthContextConditionDto } from '../dto/update-condition.dto';
 
 @Injectable()
 export class UserHealthContextConditionWriteService {

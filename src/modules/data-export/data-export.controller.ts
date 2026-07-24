@@ -15,17 +15,17 @@ import {
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
 
-import { successEnvelope } from '../../common/api';
-import { type UserPayload } from '../auth/services';
-import { CurrentUser } from '../auth/decorators';
-import { SecurityElevationGuard } from '../security-pin/guards';
-import { RequireSecurityElevation } from '../security-pin/decorators';
-import { DataExportService } from './services';
+import { successEnvelope } from '../../common';
+import type { UserPayload } from '../auth';
+import { CurrentUser } from '../auth';
+import { SecurityElevationGuard } from '../security-pin';
+import { RequireSecurityElevation } from '../security-pin';
+import { DataExportService } from './services/export.service';
 import {
   CreateDataExportRequestDto,
   DataExportLatestResponseDto,
   DataExportRequestResponseDto,
-} from './dto';
+} from './dto/export-response.dto';
 
 @ApiTags('Data Export')
 @ApiBearerAuth('access-token')

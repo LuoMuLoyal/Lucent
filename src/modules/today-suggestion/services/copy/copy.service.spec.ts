@@ -3,7 +3,10 @@ import type { SuggestionCopyLlmService } from './copy-llm-generator.service';
 import type { CopyQueueLike } from './copy.service';
 import type { SuggestionCacheService } from '../cache/suggestion-cache.service';
 import { SuggestionCopyService } from './copy.service';
-import { SuggestionType, SuggestionConfidence } from '../../types';
+import {
+  SuggestionType,
+  SuggestionConfidence,
+} from '../../types/suggestion.types';
 import type { CopyJobData } from '../../types/copy-generation.types';
 
 function buildRequest(overrides: Partial<CopyJobData> = {}): CopyJobData {

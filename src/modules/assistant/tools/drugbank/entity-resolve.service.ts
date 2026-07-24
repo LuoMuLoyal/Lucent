@@ -3,7 +3,7 @@ import { PrismaService } from '../../../../prisma';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
-} from '../../types';
+} from '../../types/assistant.types';
 import { buildReadConfidence, buildReadEnvelope } from '../presenters';
 
 const DRUGBANK_ENTITY_LIMIT = 5;

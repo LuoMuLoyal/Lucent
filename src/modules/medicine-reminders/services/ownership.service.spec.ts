@@ -2,7 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { Test, type TestingModule } from '@nestjs/testing';
 
-import { MedicineReminderRepositoryPort } from '../repositories';
+import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
 import { MedicineRemindersOwnershipService } from './ownership.service';
 
 describe('MedicineRemindersOwnershipService', () => {

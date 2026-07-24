@@ -11,8 +11,8 @@ import {
 } from './app.dto';
 import { EnvKey } from './config/env-keys.enum';
 import { PrismaService } from './prisma';
-import { nowIsoString } from './common/helpers';
-import { extractErrorInfo } from './common/helpers';
+import { nowIsoString } from './common';
+import { extractErrorInfo } from './common';
 
 type HealthComponent = HealthProbeDto['components'][number];
 

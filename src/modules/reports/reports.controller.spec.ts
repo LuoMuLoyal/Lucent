@@ -2,20 +2,22 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode, SseConnectionRegistry } from '../../common/api';
+import { ResultCode, SseConnectionRegistry } from '../../common';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-  type ReportDashboardDataDto,
-  type ReportSummaryDataDto,
-} from './dto';
-import { ReportsAiSummaryService } from './services/ai-summary';
-import { ReportSummaryQueueService } from './services/ai-summary';
-import { ClinicSummaryService } from './services/clinic-summary';
-import { ClinicSummaryPdfQueueService } from './services/clinic-summary';
+} from './dto/report-dashboard-query.dto';
+
+import type { ReportDashboardDataDto } from './dto/report-dashboard-response.dto';
+
+import type { ReportSummaryDataDto } from './dto/report-summary-response.dto';
+import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
+import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
+import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
 import { ReportsController } from './reports.controller';
-import { ReportsService } from './dashboard';
+import { ReportsService } from './dashboard/dashboard.service';
 describe('ReportsController', () => {
   let controller: ReportsController;
   let service: vi.Mocked<ReportsService>;

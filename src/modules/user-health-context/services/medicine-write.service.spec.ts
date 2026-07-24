@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { MedicineSource } from '#generated/prisma/client';
 import { type Mocked } from 'vitest';
-import { UserHealthContextRepositoryPort } from '../repositories';
+import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
 import { UserHealthContextOwnershipService } from './ownership.service';
 import { UserHealthContextMapperService } from './mapper.service';
 import { UserHealthContextMedicineWriteService } from './medicine-write.service';

@@ -5,9 +5,12 @@ import {
   formatDateOnly,
   formatDateTime,
   parseDateOnly,
-} from '../../../common/helpers';
-import type { HealthContextResponseData } from '../dto';
-import { CORE_PROFILE_FIELDS, type UserHealthContextRecord } from '../types';
+} from '../../../common';
+import type { HealthContextResponseData } from '../dto/response.dto';
+import {
+  CORE_PROFILE_FIELDS,
+  type UserHealthContextRecord,
+} from '../types/health-context.types';
 
 @Injectable()
 export class UserHealthContextMapperService {

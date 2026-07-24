@@ -1,5 +1,5 @@
 import { SuggestionCacheService } from './suggestion-cache.service';
-import { BaselineDimension } from '../../types';
+import { BaselineDimension } from '../../types/baseline.types';
 
 describe('SuggestionCacheService', () => {
   let service: SuggestionCacheService;

@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../../../prisma';
 import { TestingSupportService } from './fixtures.service';
-import { ARGON2_OPTIONS } from '../../auth/config/argon2-options';
+import { ARGON2_OPTIONS } from '../../auth';
 
 vi.mock('argon2', () => ({
   argon2id: 2,

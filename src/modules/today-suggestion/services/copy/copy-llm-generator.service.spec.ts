@@ -2,7 +2,10 @@ import type { LlmRuntimePort } from '../../../../common/llm/llm-runtime.port';
 import { LlmCircuitBreakerService } from '../../../../common/llm/llm-circuit-breaker.service';
 import type { LlmRuntimeService } from '../../../../llm-runtime';
 import type { MetricsService } from '../../../../common/metrics/metrics.service';
-import { SuggestionType, SuggestionConfidence } from '../../types';
+import {
+  SuggestionType,
+  SuggestionConfidence,
+} from '../../types/suggestion.types';
 import type {
   CopyGenerationContext,
   CopyPromptCopy,

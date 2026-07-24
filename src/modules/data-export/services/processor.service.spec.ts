@@ -1,9 +1,9 @@
 import { DataExportProcessorService } from './processor.service';
 import type { PrismaService } from '../../../prisma';
-import type { ReportsService } from '../../reports/dashboard';
+import type { ReportsService } from '../../reports';
 import type { DataExportStorageService } from './storage.service';
 import type { ReportExportPdfService } from './report-pdf/pdf.service';
-import type { NotificationsService } from '../../notifications/services/notifications.service';
+import type { NotificationsService } from '../../notifications';
 
 type MockPrisma = {
   dataExportRequest: {

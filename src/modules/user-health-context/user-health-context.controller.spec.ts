@@ -1,8 +1,8 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api';
+import { ResultCode } from '../../common';
 import { UserHealthContextController } from './user-health-context.controller';
-import { UserHealthContextService } from './services';
-import type { UserPayload } from '../auth/services';
+import { UserHealthContextService } from './services/health-context.service';
+import type { UserPayload } from '../auth';
 
 describe('UserHealthContextController', () => {
   let controller: UserHealthContextController;

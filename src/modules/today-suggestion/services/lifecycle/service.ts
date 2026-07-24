@@ -3,16 +3,18 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../../prisma';
-import { now, nowIsoString } from '../../../../common/helpers';
-import type { SuggestionCandidate, SuggestionAction } from '../../types';
-import { SuggestionLifecycleState } from '../../types';
+import { now, nowIsoString } from '../../../../common';
+import type { SuggestionCandidate } from '../../types/candidate.types';
+
+import type { SuggestionAction } from '../../types/signal.types';
+import { SuggestionLifecycleState } from '../../types/suggestion.types';
 import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto';
 import type { Prisma } from '#generated/prisma/client';
 import {
   SUGGESTION_ACTIVE_DURATION_MS,
   SUGGESTION_FADING_DURATION_MS,
   LIFECYCLE_REFRESH_CRON,
-} from '../../constants';
+} from '../../constants/lifecycle.constants';
 
 /** Max items returned by the history endpoint. */
 const HISTORY_MAX_LIMIT = 500;

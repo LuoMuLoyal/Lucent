@@ -1,6 +1,6 @@
 import { ReminderSchedulerService } from './scheduler.service';
-import type { NotificationsService } from '../../notifications/services/notifications.service';
-import type { PushDeliveryService } from '../../notifications/services/push-delivery.service';
+import type { NotificationsService } from '../../notifications';
+import type { PushDeliveryService } from '../../notifications';
 import type { PrismaService } from '../../../prisma';
 
 // 2026-07-20T00:30:00.000Z = 08:30 Monday in Asia/Shanghai

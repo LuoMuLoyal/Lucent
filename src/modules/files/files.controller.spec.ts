@@ -1,8 +1,8 @@
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../auth';
 import { FilesController } from './files.controller';
-import { FilesService } from './services';
+import { FilesService } from './services/files.service';
 
 describe('FilesController', () => {
   let controller: FilesController;

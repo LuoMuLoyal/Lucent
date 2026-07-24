@@ -14,18 +14,15 @@ import {
   PAGE_HEIGHT,
   PAGE_WIDTH,
   TOP_Y,
-} from '../../../data-export/constants/report-pdf.constants';
-import type {
-  EmbeddedFont,
-  PageContext,
-} from '../../../data-export/constants/report-pdf.constants';
+} from '../../../data-export';
+import type { EmbeddedFont, PageContext } from '../../../data-export';
 import {
   ensureSpace,
   drawSectionTitle,
   drawPageDecorations,
   drawPageChrome,
   wrapText,
-} from '../../../data-export/services/report-pdf/draw.service';
+} from '../../../data-export';
 
 const FONT_PATH =
   require.resolve('@fontpkg/source-han-sans-sc-vf/SourceHanSansSC-VF.otf');

@@ -4,10 +4,10 @@ import type {
   AssistantReadResultEnvelope,
   AssistantUpdateDailyRecordProposalPayload,
   AssistantUpdateUserSettingsProposalPayload,
-} from '../types';
+} from '../types/assistant.types';
 import type { AssistantToolName } from './types';
 import { DailyRecordKind } from '#generated/prisma/client';
-import { nowIsoString } from '../../../common/helpers';
+import { nowIsoString } from '../../../common';
 import { RANGE_TRUNCATED_MESSAGE, MAX_RANGE_DAYS } from './constants';
 
 export function buildReadEnvelope(input: {

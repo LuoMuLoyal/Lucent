@@ -1,9 +1,9 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../../common/api';
+import { ResultCode } from '../../../common';
 import type { FastifyRequest } from 'fastify';
 import { LocalController } from './local.controller';
 import { AuthService } from '../services/auth.service';
-import { VerificationCodeService } from '../services/identity';
+import { VerificationCodeService } from '../services/identity/verification-code.service';
 
 const mockRequest = {
   headers: { 'user-agent': 'test-agent' },

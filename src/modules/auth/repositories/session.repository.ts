@@ -6,7 +6,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma, UserSession, User } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
-import { now } from '../../../common/helpers';
+import { now } from '../../../common';
 
 export interface SessionContextData {
   ipAddress?: string;

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { roundNumber } from '../../../../common/helpers';
-import { commonCharacterCount } from '../../../../common/helpers';
+import { roundNumber } from '../../../../common';
+import { commonCharacterCount } from '../../../../common';
 import { EnvKey } from '../../../../config/env-keys.enum';
 import {
   DEFAULT_FUZZY_ACCEPT_SCORE,

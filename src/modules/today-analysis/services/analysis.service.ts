@@ -1,13 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import { now } from '../../../common/helpers';
-import type { CreateNotificationDto } from '../../notifications/dto';
-import { HistoricalAiSummaryService } from '../../assistant/services/historical-ai-summary.service';
-import { NotificationsService } from '../../notifications/services/notifications.service';
+import { now } from '../../../common';
+import type { CreateNotificationDto } from '../../notifications';
+import { HistoricalAiSummaryService } from '../../assistant';
+import { NotificationsService } from '../../notifications';
 import { PrismaService } from '../../../prisma';
 import { BaseLlmSummaryService } from '../../../common/llm/base-llm-summary.service';
 import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
-import type { GenerateTodayAnalysisDto, TodayAnalysisDataDto } from '../dto';
+import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto';
+
+import type { TodayAnalysisDataDto } from '../dto/analysis-response.dto';
 import { TodayAnalysisCopyService } from './copy.service';
 import {
   TodayAnalysisContextService,
@@ -15,7 +17,7 @@ import {
 } from './context.service';
 import { TodayAnalysisGeneratorService } from './generator.service';
 import type { TodayAnalysisStructuredOutput } from '../schemas/analysis.schema';
-import { nowIsoString } from '../../../common/helpers';
+import { nowIsoString } from '../../../common';
 
 interface PreparedTodayAnalysis {
   context: TodayAnalysisContext;

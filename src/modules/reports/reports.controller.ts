@@ -27,32 +27,36 @@ import {
   prepareSse,
   writeSseEvent,
   SseConnectionRegistry,
-} from '../../common/api';
+} from '../../common';
 import {
   extractErrorInfo,
   httpExceptionPayload,
   enqueueOrFallback,
-} from '../../common/helpers';
-import { SkipApiEnvelope } from '../../common/interceptors';
-import { type UserPayload } from '../auth/services';
-import { CurrentUser, Public } from '../auth/decorators';
+} from '../../common';
+import { SkipApiEnvelope } from '../../common';
+import type { UserPayload } from '../auth';
+import { CurrentUser } from '../auth';
+
+import { Public } from '../auth';
+import { GenerateReportSummaryDto } from './dto/generate-report-summary.dto';
+
+import { ReportDashboardQueryDto } from './dto/report-dashboard-query.dto';
+
+import { ReportDashboardResponseDto } from './dto/report-dashboard-response.dto';
+
+import { ReportSummaryResponseDto } from './dto/report-summary-response.dto';
+
 import {
-  GenerateReportSummaryDto,
-  ReportDashboardQueryDto,
-  ReportDashboardResponseDto,
-  ReportSummaryResponseDto,
   ClinicSummaryDto,
   ClinicSummaryShareResponseDto,
-} from './dto';
-import {
-  ReportSummaryQueueService,
-  ReportsAiSummaryService,
-} from './services/ai-summary';
-import {
-  ClinicSummaryPdfQueueService,
-  ClinicSummaryService,
-} from './services/clinic-summary';
-import { ReportsService } from './dashboard';
+} from './dto/clinic-summary-response.dto';
+import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
+
+import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
+import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
+
+import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import { ReportsService } from './dashboard/dashboard.service';
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')

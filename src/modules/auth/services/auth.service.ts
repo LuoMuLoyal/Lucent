@@ -2,7 +2,7 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
-import { ResultCode } from '../../../common/api';
+import { ResultCode } from '../../../common';
 import { DeleteAccountDto } from '../dto/delete-account.dto';
 import { ChangeEmailDto } from '../dto/change-email.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
@@ -26,7 +26,7 @@ import { OAuthAuthorizeResult } from '../types/oauth.types';
 import { AuthAccountService } from './account.service';
 import { AuthOAuthFacadeService } from './oauth/facade.service';
 import { AuthTokenService } from './token.service';
-import { CredentialAuthService } from './identity';
+import { CredentialAuthService } from './identity/credential.service';
 
 export type { AuthRequestContext, UserPayload } from '../types/auth-request';
 

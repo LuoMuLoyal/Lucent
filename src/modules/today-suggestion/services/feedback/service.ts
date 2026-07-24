@@ -1,8 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma';
-import { now, formatDateOnly } from '../../../../common/helpers';
-import { SuggestionFeedback, SuggestionLifecycleState } from '../../types';
-import type { SuggestionType } from '../../types';
+import { now, formatDateOnly } from '../../../../common';
+import {
+  SuggestionFeedback,
+  SuggestionLifecycleState,
+} from '../../types/suggestion.types';
+import type { SuggestionType } from '../../types/suggestion.types';
 import type { Prisma } from '#generated/prisma/client';
 import {
   FEEDBACK_LATER_DURATION_MS,
@@ -10,7 +13,7 @@ import {
   FEEDBACK_SUPPRESS_DURATION_MS,
   FEEDBACK_ACCEPTED_BOOST_PERCENT,
   FEEDBACK_NOT_APPLICABLE_REDUCTION_PERCENT,
-} from '../../constants';
+} from '../../constants/feedback.constants';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service';
 
 /** Effect label returned to the client after recording feedback. */

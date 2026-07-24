@@ -1,14 +1,15 @@
-import { normalizeNullableText } from '../../../common/helpers';
-import { parseDateOnly, now, formatDateOnly } from '../../../common/helpers';
+import { normalizeNullableText } from '../../../common';
+import { parseDateOnly, now, formatDateOnly } from '../../../common';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { badRequest } from '../../../common/helpers';
+import { badRequest } from '../../../common';
 import { DailyRecordKind, Prisma } from '#generated/prisma/client';
-import { toInputJsonValue } from '../../../common/helpers';
-import type { CreateDailyRecordDto, UpdateDailyRecordDto } from '../dto';
+import { toInputJsonValue } from '../../../common';
+import type { CreateDailyRecordDto } from '../dto/create-record.dto';
+import type { UpdateDailyRecordDto } from '../dto/update-record.dto';
 import { DailyRecordsOwnershipService } from './ownership.service';
 import { DailyRecordsMapperService } from './mapper.service';
-import { dailyRecordWithAttachments } from '../types';
+import { dailyRecordWithAttachments } from '../types/record.types';
 import {
   buildConfirmedMealPayload,
   buildMealPayloadFromClientInput,

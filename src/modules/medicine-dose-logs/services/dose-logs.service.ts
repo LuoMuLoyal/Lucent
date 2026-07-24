@@ -1,22 +1,22 @@
-import { badRequest, notFound } from '../../../common/helpers';
-import { formatDateOnly, now, parseDateOnly } from '../../../common/helpers';
-import { nonDeleted } from '../../../common/helpers';
-import { normalizeNullableText } from '../../../common/helpers';
+import { badRequest, notFound } from '../../../common';
+import { formatDateOnly, now, parseDateOnly } from '../../../common';
+import { nonDeleted } from '../../../common';
+import { normalizeNullableText } from '../../../common';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { I18nService } from 'nestjs-i18n';
 
 import { DoseLogStatus, Prisma } from '#generated/prisma/client';
-import { MedicineDoseLogRepositoryPort } from '../repositories';
+import { MedicineDoseLogRepositoryPort } from '../repositories/dose-log.repository';
 import {
   DOSE_LOG_CHANGED,
   type DoseLogChangedPayload,
 } from '../../../common/events/domain-events.js';
-import type {
-  CreateDoseLogDto,
-  MarkDoseLogDto,
-  UpdateDoseLogDto,
-} from '../dto';
+import type { CreateDoseLogDto } from '../dto/create-dose-log.dto';
+
+import type { MarkDoseLogDto } from '../dto/mark-dose-log.dto';
+
+import type { UpdateDoseLogDto } from '../dto/update-dose-log.dto';
 
 type OwnedReminderRecord = {
   userId: string;

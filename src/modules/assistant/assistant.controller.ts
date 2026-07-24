@@ -23,18 +23,20 @@ import {
   prepareSse,
   writeSseEvent,
   SseConnectionRegistry,
-} from '../../common/api';
-import { SkipApiEnvelope } from '../../common/interceptors';
-import { type UserPayload } from '../auth/services';
-import { CurrentUser } from '../auth/decorators';
-import { AssistantService } from './services';
-import {
-  AssistantCapabilitiesResponseDto,
-  AssistantClearResultResponseDto,
-  AssistantConversationListResponseDto,
-  AssistantConversationResponseDto,
-  StreamAssistantMessagesDto,
-} from './dto';
+} from '../../common';
+import { SkipApiEnvelope } from '../../common';
+import type { UserPayload } from '../auth';
+import { CurrentUser } from '../auth';
+import { AssistantService } from './services/core.service';
+import { AssistantCapabilitiesResponseDto } from './dto/capabilities-response.dto';
+
+import { AssistantClearResultResponseDto } from './dto/stream-response.dto';
+
+import { AssistantConversationListResponseDto } from './dto/conversation-list-response.dto';
+
+import { AssistantConversationResponseDto } from './dto/conversation-response.dto';
+
+import { StreamAssistantMessagesDto } from './dto/stream-messages.dto';
 
 @ApiTags('Assistant')
 @ApiBearerAuth('access-token')

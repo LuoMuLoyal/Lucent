@@ -1,4 +1,4 @@
-import { unauthorized } from '../../../common/helpers';
+import { unauthorized } from '../../../common';
 import { Injectable } from '@nestjs/common';
 
 import { ConfigService } from '@nestjs/config';

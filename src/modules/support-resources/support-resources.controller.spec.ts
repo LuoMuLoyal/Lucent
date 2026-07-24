@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common/api';
+import { ResultCode } from '../../common';
 import { SupportResourcesController } from './support-resources.controller';
-import { SupportResourcesService } from './services';
+import { SupportResourcesService } from './services/resources.service';
 
 describe('SupportResourcesController', () => {
   let controller: SupportResourcesController;

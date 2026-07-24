@@ -1,5 +1,5 @@
 import { DeterioratingTrendRuleService } from './deteriorating-trend.service';
-import { SuggestionType } from '../../types';
+import { SuggestionType } from '../../types/suggestion.types';
 import { buildContext, buildSignal } from './test-helpers';
 
 describe('DeterioratingTrendRuleService', () => {

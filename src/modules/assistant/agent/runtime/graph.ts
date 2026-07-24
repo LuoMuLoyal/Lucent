@@ -10,7 +10,7 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { MAX_TOOL_LOOPS } from '../../tools/constants';
 import { buildToolDefinitions } from '../../tools/tool-definitions';
 import type { AssistantToolName } from '../../tools/types';
-import type { AssistantToolExecutionResult } from '../../types';
+import type { AssistantToolExecutionResult } from '../../types/assistant.types';
 import { AssistantRuntimeState } from './state';
 import { selectAllowedToolsForContextSources } from './router';
 

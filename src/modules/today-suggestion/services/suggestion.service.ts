@@ -1,16 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { now, nowIsoString, formatDateOnly } from '../../../common/helpers';
-import type {
-  SuggestionCandidate,
-  RuleContext,
-  SuggestionCardTone,
-} from '../../today-suggestion/types';
+import { now, nowIsoString, formatDateOnly } from '../../../common';
+import type { SuggestionCandidate } from '../types/candidate.types';
+
+import type { RuleContext } from '../types/rule.types';
+
+import type { SuggestionCardTone } from '../types/suggestion.types';
 import {
   SuggestionType,
   SuggestionLifecycleState,
   SuggestionFeedback,
-} from '../../today-suggestion/types';
+} from '../types/suggestion.types';
 import type { SuggestionItemDto } from '../../today-suggestion/dto/suggestion-response.dto';
 import type { TodaySuggestionsDataDto } from '../../today-suggestion/dto/suggestion-history.dto';
 import { MedicationCollectorService } from './collectors/medication.service';
@@ -23,10 +23,12 @@ import { BaselineService } from './lifecycle/baseline.service';
 import { LifecycleService } from './lifecycle/service';
 import { EscalationService } from './notification/escalation.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
-import { SuggestionCopyService, SuggestionCopyQueueService } from './copy';
-import type { CopyGenerationResult } from './copy';
-import type { CopyJobData } from '../types';
-import { getFallbackCopy } from '../constants';
+import { SuggestionCopyService } from './copy/copy.service';
+
+import { SuggestionCopyQueueService } from './copy/copy-queue.service';
+import type { CopyGenerationResult } from './copy/copy.service';
+import type { CopyJobData } from '../types/copy-generation.types';
+import { getFallbackCopy } from '../constants/copy-fallback';
 
 /**
  * Main orchestrator for the Today suggestion engine.

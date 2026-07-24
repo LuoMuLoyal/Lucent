@@ -20,29 +20,32 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 
-import { successEnvelope } from '../../common/api';
-import { extractAuthRequestContext } from '../../common/helpers';
-import { AuditLogService } from '../audit-log/services';
-import { AuthService, type UserPayload } from '../auth/services';
-import { CurrentUser } from '../auth/decorators';
-import { SecurityElevationGuard } from '../security-pin/guards';
-import { RequireSecurityElevation } from '../security-pin/decorators';
-import { ChangeEmailDto } from '../auth/dto/change-email.dto';
-import { ChangePasswordDto } from '../auth/dto/change-password.dto';
-import { SetPasswordDto } from '../auth/dto/set-password.dto';
-import { DeleteAccountDto } from '../auth/dto/delete-account.dto';
-import { OAuthAuthorizeResponseDto, SuccessResponseDto } from '../auth/dto';
+import { successEnvelope } from '../../common';
+import { extractAuthRequestContext } from '../../common';
+import { AuditLogService } from '../audit-log';
+import { AuthService } from '../auth';
+
+import type { UserPayload } from '../auth';
+import { CurrentUser } from '../auth';
+import { SecurityElevationGuard } from '../security-pin';
+import { RequireSecurityElevation } from '../security-pin';
+import { ChangeEmailDto } from '../auth';
+import { ChangePasswordDto } from '../auth';
+import { SetPasswordDto } from '../auth';
+import { DeleteAccountDto } from '../auth';
+import { OAuthAuthorizeResponseDto, SuccessResponseDto } from '../auth';
 import {
   OAuthAuthorizeDto,
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
-} from '../auth/dto/oauth.dto';
-import { AccountService } from './services';
+} from '../auth';
+import { AccountService } from './services/account.service';
 import {
   AccountEmailResponseDto,
   AccountResponseDto,
-  UpdateAccountDto,
-} from './dto';
+} from './dto/response.dto';
+
+import { UpdateAccountDto } from './dto/update.dto';
 
 @ApiTags('Account')
 @ApiBearerAuth('access-token')

@@ -8,7 +8,7 @@ import { MedicinesService } from './medicines.service';
 import { MedicinesCacheService } from '../cache/cache.service';
 import { CnMedicinesService } from '../adapters/cn.service';
 import { DrugbankMedicinesService } from '../adapters/drugbank.service';
-import { ResultCode } from '../../../common/api';
+import { ResultCode } from '../../../common';
 import { PrismaService } from '../../../prisma';
 import { LlmRuntimeService } from '../../../llm-runtime';
 

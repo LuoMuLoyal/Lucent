@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { AssistantToolExecutionResult } from '../types';
+import type { AssistantToolExecutionResult } from '../types/assistant.types';
 
 @Injectable()
 export class AssistantContextService {

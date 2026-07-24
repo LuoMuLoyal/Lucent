@@ -1,10 +1,10 @@
-import { nonDeleted } from '../../../common/helpers';
+import { nonDeleted } from '../../../common';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { Test } from '@nestjs/testing';
 import { type Mocked } from 'vitest';
 import { Prisma } from '#generated/prisma/client';
-import { MedicineReminderRepositoryPort } from '../repositories';
+import { MedicineReminderRepositoryPort } from '../repositories/reminder.repository';
 import { MedicineRemindersOwnershipService } from './ownership.service';
 import { MedicineRemindersMapperService } from './mapper.service';
 import { MedicineRemindersService } from './reminders.service';

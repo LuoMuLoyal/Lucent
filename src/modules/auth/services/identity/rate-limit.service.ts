@@ -3,7 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { createHash } from 'node:crypto';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../../../common/api';
+import { ResultCode } from '../../../../common';
 
 const LOGIN_RATE_LIMIT_WINDOW = 15 * 60 * 1000;
 const LOGIN_RATE_LIMIT_MAX = 10;

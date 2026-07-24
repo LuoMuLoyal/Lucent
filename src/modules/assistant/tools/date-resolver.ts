@@ -4,7 +4,7 @@ import {
   eachDayOfInterval,
   isValid,
 } from 'date-fns';
-import { formatDateOnly, now, parseDateOnly } from '../../../common/helpers';
+import { formatDateOnly, now, parseDateOnly } from '../../../common';
 import {
   DEFAULT_RANGE_DAYS,
   DEFAULT_RANGE_FALLBACK_MESSAGE,
@@ -17,8 +17,9 @@ import {
 import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,
-  type ReportRange,
-} from '../../reports/dto/report-dashboard-query.dto';
+} from '../../reports';
+
+import type { ReportRange } from '../../reports';
 
 export function resolveSingleDate(
   userMessage: string,

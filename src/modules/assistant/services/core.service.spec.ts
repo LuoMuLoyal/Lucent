@@ -3,7 +3,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { AssistantRuntimeService } from '../agent/runtime.service';
-import type { UserSettingsService } from '../../user-settings/services/user-settings.service';
+import type { UserSettingsService } from '../../user-settings';
 import type { AssistantPolicyService } from './policy.service';
 import type { AssistantContextService } from '../tools/context.service';
 import type { AssistantToolService } from '../tools/tool.service';
@@ -12,7 +12,7 @@ import type {
   AssistantRuntimeCapabilities,
   AssistantPolicySnapshot,
   AssistantConversationSnapshot,
-} from '../types';
+} from '../types/assistant.types';
 import { AssistantService } from './core.service';
 
 const mockFoundation: AssistantRuntimeCapabilities = {
