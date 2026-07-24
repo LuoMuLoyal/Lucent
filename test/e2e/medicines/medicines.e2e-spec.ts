@@ -143,21 +143,22 @@ describe('Medicines API (e2e)', () => {
 
     const body = response.body as ApiEnvelope<MedicineSearchData>;
     expect(body.code).toBe(ResultCode.SUCCESS);
-    expect(body.data.pagination).toEqual({
+    const data = expectData(body);
+    expect(data.pagination).toEqual({
       page: 1,
       pageSize: 10,
       total: 1,
       totalPages: 1,
     });
 
-    expect(body.data.items).toHaveLength(1);
-    expect(body.data.items[0]).toMatchObject({
+    expect(data.items).toHaveLength(1);
+    expect(data.items[0]).toMatchObject({
       id: 'DB01050',
       source: 'drugbank',
       name: 'Ibuprofen',
       subtitle: 'CAS 15687-27-1 / approved / small molecule',
     });
-    expect(body.data.items[0]?.matchedBy).toContain('name');
+    expect(data.items[0]?.matchedBy).toContain('name');
   });
 
   it('should search the chinese source when requested', async () => {
@@ -185,8 +186,9 @@ describe('Medicines API (e2e)', () => {
     const body = response.body as ApiEnvelope<MedicineSearchData>;
     expect(body.code).toBe(ResultCode.SUCCESS);
 
-    expect(body.data.items).toHaveLength(1);
-    expect(body.data.items[0]).toMatchObject({
+    const data = expectData(body);
+    expect(data.items).toHaveLength(1);
+    expect(data.items[0]).toMatchObject({
       id: 'cn_ibuprofen_capsule',
       source: 'cn',
       name: '布洛芬缓释胶囊',
