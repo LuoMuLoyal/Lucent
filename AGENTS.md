@@ -64,11 +64,19 @@ NestJS framework suffixes (`.service.ts`, `.controller.ts`, `.module.ts`, `.dto.
 
 ## Barrel Exports
 
-- Every sub-directory inside a module (`services/`, `dto/`, `tools/`, etc.) **must** have an
-  `index.ts` re-exporting all public symbols — only `export *` statements, no logic.
-- Cross-module imports go through barrels, not deep paths:
-  - ❌ `import { XxxService } from '../auth/services/auth-token.service';`
-  - ✅ `import { XxxService } from '../auth/services';`
+- Each module has a single `index.ts` at the module root that explicitly exports
+  the module's public API (services in `@Module().exports`, cross-module DTOs,
+  types, decorators, guards). Use `export { X } from './path'` — never `export *`.
+- No sub-directory barrels (`services/index.ts`, `dto/index.ts`, etc.) —
+  sub-directories are internal namespaces, not export surfaces.
+- Cross-module imports go through the module root barrel:
+  - ❌ `import { XxxService } from '../auth/services/account.service';`
+  - ✅ `import { XxxService } from '../auth';`
+- Within a module, use deep-path imports:
+  - ❌ `import { XxxService } from './services';`
+  - ✅ `import { XxxService } from './services/account.service';`
+- Module classes (`XxxModule`) are imported directly from the `.module.ts` file,
+  not through the barrel, to avoid circular dependencies.
 
 ## Module Subdirectory Whitelist
 
@@ -88,7 +96,7 @@ NestJS framework suffixes (`.service.ts`, `.controller.ts`, `.module.ts`, `.dto.
   `metrics/`, `events/`, `storage/`, `types/`, `filters/`, `interceptors/`, `middleware/`,
   `constants/`, `validators/`.
 - Files needing Nest DI (`@Injectable()`, module wiring) should not live in `helpers/`.
-- Every sub-directory has an `index.ts` barrel.
+- `common/index.ts` is the single barrel; no sub-directory barrels.
 
 ## Module Export Rules
 
