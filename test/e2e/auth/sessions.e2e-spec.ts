@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 
-import { ResultCode } from '../../../src/common/api';
-import type { ApiEnvelope } from '../../../src/common/api';
+import { ResultCode } from '../../../src/common';
+import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,

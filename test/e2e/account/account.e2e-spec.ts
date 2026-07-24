@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 
-import { ResultCode } from '../../../src/common/api';
-import type { ApiEnvelope } from '../../../src/common/api';
+import { ResultCode } from '../../../src/common';
+import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -20,9 +20,9 @@ import type {
   TestUser,
 } from '../../helpers/e2e-helpers';
 import { UserStatus } from '#generated/prisma/client';
-import { WechatWebOAuthProvider } from '../../../src/modules/auth/providers/wechat-web-oauth.provider';
-import { WechatMobileOAuthProvider } from '../../../src/modules/auth/providers/wechat-mobile-oauth.provider';
-import type { OAuthProfile } from '../../../src/modules/auth/types';
+import { WechatWebOAuthProvider } from '../../../src/modules/auth';
+import { WechatMobileOAuthProvider } from '../../../src/modules/auth';
+import type { OAuthProfile } from '../../../src/modules/auth';
 
 const ACCOUNT_PATH = '/api/v1/account';
 const SET_PASSWORD_PATH = `${ACCOUNT_PATH}/set-password`;

@@ -9,7 +9,7 @@ import {
   uniqueEmail,
 } from '../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
-import { ResultCode } from '../../src/common/api';
+import { ResultCode } from '../../src/common';
 
 /**
  * Security tests: input fuzzing.

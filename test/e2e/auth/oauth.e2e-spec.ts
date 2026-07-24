@@ -1,7 +1,7 @@
 import request from 'supertest';
 
-import { ResultCode } from '../../../src/common/api';
-import type { ApiEnvelope } from '../../../src/common/api';
+import { ResultCode } from '../../../src/common';
+import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,
@@ -9,11 +9,11 @@ import {
   uniqueEmail,
 } from '../../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
-import { WechatWebOAuthProvider } from '../../../src/modules/auth/providers/wechat-web-oauth.provider';
-import { WechatMobileOAuthProvider } from '../../../src/modules/auth/providers/wechat-mobile-oauth.provider';
-import { AppleOAuthProvider } from '../../../src/modules/auth/providers/apple-oauth.provider';
-import { QqOAuthProvider } from '../../../src/modules/auth/providers/qq-oauth.provider';
-import type { OAuthProfile } from '../../../src/modules/auth/types';
+import { WechatWebOAuthProvider } from '../../../src/modules/auth';
+import { WechatMobileOAuthProvider } from '../../../src/modules/auth';
+import { AppleOAuthProvider } from '../../../src/modules/auth';
+import { QqOAuthProvider } from '../../../src/modules/auth';
+import type { OAuthProfile } from '../../../src/modules/auth';
 
 // ── Constants ─────────────────────────────────────────────────
 

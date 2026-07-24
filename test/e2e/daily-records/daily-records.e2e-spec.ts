@@ -8,9 +8,9 @@ import request from 'supertest';
 
 import { AppModule } from '../../../src/app.module';
 import { setupApp } from '../../../src/setup-app';
-import { ResultCode } from '../../../src/common/api';
-import type { ApiEnvelope } from '../../../src/common/api';
-import { DailyRecordCandidatesService } from '../../../src/modules/daily-records/services';
+import { ResultCode } from '../../../src/common';
+import type { ApiEnvelope } from '../../../src/common';
+import { DailyRecordCandidatesService } from '../../../src/modules/daily-records';
 import { PrismaService } from '../../../src/prisma';
 import { DailyRecordKind, UserStatus } from '#generated/prisma/client';
 import { ConfigKey } from '../../../src/config/config-keys.enum';

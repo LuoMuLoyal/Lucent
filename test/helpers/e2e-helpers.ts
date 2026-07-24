@@ -7,9 +7,9 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from '../../src/app.module';
 import { setupApp } from '../../src/setup-app';
 import { PrismaService } from '../../src/prisma';
-import type { ApiEnvelope } from '../../src/common/api';
+import type { ApiEnvelope } from '../../src/common';
 import { ConfigKey } from '../../src/config/config-keys.enum';
-import { SecurityPinService } from '../../src/modules/security-pin/services/pin.service';
+import { SecurityPinService } from '../../src/modules/security-pin';
 import { UserStatus } from '#generated/prisma/client';
 
 // ── Constants ──────────────────────────────────────────────────

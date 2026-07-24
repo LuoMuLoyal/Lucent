@@ -11,8 +11,8 @@ import {
   uniqueEmail,
 } from '../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
-import { ResultCode } from '../../src/common/api';
-import type { ApiEnvelope } from '../../src/common/api';
+import { ResultCode } from '../../src/common';
+import type { ApiEnvelope } from '../../src/common';
 
 // ── OpenAPI spec loader ─────────────────────────────────────────
 

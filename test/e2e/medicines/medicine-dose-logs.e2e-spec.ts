@@ -1,7 +1,7 @@
 import request from 'supertest';
 
-import { ResultCode } from '../../../src/common/api';
-import type { ApiEnvelope } from '../../../src/common/api';
+import { ResultCode } from '../../../src/common';
+import type { ApiEnvelope } from '../../../src/common';
 import {
   createTestApp,
   cleanupDatabase,

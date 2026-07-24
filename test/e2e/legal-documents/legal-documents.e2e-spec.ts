@@ -1,6 +1,6 @@
 import request from 'supertest';
 
-import type { ApiEnvelope } from '../../../src/common/api';
+import type { ApiEnvelope } from '../../../src/common';
 import { createTestApp, expectData } from '../../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp } from '../../helpers/e2e-helpers';
 
