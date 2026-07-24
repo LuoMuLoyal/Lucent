@@ -5,7 +5,7 @@
     "medication_stable_title": "Medication adherence is stable",
     "medication_stable_body": "{strongDays} of the last {dayCount} days reached at least 80% medication completion.",
     "sleep_insufficient_title": "Not enough sleep data",
-    "sleep_insufficient_body": "There is no stable sleep contract data yet, so real sleep trends are not shown."
+    "sleep_insufficient_body": "There is not enough stable sleep data yet, so real sleep trends are not shown."
   },
   "patterns": {
     "medication_title": "Medication adherence",

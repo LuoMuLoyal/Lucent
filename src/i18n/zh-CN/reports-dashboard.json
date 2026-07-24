@@ -5,11 +5,11 @@
     "medication_stable_title": "用药执行较稳定",
     "medication_stable_body": "近 {dayCount} 天中有 {strongDays} 天用药完成率达到 80% 以上。",
     "sleep_insufficient_title": "睡眠数据不足",
-    "sleep_insufficient_body": "当前还没有稳定的睡眠合同数据，暂不展示真实睡眠趋势。"
+    "sleep_insufficient_body": "当前还没有稳定的睡眠数据，暂不展示真实睡眠趋势。"
   },
   "patterns": {
     "medication_title": "用药依从性",
-    "medication_body_good": "本周可见用药计划执行情况，适合继续保持固定节奏。",
+    "medication_body_good": "本周用药计划执行情况正常，适合继续保持当前节奏。",
     "medication_body_insufficient": "当前暂无足够用药计划数据来判断依从性趋势。",
     "hydration_title": "饮水趋势",
     "hydration_body_stable": "近 {dayCount} 天饮水有一定连续性，但仍建议继续巩固。",
@@ -21,7 +21,7 @@
     "sleep_body_insufficient": "当前周期内睡眠数据不足，暂无法评估趋势。"
   },
   "score": {
-    "part_medication_good": "本周用药完成较稳",
+    "part_medication_good": "本周用药完成率稳定",
     "part_hydration_attention": "饮水仍有提升空间",
     "part_sleep_insufficient": "睡眠数据暂不足",
     "part_sleep_good": "睡眠时长较健康",

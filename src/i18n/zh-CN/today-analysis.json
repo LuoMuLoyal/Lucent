@@ -8,7 +8,7 @@
     "summary_default": "今日记录已更新，可先根据已记录事项继续补全今天的数据。",
     "summary_medication_and_hydration": "今日还有 {medicationPending} 项用药待确认，饮水也还差 {waterRemaining} 次。",
     "summary_medication_only": "今日记录主要集中在用药，还有 {medicationPending} 项待确认。",
-    "summary_hydration_only": "今日饮水记录还没达标，还差 {waterRemaining} 次可以补齐。",
+    "summary_hydration_only": "今日饮水记录还没达标，再补 {waterRemaining} 次即可达标。",
     "bullet_medication_pending": "还有 {medicationPending} 项今日用药待确认，先核对是否已经服用。",
     "bullet_medication_done": "今日已记录的用药状态较完整，继续保持即可。",
     "bullet_hydration_pending": "今日饮水仍未达目标，建议再补 {waterRemaining} 次记录。",
