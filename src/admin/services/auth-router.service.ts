@@ -8,8 +8,8 @@ import {
   ADMIN_EMAIL_KEY,
   ADMIN_PASSWORD_KEY,
   NODE_ENV_KEY,
-} from '../constants';
-import type { AdminJsFastifyModule, AdminUser } from '../types';
+} from '../constants/admin.constants';
+import type { AdminJsFastifyModule, AdminUser } from '../types/admin.types';
 
 /**
  * Registers an authenticated Fastify router for the AdminJS panel using
