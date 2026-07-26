@@ -70,7 +70,7 @@ export class LifecycleService {
         lifecycleState: SuggestionLifecycleState.ACTIVE,
         notificationEligible: candidate.notificationEligible,
         ...this.optionalSubtype(candidate.subtype),
-        locale,
+        locale: this.normalizeLocale(locale),
         generatedAt: now,
         activatedAt: now,
       },
@@ -202,7 +202,7 @@ export class LifecycleService {
     const where: Prisma.UserSuggestionWhereInput = {
       userId,
       date: { gte: startDate, lte: endDate },
-      OR: [{ locale: normalizedLocale }, { locale: null }],
+      locale: normalizedLocale,
     };
     if (filters?.lifecycleState != null) {
       where.lifecycleState = filters.lifecycleState as never;
