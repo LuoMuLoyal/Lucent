@@ -214,23 +214,38 @@ export class LifecycleService {
       this.prisma.userSuggestion.count({ where }),
     ]);
 
-    const items: SuggestionHistoryItemDto[] = records.map((r) => ({
-      id: r.id,
-      date: r.date,
-      type: r.type as never,
-      title: r.title,
-      reason: r.reason,
-      ruleId: r.ruleId,
-      ruleVersion: r.ruleVersion,
-      triggerType: r.triggerType as never,
-      lifecycleState: r.lifecycleState as never,
-      confidence: r.confidence as never,
-      subtype: r.subtype ?? undefined,
-      feedback: r.feedback ?? undefined,
-      feedbackAt: r.feedbackAt?.toISOString() ?? undefined,
-      generatedAt: r.generatedAt.toISOString(),
-      expiredAt: r.expiredAt?.toISOString() ?? undefined,
-    }));
+    const items: SuggestionHistoryItemDto[] = Array.from(
+      records
+        .reduce((map, r) => {
+          const key = `${r.ruleId}:${r.subtype ?? ''}:${r.title}:${r.reason}`;
+          const existing = map.get(key);
+          if (
+            existing == null ||
+            LifecycleService.rank(existing.lifecycleState) <
+              LifecycleService.rank(r.lifecycleState as never)
+          ) {
+            map.set(key, {
+              id: r.id,
+              date: r.date,
+              type: r.type as never,
+              title: r.title,
+              reason: r.reason,
+              ruleId: r.ruleId,
+              ruleVersion: r.ruleVersion,
+              triggerType: r.triggerType as never,
+              lifecycleState: r.lifecycleState as never,
+              confidence: r.confidence as never,
+              subtype: r.subtype ?? undefined,
+              feedback: r.feedback ?? undefined,
+              feedbackAt: r.feedbackAt?.toISOString() ?? undefined,
+              generatedAt: r.generatedAt.toISOString(),
+              expiredAt: r.expiredAt?.toISOString() ?? undefined,
+            });
+          }
+          return map;
+        }, new Map<string, SuggestionHistoryItemDto>())
+        .values(),
+    );
 
     const result = { items, total };
     await this.cache.set(
@@ -298,6 +313,25 @@ export class LifecycleService {
       this.logger.debug(
         `Lifecycle refresh: ${String(fadingResult.count)} active→fading, ${String(expiredResult.count)} fading→expired`,
       );
+    }
+  }
+
+  /**
+   * Ranks lifecycle states so that the most "current" state wins when
+   * deduplicating history by rule+title+reason.
+   */
+  private static rank(state: SuggestionLifecycleState): number {
+    switch (state) {
+      case SuggestionLifecycleState.ACTIVE:
+        return 3;
+      case SuggestionLifecycleState.FADING:
+        return 2;
+      case SuggestionLifecycleState.DISMISSED:
+        return 1;
+      case SuggestionLifecycleState.EXPIRED:
+      case SuggestionLifecycleState.GENERATED:
+      default:
+        return 0;
     }
   }
 }
