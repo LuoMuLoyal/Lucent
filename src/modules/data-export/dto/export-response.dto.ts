@@ -22,30 +22,27 @@ export type DataExportRange = (typeof DATA_EXPORT_RANGES)[number];
 export class CreateDataExportRequestDto {
   @ApiPropertyOptional({
     enum: DATA_EXPORT_KINDS,
-    default: 'hospital',
     description: 'Requested export kind.',
   })
   @IsOptional()
   @IsIn(DATA_EXPORT_KINDS)
-  kind?: DataExportKind = 'hospital';
+  kind?: DataExportKind;
 
   @ApiPropertyOptional({
     enum: DATA_EXPORT_FORMATS,
-    default: 'pdf',
     description: 'Requested export format.',
   })
   @IsOptional()
   @IsIn(DATA_EXPORT_FORMATS)
-  format?: DataExportFormat = 'pdf';
+  format?: DataExportFormat;
 
   @ApiPropertyOptional({
     enum: DATA_EXPORT_RANGES,
-    default: 'last_7_days',
     description: 'Requested report range.',
   })
   @IsOptional()
   @IsIn(DATA_EXPORT_RANGES)
-  range?: DataExportRange = 'last_7_days';
+  range?: DataExportRange;
 }
 
 export class DataExportRequestDataDto {

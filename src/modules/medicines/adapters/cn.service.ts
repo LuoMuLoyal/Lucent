@@ -75,7 +75,6 @@ export class CnMedicinesService {
       contraindications: row.contraindications,
       precautions: row.precautions,
       pharmacologyToxicology: row.pharmacologyToxicology,
-      drugInteractions: row.drugInteractions,
       pharmacokinetics: row.pharmacokinetics,
       overdose: row.overdose,
       storage: row.storage,

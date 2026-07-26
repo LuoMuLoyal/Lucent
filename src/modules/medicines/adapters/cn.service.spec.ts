@@ -42,7 +42,6 @@ describe('CnMedicinesService', () => {
       contraindications: '对本品过敏者禁用',
       precautions: '孕妇慎用',
       pharmacologyToxicology: null,
-      drugInteractions: null,
       pharmacokinetics: null,
       overdose: null,
       storage: '密封保存',

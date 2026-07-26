@@ -5545,6 +5545,20 @@
           }
         }
       },
+      "DrugbankDrugInteractionDto": {
+        "type": "object",
+        "properties": {
+          "drugbankId": {
+            "type": "string",
+            "example": "DB00001"
+          },
+          "description": {
+            "type": "string",
+            "example": "The serum concentration of X can be increased when Y is used."
+          }
+        },
+        "required": ["drugbankId", "description"]
+      },
       "DrugbankMedicineDetailDto": {
         "type": "object",
         "properties": {
@@ -5648,10 +5662,12 @@
             }
           },
           "drugInteractions": {
-            "type": "object",
-            "description": "Raw source interaction payload.",
+            "description": "DrugBank interaction entries used for interaction checking.",
             "nullable": true,
-            "additionalProperties": true
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DrugbankDrugInteractionDto"
+            }
           },
           "externalIdentifiers": {
             "type": "object",
@@ -5731,10 +5747,6 @@
             "nullable": true
           },
           "pharmacologyToxicology": {
-            "type": "string",
-            "nullable": true
-          },
-          "drugInteractions": {
             "type": "string",
             "nullable": true
           },
@@ -9957,19 +9969,16 @@
           "kind": {
             "type": "string",
             "enum": ["hospital", "monthly", "print"],
-            "default": "hospital",
             "description": "Requested export kind."
           },
           "format": {
             "type": "string",
             "enum": ["pdf"],
-            "default": "pdf",
             "description": "Requested export format."
           },
           "range": {
             "type": "string",
             "enum": ["last_7_days", "last_30_days"],
-            "default": "last_7_days",
             "description": "Requested report range."
           }
         }

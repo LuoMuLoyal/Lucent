@@ -1,4 +1,5 @@
 import type { Prisma } from '#generated/prisma/client';
+import type { DrugbankDrugInteractionDto } from '../dto/medicine-detail.dto';
 
 const DEFAULT_SUMMARY_LENGTH = 180;
 
@@ -109,4 +110,30 @@ export function toPagination(
     total,
     totalPages: total === 0 ? 0 : Math.ceil(total / pageSize),
   };
+}
+
+export function toDrugbankDrugInteractions(
+  value: Prisma.JsonValue | null | undefined,
+): DrugbankDrugInteractionDto[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const interactions: DrugbankDrugInteractionDto[] = [];
+  for (const item of value) {
+    if (
+      item &&
+      typeof item === 'object' &&
+      !Array.isArray(item) &&
+      typeof item['drugbankId'] === 'string' &&
+      typeof item['description'] === 'string'
+    ) {
+      interactions.push({
+        drugbankId: item['drugbankId'],
+        description: item['description'],
+      });
+    }
+  }
+
+  return interactions.length > 0 ? interactions : null;
 }

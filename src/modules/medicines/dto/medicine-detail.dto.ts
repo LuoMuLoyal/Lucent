@@ -10,6 +10,16 @@ import {
   type MedicineKnowledgeSource,
 } from './medicine-source.dto';
 
+export class DrugbankDrugInteractionDto {
+  @ApiProperty({ example: 'DB00001' })
+  drugbankId!: string;
+
+  @ApiProperty({
+    example: 'The serum concentration of X can be increased when Y is used.',
+  })
+  description!: string;
+}
+
 export class DrugbankMedicineDetailDto {
   @ApiProperty({ example: 'drugbank' })
   kind!: 'drugbank';
@@ -87,12 +97,11 @@ export class DrugbankMedicineDetailDto {
   foodInteractions!: string[];
 
   @ApiPropertyOptional({
-    description: 'Raw source interaction payload.',
-    type: Object,
+    description: 'DrugBank interaction entries used for interaction checking.',
+    type: [DrugbankDrugInteractionDto],
     nullable: true,
-    additionalProperties: true,
   })
-  drugInteractions!: unknown;
+  drugInteractions!: DrugbankDrugInteractionDto[] | null;
 
   @ApiPropertyOptional({
     description: 'Raw source external identifier payload.',
@@ -154,9 +163,6 @@ export class CnMedicineDetailDto {
 
   @ApiPropertyOptional({ nullable: true, type: String })
   pharmacologyToxicology!: string | null;
-
-  @ApiPropertyOptional({ nullable: true, type: String })
-  drugInteractions!: string | null;
 
   @ApiPropertyOptional({ nullable: true, type: String })
   pharmacokinetics!: string | null;

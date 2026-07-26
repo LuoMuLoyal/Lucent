@@ -15,6 +15,7 @@ import {
   composeSubtitle,
   detectMatchedBy,
   firstNonEmpty,
+  toDrugbankDrugInteractions,
   toPagination,
   toStringList,
   truncateText,
@@ -83,7 +84,7 @@ export class DrugbankMedicinesService {
       atcCodes: toStringList(row.atcCodes),
       synonyms: toStringList(row.synonyms),
       foodInteractions: toStringList(row.foodInteractions),
-      drugInteractions: row.drugInteractions,
+      drugInteractions: toDrugbankDrugInteractions(row.drugInteractions),
       externalIdentifiers: row.externalIdentifiers,
       externalLinks: row.externalLinks,
     };
