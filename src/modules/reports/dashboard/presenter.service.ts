@@ -64,10 +64,11 @@ export class ReportsPresenterService {
   ): ReportFindingDto[] {
     const findings: ReportFindingDto[] = [];
 
+    const waterRecords = input.waterSeries.filter((value) => value > 0);
     const lowWaterDays = input.waterSeries.filter(
-      (value) => value < 1.5,
+      (value) => value > 0 && value < 1.5,
     ).length;
-    if (lowWaterDays >= 4) {
+    if (waterRecords.length > 0 && lowWaterDays >= 4) {
       findings.push({
         kind: 'hydration',
         title: this.i18n.t('reports-dashboard.findings.hydration_low_title', {
@@ -77,16 +78,19 @@ export class ReportsPresenterService {
           lang: locale,
           args: {
             lowWaterDays: String(lowWaterDays),
-            dayCount: String(this.dayCount(input.range)),
+            dayCount: String(waterRecords.length),
           },
         }),
       });
     }
 
+    const medicationRecords = input.medicationSeries.filter(
+      (value) => value > 0,
+    );
     const medicationStrongDays = input.medicationSeries.filter(
       (value) => value >= 80,
     ).length;
-    if (medicationStrongDays >= 5) {
+    if (medicationRecords.length > 0 && medicationStrongDays >= 5) {
       findings.push({
         kind: 'medication',
         title: this.i18n.t(
@@ -97,7 +101,7 @@ export class ReportsPresenterService {
           lang: locale,
           args: {
             strongDays: String(medicationStrongDays),
-            dayCount: String(this.dayCount(input.range)),
+            dayCount: String(medicationRecords.length),
           },
         }),
       });
