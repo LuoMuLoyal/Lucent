@@ -47,6 +47,7 @@ export class LifecycleService {
     candidate: SuggestionCandidate,
     date: string,
     copy: { title: string; reason: string; boundary: string },
+    locale: string,
   ): Promise<string> {
     const now = nowIsoString();
 
@@ -69,6 +70,7 @@ export class LifecycleService {
         lifecycleState: SuggestionLifecycleState.ACTIVE,
         notificationEligible: candidate.notificationEligible,
         ...this.optionalSubtype(candidate.subtype),
+        locale,
         generatedAt: now,
         activatedAt: now,
       },
@@ -165,12 +167,14 @@ export class LifecycleService {
     userId: string,
     startDate: string,
     endDate: string,
+    locale: string,
     filters?: {
       lifecycleState?: string;
       type?: string;
       limit?: number;
     },
   ): Promise<{ items: SuggestionHistoryItemDto[]; total: number }> {
+    const normalizedLocale = this.normalizeLocale(locale);
     const limit = Math.min(
       filters?.limit ?? HISTORY_DEFAULT_LIMIT,
       HISTORY_MAX_LIMIT,
@@ -181,6 +185,7 @@ export class LifecycleService {
       userId,
       startDate,
       endDate,
+      normalizedLocale,
       filters?.lifecycleState ?? 'all',
       filters?.type ?? 'all',
       String(limit),
@@ -197,6 +202,7 @@ export class LifecycleService {
     const where: Prisma.UserSuggestionWhereInput = {
       userId,
       date: { gte: startDate, lte: endDate },
+      OR: [{ locale: normalizedLocale }, { locale: null }],
     };
     if (filters?.lifecycleState != null) {
       where.lifecycleState = filters.lifecycleState as never;
@@ -333,5 +339,16 @@ export class LifecycleService {
       default:
         return 0;
     }
+  }
+
+  /**
+   * Normalizes a locale string to the canonical form stored with suggestions.
+   * Falls back to the language code only, then to the default 'zh-CN'.
+   */
+  private normalizeLocale(locale: string): string {
+    const normalized = locale.trim().toLowerCase();
+    if (normalized === 'zh' || normalized.startsWith('zh-')) return 'zh-CN';
+    if (normalized === 'en' || normalized.startsWith('en-')) return 'en';
+    return normalized || 'zh-CN';
   }
 }

@@ -1120,6 +1120,7 @@ model UserSuggestion {
   feedback           SuggestionFeedbackType?
   feedbackAt         DateTime?                   @map("feedback_at") @db.Timestamptz(3)
   subtype            String?
+  locale             String?                     @map("locale")
   generatedAt        DateTime                   @map("generated_at") @db.Timestamptz(3)
   activatedAt        DateTime?                   @map("activated_at") @db.Timestamptz(3)
   fadingAt           DateTime?                   @map("fading_at") @db.Timestamptz(3)
@@ -1129,6 +1130,7 @@ model UserSuggestion {
   user               User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, date])
+  @@index([userId, date, locale])
   @@index([userId, date, lifecycleState])
   @@index([userId, type, generatedAt])
   @@index([userId, lifecycleState, generatedAt])

@@ -253,6 +253,7 @@ export class TodaySuggestionController {
     @Query('lifecycleState') lifecycleState?: string,
     @Query('type') type?: string,
     @Query('limit') limit?: string,
+    @Headers('accept-language') acceptLanguage?: string,
   ) {
     const resolvedEndDate = endDate ?? new Date().toISOString().slice(0, 10);
     const resolvedStartDate =
@@ -262,6 +263,7 @@ export class TodaySuggestionController {
       user.sub,
       resolvedStartDate,
       resolvedEndDate,
+      acceptLanguage ?? 'zh-CN',
       {
         ...(lifecycleState != null ? { lifecycleState } : {}),
         ...(type != null ? { type } : {}),

@@ -231,6 +231,7 @@ describe('SuggestionService', () => {
       candidate,
       '2026-07-09',
       mockCopyResult,
+      'zh-CN',
     );
     expect(deps.escalation.escalateIfNeeded).toHaveBeenCalledWith(
       'user-1',

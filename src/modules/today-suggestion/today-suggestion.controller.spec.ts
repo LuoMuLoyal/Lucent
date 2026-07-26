@@ -270,7 +270,6 @@ describe('TodaySuggestionController', () => {
     it('returns history envelope with defaults when no query provided', async () => {
       lifecycleService.getHistory.mockResolvedValue(mockHistoryResult as never);
 
-      // Mock the static method
       const defaultDateSpy = vi
         .spyOn(LifecycleService, 'getDefaultStartDate')
         .mockReturnValue('2026-06-10');
@@ -282,6 +281,7 @@ describe('TodaySuggestionController', () => {
         mockUser.sub,
         '2026-06-10',
         expectedEndDate,
+        'zh-CN',
         {},
       );
       expect(result).toEqual({
@@ -298,19 +298,24 @@ describe('TodaySuggestionController', () => {
       defaultDateSpy.mockRestore();
     });
 
-    it('passes explicit date range to service', async () => {
+    it('passes explicit date range and locale to service', async () => {
       lifecycleService.getHistory.mockResolvedValue(mockHistoryResult as never);
 
       const result = await controller.getHistory(
         mockUser,
         '2026-06-01',
         '2026-07-01',
+        undefined,
+        undefined,
+        undefined,
+        'en-US',
       );
 
       expect(lifecycleService.getHistory).toHaveBeenCalledWith(
         mockUser.sub,
         '2026-06-01',
         '2026-07-01',
+        'en-US',
         {},
       );
       expect(result.data).toMatchObject({
@@ -335,6 +340,7 @@ describe('TodaySuggestionController', () => {
         mockUser.sub,
         '2026-06-01',
         '2026-07-01',
+        'zh-CN',
         { lifecycleState: 'active', type: 'compliance', limit: 50 },
       );
     });
@@ -355,6 +361,7 @@ describe('TodaySuggestionController', () => {
         mockUser.sub,
         '2026-06-01',
         '2026-07-01',
+        'zh-CN',
         { type: 'trend' },
       );
     });

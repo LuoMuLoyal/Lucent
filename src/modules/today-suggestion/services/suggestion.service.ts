@@ -195,6 +195,7 @@ export class SuggestionService {
         arbitrationResult.primary,
         targetDate,
         copy,
+        locale,
       );
       activeItems.push(
         this.toDto(
@@ -227,6 +228,7 @@ export class SuggestionService {
         candidate,
         targetDate,
         copy,
+        locale,
       );
       activeItems.push(
         this.toDto(

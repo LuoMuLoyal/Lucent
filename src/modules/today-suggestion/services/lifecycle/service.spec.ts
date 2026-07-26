@@ -73,6 +73,7 @@ describe('LifecycleService', () => {
         baseCandidate,
         '2026-07-10',
         baseCopy,
+        'zh-CN',
       );
 
       expect(id).toBe('sug-123');
@@ -83,6 +84,7 @@ describe('LifecycleService', () => {
       expect(call.data.type).toBe('behavior_advice');
       expect(call.data.lifecycleState).toBe(SuggestionLifecycleState.ACTIVE);
       expect(call.data.ruleId).toBe('water_behind_target');
+      expect(call.data.locale).toBe('zh-CN');
       expect(call.data.generatedAt).toBeDefined();
       expect(call.data.activatedAt).toBeDefined();
     });
@@ -101,7 +103,13 @@ describe('LifecycleService', () => {
         ],
       };
 
-      await service.persistActive('user-1', candidate, '2026-07-10', baseCopy);
+      await service.persistActive(
+        'user-1',
+        candidate,
+        '2026-07-10',
+        baseCopy,
+        'zh-CN',
+      );
 
       const call = createMock.mock.calls[0]![0];
       expect(call.data.secondaryActions).toEqual([
@@ -122,6 +130,7 @@ describe('LifecycleService', () => {
         baseCandidate,
         '2026-07-10',
         baseCopy,
+        'zh-CN',
       );
 
       const call = createMock.mock.calls[0]![0];
@@ -135,7 +144,13 @@ describe('LifecycleService', () => {
         subtype: 'water',
       };
 
-      await service.persistActive('user-1', candidate, '2026-07-10', baseCopy);
+      await service.persistActive(
+        'user-1',
+        candidate,
+        '2026-07-10',
+        baseCopy,
+        'zh-CN',
+      );
 
       const call = createMock.mock.calls[0]![0];
       expect(call.data.subtype).toBe('water');
@@ -149,6 +164,7 @@ describe('LifecycleService', () => {
         baseCandidate,
         '2026-07-10',
         baseCopy,
+        'zh-CN',
       );
 
       const call = createMock.mock.calls[0]![0];
@@ -289,6 +305,7 @@ describe('LifecycleService', () => {
         'user-1',
         '2026-07-01',
         '2026-07-09',
+        'zh-CN',
       );
 
       expect(result.items).toHaveLength(2);
@@ -315,7 +332,7 @@ describe('LifecycleService', () => {
       findManyMock.mockResolvedValue([]);
       countMock.mockResolvedValue(0);
 
-      await service.getHistory('user-1', '2026-07-01', '2026-07-09', {
+      await service.getHistory('user-1', '2026-07-01', '2026-07-09', 'zh-CN', {
         lifecycleState: 'expired',
         type: 'behavior_advice',
         limit: 50,
@@ -335,7 +352,7 @@ describe('LifecycleService', () => {
       findManyMock.mockResolvedValue([]);
       countMock.mockResolvedValue(0);
 
-      await service.getHistory('user-1', '2026-07-01', '2026-07-09');
+      await service.getHistory('user-1', '2026-07-01', '2026-07-09', 'zh-CN');
 
       const findManyCall = findManyMock.mock.calls[0]![0];
       expect(findManyCall.take).toBe(100);
@@ -345,7 +362,7 @@ describe('LifecycleService', () => {
       findManyMock.mockResolvedValue([]);
       countMock.mockResolvedValue(0);
 
-      await service.getHistory('user-1', '2026-07-01', '2026-07-09', {
+      await service.getHistory('user-1', '2026-07-01', '2026-07-09', 'zh-CN', {
         limit: 1000,
       });
 
