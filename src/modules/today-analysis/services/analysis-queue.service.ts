@@ -32,19 +32,22 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
   AnalysisJobData,
   TodayAnalysisDataDto
 > {
+  private readonly analysisService: TodayAnalysisService;
+
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
-    analysisService: TodayAnalysisService,
+    @Inject(TodayAnalysisService) analysisService: TodayAnalysisService,
   ) {
     super(QUEUE_NAME, factory, cache, 2, async (job) =>
       this.processJob(
         job,
         (data) =>
-          analysisService.generate(data.userId, data.dto, data.language),
+          this.analysisService.generate(data.userId, data.dto, data.language),
         'Today analysis job failed',
       ),
     );
+    this.analysisService = analysisService;
   }
 
   async enqueue(

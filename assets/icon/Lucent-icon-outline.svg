@@ -1,0 +1,13 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <!-- Backend logo: wireframe / blueprint variant of the Luminous icon -->
+  <g fill="none" stroke="#3F86FF" stroke-width="32" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Light source circle -->
+    <circle cx="452.4" cy="207.7" r="95.3" />
+    <!-- Main flowing shape rendered as a single outline -->
+    <path d="M122.4 753.2C166.1 500 280.8 407.4 416.5 368.5c170-45.5 319.1-12.6 461.5-80 86.2-40.7 83.4 32.5 81.3 43.7-20 170-111.6 330-302.6 406.8-207.9 82.6-414.1-71.6-562.6 170a7.5 7.5 0 0 1-5.7 2.8H70a6.3 6.3 0 0 1-5-2.8 6.1 6.1 0 0 1-0.7-5.7A795.6 795.6 0 0 1 304.8 620a1160 1160 0 0 1 330.7-163.6c10-2.8 5.7-18.5-4.2-17.1a978.1 978.1 0 0 0-268.5 99.1 800 800 0 0 0-240 214.8Z" />
+    <!-- API node: circle (matches original logo dot) -->
+    <circle cx="768" cy="512" r="32" />
+  </g>
+</svg>

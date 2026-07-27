@@ -33,22 +33,25 @@ export class ClinicSummaryPdfQueueService extends BaseAsyncQueueService<
   PdfExportJobData,
   PdfExportResult
 > {
+  private readonly clinicSummaryService: ClinicSummaryService;
+
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
-    clinicSummaryService: ClinicSummaryService,
+    @Inject(ClinicSummaryService) clinicSummaryService: ClinicSummaryService,
   ) {
     super(QUEUE_NAME, factory, cache, 1, async (job) =>
       this.processJob(
         job,
         async (data) => ({
           pdfBase64: (
-            await clinicSummaryService.exportPdf(data.userId, data.locale)
+            await this.clinicSummaryService.exportPdf(data.userId, data.locale)
           ).toString('base64'),
         }),
         'Clinic summary PDF export job failed',
       ),
     );
+    this.clinicSummaryService = clinicSummaryService;
   }
 
   async enqueue(userId: string, locale: string): Promise<string | null> {

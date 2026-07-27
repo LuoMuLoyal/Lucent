@@ -29,16 +29,18 @@ export class ExplanationQueueService extends BaseAsyncQueueService<
   ExplanationJobData,
   ExplanationResult
 > {
+  private readonly explanationService: ExplanationService;
+
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
-    explanationService: ExplanationService,
+    @Inject(ExplanationService) explanationService: ExplanationService,
   ) {
     super(QUEUE_NAME, factory, cache, 2, async (job) =>
       this.processJob(
         job,
         (data) =>
-          explanationService.explain(
+          this.explanationService.explain(
             data.userId,
             data.suggestionId,
             data.language,
@@ -46,6 +48,7 @@ export class ExplanationQueueService extends BaseAsyncQueueService<
         'Suggestion explanation job failed',
       ),
     );
+    this.explanationService = explanationService;
   }
 
   async enqueue(
