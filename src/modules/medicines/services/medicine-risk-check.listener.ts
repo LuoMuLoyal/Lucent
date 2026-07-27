@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
   HEALTH_CONTEXT_CHANGED,
@@ -19,12 +19,19 @@ import { MedicineRiskCheckService } from './medicine-risk-check.service';
  * ensures only one static check executes after the burst settles.
  */
 @Injectable()
-export class MedicineRiskCheckListener {
+export class MedicineRiskCheckListener implements OnModuleDestroy {
   private readonly logger = new Logger(MedicineRiskCheckListener.name);
   private readonly pendingTimers = new Map<string, NodeJS.Timeout>();
   private static readonly DEBOUNCE_MS = 5000;
 
   constructor(private readonly riskCheckService: MedicineRiskCheckService) {}
+
+  onModuleDestroy(): void {
+    for (const timer of this.pendingTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.pendingTimers.clear();
+  }
 
   @OnEvent(HEALTH_CONTEXT_CHANGED)
   async handleHealthContextChanged(
@@ -32,26 +39,28 @@ export class MedicineRiskCheckListener {
   ): Promise<void> {
     try {
       await this.riskCheckService.markStale(payload.userId);
-      this.scheduleStaticCheck(payload.userId);
     } catch (error) {
       this.logger.warn(
-        'Failed to handle health-context.changed for risk check',
+        'Failed to mark risk check stale for health-context change; scheduling static check anyway',
         { userId: payload.userId, error },
       );
     }
+    // Always schedule — runStaticCheck will re-evaluate from latest DB state
+    this.scheduleStaticCheck(payload.userId);
   }
 
   @OnEvent(REMINDER_CHANGED)
   async handleReminderChanged(payload: ReminderChangedPayload): Promise<void> {
     try {
       await this.riskCheckService.markStale(payload.userId);
-      this.scheduleStaticCheck(payload.userId);
     } catch (error) {
-      this.logger.warn('Failed to handle reminder.changed for risk check', {
-        userId: payload.userId,
-        error,
-      });
+      this.logger.warn(
+        'Failed to mark risk check stale for reminder change; scheduling static check anyway',
+        { userId: payload.userId, error },
+      );
     }
+    // Always schedule — runStaticCheck will re-evaluate from latest DB state
+    this.scheduleStaticCheck(payload.userId);
   }
 
   private scheduleStaticCheck(userId: string): void {

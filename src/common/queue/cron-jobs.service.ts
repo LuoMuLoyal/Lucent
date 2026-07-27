@@ -73,8 +73,15 @@ export class CronJobsService implements OnModuleInit {
     this.queue = handle.queue;
 
     if (this.queue != null) {
-      await this.registerSchedulers(this.queue);
-      this.logger.log('Cron repeatable jobs registered');
+      try {
+        await this.registerSchedulers(this.queue);
+        this.logger.log('Cron repeatable jobs registered');
+      } catch (error) {
+        this.logger.error(
+          'Failed to register cron repeatable jobs; scheduled tasks will not run until next restart',
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
     }
   }
 

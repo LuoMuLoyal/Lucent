@@ -39,3 +39,9 @@ scheduledTime`, then to `currentMedicineId + scheduledFor`.
   记录并发送站内通知 + 推送通知（best-effort）。
 - **nonDeleted 迁移**：`reminder.repository.ts` 和 `dose-log.repository.ts` 的软删除查询
   已从手动 `deletedAt: null` 迁移到 `prisma.nonDeleted` API。
+- **风险检查健壮性修复**（2026-07-28）：
+  - `MedicineRiskCheckListener` 实现 `OnModuleDestroy`，shutdown 时清理 pending debounce timer
+  - `evaluateStaticCheck` 和 `buildLlmContext` 中药品详情查询从串行 `for` 改为 `Promise.allSettled` 并行
+  - `persistRecord` 和 `markStale` 中 `cache.del()` 包裹 try-catch，Redis 瞬断不阻塞 API 调用
+  - `handleHealthContextChanged` / `handleReminderChanged` 中 `scheduleStaticCheck` 移到 try-catch 之外，
+    `markStale` 失败时仍触发 debounced 静态检查（`runStaticCheck` 从 DB 重新读取最新数据）

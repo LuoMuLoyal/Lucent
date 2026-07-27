@@ -157,3 +157,5 @@ Last updated: 2026-07-23
   INCR+PEXPIRE，否则回退内存；动态 import 避免传递依赖问题
 - B5 nonDeleted 迁移：6 个源文件从手动 `deletedAt: null` 迁移到 `prisma.nonDeleted` API，
   事务内代码保留手动写法（Prisma 扩展在事务客户端不可用）
+- `CronJobsService.onModuleInit` 中 `registerSchedulers` 调用包裹 try-catch：Redis 已配置但
+  暂时不可用时 `upsertJobScheduler` 抛异常不再阻止应用启动，error 日志记录后下次重启自动重试

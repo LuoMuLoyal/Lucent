@@ -418,62 +418,72 @@ export class MedicineRiskCheckService {
 
     const medicines: MedicineRiskLlmContext['medicines'] = [];
     if (user != null) {
-      for (const item of user.currentMedicines) {
+      const eligibleItems = user.currentMedicines.flatMap((item) => {
         const source = item.source;
         const sourceRefId = item.sourceRefId?.trim();
         if (
-          (source !== 'cn' && source !== 'drugbank') ||
-          sourceRefId == null ||
-          sourceRefId === ''
+          (source === 'cn' || source === 'drugbank') &&
+          sourceRefId != null &&
+          sourceRefId !== ''
         ) {
-          continue;
+          return [{ item, source, sourceRefId }];
         }
-        try {
+        return [];
+      });
+
+      const llmDetailResults = await Promise.allSettled(
+        eligibleItems.map(async ({ item, source, sourceRefId }) => {
           const detail = await this.medicinesService.getDetailWithCache(
             sourceRefId,
             { source },
             false,
           );
-          const json = getDetailJson(detail);
-          const drugInteractions = Array.isArray(json['drugInteractions'])
-            ? (json['drugInteractions'] as Array<Record<string, unknown>>)
-                .filter(
-                  (d) =>
-                    typeof d['drugbankId'] === 'string' &&
-                    typeof d['description'] === 'string',
-                )
-                .map((d) => ({
-                  target: String(d['drugbankId']),
-                  description: String(d['description']),
-                }))
-            : [];
-          const ingredients = asNonEmptyString(json['ingredients']);
-          const contraindications = asNonEmptyString(json['contraindications']);
-          const precautions = asNonEmptyString(json['precautions']);
-          const foodInteractions = Array.isArray(json['foodInteractions'])
-            ? (json['foodInteractions'] as unknown[]).filter(
-                (v): v is string => typeof v === 'string',
-              )
-            : null;
-          const startedAt = item.startedAt
-            ? formatDateOnly(item.startedAt)
-            : null;
-          medicines.push({
-            name:
-              item.displayName.trim() !== '' ? item.displayName : detail.name,
-            source: source,
-            ...(ingredients != null ? { ingredients } : {}),
-            ...(contraindications != null ? { contraindications } : {}),
-            ...(precautions != null ? { precautions } : {}),
-            ...(foodInteractions != null ? { foodInteractions } : {}),
-            ...(drugInteractions.length > 0 ? { drugInteractions } : {}),
-            ...(startedAt != null ? { startedAt } : {}),
-          });
-        } catch (error) {
+          return { item, detail, source };
+        }),
+      );
+
+      for (const result of llmDetailResults) {
+        if (result.status === 'rejected') {
           this.logger.warn(
-            `LLM context: failed to fetch detail for ${sourceRefId}: ${error instanceof Error ? error.message : String(error)}`,
+            `LLM context: failed to fetch detail: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`,
           );
+          continue;
         }
+        const { item, detail, source } = result.value;
+        const json = getDetailJson(detail);
+        const drugInteractions = Array.isArray(json['drugInteractions'])
+          ? (json['drugInteractions'] as Array<Record<string, unknown>>)
+              .filter(
+                (d) =>
+                  typeof d['drugbankId'] === 'string' &&
+                  typeof d['description'] === 'string',
+              )
+              .map((d) => ({
+                target: String(d['drugbankId']),
+                description: String(d['description']),
+              }))
+          : [];
+        const ingredients = asNonEmptyString(json['ingredients']);
+        const contraindications = asNonEmptyString(json['contraindications']);
+        const precautions = asNonEmptyString(json['precautions']);
+        const foodInteractions = Array.isArray(json['foodInteractions'])
+          ? (json['foodInteractions'] as unknown[]).filter(
+              (v): v is string => typeof v === 'string',
+            )
+          : null;
+        const startedAt = item.startedAt
+          ? formatDateOnly(item.startedAt)
+          : null;
+        medicines.push({
+          name: item.displayName.trim() !== '' ? item.displayName : detail.name,
+          source,
+          ...(ingredients != null ? { ingredients } : {}),
+          ...(contraindications != null ? { contraindications } : {}),
+          ...(precautions != null ? { precautions } : {}),
+          ...(foodInteractions != null ? { foodInteractions } : {}),
+          ...(drugInteractions.length > 0 ? { drugInteractions } : {}),
+          ...(startedAt != null ? { startedAt } : {}),
+        });
       }
     }
 
@@ -577,7 +587,14 @@ export class MedicineRiskCheckService {
     });
     // Delete Redis cache for records — next GET will re-read from DB
     const cacheKey = this.buildRecordsCacheKey(userId);
-    await this.cache.del(cacheKey);
+    try {
+      await this.cache.del(cacheKey);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to invalidate risk-check cache for user ${userId}; stale data will expire via TTL`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
   }
 
   // ── Static check logic ──────────────────────────────────────────────────
@@ -618,26 +635,28 @@ export class MedicineRiskCheckService {
     const activeAllergies = user.allergies;
     const currentMedicines = user.currentMedicines;
 
-    // 2. Fetch medicine details for each current medicine
-    const details: MedicineDetailWrapper[] = [];
-    for (const item of currentMedicines) {
+    // 2. Fetch medicine details — parallelized to avoid N+1 latency
+    const eligibleMedicines = currentMedicines.flatMap((item) => {
       const source = item.source;
       const sourceRefId = item.sourceRefId?.trim();
       if (
-        (source !== 'cn' && source !== 'drugbank') ||
-        sourceRefId == null ||
-        sourceRefId === ''
+        (source === 'cn' || source === 'drugbank') &&
+        sourceRefId != null &&
+        sourceRefId !== ''
       ) {
-        continue;
+        return [{ item, source, sourceRefId }];
       }
+      return [];
+    });
 
-      try {
+    const detailResults = await Promise.allSettled(
+      eligibleMedicines.map(async ({ item, source, sourceRefId }) => {
         const detail = await this.medicinesService.getDetailWithCache(
           sourceRefId,
           { source },
           false,
         );
-        details.push({
+        return {
           item: {
             id: item.id,
             source,
@@ -646,10 +665,17 @@ export class MedicineRiskCheckService {
             startedAt: item.startedAt,
           },
           detail,
-        });
-      } catch (error) {
+        };
+      }),
+    );
+
+    const details: MedicineDetailWrapper[] = [];
+    for (const result of detailResults) {
+      if (result.status === 'fulfilled') {
+        details.push(result.value);
+      } else {
         this.logger.warn(
-          `Failed to fetch medicine detail for ${sourceRefId}: ${error instanceof Error ? error.message : String(error)}`,
+          `Failed to fetch medicine detail: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`,
         );
       }
     }
@@ -1010,9 +1036,16 @@ export class MedicineRiskCheckService {
       },
     });
 
-    // Invalidate cache
+    // Invalidate cache — best-effort; DB already has correct data
     const cacheKey = this.buildRecordsCacheKey(userId);
-    await this.cache.del(cacheKey);
+    try {
+      await this.cache.del(cacheKey);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to invalidate risk-check cache for user ${userId}; stale data will expire via TTL`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
 
     return this.toDto(record);
   }
