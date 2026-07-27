@@ -51,6 +51,24 @@ class UserHealthSummaryDto {
   missingCoreProfileFields!: string[];
 }
 
+class EmergencyContactDto {
+  @ApiProperty({
+    description: 'Emergency contact name.',
+    example: '张三',
+    nullable: true,
+    type: String,
+  })
+  name!: string | null;
+
+  @ApiProperty({
+    description: 'Emergency contact phone.',
+    example: '13800138000',
+    nullable: true,
+    type: String,
+  })
+  phone!: string | null;
+}
+
 class UserHealthProfileDto {
   @ApiProperty({
     description: 'Birth date in YYYY-MM-DD format.',
@@ -75,6 +93,14 @@ class UserHealthProfileDto {
     type: Number,
   })
   heightCm!: number | null;
+
+  @ApiProperty({
+    description: 'Weight in kilograms. Extracted from extras JSONB.',
+    example: 65,
+    nullable: true,
+    type: Number,
+  })
+  weightKg!: number | null;
 
   @ApiProperty({
     description: 'Blood type.',
@@ -117,13 +143,19 @@ class UserHealthProfileDto {
   onboardingCompletedAt!: string | null;
 
   @ApiProperty({
+    description: 'Emergency contact extracted from extras JSONB.',
+    type: () => EmergencyContactDto,
+    nullable: true,
+  })
+  emergencyContact!: EmergencyContactDto | null;
+
+  @ApiProperty({
     description: 'Sparse profile extensions stored in jsonb.',
     nullable: true,
     type: Object,
     additionalProperties: true,
     example: {
       preferredReminderHour: 9,
-      emergencyContactReady: true,
     },
   })
   extras!: unknown;

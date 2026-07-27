@@ -96,6 +96,45 @@ export class UpdateHealthContextProfileDto {
 
   @ApiPropertyOptional({
     description:
+      'Weight in kilograms. Stored in extras JSONB. Use null to clear.',
+    example: 65,
+    minimum: 1,
+    maximum: 500,
+    nullable: true,
+    type: Number,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(500)
+  weightKg?: number | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Emergency contact name. Stored in extras JSONB. Use null or empty string to clear.',
+    example: '张三',
+    nullable: true,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  emergencyContactName?: string | null;
+
+  @ApiPropertyOptional({
+    description:
+      'Emergency contact phone. Stored in extras JSONB. Use null or empty string to clear.',
+    example: '13800138000',
+    nullable: true,
+    type: String,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  emergencyContactPhone?: string | null;
+
+  @ApiPropertyOptional({
+    description:
       'Set true to complete onboarding (sets completedAt when missing). Set false to clear onboarding completion.',
     example: true,
   })

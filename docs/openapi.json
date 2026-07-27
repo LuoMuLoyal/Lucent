@@ -3928,6 +3928,14 @@
             "schema": {
               "type": "number"
             }
+          },
+          {
+            "name": "accept-language",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6041,6 +6049,24 @@
         "enum": ["metric", "imperial"],
         "description": "Preferred unit system."
       },
+      "EmergencyContactDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Emergency contact name.",
+            "example": "张三",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "description": "Emergency contact phone.",
+            "example": "13800138000",
+            "nullable": true
+          }
+        },
+        "required": ["name", "phone"]
+      },
       "UserHealthProfileDto": {
         "type": "object",
         "properties": {
@@ -6063,6 +6089,12 @@
             "type": "number",
             "description": "Height in centimeters.",
             "example": 168,
+            "nullable": true
+          },
+          "weightKg": {
+            "type": "number",
+            "description": "Weight in kilograms. Extracted from extras JSONB.",
+            "example": 65,
             "nullable": true
           },
           "bloodType": {
@@ -6098,24 +6130,35 @@
             "example": "2026-05-30T09:00:00.000Z",
             "nullable": true
           },
+          "emergencyContact": {
+            "description": "Emergency contact extracted from extras JSONB.",
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EmergencyContactDto"
+              }
+            ]
+          },
           "extras": {
             "type": "object",
             "description": "Sparse profile extensions stored in jsonb.",
             "nullable": true,
             "additionalProperties": true,
             "example": {
-              "preferredReminderHour": 9,
-              "emergencyContactReady": true
+              "preferredReminderHour": 9
             }
           }
         },
         "required": [
           "birthDate",
           "heightCm",
+          "weightKg",
           "bloodType",
           "locale",
           "timezone",
           "onboardingCompletedAt",
+          "emergencyContact",
           "extras"
         ]
       },
@@ -6499,6 +6542,26 @@
             "type": "string",
             "description": "Blood type. Use null to clear.",
             "example": "O+",
+            "nullable": true
+          },
+          "weightKg": {
+            "type": "number",
+            "description": "Weight in kilograms. Stored in extras JSONB. Use null to clear.",
+            "example": 65,
+            "minimum": 1,
+            "maximum": 500,
+            "nullable": true
+          },
+          "emergencyContactName": {
+            "type": "string",
+            "description": "Emergency contact name. Stored in extras JSONB. Use null or empty string to clear.",
+            "example": "张三",
+            "nullable": true
+          },
+          "emergencyContactPhone": {
+            "type": "string",
+            "description": "Emergency contact phone. Stored in extras JSONB. Use null or empty string to clear.",
+            "example": "13800138000",
             "nullable": true
           },
           "onboardingCompleted": {

@@ -22,8 +22,11 @@ export abstract class UserHealthContextRepositoryPort {
 
   abstract findProfileByUserId(
     userId: string,
-    select: { onboardingCompletedAt: boolean },
-  ): Promise<{ onboardingCompletedAt: Date | null } | null>;
+    select: { onboardingCompletedAt?: boolean; extras?: boolean },
+  ): Promise<{
+    onboardingCompletedAt?: Date | null;
+    extras?: Prisma.JsonValue | null;
+  } | null>;
 
   // ── Profile ─────────────────────────────────────────────────────────────
 

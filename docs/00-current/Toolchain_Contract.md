@@ -46,3 +46,6 @@ Last updated: 2026-07-22
   `UserNotificationType` 枚举新增 `oauth_login`、`identity_linked`。限流从内存存储升级为条件性
   Redis 存储（`ThrottlerConfigService`）。`pnpm export:openapi` 需重新执行以更新
   `docs/openapi.json` 契约文件，Luminous 需重新生成 API 客户端。
+- **Profile extras 提升**（2026-07-27）：`UserHealthProfileDto` 新增 `weightKg`、`emergencyContact`
+  顶层字段（从 `extras` JSONB 提取）。新增 `EmergencyContactDto` schema。`UpdateHealthContextProfileDto`
+  新增 `weightKg`/`emergencyContactName`/`emergencyContactPhone` 可选字段，写入时执行 extras 深度合并。

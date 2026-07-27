@@ -150,11 +150,13 @@ describe('UserHealthContextService', () => {
       birthDate: null,
       sexAtBirth: null,
       heightCm: null,
+      weightKg: null,
       bloodType: null,
       locale: null,
       timezone: null,
       unitSystem: null,
       onboardingCompletedAt: null,
+      emergencyContact: null,
       extras: null,
     });
     expect(result.summary).toEqual({
@@ -261,11 +263,13 @@ describe('UserHealthContextService', () => {
       birthDate: '1998-03-15',
       sexAtBirth: SexAtBirth.female,
       heightCm: 168,
+      weightKg: null,
       bloodType: 'O+',
       locale: 'en-US',
       timezone: 'Asia/Shanghai',
       unitSystem: UnitSystem.metric,
       onboardingCompletedAt: '2026-05-01T08:00:00.000Z',
+      emergencyContact: null,
       extras: { preferredReminderHour: 9 },
     });
     expect(result.allergies).toHaveLength(1);

@@ -106,6 +106,27 @@ model DataExportRequest {
 - Signed-out state must not call protected settings APIs; keep those rows
   disabled or labeled as sign-in-required.
 
+## Health-Context Profile Extras
+
+The `UserHealthProfile.extras` JSONB column stores sparse extension fields that
+are promoted to top-level DTO properties in `UserHealthProfileDto`:
+
+| Field                   | Storage key in extras   | DTO property             | Type             | Notes                             |
+| ----------------------- | ----------------------- | ------------------------ | ---------------- | --------------------------------- |
+| Weight (kg)             | `weightKg`              | `weightKg`               | `number \| null` | 1–500 integer; `null` clears      |
+| Emergency contact name  | `emergencyContactName`  | `emergencyContact.name`  | `string \| null` | max 50 chars; `null`/empty clears |
+| Emergency contact phone | `emergencyContactPhone` | `emergencyContact.phone` | `string \| null` | max 20 chars; `null`/empty clears |
+
+**Write path:** `PATCH /api/v1/user/health-context/profile` accepts
+`weightKg`, `emergencyContactName`, `emergencyContactPhone` as optional fields.
+The `ProfileWriteService` performs a **deep merge** — it reads the existing
+`extras` JSONB, sets or deletes only the specified keys, and writes back the
+merged object. This prevents unrelated extras keys from being overwritten.
+
+**Read path:** `UserHealthContextMapperService.toResponse` extracts these keys
+from `extras` with type guards and surfaces them as top-level DTO properties.
+The raw `extras` object is still returned alongside for forward compatibility.
+
 ## API Surface
 
 ### 1. User Settings

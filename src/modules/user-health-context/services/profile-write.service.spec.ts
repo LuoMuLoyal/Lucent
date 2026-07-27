@@ -113,5 +113,66 @@ describe('UserHealthContextProfileWriteService', () => {
 
       expect(repository.upsertProfile).not.toHaveBeenCalled();
     });
+
+    it('should merge weightKg into extras', async () => {
+      repository.findProfileByUserId.mockResolvedValueOnce({
+        extras: { existingField: true },
+      });
+
+      await service.upsertProfile('user-1', { weightKg: 65 });
+
+      expect(repository.upsertProfile).toHaveBeenCalledWith(
+        { userId: 'user-1' },
+        expect.objectContaining({
+          extras: { existingField: true, weightKg: 65 },
+        }),
+        expect.objectContaining({
+          extras: { existingField: true, weightKg: 65 },
+        }),
+      );
+    });
+
+    it('should clear weightKg from extras when null', async () => {
+      repository.findProfileByUserId.mockResolvedValueOnce({
+        extras: { weightKg: 65, other: 'keep' },
+      });
+
+      await service.upsertProfile('user-1', { weightKg: null });
+
+      expect(repository.upsertProfile).toHaveBeenCalledWith(
+        { userId: 'user-1' },
+        expect.objectContaining({
+          extras: { other: 'keep' },
+        }),
+        expect.objectContaining({
+          extras: { other: 'keep' },
+        }),
+      );
+    });
+
+    it('should merge emergency contact into extras', async () => {
+      repository.findProfileByUserId.mockResolvedValueOnce({ extras: null });
+
+      await service.upsertProfile('user-1', {
+        emergencyContactName: '张三',
+        emergencyContactPhone: '13800138000',
+      });
+
+      expect(repository.upsertProfile).toHaveBeenCalledWith(
+        { userId: 'user-1' },
+        expect.objectContaining({
+          extras: {
+            emergencyContactName: '张三',
+            emergencyContactPhone: '13800138000',
+          },
+        }),
+        expect.objectContaining({
+          extras: {
+            emergencyContactName: '张三',
+            emergencyContactPhone: '13800138000',
+          },
+        }),
+      );
+    });
   });
 });

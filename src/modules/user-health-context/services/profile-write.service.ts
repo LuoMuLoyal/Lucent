@@ -78,6 +78,54 @@ export class UserHealthContextProfileWriteService {
       }
     }
 
+    // Merge weightKg / emergencyContact into extras JSONB
+    if (
+      dto.weightKg !== undefined ||
+      dto.emergencyContactName !== undefined ||
+      dto.emergencyContactPhone !== undefined
+    ) {
+      const existing = await this.repository.findProfileByUserId(userId, {
+        extras: true,
+      });
+      const currentExtras: Record<string, unknown> =
+        existing?.extras != null
+          ? (existing.extras as Record<string, unknown>)
+          : {};
+
+      if (dto.weightKg !== undefined) {
+        if (dto.weightKg === null) {
+          delete currentExtras['weightKg'];
+        } else {
+          currentExtras['weightKg'] = dto.weightKg;
+        }
+      }
+
+      if (dto.emergencyContactName !== undefined) {
+        const name = normalizeNullableText(dto.emergencyContactName);
+        if (name === null) {
+          delete currentExtras['emergencyContactName'];
+        } else {
+          currentExtras['emergencyContactName'] = name;
+        }
+      }
+
+      if (dto.emergencyContactPhone !== undefined) {
+        const phone = normalizeNullableText(dto.emergencyContactPhone);
+        if (phone === null) {
+          delete currentExtras['emergencyContactPhone'];
+        } else {
+          currentExtras['emergencyContactPhone'] = phone;
+        }
+      }
+
+      const mergedExtras =
+        Object.keys(currentExtras).length > 0
+          ? (currentExtras as Prisma.InputJsonObject)
+          : Prisma.DbNull;
+      updateData.extras = mergedExtras;
+      createData.extras = mergedExtras;
+    }
+
     if (Object.keys(updateData).length > 0) {
       await this.repository.upsertProfile({ userId }, createData, updateData);
     }

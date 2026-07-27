@@ -15,10 +15,28 @@ import {
 @Injectable()
 export class UserHealthContextMapperService {
   toResponse(user: UserHealthContextRecord): HealthContextResponseData {
+    const rawExtras =
+      (user.profile?.extras as Record<string, unknown> | null) ?? {};
+
+    const emergencyContactName =
+      typeof rawExtras['emergencyContactName'] === 'string'
+        ? rawExtras['emergencyContactName']
+        : null;
+    const emergencyContactPhone =
+      typeof rawExtras['emergencyContactPhone'] === 'string'
+        ? rawExtras['emergencyContactPhone']
+        : null;
+    const hasEmergencyContact =
+      emergencyContactName !== null || emergencyContactPhone !== null;
+
     const profile = {
       birthDate: formatDateOnly(user.profile?.birthDate ?? null),
       sexAtBirth: user.profile?.sexAtBirth ?? null,
       heightCm: user.profile?.heightCm ?? null,
+      weightKg:
+        typeof rawExtras['weightKg'] === 'number'
+          ? rawExtras['weightKg']
+          : null,
       bloodType: user.profile?.bloodType ?? null,
       locale: user.profile?.locale ?? null,
       timezone: user.profile?.timezone ?? null,
@@ -26,6 +44,12 @@ export class UserHealthContextMapperService {
       onboardingCompletedAt: formatDateTime(
         user.profile?.onboardingCompletedAt ?? null,
       ),
+      emergencyContact: hasEmergencyContact
+        ? {
+            name: emergencyContactName,
+            phone: emergencyContactPhone,
+          }
+        : null,
       extras: user.profile?.extras ?? null,
     };
 
