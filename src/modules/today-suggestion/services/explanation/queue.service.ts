@@ -32,13 +32,13 @@ export class ExplanationQueueService extends BaseAsyncQueueService<
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
-    private readonly explanationService: ExplanationService,
+    explanationService: ExplanationService,
   ) {
     super(QUEUE_NAME, factory, cache, 2, async (job) =>
       this.processJob(
         job,
         (data) =>
-          this.explanationService.explain(
+          explanationService.explain(
             data.userId,
             data.suggestionId,
             data.language,

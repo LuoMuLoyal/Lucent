@@ -31,12 +31,12 @@ export class SuggestionCopyQueueService extends BaseAsyncQueueService<
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
-    private readonly copyService: SuggestionCopyService,
+    copyService: SuggestionCopyService,
   ) {
     super(QUEUE_NAME, factory, cache, 3, async (job) =>
       this.processJob(
         job,
-        (data) => this.copyService.generateViaLlm(data),
+        (data) => copyService.generateViaLlm(data),
         'Suggestion copy generation job failed',
       ),
     );

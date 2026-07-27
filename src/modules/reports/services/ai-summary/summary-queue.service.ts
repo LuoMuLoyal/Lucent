@@ -35,13 +35,12 @@ export class ReportSummaryQueueService extends BaseAsyncQueueService<
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
-    private readonly summaryService: ReportsAiSummaryService,
+    summaryService: ReportsAiSummaryService,
   ) {
     super(QUEUE_NAME, factory, cache, 2, async (job) =>
       this.processJob(
         job,
-        (data) =>
-          this.summaryService.generate(data.userId, data.dto, data.language),
+        (data) => summaryService.generate(data.userId, data.dto, data.language),
         'Report summary job failed',
       ),
     );

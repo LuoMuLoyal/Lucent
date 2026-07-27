@@ -38,12 +38,12 @@ export class MedicineRecognitionQueueService extends BaseAsyncQueueService<
   constructor(
     factory: BullmqQueueFactory,
     @Inject(CACHE_MANAGER) cache: Cache,
-    private readonly medicinesService: MedicinesService,
+    medicinesService: MedicinesService,
   ) {
     super(QUEUE_NAME, factory, cache, 1, async (job) =>
       this.processJob(
         job,
-        (data) => this.medicinesService.recognizeMedicine(data.imageUrl),
+        (data) => medicinesService.recognizeMedicine(data.imageUrl),
         'Medicine recognition job failed',
       ),
     );
