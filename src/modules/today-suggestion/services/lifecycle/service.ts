@@ -1,7 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../../prisma';
 import { now, nowIsoString, formatDateOnly } from '../../../../common';
 import type { SuggestionCandidate } from '../../types/candidate.types';
@@ -13,7 +12,6 @@ import type { Prisma } from '#generated/prisma/client';
 import {
   SUGGESTION_ACTIVE_DURATION_MS,
   SUGGESTION_FADING_DURATION_MS,
-  LIFECYCLE_REFRESH_CRON,
 } from '../../constants/lifecycle.constants';
 
 /** Max items returned by the history endpoint. */
@@ -276,10 +274,9 @@ export class LifecycleService {
    * - ACTIVE → FADING: after SUGGESTION_ACTIVE_DURATION_MS (8h)
    * - FADING → EXPIRED: after SUGGESTION_ACTIVE_DURATION_MS + SUGGESTION_FADING_DURATION_MS (12h)
    *
-   * Runs every 5 minutes via @Cron. Safe to call concurrently — updateMany is
-   * idempotent and the WHERE clause prevents double-transition.
+   * Runs every 5 minutes via BullMQ Repeatable Job. Safe to call concurrently —
+   * updateMany is idempotent and the WHERE clause prevents double-transition.
    */
-  @Cron(LIFECYCLE_REFRESH_CRON)
   async refreshLifecycleStates(): Promise<void> {
     const currentTime = now();
     const activeThreshold = new Date(

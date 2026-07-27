@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../prisma';
 import { now } from '../../../common';
 
@@ -15,7 +14,7 @@ const SOFT_DELETED_ACCOUNT_RETENTION_DAYS = 30;
 /**
  * Periodically cleans up expired and stale data to prevent database bloat.
  *
- * Runs daily at 3:00 AM UTC and removes:
+ * Runs daily at 3:00 AM UTC (via BullMQ Repeatable Job) and removes:
  * - Expired user sessions (`expiresAt` has passed)
  * - Read notifications older than 30 days
  * - Expired suggestion feedback suppressions (`expiresAt` has passed)
@@ -30,7 +29,6 @@ export class DataRetentionService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  @Cron(DATA_RETENTION_CRON)
   async cleanupExpiredData(): Promise<void> {
     const currentTime = now();
 

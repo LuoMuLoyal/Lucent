@@ -27,6 +27,7 @@ export interface QueueConfig<TData, TResult> {
   workerConcurrency: number;
   processor: (job: {
     id: string | undefined;
+    name: string;
     data: TData;
   }) => Promise<AsyncJobResult<TResult>>;
 }
@@ -34,7 +35,7 @@ export interface QueueConfig<TData, TResult> {
 /**
  * Abstract base class for BullMQ-backed async queue services.
  *
- * Encapsulates the common patterns shared by all 5 async queue services:
+ * Encapsulates the common patterns shared by all 6 async queue services:
  * - Queue creation and lifecycle
  * - `isConfigured` getter
  * - `resultKey` generation

@@ -25,6 +25,6 @@ import {
     MedicineRemindersService,
     ReminderSchedulerService,
   ],
-  exports: [MedicineRemindersService],
+  exports: [MedicineRemindersService, ReminderSchedulerService],
 })
 export class MedicineRemindersModule {}

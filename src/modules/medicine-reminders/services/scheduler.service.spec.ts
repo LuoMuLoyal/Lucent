@@ -252,34 +252,6 @@ describe('ReminderSchedulerService', () => {
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledTimes(1);
   });
 
-  // ── Overlap protection ───────────────────────────────────────
-
-  it('skips dispatch when a previous tick is still running', async () => {
-    // Make findMany hang so the first dispatch doesn't complete
-    let resolveFindMany: (value: unknown[]) => void = () => {};
-    prisma.userMedicineReminder.findMany.mockReturnValue(
-      new Promise((resolve) => {
-        resolveFindMany = resolve;
-      }),
-    );
-
-    // Start first dispatch (doesn't await)
-    const first = service.dispatchDueReminders();
-
-    // Try a second dispatch while the first is still pending
-    await service.dispatchDueReminders();
-
-    // The second dispatch should have returned without calling any dispatch logic.
-    // Since findMany is mocked to hang, the only way the second dispatch returns
-    // immediately is via the overlap guard.
-    expect(prisma.userReminderDelivery.findFirst).not.toHaveBeenCalled();
-    expect(prisma.userReminderDelivery.create).not.toHaveBeenCalled();
-
-    // Allow the first dispatch to complete
-    resolveFindMany([]);
-    await first;
-  });
-
   // ── Error handling ───────────────────────────────────────────────
 
   it('logs and returns when the database query fails', async () => {

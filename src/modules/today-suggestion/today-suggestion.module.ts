@@ -95,7 +95,12 @@ import type { SuggestionRule } from './types/rule.types';
     // Orchestrator
     SuggestionService,
   ],
-  exports: [SuggestionService, FeedbackService, ExplanationService],
+  exports: [
+    SuggestionService,
+    FeedbackService,
+    ExplanationService,
+    LifecycleService,
+  ],
 })
 export class TodaySuggestionModule implements OnModuleInit {
   constructor(

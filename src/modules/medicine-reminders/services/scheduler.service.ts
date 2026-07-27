@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../prisma';
 import { NotificationsService } from '../../notifications';
 import { PushDeliveryService } from '../../notifications';
@@ -66,14 +65,15 @@ interface LocalTime {
  * notifications for those whose scheduled local hour:minute matches the
  * current time in the user's timezone.
  *
- * Deduplication: a unique delivery record per (reminderId, scheduledFor)
- * prevents duplicate notifications if the scheduler ticks twice in the
- * same minute or the process restarts mid-tick.
+ * Runs every minute via BullMQ Repeatable Job. The previous process-level
+ * `isDispatching` re-entrancy guard has been removed: BullMQ guarantees a
+ * single worker does not consume the same job concurrently, and adjacent
+ * repeat instances that might overlap are deduplicated by the DB unique
+ * delivery record (findFirst + create per reminderId+scheduledFor).
  */
 @Injectable()
 export class ReminderSchedulerService {
   private readonly logger = new Logger(ReminderSchedulerService.name);
-  private isDispatching = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -81,19 +81,8 @@ export class ReminderSchedulerService {
     private readonly pushDeliveryService: PushDeliveryService,
   ) {}
 
-  @Cron(REMINDER_SCHEDULER_CRON)
   async dispatchDueReminders(): Promise<void> {
-    if (this.isDispatching) {
-      this.logger.warn('Previous dispatch still running — skipping this tick');
-      return;
-    }
-
-    this.isDispatching = true;
-    try {
-      await this.runDispatch();
-    } finally {
-      this.isDispatching = false;
-    }
+    await this.runDispatch();
   }
 
   private async runDispatch(): Promise<void> {

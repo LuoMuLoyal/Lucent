@@ -31,7 +31,11 @@ export interface QueueCreateOptions<TData, TResult> {
   name: string;
   defaultJobOptions?: JobsOptions;
   workerConcurrency?: number;
-  processor: (job: { id: string | undefined; data: TData }) => Promise<TResult>;
+  processor: (job: {
+    id: string | undefined;
+    name: string;
+    data: TData;
+  }) => Promise<TResult>;
 }
 
 interface ManagedQueue {
@@ -103,6 +107,7 @@ export class BullmqQueueFactory implements OnModuleDestroy {
       async (job) => {
         return options.processor({
           id: job.id ?? undefined,
+          name: job.name,
           data: job.data,
         });
       },

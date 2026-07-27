@@ -3,7 +3,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
 import { RouterModule } from '@nestjs/core';
-import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ThrottlerConfigService } from './config/throttler.config';
 import { APP_GUARD } from '@nestjs/core';
@@ -26,6 +25,7 @@ import { LoggerModule } from './common/logger/logger.module';
 import { MetricsModule } from './common/metrics/metrics.module';
 import { SseModule } from './common';
 import { BullmqModule } from './common/queue/queue.module';
+import { CronJobsModule } from './common/queue/cron-jobs.module';
 import { MedicinesModule } from './modules/medicines/medicines.module';
 import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from './modules/medicine-dose-logs/medicine-dose-logs.module';
@@ -67,7 +67,6 @@ import { SlowRequestInterceptor } from './common';
       isGlobal: true,
       useClass: CacheConfigService,
     }),
-    ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     // Rate limiting: Redis-backed when REDIS_URL is set, in-memory fallback
     ThrottlerModule.forRootAsync({
@@ -78,6 +77,7 @@ import { SlowRequestInterceptor } from './common';
     MetricsModule,
     SseModule,
     BullmqModule,
+    CronJobsModule,
     PrismaModule,
     AuditLogModule,
     DataRetentionModule,

@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { MedicinesController } from './medicines.controller';
 import { MedicinesService } from './services/medicines.service';
 import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
+import { MedicineRiskCheckService } from './services/medicine-risk-check.service';
 
 describe('MedicinesController', () => {
   let controller: MedicinesController;
@@ -26,6 +27,14 @@ describe('MedicinesController', () => {
             isConfigured: false,
             enqueue: vi.fn(),
             getStatus: vi.fn(),
+          },
+        },
+        {
+          provide: MedicineRiskCheckService,
+          useValue: {
+            getRecords: vi.fn(),
+            runStaticCheck: vi.fn(),
+            runLlmCheck: vi.fn(),
           },
         },
       ],

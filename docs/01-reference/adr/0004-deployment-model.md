@@ -99,15 +99,19 @@ auto-deploy on CI success.
 
 ### Context
 
-All 7 BullMQ queue workers + the `@Cron` lifecycle service run inside the API
-process. Workers that perform CPU-intensive tasks (PDF generation, LLM calls)
-compete with HTTP request handling for the same event loop.
+All 9 BullMQ queue workers run inside the API process. Workers that perform
+CPU-intensive tasks (PDF generation, LLM calls) compete with HTTP request
+handling for the same event loop.
 
 ### Current State (Accepted)
 
 - `BullmqQueueFactory` creates `Worker` instances in-process; Redis unavailable
   → graceful degradation to synchronous inline execution.
 - Single-slot deployment means no cron double-fire concern.
+- `@Cron` tasks migrated to BullMQ Repeatable Jobs (`upsertJobScheduler`,
+  `tz: 'UTC'`) on 2026-07-27 — `@nestjs/schedule` dependency removed. The
+  3 repeatable jobs (data-retention, lifecycle, reminder-dispatch) run on the
+  `lucent-cron` queue and are processed by `CronJobsService`.
 - Prometheus metrics (`bullmq_active_jobs`, `bullmq_waiting_jobs`) and alert
   rules (`BullMQJobFailures`, `BullMQWaitingBacklog`) are in place.
 
