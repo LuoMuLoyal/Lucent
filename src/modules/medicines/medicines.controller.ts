@@ -44,19 +44,31 @@ import {
 import { MedicineSafetyTipResponseDto } from './dto/medicine-safety-tip-response.dto';
 
 import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
+import { RunRiskCheckDto } from './dto/risk-check-request.dto';
+import {
+  MedicineRiskCheckRecordDto,
+  MedicineRiskCheckRecordsDto,
+} from './dto/risk-check-response.dto';
 import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/cache.constants';
 import { MedicinesService } from './services/medicines.service';
 
 import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
+import { MedicineRiskCheckService } from './services/medicine-risk-check.service';
 
 @ApiTags('Medicines')
-@ApiExtraModels(DrugbankMedicineDetailDto, CnMedicineDetailDto)
+@ApiExtraModels(
+  DrugbankMedicineDetailDto,
+  CnMedicineDetailDto,
+  MedicineRiskCheckRecordDto,
+  MedicineRiskCheckRecordsDto,
+)
 @ApiBearerAuth('access-token')
 @Controller('medicines')
 export class MedicinesController {
   constructor(
     private readonly medicinesService: MedicinesService,
     private readonly recognitionQueueService: MedicineRecognitionQueueService,
+    private readonly riskCheckService: MedicineRiskCheckService,
   ) {}
 
   @Public()
@@ -152,6 +164,31 @@ export class MedicinesController {
       normalized === 'yes' ||
       normalized === 'no-cache'
     );
+  }
+
+  // ── Medicine Risk Check ──────────────────────────────────────────
+
+  @Get('risk-check')
+  @ApiOperation({ summary: 'Get latest medicine risk check records' })
+  @ApiResponse({ status: 200, type: MedicineRiskCheckRecordsDto })
+  async getRiskCheck(@CurrentUser() user: UserPayload) {
+    const records = await this.riskCheckService.getRecords(user.sub);
+    return successEnvelope(records);
+  }
+
+  @Post('risk-check')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Run medicine risk check (static or LLM)' })
+  @ApiResponse({ status: 200, type: MedicineRiskCheckRecordDto })
+  async runRiskCheck(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: RunRiskCheckDto,
+  ) {
+    const record =
+      dto.type === 'llm'
+        ? await this.riskCheckService.runLlmCheck(user.sub)
+        : await this.riskCheckService.runStaticCheck(user.sub);
+    return successEnvelope(record);
   }
 
   // ── AI Medicine Box Recognition ──────────────────────────────────

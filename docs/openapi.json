@@ -1465,6 +1465,64 @@
         "tags": ["Medicines"]
       }
     },
+    "/api/v1/medicines/risk-check": {
+      "get": {
+        "operationId": "MedicinesController_getRiskCheck_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRiskCheckRecordsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get latest medicine risk check records",
+        "tags": ["Medicines"]
+      },
+      "post": {
+        "operationId": "MedicinesController_runRiskCheck_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunRiskCheckDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineRiskCheckRecordDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Run medicine risk check (static or LLM)",
+        "tags": ["Medicines"]
+      }
+    },
     "/api/v1/medicines/recognize": {
       "post": {
         "operationId": "MedicinesController_recognize_v1",
@@ -5793,6 +5851,195 @@
         },
         "required": ["kind"]
       },
+      "MedicineRiskFindingDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "interaction",
+              "duplicateIngredient",
+              "allergy",
+              "foodInteraction",
+              "longTermUse",
+              "schedulingConflict",
+              "specialGroup"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["high", "medium", "info"]
+          },
+          "context": {
+            "type": "string",
+            "enum": ["none", "alcohol", "caffeine"]
+          },
+          "primaryMedicineName": {
+            "type": "string"
+          },
+          "secondaryMedicineName": {
+            "type": "string"
+          },
+          "relatedLabel": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "LLM check only"
+          }
+        },
+        "required": ["type", "severity", "context", "primaryMedicineName"]
+      },
+      "MedicineRiskCoverageIssueDto": {
+        "type": "object",
+        "properties": {
+          "medicineName": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "enum": ["manualEntry", "missingSourceRef", "detailUnavailable"]
+          }
+        },
+        "required": ["medicineName", "reason"]
+      },
+      "MedicineRedFlagDto": {
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string",
+            "enum": ["severeAllergy", "informationGap"]
+          },
+          "primaryMedicineName": {
+            "type": "string"
+          },
+          "relatedLabel": {
+            "type": "string"
+          }
+        },
+        "required": ["rule", "primaryMedicineName"]
+      },
+      "MedicineRiskCheckResponseDto": {
+        "type": "object",
+        "properties": {
+          "overallRiskLevel": {
+            "type": "string",
+            "enum": ["safe", "caution", "risk", "danger"]
+          },
+          "overallRiskScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "currentMedicineCount": {
+            "type": "number"
+          },
+          "checkedMedicineCount": {
+            "type": "number"
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskFindingDto"
+            }
+          },
+          "coverageIssues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRiskCoverageIssueDto"
+            }
+          },
+          "redFlags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineRedFlagDto"
+            }
+          },
+          "overallRecommendation": {
+            "type": "string",
+            "description": "LLM check only"
+          }
+        },
+        "required": [
+          "overallRiskLevel",
+          "overallRiskScore",
+          "currentMedicineCount",
+          "checkedMedicineCount",
+          "findings",
+          "coverageIssues",
+          "redFlags"
+        ]
+      },
+      "MedicineRiskCheckRecordDto": {
+        "type": "object",
+        "properties": {
+          "checkType": {
+            "type": "string",
+            "enum": ["static", "llm"]
+          },
+          "result": {
+            "$ref": "#/components/schemas/MedicineRiskCheckResponseDto"
+          },
+          "riskScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "riskLevel": {
+            "type": "string",
+            "enum": ["safe", "caution", "risk", "danger"]
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "checkType",
+          "result",
+          "riskScore",
+          "riskLevel",
+          "stale",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "MedicineRiskCheckRecordsDto": {
+        "type": "object",
+        "properties": {
+          "static": {
+            "nullable": true,
+            "description": "Latest static check record, null if never checked",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MedicineRiskCheckRecordDto"
+              }
+            ]
+          },
+          "llm": {
+            "nullable": true,
+            "description": "Latest LLM check record, null if never checked",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MedicineRiskCheckRecordDto"
+              }
+            ]
+          }
+        },
+        "required": ["static", "llm"]
+      },
       "MedicineSafetyTipResponseDto": {
         "type": "object",
         "properties": {
@@ -5980,6 +6227,17 @@
           }
         },
         "required": ["code", "message", "data"]
+      },
+      "RunRiskCheckDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["static", "llm"],
+            "description": "Type of risk check to run"
+          }
+        },
+        "required": ["type"]
       },
       "RecognizeMedicineDto": {
         "type": "object",

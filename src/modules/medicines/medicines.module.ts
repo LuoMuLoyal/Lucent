@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { LlmCommonModule } from '../../common';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { MedicinesCacheAdminService } from './cache/cache-admin.service';
 
@@ -7,16 +8,22 @@ import { MedicinesController } from './medicines.controller';
 import { MedicinesService } from './services/medicines.service';
 
 import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
+import { MedicineRiskCheckService } from './services/medicine-risk-check.service';
+import { MedicineRiskCheckListener } from './services/medicine-risk-check.listener';
+import { MedicineRiskLlmGeneratorService } from './services/medicine-risk-llm-generator.service';
 import { CnMedicinesService } from './adapters/cn.service';
 
 import { DrugbankMedicinesService } from './adapters/drugbank.service';
 
 @Module({
-  imports: [LlmRuntimeModule],
+  imports: [LlmRuntimeModule, LlmCommonModule],
   controllers: [MedicinesController],
   providers: [
     MedicinesService,
     MedicineRecognitionQueueService,
+    MedicineRiskCheckService,
+    MedicineRiskCheckListener,
+    MedicineRiskLlmGeneratorService,
     MedicinesCacheAdminService,
     MedicinesCacheService,
     DrugbankMedicinesService,

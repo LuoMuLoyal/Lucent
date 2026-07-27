@@ -165,6 +165,7 @@ model User {
   suggestions            UserSuggestion[]
   suggestionBaselines    UserSuggestionBaseline[]
   suggestionFeedbacks    UserSuggestionFeedback[]
+  medicineRiskCheckRecords MedicineRiskCheckRecord[]
 
   // status index removed — no runtime query filters by status; PK serves all lookups
   @@map("users")
@@ -1185,6 +1186,24 @@ model LegalDocument {
 
   // isActive index removed — table is tiny, seq scan sufficient
   @@map("legal_documents")
+}
+
+/// Persisted medicine risk check result per user per check type.
+model MedicineRiskCheckRecord {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  checkType   String   @map("check_type") // "static" | "llm"
+  result      Json     @db.JsonB // complete check result JSON
+  riskScore   Int      @map("risk_score") // 0-100
+  riskLevel   String   @map("risk_level") // "safe" | "caution" | "risk" | "danger"
+  stale       Boolean  @default(false) // marked true on events, false after new check
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, checkType])
+  @@index([userId, checkType])
+  @@map("medicine_risk_check_records")
 }
 
 /// Security audit trail for sensitive operations.
