@@ -1,4 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { SupportResourcesService } from './resources.service';
 
 describe('SupportResourcesService', () => {
@@ -6,7 +7,19 @@ describe('SupportResourcesService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SupportResourcesService],
+      providers: [
+        SupportResourcesService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: (key: string) => {
+              if (key === 'SUPPORT_EMAIL') return 'support@luminous.app';
+              if (key === 'MIN_CLIENT_VERSION') return '0.1.0';
+              return undefined;
+            },
+          },
+        },
+      ],
     }).compile();
 
     service = module.get(SupportResourcesService);
@@ -27,10 +40,9 @@ describe('SupportResourcesService', () => {
     expect(result.items.every((item) => item.scope === 'about')).toBe(true);
   });
 
-  it('should return app info with package metadata', () => {
+  it('should return app info with support email and min client version', () => {
     const info = service.getAppInfo();
-    expect(info.name).toBe('lucent');
-    expect(info.version).toBeTruthy();
-    expect(info.buildDate).toBeTruthy();
+    expect(info.supportEmail).toBe('support@luminous.app');
+    expect(info.minClientVersion).toBe('0.1.0');
   });
 });

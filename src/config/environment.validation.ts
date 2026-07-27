@@ -330,6 +330,9 @@ const envSchema = z.object({
   [EnvKey.METRICS_USER]: optionalString,
   [EnvKey.METRICS_PASSWORD]: optionalString,
   [EnvKey.TESTING_SHARED_SECRET]: optionalString,
+
+  [EnvKey.SUPPORT_EMAIL]: z.email().optional(),
+  [EnvKey.MIN_CLIENT_VERSION]: optionalString,
 });
 
 /** Strongly typed shape of validated environment variables. */

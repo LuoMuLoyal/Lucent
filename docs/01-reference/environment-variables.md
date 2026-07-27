@@ -175,3 +175,16 @@ TRUST_PROXY
 - `TRUST_PROXY` — when set to `true`, Express trusts `X-Forwarded-*` headers
   from the reverse proxy (Nginx). Required in production behind Nginx for
   correct client IP extraction and protocol detection.
+
+Client-facing configuration (optional):
+
+```text
+SUPPORT_EMAIL
+MIN_CLIENT_VERSION
+```
+
+- `SUPPORT_EMAIL` — support contact email shown on the app's About page and
+  used for the "Help & Support" mailto link. When unset, the About page falls
+  back to a hardcoded support URL.
+- `MIN_CLIENT_VERSION` — minimum required client version for version-gating.
+  When set, clients below this version may be prompted to update.

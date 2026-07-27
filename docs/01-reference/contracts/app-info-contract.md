@@ -11,19 +11,18 @@
 
 **Endpoint:** `GET /api/v1/public/app-info`
 
-Public (no authentication required). Returns application metadata.
+Public (no authentication required). Returns server-side runtime configuration
+for the client. App name, version, and build number are **not** included —
+the client obtains those locally via `package_info_plus`.
 
 **Response:** `{ code: 0, data: AppInfoDto }`
 
 ```typescript
 interface AppInfoDto {
-  name: string; // "Lucent"
-  version: string; // from package.json
-  description: string; // from package.json
-  buildDate: string; // ISO-8601, build/publish timestamp
   minClientVersion: string | null; // minimum Luminous version hint
-  supportEmail: string | null;
+  supportEmail: string | null; // support contact email for About page
 }
 ```
 
-Values are read from config or package.json at startup — no database.
+Values are read from environment variables (`SUPPORT_EMAIL`,
+`MIN_CLIENT_VERSION`) at startup — no database, no `package.json`.

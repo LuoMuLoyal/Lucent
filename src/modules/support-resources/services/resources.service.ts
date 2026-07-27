@@ -1,45 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { ConfigService } from '@nestjs/config';
 import type {
   AppInfoDataDto,
   SupportResourceListDataDto,
 } from '../dto/response.dto';
 
 import type { SupportResourcesQueryDto } from '../dto/query.dto';
-import { nowIsoString } from '../../../common';
 import {
   REFERENCE_DATA_UPDATED_AT,
   STATIC_SUPPORT_RESOURCES,
 } from '../constants/support-resources-reference';
-
-const BUILD_DATE = nowIsoString();
-
-interface PackageJson {
-  name: string;
-  version: string;
-  description?: string;
-}
-
-function readPackageJson(): PackageJson {
-  const pkgPath = resolve(__dirname, '../../../../package.json');
-  const raw = readFileSync(pkgPath, 'utf-8');
-  return JSON.parse(raw) as PackageJson;
-}
+import { EnvKey } from '../../../config/env-keys.enum';
 
 @Injectable()
 export class SupportResourcesService {
   private readonly appInfo: AppInfoDataDto;
 
-  constructor() {
-    const pkg = readPackageJson();
+  constructor(private readonly configService: ConfigService) {
     this.appInfo = {
-      name: pkg.name,
-      version: pkg.version,
-      description: pkg.description ?? '',
-      buildDate: BUILD_DATE,
-      minClientVersion: null,
-      supportEmail: null,
+      supportEmail:
+        this.configService.get<string>(EnvKey.SUPPORT_EMAIL)?.trim() || null,
+      minClientVersion:
+        this.configService.get<string>(EnvKey.MIN_CLIENT_VERSION)?.trim() ||
+        null,
     };
   }
 

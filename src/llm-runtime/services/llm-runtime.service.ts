@@ -165,6 +165,7 @@ export class LlmRuntimeService implements LlmRuntimePort {
    *
    * Currently handles:
    * - DeepSeek: disables the "thinking" response mode to get direct answers.
+   * - Aliyun qwen3.x: disables thinking mode so that tool_choice works.
    *
    * Extend this method when adding support for other providers with
    * non-standard behaviour.
@@ -178,16 +179,30 @@ export class LlmRuntimeService implements LlmRuntimePort {
       dimension?: number;
     },
   ): void {
-    if (
-      this.config.provider === 'openai-compatible' &&
-      roleConfig.baseUrl?.includes('api.deepseek.com')
-    ) {
+    if (this.config.provider !== 'openai-compatible') {
+      return;
+    }
+
+    if (roleConfig.baseUrl?.includes('api.deepseek.com')) {
       fields.modelKwargs = {
         thinking: {
           type: 'disabled',
         },
       };
       this.logger.debug('Applied DeepSeek quirk: thinking mode disabled');
+      return;
+    }
+
+    if (
+      roleConfig.baseUrl?.includes('aliyuncs.com') &&
+      roleConfig.model?.toLowerCase().startsWith('qwen3')
+    ) {
+      fields.modelKwargs = {
+        enable_thinking: false,
+      };
+      this.logger.debug(
+        'Applied Aliyun qwen3 quirk: enable_thinking=false (tool_choice compatibility)',
+      );
     }
   }
 }

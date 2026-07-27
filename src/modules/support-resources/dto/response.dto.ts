@@ -72,18 +72,6 @@ export class SupportResourceListResponseDto {
 }
 
 export class AppInfoDataDto {
-  @ApiProperty({ example: 'lucent' })
-  name!: string;
-
-  @ApiProperty({ example: '0.0.1' })
-  version!: string;
-
-  @ApiProperty({ example: '' })
-  description!: string;
-
-  @ApiProperty({ description: 'ISO-8601 build/publish timestamp.' })
-  buildDate!: string;
-
   @ApiPropertyOptional({ type: String, nullable: true })
   minClientVersion!: string | null;
 
