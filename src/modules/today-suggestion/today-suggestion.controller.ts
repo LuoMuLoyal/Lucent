@@ -15,7 +15,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common';
+import { successEnvelope, formatDateOnly, now } from '../../common';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { SuggestionService } from './services/suggestion.service';
@@ -255,9 +255,15 @@ export class TodaySuggestionController {
     @Query('limit') limit?: string,
     @Headers('accept-language') acceptLanguage?: string,
   ) {
-    const resolvedEndDate = endDate ?? new Date().toISOString().slice(0, 10);
+    const resolvedEndDate = endDate ?? formatDateOnly(now());
     const resolvedStartDate =
       startDate ?? LifecycleService.getDefaultStartDate();
+
+    const parsedLimit = limit != null ? parseInt(limit, 10) : undefined;
+    const validLimit =
+      parsedLimit != null && !Number.isNaN(parsedLimit)
+        ? parsedLimit
+        : undefined;
 
     const result = await this.lifecycleService.getHistory(
       user.sub,
@@ -267,7 +273,7 @@ export class TodaySuggestionController {
       {
         ...(lifecycleState != null ? { lifecycleState } : {}),
         ...(type != null ? { type } : {}),
-        ...(limit != null ? { limit: parseInt(limit, 10) } : {}),
+        ...(validLimit != null ? { limit: validLimit } : {}),
       },
     );
 

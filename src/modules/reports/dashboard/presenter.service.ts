@@ -11,6 +11,31 @@ import type { MetricStatus } from './types';
 
 @Injectable()
 export class ReportsPresenterService {
+  // ── Findings thresholds ──
+
+  /** Daily water intake (L) below this is considered "low" for a day. */
+  private static readonly LOW_WATER_THRESHOLD_LITERS = 1.5;
+  /** Minimum number of low-hydration days (within the range) to trigger a "hydration low" finding. */
+  private static readonly HYDRATION_LOW_DAYS_THRESHOLD = 4;
+  /** Medication adherence % at or above this is considered "strong" for a day. */
+  private static readonly MEDICATION_STRONG_ADHERENCE_PERCENT = 80;
+  /** Minimum number of strong-adherence days (within the range) to trigger a "medication stable" finding. */
+  private static readonly MEDICATION_STRONG_DAYS_THRESHOLD = 5;
+
+  // ── Pattern thresholds ──
+
+  /** Minimum number of days with water >= 1.5 L to show a "stable" hydration pattern. */
+  private static readonly HYDRATION_STABLE_DAYS_THRESHOLD = 4;
+  /** Water intake (L) at or above this counts toward the "stable" hydration day count. */
+  private static readonly HYDRATION_STABLE_LITERS = 1.5;
+
+  // ── Sleep pattern thresholds ──
+
+  /** Average sleep hours at or above this is rated "good". */
+  private static readonly SLEEP_GOOD_HOURS = 7;
+  /** Average sleep hours at or above this (but below good) is rated "stable". */
+  private static readonly SLEEP_STABLE_HOURS = 5;
+
   constructor(private readonly i18n: I18nService) {}
 
   buildScore(
@@ -66,9 +91,13 @@ export class ReportsPresenterService {
 
     const waterRecords = input.waterSeries.filter((value) => value > 0);
     const lowWaterDays = input.waterSeries.filter(
-      (value) => value > 0 && value < 1.5,
+      (value) =>
+        value > 0 && value < ReportsPresenterService.LOW_WATER_THRESHOLD_LITERS,
     ).length;
-    if (waterRecords.length > 0 && lowWaterDays >= 4) {
+    if (
+      waterRecords.length > 0 &&
+      lowWaterDays >= ReportsPresenterService.HYDRATION_LOW_DAYS_THRESHOLD
+    ) {
       findings.push({
         kind: 'hydration',
         title: this.i18n.t('reports-dashboard.findings.hydration_low_title', {
@@ -88,9 +117,14 @@ export class ReportsPresenterService {
       (value) => value > 0,
     );
     const medicationStrongDays = input.medicationSeries.filter(
-      (value) => value >= 80,
+      (value) =>
+        value >= ReportsPresenterService.MEDICATION_STRONG_ADHERENCE_PERCENT,
     ).length;
-    if (medicationRecords.length > 0 && medicationStrongDays >= 5) {
+    if (
+      medicationRecords.length > 0 &&
+      medicationStrongDays >=
+        ReportsPresenterService.MEDICATION_STRONG_DAYS_THRESHOLD
+    ) {
       findings.push({
         kind: 'medication',
         title: this.i18n.t(
@@ -135,7 +169,9 @@ export class ReportsPresenterService {
   ): ReportPatternDto[] {
     const medicationActive = input.medicationSeries.some((value) => value > 0);
     const waterGood =
-      input.waterSeries.filter((value) => value >= 1.5).length >= 4;
+      input.waterSeries.filter(
+        (value) => value >= ReportsPresenterService.HYDRATION_STABLE_LITERS,
+      ).length >= ReportsPresenterService.HYDRATION_STABLE_DAYS_THRESHOLD;
 
     return [
       {
@@ -195,8 +231,8 @@ export class ReportsPresenterService {
     const nonZeroDays = sleepSeries.filter((value) => value > 0);
     if (nonZeroDays.length === 0) return 'insufficient_data';
     const avg = nonZeroDays.reduce((sum, v) => sum + v, 0) / nonZeroDays.length;
-    if (avg >= 7) return 'good';
-    if (avg >= 5) return 'stable';
+    if (avg >= ReportsPresenterService.SLEEP_GOOD_HOURS) return 'good';
+    if (avg >= ReportsPresenterService.SLEEP_STABLE_HOURS) return 'stable';
     return 'needs_attention';
   }
 

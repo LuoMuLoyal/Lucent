@@ -133,13 +133,14 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 | 缓存层       | Key 格式                                                    | TTL    | 失效条件                                                                     |
 | ------------ | ----------------------------------------------------------- | ------ | ---------------------------------------------------------------------------- |
 | 信号缓存     | `today_suggestion:signals:{userId}:{date}`                  | 5 分钟 | domain event 触发（record/dose-log/reminder/health-context/settings 写路径） |
-| 建议结果缓存 | `today_suggestion:suggestions:{userId}:{date}:{excludeKey}` | 3 分钟 | 用户提交反馈时失效                                                           |
+| 建议结果缓存 | `today_suggestion:suggestions:{userId}:{date}:{excludeKey}` | 3 分钟 | domain event 触发或用户提交反馈时失效（清除所有 excludeKey 变体）            |
 | 基线状态缓存 | `today_suggestion:baseline:{userId}`                        | 1 小时 | reminder/health-context/settings 写路径 domain event 触发                    |
 
 - 使用全局 `CacheModule`（Keyv + Redis），与 `MedicinesCacheService` 模式一致
 - `SuggestionCacheService` 封装 get/set/invalidate 操作
 - `SuggestionCacheInvalidationListener` 通过 `@OnEvent` 订阅 5 个 domain event（`DAILY_RECORD_CHANGED` / `DOSE_LOG_CHANGED` / `REMINDER_CHANGED` / `HEALTH_CONTEXT_CHANGED` / `SETTINGS_CHANGED`），触发缓存失效，资源模块不再反向依赖聚合层
 - `buildExcludeKey()` 确保不同 excludeIds 组合生成不同缓存 key
+- 缓存失效通过 excludeKeys registry 追踪所有已使用的 excludeKey 变体，确保 `invalidateSignals` / `invalidateSuggestions` 能清除所有缓存条目而非仅 `none` 变体
 
 ## 反馈数据驱动 threshold 调整
 

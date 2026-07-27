@@ -1,6 +1,7 @@
 import { LifecycleService } from './service';
 import { SuggestionLifecycleState } from '../../types/suggestion.types';
 import type { SuggestionCandidate } from '../../types/candidate.types';
+import { formatDateOnly, now } from '../../../../common';
 
 function createMockCache() {
   return {
@@ -378,10 +379,9 @@ describe('LifecycleService', () => {
       const startDate = LifecycleService.getDefaultStartDate();
       expect(startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
 
-      const today = new Date();
-      const expected = new Date();
-      expected.setUTCDate(today.getUTCDate() - 30);
-      expect(startDate).toBe(expected.toISOString().slice(0, 10));
+      const expected = now();
+      expected.setDate(expected.getDate() - 30);
+      expect(startDate).toBe(formatDateOnly(expected));
     });
   });
 

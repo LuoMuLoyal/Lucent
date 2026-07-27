@@ -182,12 +182,14 @@ export class SuggestionService {
     // 7. Persist active suggestions
     await this.lifecycle.expireStaleSuggestions(userId, targetDate);
 
-    const activeItems: SuggestionItemDto[] = [];
+    let primaryItem: SuggestionItemDto | undefined;
+    const secondaryItems: SuggestionItemDto[] = [];
 
     if (arbitrationResult.primary != null) {
       const copy = this.resolveCopy(
         copyResults,
         arbitrationResult.primary.copyGeneration.templateKey,
+        arbitrationResult.primary.copyGeneration.params,
         locale,
       );
       const id = await this.lifecycle.persistActive(
@@ -197,14 +199,12 @@ export class SuggestionService {
         copy,
         locale,
       );
-      activeItems.push(
-        this.toDto(
-          id,
-          arbitrationResult.primary,
-          SuggestionLifecycleState.ACTIVE,
-          copy,
-          locale,
-        ),
+      primaryItem = this.toDto(
+        id,
+        arbitrationResult.primary,
+        SuggestionLifecycleState.ACTIVE,
+        copy,
+        locale,
       );
 
       // 8. Escalate eligible primary suggestion to notification
@@ -221,6 +221,7 @@ export class SuggestionService {
       const copy = this.resolveCopy(
         copyResults,
         candidate.copyGeneration.templateKey,
+        candidate.copyGeneration.params,
         locale,
       );
       const id = await this.lifecycle.persistActive(
@@ -230,7 +231,7 @@ export class SuggestionService {
         copy,
         locale,
       );
-      activeItems.push(
+      secondaryItems.push(
         this.toDto(
           id,
           candidate,
@@ -246,6 +247,7 @@ export class SuggestionService {
       const copy = this.resolveCopy(
         copyResults,
         c.copyGeneration.templateKey,
+        c.copyGeneration.params,
         locale,
       );
       return this.toDto(
@@ -257,16 +259,15 @@ export class SuggestionService {
       );
     });
 
-    // Apply excludeIds filter
+    // Apply excludeIds filter — primary and secondary tracked explicitly
     const excludeSet = new Set(excludeIds ?? []);
-    const firstActiveItem = activeItems[0];
     const filteredPrimary =
-      firstActiveItem != null && !excludeSet.has(firstActiveItem.id)
-        ? firstActiveItem
+      primaryItem != null && !excludeSet.has(primaryItem.id)
+        ? primaryItem
         : undefined;
-    const filteredSecondary = activeItems
-      .slice(1)
-      .filter((s) => !excludeSet.has(s.id));
+    const filteredSecondary = secondaryItems.filter(
+      (s) => !excludeSet.has(s.id),
+    );
     const filteredObservations = observationDtos.filter(
       (s) => !excludeSet.has(s.id),
     );
@@ -289,9 +290,11 @@ export class SuggestionService {
   private resolveCopy(
     results: Map<string, CopyGenerationResult>,
     templateKey: string,
+    params: Record<string, string | number>,
     locale: string,
   ): CopyGenerationResult {
-    const result = results.get(templateKey);
+    const resultKey = SuggestionCopyService.buildResultKey(templateKey, params);
+    const result = results.get(resultKey);
     if (result != null) return result;
 
     this.logger.warn(

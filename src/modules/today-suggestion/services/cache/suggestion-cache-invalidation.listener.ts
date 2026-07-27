@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { SuggestionCacheService } from './suggestion-cache.service';
+import { formatDateOnly, now } from '../../../../common';
 import {
   DAILY_RECORD_CHANGED,
   DOSE_LOG_CHANGED,
@@ -65,10 +66,7 @@ export class SuggestionCacheInvalidationListener {
     try {
       // Reminder changes affect signals for today (no specific date —
       // the medication collector reads all active reminders per user).
-      await this.cache.invalidateSignals(
-        payload.userId,
-        new Date().toISOString().slice(0, 10),
-      );
+      await this.cache.invalidateSignals(payload.userId, formatDateOnly(now()));
       await this.cache.invalidateBaseline(payload.userId);
     } catch (error) {
       this.logger.warn('Failed to invalidate cache on reminder.changed', {
@@ -84,10 +82,7 @@ export class SuggestionCacheInvalidationListener {
   ): Promise<void> {
     try {
       // Profile changes affect today's signals and baseline.
-      await this.cache.invalidateSignals(
-        payload.userId,
-        new Date().toISOString().slice(0, 10),
-      );
+      await this.cache.invalidateSignals(payload.userId, formatDateOnly(now()));
       await this.cache.invalidateBaseline(payload.userId);
     } catch (error) {
       this.logger.warn('Failed to invalidate cache on health-context.changed', {
@@ -101,10 +96,7 @@ export class SuggestionCacheInvalidationListener {
   async handleSettingsChanged(payload: SettingsChangedPayload): Promise<void> {
     try {
       // Settings (e.g. waterTargetCount) affect signals for today.
-      await this.cache.invalidateSignals(
-        payload.userId,
-        new Date().toISOString().slice(0, 10),
-      );
+      await this.cache.invalidateSignals(payload.userId, formatDateOnly(now()));
       await this.cache.invalidateBaseline(payload.userId);
     } catch (error) {
       this.logger.warn('Failed to invalidate cache on settings.changed', {

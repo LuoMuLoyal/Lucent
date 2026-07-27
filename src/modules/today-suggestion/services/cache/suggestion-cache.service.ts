@@ -74,6 +74,8 @@ export class SuggestionCacheService {
     excludeKey: string,
     result: TodaySuggestionsDataDto,
   ): Promise<void> {
+    // Track the excludeKey so invalidateSuggestions can clear all variants
+    await this.trackExcludeKey(userId, date, excludeKey);
     await this.cache.set(
       this.suggestionKey(userId, date, excludeKey),
       result,
@@ -112,7 +114,7 @@ export class SuggestionCacheService {
   async invalidateSignals(userId: string, date: string): Promise<void> {
     await Promise.all([
       this.cache.del(this.signalKey(userId, date)),
-      this.cache.del(this.suggestionKey(userId, date, 'none')),
+      this.invalidateAllSuggestions(userId, date),
     ]);
     this.logger.debug(
       `Invalidated signal+suggestion cache for user ${userId} on ${date}`,
@@ -121,7 +123,7 @@ export class SuggestionCacheService {
 
   /** Invalidates suggestion result cache for a user. */
   async invalidateSuggestions(userId: string, date: string): Promise<void> {
-    await this.cache.del(this.suggestionKey(userId, date, 'none'));
+    await this.invalidateAllSuggestions(userId, date);
     this.logger.debug(
       `Invalidated suggestion cache for user ${userId} on ${date}`,
     );
@@ -163,6 +165,49 @@ export class SuggestionCacheService {
 
   private copyKey(cacheKey: string): string {
     return `${CACHE_KEY_PREFIX}:copy:${cacheKey}`;
+  }
+
+  private excludeKeysRegistryKey(userId: string, date: string): string {
+    return `${CACHE_KEY_PREFIX}:exclude_keys:${userId}:${date}`;
+  }
+
+  /**
+   * Tracks an excludeKey in the per-user+date registry so that
+   * `invalidateAllSuggestions` can enumerate and delete every variant.
+   */
+  private async trackExcludeKey(
+    userId: string,
+    date: string,
+    excludeKey: string,
+  ): Promise<void> {
+    const registryKey = this.excludeKeysRegistryKey(userId, date);
+    const existing = (await this.cache.get<string[]>(registryKey)) ?? [];
+    if (!existing.includes(excludeKey)) {
+      existing.push(excludeKey);
+      await this.cache.set(registryKey, existing, SUGGESTION_CACHE_TTL_MS);
+    }
+  }
+
+  /**
+   * Deletes all suggestion cache entries for a user+date by reading
+   * the excludeKeys registry, then clearing the registry itself.
+   */
+  private async invalidateAllSuggestions(
+    userId: string,
+    date: string,
+  ): Promise<void> {
+    const registryKey = this.excludeKeysRegistryKey(userId, date);
+    const excludeKeys = (await this.cache.get<string[]>(registryKey)) ?? [];
+    // Always include 'none' as a fallback in case the registry expired
+    const allKeys = excludeKeys.includes('none')
+      ? excludeKeys
+      : ['none', ...excludeKeys];
+    await Promise.all([
+      ...allKeys.map((key) =>
+        this.cache.del(this.suggestionKey(userId, date, key)),
+      ),
+      this.cache.del(registryKey),
+    ]);
   }
 
   /** Builds a cache-safe exclude key from an array of IDs. */

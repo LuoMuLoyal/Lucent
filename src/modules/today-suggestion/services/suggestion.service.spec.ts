@@ -12,7 +12,10 @@ import { BaselineDimension } from '../types/baseline.types';
 import type { SuggestionCandidate } from '../types/candidate.types';
 
 import type { SuggestionRule } from '../types/rule.types';
-import type { CopyGenerationResult } from './copy/copy.service';
+import {
+  SuggestionCopyService,
+  type CopyGenerationResult,
+} from './copy/copy.service';
 
 const mockCopyResult: CopyGenerationResult = {
   title: 'AI Title',
@@ -137,10 +140,24 @@ function buildMocks(): MockDeps {
     copyService: {
       getOrEnqueueBatch: vi
         .fn()
-        .mockResolvedValue(new Map([['test.template', mockCopyResult]])),
+        .mockResolvedValue(
+          new Map([
+            [
+              SuggestionCopyService.buildResultKey('test.template', {}),
+              mockCopyResult,
+            ],
+          ]),
+        ),
       generateSyncBatch: vi
         .fn()
-        .mockResolvedValue(new Map([['test.template', mockCopyResult]])),
+        .mockResolvedValue(
+          new Map([
+            [
+              SuggestionCopyService.buildResultKey('test.template', {}),
+              mockCopyResult,
+            ],
+          ]),
+        ),
     },
     copyQueue: {
       isConfigured: true,

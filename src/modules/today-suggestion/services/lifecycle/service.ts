@@ -3,7 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../../../prisma';
-import { now, nowIsoString } from '../../../../common';
+import { now, nowIsoString, formatDateOnly } from '../../../../common';
 import type { SuggestionCandidate } from '../../types/candidate.types';
 
 import type { SuggestionAction } from '../../types/signal.types';
@@ -223,7 +223,7 @@ export class LifecycleService {
     const items: SuggestionHistoryItemDto[] = Array.from(
       records
         .reduce((map, r) => {
-          const key = `${r.ruleId}:${r.subtype ?? ''}:${r.title}:${r.reason}`;
+          const key = `${r.ruleId}:${r.subtype ?? ''}`;
           const existing = map.get(key);
           if (
             existing == null ||
@@ -264,9 +264,9 @@ export class LifecycleService {
 
   /** Returns the default start date for the history query (N days ago). */
   static getDefaultStartDate(): string {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() - HISTORY_DEFAULT_DAYS);
-    return d.toISOString().slice(0, 10);
+    const d = now();
+    d.setDate(d.getDate() - HISTORY_DEFAULT_DAYS);
+    return formatDateOnly(d);
   }
 
   /**
@@ -324,7 +324,7 @@ export class LifecycleService {
 
   /**
    * Ranks lifecycle states so that the most "current" state wins when
-   * deduplicating history by rule+title+reason.
+   * deduplicating history by ruleId + subtype.
    */
   private static rank(state: SuggestionLifecycleState): number {
     switch (state) {

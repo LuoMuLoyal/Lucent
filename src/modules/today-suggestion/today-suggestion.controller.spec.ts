@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common';
+import { ResultCode, formatDateOnly, now } from '../../common';
 import type { UserPayload } from '../auth';
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionService } from './services/suggestion.service';
@@ -276,7 +276,7 @@ describe('TodaySuggestionController', () => {
 
       const result = await controller.getHistory(mockUser);
 
-      const expectedEndDate = new Date().toISOString().slice(0, 10);
+      const expectedEndDate = formatDateOnly(now());
       expect(lifecycleService.getHistory).toHaveBeenCalledWith(
         mockUser.sub,
         '2026-06-10',

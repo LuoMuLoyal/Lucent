@@ -99,6 +99,25 @@ export class SuggestionCopyService {
   }
 
   /**
+   * Builds a deterministic result-map key from template key and params.
+   *
+   * Two candidates that share the same `templateKey` but have different
+   * `params` (e.g. two water rules with different `completedCount`) must
+   * not collide in the batch result map. This key uniquely identifies
+   * a copy request by its template **and** parameter values.
+   */
+  static buildResultKey(
+    templateKey: string,
+    params: Record<string, string | number>,
+  ): string {
+    const sortedParams = Object.entries(params)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}:${String(v)}`)
+      .join('|');
+    return `${templateKey}:${sortedParams}`;
+  }
+
+  /**
    * Batch read path. Calls getOrEnqueue for each request in parallel.
    */
   async getOrEnqueueBatch(
@@ -109,7 +128,13 @@ export class SuggestionCopyService {
     await Promise.all(
       requests.map(async (request) => {
         const result = await this.getOrEnqueue(request, queue);
-        results.set(request.templateKey, result);
+        results.set(
+          SuggestionCopyService.buildResultKey(
+            request.templateKey,
+            request.params,
+          ),
+          result,
+        );
       }),
     );
     return results;
@@ -232,7 +257,13 @@ export class SuggestionCopyService {
     await Promise.all(
       requests.map(async (request) => {
         const result = await this.generateSync(request);
-        results.set(request.templateKey, result);
+        results.set(
+          SuggestionCopyService.buildResultKey(
+            request.templateKey,
+            request.params,
+          ),
+          result,
+        );
       }),
     );
     return results;

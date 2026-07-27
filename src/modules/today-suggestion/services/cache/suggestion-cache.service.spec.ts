@@ -69,9 +69,16 @@ describe('SuggestionCacheService', () => {
       const result = { generatedAt: '2026-07-09T00:00:00.000Z' } as never;
       await service.setSuggestions('user-1', '2026-07-09', 'none', result);
 
+      // Should set the suggestion cache entry
       expect(cacheSetMock).toHaveBeenCalledWith(
         'today_suggestion:suggestions:user-1:2026-07-09:none',
         result,
+        expect.any(Number),
+      );
+      // Should also track the excludeKey in the registry
+      expect(cacheSetMock).toHaveBeenCalledWith(
+        'today_suggestion:exclude_keys:user-1:2026-07-09',
+        ['none'],
         expect.any(Number),
       );
     });
@@ -115,23 +122,38 @@ describe('SuggestionCacheService', () => {
 
   describe('Invalidation', () => {
     it('should invalidate signals and suggestions on invalidateSignals', async () => {
+      // Simulate a registry with multiple excludeKeys
+      cacheGetMock.mockResolvedValueOnce(['none', 'id1,id2']);
+
       await service.invalidateSignals('user-1', '2026-07-09');
 
-      expect(cacheDelMock).toHaveBeenCalledTimes(2);
+      // Should delete signal cache
       expect(cacheDelMock).toHaveBeenCalledWith(
         'today_suggestion:signals:user-1:2026-07-09',
       );
+      // Should delete all suggestion cache variants
       expect(cacheDelMock).toHaveBeenCalledWith(
         'today_suggestion:suggestions:user-1:2026-07-09:none',
       );
+      expect(cacheDelMock).toHaveBeenCalledWith(
+        'today_suggestion:suggestions:user-1:2026-07-09:id1,id2',
+      );
+      // Should delete the registry itself
+      expect(cacheDelMock).toHaveBeenCalledWith(
+        'today_suggestion:exclude_keys:user-1:2026-07-09',
+      );
     });
 
-    it('should invalidate suggestions on invalidateSuggestions', async () => {
+    it('should fallback to deleting none when registry is empty', async () => {
+      cacheGetMock.mockResolvedValueOnce(undefined);
+
       await service.invalidateSuggestions('user-1', '2026-07-09');
 
-      expect(cacheDelMock).toHaveBeenCalledTimes(1);
       expect(cacheDelMock).toHaveBeenCalledWith(
         'today_suggestion:suggestions:user-1:2026-07-09:none',
+      );
+      expect(cacheDelMock).toHaveBeenCalledWith(
+        'today_suggestion:exclude_keys:user-1:2026-07-09',
       );
     });
 
