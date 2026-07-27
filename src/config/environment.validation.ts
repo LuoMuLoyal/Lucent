@@ -138,6 +138,7 @@ const envSchema = z.object({
   [EnvKey.LOG_LEVEL]: z
     .enum(['error', 'warn', 'info', 'debug', 'verbose'])
     .default('debug'),
+  [EnvKey.LOG_FORMAT]: z.enum(['pretty', 'json']).optional(),
 
   [EnvKey.MAIL_DRIVER]: z.enum(['log', 'smtp']).default('log'),
   [EnvKey.MAIL_HOST]: optionalString,

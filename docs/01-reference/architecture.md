@@ -209,7 +209,9 @@ with `requestId`, method, path, status, and stack metadata.
 ## Logging Foundation
 
 - `src/common/logger/logger.module.ts` registers the app-wide `nest-winston`
-  logger.
+  logger. Development console uses a colorized `printf` format (timestamp,
+  level, context, requestId, message, metadata, stack); production/test uses
+  single-line JSON with `timestamp`. Set `LOG_FORMAT=pretty|json` to override.
 - `src/common/middleware/request-id.middleware.ts` remains the request-id
   source of truth and mirrors the final id back to `X-Request-Id`.
 - `src/common/logger/request-context.service.ts` stores the active request id in

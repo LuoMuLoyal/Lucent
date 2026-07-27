@@ -144,9 +144,11 @@ NODE_ENV=test pnpm exec prisma migrate deploy
   startup can fail even after the container is already running app bootstrap code.
 - i18n type generation writes `src/generated/i18n.generated.ts` only in source-tree development
   runtime.
-- Lucent runtime logging now uses `nest-winston` with Winston transports;
-  development output is colorized, while production stays JSON-first on
-  stdout/stderr.
+- Lucent runtime logging uses `nest-winston` with Winston transports.
+  Development console output uses a colorized `printf` format (timestamp,
+  level, context, requestId, message, metadata, stack); production and test
+  use single-line JSON with a `timestamp` field for log-aggregation tools.
+  Set `LOG_FORMAT=pretty|json` to override the default at any environment.
 - `requestIdMiddleware` remains the source of truth for `X-Request-Id`; the
   request id is also bridged into a shared AsyncLocalStorage request context so
   exception and service logs can resolve the active request without passing
