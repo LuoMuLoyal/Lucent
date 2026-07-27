@@ -143,3 +143,27 @@ export class MedicineRiskCheckRecordsDto {
   })
   llm!: MedicineRiskCheckRecordDto | null;
 }
+
+/** Envelope wrapper for GET /risk-check (list of records). */
+export class MedicineRiskCheckRecordsResponseDto {
+  @ApiProperty({ example: 0 })
+  code!: number;
+
+  @ApiProperty({ example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => MedicineRiskCheckRecordsDto })
+  data!: MedicineRiskCheckRecordsDto;
+}
+
+/** Envelope wrapper for POST /risk-check (single record). */
+export class MedicineRiskCheckRecordResponseDto {
+  @ApiProperty({ example: 0 })
+  code!: number;
+
+  @ApiProperty({ example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => MedicineRiskCheckRecordDto })
+  data!: MedicineRiskCheckRecordDto;
+}

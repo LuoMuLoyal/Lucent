@@ -1312,10 +1312,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/MedicineSafetyTipResponseDto"
-                  }
+                  "$ref": "#/components/schemas/MedicineSafetyTipListResponseDto"
                 }
               }
             }
@@ -1475,7 +1472,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineRiskCheckRecordsDto"
+                  "$ref": "#/components/schemas/MedicineRiskCheckRecordsResponseDto"
                 }
               }
             }
@@ -1508,7 +1505,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineRiskCheckRecordDto"
+                  "$ref": "#/components/schemas/MedicineRiskCheckRecordResponseDto"
                 }
               }
             }
@@ -6040,6 +6037,40 @@
         },
         "required": ["static", "llm"]
       },
+      "MedicineRiskCheckRecordResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "MedicineRiskCheckRecordsResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/MedicineRiskCheckRecordsDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
       "MedicineSafetyTipResponseDto": {
         "type": "object",
         "properties": {
@@ -6057,6 +6088,26 @@
           }
         },
         "required": ["id", "text", "category"]
+      },
+      "MedicineSafetyTipListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineSafetyTipResponseDto"
+            }
+          }
+        },
+        "required": ["code", "message", "data"]
       },
       "MedicineSearchItemDto": {
         "type": "object",

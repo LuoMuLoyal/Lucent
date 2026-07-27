@@ -41,13 +41,15 @@ import {
   MedicineSearchResponseDto,
 } from './dto/medicine-response.dto';
 
-import { MedicineSafetyTipResponseDto } from './dto/medicine-safety-tip-response.dto';
+import { MedicineSafetyTipListResponseDto } from './dto/medicine-safety-tip-response.dto';
 
 import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
 import { RunRiskCheckDto } from './dto/risk-check-request.dto';
 import {
   MedicineRiskCheckRecordDto,
   MedicineRiskCheckRecordsDto,
+  MedicineRiskCheckRecordResponseDto,
+  MedicineRiskCheckRecordsResponseDto,
 } from './dto/risk-check-response.dto';
 import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/cache.constants';
 import { MedicinesService } from './services/medicines.service';
@@ -61,6 +63,9 @@ import { MedicineRiskCheckService } from './services/medicine-risk-check.service
   CnMedicineDetailDto,
   MedicineRiskCheckRecordDto,
   MedicineRiskCheckRecordsDto,
+  MedicineRiskCheckRecordResponseDto,
+  MedicineRiskCheckRecordsResponseDto,
+  MedicineSafetyTipListResponseDto,
 )
 @ApiBearerAuth('access-token')
 @Controller('medicines')
@@ -82,7 +87,7 @@ export class MedicinesController {
     description:
       'Safety tip IDs from the last response, used for deduplication',
   })
-  @ApiResponse({ status: 200, type: [MedicineSafetyTipResponseDto] })
+  @ApiResponse({ status: 200, type: MedicineSafetyTipListResponseDto })
   async getSafetyTips(
     @Query('exclude') exclude?: string | string[],
     @I18nLang() lang?: string,
@@ -170,7 +175,7 @@ export class MedicinesController {
 
   @Get('risk-check')
   @ApiOperation({ summary: 'Get latest medicine risk check records' })
-  @ApiResponse({ status: 200, type: MedicineRiskCheckRecordsDto })
+  @ApiResponse({ status: 200, type: MedicineRiskCheckRecordsResponseDto })
   async getRiskCheck(@CurrentUser() user: UserPayload) {
     const records = await this.riskCheckService.getRecords(user.sub);
     return successEnvelope(records);
@@ -179,7 +184,7 @@ export class MedicinesController {
   @Post('risk-check')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Run medicine risk check (static or LLM)' })
-  @ApiResponse({ status: 200, type: MedicineRiskCheckRecordDto })
+  @ApiResponse({ status: 200, type: MedicineRiskCheckRecordResponseDto })
   async runRiskCheck(
     @CurrentUser() user: UserPayload,
     @Body() dto: RunRiskCheckDto,
