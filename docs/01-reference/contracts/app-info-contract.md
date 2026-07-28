@@ -20,9 +20,12 @@ the client obtains those locally via `package_info_plus`.
 ```typescript
 interface AppInfoDto {
   minClientVersion: string | null; // minimum Luminous version hint
+  latestVersion: string | null; // latest available client version
+  downloadUrl: string | null; // update / download page URL
   supportEmail: string | null; // support contact email for About page
 }
 ```
 
 Values are read from environment variables (`SUPPORT_EMAIL`,
-`MIN_CLIENT_VERSION`) at startup — no database, no `package.json`.
+`MIN_CLIENT_VERSION`, `LATEST_VERSION`, `DOWNLOAD_URL`) at startup — no
+database, no `package.json`.

@@ -1,6 +1,6 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-23
+Last updated: 2026-07-28
 
 - Barrel files (`index.ts`) must never export `.spec.ts` files — spec exports cause `nest build` to
   compile test files into `dist/`, and runtime barrel loading triggers `describe`/`it` calls that

@@ -333,6 +333,8 @@ const envSchema = z.object({
 
   [EnvKey.SUPPORT_EMAIL]: z.email().optional(),
   [EnvKey.MIN_CLIENT_VERSION]: optionalString,
+  [EnvKey.LATEST_VERSION]: optionalString,
+  [EnvKey.DOWNLOAD_URL]: optionalString,
 });
 
 /** Strongly typed shape of validated environment variables. */

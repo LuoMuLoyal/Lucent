@@ -13,8 +13,11 @@ describe('SupportResourcesService', () => {
           provide: ConfigService,
           useValue: {
             get: (key: string) => {
-              if (key === 'SUPPORT_EMAIL') return 'support@luminous.app';
+              if (key === 'SUPPORT_EMAIL') return 'luomuloyal@qq.com';
               if (key === 'MIN_CLIENT_VERSION') return '0.1.0';
+              if (key === 'LATEST_VERSION') return '0.2.0';
+              if (key === 'DOWNLOAD_URL')
+                return 'https://github.com/LuoMuLoyal/Luminous';
               return undefined;
             },
           },
@@ -40,9 +43,11 @@ describe('SupportResourcesService', () => {
     expect(result.items.every((item) => item.scope === 'about')).toBe(true);
   });
 
-  it('should return app info with support email and min client version', () => {
+  it('should return app info with all fields', () => {
     const info = service.getAppInfo();
-    expect(info.supportEmail).toBe('support@luminous.app');
+    expect(info.supportEmail).toBe('luomuloyal@qq.com');
     expect(info.minClientVersion).toBe('0.1.0');
+    expect(info.latestVersion).toBe('0.2.0');
+    expect(info.downloadUrl).toBe('https://github.com/LuoMuLoyal/Luminous');
   });
 });

@@ -206,3 +206,18 @@ checks, use `deployment.md`.
   `DataRetentionModule` (`@Global()`) runs daily `@Cron` cleanup — no env vars required.
 - `ThrottlerConfigService` conditionally enables Redis-backed throttling when `REDIS_URL` is set;
   `ioredis` is a direct dependency (dynamic import, no static import).
+
+## Client Operations Configuration (2026-07-28)
+
+The following optional environment variables configure client-facing operational metadata served by
+`GET /api/v1/public/app-info`:
+
+| Variable             | Description                                                     |
+| -------------------- | --------------------------------------------------------------- |
+| `SUPPORT_EMAIL`      | Support contact email shown on the About/Help page.             |
+| `MIN_CLIENT_VERSION` | Minimum Luminous client version hint (semver string).           |
+| `LATEST_VERSION`     | Latest available client version (semver string).                |
+| `DOWNLOAD_URL`       | Update/download page URL opened when a new version is detected. |
+
+All fields are optional — unset variables result in `null` in the API response. The Luminous client
+uses `latestVersion` and `downloadUrl` to implement the "Check for Updates" feature on the About page.

@@ -1,6 +1,6 @@
 # Toolchain / Contract
 
-Last updated: 2026-07-22
+Last updated: 2026-07-28
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.

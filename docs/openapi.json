@@ -111,6 +111,1248 @@
         "tags": ["Health"]
       }
     },
+    "/api/v1/user/medicine-reminders": {
+      "get": {
+        "operationId": "MedicineRemindersController_list_v1",
+        "parameters": [
+          {
+            "name": "activeOnly",
+            "required": false,
+            "in": "query",
+            "description": "Set to true to return active reminders only.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List medicine reminder schedules",
+        "tags": ["Medicine Reminders"]
+      },
+      "post": {
+        "operationId": "MedicineRemindersController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMedicineReminderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a medicine reminder schedule",
+        "tags": ["Medicine Reminders"]
+      }
+    },
+    "/api/v1/user/medicine-reminders/{id}": {
+      "patch": {
+        "operationId": "MedicineRemindersController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMedicineReminderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a medicine reminder schedule",
+        "tags": ["Medicine Reminders"]
+      },
+      "delete": {
+        "operationId": "MedicineRemindersController_delete_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete a medicine reminder schedule",
+        "tags": ["Medicine Reminders"]
+      }
+    },
+    "/api/v1/user/reminder-deliveries": {
+      "get": {
+        "operationId": "ReminderDeliveriesController_list_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Optional scheduled date filter in YYYY-MM-DD format.",
+            "schema": {
+              "example": "2026-06-10",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum rows to return. Clamped to 1-100.",
+            "schema": {
+              "example": 20,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDeliveryListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List reminder delivery audit logs",
+        "tags": ["Reminder Deliveries"]
+      }
+    },
+    "/api/v1/user/notifications": {
+      "post": {
+        "operationId": "NotificationsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a notification (internal/test)",
+        "tags": ["Notifications"]
+      },
+      "get": {
+        "operationId": "NotificationsController_findAll_v1",
+        "parameters": [
+          {
+            "name": "page",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List user notifications",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_getUnreadCount_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get unread notification count",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/notifications/{id}": {
+      "get": {
+        "operationId": "NotificationsController_findOne_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get a notification detail",
+        "tags": ["Notifications"]
+      },
+      "delete": {
+        "operationId": "NotificationsController_remove_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete a notification",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markAsRead_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark a notification as read",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/notifications/{id}/unread": {
+      "patch": {
+        "operationId": "NotificationsController_markAsUnread_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDetailResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark a notification as unread",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/notifications/mark-all-read": {
+      "patch": {
+        "operationId": "NotificationsController_markAllAsRead_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark all notifications as read",
+        "tags": ["Notifications"]
+      }
+    },
+    "/api/v1/user/today/suggestions": {
+      "get": {
+        "operationId": "TodaySuggestionController_getSuggestions_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Target date (YYYY-MM-DD). Defaults to today.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accept-language",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "excludeIds",
+            "required": false,
+            "in": "query",
+            "description": "Suggestion IDs the user has dismissed.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodaySuggestionsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get Today page suggestion cards",
+        "tags": ["Today Suggestion"]
+      }
+    },
+    "/api/v1/user/today/suggestions/{id}/feedback": {
+      "post": {
+        "operationId": "TodaySuggestionController_submitFeedback_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestionFeedbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionFeedbackResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Submit feedback for a suggestion card",
+        "tags": ["Today Suggestion"]
+      }
+    },
+    "/api/v1/user/today/suggestions/{id}/explain": {
+      "post": {
+        "operationId": "TodaySuggestionController_explainSuggestion_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accept-language",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionExplanationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get AI explanation for a suggestion card",
+        "tags": ["Today Suggestion"]
+      }
+    },
+    "/api/v1/user/today/suggestions/{id}/explain/async": {
+      "post": {
+        "operationId": "TodaySuggestionController_explainSuggestionAsync_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accept-language",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Job enqueued. Returns jobId for polling.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "jobId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Enqueue async AI explanation for a suggestion card",
+        "tags": ["Today Suggestion"]
+      }
+    },
+    "/api/v1/user/today/suggestions/explain/status/{jobId}": {
+      "get": {
+        "operationId": "TodaySuggestionController_explainSuggestionStatus_v1",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job status (pending, completed, or failed)"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Poll async suggestion explanation status",
+        "tags": ["Today Suggestion"]
+      }
+    },
+    "/api/v1/user/today/suggestions/history": {
+      "get": {
+        "operationId": "TodaySuggestionController_getHistory_v1",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "description": "Start date (YYYY-MM-DD). Defaults to 30 days ago.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "description": "End date (YYYY-MM-DD). Defaults to today.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lifecycleState",
+            "required": false,
+            "in": "query",
+            "description": "Filter by lifecycle state.",
+            "schema": {
+              "enum": ["generated", "active", "fading", "expired", "dismissed"],
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "description": "Filter by suggestion type.",
+            "schema": {
+              "enum": [
+                "confirmed_risk",
+                "compliance",
+                "trend",
+                "behavior_advice",
+                "coverage"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max items (default 100, max 500).",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "accept-language",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionHistoryResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get suggestion history for the Report page",
+        "tags": ["Today Suggestion"]
+      }
+    },
+    "/api/v1/user/daily-records": {
+      "get": {
+        "operationId": "DailyRecordsController_list_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "description": "Date in YYYY-MM-DD format.",
+            "schema": {
+              "example": "2026-06-04",
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/DailyRecordKind"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number (1-based).",
+            "schema": {
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "description": "Page size (1-100).",
+            "schema": {
+              "maximum": 100,
+              "default": 50,
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List daily records for a given date",
+        "tags": ["Daily Records"]
+      },
+      "post": {
+        "operationId": "DailyRecordsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDailyRecordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a daily record",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/daily-records/summary": {
+      "get": {
+        "operationId": "DailyRecordsController_summary_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-06-04",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordSummaryResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get daily record summary (counts by kind)",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/daily-records/attachments/images/presign-upload": {
+      "post": {
+        "operationId": "DailyRecordsController_createImageUpload_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDailyRecordImageUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordImageUploadResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a Tencent COS signed URL for daily record image upload",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/daily-records/candidate-records/generate": {
+      "post": {
+        "operationId": "DailyRecordsController_generateCandidates_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateDailyRecordCandidatesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordCandidateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Generate AI candidate daily records from a natural-language note",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/daily-records/{id}": {
+      "get": {
+        "operationId": "DailyRecordsController_get_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get a daily record by id",
+        "tags": ["Daily Records"]
+      },
+      "patch": {
+        "operationId": "DailyRecordsController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDailyRecordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyRecordResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a daily record",
+        "tags": ["Daily Records"]
+      },
+      "delete": {
+        "operationId": "DailyRecordsController_delete_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete a daily record",
+        "tags": ["Daily Records"]
+      }
+    },
+    "/api/v1/user/medicine-dose-logs": {
+      "get": {
+        "operationId": "MedicineDoseLogsController_list_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "2026-06-04",
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoseLogListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List dose logs for a date",
+        "tags": ["Medicine Dose Logs"]
+      },
+      "post": {
+        "operationId": "MedicineDoseLogsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDoseLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoseLogResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a dose log",
+        "tags": ["Medicine Dose Logs"]
+      }
+    },
+    "/api/v1/user/medicine-dose-logs/mark": {
+      "post": {
+        "operationId": "MedicineDoseLogsController_mark_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkDoseLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoseLogResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark a dose log idempotently for one reminder slot",
+        "tags": ["Medicine Dose Logs"]
+      }
+    },
+    "/api/v1/user/medicine-dose-logs/{id}": {
+      "patch": {
+        "operationId": "MedicineDoseLogsController_update_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDoseLogDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoseLogResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a dose log",
+        "tags": ["Medicine Dose Logs"]
+      },
+      "delete": {
+        "operationId": "MedicineDoseLogsController_delete_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete a dose log",
+        "tags": ["Medicine Dose Logs"]
+      }
+    },
     "/api/v1/user/user-devices": {
       "post": {
         "operationId": "UserDevicesController_register_v1",
@@ -700,258 +1942,6 @@
         },
         "summary": "Refresh token",
         "tags": ["Auth"]
-      }
-    },
-    "/api/v1/user/notifications": {
-      "post": {
-        "operationId": "NotificationsController_create_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateNotificationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationListResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a notification (internal/test)",
-        "tags": ["Notifications"]
-      },
-      "get": {
-        "operationId": "NotificationsController_findAll_v1",
-        "parameters": [
-          {
-            "name": "page",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationListResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List user notifications",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/user/notifications/unread-count": {
-      "get": {
-        "operationId": "NotificationsController_getUnreadCount_v1",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnreadCountResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get unread notification count",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/user/notifications/{id}": {
-      "get": {
-        "operationId": "NotificationsController_findOne_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationDetailResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get a notification detail",
-        "tags": ["Notifications"]
-      },
-      "delete": {
-        "operationId": "NotificationsController_remove_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Delete a notification",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/user/notifications/{id}/read": {
-      "patch": {
-        "operationId": "NotificationsController_markAsRead_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationDetailResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Mark a notification as read",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/user/notifications/{id}/unread": {
-      "patch": {
-        "operationId": "NotificationsController_markAsUnread_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotificationDetailResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Mark a notification as unread",
-        "tags": ["Notifications"]
-      }
-    },
-    "/api/v1/user/notifications/mark-all-read": {
-      "patch": {
-        "operationId": "NotificationsController_markAllAsRead_v1",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnreadCountResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Mark all notifications as read",
-        "tags": ["Notifications"]
       }
     },
     "/api/v1/account": {
@@ -2023,685 +3013,6 @@
         "tags": ["User Health Context"]
       }
     },
-    "/api/v1/user/daily-records": {
-      "get": {
-        "operationId": "DailyRecordsController_list_v1",
-        "parameters": [
-          {
-            "name": "date",
-            "required": true,
-            "in": "query",
-            "description": "Date in YYYY-MM-DD format.",
-            "schema": {
-              "example": "2026-06-04",
-              "type": "string"
-            }
-          },
-          {
-            "name": "kind",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/DailyRecordKind"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "description": "Page number (1-based).",
-            "schema": {
-              "default": 1,
-              "example": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "description": "Page size (1-100).",
-            "schema": {
-              "maximum": 100,
-              "default": 50,
-              "example": 50,
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordListResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List daily records for a given date",
-        "tags": ["Daily Records"]
-      },
-      "post": {
-        "operationId": "DailyRecordsController_create_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDailyRecordDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a daily record",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/daily-records/summary": {
-      "get": {
-        "operationId": "DailyRecordsController_summary_v1",
-        "parameters": [
-          {
-            "name": "date",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "example": "2026-06-04",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordSummaryResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get daily record summary (counts by kind)",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/daily-records/attachments/images/presign-upload": {
-      "post": {
-        "operationId": "DailyRecordsController_createImageUpload_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDailyRecordImageUploadDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordImageUploadResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a Tencent COS signed URL for daily record image upload",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/daily-records/candidate-records/generate": {
-      "post": {
-        "operationId": "DailyRecordsController_generateCandidates_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateDailyRecordCandidatesDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordCandidateResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Generate AI candidate daily records from a natural-language note",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/daily-records/{id}": {
-      "get": {
-        "operationId": "DailyRecordsController_get_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get a daily record by id",
-        "tags": ["Daily Records"]
-      },
-      "patch": {
-        "operationId": "DailyRecordsController_update_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDailyRecordDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DailyRecordResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Update a daily record",
-        "tags": ["Daily Records"]
-      },
-      "delete": {
-        "operationId": "DailyRecordsController_delete_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Soft-delete a daily record",
-        "tags": ["Daily Records"]
-      }
-    },
-    "/api/v1/user/medicine-dose-logs": {
-      "get": {
-        "operationId": "MedicineDoseLogsController_list_v1",
-        "parameters": [
-          {
-            "name": "date",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "example": "2026-06-04",
-              "type": "string"
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "example": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "example": 50,
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DoseLogListResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List dose logs for a date",
-        "tags": ["Medicine Dose Logs"]
-      },
-      "post": {
-        "operationId": "MedicineDoseLogsController_create_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDoseLogDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DoseLogResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a dose log",
-        "tags": ["Medicine Dose Logs"]
-      }
-    },
-    "/api/v1/user/medicine-dose-logs/mark": {
-      "post": {
-        "operationId": "MedicineDoseLogsController_mark_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MarkDoseLogDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DoseLogResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Mark a dose log idempotently for one reminder slot",
-        "tags": ["Medicine Dose Logs"]
-      }
-    },
-    "/api/v1/user/medicine-dose-logs/{id}": {
-      "patch": {
-        "operationId": "MedicineDoseLogsController_update_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateDoseLogDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DoseLogResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Update a dose log",
-        "tags": ["Medicine Dose Logs"]
-      },
-      "delete": {
-        "operationId": "MedicineDoseLogsController_delete_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Soft-delete a dose log",
-        "tags": ["Medicine Dose Logs"]
-      }
-    },
-    "/api/v1/user/medicine-reminders": {
-      "get": {
-        "operationId": "MedicineRemindersController_list_v1",
-        "parameters": [
-          {
-            "name": "activeOnly",
-            "required": false,
-            "in": "query",
-            "description": "Set to true to return active reminders only.",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderListResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List medicine reminder schedules",
-        "tags": ["Medicine Reminders"]
-      },
-      "post": {
-        "operationId": "MedicineRemindersController_create_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateMedicineReminderDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a medicine reminder schedule",
-        "tags": ["Medicine Reminders"]
-      }
-    },
-    "/api/v1/user/medicine-reminders/{id}": {
-      "patch": {
-        "operationId": "MedicineRemindersController_update_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMedicineReminderDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MedicineReminderResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Update a medicine reminder schedule",
-        "tags": ["Medicine Reminders"]
-      },
-      "delete": {
-        "operationId": "MedicineRemindersController_delete_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Soft-delete a medicine reminder schedule",
-        "tags": ["Medicine Reminders"]
-      }
-    },
-    "/api/v1/user/reminder-deliveries": {
-      "get": {
-        "operationId": "ReminderDeliveriesController_list_v1",
-        "parameters": [
-          {
-            "name": "date",
-            "required": false,
-            "in": "query",
-            "description": "Optional scheduled date filter in YYYY-MM-DD format.",
-            "schema": {
-              "example": "2026-06-10",
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Maximum rows to return. Clamped to 1-100.",
-            "schema": {
-              "example": 20,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReminderDeliveryListResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List reminder delivery audit logs",
-        "tags": ["Reminder Deliveries"]
-      }
-    },
     "/api/v1/environment/snapshot": {
       "get": {
         "operationId": "EnvironmentController_getSnapshot_v1",
@@ -3703,317 +4014,6 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/user/today/suggestions": {
-      "get": {
-        "operationId": "TodaySuggestionController_getSuggestions_v1",
-        "parameters": [
-          {
-            "name": "date",
-            "required": false,
-            "in": "query",
-            "description": "Target date (YYYY-MM-DD). Defaults to today.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "accept-language",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "excludeIds",
-            "required": false,
-            "in": "query",
-            "description": "Suggestion IDs the user has dismissed.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TodaySuggestionsResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get Today page suggestion cards",
-        "tags": ["Today Suggestion"]
-      }
-    },
-    "/api/v1/user/today/suggestions/{id}/feedback": {
-      "post": {
-        "operationId": "TodaySuggestionController_submitFeedback_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SuggestionFeedbackDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuggestionFeedbackResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Submit feedback for a suggestion card",
-        "tags": ["Today Suggestion"]
-      }
-    },
-    "/api/v1/user/today/suggestions/{id}/explain": {
-      "post": {
-        "operationId": "TodaySuggestionController_explainSuggestion_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "accept-language",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuggestionExplanationResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get AI explanation for a suggestion card",
-        "tags": ["Today Suggestion"]
-      }
-    },
-    "/api/v1/user/today/suggestions/{id}/explain/async": {
-      "post": {
-        "operationId": "TodaySuggestionController_explainSuggestionAsync_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "accept-language",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "Job enqueued. Returns jobId for polling.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "number",
-                      "example": 0
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "jobId": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Enqueue async AI explanation for a suggestion card",
-        "tags": ["Today Suggestion"]
-      }
-    },
-    "/api/v1/user/today/suggestions/explain/status/{jobId}": {
-      "get": {
-        "operationId": "TodaySuggestionController_explainSuggestionStatus_v1",
-        "parameters": [
-          {
-            "name": "jobId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Job status (pending, completed, or failed)"
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Poll async suggestion explanation status",
-        "tags": ["Today Suggestion"]
-      }
-    },
-    "/api/v1/user/today/suggestions/history": {
-      "get": {
-        "operationId": "TodaySuggestionController_getHistory_v1",
-        "parameters": [
-          {
-            "name": "startDate",
-            "required": false,
-            "in": "query",
-            "description": "Start date (YYYY-MM-DD). Defaults to 30 days ago.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "endDate",
-            "required": false,
-            "in": "query",
-            "description": "End date (YYYY-MM-DD). Defaults to today.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "lifecycleState",
-            "required": false,
-            "in": "query",
-            "description": "Filter by lifecycle state.",
-            "schema": {
-              "enum": ["generated", "active", "fading", "expired", "dismissed"],
-              "type": "string"
-            }
-          },
-          {
-            "name": "type",
-            "required": false,
-            "in": "query",
-            "description": "Filter by suggestion type.",
-            "schema": {
-              "enum": [
-                "confirmed_risk",
-                "compliance",
-                "trend",
-                "behavior_advice",
-                "coverage"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "description": "Max items (default 100, max 500).",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "accept-language",
-            "required": true,
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuggestionHistoryResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get suggestion history for the Report page",
-        "tags": ["Today Suggestion"]
-      }
-    },
     "/api/v1/public/support-resources": {
       "get": {
         "operationId": "SupportResourcesController_getResources_v1",
@@ -4408,6 +4408,1842 @@
           }
         },
         "required": ["code", "message", "data"]
+      },
+      "MedicineReminderItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Reminder id."
+          },
+          "currentMedicineId": {
+            "type": "string",
+            "description": "Linked current medicine id.",
+            "nullable": true
+          },
+          "label": {
+            "type": "string",
+            "description": "Reminder label.",
+            "nullable": true
+          },
+          "scheduledHour": {
+            "type": "number",
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "number",
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "description": "Weekday numbers 0-6. Null means every day.",
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts.",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends.",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "type": "string",
+            "description": "User note.",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "scheduledHour",
+          "scheduledMinute",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "MedicineReminderListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MedicineReminderItemDto"
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "MedicineReminderListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/MedicineReminderListDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "CreateMedicineReminderDto": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "type": "string",
+            "description": "Reminder label.",
+            "nullable": true
+          },
+          "scheduledHour": {
+            "type": "number",
+            "description": "Scheduled local hour, 0-23.",
+            "example": 8
+          },
+          "scheduledMinute": {
+            "type": "number",
+            "description": "Scheduled local minute, 0-59.",
+            "example": 30
+          },
+          "daysOfWeek": {
+            "description": "Weekday numbers 0-6, where null means every day.",
+            "nullable": true,
+            "example": [1, 2, 3, 4, 5],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts.",
+            "nullable": true,
+            "example": "2026-06-09"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends.",
+            "nullable": true,
+            "example": "2026-06-30"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active.",
+            "default": true
+          },
+          "note": {
+            "type": "string",
+            "description": "User note.",
+            "nullable": true
+          }
+        },
+        "required": ["scheduledHour", "scheduledMinute"]
+      },
+      "MedicineReminderResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/MedicineReminderItemDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "UpdateMedicineReminderDto": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "description": "Linked current medicine id.",
+            "nullable": true
+          },
+          "label": {
+            "type": "string",
+            "description": "Reminder label.",
+            "nullable": true
+          },
+          "scheduledHour": {
+            "type": "number",
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "number",
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "description": "Weekday numbers 0-6, where null means every day.",
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts. Use null to clear.",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends. Use null to clear.",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "type": "string",
+            "description": "User note.",
+            "nullable": true
+          }
+        }
+      },
+      "ReminderDeliveryItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Delivery log id."
+          },
+          "reminderId": {
+            "type": "object",
+            "description": "Linked medicine reminder id."
+          },
+          "deviceId": {
+            "type": "object",
+            "description": "Target device id."
+          },
+          "channel": {
+            "type": "string",
+            "description": "Delivery channel.",
+            "example": "local"
+          },
+          "status": {
+            "type": "string",
+            "description": "Delivery status.",
+            "example": "scheduled"
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled delivery time (ISO 8601)."
+          },
+          "deliveredAt": {
+            "type": "object",
+            "description": "Actual delivery time (ISO 8601)."
+          },
+          "errorMessage": {
+            "type": "object",
+            "description": "Failure reason, if any."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          }
+        },
+        "required": ["id", "channel", "status", "scheduledFor", "createdAt"]
+      },
+      "ReminderDeliveryListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReminderDeliveryItemDto"
+            }
+          }
+        },
+        "required": ["items"]
+      },
+      "ReminderDeliveryListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReminderDeliveryListDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "UserNotificationType": {
+        "type": "string",
+        "enum": [
+          "ai_today_summary",
+          "ai_proactive_suggestion",
+          "medicine_missed_dose",
+          "password_changed",
+          "report_generated",
+          "medicine_reminder"
+        ],
+        "description": "Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications."
+      },
+      "CreateNotificationDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "description": "Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserNotificationType"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Notification title."
+          },
+          "content": {
+            "type": "string",
+            "description": "Notification content body."
+          },
+          "action": {
+            "type": "string",
+            "nullable": true,
+            "description": "Action route target for the frontend."
+          },
+          "actionPayload": {
+            "type": "object",
+            "nullable": true,
+            "description": "Extra payload for the action."
+          }
+        },
+        "required": ["type", "title", "content"]
+      },
+      "NotificationListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique notification identifier."
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserNotificationType"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Notification title."
+          },
+          "content": {
+            "type": "string",
+            "description": "Notification content body."
+          },
+          "action": {
+            "type": "string",
+            "nullable": true,
+            "description": "Action route target for the frontend."
+          },
+          "actionPayload": {
+            "type": "object",
+            "nullable": true,
+            "description": "Extra payload for the action."
+          },
+          "isRead": {
+            "type": "boolean",
+            "description": "Whether the notification has been read."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when the notification was created."
+          }
+        },
+        "required": ["id", "type", "title", "content", "isRead", "createdAt"]
+      },
+      "NotificationListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationListItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total count of notifications for the user."
+          }
+        },
+        "required": ["code", "message", "items", "total"]
+      },
+      "UnreadCountResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "count": {
+            "type": "number",
+            "description": "Number of unread notifications.",
+            "example": 3
+          }
+        },
+        "required": ["code", "message", "count"]
+      },
+      "NotificationDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique notification identifier."
+          },
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserNotificationType"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Notification title."
+          },
+          "content": {
+            "type": "string",
+            "description": "Notification content body."
+          },
+          "action": {
+            "type": "string",
+            "nullable": true,
+            "description": "Action route target for the frontend."
+          },
+          "actionPayload": {
+            "type": "object",
+            "nullable": true,
+            "description": "Extra payload for the action."
+          },
+          "isRead": {
+            "type": "boolean",
+            "description": "Whether the notification has been read."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when the notification was created."
+          },
+          "readAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO-8601 timestamp when the notification was read."
+          }
+        },
+        "required": ["id", "type", "title", "content", "isRead", "createdAt"]
+      },
+      "NotificationDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NotificationDetailDto"
+              }
+            ]
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "EvidenceItemDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "record",
+              "reminder",
+              "risk_check",
+              "trend",
+              "profile",
+              "baseline"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable label"
+          },
+          "value": {
+            "type": "string",
+            "description": "Human-readable value"
+          },
+          "recordId": {
+            "type": "object",
+            "description": "Related record id for navigation"
+          },
+          "medicineId": {
+            "type": "object",
+            "description": "Related medicine id for navigation"
+          }
+        },
+        "required": ["kind", "label", "value"]
+      },
+      "SuggestionActionDto": {
+        "type": "object",
+        "properties": {
+          "actionId": {
+            "type": "string",
+            "description": "Unique action id"
+          },
+          "label": {
+            "type": "string",
+            "description": "Localized action label"
+          },
+          "route": {
+            "type": "string",
+            "description": "Deep-link route for navigation"
+          },
+          "authRequired": {
+            "type": "boolean",
+            "description": "Whether authentication is required"
+          }
+        },
+        "required": ["actionId", "label", "route", "authRequired"]
+      },
+      "SuggestionItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique suggestion id"
+          },
+          "type": {
+            "type": "string",
+            "description": "Suggestion type",
+            "enum": [
+              "confirmed_risk",
+              "compliance",
+              "trend",
+              "behavior_advice",
+              "coverage"
+            ]
+          },
+          "cardTone": {
+            "type": "string",
+            "description": "Visual tone hint",
+            "enum": ["urgent", "warning", "emphasis", "soft", "neutral"]
+          },
+          "icon": {
+            "type": "string",
+            "description": "Icon identifier for the frontend"
+          },
+          "title": {
+            "type": "string",
+            "description": "Localized short title"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why this suggestion appeared"
+          },
+          "evidence": {
+            "description": "Evidence items",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EvidenceItemDto"
+            }
+          },
+          "boundary": {
+            "type": "string",
+            "description": "Medical disclaimer / boundary text"
+          },
+          "primaryAction": {
+            "description": "Primary action",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SuggestionActionDto"
+              }
+            ]
+          },
+          "secondaryActions": {
+            "description": "Secondary actions",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuggestionActionDto"
+            }
+          },
+          "confidence": {
+            "type": "string",
+            "description": "Confidence level",
+            "enum": ["high", "medium", "low"]
+          },
+          "ruleId": {
+            "type": "string",
+            "description": "Rule identifier for auditability"
+          },
+          "ruleVersion": {
+            "type": "string",
+            "description": "Rule version"
+          },
+          "triggerType": {
+            "type": "string",
+            "description": "Trigger type",
+            "enum": ["event", "timer"]
+          },
+          "lifecycleState": {
+            "type": "string",
+            "description": "Lifecycle state",
+            "enum": ["generated", "active", "fading", "expired", "dismissed"]
+          },
+          "notificationEligible": {
+            "type": "object",
+            "description": "Whether this card can trigger a notification"
+          },
+          "feedbackOptions": {
+            "description": "Available feedback options for this card",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subtype": {
+            "type": "object",
+            "description": "Sub-type for rendering variety"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "cardTone",
+          "icon",
+          "title",
+          "reason",
+          "evidence",
+          "boundary",
+          "primaryAction",
+          "confidence",
+          "ruleId",
+          "ruleVersion",
+          "triggerType",
+          "lifecycleState"
+        ]
+      },
+      "TodaySuggestionsDataDto": {
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "description": "When the suggestions were generated"
+          },
+          "primary": {
+            "description": "Primary suggestion card (highest priority)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SuggestionItemDto"
+              }
+            ]
+          },
+          "secondary": {
+            "description": "Secondary suggestion cards (max 2)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuggestionItemDto"
+            }
+          },
+          "observations": {
+            "description": "Low-confidence observations",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuggestionItemDto"
+            }
+          },
+          "degraded": {
+            "type": "object",
+            "description": "When true, one or more suggestion rules threw an error during evaluation — the returned list may be incomplete."
+          }
+        },
+        "required": ["generatedAt"]
+      },
+      "TodaySuggestionsResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/TodaySuggestionsDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "SuggestionFeedbackDto": {
+        "type": "object",
+        "properties": {
+          "feedback": {
+            "type": "string",
+            "description": "User feedback for the suggestion",
+            "enum": ["accepted", "later", "not_applicable", "suppress"]
+          }
+        },
+        "required": ["feedback"]
+      },
+      "SuggestionFeedbackDataDto": {
+        "type": "object",
+        "properties": {
+          "suggestionId": {
+            "type": "string"
+          },
+          "feedback": {
+            "type": "string",
+            "enum": ["accepted", "later", "not_applicable", "suppress"]
+          },
+          "appliedEffect": {
+            "type": "string",
+            "description": "Effect applied by the feedback engine",
+            "enum": [
+              "boosted_type",
+              "delayed_until",
+              "suppressed_type",
+              "noted"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When the suppression expires (if applicable)"
+          }
+        },
+        "required": ["suggestionId", "feedback", "appliedEffect"]
+      },
+      "SuggestionFeedbackResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/SuggestionFeedbackDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "SuggestionExplanationDataDto": {
+        "type": "object",
+        "properties": {
+          "suggestionId": {
+            "type": "string",
+            "description": "The suggestion ID that was explained"
+          },
+          "reason": {
+            "type": "string",
+            "description": "AI-enhanced or original reason text"
+          },
+          "boundary": {
+            "type": "string",
+            "description": "AI-enhanced or original boundary / disclaimer text"
+          },
+          "aiGenerated": {
+            "type": "boolean",
+            "description": "Whether the AI model was used to generate the explanation"
+          },
+          "locale": {
+            "type": "string",
+            "description": "Locale used for the explanation (e.g. \"zh-CN\", \"en\")"
+          }
+        },
+        "required": ["suggestionId", "reason", "boundary", "aiGenerated"]
+      },
+      "SuggestionExplanationResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/SuggestionExplanationDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "SuggestionHistoryItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique suggestion id"
+          },
+          "date": {
+            "type": "string",
+            "description": "Date (YYYY-MM-DD)"
+          },
+          "type": {
+            "type": "string",
+            "description": "Suggestion type",
+            "enum": [
+              "confirmed_risk",
+              "compliance",
+              "trend",
+              "behavior_advice",
+              "coverage"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "Localized short title"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why this suggestion appeared"
+          },
+          "ruleId": {
+            "type": "string",
+            "description": "Rule identifier"
+          },
+          "ruleVersion": {
+            "type": "string",
+            "description": "Rule version"
+          },
+          "triggerType": {
+            "type": "string",
+            "description": "Trigger type",
+            "enum": ["event", "timer"]
+          },
+          "lifecycleState": {
+            "type": "string",
+            "description": "Lifecycle state",
+            "enum": ["generated", "active", "fading", "expired", "dismissed"]
+          },
+          "confidence": {
+            "type": "string",
+            "description": "Confidence level",
+            "enum": ["high", "medium", "low"]
+          },
+          "subtype": {
+            "type": "object",
+            "description": "Sub-type"
+          },
+          "feedback": {
+            "type": "string",
+            "description": "User feedback, if any",
+            "enum": ["accepted", "later", "not_applicable", "suppress"]
+          },
+          "feedbackAt": {
+            "type": "object",
+            "description": "When feedback was recorded"
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "When the suggestion was generated"
+          },
+          "expiredAt": {
+            "type": "object",
+            "description": "When the suggestion was expired"
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "type",
+          "title",
+          "reason",
+          "ruleId",
+          "ruleVersion",
+          "triggerType",
+          "lifecycleState",
+          "confidence",
+          "generatedAt"
+        ]
+      },
+      "SuggestionHistoryDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Suggestion history items",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuggestionHistoryItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total count of matching items"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Start date used for the query"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "End date used for the query"
+          }
+        },
+        "required": ["items", "total", "startDate", "endDate"]
+      },
+      "SuggestionHistoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/SuggestionHistoryDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "DailyRecordKind": {
+        "type": "string",
+        "enum": [
+          "water",
+          "meal",
+          "vital",
+          "mood",
+          "symptom",
+          "activity",
+          "note",
+          "sleep"
+        ]
+      },
+      "DailyRecordAttachmentKind": {
+        "type": "string",
+        "enum": ["image"]
+      },
+      "DailyRecordAttachmentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Attachment id."
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordAttachmentKind"
+              }
+            ]
+          },
+          "objectKey": {
+            "type": "string",
+            "description": "Object storage key."
+          },
+          "bucket": {
+            "type": "string",
+            "description": "Object storage bucket.",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "description": "Storage provider.",
+            "nullable": true
+          },
+          "fileName": {
+            "type": "string",
+            "description": "Original file name.",
+            "nullable": true
+          },
+          "contentType": {
+            "type": "string",
+            "description": "MIME content type.",
+            "nullable": true
+          },
+          "sizeBytes": {
+            "type": "number",
+            "description": "File size in bytes.",
+            "nullable": true
+          },
+          "width": {
+            "type": "number",
+            "description": "Image width in pixels.",
+            "nullable": true
+          },
+          "height": {
+            "type": "number",
+            "description": "Image height in pixels.",
+            "nullable": true
+          },
+          "publicUrl": {
+            "type": "string",
+            "description": "Public or signed display URL.",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          }
+        },
+        "required": ["id", "kind", "objectKey", "createdAt"]
+      },
+      "DailyRecordItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Record id."
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordKind"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format.",
+            "example": "2026-06-04"
+          },
+          "occurredTime": {
+            "type": "string",
+            "description": "Time in HH:mm 24-hour format when available.",
+            "example": "09:45",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "description": "Short label.",
+            "nullable": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Measured value.",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unit label.",
+            "example": "bpm",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "description": "Free-text note.",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "description": "Source.",
+            "example": "manual",
+            "nullable": true
+          },
+          "payload": {
+            "type": "object",
+            "description": "Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }.",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "mealAnalysisStatus": {
+            "type": "string",
+            "description": "Meal analysis status for meal records.",
+            "nullable": true
+          },
+          "mealAnalysisCoverage": {
+            "type": "string",
+            "description": "Meal analysis coverage for meal records.",
+            "nullable": true
+          },
+          "mealAnalysisUpdatedAt": {
+            "type": "string",
+            "description": "Meal analysis updated timestamp (ISO 8601).",
+            "nullable": true
+          },
+          "mealAnalysisFailureReason": {
+            "type": "string",
+            "description": "Display-safe meal analysis failure reason.",
+            "nullable": true
+          },
+          "mealShortDescription": {
+            "type": "string",
+            "description": "Short meal description for list reads.",
+            "nullable": true
+          },
+          "mealTopFoods": {
+            "description": "Top recognized foods for list reads.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordAttachmentDto"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "occurredAt",
+          "attachments",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DailyRecordListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total records for the date (before pagination)."
+          }
+        },
+        "required": ["items", "total"]
+      },
+      "DailyRecordListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordListDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "DailyRecordSummaryDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordKind"
+              }
+            ]
+          },
+          "count": {
+            "type": "number",
+            "description": "Count of records for this kind on the given date."
+          },
+          "latest": {
+            "description": "Most recent record of this kind.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordItemDto"
+              }
+            ]
+          }
+        },
+        "required": ["kind", "count"]
+      },
+      "DailyRecordSummaryDataDto": {
+        "type": "object",
+        "properties": {
+          "summaries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordSummaryDto"
+            }
+          }
+        },
+        "required": ["summaries"]
+      },
+      "DailyRecordSummaryResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordSummaryDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "CreateDailyRecordImageUploadDto": {
+        "type": "object",
+        "properties": {
+          "contentType": {
+            "type": "string",
+            "description": "Image MIME content type.",
+            "example": "image/jpeg"
+          },
+          "sizeBytes": {
+            "type": "number",
+            "description": "File size in bytes.",
+            "example": 1234567
+          },
+          "fileName": {
+            "type": "string",
+            "description": "Original file name.",
+            "example": "breakfast.jpg"
+          }
+        },
+        "required": ["contentType", "sizeBytes"]
+      },
+      "DailyRecordImageUploadDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "example": "tencent-cos"
+          },
+          "bucket": {
+            "type": "string",
+            "example": "lucent-test-bucket"
+          },
+          "objectKey": {
+            "type": "string",
+            "example": "daily-records/user-id/2026/06/06/generated-id.jpg"
+          },
+          "uploadUrl": {
+            "type": "string",
+            "description": "Signed PUT URL for direct COS upload."
+          },
+          "headers": {
+            "type": "object",
+            "description": "Headers that must be sent with the PUT upload."
+          },
+          "publicUrl": {
+            "type": "object",
+            "description": "Optional public/CDN URL when TENCENT_COS_PUBLIC_BASE_URL is configured."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "Signed URL expiry timestamp (ISO 8601)."
+          },
+          "maxSizeBytes": {
+            "type": "number",
+            "description": "Maximum accepted upload size in bytes."
+          }
+        },
+        "required": [
+          "provider",
+          "bucket",
+          "objectKey",
+          "uploadUrl",
+          "headers",
+          "publicUrl",
+          "expiresAt",
+          "maxSizeBytes"
+        ]
+      },
+      "DailyRecordImageUploadResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordImageUploadDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "GenerateDailyRecordCandidatesDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Natural-language note to be parsed into candidate daily records.",
+            "example": "今天头疼，早上喝了两杯水，中午吃了面，昨晚只睡了6小时。"
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Wake date in YYYY-MM-DD format used as the candidate record date baseline.",
+            "example": "2026-06-14"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "Optional user timezone hint used only for interpretation wording. No server timezone conversion is persisted.",
+            "example": "Asia/Shanghai"
+          }
+        },
+        "required": ["text", "occurredAt"]
+      },
+      "DailyRecordCandidateKind": {
+        "type": "string",
+        "enum": ["water", "meal", "symptom", "note", "sleep"]
+      },
+      "DailyRecordCandidateItemDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordCandidateKind"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Candidate occurred date in YYYY-MM-DD format.",
+            "example": "2026-06-14"
+          },
+          "title": {
+            "type": "string",
+            "description": "Short candidate title.",
+            "nullable": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Candidate measured value.",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "description": "Candidate unit.",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "description": "Candidate free-text note.",
+            "nullable": true
+          },
+          "payload": {
+            "type": "object",
+            "description": "Structured candidate payload. For sleep, this may include durationMinutes and optional timing hints.",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Human-readable reason showing which phrase or fact led to this candidate.",
+            "example": "Detected headache symptom from “今天头疼”."
+          }
+        },
+        "required": ["kind", "occurredAt", "rationale"]
+      },
+      "DailyRecordCandidateDataDto": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string",
+            "description": "Normalized parse locale.",
+            "example": "zh-CN"
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when candidates were generated.",
+            "example": "2026-06-14T10:20:30.000Z"
+          },
+          "confirmationHint": {
+            "type": "string",
+            "description": "Short UI hint telling the client that these are candidates, not saved records.",
+            "example": "Review these candidates before saving them to your daily records."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordCandidateItemDto"
+            }
+          }
+        },
+        "required": ["locale", "generatedAt", "confirmationHint", "items"]
+      },
+      "DailyRecordCandidateResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordCandidateDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "DailyRecordResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyRecordItemDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "DailyRecordAttachmentInputDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "default": "image",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordAttachmentKind"
+              }
+            ]
+          },
+          "objectKey": {
+            "type": "string",
+            "description": "Object storage key, stable across signed URL rotations.",
+            "example": "daily-records/user-id/2026-06-06/photo.jpg"
+          },
+          "bucket": {
+            "type": "string",
+            "description": "Object storage bucket.",
+            "nullable": true
+          },
+          "provider": {
+            "type": "string",
+            "description": "Storage provider, currently tencent-cos.",
+            "nullable": true
+          },
+          "fileName": {
+            "type": "string",
+            "description": "Original file name.",
+            "nullable": true
+          },
+          "contentType": {
+            "type": "string",
+            "description": "MIME content type.",
+            "example": "image/jpeg",
+            "nullable": true
+          },
+          "sizeBytes": {
+            "type": "number",
+            "description": "File size in bytes.",
+            "nullable": true
+          },
+          "width": {
+            "type": "number",
+            "description": "Image width in pixels.",
+            "nullable": true
+          },
+          "height": {
+            "type": "number",
+            "description": "Image height in pixels.",
+            "nullable": true
+          },
+          "publicUrl": {
+            "type": "string",
+            "description": "Optional public or already-signed display URL.",
+            "nullable": true
+          }
+        },
+        "required": ["objectKey"]
+      },
+      "CreateDailyRecordDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordKind"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep).",
+            "example": "2026-06-04"
+          },
+          "occurredTime": {
+            "type": "string",
+            "description": "Time in HH:mm 24-hour format. When omitted, UI flows may treat the record as date-only.",
+            "example": "09:45"
+          },
+          "title": {
+            "type": "string",
+            "description": "Short label."
+          },
+          "value": {
+            "type": "string",
+            "description": "Measured value."
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unit label.",
+            "example": "bpm"
+          },
+          "note": {
+            "type": "string",
+            "description": "Free-text note."
+          },
+          "payload": {
+            "type": "object",
+            "description": "Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. endAt is an ISO 8601 timestamp whose date component matches occurredAt (wake date). startAt is the bedtime ISO 8601 timestamp and may fall on the day before occurredAt for cross-midnight sleep."
+          },
+          "attachments": {
+            "description": "Attachment metadata. File upload itself is handled separately.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordAttachmentInputDto"
+            }
+          }
+        },
+        "required": ["kind", "occurredAt"]
+      },
+      "UpdateDailyRecordDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordKind"
+              }
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format.",
+            "example": "2026-06-04"
+          },
+          "occurredTime": {
+            "type": "string",
+            "description": "Time in HH:mm 24-hour format. Use null to clear.",
+            "example": "09:45",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "description": "Short label. Use null to clear.",
+            "nullable": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Measured value. Use null to clear.",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unit label. Use null to clear.",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "description": "Free-text note. Use null to clear.",
+            "nullable": true
+          },
+          "payload": {
+            "type": "object",
+            "description": "Structured payload for kind-specific data. Use null to clear.",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "attachments": {
+            "description": "Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordAttachmentInputDto"
+            }
+          }
+        }
+      },
+      "DoseLogStatus": {
+        "type": "string",
+        "enum": ["taken", "skipped", "missed", "planned"]
+      },
+      "DoseLogItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Dose log id."
+          },
+          "currentMedicineId": {
+            "type": "object",
+            "description": "Linked current medicine id."
+          },
+          "reminderId": {
+            "type": "object",
+            "description": "Linked reminder id for slot-aware logs."
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoseLogStatus"
+              }
+            ]
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date in YYYY-MM-DD format.",
+            "example": "2026-06-04"
+          },
+          "scheduledTime": {
+            "type": "object",
+            "description": "Scheduled slot time in HH:mm format.",
+            "example": "08:30"
+          },
+          "doseText": {
+            "type": "object",
+            "description": "Dose text."
+          },
+          "note": {
+            "type": "object",
+            "description": "Free-text note."
+          },
+          "source": {
+            "type": "object",
+            "description": "Source.",
+            "example": "manual"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
+          }
+        },
+        "required": ["id", "status", "scheduledFor", "createdAt", "updatedAt"]
+      },
+      "DoseLogListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoseLogItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total count of dose logs for the date."
+          }
+        },
+        "required": ["items", "total"]
+      },
+      "DoseLogListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DoseLogListDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "CreateDoseLogDto": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "description": "Linked current medicine id."
+          },
+          "reminderId": {
+            "type": "string",
+            "description": "Linked reminder id for slot-aware logs."
+          },
+          "status": {
+            "example": "taken",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoseLogStatus"
+              }
+            ]
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date YYYY-MM-DD.",
+            "example": "2026-06-04"
+          },
+          "scheduledTime": {
+            "type": "string",
+            "description": "Scheduled slot time in HH:mm.",
+            "example": "08:30"
+          },
+          "doseText": {
+            "type": "string",
+            "description": "Dose text."
+          },
+          "note": {
+            "type": "string",
+            "description": "Free-text note."
+          }
+        },
+        "required": ["status", "scheduledFor"]
+      },
+      "DoseLogResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/DoseLogItemDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "MarkDoseLogDto": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "description": "Linked current medicine id."
+          },
+          "reminderId": {
+            "type": "string",
+            "description": "Linked reminder id for slot-aware marks."
+          },
+          "status": {
+            "example": "taken",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoseLogStatus"
+              }
+            ]
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date YYYY-MM-DD.",
+            "example": "2026-07-08"
+          },
+          "scheduledTime": {
+            "type": "string",
+            "description": "Scheduled slot time in HH:mm for slot-aware marks.",
+            "example": "08:30"
+          },
+          "doseText": {
+            "type": "object",
+            "description": "Dose text."
+          },
+          "note": {
+            "type": "object",
+            "description": "Free-text note."
+          }
+        },
+        "required": ["status", "scheduledFor"]
+      },
+      "UpdateDoseLogDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoseLogStatus"
+              }
+            ]
+          },
+          "doseText": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        }
       },
       "UserDevicePlatform": {
         "type": "string",
@@ -5149,213 +6985,6 @@
           },
           "data": {
             "$ref": "#/components/schemas/TokensDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "UserNotificationType": {
-        "type": "string",
-        "enum": [
-          "ai_today_summary",
-          "ai_proactive_suggestion",
-          "medicine_missed_dose",
-          "password_changed",
-          "report_generated",
-          "medicine_reminder"
-        ],
-        "description": "Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications."
-      },
-      "CreateNotificationDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "description": "Notification type. System-level types (e.g. system_announcement) are not allowed for user-created notifications.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserNotificationType"
-              }
-            ]
-          },
-          "title": {
-            "type": "string",
-            "description": "Notification title."
-          },
-          "content": {
-            "type": "string",
-            "description": "Notification content body."
-          },
-          "action": {
-            "type": "string",
-            "nullable": true,
-            "description": "Action route target for the frontend."
-          },
-          "actionPayload": {
-            "type": "object",
-            "nullable": true,
-            "description": "Extra payload for the action."
-          }
-        },
-        "required": ["type", "title", "content"]
-      },
-      "NotificationListItemDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique notification identifier."
-          },
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserNotificationType"
-              }
-            ]
-          },
-          "title": {
-            "type": "string",
-            "description": "Notification title."
-          },
-          "content": {
-            "type": "string",
-            "description": "Notification content body."
-          },
-          "action": {
-            "type": "string",
-            "nullable": true,
-            "description": "Action route target for the frontend."
-          },
-          "actionPayload": {
-            "type": "object",
-            "nullable": true,
-            "description": "Extra payload for the action."
-          },
-          "isRead": {
-            "type": "boolean",
-            "description": "Whether the notification has been read."
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp when the notification was created."
-          }
-        },
-        "required": ["id", "type", "title", "content", "isRead", "createdAt"]
-      },
-      "NotificationListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NotificationListItemDto"
-            }
-          },
-          "total": {
-            "type": "number",
-            "description": "Total count of notifications for the user."
-          }
-        },
-        "required": ["code", "message", "items", "total"]
-      },
-      "UnreadCountResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "count": {
-            "type": "number",
-            "description": "Number of unread notifications.",
-            "example": 3
-          }
-        },
-        "required": ["code", "message", "count"]
-      },
-      "NotificationDetailDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique notification identifier."
-          },
-          "type": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UserNotificationType"
-              }
-            ]
-          },
-          "title": {
-            "type": "string",
-            "description": "Notification title."
-          },
-          "content": {
-            "type": "string",
-            "description": "Notification content body."
-          },
-          "action": {
-            "type": "string",
-            "nullable": true,
-            "description": "Action route target for the frontend."
-          },
-          "actionPayload": {
-            "type": "object",
-            "nullable": true,
-            "description": "Extra payload for the action."
-          },
-          "isRead": {
-            "type": "boolean",
-            "description": "Whether the notification has been read."
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp when the notification was created."
-          },
-          "readAt": {
-            "type": "string",
-            "nullable": true,
-            "description": "ISO-8601 timestamp when the notification was read."
-          }
-        },
-        "required": ["id", "type", "title", "content", "isRead", "createdAt"]
-      },
-      "NotificationDetailResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NotificationDetailDto"
-              }
-            ]
           }
         },
         "required": ["code", "message", "data"]
@@ -7154,1181 +8783,6 @@
           }
         }
       },
-      "DailyRecordKind": {
-        "type": "string",
-        "enum": [
-          "water",
-          "meal",
-          "vital",
-          "mood",
-          "symptom",
-          "activity",
-          "note",
-          "sleep"
-        ]
-      },
-      "DailyRecordAttachmentKind": {
-        "type": "string",
-        "enum": ["image"]
-      },
-      "DailyRecordAttachmentDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Attachment id."
-          },
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DailyRecordAttachmentKind"
-              }
-            ]
-          },
-          "objectKey": {
-            "type": "string",
-            "description": "Object storage key."
-          },
-          "bucket": {
-            "type": "string",
-            "description": "Object storage bucket.",
-            "nullable": true
-          },
-          "provider": {
-            "type": "string",
-            "description": "Storage provider.",
-            "nullable": true
-          },
-          "fileName": {
-            "type": "string",
-            "description": "Original file name.",
-            "nullable": true
-          },
-          "contentType": {
-            "type": "string",
-            "description": "MIME content type.",
-            "nullable": true
-          },
-          "sizeBytes": {
-            "type": "number",
-            "description": "File size in bytes.",
-            "nullable": true
-          },
-          "width": {
-            "type": "number",
-            "description": "Image width in pixels.",
-            "nullable": true
-          },
-          "height": {
-            "type": "number",
-            "description": "Image height in pixels.",
-            "nullable": true
-          },
-          "publicUrl": {
-            "type": "string",
-            "description": "Public or signed display URL.",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          }
-        },
-        "required": ["id", "kind", "objectKey", "createdAt"]
-      },
-      "DailyRecordItemDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Record id."
-          },
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DailyRecordKind"
-              }
-            ]
-          },
-          "occurredAt": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format.",
-            "example": "2026-06-04"
-          },
-          "occurredTime": {
-            "type": "string",
-            "description": "Time in HH:mm 24-hour format when available.",
-            "example": "09:45",
-            "nullable": true
-          },
-          "title": {
-            "type": "string",
-            "description": "Short label.",
-            "nullable": true
-          },
-          "value": {
-            "type": "string",
-            "description": "Measured value.",
-            "nullable": true
-          },
-          "unit": {
-            "type": "string",
-            "description": "Unit label.",
-            "example": "bpm",
-            "nullable": true
-          },
-          "note": {
-            "type": "string",
-            "description": "Free-text note.",
-            "nullable": true
-          },
-          "source": {
-            "type": "string",
-            "description": "Source.",
-            "example": "manual",
-            "nullable": true
-          },
-          "payload": {
-            "type": "object",
-            "description": "Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }.",
-            "additionalProperties": true,
-            "nullable": true
-          },
-          "mealAnalysisStatus": {
-            "type": "string",
-            "description": "Meal analysis status for meal records.",
-            "nullable": true
-          },
-          "mealAnalysisCoverage": {
-            "type": "string",
-            "description": "Meal analysis coverage for meal records.",
-            "nullable": true
-          },
-          "mealAnalysisUpdatedAt": {
-            "type": "string",
-            "description": "Meal analysis updated timestamp (ISO 8601).",
-            "nullable": true
-          },
-          "mealAnalysisFailureReason": {
-            "type": "string",
-            "description": "Display-safe meal analysis failure reason.",
-            "nullable": true
-          },
-          "mealShortDescription": {
-            "type": "string",
-            "description": "Short meal description for list reads.",
-            "nullable": true
-          },
-          "mealTopFoods": {
-            "description": "Top recognized foods for list reads.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "attachments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DailyRecordAttachmentDto"
-            }
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "id",
-          "kind",
-          "occurredAt",
-          "attachments",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "DailyRecordListDataDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DailyRecordItemDto"
-            }
-          },
-          "total": {
-            "type": "number",
-            "description": "Total records for the date (before pagination)."
-          }
-        },
-        "required": ["items", "total"]
-      },
-      "DailyRecordListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "DailyRecordSummaryDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DailyRecordKind"
-              }
-            ]
-          },
-          "count": {
-            "type": "number",
-            "description": "Count of records for this kind on the given date."
-          },
-          "latest": {
-            "description": "Most recent record of this kind.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DailyRecordItemDto"
-              }
-            ]
-          }
-        },
-        "required": ["kind", "count"]
-      },
-      "DailyRecordSummaryDataDto": {
-        "type": "object",
-        "properties": {
-          "summaries": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DailyRecordSummaryDto"
-            }
-          }
-        },
-        "required": ["summaries"]
-      },
-      "DailyRecordSummaryResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordSummaryDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "CreateDailyRecordImageUploadDto": {
-        "type": "object",
-        "properties": {
-          "contentType": {
-            "type": "string",
-            "description": "Image MIME content type.",
-            "example": "image/jpeg"
-          },
-          "sizeBytes": {
-            "type": "number",
-            "description": "File size in bytes.",
-            "example": 1234567
-          },
-          "fileName": {
-            "type": "string",
-            "description": "Original file name.",
-            "example": "breakfast.jpg"
-          }
-        },
-        "required": ["contentType", "sizeBytes"]
-      },
-      "DailyRecordImageUploadDto": {
-        "type": "object",
-        "properties": {
-          "provider": {
-            "type": "string",
-            "example": "tencent-cos"
-          },
-          "bucket": {
-            "type": "string",
-            "example": "lucent-test-bucket"
-          },
-          "objectKey": {
-            "type": "string",
-            "example": "daily-records/user-id/2026/06/06/generated-id.jpg"
-          },
-          "uploadUrl": {
-            "type": "string",
-            "description": "Signed PUT URL for direct COS upload."
-          },
-          "headers": {
-            "type": "object",
-            "description": "Headers that must be sent with the PUT upload."
-          },
-          "publicUrl": {
-            "type": "object",
-            "description": "Optional public/CDN URL when TENCENT_COS_PUBLIC_BASE_URL is configured."
-          },
-          "expiresAt": {
-            "type": "string",
-            "description": "Signed URL expiry timestamp (ISO 8601)."
-          },
-          "maxSizeBytes": {
-            "type": "number",
-            "description": "Maximum accepted upload size in bytes."
-          }
-        },
-        "required": [
-          "provider",
-          "bucket",
-          "objectKey",
-          "uploadUrl",
-          "headers",
-          "publicUrl",
-          "expiresAt",
-          "maxSizeBytes"
-        ]
-      },
-      "DailyRecordImageUploadResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordImageUploadDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "GenerateDailyRecordCandidatesDto": {
-        "type": "object",
-        "properties": {
-          "text": {
-            "type": "string",
-            "description": "Natural-language note to be parsed into candidate daily records.",
-            "example": "今天头疼，早上喝了两杯水，中午吃了面，昨晚只睡了6小时。"
-          },
-          "occurredAt": {
-            "type": "string",
-            "description": "Wake date in YYYY-MM-DD format used as the candidate record date baseline.",
-            "example": "2026-06-14"
-          },
-          "timezone": {
-            "type": "string",
-            "description": "Optional user timezone hint used only for interpretation wording. No server timezone conversion is persisted.",
-            "example": "Asia/Shanghai"
-          }
-        },
-        "required": ["text", "occurredAt"]
-      },
-      "DailyRecordCandidateKind": {
-        "type": "string",
-        "enum": ["water", "meal", "symptom", "note", "sleep"]
-      },
-      "DailyRecordCandidateItemDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DailyRecordCandidateKind"
-              }
-            ]
-          },
-          "occurredAt": {
-            "type": "string",
-            "description": "Candidate occurred date in YYYY-MM-DD format.",
-            "example": "2026-06-14"
-          },
-          "title": {
-            "type": "string",
-            "description": "Short candidate title.",
-            "nullable": true
-          },
-          "value": {
-            "type": "string",
-            "description": "Candidate measured value.",
-            "nullable": true
-          },
-          "unit": {
-            "type": "string",
-            "description": "Candidate unit.",
-            "nullable": true
-          },
-          "note": {
-            "type": "string",
-            "description": "Candidate free-text note.",
-            "nullable": true
-          },
-          "payload": {
-            "type": "object",
-            "description": "Structured candidate payload. For sleep, this may include durationMinutes and optional timing hints.",
-            "additionalProperties": true,
-            "nullable": true
-          },
-          "rationale": {
-            "type": "string",
-            "description": "Human-readable reason showing which phrase or fact led to this candidate.",
-            "example": "Detected headache symptom from “今天头疼”."
-          }
-        },
-        "required": ["kind", "occurredAt", "rationale"]
-      },
-      "DailyRecordCandidateDataDto": {
-        "type": "object",
-        "properties": {
-          "locale": {
-            "type": "string",
-            "description": "Normalized parse locale.",
-            "example": "zh-CN"
-          },
-          "generatedAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp when candidates were generated.",
-            "example": "2026-06-14T10:20:30.000Z"
-          },
-          "confirmationHint": {
-            "type": "string",
-            "description": "Short UI hint telling the client that these are candidates, not saved records.",
-            "example": "Review these candidates before saving them to your daily records."
-          },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DailyRecordCandidateItemDto"
-            }
-          }
-        },
-        "required": ["locale", "generatedAt", "confirmationHint", "items"]
-      },
-      "DailyRecordCandidateResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordCandidateDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "DailyRecordResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordItemDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "DailyRecordAttachmentInputDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "default": "image",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DailyRecordAttachmentKind"
-              }
-            ]
-          },
-          "objectKey": {
-            "type": "string",
-            "description": "Object storage key, stable across signed URL rotations.",
-            "example": "daily-records/user-id/2026-06-06/photo.jpg"
-          },
-          "bucket": {
-            "type": "string",
-            "description": "Object storage bucket.",
-            "nullable": true
-          },
-          "provider": {
-            "type": "string",
-            "description": "Storage provider, currently tencent-cos.",
-            "nullable": true
-          },
-          "fileName": {
-            "type": "string",
-            "description": "Original file name.",
-            "nullable": true
-          },
-          "contentType": {
-            "type": "string",
-            "description": "MIME content type.",
-            "example": "image/jpeg",
-            "nullable": true
-          },
-          "sizeBytes": {
-            "type": "number",
-            "description": "File size in bytes.",
-            "nullable": true
-          },
-          "width": {
-            "type": "number",
-            "description": "Image width in pixels.",
-            "nullable": true
-          },
-          "height": {
-            "type": "number",
-            "description": "Image height in pixels.",
-            "nullable": true
-          },
-          "publicUrl": {
-            "type": "string",
-            "description": "Optional public or already-signed display URL.",
-            "nullable": true
-          }
-        },
-        "required": ["objectKey"]
-      },
-      "CreateDailyRecordDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DailyRecordKind"
-              }
-            ]
-          },
-          "occurredAt": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format. For sleep records this is the wake date (the morning the user wakes up from that sleep).",
-            "example": "2026-06-04"
-          },
-          "occurredTime": {
-            "type": "string",
-            "description": "Time in HH:mm 24-hour format. When omitted, UI flows may treat the record as date-only.",
-            "example": "09:45"
-          },
-          "title": {
-            "type": "string",
-            "description": "Short label."
-          },
-          "value": {
-            "type": "string",
-            "description": "Measured value."
-          },
-          "unit": {
-            "type": "string",
-            "description": "Unit label.",
-            "example": "bpm"
-          },
-          "note": {
-            "type": "string",
-            "description": "Free-text note."
-          },
-          "payload": {
-            "type": "object",
-            "description": "Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. endAt is an ISO 8601 timestamp whose date component matches occurredAt (wake date). startAt is the bedtime ISO 8601 timestamp and may fall on the day before occurredAt for cross-midnight sleep."
-          },
-          "attachments": {
-            "description": "Attachment metadata. File upload itself is handled separately.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DailyRecordAttachmentInputDto"
-            }
-          }
-        },
-        "required": ["kind", "occurredAt"]
-      },
-      "UpdateDailyRecordDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DailyRecordKind"
-              }
-            ]
-          },
-          "occurredAt": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format.",
-            "example": "2026-06-04"
-          },
-          "occurredTime": {
-            "type": "string",
-            "description": "Time in HH:mm 24-hour format. Use null to clear.",
-            "example": "09:45",
-            "nullable": true
-          },
-          "title": {
-            "type": "string",
-            "description": "Short label. Use null to clear.",
-            "nullable": true
-          },
-          "value": {
-            "type": "string",
-            "description": "Measured value. Use null to clear.",
-            "nullable": true
-          },
-          "unit": {
-            "type": "string",
-            "description": "Unit label. Use null to clear.",
-            "nullable": true
-          },
-          "note": {
-            "type": "string",
-            "description": "Free-text note. Use null to clear.",
-            "nullable": true
-          },
-          "payload": {
-            "type": "object",
-            "description": "Structured payload for kind-specific data. Use null to clear.",
-            "nullable": true,
-            "additionalProperties": true
-          },
-          "attachments": {
-            "description": "Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DailyRecordAttachmentInputDto"
-            }
-          }
-        }
-      },
-      "DoseLogStatus": {
-        "type": "string",
-        "enum": ["taken", "skipped", "missed", "planned"]
-      },
-      "DoseLogItemDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Dose log id."
-          },
-          "currentMedicineId": {
-            "type": "object",
-            "description": "Linked current medicine id."
-          },
-          "reminderId": {
-            "type": "object",
-            "description": "Linked reminder id for slot-aware logs."
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DoseLogStatus"
-              }
-            ]
-          },
-          "scheduledFor": {
-            "type": "string",
-            "description": "Scheduled date in YYYY-MM-DD format.",
-            "example": "2026-06-04"
-          },
-          "scheduledTime": {
-            "type": "object",
-            "description": "Scheduled slot time in HH:mm format.",
-            "example": "08:30"
-          },
-          "doseText": {
-            "type": "object",
-            "description": "Dose text."
-          },
-          "note": {
-            "type": "object",
-            "description": "Free-text note."
-          },
-          "source": {
-            "type": "object",
-            "description": "Source.",
-            "example": "manual"
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": ["id", "status", "scheduledFor", "createdAt", "updatedAt"]
-      },
-      "DoseLogListDataDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DoseLogItemDto"
-            }
-          },
-          "total": {
-            "type": "number",
-            "description": "Total count of dose logs for the date."
-          }
-        },
-        "required": ["items", "total"]
-      },
-      "DoseLogListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DoseLogListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "CreateDoseLogDto": {
-        "type": "object",
-        "properties": {
-          "currentMedicineId": {
-            "type": "string",
-            "description": "Linked current medicine id."
-          },
-          "reminderId": {
-            "type": "string",
-            "description": "Linked reminder id for slot-aware logs."
-          },
-          "status": {
-            "example": "taken",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DoseLogStatus"
-              }
-            ]
-          },
-          "scheduledFor": {
-            "type": "string",
-            "description": "Scheduled date YYYY-MM-DD.",
-            "example": "2026-06-04"
-          },
-          "scheduledTime": {
-            "type": "string",
-            "description": "Scheduled slot time in HH:mm.",
-            "example": "08:30"
-          },
-          "doseText": {
-            "type": "string",
-            "description": "Dose text."
-          },
-          "note": {
-            "type": "string",
-            "description": "Free-text note."
-          }
-        },
-        "required": ["status", "scheduledFor"]
-      },
-      "DoseLogResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DoseLogItemDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "MarkDoseLogDto": {
-        "type": "object",
-        "properties": {
-          "currentMedicineId": {
-            "type": "string",
-            "description": "Linked current medicine id."
-          },
-          "reminderId": {
-            "type": "string",
-            "description": "Linked reminder id for slot-aware marks."
-          },
-          "status": {
-            "example": "taken",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DoseLogStatus"
-              }
-            ]
-          },
-          "scheduledFor": {
-            "type": "string",
-            "description": "Scheduled date YYYY-MM-DD.",
-            "example": "2026-07-08"
-          },
-          "scheduledTime": {
-            "type": "string",
-            "description": "Scheduled slot time in HH:mm for slot-aware marks.",
-            "example": "08:30"
-          },
-          "doseText": {
-            "type": "object",
-            "description": "Dose text."
-          },
-          "note": {
-            "type": "object",
-            "description": "Free-text note."
-          }
-        },
-        "required": ["status", "scheduledFor"]
-      },
-      "UpdateDoseLogDto": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DoseLogStatus"
-              }
-            ]
-          },
-          "doseText": {
-            "type": "string",
-            "nullable": true
-          },
-          "note": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
-      "MedicineReminderItemDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Reminder id."
-          },
-          "currentMedicineId": {
-            "type": "string",
-            "description": "Linked current medicine id.",
-            "nullable": true
-          },
-          "label": {
-            "type": "string",
-            "description": "Reminder label.",
-            "nullable": true
-          },
-          "scheduledHour": {
-            "type": "number",
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "number",
-            "description": "Scheduled local minute, 0-59."
-          },
-          "daysOfWeek": {
-            "description": "Weekday numbers 0-6. Null means every day.",
-            "nullable": true,
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          },
-          "startDate": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder starts.",
-            "nullable": true
-          },
-          "endDate": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder ends.",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active."
-          },
-          "note": {
-            "type": "string",
-            "description": "User note.",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "Updated at (ISO 8601)."
-          }
-        },
-        "required": [
-          "id",
-          "scheduledHour",
-          "scheduledMinute",
-          "isActive",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "MedicineReminderListDataDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineReminderItemDto"
-            }
-          }
-        },
-        "required": ["items"]
-      },
-      "MedicineReminderListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/MedicineReminderListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "CreateMedicineReminderDto": {
-        "type": "object",
-        "properties": {
-          "currentMedicineId": {
-            "type": "string",
-            "description": "Linked current medicine id."
-          },
-          "label": {
-            "type": "string",
-            "description": "Reminder label.",
-            "nullable": true
-          },
-          "scheduledHour": {
-            "type": "number",
-            "description": "Scheduled local hour, 0-23.",
-            "example": 8
-          },
-          "scheduledMinute": {
-            "type": "number",
-            "description": "Scheduled local minute, 0-59.",
-            "example": 30
-          },
-          "daysOfWeek": {
-            "description": "Weekday numbers 0-6, where null means every day.",
-            "nullable": true,
-            "example": [1, 2, 3, 4, 5],
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          },
-          "startDate": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder starts.",
-            "nullable": true,
-            "example": "2026-06-09"
-          },
-          "endDate": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder ends.",
-            "nullable": true,
-            "example": "2026-06-30"
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active.",
-            "default": true
-          },
-          "note": {
-            "type": "string",
-            "description": "User note.",
-            "nullable": true
-          }
-        },
-        "required": ["scheduledHour", "scheduledMinute"]
-      },
-      "MedicineReminderResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/MedicineReminderItemDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "UpdateMedicineReminderDto": {
-        "type": "object",
-        "properties": {
-          "currentMedicineId": {
-            "type": "string",
-            "description": "Linked current medicine id.",
-            "nullable": true
-          },
-          "label": {
-            "type": "string",
-            "description": "Reminder label.",
-            "nullable": true
-          },
-          "scheduledHour": {
-            "type": "number",
-            "description": "Scheduled local hour, 0-23."
-          },
-          "scheduledMinute": {
-            "type": "number",
-            "description": "Scheduled local minute, 0-59."
-          },
-          "daysOfWeek": {
-            "description": "Weekday numbers 0-6, where null means every day.",
-            "nullable": true,
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          },
-          "startDate": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder starts. Use null to clear.",
-            "nullable": true
-          },
-          "endDate": {
-            "type": "string",
-            "description": "Date in YYYY-MM-DD format when the reminder ends. Use null to clear.",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether this reminder is active."
-          },
-          "note": {
-            "type": "string",
-            "description": "User note.",
-            "nullable": true
-          }
-        }
-      },
-      "ReminderDeliveryItemDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Delivery log id."
-          },
-          "reminderId": {
-            "type": "object",
-            "description": "Linked medicine reminder id."
-          },
-          "deviceId": {
-            "type": "object",
-            "description": "Target device id."
-          },
-          "channel": {
-            "type": "string",
-            "description": "Delivery channel.",
-            "example": "local"
-          },
-          "status": {
-            "type": "string",
-            "description": "Delivery status.",
-            "example": "scheduled"
-          },
-          "scheduledFor": {
-            "type": "string",
-            "description": "Scheduled delivery time (ISO 8601)."
-          },
-          "deliveredAt": {
-            "type": "object",
-            "description": "Actual delivery time (ISO 8601)."
-          },
-          "errorMessage": {
-            "type": "object",
-            "description": "Failure reason, if any."
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "Created at (ISO 8601)."
-          }
-        },
-        "required": ["id", "channel", "status", "scheduledFor", "createdAt"]
-      },
-      "ReminderDeliveryListDataDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReminderDeliveryItemDto"
-            }
-          }
-        },
-        "required": ["items"]
-      },
-      "ReminderDeliveryListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/ReminderDeliveryListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "EnvironmentDataSource": {
         "type": "string",
         "enum": ["static", "live"]
@@ -9640,460 +10094,6 @@
         },
         "required": ["id", "text"]
       },
-      "EvidenceItemDto": {
-        "type": "object",
-        "properties": {
-          "kind": {
-            "type": "string",
-            "enum": [
-              "record",
-              "reminder",
-              "risk_check",
-              "trend",
-              "profile",
-              "baseline"
-            ]
-          },
-          "label": {
-            "type": "string",
-            "description": "Human-readable label"
-          },
-          "value": {
-            "type": "string",
-            "description": "Human-readable value"
-          },
-          "recordId": {
-            "type": "object",
-            "description": "Related record id for navigation"
-          },
-          "medicineId": {
-            "type": "object",
-            "description": "Related medicine id for navigation"
-          }
-        },
-        "required": ["kind", "label", "value"]
-      },
-      "SuggestionActionDto": {
-        "type": "object",
-        "properties": {
-          "actionId": {
-            "type": "string",
-            "description": "Unique action id"
-          },
-          "label": {
-            "type": "string",
-            "description": "Localized action label"
-          },
-          "route": {
-            "type": "string",
-            "description": "Deep-link route for navigation"
-          },
-          "authRequired": {
-            "type": "boolean",
-            "description": "Whether authentication is required"
-          }
-        },
-        "required": ["actionId", "label", "route", "authRequired"]
-      },
-      "SuggestionItemDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique suggestion id"
-          },
-          "type": {
-            "type": "string",
-            "description": "Suggestion type",
-            "enum": [
-              "confirmed_risk",
-              "compliance",
-              "trend",
-              "behavior_advice",
-              "coverage"
-            ]
-          },
-          "cardTone": {
-            "type": "string",
-            "description": "Visual tone hint",
-            "enum": ["urgent", "warning", "emphasis", "soft", "neutral"]
-          },
-          "icon": {
-            "type": "string",
-            "description": "Icon identifier for the frontend"
-          },
-          "title": {
-            "type": "string",
-            "description": "Localized short title"
-          },
-          "reason": {
-            "type": "string",
-            "description": "Why this suggestion appeared"
-          },
-          "evidence": {
-            "description": "Evidence items",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EvidenceItemDto"
-            }
-          },
-          "boundary": {
-            "type": "string",
-            "description": "Medical disclaimer / boundary text"
-          },
-          "primaryAction": {
-            "description": "Primary action",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SuggestionActionDto"
-              }
-            ]
-          },
-          "secondaryActions": {
-            "description": "Secondary actions",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SuggestionActionDto"
-            }
-          },
-          "confidence": {
-            "type": "string",
-            "description": "Confidence level",
-            "enum": ["high", "medium", "low"]
-          },
-          "ruleId": {
-            "type": "string",
-            "description": "Rule identifier for auditability"
-          },
-          "ruleVersion": {
-            "type": "string",
-            "description": "Rule version"
-          },
-          "triggerType": {
-            "type": "string",
-            "description": "Trigger type",
-            "enum": ["event", "timer"]
-          },
-          "lifecycleState": {
-            "type": "string",
-            "description": "Lifecycle state",
-            "enum": ["generated", "active", "fading", "expired", "dismissed"]
-          },
-          "notificationEligible": {
-            "type": "object",
-            "description": "Whether this card can trigger a notification"
-          },
-          "feedbackOptions": {
-            "description": "Available feedback options for this card",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "subtype": {
-            "type": "object",
-            "description": "Sub-type for rendering variety"
-          }
-        },
-        "required": [
-          "id",
-          "type",
-          "cardTone",
-          "icon",
-          "title",
-          "reason",
-          "evidence",
-          "boundary",
-          "primaryAction",
-          "confidence",
-          "ruleId",
-          "ruleVersion",
-          "triggerType",
-          "lifecycleState"
-        ]
-      },
-      "TodaySuggestionsDataDto": {
-        "type": "object",
-        "properties": {
-          "generatedAt": {
-            "type": "string",
-            "description": "When the suggestions were generated"
-          },
-          "primary": {
-            "description": "Primary suggestion card (highest priority)",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SuggestionItemDto"
-              }
-            ]
-          },
-          "secondary": {
-            "description": "Secondary suggestion cards (max 2)",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SuggestionItemDto"
-            }
-          },
-          "observations": {
-            "description": "Low-confidence observations",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SuggestionItemDto"
-            }
-          },
-          "degraded": {
-            "type": "object",
-            "description": "When true, one or more suggestion rules threw an error during evaluation — the returned list may be incomplete."
-          }
-        },
-        "required": ["generatedAt"]
-      },
-      "TodaySuggestionsResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/TodaySuggestionsDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "SuggestionFeedbackDto": {
-        "type": "object",
-        "properties": {
-          "feedback": {
-            "type": "string",
-            "description": "User feedback for the suggestion",
-            "enum": ["accepted", "later", "not_applicable", "suppress"]
-          }
-        },
-        "required": ["feedback"]
-      },
-      "SuggestionFeedbackDataDto": {
-        "type": "object",
-        "properties": {
-          "suggestionId": {
-            "type": "string"
-          },
-          "feedback": {
-            "type": "string",
-            "enum": ["accepted", "later", "not_applicable", "suppress"]
-          },
-          "appliedEffect": {
-            "type": "string",
-            "description": "Effect applied by the feedback engine",
-            "enum": [
-              "boosted_type",
-              "delayed_until",
-              "suppressed_type",
-              "noted"
-            ]
-          },
-          "expiresAt": {
-            "type": "string",
-            "description": "When the suppression expires (if applicable)"
-          }
-        },
-        "required": ["suggestionId", "feedback", "appliedEffect"]
-      },
-      "SuggestionFeedbackResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/SuggestionFeedbackDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "SuggestionExplanationDataDto": {
-        "type": "object",
-        "properties": {
-          "suggestionId": {
-            "type": "string",
-            "description": "The suggestion ID that was explained"
-          },
-          "reason": {
-            "type": "string",
-            "description": "AI-enhanced or original reason text"
-          },
-          "boundary": {
-            "type": "string",
-            "description": "AI-enhanced or original boundary / disclaimer text"
-          },
-          "aiGenerated": {
-            "type": "boolean",
-            "description": "Whether the AI model was used to generate the explanation"
-          },
-          "locale": {
-            "type": "string",
-            "description": "Locale used for the explanation (e.g. \"zh-CN\", \"en\")"
-          }
-        },
-        "required": ["suggestionId", "reason", "boundary", "aiGenerated"]
-      },
-      "SuggestionExplanationResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/SuggestionExplanationDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "SuggestionHistoryItemDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Unique suggestion id"
-          },
-          "date": {
-            "type": "string",
-            "description": "Date (YYYY-MM-DD)"
-          },
-          "type": {
-            "type": "string",
-            "description": "Suggestion type",
-            "enum": [
-              "confirmed_risk",
-              "compliance",
-              "trend",
-              "behavior_advice",
-              "coverage"
-            ]
-          },
-          "title": {
-            "type": "string",
-            "description": "Localized short title"
-          },
-          "reason": {
-            "type": "string",
-            "description": "Why this suggestion appeared"
-          },
-          "ruleId": {
-            "type": "string",
-            "description": "Rule identifier"
-          },
-          "ruleVersion": {
-            "type": "string",
-            "description": "Rule version"
-          },
-          "triggerType": {
-            "type": "string",
-            "description": "Trigger type",
-            "enum": ["event", "timer"]
-          },
-          "lifecycleState": {
-            "type": "string",
-            "description": "Lifecycle state",
-            "enum": ["generated", "active", "fading", "expired", "dismissed"]
-          },
-          "confidence": {
-            "type": "string",
-            "description": "Confidence level",
-            "enum": ["high", "medium", "low"]
-          },
-          "subtype": {
-            "type": "object",
-            "description": "Sub-type"
-          },
-          "feedback": {
-            "type": "string",
-            "description": "User feedback, if any",
-            "enum": ["accepted", "later", "not_applicable", "suppress"]
-          },
-          "feedbackAt": {
-            "type": "object",
-            "description": "When feedback was recorded"
-          },
-          "generatedAt": {
-            "type": "string",
-            "description": "When the suggestion was generated"
-          },
-          "expiredAt": {
-            "type": "object",
-            "description": "When the suggestion was expired"
-          }
-        },
-        "required": [
-          "id",
-          "date",
-          "type",
-          "title",
-          "reason",
-          "ruleId",
-          "ruleVersion",
-          "triggerType",
-          "lifecycleState",
-          "confidence",
-          "generatedAt"
-        ]
-      },
-      "SuggestionHistoryDataDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "description": "Suggestion history items",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SuggestionHistoryItemDto"
-            }
-          },
-          "total": {
-            "type": "number",
-            "description": "Total count of matching items"
-          },
-          "startDate": {
-            "type": "string",
-            "description": "Start date used for the query"
-          },
-          "endDate": {
-            "type": "string",
-            "description": "End date used for the query"
-          }
-        },
-        "required": ["items", "total", "startDate", "endDate"]
-      },
-      "SuggestionHistoryResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/SuggestionHistoryDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "SupportResourceScope": {
         "type": "string",
         "enum": ["help", "about"]
@@ -10194,6 +10194,14 @@
         "type": "object",
         "properties": {
           "minClientVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "latestVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "downloadUrl": {
             "type": "string",
             "nullable": true
           },

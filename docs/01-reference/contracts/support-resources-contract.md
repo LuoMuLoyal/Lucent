@@ -42,3 +42,7 @@ interface SupportResourceDto {
 **Initial reference data:** static TypeScript constants in the Lucent
 `support-resources` module — no database migration required for this endpoint.
 Entries marked `available: false` when no real contact/URL is configured.
+
+The companion `GET /api/v1/public/app-info` endpoint returns `AppInfoDataDto` with
+`minClientVersion`, `latestVersion`, `downloadUrl`, and `supportEmail` — all
+sourced from environment variables. See [[app-info-contract]] for details.

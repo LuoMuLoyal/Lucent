@@ -23,6 +23,10 @@ export class SupportResourcesService {
       minClientVersion:
         this.configService.get<string>(EnvKey.MIN_CLIENT_VERSION)?.trim() ||
         null,
+      latestVersion:
+        this.configService.get<string>(EnvKey.LATEST_VERSION)?.trim() || null,
+      downloadUrl:
+        this.configService.get<string>(EnvKey.DOWNLOAD_URL)?.trim() || null,
     };
   }
 
