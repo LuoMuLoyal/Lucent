@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { MailQueueService } from './mail-queue.service';
+import {
+  VERIFICATION_CODE_SUBJECT,
+  renderVerificationCodeEmail,
+} from './templates';
 
 /**
  * Queues outbound emails via the configured mail queue.
@@ -16,8 +20,7 @@ export class MailService {
    * Convenience method for sending a verification code.
    */
   async sendVerificationCode(email: string, code: string): Promise<void> {
-    const subject = 'Lucent - 邮箱验证码';
-    const html = `<p>您的验证码是：<strong>${code}</strong></p><p>验证码 5 分钟内有效，请勿泄露给他人。</p>`;
-    await this.send(email, subject, html);
+    const html = renderVerificationCodeEmail(code);
+    await this.send(email, VERIFICATION_CODE_SUBJECT, html);
   }
 }
