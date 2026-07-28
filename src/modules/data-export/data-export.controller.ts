@@ -50,7 +50,6 @@ export class DataExportController {
   }
 
   @Get('latest')
-  @RequireSecurityElevation()
   @ApiOperation({ summary: 'Get the latest data export request' })
   @ApiResponse({ status: 200, type: DataExportLatestResponseDto })
   async getLatestRequest(@CurrentUser() user: UserPayload) {

@@ -20,3 +20,4 @@ Last updated: 2026-07-20
   - Findings: insight blocks with title + body
   - Patterns: insight blocks with status badge, title, body, and sparkline sequence
 - `ClinicSummaryService.buildClinicSummary()` 用户查询已迁移到 `prisma.nonDeleted.user.findFirstOrThrow` API。
+- `GET /user/data-export-requests/latest` 只需 JWT 认证，不需要安全提权令牌。`POST /user/data-export-requests` 仍需提权。

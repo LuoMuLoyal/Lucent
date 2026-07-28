@@ -103,11 +103,13 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
       expect(res.body.data).toHaveProperty('id');
     });
 
-    it('should reject data-export GET/latest without elevation token', async () => {
+    it('should accept data-export GET/latest without elevation token', async () => {
+      // GET /latest is a read-only status check that only requires JWT auth.
+      // Security elevation is only required for POST (creating an export).
       await request(app.getHttpServer())
         .get('/api/v1/user/data-export-requests/latest')
         .set('Authorization', bearer(aliceToken))
-        .expect(403);
+        .expect(200);
     });
   });
 
