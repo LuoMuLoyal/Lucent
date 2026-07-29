@@ -5,7 +5,7 @@ import {
   type AssistantContextSource,
   type AssistantToolDisabledReason,
   type AssistantToolName,
-} from '../tools/types';
+} from '../tools/tool-types';
 import { AssistantContextSettingsDto } from '../../user-settings';
 
 export class AssistantToolCapabilityDto {

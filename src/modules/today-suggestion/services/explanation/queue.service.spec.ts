@@ -1,7 +1,7 @@
 import type { Cache } from 'cache-manager';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
 import { ExplanationQueueService } from './queue.service';
-import type { ExplanationService } from './service';
+import type { ExplanationService } from './explainer.service';
 
 function buildFactory(available: boolean): {
   factory: BullmqQueueFactory;

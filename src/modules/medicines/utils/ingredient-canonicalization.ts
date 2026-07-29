@@ -1,4 +1,4 @@
-import type { MedicineDetailDataDto } from '../dto/medicine-detail.dto';
+import type { MedicineDetailDataDto } from '../dto/detail.dto';
 
 // ─── Canonical ingredient variant map ──────────────────────────────────────
 

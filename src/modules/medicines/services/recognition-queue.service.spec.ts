@@ -1,6 +1,6 @@
 import type { Cache } from 'cache-manager';
 import type { BullmqQueueFactory } from '../../../common/queue/queue.factory';
-import { MedicineRecognitionQueueService } from './medicine-recognition-queue.service';
+import { MedicineRecognitionQueueService } from './recognition-queue.service';
 import type { MedicinesService } from './medicines.service';
 
 function buildFactory(available: boolean): {

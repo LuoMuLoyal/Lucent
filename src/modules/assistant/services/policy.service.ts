@@ -13,7 +13,7 @@ import {
   type AssistantContextSource,
   type AssistantToolDisabledReason,
   type AssistantToolName,
-} from '../tools/types';
+} from '../tools/tool-types';
 
 @Injectable()
 export class AssistantPolicyService {

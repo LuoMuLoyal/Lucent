@@ -2,7 +2,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { MedicinesController } from './medicines.controller';
 import { MedicinesService } from './services/medicines.service';
-import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
+import { MedicineRecognitionQueueService } from './services/recognition-queue.service';
 import { MedicineRiskCheckService } from './services/risk-check.service';
 
 describe('MedicinesController', () => {

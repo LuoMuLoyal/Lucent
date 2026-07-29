@@ -40,7 +40,7 @@ import { DailyRecordCandidateResponseDto } from './dto/record-candidate-response
 import { GenerateDailyRecordCandidatesDto } from './dto/generate-record-candidates.dto';
 
 import { QueryDailyRecordDto } from './dto/query-record.dto';
-import { DailyRecordCandidatesService } from './services/candidates/service';
+import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service';
 import { DailyRecordImageUploadService } from './services/image-upload.service';
 import { DailyRecordsService } from './services/records.service';
 import { I18nLang } from 'nestjs-i18n';

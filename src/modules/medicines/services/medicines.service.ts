@@ -9,19 +9,19 @@ import { PrismaService } from '../../../prisma';
 import {
   DEFAULT_MEDICINE_SOURCE,
   type MedicineKnowledgeSource,
-} from '../dto/medicine-source.dto';
+} from '../dto/source.dto';
 
-import { MedicineSafetyTipResponseDto } from '../dto/medicine-safety-tip-response.dto';
+import { MedicineSafetyTipResponseDto } from '../dto/safety-tip-response.dto';
 
-import type { MedicineDetailDataDto } from '../dto/medicine-detail.dto';
+import type { MedicineDetailDataDto } from '../dto/detail.dto';
 
 import type {
   MedicineDetailQueryDto,
   MedicineSearchQueryDto,
-} from '../dto/medicine-query.dto';
+} from '../dto/query.dto';
 
-import type { MedicineSearchResult } from '../dto/medicine-search.dto';
-import { MedicinesCacheService } from '../cache/cache.service';
+import type { MedicineSearchResult } from '../dto/search.dto';
+import { MedicinesCacheService } from '../cache/store.service';
 import { CnMedicinesService } from '../adapters/cn.service';
 import { DrugbankMedicinesService } from '../adapters/drugbank.service';
 import { LlmRuntimeService } from '../../../llm-runtime';

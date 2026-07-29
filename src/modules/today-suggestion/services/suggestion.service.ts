@@ -6,7 +6,7 @@ import type { SuggestionItemDto } from '../../today-suggestion/dto/suggestion-re
 import type { TodaySuggestionsDataDto } from '../../today-suggestion/dto/suggestion-history.dto';
 import { SuggestionPipelineService } from './pipeline.service';
 import { SuggestionPresentationService } from './presentation.service';
-import { LifecycleService } from './lifecycle/service';
+import { LifecycleService } from './lifecycle/manager.service';
 import { EscalationService } from './notification/escalation.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
 

@@ -1,6 +1,6 @@
 import { SuggestionService } from './suggestion.service';
-import type { ArbitrationResult } from './arbitration/service';
-import type { CopyGenerationResult } from './copy/copy.service';
+import type { ArbitrationResult } from './arbitration/arbiter.service';
+import type { CopyGenerationResult } from './copy/writer.service';
 import type { SuggestionCandidate } from '../types/candidate.types';
 import {
   SuggestionType,

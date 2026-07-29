@@ -3,7 +3,10 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
 import { BaseAsyncQueueService } from '../../../../common';
-import { ExplanationService, type ExplanationResult } from './service';
+import {
+  ExplanationService,
+  type ExplanationResult,
+} from './explainer.service';
 
 interface ExplanationJobData {
   userId: string;

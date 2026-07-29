@@ -10,8 +10,8 @@ import type {
   ToolMutationTargetMatch,
   ToolRecordItem,
   ToolSingleDateResolution,
-} from '../constants';
-import { MUTATION_MATCH_WEIGHTS } from '../constants';
+} from '../tool-constants';
+import { MUTATION_MATCH_WEIGHTS } from '../tool-constants';
 
 @Injectable()
 export class AssistantToolRecordQueryService {

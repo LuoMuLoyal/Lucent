@@ -19,11 +19,11 @@ import { successEnvelope, formatDateOnly, now } from '../../common';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { SuggestionService } from './services/suggestion.service';
-import { FeedbackService } from './services/feedback/service';
+import { FeedbackService } from './services/feedback/recorder.service';
 import { ExplanationQueueService } from './services/explanation/queue.service';
 
-import { ExplanationService } from './services/explanation/service';
-import { LifecycleService } from './services/lifecycle/service';
+import { ExplanationService } from './services/explanation/explainer.service';
+import { LifecycleService } from './services/lifecycle/manager.service';
 import {
   SuggestionFeedbackDto,
   SuggestionFeedbackDataDto,

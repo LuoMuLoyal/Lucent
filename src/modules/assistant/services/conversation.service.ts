@@ -14,7 +14,7 @@ import {
   MEMORY_CONVERSATION_LIMIT,
   MEMORY_MESSAGE_LIMIT,
   RECENT_CONVERSATION_LIMIT,
-} from '../tools/constants';
+} from '../tools/tool-constants';
 import {
   AssistantConversationRepositoryPort,
   type ConversationWithMessages,

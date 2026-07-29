@@ -1,5 +1,5 @@
 import { buildToolDefinitions } from './tool-definitions';
-import { ASSISTANT_TOOL_NAMES } from './types';
+import { ASSISTANT_TOOL_NAMES } from './tool-types';
 
 describe('buildToolDefinitions', () => {
   it('returns empty array for empty tool names', () => {

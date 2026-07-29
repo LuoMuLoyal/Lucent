@@ -9,7 +9,7 @@ import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
 } from '../types/assistant.types';
-import { DEFAULT_HISTORY_LIMIT, MAX_RANGE_DAYS } from './constants';
+import { DEFAULT_HISTORY_LIMIT, MAX_RANGE_DAYS } from './tool-constants';
 import {
   enumerateDates,
   extractReportRangeKey,

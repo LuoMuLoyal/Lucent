@@ -2,7 +2,7 @@ import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import type { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { MedicinesCacheService } from './cache.service';
+import { MedicinesCacheService } from './store.service';
 
 describe('MedicinesCacheService', () => {
   let service: MedicinesCacheService;

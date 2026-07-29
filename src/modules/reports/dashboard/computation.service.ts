@@ -5,7 +5,7 @@ import type {
   MetricStatus,
   ReportDashboardComputed,
   ReportDashboardFacts,
-} from './types';
+} from './metrics.types';
 import { ReportsPresenterService } from './presenter.service';
 
 @Injectable()

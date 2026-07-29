@@ -29,19 +29,19 @@ import type { UserPayload } from '../auth';
 import {
   CnMedicineDetailDto,
   DrugbankMedicineDetailDto,
-} from './dto/medicine-detail.dto';
+} from './dto/detail.dto';
 
 import {
   MedicineDetailQueryDto,
   MedicineSearchQueryDto,
-} from './dto/medicine-query.dto';
+} from './dto/query.dto';
 
 import {
   MedicineDetailResponseDto,
   MedicineSearchResponseDto,
-} from './dto/medicine-response.dto';
+} from './dto/response.dto';
 
-import { MedicineSafetyTipListResponseDto } from './dto/medicine-safety-tip-response.dto';
+import { MedicineSafetyTipListResponseDto } from './dto/safety-tip-response.dto';
 
 import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
 import { RunRiskCheckDto } from './dto/risk-check-request.dto';
@@ -51,10 +51,10 @@ import {
   MedicineRiskCheckRecordResponseDto,
   MedicineRiskCheckRecordsResponseDto,
 } from './dto/risk-check-response.dto';
-import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/cache.constants';
+import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/store.constants';
 import { MedicinesService } from './services/medicines.service';
 
-import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
+import { MedicineRecognitionQueueService } from './services/recognition-queue.service';
 import { MedicineRiskCheckService } from './services/risk-check.service';
 
 @ApiTags('Medicines')

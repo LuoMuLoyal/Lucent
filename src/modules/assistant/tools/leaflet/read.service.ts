@@ -16,7 +16,7 @@ import { parseSearchPayload } from '../drugbank/entity-resolve.service';
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   ASSISTANT_VECTOR_MAX_LIMIT,
-} from '../constants';
+} from '../tool-constants';
 
 const VECTOR_FETCH_BUFFER = 4;
 const PRODUCT_RESOLVE_FETCH_COUNT = 20;

@@ -12,7 +12,7 @@ import {
 import {
   DEFAULT_MEDICINE_SOURCE,
   MEDICINE_KNOWLEDGE_SOURCES,
-} from './medicine-source.dto';
+} from './source.dto';
 
 function trimOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' ? value.trim() : undefined;

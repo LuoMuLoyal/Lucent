@@ -9,7 +9,7 @@ import {
   offsetDateString,
   todayDateString,
 } from './date-resolver';
-import { DEFAULT_RANGE_DAYS, MAX_RANGE_DAYS } from './constants';
+import { DEFAULT_RANGE_DAYS, MAX_RANGE_DAYS } from './tool-constants';
 import {
   REPORT_RANGE_LAST_7_DAYS,
   REPORT_RANGE_LAST_30_DAYS,

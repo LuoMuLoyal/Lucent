@@ -3,7 +3,7 @@ import { SuggestionPresentationService } from './presentation.service';
 import {
   SuggestionCopyService,
   type CopyGenerationResult,
-} from './copy/copy.service';
+} from './copy/writer.service';
 import type { SuggestionCandidate } from '../types/candidate.types';
 import {
   SuggestionType,

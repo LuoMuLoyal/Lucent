@@ -1,6 +1,6 @@
 import { SuppressionService } from './suppression.service';
-import type { FeedbackService } from '../feedback/service';
-import type { FeedbackEntry } from '../feedback/service';
+import type { FeedbackService } from '../feedback/recorder.service';
+import type { FeedbackEntry } from '../feedback/recorder.service';
 import type { FeedbackStatsService } from '../feedback/stats.service';
 import type { RuleFeedbackStats } from '../feedback/stats.service';
 import {

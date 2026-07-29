@@ -1,4 +1,4 @@
-import { ArbitrationService } from './service';
+import { ArbitrationService } from './arbiter.service';
 import { ScoringService } from './scoring.service';
 import {
   SuggestionType,

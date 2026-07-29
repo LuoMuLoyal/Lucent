@@ -7,7 +7,7 @@ import type {
 } from '../dto/report-dashboard-response.dto';
 
 import type { ReportRange } from '../dto/report-dashboard-query.dto';
-import type { MetricStatus } from './types';
+import type { MetricStatus } from './metrics.types';
 
 @Injectable()
 export class ReportsPresenterService {

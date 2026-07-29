@@ -2,7 +2,7 @@ import { ReportsAiSummaryContextService } from './context.service';
 import type {
   ReportDashboardComputed,
   ReportDashboardFacts,
-} from '../../dashboard/types';
+} from '../../dashboard/metrics.types';
 import { REPORT_RANGE_LAST_7_DAYS } from '../../dto/report-dashboard-query.dto';
 
 describe('ReportsAiSummaryContextService', () => {

@@ -3,7 +3,7 @@ import type {
   AssistantToolExecutionContext,
   AssistantToolExecutionResult,
 } from '../types/assistant.types';
-import type { AssistantToolName } from './types';
+import type { AssistantToolName } from './tool-types';
 import { AssistantToolLeafletReadService } from './leaflet/read.service';
 import {
   AssistantToolDrugbankEntityResolveService,

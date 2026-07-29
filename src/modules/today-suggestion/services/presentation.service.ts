@@ -14,8 +14,8 @@ import { SuggestionCacheService } from './cache/suggestion-cache.service';
 import {
   SuggestionCopyService,
   type CopyGenerationResult,
-} from './copy/copy.service';
-import { SuggestionCopyQueueService } from './copy/copy-queue.service';
+} from './copy/writer.service';
+import { SuggestionCopyQueueService } from './copy/queue.service';
 import { getFallbackCopy } from '../constants/copy-fallback';
 
 /**

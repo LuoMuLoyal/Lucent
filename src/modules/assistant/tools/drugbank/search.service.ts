@@ -17,7 +17,7 @@ import {
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   ASSISTANT_VECTOR_MAX_LIMIT,
-} from '../constants';
+} from '../tool-constants';
 
 const DRUGBANK_EMBEDDINGS_TABLE = 'drugbank_passage_embeddings';
 

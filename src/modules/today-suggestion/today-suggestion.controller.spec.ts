@@ -3,10 +3,10 @@ import { ResultCode, formatDateOnly, now } from '../../common';
 import type { UserPayload } from '../auth';
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionService } from './services/suggestion.service';
-import { FeedbackService } from './services/feedback/service';
-import { ExplanationService } from './services/explanation/service';
+import { FeedbackService } from './services/feedback/recorder.service';
+import { ExplanationService } from './services/explanation/explainer.service';
 import { ExplanationQueueService } from './services/explanation/queue.service';
-import { LifecycleService } from './services/lifecycle/service';
+import { LifecycleService } from './services/lifecycle/manager.service';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',

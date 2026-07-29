@@ -1,6 +1,6 @@
 import { ReportsComputationService } from './computation.service';
 import type { ReportsPresenterService } from './presenter.service';
-import type { ReportDashboardFacts } from './types';
+import type { ReportDashboardFacts } from './metrics.types';
 
 describe('ReportsComputationService', () => {
   let service: ReportsComputationService;

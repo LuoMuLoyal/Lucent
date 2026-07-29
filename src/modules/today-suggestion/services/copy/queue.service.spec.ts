@@ -1,7 +1,7 @@
 import type { Cache } from 'cache-manager';
 import type { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
-import { SuggestionCopyQueueService } from './copy-queue.service';
-import type { SuggestionCopyService } from './copy.service';
+import { SuggestionCopyQueueService } from './queue.service';
+import type { SuggestionCopyService } from './writer.service';
 import type { CopyJobData } from '../../types/copy-generation.types';
 import {
   SuggestionType,

@@ -1,4 +1,4 @@
-import type { AssistantToolName } from '../tools/types';
+import type { AssistantToolName } from '../tools/tool-types';
 
 export function buildAssistantSystemPrompt(
   toolNames: readonly AssistantToolName[],

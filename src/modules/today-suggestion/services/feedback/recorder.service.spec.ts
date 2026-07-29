@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { FeedbackService } from './service';
+import { FeedbackService } from './recorder.service';
 import {
   SuggestionType,
   SuggestionFeedback,

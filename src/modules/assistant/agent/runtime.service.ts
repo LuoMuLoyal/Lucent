@@ -18,8 +18,11 @@ import {
   ASSISTANT_CONTEXT_SOURCES,
   ASSISTANT_IMPLEMENTED_TOOL_NAMES,
   ASSISTANT_TOOL_NAMES,
-} from '../tools/types';
-import type { AssistantContextSource, AssistantToolName } from '../tools/types';
+} from '../tools/tool-types';
+import type {
+  AssistantContextSource,
+  AssistantToolName,
+} from '../tools/tool-types';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import { AssistantToolLeafletReadService } from '../tools/leaflet/read.service';
 import { buildAssistantSystemPrompt } from '../prompts/system.prompt';

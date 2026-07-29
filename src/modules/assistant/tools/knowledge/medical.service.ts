@@ -15,7 +15,7 @@ import { parseSearchPayload } from '../drugbank/entity-resolve.service';
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   ASSISTANT_VECTOR_MAX_LIMIT,
-} from '../constants';
+} from '../tool-constants';
 
 const EMBEDDINGS_TABLE = 'medical_qa_embeddings';
 

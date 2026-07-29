@@ -13,7 +13,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { createHash } from 'crypto';
-import { SuggestionCopyLlmService } from './copy-llm-generator.service';
+import { SuggestionCopyLlmService } from './llm-generator.service';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service';
 import { getFallbackCopy } from '../../constants/copy-fallback';
 
@@ -34,7 +34,7 @@ export interface CopyGenerationResult {
 
 /**
  * Minimal interface for the queue dependency used by the read path.
- * This avoids a circular import between `copy.service.ts` and `copy-queue.service.ts`.
+ * This avoids a circular import between `writer.service.ts` and `queue.service.ts`.
  */
 export interface CopyQueueLike {
   readonly isConfigured: boolean;

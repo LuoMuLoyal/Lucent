@@ -6,7 +6,7 @@ import { BaseAsyncQueueService } from '../../../../common';
 import {
   SuggestionCopyService,
   type CopyGenerationResult,
-} from './copy.service';
+} from './writer.service';
 import type { CopyJobData } from '../../types/copy-generation.types';
 
 const QUEUE_NAME = 'suggestion-copy-generation';

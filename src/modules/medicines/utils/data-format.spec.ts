@@ -6,9 +6,9 @@ import {
   truncateText,
   detectMatchedBy,
   toPagination,
-} from './helpers';
+} from './data-format';
 
-describe('medicines/utils/helpers', () => {
+describe('medicines/utils/data-format', () => {
   // -----------------------------------------------------------------------
   // toStringList
   // -----------------------------------------------------------------------

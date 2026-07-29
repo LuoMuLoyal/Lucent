@@ -1,7 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
-import { MEDICINES_CACHE_KEY_PREFIX } from './cache.constants';
+import { MEDICINES_CACHE_KEY_PREFIX } from './store.constants';
 
 type CacheStoreWithKeys = {
   keys?: () => Promise<string[]>;

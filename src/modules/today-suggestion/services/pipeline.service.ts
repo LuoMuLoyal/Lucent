@@ -9,7 +9,7 @@ import { SuppressionService } from './arbitration/suppression.service';
 import {
   ArbitrationService,
   type ArbitrationResult,
-} from './arbitration/service';
+} from './arbitration/arbiter.service';
 import { BaselineService } from './lifecycle/baseline.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
 

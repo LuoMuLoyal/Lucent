@@ -3,7 +3,7 @@ import type { Queue } from 'bullmq';
 import { BullmqQueueFactory } from './queue.factory';
 import { DataRetentionService } from '../../modules/data-retention/services/data-retention.service';
 import { DATA_RETENTION_CRON } from '../../modules/data-retention/services/data-retention.service';
-import { LifecycleService } from '../../modules/today-suggestion/services/lifecycle/service';
+import { LifecycleService } from '../../modules/today-suggestion/services/lifecycle/manager.service';
 import { LIFECYCLE_REFRESH_CRON } from '../../modules/today-suggestion/constants/lifecycle.constants';
 import { ReminderSchedulerService } from '../../modules/medicine-reminders/services/scheduler.service';
 import { REMINDER_SCHEDULER_CRON } from '../../modules/medicine-reminders/services/scheduler.service';

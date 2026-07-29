@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import type { BullmqQueueFactory } from './queue.factory';
 import type { DataRetentionService } from '../../modules/data-retention/services/data-retention.service';
-import type { LifecycleService } from '../../modules/today-suggestion/services/lifecycle/service';
+import type { LifecycleService } from '../../modules/today-suggestion/services/lifecycle/manager.service';
 import type { ReminderSchedulerService } from '../../modules/medicine-reminders/services/scheduler.service';
 import {
   CronJobsService,

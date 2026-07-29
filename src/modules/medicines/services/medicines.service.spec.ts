@@ -5,7 +5,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 import { MedicinesService } from './medicines.service';
-import { MedicinesCacheService } from '../cache/cache.service';
+import { MedicinesCacheService } from '../cache/store.service';
 import { CnMedicinesService } from '../adapters/cn.service';
 import { DrugbankMedicinesService } from '../adapters/drugbank.service';
 import { ResultCode } from '../../../common';

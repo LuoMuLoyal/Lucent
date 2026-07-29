@@ -4,7 +4,7 @@ import {
   DEFAULT_MEDICINE_SOURCE,
   MEDICINE_KNOWLEDGE_SOURCES,
   type MedicineKnowledgeSource,
-} from './medicine-source.dto';
+} from './source.dto';
 
 export class MedicineSearchItemDto {
   @ApiProperty({ description: 'Stable medicine id.', example: 'DB01050' })

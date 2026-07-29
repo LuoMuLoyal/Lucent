@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { MedicineDetailDataDto } from './medicine-detail.dto';
-import { MedicineSearchDataDto } from './medicine-search.dto';
+import { MedicineDetailDataDto } from './detail.dto';
+import { MedicineSearchDataDto } from './search.dto';
 
 export class MedicineSearchResponseDto {
   @ApiProperty({ example: 0 })

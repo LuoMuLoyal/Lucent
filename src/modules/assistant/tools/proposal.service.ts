@@ -10,12 +10,12 @@ import type {
   AssistantUpdateDailyRecordProposalPayload,
   AssistantUpdateUserSettingsProposalPayload,
 } from '../types/assistant.types';
-import type { AssistantToolName } from './types';
+import type { AssistantToolName } from './tool-types';
 import { AssistantToolRecordQueryService } from './records/query.service';
 import {
   DEFAULT_PROPOSAL_DATE_OFFSET_DAYS,
   PROPOSAL_TTL_MINUTES,
-} from './constants';
+} from './tool-constants';
 import {
   buildCreateRecordPreviewFields,
   buildProposalExpiryIso,

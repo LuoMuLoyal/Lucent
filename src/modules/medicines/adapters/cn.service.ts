@@ -5,12 +5,12 @@ import { PrismaService } from '../../../prisma';
 import type {
   CnMedicineDetailDto,
   MedicineDetailDataDto,
-} from '../dto/medicine-detail.dto';
+} from '../dto/detail.dto';
 
 import type {
   MedicineSearchItemDto,
   MedicineSearchResult,
-} from '../dto/medicine-search.dto';
+} from '../dto/search.dto';
 import {
   composeSubtitle,
   detectMatchedBy,
@@ -18,7 +18,7 @@ import {
   toPagination,
   truncateText,
   uniqueNonEmptyStrings,
-} from '../utils/helpers';
+} from '../utils/data-format';
 
 interface MedicineSearchCriteria {
   q: string;
