@@ -1,6 +1,6 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 - Barrel files (`index.ts`) must never export `.spec.ts` files — spec exports cause `nest build` to
   compile test files into `dist/`, and runtime barrel loading triggers `describe`/`it` calls that
@@ -159,3 +159,15 @@ Last updated: 2026-07-28
   事务内代码保留手动写法（Prisma 扩展在事务客户端不可用）
 - `CronJobsService.onModuleInit` 中 `registerSchedulers` 调用包裹 try-catch：Redis 已配置但
   暂时不可用时 `upsertJobScheduler` 抛异常不再阻止应用启动，error 日志记录后下次重启自动重试
+
+- 2026-07-29 工具链质量改进：
+  - ESLint 从 `eslint-plugin-prettier` 迁移到 `eslint-config-prettier` only，格式检查由独立的
+    `pnpm format:check` 命令和 pre-commit `lint-staged` 负责。
+  - `format:check` / `format` 覆盖范围扩展到 `scripts/**/*.ts`、`deploy/**/*.ts`、根目录
+    `*.{ts,json,yml,yaml,md}`，新增 `.prettierignore` 排除 `pnpm-lock.yaml` 等生成文件。
+  - `pre-push` hook 精简为仅 `pnpm typecheck`（lint 已由 pre-commit `lint-staged` 覆盖暂存文件）。
+  - `.swcrc` target 从 `es2022` 对齐到 `es2023`（与 `tsconfig.json` 一致）。
+  - `tsconfig.json` 显式指定 `tsBuildInfoFile` 路径，稳定增量缓存位置。
+  - `fix-generated-prisma-internal.ts` 用 `@swc/core` `transformFile` 替代 `typescript.transpileModule`。
+  - Vitest coverage 阈值从 50/60/60/60 提升至 68/78/80/79（实测 73/83/85/84）。
+  - `vitest.config.ts` 显式声明 `pool: 'forks'`。

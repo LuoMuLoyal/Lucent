@@ -22,8 +22,8 @@
     "typecheck:tools": "pnpm exec tsc -p scripts/tsconfig.json --noEmit && pnpm exec tsc -p deploy/tsconfig.json --noEmit",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"generated/**\" --fix",
     "lint:check": "eslint \"{src,apps,libs,test}/**/*.ts\" --ignore-pattern \"generated/**\" --max-warnings=0",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.ts\" \"deploy/**/*.ts\" \"*.{ts,json,yml,yaml,md}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\" \"scripts/**/*.ts\" \"deploy/**/*.ts\" \"*.{ts,json,yml,yaml,md}\"",
     "start": "cross-env NODE_ENV=development nest start",
     "start:dev": "cross-env NODE_ENV=development nest start --watch",
     "start:test:dev": "cross-env NODE_ENV=test nest start --watch",
@@ -48,10 +48,15 @@
     "db:migrate:all": "pnpm db:migrate",
     "dev:stack": "node scripts/dev/up-local-stack.ts",
     "dev:stack:up": "pnpm dev:stack",
+    "dev:stack:down": "docker compose -f docker-compose.dev.yml down",
+    "dev:stack:reset": "docker compose -f docker-compose.dev.yml down -v && pnpm dev:stack:up",
+    "db:reset:dev": "cross-env NODE_ENV=development pnpm exec prisma migrate reset --force",
+    "db:reset:test": "cross-env NODE_ENV=test pnpm exec prisma migrate reset --force",
     "import:medicine:all": "node scripts/import/medicine/import-medicine-datasets.ts",
     "import:food:categories": "node scripts/import/food/import-food-composition.ts categories",
     "import:food:items": "node scripts/import/food/import-food-composition.ts items",
-    "export:openapi": "pnpm prisma:generate && pnpm build && cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
+    "openapi:export": "cross-env NODE_ENV=development node scripts/contract/export-openapi.ts",
+    "export:openapi": "pnpm prisma:generate && pnpm build && pnpm openapi:export",
     "deploy:smoke": "node deploy/smoke.ts",
     "deploy:server": "node deploy/deploy.ts",
     "docs:compodoc": "compodoc -c compodoc.json",
@@ -143,7 +148,6 @@
     "cross-env": "^10.1.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
-    "eslint-plugin-prettier": "^5.2.2",
     "globals": "^17.0.0",
     "jiti": "^2.7.0",
     "lint-staged": "^17.0.5",
@@ -159,7 +163,7 @@
   "simple-git-hooks": {
     "pre-commit": "node scripts/hooks/check-docs-updated.ts && pnpm lint-staged",
     "commit-msg": "pnpm exec commitlint --edit $1",
-    "pre-push": "pnpm lint:check && pnpm typecheck"
+    "pre-push": "pnpm typecheck"
   },
   "lint-staged": {
     "*.ts": [

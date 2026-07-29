@@ -7,13 +7,107 @@ on:
 
 concurrency:
   group: lucent-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# ── Reusable snippet: setup pnpm + Node + install ──────────────────
+# Defined as a composite action inline via anchors (GitHub Actions does not
+# support YAML anchors natively, so each job repeats the setup steps).
 
 jobs:
-  ci:
-    name: CI
+  ci-lint-typecheck:
+    name: Lint + Type Check
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Cache SWC
+        uses: actions/cache@v4
+        with:
+          path: .swc
+          key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts') }}
+          restore-keys: |
+            swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            swc-${{ runner.os }}-
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint:check
+
+      - name: Type check
+        run: pnpm typecheck
+
+      - name: Type check tools
+        run: pnpm typecheck:tools
+
+  ci-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+
+      - name: Cache SWC
+        uses: actions/cache@v4
+        with:
+          path: .swc
+          key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts') }}
+          restore-keys: |
+            swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            swc-${{ runner.os }}-
+
+      - name: Unit tests
+        run: pnpm test:ci
+
+  ci-e2e:
+    name: E2E Tests + Build + OpenAPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       NODE_ENV: test
@@ -98,29 +192,27 @@ jobs:
             echo "No destructive migration detected."
           fi
 
-      - name: Lint
-        run: pnpm lint:check
+      - name: Cache SWC
+        uses: actions/cache@v4
+        with:
+          path: .swc
+          key: swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.ts') }}
+          restore-keys: |
+            swc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            swc-${{ runner.os }}-
 
-      - name: Type check
-        run: pnpm typecheck
-
-      - name: Unit tests
-        run: pnpm test:ci
+      - name: Build
+        run: pnpm build
 
       # OpenAPI spec must be generated before E2E tests — the contract test
       # suite (test/contract/) loads docs/openapi.json at startup. The file is
       # tracked in git, but re-export here to ensure it matches the current code.
+      # Reuses the dist/ from the previous Build step — no redundant recompilation.
       - name: Export OpenAPI spec
-        run: pnpm export:openapi
+        run: pnpm openapi:export
 
       - name: E2E tests
         run: pnpm test:e2e:ci
-
-      - name: Type check tools
-        run: pnpm typecheck:tools
-
-      - name: Build
-        run: pnpm build
 
   docker:
     name: Docker Build + Trivy
@@ -152,7 +244,7 @@ jobs:
       # 宽松模式：扫描并输出 HIGH/CRITICAL 漏洞报告，但不阻断 CI。
       # 待基线建立后再考虑收紧为 exit-code: 1 或加 .trivyignore 白名单。
       - name: Trivy scan (report only)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@0.36.0
         with:
           image-ref: lucent-ci:scan
           severity: HIGH,CRITICAL

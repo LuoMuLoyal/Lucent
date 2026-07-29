@@ -1,6 +1,6 @@
 # Toolchain / Contract
 
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -8,14 +8,29 @@ Last updated: 2026-07-28
   regenerates its `generated/lucent_api/` client from.
 - The current exported contract now includes meal-analysis read hot fields on `DailyRecordItemDto`:
   status, coverage, updated-at, failure-reason, short-description, and top-foods.
-- Lucent CI re-exports `docs/openapi.json` before E2E tests to ensure the contract file matches
-  the current code. The file is tracked in git (marked as `linguist-generated`), so the export
-  step overwrites the committed copy with a fresh build during CI.
+- Lucent CI is split into three parallel Jobs (`ci-lint-typecheck`, `ci-unit`, `ci-e2e`) plus a
+  Docker Job. The `ci-e2e` Job runs `Build` then `openapi:export` (reusing `dist/`, no double
+  build) before E2E tests to ensure the contract file matches the current code. The file is
+  tracked in git (marked as `linguist-generated`), so the export step overwrites the committed
+  copy with a fresh build during CI.
+- `pnpm openapi:export` is a standalone script that only runs the OpenAPI export node script;
+  `pnpm export:openapi` is the full pipeline (`prisma:generate && build && openapi:export`).
+- ESLint uses `eslint-config-prettier` (not `eslint-plugin-prettier`) — Prettier formatting is
+  enforced by the standalone `pnpm format:check` command and `lint-staged` in pre-commit.
+- CI caches the `.swc` directory across runs via `actions/cache`.
+- `cancel-in-progress` is enabled for PR events (disabled for push events).
+- `.swcrc` target is `es2023`, aligned with `tsconfig.json`.
+- `tsconfig.json` specifies `tsBuildInfoFile: ./node_modules/.cache/tsbuildinfo.json`.
+- `pre-push` git hook runs only `pnpm typecheck` (lint is handled by pre-commit `lint-staged`).
+- Vitest coverage thresholds: branches 68 / functions 78 / lines 80 / statements 79
+  (actual: 73/83/85/84, measured 2026-07-29).
+- `.node-version` file pins Node.js `24` for nvm/fnm/volta.
 - `vitest.e2e.config.ts` is a standalone `defineConfig` (not `mergeConfig` with the base config)
   to prevent `include` array concatenation from pulling unit tests into the E2E run.
-- `pnpm prisma:generate` now also transpiles `generated/prisma/internal/*.ts` to `.js`, because
-  Prisma 7's custom-output client currently leaves those runtime files missing while `client.js`
-  still requires them for `pnpm build`, `pnpm export:openapi`, and other compiled-runtime flows.
+- `pnpm prisma:generate` now also transpiles `generated/prisma/internal/*.ts` to `.js` via `@swc/core`
+  `transformFile` (replaced `typescript.transpileModule` for ~2–3× speedup), because Prisma 7's
+  custom-output client currently leaves those runtime files missing while `client.js` still requires
+  them for `pnpm build`, `pnpm export:openapi`, and other compiled-runtime flows.
 - `package.json` now includes a `postinstall` hook that runs `pnpm prisma:generate`, ensuring the
   Prisma client (with the `.js` fix) is always generated after `pnpm install`. The `export:openapi`
   script also depends on `pnpm prisma:generate` as a belt-and-suspenders safeguard.

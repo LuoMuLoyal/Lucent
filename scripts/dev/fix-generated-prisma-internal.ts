@@ -1,13 +1,14 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const ts = require('typescript');
+const { transformFile } = require('@swc/core');
 
 /**
  * Prisma 7's `prisma-client` generator emits only `.ts` files.
  * The runtime (compiled `dist/`) imports `generated/prisma/client.js`,
  * so we must transpile every `.ts` file under `generated/prisma/`
- * (both root-level and `internal/`) to `.js` using the TypeScript
- * compiler with CommonJS module output.
+ * (both root-level and `internal/`) to `.js` using SWC with CommonJS
+ * module output. SWC is significantly faster than the TypeScript compiler
+ * for single-file transpilation.
  */
 async function transpileDir(dir: string): Promise<void> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -19,16 +20,19 @@ async function transpileDir(dir: string): Promise<void> {
 
     const sourcePath = path.join(dir, entry.name);
     const outputPath = sourcePath.replace(/\.ts$/, '.js');
-    const source = await fs.readFile(sourcePath, 'utf8');
-    const transpiled = ts.transpileModule(source, {
-      compilerOptions: {
-        module: ts.ModuleKind.CommonJS,
-        target: ts.ScriptTarget.ES2022,
-        esModuleInterop: true,
+    const result = await transformFile(sourcePath, {
+      jsc: {
+        target: 'es2022',
+        parser: {
+          syntax: 'typescript',
+          decorators: true,
+        },
       },
-      fileName: entry.name,
+      module: {
+        type: 'commonjs',
+      },
     });
-    await fs.writeFile(outputPath, transpiled.outputText, 'utf8');
+    await fs.writeFile(outputPath, result.code, 'utf8');
   }
 }
 

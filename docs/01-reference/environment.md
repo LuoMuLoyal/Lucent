@@ -86,6 +86,11 @@ Local Docker stack note:
 - **`pnpm test:e2e`**: E2E tests with Prisma 7 VM-module compatibility
 - **`pnpm test:e2e:ci`**: E2E tests in CI with `fileParallelism: false` (sequential execution)
 - **`pnpm export:openapi`**: Build then export `docs/openapi.json` from `dist`
+- **`pnpm openapi:export`**: Export OpenAPI spec only (no build — reuse existing `dist/`)
+- **`pnpm dev:stack:down`**: Stop local Docker dev stack (Postgres + Redis)
+- **`pnpm dev:stack:reset`**: Tear down local Docker dev stack volumes and recreate
+- **`pnpm db:reset:dev`**: Reset development database (prisma migrate reset --force)
+- **`pnpm db:reset:test`**: Reset test database (prisma migrate reset --force)
 - **`pnpm import:medicine:all`**: Default medicine knowledge import sequence
 - **`pnpm deploy:smoke`**: Post-deploy smoke check for running services and health endpoints
 

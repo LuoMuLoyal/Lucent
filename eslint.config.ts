@@ -1,5 +1,5 @@
 import eslint from '@eslint/js';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import eslintConfigPrettier from 'eslint-config-prettier';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -16,7 +16,7 @@ export default tseslint.config(
   },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
-  eslintPluginPrettierRecommended,
+  eslintConfigPrettier,
   {
     languageOptions: {
       globals: {
@@ -69,7 +69,7 @@ export default tseslint.config(
         },
       ],
 
-      // Prettier 由 eslint-plugin-prettier/recommended 自动从 .prettierrc 读取配置，不再显式覆盖
+      // Prettier 格式规则由 eslint-config-prettier 统一关闭，格式检查交给独立的 prettier --check
     },
   },
   {

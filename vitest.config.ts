@@ -17,6 +17,7 @@ export default defineConfig({
   test: {
     root: 'src',
     environment: 'node',
+    pool: 'forks',
     include: ['**/*.spec.ts'],
     globals: true,
     clearMocks: true,
@@ -32,10 +33,10 @@ export default defineConfig({
       reporter: ['text', 'lcov'],
       reportsDirectory: '../coverage',
       thresholds: {
-        branches: 50,
-        functions: 60,
-        lines: 60,
-        statements: 60,
+        branches: 68,
+        functions: 78,
+        lines: 80,
+        statements: 79,
       },
     },
   },
