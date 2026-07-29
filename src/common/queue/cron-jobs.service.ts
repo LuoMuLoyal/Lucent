@@ -8,8 +8,11 @@ import { LIFECYCLE_REFRESH_CRON } from '../../modules/today-suggestion/constants
 import { ReminderSchedulerService } from '../../modules/medicine-reminders/services/scheduler.service';
 import { REMINDER_SCHEDULER_CRON } from '../../modules/medicine-reminders/services/scheduler.service';
 
-/** BullMQ queue name for cron-driven repeatable jobs. */
+/** BullMQ queue name for low-frequency cron jobs (lifecycle + data-retention). */
 export const CRON_QUEUE_NAME = 'lucent-cron';
+
+/** BullMQ queue name for the high-frequency reminder-dispatch job. */
+export const REMINDER_QUEUE_NAME = 'lucent-reminder-dispatch';
 
 /** Stable scheduler IDs — used by `upsertJobScheduler` for idempotent upsert. */
 const SCHEDULER_DATA_RETENTION = 'data-retention-cleanup';
@@ -29,14 +32,16 @@ const JOB_REMINDER = 'reminder-dispatch';
  * future multi-worker deployment, BullMQ's distributed dedup ensures each
  * repeatable job fires exactly once per cycle regardless of worker count.
  *
- * The worker processor dispatches by `job.name` to the corresponding
- * business service method. All three tasks are idempotent (DB-level dedup),
- * so overlapping executions — though rare — are safe.
+ * **Queue separation**: `reminder-dispatch` (every minute) runs on a dedicated
+ * queue [`REMINDER_QUEUE_NAME`] so that a slow dispatch cycle cannot block
+ * `lifecycle-refresh` or `data-retention-cleanup`. The low-frequency jobs
+ * share [`CRON_QUEUE_NAME`] with `workerConcurrency: 2`.
  */
 @Injectable()
 export class CronJobsService implements OnModuleInit {
   private readonly logger = new Logger(CronJobsService.name);
-  private queue: Queue | null = null;
+  private cronQueue: Queue | null = null;
+  private reminderQueue: Queue | null = null;
 
   constructor(
     private readonly factory: BullmqQueueFactory,
@@ -51,8 +56,10 @@ export class CronJobsService implements OnModuleInit {
       return;
     }
 
-    const handle = this.factory.createQueue({
+    // Low-frequency queue: data-retention (daily) + lifecycle (every 5 min)
+    const cronHandle = this.factory.createQueue({
       name: CRON_QUEUE_NAME,
+      workerConcurrency: 2,
       processor: async (job) => {
         switch (job.name) {
           case JOB_DATA_RETENTION:
@@ -61,32 +68,35 @@ export class CronJobsService implements OnModuleInit {
           case JOB_LIFECYCLE:
             await this.lifecycleService.refreshLifecycleStates();
             return;
-          case JOB_REMINDER:
-            await this.reminderSchedulerService.dispatchDueReminders();
-            return;
           default:
             this.logger.warn(`Unknown cron job name: ${job.name}`);
         }
       },
     });
 
-    this.queue = handle.queue;
+    // High-frequency queue: reminder-dispatch (every minute)
+    const reminderHandle = this.factory.createQueue({
+      name: REMINDER_QUEUE_NAME,
+      processor: async (job) => {
+        switch (job.name) {
+          case JOB_REMINDER:
+            await this.reminderSchedulerService.dispatchDueReminders();
+            return;
+          default:
+            this.logger.warn(`Unknown reminder job name: ${job.name}`);
+        }
+      },
+    });
 
-    if (this.queue != null) {
-      try {
-        await this.registerSchedulers(this.queue);
-        this.logger.log('Cron repeatable jobs registered');
-      } catch (error) {
-        this.logger.error(
-          'Failed to register cron repeatable jobs; scheduled tasks will not run until next restart',
-          error instanceof Error ? error.stack : undefined,
-        );
-      }
-    }
+    this.cronQueue = cronHandle.queue;
+    this.reminderQueue = reminderHandle.queue;
+
+    await this.registerSchedulers();
   }
 
   /**
-   * Idempotently registers all three repeatable job schedulers.
+   * Idempotently registers all repeatable job schedulers on their respective
+   * queues.
    *
    * Uses `upsertJobScheduler` with stable scheduler IDs so that changing
    * a cron expression updates the rule in-place — no stale rules left
@@ -95,23 +105,43 @@ export class CronJobsService implements OnModuleInit {
    * All schedules use `tz: 'UTC'` to match the production container timezone
    * (node:24-alpine defaults to UTC).
    */
-  private async registerSchedulers(queue: Queue): Promise<void> {
-    await queue.upsertJobScheduler(
-      SCHEDULER_DATA_RETENTION,
-      { pattern: DATA_RETENTION_CRON, tz: 'UTC' },
-      { name: JOB_DATA_RETENTION, data: {} },
-    );
+  private async registerSchedulers(): Promise<void> {
+    const registrations: Promise<unknown>[] = [];
 
-    await queue.upsertJobScheduler(
-      SCHEDULER_LIFECYCLE,
-      { pattern: LIFECYCLE_REFRESH_CRON, tz: 'UTC' },
-      { name: JOB_LIFECYCLE, data: {} },
-    );
+    if (this.cronQueue != null) {
+      const cronQueue = this.cronQueue;
+      registrations.push(
+        cronQueue.upsertJobScheduler(
+          SCHEDULER_DATA_RETENTION,
+          { pattern: DATA_RETENTION_CRON, tz: 'UTC' },
+          { name: JOB_DATA_RETENTION, data: {} },
+        ),
+        cronQueue.upsertJobScheduler(
+          SCHEDULER_LIFECYCLE,
+          { pattern: LIFECYCLE_REFRESH_CRON, tz: 'UTC' },
+          { name: JOB_LIFECYCLE, data: {} },
+        ),
+      );
+    }
 
-    await queue.upsertJobScheduler(
-      SCHEDULER_REMINDER,
-      { pattern: REMINDER_SCHEDULER_CRON, tz: 'UTC' },
-      { name: JOB_REMINDER, data: {} },
-    );
+    if (this.reminderQueue != null) {
+      registrations.push(
+        this.reminderQueue.upsertJobScheduler(
+          SCHEDULER_REMINDER,
+          { pattern: REMINDER_SCHEDULER_CRON, tz: 'UTC' },
+          { name: JOB_REMINDER, data: {} },
+        ),
+      );
+    }
+
+    try {
+      await Promise.all(registrations);
+      this.logger.log('Cron repeatable jobs registered');
+    } catch (error) {
+      this.logger.error(
+        'Failed to register cron repeatable jobs; scheduled tasks will not run until next restart',
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
   }
 }
