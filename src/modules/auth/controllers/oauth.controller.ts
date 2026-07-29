@@ -29,12 +29,12 @@ import {
   AppleOAuthCallbackDto,
   QqOAuthCallbackDto,
   QqOAuthAuthorizeDto,
-} from '../dto/oauth.dto';
+} from '../dto/shared/oauth.dto';
 
 import {
   LoginResponseDto,
   OAuthAuthorizeResponseDto,
-} from '../dto/auth-responses.dto';
+} from '../dto/shared/auth-responses.dto';
 
 import { buildAuthResponse } from './auth-response.helper';
 import { Public } from '../decorators/public.decorator';

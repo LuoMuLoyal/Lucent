@@ -5,7 +5,7 @@ import { I18nService } from 'nestjs-i18n';
 import * as argon2 from 'argon2';
 
 import { PrismaService } from '../../../prisma';
-import { ConfigKey } from '../../../config/config-keys.enum';
+import { ConfigKey } from '../../../config/env/config-keys.enum';
 import { ARGON2_OPTIONS } from '../../auth';
 import { badRequest, forbidden, notFound, unauthorized } from '../../../common';
 import { now } from '../../../common';

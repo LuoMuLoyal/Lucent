@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { PrismaService } from '../../../../prisma';
-import { VectorStoreFactory } from '../vector-store.factory';
+import { VectorStoreFactory } from '../vector/vector-store.factory';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
@@ -11,12 +11,12 @@ import {
   buildVectorPage,
   buildVectorQueryHash,
   decodeVectorCursor,
-} from '../vector-cursor';
+} from '../vector/vector-cursor';
 import { parseSearchPayload } from '../drugbank/entity-resolve.service';
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   ASSISTANT_VECTOR_MAX_LIMIT,
-} from '../tool-constants';
+} from '../shared/tool-constants';
 
 const VECTOR_FETCH_BUFFER = 4;
 const PRODUCT_RESOLVE_FETCH_COUNT = 20;

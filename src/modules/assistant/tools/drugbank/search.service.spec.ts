@@ -1,6 +1,9 @@
 import { AssistantToolDrugbankEntityResolveService } from './entity-resolve.service';
 import { AssistantToolDrugbankSearchService } from './search.service';
-import { decodeVectorCursor, encodeVectorCursor } from '../vector-cursor';
+import {
+  decodeVectorCursor,
+  encodeVectorCursor,
+} from '../vector/vector-cursor';
 
 const mockSimilaritySearchWithScore = vi.fn();
 const mockEnsureTable = vi.fn();

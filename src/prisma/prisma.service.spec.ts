@@ -1,6 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import type { Logger as WinstonLogger } from 'winston';
-import { EnvKey } from '../config/env-keys.enum.js';
+import { EnvKey } from '../config/env/env-keys.enum.js';
 
 const DB_URL = 'postgresql://user:pass@localhost:5432/test';
 

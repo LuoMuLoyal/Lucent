@@ -1,6 +1,6 @@
 import { buildUserPrompt } from '../../../common';
 import type { PromptCopy } from '../../../common';
-import type { TodayAnalysisContext } from '../services/context.service';
+import type { TodayAnalysisContext } from '../services/pipeline/context.service';
 
 export function buildTodayAnalysisSystemPrompt(): string {
   return [

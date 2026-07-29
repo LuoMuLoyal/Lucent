@@ -2,7 +2,7 @@ import {
   ASSISTANT_TOOL_SOURCE_MAP,
   type AssistantContextSource,
   type AssistantToolName,
-} from '../../tools/tool-types';
+} from '../../tools/shared/tool-types';
 import {
   TOOL_KEYWORD_RULES,
   BROAD_RECORD_QUERY_RULES,

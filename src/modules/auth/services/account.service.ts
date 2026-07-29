@@ -8,7 +8,7 @@ import { badRequest, notFound } from '../../../common';
 import { normalizeEmail } from '../../../common';
 import { now } from '../../../common';
 import { UserService } from '../../user';
-import { DeleteAccountDto } from '../dto/delete-account.dto';
+import { DeleteAccountDto } from '../dto/shared/delete-account.dto';
 import { VerificationCodeService } from './identity/verification-code.service';
 import { AuthAccountRepositoryPort } from '../repositories/account.repository';
 

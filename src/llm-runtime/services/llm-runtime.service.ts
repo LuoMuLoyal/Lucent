@@ -10,7 +10,7 @@ import type {
   LlmRole,
   LlmRuntimePort,
 } from '../../common/llm/llm-runtime.port';
-import { llmConfig } from '../../config/llm.config';
+import { llmConfig } from '../../config/services/llm.config';
 
 /**
  * Concrete LLM runtime service.

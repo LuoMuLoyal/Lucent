@@ -7,7 +7,7 @@ import { Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue, Worker } from 'bullmq';
 import type { ConnectionOptions, JobsOptions } from 'bullmq';
-import { EnvKey } from '../../config/env-keys.enum';
+import { EnvKey } from '../../config/env/env-keys.enum';
 import { MetricsService } from '../metrics/metrics.service';
 
 /** Common defaults shared across all BullMQ queues. */

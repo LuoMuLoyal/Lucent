@@ -8,7 +8,7 @@ import { AppModule } from '../../src/app.module';
 import { setupApp } from '../../src/setup-app';
 import { PrismaService } from '../../src/prisma';
 import type { ApiEnvelope } from '../../src/common';
-import { ConfigKey } from '../../src/config/config-keys.enum';
+import { ConfigKey } from '../../src/config/env/config-keys.enum';
 import { SecurityPinService } from '../../src/modules/security-pin';
 import { UserStatus } from '#generated/prisma/client';
 

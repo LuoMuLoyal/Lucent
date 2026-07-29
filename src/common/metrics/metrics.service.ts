@@ -7,7 +7,7 @@ import {
   Histogram,
   Registry,
 } from 'prom-client';
-import { EnvKey } from '../../config/env-keys.enum';
+import { EnvKey } from '../../config/env/env-keys.enum';
 
 /**
  * Centralised Prometheus metrics registry for the Lucent backend.

@@ -30,7 +30,7 @@ import {
   AssistantSummaryRepository,
   AssistantSummaryRepositoryPort,
 } from './repositories/summary.repository';
-import { AssistantContextService } from './tools/context.service';
+import { AssistantContextService } from './tools/shared/context.service';
 
 import { AssistantToolDrugbankEntityResolveService } from './tools/drugbank/entity-resolve.service';
 
@@ -42,15 +42,15 @@ import { AssistantToolMedicalKnowledgeService } from './tools/knowledge/medical.
 
 import { AssistantToolMedicineLookupService } from './tools/medicine/lookup.service';
 
-import { AssistantToolProposalService } from './tools/proposal.service';
+import { AssistantToolProposalService } from './tools/proposal/proposal.service';
 
-import { AssistantToolReadService } from './tools/read.service';
+import { AssistantToolReadService } from './tools/read/read.service';
 
 import { AssistantToolRecordQueryService } from './tools/records/query.service';
 
 import { AssistantToolService } from './tools/tool.service';
 
-import { VectorStoreFactory } from './tools/vector-store.factory';
+import { VectorStoreFactory } from './tools/vector/vector-store.factory';
 
 @Module({
   imports: [

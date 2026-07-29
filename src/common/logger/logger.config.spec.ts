@@ -3,7 +3,7 @@ import { createLogger, transports as winstonTransports } from 'winston';
 import { createLoggerOptions } from './logger.config';
 import { requestContextStorage } from './request-context.service';
 import type { WinstonModuleOptions } from 'nest-winston';
-import { EnvKey } from '../../config/env-keys.enum';
+import { EnvKey } from '../../config/env/env-keys.enum';
 
 interface LeveledTransport {
   level: string;

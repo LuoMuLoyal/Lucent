@@ -12,7 +12,7 @@ import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
 import { AssistantRuntimeService } from '../agent/runtime.service';
 import { UserSettingsService } from '../../user-settings';
 import { AssistantPolicyService } from './policy.service';
-import { AssistantContextService } from '../tools/context.service';
+import { AssistantContextService } from '../tools/shared/context.service';
 import { AssistantToolService } from '../tools/tool.service';
 import { AssistantConversationService } from './conversation.service';
 import { nowIsoString } from '../../../common';

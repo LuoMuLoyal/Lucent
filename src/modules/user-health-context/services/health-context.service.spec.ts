@@ -15,17 +15,17 @@ import {
 } from '#generated/prisma/client';
 
 import { UserHealthContextRepositoryPort } from '../repositories/health-context.repository';
-import { UserHealthContextAllergyWriteService } from './allergy-write.service';
+import { UserHealthContextAllergyWriteService } from './writes/allergy-write.service';
 
-import { UserHealthContextConditionWriteService } from './condition-write.service';
+import { UserHealthContextConditionWriteService } from './writes/condition-write.service';
 
 import { UserHealthContextMapperService } from './mapper.service';
 
-import { UserHealthContextMedicineWriteService } from './medicine-write.service';
+import { UserHealthContextMedicineWriteService } from './writes/medicine-write.service';
 
 import { UserHealthContextOwnershipService } from './ownership.service';
 
-import { UserHealthContextProfileWriteService } from './profile-write.service';
+import { UserHealthContextProfileWriteService } from './writes/profile-write.service';
 
 import { UserHealthContextService } from './health-context.service';
 import { ResultCode } from '../../../common';

@@ -33,11 +33,11 @@ import {
 import {
   CreateDailyRecordImageUploadDto,
   DailyRecordImageUploadResponseDto,
-} from './dto/record-image-upload.dto';
+} from './dto/candidates/record-image-upload.dto';
 
-import { DailyRecordCandidateResponseDto } from './dto/record-candidate-response.dto';
+import { DailyRecordCandidateResponseDto } from './dto/candidates/record-candidate-response.dto';
 
-import { GenerateDailyRecordCandidatesDto } from './dto/generate-record-candidates.dto';
+import { GenerateDailyRecordCandidatesDto } from './dto/candidates/generate-record-candidates.dto';
 
 import { QueryDailyRecordDto } from './dto/query-record.dto';
 import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service';

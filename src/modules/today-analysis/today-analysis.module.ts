@@ -6,17 +6,17 @@ import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
 import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { TodayAnalysisContextService } from './services/context.service';
+import { TodayAnalysisContextService } from './services/pipeline/context.service';
 
-import { TodayAnalysisCopyService } from './services/copy.service';
+import { TodayAnalysisCopyService } from './services/pipeline/copy.service';
 
-import { TodayAnalysisGeneratorService } from './services/generator.service';
+import { TodayAnalysisGeneratorService } from './services/pipeline/generator.service';
 
 import { TodayAnalysisQueueService } from './services/analysis-queue.service';
 
 import { TodayAnalysisService } from './services/analysis.service';
 
-import { TodayRecommendationsService } from './services/recommendations.service';
+import { TodayRecommendationsService } from './services/pipeline/recommendations.service';
 import { TodayAnalysisController } from './today-analysis.controller';
 
 @Module({

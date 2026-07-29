@@ -34,7 +34,7 @@ import { TodayAnalysisQueueService } from './services/analysis-queue.service';
 
 import { TodayAnalysisService } from './services/analysis.service';
 
-import { TodayRecommendationsService } from './services/recommendations.service';
+import { TodayRecommendationsService } from './services/pipeline/recommendations.service';
 import { GenerateTodayAnalysisDto } from './dto/generate-today-analysis.dto';
 
 import { TodayAnalysisResponseDto } from './dto/analysis-response.dto';

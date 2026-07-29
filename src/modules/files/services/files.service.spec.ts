@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
-import type { TencentCosConfig } from '../../../config/tencent-cos.config';
+import type { TencentCosConfig } from '../../../config/services/tencent-cos.config';
 import type { CosStorageRuntime } from '../../../common';
 import { FilesService } from './files.service';
 

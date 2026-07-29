@@ -4,7 +4,7 @@ import {
   transports as winstonTransports,
 } from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
-import { EnvKey } from '../../config/env-keys.enum';
+import { EnvKey } from '../../config/env/env-keys.enum';
 import { requestContextStorage } from './request-context.service';
 
 type LogLevel =

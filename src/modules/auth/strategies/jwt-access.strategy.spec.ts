@@ -1,7 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 
-import { ConfigKey } from '../../../config/config-keys.enum';
+import { ConfigKey } from '../../../config/env/config-keys.enum';
 import { JwtAccessStrategy } from './jwt-access.strategy';
 
 describe('JwtAccessStrategy', () => {

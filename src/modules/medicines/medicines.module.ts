@@ -8,11 +8,11 @@ import { MedicinesController } from './medicines.controller';
 import { MedicinesService } from './services/medicines.service';
 
 import { MedicineRecognitionQueueService } from './services/recognition-queue.service';
-import { MedicineRiskCheckService } from './services/risk-check.service';
-import { MedicineRiskCheckListener } from './services/risk-check.listener';
-import { MedicineRiskLlmGeneratorService } from './services/risk-llm-generator.service';
-import { RiskDetectionService } from './services/risk-detection.service';
-import { RiskContextBuilderService } from './services/risk-context-builder.service';
+import { MedicineRiskCheckService } from './services/risk/risk-check.service';
+import { MedicineRiskCheckListener } from './services/risk/risk-check.listener';
+import { MedicineRiskLlmGeneratorService } from './services/risk/risk-llm-generator.service';
+import { RiskDetectionService } from './services/risk/risk-detection.service';
+import { RiskContextBuilderService } from './services/risk/risk-context-builder.service';
 import { CnMedicinesService } from './adapters/cn.service';
 
 import { DrugbankMedicinesService } from './adapters/drugbank.service';

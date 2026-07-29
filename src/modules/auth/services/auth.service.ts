@@ -3,11 +3,11 @@ import { I18nService } from 'nestjs-i18n';
 
 import { User } from '#generated/prisma/client';
 import { ResultCode } from '../../../common';
-import { DeleteAccountDto } from '../dto/delete-account.dto';
-import { ChangeEmailDto } from '../dto/change-email.dto';
-import { ChangePasswordDto } from '../dto/change-password.dto';
-import { ForgotPasswordDto } from '../dto/forgot-password.dto';
-import { LoginDto } from '../dto/login.dto';
+import { DeleteAccountDto } from '../dto/shared/delete-account.dto';
+import { ChangeEmailDto } from '../dto/password/change-email.dto';
+import { ChangePasswordDto } from '../dto/password/change-password.dto';
+import { ForgotPasswordDto } from '../dto/password/forgot-password.dto';
+import { LoginDto } from '../dto/credentials/login.dto';
 import {
   AppleOAuthCallbackDto,
   OAuthAuthorizeDto,
@@ -15,12 +15,12 @@ import {
   OAuthCodeCallbackDto,
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
-} from '../dto/oauth.dto';
-import { RegisterDto } from '../dto/register.dto';
-import { ResetPasswordDto } from '../dto/reset-password.dto';
-import { SendVerificationCodeDto } from '../dto/send-verification-code.dto';
-import { SetPasswordDto } from '../dto/set-password.dto';
-import { VerifyEmailDto } from '../dto/verify-email.dto';
+} from '../dto/shared/oauth.dto';
+import { RegisterDto } from '../dto/credentials/register.dto';
+import { ResetPasswordDto } from '../dto/password/reset-password.dto';
+import { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto';
+import { SetPasswordDto } from '../dto/password/set-password.dto';
+import { VerifyEmailDto } from '../dto/password/verify-email.dto';
 import { AuthRequestContext, TokenPair } from '../types/auth-request';
 import { OAuthAuthorizeResult } from '../types/oauth.types';
 import { AuthAccountService } from './account.service';

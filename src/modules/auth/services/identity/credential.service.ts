@@ -16,15 +16,15 @@ import { UserStatus } from '#generated/prisma/client';
 import { UserService } from '../../../user';
 import { VerificationCodeService } from './verification-code.service';
 import { ResultCode } from '../../../../common';
-import { RegisterDto } from '../../dto/register.dto';
-import { LoginDto } from '../../dto/login.dto';
-import { ChangePasswordDto } from '../../dto/change-password.dto';
-import { ChangeEmailDto } from '../../dto/change-email.dto';
-import { ResetPasswordDto } from '../../dto/reset-password.dto';
-import { SetPasswordDto } from '../../dto/set-password.dto';
-import { ForgotPasswordDto } from '../../dto/forgot-password.dto';
-import { SendVerificationCodeDto } from '../../dto/send-verification-code.dto';
-import { VerifyEmailDto } from '../../dto/verify-email.dto';
+import { RegisterDto } from '../../dto/credentials/register.dto';
+import { LoginDto } from '../../dto/credentials/login.dto';
+import { ChangePasswordDto } from '../../dto/password/change-password.dto';
+import { ChangeEmailDto } from '../../dto/password/change-email.dto';
+import { ResetPasswordDto } from '../../dto/password/reset-password.dto';
+import { SetPasswordDto } from '../../dto/password/set-password.dto';
+import { ForgotPasswordDto } from '../../dto/password/forgot-password.dto';
+import { SendVerificationCodeDto } from '../../dto/password/send-verification-code.dto';
+import { VerifyEmailDto } from '../../dto/password/verify-email.dto';
 import {
   AuthTokenService,
   type AuthRequestContext,

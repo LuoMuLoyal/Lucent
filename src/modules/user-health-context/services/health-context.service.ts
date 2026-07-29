@@ -12,10 +12,10 @@ import type { UpdateHealthContextAllergyDto } from '../dto/update-allergy.dto';
 import type { UpdateHealthContextConditionDto } from '../dto/update-condition.dto';
 import type { UpdateHealthContextProfileDto } from '../dto/update-profile.dto';
 import { UserHealthContextMapperService } from './mapper.service';
-import { UserHealthContextProfileWriteService } from './profile-write.service';
-import { UserHealthContextAllergyWriteService } from './allergy-write.service';
-import { UserHealthContextConditionWriteService } from './condition-write.service';
-import { UserHealthContextMedicineWriteService } from './medicine-write.service';
+import { UserHealthContextProfileWriteService } from './writes/profile-write.service';
+import { UserHealthContextAllergyWriteService } from './writes/allergy-write.service';
+import { UserHealthContextConditionWriteService } from './writes/condition-write.service';
+import { UserHealthContextMedicineWriteService } from './writes/medicine-write.service';
 import {
   HEALTH_CONTEXT_CHANGED,
   type HealthContextChangedPayload,

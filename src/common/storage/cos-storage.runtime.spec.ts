@@ -1,5 +1,5 @@
 import type { ConfigService } from '@nestjs/config';
-import type { TencentCosConfig } from '../../config/tencent-cos.config';
+import type { TencentCosConfig } from '../../config/services/tencent-cos.config';
 import { CosStorageRuntime } from './cos-storage.runtime';
 
 const mockCos = {

@@ -21,9 +21,9 @@ import {
   DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
   DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
 } from '../../../../config/constants';
-import { EnvKey } from '../../../../config/env-keys.enum';
+import { EnvKey } from '../../../../config/env/env-keys.enum';
 import { MailService } from '../../../../mail/mail.service';
-import type { VerificationScene } from '../../dto/send-verification-code.dto';
+import type { VerificationScene } from '../../dto/password/send-verification-code.dto';
 
 interface RateLimitBucket {
   count: number;

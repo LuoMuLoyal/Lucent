@@ -5,7 +5,7 @@ import {
 import type { AssistantRuntimeService } from '../agent/runtime.service';
 import type { UserSettingsService } from '../../user-settings';
 import type { AssistantPolicyService } from './policy.service';
-import type { AssistantContextService } from '../tools/context.service';
+import type { AssistantContextService } from '../tools/shared/context.service';
 import type { AssistantToolService } from '../tools/tool.service';
 import type { AssistantConversationService } from './conversation.service';
 import type {

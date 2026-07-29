@@ -1,5 +1,5 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import type { LlmConfig } from '../config/llm.config';
+import type { LlmConfig } from '../config/services/llm.config';
 import { AI_MODEL_TIMEOUT_MS } from '../config/constants';
 import { LlmRuntimeService } from './services/llm-runtime.service';
 

@@ -9,7 +9,7 @@ import {
   type HealthProbeDto,
   type HealthProbeType,
 } from './app.dto';
-import { EnvKey } from './config/env-keys.enum';
+import { EnvKey } from './config/env/env-keys.enum';
 import { PrismaService } from './prisma';
 import { nowIsoString } from './common';
 import { extractErrorInfo } from './common';

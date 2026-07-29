@@ -10,7 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { Observable, tap } from 'rxjs';
 import { performance } from 'node:perf_hooks';
 import type { FastifyRequest } from 'fastify';
-import { EnvKey } from '../../config/env-keys.enum';
+import { EnvKey } from '../../config/env/env-keys.enum';
 import { DEFAULT_SLOW_REQUEST_THRESHOLD_MS } from '../../config/constants';
 
 export const SKIP_SLOW_REQUEST_KEY = 'skipSlowRequestLog';

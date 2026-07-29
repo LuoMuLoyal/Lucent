@@ -11,8 +11,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { ResultCode } from '../../../common';
-import { ConfigKey } from '../../../config/config-keys.enum';
-import type { OAuthConfig } from '../../../config/oauth.config';
+import { ConfigKey } from '../../../config/env/config-keys.enum';
+import type { OAuthConfig } from '../../../config/services/oauth.config';
 import { OAUTH_PROVIDER_QQ, type OAuthProfile } from '../types/oauth.types';
 import type { OAuthProvider } from './oauth-provider.interface';
 

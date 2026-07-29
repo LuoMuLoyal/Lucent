@@ -1,8 +1,8 @@
 import { ForbiddenException } from '@nestjs/common';
-import type { LlmConfig } from '../../../config/llm.config';
-import type { TodayAnalysisCopyService } from './copy.service';
-import type { TodayAnalysisContextService } from './context.service';
-import type { TodayAnalysisGeneratorService } from './generator.service';
+import type { LlmConfig } from '../../../config/services/llm.config';
+import type { TodayAnalysisCopyService } from './pipeline/copy.service';
+import type { TodayAnalysisContextService } from './pipeline/context.service';
+import type { TodayAnalysisGeneratorService } from './pipeline/generator.service';
 import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
 import { TodayAnalysisService } from './analysis.service';
 import type { NotificationsService } from '../../notifications';

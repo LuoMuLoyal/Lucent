@@ -5,8 +5,8 @@ import {
   type OnApplicationShutdown,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../config/config-keys.enum';
-import { EnvKey } from '../../config/env-keys.enum';
+import { ConfigKey } from '../../config/env/config-keys.enum';
+import { EnvKey } from '../../config/env/env-keys.enum';
 
 /**
  * Emits structured lifecycle log entries when the application starts and stops.

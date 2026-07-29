@@ -10,12 +10,12 @@ import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.se
 import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto';
 
 import type { TodayAnalysisDataDto } from '../dto/analysis-response.dto';
-import { TodayAnalysisCopyService } from './copy.service';
+import { TodayAnalysisCopyService } from './pipeline/copy.service';
 import {
   TodayAnalysisContextService,
   type TodayAnalysisContext,
-} from './context.service';
-import { TodayAnalysisGeneratorService } from './generator.service';
+} from './pipeline/context.service';
+import { TodayAnalysisGeneratorService } from './pipeline/generator.service';
 import type { TodayAnalysisStructuredOutput } from '../schemas/analysis.schema';
 import { nowIsoString } from '../../../common';
 

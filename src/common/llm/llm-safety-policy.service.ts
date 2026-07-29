@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { llmConfig } from '../../config/llm.config';
+import { llmConfig } from '../../config/services/llm.config';
 
 const DEFAULT_FORBIDDEN_PATTERNS = [
   /诊断/u,

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { VectorStoreFactory } from '../vector-store.factory';
+import { VectorStoreFactory } from '../vector/vector-store.factory';
 import type {
   AssistantReadResultEnvelope,
   AssistantToolExecutionContext,
@@ -9,7 +9,7 @@ import {
   buildVectorPage,
   buildVectorQueryHash,
   decodeVectorCursor,
-} from '../vector-cursor';
+} from '../vector/vector-cursor';
 import {
   AssistantToolDrugbankEntityResolveService,
   parseSearchPayload,
@@ -17,7 +17,7 @@ import {
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
   ASSISTANT_VECTOR_MAX_LIMIT,
-} from '../tool-constants';
+} from '../shared/tool-constants';
 
 const DRUGBANK_EMBEDDINGS_TABLE = 'drugbank_passage_embeddings';
 

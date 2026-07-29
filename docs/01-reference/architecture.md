@@ -187,12 +187,21 @@ Root-level `src/` infrastructure directories stay separate from `common/` shared
 particular, `mail/`, `prisma/`, `config/`, and `i18n/` remain root-level runtime boundaries, while
 `common/` is internally split by role:
 
-- `common/helpers/` — pure helper functions and stateless shared utilities
+- `common/helpers/` — pure helper functions, split by domain:
+  `prisma/` (query helpers, ownership), `errors/` (API error factories, error info/payload),
+  `format/` (string/number/json/date/search/localized-copy), `infra/` (array/crypto/ip/pagination/queue/retry)
+- `common/api/` — API envelope + SSE infrastructure; SSE files live in `common/api/sse/`
 - `common/services/` — shared injectable services
 - `common/logger/` — shared Nest logging module
 - `common/llm/`, `common/filters/`, `common/interceptors/`, `common/middleware/`,
   `common/constants/`, `common/validators/`, `common/queue/`, `common/metrics/`,
   `common/events/`, `common/storage/`, `common/types/` — capability-specific shared code
+
+Root-level `src/config/` is split by role:
+
+- `config/services/` — 7 `registerAs()` config factories (cache, jwt, llm, mail, oauth, tencent-cos, throttler)
+- `config/env/` — environment validation, env-file paths, `EnvKey` and `ConfigKey` enums
+- `config/app.config.ts` — root app config; `config/constants.ts` — shared config constants
 
 ```
 src/modules/{module}/

@@ -9,11 +9,11 @@ import {
   OAuthCodeCallbackDto,
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
-} from '../../dto/oauth.dto';
+} from '../../dto/shared/oauth.dto';
 import { AppleOAuthProvider } from '../../providers/apple-oauth.provider';
 import { QqOAuthProvider } from '../../providers/qq-oauth.provider';
-import { WechatMobileOAuthProvider } from '../../providers/wechat-mobile-oauth.provider';
-import { WechatWebOAuthProvider } from '../../providers/wechat-web-oauth.provider';
+import { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider';
+import { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider';
 import {
   OAUTH_PROVIDER_QQ,
   OAUTH_PROVIDER_WECHAT_WEB,

@@ -11,8 +11,8 @@ import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'node:crypto';
 import { I18nService } from 'nestjs-i18n';
-import { ConfigKey } from '../../../../config/config-keys.enum';
-import { EnvKey } from '../../../../config/env-keys.enum';
+import { ConfigKey } from '../../../../config/env/config-keys.enum';
+import { EnvKey } from '../../../../config/env/env-keys.enum';
 import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/constants';
 import { ResultCode } from '../../../../common';
 import {

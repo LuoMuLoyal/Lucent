@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { JobsOptions, Queue } from 'bullmq';
 import { BullmqQueueFactory } from '../common/queue/queue.factory';
-import { ConfigKey } from '../config/config-keys.enum';
-import type { MailConfig } from '../config/mail.config';
+import { ConfigKey } from '../config/env/config-keys.enum';
+import type { MailConfig } from '../config/services/mail.config';
 import { MailTransportService } from './mail-transport.service';
 
 const MAIL_QUEUE_NAME = 'lucent-mail';

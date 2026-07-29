@@ -10,7 +10,7 @@ import {
   REFERENCE_DATA_UPDATED_AT,
   STATIC_SUPPORT_RESOURCES,
 } from '../constants/support-resources-reference';
-import { EnvKey } from '../../../config/env-keys.enum';
+import { EnvKey } from '../../../config/env/env-keys.enum';
 
 @Injectable()
 export class SupportResourcesService {

@@ -1,5 +1,5 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import type { TencentCosConfig } from '../../../config/tencent-cos.config';
+import type { TencentCosConfig } from '../../../config/services/tencent-cos.config';
 import type { CosStorageRuntime } from '../../../common';
 import { DataExportStorageService } from './storage.service';
 

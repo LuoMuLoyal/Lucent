@@ -1,6 +1,6 @@
 import { registerAs } from '@nestjs/config';
-import { ConfigKey } from './config-keys.enum';
-import { EnvKey } from './env-keys.enum';
+import { ConfigKey } from './env/config-keys.enum';
+import { EnvKey } from './env/env-keys.enum';
 
 function parseCorsOrigin(raw: string): boolean | string[] {
   const value = raw.trim();

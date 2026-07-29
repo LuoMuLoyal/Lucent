@@ -27,13 +27,13 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 import { Public } from '../decorators/public.decorator';
 import type { UserPayload } from '../types/auth-request';
 
-import { LogoutDto } from '../dto/logout.dto';
-import { RefreshDto } from '../dto/refresh.dto';
+import { LogoutDto } from '../dto/credentials/logout.dto';
+import { RefreshDto } from '../dto/credentials/refresh.dto';
 
 import {
   RefreshResponseDto,
   SuccessResponseDto,
-} from '../dto/auth-responses.dto';
+} from '../dto/shared/auth-responses.dto';
 
 @ApiTags('Auth')
 @Controller('auth')

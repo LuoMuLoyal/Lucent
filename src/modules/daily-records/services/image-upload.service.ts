@@ -7,7 +7,7 @@ import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
 import { ResultCode } from '../../../common';
 import { now } from '../../../common';
 import { CosStorageRuntime } from '../../../common';
-import type { CreateDailyRecordImageUploadDto } from '../dto/record-image-upload.dto';
+import type { CreateDailyRecordImageUploadDto } from '../dto/candidates/record-image-upload.dto';
 
 const PROVIDER = 'tencent-cos';
 

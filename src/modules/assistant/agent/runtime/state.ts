@@ -3,7 +3,7 @@ import type { BaseMessage } from '@langchain/core/messages';
 import type {
   AssistantContextSource,
   AssistantToolName,
-} from '../../tools/tool-types';
+} from '../../tools/shared/tool-types';
 import type { AssistantToolExecutionResult } from '../../types/assistant.types';
 
 export const ASSISTANT_RUNTIME_NODE_NAMES = [

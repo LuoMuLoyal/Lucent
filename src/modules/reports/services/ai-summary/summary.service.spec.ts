@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
-import type { LlmConfig } from '../../../../config/llm.config';
+import type { LlmConfig } from '../../../../config/services/llm.config';
 import {
   REPORT_RANGE_LAST_30_DAYS,
   REPORT_RANGE_LAST_7_DAYS,

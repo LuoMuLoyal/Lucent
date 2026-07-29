@@ -13,7 +13,7 @@ import type { ApiEnvelope } from '../../../src/common';
 import { DailyRecordCandidatesService } from '../../../src/modules/daily-records';
 import { PrismaService } from '../../../src/prisma';
 import { DailyRecordKind, UserStatus } from '#generated/prisma/client';
-import { ConfigKey } from '../../../src/config/config-keys.enum';
+import { ConfigKey } from '../../../src/config/env/config-keys.enum';
 
 const BASE_PATH = '/api/v1/user/daily-records';
 const AUTH_HEADER = 'Authorization';

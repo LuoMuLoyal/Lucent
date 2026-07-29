@@ -1,4 +1,4 @@
-import { EnvKey } from './env-keys.enum';
+import { EnvKey } from './env/env-keys.enum';
 import { appConfig } from './app.config';
 
 describe('appConfig', () => {

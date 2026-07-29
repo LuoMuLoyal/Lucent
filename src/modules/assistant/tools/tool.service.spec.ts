@@ -4,8 +4,8 @@ import { AssistantToolLeafletReadService } from './leaflet/read.service';
 import { AssistantToolDrugbankEntityResolveService } from './drugbank/entity-resolve.service';
 import { AssistantToolDrugbankSearchService } from './drugbank/search.service';
 import type { AssistantToolMedicineLookupService } from './medicine/lookup.service';
-import { AssistantToolProposalService } from './proposal.service';
-import { AssistantToolReadService } from './read.service';
+import { AssistantToolProposalService } from './proposal/proposal.service';
+import { AssistantToolReadService } from './read/read.service';
 import { AssistantToolRecordQueryService } from './records/query.service';
 import { AssistantToolService } from './tool.service';
 

@@ -3,7 +3,7 @@ import type {
   AssistantToolExecutionContext,
   AssistantToolExecutionResult,
 } from '../types/assistant.types';
-import type { AssistantToolName } from './tool-types';
+import type { AssistantToolName } from './shared/tool-types';
 import { AssistantToolLeafletReadService } from './leaflet/read.service';
 import {
   AssistantToolDrugbankEntityResolveService,
@@ -12,8 +12,8 @@ import {
 import { AssistantToolDrugbankSearchService } from './drugbank/search.service';
 import { AssistantToolMedicalKnowledgeService } from './knowledge/medical.service';
 import { AssistantToolMedicineLookupService } from './medicine/lookup.service';
-import { AssistantToolProposalService } from './proposal.service';
-import { AssistantToolReadService } from './read.service';
+import { AssistantToolProposalService } from './proposal/proposal.service';
+import { AssistantToolReadService } from './read/read.service';
 
 @Injectable()
 export class AssistantToolService {

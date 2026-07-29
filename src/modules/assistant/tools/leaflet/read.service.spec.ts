@@ -7,7 +7,7 @@ import {
   buildVectorQueryHash,
   decodeVectorCursor,
   encodeVectorCursor,
-} from '../vector-cursor';
+} from '../vector/vector-cursor';
 
 // Mock PGVectorStore
 const mockSimilaritySearchWithScore = vi.fn();

@@ -4,9 +4,9 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ResultCode } from '../../../../common';
-import type { DailyRecordCandidateData } from '../../dto/record-candidate-response.dto';
+import type { DailyRecordCandidateData } from '../../dto/candidates/record-candidate-response.dto';
 
-import type { GenerateDailyRecordCandidatesDto } from '../../dto/generate-record-candidates.dto';
+import type { GenerateDailyRecordCandidatesDto } from '../../dto/candidates/generate-record-candidates.dto';
 import { DailyRecordCandidatesCopyService } from '../candidates/copy.service';
 import { DailyRecordCandidatesGeneratorService } from '../candidates/generator.service';
 import { nowIsoString } from '../../../../common';

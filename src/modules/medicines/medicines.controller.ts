@@ -44,18 +44,18 @@ import {
 import { MedicineSafetyTipListResponseDto } from './dto/safety-tip-response.dto';
 
 import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
-import { RunRiskCheckDto } from './dto/risk-check-request.dto';
+import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto';
 import {
   MedicineRiskCheckRecordDto,
   MedicineRiskCheckRecordsDto,
   MedicineRiskCheckRecordResponseDto,
   MedicineRiskCheckRecordsResponseDto,
-} from './dto/risk-check-response.dto';
+} from './dto/risk/risk-check-response.dto';
 import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/store.constants';
 import { MedicinesService } from './services/medicines.service';
 
 import { MedicineRecognitionQueueService } from './services/recognition-queue.service';
-import { MedicineRiskCheckService } from './services/risk-check.service';
+import { MedicineRiskCheckService } from './services/risk/risk-check.service';
 
 @ApiTags('Medicines')
 @ApiExtraModels(

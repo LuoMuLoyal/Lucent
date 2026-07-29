@@ -1,7 +1,7 @@
-export type { DailyRecordCandidateData } from './dto/record-candidate-response.dto';
+export type { DailyRecordCandidateData } from './dto/candidates/record-candidate-response.dto';
 export type { DailyRecordFact } from './repositories/daily-record.repository';
 export type { DailyRecordItemDto } from './dto/record-item.dto';
-export type { GenerateDailyRecordCandidatesDto } from './dto/generate-record-candidates.dto';
+export type { GenerateDailyRecordCandidatesDto } from './dto/candidates/generate-record-candidates.dto';
 export { DailyRecordCandidatesService } from './services/candidates/orchestrator.service';
 export { DailyRecordReaderPort } from './repositories/daily-record.repository';
 export { DailyRecordsService } from './services/records.service';

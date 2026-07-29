@@ -9,7 +9,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import type { Logger as WinstonLogger } from 'winston';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Prisma, PrismaClient } from '#generated/prisma/client';
-import { EnvKey } from '../config/env-keys.enum.js';
+import { EnvKey } from '../config/env/env-keys.enum.js';
 import { DEFAULT_SLOW_QUERY_THRESHOLD_MS } from '../config/constants.js';
 import { requestContextStorage } from '../common/logger/request-context.service.js';
 import {

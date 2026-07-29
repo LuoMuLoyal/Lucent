@@ -5,8 +5,8 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module';
 import { setupApp } from './setup-app';
-import { ConfigKey } from './config/config-keys.enum';
-import { EnvKey } from './config/env-keys.enum';
+import { ConfigKey } from './config/env/config-keys.enum';
+import { EnvKey } from './config/env/env-keys.enum';
 import { registerAdminPanel } from './admin/setup';
 
 async function bootstrap() {

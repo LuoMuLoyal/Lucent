@@ -16,7 +16,7 @@ import { apiReference } from '@scalar/nestjs-api-reference';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import type { Logger as WinstonLogger } from 'winston';
 import { safeCompare } from './common';
-import { ConfigKey } from './config/config-keys.enum';
+import { ConfigKey } from './config/env/config-keys.enum';
 import { ResultCode } from './common';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ApiEnvelopeInterceptor } from './common';

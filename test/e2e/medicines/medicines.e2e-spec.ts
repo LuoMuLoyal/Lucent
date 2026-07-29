@@ -12,7 +12,7 @@ import { setupApp } from '../../../src/setup-app';
 import type { ApiEnvelope } from '../../../src/common';
 import { ResultCode } from '../../../src/common';
 import { PrismaService } from '../../../src/prisma';
-import { ConfigKey } from '../../../src/config/config-keys.enum';
+import { ConfigKey } from '../../../src/config/env/config-keys.enum';
 import { UserStatus } from '#generated/prisma/client';
 
 interface MedicineSearchItem {

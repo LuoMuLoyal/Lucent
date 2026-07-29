@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
-import { ConfigKey } from '../../../config/config-keys.enum';
+import { ConfigKey } from '../../../config/env/config-keys.enum';
 import { UserPayload } from '../services/auth.service';
 
 interface JwtConfigShape {

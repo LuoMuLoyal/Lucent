@@ -14,12 +14,12 @@ import { extractAuthRequestContext, getRequestClientIp } from '../../../common';
 import { AuthService } from '../services/auth.service';
 import { VerificationCodeService } from '../services/identity/verification-code.service';
 
-import { RegisterDto } from '../dto/register.dto';
-import { LoginDto } from '../dto/login.dto';
-import { SendVerificationCodeDto } from '../dto/send-verification-code.dto';
-import { VerifyEmailDto } from '../dto/verify-email.dto';
-import { ForgotPasswordDto } from '../dto/forgot-password.dto';
-import { ResetPasswordDto } from '../dto/reset-password.dto';
+import { RegisterDto } from '../dto/credentials/register.dto';
+import { LoginDto } from '../dto/credentials/login.dto';
+import { SendVerificationCodeDto } from '../dto/password/send-verification-code.dto';
+import { VerifyEmailDto } from '../dto/password/verify-email.dto';
+import { ForgotPasswordDto } from '../dto/password/forgot-password.dto';
+import { ResetPasswordDto } from '../dto/password/reset-password.dto';
 
 import {
   ForgotPasswordResponseDto,
@@ -28,7 +28,7 @@ import {
   SendVerificationCodeResponseDto,
   SuccessResponseDto,
   VerifyEmailResponseDto,
-} from '../dto/auth-responses.dto';
+} from '../dto/shared/auth-responses.dto';
 
 import { buildAuthResponse } from './auth-response.helper';
 import { Public } from '../decorators/public.decorator';

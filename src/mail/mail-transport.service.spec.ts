@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import type { mailConfig } from '../config/mail.config';
+import type { mailConfig } from '../config/services/mail.config';
 import { MailTransportService } from './mail-transport.service';
 
 vi.mock('nodemailer', () => ({

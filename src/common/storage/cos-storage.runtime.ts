@@ -1,8 +1,8 @@
 import COS from 'cos-nodejs-sdk-v5';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ConfigKey } from '../../config/config-keys.enum';
-import type { TencentCosConfig } from '../../config/tencent-cos.config';
+import { ConfigKey } from '../../config/env/config-keys.enum';
+import type { TencentCosConfig } from '../../config/services/tencent-cos.config';
 
 /**
  * Shared Tencent COS (Cloud Object Storage) runtime.

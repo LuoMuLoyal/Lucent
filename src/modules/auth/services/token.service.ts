@@ -9,7 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
 import { I18nService } from 'nestjs-i18n';
 import { User } from '#generated/prisma/client';
-import { ConfigKey } from '../../../config/config-keys.enum';
+import { ConfigKey } from '../../../config/env/config-keys.enum';
 
 import { now } from '../../../common';
 import type {

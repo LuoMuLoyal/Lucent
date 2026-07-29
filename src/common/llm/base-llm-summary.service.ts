@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AI_SUMMARIES_ENABLED_SETTING_KEY } from '../constants/user-setting-keys';
-import { forbidden } from '../helpers/api-errors';
+import { forbidden } from '../helpers/errors/api-errors';
 import { PrismaService } from '../../prisma';
-import type { PromptCopy } from '../helpers/localized-copy';
+import type { PromptCopy } from '../helpers/format/localized-copy';
 import type { StreamSummaryEvent } from '../api/stream-summary';
 import { LlmSafetyPolicyService } from './llm-safety-policy.service';
 import { BaseLlmGeneratorService } from './base-llm-generator.service';
-import { extractErrorInfo } from '../helpers/error-info.utils';
+import { extractErrorInfo } from '../helpers/errors/error-info.utils';
 
 export interface LlmSummaryCopyService<TContext, TOutput> {
   resolveLocale(language: string | undefined): string;
