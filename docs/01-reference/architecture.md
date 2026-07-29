@@ -92,6 +92,49 @@ graph TD
     healthCtx --> prisma
 ```
 
+## Cross-Module Data Access (Reader Ports)
+
+Cross-module data access is governed by [ADR-0009](adr/0009-cross-module-data-access.md).
+The core principle: owning module defines the read contract, consumers depend on the
+abstract port — never on Prisma query DSL directly.
+
+### Provider-side Reader Ports
+
+These abstract classes are co-located with their concrete repository implementation,
+bound via `useExisting` (single instance), and exported through the module root barrel
+when external consumers exist.
+
+| Port                         | Owning Module      | File                                      | Exported | Consumers                                                                   |
+| ---------------------------- | ------------------ | ----------------------------------------- | -------- | --------------------------------------------------------------------------- |
+| `DailyRecordReaderPort`      | daily-records      | `repositories/daily-record.repository.ts` | Yes      | today-analysis, today-suggestion (collectors + baseline), reports/dashboard |
+| `MedicineDoseLogReaderPort`  | medicine-dose-logs | `repositories/dose-log.repository.ts`     | Yes      | today-analysis, today-suggestion (collectors), reports/dashboard            |
+| `MedicineReminderReaderPort` | medicine-reminders | `repositories/reminder.repository.ts`     | Yes      | today-analysis                                                              |
+
+Each reader returns **fact DTOs** (plain data shapes), not Prisma `WhereInput` or model
+objects. Sorting and soft-delete filtering (`nonDeleted`) are baked into the reader
+implementation, so consumers never duplicate these concerns.
+
+### Assistant Consumer-side Ports
+
+The assistant module uses a consumer-defined port pattern (`assistant/types/ports.ts`)
+— the consumer declares the interface it needs, the providing module implements it.
+This is the opposite of provider-side reader ports but is preserved as the best
+boundary example per ADR-0009.
+
+| Interface                        | Symbol Token                       | Provider Module    | Purpose                       |
+| -------------------------------- | ---------------------------------- | ------------------ | ----------------------------- |
+| `IMedicineReminderReader`        | `MEDICINE_REMINDER_READER`         | medicine-reminders | List active reminders         |
+| `IDailyRecordReader`             | `DAILY_RECORD_READER`              | daily-records      | Paginated daily record lookup |
+| `IDailyRecordCandidateGenerator` | `DAILY_RECORD_CANDIDATE_GENERATOR` | daily-records      | LLM candidate generation      |
+
+### Exemptions
+
+Per ADR-0009, **read-model modules** (today-analysis, today-suggestion, reports) are
+**exempt** from the reader-port requirement — their aggregation queries are varied and
+forcing them through narrow ports would be over-engineering. These modules may inject
+`PrismaService` directly for cross-module reads, but should encapsulate queries in
+internal `repositories/` for cleanliness.
+
 ## AI Pipeline Architecture
 
 All AI analysis modules follow a three-layer pattern:
@@ -153,8 +196,7 @@ particular, `mail/`, `prisma/`, `config/`, and `i18n/` remain root-level runtime
 
 ```
 src/modules/{module}/
-├── dto/               # Data Transfer Objects (must have index.ts)
-│   └── index.ts       # Barrel export
+├── dto/               # Data Transfer Objects
 ├── services/          # All business-logic services
 │   ├── {module}.service.ts
 │   ├── {module}-mapper.service.ts  # Mapper convention
@@ -166,7 +208,8 @@ src/modules/{module}/
 ├── schemas/           # AI output schemas and structured-response validators
 ├── config/            # Module-level runtime configuration (objects/classes only)
 ├── {module}.controller.ts
-└── {module}.module.ts
+├── {module}.module.ts
+└── index.ts           # Module root barrel (explicit exports, never export *)
 ```
 
 ## API Route Architecture

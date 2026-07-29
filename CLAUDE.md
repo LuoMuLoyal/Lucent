@@ -123,11 +123,16 @@ file name = WHAT it does.
 
 ## Barrel Exports
 
-- Every sub-directory inside a module (`services/`, `dto/`, `tools/`, etc.) **must**
-  have an `index.ts` re-exporting all public symbols — only `export *` statements.
-- Cross-module imports go through barrels, not deep paths:
+- Each module has a single `index.ts` at the module root that explicitly exports
+  the module's public API — use `export { X } from './path'`, never `export *`.
+- No sub-directory barrels (`services/index.ts`, `dto/index.ts`, etc.) —
+  sub-directories are internal namespaces, not export surfaces.
+- Cross-module imports go through the module root barrel:
   - ❌ `import { XxxService } from '../auth/services/auth-token.service';`
-  - ✅ `import { XxxService } from '../auth/services';`
+  - ✅ `import { XxxService } from '../auth';`
+- Within a module, use deep-path imports:
+  - ❌ `import { XxxService } from './services';`
+  - ✅ `import { XxxService } from './services/account.service';`
 
 ## Cross-Project Contract
 
