@@ -4,6 +4,7 @@ import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { LlmCommonModule } from '../../common';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
+import { MedicineRemindersModule } from '../medicine-reminders/medicine-reminders.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { TodayAnalysisContextService } from './services/context.service';
 
@@ -26,6 +27,7 @@ import { TodayAnalysisController } from './today-analysis.controller';
     NotificationsModule,
     DailyRecordsModule,
     MedicineDoseLogsModule,
+    MedicineRemindersModule,
   ],
   controllers: [TodayAnalysisController],
   providers: [

@@ -323,18 +323,6 @@ No sub-directory barrels — sub-directories are internal namespaces, not export
 
 ## 4. 执行计划
 
-### Phase 2：Reader Port 补全（低风险）
-
-| 步骤 | 动作                                                                                                                    |
-| ---- | ----------------------------------------------------------------------------------------------------------------------- |
-| 2.1  | 在 `medicine-reminders/repositories/` 新增 `MedicineReminderReaderPort`，返回 reminder fact DTO                         |
-| 2.2  | 在 `today-analysis/services/context.service.ts` 中用 reader port 替代 PrismaService 直查 reminder                       |
-| 2.3  | 在 `reports/dashboard/context.service.ts` 中同上                                                                        |
-| 2.4  | 在 `today-suggestion/services/collectors/record.service.ts` 中用 `UserSettingsService` 替代 PrismaService 直查 settings |
-| 2.5  | 在 `today-analysis` 和 `reports` 内部增加 `repositories/` 封装，service 不直接操作 Prisma（可选）                       |
-
-**验证**：`pnpm test:ci` + `pnpm test:e2e:ci`。
-
 ### Phase 3：today-suggestion 编排器优化（中风险）
 
 | 步骤 | 动作                                                                  |

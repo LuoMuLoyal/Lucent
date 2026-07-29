@@ -6,6 +6,7 @@ import { PrismaModule } from '../../prisma';
 import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { UserSettingsModule } from '../user-settings/user-settings.module';
 
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { ArbitrationService } from './services/arbitration/service';
@@ -52,6 +53,7 @@ import type { SuggestionRule } from './types/rule.types';
     LlmCommonModule,
     DailyRecordsModule,
     MedicineDoseLogsModule,
+    UserSettingsModule,
   ],
   controllers: [TodaySuggestionController],
   providers: [

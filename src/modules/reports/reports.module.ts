@@ -4,6 +4,7 @@ import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { LlmCommonModule } from '../../common';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
+import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { ReportsAiSummaryContextService } from './services/ai-summary/context.service';
 
 import { ReportsLlmSummaryCopyService } from './services/ai-summary/copy.service';
@@ -34,6 +35,7 @@ import { ReportsController } from './reports.controller';
     AssistantModule,
     DailyRecordsModule,
     MedicineDoseLogsModule,
+    UserSettingsModule,
   ],
   controllers: [ReportsController],
   providers: [

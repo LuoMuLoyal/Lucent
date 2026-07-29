@@ -1,24 +1,27 @@
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import { DailyRecordKind } from '#generated/prisma/client';
-import type { PrismaService } from '../../../../prisma';
 import type { DailyRecordReaderPort } from '../../../daily-records';
 import { RecordCollectorService } from './record.service';
+import type { UserSettingsService } from '../../../user-settings';
 import { USER_SETTINGS_DEFAULTS } from '../../../user-settings';
 import { TREND_LOOKBACK_DAYS } from '../../constants/thresholds.constants';
 
 describe('RecordCollectorService', () => {
   let service: RecordCollectorService;
-  let prisma: DeepMocked<PrismaService>;
+  let userSettingsService: DeepMocked<UserSettingsService>;
   let dailyRecordReader: DeepMocked<DailyRecordReaderPort>;
 
   beforeEach(() => {
-    prisma = {
-      userSetting: { findUnique: vi.fn() },
-    } as unknown as DeepMocked<PrismaService>;
+    userSettingsService = {
+      getSettings: vi.fn(),
+    } as unknown as DeepMocked<UserSettingsService>;
     dailyRecordReader = {
       listFactsInRange: vi.fn(),
     } as unknown as DeepMocked<DailyRecordReaderPort>;
-    service = new RecordCollectorService(prisma, dailyRecordReader);
+    service = new RecordCollectorService(
+      userSettingsService,
+      dailyRecordReader,
+    );
   });
 
   function makeRecord(overrides: Partial<Record<string, unknown>> = {}) {
@@ -37,6 +40,12 @@ describe('RecordCollectorService', () => {
     };
   }
 
+  function mockSettings(waterTargetCount: number) {
+    (userSettingsService.getSettings as vi.Mock).mockResolvedValue({
+      waterTargetCount,
+    });
+  }
+
   describe('collect', () => {
     it('emits a water_count signal with remaining count', async () => {
       (dailyRecordReader.listFactsInRange as vi.Mock)
@@ -50,9 +59,7 @@ describe('RecordCollectorService', () => {
           makeRecord({ id: 'w1', kind: DailyRecordKind.water }),
           makeRecord({ id: 'w2', kind: DailyRecordKind.water }),
         ]);
-      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
-        value: 8,
-      });
+      mockSettings(8);
 
       const signals = await service.collect('user-1', '2026-07-09');
 
@@ -69,7 +76,7 @@ describe('RecordCollectorService', () => {
       (dailyRecordReader.listFactsInRange as vi.Mock)
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
-      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue(null);
+      mockSettings(USER_SETTINGS_DEFAULTS.waterTargetCount);
 
       const signals = await service.collect('user-1', '2026-07-09');
 
@@ -99,9 +106,7 @@ describe('RecordCollectorService', () => {
             payload: sleepPayload,
           }),
         ]);
-      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
-        value: 8,
-      });
+      mockSettings(8);
 
       const signals = await service.collect('user-1', '2026-07-09');
 
@@ -142,9 +147,7 @@ describe('RecordCollectorService', () => {
             payload: { durationMinutes: 360 },
           }),
         ]);
-      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
-        value: 8,
-      });
+      mockSettings(8);
 
       const signals = await service.collect('user-1', '2026-07-09');
 
@@ -168,9 +171,7 @@ describe('RecordCollectorService', () => {
           makeRecord({ id: 'r2', kind: DailyRecordKind.sleep }),
           makeRecord({ id: 'r3', kind: DailyRecordKind.mood }),
         ]);
-      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
-        value: 8,
-      });
+      mockSettings(8);
 
       const signals = await service.collect('user-1', '2026-07-09');
 
@@ -208,9 +209,7 @@ describe('RecordCollectorService', () => {
             occurredAt: new Date('2026-07-08T00:00:00.000Z'),
           }),
         ]);
-      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
-        value: 8,
-      });
+      mockSettings(8);
 
       const signals = await service.collect('user-1', '2026-07-09');
 
@@ -249,9 +248,7 @@ describe('RecordCollectorService', () => {
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
           }),
         ]);
-      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
-        value: 8,
-      });
+      mockSettings(8);
 
       const signals = await service.collect('user-1', '2026-07-09');
 
@@ -283,9 +280,7 @@ describe('RecordCollectorService', () => {
             occurredAt: new Date('2026-07-09T00:00:00.000Z'),
           }),
         ]);
-      (prisma.userSetting.findUnique as vi.Mock).mockResolvedValue({
-        value: 8,
-      });
+      mockSettings(8);
 
       const signals = await service.collect('user-1', '2026-07-09');
 

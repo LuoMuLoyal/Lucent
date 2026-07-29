@@ -1,6 +1,50 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
+import { nonDeleted } from '../../../common';
+
+/**
+ * Lean read-model shape for cross-module consumers (ADR-0009). Exposes
+ * reminder fields only — no Prisma query DSL. Canonical order is
+ * `scheduledHour asc, scheduledMinute asc, createdAt asc`.
+ */
+export interface MedicineReminderFact {
+  currentMedicineId: string | null;
+  scheduledHour: number;
+  scheduledMinute: number;
+  daysOfWeek: Prisma.JsonValue;
+  startDate: Date | null;
+  endDate: Date | null;
+  createdAt: Date;
+}
+
+/**
+ * Hard upper bound on facts returned by reader ports. Prevents unbounded
+ * context queries from slowing the AI pipeline as user data grows.
+ * (ADR-0009 reader ports; architecture review #15)
+ */
+const MAX_READER_FACTS = 500;
+
+const medicineReminderFactSelect = {
+  currentMedicineId: true,
+  scheduledHour: true,
+  scheduledMinute: true,
+  daysOfWeek: true,
+  startDate: true,
+  endDate: true,
+  createdAt: true,
+} satisfies Prisma.UserMedicineReminderSelect;
+
+/**
+ * Read-only port for cross-module reads of UserMedicineReminder (ADR-0009).
+ * Implemented by MedicineReminderRepository and exported from
+ * MedicineRemindersModule; write paths stay behind MedicineRemindersService /
+ * MedicineReminderRepositoryPort.
+ */
+export abstract class MedicineReminderReaderPort {
+  /** Lists non-deleted, active reminders for the user. */
+  abstract listActiveFacts(userId: string): Promise<MedicineReminderFact[]>;
+}
 
 /**
  * Abstract port for medicine-reminder data access.
@@ -43,9 +87,25 @@ export abstract class MedicineReminderRepositoryPort {
 }
 
 @Injectable()
-export class MedicineReminderRepository extends MedicineReminderRepositoryPort {
+export class MedicineReminderRepository
+  extends MedicineReminderRepositoryPort
+  implements MedicineReminderReaderPort
+{
   constructor(private readonly prisma: PrismaService) {
     super();
+  }
+
+  async listActiveFacts(userId: string): Promise<MedicineReminderFact[]> {
+    return this.prisma.userMedicineReminder.findMany({
+      where: { userId, isActive: true, ...nonDeleted },
+      select: medicineReminderFactSelect,
+      orderBy: [
+        { scheduledHour: 'asc' },
+        { scheduledMinute: 'asc' },
+        { createdAt: 'asc' },
+      ],
+      take: MAX_READER_FACTS,
+    });
   }
 
   override findManyReminders(

@@ -1,36 +1,19 @@
-import { nonDeleted } from '../../../common';
 import { parseDateOnly } from '../../../common';
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import {
-  DoseLogStatus,
-  DailyRecordKind,
-  type Prisma,
-} from '#generated/prisma/client';
+import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
 import { DailyRecordReaderPort } from '../../daily-records';
 import type { DailyRecordFact } from '../../daily-records';
 import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs';
+import { MedicineReminderReaderPort } from '../../medicine-reminders';
+import type { MedicineReminderFact } from '../../medicine-reminders';
 import { parseMealRecordPayload } from '../../daily-records';
 import { USER_SETTING_KEYS, USER_SETTINGS_DEFAULTS } from '../../user-settings';
 
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;
-
-const _reminderSelect = {
-  currentMedicineId: true,
-  scheduledHour: true,
-  scheduledMinute: true,
-  daysOfWeek: true,
-  startDate: true,
-  endDate: true,
-  createdAt: true,
-} satisfies Prisma.UserMedicineReminderSelect;
-
-type ReminderShape = Prisma.UserMedicineReminderGetPayload<{
-  select: typeof _reminderSelect;
-}>;
 
 export interface TodayAnalysisContext {
   date: string;
@@ -82,6 +65,7 @@ export class TodayAnalysisContextService {
     private readonly prisma: PrismaService,
     private readonly dailyRecordReader: DailyRecordReaderPort,
     private readonly doseLogReader: MedicineDoseLogReaderPort,
+    private readonly reminderReader: MedicineReminderReaderPort,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
@@ -128,27 +112,7 @@ export class TodayAnalysisContextService {
         },
         orderBy: [{ createdAt: 'asc' }],
       }),
-      this.prisma.userMedicineReminder.findMany({
-        where: {
-          userId,
-          isActive: true,
-          ...nonDeleted,
-        },
-        select: {
-          currentMedicineId: true,
-          scheduledHour: true,
-          scheduledMinute: true,
-          daysOfWeek: true,
-          startDate: true,
-          endDate: true,
-          createdAt: true,
-        },
-        orderBy: [
-          { scheduledHour: 'asc' },
-          { scheduledMinute: 'asc' },
-          { createdAt: 'asc' },
-        ],
-      }),
+      this.reminderReader.listActiveFacts(userId),
       this.doseLogReader.listFactsInRange(userId, day, day),
       this.dailyRecordReader
         .listFactsInRange(userId, day, day)
@@ -448,7 +412,7 @@ export class TodayAnalysisContextService {
   }
 
   private matchesDate(
-    reminder: ReminderShape,
+    reminder: MedicineReminderFact,
     day: Date,
     weekday: number,
     pendingMedicineIds: Set<string>,

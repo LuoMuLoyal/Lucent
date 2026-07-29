@@ -1,16 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { parseDateOnly, now } from '../../../../common';
 import { DailyRecordKind } from '#generated/prisma/client';
-import { PrismaService } from '../../../../prisma';
 import { DailyRecordReaderPort } from '../../../daily-records';
 
 import type { DailyRecordFact } from '../../../daily-records';
 import type { SuggestionSignal } from '../../types/signal.types';
 import { TriggerType } from '../../types/suggestion.types';
-import {
-  USER_SETTING_KEYS,
-  USER_SETTINGS_DEFAULTS,
-} from '../../../user-settings';
+import { UserSettingsService } from '../../../user-settings';
 import { TREND_LOOKBACK_DAYS } from '../../constants/thresholds.constants';
 
 /**
@@ -20,7 +16,7 @@ import { TREND_LOOKBACK_DAYS } from '../../constants/thresholds.constants';
 @Injectable()
 export class RecordCollectorService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly userSettingsService: UserSettingsService,
     private readonly dailyRecordReader: DailyRecordReaderPort,
   ) {}
 
@@ -31,21 +27,11 @@ export class RecordCollectorService {
       lookbackStart.getUTCDate() - (TREND_LOOKBACK_DAYS - 1),
     );
 
-    const [todayFacts, multiDayRecords, waterTargetSetting] = await Promise.all(
-      [
-        this.dailyRecordReader.listFactsInRange(userId, day, day),
-        this.dailyRecordReader.listFactsInRange(userId, lookbackStart, day),
-        this.prisma.userSetting.findUnique({
-          where: {
-            userId_key: {
-              userId,
-              key: USER_SETTING_KEYS.waterTargetCount,
-            },
-          },
-          select: { value: true },
-        }),
-      ],
-    );
+    const [todayFacts, multiDayRecords, settings] = await Promise.all([
+      this.dailyRecordReader.listFactsInRange(userId, day, day),
+      this.dailyRecordReader.listFactsInRange(userId, lookbackStart, day),
+      this.userSettingsService.getSettings(userId),
+    ]);
 
     // Reader returns canonical `occurredAt asc, createdAt asc`; the original
     // single-day query was `createdAt desc` (latest record wins on `.find`).
@@ -59,11 +45,7 @@ export class RecordCollectorService {
     const waterRecords = todayRecords.filter(
       (r) => r.kind === DailyRecordKind.water,
     );
-    const waterTarget =
-      typeof waterTargetSetting?.value === 'number' &&
-      Number.isFinite(waterTargetSetting.value)
-        ? waterTargetSetting.value
-        : USER_SETTINGS_DEFAULTS.waterTargetCount;
+    const waterTarget = settings.waterTargetCount;
 
     signals.push({
       signalId: `rec_water_${date}`,

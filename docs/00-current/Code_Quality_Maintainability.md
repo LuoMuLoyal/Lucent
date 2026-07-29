@@ -171,3 +171,13 @@ Last updated: 2026-07-29
   - `fix-generated-prisma-internal.ts` 用 `@swc/core` `transformFile` 替代 `typescript.transpileModule`。
   - Vitest coverage 阈值从 50/60/60/60 提升至 68/78/80/79（实测 73/83/85/84）。
   - `vitest.config.ts` 显式声明 `pool: 'forks'`。
+
+- 2026-07-29 架构精炼 Phase 2 — Reader Port 补全（ADR-0009）：
+  - 新增 `MedicineReminderReaderPort` + `MedicineReminderFact`，`MedicineRemindersModule` 导出
+    reader port，跨模块消费者不再直接注入 `PrismaService` 查询 `UserMedicineReminder`。
+  - `today-analysis/context.service.ts` 中 `prisma.userMedicineReminder.findMany` 替换为
+    `reminderReader.listActiveFacts(userId)`，移除内联 `_reminderSelect` / `ReminderShape`。
+  - `reports/dashboard/context.service.ts` 中 `prisma.userSetting.findFirst` 替换为
+    `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
+  - `today-suggestion/collectors/record.service.ts` 中 `prisma.userSetting.findUnique` 替换为
+    `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。

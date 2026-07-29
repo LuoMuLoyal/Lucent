@@ -13,9 +13,6 @@ describe('TodayAnalysisContextService', () => {
       userCurrentMedicine: {
         findMany: vi.fn().mockResolvedValue([]),
       },
-      userMedicineReminder: {
-        findMany: vi.fn().mockResolvedValue([]),
-      },
       userAllergy: {
         count: vi.fn().mockResolvedValue(0),
       },
@@ -29,32 +26,37 @@ describe('TodayAnalysisContextService', () => {
     doseLogReader: {
       listFactsInRange: vi.fn().mockResolvedValue([]),
     },
+    reminderReader: {
+      listActiveFacts: vi.fn().mockResolvedValue([]),
+    },
   });
 
   it('includes unconfirmed meal analysis facts in recent records conservatively', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'meal',
-        occurredTime: '12:30',
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          mealAnalysis: {
-            analysisStatus: 'unconfirmed',
-            coverage: 'partial',
-            mealDescription: '一份米饭配西兰花和鸡胸肉',
-            foodItems: [{ name: '米饭' }, { name: '鸡胸肉' }],
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'meal',
+          occurredTime: '12:30',
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: {
+            mealAnalysis: {
+              analysisStatus: 'unconfirmed',
+              coverage: 'partial',
+              mealDescription: '一份米饭配西兰花和鸡胸肉',
+              foodItems: [{ name: '米饭' }, { name: '鸡胸肉' }],
+            },
           },
+          createdAt: new Date('2026-07-01T04:30:00.000Z'),
         },
-        createdAt: new Date('2026-07-01T04:30:00.000Z'),
-      },
-    ]);
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -74,27 +76,29 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('does not surface analyzing meal records as completed meal summaries', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'meal',
-        occurredTime: '18:30',
-        title: '晚饭',
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          mealAnalysis: {
-            analysisStatus: 'analyzing',
-            coverage: 'none',
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'meal',
+          occurredTime: '18:30',
+          title: '晚饭',
+          value: null,
+          unit: null,
+          note: null,
+          payload: {
+            mealAnalysis: {
+              analysisStatus: 'analyzing',
+              coverage: 'none',
+            },
           },
+          createdAt: new Date('2026-07-01T10:30:00.000Z'),
         },
-        createdAt: new Date('2026-07-01T10:30:00.000Z'),
-      },
-    ]);
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -111,28 +115,30 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('surfaces analysis_failed meal records as missing meal-analysis data', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'meal',
-        occurredTime: '18:30',
-        title: '晚饭',
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          mealAnalysis: {
-            analysisStatus: 'analysis_failed',
-            coverage: 'none',
-            failureReason: 'Attachment not readable',
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'meal',
+          occurredTime: '18:30',
+          title: '晚饭',
+          value: null,
+          unit: null,
+          note: null,
+          payload: {
+            mealAnalysis: {
+              analysisStatus: 'analysis_failed',
+              coverage: 'none',
+              failureReason: 'Attachment not readable',
+            },
           },
+          createdAt: new Date('2026-07-01T10:30:00.000Z'),
         },
-        createdAt: new Date('2026-07-01T10:30:00.000Z'),
-      },
-    ]);
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -149,29 +155,31 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('labels confirmed meals with partial coverage as partial estimates', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'meal',
-        occurredTime: '12:00',
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-            coverage: 'partial',
-            mealDescription: '一份牛肉面',
-            foodItems: [{ name: '牛肉' }, { name: '面条' }],
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'meal',
+          occurredTime: '12:00',
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: {
+            mealAnalysis: {
+              analysisStatus: 'confirmed',
+              coverage: 'partial',
+              mealDescription: '一份牛肉面',
+              foodItems: [{ name: '牛肉' }, { name: '面条' }],
+            },
           },
+          createdAt: new Date('2026-07-01T04:00:00.000Z'),
         },
-        createdAt: new Date('2026-07-01T04:00:00.000Z'),
-      },
-    ]);
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -188,29 +196,31 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('surfaces complete confirmed meals without partial labels', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'meal',
-        occurredTime: '12:00',
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          mealAnalysis: {
-            analysisStatus: 'confirmed',
-            coverage: 'complete',
-            mealDescription: '一份米饭配青菜',
-            foodItems: [{ name: '米饭' }, { name: '青菜' }],
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'meal',
+          occurredTime: '12:00',
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: {
+            mealAnalysis: {
+              analysisStatus: 'confirmed',
+              coverage: 'complete',
+              mealDescription: '一份米饭配青菜',
+              foodItems: [{ name: '米饭' }, { name: '青菜' }],
+            },
           },
+          createdAt: new Date('2026-07-01T04:00:00.000Z'),
         },
-        createdAt: new Date('2026-07-01T04:00:00.000Z'),
-      },
-    ]);
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -227,32 +237,34 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('uses recognizedDishes when foodItems is not available', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'meal',
-        occurredTime: '12:00',
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          mealAnalysis: {
-            analysisStatus: 'unconfirmed',
-            coverage: 'complete',
-            mealDescription: '一份面条',
-            recognizedDishes: [
-              { rawName: '牛肉面' },
-              { normalizedDishName: '面条' },
-            ],
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'meal',
+          occurredTime: '12:00',
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: {
+            mealAnalysis: {
+              analysisStatus: 'unconfirmed',
+              coverage: 'complete',
+              mealDescription: '一份面条',
+              recognizedDishes: [
+                { rawName: '牛肉面' },
+                { normalizedDishName: '面条' },
+              ],
+            },
           },
+          createdAt: new Date('2026-07-01T04:00:00.000Z'),
         },
-        createdAt: new Date('2026-07-01T04:00:00.000Z'),
-      },
-    ]);
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -262,7 +274,8 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('returns water target from user settings when configured', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userSetting.findUnique = vi.fn().mockResolvedValue({
       value: 12,
     });
@@ -270,6 +283,7 @@ describe('TodayAnalysisContextService', () => {
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -279,7 +293,8 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('falls back to default water target when user setting is not a number', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userSetting.findUnique = vi.fn().mockResolvedValue({
       value: 'not-a-number',
     });
@@ -287,6 +302,7 @@ describe('TodayAnalysisContextService', () => {
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -296,12 +312,14 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('falls back to default water target when user setting is null', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userSetting.findUnique = vi.fn().mockResolvedValue(null);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -311,32 +329,34 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('computes water remaining count as max(0, target - completed)', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'water',
-        occurredTime: null,
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: null,
-        createdAt: new Date('2026-07-01T01:00:00.000Z'),
-      },
-      {
-        kind: 'water',
-        occurredTime: null,
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: null,
-        createdAt: new Date('2026-07-01T02:00:00.000Z'),
-      },
-    ]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'water',
+          occurredTime: null,
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: null,
+          createdAt: new Date('2026-07-01T01:00:00.000Z'),
+        },
+        {
+          kind: 'water',
+          occurredTime: null,
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: null,
+          createdAt: new Date('2026-07-01T02:00:00.000Z'),
+        },
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -360,11 +380,13 @@ describe('TodayAnalysisContextService', () => {
         `2026-07-01T${String(i).padStart(2, '0')}:00:00.000Z`,
       ),
     }));
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks(records);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks(records);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -375,7 +397,8 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('includes medication context with pending count and next dose time', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
@@ -388,7 +411,7 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([
+    reminderReader.listActiveFacts = vi.fn().mockResolvedValue([
       {
         currentMedicineId: 'med-2',
         scheduledHour: 8,
@@ -406,6 +429,7 @@ describe('TodayAnalysisContextService', () => {
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -422,7 +446,8 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('shows "--" for next dose time when no pending reminder matches', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
@@ -430,11 +455,12 @@ describe('TodayAnalysisContextService', () => {
         createdAt: new Date('2026-07-01T00:00:00.000Z'),
       },
     ]);
-    prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([]);
+    reminderReader.listActiveFacts = vi.fn().mockResolvedValue([]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -445,30 +471,32 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('extracts sleep data from daily record payload', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'sleep',
-        occurredTime: null,
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          durationMinutes: 480,
-          quality: 'good',
-          startAt: '2026-06-30T23:00:00.000Z',
-          endAt: '2026-07-01T07:00:00.000Z',
-          deepMinutes: 120,
-          lightMinutes: 240,
-          remMinutes: 120,
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'sleep',
+          occurredTime: null,
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: {
+            durationMinutes: 480,
+            quality: 'good',
+            startAt: '2026-06-30T23:00:00.000Z',
+            endAt: '2026-07-01T07:00:00.000Z',
+            deepMinutes: 120,
+            lightMinutes: 240,
+            remMinutes: 120,
+          },
+          createdAt: new Date('2026-07-01T07:00:00.000Z'),
         },
-        createdAt: new Date('2026-07-01T07:00:00.000Z'),
-      },
-    ]);
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -483,24 +511,26 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('returns insufficient_data for sleep when duration is 0', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'sleep',
-        occurredTime: null,
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: {
-          durationMinutes: 0,
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'sleep',
+          occurredTime: null,
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: {
+            durationMinutes: 0,
+          },
+          createdAt: new Date('2026-07-01T07:00:00.000Z'),
         },
-        createdAt: new Date('2026-07-01T07:00:00.000Z'),
-      },
-    ]);
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -510,22 +540,24 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('returns insufficient_data for sleep when payload is null', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'sleep',
-        occurredTime: null,
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: null,
-        createdAt: new Date('2026-07-01T07:00:00.000Z'),
-      },
-    ]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'sleep',
+          occurredTime: null,
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: null,
+          createdAt: new Date('2026-07-01T07:00:00.000Z'),
+        },
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -536,22 +568,24 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('handles non-meal daily records in recent records', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'weight',
-        occurredTime: '08:00',
-        title: '体重',
-        value: '65.5',
-        unit: 'kg',
-        note: '空腹',
-        payload: null,
-        createdAt: new Date('2026-07-01T00:00:00.000Z'),
-      },
-    ]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'weight',
+          occurredTime: '08:00',
+          title: '体重',
+          value: '65.5',
+          unit: 'kg',
+          note: '空腹',
+          payload: null,
+          createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        },
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -569,22 +603,24 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('trims whitespace from daily record text fields', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'weight',
-        occurredTime: '08:00',
-        title: '  体重  ',
-        value: '  65.5  ',
-        unit: '  kg  ',
-        note: '  ',
-        payload: null,
-        createdAt: new Date('2026-07-01T00:00:00.000Z'),
-      },
-    ]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'weight',
+          occurredTime: '08:00',
+          title: '  体重  ',
+          value: '  65.5  ',
+          unit: '  kg  ',
+          note: '  ',
+          payload: null,
+          createdAt: new Date('2026-07-01T00:00:00.000Z'),
+        },
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -597,12 +633,14 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('includes active allergy count in low-risk context', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userAllergy.count = vi.fn().mockResolvedValue(3);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -614,42 +652,44 @@ describe('TodayAnalysisContextService', () => {
   it('builds record summary grouped by kind', async () => {
     // The service re-sorts facts by createdAt desc; keep the water records
     // newest so the summary order stays water-first.
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([
-      {
-        kind: 'water',
-        occurredTime: null,
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: null,
-        createdAt: new Date('2026-07-01T02:00:00.000Z'),
-      },
-      {
-        kind: 'water',
-        occurredTime: null,
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: null,
-        createdAt: new Date('2026-07-01T03:00:00.000Z'),
-      },
-      {
-        kind: 'weight',
-        occurredTime: null,
-        title: null,
-        value: null,
-        unit: null,
-        note: null,
-        payload: null,
-        createdAt: new Date('2026-07-01T01:00:00.000Z'),
-      },
-    ]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'water',
+          occurredTime: null,
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: null,
+          createdAt: new Date('2026-07-01T02:00:00.000Z'),
+        },
+        {
+          kind: 'water',
+          occurredTime: null,
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: null,
+          createdAt: new Date('2026-07-01T03:00:00.000Z'),
+        },
+        {
+          kind: 'weight',
+          occurredTime: null,
+          title: null,
+          value: null,
+          unit: null,
+          note: null,
+          payload: null,
+          createdAt: new Date('2026-07-01T01:00:00.000Z'),
+        },
+      ]);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -667,12 +707,14 @@ describe('TodayAnalysisContextService', () => {
       displayName: `药品${i}`,
       createdAt: new Date('2026-07-01T00:00:00.000Z'),
     }));
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue(meds);
     const service = new TodayAnalysisContextService(
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -682,7 +724,8 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('filters out empty medicine display names', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
@@ -704,6 +747,7 @@ describe('TodayAnalysisContextService', () => {
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -714,7 +758,8 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('filters reminder by startDate and endDate', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
@@ -723,7 +768,7 @@ describe('TodayAnalysisContextService', () => {
       },
     ]);
     // Reminder is for a future start date — should not match
-    prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([
+    reminderReader.listActiveFacts = vi.fn().mockResolvedValue([
       {
         currentMedicineId: 'med-1',
         scheduledHour: 8,
@@ -738,6 +783,7 @@ describe('TodayAnalysisContextService', () => {
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -747,7 +793,8 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('matches reminder with daysOfWeek including the current weekday', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
@@ -756,7 +803,7 @@ describe('TodayAnalysisContextService', () => {
       },
     ]);
     // 2026-07-01 is a Wednesday → weekday = 3
-    prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([
+    reminderReader.listActiveFacts = vi.fn().mockResolvedValue([
       {
         currentMedicineId: 'med-1',
         scheduledHour: 14,
@@ -771,6 +818,7 @@ describe('TodayAnalysisContextService', () => {
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 
@@ -780,7 +828,8 @@ describe('TodayAnalysisContextService', () => {
   });
 
   it('does not match reminder with daysOfWeek excluding the current weekday', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks([]);
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
     prisma.userCurrentMedicine.findMany = vi.fn().mockResolvedValue([
       {
         id: 'med-1',
@@ -789,7 +838,7 @@ describe('TodayAnalysisContextService', () => {
       },
     ]);
     // 2026-07-01 is a Wednesday → weekday = 3
-    prisma.userMedicineReminder.findMany = vi.fn().mockResolvedValue([
+    reminderReader.listActiveFacts = vi.fn().mockResolvedValue([
       {
         currentMedicineId: 'med-1',
         scheduledHour: 14,
@@ -804,6 +853,7 @@ describe('TodayAnalysisContextService', () => {
       prisma as never,
       dailyRecordReader as never,
       doseLogReader as never,
+      reminderReader as never,
       createMockCache(),
     );
 

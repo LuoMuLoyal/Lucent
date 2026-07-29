@@ -8,10 +8,10 @@ import { ReportsContextService } from './context.service';
 
 describe('ReportsContextService', () => {
   const buildMocks = () => ({
-    prisma: {
-      userSetting: {
-        findFirst: vi.fn().mockResolvedValue(null),
-      },
+    userSettingsService: {
+      getSettings: vi.fn().mockResolvedValue({
+        aiSummariesEnabled: true,
+      }),
     },
     dailyRecordReader: {
       listFactsInRange: vi.fn().mockResolvedValue([]),
@@ -22,9 +22,10 @@ describe('ReportsContextService', () => {
   });
 
   it('defaults ai summary to enabled when the user setting is missing', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
     const service = new ReportsContextService(
-      prisma as never,
+      userSettingsService as never,
       dailyRecordReader as never,
       doseLogReader as never,
     );
@@ -34,17 +35,17 @@ describe('ReportsContextService', () => {
     });
 
     expect(context.aiSummaryEnabled).toBe(true);
-    expect(prisma.userSetting.findFirst).toHaveBeenCalledWith({
-      where: { userId: 'u1', key: 'aiSummariesEnabled' },
-      select: { value: true },
-    });
+    expect(userSettingsService.getSettings).toHaveBeenCalledWith('u1');
   });
 
   it('keeps ai summary disabled when the user setting is explicitly false', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
-    prisma.userSetting.findFirst = vi.fn().mockResolvedValue({ value: false });
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    userSettingsService.getSettings = vi.fn().mockResolvedValue({
+      aiSummariesEnabled: false,
+    });
     const service = new ReportsContextService(
-      prisma as never,
+      userSettingsService as never,
       dailyRecordReader as never,
       doseLogReader as never,
     );
@@ -57,9 +58,10 @@ describe('ReportsContextService', () => {
   });
 
   it('resolves last_30_days start date', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
     const service = new ReportsContextService(
-      prisma as never,
+      userSettingsService as never,
       dailyRecordReader as never,
       doseLogReader as never,
     );
@@ -76,9 +78,10 @@ describe('ReportsContextService', () => {
   });
 
   it('resolves custom range from query dates', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
     const service = new ReportsContextService(
-      prisma as never,
+      userSettingsService as never,
       dailyRecordReader as never,
       doseLogReader as never,
     );
@@ -95,9 +98,10 @@ describe('ReportsContextService', () => {
   });
 
   it('throws when custom range is missing startDate', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
     const service = new ReportsContextService(
-      prisma as never,
+      userSettingsService as never,
       dailyRecordReader as never,
       doseLogReader as never,
     );
@@ -111,9 +115,10 @@ describe('ReportsContextService', () => {
   });
 
   it('throws when custom range is missing endDate', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
     const service = new ReportsContextService(
-      prisma as never,
+      userSettingsService as never,
       dailyRecordReader as never,
       doseLogReader as never,
     );
@@ -127,9 +132,10 @@ describe('ReportsContextService', () => {
   });
 
   it('throws when custom startDate is after endDate', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
     const service = new ReportsContextService(
-      prisma as never,
+      userSettingsService as never,
       dailyRecordReader as never,
       doseLogReader as never,
     );
@@ -144,7 +150,8 @@ describe('ReportsContextService', () => {
   });
 
   it('counts meal estimate days only from confirmed and unconfirmed meal analyses', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
     dailyRecordReader.listFactsInRange = vi.fn().mockResolvedValue([
       {
         occurredAt: new Date('2026-06-06T00:00:00.000Z'),
@@ -191,7 +198,7 @@ describe('ReportsContextService', () => {
       },
     ]);
     const service = new ReportsContextService(
-      prisma as never,
+      userSettingsService as never,
       dailyRecordReader as never,
       doseLogReader as never,
     );
@@ -214,7 +221,8 @@ describe('ReportsContextService', () => {
   });
 
   it('breaks down meal estimate status per day for the AI summary', async () => {
-    const { prisma, dailyRecordReader, doseLogReader } = buildMocks();
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
     dailyRecordReader.listFactsInRange = vi.fn().mockResolvedValue([
       {
         occurredAt: new Date('2026-06-06T00:00:00.000Z'),
@@ -254,7 +262,7 @@ describe('ReportsContextService', () => {
       },
     ]);
     const service = new ReportsContextService(
-      prisma as never,
+      userSettingsService as never,
       dailyRecordReader as never,
       doseLogReader as never,
     );

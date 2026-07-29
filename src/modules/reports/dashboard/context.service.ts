@@ -7,14 +7,13 @@ import {
   nowIsoString,
 } from '../../../common';
 import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
-import { PrismaService } from '../../../prisma';
 import { DailyRecordReaderPort } from '../../daily-records';
 import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs';
+import { UserSettingsService } from '../../user-settings';
 import {
   MealAnalysisStatus,
   parseMealRecordPayload,
 } from '../../daily-records';
-import { USER_SETTING_KEYS } from '../../user-settings';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
@@ -26,7 +25,7 @@ import type { ReportDashboardFacts } from './types';
 @Injectable()
 export class ReportsContextService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly userSettingsService: UserSettingsService,
     private readonly dailyRecordReader: DailyRecordReaderPort,
     private readonly doseLogReader: MedicineDoseLogReaderPort,
   ) {}
@@ -40,10 +39,7 @@ export class ReportsContextService {
     const startDate = this.resolveStartDate(endDate, range, query);
 
     const [settings, doseLogs, dailyRecords] = await Promise.all([
-      this.prisma.userSetting.findFirst({
-        where: { userId, key: USER_SETTING_KEYS.aiSummariesEnabled },
-        select: { value: true },
-      }),
+      this.userSettingsService.getSettings(userId),
       this.doseLogReader.listFactsInRange(userId, startDate, endDate),
       this.dailyRecordReader.listFactsInRange(userId, startDate, endDate),
     ]);
@@ -59,7 +55,7 @@ export class ReportsContextService {
       startDate,
       endDate,
       generatedAt: nowIsoString(),
-      aiSummaryEnabled: settings?.value !== false,
+      aiSummaryEnabled: settings.aiSummariesEnabled,
       medicationSeries: this.buildMedicationSeries(
         doseLogs,
         startDate,

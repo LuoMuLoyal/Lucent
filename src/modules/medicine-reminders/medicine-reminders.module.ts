@@ -9,6 +9,7 @@ import { ReminderDeliveriesController } from './reminder-deliveries.controller';
 import {
   MedicineReminderRepositoryPort,
   MedicineReminderRepository,
+  MedicineReminderReaderPort,
 } from './repositories/reminder.repository';
 
 @Module({
@@ -20,11 +21,19 @@ import {
       provide: MedicineReminderRepositoryPort,
       useExisting: MedicineReminderRepository,
     },
+    {
+      provide: MedicineReminderReaderPort,
+      useExisting: MedicineReminderRepository,
+    },
     MedicineRemindersOwnershipService,
     MedicineRemindersMapperService,
     MedicineRemindersService,
     ReminderSchedulerService,
   ],
-  exports: [MedicineRemindersService, ReminderSchedulerService],
+  exports: [
+    MedicineRemindersService,
+    ReminderSchedulerService,
+    MedicineReminderReaderPort,
+  ],
 })
 export class MedicineRemindersModule {}
