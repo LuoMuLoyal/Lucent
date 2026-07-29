@@ -202,16 +202,16 @@ describe('SuggestionPresentationService', () => {
 
       const requestArg = (deps.copyService.getOrEnqueueBatch as vi.Mock).mock
         .calls[0]![0] as Array<Record<string, unknown>>;
-      expect(requestArg[0]!.templateKey).toBe('coverage.profile.incomplete');
-      expect(requestArg[0]!.params).toEqual({
+      expect(requestArg[0]!['templateKey']).toBe('coverage.profile.incomplete');
+      expect(requestArg[0]!['params']).toEqual({
         dimension: 'water',
         count: 3,
       });
-      expect(requestArg[0]!.locale).toBe('en');
-      expect(requestArg[0]!.tone).toBe('gentle');
-      expect(requestArg[0]!.suggestionType).toBe(SuggestionType.COMPLIANCE);
-      expect(requestArg[0]!.subtype).toBe('water');
-      expect(requestArg[0]!.evidence).toEqual([
+      expect(requestArg[0]!['locale']).toBe('en');
+      expect(requestArg[0]!['tone']).toBe('gentle');
+      expect(requestArg[0]!['suggestionType']).toBe(SuggestionType.COMPLIANCE);
+      expect(requestArg[0]!['subtype']).toBe('water');
+      expect(requestArg[0]!['evidence']).toEqual([
         { kind: 'record', label: 'water_count', value: '2' },
       ]);
     });
