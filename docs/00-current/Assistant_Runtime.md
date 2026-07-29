@@ -31,3 +31,9 @@ Last updated: 2026-07-09
 - When today analysis is regenerated on the same day, the two notification types are overwritten
   by `type + source + date` scoped replace, cleaning up old duplicates to avoid polluting the
   notification page and report page suggestion history.
+- Tool keyword matching rules (`TOOL_KEYWORD_RULES`, `BROAD_*_RULES`, `WRITE_INTENT_RULES`,
+  `EXPLICIT_CN_PRODUCT_RULES`, `CN_LEAFLET_STYLE_RULES`) have been extracted from `router.ts`
+  into `agent/runtime/tool-keyword-rules.ts`. `router.ts` now contains only the two routing
+  functions (`selectAllowedToolsForContextSources`, `selectRelevantToolsForMessage`).
+- Proposal draft extraction logic (`extractRecordUpdateDraft`, `extractSettingsDraft`) has been
+  extracted from `proposal.service.ts` into `tools/proposal-draft-extractor.ts` as pure functions.

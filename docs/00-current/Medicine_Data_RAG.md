@@ -45,3 +45,10 @@ scheduledTime`, then to `currentMedicineId + scheduledFor`.
   - `persistRecord` 和 `markStale` 中 `cache.del()` 包裹 try-catch，Redis 瞬断不阻塞 API 调用
   - `handleHealthContextChanged` / `handleReminderChanged` 中 `scheduleStaticCheck` 移到 try-catch 之外，
     `markStale` 失败时仍触发 debounced 静态检查（`runStaticCheck` 从 DB 重新读取最新数据）
+- **风险检查服务拆分**（2026-07-29）：`medicine-risk-check.service.ts`（965 行）已按职责拆分为 5 个文件：
+  - `utils/ingredient-canonicalization.ts` — 成分规范化纯函数 + `MedicineDetailWrapper` 接口
+  - `utils/allergy-severity.ts` — 过敏严重度推断纯函数
+  - `services/risk-detection.service.ts` — 风险检测逻辑（allergy / interaction / duplicate / coverage / red flags）
+  - `services/risk-context-builder.service.ts` — LLM 上下文构建
+  - `services/risk-check.service.ts` — 主编排器（缓存 + 持久化 + 编排）
+  - `medicine-risk-llm-generator.service.ts` 重命名为 `risk-llm-generator.service.ts`

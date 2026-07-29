@@ -55,7 +55,7 @@ import { MEDICINES_BYPASS_CACHE_HEADER } from './cache/cache.constants';
 import { MedicinesService } from './services/medicines.service';
 
 import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
-import { MedicineRiskCheckService } from './services/medicine-risk-check.service';
+import { MedicineRiskCheckService } from './services/risk-check.service';
 
 @ApiTags('Medicines')
 @ApiExtraModels(

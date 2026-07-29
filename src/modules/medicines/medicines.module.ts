@@ -8,9 +8,11 @@ import { MedicinesController } from './medicines.controller';
 import { MedicinesService } from './services/medicines.service';
 
 import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
-import { MedicineRiskCheckService } from './services/medicine-risk-check.service';
+import { MedicineRiskCheckService } from './services/risk-check.service';
 import { MedicineRiskCheckListener } from './services/medicine-risk-check.listener';
-import { MedicineRiskLlmGeneratorService } from './services/medicine-risk-llm-generator.service';
+import { MedicineRiskLlmGeneratorService } from './services/risk-llm-generator.service';
+import { RiskDetectionService } from './services/risk-detection.service';
+import { RiskContextBuilderService } from './services/risk-context-builder.service';
 import { CnMedicinesService } from './adapters/cn.service';
 
 import { DrugbankMedicinesService } from './adapters/drugbank.service';
@@ -24,6 +26,8 @@ import { DrugbankMedicinesService } from './adapters/drugbank.service';
     MedicineRiskCheckService,
     MedicineRiskCheckListener,
     MedicineRiskLlmGeneratorService,
+    RiskDetectionService,
+    RiskContextBuilderService,
     MedicinesCacheAdminService,
     MedicinesCacheService,
     DrugbankMedicinesService,

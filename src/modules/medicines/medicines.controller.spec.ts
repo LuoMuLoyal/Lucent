@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { MedicinesController } from './medicines.controller';
 import { MedicinesService } from './services/medicines.service';
 import { MedicineRecognitionQueueService } from './services/medicine-recognition-queue.service';
-import { MedicineRiskCheckService } from './services/medicine-risk-check.service';
+import { MedicineRiskCheckService } from './services/risk-check.service';
 
 describe('MedicinesController', () => {
   let controller: MedicinesController;
