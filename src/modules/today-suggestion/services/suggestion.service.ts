@@ -1,66 +1,31 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
+import { Injectable } from '@nestjs/common';
 import { now, nowIsoString, formatDateOnly } from '../../../common';
 import type { SuggestionCandidate } from '../types/candidate.types';
-
-import type { RuleContext } from '../types/rule.types';
-
-import type { SuggestionCardTone } from '../types/suggestion.types';
-import {
-  SuggestionType,
-  SuggestionLifecycleState,
-  SuggestionFeedback,
-} from '../types/suggestion.types';
+import { SuggestionLifecycleState } from '../types/suggestion.types';
 import type { SuggestionItemDto } from '../../today-suggestion/dto/suggestion-response.dto';
 import type { TodaySuggestionsDataDto } from '../../today-suggestion/dto/suggestion-history.dto';
-import { MedicationCollectorService } from './collectors/medication.service';
-import { RecordCollectorService } from './collectors/record.service';
-import { ProfileCollectorService } from './collectors/profile.service';
-import { RegistryService } from './rules/registry.service';
-import { ArbitrationService } from './arbitration/service';
-import { SuppressionService } from './arbitration/suppression.service';
-import { BaselineService } from './lifecycle/baseline.service';
+import { SuggestionPipelineService } from './pipeline.service';
+import { SuggestionPresentationService } from './presentation.service';
 import { LifecycleService } from './lifecycle/service';
 import { EscalationService } from './notification/escalation.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
-import { SuggestionCopyService } from './copy/copy.service';
-
-import { SuggestionCopyQueueService } from './copy/copy-queue.service';
-import type { CopyGenerationResult } from './copy/copy.service';
-import type { CopyJobData } from '../types/copy-generation.types';
-import { getFallbackCopy } from '../constants/copy-fallback';
 
 /**
  * Main orchestrator for the Today suggestion engine.
  *
- * Pipeline:
- * 1. Collect signals from all collectors.
- * 2. Build RuleContext (baseline status, time of day).
- * 3. Run all registered rules against the signals.
- * 4. Filter & adjust candidates via feedback-driven suppression.
- * 5. Arbitrate candidates into primary / secondary / observations.
- * 6. Persist active suggestions to DB.
- * 7. Escalate eligible suggestions to notifications.
- * 8. Map to response DTOs.
+ * Delegates to:
+ * - {@link SuggestionPipelineService} for collect → rules → arbitrate
+ * - {@link SuggestionPresentationService} for copy + cache + DTO mapping
+ * - {@link LifecycleService} for persist + expire
+ * - {@link EscalationService} for notification escalation
  */
 @Injectable()
 export class SuggestionService {
-  private readonly logger = new Logger(SuggestionService.name);
-
   constructor(
-    private readonly medicationCollector: MedicationCollectorService,
-    private readonly recordCollector: RecordCollectorService,
-    private readonly profileCollector: ProfileCollectorService,
-    private readonly registry: RegistryService,
-    private readonly suppression: SuppressionService,
-    private readonly arbitration: ArbitrationService,
-    private readonly baseline: BaselineService,
+    private readonly pipeline: SuggestionPipelineService,
+    private readonly presentation: SuggestionPresentationService,
     private readonly lifecycle: LifecycleService,
     private readonly escalation: EscalationService,
-    private readonly cache: SuggestionCacheService,
-    private readonly copyService: SuggestionCopyService,
-    private readonly copyQueue: SuggestionCopyQueueService,
-    private readonly i18n: I18nService,
   ) {}
 
   /**
@@ -77,9 +42,10 @@ export class SuggestionService {
     const targetDate = date ?? formatDateOnly(now());
     const generatedAt = nowIsoString();
     const excludeKey = SuggestionCacheService.buildExcludeKey(excludeIds);
+    const locale = options?.locale ?? 'zh-CN';
 
     // 0. Check suggestion result cache
-    const cachedResult = await this.cache.getSuggestions(
+    const cachedResult = await this.presentation.getCachedResult(
       userId,
       targetDate,
       excludeKey,
@@ -93,100 +59,32 @@ export class SuggestionService {
       };
     }
 
-    // 1. Collect signals (use signal cache if available)
-    let allSignals = await this.cache.getSignals(userId, targetDate);
-    if (allSignals == null) {
-      const [medicationSignals, recordSignals, profileSignals] =
-        await Promise.all([
-          this.medicationCollector.collect(userId, targetDate),
-          this.recordCollector.collect(userId, targetDate),
-          this.profileCollector.collect(userId, targetDate),
-        ]);
-
-      allSignals = [...medicationSignals, ...recordSignals, ...profileSignals];
-
-      await this.cache.setSignals(userId, targetDate, allSignals);
-    }
-
-    // 2. Build rule context (use baseline cache if available)
-    let baselineStatus = await this.cache.getBaselineStatus(userId);
-    if (baselineStatus == null) {
-      baselineStatus = await this.baseline.getBaselineStatus(userId);
-      await this.cache.setBaselineStatus(userId, baselineStatus);
-    }
-    const context: RuleContext = {
+    // 1. Pipeline: collect signals → run rules → suppress → arbitrate
+    const { arbitrationResult, degraded } = await this.pipeline.run(
       userId,
-      date: targetDate,
-      timeOfDay: RecordCollectorService.getTimeOfDay(),
-      baselineStatus,
-    };
+      targetDate,
+    );
 
-    // 3. Run all rules
-    const candidates: SuggestionCandidate[] = [];
-    let degraded = false;
-    for (const rule of this.registry.getAll()) {
-      if (rule.isBaselineRequired && rule.baselineDimensions != null) {
-        const allReady = rule.baselineDimensions.every(
-          (dim) => baselineStatus.get(dim) === true,
-        );
-        if (!allReady) {
-          continue;
-        }
-      }
-
-      try {
-        const candidate = rule.match(allSignals, context);
-        if (candidate != null) {
-          candidates.push(candidate);
-        }
-      } catch (error) {
-        degraded = true;
-        this.logger.error(
-          `Rule ${rule.ruleId} threw an error: ${error instanceof Error ? error.message : String(error)}`,
-          error instanceof Error ? error.stack : undefined,
-        );
-      }
-    }
-
-    // 4. Filter & adjust candidates via feedback-driven suppression
-    const { candidates: adjustedCandidates } =
-      await this.suppression.filterAndAdjust(userId, candidates);
-
-    // 5. Arbitrate
-    const arbitrationResult = this.arbitration.arbitrate(adjustedCandidates);
-
-    // 6. Generate AI copy for all candidates
-    const locale = options?.locale ?? 'zh-CN';
+    // 2. Generate AI copy for all candidates
     const allCandidates = [
       arbitrationResult.primary,
       ...arbitrationResult.secondary,
       ...arbitrationResult.observations,
     ].filter((c): c is SuggestionCandidate => c != null);
 
-    const copyRequests: CopyJobData[] = allCandidates.map((c) => ({
-      templateKey: c.copyGeneration.templateKey,
-      params: c.copyGeneration.params,
+    const copyResults = await this.presentation.generateCopy(
+      allCandidates,
       locale,
-      tone: 'gentle',
-      suggestionType: c.type,
-      confidence: c.confidence,
-      ruleId: c.ruleId,
-      ...(c.subtype != null ? { subtype: c.subtype } : {}),
-      evidence: c.evidence.map((e) => ({ ...e })),
-    }));
+    );
 
-    const copyResults = this.copyQueue.isConfigured
-      ? await this.copyService.getOrEnqueueBatch(copyRequests, this.copyQueue)
-      : await this.copyService.generateSyncBatch(copyRequests);
-
-    // 7. Persist active suggestions
+    // 3. Persist active suggestions (expire stale first)
     await this.lifecycle.expireStaleSuggestions(userId, targetDate);
 
     let primaryItem: SuggestionItemDto | undefined;
     const secondaryItems: SuggestionItemDto[] = [];
 
     if (arbitrationResult.primary != null) {
-      const copy = this.resolveCopy(
+      const copy = this.presentation.resolveCopy(
         copyResults,
         arbitrationResult.primary.copyGeneration.templateKey,
         arbitrationResult.primary.copyGeneration.params,
@@ -199,7 +97,7 @@ export class SuggestionService {
         copy,
         locale,
       );
-      primaryItem = this.toDto(
+      primaryItem = this.presentation.toDto(
         id,
         arbitrationResult.primary,
         SuggestionLifecycleState.ACTIVE,
@@ -207,7 +105,7 @@ export class SuggestionService {
         locale,
       );
 
-      // 8. Escalate eligible primary suggestion to notification
+      // 4. Escalate eligible primary suggestion to notification
       await this.escalation.escalateIfNeeded(
         userId,
         id,
@@ -218,7 +116,7 @@ export class SuggestionService {
     }
 
     for (const candidate of arbitrationResult.secondary) {
-      const copy = this.resolveCopy(
+      const copy = this.presentation.resolveCopy(
         copyResults,
         candidate.copyGeneration.templateKey,
         candidate.copyGeneration.params,
@@ -232,7 +130,7 @@ export class SuggestionService {
         locale,
       );
       secondaryItems.push(
-        this.toDto(
+        this.presentation.toDto(
           id,
           candidate,
           SuggestionLifecycleState.ACTIVE,
@@ -242,15 +140,15 @@ export class SuggestionService {
       );
     }
 
-    // 9. Map observations (not persisted — they're low priority)
+    // 5. Map observations (not persisted — they're low priority)
     const observationDtos = arbitrationResult.observations.map((c, i) => {
-      const copy = this.resolveCopy(
+      const copy = this.presentation.resolveCopy(
         copyResults,
         c.copyGeneration.templateKey,
         c.copyGeneration.params,
         locale,
       );
-      return this.toDto(
+      return this.presentation.toDto(
         `obs_${String(i)}`,
         c,
         SuggestionLifecycleState.ACTIVE,
@@ -259,7 +157,7 @@ export class SuggestionService {
       );
     });
 
-    // Apply excludeIds filter — primary and secondary tracked explicitly
+    // 6. Apply excludeIds filter
     const excludeSet = new Set(excludeIds ?? []);
     const filteredPrimary =
       primaryItem != null && !excludeSet.has(primaryItem.id)
@@ -281,164 +179,9 @@ export class SuggestionService {
       ...(degraded ? { degraded: true } : {}),
     };
 
-    // Cache the result for subsequent requests
-    await this.cache.setSuggestions(userId, targetDate, excludeKey, result);
+    // 7. Cache the result for subsequent requests
+    await this.presentation.cacheResult(userId, targetDate, excludeKey, result);
 
     return result;
-  }
-
-  private resolveCopy(
-    results: Map<string, CopyGenerationResult>,
-    templateKey: string,
-    params: Record<string, string | number>,
-    locale: string,
-  ): CopyGenerationResult {
-    const resultKey = SuggestionCopyService.buildResultKey(templateKey, params);
-    const result = results.get(resultKey);
-    if (result != null) return result;
-
-    this.logger.warn(
-      `Missing copy result for template: ${templateKey}, using fallback`,
-    );
-    const fallback = getFallbackCopy(templateKey, locale);
-    if (fallback) {
-      return {
-        title: fallback.title,
-        reason: fallback.reason,
-        boundary: fallback.boundary,
-        actionLabel: fallback.actionLabel,
-        aiGenerated: false,
-        fromCache: false,
-      };
-    }
-    this.logger.error(`No fallback copy found for template: ${templateKey}`);
-    return {
-      title: this.i18n.t('today-suggestion.fallback.title', { lang: locale }),
-      reason: this.i18n.t('today-suggestion.fallback.reason', { lang: locale }),
-      boundary: this.i18n.t('today-suggestion.fallback.boundary', {
-        lang: locale,
-      }),
-      actionLabel: this.i18n.t('today-suggestion.fallback.action_label', {
-        lang: locale,
-      }),
-      aiGenerated: false,
-      fromCache: false,
-    };
-  }
-
-  private toDto(
-    id: string,
-    candidate: SuggestionCandidate,
-    lifecycleState: SuggestionLifecycleState = SuggestionLifecycleState.ACTIVE,
-    copy: CopyGenerationResult,
-    locale: string,
-  ): SuggestionItemDto {
-    const primaryAction = copy.actionLabel
-      ? { ...candidate.primaryAction, label: copy.actionLabel }
-      : {
-          ...candidate.primaryAction,
-          label: this.localizeActionLabel(
-            candidate.primaryAction.label,
-            locale,
-          ),
-        };
-
-    return {
-      id,
-      type: candidate.type,
-      cardTone: this.cardToneFor(candidate.type),
-      icon: this.iconFor(candidate),
-      title: copy.title,
-      reason: copy.reason,
-      evidence: candidate.evidence.map((e) => ({
-        ...e,
-        label: this.localizeEvidenceLabel(e.label, locale),
-        value: this.localizeEvidenceValue(e.value, locale),
-      })),
-      boundary: copy.boundary,
-      primaryAction,
-      secondaryActions: candidate.secondaryActions?.map((a) => ({
-        ...a,
-        label: this.localizeActionLabel(a.label, locale),
-      })),
-      confidence: candidate.confidence,
-      ruleId: candidate.ruleId,
-      ruleVersion: candidate.ruleVersion,
-      triggerType: candidate.triggerType,
-      lifecycleState,
-      notificationEligible: candidate.notificationEligible,
-      feedbackOptions: this.feedbackOptionsFor(candidate.type),
-      subtype: candidate.subtype,
-    };
-  }
-
-  private cardToneFor(type: SuggestionType): SuggestionCardTone {
-    switch (type) {
-      case SuggestionType.CONFIRMED_RISK:
-      case SuggestionType.COMPLIANCE:
-        return 'urgent';
-      case SuggestionType.TREND:
-        return 'warning';
-      case SuggestionType.BEHAVIOR_ADVICE:
-        return 'soft';
-      case SuggestionType.COVERAGE:
-        return 'neutral';
-      default:
-        return 'soft';
-    }
-  }
-
-  private iconFor(candidate: SuggestionCandidate): string {
-    if (candidate.subtype != null) {
-      const iconMap: Record<string, string> = {
-        water: 'droplets',
-        sleep: 'moon',
-        symptom: 'activity',
-        caffeine: 'coffee',
-        profile: 'user',
-        empty_today: 'clipboard',
-      };
-      const icon = iconMap[candidate.subtype];
-      if (icon != null) {
-        return icon;
-      }
-    }
-
-    const typeIconMap: Record<SuggestionType, string> = {
-      [SuggestionType.CONFIRMED_RISK]: 'alert-triangle',
-      [SuggestionType.COMPLIANCE]: 'pill',
-      [SuggestionType.TREND]: 'trending-up',
-      [SuggestionType.BEHAVIOR_ADVICE]: 'lightbulb',
-      [SuggestionType.COVERAGE]: 'info',
-    };
-    return typeIconMap[candidate.type];
-  }
-
-  private feedbackOptionsFor(type: SuggestionType): SuggestionFeedback[] {
-    if (type === SuggestionType.COVERAGE) {
-      return [SuggestionFeedback.ACCEPTED, SuggestionFeedback.LATER];
-    }
-    return [
-      SuggestionFeedback.ACCEPTED,
-      SuggestionFeedback.LATER,
-      SuggestionFeedback.NOT_APPLICABLE,
-      SuggestionFeedback.SUPPRESS,
-    ];
-  }
-
-  private localizeEvidenceLabel(label: string, locale: string): string {
-    return this.i18n.t(`today-suggestion.evidence.${label}`, { lang: locale });
-  }
-
-  private localizeEvidenceValue(value: string, locale: string): string {
-    const key = `today-suggestion.evidence_value.${value}`;
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- tsc infers unknown (variable assignment loses generic inference), ESLint infers string
-    const translated = this.i18n.t(key, { lang: locale }) as string;
-    // When i18n can't find the key, it returns the key path itself — fall back to raw value
-    return translated === key ? value : translated;
-  }
-
-  private localizeActionLabel(label: string, locale: string): string {
-    return this.i18n.t(`today-suggestion.action.${label}`, { lang: locale });
   }
 }

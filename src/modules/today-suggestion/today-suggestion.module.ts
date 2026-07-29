@@ -9,6 +9,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
 
 import { TodaySuggestionController } from './today-suggestion.controller';
+import { SuggestionPipelineService } from './services/pipeline.service';
+import { SuggestionPresentationService } from './services/presentation.service';
 import { ArbitrationService } from './services/arbitration/service';
 import { ScoringService } from './services/arbitration/scoring.service';
 import { SuppressionService } from './services/arbitration/suppression.service';
@@ -94,6 +96,9 @@ import type { SuggestionRule } from './types/rule.types';
     SuggestionCopyLlmService,
     SuggestionCopyQueueService,
     SuggestionCopyService,
+    // Pipeline + Presentation (extracted from orchestrator)
+    SuggestionPipelineService,
+    SuggestionPresentationService,
     // Orchestrator
     SuggestionService,
   ],

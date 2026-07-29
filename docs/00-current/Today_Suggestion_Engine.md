@@ -7,21 +7,29 @@
 ## 架构
 
 ```
-信号采集层 (Collectors)
+SuggestionService (编排器, 4 依赖)
     ↓
-规则引擎 (Rules → Registry)
-    ↓
-反馈抑制 (Suppression)
-    ↓
-仲裁器 (Arbitration + Scoring)
-    ↓
-生命周期管理 (Lifecycle + Baseline)
-    ↓
-通知升级 (Escalation)
-    ↓
-DTO 映射 → API 响应
-    ↓
-AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
+    ├─ SuggestionPresentationService.getCachedResult()
+    │     └─ 缓存命中 → 直接返回
+    │
+    ├─ SuggestionPipelineService.run()
+    │     ├─ 信号采集层 (Collectors)
+    │     ├─ 规则引擎 (Rules → Registry)
+    │     ├─ 反馈抑制 (Suppression)
+    │     └─ 仲裁器 (Arbitration + Scoring)
+    │
+    ├─ SuggestionPresentationService.generateCopy()
+    │     └─ AI 文案生成 (queue / sync)
+    │
+    ├─ LifecycleService
+    │     ├─ expireStaleSuggestions()
+    │     └─ persistActive()
+    │
+    ├─ EscalationService.escalateIfNeeded()
+    │
+    └─ SuggestionPresentationService
+          ├─ resolveCopy() / toDto() (DTO 映射)
+          └─ cacheResult() (缓存结果)
 ```
 
 ## API 端点
@@ -189,7 +197,7 @@ AI 解释层 (Explanation, 按需调用, 不阻塞首屏)
 ## 2026-07-22 i18n 硬编码清理
 
 - 规则服务中的 evidence `label` 和 action `label` 从硬编码中文字符串改为 locale-neutral 的 i18n key（如 `current_count`、`go_record`）
-- `SuggestionService.toDto()` 注入 `I18nService`，在 DTO 映射时按 `Accept-Language` 本地化 evidence label、enum value 和 action label
+- `SuggestionPresentationService.toDto()` 注入 `I18nService`，在 DTO 映射时按 `Accept-Language` 本地化 evidence label、enum value 和 action label
 - 最终兜底文案从 `suggestion.service.ts` 和 `copy.service.ts` 中的硬编码中文改为 i18n 调用（`today-suggestion.fallback.*`）
 - LLM Prompt 指令文案从 `isZh` 三元分支改为 i18n 调用（`today-suggestion.prompt.*`）
 - System Prompt 中的中文词汇示例替换为英文等价描述，消除语言偏置

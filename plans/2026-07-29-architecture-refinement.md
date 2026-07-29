@@ -215,40 +215,6 @@ method 到独立文件再组合。
 **today-analysis 和 reports 的 PrismaService 直查**：ADR-0009 豁免了读模型模块，但
 建议在模块内部增加 `repositories/` 封装，service 不直接操作 Prisma。
 
-### 3.5 today-suggestion 模块内部优化
-
-**不拆分模块**（子目录结构已合理），但优化主编排器：
-
-```typescript
-// 当前：SuggestionService 注入 13 个依赖
-constructor(
-  private readonly medicationCollector: MedicationCollectorService,
-  private readonly recordCollector: RecordCollectorService,
-  private readonly profileCollector: ProfileCollectorService,
-  private readonly registry: RegistryService,
-  private readonly suppression: SuppressionService,
-  private readonly arbitration: ArbitrationService,
-  private readonly baseline: BaselineService,
-  private readonly lifecycle: LifecycleService,
-  private readonly escalation: EscalationService,
-  private readonly cache: SuggestionCacheService,
-  private readonly copyService: SuggestionCopyService,
-  private readonly copyQueue: SuggestionCopyQueueService,
-  private readonly i18n: I18nService,
-) {}
-
-// 重构后：按 pipeline 阶段分组
-constructor(
-  private readonly pipeline: SuggestionPipeline,        // 封装 collect→rules→arbitrate
-  private readonly lifecycle: SuggestionLifecycleService, // 生命周期管理
-  private readonly presentation: SuggestionPresentationService, // copy + cache + DTO mapping
-  private readonly escalation: EscalationService,
-) {}
-```
-
-引入 `SuggestionPipeline` 封装 collect → rules → arbitrate 三步，
-`SuggestionPresentationService` 封装 copy generation + cache + DTO mapping。
-
 ### 3.6 文件命名规范化
 
 对全库 `src/modules/` 做 AGENTS.md 命名规则审计，发现 25 处违规（R1 模块名前缀 ×10、
@@ -323,16 +289,6 @@ No sub-directory barrels — sub-directories are internal namespaces, not export
 
 ## 4. 执行计划
 
-### Phase 3：today-suggestion 编排器优化（中风险）
-
-| 步骤 | 动作                                                                  |
-| ---- | --------------------------------------------------------------------- |
-| 3.1  | 新建 `SuggestionPipeline` service，封装 collect → rules → arbitrate   |
-| 3.2  | 新建 `SuggestionPresentationService`，封装 copy + cache + DTO mapping |
-| 3.3  | `SuggestionService` 瘦身为 4 个依赖，`generate()` 方法降到 ~150 行    |
-
-**验证**：`pnpm test:ci`（today-suggestion 有完整 spec 覆盖）。
-
 ### Phase 4：文件命名规范化（低风险，高收益）
 
 **目标**：修复 25 处命名违规，使全库文件名符合 AGENTS.md 规则。
@@ -364,10 +320,9 @@ No sub-directory barrels — sub-directories are internal namespaces, not export
 
 ## 5. 风险与缓解
 
-| 风险                                       | 概率 | 缓解                                                  |
-| ------------------------------------------ | ---- | ----------------------------------------------------- |
-| Phase 3 编排器重构破坏 suggestion pipeline | 中   | today-suggestion 有完整 spec 覆盖，每步验证           |
-| Reader port 新增导致 module 循环依赖       | 低   | 使用 `forwardRef` 或事件驱动解耦（ADR-0009 已有先例） |
+| 风险                                 | 概率 | 缓解                                                  |
+| ------------------------------------ | ---- | ----------------------------------------------------- |
+| Reader port 新增导致 module 循环依赖 | 低   | 使用 `forwardRef` 或事件驱动解耦（ADR-0009 已有先例） |
 
 ---
 
@@ -385,12 +340,10 @@ No sub-directory barrels — sub-directories are internal namespaces, not export
 
 ## 7. 优先级总结
 
-| 优先级 | Phase                     | 预期工作量 | 收益                                          |
-| ------ | ------------------------- | ---------- | --------------------------------------------- |
-| 🟡 中  | Phase 2: Reader Port 补全 | 0.5 天     | 完成 ADR-0009 遗留项，消除 PrismaService 直查 |
-| 🟡 中  | Phase 3: 编排器优化       | 0.5 天     | SuggestionService 依赖 13→4，可读性提升       |
-| 🟡 中  | Phase 4: 命名规范化       | 0.5 天     | 25 处违规修复，全库命名一致                   |
-| 🟢 低  | Phase 5: 文档对齐         | 0.5 小时   | 消除 AGENTS.md / CLAUDE.md 矛盾               |
+| 优先级 | Phase               | 预期工作量 | 收益                            |
+| ------ | ------------------- | ---------- | ------------------------------- |
+| 🟡 中  | Phase 4: 命名规范化 | 0.5 天     | 25 处违规修复，全库命名一致     |
+| 🟢 低  | Phase 5: 文档对齐   | 0.5 小时   | 消除 AGENTS.md / CLAUDE.md 矛盾 |
 
 ---
 
