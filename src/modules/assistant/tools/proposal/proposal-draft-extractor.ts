@@ -3,6 +3,32 @@ import type {
   AssistantUpdateUserSettingsProposalPayload,
 } from '../../types/assistant.types';
 
+/**
+ * Negation words that may precede a toggle keyword, reversing its meaning.
+ * If any of these appears immediately before the action word, the user is
+ * expressing they do NOT want the action performed.
+ */
+const NEGATION_SUFFIX_RE =
+  /(?:不要|别|不用|无需|不|don'?t|do\s+not|never)\s*$/i;
+
+/**
+ * Tests whether `pattern` has at least one match in `lowered` that is NOT
+ * preceded by a negation word. Returns true only when a non-negated match
+ * exists — i.e. the user's intent is affirmative.
+ */
+function hasAffirmativeMatch(lowered: string, pattern: RegExp): boolean {
+  const globalPattern = pattern.flags.includes('g')
+    ? pattern
+    : new RegExp(pattern.source, pattern.flags + 'g');
+  for (const match of lowered.matchAll(globalPattern)) {
+    const before = lowered.slice(0, match.index);
+    if (!NEGATION_SUFFIX_RE.test(before)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function extractRecordUpdateDraft(
   userMessage: string,
 ): AssistantUpdateDailyRecordProposalPayload['draft'] | null {
@@ -32,14 +58,18 @@ export function extractSettingsDraft(
 ): AssistantUpdateUserSettingsProposalPayload['draft'] {
   const draft: AssistantUpdateUserSettingsProposalPayload['draft'] = {};
   const lowered = userMessage.toLowerCase();
-  if (/关闭.*ai|disable.*ai|turn off.*ai/.test(lowered)) {
+  if (hasAffirmativeMatch(lowered, /关闭.*ai|disable.*ai|turn off.*ai/)) {
     draft.assistantEnabled = false;
-  } else if (/打开.*ai|enable.*ai|turn on.*ai/.test(lowered)) {
+  } else if (hasAffirmativeMatch(lowered, /打开.*ai|enable.*ai|turn on.*ai/)) {
     draft.assistantEnabled = true;
   }
-  if (/关闭.*记忆|disable.*memory|turn off.*memory/.test(lowered)) {
+  if (
+    hasAffirmativeMatch(lowered, /关闭.*记忆|disable.*memory|turn off.*memory/)
+  ) {
     draft.assistantMemoryEnabled = false;
-  } else if (/打开.*记忆|enable.*memory|turn on.*memory/.test(lowered)) {
+  } else if (
+    hasAffirmativeMatch(lowered, /打开.*记忆|enable.*memory|turn on.*memory/)
+  ) {
     draft.assistantMemoryEnabled = true;
   }
   const contextDraft: NonNullable<
@@ -79,11 +109,11 @@ function applyContextToggle(
   if (!rule.test(lowered)) {
     return;
   }
-  if (/关闭|disable|turn off/.test(lowered)) {
+  if (hasAffirmativeMatch(lowered, /关闭|disable|turn off/)) {
     output[key] = false;
     return;
   }
-  if (/打开|enable|turn on/.test(lowered)) {
+  if (hasAffirmativeMatch(lowered, /打开|enable|turn on/)) {
     output[key] = true;
   }
 }

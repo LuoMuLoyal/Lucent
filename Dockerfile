@@ -45,8 +45,8 @@ COPY --from=builder /app/generated/prisma ./generated/prisma
 # Prisma schema + config（migrate 独立步骤用，见 Phase 3）
 COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
-# src/config/env-file-paths.ts — prisma.config.ts 的导入依赖
-COPY --from=builder /app/src/config/env-file-paths.ts ./src/config/env-file-paths.ts
+# src/config/env/env-file-paths.ts — prisma.config.ts 的导入依赖
+COPY --from=builder /app/src/config/env/env-file-paths.ts ./src/config/env/env-file-paths.ts
 # package.json（Winston 等需要读取 version）
 COPY package.json ./
 # 创建日志目录并设置权限

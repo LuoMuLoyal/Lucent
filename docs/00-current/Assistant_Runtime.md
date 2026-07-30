@@ -1,6 +1,6 @@
 # Assistant Runtime
 
-Last updated: 2026-07-09
+Last updated: 2026-07-30
 
 - Assistant retrieval is source-split across Chinese leaflet RAG, assistant-only filtered medical
   QA, and entity-scoped DrugBank scientific retrieval.
@@ -37,3 +37,6 @@ Last updated: 2026-07-09
   functions (`selectAllowedToolsForContextSources`, `selectRelevantToolsForMessage`).
 - Proposal draft extraction logic (`extractRecordUpdateDraft`, `extractSettingsDraft`) has been
   extracted from `proposal.service.ts` into `tools/proposal-draft-extractor.ts` as pure functions.
+- `extractSettingsDraft` and `applyContextToggle` now respect negation semantics: when a toggle
+  keyword (关闭/disable/turn off/打开/enable/turn on) is preceded by a negation word
+  (不要/别/不用/无需/不/don't/do not/never), the match is skipped and no setting is changed.

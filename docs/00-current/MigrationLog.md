@@ -1,6 +1,6 @@
 # Lucent Migration Log
 
-Last updated: 2026-07-19
+Last updated: 2026-07-30
 
 Records backend changes in date order. Detailed entries are split by date under
 `docs/02-logs/migration-log/`.
@@ -15,6 +15,9 @@ Records backend changes in date order. Detailed entries are split by date under
 
 ## Active Entries
 
+- [2026-07-30](../02-logs/migration-log/2026-07-30.md) — 审查报告修复（prisma.config.ts / scripts/shared/env.ts / Dockerfile 路径断裂 ×3 + CI trivy-action 版本前缀 + proposal-draft-extractor 否定语义漏判）
+- [2026-07-29](../02-logs/migration-log/2026-07-29.md) — 架构精炼 Phase 1-6（god class 拆分 + Reader Port 补全 + today-suggestion 编排器优化 + 文件命名规范化 + 目录结构精炼）+ 工具链优化（CI 并行化 + SWC 缓存 + Prettier 精简）+ reminder-dispatch 独立队列
+- [2026-07-28](../02-logs/migration-log/2026-07-28.md) — 风险检查健壮性修复（OnModuleDestroy / 并行查询 / 缓存容错）+ CronJobsService 启动错误边界 + help-feedback 动态激活 + data-export GET/latest 移除提权 + 邮件模板美化
 - [2026-07-19](../02-logs/migration-log/2026-07-19.md) — 审查报告修复（熔断器集成 / 流处理 recordSuccess 时机 / open 状态保护）+ 文档重构（文档覆盖校验工具增强 + Current_State 精简 + AGENTS.md 口径改为运行文档校验工具）
 - [2026-07-18](../02-logs/migration-log/2026-07-18.md) — 修复 refresh token 接口缺少 @Public() 装饰器（全局 JwtAuthGuard 拦截导致 access token 过期后无法刷新）
 - [2026-07-17](../02-logs/migration-log/2026-07-17.md) — 部署加固：单 slot 停机部署 + 人工生产发布 + 告警通道 + 数据库备份 + SSE 优雅关闭 + CI 加固；跨模块数据访问治理（ADR-0009 + reader port 收敛 + account 写路径改道）；代码审查安全修复：Assistant IDOR 越权 ×2 + 刷新令牌竞态条件 + 通知去重防御性加固

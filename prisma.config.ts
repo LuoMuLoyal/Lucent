@@ -3,7 +3,7 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { defineConfig } from 'prisma/config';
-import { getDotenvLoadOrder } from './src/config/env-file-paths';
+import { getDotenvLoadOrder } from './src/config/env/env-file-paths';
 
 // Mirror the Nest app's env resolution so Prisma CLI targets the expected DB per NODE_ENV.
 for (const envPath of getDotenvLoadOrder()) {

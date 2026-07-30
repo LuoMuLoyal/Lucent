@@ -1,7 +1,7 @@
 const path = require('node:path');
 
 const dotenv = require('dotenv');
-const { getDotenvLoadOrder } = require('../../src/config/env-file-paths');
+const { getDotenvLoadOrder } = require('../../src/config/env/env-file-paths');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 

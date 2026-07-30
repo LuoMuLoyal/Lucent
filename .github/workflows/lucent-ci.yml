@@ -244,7 +244,7 @@ jobs:
       # 宽松模式：扫描并输出 HIGH/CRITICAL 漏洞报告，但不阻断 CI。
       # 待基线建立后再考虑收紧为 exit-code: 1 或加 .trivyignore 白名单。
       - name: Trivy scan (report only)
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: lucent-ci:scan
           severity: HIGH,CRITICAL
