@@ -10,11 +10,15 @@ import { ForgotPasswordDto } from '../dto/password/forgot-password.dto';
 import { LoginDto } from '../dto/credentials/login.dto';
 import {
   AppleOAuthCallbackDto,
+  GoogleOAuthAuthorizeDto,
+  GoogleOAuthCallbackDto,
   OAuthAuthorizeDto,
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
+  WeiboOAuthAuthorizeDto,
+  WeiboOAuthCallbackDto,
 } from '../dto/shared/oauth.dto';
 import { RegisterDto } from '../dto/credentials/register.dto';
 import { ResetPasswordDto } from '../dto/password/reset-password.dto';
@@ -176,6 +180,32 @@ export class AuthService {
     context?: AuthRequestContext,
   ): Promise<{ user: User } & TokenPair> {
     return this.authOAuthFacadeService.loginWithQq(dto, context);
+  }
+
+  async createWeiboAuthorizeUrl(
+    dto?: WeiboOAuthAuthorizeDto,
+  ): Promise<OAuthAuthorizeResult> {
+    return this.authOAuthFacadeService.createWeiboAuthorizeUrl(dto);
+  }
+
+  async loginWithWeibo(
+    dto: WeiboOAuthCallbackDto,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
+    return this.authOAuthFacadeService.loginWithWeibo(dto, context);
+  }
+
+  async createGoogleAuthorizeUrl(
+    dto?: GoogleOAuthAuthorizeDto,
+  ): Promise<OAuthAuthorizeResult> {
+    return this.authOAuthFacadeService.createGoogleAuthorizeUrl(dto);
+  }
+
+  async loginWithGoogle(
+    dto: GoogleOAuthCallbackDto,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
+    return this.authOAuthFacadeService.loginWithGoogle(dto, context);
   }
 
   async linkWechatWebIdentity(

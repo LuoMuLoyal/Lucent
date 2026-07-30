@@ -13,6 +13,8 @@ export interface OAuthConfig {
   wechatMobile: Omit<OAuthProviderConfig, 'redirectUri'>;
   apple: { appId: string; jwksUrl: string; issuer: string };
   qq: OAuthProviderConfig;
+  weibo: OAuthProviderConfig;
+  google: OAuthProviderConfig;
 }
 
 export const oauthConfig = registerAs(
@@ -36,6 +38,16 @@ export const oauthConfig = registerAs(
       appId: process.env[EnvKey.QQ_APP_ID] ?? '',
       appSecret: process.env[EnvKey.QQ_APP_SECRET] ?? '',
       redirectUri: process.env[EnvKey.QQ_REDIRECT_URI] ?? '',
+    },
+    weibo: {
+      appId: process.env[EnvKey.WEIBO_APP_ID] ?? '',
+      appSecret: process.env[EnvKey.WEIBO_APP_SECRET] ?? '',
+      redirectUri: process.env[EnvKey.WEIBO_REDIRECT_URI] ?? '',
+    },
+    google: {
+      appId: process.env[EnvKey.GOOGLE_CLIENT_ID] ?? '',
+      appSecret: process.env[EnvKey.GOOGLE_CLIENT_SECRET] ?? '',
+      redirectUri: process.env[EnvKey.GOOGLE_REDIRECT_URI] ?? '',
     },
   }),
 );

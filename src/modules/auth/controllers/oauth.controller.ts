@@ -29,6 +29,10 @@ import {
   AppleOAuthCallbackDto,
   QqOAuthCallbackDto,
   QqOAuthAuthorizeDto,
+  WeiboOAuthCallbackDto,
+  WeiboOAuthAuthorizeDto,
+  GoogleOAuthCallbackDto,
+  GoogleOAuthAuthorizeDto,
 } from '../dto/shared/oauth.dto';
 
 import {
@@ -147,6 +151,64 @@ export class OAuthController {
     @Req() request: FastifyRequest,
   ) {
     const result = await this.authService.loginWithQq(
+      dto,
+      extractAuthRequestContext(request),
+    );
+    return buildAuthResponse(result.user, result);
+  }
+
+  // ── POST /api/v1/auth/oauth/weibo/authorize ───────────────
+
+  @Post('oauth/weibo/authorize')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Create Weibo OAuth authorize URL' })
+  @ApiBody({ type: WeiboOAuthAuthorizeDto, required: false })
+  @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  async createWeiboAuthorizeUrl(@Body() dto?: WeiboOAuthAuthorizeDto) {
+    const result = await this.authService.createWeiboAuthorizeUrl(dto);
+    return successEnvelope(result);
+  }
+
+  // ── POST /api/v1/auth/oauth/weibo/callback ────────────────
+
+  @Post('oauth/weibo/callback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Weibo OAuth callback login' })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
+  async loginWithWeibo(
+    @Body() dto: WeiboOAuthCallbackDto,
+    @Req() request: FastifyRequest,
+  ) {
+    const result = await this.authService.loginWithWeibo(
+      dto,
+      extractAuthRequestContext(request),
+    );
+    return buildAuthResponse(result.user, result);
+  }
+
+  // ── POST /api/v1/auth/oauth/google/authorize ──────────────
+
+  @Post('oauth/google/authorize')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Create Google OAuth authorize URL' })
+  @ApiBody({ type: GoogleOAuthAuthorizeDto, required: false })
+  @ApiResponse({ status: 200, type: OAuthAuthorizeResponseDto })
+  async createGoogleAuthorizeUrl(@Body() dto?: GoogleOAuthAuthorizeDto) {
+    const result = await this.authService.createGoogleAuthorizeUrl(dto);
+    return successEnvelope(result);
+  }
+
+  // ── POST /api/v1/auth/oauth/google/callback ───────────────
+
+  @Post('oauth/google/callback')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Google OAuth callback login' })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
+  async loginWithGoogle(
+    @Body() dto: GoogleOAuthCallbackDto,
+    @Req() request: FastifyRequest,
+  ) {
+    const result = await this.authService.loginWithGoogle(
       dto,
       extractAuthRequestContext(request),
     );

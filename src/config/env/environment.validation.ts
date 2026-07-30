@@ -158,6 +158,14 @@ const envSchema = z.object({
   [EnvKey.QQ_APP_SECRET]: optionalString,
   [EnvKey.QQ_REDIRECT_URI]: optionalUri,
 
+  [EnvKey.WEIBO_APP_ID]: optionalString,
+  [EnvKey.WEIBO_APP_SECRET]: optionalString,
+  [EnvKey.WEIBO_REDIRECT_URI]: optionalUri,
+
+  [EnvKey.GOOGLE_CLIENT_ID]: optionalString,
+  [EnvKey.GOOGLE_CLIENT_SECRET]: optionalString,
+  [EnvKey.GOOGLE_REDIRECT_URI]: optionalUri,
+
   [EnvKey.TENCENT_COS_SECRET_ID]: optionalString,
   [EnvKey.TENCENT_COS_SECRET_KEY]: optionalString,
   [EnvKey.TENCENT_COS_BUCKET]: optionalString,

@@ -90,3 +90,50 @@ export class QqOAuthAuthorizeDto {
   @MaxLength(2048)
   callbackUri?: string;
 }
+
+export class WeiboOAuthCallbackDto {
+  @ApiProperty({ description: '微博授权码' })
+  @IsString()
+  @MaxLength(512)
+  code!: string;
+
+  @ApiProperty({ description: '授权时生成的 state' })
+  @IsString()
+  @MaxLength(512)
+  state!: string;
+}
+
+export class WeiboOAuthAuthorizeDto {
+  @ApiProperty({
+    description: '微博授权完成后的客户端回跳地址',
+    required: false,
+    example: 'https://api.lumos.app/oauth/weibo',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  callbackUri?: string;
+}
+
+export class GoogleOAuthCallbackDto {
+  @ApiProperty({ description: 'Google 授权码' })
+  @IsString()
+  @MaxLength(512)
+  code!: string;
+
+  @ApiProperty({ description: '授权时生成的 state' })
+  @IsString()
+  @MaxLength(512)
+  state!: string;
+}
+
+export class GoogleOAuthAuthorizeDto {
+  @ApiProperty({
+    description: 'Google 授权完成后的客户端回跳地址',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  callbackUri?: string;
+}

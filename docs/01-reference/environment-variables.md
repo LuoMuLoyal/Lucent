@@ -55,6 +55,35 @@ WECHAT_MOBILE_APP_ID
 WECHAT_MOBILE_APP_SECRET
 ```
 
+QQ OAuth:
+
+```text
+QQ_APP_ID
+QQ_APP_SECRET
+QQ_REDIRECT_URI
+```
+
+Weibo OAuth:
+
+```text
+WEIBO_APP_ID
+WEIBO_APP_SECRET
+WEIBO_REDIRECT_URI
+```
+
+Google OAuth:
+
+```text
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI
+```
+
+All OAuth provider variables are optional. When unset, the provider logs a warning
+at startup but does not block application launch. QQ, Weibo, and Google each use
+the standard OAuth 2.0 authorization-code flow; WeChat additionally supports a
+mobile SDK path.
+
 Daily-record image uploads through Tencent COS:
 
 ```text

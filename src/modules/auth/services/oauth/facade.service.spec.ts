@@ -3,6 +3,8 @@ import type { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-o
 import type { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider';
 import type { AppleOAuthProvider } from '../../providers/apple-oauth.provider';
 import type { QqOAuthProvider } from '../../providers/qq-oauth.provider';
+import type { WeiboOAuthProvider } from '../../providers/weibo-oauth.provider';
+import type { GoogleOAuthProvider } from '../../providers/google-oauth.provider';
 import type { AuthOAuthStateService } from './state.service';
 import type { AuthTokenService } from '../token.service';
 import type { AuthOAuthService } from './oauth.service';
@@ -40,6 +42,8 @@ describe('AuthOAuthFacadeService', () => {
   let wechatMobileProvider: vi.Mocked<WechatMobileOAuthProvider>;
   let appleProvider: vi.Mocked<AppleOAuthProvider>;
   let qqProvider: vi.Mocked<QqOAuthProvider>;
+  let weiboProvider: vi.Mocked<WeiboOAuthProvider>;
+  let googleProvider: vi.Mocked<GoogleOAuthProvider>;
   let stateService: vi.Mocked<AuthOAuthStateService>;
   let tokenService: vi.Mocked<AuthTokenService>;
   let oauthService: vi.Mocked<AuthOAuthService>;
@@ -72,6 +76,20 @@ describe('AuthOAuthFacadeService', () => {
         provider: 'qq',
       }),
     } as unknown as vi.Mocked<QqOAuthProvider>;
+    weiboProvider = {
+      buildAuthorizeUrl: vi.fn().mockReturnValue('https://weibo/auth?url=1'),
+      fetchProfile: vi.fn().mockResolvedValue({
+        ...mockProfile,
+        provider: 'weibo',
+      }),
+    } as unknown as vi.Mocked<WeiboOAuthProvider>;
+    googleProvider = {
+      buildAuthorizeUrl: vi.fn().mockReturnValue('https://google/auth?url=1'),
+      fetchProfile: vi.fn().mockResolvedValue({
+        ...mockProfile,
+        provider: 'google',
+      }),
+    } as unknown as vi.Mocked<GoogleOAuthProvider>;
     stateService = {
       createState: vi.fn().mockResolvedValue({
         state: 'state-123',
@@ -106,6 +124,8 @@ describe('AuthOAuthFacadeService', () => {
       wechatMobileProvider,
       appleProvider,
       qqProvider,
+      weiboProvider,
+      googleProvider,
       stateService,
       tokenService,
       oauthService,

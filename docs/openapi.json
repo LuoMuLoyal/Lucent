@@ -1353,42 +1353,9 @@
         "tags": ["Medicine Dose Logs"]
       }
     },
-    "/api/v1/user/user-devices": {
-      "post": {
-        "operationId": "UserDevicesController_register_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterDeviceDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeviceResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Register or update a device for push notifications",
-        "tags": ["User Devices"]
-      },
+    "/api/v1/user/settings": {
       "get": {
-        "operationId": "UserDevicesController_list_v1",
+        "operationId": "UserSettingsController_getSettings_v1",
         "parameters": [],
         "responses": {
           "200": {
@@ -1396,7 +1363,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeviceListResponseDto"
+                  "$ref": "#/components/schemas/UserSettingsResponseDto"
                 }
               }
             }
@@ -1407,26 +1374,32 @@
             "access-token": []
           }
         ],
-        "summary": "List registered devices",
-        "tags": ["User Devices"]
-      }
-    },
-    "/api/v1/user/user-devices/{id}": {
-      "delete": {
-        "operationId": "UserDevicesController_remove_v1",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
+        "summary": "Get authenticated user settings",
+        "tags": ["User Settings"]
+      },
+      "patch": {
+        "operationId": "UserSettingsController_updateSettings_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserSettingsDto"
+              }
             }
           }
-        ],
+        },
         "responses": {
-          "204": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettingsResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1434,8 +1407,148 @@
             "access-token": []
           }
         ],
-        "summary": "Unregister a device",
-        "tags": ["User Devices"]
+        "summary": "Update authenticated user settings",
+        "tags": ["User Settings"]
+      }
+    },
+    "/api/v1/user/settings/security-pin": {
+      "post": {
+        "operationId": "UserSettingsController_enableSecurityPin_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnableSecurityPinDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettingsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Enable Security PIN",
+        "tags": ["User Settings"]
+      }
+    },
+    "/api/v1/user/settings/security-pin/verify": {
+      "post": {
+        "operationId": "UserSettingsController_verifySecurityPin_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifySecurityPinDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SecurityPinElevationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Verify Security PIN and receive elevation token",
+        "tags": ["User Settings"]
+      }
+    },
+    "/api/v1/user/settings/security-pin/change": {
+      "post": {
+        "operationId": "UserSettingsController_changeSecurityPin_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeSecurityPinDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettingsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Change Security PIN",
+        "tags": ["User Settings"]
+      }
+    },
+    "/api/v1/user/settings/security-pin/disable": {
+      "post": {
+        "operationId": "UserSettingsController_disableSecurityPin_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableSecurityPinDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSettingsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Disable Security PIN",
+        "tags": ["User Settings"]
       }
     },
     "/api/v1/auth/register": {
@@ -1834,6 +1947,126 @@
         "tags": ["Auth"]
       }
     },
+    "/api/v1/auth/oauth/weibo/authorize": {
+      "post": {
+        "operationId": "OAuthController_createWeiboAuthorizeUrl_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeiboOAuthAuthorizeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create Weibo OAuth authorize URL",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/weibo/callback": {
+      "post": {
+        "operationId": "OAuthController_loginWithWeibo_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeiboOAuthCallbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Weibo OAuth callback login",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/google/authorize": {
+      "post": {
+        "operationId": "OAuthController_createGoogleAuthorizeUrl_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleOAuthAuthorizeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Create Google OAuth authorize URL",
+        "tags": ["Auth"]
+      }
+    },
+    "/api/v1/auth/oauth/google/callback": {
+      "post": {
+        "operationId": "OAuthController_loginWithGoogle_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleOAuthCallbackDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Google OAuth callback login",
+        "tags": ["Auth"]
+      }
+    },
     "/api/v1/auth/logout": {
       "post": {
         "operationId": "SessionController_logout_v1",
@@ -1942,6 +2175,91 @@
         },
         "summary": "Refresh token",
         "tags": ["Auth"]
+      }
+    },
+    "/api/v1/user/user-devices": {
+      "post": {
+        "operationId": "UserDevicesController_register_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Register or update a device for push notifications",
+        "tags": ["User Devices"]
+      },
+      "get": {
+        "operationId": "UserDevicesController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List registered devices",
+        "tags": ["User Devices"]
+      }
+    },
+    "/api/v1/user/user-devices/{id}": {
+      "delete": {
+        "operationId": "UserDevicesController_remove_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Unregister a device",
+        "tags": ["User Devices"]
       }
     },
     "/api/v1/account": {
@@ -3627,204 +3945,6 @@
         ],
         "summary": "Stream authenticated user assistant response",
         "tags": ["Assistant"]
-      }
-    },
-    "/api/v1/user/settings": {
-      "get": {
-        "operationId": "UserSettingsController_getSettings_v1",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserSettingsResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get authenticated user settings",
-        "tags": ["User Settings"]
-      },
-      "patch": {
-        "operationId": "UserSettingsController_updateSettings_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateUserSettingsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserSettingsResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Update authenticated user settings",
-        "tags": ["User Settings"]
-      }
-    },
-    "/api/v1/user/settings/security-pin": {
-      "post": {
-        "operationId": "UserSettingsController_enableSecurityPin_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EnableSecurityPinDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserSettingsResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Enable Security PIN",
-        "tags": ["User Settings"]
-      }
-    },
-    "/api/v1/user/settings/security-pin/verify": {
-      "post": {
-        "operationId": "UserSettingsController_verifySecurityPin_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VerifySecurityPinDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SecurityPinElevationResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Verify Security PIN and receive elevation token",
-        "tags": ["User Settings"]
-      }
-    },
-    "/api/v1/user/settings/security-pin/change": {
-      "post": {
-        "operationId": "UserSettingsController_changeSecurityPin_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangeSecurityPinDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserSettingsResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Change Security PIN",
-        "tags": ["User Settings"]
-      }
-    },
-    "/api/v1/user/settings/security-pin/disable": {
-      "post": {
-        "operationId": "UserSettingsController_disableSecurityPin_v1",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DisableSecurityPinDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserSettingsResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Disable Security PIN",
-        "tags": ["User Settings"]
       }
     },
     "/api/v1/user/today-analysis/generate": {
@@ -6245,165 +6365,242 @@
           }
         }
       },
-      "UserDevicePlatform": {
-        "type": "string",
-        "enum": [
-          "ios",
-          "android",
-          "web",
-          "windows",
-          "macos",
-          "linux",
-          "watchos",
-          "other"
-        ],
-        "description": "Device platform."
-      },
-      "RegisterDeviceDto": {
+      "AssistantContextSettingsDto": {
         "type": "object",
         "properties": {
-          "pushToken": {
-            "type": "string",
-            "description": "Push notification token (FCM/APNs)."
+          "healthProfile": {
+            "type": "boolean",
+            "description": "Whether the assistant may read stored health profile, allergies, and conditions."
           },
-          "platform": {
-            "description": "Device platform.",
+          "dailyRecords": {
+            "type": "boolean",
+            "description": "Whether the assistant may read recent daily records."
+          },
+          "sleepRecords": {
+            "type": "boolean",
+            "description": "Whether the assistant may read sleep records and summaries."
+          },
+          "currentMedicines": {
+            "type": "boolean",
+            "description": "Whether the assistant may read current medicines and medicine-box data."
+          }
+        },
+        "required": [
+          "healthProfile",
+          "dailyRecords",
+          "sleepRecords",
+          "currentMedicines"
+        ]
+      },
+      "SecurityPinSettingsDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether a Security PIN is enabled"
+          },
+          "lastChangedAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp of last PIN change, null if never set",
+            "nullable": true
+          }
+        },
+        "required": ["enabled", "lastChangedAt"]
+      },
+      "UserSettingsDataDto": {
+        "type": "object",
+        "properties": {
+          "aiSummariesEnabled": {
+            "type": "boolean",
+            "description": "Allow AI-generated summaries and advice."
+          },
+          "dataSharingConsent": {
+            "type": "boolean",
+            "description": "Consent to share anonymized data for research."
+          },
+          "assistantEnabled": {
+            "type": "boolean",
+            "description": "Allow the authenticated user to use the assistant feature."
+          },
+          "assistantMemoryEnabled": {
+            "type": "boolean",
+            "description": "Allow the assistant to reuse persisted conversation history as cross-conversation memory."
+          },
+          "waterTargetCount": {
+            "type": "number",
+            "description": "Daily water intake target (number of glasses).",
+            "example": 8
+          },
+          "assistantContext": {
+            "description": "Fine-grained assistant context permissions.",
             "allOf": [
               {
-                "$ref": "#/components/schemas/UserDevicePlatform"
+                "$ref": "#/components/schemas/AssistantContextSettingsDto"
               }
             ]
           },
-          "deviceName": {
-            "type": "string",
-            "description": "Human-readable device name."
-          },
-          "locale": {
-            "type": "string",
-            "description": "User locale preference."
-          },
-          "timezone": {
-            "type": "string",
-            "description": "User timezone preference."
-          },
-          "notificationsEnabled": {
-            "type": "boolean",
-            "description": "Whether push notifications are enabled for this device.",
-            "default": false
-          }
-        },
-        "required": ["pushToken", "platform"]
-      },
-      "DeviceResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "Device record ID."
-          },
-          "platform": {
-            "type": "string",
-            "description": "Device platform.",
-            "example": "ios"
-          },
-          "deviceName": {
-            "type": "object",
-            "description": "Human-readable device name."
-          },
-          "notificationsEnabled": {
-            "type": "boolean",
-            "description": "Whether push notifications are enabled."
-          },
-          "locale": {
-            "type": "object",
-            "description": "User locale preference."
-          },
-          "timezone": {
-            "type": "object",
-            "description": "User timezone preference."
-          },
-          "lastSeenAt": {
-            "type": "object",
-            "description": "ISO 8601 timestamp of last device activity."
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "ISO 8601 creation timestamp."
-          },
           "updatedAt": {
             "type": "string",
-            "description": "ISO 8601 last-update timestamp."
+            "description": "ISO-8601 timestamp of last update.",
+            "nullable": true
+          },
+          "securityPin": {
+            "description": "Security PIN status.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SecurityPinSettingsDto"
+              }
+            ]
           }
         },
         "required": [
-          "id",
-          "platform",
-          "notificationsEnabled",
-          "createdAt",
-          "updatedAt"
+          "aiSummariesEnabled",
+          "dataSharingConsent",
+          "assistantEnabled",
+          "assistantMemoryEnabled",
+          "waterTargetCount",
+          "assistantContext",
+          "updatedAt",
+          "securityPin"
         ]
       },
-      "DeviceItemDto": {
+      "UserSettingsResponseDto": {
         "type": "object",
         "properties": {
-          "id": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
             "type": "string",
-            "description": "Device record ID."
+            "description": "Message.",
+            "example": ""
           },
-          "platform": {
-            "type": "string",
-            "description": "Device platform.",
-            "example": "ios"
-          },
-          "deviceName": {
-            "type": "object",
-            "description": "Human-readable device name."
-          },
-          "notificationsEnabled": {
+          "data": {
+            "$ref": "#/components/schemas/UserSettingsDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "UpdateAssistantContextSettingsDto": {
+        "type": "object",
+        "properties": {
+          "healthProfile": {
             "type": "boolean",
-            "description": "Whether push notifications are enabled."
+            "description": "Allow the assistant to read stored health profile, allergies, and conditions."
           },
-          "locale": {
-            "type": "object",
-            "description": "User locale preference."
+          "dailyRecords": {
+            "type": "boolean",
+            "description": "Allow the assistant to read recent daily records."
           },
-          "timezone": {
-            "type": "object",
-            "description": "User timezone preference."
+          "sleepRecords": {
+            "type": "boolean",
+            "description": "Allow the assistant to read sleep records and summaries."
           },
-          "lastSeenAt": {
-            "type": "object",
-            "description": "ISO 8601 timestamp of last device activity."
-          },
-          "createdAt": {
-            "type": "string",
-            "description": "ISO 8601 creation timestamp."
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "ISO 8601 last-update timestamp."
+          "currentMedicines": {
+            "type": "boolean",
+            "description": "Allow the assistant to read current medicines and medicine-box data."
           }
-        },
-        "required": [
-          "id",
-          "platform",
-          "notificationsEnabled",
-          "createdAt",
-          "updatedAt"
-        ]
+        }
       },
-      "DeviceListResponseDto": {
+      "UpdateUserSettingsDto": {
         "type": "object",
         "properties": {
-          "items": {
-            "description": "List of registered devices.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DeviceItemDto"
-            }
+          "aiSummariesEnabled": {
+            "type": "boolean",
+            "description": "Allow AI-generated summaries and advice."
+          },
+          "dataSharingConsent": {
+            "type": "boolean",
+            "description": "Consent to share anonymized data for research."
+          },
+          "assistantEnabled": {
+            "type": "boolean",
+            "description": "Allow the authenticated user to use the assistant feature."
+          },
+          "assistantMemoryEnabled": {
+            "type": "boolean",
+            "description": "Allow the assistant to reuse persisted conversation history as cross-conversation memory."
+          },
+          "waterTargetCount": {
+            "type": "number",
+            "description": "Daily water intake target (number of glasses).",
+            "minimum": 1,
+            "maximum": 30
+          },
+          "assistantContext": {
+            "description": "Fine-grained permissions for what the assistant may read.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UpdateAssistantContextSettingsDto"
+              }
+            ]
+          }
+        }
+      },
+      "EnableSecurityPinDto": {
+        "type": "object",
+        "properties": {
+          "pin": {
+            "type": "string",
+            "description": "6-digit numeric PIN",
+            "example": "123456"
           }
         },
-        "required": ["items"]
+        "required": ["pin"]
+      },
+      "VerifySecurityPinDto": {
+        "type": "object",
+        "properties": {
+          "pin": {
+            "type": "string",
+            "description": "6-digit PIN to verify",
+            "example": "123456"
+          }
+        },
+        "required": ["pin"]
+      },
+      "SecurityPinElevationResponseDto": {
+        "type": "object",
+        "properties": {
+          "elevationToken": {
+            "type": "string",
+            "description": "Short-lived signed elevation token"
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "ISO-8601 timestamp when the elevation token expires"
+          }
+        },
+        "required": ["elevationToken", "expiresAt"]
+      },
+      "ChangeSecurityPinDto": {
+        "type": "object",
+        "properties": {
+          "oldPin": {
+            "type": "string",
+            "description": "Current 6-digit PIN",
+            "example": "123456"
+          },
+          "newPin": {
+            "type": "string",
+            "description": "New 6-digit PIN",
+            "example": "654321"
+          }
+        },
+        "required": ["oldPin", "newPin"]
+      },
+      "DisableSecurityPinDto": {
+        "type": "object",
+        "properties": {
+          "pin": {
+            "type": "string",
+            "description": "Current 6-digit PIN",
+            "example": "123456"
+          }
+        },
+        "required": ["pin"]
       },
       "RegisterDto": {
         "type": "object",
@@ -6950,6 +7147,53 @@
         },
         "required": ["code", "state"]
       },
+      "WeiboOAuthAuthorizeDto": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "description": "微博授权完成后的客户端回跳地址",
+            "example": "https://api.lumos.app/oauth/weibo"
+          }
+        }
+      },
+      "WeiboOAuthCallbackDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "微博授权码"
+          },
+          "state": {
+            "type": "string",
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": ["code", "state"]
+      },
+      "GoogleOAuthAuthorizeDto": {
+        "type": "object",
+        "properties": {
+          "callbackUri": {
+            "type": "string",
+            "description": "Google 授权完成后的客户端回跳地址"
+          }
+        }
+      },
+      "GoogleOAuthCallbackDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Google 授权码"
+          },
+          "state": {
+            "type": "string",
+            "description": "授权时生成的 state"
+          }
+        },
+        "required": ["code", "state"]
+      },
       "LogoutDto": {
         "type": "object",
         "properties": {
@@ -6988,6 +7232,166 @@
           }
         },
         "required": ["code", "message", "data"]
+      },
+      "UserDevicePlatform": {
+        "type": "string",
+        "enum": [
+          "ios",
+          "android",
+          "web",
+          "windows",
+          "macos",
+          "linux",
+          "watchos",
+          "other"
+        ],
+        "description": "Device platform."
+      },
+      "RegisterDeviceDto": {
+        "type": "object",
+        "properties": {
+          "pushToken": {
+            "type": "string",
+            "description": "Push notification token (FCM/APNs)."
+          },
+          "platform": {
+            "description": "Device platform.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserDevicePlatform"
+              }
+            ]
+          },
+          "deviceName": {
+            "type": "string",
+            "description": "Human-readable device name."
+          },
+          "locale": {
+            "type": "string",
+            "description": "User locale preference."
+          },
+          "timezone": {
+            "type": "string",
+            "description": "User timezone preference."
+          },
+          "notificationsEnabled": {
+            "type": "boolean",
+            "description": "Whether push notifications are enabled for this device.",
+            "default": false
+          }
+        },
+        "required": ["pushToken", "platform"]
+      },
+      "DeviceResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Device record ID."
+          },
+          "platform": {
+            "type": "string",
+            "description": "Device platform.",
+            "example": "ios"
+          },
+          "deviceName": {
+            "type": "object",
+            "description": "Human-readable device name."
+          },
+          "notificationsEnabled": {
+            "type": "boolean",
+            "description": "Whether push notifications are enabled."
+          },
+          "locale": {
+            "type": "object",
+            "description": "User locale preference."
+          },
+          "timezone": {
+            "type": "object",
+            "description": "User timezone preference."
+          },
+          "lastSeenAt": {
+            "type": "object",
+            "description": "ISO 8601 timestamp of last device activity."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 creation timestamp."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO 8601 last-update timestamp."
+          }
+        },
+        "required": [
+          "id",
+          "platform",
+          "notificationsEnabled",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DeviceItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Device record ID."
+          },
+          "platform": {
+            "type": "string",
+            "description": "Device platform.",
+            "example": "ios"
+          },
+          "deviceName": {
+            "type": "object",
+            "description": "Human-readable device name."
+          },
+          "notificationsEnabled": {
+            "type": "boolean",
+            "description": "Whether push notifications are enabled."
+          },
+          "locale": {
+            "type": "object",
+            "description": "User locale preference."
+          },
+          "timezone": {
+            "type": "object",
+            "description": "User timezone preference."
+          },
+          "lastSeenAt": {
+            "type": "object",
+            "description": "ISO 8601 timestamp of last device activity."
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "ISO 8601 creation timestamp."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "ISO 8601 last-update timestamp."
+          }
+        },
+        "required": [
+          "id",
+          "platform",
+          "notificationsEnabled",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "DeviceListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "List of registered devices.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceItemDto"
+            }
+          }
+        },
+        "required": ["items"]
       },
       "AccountIdentityDto": {
         "type": "object",
@@ -9359,33 +9763,6 @@
         },
         "required": ["shareUrl", "expiresAt"]
       },
-      "AssistantContextSettingsDto": {
-        "type": "object",
-        "properties": {
-          "healthProfile": {
-            "type": "boolean",
-            "description": "Whether the assistant may read stored health profile, allergies, and conditions."
-          },
-          "dailyRecords": {
-            "type": "boolean",
-            "description": "Whether the assistant may read recent daily records."
-          },
-          "sleepRecords": {
-            "type": "boolean",
-            "description": "Whether the assistant may read sleep records and summaries."
-          },
-          "currentMedicines": {
-            "type": "boolean",
-            "description": "Whether the assistant may read current medicines and medicine-box data."
-          }
-        },
-        "required": [
-          "healthProfile",
-          "dailyRecords",
-          "sleepRecords",
-          "currentMedicines"
-        ]
-      },
       "AssistantToolCapabilityDto": {
         "type": "object",
         "properties": {
@@ -9787,216 +10164,6 @@
           }
         },
         "required": ["messages"]
-      },
-      "SecurityPinSettingsDto": {
-        "type": "object",
-        "properties": {
-          "enabled": {
-            "type": "boolean",
-            "description": "Whether a Security PIN is enabled"
-          },
-          "lastChangedAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp of last PIN change, null if never set",
-            "nullable": true
-          }
-        },
-        "required": ["enabled", "lastChangedAt"]
-      },
-      "UserSettingsDataDto": {
-        "type": "object",
-        "properties": {
-          "aiSummariesEnabled": {
-            "type": "boolean",
-            "description": "Allow AI-generated summaries and advice."
-          },
-          "dataSharingConsent": {
-            "type": "boolean",
-            "description": "Consent to share anonymized data for research."
-          },
-          "assistantEnabled": {
-            "type": "boolean",
-            "description": "Allow the authenticated user to use the assistant feature."
-          },
-          "assistantMemoryEnabled": {
-            "type": "boolean",
-            "description": "Allow the assistant to reuse persisted conversation history as cross-conversation memory."
-          },
-          "waterTargetCount": {
-            "type": "number",
-            "description": "Daily water intake target (number of glasses).",
-            "example": 8
-          },
-          "assistantContext": {
-            "description": "Fine-grained assistant context permissions.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AssistantContextSettingsDto"
-              }
-            ]
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp of last update.",
-            "nullable": true
-          },
-          "securityPin": {
-            "description": "Security PIN status.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SecurityPinSettingsDto"
-              }
-            ]
-          }
-        },
-        "required": [
-          "aiSummariesEnabled",
-          "dataSharingConsent",
-          "assistantEnabled",
-          "assistantMemoryEnabled",
-          "waterTargetCount",
-          "assistantContext",
-          "updatedAt",
-          "securityPin"
-        ]
-      },
-      "UserSettingsResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/UserSettingsDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "UpdateAssistantContextSettingsDto": {
-        "type": "object",
-        "properties": {
-          "healthProfile": {
-            "type": "boolean",
-            "description": "Allow the assistant to read stored health profile, allergies, and conditions."
-          },
-          "dailyRecords": {
-            "type": "boolean",
-            "description": "Allow the assistant to read recent daily records."
-          },
-          "sleepRecords": {
-            "type": "boolean",
-            "description": "Allow the assistant to read sleep records and summaries."
-          },
-          "currentMedicines": {
-            "type": "boolean",
-            "description": "Allow the assistant to read current medicines and medicine-box data."
-          }
-        }
-      },
-      "UpdateUserSettingsDto": {
-        "type": "object",
-        "properties": {
-          "aiSummariesEnabled": {
-            "type": "boolean",
-            "description": "Allow AI-generated summaries and advice."
-          },
-          "dataSharingConsent": {
-            "type": "boolean",
-            "description": "Consent to share anonymized data for research."
-          },
-          "assistantEnabled": {
-            "type": "boolean",
-            "description": "Allow the authenticated user to use the assistant feature."
-          },
-          "assistantMemoryEnabled": {
-            "type": "boolean",
-            "description": "Allow the assistant to reuse persisted conversation history as cross-conversation memory."
-          },
-          "waterTargetCount": {
-            "type": "number",
-            "description": "Daily water intake target (number of glasses).",
-            "minimum": 1,
-            "maximum": 30
-          },
-          "assistantContext": {
-            "description": "Fine-grained permissions for what the assistant may read.",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/UpdateAssistantContextSettingsDto"
-              }
-            ]
-          }
-        }
-      },
-      "EnableSecurityPinDto": {
-        "type": "object",
-        "properties": {
-          "pin": {
-            "type": "string",
-            "description": "6-digit numeric PIN",
-            "example": "123456"
-          }
-        },
-        "required": ["pin"]
-      },
-      "VerifySecurityPinDto": {
-        "type": "object",
-        "properties": {
-          "pin": {
-            "type": "string",
-            "description": "6-digit PIN to verify",
-            "example": "123456"
-          }
-        },
-        "required": ["pin"]
-      },
-      "SecurityPinElevationResponseDto": {
-        "type": "object",
-        "properties": {
-          "elevationToken": {
-            "type": "string",
-            "description": "Short-lived signed elevation token"
-          },
-          "expiresAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp when the elevation token expires"
-          }
-        },
-        "required": ["elevationToken", "expiresAt"]
-      },
-      "ChangeSecurityPinDto": {
-        "type": "object",
-        "properties": {
-          "oldPin": {
-            "type": "string",
-            "description": "Current 6-digit PIN",
-            "example": "123456"
-          },
-          "newPin": {
-            "type": "string",
-            "description": "New 6-digit PIN",
-            "example": "654321"
-          }
-        },
-        "required": ["oldPin", "newPin"]
-      },
-      "DisableSecurityPinDto": {
-        "type": "object",
-        "properties": {
-          "pin": {
-            "type": "string",
-            "description": "Current 6-digit PIN",
-            "example": "123456"
-          }
-        },
-        "required": ["pin"]
       },
       "GenerateTodayAnalysisDto": {
         "type": "object",

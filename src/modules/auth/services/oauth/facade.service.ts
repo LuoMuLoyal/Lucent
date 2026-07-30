@@ -4,19 +4,27 @@ import { User } from '#generated/prisma/client';
 import { UserService } from '../../../user';
 import {
   AppleOAuthCallbackDto,
+  GoogleOAuthAuthorizeDto,
+  GoogleOAuthCallbackDto,
   OAuthAuthorizeDto,
   OAuthCallbackDto,
   OAuthCodeCallbackDto,
   QqOAuthAuthorizeDto,
   QqOAuthCallbackDto,
+  WeiboOAuthAuthorizeDto,
+  WeiboOAuthCallbackDto,
 } from '../../dto/shared/oauth.dto';
 import { AppleOAuthProvider } from '../../providers/apple-oauth.provider';
+import { GoogleOAuthProvider } from '../../providers/google-oauth.provider';
 import { QqOAuthProvider } from '../../providers/qq-oauth.provider';
+import { WeiboOAuthProvider } from '../../providers/weibo-oauth.provider';
 import { WechatMobileOAuthProvider } from '../../providers/wechat/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from '../../providers/wechat/wechat-web-oauth.provider';
 import {
+  OAUTH_PROVIDER_GOOGLE,
   OAUTH_PROVIDER_QQ,
   OAUTH_PROVIDER_WECHAT_WEB,
+  OAUTH_PROVIDER_WEIBO,
   type OAuthAuthorizeResult,
   type OAuthProfile,
 } from '../../types/oauth.types';
@@ -36,6 +44,8 @@ export class AuthOAuthFacadeService {
     private readonly wechatMobileOAuthProvider: WechatMobileOAuthProvider,
     private readonly appleOAuthProvider: AppleOAuthProvider,
     private readonly qqOAuthProvider: QqOAuthProvider,
+    private readonly weiboOAuthProvider: WeiboOAuthProvider,
+    private readonly googleOAuthProvider: GoogleOAuthProvider,
     private readonly authOAuthStateService: AuthOAuthStateService,
     private readonly authTokenService: AuthTokenService,
     private readonly authOAuthService: AuthOAuthService,
@@ -166,6 +176,88 @@ export class AuthOAuthFacadeService {
       'login',
     );
     const profile = await this.qqOAuthProvider.fetchProfile({ code: dto.code });
+    return this.loginWithOAuthProfile(profile, context);
+  }
+
+  async createWeiboAuthorizeUrl(
+    dto?: WeiboOAuthAuthorizeDto,
+  ): Promise<OAuthAuthorizeResult> {
+    const { state, ttlSec } = await this.authOAuthStateService.createState(
+      OAUTH_PROVIDER_WEIBO,
+      'login',
+      dto?.callbackUri,
+    );
+    const entry = await this.authOAuthStateService.peek(
+      OAUTH_PROVIDER_WEIBO,
+      state,
+    );
+
+    return {
+      authorizeUrl: this.weiboOAuthProvider.buildAuthorizeUrl(
+        state,
+        dto?.callbackUri,
+      ),
+      state,
+      expiresIn: ttlSec,
+      ...(entry.callbackUri !== undefined && {
+        callbackUri: entry.callbackUri,
+      }),
+    };
+  }
+
+  async loginWithWeibo(
+    dto: WeiboOAuthCallbackDto,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
+    await this.authOAuthStateService.consume(
+      OAUTH_PROVIDER_WEIBO,
+      dto.state,
+      'login',
+    );
+    const profile = await this.weiboOAuthProvider.fetchProfile({
+      code: dto.code,
+    });
+    return this.loginWithOAuthProfile(profile, context);
+  }
+
+  async createGoogleAuthorizeUrl(
+    dto?: GoogleOAuthAuthorizeDto,
+  ): Promise<OAuthAuthorizeResult> {
+    const { state, ttlSec } = await this.authOAuthStateService.createState(
+      OAUTH_PROVIDER_GOOGLE,
+      'login',
+      dto?.callbackUri,
+    );
+    const entry = await this.authOAuthStateService.peek(
+      OAUTH_PROVIDER_GOOGLE,
+      state,
+    );
+
+    return {
+      authorizeUrl: this.googleOAuthProvider.buildAuthorizeUrl(
+        state,
+        dto?.callbackUri,
+      ),
+      state,
+      expiresIn: ttlSec,
+      ...(entry.callbackUri !== undefined && {
+        callbackUri: entry.callbackUri,
+      }),
+    };
+  }
+
+  async loginWithGoogle(
+    dto: GoogleOAuthCallbackDto,
+    context?: AuthRequestContext,
+  ): Promise<{ user: User } & TokenPair> {
+    await this.authOAuthStateService.consume(
+      OAUTH_PROVIDER_GOOGLE,
+      dto.state,
+      'login',
+    );
+    const profile = await this.googleOAuthProvider.fetchProfile({
+      code: dto.code,
+    });
     return this.loginWithOAuthProfile(profile, context);
   }
 

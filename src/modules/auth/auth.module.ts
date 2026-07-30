@@ -29,7 +29,9 @@ import { VerificationCodeService } from './services/identity/verification-code.s
 import { WechatMobileOAuthProvider } from './providers/wechat/wechat-mobile-oauth.provider';
 import { WechatWebOAuthProvider } from './providers/wechat/wechat-web-oauth.provider';
 import { AppleOAuthProvider } from './providers/apple-oauth.provider';
+import { GoogleOAuthProvider } from './providers/google-oauth.provider';
 import { QqOAuthProvider } from './providers/qq-oauth.provider';
+import { WeiboOAuthProvider } from './providers/weibo-oauth.provider';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 
 @Module({
@@ -66,6 +68,8 @@ import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
     WechatWebOAuthProvider,
     AppleOAuthProvider,
     QqOAuthProvider,
+    WeiboOAuthProvider,
+    GoogleOAuthProvider,
   ],
   exports: [AuthService],
 })

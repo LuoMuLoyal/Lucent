@@ -29,6 +29,16 @@ const mockOAuthConfig: OAuthConfig = {
     appSecret: 'qq-secret',
     redirectUri: 'https://app.example.com/oauth/qq/callback',
   },
+  weibo: {
+    appId: 'weibo-app-id',
+    appSecret: 'weibo-secret',
+    redirectUri: 'https://app.example.com/oauth/weibo/callback',
+  },
+  google: {
+    appId: 'google-client-id',
+    appSecret: 'google-client-secret',
+    redirectUri: 'https://app.example.com/oauth/google/callback',
+  },
 };
 
 describe('WechatMobileOAuthProvider', () => {
