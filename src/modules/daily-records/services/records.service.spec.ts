@@ -1064,4 +1064,211 @@ describe('DailyRecordsService', () => {
       ).rejects.toThrow(/positive number/);
     });
   });
+
+  describe('vital records', () => {
+    it('should create a vital record with valid payload', async () => {
+      const vitalPayload = {
+        vitalType: 'heartRate',
+        value: 72,
+        unit: 'bpm',
+      };
+      repository.create.mockResolvedValue({
+        id: 'rv1',
+        userId: mockUserId,
+        deletedAt: null,
+        kind: 'vital',
+        occurredAt: new Date('2026-07-29'),
+        occurredTime: '10:00',
+        title: '心率',
+        value: '72',
+        unit: 'bpm',
+        note: null,
+        payload: vitalPayload,
+        source: 'apple_health',
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.create(mockUserId, {
+        kind: DailyRecordKind.vital,
+        occurredAt: '2026-07-29',
+        occurredTime: '10:00',
+        title: '心率',
+        value: '72',
+        unit: 'bpm',
+        payload: vitalPayload,
+      });
+
+      expect(result.kind).toBe('vital');
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: vitalPayload,
+        }),
+      );
+    });
+
+    it('should create a vital record without payload (manual entry)', async () => {
+      repository.create.mockResolvedValue({
+        id: 'rv2',
+        userId: mockUserId,
+        deletedAt: null,
+        kind: 'vital',
+        occurredAt: new Date('2026-07-29'),
+        occurredTime: '10:00',
+        title: '血压',
+        value: '120',
+        unit: 'mmHg',
+        note: null,
+        payload: null,
+        source: 'manual',
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.create(mockUserId, {
+        kind: DailyRecordKind.vital,
+        occurredAt: '2026-07-29',
+        title: '血压',
+        value: '120',
+        unit: 'mmHg',
+      });
+
+      expect(result.kind).toBe('vital');
+    });
+
+    it('should reject a vital record with payload missing vitalType', async () => {
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.vital,
+          occurredAt: '2026-07-29',
+          payload: { value: 72, unit: 'bpm' },
+        }),
+      ).rejects.toThrow(/vitalType/);
+    });
+
+    it('should reject a vital record with payload missing value', async () => {
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.vital,
+          occurredAt: '2026-07-29',
+          payload: { vitalType: 'heartRate', unit: 'bpm' },
+        }),
+      ).rejects.toThrow(/value/);
+    });
+  });
+
+  describe('activity records', () => {
+    it('should create an activity record with valid payload', async () => {
+      const activityPayload = {
+        activityType: 'steps',
+        value: 8432,
+        unit: 'count',
+      };
+      repository.create.mockResolvedValue({
+        id: 'ra1',
+        userId: mockUserId,
+        deletedAt: null,
+        kind: 'activity',
+        occurredAt: new Date('2026-07-29'),
+        occurredTime: '22:00',
+        title: '步数',
+        value: '8432',
+        unit: 'count',
+        note: null,
+        payload: activityPayload,
+        source: 'apple_health',
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.create(mockUserId, {
+        kind: DailyRecordKind.activity,
+        occurredAt: '2026-07-29',
+        title: '步数',
+        value: '8432',
+        unit: 'count',
+        payload: activityPayload,
+      });
+
+      expect(result.kind).toBe('activity');
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: activityPayload,
+        }),
+      );
+    });
+
+    it('should create an activity record without payload (manual entry)', async () => {
+      repository.create.mockResolvedValue({
+        id: 'ra2',
+        userId: mockUserId,
+        deletedAt: null,
+        kind: 'activity',
+        occurredAt: new Date('2026-07-29'),
+        occurredTime: '10:00',
+        title: '运动',
+        value: '30',
+        unit: 'min',
+        note: null,
+        payload: null,
+        source: 'manual',
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.create(mockUserId, {
+        kind: DailyRecordKind.activity,
+        occurredAt: '2026-07-29',
+        title: '运动',
+        value: '30',
+        unit: 'min',
+      });
+
+      expect(result.kind).toBe('activity');
+    });
+
+    it('should reject an activity record with payload missing activityType', async () => {
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.activity,
+          occurredAt: '2026-07-29',
+          payload: { value: 100, unit: 'count' },
+        }),
+      ).rejects.toThrow(/activityType/);
+    });
+
+    it('should reject an activity record with payload missing value', async () => {
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.activity,
+          occurredAt: '2026-07-29',
+          payload: { activityType: 'steps', unit: 'count' },
+        }),
+      ).rejects.toThrow(/value/);
+    });
+  });
 });

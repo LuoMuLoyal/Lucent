@@ -21,6 +21,37 @@ export const sleepPayloadSchema = z
   })
   .strict();
 
+export const vitalPayloadSchema = z
+  .object({
+    vitalType: z.enum([
+      'heartRate',
+      'bloodPressure',
+      'bloodOxygen',
+      'bloodGlucose',
+      'bodyTemperature',
+      'weight',
+      'respiratoryRate',
+    ]),
+    value: z.number(),
+    unit: z.string().trim().min(1).max(20),
+    secondaryValue: z.number().optional(),
+    secondaryUnit: z.string().trim().min(1).max(20).optional(),
+  })
+  .strict();
+
+export const activityPayloadSchema = z
+  .object({
+    activityType: z.enum([
+      'steps',
+      'flightsClimbed',
+      'distance',
+      'exerciseTime',
+    ]),
+    value: z.number(),
+    unit: z.string().trim().min(1).max(20),
+  })
+  .strict();
+
 export const dailyRecordCandidateSchema = z.object({
   kind: z.enum(DAILY_RECORD_CANDIDATE_KINDS),
   occurredAt: z

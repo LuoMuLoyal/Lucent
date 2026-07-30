@@ -63,7 +63,7 @@ export class DailyRecordItemDto {
 
   @ApiPropertyOptional({
     description:
-      'Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }.',
+      'Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.',
     type: Object,
     additionalProperties: true,
     nullable: true,

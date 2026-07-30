@@ -66,6 +66,8 @@ export class DailyRecordsService {
 
   async create(userId: string, dto: CreateDailyRecordDto) {
     this.ensureValidSleepPayload(dto.kind, dto.payload);
+    this.ensureValidVitalPayload(dto.kind, dto.payload);
+    this.ensureValidActivityPayload(dto.kind, dto.payload);
 
     const createAttachments = dto.attachments;
     const initialMealPayload =
@@ -82,6 +84,7 @@ export class DailyRecordsService {
       value: normalizeNullableText(dto.value),
       unit: normalizeNullableText(dto.unit),
       note: normalizeNullableText(dto.note),
+      source: dto.source ?? 'manual',
     };
 
     const payloadField =
@@ -339,6 +342,34 @@ export class DailyRecordsService {
     const payload = rawPayload as Record<string, unknown> | null;
 
     this.validateSleepPayload(payload);
+  }
+
+  private ensureValidVitalPayload(
+    kind: string,
+    payload: Record<string, unknown> | undefined,
+  ) {
+    if (kind !== DailyRecordKind.vital) return;
+    if (payload == null) return;
+    if (typeof payload['vitalType'] !== 'string') {
+      badRequest('Vital records require payload.vitalType.');
+    }
+    if (typeof payload['value'] !== 'number') {
+      badRequest('Vital records require payload.value as a number.');
+    }
+  }
+
+  private ensureValidActivityPayload(
+    kind: string,
+    payload: Record<string, unknown> | undefined,
+  ) {
+    if (kind !== DailyRecordKind.activity) return;
+    if (payload == null) return;
+    if (typeof payload['activityType'] !== 'string') {
+      badRequest('Activity records require payload.activityType.');
+    }
+    if (typeof payload['value'] !== 'number') {
+      badRequest('Activity records require payload.value as a number.');
+    }
   }
 
   private async getItemFromTx(
