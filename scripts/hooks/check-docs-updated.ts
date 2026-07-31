@@ -28,6 +28,9 @@ const BYPASS_ENV = 'SKIP_DOC_CHECK';
 const DOC_MAP_PATH = 'docs/doc-map.yaml';
 const MIGRATION_LOG_GLOB = 'docs/02-logs/migration-log/*.md';
 
+/** Max deletion lines allowed in a staged migration-log file before blocking. */
+const MIGRATION_LOG_MAX_DELETIONS = 5;
+
 /**
  * Patterns that identify "source code" files requiring a doc update.
  * Uses forward-slash paths (git always outputs forward slashes).
@@ -288,6 +291,53 @@ function renderReport(report: Report): string {
   return buffer.join('\n');
 }
 
+// --- Migration log overwrite detection -----------------------------------
+
+/**
+ * Checks staged migration-log files for excessive deletions.
+ *
+ * Migration logs must be **appended** to, not overwritten. If a staged
+ * diff for a migration-log file contains more than
+ * `MIGRATION_LOG_MAX_DELETIONS` deleted lines, the commit is blocked.
+ *
+ * This prevents accidental data loss when multiple commits touch the
+ * same date's log file.
+ */
+function checkMigrationLogOverwrite(): void {
+  const stagedModified = run('git diff --cached --name-only --diff-filter=M')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const migrationLogPattern = /^docs\/02-logs\/migration-log\/.+\.md$/;
+  const logFiles = stagedModified.filter((f) =>
+    migrationLogPattern.test(f.replace(/\\/g, '/')),
+  );
+
+  for (const file of logFiles) {
+    const diff = run(`git diff --cached -- ${file}`);
+    const deletionCount = diff
+      .split('\n')
+      .filter((line) => line.startsWith('-') && !line.startsWith('---')).length;
+
+    if (deletionCount > MIGRATION_LOG_MAX_DELETIONS) {
+      console.error(`
+\u2502  \u26a0  Migration Log Overwrite Detected                                   \u2502
+\u2502                                                                 \u2502
+\u2502  ${file}                                                 \u2502
+\u2502  has ${deletionCount} deleted lines in staged diff (max ${MIGRATION_LOG_MAX_DELETIONS}).        \u2502
+\u2502                                                                 \u2502
+\u2502  Migration logs must be appended to, not overwritten.            \u2502
+\u2502  If restructure is needed, keep deletions \u2264 ${MIGRATION_LOG_MAX_DELETIONS}.               \u2502
+\u2502                                                                 \u2502
+\u2502  To bypass:  SKIP_DOC_CHECK=1 git commit ...                   \u2502
+\u2502             or  git commit --no-verify                          \u2502
+`);
+      process.exit(1);
+    }
+  }
+}
+
 // --- Args parsing ---------------------------------------------------------
 
 interface ParsedArgs {
@@ -345,6 +395,11 @@ function main(): void {
   if (!args.warningOnly && process.env[BYPASS_ENV] === '1') {
     console.log(`[doc-check] Skipped (${BYPASS_ENV}=1)`);
     return;
+  }
+
+  // Check migration-log overwrite before the doc-coverage check.
+  if (!args.warningOnly) {
+    checkMigrationLogOverwrite();
   }
 
   const repoRoot = resolve(__dirname, '..', '..');

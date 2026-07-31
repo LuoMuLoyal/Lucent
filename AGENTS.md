@@ -7,6 +7,9 @@ After every code change, run the documentation check tool (`pnpm docs:check`) to
 ### Standing rules
 
 - **Migration log**: append a dated entry to `docs/02-logs/migration-log/YYYY-MM-DD.md`.
+  **Never overwrite** an existing entry — always append new sections below existing content.
+  The pre-commit hook blocks commits where a staged migration-log file has more than 5 deleted
+  lines (indicating overwrite rather than append).
 - **Current state**: runtime/architecture changes go into the relevant `docs/00-current/*.md`
   sub-file, not into `Current_State.md` (index only).
 - **Closing a TODO**: delete the line from `docs/00-current/TODO.md`.
