@@ -6,6 +6,8 @@ export const DAILY_RECORD_CANDIDATE_KINDS = [
   'symptom',
   'note',
   'sleep',
+  'vital',
+  'activity',
 ] as const;
 
 export const sleepPayloadSchema = z
@@ -64,6 +66,8 @@ export const dailyRecordCandidateSchema = z.object({
   note: z.string().trim().min(1).max(1000).nullable(),
   payload: z.union([
     sleepPayloadSchema,
+    vitalPayloadSchema,
+    activityPayloadSchema,
     z.record(z.string(), z.unknown()),
     z.null(),
   ]),

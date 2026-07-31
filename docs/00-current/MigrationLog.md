@@ -1,6 +1,6 @@
 # Lucent Migration Log
 
-Last updated: 2026-07-30
+Last updated: 2026-07-31
 
 Records backend changes in date order. Detailed entries are split by date under
 `docs/02-logs/migration-log/`.
@@ -15,6 +15,7 @@ Records backend changes in date order. Detailed entries are split by date under
 
 ## Active Entries
 
+- [2026-07-31](../02-logs/migration-log/2026-07-31.md) — 7-31 审查修复（OAuth lastLoginAt 硬编码日期 + callback path 缺 weibo/google + candidate schema 缺 vital/activity 类型与 payload 校验）
 - [2026-07-30](../02-logs/migration-log/2026-07-30.md) — 审查报告修复（prisma.config.ts / scripts/shared/env.ts / Dockerfile 路径断裂 ×3 + CI trivy-action 版本前缀 + proposal-draft-extractor 否定语义漏判）
 - [2026-07-29](../02-logs/migration-log/2026-07-29.md) — 架构精炼 Phase 1-6（god class 拆分 + Reader Port 补全 + today-suggestion 编排器优化 + 文件命名规范化 + 目录结构精炼）+ 工具链优化（CI 并行化 + SWC 缓存 + Prettier 精简）+ reminder-dispatch 独立队列
 - [2026-07-28](../02-logs/migration-log/2026-07-28.md) — 风险检查健壮性修复（OnModuleDestroy / 并行查询 / 缓存容错）+ CronJobsService 启动错误边界 + help-feedback 动态激活 + data-export GET/latest 移除提权 + 邮件模板美化
