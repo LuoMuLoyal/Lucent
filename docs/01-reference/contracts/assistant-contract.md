@@ -92,6 +92,7 @@ inline:
 - `POST /api/v1/user/assistant/latest/clear`
 - `GET /api/v1/user/assistant/conversations`
 - `POST /api/v1/user/assistant/conversations/:conversationId/open`
+- `POST /api/v1/user/assistant/conversations/:conversationId/confirm`
 - `POST /api/v1/user/assistant/messages/stream`
 
 ## Settings Contract
@@ -156,8 +157,40 @@ interface StreamAssistantMessagesDto {
     role: 'user' | 'assistant';
     content: string;
   }>;
+  conversationId?: string;
 }
 ```
+
+When `conversationId` is present the turn runs on the persisted LangGraph thread
+(checkpointed, with in-graph proposal review); when absent it stays stateless.
+
+## Confirm Contract
+
+`POST /api/v1/user/assistant/conversations/:conversationId/confirm` approves or
+rejects the pending write proposals of a suspended thread and resumes it.
+
+```ts
+interface ConfirmAssistantProposalDto {
+  proposalIds: string[];
+  decision: 'approved' | 'rejected';
+  note?: string;
+}
+
+interface AssistantConfirmResultDto {
+  conversationId: string;
+  decision: 'approved' | 'rejected';
+  status: 'approved' | 'rejected';
+  finalContent: string | null;
+}
+```
+
+Rules:
+
+- the thread must have a `pending` review; confirming twice or an unknown
+  conversation id is rejected
+- an expired review is rejected and must be regenerated
+- on `approved` the client still applies the real write locally; on `rejected`
+  no write happens
 
 Final result payload:
 
