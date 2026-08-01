@@ -187,7 +187,9 @@ describe('MedicinesController', () => {
 
   describe('recognize endpoints', () => {
     it('POST /recognize delegates to the medicines service', async () => {
-      service.recognizeMedicine.mockResolvedValue({ name: '布洛芬' });
+      service.recognizeMedicine.mockResolvedValue({
+        name: '布洛芬',
+      } as never);
 
       const result = await controller.recognize(
         { sub: 'u1' } as never,
@@ -207,7 +209,9 @@ describe('MedicinesController', () => {
     });
 
     it('POST /recognize/async falls back to synchronous recognize when queue is not configured', async () => {
-      service.recognizeMedicine.mockResolvedValue({ name: '布洛芬' });
+      service.recognizeMedicine.mockResolvedValue({
+        name: '布洛芬',
+      } as never);
 
       const result = await controller.recognizeAsync(
         { sub: 'u1' } as never,

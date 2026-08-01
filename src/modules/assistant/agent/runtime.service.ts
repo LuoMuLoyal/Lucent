@@ -67,6 +67,7 @@ export interface AssistantConversationResult {
     | 'no_data'
     | 'no_target'
     | 'no_evidence'
+    | 'awaiting_review'
     | null;
 }
 

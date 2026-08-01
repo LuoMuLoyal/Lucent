@@ -1,4 +1,5 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
+import type { BaseCheckpointSaver } from '@langchain/langgraph';
 import { InMemoryCache } from '@langchain/langgraph-checkpoint';
 import type { BaseMessage } from '@langchain/core/messages';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
@@ -16,6 +17,7 @@ import { createAgentNode, createToolsNode } from './nodes';
 import { buildReadSubGraph } from './subgraphs/read';
 import { buildWriteSubGraph } from './subgraphs/write';
 import { buildKnowledgeSubGraph } from './subgraphs/knowledge';
+import { createWriteReviewNode, createWriteReviewSetupNode } from './review';
 
 export { AssistantRuntimeState, ASSISTANT_RUNTIME_NODE_NAMES } from './state';
 export { selectAllowedToolsForContextSources } from './router';
@@ -65,6 +67,14 @@ export interface AssistantGraphDeps {
   buildMemoryBlock?: (userId: string) => Promise<string>;
   /** Simple-chat response cache; when absent, replies are not cached. */
   respondCache?: AssistantRespondCache;
+  /**
+   * Postgres-backed checkpointer (from `AssistantCheckpointerService`).
+   * When null the graph skips the in-graph review nodes and keeps the old
+   * stateless write flow.
+   */
+  checkpointer?: BaseCheckpointSaver | null;
+  /** Persisted conversation id; used as the LangGraph thread id by the caller. */
+  conversationId?: string;
 }
 
 /** Picks the system prompt for the classified intent, falling back to the generic builder. */
@@ -123,135 +133,156 @@ function selectSystemPrompt(
  * - Loop is capped at {@link MAX_TOOL_LOOPS}.
  */
 export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
-  return (
-    new StateGraph(AssistantRuntimeState)
-      // ── prepare_context ────────────────────────────────────────────────
-      .addNode('prepare_context', async (state) => {
-        const allowedTools = selectAllowedToolsForContextSources(
-          state.enabledContextSources,
+  const checkpointer = deps.checkpointer ?? null;
+  const hasHithl = checkpointer != null;
+
+  const builder = new StateGraph(AssistantRuntimeState)
+    // ── prepare_context ────────────────────────────────────────────────
+    .addNode('prepare_context', async (state) => {
+      const allowedTools = selectAllowedToolsForContextSources(
+        state.enabledContextSources,
+      );
+      const systemPrompt = deps.buildSystemPrompt(allowedTools);
+      const messages: BaseMessage[] = [new SystemMessage(systemPrompt)];
+      let memoryInjected = false;
+
+      // Cross-conversation memory only makes sense at the start of a new
+      // conversation. It is injected as a HumanMessage so `classify_intent`
+      // (which rewrites only the leading SystemMessage) keeps it in context.
+      if (
+        state.memoryEnabled &&
+        state.isNewConversation &&
+        deps.buildMemoryBlock != null
+      ) {
+        const memoryBlock = await deps.buildMemoryBlock(state.userId);
+        if (memoryBlock.length > 0) {
+          messages.push(new HumanMessage(memoryBlock));
+          memoryInjected = true;
+        }
+      }
+
+      messages.push(new HumanMessage(state.userMessage));
+      return {
+        allowedTools,
+        messages,
+        memoryInjected,
+        loopCount: 0,
+        pendingToolCalls: [],
+        toolResults: [],
+        finalContent: null,
+        selectedTools: [],
+        stopReason: null,
+      };
+    })
+
+    // ── classify_intent ────────────────────────────────────────────────
+    // Pure rule-based routing is deterministic and cheap to memoize; the
+    // node-level cachePolicy overrides the graph-wide `cachePolicy: false`.
+    .addNode(
+      'classify_intent',
+      (state: AssistantRuntimeState) => {
+        const { intent, relevantTools } = classifyIntent(
+          state.userMessage,
+          state.allowedTools,
         );
-        const systemPrompt = deps.buildSystemPrompt(allowedTools);
-        const messages: BaseMessage[] = [new SystemMessage(systemPrompt)];
-        let memoryInjected = false;
+        const systemPrompt = selectSystemPrompt(deps, intent, relevantTools);
+        const messages = [
+          new SystemMessage(systemPrompt),
+          ...state.messages.slice(1),
+        ];
+        return { intent, relevantTools, messages };
+      },
+      { cachePolicy: { ttl: NODE_CACHE_TTL_SECONDS } },
+    )
 
-        // Cross-conversation memory only makes sense at the start of a new
-        // conversation. It is injected as a HumanMessage so `classify_intent`
-        // (which rewrites only the leading SystemMessage) keeps it in context.
-        if (
-          state.memoryEnabled &&
-          state.isNewConversation &&
-          deps.buildMemoryBlock != null
-        ) {
-          const memoryBlock = await deps.buildMemoryBlock(state.userId);
-          if (memoryBlock.length > 0) {
-            messages.push(new HumanMessage(memoryBlock));
-            memoryInjected = true;
-          }
-        }
+    // ── agent / tools ──────────────────────────────────────────────────
+    .addNode('agent', createAgentNode(deps))
+    .addNode('tools', createToolsNode(deps))
+    .addNode('read_subgraph', buildReadSubGraph(deps))
+    .addNode('write_subgraph', buildWriteSubGraph(deps))
+    .addNode('knowledge_subgraph', buildKnowledgeSubGraph(deps))
 
-        messages.push(new HumanMessage(state.userMessage));
-        return {
-          allowedTools,
-          messages,
-          memoryInjected,
-          loopCount: 0,
-          pendingToolCalls: [],
-          toolResults: [],
-          finalContent: null,
-          selectedTools: [],
-          stopReason: null,
-        };
-      })
+    // ── respond ────────────────────────────────────────────────────────
+    .addNode(
+      'respond',
+      buildRespondNode({
+        createModel: deps.createModel,
+        ...(deps.respondCache != null
+          ? { respondCache: deps.respondCache }
+          : {}),
+      }),
+    )
 
-      // ── classify_intent ────────────────────────────────────────────────
-      // Pure rule-based routing is deterministic and cheap to memoize; the
-      // node-level cachePolicy overrides the graph-wide `cachePolicy: false`.
-      .addNode(
-        'classify_intent',
-        (state: AssistantRuntimeState) => {
-          const { intent, relevantTools } = classifyIntent(
-            state.userMessage,
-            state.allowedTools,
-          );
-          const systemPrompt = selectSystemPrompt(deps, intent, relevantTools);
-          const messages = [
-            new SystemMessage(systemPrompt),
-            ...state.messages.slice(1),
-          ];
-          return { intent, relevantTools, messages };
-        },
-        { cachePolicy: { ttl: NODE_CACHE_TTL_SECONDS } },
-      )
-
-      // ── agent / tools ──────────────────────────────────────────────────
-      .addNode('agent', createAgentNode(deps))
-      .addNode('tools', createToolsNode(deps))
-      .addNode('read_subgraph', buildReadSubGraph(deps))
-      .addNode('write_subgraph', buildWriteSubGraph(deps))
-      .addNode('knowledge_subgraph', buildKnowledgeSubGraph(deps))
-
-      // ── respond ────────────────────────────────────────────────────────
-      .addNode(
-        'respond',
-        buildRespondNode({
-          createModel: deps.createModel,
-          ...(deps.respondCache != null
-            ? { respondCache: deps.respondCache }
-            : {}),
-        }),
-      )
-
-      // ── Edges ──────────────────────────────────────────────────────────
-      .addEdge(START, 'prepare_context')
-      .addEdge('prepare_context', 'classify_intent')
-      .addConditionalEdges('classify_intent', (state) => {
-        // simple_chat skips the agent node entirely and goes straight to
-        // respond; read/write/knowledge route to their sub-graphs; mixed and
-        // unknown intents use the full agent node.
-        switch (state.intent) {
-          case 'simple_chat':
-            return 'respond';
-          case 'read_data':
-            return 'read_subgraph';
-          case 'write_proposal':
-            return 'write_subgraph';
-          case 'knowledge':
-            return 'knowledge_subgraph';
-          default:
-            return 'agent';
-        }
-      })
-      .addConditionalEdges('agent', (state) => {
-        if (
-          state.pendingToolCalls.length > 0 &&
-          state.loopCount < MAX_TOOL_LOOPS
-        ) {
-          return 'tools';
-        }
-        if (
-          state.pendingToolCalls.length > 0 &&
-          state.loopCount >= MAX_TOOL_LOOPS
-        ) {
+    // ── Edges ──────────────────────────────────────────────────────────
+    .addEdge(START, 'prepare_context')
+    .addEdge('prepare_context', 'classify_intent')
+    .addConditionalEdges('classify_intent', (state) => {
+      // simple_chat skips the agent node entirely and goes straight to
+      // respond; read/write/knowledge route to their sub-graphs; mixed and
+      // unknown intents use the full agent node.
+      switch (state.intent) {
+        case 'simple_chat':
           return 'respond';
-        }
+        case 'read_data':
+          return 'read_subgraph';
+        case 'write_proposal':
+          return 'write_subgraph';
+        case 'knowledge':
+          return 'knowledge_subgraph';
+        default:
+          return 'agent';
+      }
+    })
+    .addConditionalEdges('agent', (state) => {
+      if (
+        state.pendingToolCalls.length > 0 &&
+        state.loopCount < MAX_TOOL_LOOPS
+      ) {
+        return 'tools';
+      }
+      if (
+        state.pendingToolCalls.length > 0 &&
+        state.loopCount >= MAX_TOOL_LOOPS
+      ) {
         return 'respond';
-      })
-      .addEdge('tools', 'agent')
-      .addEdge('read_subgraph', 'respond')
-      .addEdge('write_subgraph', 'respond')
-      .addEdge('knowledge_subgraph', 'respond')
-      .addEdge('respond', END)
-      // Graph-wide node defaults: every node inherits these unless it opts
-      // out via addNode(..., { retryPolicy: false }). `retryOn` is an explicit
-      // whitelist so non-transient errors (400/401) are never retried.
-      .setNodeDefaults({
-        retryPolicy: {
-          retryOn: isRetryableLlmError,
-          maxAttempts: 3,
-        },
-        timeout: AI_MODEL_TIMEOUT_MS,
-        cachePolicy: false,
-      })
-      .compile({ cache: ASSISTANT_NODE_CACHE })
-  );
+      }
+      return 'respond';
+    })
+    .addEdge('tools', 'agent')
+    .addEdge('read_subgraph', 'respond')
+    .addEdge('knowledge_subgraph', 'respond')
+    .addEdge('respond', END)
+    // Graph-wide node defaults: every node inherits these unless it opts
+    // out via addNode(..., { retryPolicy: false }). `retryOn` is an explicit
+    // whitelist so non-transient errors (400/401) are never retried.
+    .setNodeDefaults({
+      retryPolicy: {
+        retryOn: isRetryableLlmError,
+        maxAttempts: 3,
+      },
+      timeout: AI_MODEL_TIMEOUT_MS,
+      cachePolicy: false,
+    });
+
+  // HITL review: when a checkpointer is available, write proposals pause at
+  // `write_review` until the client confirms via the confirm endpoint.
+  // Without a checkpointer (or without a thread) the write sub-graph flows
+  // straight to `respond` exactly as before.
+  if (hasHithl) {
+    builder
+      .addNode('write_review_setup', createWriteReviewSetupNode())
+      .addNode('write_review', createWriteReviewNode())
+      .addConditionalEdges('write_subgraph', (state) =>
+        state.stopReason === 'no_target' ? 'respond' : 'write_review_setup',
+      )
+      .addEdge('write_review_setup', 'write_review')
+      .addEdge('write_review', 'respond');
+  } else {
+    builder.addEdge('write_subgraph', 'respond');
+  }
+
+  return builder.compile({
+    cache: ASSISTANT_NODE_CACHE,
+    ...(hasHithl ? { checkpointer } : {}),
+  });
 }

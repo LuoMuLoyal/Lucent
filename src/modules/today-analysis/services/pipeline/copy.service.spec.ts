@@ -125,8 +125,8 @@ describe('TodayAnalysisCopyService', () => {
         medication: {
           medicineCount: 0,
           pendingCount: 0,
-          nextDoseTimeLabel: null,
-          nextMedicineName: null,
+          nextDoseTimeLabel: '',
+          nextMedicineName: '',
           currentMedicineNames: [],
         },
         recordSummary: [],
@@ -165,8 +165,8 @@ describe('TodayAnalysisCopyService', () => {
         medication: {
           medicineCount: 0,
           pendingCount: 0,
-          nextDoseTimeLabel: null,
-          nextMedicineName: null,
+          nextDoseTimeLabel: '',
+          nextMedicineName: '',
           currentMedicineNames: [],
         },
         recordSummary: [],
@@ -192,10 +192,10 @@ describe('TodayAnalysisCopyService', () => {
     expect(fallback.summary).toContain(
       'en:today-analysis.fallback.summary_default',
     );
-    expect(fallback.bullets[0].text).toContain(
+    expect(fallback.bullets[0]?.text).toContain(
       'en:today-analysis.fallback.bullet_medication_done',
     );
-    expect(fallback.bullets[1].text).toContain(
+    expect(fallback.bullets[1]?.text).toContain(
       'en:today-analysis.fallback.bullet_hydration_done',
     );
   });

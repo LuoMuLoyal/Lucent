@@ -33,6 +33,19 @@ export const DEFAULT_VALIDATION_FLAGS: AssistantValidationFlags = {
   missingProposedActions: false,
 };
 
+/** Lifecycle of an in-graph proposal review (human-in-the-loop). */
+export type AssistantProposalReviewStatus = 'pending' | 'approved' | 'rejected';
+
+/** Persisted review state written before the interrupt node suspends the thread. */
+export interface AssistantPendingReview {
+  proposalIds: string[];
+  status: AssistantProposalReviewStatus;
+  /** Earliest proposal expiry; confirm endpoint rejects when past due. */
+  expiresAt?: string;
+  decidedAt?: string;
+  note?: string;
+}
+
 export const AssistantRuntimeState = Annotation.Root({
   // ── Input ──────────────────────────────────────────────────────────────
   userId: Annotation<string>,
@@ -90,6 +103,12 @@ export const AssistantRuntimeState = Annotation.Root({
     default: () => DEFAULT_VALIDATION_FLAGS,
   }),
 
+  /** In-graph proposal review state (HITL); set before interrupt suspends the thread. */
+  pendingReview: Annotation<AssistantPendingReview | undefined>({
+    reducer: (_left, right) => right,
+    default: () => undefined,
+  }),
+
   // ── LLM conversation messages ──────────────────────────────────────────
   messages: Annotation<BaseMessage[]>({
     reducer: (left, right) => [...left, ...right],
@@ -134,6 +153,7 @@ export const AssistantRuntimeState = Annotation.Root({
     | 'no_data'
     | 'no_target'
     | 'no_evidence'
+    | 'awaiting_review'
     | null
   >({
     reducer: (_left, right) => right,

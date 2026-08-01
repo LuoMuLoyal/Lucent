@@ -180,7 +180,7 @@ describe('MedicineRiskCheckService', () => {
       expect.anything(),
     );
     expect(llmGenerator.generate).toHaveBeenCalledTimes(1);
-    expect(result.result.findings[0].secondaryMedicineName).toBe('DrugB');
+    expect(result.result.findings[0]?.secondaryMedicineName).toBe('DrugB');
     expect(result.result.overallRecommendation).toBe('consult doctor');
     expect(cache.del).toHaveBeenCalled();
   });

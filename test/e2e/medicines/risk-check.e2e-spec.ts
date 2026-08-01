@@ -130,7 +130,7 @@ describe('Medicine Risk Check API (e2e)', () => {
       .expect(200);
 
     const nextBody = next.body as ApiEnvelope<RiskCheckRecordsData>;
-    expect(nextBody.data.static?.checkType).toBe('static');
+    expect(expectData(nextBody).static?.checkType).toBe('static');
   });
 
   it('returns a service error for LLM check when the analysis model is not configured', async () => {

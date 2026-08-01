@@ -21,7 +21,7 @@ function userRecord(overrides: Record<string, unknown> = {}) {
       },
     ],
     ...overrides,
-  };
+  } as never;
 }
 
 function build() {
@@ -126,7 +126,7 @@ describe('RiskContextBuilderService.buildLlmContext', () => {
         startDate: new Date('2026-01-01'),
         endDate: null,
         isActive: true,
-      },
+      } as never,
       {
         id: 'r2',
         currentMedicineId: 'ghost',
@@ -136,7 +136,7 @@ describe('RiskContextBuilderService.buildLlmContext', () => {
         startDate: null,
         endDate: null,
         isActive: true,
-      },
+      } as never,
     ]);
     vi.mocked(medicinesService.getDetailWithCache).mockResolvedValue({
       id: 'cn-1',
