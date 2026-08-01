@@ -349,9 +349,10 @@ collector 暴露 `lucent_cert_expiry_days` 指标，剩余 < 14 天触发 warnin
 1. **stdout JSON**：Winston 默认输出到 stdout，Docker json-file 驱动采集（50MB × 5 文件轮转）
 2. **文件按天分割**：Winston 通过 `winston-daily-rotate-file` transport 写入 `/app/logs/` 目录（挂载到宿主机 `./logs/app/`），文件名格式 `lucent.YYYY-MM-DD.log`，单文件上限 500MB
 
-每行日志携带顶层 `requestId` 字段（AsyncLocalStorage 注入，定时任务/队列等非请求上
-下文无此字段），可直接 `jq` / `grep` 检索单个请求的完整日志链。成功请求由 Fastify
-`onResponse` hook 写一条结构化完成日志（reqId/method/route/status/durationMs）。
+每行日志在活跃 OTel span 内携带顶层 `trace_id`/`span_id` 字段（无 span 的启动、定时任务、队列
+等上下文不注入），可直接 `jq` / `grep` 按 trace 检索单个请求的完整日志链，并关联 Jaeger 同一
+链路（`OTEL_ENABLED=true` 时启用，见 ADR-0010）。成功请求由 Fastify `onResponse` hook 写一条
+结构化完成日志（method/route/status/durationMs），`onSend` hook 回写 `traceresponse` 响应头。
 
 Postgres 慢查询日志：compose 启动参数 `log_min_duration_statement=500`，超过 500ms
 的语句写入容器日志（`docker logs lucent-postgres`，随 json-file 50m×5 轮转）。

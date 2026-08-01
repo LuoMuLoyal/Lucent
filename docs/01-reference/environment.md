@@ -151,13 +151,15 @@ NODE_ENV=test pnpm exec prisma migrate deploy
   runtime.
 - Lucent runtime logging uses `nest-winston` with Winston transports.
   Development console output uses a colorized `printf` format (timestamp,
-  level, context, requestId, message, metadata, stack); production and test
-  use single-line JSON with a `timestamp` field for log-aggregation tools.
-  Set `LOG_FORMAT=pretty|json` to override the default at any environment.
-- `requestIdMiddleware` remains the source of truth for `X-Request-Id`; the
-  request id is also bridged into a shared AsyncLocalStorage request context so
-  exception and service logs can resolve the active request without passing
-  `Request` through every layer.
+  level, context, `[trace=xxxxxxxx]`, message, metadata, stack); production
+  and test use single-line JSON with a `timestamp` field for log-aggregation
+  tools. Set `LOG_FORMAT=pretty|json` to override the default at any
+  environment.
+- Inside an active OpenTelemetry span, every log line carries top-level
+  `trace_id` / `span_id` (from `src/common/logger/trace-context.utils.ts`);
+  span-less contexts (startup, cron, queue workers) skip injection. The former
+  `requestIdMiddleware` / `RequestContextService` (AsyncLocalStorage) and the
+  `X-Request-Id` response header have been retired — see ADR-0010.
 - Automatic request/response logs intentionally suppress noisy
   `/api/v1/health*` and `/api/docs*` routes, but still keep request context for
   the rest of the request pipeline. (HTTP access logging is no longer handled

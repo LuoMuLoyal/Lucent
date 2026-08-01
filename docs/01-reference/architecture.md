@@ -256,19 +256,25 @@ All error responses use `api-errors.ts` helpers (`notFound`, `badRequest`, `unau
 `forbidden`, `conflict`) with i18n keys. The global envelope is `{ code: ResultCode, message:
 string, data?: T }`. `ApiExceptionFilter` is now resolved from Nest DI instead
 of being `new`-ed in bootstrap code so it can emit structured Winston logs
-with `requestId`, method, path, status, and stack metadata.
+with `trace_id`, `span_id`, method, path, status, and stack metadata.
 
 ## Logging Foundation
 
 - `src/common/logger/logger.module.ts` registers the app-wide `nest-winston`
   logger. Development console uses a colorized `printf` format (timestamp,
-  level, context, requestId, message, metadata, stack); production/test uses
-  single-line JSON with `timestamp`. Set `LOG_FORMAT=pretty|json` to override.
-- `src/common/middleware/request-id.middleware.ts` remains the request-id
-  source of truth and mirrors the final id back to `X-Request-Id`.
-- `src/common/logger/request-context.service.ts` stores the active request id in
-  AsyncLocalStorage so shared infrastructure can read request context without
-  threading `Request` through every call.
+  level, context, `[trace=xxxxxxxx]`, message, metadata, stack); production/test
+  uses single-line JSON with `timestamp`. Set `LOG_FORMAT=pretty|json` to override.
+- `src/common/logger/trace-context.utils.ts` (`getActiveTraceIds()`) reads the
+  active OpenTelemetry span from the OTel context; the `otelTraceFormat` in
+  `logger.config.ts` injects top-level `trace_id` / `span_id` into every log
+  emitted inside an active span (no span → no injection). The former requestId
+  mechanism (request middleware, `RequestContextService`, AsyncLocalStorage) has
+  been retired — see ADR-0010.
+- `src/tracing.ts` (first import in `main.ts`) initializes the OTel SDK with
+  automatic instrumentation (HTTP/DB/Redis), gated by `OTEL_ENABLED=true`;
+  `setup-app.ts` writes a `traceresponse` response header
+  (`00-{traceId}-{spanId}-01`) via a Fastify `onSend` hook so App clients can
+  read the trace id back.
 - `setup-app.ts` no longer hand-builds string HTTP logs; request/response
   logging is handled by Winston with route-level noise suppression for
   health/docs endpoints. Each log line includes response time (e.g.

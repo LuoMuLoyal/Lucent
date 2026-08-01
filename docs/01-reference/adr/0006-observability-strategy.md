@@ -3,6 +3,9 @@
 - **Status**: accepted
 - **Date**: 2026-07-09
 - **Deciders**: LuoMuLoyal
+- **Superseded in part**: 「明确推迟 OpenTelemetry / 分布式追踪」章节已被
+  [ADR-0010](0010-otel-tracing.md) 取代（AI 管道 span 级调试触发条件已满足），
+  其余（prom-client 指标策略）继续有效。
 
 ## Context
 

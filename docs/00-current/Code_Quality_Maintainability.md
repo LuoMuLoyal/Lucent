@@ -84,15 +84,23 @@ Last updated: 2026-08-01
   - `src/common/logger/` holds the shared Nest logging module.
 - The logging foundation now uses `nest-winston` / `winston` (migrated from Pino on
   2026-07-12, see ADR-0007).
-  - `requestIdMiddleware` still owns `X-Request-Id`.
-  - `RequestContextService` bridges the request id into AsyncLocalStorage for
-    downstream logs and exception handling.
   - `setup-app.ts` no longer emits hand-built string HTTP logs; structured
     business logs use `new Logger()` field injection consistently across all
     services.
   - HTTP access logging is handled by Nginx `access_log`; per-request
     `autoLogging` was removed (redundant with Nginx, ApiExceptionFilter, and
     Prometheus metrics).
+  - All logs inside an active OTel span carry top-level `trace_id` / `span_id`
+    (from `src/common/logger/trace-context.utils.ts` `getActiveTraceIds()`, using
+    the active span in the OTel context), linking each log line to the same
+    Jaeger trace. The former `requestId` mechanism (AsyncLocalStorage,
+    `X-Request-Id`, `requestIdFormat`) has been retired entirely — see ADR-0010.
+  - `src/tracing.ts` (first import in `main.ts`) initializes the OpenTelemetry
+    SDK with automatic instrumentation (HTTP/DB/Redis), gated by
+    `OTEL_ENABLED=true`; default off, so tests and existing flows are unaffected.
+  - For local integration: `docker compose -f docker-compose.dev.yml up -d jaeger`
+    starts Jaeger all-in-one; traces are exported over OTLP HTTP to port 4318 and
+    viewable in the Jaeger UI at `http://127.0.0.1:16686`.
   - `SlowRequestInterceptor` (global) warns on requests exceeding
     `SLOW_REQUEST_THRESHOLD_MS` (default 2000ms).
   - `LifecycleService` logs application start and graceful shutdown (signal, uptime).

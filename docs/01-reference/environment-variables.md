@@ -175,6 +175,8 @@ SLOW_REQUEST_THRESHOLD_MS
 METRICS_ENABLED
 METRICS_USER
 METRICS_PASSWORD
+OTEL_ENABLED
+OTEL_EXPORTER_OTLP_ENDPOINT
 ```
 
 - `LOG_LEVEL` — Winston log level (`debug` / `info` / `warn` / `error`). Defaults to `debug` in
@@ -189,6 +191,13 @@ METRICS_PASSWORD
   `METRICS_PASSWORD`, the `/metrics` endpoint requires HTTP Basic Auth.
 - `METRICS_PASSWORD` — Basic Auth password for `/metrics`. Must be set together
   with `METRICS_USER`.
+- `OTEL_ENABLED` — set to `true` to start the OpenTelemetry SDK with automatic
+  instrumentation (HTTP/DB/Redis); all logs then carry `trace_id` / `span_id`.
+  Default: `false` (SDK not started; tests and existing flows unaffected). See
+  ADR-0010 for the full tracing strategy.
+- `OTEL_EXPORTER_OTLP_ENDPOINT` — OTLP HTTP trace reporting endpoint. Default:
+  `http://127.0.0.1:4318/v1/traces` (local Jaeger all-in-one port 4318). Only
+  used when `OTEL_ENABLED=true`.
 
 Security:
 
