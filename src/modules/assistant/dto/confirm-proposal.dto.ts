@@ -30,8 +30,32 @@ export class ConfirmAssistantProposalDto {
 }
 
 export class AssistantConfirmResultDto {
+  @ApiProperty({
+    description: 'Conversation (LangGraph thread) id the proposals belong to.',
+  })
   conversationId!: string;
+
+  @ApiProperty({ enum: ['approved', 'rejected'] })
   decision!: 'approved' | 'rejected';
+
+  @ApiProperty({ enum: ['approved', 'rejected'] })
   status!: 'approved' | 'rejected';
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Final assistant content after the decision is applied.',
+  })
   finalContent!: string | null;
+}
+
+export class AssistantConfirmResultResponseDto {
+  @ApiProperty({ description: 'Result code.', example: 0 })
+  code!: number;
+
+  @ApiProperty({ description: 'Message.', example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => AssistantConfirmResultDto })
+  data!: AssistantConfirmResultDto;
 }

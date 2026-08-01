@@ -39,7 +39,7 @@ import { AssistantConversationResponseDto } from './dto/conversation-response.dt
 import { StreamAssistantMessagesDto } from './dto/stream-messages.dto';
 
 import {
-  AssistantConfirmResultDto,
+  AssistantConfirmResultResponseDto,
   ConfirmAssistantProposalDto,
 } from './dto/confirm-proposal.dto';
 
@@ -108,7 +108,7 @@ export class AssistantController {
     summary:
       'Confirm or reject pending assistant write proposals and resume the graph thread',
   })
-  @ApiResponse({ status: 200, type: AssistantConfirmResultDto })
+  @ApiResponse({ status: 200, type: AssistantConfirmResultResponseDto })
   async confirmProposal(
     @CurrentUser() user: UserPayload,
     @Param('conversationId') conversationId: string,
