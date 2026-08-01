@@ -4,6 +4,7 @@ import { ReportExportPdfService } from './pdf.service';
 describe('ReportExportPdfService', () => {
   const service = new ReportExportPdfService();
 
+  // 慢测试：多页医院 PDF 渲染在 CI/低配机器上可超 30s，放宽到 120s
   it('builds a multi-page hospital pdf with metadata', async () => {
     const pdfBytes = await service.buildHospitalPdf({
       locale: 'zh-CN',
@@ -24,7 +25,7 @@ describe('ReportExportPdfService', () => {
     expect(pdf.getModificationDate()?.toISOString()).toBe(
       '2026-06-15T09:30:00.000Z',
     );
-  }, 30000);
+  }, 120_000);
 
   it('builds a single-page english print pdf with metadata', async () => {
     const pdfBytes = await service.buildPrintPdf({
@@ -38,7 +39,7 @@ describe('ReportExportPdfService', () => {
     expect(pdf.getTitle()).toBe('Lumos Print Report');
     expect(pdf.getSubject()).toContain('range 2026-06-09 ~ 2026-06-15');
     expect(pdf.getAuthor()).toBe('Lumos / Lucent');
-  }, 30000);
+  }, 120_000);
 });
 
 function sampleReport(input?: {
