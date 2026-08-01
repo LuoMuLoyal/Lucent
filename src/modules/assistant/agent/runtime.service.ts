@@ -81,8 +81,8 @@ export class AssistantRuntimeService {
     private readonly leafletReadService: AssistantToolLeafletReadService,
     private readonly metricsService: MetricsService,
     private readonly circuitBreaker: LlmCircuitBreakerService,
-    private readonly checkpointerService: AssistantCheckpointerService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly checkpointerService: AssistantCheckpointerService,
   ) {}
 
   hasChatModel(): boolean {
