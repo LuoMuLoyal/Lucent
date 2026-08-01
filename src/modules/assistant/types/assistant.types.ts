@@ -119,7 +119,14 @@ export interface AssistantProposalPreviewField {
 export interface AssistantCreateDailyRecordProposalPayload {
   type: 'create_daily_record';
   draft: {
-    kind: 'water' | 'meal' | 'symptom' | 'note' | 'sleep';
+    kind:
+      | 'water'
+      | 'meal'
+      | 'symptom'
+      | 'note'
+      | 'sleep'
+      | 'vital'
+      | 'activity';
     occurredAt: string;
     title: string | null;
     value: string | null;

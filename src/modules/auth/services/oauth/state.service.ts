@@ -17,6 +17,7 @@ import { DEFAULT_OAUTH_STATE_TTL_MS } from '../../../../config/constants';
 import { ResultCode } from '../../../../common';
 import {
   OAUTH_PROVIDER_WECHAT_WEB,
+  OAUTH_PROVIDER_QQ,
   OAUTH_PROVIDER_WEIBO,
   OAUTH_PROVIDER_GOOGLE,
   type OAuthProviderName,
@@ -188,7 +189,7 @@ export class AuthOAuthStateService {
     switch (provider) {
       case OAUTH_PROVIDER_WECHAT_WEB:
         return '/login/oauth/wechat';
-      case 'qq':
+      case OAUTH_PROVIDER_QQ:
         return '/login/oauth/qq';
       case OAUTH_PROVIDER_WEIBO:
         return '/login/oauth/weibo';
