@@ -3,7 +3,6 @@ import { buildAccessLogEntry } from './access-log.utils';
 describe('buildAccessLogEntry', () => {
   it('prefers the route pattern over the raw URL', () => {
     const entry = buildAccessLogEntry({
-      requestId: 'req-1',
       method: 'GET',
       routeUrl: '/api/v1/user/daily-records/:id',
       rawUrl: '/api/v1/user/daily-records/123?verbose=true',
@@ -14,7 +13,6 @@ describe('buildAccessLogEntry', () => {
     expect(entry).toEqual({
       level: 'info',
       message: 'HTTP request completed',
-      requestId: 'req-1',
       method: 'GET',
       url: '/api/v1/user/daily-records/:id',
       statusCode: 200,
@@ -24,7 +22,6 @@ describe('buildAccessLogEntry', () => {
 
   it('falls back to the raw URL when no route pattern exists (404)', () => {
     const entry = buildAccessLogEntry({
-      requestId: 'req-2',
       method: 'GET',
       routeUrl: undefined,
       rawUrl: '/no/such/route',
@@ -38,7 +35,6 @@ describe('buildAccessLogEntry', () => {
 
   it('uses error level for 5xx responses', () => {
     const entry = buildAccessLogEntry({
-      requestId: 'req-3',
       method: 'POST',
       routeUrl: '/api/v1/user/assistant/messages/stream',
       rawUrl: '/api/v1/user/assistant/messages/stream',
@@ -48,19 +44,5 @@ describe('buildAccessLogEntry', () => {
 
     expect(entry.level).toBe('error');
     expect(entry.durationMs).toBe(251);
-  });
-
-  it('keeps requestId undefined when the request had none', () => {
-    const entry = buildAccessLogEntry({
-      requestId: undefined,
-      method: 'GET',
-      routeUrl: '/api/v1/something',
-      rawUrl: '/api/v1/something',
-      statusCode: 200,
-      elapsedMs: 0.4,
-    });
-
-    expect(entry.requestId).toBeUndefined();
-    expect(entry.durationMs).toBe(0);
   });
 });

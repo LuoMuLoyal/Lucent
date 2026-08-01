@@ -168,7 +168,7 @@ const prodJsonFormat = winstonFormat.combine(
  *
  * Per-request HTTP access logging IS emitted, but not from this file:
  * a Fastify `onResponse` hook in `setupApp` writes one structured entry per
- * completed request (requestId, method, route pattern, statusCode,
+ * completed request (method, route pattern, statusCode,
  * durationMs; `error` level for 5xx, `info` otherwise) and skips
  * high-frequency probes (`/api/v1/health*`, `/metrics`).
  * Complementary signals remain:

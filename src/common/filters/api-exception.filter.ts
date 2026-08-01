@@ -46,9 +46,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
     status: HttpStatus,
     message: string,
   ): void {
-    // The request ID is attached to every in-request log entry as a
-    // top-level structured field by the winston `requestIdFormat`
-    // (AsyncLocalStorage), so it is not embedded in the message text.
+    // The active trace ids are attached to every in-request log entry as
+    // top-level structured fields by the winston `otelTraceFormat`
+    // (OTel context), so they are not embedded in the message text.
     const path = request.url;
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {

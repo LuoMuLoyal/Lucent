@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import type { ValidationError } from '@nestjs/common';
 import {
@@ -21,11 +20,8 @@ import { ResultCode } from './common';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { ApiEnvelopeInterceptor } from './common';
 import { SlowRequestInterceptor } from './common';
-import {
-  REQUEST_ID_HEADER,
-  type FastifyRequestWithId,
-} from './common/middleware/request-id.types';
-import { RequestContextService } from './common/logger/request-context.service';
+import type { FastifyRequestWithMetrics } from './common/middleware/metrics.types';
+import { getActiveTraceIds } from './common/logger/trace-context.utils';
 import { buildAccessLogEntry } from './common/logger/access-log.utils';
 import { MetricsService } from './common/metrics/metrics.service';
 import { normalizeRoute, shouldSkip } from './common/metrics/metrics.utils';
@@ -39,7 +35,6 @@ export async function setupApp(
   configService: ConfigService,
 ): Promise<void> {
   const fastify = app.getHttpAdapter().getInstance();
-  const requestContextService = app.get(RequestContextService);
 
   // ── JSON body parser ───────────────────────────────────────────
   // NestJS's default body parser is disabled (bodyParser: false in
@@ -61,26 +56,6 @@ export async function setupApp(
   // ── Helmet security headers ─────────────────────────────────────
   await app.register(fastifyHelmet);
 
-  // ── Request ID ──────────────────────────────────────────────────
-  void fastify.addHook('preHandler', (request, reply, done) => {
-    const incoming = request.headers[REQUEST_ID_HEADER.toLowerCase()];
-    const requestId =
-      typeof incoming === 'string' && incoming.trim()
-        ? incoming.trim()
-        : randomUUID();
-    (request as FastifyRequestWithId).requestId = requestId;
-    reply.header(REQUEST_ID_HEADER, requestId);
-    done();
-  });
-
-  // ── Request context (AsyncLocalStorage) ─────────────────────────
-  void fastify.addHook('preHandler', (request, _reply, done) => {
-    requestContextService.run(
-      { requestId: (request as FastifyRequestWithId).requestId },
-      done,
-    );
-  });
-
   // ── Prometheus metrics ──────────────────────────────────────────
   const metricsService = app.get(MetricsService);
   const appConfig = configService.get<{
@@ -95,12 +70,23 @@ export async function setupApp(
       done();
       return;
     }
-    (request as FastifyRequestWithId).__metricsStart = performance.now();
+    (request as FastifyRequestWithMetrics).__metricsStart = performance.now();
+    done();
+  });
+
+  // ── W3C trace context response header ─────────────────────────
+  // onSend runs before the payload is serialized/sent, so the header can
+  // still be set here (onResponse is too late — headers are already out).
+  void fastify.addHook('onSend', (_request, reply, _payload, done) => {
+    const { traceId, spanId } = getActiveTraceIds();
+    if (traceId && spanId) {
+      reply.header('traceresponse', `00-${traceId}-${spanId}-01`);
+    }
     done();
   });
 
   void fastify.addHook('onResponse', (request, reply, done) => {
-    const req = request as FastifyRequestWithId;
+    const req = request as FastifyRequestWithMetrics;
     if (!req.__metricsStart) {
       done();
       return;
@@ -126,7 +112,6 @@ export async function setupApp(
       return;
     }
     const entry = buildAccessLogEntry({
-      requestId: (request as FastifyRequestWithId).requestId,
       method: request.method,
       routeUrl: request.routeOptions.url,
       rawUrl: request.url,

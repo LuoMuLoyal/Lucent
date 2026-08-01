@@ -11,7 +11,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Prisma, PrismaClient } from '#generated/prisma/client';
 import { EnvKey } from '../config/env/env-keys.enum.js';
 import { DEFAULT_SLOW_QUERY_THRESHOLD_MS } from '../config/constants.js';
-import { requestContextStorage } from '../common/logger/request-context.service.js';
+import { getActiveTraceId } from '../common/logger/trace-context.utils.js';
 import {
   applySoftDeleteExtension,
   type ExtendedPrismaClient,
@@ -32,7 +32,7 @@ import {
  *    event; the `$on('query')` handler logs queries whose duration exceeds
  *    `SLOW_QUERY_THRESHOLD_MS` (default 500 ms) to Winston, including the
  *    SQL text (parameterised placeholders only — actual parameter values
- *    are never logged) and the current `requestId` for correlation.
+ *    are never logged) and the current `traceId` for correlation.
  *
  * All existing model delegates (`this.user`, `this.userDailyRecord`, etc.)
  * continue to work unchanged; the extension only adds new properties.
@@ -90,7 +90,7 @@ export class PrismaService
           durationMs: e.duration,
           query: e.query,
           target: e.target,
-          requestId: requestContextStorage.getStore()?.requestId,
+          traceId: getActiveTraceId(),
         });
       }
     });

@@ -10,7 +10,6 @@ import request from 'supertest';
 import { AppController } from '../../../src/app.controller';
 import { AppService } from '../../../src/app.service';
 import { ApiExceptionFilter } from '../../../src/common/filters/api-exception.filter';
-import { RequestContextService } from '../../../src/common/logger/request-context.service';
 import { MetricsService } from '../../../src/common/metrics/metrics.service';
 import { SlowRequestInterceptor } from '../../../src/common';
 import { PrismaService } from '../../../src/prisma';
@@ -70,7 +69,6 @@ describe('Lucent API (e2e)', () => {
           provide: WINSTON_MODULE_PROVIDER,
           useValue: { log: vi.fn() },
         },
-        RequestContextService,
         ApiExceptionFilter,
         MetricsService,
         SlowRequestInterceptor,
@@ -100,7 +98,6 @@ describe('Lucent API (e2e)', () => {
     return request(app.getHttpServer())
       .get('/api/v1/health')
       .expect(200)
-      .expect('X-Request-Id', /.+/)
       .expect((response) => {
         expect(response.body).toMatchObject({
           code: 0,
@@ -124,7 +121,6 @@ describe('Lucent API (e2e)', () => {
     return request(app.getHttpServer())
       .get('/api/v1/health/ready')
       .expect(503)
-      .expect('X-Request-Id', /.+/)
       .expect((response) => {
         expect(response.body).toMatchObject({
           code: 0,
@@ -148,7 +144,6 @@ describe('Lucent API (e2e)', () => {
     return request(app.getHttpServer())
       .get('/api/v1/health/live')
       .expect(200)
-      .expect('X-Request-Id', /.+/)
       .expect((response) => {
         expect(response.body).toMatchObject({
           code: 0,
@@ -194,7 +189,6 @@ describe('Lucent API (e2e)', () => {
     return request(app.getHttpServer())
       .get('/api/v1/health/deep')
       .expect(200)
-      .expect('X-Request-Id', /.+/)
       .expect((response) => {
         expect(response.body).toMatchObject({
           code: 0,

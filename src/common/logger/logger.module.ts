@@ -3,7 +3,6 @@ import { WinstonModule } from 'nest-winston';
 import { EnvKey } from '../../config/env/env-keys.enum';
 import { createLoggerOptions } from './logger.config';
 import { LifecycleService } from './lifecycle.service';
-import { RequestContextService } from './request-context.service';
 
 @Global()
 @Module({
@@ -16,7 +15,7 @@ import { RequestContextService } from './request-context.service';
       },
     }),
   ],
-  providers: [RequestContextService, LifecycleService],
-  exports: [WinstonModule, RequestContextService],
+  providers: [LifecycleService],
+  exports: [WinstonModule],
 })
 export class LoggerModule {}

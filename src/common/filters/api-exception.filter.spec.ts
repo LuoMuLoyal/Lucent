@@ -341,9 +341,9 @@ describe('ApiExceptionFilter', () => {
     );
   });
 
-  it('logs method, path, and status without embedding requestId in the message text', () => {
-    // requestId is a top-level structured field (winston requestIdFormat),
-    // not a `[reqId=]` suffix in the message.
+  it('logs method, path, and status without embedding trace ids in the message text', () => {
+    // trace_id/span_id are top-level structured fields (winston
+    // otelTraceFormat), not embedded in the message text.
     const { filter } = createFilter();
     const response = {
       status: vi.fn().mockReturnThis(),
