@@ -1,6 +1,6 @@
 # Toolchain / Contract
 
-Last updated: 2026-07-29
+Last updated: 2026-08-01
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -56,11 +56,3 @@ Last updated: 2026-07-29
   `setup-app.ts` 手动注册 JSON content-type parser。原因：`@adminjs/fastify` 的 `buildAuthenticatedRouter`
   内部注册 `@fastify/formbody`（urlencoded parser），与 NestJS 默认 parser 冲突，在 Node.js v24 下
   导致 `FastifyError: Content type parser already present`。
-- **新增模块**（2026-07-20）：`audit-log`（`@Global()` 审计日志）、`user-devices`（设备注册 API）、
-  `data-retention`（`@Cron` 数据保留清理）。新增 API 端点 `POST/GET/DELETE /api/v1/user/user-devices`。
-  `UserNotificationType` 枚举新增 `oauth_login`、`identity_linked`。限流从内存存储升级为条件性
-  Redis 存储（`ThrottlerConfigService`）。`pnpm export:openapi` 需重新执行以更新
-  `docs/openapi.json` 契约文件，Luminous 需重新生成 API 客户端。
-- **Profile extras 提升**（2026-07-27）：`UserHealthProfileDto` 新增 `weightKg`、`emergencyContact`
-  顶层字段（从 `extras` JSONB 提取）。新增 `EmergencyContactDto` schema。`UpdateHealthContextProfileDto`
-  新增 `weightKg`/`emergencyContactName`/`emergencyContactPhone` 可选字段，写入时执行 extras 深度合并。
