@@ -5,7 +5,7 @@ import {
 } from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import { EnvKey } from '../../config/env/env-keys.enum';
-import { requestContextStorage } from './request-context.service';
+import { getActiveTraceIds } from './trace-context.utils';
 
 type LogLevel =
   | 'error'
@@ -39,24 +39,21 @@ function resolveLevel(nodeEnv: string, logLevel: string): LogLevel {
 }
 
 /**
- * Lifts the request ID stored in AsyncLocalStorage (populated by the
- * preHandler hook in `setupApp`) onto the log entry as a top-level
- * `requestId` field, so every line emitted while handling a request can be
- * correlated by it. Entries logged outside a request lifecycle (bootstrap,
- * cron, queue workers) simply carry no `requestId`. An explicitly supplied
- * `requestId` in the log metadata always wins.
+ * Lifts the active OpenTelemetry span's ids onto the log entry as top-level
+ * `trace_id` / `span_id` fields, so every line emitted while handling a
+ * request can be correlated with its Jaeger trace. Outside a span (bootstrap,
+ * cron, queue workers) no ids are added. Explicitly supplied metadata wins.
  */
-const requestIdFormat = winstonFormat((info) => {
-  if (info['requestId'] === undefined) {
-    const requestId = requestContextStorage.getStore()?.requestId;
-    if (requestId) {
-      info['requestId'] = requestId;
-    }
+const otelTraceFormat = winstonFormat((info) => {
+  if (info['trace_id'] === undefined && info['span_id'] === undefined) {
+    const { traceId, spanId } = getActiveTraceIds();
+    if (traceId) info['trace_id'] = traceId;
+    if (spanId) info['span_id'] = spanId;
   }
   return info;
 });
 
-// ── ANSI color constants (used only for requestId highlighting) ──────────
+// ── ANSI color constants (used only for trace tag highlighting) ──────────
 
 const C = {
   reset: '\x1b[0m',
@@ -73,7 +70,8 @@ const RESERVED_KEYS = new Set([
   'message',
   'timestamp',
   'context',
-  'requestId',
+  'trace_id',
+  'span_id',
   'stack',
   'trace',
   'splat',
@@ -102,16 +100,16 @@ function formatMeta(info: Record<string, unknown>): string | undefined {
  * Human-readable printf format for the development console.
  *
  * Layout:
- *   <timestamp> <level> [context] [reqId] message {meta}
+ *   <timestamp> <level> [context] [trace] message {meta}
  *   <stack>                       ← only for errors with a stack trace
  *
  * - `timestamp()`  — `YYYY-MM-DD HH:mm:ss.SSS`
- * - `colorize()`   — Winston handles level coloring; requestId uses manual
+ * - `colorize()`   — Winston handles level coloring; trace tag uses manual
  *                    green ANSI for visual prominence.
  * - `printf()`     — full layout control with metadata + stack.
  */
 const devConsoleFormat = winstonFormat.combine(
-  requestIdFormat(),
+  otelTraceFormat(),
   winstonFormat.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
   winstonFormat.colorize(),
   winstonFormat.printf((info: Record<string, unknown>) => {
@@ -120,8 +118,8 @@ const devConsoleFormat = winstonFormat.combine(
     const context =
       typeof info['context'] === 'string' ? info['context'] : 'App';
     const message = typeof info['message'] === 'string' ? info['message'] : '';
-    const requestId =
-      typeof info['requestId'] === 'string' ? info['requestId'] : undefined;
+    const traceId =
+      typeof info['trace_id'] === 'string' ? info['trace_id'] : undefined;
     const stack =
       typeof info['stack'] === 'string'
         ? info['stack']
@@ -129,8 +127,8 @@ const devConsoleFormat = winstonFormat.combine(
           ? info['trace']
           : undefined;
 
-    const reqTag = requestId
-      ? `${C.green}[${requestId.length <= 8 ? requestId : requestId.slice(0, 8)}]${C.reset} `
+    const reqTag = traceId
+      ? `${C.green}[trace=${traceId.length <= 8 ? traceId : traceId.slice(0, 8)}]${C.reset} `
       : '';
     const meta = formatMeta(info);
     const metaTag = meta ? `${C.gray}${meta}${C.reset}` : '';
@@ -146,7 +144,7 @@ const devConsoleFormat = winstonFormat.combine(
  * log-aggregation tools (ELK / Loki / CloudWatch).
  */
 const prodJsonFormat = winstonFormat.combine(
-  requestIdFormat(),
+  otelTraceFormat(),
   winstonFormat.timestamp(),
   winstonFormat.json(),
 );
@@ -156,7 +154,7 @@ const prodJsonFormat = winstonFormat.combine(
  *
  * Format selection:
  * - **Development**: colorized `printf` format — timestamp, level, context,
- *   requestId (first 8 chars), message, metadata, and stack trace. Optimized
+ *   trace id (first 8 chars), message, metadata, and stack trace. Optimized
  *   for human readability during integration debugging.
  * - **Production / Test**: single-line JSON with `timestamp`. Optimized for
  *   machine ingestion (ELK, Loki, CloudWatch, Jest `JSON.parse` assertions).

@@ -1,7 +1,6 @@
 import { Writable } from 'node:stream';
 import { createLogger, transports as winstonTransports } from 'winston';
 import { createLoggerOptions } from './logger.config';
-import { requestContextStorage } from './request-context.service';
 import type { WinstonModuleOptions } from 'nest-winston';
 import { EnvKey } from '../../config/env/env-keys.enum';
 
@@ -55,23 +54,31 @@ async function logAndFlush(
   capture: ReturnType<typeof createCapturingLogger>,
   message: string,
   meta?: Record<string, unknown>,
-  requestId?: string,
 ): Promise<void> {
   const written = capture.waitForLine(capture.lines.length + 1);
-  const emit = (): void => {
-    if (meta) {
-      capture.logger.info(message, meta);
-    } else {
-      capture.logger.info(message);
-    }
-  };
-  if (requestId === undefined) {
-    emit();
+  if (meta) {
+    capture.logger.info(message, meta);
   } else {
-    requestContextStorage.run({ requestId }, emit);
+    capture.logger.info(message);
   }
   await written;
 }
+
+// ── OTel span mock ────────────────────────────────────────────────
+let mockSpanContext: { traceId: string; spanId: string } | undefined;
+
+vi.mock('@opentelemetry/api', () => ({
+  trace: {
+    getActiveSpan: () =>
+      mockSpanContext === undefined
+        ? undefined
+        : { spanContext: () => mockSpanContext },
+  },
+}));
+
+afterEach(() => {
+  mockSpanContext = undefined;
+});
 
 describe('createLoggerOptions', () => {
   it('uses debug level in development', () => {
@@ -185,14 +192,18 @@ describe('format selection', () => {
     expect(capture.lines[0]).toContain('[App]');
   });
 
-  it('dev format shows requestId tag when present', async () => {
+  it('dev format shows trace tag when present', async () => {
     process.env[EnvKey.LOG_FORMAT] = '';
     const capture = createCapturingLogger('development');
 
-    await logAndFlush(capture, 'hello', undefined, 'req-abc12345');
+    mockSpanContext = {
+      traceId: '0123456789abcdef0123456789abcdef',
+      spanId: 'fedcba9876543210',
+    };
+    await logAndFlush(capture, 'hello');
 
-    // Should contain the requestId (first 8 chars) somewhere in the line
-    expect(capture.lines[0]).toContain('req-abc1');
+    // Should contain the trace id (first 8 chars) in a [trace=...] tag
+    expect(capture.lines[0]).toContain('[trace=01234567]');
   });
 
   it('JSON format includes timestamp field', async () => {
@@ -206,40 +217,50 @@ describe('format selection', () => {
   });
 });
 
-// ── requestId injection (requires JSON format for parse assertions) ──────
+// ── OTel trace injection (requires JSON format for parse assertions) ─────
 
-describe('requestId format', () => {
+describe('otel trace format', () => {
   // Uses 'test' env → JSON format, so JSON.parse assertions are valid.
   function createTestLogger() {
     return createCapturingLogger('test', 'silly');
   }
 
-  it('injects the active requestId as a top-level JSON field', async () => {
+  it('injects the active span ids as top-level JSON fields', async () => {
     const capture = createTestLogger();
 
-    await logAndFlush(capture, 'hello', undefined, 'req-42');
+    mockSpanContext = {
+      traceId: '0123456789abcdef0123456789abcdef',
+      spanId: 'fedcba9876543210',
+    };
+    await logAndFlush(capture, 'hello');
 
     expect(capture.lines).toHaveLength(1);
     const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-    expect(entry['requestId']).toBe('req-42');
+    expect(entry['trace_id']).toBe('0123456789abcdef0123456789abcdef');
+    expect(entry['span_id']).toBe('fedcba9876543210');
     expect(entry['message']).toBe('hello');
   });
 
-  it('adds no requestId outside a request context', async () => {
+  it('adds no trace ids outside a span', async () => {
     const capture = createTestLogger();
 
     await logAndFlush(capture, 'hello');
 
     const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-    expect(entry).not.toHaveProperty('requestId');
+    expect(entry).not.toHaveProperty('trace_id');
+    expect(entry).not.toHaveProperty('span_id');
   });
 
-  it('keeps an explicitly provided requestId over the context one', async () => {
+  it('keeps explicitly provided trace ids over the span ones', async () => {
     const capture = createTestLogger();
 
-    await logAndFlush(capture, 'hello', { requestId: 'explicit' }, 'ctx-id');
+    mockSpanContext = {
+      traceId: '0123456789abcdef0123456789abcdef',
+      spanId: 'fedcba9876543210',
+    };
+    await logAndFlush(capture, 'hello', { trace_id: 'explicit-trace' });
 
     const entry = JSON.parse(capture.lines[0]!) as Record<string, unknown>;
-    expect(entry['requestId']).toBe('explicit');
+    expect(entry['trace_id']).toBe('explicit-trace');
   });
 });
