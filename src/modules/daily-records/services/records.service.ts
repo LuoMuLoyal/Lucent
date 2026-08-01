@@ -9,7 +9,10 @@ import type { CreateDailyRecordDto } from '../dto/create-record.dto';
 import type { UpdateDailyRecordDto } from '../dto/update-record.dto';
 import { DailyRecordsOwnershipService } from './ownership.service';
 import { DailyRecordsMapperService } from './mapper.service';
-import { dailyRecordWithAttachments } from '../types/record.types';
+import {
+  dailyRecordWithAttachments,
+  type OwnedRecordSnapshot,
+} from '../types/record.types';
 import {
   buildConfirmedMealPayload,
   buildMealPayloadFromClientInput,
@@ -237,9 +240,7 @@ export class DailyRecordsService {
         item,
         nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
       );
-      if (existing.occurredAt != null) {
-        await this.invalidateSuggestionCache(userId, existing.occurredAt);
-      }
+      await this.invalidateSuggestionCacheForUpdate(userId, existing, dto);
       return item;
     }
 
@@ -258,15 +259,11 @@ export class DailyRecordsService {
       await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
         parseMealRecordPayload(item.payload).mealAnalysis,
       );
-      if (existing.occurredAt != null) {
-        await this.invalidateSuggestionCache(userId, existing.occurredAt);
-      }
+      await this.invalidateSuggestionCacheForUpdate(userId, existing, dto);
       return item;
     }
     await this.enqueueMealAnalysisIfNeeded(userId, item);
-    if (existing.occurredAt != null) {
-      await this.invalidateSuggestionCache(userId, existing.occurredAt);
-    }
+    await this.invalidateSuggestionCacheForUpdate(userId, existing, dto);
     return item;
   }
 
@@ -300,6 +297,39 @@ export class DailyRecordsService {
         userId,
         date: dateStr,
       } satisfies DailyRecordChangedPayload);
+    } catch (error) {
+      // cache invalidation is best-effort
+      this.logger.warn('Failed to emit daily-record.changed event', {
+        userId,
+        error,
+      });
+    }
+  }
+
+  /**
+   * Invalidates the suggestion cache for both the record's previous date and
+   * its new date, since an update may move a record across days. Without this,
+   * the destination day would keep serving stale signals until the TTL.
+   */
+  private async invalidateSuggestionCacheForUpdate(
+    userId: string,
+    existing: OwnedRecordSnapshot,
+    dto: UpdateDailyRecordDto,
+  ): Promise<void> {
+    try {
+      const dates = new Set<string>();
+      if (existing.occurredAt != null) {
+        dates.add(formatDateOnly(existing.occurredAt));
+      }
+      if (dto.occurredAt !== undefined) {
+        dates.add(formatDateOnly(parseDateOnly(dto.occurredAt)));
+      }
+      for (const date of dates) {
+        await this.eventEmitter.emitAsync(DAILY_RECORD_CHANGED, {
+          userId,
+          date,
+        } satisfies DailyRecordChangedPayload);
+      }
     } catch (error) {
       // cache invalidation is best-effort
       this.logger.warn('Failed to emit daily-record.changed event', {

@@ -74,13 +74,15 @@ export class SuggestionCacheService {
     excludeKey: string,
     result: TodaySuggestionsDataDto,
   ): Promise<void> {
-    // Track the excludeKey so invalidateSuggestions can clear all variants
-    await this.trackExcludeKey(userId, date, excludeKey);
+    // Write the value before registering the excludeKey: if an invalidation
+    // races in between, the registry is re-read by the invalidation's second
+    // pass, so a value written before registration still gets deleted.
     await this.cache.set(
       this.suggestionKey(userId, date, excludeKey),
       result,
       SUGGESTION_CACHE_TTL_MS,
     );
+    await this.trackExcludeKey(userId, date, excludeKey);
   }
 
   // ─── Baseline status cache ───
@@ -191,12 +193,26 @@ export class SuggestionCacheService {
   /**
    * Deletes all suggestion cache entries for a user+date by reading
    * the excludeKeys registry, then clearing the registry itself.
+   *
+   * Runs two passes: a concurrent `setSuggestions` may register an
+   * excludeKey while the first pass is reading the registry, and the
+   * second pass catches variants registered between the read and the
+   * registry deletion. Remaining TTL (3 min) bounds any residual window.
    */
   private async invalidateAllSuggestions(
     userId: string,
     date: string,
   ): Promise<void> {
     const registryKey = this.excludeKeysRegistryKey(userId, date);
+    await this.deleteRegisteredVariants(userId, date, registryKey);
+    await this.deleteRegisteredVariants(userId, date, registryKey);
+  }
+
+  private async deleteRegisteredVariants(
+    userId: string,
+    date: string,
+    registryKey: string,
+  ): Promise<void> {
     const excludeKeys = (await this.cache.get<string[]>(registryKey)) ?? [];
     // Always include 'none' as a fallback in case the registry expired
     const allKeys = excludeKeys.includes('none')

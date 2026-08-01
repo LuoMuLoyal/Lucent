@@ -149,6 +149,9 @@ SuggestionService (编排器, 4 依赖)
 - `SuggestionCacheInvalidationListener` 通过 `@OnEvent` 订阅 5 个 domain event（`DAILY_RECORD_CHANGED` / `DOSE_LOG_CHANGED` / `REMINDER_CHANGED` / `HEALTH_CONTEXT_CHANGED` / `SETTINGS_CHANGED`），触发缓存失效，资源模块不再反向依赖聚合层
 - `buildExcludeKey()` 确保不同 excludeIds 组合生成不同缓存 key
 - 缓存失效通过 excludeKeys registry 追踪所有已使用的 excludeKey 变体，确保 `invalidateSignals` / `invalidateSuggestions` 能清除所有缓存条目而非仅 `none` 变体
+- `daily-record.changed` 的失效日期同时覆盖记录的旧日期与新日期（update 移动记录跨天时,目标日期的缓存也会被清除）
+- `reminder/health-context/settings.changed` 的失效日期按用户 profile timezone（`formatDateOnlyInTimezone`，缺省 `Asia/Shanghai`）计算"今天"，避免服务器时区与客户端日期错位
+- 建议结果失效采用双轮删除（先删 registry 登记的变体与 registry，再读一遍 registry 补删并发登记的变体），配合 3 分钟 TTL 兜底消除 registry 读写竞态
 
 ## 反馈数据驱动 threshold 调整
 

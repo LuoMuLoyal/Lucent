@@ -122,8 +122,11 @@ describe('SuggestionCacheService', () => {
 
   describe('Invalidation', () => {
     it('should invalidate signals and suggestions on invalidateSignals', async () => {
-      // Simulate a registry with multiple excludeKeys
-      cacheGetMock.mockResolvedValueOnce(['none', 'id1,id2']);
+      // Simulate a registry with multiple excludeKeys. The invalidation
+      // reads the registry twice (two passes) to catch concurrent writes.
+      cacheGetMock
+        .mockResolvedValueOnce(['none', 'id1,id2'])
+        .mockResolvedValueOnce([]);
 
       await service.invalidateSignals('user-1', '2026-07-09');
 
@@ -131,21 +134,26 @@ describe('SuggestionCacheService', () => {
       expect(cacheDelMock).toHaveBeenCalledWith(
         'today_suggestion:signals:user-1:2026-07-09',
       );
-      // Should delete all suggestion cache variants
+      // First pass: delete all registered suggestion cache variants
       expect(cacheDelMock).toHaveBeenCalledWith(
         'today_suggestion:suggestions:user-1:2026-07-09:none',
       );
       expect(cacheDelMock).toHaveBeenCalledWith(
         'today_suggestion:suggestions:user-1:2026-07-09:id1,id2',
       );
-      // Should delete the registry itself
+      // Should delete the registry itself (both passes)
       expect(cacheDelMock).toHaveBeenCalledWith(
         'today_suggestion:exclude_keys:user-1:2026-07-09',
       );
+      // Second pass: delete the fallback 'none' variant and re-delete the
+      // registry, catching variants registered during the first pass.
+      expect(cacheDelMock).toHaveBeenCalledTimes(6);
     });
 
     it('should fallback to deleting none when registry is empty', async () => {
-      cacheGetMock.mockResolvedValueOnce(undefined);
+      cacheGetMock
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce(undefined);
 
       await service.invalidateSuggestions('user-1', '2026-07-09');
 

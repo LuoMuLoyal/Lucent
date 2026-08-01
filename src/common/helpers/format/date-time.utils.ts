@@ -48,6 +48,30 @@ export function parseDateOnly(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
+/** Default timezone applied when a user profile has no timezone set. */
+export const DEFAULT_USER_TIMEZONE = 'Asia/Shanghai';
+
+/**
+ * Returns "YYYY-MM-DD" of the given instant rendered in the given IANA
+ * timezone, falling back to [DEFAULT_USER_TIMEZONE] when timezone is null.
+ * Uses the `en-CA` locale which natively produces ISO-style dates.
+ */
+export function formatDateOnlyInTimezone(
+  date: Date,
+  timezone: string | null,
+): string {
+  const tz = timezone || DEFAULT_USER_TIMEZONE;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+  const read = (type: string, fallback: string): string =>
+    parts.find((part) => part.type === type)?.value ?? fallback;
+  return `${read('year', '1970')}-${read('month', '01')}-${read('day', '01')}`;
+}
+
 /**
  * Calculates age from a birth date using UTC day boundaries.
  * Returns 0 when the birth date is in the future or results in a negative age.

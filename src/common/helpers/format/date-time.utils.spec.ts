@@ -5,6 +5,7 @@ import {
   formatDateTime,
   toEmailVerified,
   formatDateOnly,
+  formatDateOnlyInTimezone,
   parseDateOnly,
   calculateAge,
 } from './date-time.utils';
@@ -130,6 +131,30 @@ describe('date-time.utils', () => {
       expect(result.getUTCFullYear()).toBe(2026);
       expect(result.getUTCMonth()).toBe(11);
       expect(result.getUTCDate()).toBe(31);
+    });
+  });
+
+  describe('formatDateOnlyInTimezone', () => {
+    it('renders the date in the given timezone', () => {
+      // 2026-08-01T18:00Z is 2026-08-02 02:00 in Asia/Shanghai.
+      const date = new Date('2026-08-01T18:00:00.000Z');
+      expect(formatDateOnlyInTimezone(date, 'Asia/Shanghai')).toBe(
+        '2026-08-02',
+      );
+      // Same instant is still 2026-08-01 in UTC.
+      expect(formatDateOnlyInTimezone(date, 'UTC')).toBe('2026-08-01');
+    });
+
+    it('falls back to the default timezone when timezone is null', () => {
+      const date = new Date('2026-08-01T18:00:00.000Z');
+      expect(formatDateOnlyInTimezone(date, null)).toBe('2026-08-02');
+    });
+
+    it('handles a date that stays the same across the boundary', () => {
+      const date = new Date('2026-08-01T10:00:00.000Z');
+      expect(formatDateOnlyInTimezone(date, 'Asia/Shanghai')).toBe(
+        '2026-08-01',
+      );
     });
   });
 

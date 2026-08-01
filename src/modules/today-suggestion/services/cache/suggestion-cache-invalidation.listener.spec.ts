@@ -7,6 +7,9 @@ describe('SuggestionCacheInvalidationListener', () => {
     invalidateSuggestions: vi.Mock;
     invalidateBaseline: vi.Mock;
   };
+  let prisma: {
+    user: { findUnique: vi.Mock };
+  };
 
   beforeEach(() => {
     cache = {
@@ -14,8 +17,18 @@ describe('SuggestionCacheInvalidationListener', () => {
       invalidateSuggestions: vi.fn().mockResolvedValue(undefined),
       invalidateBaseline: vi.fn().mockResolvedValue(undefined),
     };
+    prisma = {
+      user: {
+        findUnique: vi.fn().mockResolvedValue({
+          profile: { timezone: 'Asia/Shanghai' },
+        }),
+      },
+    };
 
-    listener = new SuggestionCacheInvalidationListener(cache as never);
+    listener = new SuggestionCacheInvalidationListener(
+      cache as never,
+      prisma as never,
+    );
   });
 
   describe('handleDailyRecordChanged', () => {
@@ -75,9 +88,29 @@ describe('SuggestionCacheInvalidationListener', () => {
 
       expect(cache.invalidateSignals).toHaveBeenCalledWith(
         'user-3',
-        expect.any(String), // today's date
+        expect.any(String), // today's date in the user's timezone
       );
       expect(cache.invalidateBaseline).toHaveBeenCalledWith('user-3');
+    });
+
+    it('should use the user profile timezone when resolving today', async () => {
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(new Date('2026-08-01T18:00:00.000Z'));
+        prisma.user.findUnique.mockResolvedValue({
+          profile: { timezone: 'Asia/Shanghai' },
+        });
+
+        await listener.handleReminderChanged({ userId: 'user-3' });
+
+        // 2026-08-01T18:00Z is 2026-08-02 02:00 in Asia/Shanghai.
+        expect(cache.invalidateSignals).toHaveBeenCalledWith(
+          'user-3',
+          '2026-08-02',
+        );
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('should not throw when cache invalidation fails', async () => {

@@ -28,6 +28,10 @@ Last updated: 2026-08-01
 - Current-time creation is centralized through `now()` / `nowIsoString()` in
   `src/common/helpers/date-time.utils.ts`; bare `new Date()` calls in non-test business code have been
   replaced.
+- Date-in-timezone formatting is centralized as `formatDateOnlyInTimezone()` /
+  `DEFAULT_USER_TIMEZONE` (Asia/Shanghai) in `src/common/helpers/format/date-time.utils.ts`;
+  suggestion-cache invalidation resolves "today" in the user's profile timezone instead of the
+  server-local timezone.
 - Silent catch blocks across auth notifications, SSE controllers, health probes, and export
   notifications now log errors before falling back, improving production observability.
 - Assistant module constants are centralized in `assistant-tool.constants.ts` (vector limits,
