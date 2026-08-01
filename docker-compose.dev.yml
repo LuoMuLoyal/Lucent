@@ -52,6 +52,15 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── Jaeger (OpenTelemetry trace backend) ──────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: lucent-jaeger
+    restart: unless-stopped
+    ports:
+      - '16686:16686' # Jaeger UI
+      - '4318:4318' # OTLP HTTP receiver
+
 volumes:
   pgdata-dev:
   pgdata-test:
