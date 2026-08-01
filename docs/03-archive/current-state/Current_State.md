@@ -1,5 +1,9 @@
 # Lucent Current State
 
+## 归档说明
+
+本文档记录 2026 年中的功能实现状态快照，于 2026-08-01 归档至 `03-archive/current-state/`。实现状态以代码为准，历史信息可在此追溯。
+
 Last updated: 2026-07-19
 
 本文件是 `00-current/` 目录的索引。具体实现细节由各子文件负责，变更历史见 `02-logs/migration-log/`。

@@ -1,5 +1,9 @@
 # Public Support Resources
 
+## 归档说明
+
+本文档记录 2026 年中的功能实现状态快照，于 2026-08-01 归档至 `03-archive/current-state/`。实现状态以代码为准，历史信息可在此追溯。
+
 Last updated: 2026-07-28
 
 - `GET /api/v1/public/support-resources` now only serves `help` / `about` reference entries.

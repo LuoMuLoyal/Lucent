@@ -1,5 +1,9 @@
 # Lucent 文档地图
 
+## 归档说明
+
+本文档是 Obsidian 文档地图，于 2026-08-01 归档至 `03-archive/current-state/`。导航由 `docs/README.md` 承担。
+
 本页按区域列出所有活跃文档。当前后端状态见 [[00-current/Current_State]]。
 
 ## 00-current — 当前状态与计划
