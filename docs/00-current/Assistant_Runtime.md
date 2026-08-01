@@ -60,3 +60,24 @@ write_subgraph`, `knowledge -> knowledge_subgraph`, and unknown/mixed intents fa
 - `extractSettingsDraft` and `applyContextToggle` now respect negation semantics: when a toggle
   keyword (关闭/disable/turn off/打开/enable/turn on) is preceded by a negation word
   (不要/别/不用/无需/不/don't/do not/never), the match is skipped and no setting is changed.
+
+## Checkpoint 持久化 + 图内审批（HITL）
+
+- 会话线程持久化：`AssistantCheckpointerService`（进程级单例）用 `DATABASE_URL` 建 `pg.Pool`
+  并包装 `PostgresSaver`（`setup()` 幂等建表）；`DATABASE_URL` 缺失或初始化失败时
+  `getSaver()` 返回 `null`，调用方降级为无 checkpoint 的旧行为；`onModuleDestroy` 释放 pool。
+- `thread_id = conversationId`：`StreamAssistantMessagesDto` 新增可选 `conversationId`（thread id），
+  仅在 `conversationId` 与 checkpointer 同时就绪时以 `{ configurable: { thread_id } }` 编译并
+  invoke 图；缺省保持无状态执行。
+- 图内 interrupt 审批：write 分支在 checkpointer 可用时插入两段式节点
+  `write_review_setup`（提取 proposalIds/expiresAt，写 `pendingReview(status='pending')` +
+  `stopReason='awaiting_review'`）→ `write_review`（`interrupt` 挂起线程）；无提案
+  （`no_target`）直连 `respond`；无 checkpointer 时不挂 review 节点（旧行为）。
+- 确认端点：`POST assistant/conversations/:conversationId/confirm`
+  （`ConfirmAssistantProposalDto`：proposalIds/decision/note）。服务端经
+  `core.service.confirmProposal` → `runtime.service.resumeConversation`：校验会话归属、
+  `getState` 中 `pendingReview.status==='pending'` 与 `expiresAt` 未过期，再以
+  `Command({ resume: { decision, note } })` 恢复线程；批准/拒绝决定写回 `pendingReview`
+  并追加 SystemMessage 指引（approved 仍需客户端执行真实写入，rejected 禁止声称写入）。
+- 降级矩阵：无 `conversationId` → 不传 thread_id、不 interrupt；checkpointer 为 null →
+  不插 review 节点；提案过期 / confirm 重复 / 未知线程 → `badRequest`。

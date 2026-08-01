@@ -670,4 +670,61 @@ describe('AssistantFoundationGraph', () => {
 
     expect(mockInvoke).toHaveBeenCalledTimes(1);
   });
+
+  it('skips in-graph review without a checkpointer (old write flow)', async () => {
+    const mockInvoke = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new AIMessage({
+          content: '',
+          tool_calls: [
+            {
+              name: 'propose_create_daily_record',
+              id: 'call_0',
+              args: {},
+            },
+          ],
+        }),
+      )
+      .mockResolvedValue(
+        new AIMessage({ content: '好的，这是一份待确认的饮水记录草稿。' }),
+      );
+    const mockModel = {
+      bindTools: vi.fn().mockReturnThis(),
+      invoke: mockInvoke,
+    };
+    const executeTools = vi.fn().mockResolvedValue([
+      {
+        name: 'propose_create_daily_record',
+        data: { draft: {} },
+        proposedActions: [
+          {
+            id: 'proposal-1',
+            type: 'create_daily_record',
+            status: 'proposed',
+            expiresAt: '2099-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+    ]);
+
+    const graph = buildAssistantRuntimeGraph({
+      createModel: () => mockModel as never,
+      executeTools: executeTools as never,
+      buildSystemPrompt: () => 'system prompt',
+    });
+
+    const result = await graph.invoke({
+      userId: 'user-1',
+      userMessage: '帮我记录今天喝水 500ml',
+      locale: 'zh-CN',
+      enabledContextSources: ['health_profile'],
+    });
+
+    // No checkpointer → no review nodes: the write flow replies directly.
+    expect(result.pendingReview).toBeUndefined();
+    expect(result.stopReason).not.toBe('awaiting_review');
+    expect(result.finalContent).toBe('好的，这是一份待确认的饮水记录草稿。');
+    expect('__interrupt__' in result).toBe(false);
+  });
 });

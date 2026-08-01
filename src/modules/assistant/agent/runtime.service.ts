@@ -140,6 +140,10 @@ export class AssistantRuntimeService {
     executeTools: ToolExecutorFn,
   ): Promise<AssistantConversationResult> {
     const checkpointer = this.checkpointerService.getSaver();
+    // HITL review (interrupt + confirm) only makes sense for a persisted
+    // conversation; without `conversationId` the graph stays stateless and
+    // never suspends, matching the degradation matrix.
+    const enableHithl = input.conversationId != null && checkpointer != null;
     const graph = buildAssistantRuntimeGraph({
       createModel: () =>
         this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
@@ -153,16 +157,15 @@ export class AssistantRuntimeService {
         ? { buildMemoryBlock: input.buildMemoryBlock }
         : {}),
       respondCache: this.respondCache,
-      checkpointer,
+      checkpointer: enableHithl ? checkpointer : null,
       ...(input.conversationId != null
         ? { conversationId: input.conversationId }
         : {}),
     });
 
-    const config =
-      input.conversationId != null && checkpointer != null
-        ? { configurable: { thread_id: input.conversationId } }
-        : undefined;
+    const config = enableHithl
+      ? { configurable: { thread_id: input.conversationId } }
+      : undefined;
 
     // Acquire the circuit breaker before invoking the graph. The LangGraph
     // agent↔tools loop may issue multiple LLM calls inside a single
