@@ -5,7 +5,6 @@ import {
 import type { AssistantRuntimeService } from '../agent/runtime.service';
 import type { UserSettingsService } from '../../user-settings';
 import type { AssistantPolicyService } from './policy.service';
-import type { AssistantContextService } from '../tools/shared/context.service';
 import type { AssistantToolService } from '../tools/tool.service';
 import type { AssistantConversationService } from './conversation.service';
 import type {
@@ -63,7 +62,6 @@ describe('AssistantService', () => {
   let userSettings: vi.Mocked<UserSettingsService>;
   let policy: vi.Mocked<AssistantPolicyService>;
   let toolExecutor: vi.Mocked<AssistantToolService>;
-  let toolContext: vi.Mocked<AssistantContextService>;
   let conversation: vi.Mocked<AssistantConversationService>;
 
   beforeEach(() => {
@@ -86,10 +84,6 @@ describe('AssistantService', () => {
       executeMany: vi.fn().mockResolvedValue([]),
     } as unknown as vi.Mocked<AssistantToolService>;
 
-    toolContext = {
-      buildToolContextBlock: vi.fn().mockReturnValue(''),
-    } as unknown as vi.Mocked<AssistantContextService>;
-
     conversation = {
       getLatestConversation: vi.fn(),
       listRecentConversations: vi.fn(),
@@ -104,7 +98,6 @@ describe('AssistantService', () => {
       userSettings,
       policy,
       toolExecutor,
-      toolContext,
       conversation,
     );
   });

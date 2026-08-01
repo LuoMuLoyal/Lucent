@@ -12,7 +12,6 @@ import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
 import { AssistantRuntimeService } from '../agent/runtime.service';
 import { UserSettingsService } from '../../user-settings';
 import { AssistantPolicyService } from './policy.service';
-import { AssistantContextService } from '../tools/shared/context.service';
 import { AssistantToolService } from '../tools/tool.service';
 import { AssistantConversationService } from './conversation.service';
 import { nowIsoString } from '../../../common';
@@ -30,7 +29,6 @@ export class AssistantService {
     private readonly userSettingsService: UserSettingsService,
     private readonly assistantPolicyService: AssistantPolicyService,
     private readonly assistantToolExecutor: AssistantToolService,
-    private readonly assistantToolContextService: AssistantContextService,
     private readonly assistantConversationService: AssistantConversationService,
   ) {}
 
@@ -133,6 +131,10 @@ export class AssistantService {
         userMessage: lastUserMessage,
         locale,
         enabledContextSources: policy.enabledContextSources,
+        memoryEnabled: settings.assistantMemoryEnabled,
+        isNewConversation: this.isNewConversation(messages),
+        buildMemoryBlock: (id) =>
+          this.assistantConversationService.buildMemoryBlock(id),
       },
       async (toolNames) => {
         const executable = toolNames.filter((name) =>
@@ -150,15 +152,14 @@ export class AssistantService {
         onChunk,
       );
     } else {
+      // Fallback when the graph produced no final content: stream a fresh
+      // reply from the original conversation messages. Memory and tool
+      // context injection now live inside the graph (`prepare_context` /
+      // ToolMessage appends), so no extra context is assembled here.
       result = await this.assistantAgentService.generateStream(
         {
           locale,
-          messages: await this.buildGenerationMessages(
-            userId,
-            messages,
-            conversationResult.toolResults,
-            settings.assistantMemoryEnabled,
-          ),
+          messages,
           allowedTools: conversationResult.selectedTools,
           toolResults: conversationResult.toolResults,
         },
@@ -193,52 +194,6 @@ export class AssistantService {
       role: message.role,
       content: message.content.trim(),
     }));
-  }
-
-  private appendToolContextMessage(
-    messages: AssistantConversationMessage[],
-    toolResults: Parameters<
-      AssistantContextService['buildToolContextBlock']
-    >[0],
-  ): AssistantConversationMessage[] {
-    const contextBlock =
-      this.assistantToolContextService.buildToolContextBlock(toolResults);
-
-    if (contextBlock.length === 0) {
-      return messages;
-    }
-
-    return [
-      {
-        role: 'user',
-        content: contextBlock,
-      },
-      ...messages,
-    ];
-  }
-
-  private async buildGenerationMessages(
-    userId: string,
-    messages: AssistantConversationMessage[],
-    toolResults: Parameters<
-      AssistantContextService['buildToolContextBlock']
-    >[0],
-    memoryEnabled: boolean,
-  ): Promise<AssistantConversationMessage[]> {
-    const output: AssistantConversationMessage[] = [];
-
-    if (memoryEnabled && this.isNewConversation(messages)) {
-      const memoryBlock =
-        await this.assistantConversationService.buildMemoryBlock(userId);
-      if (memoryBlock.length > 0) {
-        output.push({
-          role: 'user',
-          content: memoryBlock,
-        });
-      }
-    }
-
-    return [...output, ...this.appendToolContextMessage(messages, toolResults)];
   }
 
   private isNewConversation(messages: AssistantConversationMessage[]): boolean {

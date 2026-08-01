@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import type {
   AssistantToolExecutionContext,
   AssistantToolExecutionResult,
@@ -14,6 +17,25 @@ import { AssistantToolMedicalKnowledgeService } from './knowledge/medical.servic
 import { AssistantToolMedicineLookupService } from './medicine/lookup.service';
 import { AssistantToolProposalService } from './proposal/proposal.service';
 import { AssistantToolReadService } from './read/read.service';
+import { MetricsService } from '../../../common/metrics/metrics.service';
+
+/**
+ * Retrieval tools whose results are public medicine knowledge (no user data).
+ * Their results are cached per (tool, locale, query) so repeated medicine
+ * lookups skip the underlying vector search / DB reads.
+ */
+const KNOWLEDGE_TOOL_NAMES = new Set<AssistantToolName>([
+  'search_cn_medicine_products',
+  'get_cn_medicine_detail',
+  'search_medicine_leaflets',
+  'search_medical_qa_corpus',
+  'resolve_drugbank_entity',
+  'get_drugbank_detail',
+  'search_drugbank_passages',
+]);
+
+/** TTL for tool-level retrieval caches (ms). */
+const TOOL_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 @Injectable()
 export class AssistantToolService {
@@ -25,6 +47,8 @@ export class AssistantToolService {
     private readonly drugbankSearchService: AssistantToolDrugbankSearchService,
     private readonly medicineLookupService: AssistantToolMedicineLookupService,
     private readonly proposalService: AssistantToolProposalService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly metricsService: MetricsService,
   ) {}
 
   async executeMany(
@@ -91,6 +115,40 @@ export class AssistantToolService {
   }
 
   private async executeOne(
+    context: AssistantToolExecutionContext,
+    toolName: AssistantToolName,
+  ): Promise<AssistantToolExecutionResult> {
+    if (KNOWLEDGE_TOOL_NAMES.has(toolName)) {
+      // Key on the parsed query (plus filters, e.g. a resolved productId for
+      // leaflet lookups) so different lookups never share a cached result.
+      const payload = parseSearchPayload(context.userMessage);
+      const keySeed = JSON.stringify({
+        query: payload.query.trim().toLowerCase(),
+        filters: payload.filters,
+      });
+      const cacheKey = `assistant:tool:${toolName}:${context.locale}:${createHash('sha256').update(keySeed).digest('hex').slice(0, 16)}`;
+
+      const cached = await this.cache.get<string>(cacheKey);
+      if (cached != null) {
+        try {
+          const result = JSON.parse(cached) as AssistantToolExecutionResult;
+          this.metricsService.recordCacheAccess('tool', true);
+          return result;
+        } catch {
+          // Corrupted cache entry: fall through and re-execute.
+        }
+      }
+      this.metricsService.recordCacheAccess('tool', false);
+
+      const result = await this.executeUncached(context, toolName);
+      await this.cache.set(cacheKey, JSON.stringify(result), TOOL_CACHE_TTL_MS);
+      return result;
+    }
+
+    return this.executeUncached(context, toolName);
+  }
+
+  private async executeUncached(
     context: AssistantToolExecutionContext,
     toolName: AssistantToolName,
   ): Promise<AssistantToolExecutionResult> {

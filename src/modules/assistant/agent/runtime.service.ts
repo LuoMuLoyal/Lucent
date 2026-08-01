@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 import {
   AIMessage,
   AIMessageChunk,
@@ -25,13 +27,21 @@ import type {
 } from '../tools/shared/tool-types';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import { AssistantToolLeafletReadService } from '../tools/leaflet/read.service';
-import { buildAssistantSystemPrompt } from '../prompts/system.prompt';
+import {
+  buildAssistantSystemPrompt,
+  buildReadSystemPrompt,
+  buildWriteSystemPrompt,
+  buildKnowledgeSystemPrompt,
+  buildSimpleChatSystemPrompt,
+} from '../prompts/system.prompt';
 import { ASSISTANT_RUNTIME_NODE_NAMES } from './runtime/state';
+import type { AssistantValidationFlags } from './runtime/state';
 
 import {
   buildAssistantRuntimeGraph,
   type ToolExecutorFn,
 } from './runtime/graph';
+import type { AssistantRespondCache } from './runtime/respond';
 import {
   withLlmRetry,
   isRetryableLlmError,
@@ -49,7 +59,15 @@ export interface AssistantConversationResult {
   toolResults: AssistantToolExecutionResult[];
   finalContent: string | null;
   selectedTools: AssistantToolName[];
-  stopReason: 'answered' | 'no_match' | 'tool_cap_reached' | null;
+  validationFlags: AssistantValidationFlags;
+  stopReason:
+    | 'answered'
+    | 'no_match'
+    | 'tool_cap_reached'
+    | 'no_data'
+    | 'no_target'
+    | 'no_evidence'
+    | null;
 }
 
 @Injectable()
@@ -61,10 +79,28 @@ export class AssistantRuntimeService {
     private readonly leafletReadService: AssistantToolLeafletReadService,
     private readonly metricsService: MetricsService,
     private readonly circuitBreaker: LlmCircuitBreakerService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   hasChatModel(): boolean {
     return this.llmRuntimeService.hasRoleConfig('chat');
+  }
+
+  /**
+   * Simple-chat response cache backed by the shared cache-manager store.
+   * TTL values from graph nodes are seconds; cache-manager expects ms.
+   */
+  private get respondCache(): AssistantRespondCache {
+    return {
+      get: async (key) => {
+        const value = await this.cache.get<string>(key);
+        this.metricsService.recordCacheAccess('response', value != null);
+        return value ?? null;
+      },
+      set: async (key, value, ttlSeconds) => {
+        await this.cache.set(key, value, ttlSeconds * 1000);
+      },
+    };
   }
 
   /**
@@ -82,6 +118,12 @@ export class AssistantRuntimeService {
       userMessage: string;
       locale: string;
       enabledContextSources: AssistantContextSource[];
+      /** Whether cross-conversation memory is enabled for this user. */
+      memoryEnabled?: boolean;
+      /** Whether this turn starts a new conversation. */
+      isNewConversation?: boolean;
+      /** Builds the persisted memory block (default: no memory injection). */
+      buildMemoryBlock?: (userId: string) => Promise<string>;
     },
     executeTools: ToolExecutorFn,
   ): Promise<AssistantConversationResult> {
@@ -90,6 +132,14 @@ export class AssistantRuntimeService {
         this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
       executeTools,
       buildSystemPrompt: buildAssistantSystemPrompt,
+      buildReadSystemPrompt,
+      buildWriteSystemPrompt,
+      buildKnowledgeSystemPrompt,
+      buildSimpleChatSystemPrompt,
+      ...(input.buildMemoryBlock != null
+        ? { buildMemoryBlock: input.buildMemoryBlock }
+        : {}),
+      respondCache: this.respondCache,
     });
 
     // Acquire the circuit breaker before invoking the graph. The LangGraph
@@ -104,12 +154,15 @@ export class AssistantRuntimeService {
         userMessage: input.userMessage,
         locale: input.locale,
         enabledContextSources: input.enabledContextSources,
+        memoryEnabled: input.memoryEnabled ?? false,
+        isNewConversation: input.isNewConversation ?? false,
       });
       this.circuitBreaker.recordSuccess();
       return {
         toolResults: result.toolResults,
         finalContent: result.finalContent,
         selectedTools: result.selectedTools,
+        validationFlags: result.validationFlags,
         stopReason: result.stopReason,
       };
     } catch (error) {

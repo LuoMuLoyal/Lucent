@@ -43,6 +43,10 @@ export class MetricsService implements OnApplicationBootstrap {
   private readonly llmCallDuration: Histogram;
   private readonly llmTokensUsed: Counter;
 
+  // ── Cache metrics ─────────────────────────────────────────────────────────
+
+  private readonly assistantCacheAccesses: Counter;
+
   constructor(private readonly configService: ConfigService) {
     this.registry = new Registry();
 
@@ -103,6 +107,13 @@ export class MetricsService implements OnApplicationBootstrap {
       name: 'llm_tokens_used_total',
       help: 'Total LLM tokens used',
       labelNames: ['role', 'model', 'type'] as const,
+      registers: [this.registry],
+    });
+
+    this.assistantCacheAccesses = new Counter({
+      name: 'assistant_cache_accesses_total',
+      help: 'Assistant cache accesses by layer and hit/miss',
+      labelNames: ['kind', 'hit'] as const,
       registers: [this.registry],
     });
   }
@@ -213,5 +224,16 @@ export class MetricsService implements OnApplicationBootstrap {
       return;
     }
     this.llmTokensUsed.inc({ role, model, type }, count);
+  }
+
+  /**
+   * Records an assistant cache access (node / tool / response layer).
+   * Used to observe cache hit rates for the LangGraph runtime.
+   */
+  recordCacheAccess(kind: 'node' | 'tool' | 'response', hit: boolean): void {
+    if (!this.enabled) {
+      return;
+    }
+    this.assistantCacheAccesses.inc({ kind, hit: String(hit) });
   }
 }

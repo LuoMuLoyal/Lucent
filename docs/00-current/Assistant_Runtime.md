@@ -1,7 +1,27 @@
 # Assistant Runtime
 
-Last updated: 2026-07-30
+Last updated: 2026-08-01
 
+- LangGraph orchestration upgraded to a 4-branch intent-routed graph: `classify_intent`
+  dispatches `simple_chat -> respond`, `read_data -> read_subgraph`, `write_proposal ->
+write_subgraph`, `knowledge -> knowledge_subgraph`, and unknown/mixed intents fall through to
+  the full `agent <-> tools` loop (`agent` is bound to the intent-filtered relevant tool set).
+- Graph-level defaults are set once via `setNodeDefaults`: `retryPolicy` (explicit
+  `isRetryableLlmError` whitelist, `maxAttempts: 3`), `timeout: AI_MODEL_TIMEOUT_MS`, and
+  `cachePolicy: false` as the node default; opt-in nodes override per-node.
+- Caching is applied at three layers: (1) node cache for deterministic `classify_intent` via
+  `InMemoryCache` + `compile({ cache })` with a 1h TTL; (2) tool cache for knowledge tools
+  (`KNOWLEDGE_TOOL_NAMES`) via cache-manager keyed on tool+query+filters with a 1h TTL; (3)
+  response cache for cacheable simple-chat turns (no memory injected, no tool results) via
+  cache-manager keyed on locale + user-message hash with a 1h TTL. Cache hits are counted in
+  `assistant_cache_accesses_total{kind,hit}` metrics.
+- Read/write/knowledge subgraphs each end in a validation node: `read_validate` /
+  `write_validate` / `knowledge_validate` emit `stopReason` (`no_data` / `no_target` /
+  `no_evidence`) and append a SystemMessage with guidance to the conversation when coverage is
+  partial/empty or no proposal/evidence was produced, instead of looping back.
+- Memory injection now lives in `prepare_context`: when `memoryEnabled` and a new conversation,
+  the user's memory block is prepended as a HumanMessage and `memoryInjected` is set, which also
+  excludes the turn from the response cache.
 - Assistant retrieval is source-split across Chinese leaflet RAG, assistant-only filtered medical
   QA, and entity-scoped DrugBank scientific retrieval.
 - Assistant runtime now carries bounded retrieval-loop state (`loopCount`, `selectedTools`,

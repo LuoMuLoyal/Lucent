@@ -8,6 +8,7 @@ function buildMetricsService() {
   return {
     recordLlmCall: vi.fn(),
     recordLlmTokens: vi.fn(),
+    recordCacheAccess: vi.fn(),
     recordBullmqJob: vi.fn(),
     setBullmqActiveJobs: vi.fn(),
     setBullmqWaitingJobs: vi.fn(),
@@ -15,6 +16,14 @@ function buildMetricsService() {
     is_enabled: vi.fn().mockReturnValue(true),
     getMetrics: vi.fn(),
     getContentType: vi.fn(),
+  };
+}
+
+function buildCacheService() {
+  return {
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
   };
 }
 
@@ -41,6 +50,7 @@ describe('AssistantRuntimeService', () => {
       leafletService as never,
       metricsService as never,
       new LlmCircuitBreakerService(),
+      buildCacheService() as never,
     );
 
     expect(service.hasChatModel()).toBe(true);
@@ -50,7 +60,16 @@ describe('AssistantRuntimeService', () => {
       interactiveChatReady: true,
       langGraphReady: true,
       ragEnabled: false,
-      graphNodeNames: ['prepare_context', 'agent', 'tools', 'respond'],
+      graphNodeNames: [
+        'prepare_context',
+        'classify_intent',
+        'agent',
+        'tools',
+        'read_subgraph',
+        'write_subgraph',
+        'knowledge_subgraph',
+        'respond',
+      ],
       toolNames: [
         'get_today_records',
         'get_records_by_date',
@@ -130,6 +149,7 @@ describe('AssistantRuntimeService', () => {
       leafletService as never,
       metricsService as never,
       new LlmCircuitBreakerService(),
+      buildCacheService() as never,
     );
     const onChunk = vi.fn();
 
@@ -168,6 +188,7 @@ describe('AssistantRuntimeService', () => {
       leafletService as never,
       metricsService as never,
       new LlmCircuitBreakerService(),
+      buildCacheService() as never,
     );
     const onChunk = vi.fn();
 

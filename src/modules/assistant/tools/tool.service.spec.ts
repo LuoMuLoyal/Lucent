@@ -156,6 +156,14 @@ describe('AssistantToolService', () => {
         ambiguities: [],
       }),
     };
+    const cache = {
+      get: vi.fn(),
+      set: vi.fn(),
+      del: vi.fn(),
+    };
+    const metricsService = {
+      recordCacheAccess: vi.fn(),
+    };
     const service = new AssistantToolService(
       readService,
       leafletReadService,
@@ -164,16 +172,20 @@ describe('AssistantToolService', () => {
       drugbankSearchService,
       medicineLookupService as never,
       proposalService,
+      cache as never,
+      metricsService as never,
     );
 
     return {
       service,
       deps: {
         aiSummaryHistoryService,
+        cache,
         dailyRecordCandidatesService,
         dailyRecordsService,
         medicineRemindersService,
         medicineLookupService,
+        metricsService,
         recordQueryService,
         userHealthContextService,
         userSettingsService,
@@ -201,6 +213,32 @@ describe('AssistantToolService', () => {
     ).toHaveBeenCalled();
     expect(deps.medicineLookupService.getCnMedicineDetail).toHaveBeenCalled();
     expect(deps.medicineLookupService.getDrugbankDetail).toHaveBeenCalled();
+  });
+
+  it('serves repeated knowledge queries from the tool cache', async () => {
+    const { service, deps } = buildExecutor();
+    const cachedResult = {
+      name: 'search_cn_medicine_products',
+      data: {
+        query: {},
+        result: { products: [{ id: 'p1' }] },
+        coverage: { status: 'complete' },
+        ambiguities: [],
+      },
+    };
+    deps.cache.get.mockResolvedValue(JSON.stringify(cachedResult));
+
+    const result = await service.executeMany(
+      buildContext({ userMessage: '查一下阿司匹林的厂家' }),
+      ['search_cn_medicine_products'],
+    );
+
+    expect(result).toEqual([cachedResult]);
+    // Cache hit: the underlying retrieval service must not run again.
+    expect(
+      deps.medicineLookupService.searchCnMedicineProducts,
+    ).not.toHaveBeenCalled();
+    expect(deps.cache.get).toHaveBeenCalledTimes(1);
   });
 
   it('passes a resolved CN product id into downstream leaflet retrieval', async () => {
