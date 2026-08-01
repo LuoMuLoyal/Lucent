@@ -34,6 +34,7 @@
     "test:ci:coverage": "cross-env NODE_ENV=test vitest run --coverage --reporter=dot",
     "test:e2e": "cross-env NODE_ENV=test vitest run --config ./vitest.e2e.config.ts",
     "test:e2e:ci": "pnpm test:e2e",
+    "test:tools": "cross-env NODE_ENV=test vitest run --config ./vitest.tools.config.ts",
     "test:contract": "cross-env NODE_ENV=test vitest run --config ./vitest.e2e.config.ts test/contract/",
     "test:security": "cross-env NODE_ENV=test vitest run --config ./vitest.e2e.config.ts test/security/",
     "test:perf:health": "k6 run -e BASE_URL=http://127.0.0.1:3000 test/performance/health.k6.ts",
