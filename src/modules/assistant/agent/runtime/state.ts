@@ -5,13 +5,33 @@ import type {
   AssistantToolName,
 } from '../../tools/shared/tool-types';
 import type { AssistantToolExecutionResult } from '../../types/assistant.types';
+import type { AssistantIntent } from './classify';
 
 export const ASSISTANT_RUNTIME_NODE_NAMES = [
   'prepare_context',
+  'classify_intent',
   'agent',
   'tools',
+  'read_subgraph',
+  'write_subgraph',
+  'knowledge_subgraph',
   'respond',
 ] as const;
+
+/** Validation flags produced by sub-graph validate nodes. */
+export interface AssistantValidationFlags {
+  hasEmptyResults: boolean;
+  hasPartialCoverage: boolean;
+  hasAmbiguities: boolean;
+  missingProposedActions: boolean;
+}
+
+export const DEFAULT_VALIDATION_FLAGS: AssistantValidationFlags = {
+  hasEmptyResults: false,
+  hasPartialCoverage: false,
+  hasAmbiguities: false,
+  missingProposedActions: false,
+};
 
 export const AssistantRuntimeState = Annotation.Root({
   // ── Input ──────────────────────────────────────────────────────────────
@@ -22,11 +42,52 @@ export const AssistantRuntimeState = Annotation.Root({
     reducer: (_left, right) => right,
     default: () => [],
   }),
+  /** Whether cross-conversation memory is enabled for this user. */
+  memoryEnabled: Annotation<boolean>({
+    reducer: (_left, right) => right,
+    default: () => false,
+  }),
+  /** Whether this turn starts a new conversation (≤ 1 user message). */
+  isNewConversation: Annotation<boolean>({
+    reducer: (_left, right) => right,
+    default: () => false,
+  }),
 
   // ── prepare_context output ─────────────────────────────────────────────
+  /** True when prepare_context injected a memory block into messages. */
+  memoryInjected: Annotation<boolean>({
+    reducer: (_left, right) => right,
+    default: () => false,
+  }),
+
   allowedTools: Annotation<AssistantToolName[]>({
     reducer: (_left, right) => right,
     default: () => [],
+  }),
+
+  // ── classify_intent output ─────────────────────────────────────────────
+  /** Semantic intent of the current user message. */
+  intent: Annotation<AssistantIntent | null>({
+    reducer: (_left, right) => right,
+    default: () => null,
+  }),
+
+  /** Tools narrowed by the keyword router for the current message. */
+  relevantTools: Annotation<AssistantToolName[]>({
+    reducer: (_left, right) => right,
+    default: () => [],
+  }),
+
+  /** Which sub-graph is currently active (read/write/knowledge). */
+  activeSubGraph: Annotation<AssistantIntent | null>({
+    reducer: (_left, right) => right,
+    default: () => null,
+  }),
+
+  /** Validation flags set by sub-graph validate nodes. */
+  validationFlags: Annotation<AssistantValidationFlags>({
+    reducer: (_left, right) => right,
+    default: () => DEFAULT_VALIDATION_FLAGS,
   }),
 
   // ── LLM conversation messages ──────────────────────────────────────────
@@ -66,7 +127,15 @@ export const AssistantRuntimeState = Annotation.Root({
   }),
 
   /** Why the agent loop terminated. */
-  stopReason: Annotation<'answered' | 'no_match' | 'tool_cap_reached' | null>({
+  stopReason: Annotation<
+    | 'answered'
+    | 'no_match'
+    | 'tool_cap_reached'
+    | 'no_data'
+    | 'no_target'
+    | 'no_evidence'
+    | null
+  >({
     reducer: (_left, right) => right,
     default: () => null,
   }),
