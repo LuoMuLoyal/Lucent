@@ -27,6 +27,10 @@ function buildCacheService() {
   };
 }
 
+function buildCheckpointerService() {
+  return { getSaver: () => null };
+}
+
 function buildLeafletService(hasChunks = false) {
   return {
     hasIndexedChunks: vi.fn().mockResolvedValue(hasChunks),
@@ -51,6 +55,7 @@ describe('AssistantRuntimeService', () => {
       metricsService as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
+      buildCheckpointerService() as never,
     );
 
     expect(service.hasChatModel()).toBe(true);
@@ -150,6 +155,7 @@ describe('AssistantRuntimeService', () => {
       metricsService as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
+      buildCheckpointerService() as never,
     );
     const onChunk = vi.fn();
 
@@ -189,6 +195,7 @@ describe('AssistantRuntimeService', () => {
       metricsService as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
+      buildCheckpointerService() as never,
     );
     const onChunk = vi.fn();
 
@@ -238,6 +245,7 @@ describe('AssistantRuntimeService', () => {
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       cacheService as never,
+      buildCheckpointerService() as never,
     );
 
     const result = await service.runConversation(
@@ -272,6 +280,7 @@ describe('AssistantRuntimeService', () => {
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
+      buildCheckpointerService() as never,
     );
 
     await expect(
@@ -306,6 +315,7 @@ describe('AssistantRuntimeService', () => {
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
+      buildCheckpointerService() as never,
     );
 
     await expect(
@@ -346,6 +356,7 @@ describe('AssistantRuntimeService', () => {
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
+      buildCheckpointerService() as never,
     );
     const onChunk = vi.fn();
 
@@ -374,6 +385,7 @@ describe('AssistantRuntimeService', () => {
       buildMetricsService() as never,
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
+      buildCheckpointerService() as never,
     );
 
     const foundation = await service.describeFoundation();
