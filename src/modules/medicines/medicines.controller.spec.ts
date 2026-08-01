@@ -19,6 +19,7 @@ describe('MedicinesController', () => {
             searchWithCache: vi.fn(),
             getDetailWithCache: vi.fn(),
             getRandomSafetyTips: vi.fn(),
+            recognizeMedicine: vi.fn(),
           },
         },
         {
@@ -137,6 +138,115 @@ describe('MedicinesController', () => {
         { source: 'drugbank', q: 'test', page: 1, pageSize: 20 },
         true,
       );
+    });
+  });
+
+  describe('risk-check endpoints', () => {
+    const riskCheckService = () =>
+      (
+        controller as unknown as {
+          riskCheckService: {
+            getRecords: ReturnType<typeof vi.fn>;
+            runStaticCheck: ReturnType<typeof vi.fn>;
+            runLlmCheck: ReturnType<typeof vi.fn>;
+          };
+        }
+      ).riskCheckService;
+
+    it('GET /risk-check returns records from the service', async () => {
+      const records = { static: null, llm: null };
+      riskCheckService().getRecords.mockResolvedValue(records);
+
+      const result = await controller.getRiskCheck({ sub: 'u1' } as never);
+
+      expect(riskCheckService().getRecords).toHaveBeenCalledWith('u1');
+      expect(result).toEqual({ code: 0, message: '', data: records });
+    });
+
+    it('POST /risk-check dispatches static vs llm by body type', async () => {
+      await controller.runRiskCheck(
+        { sub: 'u1' } as never,
+        {
+          type: 'static',
+        } as never,
+      );
+      await controller.runRiskCheck(
+        { sub: 'u1' } as never,
+        {
+          type: 'llm',
+        } as never,
+      );
+
+      const svc = riskCheckService();
+      expect(svc.runStaticCheck).toHaveBeenCalledWith('u1');
+      expect(svc.runLlmCheck).toHaveBeenCalledWith('u1');
+      expect(svc.runStaticCheck).toHaveBeenCalledTimes(1);
+      expect(svc.runLlmCheck).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('recognize endpoints', () => {
+    it('POST /recognize delegates to the medicines service', async () => {
+      service.recognizeMedicine.mockResolvedValue({ name: '布洛芬' });
+
+      const result = await controller.recognize(
+        { sub: 'u1' } as never,
+        {
+          imageUrl: 'https://example.com/box.jpg',
+        } as never,
+      );
+
+      expect(service.recognizeMedicine).toHaveBeenCalledWith(
+        'https://example.com/box.jpg',
+      );
+      expect(result).toEqual({
+        code: 0,
+        message: '',
+        data: { name: '布洛芬' },
+      });
+    });
+
+    it('POST /recognize/async falls back to synchronous recognize when queue is not configured', async () => {
+      service.recognizeMedicine.mockResolvedValue({ name: '布洛芬' });
+
+      const result = await controller.recognizeAsync(
+        { sub: 'u1' } as never,
+        {
+          imageUrl: 'https://example.com/box.jpg',
+        } as never,
+      );
+
+      expect(service.recognizeMedicine).toHaveBeenCalledWith(
+        'https://example.com/box.jpg',
+      );
+      expect(result).toEqual({
+        code: 0,
+        message: '',
+        data: { result: { name: '布洛芬' } },
+      });
+    });
+
+    it('GET /recognize/status/:jobId returns not_found when the job is unknown', async () => {
+      const queue = (
+        controller as unknown as {
+          recognitionQueueService: {
+            getStatus: ReturnType<typeof vi.fn>;
+          };
+        }
+      ).recognitionQueueService;
+      queue.getStatus.mockResolvedValue(null);
+
+      const result = await controller.recognizeStatus(
+        { sub: 'u1' } as never,
+        'job-1',
+      );
+
+      expect(queue.getStatus).toHaveBeenCalledWith('job-1', 'u1');
+      expect(result).toEqual({
+        code: 0,
+        message: '',
+        data: { status: 'not_found' },
+      });
     });
   });
 });
