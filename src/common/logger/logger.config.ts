@@ -100,12 +100,12 @@ function formatMeta(info: Record<string, unknown>): string | undefined {
  * Human-readable printf format for the development console.
  *
  * Layout:
- *   <timestamp> <level> [context] [trace] message {meta}
+ *   <timestamp> <level> [context] [trace:span] message {meta}
  *   <stack>                       ← only for errors with a stack trace
  *
  * - `timestamp()`  — `YYYY-MM-DD HH:mm:ss.SSS`
- * - `colorize()`   — Winston handles level coloring; trace tag uses manual
- *                    green ANSI for visual prominence.
+ * - `colorize()`   — Winston handles level coloring; the trace/span tag uses
+ *                    manual green ANSI for visual prominence.
  * - `printf()`     — full layout control with metadata + stack.
  */
 const devConsoleFormat = winstonFormat.combine(
@@ -120,6 +120,8 @@ const devConsoleFormat = winstonFormat.combine(
     const message = typeof info['message'] === 'string' ? info['message'] : '';
     const traceId =
       typeof info['trace_id'] === 'string' ? info['trace_id'] : undefined;
+    const spanId =
+      typeof info['span_id'] === 'string' ? info['span_id'] : undefined;
     const stack =
       typeof info['stack'] === 'string'
         ? info['stack']
@@ -127,9 +129,20 @@ const devConsoleFormat = winstonFormat.combine(
           ? info['trace']
           : undefined;
 
-    const reqTag = traceId
-      ? `${C.green}[trace=${traceId.length <= 8 ? traceId : traceId.slice(0, 8)}]${C.reset} `
-      : '';
+    const tracePart = traceId
+      ? traceId.length <= 8
+        ? traceId
+        : traceId.slice(0, 8)
+      : undefined;
+    const spanPart = spanId
+      ? spanId.length <= 8
+        ? spanId
+        : spanId.slice(0, 8)
+      : undefined;
+    const reqTag =
+      tracePart != null
+        ? `${C.green}[trace=${tracePart}${spanPart != null ? ':' + spanPart : ''}]${C.reset} `
+        : '';
     const meta = formatMeta(info);
     const metaTag = meta ? `${C.gray}${meta}${C.reset}` : '';
 
@@ -154,8 +167,8 @@ const prodJsonFormat = winstonFormat.combine(
  *
  * Format selection:
  * - **Development**: colorized `printf` format — timestamp, level, context,
- *   trace id (first 8 chars), message, metadata, and stack trace. Optimized
- *   for human readability during integration debugging.
+ *   trace/span ids (first 8 chars each), message, metadata, and stack trace.
+ *   Optimized for human readability during integration debugging.
  * - **Production / Test**: single-line JSON with `timestamp`. Optimized for
  *   machine ingestion (ELK, Loki, CloudWatch, Jest `JSON.parse` assertions).
  * - The `LOG_FORMAT` env var (`pretty` or `json`) overrides the default at any

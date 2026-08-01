@@ -65,7 +65,7 @@ async function logAndFlush(
 }
 
 // ── OTel span mock ────────────────────────────────────────────────
-let mockSpanContext: { traceId: string; spanId: string } | undefined;
+let mockSpanContext: { traceId: string; spanId?: string } | undefined;
 
 vi.mock('@opentelemetry/api', () => ({
   trace: {
@@ -202,8 +202,23 @@ describe('format selection', () => {
     };
     await logAndFlush(capture, 'hello');
 
-    // Should contain the trace id (first 8 chars) in a [trace=...] tag
+    // Should contain the trace id (first 8 chars) and span id (first 8 chars)
+    // in a [trace=xxxxxxxx:yyyyyyyy] tag
+    expect(capture.lines[0]).toContain('[trace=01234567:fedcba98]');
+  });
+
+  it('dev format omits the span suffix when span id is absent', async () => {
+    process.env[EnvKey.LOG_FORMAT] = '';
+    const capture = createCapturingLogger('development');
+
+    mockSpanContext = {
+      traceId: '0123456789abcdef0123456789abcdef',
+    };
+    await logAndFlush(capture, 'hello');
+
+    // No span id available → the tag stays [trace=xxxxxxxx] without a colon part
     expect(capture.lines[0]).toContain('[trace=01234567]');
+    expect(capture.lines[0]).not.toContain('[trace=01234567:');
   });
 
   it('JSON format includes timestamp field', async () => {
