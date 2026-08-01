@@ -301,7 +301,16 @@ export function extractPlanReferences(content: string): string[] {
 }
 
 export function hasMultipleH1(content: string): boolean {
-  return content.split('\n').filter((l) => /^#\s+/.test(l)).length > 1;
+  let inFence = false;
+  let h1Count = 0;
+  for (const line of content.split('\n')) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (!inFence && /^#\s+/.test(line)) h1Count++;
+  }
+  return h1Count > 1;
 }
 
 /** Literal (non-glob) doc paths referenced by rules that do not exist. */
@@ -412,6 +421,13 @@ export function collectVerifyProblems(
     if (!existsSync(full)) continue;
     const content = readFileSync(full, 'utf-8');
     for (const ref of extractPlanReferences(content)) {
+      // Skip references explicitly marked as deleted ("计划文件已删" nearby).
+      const idx = content.indexOf(ref);
+      const context = content.slice(
+        Math.max(0, idx - 20),
+        idx + ref.length + 20,
+      );
+      if (context.includes('已删') || context.includes('已删除')) continue;
       // `.trae/specs/` refs live at the workspace root (one level above the repo);
       // `plans/` refs are repo-local.
       const refPath = ref.startsWith('.trae/')

@@ -190,6 +190,9 @@ describe('hasMultipleH1', () => {
     expect(hasMultipleH1('# A\n## B\n# C\n')).toBe(true);
     expect(hasMultipleH1('# A\n## B\n### C\n')).toBe(false);
   });
+  it('ignores headings inside fenced code blocks', () => {
+    expect(hasMultipleH1('# A\n```bash\n# .env\n```\n')).toBe(false);
+  });
 });
 
 describe('findDocMapOrphans / findDocMapGlobOrphans', () => {
