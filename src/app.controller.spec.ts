@@ -41,6 +41,49 @@ describe('AppController', () => {
     expect(response.status).toHaveBeenCalledWith(503);
   });
 
+  it('returns 200 for healthy readiness alias', async () => {
+    const probe = makeProbe();
+    const response = {
+      status: vi.fn().mockReturnThis(),
+    } as unknown as FastifyReply;
+    service.getHealth.mockResolvedValue(probe);
+    service.isHealthy.mockReturnValue(true);
+
+    await expect(controller.getHealth(response)).resolves.toBe(probe);
+    expect(response.status).toHaveBeenCalledWith(200);
+  });
+
+  it('returns liveness probe without a reply status', () => {
+    const probe = makeProbe({ probe: 'live' });
+    service.getLiveHealth.mockReturnValue(probe);
+
+    expect(controller.getLiveHealth()).toBe(probe);
+  });
+
+  it('returns 200 for healthy ready probe', async () => {
+    const probe = makeProbe({ probe: 'ready' });
+    const response = {
+      status: vi.fn().mockReturnThis(),
+    } as unknown as FastifyReply;
+    service.getReadyHealth.mockResolvedValue(probe);
+    service.isHealthy.mockReturnValue(true);
+
+    await expect(controller.getReadyHealth(response)).resolves.toBe(probe);
+    expect(response.status).toHaveBeenCalledWith(200);
+  });
+
+  it('returns 503 for unhealthy ready probe', async () => {
+    const probe = makeProbe({ status: 'error' });
+    const response = {
+      status: vi.fn().mockReturnThis(),
+    } as unknown as FastifyReply;
+    service.getReadyHealth.mockResolvedValue(probe);
+    service.isHealthy.mockReturnValue(false);
+
+    await expect(controller.getReadyHealth(response)).resolves.toBe(probe);
+    expect(response.status).toHaveBeenCalledWith(503);
+  });
+
   it('returns 200 for healthy deep health probe', async () => {
     const probe = makeProbe({ probe: 'deep' });
     const response = {
@@ -51,6 +94,18 @@ describe('AppController', () => {
 
     await expect(controller.getDeepHealth(response)).resolves.toBe(probe);
     expect(response.status).toHaveBeenCalledWith(200);
+  });
+
+  it('returns 503 for unhealthy deep health probe', async () => {
+    const probe = makeProbe({ probe: 'deep', status: 'error' });
+    const response = {
+      status: vi.fn().mockReturnThis(),
+    } as unknown as FastifyReply;
+    service.getDeepHealth.mockResolvedValue(probe);
+    service.isHealthy.mockReturnValue(false);
+
+    await expect(controller.getDeepHealth(response)).resolves.toBe(probe);
+    expect(response.status).toHaveBeenCalledWith(503);
   });
 });
 
