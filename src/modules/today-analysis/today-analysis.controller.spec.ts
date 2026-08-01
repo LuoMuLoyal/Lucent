@@ -203,6 +203,124 @@ describe('TodayAnalysisController', () => {
     const errorEvent = events.find((e) => e.event === 'error')!;
     expect(errorEvent.data).toEqual({ message: 'Unexpected error.' });
   });
+
+  // ── generateAsync ────────────────────────────────────────────────────
+
+  it('generateAsync falls back to synchronous generation when the queue is not configured', async () => {
+    const analysis = makeAnalysis();
+    service.generate.mockResolvedValue(analysis);
+
+    const result = await controller.generateAsync(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      { date: '2026-06-12' },
+      'zh-CN',
+    );
+
+    expect(service.generate).toHaveBeenCalledWith(
+      'u1',
+      { date: '2026-06-12' },
+      'zh-CN',
+    );
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: { result: analysis },
+    });
+  });
+
+  it('generateAsync returns a jobId when the queue is configured and enqueues', async () => {
+    const queue = (
+      controller as unknown as {
+        todayAnalysisQueueService: {
+          isConfigured: boolean;
+          enqueue: ReturnType<typeof vi.fn>;
+        };
+      }
+    ).todayAnalysisQueueService;
+    queue.isConfigured = true;
+    queue.enqueue.mockResolvedValue('job-1');
+
+    const result = await controller.generateAsync(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      { date: '2026-06-12' },
+      'zh-CN',
+    );
+
+    expect(queue.enqueue).toHaveBeenCalledWith(
+      'u1',
+      { date: '2026-06-12' },
+      'zh-CN',
+    );
+    expect(service.generate).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: { jobId: 'job-1' },
+    });
+  });
+
+  it('generateAsync falls back when enqueue returns null', async () => {
+    const queue = (
+      controller as unknown as {
+        todayAnalysisQueueService: {
+          isConfigured: boolean;
+          enqueue: ReturnType<typeof vi.fn>;
+        };
+      }
+    ).todayAnalysisQueueService;
+    queue.isConfigured = true;
+    queue.enqueue.mockResolvedValue(null);
+    service.generate.mockResolvedValue(makeAnalysis());
+
+    await controller.generateAsync(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      { date: '2026-06-12' },
+      'zh-CN',
+    );
+
+    expect(service.generate).toHaveBeenCalled();
+  });
+
+  // ── generateStatus ────────────────────────────────────────────────────
+
+  it('generateStatus returns not_found for unknown jobs', async () => {
+    const queue = (
+      controller as unknown as {
+        todayAnalysisQueueService: {
+          getStatus: ReturnType<typeof vi.fn>;
+        };
+      }
+    ).todayAnalysisQueueService;
+    queue.getStatus.mockResolvedValue(null);
+
+    const result = await controller.generateStatus('job-1');
+
+    expect(queue.getStatus).toHaveBeenCalledWith('job-1');
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: { status: 'not_found' },
+    });
+  });
+
+  it('generateStatus returns the job status when found', async () => {
+    const queue = (
+      controller as unknown as {
+        todayAnalysisQueueService: {
+          getStatus: ReturnType<typeof vi.fn>;
+        };
+      }
+    ).todayAnalysisQueueService;
+    queue.getStatus.mockResolvedValue({ status: 'completed', jobId: 'job-1' });
+
+    const result = await controller.generateStatus('job-1');
+
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: { status: 'completed', jobId: 'job-1' },
+    });
+  });
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────
