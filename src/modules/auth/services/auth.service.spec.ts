@@ -1,4 +1,4 @@
-import { nonDeleted } from '../../../common';
+import { nonDeleted, ResultCode } from '../../../common';
 
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
@@ -77,9 +77,12 @@ describe('AuthService', () => {
   let authTokenService: vi.Mocked<AuthTokenService>;
   let authAccountService: vi.Mocked<AuthAccountService>;
   let authOAuthFacadeService: vi.Mocked<AuthOAuthFacadeService>;
+  let credentialAuthService: vi.Mocked<CredentialAuthService>;
+  let i18nService: { t: ReturnType<typeof vi.fn> };
+  let module: TestingModule;
 
   beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+    const moduleFixture: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         {
@@ -298,10 +301,15 @@ describe('AuthService', () => {
       ],
     }).compile();
 
+    module = moduleFixture;
     service = module.get(AuthService);
     authTokenService = module.get(AuthTokenService);
     authAccountService = module.get(AuthAccountService);
     authOAuthFacadeService = module.get(AuthOAuthFacadeService);
+    credentialAuthService = module.get(CredentialAuthService);
+    i18nService = module.get(I18nService) as unknown as {
+      t: ReturnType<typeof vi.fn>;
+    };
   });
 
   afterEach(() => {
@@ -339,6 +347,26 @@ describe('AuthService', () => {
       await expect(service.refresh('expired-token')).rejects.toThrow(
         UnauthorizedException,
       );
+    });
+
+    it('should wrap refresh failures with REFRESH_TOKEN_INVALID code and i18n message', async () => {
+      i18nService.t.mockReturnValueOnce('refresh token invalid');
+
+      try {
+        await service.refresh('bad-token');
+        throw new Error('expected refresh to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(UnauthorizedException);
+        const response = (error as UnauthorizedException).getResponse() as {
+          code: number;
+          message: string;
+        };
+        expect(response.code).toBe(ResultCode.REFRESH_TOKEN_INVALID);
+        expect(response.message).toBe('refresh token invalid');
+        expect(i18nService.t).toHaveBeenCalledWith(
+          'auth.refresh_token_invalid',
+        );
+      }
     });
   });
 
@@ -418,6 +446,76 @@ describe('AuthService', () => {
   // ══════════════════════════════════════════════════════════════
   // 6. Email Verification & Password Reset
   // ══════════════════════════════════════════════════════════════
+
+  describe('credential delegation', () => {
+    it('should delegate register to credentialAuthService', async () => {
+      const dto = { email: 'a@b.c', password: 'Password123!' } as never;
+      await service.register(dto, mockRequestContext);
+      expect(credentialAuthService.register).toHaveBeenCalledWith(
+        dto,
+        mockRequestContext,
+      );
+    });
+
+    it('should delegate login to credentialAuthService', async () => {
+      const dto = { email: 'a@b.c', password: 'Password123!' } as never;
+      await service.login(dto, mockRequestContext);
+      expect(credentialAuthService.login).toHaveBeenCalledWith(
+        dto,
+        mockRequestContext,
+      );
+    });
+
+    it('should delegate password and email operations', async () => {
+      const changePassword = {
+        currentPassword: 'a',
+        newPassword: 'b',
+      } as never;
+      await service.changePassword('u1', changePassword);
+      expect(credentialAuthService.changePassword).toHaveBeenCalledWith(
+        'u1',
+        changePassword,
+      );
+
+      const setPassword = { newPassword: 'b' } as never;
+      await service.setPassword('u1', setPassword);
+      expect(credentialAuthService.setPassword).toHaveBeenCalledWith(
+        'u1',
+        setPassword,
+      );
+
+      const changeEmail = { email: 'new@b.c' } as never;
+      await service.changeEmail('u1', changeEmail);
+      expect(credentialAuthService.changeEmail).toHaveBeenCalledWith(
+        'u1',
+        changeEmail,
+      );
+    });
+
+    it('should delegate verification and reset flows', async () => {
+      await service.sendVerificationCode({ email: 'a@b.c' } as never, 'key');
+      expect(credentialAuthService.sendVerificationCode).toHaveBeenCalledWith(
+        { email: 'a@b.c' },
+        'key',
+      );
+
+      await service.verifyEmail({ code: '123456' } as never);
+      expect(credentialAuthService.verifyEmail).toHaveBeenCalledWith({
+        code: '123456',
+      });
+
+      await service.forgotPassword({ email: 'a@b.c' } as never, 'key');
+      expect(credentialAuthService.forgotPassword).toHaveBeenCalledWith(
+        { email: 'a@b.c' },
+        'key',
+      );
+
+      await service.resetPassword({ code: '123456' } as never);
+      expect(credentialAuthService.resetPassword).toHaveBeenCalledWith({
+        code: '123456',
+      });
+    });
+  });
 
   describe('OAuth facade delegation', () => {
     const mockDto = { code: 'mock-auth-code', state: 'mock-oauth-state' };
