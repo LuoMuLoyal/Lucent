@@ -1,14 +1,15 @@
 # Lucent 文档覆盖映射
 #
-# scripts/hooks/check-docs-updated.ts 读取本文件：
+# scripts/hooks/check-docs-updated.ts 读取本文件（唯一事实源）：
+# - docs_required：必改文档，全部命中才满足（通常只有迁移日志）
+# - docs_any_of：  至少命中其一（按变更性质选择）
+# - docs_info：    仅建议，缺失不警告
 # - 阻断模式（默认，pre-commit）：有代码变更但无任何 docs/ 文件变更 → exit(1)
-# - 警告模式（--warning-only）：每条规则的 docs_required 中未被触及的文档输出警告
+# - 校验模式（--verify）：引用文件存在、迁移日志单 H1、plans/spec 引用有效、活跃文档新鲜度与读者
 # - 旁路：SKIP_DOC_CHECK=1
 #
-# 运行 `pnpm docs:check` 可在不阻断的情况下查看需要更新哪些文档。
-#
 # glob 规则：* 匹配单层路径，** 匹配多层路径。
-# docs/02-logs/migration-log/*.md 在每条规则中都列出——任何代码变更都应记录迁移日志。
+# 归档的功能状态文档在 03-archive/，不参与覆盖映射（历史可追溯，不强制同步）。
 
 rules:
   # ──────────────────────────────────────────────
@@ -16,8 +17,8 @@ rules:
   # ──────────────────────────────────────────────
   - name: docs-tooling
     code:
-      - scripts/hooks/check-docs-updated.ts
-      - scripts/**
+      - scripts/hooks/**
+      - scripts/contract/**
       - .github/**
       - package.json
       - tsconfig.json
@@ -27,10 +28,13 @@ rules:
       - AGENTS.md
       - docs/doc-map.yaml
     docs_required:
-      - docs/00-current/Toolchain_Contract.md
-      - docs/00-current/Code_Quality_Maintainability.md
-      - docs/01-reference/environment.md
       - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/01-reference/toolchain.md
+      - docs/01-reference/code-quality.md
+      - docs/01-reference/environment.md
+    docs_info:
+      - docs/00-current/TODO.md
 
   # ──────────────────────────────────────────────
   # 基础设施（bootstrap、配置、Prisma、i18n、Admin、邮件）
@@ -48,11 +52,12 @@ rules:
       - prisma/schema.prisma
       - prisma/migrations/**
     docs_required:
-      - docs/00-current/Toolchain_Contract.md
-      - docs/00-current/Code_Quality_Maintainability.md
+      - docs/02-logs/migration-log/*.md
+    docs_any_of:
       - docs/01-reference/architecture.md
       - docs/01-reference/environment.md
-      - docs/02-logs/migration-log/*.md
+      - docs/01-reference/toolchain.md
+      - docs/01-reference/code-quality.md
 
   # ──────────────────────────────────────────────
   # 共享层（common/）
@@ -61,9 +66,10 @@ rules:
     code:
       - src/common/**
     docs_required:
-      - docs/00-current/Code_Quality_Maintainability.md
-      - docs/01-reference/architecture.md
       - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/01-reference/architecture.md
+      - docs/01-reference/code-quality.md
 
   # ──────────────────────────────────────────────
   # 认证与安全（auth、security-pin、account）
@@ -74,7 +80,6 @@ rules:
       - src/modules/security-pin/**
       - src/modules/account/**
     docs_required:
-      - docs/00-current/Auth_Security_PIN.md
       - docs/02-logs/migration-log/*.md
 
   # ──────────────────────────────────────────────
@@ -86,8 +91,9 @@ rules:
       - src/modules/user-health-context/**
       - src/modules/user-settings/**
     docs_required:
-      - docs/01-reference/contracts/mine-settings-contract.md
       - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/01-reference/contracts/mine-settings-contract.md
 
   # ──────────────────────────────────────────────
   # 日常记录与餐食分析
@@ -96,7 +102,6 @@ rules:
     code:
       - src/modules/daily-records/**
     docs_required:
-      - docs/00-current/Meal_Analysis.md
       - docs/02-logs/migration-log/*.md
 
   # ──────────────────────────────────────────────
@@ -108,9 +113,9 @@ rules:
       - src/modules/medicine-dose-logs/**
       - src/modules/medicine-reminders/**
     docs_required:
-      - docs/00-current/Medicine_Data_RAG.md
-      - docs/01-reference/contracts/reminder-contract.md
       - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/01-reference/contracts/reminder-contract.md
 
   # ──────────────────────────────────────────────
   # Assistant AI 管道
@@ -122,13 +127,14 @@ rules:
       - src/llm-runtime/**
       - src/common/llm/**
     docs_required:
-      - docs/00-current/Assistant_Runtime.md
-      - docs/00-current/Today_Suggestion_Engine.md
-      - docs/01-reference/architecture.md
-      - docs/01-reference/contracts/assistant-capabilities.md
-      - docs/01-reference/contracts/assistant-contract.md
-      - docs/01-reference/contracts/assistant-safety.md
       - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/01-reference/architecture.md
+      - docs/01-reference/contracts/assistant-contract.md
+      - docs/01-reference/contracts/assistant-capabilities.md
+      - docs/01-reference/contracts/assistant-safety.md
+    docs_info:
+      - docs/01-reference/contracts/assistant-rollout.md
 
   # ──────────────────────────────────────────────
   # Today 主动建议引擎
@@ -137,7 +143,6 @@ rules:
     code:
       - src/modules/today-suggestion/**
     docs_required:
-      - docs/00-current/Today_Suggestion_Engine.md
       - docs/02-logs/migration-log/*.md
 
   # ──────────────────────────────────────────────
@@ -148,9 +153,9 @@ rules:
       - src/modules/reports/**
       - src/modules/data-export/**
     docs_required:
-      - docs/00-current/Report_Export.md
-      - docs/01-reference/contracts/data-export-contract.md
       - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/01-reference/contracts/data-export-contract.md
 
   # ──────────────────────────────────────────────
   # 通知
@@ -172,10 +177,10 @@ rules:
       - src/modules/testing-support/**
       - src/modules/legal-documents/**
     docs_required:
-      - docs/00-current/Public_Support_Resources.md
+      - docs/02-logs/migration-log/*.md
+    docs_any_of:
       - docs/01-reference/contracts/support-resources-contract.md
       - docs/01-reference/contracts/environment-contract.md
-      - docs/02-logs/migration-log/*.md
 
   # ──────────────────────────────────────────────
   # OpenAPI 合同与公共合同文件
@@ -185,5 +190,6 @@ rules:
       - docs/openapi.json
       - docs/01-reference/contracts/**
     docs_required:
-      - docs/00-current/Toolchain_Contract.md
       - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/01-reference/toolchain.md
