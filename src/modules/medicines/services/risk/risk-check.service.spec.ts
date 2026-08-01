@@ -185,6 +185,17 @@ describe('MedicineRiskCheckService', () => {
     expect(cache.del).toHaveBeenCalled();
   });
 
+  it('getRecords maps null records for a user with no history', async () => {
+    const { prisma, cache, svc } = build();
+    vi.mocked(cache.get).mockResolvedValue(undefined);
+    vi.mocked(prisma.medicineRiskCheckRecord.findMany).mockResolvedValue([]);
+
+    const result = await svc.getRecords('u1');
+
+    expect(result).toEqual({ static: null, llm: null });
+    expect(cache.set).toHaveBeenCalled();
+  });
+
   it('markStale updates records and invalidates cache without throwing when cache.del fails', async () => {
     const { prisma, cache, svc } = build();
     vi.mocked(cache.del).mockRejectedValue(new Error('redis down'));
@@ -195,5 +206,170 @@ describe('MedicineRiskCheckService', () => {
       where: { userId: 'u1' },
       data: { stale: true },
     });
+  });
+
+  it('runStaticCheck evaluates risk for an existing user with eligible medicines', async () => {
+    const { prisma, medicinesService, riskDetection, svc } = build();
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      allergies: [
+        { label: '青霉素', reaction: 'rash', severity: 'high', isActive: true },
+      ],
+      conditions: [],
+      currentMedicines: [
+        {
+          id: 'm1',
+          source: 'cn',
+          sourceRefId: 'cn-1',
+          displayName: '对乙酰氨基酚',
+          startedAt: new Date('2026-06-01T00:00:00.000Z'),
+        },
+        {
+          id: 'm2',
+          source: 'custom',
+          sourceRefId: 'local-1',
+          displayName: '自制药',
+          startedAt: new Date('2026-06-01T00:00:00.000Z'),
+        },
+        {
+          id: 'm3',
+          source: 'cn',
+          sourceRefId: '',
+          displayName: '无引用药',
+          startedAt: new Date('2026-06-01T00:00:00.000Z'),
+        },
+      ],
+    } as never);
+    vi.mocked(medicinesService.getDetailWithCache).mockResolvedValue({
+      id: 'detail-cn-1',
+      name: '对乙酰氨基酚',
+      ingredients: [],
+    } as never);
+    vi.mocked(prisma.medicineRiskCheckRecord.upsert).mockResolvedValue(
+      recordRow as never,
+    );
+
+    const result = await svc.runStaticCheck('u1');
+
+    // m1 走 detail 获取;m2/m3 无合法 sourceRefId,落入 uncovered
+    expect(medicinesService.getDetailWithCache).toHaveBeenCalledTimes(1);
+    expect(riskDetection.evaluateStaticRisk).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          item: expect.objectContaining({ id: 'm1' }),
+        }),
+      ]),
+      [
+        {
+          label: '青霉素',
+          reaction: 'rash',
+          severity: 'high',
+          isActive: true,
+        },
+      ],
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'm2' }),
+        expect.objectContaining({ id: 'm3' }),
+      ]),
+    );
+    expect(result.checkType).toBe('static');
+  });
+
+  it('evaluateStaticCheck skips failed detail fetches and reports them as uncovered', async () => {
+    const { prisma, medicinesService, riskDetection, svc } = build();
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      allergies: [],
+      conditions: [],
+      currentMedicines: [
+        {
+          id: 'm1',
+          source: 'drugbank',
+          sourceRefId: 'db-1',
+          displayName: 'DrugA',
+          startedAt: new Date('2026-06-01T00:00:00.000Z'),
+        },
+      ],
+    } as never);
+    vi.mocked(medicinesService.getDetailWithCache).mockRejectedValue(
+      new Error('db down'),
+    );
+    vi.mocked(prisma.medicineRiskCheckRecord.upsert).mockResolvedValue(
+      recordRow as never,
+    );
+
+    await svc.runStaticCheck('u1');
+
+    expect(riskDetection.evaluateStaticRisk).toHaveBeenCalledWith(
+      [],
+      [],
+      expect.arrayContaining([expect.objectContaining({ id: 'm1' })]),
+    );
+  });
+
+  it('runStaticCheck tolerates cache invalidation failure during persist', async () => {
+    const { prisma, cache, svc } = build();
+    vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.medicineRiskCheckRecord.upsert).mockResolvedValue(
+      recordRow as never,
+    );
+    vi.mocked(cache.del).mockRejectedValue(new Error('redis down'));
+
+    await expect(svc.runStaticCheck('u1')).resolves.toMatchObject({
+      checkType: 'static',
+    });
+  });
+
+  it('runLlmCheck maps llm findings without secondary medicine', async () => {
+    const { prisma, llmGenerator, riskContextBuilder, svc } = build();
+    vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
+    const llmRecord = {
+      ...recordRow,
+      checkType: 'llm',
+      result: {
+        overallRiskLevel: 'risk',
+        overallRiskScore: 20,
+        currentMedicineCount: 0,
+        checkedMedicineCount: 0,
+        findings: [
+          {
+            type: 'allergy',
+            severity: 'high',
+            context: 'none',
+            primaryMedicineName: 'DrugA',
+            evidence: 'desc',
+            recommendation: 'rec',
+          },
+        ],
+        coverageIssues: [],
+        redFlags: [],
+      },
+    };
+    vi.mocked(prisma.medicineRiskCheckRecord.upsert).mockResolvedValue(
+      llmRecord as never,
+    );
+    vi.mocked(riskContextBuilder.buildLlmContext).mockResolvedValue(
+      {} as never,
+    );
+    vi.mocked(llmGenerator.generate).mockResolvedValue({
+      riskScore: 20,
+      riskLevel: 'risk',
+      findings: [
+        {
+          type: 'allergy',
+          severity: 'high',
+          title: 't',
+          description: 'desc',
+          recommendation: 'rec',
+          primaryMedicineName: 'DrugA',
+        },
+      ],
+      overallRecommendation: '',
+    } as never);
+
+    const result = await svc.runLlmCheck('u1');
+
+    expect(result.result.findings[0]).not.toHaveProperty(
+      'secondaryMedicineName',
+    );
+    expect(result.result).not.toHaveProperty('overallRecommendation');
   });
 });
