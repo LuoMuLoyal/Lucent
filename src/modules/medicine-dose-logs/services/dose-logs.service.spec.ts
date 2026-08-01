@@ -268,4 +268,16 @@ describe('MedicineDoseLogsService', () => {
       }),
     ).rejects.toThrow(BadRequestException);
   });
+
+  it('should reject mark when currentMedicineId is provided without scheduledTime', async () => {
+    repository.findCurrentMedicineById.mockResolvedValue({ userId: 'u1' });
+
+    await expect(
+      service.mark('u1', {
+        currentMedicineId: 'medicine-1',
+        status: DoseLogStatus.taken,
+        scheduledFor: '2026-07-08',
+      }),
+    ).rejects.toThrow(BadRequestException);
+  });
 });

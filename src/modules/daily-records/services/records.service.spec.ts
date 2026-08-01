@@ -1030,6 +1030,100 @@ describe('DailyRecordsService', () => {
       ).rejects.toThrow(/durationMinutes/);
     });
 
+    it('should allow temporary sleep start event record without durationMinutes', async () => {
+      repository.create.mockResolvedValue({
+        id: 'rs-start',
+        userId: mockUserId,
+        deletedAt: null,
+        kind: 'sleep',
+        occurredAt: new Date('2026-06-13'),
+        occurredTime: '07:10',
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: { sleepEvent: 'start', eventAt: '2026-06-13T23:00:00.000Z' },
+        source: 'manual',
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.create(mockUserId, {
+        kind: DailyRecordKind.sleep,
+        occurredAt: '2026-06-13',
+        payload: {
+          sleepEvent: 'start',
+          eventAt: '2026-06-13T23:00:00.000Z',
+        },
+      });
+
+      expect(result.kind).toBe('sleep');
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: {
+            sleepEvent: 'start',
+            eventAt: '2026-06-13T23:00:00.000Z',
+          },
+        }),
+      );
+    });
+
+    it('should allow temporary sleep wake event record without durationMinutes', async () => {
+      repository.create.mockResolvedValue({
+        id: 'rs-wake',
+        userId: mockUserId,
+        deletedAt: null,
+        kind: 'sleep',
+        occurredAt: new Date('2026-06-13'),
+        occurredTime: '07:10',
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        payload: {
+          sleepEvent: 'wake',
+          eventAt: '2026-06-13T06:30:00.000Z',
+          startedRecordId: 'rs-start',
+        },
+        source: 'manual',
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.create(mockUserId, {
+        kind: DailyRecordKind.sleep,
+        occurredAt: '2026-06-13',
+        payload: {
+          sleepEvent: 'wake',
+          eventAt: '2026-06-13T06:30:00.000Z',
+          startedRecordId: 'rs-start',
+        },
+      });
+
+      expect(result.kind).toBe('sleep');
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: {
+            sleepEvent: 'wake',
+            eventAt: '2026-06-13T06:30:00.000Z',
+            startedRecordId: 'rs-start',
+          },
+        }),
+      );
+    });
+
     it('should reject a sleep record with zero durationMinutes', async () => {
       await expect(
         service.create(mockUserId, {

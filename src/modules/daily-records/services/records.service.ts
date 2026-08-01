@@ -312,7 +312,21 @@ export class DailyRecordsService {
   private validateSleepPayload(
     payload: Record<string, unknown> | null | undefined,
   ): void {
-    if (payload == null || typeof payload['durationMinutes'] !== 'number') {
+    if (payload == null) {
+      badRequest(
+        'Sleep records require payload.durationMinutes as a positive number.',
+      );
+    }
+
+    // Quick-entry sleep flow creates temporary start/wake event records first,
+    // then merges them into a final sleep record with durationMinutes. Allow
+    // those temporary event records to skip the duration validation.
+    const sleepEvent = payload['sleepEvent'];
+    if (sleepEvent === 'start' || sleepEvent === 'wake') {
+      return;
+    }
+
+    if (typeof payload['durationMinutes'] !== 'number') {
       badRequest(
         'Sleep records require payload.durationMinutes as a positive number.',
       );
