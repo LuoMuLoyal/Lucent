@@ -44,6 +44,10 @@ describe('OAuthController', () => {
             loginWithApple: vi.fn(),
             createQqAuthorizeUrl: vi.fn(),
             loginWithQq: vi.fn(),
+            createWeiboAuthorizeUrl: vi.fn(),
+            loginWithWeibo: vi.fn(),
+            createGoogleAuthorizeUrl: vi.fn(),
+            loginWithGoogle: vi.fn(),
           },
         },
       ],
@@ -163,6 +167,76 @@ describe('OAuthController', () => {
       );
 
       expect(result.data).toHaveProperty('user');
+    });
+  });
+
+  describe('POST /auth/oauth/weibo/authorize', () => {
+    it('returns authorize URL envelope', async () => {
+      authService.createWeiboAuthorizeUrl.mockResolvedValue({
+        authorizeUrl: 'https://weibo/auth',
+        state: 'state-weibo',
+        expiresIn: 300,
+      } as never);
+
+      const result = await controller.createWeiboAuthorizeUrl({
+        callbackUri: 'https://app/cb',
+      });
+
+      expect(result.data).toHaveProperty('authorizeUrl');
+    });
+  });
+
+  describe('POST /auth/oauth/weibo/callback', () => {
+    it('returns auth response envelope', async () => {
+      authService.loginWithWeibo.mockResolvedValue(mockAuthResult as never);
+
+      const result = await controller.loginWithWeibo(
+        { code: 'weibo-code', state: 'state-weibo' },
+        mockRequest,
+      );
+
+      expect(result.data).toHaveProperty('user');
+    });
+  });
+
+  describe('POST /auth/oauth/google/authorize', () => {
+    it('returns authorize URL envelope', async () => {
+      authService.createGoogleAuthorizeUrl.mockResolvedValue({
+        authorizeUrl: 'https://google/auth',
+        state: 'state-google',
+        expiresIn: 300,
+      } as never);
+
+      const result = await controller.createGoogleAuthorizeUrl({
+        callbackUri: 'https://app/cb',
+      });
+
+      expect(result.data).toHaveProperty('authorizeUrl');
+    });
+  });
+
+  describe('POST /auth/oauth/google/callback', () => {
+    it('returns auth response envelope', async () => {
+      authService.loginWithGoogle.mockResolvedValue(mockAuthResult as never);
+
+      const result = await controller.loginWithGoogle(
+        { code: 'google-code', state: 'state-google' },
+        mockRequest,
+      );
+
+      expect(result.data).toHaveProperty('user');
+    });
+  });
+
+  describe('provider failure propagation', () => {
+    it('propagates OAuth login failures without catching', async () => {
+      authService.loginWithWechatWeb.mockRejectedValue(
+        new Error('OAUTH_STATE_MISSING'),
+      );
+
+      await expect(
+        controller.loginWithWechatWeb({ code: 'x', state: 'bad' }, mockRequest),
+      ).rejects.toThrow('OAUTH_STATE_MISSING');
     });
   });
 });
