@@ -266,6 +266,115 @@ describe('TodaySuggestionController', () => {
     });
   });
 
+  describe('POST /today/suggestions/:id/explain/async', () => {
+    const queueAccess = () =>
+      (
+        controller as unknown as {
+          explanationQueueService: {
+            isConfigured: boolean;
+            enqueue: ReturnType<typeof vi.fn>;
+            getStatus: ReturnType<typeof vi.fn>;
+          };
+        }
+      ).explanationQueueService;
+
+    it('falls back to synchronous explain when the queue is not configured', async () => {
+      explanationService.explain.mockResolvedValue(mockExplanationResult);
+
+      const result = await controller.explainSuggestionAsync(
+        mockUser,
+        'sug-1',
+        'zh-CN',
+      );
+
+      expect(explanationService.explain).toHaveBeenCalledWith(
+        mockUser.sub,
+        'sug-1',
+        'zh-CN',
+      );
+      expect(result.data).toEqual({ result: mockExplanationResult });
+    });
+
+    it('returns a jobId when the queue is configured and enqueues', async () => {
+      const queue = queueAccess();
+      queue.isConfigured = true;
+      queue.enqueue.mockResolvedValue('job-1');
+
+      const result = await controller.explainSuggestionAsync(
+        mockUser,
+        'sug-1',
+        'zh-CN',
+      );
+
+      expect(queue.enqueue).toHaveBeenCalledWith(
+        mockUser.sub,
+        'sug-1',
+        'zh-CN',
+      );
+      expect(explanationService.explain).not.toHaveBeenCalled();
+      expect(result.data).toEqual({ jobId: 'job-1' });
+    });
+
+    it('falls back when enqueue returns null', async () => {
+      const queue = queueAccess();
+      queue.isConfigured = true;
+      queue.enqueue.mockResolvedValue(null);
+      explanationService.explain.mockResolvedValue(mockExplanationResult);
+
+      const result = await controller.explainSuggestionAsync(
+        mockUser,
+        'sug-1',
+        'zh-CN',
+      );
+
+      expect(explanationService.explain).toHaveBeenCalled();
+      expect(result.data).toEqual({ result: mockExplanationResult });
+    });
+  });
+
+  describe('GET /today/suggestions/explain/status/:jobId', () => {
+    const queueAccess = () =>
+      (
+        controller as unknown as {
+          explanationQueueService: {
+            getStatus: ReturnType<typeof vi.fn>;
+          };
+        }
+      ).explanationQueueService;
+
+    it('returns not_found for unknown jobs', async () => {
+      queueAccess().getStatus.mockResolvedValue(null);
+
+      const result = await controller.explainSuggestionStatus(
+        mockUser,
+        'job-1',
+      );
+
+      expect(queueAccess().getStatus).toHaveBeenCalledWith(
+        'job-1',
+        mockUser.sub,
+      );
+      expect(result.data).toEqual({ status: 'not_found' });
+    });
+
+    it('returns the job status when found', async () => {
+      queueAccess().getStatus.mockResolvedValue({
+        status: 'completed',
+        jobId: 'job-1',
+      });
+
+      const result = await controller.explainSuggestionStatus(
+        mockUser,
+        'job-1',
+      );
+
+      expect(result.data).toEqual({
+        status: 'completed',
+        jobId: 'job-1',
+      });
+    });
+  });
+
   describe('GET /today/suggestions/history', () => {
     it('returns history envelope with defaults when no query provided', async () => {
       lifecycleService.getHistory.mockResolvedValue(mockHistoryResult as never);
