@@ -20,6 +20,7 @@ interface CapturedQueue {
   workerConcurrency: number | undefined;
   processor: ProcessorFn;
   upsertJobScheduler: ReturnType<typeof vi.fn>;
+  removeJobScheduler: ReturnType<typeof vi.fn>;
 }
 
 function buildFactory(
@@ -49,11 +50,13 @@ function buildFactory(
     const upsertJobScheduler = rejectScheduler
       ? vi.fn().mockRejectedValue(new Error('Redis connection lost'))
       : vi.fn().mockResolvedValue(undefined);
+    const removeJobScheduler = vi.fn().mockResolvedValue(true);
     const q: CapturedQueue = {
       name: options.name,
       workerConcurrency: options.workerConcurrency,
       processor: options.processor,
       upsertJobScheduler,
+      removeJobScheduler,
     };
     captured.push(q);
     return { queue: q as unknown, worker: { on: vi.fn(), close: vi.fn() } };
@@ -188,6 +191,13 @@ describe('CronJobsService', () => {
         'reminder-dispatch',
         expect.anything(),
         expect.anything(),
+      );
+    });
+
+    it('removes stale reminder-dispatch scheduler from cron queue', () => {
+      const cronQ = captured.find((c) => c.name === CRON_QUEUE_NAME);
+      expect(cronQ?.removeJobScheduler).toHaveBeenCalledWith(
+        'reminder-dispatch',
       );
     });
 

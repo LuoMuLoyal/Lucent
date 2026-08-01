@@ -158,7 +158,9 @@ Last updated: 2026-08-01
 - B5 nonDeleted 迁移：6 个源文件从手动 `deletedAt: null` 迁移到 `prisma.nonDeleted` API，
   事务内代码保留手动写法（Prisma 扩展在事务客户端不可用）
 - `CronJobsService.onModuleInit` 中 `registerSchedulers` 调用包裹 try-catch：Redis 已配置但
-  暂时不可用时 `upsertJobScheduler` 抛异常不再阻止应用启动，error 日志记录后下次重启自动重试
+  暂时不可用时 `upsertJobScheduler` 抛异常不再阻止应用启动，error 日志记录后下次重启自动重试；
+  拆分队列时同步调用 `removeJobScheduler` 清理旧队列中的遗留调度器，避免历史 scheduler 继续生成
+  已迁移 job 导致 `Unknown cron job name` 警告。
 
 - 2026-07-29 工具链质量改进：
   - ESLint 从 `eslint-plugin-prettier` 迁移到 `eslint-config-prettier` only，格式检查由独立的

@@ -353,6 +353,20 @@ graph TD
 | suggestion-explanation | today-suggestion       | 1           | 30 min     | LLM suggestion explanation             |
 | mail                   | mail                   | 3           | —          | Transactional email (no async polling) |
 
+In addition to the async job queues above, `CronJobsService` (`src/common/queue/cron-jobs.service.ts`)
+manages two BullMQ repeatable-job queues for scheduled tasks:
+
+| Queue                      | Schedulers                                    | Concurrency | Notes                                             |
+| -------------------------- | --------------------------------------------- | ----------- | ------------------------------------------------- |
+| `lucent-cron`              | `data-retention-cleanup`, `lifecycle-refresh` | 2           | Low-frequency cron jobs sharing one queue         |
+| `lucent-reminder-dispatch` | `reminder-dispatch`                           | 1           | High-frequency medicine reminder dispatch (1 min) |
+
+Schedulers are registered with `upsertJobScheduler` so cron rules survive restarts and update
+idempotently. When a scheduler is moved between queues (for example, the `reminder-dispatch`
+scheduler was split from `lucent-cron` into its own queue in 2026-07-29), the old scheduler must be
+explicitly removed with `removeJobScheduler` to prevent stale jobs from being produced on the original
+queue.
+
 When Redis is unavailable, `BullmqQueueFactory` degrades to synchronous execution
 (the job processor runs inline, results cached in cache-manager).
 

@@ -110,6 +110,10 @@ export class CronJobsService implements OnModuleInit {
 
     if (this.cronQueue != null) {
       const cronQueue = this.cronQueue;
+      // Clean up stale scheduler left behind by the 2026-07-29 queue split.
+      // `reminder-dispatch` was moved to REMINDER_QUEUE_NAME, but BullMQ
+      // repeatable schedulers persist in Redis until explicitly removed.
+      registrations.push(cronQueue.removeJobScheduler(SCHEDULER_REMINDER));
       registrations.push(
         cronQueue.upsertJobScheduler(
           SCHEDULER_DATA_RETENTION,
