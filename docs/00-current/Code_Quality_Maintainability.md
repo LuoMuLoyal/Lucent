@@ -1,6 +1,6 @@
 # Code Quality / Maintainability
 
-Last updated: 2026-07-29
+Last updated: 2026-08-01
 
 - Barrel files (`index.ts`) must never export `.spec.ts` files — spec exports cause `nest build` to
   compile test files into `dist/`, and runtime barrel loading triggers `describe`/`it` calls that
@@ -181,3 +181,13 @@ Last updated: 2026-07-29
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
   - `today-suggestion/collectors/record.service.ts` 中 `prisma.userSetting.findUnique` 替换为
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
+
+- 2026-08-01 测试缺口修复（按 `plans/2026-08-01-test-gap-fix.md`）：
+  - `pdf.service.spec.ts` 两个多页 PDF 渲染用例超时 30s → 120s，消除 CI flaky（实测用例 2.9s）。
+  - medicines risk-check 子系统 8 个源文件覆盖率从 0–14% 提升至 ≥90%（lines，prompt 100%），
+    新增 9 个 spec + `test/e2e/medicines/risk-check.e2e-spec.ts`（5 用例，401/首查空/static 持久化）。
+  - P2 中等覆盖率文件全部 ≥80%：today-analysis/today-suggestion controller、assistant runtime.service、
+    auth.service、oauth.controller、app.controller、copy.service（100%）。
+  - `classify.ts` 0% 为缓存误报已确认排除：清 `node_modules/.vite` 后单文件实测 ≥90%。
+  - 全量基线：`pnpm test:ci` 274 文件 2769 用例零失败；`pnpm test:coverage` 整体 lines 90.25%
+    （阈值 lines 80 / functions 78 / statements 79 / branches 68）。

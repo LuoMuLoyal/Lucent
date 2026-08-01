@@ -11,6 +11,7 @@ import { MedicinesModule } from '../medicines/medicines.module';
 import { UserHealthContextModule } from '../user-health-context/user-health-context.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { AssistantRuntimeService } from './agent/runtime.service';
+import { AssistantCheckpointerService } from './agent/checkpointer.service';
 import { AssistantConversationService } from './services/conversation.service';
 import { AssistantController } from './assistant.controller';
 import { AssistantPolicyService } from './services/policy.service';
@@ -66,6 +67,7 @@ import { VectorStoreFactory } from './tools/vector/vector-store.factory';
   controllers: [AssistantController],
   providers: [
     AssistantRuntimeService,
+    AssistantCheckpointerService,
     VectorStoreFactory,
     {
       provide: AssistantConversationRepositoryPort,
