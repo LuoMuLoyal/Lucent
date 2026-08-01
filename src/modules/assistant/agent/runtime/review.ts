@@ -1,7 +1,7 @@
 import { SystemMessage } from '@langchain/core/messages';
 import { interrupt } from '@langchain/langgraph';
 import type { AssistantToolExecutionResult } from '../../types/assistant.types';
-import type { AssistantRuntimeState } from './state';
+import type { AssistantPendingReview, AssistantRuntimeState } from './state';
 
 /** Payload exposed to the suspended thread's caller via getState/interrupt. */
 export interface AssistantReviewRequest {
@@ -30,6 +30,7 @@ export function collectProposalReview(
     .flatMap((result) => result.proposedActions ?? [])
     .map((action) => action.expiresAt)
     .sort()[0];
+  if (expiresAt == null) return { proposalIds };
   return { proposalIds, expiresAt };
 }
 
@@ -61,19 +62,27 @@ export function createWriteReviewNode() {
     const pending = state.pendingReview;
     const review: AssistantReviewRequest =
       pending != null
-        ? { proposalIds: pending.proposalIds, expiresAt: pending.expiresAt }
+        ? {
+            proposalIds: pending.proposalIds,
+            ...(pending.expiresAt != null
+              ? { expiresAt: pending.expiresAt }
+              : {}),
+          }
         : (collectProposalReview(state.toolResults) ?? { proposalIds: [] });
-    const decision = interrupt<
-      AssistantReviewDecision,
-      AssistantReviewDecision
-    >(review);
+    const decision = interrupt<AssistantReviewRequest, AssistantReviewDecision>(
+      review,
+    );
+    const proposalIds = pending?.proposalIds ?? review.proposalIds;
+    const expiresAt = pending?.expiresAt ?? review.expiresAt;
+    const pendingReview: AssistantPendingReview = {
+      proposalIds,
+      ...(expiresAt != null ? { expiresAt } : {}),
+      status: decision.decision,
+      decidedAt: new Date().toISOString(),
+      ...(decision.note != null ? { note: decision.note } : {}),
+    };
     return {
-      pendingReview: {
-        ...pending,
-        status: decision.decision,
-        decidedAt: new Date().toISOString(),
-        note: decision.note,
-      },
+      pendingReview,
       messages: [
         new SystemMessage(
           decision.decision === 'approved'

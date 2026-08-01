@@ -1,5 +1,6 @@
 import {
   ForbiddenException,
+  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { AssistantRuntimeService } from '../agent/runtime.service';
@@ -68,6 +69,7 @@ describe('AssistantService', () => {
     runtime = {
       describeFoundation: vi.fn().mockResolvedValue(mockFoundation),
       runConversation: vi.fn(),
+      resumeConversation: vi.fn(),
       streamPreGeneratedContent: vi.fn(),
       generateStream: vi.fn(),
     } as unknown as vi.Mocked<AssistantRuntimeService>;
@@ -89,6 +91,7 @@ describe('AssistantService', () => {
       listRecentConversations: vi.fn(),
       openConversation: vi.fn(),
       clearLatestConversation: vi.fn(),
+      getConversation: vi.fn(),
       persistAssistantTurn: vi.fn(),
       buildMemoryBlock: vi.fn().mockResolvedValue(''),
     } as unknown as vi.Mocked<AssistantConversationService>;
@@ -195,6 +198,44 @@ describe('AssistantService', () => {
       expect(result).toEqual({
         cleared: false,
         archivedConversationId: null,
+      });
+    });
+  });
+
+  describe('confirmProposal', () => {
+    const dto = { proposalIds: ['proposal-1'], decision: 'approved' as const };
+
+    it('throws NotFoundException when the conversation is missing', async () => {
+      conversation.getConversation.mockResolvedValue(null);
+
+      await expect(
+        service.confirmProposal('user-1', 'conv-1', dto),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(runtime.resumeConversation).not.toHaveBeenCalled();
+    });
+
+    it('resumes the thread and returns the decision result', async () => {
+      conversation.getConversation.mockResolvedValue(mockConversation);
+      runtime.resumeConversation.mockResolvedValue({
+        finalContent: '已确认。',
+      });
+
+      const result = await service.confirmProposal('user-1', 'conv-1', {
+        ...dto,
+        note: 'ok',
+      });
+
+      expect(runtime.resumeConversation).toHaveBeenCalledWith({
+        userId: 'user-1',
+        conversationId: 'conv-1',
+        decision: 'approved',
+        note: 'ok',
+      });
+      expect(result).toEqual({
+        conversationId: 'conv-1',
+        decision: 'approved',
+        status: 'approved',
+        finalContent: '已确认。',
       });
     });
   });

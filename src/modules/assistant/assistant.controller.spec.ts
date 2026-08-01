@@ -42,6 +42,7 @@ describe('AssistantController', () => {
             getLatestConversation: vi.fn(),
             openConversation: vi.fn(),
             clearLatestConversation: vi.fn(),
+            confirmProposal: vi.fn(),
             getFoundationCapabilities: vi.fn(),
             streamMessages: vi.fn(),
           },
@@ -426,6 +427,37 @@ describe('AssistantController', () => {
       },
     });
     expect(service.clearLatestConversation).toHaveBeenCalledWith('u1');
+  });
+
+  it('confirms pending proposals and returns the decision envelope', async () => {
+    service.confirmProposal.mockResolvedValue({
+      conversationId: 'conversation-1',
+      decision: 'approved',
+      status: 'approved',
+      finalContent: '已确认。',
+    });
+
+    await expect(
+      controller.confirmProposal(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'conversation-1',
+        { proposalIds: ['proposal-1'], decision: 'approved' },
+      ),
+    ).resolves.toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: {
+        conversationId: 'conversation-1',
+        decision: 'approved',
+        status: 'approved',
+        finalContent: '已确认。',
+      },
+    });
+    expect(service.confirmProposal).toHaveBeenCalledWith(
+      'u1',
+      'conversation-1',
+      { proposalIds: ['proposal-1'], decision: 'approved' },
+    );
   });
 
   it('streams an error SSE event when service throws', async () => {

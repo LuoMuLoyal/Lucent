@@ -68,7 +68,7 @@ describe('in-graph proposal review (HITL)', () => {
     // First invoke: the write flow reaches write_review and the invocation
     // returns the interrupted state carrying the `__interrupt__` marker.
     const interrupted = await graph.invoke(BASE_INPUT, config);
-    expect(interrupted.__interrupt__).toBeDefined();
+    expect('__interrupt__' in interrupted).toBe(true);
     expect(interrupted.pendingReview?.status).toBe('pending');
     expect(interrupted.pendingReview?.proposalIds).toEqual(['proposal-1']);
     expect(interrupted.stopReason).toBe('awaiting_review');
@@ -92,7 +92,7 @@ describe('in-graph proposal review (HITL)', () => {
     const config = { configurable: { thread_id: 'conv-2' } };
 
     const interrupted = await graph.invoke(BASE_INPUT, config);
-    expect(interrupted.__interrupt__).toBeDefined();
+    expect('__interrupt__' in interrupted).toBe(true);
 
     const resumed = await graph.invoke(
       new Command({ resume: { decision: 'rejected' } }),

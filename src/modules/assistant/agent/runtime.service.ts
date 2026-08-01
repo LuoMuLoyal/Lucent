@@ -1,6 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { Command } from '@langchain/langgraph';
+import { badRequest } from '../../../common';
 import {
   AIMessage,
   AIMessageChunk,
@@ -36,6 +38,7 @@ import {
 } from '../prompts/system.prompt';
 import { ASSISTANT_RUNTIME_NODE_NAMES } from './runtime/state';
 import type { AssistantValidationFlags } from './runtime/state';
+import type { AssistantPendingReview } from './runtime/state';
 import { AssistantCheckpointerService } from './checkpointer.service';
 
 import {
@@ -151,7 +154,9 @@ export class AssistantRuntimeService {
         : {}),
       respondCache: this.respondCache,
       checkpointer,
-      conversationId: input.conversationId,
+      ...(input.conversationId != null
+        ? { conversationId: input.conversationId }
+        : {}),
     });
 
     const config =
@@ -189,6 +194,65 @@ export class AssistantRuntimeService {
       this.circuitBreaker.recordFailure();
       throw error;
     }
+  }
+
+  /**
+   * Resumes a suspended thread after the client confirmed or rejected the
+   * pending proposals. Validates the review state (`getState`), then invokes
+   * the graph with `Command({ resume })` so `write_review` writes the decision
+   * back and `respond` produces the confirmation reply.
+   */
+  async resumeConversation(input: {
+    userId: string;
+    conversationId: string;
+    decision: 'approved' | 'rejected';
+    note?: string;
+  }): Promise<{ finalContent: string | null }> {
+    const checkpointer = this.checkpointerService.getSaver();
+    if (checkpointer == null) {
+      badRequest(
+        'Checkpoint persistence is unavailable; cannot resume the review.',
+      );
+    }
+
+    const graph = buildAssistantRuntimeGraph({
+      createModel: () =>
+        this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
+      // The resume path never reaches the agent↔tools loop; tools are only
+      // executed by the original (now suspended) invocation.
+      executeTools: () => Promise.resolve([]),
+      buildSystemPrompt: buildAssistantSystemPrompt,
+      buildReadSystemPrompt,
+      buildWriteSystemPrompt,
+      buildKnowledgeSystemPrompt,
+      buildSimpleChatSystemPrompt,
+      respondCache: this.respondCache,
+      checkpointer,
+      conversationId: input.conversationId,
+    });
+    const config = { configurable: { thread_id: input.conversationId } };
+
+    const snapshot = await graph.getState(config);
+    const pending = (
+      snapshot.values as { pendingReview?: AssistantPendingReview }
+    ).pendingReview;
+    if (pending == null || pending.status !== 'pending') {
+      badRequest('No pending proposal review for this conversation.');
+    }
+    if (
+      pending.expiresAt != null &&
+      new Date(pending.expiresAt).getTime() < Date.now()
+    ) {
+      badRequest(
+        'The proposal review expired. Ask the assistant to regenerate it.',
+      );
+    }
+
+    const result = await graph.invoke(
+      new Command({ resume: { decision: input.decision, note: input.note } }),
+      config,
+    );
+    return { finalContent: result.finalContent ?? null };
   }
 
   /**

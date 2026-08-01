@@ -1,4 +1,4 @@
-import { badRequest, forbidden } from '../../../common';
+import { badRequest, forbidden, notFound } from '../../../common';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ResultCode } from '../../../common';
 import type { AssistantCapabilitiesDataDto } from '../dto/capabilities-response.dto';
@@ -8,6 +8,10 @@ import type { AssistantConversationDataDto } from '../dto/conversation-response.
 import type { AssistantMessageDataDto } from '../dto/stream-response.dto';
 
 import type { StreamAssistantMessagesDto } from '../dto/stream-messages.dto';
+import type {
+  AssistantConfirmResultDto,
+  ConfirmAssistantProposalDto,
+} from '../dto/confirm-proposal.dto';
 import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
 import { AssistantRuntimeService } from '../agent/runtime.service';
 import { UserSettingsService } from '../../user-settings';
@@ -92,6 +96,35 @@ export class AssistantService {
     };
   }
 
+  async confirmProposal(
+    userId: string,
+    conversationId: string,
+    dto: ConfirmAssistantProposalDto,
+  ): Promise<AssistantConfirmResultDto> {
+    const conversation =
+      await this.assistantConversationService.getConversation(
+        userId,
+        conversationId,
+      );
+    if (conversation == null) {
+      notFound('Conversation not found.');
+    }
+
+    const { finalContent } =
+      await this.assistantAgentService.resumeConversation({
+        userId,
+        conversationId,
+        decision: dto.decision,
+        ...(dto.note != null ? { note: dto.note } : {}),
+      });
+    return {
+      conversationId,
+      decision: dto.decision,
+      status: dto.decision,
+      finalContent,
+    };
+  }
+
   async streamMessages(
     userId: string,
     dto: StreamAssistantMessagesDto,
@@ -133,7 +166,9 @@ export class AssistantService {
         enabledContextSources: policy.enabledContextSources,
         memoryEnabled: settings.assistantMemoryEnabled,
         isNewConversation: this.isNewConversation(messages),
-        conversationId: dto.conversationId,
+        ...(dto.conversationId != null
+          ? { conversationId: dto.conversationId }
+          : {}),
         buildMemoryBlock: (id) =>
           this.assistantConversationService.buildMemoryBlock(id),
       },

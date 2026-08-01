@@ -1,4 +1,6 @@
 import { AIMessage, AIMessageChunk } from '@langchain/core/messages';
+import { BadRequestException } from '@nestjs/common';
+import { MemorySaver } from '@langchain/langgraph';
 import type { LlmRuntimeService } from '../../../llm-runtime';
 import { LlmCircuitBreakerService } from '../../../common/llm/llm-circuit-breaker.service';
 import { AssistantRuntimeService } from './runtime.service';
@@ -392,5 +394,121 @@ describe('AssistantRuntimeService', () => {
     expect(foundation.chatModelConfigured).toBe(false);
     expect(foundation.interactiveChatReady).toBe(false);
     expect(foundation.ragEnabled).toBe(false);
+  });
+
+  describe('resumeConversation', () => {
+    /** Builds a service whose checkpointer is a fresh MemorySaver and whose model produces one proposal then a reply. */
+    function buildResumeService(expiresAt: string) {
+      const mockModel = {
+        bindTools: vi.fn().mockReturnThis(),
+        invoke: vi
+          .fn()
+          .mockResolvedValueOnce(
+            new AIMessage({
+              content: '',
+              tool_calls: [
+                {
+                  name: 'propose_create_daily_record',
+                  id: 'call_0',
+                  args: {},
+                },
+              ],
+            }),
+          )
+          .mockResolvedValue(
+            new AIMessage({ content: '已确认，请在记录页完成保存。' }),
+          ),
+      };
+      const llmRuntimeService = {
+        hasRoleConfig: vi.fn().mockReturnValue(true),
+        getModelName: vi.fn().mockReturnValue('test-model'),
+        createChatModel: vi.fn().mockReturnValue(mockModel),
+      } as unknown as LlmRuntimeService;
+      const saver = new MemorySaver();
+      const service = new AssistantRuntimeService(
+        llmRuntimeService,
+        buildLeafletService() as never,
+        buildMetricsService() as never,
+        new LlmCircuitBreakerService(),
+        buildCacheService() as never,
+        { getSaver: () => saver } as never,
+      );
+      const executeTools = vi.fn().mockResolvedValue([
+        {
+          name: 'propose_create_daily_record',
+          data: { draft: {} },
+          proposedActions: [
+            {
+              id: 'proposal-1',
+              type: 'create_daily_record',
+              status: 'proposed',
+              expiresAt,
+            },
+          ],
+        },
+      ]);
+      const conversationInput = {
+        userId: 'u1',
+        userMessage: '帮我记录今天喝水 500ml',
+        locale: 'zh-CN' as const,
+        enabledContextSources: ['health_profile' as const],
+        conversationId: 'conv-1',
+      };
+      return { service, executeTools, conversationInput };
+    }
+
+    it('resumes a pending review after approval', async () => {
+      const { service, executeTools, conversationInput } = buildResumeService(
+        '2099-01-01T00:00:00.000Z',
+      );
+
+      // First turn: the write flow suspends with a pending review.
+      await service.runConversation(conversationInput, executeTools as never);
+
+      const resumed = await service.resumeConversation({
+        userId: 'u1',
+        conversationId: 'conv-1',
+        decision: 'approved',
+        note: 'ok',
+      });
+      expect(resumed.finalContent).toBe('已确认，请在记录页完成保存。');
+    });
+
+    it('rejects an already-decided review', async () => {
+      const { service, executeTools, conversationInput } = buildResumeService(
+        '2099-01-01T00:00:00.000Z',
+      );
+
+      await service.runConversation(conversationInput, executeTools as never);
+      await service.resumeConversation({
+        userId: 'u1',
+        conversationId: 'conv-1',
+        decision: 'approved',
+      });
+
+      await expect(
+        service.resumeConversation({
+          userId: 'u1',
+          conversationId: 'conv-1',
+          decision: 'rejected',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects an expired review', async () => {
+      const { service, executeTools, conversationInput } = buildResumeService(
+        '2020-01-01T00:00:00.000Z',
+      );
+
+      await service.runConversation(conversationInput, executeTools as never);
+
+      await expect(
+        service.resumeConversation({
+          userId: 'u1',
+          conversationId: 'conv-1',
+          decision: 'approved',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
   });
 });

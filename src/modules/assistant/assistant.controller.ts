@@ -38,6 +38,11 @@ import { AssistantConversationResponseDto } from './dto/conversation-response.dt
 
 import { StreamAssistantMessagesDto } from './dto/stream-messages.dto';
 
+import {
+  AssistantConfirmResultDto,
+  ConfirmAssistantProposalDto,
+} from './dto/confirm-proposal.dto';
+
 @ApiTags('Assistant')
 @ApiBearerAuth('access-token')
 @Controller('assistant')
@@ -95,6 +100,26 @@ export class AssistantController {
   ) {
     return successEnvelope(
       await this.assistantService.openConversation(user.sub, conversationId),
+    );
+  }
+
+  @Post('conversations/:conversationId/confirm')
+  @ApiOperation({
+    summary:
+      'Confirm or reject pending assistant write proposals and resume the graph thread',
+  })
+  @ApiResponse({ status: 200, type: AssistantConfirmResultDto })
+  async confirmProposal(
+    @CurrentUser() user: UserPayload,
+    @Param('conversationId') conversationId: string,
+    @Body() dto: ConfirmAssistantProposalDto,
+  ) {
+    return successEnvelope(
+      await this.assistantService.confirmProposal(
+        user.sub,
+        conversationId,
+        dto,
+      ),
     );
   }
 

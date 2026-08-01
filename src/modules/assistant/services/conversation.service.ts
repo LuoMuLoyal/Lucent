@@ -36,6 +36,21 @@ export class AssistantConversationService {
     return conversation == null ? null : this.toSnapshot(conversation);
   }
 
+  /**
+   * Returns the user's conversation snapshot without activating it, or null
+   * when the conversation does not exist / belongs to another user.
+   */
+  async getConversation(
+    userId: string,
+    conversationId: string,
+  ): Promise<AssistantConversationSnapshot | null> {
+    const conversation = await this.repository.findWithMessages(
+      userId,
+      conversationId,
+    );
+    return conversation == null ? null : this.toSnapshot(conversation);
+  }
+
   async listRecentConversations(
     userId: string,
   ): Promise<AssistantConversationSummary[]> {
