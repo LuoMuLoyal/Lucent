@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsIn,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
@@ -42,4 +43,15 @@ export class StreamAssistantMessagesDto {
   @ValidateNested({ each: true })
   @Type(() => AssistantInputMessageDto)
   messages!: AssistantInputMessageDto[];
+
+  @ApiProperty({
+    description:
+      'Optional persisted conversation id used as the LangGraph thread id. When absent the conversation runs statelessly (no checkpoint / no in-graph review).',
+    required: false,
+    maxLength: 64,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  conversationId?: string;
 }

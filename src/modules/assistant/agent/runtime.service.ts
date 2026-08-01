@@ -36,6 +36,7 @@ import {
 } from '../prompts/system.prompt';
 import { ASSISTANT_RUNTIME_NODE_NAMES } from './runtime/state';
 import type { AssistantValidationFlags } from './runtime/state';
+import { AssistantCheckpointerService } from './checkpointer.service';
 
 import {
   buildAssistantRuntimeGraph,
@@ -80,6 +81,7 @@ export class AssistantRuntimeService {
     private readonly leafletReadService: AssistantToolLeafletReadService,
     private readonly metricsService: MetricsService,
     private readonly circuitBreaker: LlmCircuitBreakerService,
+    private readonly checkpointerService: AssistantCheckpointerService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
@@ -125,9 +127,16 @@ export class AssistantRuntimeService {
       isNewConversation?: boolean;
       /** Builds the persisted memory block (default: no memory injection). */
       buildMemoryBlock?: (userId: string) => Promise<string>;
+      /**
+       * Persisted conversation id used as the LangGraph thread id. When set
+       * together with an available checkpointer, the turn runs with checkpoint
+       * persistence and in-graph review; otherwise it stays stateless.
+       */
+      conversationId?: string;
     },
     executeTools: ToolExecutorFn,
   ): Promise<AssistantConversationResult> {
+    const checkpointer = this.checkpointerService.getSaver();
     const graph = buildAssistantRuntimeGraph({
       createModel: () =>
         this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
@@ -141,7 +150,14 @@ export class AssistantRuntimeService {
         ? { buildMemoryBlock: input.buildMemoryBlock }
         : {}),
       respondCache: this.respondCache,
+      checkpointer,
+      conversationId: input.conversationId,
     });
+
+    const config =
+      input.conversationId != null && checkpointer != null
+        ? { configurable: { thread_id: input.conversationId } }
+        : undefined;
 
     // Acquire the circuit breaker before invoking the graph. The LangGraph
     // agent↔tools loop may issue multiple LLM calls inside a single
@@ -150,14 +166,17 @@ export class AssistantRuntimeService {
     // within one user request.
     this.circuitBreaker.acquire();
     try {
-      const result = await graph.invoke({
-        userId: input.userId,
-        userMessage: input.userMessage,
-        locale: input.locale,
-        enabledContextSources: input.enabledContextSources,
-        memoryEnabled: input.memoryEnabled ?? false,
-        isNewConversation: input.isNewConversation ?? false,
-      });
+      const result = await graph.invoke(
+        {
+          userId: input.userId,
+          userMessage: input.userMessage,
+          locale: input.locale,
+          enabledContextSources: input.enabledContextSources,
+          memoryEnabled: input.memoryEnabled ?? false,
+          isNewConversation: input.isNewConversation ?? false,
+        },
+        config,
+      );
       this.circuitBreaker.recordSuccess();
       return {
         toolResults: result.toolResults,

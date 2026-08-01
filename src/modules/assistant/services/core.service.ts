@@ -133,6 +133,7 @@ export class AssistantService {
         enabledContextSources: policy.enabledContextSources,
         memoryEnabled: settings.assistantMemoryEnabled,
         isNewConversation: this.isNewConversation(messages),
+        conversationId: dto.conversationId,
         buildMemoryBlock: (id) =>
           this.assistantConversationService.buildMemoryBlock(id),
       },
