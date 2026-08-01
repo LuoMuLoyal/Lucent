@@ -10,6 +10,7 @@ allowBuilds:
   protobufjs: false
   simple-git-hooks: true
   unrs-resolver: false
+  vue-demi: false
 
 overrides:
   stack-trace: 0.0.10

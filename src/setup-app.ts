@@ -1,4 +1,6 @@
 import { performance } from 'node:perf_hooks';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { ValidationError } from '@nestjs/common';
 import {
   BadRequestException,
@@ -8,7 +10,6 @@ import {
 import type { ConfigService } from '@nestjs/config';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import type { ServerResponse } from 'node:http';
 import fastifyHelmet from '@fastify/helmet';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
@@ -54,7 +55,16 @@ export async function setupApp(
   );
 
   // ── Helmet security headers ─────────────────────────────────────
-  await app.register(fastifyHelmet);
+  // AdminJS and Scalar render inline bootstrap scripts, so CSP must allow
+  // 'unsafe-inline' scripts — otherwise both admin panel and /api/docs
+  // render blank (bundle scripts load, inline ones are blocked).
+  await app.register(fastifyHelmet, {
+    contentSecurityPolicy: {
+      directives: {
+        'script-src': ["'self'", "'unsafe-inline'"],
+      },
+    },
+  });
 
   // ── Prometheus metrics ──────────────────────────────────────────
   const metricsService = app.get(MetricsService);
@@ -198,23 +208,42 @@ export async function setupApp(
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  // `withFastify: true` makes apiReference return a function that expects
-  // (FastifyRequest, ServerResponse). The Scalar type definition incorrectly
-  // intersects with Express Request, so we use @ts-expect-error to suppress
-  // the assignment error — when Scalar fixes their types this directive will
-  // become unused and TS will alert us.
+  // `withFastify: true` would make apiReference write to the raw response
+  // (bypassing Fastify's onSend pipeline, so favicon injection below would
+  // not run). Without it, apiReference calls `res.send(html)`, which goes
+  // through the Fastify payload pipeline when given the Fastify reply.
+  // The Scalar type definition incorrectly intersects with Express Request,
+  // so we use @ts-expect-error to suppress the assignment error.
   // @ts-expect-error — Scalar 类型定义未正确区分 Fastify/Express 集成
-  const docsHandler: (req: FastifyRequest, res: ServerResponse) => void =
+  const docsHandler: (req: FastifyRequest, res: FastifyReply) => void =
     apiReference({
       spec: { content: document },
       theme: 'purple',
       _integration: 'nestjs',
-      withFastify: true,
+      // Self-host the Scalar standalone bundle instead of loading it from the
+      // jsdelivr CDN (unreliable in CN networks → blank page).
+      cdn: '/scalar/standalone.js',
     });
+
+  // ── Self-hosted Scalar standalone asset (avoids unreachable CDN) ──
+  void fastify.get('/scalar/standalone.js', async (_request, reply) => {
+    const file = join(
+      process.cwd(),
+      'node_modules',
+      '@scalar',
+      'api-reference',
+      'dist',
+      'browser',
+      'standalone.js',
+    );
+    reply.type('application/javascript');
+    reply.send(await readFile(file));
+  });
+
   void fastify.get(
     '/api/docs',
     (request: FastifyRequest, reply: FastifyReply) => {
-      docsHandler(request, reply.raw);
+      docsHandler(request, reply);
     },
   );
 }
