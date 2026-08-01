@@ -2,7 +2,7 @@
 
 ## Documentation Rules
 
-After every code change, run the documentation check tool (`pnpm docs:check`) to confirm which documents need updating. It reads `docs/doc-map.yaml` and prints a per-rule report of which docs each touched code area expects. The pre-commit hook runs the same tool in **blocking** mode: `src/**/*.ts` staged but no `docs/` file staged → commit blocked. Bypass with `SKIP_DOC_CHECK=1`.
+After every code change, run the documentation check tool (`pnpm docs:check`) to confirm which documents need updating. It reads `docs/doc-map.yaml` (three tiers: `docs_required` all-must-update, usually just the migration log; `docs_any_of` at-least-one; `docs_info` suggested) and prints a per-rule report of which docs each touched code area expects. The pre-commit hook runs the same tool in **blocking** mode: `src/**/*.ts` staged but no `docs/` file staged → commit blocked. Bypass with `SKIP_DOC_CHECK=1`.
 
 ### Standing rules
 
@@ -10,20 +10,26 @@ After every code change, run the documentation check tool (`pnpm docs:check`) to
   **Never overwrite** an existing entry — always append new sections below existing content.
   The pre-commit hook blocks commits where a staged migration-log file has more than 5 deleted
   lines (indicating overwrite rather than append).
+  - Single-day log files keep exactly one `# ` H1; sections use `##` (no date prefix).
+  - When referencing a plan file, note it was executed and the file is gone
+    (「实施完毕文件已删」), otherwise `--verify` flags an orphan reference.
 - **Current state**: runtime/architecture changes go into the relevant `docs/00-current/*.md`
   sub-file, not into `Current_State.md` (index only).
 - **Closing a TODO**: delete the line from `docs/00-current/TODO.md`.
 - **Finishing a plan**: delete the entire section from `plans/*.md`.
 - **Env/Docker/import/commands**: sync `docs/01-reference/environment.md`,
   `environment-variables.md`, and `README.md`.
+- **Doc lifecycle**: active docs older than 90 days without updates, or unreferenced by
+  `doc-map.yaml`, are flagged by `node scripts/hooks/check-docs-updated.ts --verify` — review,
+  update, or archive them to `docs/03-archive/`.
 - Completed items are **deleted** outright — no markers.
 
 ## Read First
 
 - `README.md`, `CONTRIBUTING.md`, `docs/README.md`
-- `docs/01-reference/environment.md`, `environment-variables.md`, `architecture.md`
-- `docs/01-reference/adr/` for architecture decisions
-- `docs/01-reference/contracts/data-sources.md` (and sub-files) when touching medicine import
+- `docs/01-reference/architecture.md`, `environment.md`, `environment-variables.md`
+- `docs/01-reference/contracts/README.md`（改 API 时）、`docs/01-reference/adr/`（架构决策）
+- 功能实现细节以代码为准；历史状态文档归档在 `docs/03-archive/`
 
 ## Current Baseline
 
