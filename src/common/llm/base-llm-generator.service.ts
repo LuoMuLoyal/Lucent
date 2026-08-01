@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import {
   AIMessageChunk,
   HumanMessage,
@@ -19,6 +20,8 @@ const MODEL_OPTIONS = {
   temperature: 0.2,
   maxRetries: 0, // retries handled by withLlmRetry for finer control
 } as const;
+
+const llmTracer = trace.getTracer('lucent-llm');
 
 export interface BaseLlmGeneratorOptions {
   /** Name passed to the model as the function/tool name. */
@@ -56,7 +59,40 @@ export abstract class BaseLlmGeneratorService<
     return this.llmRuntimeService.hasRoleConfig(this.modelRole);
   }
 
+  /**
+   * Invoke the structured-output model inside a manual OTel span
+   * (`llm.{streamName}.generate`) carrying `llm.model_role` / `llm.model_name`
+   * attributes. Success sets the span to OK; failures record the exception and
+   * mark the span ERROR before re-throwing.
+   */
   async generate(context: TContext, promptCopy: TPromptCopy): Promise<TOutput> {
+    return llmTracer.startActiveSpan(
+      `llm.${this.options.streamName}.generate`,
+      async (span) => {
+        span.setAttribute('llm.model_role', this.modelRole);
+        span.setAttribute(
+          'llm.model_name',
+          this.llmRuntimeService.getModelName(this.modelRole) ?? 'unknown',
+        );
+        try {
+          const result = await this.runGenerate(context, promptCopy);
+          span.setStatus({ code: SpanStatusCode.OK });
+          return result;
+        } catch (error) {
+          span.recordException(error as Error);
+          span.setStatus({ code: SpanStatusCode.ERROR });
+          throw error;
+        } finally {
+          span.end();
+        }
+      },
+    );
+  }
+
+  private async runGenerate(
+    context: TContext,
+    promptCopy: TPromptCopy,
+  ): Promise<TOutput> {
     const model = this.createStructuredOutputModel();
     const messages = this.buildMessages(context, promptCopy);
     const start = performance.now();
@@ -100,6 +136,7 @@ export abstract class BaseLlmGeneratorService<
     }
   }
 
+  // Streaming path intentionally unwrapped for now; manual span comes in a later change.
   async generateStream(
     context: TContext,
     promptCopy: TPromptCopy,
