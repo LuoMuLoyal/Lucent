@@ -4,21 +4,21 @@
 
 本文档是 Obsidian 文档地图，于 2026-08-01 归档至 `03-archive/current-state/`。导航由 `docs/README.md` 承担。
 
-本页按区域列出所有活跃文档。当前后端状态见 [[00-current/Current_State]]。
+本页按区域列出所有活跃文档。当前后端状态见 [[Current_State]]。
 
 ## 00-current — 当前状态与计划
 
-- [[00-current/Current_State]] — 当前后端实现状态入口（索引页），链接到各区域详情
+- [[Current_State]] — 当前后端实现状态入口（索引页），链接到各区域详情
 - [[00-current/TODO]] — 活跃延后后端项
-- [[00-current/MigrationLog]] — 变更日志索引
-- [[00-current/Assistant_Runtime]] — 助手运行时
-- [[00-current/Medicine_Data_RAG]] — 药品数据与 RAG
-- [[00-current/Public_Support_Resources]] — 公共支持资源
-- [[00-current/Toolchain_Contract]] — 工具链与合同
-- [[00-current/Auth_Security_PIN]] — 认证与安全 PIN
-- [[00-current/Report_Export]] — 报告导出
-- [[00-current/Meal_Analysis]] — 餐食分析
-- [[00-current/Code_Quality_Maintainability]] — 代码质量与可维护性
+- [[02-logs/README]] — 变更日志索引
+- [[Assistant_Runtime]] — 助手运行时
+- [[Medicine_Data_RAG]] — 药品数据与 RAG
+- [[Public_Support_Resources]] — 公共支持资源
+- [[01-reference/toolchain]] — 工具链与合同
+- [[Auth_Security_PIN]] — 认证与安全 PIN
+- [[Report_Export]] — 报告导出
+- [[Meal_Analysis]] — 餐食分析
+- [[01-reference/code-quality]] — 代码质量与可维护性
 
 ## 01-reference — 参考规范与合同
 

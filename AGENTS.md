@@ -22,6 +22,10 @@ After every code change, run the documentation check tool (`pnpm docs:check`) to
 - **Doc lifecycle**: active docs older than 90 days without updates, or unreferenced by
   `doc-map.yaml`, are flagged by `node scripts/hooks/check-docs-updated.ts --verify` — review,
   update, or archive them to `docs/03-archive/`.
+- **Front-matter**: every active doc in `01-reference/*.md`, `01-reference/how-to/*.md`, and
+  `00-current/*.md` must carry YAML front-matter (`status: active` / `owner: backend` /
+  `quadrant: reference|how-to|explanation` / `updated: YYYY-MM-DD`); `--verify` flags missing
+  blocks, stale `updated`, and `status: stale` docs not yet archived.
 - Completed items are **deleted** outright — no markers.
 
 ## Read First

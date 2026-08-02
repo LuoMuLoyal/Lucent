@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: reference
+updated: 2026-08-02
+---
+
 # Lucent Environment
 
 本文档保留本地环境、Docker 和快速命令总览。

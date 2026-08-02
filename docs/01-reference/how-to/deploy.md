@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: how-to
+updated: 2026-08-02
+---
+
 # How-To: 生产部署快速路径
 
 详细部署手册见 [[../deployment]]。本文仅给出快速步骤和检查点。

@@ -29,7 +29,7 @@ Last updated: 2026-07-20
 - Lucent does not maintain a runtime CN → DrugBank mapping bridge or alias table. Cross-source
   questions are handled by the assistant's source-split structured lookup tools, which return
   separate CN and DrugBank evidence without asserting a single merged entity. This decision is
-  formalized in [ADR-0008](../adr/0008-no-cn-drugbank-medicine-mapping.md): no CN↔DrugBank
+  formalized in [ADR-0008](../../01-reference/adr/0008-no-cn-drugbank-medicine-mapping.md): no CN↔DrugBank
   mapping will be built — the `drugbank_ids` field has been removed from `cn_medicine_products`.
 - Medicine dose logs now have a slot-aware contract: a single dose log can carry `reminderId` +
   `scheduledTime` to distinguish multiple reminder slots for the same medicine on the same day.

@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: how-to
+updated: 2026-08-02
+---
+
 # How-To: 导出 OpenAPI 并再生 Flutter 客户端
 
 ## 前置

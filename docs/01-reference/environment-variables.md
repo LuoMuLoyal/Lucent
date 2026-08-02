@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: reference
+updated: 2026-08-02
+---
+
 # Environment Variables
 
 本文件是 [[environment]] 拆分后的子文档。

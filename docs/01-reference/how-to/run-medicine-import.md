@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: how-to
+updated: 2026-08-02
+---
+
 # How-To: 运行药品数据导入
 
 ## 前置

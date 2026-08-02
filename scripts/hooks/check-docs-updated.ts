@@ -7,17 +7,21 @@
 // - Blocking (default, pre-commit): code staged but NO docs/ staged → exit(1).
 // - Warning-only (--warning-only): print per-rule report without blocking.
 // - Verify (--verify): check doc-map references, migration-log plan/spec
-//   references, single-H1 structure, stale active docs, unreferenced docs.
+//   references, single-H1 structure, front-matter metadata (missing / stale
+//   `updated` / `status: stale`), stale active docs, unreferenced docs.
 // Bypass: SKIP_DOC_CHECK=1 or `git commit --no-verify`.
 
 import { execSync } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
   BYPASS_ENV,
   checkMigrationLogOverwrite,
   collectVerifyProblems,
+  findDocsMissingFrontMatter,
+  findStaleStatusDocs,
   findUnreferencedActiveDocs,
+  getStaleByFrontMatter,
   getStaleDocs,
   getTodayDate,
   getTodayLogPath,
@@ -121,8 +125,26 @@ function runVerify(repoRoot: string): void {
   );
 
   const activeDocs = availableDocs.filter(isActiveDoc);
+  const contentByPath: Record<string, string> = {};
+  for (const doc of activeDocs) {
+    const full = resolve(repoRoot, doc);
+    if (existsSync(full)) contentByPath[doc] = readFileSync(full, 'utf-8');
+  }
   const lastModified = getLastModifiedMap(repoRoot, activeDocs);
   const today = getTodayDate();
+  problems.push(
+    ...findDocsMissingFrontMatter(activeDocs, contentByPath).map(
+      (p) =>
+        `${p}: missing/incomplete front-matter (need status / owner / quadrant / updated)`,
+    ),
+    ...getStaleByFrontMatter(activeDocs, contentByPath, today).map(
+      (p) =>
+        `${p}: stale (front-matter updated >${STALE_DOC_THRESHOLD_DAYS}d — review or archive)`,
+    ),
+    ...findStaleStatusDocs(activeDocs, contentByPath).map(
+      (p) => `${p}: status=stale but not archived — move to 03-archive/`,
+    ),
+  );
   problems.push(
     ...getStaleDocs(activeDocs, lastModified, today).map(
       (p) =>
@@ -142,7 +164,7 @@ function runVerify(repoRoot: string): void {
     process.exit(1);
   }
   console.log(
-    'Doc verification passed (references, H1 structure, freshness, readership).',
+    'Doc verification passed (references, H1 structure, front-matter, freshness, readership).',
   );
 }
 
@@ -175,7 +197,8 @@ Options:
   --staged            Read staged changes instead of the working tree.
   --warning-only      Do not block; just print the per-rule report.
   --verify            Verify doc-map + migration-log references, H1 structure,
-                      stale active docs, and doc readership; exit(1) on problems.
+                      front-matter metadata, stale active docs, and doc
+                      readership; exit(1) on problems.
   --help              Show this help text.
 
 Environment:

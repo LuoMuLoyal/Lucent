@@ -4,13 +4,18 @@ import {
   extractPlanReferences,
   findDocMapOrphans,
   findDocMapGlobOrphans,
+  findDocsMissingFrontMatter,
+  findStaleStatusDocs,
   findUnreferencedActiveDocs,
+  getStaleByFrontMatter,
   getStaleDocs,
   getTodayDate,
   globToRegExp,
   hasMultipleH1,
   isActiveDoc,
+  isFrontMatterRequired,
   parseDocMapYaml,
+  parseFrontMatter,
 } from './doc-coverage-lib.ts';
 
 const SAMPLE_YAML = `
@@ -209,5 +214,140 @@ describe('findDocMapOrphans / findDocMapGlobOrphans', () => {
     ).toEqual([
       'infra: glob "docs/02-logs/migration-log/*.md" matches no existing file',
     ]);
+  });
+});
+
+describe('isFrontMatterRequired', () => {
+  it('requires front-matter for reference/how-to/current docs only', () => {
+    expect(isFrontMatterRequired('docs/01-reference/architecture.md')).toBe(
+      true,
+    );
+    expect(isFrontMatterRequired('docs/01-reference/how-to/deploy.md')).toBe(
+      true,
+    );
+    expect(isFrontMatterRequired('docs/00-current/TODO.md')).toBe(true);
+    expect(isFrontMatterRequired('docs/01-reference/adr/0001-x.md')).toBe(
+      false,
+    );
+    expect(isFrontMatterRequired('docs/01-reference/contracts/x.md')).toBe(
+      false,
+    );
+    expect(isFrontMatterRequired('docs/README.md')).toBe(false);
+  });
+});
+
+describe('parseFrontMatter', () => {
+  it('parses a leading front-matter block', () => {
+    const content = `---
+status: active
+owner: backend
+quadrant: reference
+updated: 2026-08-02
+---
+
+# Title
+`;
+    expect(parseFrontMatter(content)).toEqual({
+      status: 'active',
+      owner: 'backend',
+      quadrant: 'reference',
+      updated: '2026-08-02',
+    });
+  });
+  it('returns empty object when no front-matter', () => {
+    expect(parseFrontMatter('# Title\n')).toEqual({});
+  });
+});
+
+describe('findDocsMissingFrontMatter', () => {
+  it('flags required docs without a full front-matter block', () => {
+    const contents: Record<string, string> = {
+      'docs/01-reference/a.md': '# A',
+      'docs/01-reference/b.md': `---
+status: active
+owner: backend
+quadrant: reference
+updated: 2026-08-02
+---
+
+# B`,
+      'docs/01-reference/c.md': `---
+status: active
+---
+
+# C`,
+      'docs/01-reference/adr/0001-x.md': '# ADR',
+    };
+    expect(
+      findDocsMissingFrontMatter(
+        [
+          'docs/01-reference/a.md',
+          'docs/01-reference/b.md',
+          'docs/01-reference/c.md',
+          'docs/01-reference/adr/0001-x.md',
+        ],
+        contents,
+      ),
+    ).toEqual(['docs/01-reference/a.md', 'docs/01-reference/c.md']);
+  });
+});
+
+describe('getStaleByFrontMatter', () => {
+  it('flags active docs whose updated is older than threshold', () => {
+    const contents: Record<string, string> = {
+      'docs/01-reference/a.md': `---
+status: active
+updated: 2026-01-01
+---`,
+      'docs/01-reference/b.md': `---
+status: active
+updated: 2026-07-30
+---`,
+      'docs/01-reference/c.md': `---
+status: stale
+updated: 2026-01-01
+---`,
+    };
+    expect(
+      getStaleByFrontMatter(
+        [
+          'docs/01-reference/a.md',
+          'docs/01-reference/b.md',
+          'docs/01-reference/c.md',
+        ],
+        contents,
+        '2026-08-01',
+        90,
+      ),
+    ).toEqual(['docs/01-reference/a.md']);
+  });
+  it('skips docs without front-matter or updated', () => {
+    expect(
+      getStaleByFrontMatter(
+        ['docs/01-reference/d.md'],
+        { 'docs/01-reference/d.md': '# D' },
+        '2026-08-01',
+        90,
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe('findStaleStatusDocs', () => {
+  it('flags docs explicitly marked stale but not archived', () => {
+    const contents: Record<string, string> = {
+      'docs/01-reference/a.md': `---
+status: stale
+---`,
+      'docs/01-reference/b.md': `---
+status: active
+---`,
+    };
+    expect(
+      findStaleStatusDocs(
+        ['docs/01-reference/a.md', 'docs/01-reference/b.md'],
+        contents,
+      ),
+    ).toEqual(['docs/01-reference/a.md']);
   });
 });

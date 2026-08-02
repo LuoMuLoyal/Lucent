@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: how-to
+updated: 2026-08-02
+---
+
 # How-To: 新增 NestJS 模块
 
 ## 前置
@@ -10,7 +17,7 @@
 
 ### 1. 创建模块目录
 
-在 `src/modules/` 下新建模块目录，遵循 [[../../00-current/Toolchain_Contract]] 和 `AGENTS.md` 的 Module Subdirectory Whitelist：
+在 `src/modules/` 下新建模块目录，遵循 [[01-reference/toolchain]] 和 `AGENTS.md` 的 Module Subdirectory Whitelist：
 
 ```
 src/modules/{module}/

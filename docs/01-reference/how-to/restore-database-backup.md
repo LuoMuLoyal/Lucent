@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: how-to
+updated: 2026-08-02
+---
+
 # How-To: 数据库备份恢复演练
 
 备份只有在能恢复时才有价值。本文给出从 `pg_dump` 备份恢复数据库的完整流程，用于：

@@ -23,6 +23,82 @@ export function isActiveDoc(path: string): boolean {
   return ACTIVE_DOC_PATTERNS.some((p) => matchesPattern(path, p));
 }
 
+// --- YAML front-matter -------------------------------------------------
+/** Content docs that MUST carry front-matter (status / owner / quadrant / updated). */
+export const FRONT_MATTER_REQUIRED_PATTERNS: string[] = [
+  'docs/00-current/*.md',
+  'docs/01-reference/*.md',
+  'docs/01-reference/how-to/*.md',
+];
+
+export function isFrontMatterRequired(path: string): boolean {
+  return FRONT_MATTER_REQUIRED_PATTERNS.some((p) => matchesPattern(path, p));
+}
+
+export interface DocFrontMatter {
+  status?: string;
+  owner?: string;
+  quadrant?: string;
+  updated?: string;
+}
+
+/** Parse a leading `---` YAML front-matter block (Obsidian-compatible). */
+export function parseFrontMatter(content: string): DocFrontMatter {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(content);
+  if (!match) return {};
+  const fm: DocFrontMatter = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const kv = /^([a-zA-Z][\w-]*):\s*(.*)$/.exec(line.trim());
+    if (kv) (fm as Record<string, string>)[kv[1]] = kv[2].trim();
+  }
+  return fm;
+}
+
+/** Docs that should carry front-matter but do not (or have an empty block). */
+export function findDocsMissingFrontMatter(
+  activeDocs: string[],
+  contentByPath: Record<string, string>,
+): string[] {
+  return activeDocs.filter((path) => {
+    if (!isFrontMatterRequired(path)) return false;
+    const content = contentByPath[path];
+    if (content === undefined) return false;
+    const fm = parseFrontMatter(content);
+    return !(fm.status && fm.owner && fm.quadrant && fm.updated);
+  });
+}
+
+/** Active docs whose front-matter `updated` is older than thresholdDays. */
+export function getStaleByFrontMatter(
+  activeDocs: string[],
+  contentByPath: Record<string, string>,
+  today: string,
+  thresholdDays = STALE_DOC_THRESHOLD_DAYS,
+): string[] {
+  const todayMs = Date.parse(today);
+  return activeDocs.filter((path) => {
+    const content = contentByPath[path];
+    if (content === undefined) return false;
+    const fm = parseFrontMatter(content);
+    if (fm.status !== 'active' || !fm.updated) return false;
+    const ms = Date.parse(fm.updated);
+    if (Number.isNaN(ms)) return false;
+    return todayMs - ms > thresholdDays * 86_400_000;
+  });
+}
+
+/** Active docs explicitly marked `status: stale` but not yet archived. */
+export function findStaleStatusDocs(
+  activeDocs: string[],
+  contentByPath: Record<string, string>,
+): string[] {
+  return activeDocs.filter((path) => {
+    const content = contentByPath[path];
+    if (content === undefined) return false;
+    return parseFrontMatter(content).status === 'stale';
+  });
+}
+
 export interface DocCoverageRule {
   name: string;
   codePatterns: string[];

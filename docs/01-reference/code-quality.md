@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: reference
+updated: 2026-08-02
+---
+
 # Code Quality / Maintainability
 
 Last updated: 2026-08-01

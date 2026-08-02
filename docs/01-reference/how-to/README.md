@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: how-to
+updated: 2026-08-02
+---
+
 # How-To Guides
 
 操作指南目录。每篇指南聚焦一个常见任务，给出最小可执行步骤。

@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: explanation
+updated: 2026-08-02
+---
+
 # Lucent Architecture
 
 ## Module Dependency Graph
