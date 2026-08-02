@@ -10,10 +10,30 @@
  * OTEL_EXPORTER_OTLP_ENDPOINT（默认 http://127.0.0.1:4318/v1/traces）。
  */
 
+import { join } from 'node:path';
+import { config as loadDotenv } from 'dotenv';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import { getEnvFilePaths } from './config/env/env-file-paths';
+
+/**
+ * Loads the same environment files that ConfigModule will use later during
+ * bootstrap. This module runs before Nest creates ConfigModule, so the OTel
+ * enablement flag must be available here rather than only after Nest starts.
+ * Existing process environment variables keep precedence over dotenv files.
+ */
+function loadTracingEnvironment(): void {
+  for (const envFilePath of getEnvFilePaths()) {
+    loadDotenv({
+      path: join(process.cwd(), envFilePath),
+      override: false,
+    });
+  }
+}
+
+loadTracingEnvironment();
 
 const enabled = process.env['OTEL_ENABLED'] === 'true';
 
