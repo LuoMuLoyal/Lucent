@@ -46,6 +46,14 @@ export async function setupApp(
     'application/json',
     { parseAs: 'string' },
     (_req, body, done) => {
+      // Some clients (e.g. the generated OpenAPI/Dart client) send POSTs with
+      // Content-Type: application/json but no body. JSON.parse('') would throw
+      // "Unexpected end of JSON input", so treat an empty payload as an
+      // absent body instead of failing the request.
+      if (typeof body === 'string' && body.trim() === '') {
+        done(null, undefined);
+        return;
+      }
       try {
         done(null, JSON.parse(body as string));
       } catch (err) {
@@ -227,17 +235,34 @@ export async function setupApp(
 
   // ── Self-hosted Scalar standalone asset (avoids unreachable CDN) ──
   void fastify.get('/scalar/standalone.js', async (_request, reply) => {
-    const file = join(
-      process.cwd(),
-      'node_modules',
-      '@scalar',
-      'api-reference',
-      'dist',
-      'browser',
-      'standalone.js',
-    );
-    reply.type('application/javascript');
-    reply.send(await readFile(file));
+    try {
+      // Resolve relative to this file so it works regardless of the process
+      // working directory (PM2 / systemd / Docker). `__dirname` is the project
+      // root both in dev (src/) and after `nest build` (dist/).
+      const file = join(
+        __dirname,
+        '..',
+        'node_modules',
+        '@scalar',
+        'api-reference',
+        'dist',
+        'browser',
+        'standalone.js',
+      );
+      const content = await readFile(file);
+      // The bundle only changes between @scalar/api-reference versions, so a
+      // long-lived cache is safe.
+      reply
+        .type('application/javascript')
+        .header('Cache-Control', 'public, max-age=31536000, immutable')
+        .send(content);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        reply.status(404).send('Scalar bundle not found');
+        return;
+      }
+      throw err;
+    }
   });
 
   void fastify.get(
