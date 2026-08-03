@@ -37,7 +37,7 @@ Lucent's notification system is split into two layers with a clear ownership bou
   - Status: `PushDeliveryService` implemented as no-op stub (queries `UserDevice` where `notificationsEnabled=true`, logs attempt at debug level). FCM/APNs SDK integration is deferred until credentials are provisioned — replace the inner block in `sendToUser()` to enable real delivery.
   - Device registration API: `POST /api/v1/user/user-devices` (register or update by pushToken — cross-user hijack protected, returns 403 if token owned by another user), `GET` (list), `DELETE` (unregister — returns 404 if not found, 403 if owned by another user).
 - Reminder delivery log
-  - Status: `ReminderSchedulerService` (`@Cron('* * * * *')`) now writes `UserReminderDelivery` rows every minute for due reminders — matching `scheduledHour:Minute` in user timezone + `daysOfWeek` + date window. Channel=`in_app`, status=`delivered`. Deduplicated by `(reminderId, scheduledFor)`. Uses cursor-based pagination (batch size 500) to avoid OOM on large datasets. Overlap guard prevents concurrent tick execution.
+  - Status: `ReminderSchedulerService` (`@Cron('* * * * *')`) now writes `UserReminderDelivery` rows every minute for due reminders — matching `scheduledHour:Minute` in user timezone + `daysOfWeek` + date window. Channel=`in_app`, status=`delivered`. Deduplicated by the `(userId, reminderId, scheduledFor)` unique constraint (`findFirst` fast path + `createMany({ skipDuplicates: true })` atomic fallback, at-least-once — see [ADR-0011](../adr/0011-reminder-delivery-at-least-once.md)). Uses cursor-based pagination (batch size 500) to avoid OOM on large datasets.
 - Notification content templates
   - Status: Not implemented
 
@@ -129,7 +129,7 @@ UserMedicineReminder {
 
 ### 3. Reminder Delivery Log (read-only, audit)
 
-**Status:** implemented. `ReminderSchedulerService` (`@Cron('* * * * *')`) writes delivery rows every minute for due reminders, creating `UserReminderDelivery` records with `channel='in_app'` and `status='delivered'`. Push delivery via `PushDeliveryService` is integrated as a best-effort second channel (no-op stub until FCM/APNs credentials are provisioned). Uses cursor-based pagination (batch size 500) to avoid OOM and an in-process overlap guard to prevent concurrent tick execution.
+**Status:** implemented. `ReminderSchedulerService` (`@Cron('* * * * *')`) writes delivery rows every minute for due reminders, creating `UserReminderDelivery` records with `channel='in_app'` and `status='delivered'`. Push delivery via `PushDeliveryService` is integrated as a best-effort second channel (no-op stub until FCM/APNs credentials are provisioned). Uses cursor-based pagination (batch size 500) to avoid OOM. Overlap dedup is DB-level: `(userId, reminderId, scheduledFor)` unique constraint + `findFirst` fast path + `createMany({ skipDuplicates: true })` (at-least-once, see [ADR-0011](../adr/0011-reminder-delivery-at-least-once.md)); the previous in-process overlap guard has been removed.
 
 **Model:** `UserReminderDelivery` (new Prisma model)
 

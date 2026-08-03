@@ -354,6 +354,7 @@ model UserReminderDelivery {
   user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   reminder     UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
 
+  @@unique([userId, reminderId, scheduledFor])
   @@index([userId, scheduledFor])
   @@index([userId, reminderId])
   @@index([userId, channel, status])

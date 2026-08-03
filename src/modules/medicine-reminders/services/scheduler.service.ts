@@ -68,8 +68,12 @@ interface LocalTime {
  * Runs every minute via BullMQ Repeatable Job. The previous process-level
  * `isDispatching` re-entrancy guard has been removed: BullMQ guarantees a
  * single worker does not consume the same job concurrently, and adjacent
- * repeat instances that might overlap are deduplicated by the DB unique
- * delivery record (findFirst + create per reminderId+scheduledFor).
+ * repeat instances that might overlap are deduplicated by the
+ * `(userId, reminderId, scheduledFor)` unique constraint: `findFirst` is the
+ * fast path, and `createMany({ skipDuplicates: true })` makes the record write
+ * atomic under a race (see ADR-0011). Delivery is at-least-once — a
+ * notification can be sent twice in a true multi-instance overlap, but the
+ * delivery record is never duplicated.
  */
 @Injectable()
 export class ReminderSchedulerService {
@@ -251,7 +255,11 @@ export class ReminderSchedulerService {
       );
 
       // Notification succeeded — now persist the delivery record for dedup.
-      await this.prisma.userReminderDelivery.create({
+      // `createMany({ skipDuplicates: true })` + the (userId, reminderId,
+      // scheduledFor) unique constraint make the record write atomic: if an
+      // overlapping tick also passed the findFirst fast path, its insert is
+      // silently skipped instead of throwing P2002.
+      await this.prisma.userReminderDelivery.createMany({
         data: {
           userId: reminder.userId,
           reminderId: reminder.id,
@@ -260,6 +268,7 @@ export class ReminderSchedulerService {
           scheduledFor,
           deliveredAt: now(),
         },
+        skipDuplicates: true,
       });
 
       this.logger.debug(

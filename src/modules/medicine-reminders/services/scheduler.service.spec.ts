@@ -36,7 +36,7 @@ function buildPrisma(overrides: Record<string, unknown> = {}) {
     },
     userReminderDelivery: {
       findFirst: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockResolvedValue({}),
+      createMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     ...overrides,
   };
@@ -87,7 +87,7 @@ describe('ReminderSchedulerService', () => {
     await service.dispatchDueReminders();
 
     expect(prisma.userReminderDelivery.findFirst).not.toHaveBeenCalled();
-    expect(prisma.userReminderDelivery.create).not.toHaveBeenCalled();
+    expect(prisma.userReminderDelivery.createMany).not.toHaveBeenCalled();
     expect(notifications.createOrReplaceScoped).not.toHaveBeenCalled();
   });
 
@@ -161,7 +161,7 @@ describe('ReminderSchedulerService', () => {
     });
 
     // Delivery record created
-    expect(prisma.userReminderDelivery.create).toHaveBeenCalledWith({
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: 'user-1',
         reminderId: 'reminder-1',
@@ -169,6 +169,7 @@ describe('ReminderSchedulerService', () => {
         status: 'delivered',
         scheduledFor: new Date('2026-07-20T00:30:00.000Z'),
       }),
+      skipDuplicates: true,
     });
 
     // Notification sent
@@ -214,7 +215,7 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
-    expect(prisma.userReminderDelivery.create).not.toHaveBeenCalled();
+    expect(prisma.userReminderDelivery.createMany).not.toHaveBeenCalled();
     expect(notifications.createOrReplaceScoped).not.toHaveBeenCalled();
   });
 
@@ -228,7 +229,7 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
-    expect(prisma.userReminderDelivery.create).toHaveBeenCalledTimes(2);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(2);
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledTimes(2);
   });
 
@@ -248,7 +249,7 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
-    expect(prisma.userReminderDelivery.create).toHaveBeenCalledTimes(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(1);
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledTimes(1);
   });
 
@@ -262,7 +263,7 @@ describe('ReminderSchedulerService', () => {
     await service.dispatchDueReminders();
 
     expect(prisma.userReminderDelivery.findFirst).not.toHaveBeenCalled();
-    expect(prisma.userReminderDelivery.create).not.toHaveBeenCalled();
+    expect(prisma.userReminderDelivery.createMany).not.toHaveBeenCalled();
   });
 
   it('logs and continues when a single dispatch fails', async () => {
@@ -279,7 +280,7 @@ describe('ReminderSchedulerService', () => {
     await service.dispatchDueReminders();
 
     // Only the second reminder's delivery record should be created
-    expect(prisma.userReminderDelivery.create).toHaveBeenCalledTimes(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(1);
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledTimes(2);
   });
 
@@ -292,7 +293,7 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
-    expect(prisma.userReminderDelivery.create).toHaveBeenCalledTimes(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(1);
   });
 
   it('fires when daysOfWeek includes the current weekday', async () => {
@@ -303,6 +304,6 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
-    expect(prisma.userReminderDelivery.create).toHaveBeenCalledTimes(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(1);
   });
 });
