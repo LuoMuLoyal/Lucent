@@ -127,6 +127,34 @@ describe('DataExportService', () => {
       expect(result.status).toBe('completed');
     });
 
+    it('falls back to inline processing when enqueue throws (Redis down)', async () => {
+      queueService.enqueue = vi
+        .fn()
+        .mockRejectedValue(new Error('Redis connection lost'));
+      prisma.dataExportRequest.create.mockResolvedValue(makeRow());
+      prisma.dataExportRequest.findUniqueOrThrow.mockResolvedValue(
+        makeRow({ status: 'completed' }),
+      );
+
+      const result = await service.createRequest(
+        'user-1',
+        { kind: 'hospital', format: 'pdf', range: 'last_7_days' },
+        'zh',
+      );
+
+      expect(queueService.enqueue).toHaveBeenCalledWith({
+        exportRequestId: 'exp-1',
+        userId: 'user-1',
+        language: 'zh',
+      });
+      expect(processor.process).toHaveBeenCalledWith({
+        exportRequestId: 'exp-1',
+        userId: 'user-1',
+        language: 'zh',
+      });
+      expect(result.status).toBe('completed');
+    });
+
     it('overrides range to last_30_days for monthly kind', async () => {
       prisma.dataExportRequest.create.mockResolvedValue(
         makeRow({ kind: 'monthly', range: 'last_30_days' }),

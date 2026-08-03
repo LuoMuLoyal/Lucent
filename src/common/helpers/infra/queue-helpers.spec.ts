@@ -4,6 +4,7 @@ describe('enqueueOrFallback', () => {
   it('returns { jobId } when queue is configured and enqueue succeeds', async () => {
     const result = await enqueueOrFallback(
       true,
+      'test-queue',
       () => Promise.resolve('job-123'),
       () => Promise.resolve('fallback-result'),
       'result',
@@ -17,6 +18,7 @@ describe('enqueueOrFallback', () => {
 
     const result = await enqueueOrFallback(
       false,
+      'test-queue',
       () => Promise.resolve('job-1'),
       fallback,
       'result',
@@ -31,7 +33,26 @@ describe('enqueueOrFallback', () => {
 
     const result = await enqueueOrFallback(
       true,
+      'test-queue',
       () => Promise.resolve(null),
+      fallback,
+      'result',
+    );
+
+    expect(result).toEqual({ result: 'sync-result' });
+    expect(fallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to sync when enqueue throws (Redis configured but down)', async () => {
+    const enqueue = vi
+      .fn()
+      .mockRejectedValue(new Error('Redis connection lost'));
+    const fallback = vi.fn().mockResolvedValue('sync-result');
+
+    const result = await enqueueOrFallback(
+      true,
+      'test-queue',
+      enqueue,
       fallback,
       'result',
     );
@@ -43,6 +64,7 @@ describe('enqueueOrFallback', () => {
   it('uses custom fallbackKey in the returned object', async () => {
     const result = await enqueueOrFallback(
       false,
+      'test-queue',
       () => Promise.resolve('job-1'),
       () => Promise.resolve('base64-data'),
       'pdfBase64',
@@ -56,6 +78,7 @@ describe('enqueueOrFallback', () => {
 
     await enqueueOrFallback(
       false,
+      'test-queue',
       enqueue,
       () => Promise.resolve('fallback'),
       'result',
@@ -69,6 +92,7 @@ describe('enqueueOrFallback', () => {
 
     await enqueueOrFallback(
       true,
+      'test-queue',
       () => Promise.resolve('job-1'),
       fallback,
       'result',

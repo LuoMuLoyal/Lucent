@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Queue, Worker } from 'bullmq';
 import type { ConnectionOptions, JobsOptions } from 'bullmq';
 import { EnvKey } from '../../config/env/env-keys.enum';
+import { parseRedisUrl } from '../helpers/infra/redis-url';
 import { MetricsService } from '../metrics/metrics.service';
 
 /** Common defaults shared across all BullMQ queues. */
@@ -197,16 +198,8 @@ export class BullmqQueueFactory implements OnModuleDestroy {
     if (this.redisUrl == null) {
       throw new Error('REDIS_URL is not configured');
     }
-    const url = new URL(this.redisUrl);
-    const database = url.pathname ? Number(url.pathname.slice(1)) || 0 : 0;
-
     return {
-      host: url.hostname,
-      port: Number(url.port) || 6379,
-      db: database,
-      ...(url.username ? { username: url.username } : {}),
-      ...(url.password ? { password: url.password } : {}),
-      ...(url.protocol === 'rediss:' ? { tls: {} } : {}),
+      ...parseRedisUrl(this.redisUrl),
       ...retryOptions,
     };
   }

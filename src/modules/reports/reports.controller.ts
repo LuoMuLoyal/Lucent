@@ -130,6 +130,7 @@ export class ReportsController {
     return successEnvelope(
       await enqueueOrFallback(
         this.reportSummaryQueueService.isConfigured,
+        'report-summary',
         () => this.reportSummaryQueueService.enqueue(user.sub, dto, language),
         () => this.reportsAiSummaryService.generate(user.sub, dto, language),
         'result',
@@ -298,6 +299,7 @@ export class ReportsController {
     return successEnvelope(
       await enqueueOrFallback(
         this.clinicSummaryPdfQueueService.isConfigured,
+        'clinic-summary-pdf',
         () => this.clinicSummaryPdfQueueService.enqueue(user.sub, language),
         async () =>
           (

@@ -94,7 +94,7 @@ describe('MailQueueService', () => {
     expect(transport.send).not.toHaveBeenCalled();
   });
 
-  it('propagates error when queue.add fails', async () => {
+  it('sends synchronously when queue.add fails (Redis configured but down)', async () => {
     const mockQueue = {
       add: vi.fn().mockRejectedValue(new Error('Redis connection lost')),
       close: vi.fn(),
@@ -102,7 +102,7 @@ describe('MailQueueService', () => {
     const mockWorker = { on: vi.fn(), close: vi.fn() };
 
     const transport = {
-      send: vi.fn(),
+      send: vi.fn().mockResolvedValue(undefined),
     } as unknown as vi.Mocked<MailTransportService>;
 
     // Override factory to return our specific mock
@@ -119,13 +119,17 @@ describe('MailQueueService', () => {
       factory,
     );
 
-    await expect(
-      service.enqueue({
-        to: 'fail@example.com',
-        subject: 'Fail',
-        html: '<p>Fail</p>',
-      }),
-    ).rejects.toThrow('Redis connection lost');
+    await service.enqueue({
+      to: 'fail@example.com',
+      subject: 'Fail',
+      html: '<p>Fail</p>',
+    });
+
+    expect(transport.send).toHaveBeenCalledWith(
+      'fail@example.com',
+      'Fail',
+      '<p>Fail</p>',
+    );
   });
 
   it('uses default job options when mail config is not available', () => {

@@ -63,4 +63,8 @@ export {
   commonCharacterCount,
 } from './helpers/format/string.utils';
 export { enqueueOrFallback } from './helpers/infra/queue-helpers';
+export {
+  parseRedisUrl,
+  type RedisConnectionOptions,
+} from './helpers/infra/redis-url';
 export { withRetry, fetchWithRetry } from './helpers/infra/retry.utils';

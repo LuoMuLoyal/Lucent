@@ -51,6 +51,8 @@ export class MealAnalysisWorkerService {
       return;
     }
 
+    // 幂等检查：enqueue 不使用确定性 jobId，同 revision 的冗余 job 与
+    // 旧 revision 的过期 job 都靠这里跳过，去重由 worker 幂等承担。
     if (record.mealSourceRevision !== job.sourceRevision) {
       return;
     }

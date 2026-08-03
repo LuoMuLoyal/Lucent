@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
 import {
@@ -15,6 +15,7 @@ interface MealAnalysisJobData {
 
 @Injectable()
 export class MealAnalysisQueueService {
+  private readonly logger = new Logger(MealAnalysisQueueService.name);
   private readonly queue: Queue<MealAnalysisJobData, void> | null;
 
   constructor(
@@ -37,7 +38,19 @@ export class MealAnalysisQueueService {
       return;
     }
 
-    const jobId = `${job.recordId}:${String(job.sourceRevision)}`;
-    await this.queue.add(MEAL_ANALYSIS_JOB_NAME, job, { jobId });
+    try {
+      // 不使用确定性 jobId：旧 revision 的冗余 job 由 worker 幂等检查跳过；
+      // 失败 job 在保留期内仍可用同 revision 重新入队，而不会被同 jobId 挡住。
+      await this.queue.add(MEAL_ANALYSIS_JOB_NAME, job);
+    } catch (error) {
+      // Redis 配置但断连时回退到同步处理，避免请求直接 500。
+      this.logger.error(
+        `Failed to enqueue meal analysis job, processing inline: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      await this.mealAnalysisWorkerService.process(job);
+    }
   }
 }

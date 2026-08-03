@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { JobsOptions, Queue } from 'bullmq';
 import { BullmqQueueFactory } from '../common/queue/queue.factory';
@@ -17,6 +17,7 @@ interface SendMailJobData {
 
 @Injectable()
 export class MailQueueService {
+  private readonly logger = new Logger(MailQueueService.name);
   private readonly queue: Queue<SendMailJobData, void> | null;
 
   constructor(
@@ -41,7 +42,18 @@ export class MailQueueService {
       return;
     }
 
-    await this.queue.add(SEND_MAIL_JOB, message);
+    try {
+      await this.queue.add(SEND_MAIL_JOB, message);
+    } catch (error) {
+      // Redis 配置但断连时回退到同步发送，避免请求直接 500。
+      this.logger.error(
+        `Failed to enqueue mail, sending synchronously: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      await this.transport.send(message.to, message.subject, message.html);
+    }
   }
 
   private defaultJobOptions(): JobsOptions {
@@ -66,6 +78,7 @@ export class MailQueueService {
 
   private workerConcurrency(): number {
     const mailConfig = this.configService.get<MailConfig>(ConfigKey.Mail);
-    return mailConfig?.queue.workerConcurrency ?? 3;
+    const q = mailConfig?.queue;
+    return q?.workerConcurrency ?? 3;
   }
 }

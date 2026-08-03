@@ -37,22 +37,22 @@ describe('MealAnalysisQueueService', () => {
       );
     });
 
-    it('enqueues job with correct jobId format', async () => {
+    it('enqueues job without a deterministic jobId', async () => {
       await service.enqueue({
         userId: 'user-1',
         recordId: 'rec-1',
         sourceRevision: 3,
       });
 
-      expect(mockQueue.add).toHaveBeenCalledWith(
-        expect.any(String),
-        { userId: 'user-1', recordId: 'rec-1', sourceRevision: 3 },
-        { jobId: 'rec-1:3' },
-      );
+      expect(mockQueue.add).toHaveBeenCalledWith(expect.any(String), {
+        userId: 'user-1',
+        recordId: 'rec-1',
+        sourceRevision: 3,
+      });
       expect(workerService.process).not.toHaveBeenCalled();
     });
 
-    it('enqueues different jobs for different revisions', async () => {
+    it('enqueues every revision as a fresh job', async () => {
       await service.enqueue({
         userId: 'user-1',
         recordId: 'rec-1',
@@ -65,18 +65,31 @@ describe('MealAnalysisQueueService', () => {
       });
 
       expect(mockQueue.add).toHaveBeenCalledTimes(2);
-      expect(mockQueue.add).toHaveBeenNthCalledWith(
-        1,
-        expect.any(String),
-        expect.any(Object),
-        { jobId: 'rec-1:1' },
-      );
-      expect(mockQueue.add).toHaveBeenNthCalledWith(
-        2,
-        expect.any(String),
-        expect.any(Object),
-        { jobId: 'rec-1:2' },
-      );
+      expect(mockQueue.add).toHaveBeenNthCalledWith(1, expect.any(String), {
+        userId: 'user-1',
+        recordId: 'rec-1',
+        sourceRevision: 1,
+      });
+      expect(mockQueue.add).toHaveBeenNthCalledWith(2, expect.any(String), {
+        userId: 'user-1',
+        recordId: 'rec-1',
+        sourceRevision: 2,
+      });
+    });
+
+    it('falls back to direct processing when queue.add throws', async () => {
+      mockQueue.add = vi
+        .fn()
+        .mockRejectedValue(new Error('Redis connection lost'));
+      const jobData = {
+        userId: 'user-1',
+        recordId: 'rec-1',
+        sourceRevision: 3,
+      };
+
+      await service.enqueue(jobData);
+
+      expect(workerService.process).toHaveBeenCalledWith(jobData);
     });
   });
 

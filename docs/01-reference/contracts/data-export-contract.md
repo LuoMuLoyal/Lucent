@@ -32,6 +32,9 @@ interface CreateDataExportRequestDto {
 **POST Response (201):** `{ code: 0, data: DataExportRequestDto }`
 
 Lucent persists the request row first, then tries to generate the export immediately.
+When the BullMQ queue is unavailable (Redis not configured, or enqueue fails at
+runtime), the request is processed inline synchronously instead of returning an
+error — the response reflects the completed export in that case.
 Current real implementations are:
 
 - `hospital + pdf + last_7_days`

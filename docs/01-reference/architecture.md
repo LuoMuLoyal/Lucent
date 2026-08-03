@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-02
+updated: 2026-08-03
 ---
 
 # Lucent Architecture
@@ -395,7 +395,16 @@ explicitly removed with `removeJobScheduler` to prevent stale jobs from being pr
 queue.
 
 When Redis is unavailable, `BullmqQueueFactory` degrades to synchronous execution
-(the job processor runs inline, results cached in cache-manager).
+(the job processor runs inline, results cached in cache-manager). Since 2026-08-03,
+the same degradation also covers **enqueue-time** failures (Redis configured but
+disconnected): `enqueueOrFallback` and the mail / meal-analysis / data-export
+`enqueue` paths catch queue-add errors and fall back to synchronous processing
+(logged per queue name) instead of returning 500. Meal-analysis enqueues without a
+deterministic jobId — duplicate-job dedup is handled by the worker's revision
+idempotency check, so a failed job can be re-enqueued with the same revision
+during its 7-day retention window. Redis URL parsing is shared via
+`common/helpers/infra/redis-url.ts` (queue factory + cache store), supporting
+`family` / `db` query params and credentials.
 
 ## Security Elevation
 

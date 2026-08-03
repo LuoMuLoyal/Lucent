@@ -6,6 +6,7 @@ import { KeyvAdapter } from 'cache-manager';
 import type { CacheManagerStore } from 'cache-manager';
 import { redisStore } from 'cache-manager-ioredis-yet';
 import { EnvKey } from '../env/env-keys.enum';
+import { parseRedisUrl } from '../../common/helpers/infra/redis-url';
 
 type RedisRuntimeStore = Awaited<ReturnType<typeof redisStore>> & {
   get(key: string): Promise<unknown>;
@@ -26,13 +27,8 @@ export class CacheConfigService implements CacheOptionsFactory {
     const redisUrl = this.configService.get<string>(EnvKey.REDIS_URL);
 
     if (redisUrl) {
-      const url = new URL(redisUrl);
       const store = await redisStore({
-        host: url.hostname,
-        port: Number(url.port) || 6379,
-        password: url.password || undefined,
-        db: url.pathname ? Number(url.pathname.slice(1)) || 0 : 0,
-        tls: url.protocol === 'rediss:' ? {} : undefined,
+        ...parseRedisUrl(redisUrl),
       });
       const keyvStore = this.createKeyvStore(store as RedisRuntimeStore);
 

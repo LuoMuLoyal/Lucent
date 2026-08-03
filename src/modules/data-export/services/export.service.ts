@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '#generated/prisma/client';
 import { PrismaService } from '../../../prisma';
 import type {
@@ -42,6 +42,8 @@ type DataExportRequestRow = Prisma.DataExportRequestGetPayload<{
  */
 @Injectable()
 export class DataExportService {
+  private readonly logger = new Logger(DataExportService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageService: DataExportStorageService,
@@ -86,12 +88,22 @@ export class DataExportService {
 
     // Enqueue async processing via BullMQ
     if (this.queueService.isConfigured) {
-      await this.queueService.enqueue({
-        exportRequestId: created.id,
-        userId,
-        language,
-      });
-      return this.toDto(created);
+      try {
+        await this.queueService.enqueue({
+          exportRequestId: created.id,
+          userId,
+          language,
+        });
+        return this.toDto(created);
+      } catch (error) {
+        // Redis 配置但断连：记日志后走下方 inline 同步处理，避免 500 丢任务。
+        this.logger.error(
+          `Failed to enqueue data export ${created.id}, processing inline: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          error instanceof Error ? error.stack : undefined,
+        );
+      }
     }
 
     // Fallback: synchronous inline processing when queue is unavailable
