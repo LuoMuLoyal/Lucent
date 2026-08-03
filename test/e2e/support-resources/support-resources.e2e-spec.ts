@@ -65,15 +65,22 @@ describe('Support Resources API (e2e)', () => {
 
       const data = expectData(
         response.body as ApiEnvelope<{
-          name: string;
-          version: string;
-          description: string;
-          buildDate: string;
+          minClientVersion: string | null;
+          latestVersion: string | null;
+          downloadUrl: string | null;
+          supportEmail: string | null;
         }>,
       );
-      expect(data.name).toBe('lucent');
-      expect(data.version).toBeTruthy();
-      expect(data.buildDate).toBeTruthy();
+      // 契约只约束字段集合与可空类型，值由环境变量决定（测试环境通常为 null）。
+      expect(Object.keys(data).sort()).toEqual([
+        'downloadUrl',
+        'latestVersion',
+        'minClientVersion',
+        'supportEmail',
+      ]);
+      for (const value of Object.values(data)) {
+        expect(value === null || typeof value === 'string').toBe(true);
+      }
     });
   });
 });

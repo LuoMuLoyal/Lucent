@@ -76,3 +76,18 @@ Last updated: 2026-08-03
   `@prisma/internals` 精确升至 `7.9.1`，修复 7.8.0 的确定性 EEXIST bug（任何 `prisma generate` 均失败）。
   注意：本次安装因 npmmirror 未同步 `find-my-way@9.7.0`（`@prisma/dev` 传递依赖）改走官方源，
   项目 registry 配置未变。
+- **队列加固**（2026-08-03，按 `plans/2026-08-01-queue-service-hardening.md` 修订版实施，
+  计划实施完毕文件已删）：
+  - `enqueueOrFallback` 增加 `queueName` 参数并对 enqueue 包 try-catch（Redis 配置但断连时回退同步处理，
+    记 error 日志含队列名）；mail / meal-analysis enqueue 同样回退；data-export 在 `export.service.ts`
+    调用处兜底走 inline。
+  - Meal-analysis enqueue 去除确定性 jobId，去重交给 worker 幂等检查（revision 比对），
+    失败 job 保留期内可同 revision 重试。
+  - Redis URL 解析抽为 `common/helpers/infra/redis-url.ts`（queue.factory + cache.config 共用，
+    支持 `family`/`db` query 参数与 credentials）。
+  - `mail-queue.service.ts` 的 `workerConcurrency` 读取与 `defaultJobOptions` 对齐
+    （`const q = mailConfig?.queue; q?.workerConcurrency ?? 3`，避免 mailConfig 缺失时 TypeError）。
+  - P2-6（Reminder 调度去重）已实施：`user_reminder_deliveries` 新增
+    `@@unique([userId, reminderId, scheduledFor])`（迁移含历史重复清理），scheduler 写入改
+    `createMany({ skipDuplicates: true })`，「至少一次投递」语义见
+    [ADR-0011](docs/01-reference/adr/0011-reminder-delivery-at-least-once.md)。
