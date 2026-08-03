@@ -12,6 +12,7 @@
 // Run via `pnpm docs:links`.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 
 const VAULT_ROOT = 'docs';
@@ -50,7 +51,7 @@ const MARKDOWN_LINK_RE = /\[[^\]]*\]\(([^)]+)\)/g;
 
 /** Skip fenced code blocks — link-looking text inside fences is not a link. */
 function isLineInFence(line: string, inFence: boolean): boolean {
-  return /^\s*```/.test(line) ? !inFence : inFence;
+  return /^\s*(```|~~~)/.test(line) ? !inFence : inFence;
 }
 
 /** Strip `#anchor` / `#^block` suffixes; returns null for non-file targets. */
@@ -112,7 +113,7 @@ function targetExists(
   const path = /\.md$/i.test(target)
     ? `${base}/${target}`
     : `${base}/${target}.md`;
-  if (existsSync(resolve(repoRoot, path.replace(/\//g, '\\')))) return true;
+  if (existsSync(resolve(repoRoot, path))) return true;
 
   // Fallback: a path-style wikilink may be relative to the current file's
   // directory (e.g. [[adr/0004-...]] written from 01-reference/).
@@ -120,7 +121,7 @@ function targetExists(
     const rel = /\.md$/i.test(target)
       ? `${dirname(file)}/${target}`
       : `${dirname(file)}/${target}.md`;
-    return existsSync(resolve(repoRoot, rel.replace(/\//g, '\\')));
+    return existsSync(resolve(repoRoot, rel));
   }
   return false;
 }
@@ -130,7 +131,7 @@ function checkFile(
   repoRoot: string,
   allFiles: string[],
 ): BrokenLink[] {
-  const full = resolve(repoRoot, file.replace(/\//g, '\\'));
+  const full = resolve(repoRoot, file);
   if (!existsSync(full)) return [];
   const content = readFileSync(full, 'utf-8');
   const broken: BrokenLink[] = [];
@@ -214,13 +215,26 @@ Options:
   --help              Show this help text.
 `;
 
+/** Resolve the git worktree root; fall back to process.cwd() outside a repo. */
+function resolveRepoRoot(): string {
+  try {
+    const top = execSync('git rev-parse --show-toplevel', {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }).trim();
+    return top || process.cwd();
+  } catch {
+    return process.cwd();
+  }
+}
+
 function main(): void {
   const args = parseArgs(process.argv.slice(2));
   if (args.showHelp) {
     console.log(USAGE);
     return;
   }
-  runCheck(process.cwd(), args.verify);
+  runCheck(resolveRepoRoot(), args.verify);
 }
 
 main();

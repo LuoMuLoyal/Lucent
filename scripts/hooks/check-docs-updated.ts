@@ -41,20 +41,34 @@ const EXCLUDE_PATTERNS: RegExp[] = [
   /^test\//,
 ];
 
-function run(cmd: string): string {
-  return execSync(cmd, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+function run(cmd: string, cwd?: string): string {
+  return execSync(cmd, {
+    encoding: 'utf-8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+    cwd,
+  });
 }
 
-function getChangedFiles(stagedOnly: boolean): string[] {
+/** Resolve the git worktree root; fall back to process.cwd() outside a repo. */
+function resolveRepoRoot(): string {
+  try {
+    const top = run('git rev-parse --show-toplevel').trim();
+    return top || process.cwd();
+  } catch {
+    return process.cwd();
+  }
+}
+
+function getChangedFiles(stagedOnly: boolean, cwd: string): string[] {
   const diffCmd = stagedOnly
     ? 'git diff --cached --name-only --diff-filter=ACMR'
     : 'git diff --name-only --diff-filter=ACMR';
-  const changed = run(diffCmd)
+  const changed = run(diffCmd, cwd)
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
   if (stagedOnly) return changed;
-  const untracked = run('git ls-files --others --exclude-standard')
+  const untracked = run('git ls-files --others --exclude-standard', cwd)
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean);
@@ -102,7 +116,7 @@ function getLastModifiedMap(
   const map: Record<string, string> = {};
   for (const f of files) {
     try {
-      const d = run(`git log -1 --format=%cs -- ${f}`).trim();
+      const d = run(`git log -1 --format=%cs -- ${f}`, repoRoot).trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(d)) map[f] = d;
     } catch {
       // untracked or not in git — skip
@@ -212,8 +226,9 @@ function main(): void {
     return;
   }
 
-  // CLI is always invoked from the repo root (pre-commit hook / package.json scripts).
-  const repoRoot = process.cwd();
+  // Resolve the repo root explicitly so the script works when invoked from a
+  // subdirectory (e.g. `node Lucent/scripts/hooks/check-docs-updated.ts`).
+  const repoRoot = resolveRepoRoot();
 
   if (args.verify) {
     runVerify(repoRoot);
@@ -226,11 +241,11 @@ function main(): void {
   }
 
   if (!args.warningOnly) {
-    checkMigrationLogOverwrite(run);
+    checkMigrationLogOverwrite((cmd) => run(cmd, repoRoot));
   }
 
   const rules = loadDocMap(repoRoot);
-  const changedFiles = getChangedFiles(args.stagedOnly);
+  const changedFiles = getChangedFiles(args.stagedOnly, repoRoot);
   if (changedFiles.length === 0) {
     console.log('Documentation coverage: no changed files detected.');
     return;
