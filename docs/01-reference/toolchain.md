@@ -52,6 +52,10 @@ Last updated: 2026-08-01
   eliminating the P0 crash (`int.toJson is not a function`) and P1 type loss (`dynamic`) in the
   Flutter generated client. SSE stream endpoints have `text/event-stream` content annotations, and
   the `/clear` endpoint has a named response DTO.
+- SSE event names and payload sequencing are runtime semantics rather than generated OpenAPI fields:
+  Assistant uses `chunk → result → done` (or `error`), while Today Analysis and Reports use
+  `summary → result → done` (or `error`). Changes to those event contracts require updating
+  the corresponding controller, client parser, and assistant contract documentation together.
 - **文档覆盖校验**：`scripts/hooks/check-docs-updated.ts` 读取 `docs/doc-map.yaml` 映射规则，
   提供两种模式：
   - `pnpm docs:check`（`--warning-only`）：扫描工作区变更，输出每条规则中未被触及的文档列表，不阻断。

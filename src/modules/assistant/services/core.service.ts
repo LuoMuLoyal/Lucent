@@ -178,15 +178,23 @@ export class AssistantService {
         );
         return this.assistantToolExecutor.executeMany(toolContext, executable);
       },
+      onChunk,
     );
 
     let result: AssistantMessageResult;
     if (conversationResult.finalContent != null) {
-      result = await this.assistantAgentService.streamPreGeneratedContent(
-        conversationResult.finalContent,
-        conversationResult.toolResults,
-        onChunk,
-      );
+      result = conversationResult.streamedContent
+        ? {
+            content: conversationResult.finalContent,
+            usedToolNames: conversationResult.toolResults.map(
+              (toolResult) => toolResult.name,
+            ),
+          }
+        : await this.assistantAgentService.streamPreGeneratedContent(
+            conversationResult.finalContent,
+            conversationResult.toolResults,
+            onChunk,
+          );
     } else {
       // Fallback when the graph produced no final content: stream a fresh
       // reply from the original conversation messages. Memory and tool

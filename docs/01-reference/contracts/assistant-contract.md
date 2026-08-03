@@ -210,6 +210,15 @@ Rules:
 - the last message must be a non-empty `user` message
 - tool use stays server-owned and bounded
 - the server may stream text chunks first and then emit one final `result`
+- normal model-backed replies are forwarded from the LangGraph agent/respond
+  nodes as `model.stream()` text deltas while the graph invocation is still
+  running; the graph remains the owner of tool-loop and checkpoint state
+- cache hits and other pre-generated replies use the same SSE shape with a
+  server-side chunking fallback, so clients do not need a second response path
+- the stream uses `chunk` events with `{ content }`, one `result` event with the
+  complete `AssistantStreamResultDto`, and a terminal `done` event with `{}`
+- failures use an `error` event with `{ message }`; clients must not treat a
+  partial chunk sequence as the persisted final result until `result` arrives
 - `proposedActions` never means the backend already wrote data
 - assistant retrieval loops are bounded; the runtime may perform multiple retrieval decisions, but
   only within an explicit server cap

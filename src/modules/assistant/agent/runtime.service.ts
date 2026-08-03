@@ -62,6 +62,7 @@ const CHAT_MODEL_OPTIONS = {
 export interface AssistantConversationResult {
   toolResults: AssistantToolExecutionResult[];
   finalContent: string | null;
+  streamedContent: boolean;
   selectedTools: AssistantToolName[];
   validationFlags: AssistantValidationFlags;
   stopReason:
@@ -138,15 +139,21 @@ export class AssistantRuntimeService {
       conversationId?: string;
     },
     executeTools: ToolExecutorFn,
+    onChunk?: (event: AssistantStreamChunkEvent) => void | Promise<void>,
   ): Promise<AssistantConversationResult> {
     const checkpointer = this.checkpointerService.getSaver();
     // HITL review (interrupt + confirm) only makes sense for a persisted
     // conversation; without `conversationId` the graph stays stateless and
     // never suspends, matching the degradation matrix.
     const enableHithl = input.conversationId != null && checkpointer != null;
+    let streamedContent = false;
     const graph = buildAssistantRuntimeGraph({
       createModel: () =>
         this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
+      onText: async (content) => {
+        streamedContent = true;
+        await onChunk?.({ content });
+      },
       executeTools,
       buildSystemPrompt: buildAssistantSystemPrompt,
       buildReadSystemPrompt,
@@ -189,6 +196,7 @@ export class AssistantRuntimeService {
       return {
         toolResults: result.toolResults,
         finalContent: result.finalContent,
+        streamedContent,
         selectedTools: result.selectedTools,
         validationFlags: result.validationFlags,
         stopReason: result.stopReason,

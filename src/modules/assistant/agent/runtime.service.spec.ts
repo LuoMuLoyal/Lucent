@@ -1,4 +1,4 @@
-import { AIMessage, AIMessageChunk } from '@langchain/core/messages';
+import { AIMessageChunk } from '@langchain/core/messages';
 import { BadRequestException } from '@nestjs/common';
 import { MemorySaver } from '@langchain/langgraph';
 import type { LlmRuntimeService } from '../../../llm-runtime';
@@ -230,9 +230,16 @@ describe('AssistantRuntimeService', () => {
   });
 
   it('runConversation maps graph output and records success', async () => {
+    const stream = vi.fn().mockResolvedValue(
+      (async function* () {
+        await Promise.resolve();
+        yield new AIMessageChunk({ content: '你好呀！' });
+      })(),
+    );
     const mockModel = {
       bindTools: vi.fn(),
-      invoke: vi.fn().mockResolvedValue(new AIMessage('你好呀！')),
+      invoke: vi.fn(),
+      stream,
     };
     const llmRuntimeService = {
       hasRoleConfig: vi.fn().mockReturnValue(true),
@@ -262,13 +269,70 @@ describe('AssistantRuntimeService', () => {
 
     expect(result.finalContent).toBe('你好呀！');
     expect(result.toolResults).toEqual([]);
-    expect(mockModel.invoke).toHaveBeenCalledTimes(1);
+    expect(result.streamedContent).toBe(true);
+    expect(stream).toHaveBeenCalledTimes(1);
+    expect(mockModel.invoke).not.toHaveBeenCalled();
+  });
+
+  it('forwards graph-generated text before runConversation resolves', async () => {
+    async function* buildStream() {
+      await Promise.resolve();
+      yield new AIMessageChunk({ content: '你好' });
+      await Promise.resolve();
+      yield new AIMessageChunk({ content: '呀！' });
+    }
+
+    const invoke = vi.fn();
+    const stream = vi.fn().mockResolvedValue(buildStream());
+    const mockModel = {
+      bindTools: vi.fn(),
+      invoke,
+      stream,
+    };
+    const llmRuntimeService = {
+      hasRoleConfig: vi.fn().mockReturnValue(true),
+      getModelName: vi.fn().mockReturnValue('test-model'),
+      createChatModel: vi.fn().mockReturnValue(mockModel),
+    } as unknown as LlmRuntimeService;
+
+    const service = new AssistantRuntimeService(
+      llmRuntimeService,
+      buildLeafletService() as never,
+      buildMetricsService() as never,
+      new LlmCircuitBreakerService(),
+      buildCacheService() as never,
+      buildCheckpointerService() as never,
+    );
+    const chunks: string[] = [];
+    let conversationResolved = false;
+
+    const result = await Reflect.apply(service.runConversation, service, [
+      {
+        userId: 'u1',
+        userMessage: '你好',
+        locale: 'zh-CN',
+        enabledContextSources: ['health_profile'],
+      },
+      () => Promise.resolve([]),
+      ({ content }: { content: string }) => {
+        expect(conversationResolved).toBe(false);
+        chunks.push(content);
+      },
+    ]);
+    conversationResolved = true;
+
+    expect(chunks).toEqual(['你好', '呀！']);
+    expect(result.finalContent).toBe('你好呀！');
+    expect(result.streamedContent).toBe(true);
+    expect(invoke).not.toHaveBeenCalled();
+    expect(stream).toHaveBeenCalledTimes(1);
   });
 
   it('runConversation records failure and rethrows when the graph fails', async () => {
     const mockModel = {
       bindTools: vi.fn(),
-      invoke: vi.fn().mockRejectedValue(new Error('LLM down')),
+      invoke: vi.fn(),
+      stream: vi.fn().mockRejectedValue(new Error('LLM down')),
     };
     const llmRuntimeService = {
       hasRoleConfig: vi.fn().mockReturnValue(true),
@@ -399,25 +463,34 @@ describe('AssistantRuntimeService', () => {
   describe('resumeConversation', () => {
     /** Builds a service whose checkpointer is a fresh MemorySaver and whose model produces one proposal then a reply. */
     function buildResumeService(expiresAt: string) {
+      const responses = [
+        new AIMessageChunk({
+          content: '',
+          tool_calls: [
+            {
+              name: 'propose_create_daily_record',
+              id: 'call_0',
+              args: {},
+            },
+          ],
+        }),
+        new AIMessageChunk({
+          content: '已确认，请在记录页完成保存。',
+        }),
+      ];
       const mockModel = {
         bindTools: vi.fn().mockReturnThis(),
-        invoke: vi
-          .fn()
-          .mockResolvedValueOnce(
-            new AIMessage({
-              content: '',
-              tool_calls: [
-                {
-                  name: 'propose_create_daily_record',
-                  id: 'call_0',
-                  args: {},
-                },
-              ],
-            }),
-          )
-          .mockResolvedValue(
-            new AIMessage({ content: '已确认，请在记录页完成保存。' }),
-          ),
+        invoke: vi.fn(),
+        stream: vi.fn().mockImplementation(async () => {
+          await Promise.resolve();
+          const response = responses.shift();
+          return (async function* () {
+            await Promise.resolve();
+            if (response != null) {
+              yield response;
+            }
+          })();
+        }),
       };
       const llmRuntimeService = {
         hasRoleConfig: vi.fn().mockReturnValue(true),

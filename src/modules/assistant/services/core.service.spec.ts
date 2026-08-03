@@ -247,9 +247,17 @@ describe('AssistantService', () => {
 
     const mockRunConversationResult = {
       finalContent: 'AI response',
+      streamedContent: false,
       toolResults: [],
       selectedTools: [],
-    } as never;
+      validationFlags: {
+        hasEmptyResults: false,
+        hasPartialCoverage: false,
+        hasAmbiguities: false,
+        missingProposedActions: false,
+      },
+      stopReason: 'answered' as const,
+    };
 
     const mockStreamResult = {
       content: 'AI response',
@@ -298,6 +306,31 @@ describe('AssistantService', () => {
         onChunk,
       );
       expect(result.role).toBe('assistant');
+      expect(result.content).toBe('AI response');
+    });
+
+    it('does not replay content that the graph already streamed', async () => {
+      runtime.runConversation.mockImplementation(async (...args: unknown[]) => {
+        const onGraphChunk = args[2] as
+          | ((event: { content: string }) => void | Promise<void>)
+          | undefined;
+        await onGraphChunk?.({ content: 'AI response' });
+        return {
+          ...mockRunConversationResult,
+          streamedContent: true,
+        } as never;
+      });
+      conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
+
+      const result = await service.streamMessages(
+        'user-1',
+        dto,
+        'zh-CN',
+        onChunk,
+      );
+
+      expect(onChunk).toHaveBeenCalledWith({ content: 'AI response' });
+      expect(runtime.streamPreGeneratedContent).not.toHaveBeenCalled();
       expect(result.content).toBe('AI response');
     });
 

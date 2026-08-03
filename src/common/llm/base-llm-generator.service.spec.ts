@@ -177,6 +177,8 @@ describe('BaseLlmGeneratorService', () => {
         summary: 'partial summary',
         result: 'final result',
       });
+      expect(mocks.mockModel.invoke).not.toHaveBeenCalled();
+      expect(mocks.mockModel.stream).toHaveBeenCalledTimes(1);
       // onSummary should have been called with the non-empty summary
       expect(onSummary).toHaveBeenCalledWith('partial summary');
       expect(mocks.metricsService.recordLlmCall).toHaveBeenCalledWith(

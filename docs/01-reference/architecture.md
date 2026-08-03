@@ -186,6 +186,20 @@ graph LR
   - Generator: —
   - Model Role: `chat`
 
+### Assistant SSE Streaming Boundary
+
+- `POST /api/v1/user/assistant/messages/stream` keeps LangGraph
+  `graph.invoke()` as the tool-loop and checkpoint orchestrator.
+- The Assistant `agent` and `respond` nodes call `model.stream()`, forward
+  text deltas through the SSE callback, and retain an aggregated `AIMessage`
+  for tool routing and persistence.
+- `POST /api/v1/user/today-analysis/generate/stream` and
+  `POST /api/v1/user/reports/summary/generate/stream` use the shared
+  `BaseLlmGeneratorService.generateStream()` structured-output path.
+- All three endpoints write incremental events before their terminal
+  `result` and `done` events; cache/pre-generated Assistant replies use a
+  server-side chunking fallback.
+
 ## Directory Structure Convention
 
 See `AGENTS.md` → Module Subdirectory Whitelist for the complete governance rules.
