@@ -1,5 +1,6 @@
 import { performance } from 'node:perf_hooks';
 import { readFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ValidationError } from '@nestjs/common';
 import {
@@ -26,6 +27,30 @@ import { getActiveTraceIds } from './common/logger/trace-context.utils';
 import { buildAccessLogEntry } from './common/logger/access-log.utils';
 import { MetricsService } from './common/metrics/metrics.service';
 import { normalizeRoute, shouldSkip } from './common/metrics/metrics.utils';
+
+/**
+ * URL for the self-hosted Scalar standalone bundle. The bundle only changes
+ * between @scalar/api-reference versions, so the `immutable` cache header on
+ * the asset route is safe ONLY if the URL changes when the dependency
+ * upgrades. Embedding the resolved version in a query string busts the cache
+ * on upgrade; falls back to a bare URL if the version cannot be read.
+ */
+const SCALAR_STANDALONE_URL = (() => {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'),
+    ) as { dependencies?: Record<string, string> };
+    const version = (pkg.dependencies?.['@scalar/api-reference'] ?? '').replace(
+      /^[\^~]/,
+      '',
+    );
+    return version
+      ? `/scalar/standalone.js?v=${version}`
+      : '/scalar/standalone.js';
+  } catch {
+    return '/scalar/standalone.js';
+  }
+})();
 
 /**
  * Configures the NestJS application with global middleware, pipes, filters,
@@ -229,8 +254,10 @@ export async function setupApp(
       theme: 'purple',
       _integration: 'nestjs',
       // Self-host the Scalar standalone bundle instead of loading it from the
-      // jsdelivr CDN (unreliable in CN networks → blank page).
-      cdn: '/scalar/standalone.js',
+      // jsdelivr CDN (unreliable in CN networks → blank page). The URL is
+      // versioned (see SCALAR_STANDALONE_URL) so the immutable cache below is
+      // invalidated when the @scalar/api-reference dependency upgrades.
+      cdn: SCALAR_STANDALONE_URL,
     });
 
   // ── Self-hosted Scalar standalone asset (avoids unreachable CDN) ──
