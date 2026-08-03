@@ -23,11 +23,15 @@ import { getEnvFilePaths } from './config/env/env-file-paths';
  * bootstrap. This module runs before Nest creates ConfigModule, so the OTel
  * enablement flag must be available here rather than only after Nest starts.
  * Existing process environment variables keep precedence over dotenv files.
+ *
+ * Resolves env files relative to `__dirname` (project root in both dev `src/`
+ * and built `dist/`), so tracing works regardless of the process working
+ * directory (PM2 / systemd / Docker).
  */
 function loadTracingEnvironment(): void {
   for (const envFilePath of getEnvFilePaths()) {
     loadDotenv({
-      path: join(process.cwd(), envFilePath),
+      path: join(__dirname, '..', envFilePath),
       override: false,
     });
   }

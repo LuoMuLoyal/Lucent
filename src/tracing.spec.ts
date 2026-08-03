@@ -8,7 +8,9 @@ describe('tracing bootstrap', () => {
 
     const dotenvConfig = vi.fn((options: { path?: string }) => {
       if (options.path?.endsWith('.env.development')) {
-        process.env['OTEL_ENABLED'] = 'true';
+        // Use vi.stubEnv (not a raw assignment) so vi.unstubAllEnvs() below
+        // restores the environment and the change cannot leak into other tests.
+        vi.stubEnv('OTEL_ENABLED', 'true');
       }
       return { parsed: {} };
     });
