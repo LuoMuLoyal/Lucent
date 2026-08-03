@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-02
+updated: 2026-08-03
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-01
+Last updated: 2026-08-03
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -67,3 +67,8 @@ Last updated: 2026-08-01
   `setup-app.ts` 手动注册 JSON content-type parser。原因：`@adminjs/fastify` 的 `buildAuthenticatedRouter`
   内部注册 `@fastify/formbody`（urlencoded parser），与 NestJS 默认 parser 冲突，在 Node.js v24 下
   导致 `FastifyError: Content type parser already present`。
+- **docs 钩子脚本根目录解析**（2026-08-03）：`scripts/hooks/check-links.ts` 与
+  `scripts/hooks/check-docs-updated.ts` 均通过 `git rev-parse --show-toplevel` 显式解析仓库根目录
+  （非 git 环境回退 `process.cwd()`），支持从任意子目录调用，不再隐式依赖调用目录。
+- **docs 链接检查围栏识别**（2026-08-03）：`check-links.ts` 的 `isLineInFence` 同时识别
+  反引号三连与波浪线三连两种围栏起始符，波浪线围栏或缩进代码块内的链接样文本不再被误判为断链。
