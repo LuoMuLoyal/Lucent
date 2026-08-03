@@ -50,9 +50,11 @@ export type SystemPromptFn = (tools: readonly AssistantToolName[]) => string;
 
 /** Callback type for building the simple-chat system prompt (no tools). */
 export type SimpleChatPromptFn = () => string;
+export type AssistantTextCallback = (text: string) => void | Promise<void>;
 
 export interface AssistantGraphDeps {
   createModel: ModelFactoryFn;
+  onText?: AssistantTextCallback;
   executeTools: ToolExecutorFn;
   buildSystemPrompt: SystemPromptFn;
   /** Intent-specific prompt builders; fall back to buildSystemPrompt when absent. */
@@ -207,6 +209,7 @@ export function buildAssistantRuntimeGraph(deps: AssistantGraphDeps) {
       'respond',
       buildRespondNode({
         createModel: deps.createModel,
+        ...(deps.onText != null ? { onText: deps.onText } : {}),
         ...(deps.respondCache != null
           ? { respondCache: deps.respondCache }
           : {}),

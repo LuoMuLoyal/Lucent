@@ -1,10 +1,24 @@
 import {
   AIMessage,
+  AIMessageChunk,
   HumanMessage,
   SystemMessage,
 } from '@langchain/core/messages';
 import { describe, expect, it, vi } from 'vitest';
 import { buildReadSubGraph } from './read';
+
+function streamFromInvoke(invoke: (...args: unknown[]) => unknown) {
+  return vi.fn().mockImplementation(async (...args: unknown[]) => {
+    const response = (await invoke(...args)) as AIMessage;
+    return (async function* () {
+      await Promise.resolve();
+      yield new AIMessageChunk({
+        content: response.content,
+        tool_calls: response.tool_calls,
+      } as never);
+    })();
+  });
+}
 
 const BASE_INPUT = {
   userId: 'user-1',
@@ -36,8 +50,12 @@ function buildGraph({
       new AIMessage({ content: '根据您的健康档案，共 2 项过敏。' }),
     );
   const mockModel = {
-    bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
-    invoke: vi.fn().mockResolvedValue(new AIMessage({ content: '兜底。' })),
+    bindTools: vi.fn().mockReturnValue({
+      stream: streamFromInvoke(mockInvoke),
+    }),
+    stream: streamFromInvoke(
+      vi.fn().mockResolvedValue(new AIMessage({ content: '兜底。' })),
+    ),
   };
   const executeTools = vi.fn().mockResolvedValue([
     {

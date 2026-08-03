@@ -1,10 +1,28 @@
-import { AIMessage, HumanMessage } from '@langchain/core/messages';
+import {
+  AIMessage,
+  AIMessageChunk,
+  HumanMessage,
+} from '@langchain/core/messages';
 import type { BaseMessage } from '@langchain/core/messages';
 import {
   buildAssistantRuntimeGraph,
   selectAllowedToolsForContextSources,
 } from './graph';
 import { selectRelevantToolsForMessage } from './router';
+
+function streamFromInvoke(invoke: (...args: unknown[]) => unknown) {
+  return vi.fn().mockImplementation(async (...args: unknown[]) => {
+    const response = (await invoke(...args)) as AIMessage;
+    return (async function* () {
+      await Promise.resolve();
+      yield new AIMessageChunk({
+        content: response.content,
+        tool_calls: response.tool_calls,
+        invalid_tool_calls: response.invalid_tool_calls,
+      } as never);
+    })();
+  });
+}
 
 describe('AssistantFoundationGraph', () => {
   it('selects relevant tools from the user message', () => {
@@ -135,7 +153,9 @@ describe('AssistantFoundationGraph', () => {
       .fn()
       .mockResolvedValue(new AIMessage({ content: '今天共 3 条饮水记录。' }));
     const mockModel = {
-      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
     };
 
     const graph = buildAssistantRuntimeGraph({
@@ -164,7 +184,7 @@ describe('AssistantFoundationGraph', () => {
       .mockResolvedValue(new AIMessage({ content: '你好，有什么可以帮你？' }));
     const mockModel = {
       bindTools: vi.fn(),
-      invoke: mockInvoke,
+      stream: streamFromInvoke(mockInvoke),
     };
 
     const graph = buildAssistantRuntimeGraph({
@@ -212,8 +232,10 @@ describe('AssistantFoundationGraph', () => {
       );
     });
     const mockModel = {
-      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
-      invoke: vi.fn(),
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(vi.fn()),
     };
 
     const executeTools = vi.fn().mockResolvedValue([
@@ -277,8 +299,10 @@ describe('AssistantFoundationGraph', () => {
       );
     });
     const mockModel = {
-      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
-      invoke: vi.fn(),
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(vi.fn()),
     };
 
     const executeTools = vi.fn().mockResolvedValue([
@@ -330,8 +354,10 @@ describe('AssistantFoundationGraph', () => {
       );
     });
     const mockModel = {
-      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
-      invoke: vi.fn(),
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(vi.fn()),
     };
 
     const executeTools = vi.fn().mockResolvedValue([
@@ -375,7 +401,7 @@ describe('AssistantFoundationGraph', () => {
       .mockResolvedValue(new AIMessage({ content: '明白。' }));
     const mockModel = {
       bindTools: vi.fn(),
-      invoke: mockInvoke,
+      stream: streamFromInvoke(mockInvoke),
     };
 
     const graph = buildAssistantRuntimeGraph({
@@ -416,7 +442,7 @@ describe('AssistantFoundationGraph', () => {
       .mockResolvedValue(new AIMessage({ content: '好的。' }));
     const mockModel = {
       bindTools: vi.fn(),
-      invoke: mockInvoke,
+      stream: streamFromInvoke(mockInvoke),
     };
 
     const graph = buildAssistantRuntimeGraph({
@@ -454,7 +480,7 @@ describe('AssistantFoundationGraph', () => {
       .mockResolvedValue(new AIMessage({ content: '你好呀！' }));
     const mockModel = {
       bindTools: vi.fn(),
-      invoke: mockInvoke,
+      stream: streamFromInvoke(mockInvoke),
     };
 
     let stored: string | null = null;
@@ -502,7 +528,7 @@ describe('AssistantFoundationGraph', () => {
       .mockResolvedValue(new AIMessage({ content: '记得的。' }));
     const mockModel = {
       bindTools: vi.fn(),
-      invoke: mockInvoke,
+      stream: streamFromInvoke(mockInvoke),
     };
     const respondCache = {
       get: vi.fn().mockResolvedValue(null),
@@ -546,7 +572,9 @@ describe('AssistantFoundationGraph', () => {
       return Promise.resolve(new AIMessage({ content: '根据您的健康档案...' }));
     });
     const mockModel = {
-      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
     };
 
     const executeTools = vi.fn().mockResolvedValue([
@@ -585,11 +613,15 @@ describe('AssistantFoundationGraph', () => {
       }),
     );
     const mockModel = {
-      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
       // The respond node makes a final tool-free call after the loop cap.
-      invoke: vi
-        .fn()
-        .mockResolvedValue(new AIMessage({ content: '查询次数已达上限。' })),
+      stream: streamFromInvoke(
+        vi
+          .fn()
+          .mockResolvedValue(new AIMessage({ content: '查询次数已达上限。' })),
+      ),
     };
 
     const executeTools = vi.fn().mockResolvedValue([
@@ -623,8 +655,12 @@ describe('AssistantFoundationGraph', () => {
       .mockRejectedValueOnce({ status: 500, message: 'upstream boom' })
       .mockResolvedValueOnce(new AIMessage({ content: '重试成功。' }));
     const mockModel = {
-      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
-      invoke: vi.fn().mockResolvedValue(new AIMessage({ content: '兜底。' })),
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(
+        vi.fn().mockResolvedValue(new AIMessage({ content: '兜底。' })),
+      ),
     };
 
     const graph = buildAssistantRuntimeGraph({
@@ -649,8 +685,10 @@ describe('AssistantFoundationGraph', () => {
       .fn()
       .mockRejectedValue({ status: 400, message: 'bad request' });
     const mockModel = {
-      bindTools: vi.fn().mockReturnValue({ invoke: mockInvoke }),
-      invoke: vi.fn(),
+      bindTools: vi.fn().mockReturnValue({
+        stream: streamFromInvoke(mockInvoke),
+      }),
+      stream: streamFromInvoke(vi.fn()),
     };
 
     const graph = buildAssistantRuntimeGraph({
@@ -691,7 +729,7 @@ describe('AssistantFoundationGraph', () => {
       );
     const mockModel = {
       bindTools: vi.fn().mockReturnThis(),
-      invoke: mockInvoke,
+      stream: streamFromInvoke(mockInvoke),
     };
     const executeTools = vi.fn().mockResolvedValue([
       {

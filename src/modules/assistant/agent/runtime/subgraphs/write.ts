@@ -20,7 +20,7 @@ import type { AssistantGraphDeps } from '../graph';
  *   message so the reply treats the missing target as a refusal to guess.
  */
 export function buildWriteSubGraph(
-  deps: Pick<AssistantGraphDeps, 'createModel' | 'executeTools'>,
+  deps: Pick<AssistantGraphDeps, 'createModel' | 'executeTools' | 'onText'>,
 ) {
   return new StateGraph(AssistantRuntimeState)
     .addNode('write_agent', createAgentNode(deps))

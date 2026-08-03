@@ -4,6 +4,7 @@ import type { AssistantToolName } from '../../tools/shared/tool-types';
 import { buildToolDefinitions } from '../../tools/shared/tool-definitions';
 import type { AssistantToolExecutionResult } from '../../types/assistant.types';
 import type { AssistantRuntimeState } from './state';
+import { streamModelResponse } from './model-stream';
 
 /** Runtime node signature shared by the main graph and sub-graphs. */
 export type RuntimeNode = (
@@ -18,6 +19,7 @@ export type RuntimeNode = (
  */
 export function createAgentNode(deps: {
   createModel: () => BaseChatModel;
+  onText?: (text: string) => void | Promise<void>;
 }): RuntimeNode {
   return async (state) => {
     if (state.relevantTools.length === 0) {
@@ -32,7 +34,7 @@ export function createAgentNode(deps: {
     const toolDefs = buildToolDefinitions(state.relevantTools);
     const boundModel = model.bindTools?.(toolDefs);
 
-    if (boundModel == null || typeof boundModel.invoke !== 'function') {
+    if (boundModel == null || typeof boundModel.stream !== 'function') {
       return {
         pendingToolCalls: [],
         finalContent: null,
@@ -40,7 +42,11 @@ export function createAgentNode(deps: {
       };
     }
 
-    const response = await boundModel.invoke(state.messages);
+    const response = await streamModelResponse(
+      boundModel,
+      state.messages,
+      deps.onText,
+    );
 
     if (response instanceof AIMessage) {
       const toolCalls = response.tool_calls;

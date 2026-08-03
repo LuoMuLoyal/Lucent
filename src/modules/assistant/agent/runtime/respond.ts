@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage } from '@langchain/core/messages';
 import type { AssistantRuntimeState } from './state';
+import { streamModelResponse } from './model-stream';
 
 /** Runtime shape of the respond graph node. */
 export type RespondNode = (
@@ -69,6 +70,7 @@ function extractContent(response: unknown): string {
 export function buildRespondNode(deps: {
   createModel: () => BaseChatModel;
   respondCache?: AssistantRespondCache;
+  onText?: (text: string) => void | Promise<void>;
 }): RespondNode {
   return async (state) => {
     if (state.finalContent != null) {
@@ -98,7 +100,11 @@ export function buildRespondNode(deps: {
     }
 
     const model = deps.createModel();
-    const response = await model.invoke(state.messages);
+    const response = await streamModelResponse(
+      model,
+      state.messages,
+      deps.onText,
+    );
     const content = extractContent(response).trim();
     if (content.length === 0) {
       throw new Error('Assistant stream ended without any assistant content.');

@@ -22,7 +22,7 @@ import type { AssistantGraphDeps } from '../graph';
  *   tool calls, see review revision R3).
  */
 export function buildReadSubGraph(
-  deps: Pick<AssistantGraphDeps, 'createModel' | 'executeTools'>,
+  deps: Pick<AssistantGraphDeps, 'createModel' | 'executeTools' | 'onText'>,
 ) {
   return new StateGraph(AssistantRuntimeState)
     .addNode('read_agent', createAgentNode(deps))

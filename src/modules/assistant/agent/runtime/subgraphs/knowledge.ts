@@ -52,7 +52,7 @@ function orderKnowledgeTools(
  *   `stopReason: 'no_evidence'` so the reply says evidence was not found.
  */
 export function buildKnowledgeSubGraph(
-  deps: Pick<AssistantGraphDeps, 'createModel' | 'executeTools'>,
+  deps: Pick<AssistantGraphDeps, 'createModel' | 'executeTools' | 'onText'>,
 ) {
   return new StateGraph(AssistantRuntimeState)
     .addNode('knowledge_route', (state) => ({

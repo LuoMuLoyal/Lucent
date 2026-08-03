@@ -1,4 +1,4 @@
-import { AIMessage } from '@langchain/core/messages';
+import { AIMessage, AIMessageChunk } from '@langchain/core/messages';
 import { Command, MemorySaver } from '@langchain/langgraph';
 import { describe, expect, it, vi } from 'vitest';
 import { buildAssistantRuntimeGraph } from './graph';
@@ -10,23 +10,37 @@ const BASE_INPUT = {
   enabledContextSources: ['health_profile' as const],
 };
 
+function streamFromInvoke(invoke: (...args: unknown[]) => unknown) {
+  return vi.fn().mockImplementation(async (...args: unknown[]) => {
+    const response = (await invoke(...args)) as AIMessage;
+    return (async function* () {
+      await Promise.resolve();
+      yield new AIMessageChunk({
+        content: response.content,
+        tool_calls: response.tool_calls,
+      } as never);
+    })();
+  });
+}
+
 /** Builds a graph whose write flow produces one proposal, with a MemorySaver checkpointer. */
 function buildGraph() {
+  const mockInvoke = vi
+    .fn()
+    .mockResolvedValueOnce(
+      new AIMessage({
+        content: '',
+        tool_calls: [
+          { name: 'propose_create_daily_record', id: 'call_0', args: {} },
+        ],
+      }),
+    )
+    .mockResolvedValue(
+      new AIMessage({ content: '已确认，请在记录页完成保存。' }),
+    );
   const mockModel = {
     bindTools: vi.fn().mockReturnThis(),
-    invoke: vi
-      .fn()
-      .mockResolvedValueOnce(
-        new AIMessage({
-          content: '',
-          tool_calls: [
-            { name: 'propose_create_daily_record', id: 'call_0', args: {} },
-          ],
-        }),
-      )
-      .mockResolvedValue(
-        new AIMessage({ content: '已确认，请在记录页完成保存。' }),
-      ),
+    stream: streamFromInvoke(mockInvoke),
   };
   const executeTools = vi.fn().mockResolvedValue([
     {
