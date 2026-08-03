@@ -72,3 +72,7 @@ Last updated: 2026-08-03
   （非 git 环境回退 `process.cwd()`），支持从任意子目录调用，不再隐式依赖调用目录。
 - **docs 链接检查围栏识别**（2026-08-03）：`check-links.ts` 的 `isLineInFence` 同时识别
   反引号三连与波浪线三连两种围栏起始符，波浪线围栏或缩进代码块内的链接样文本不再被误判为断链。
+- **Prisma 升级**（2026-08-03）：`prisma` / `@prisma/client` / `@prisma/adapter-pg` 升至 `^7.9.1`，
+  `@prisma/internals` 精确升至 `7.9.1`，修复 7.8.0 的确定性 EEXIST bug（任何 `prisma generate` 均失败）。
+  注意：本次安装因 npmmirror 未同步 `find-my-way@9.7.0`（`@prisma/dev` 传递依赖）改走官方源，
+  项目 registry 配置未变。
