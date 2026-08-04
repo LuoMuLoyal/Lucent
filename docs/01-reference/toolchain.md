@@ -90,4 +90,4 @@ Last updated: 2026-08-03
   - P2-6（Reminder 调度去重）已实施：`user_reminder_deliveries` 新增
     `@@unique([userId, reminderId, scheduledFor])`（迁移含历史重复清理），scheduler 写入改
     `createMany({ skipDuplicates: true })`，「至少一次投递」语义见
-    [ADR-0011](docs/01-reference/adr/0011-reminder-delivery-at-least-once.md)。
+    [ADR-0011](adr/0011-reminder-delivery-at-least-once.md)。

@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-02
+updated: 2026-08-04
 ---
 
 # Code Quality / Maintainability
 
-Last updated: 2026-08-01
+Last updated: 2026-08-04
 
 - Barrel files (`index.ts`) must never export `.spec.ts` files — spec exports cause `nest build` to
   compile test files into `dist/`, and runtime barrel loading triggers `describe`/`it` calls that
@@ -202,6 +202,19 @@ Last updated: 2026-08-01
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
   - `today-suggestion/collectors/record.service.ts` 中 `prisma.userSetting.findUnique` 替换为
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
+
+- 2026-08-04 审查修复（按 `plans/Lucent-review-2026-08-04.md`）：
+  - `parseRedisUrl` 增加输入校验与上下文错误信息，IPv6 地址去除 URL 方括号，避免 `REDIS_URL`
+    配置错误导致启动崩溃或 IPv6 Redis 无法连接。
+  - `enqueueOrFallback` 仅捕获 Redis/网络相关异常后走同步 fallback，`TypeError` /
+    `ReferenceError` / `SyntaxError` 等编程错误继续抛出，防止真实 bug 被静默吞咽。
+  - 助手 runtime 中重复的内容提取逻辑收敛到 `message-text.utils.ts` 的 `extractMessageText`，
+    供 `model-stream.ts`、`nodes.ts`、`respond.ts` 复用。
+  - `streamModelResponse` 的 `onText` 回调抛错时被隔离并记录日志，流式聚合继续执行，避免
+    SSE 传输层异常直接引发 Assistant 请求 500。
+  - Reminder 去重迁移 SQL 由 O(n²) 自连接改为 `ctid + ROW_NUMBER` CTE，降低大表迁移锁表风险。
+  - `setup-app.ts` 中 Scalar bundle URL 版本号解析从模块加载时移到 `setupApp` 运行时，并优先读取
+    `SCALAR_API_REFERENCE_VERSION` 环境变量，支持 serverless / 只读文件系统部署。
 
 - 2026-08-01 测试缺口修复（按 `plans/2026-08-01-test-gap-fix.md`）：
   - `pdf.service.spec.ts` 两个多页 PDF 渲染用例超时 30s → 120s，消除 CI flaky（实测用例 2.9s）。

@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-02
+updated: 2026-08-04
 ---
 
 # Environment Variables
@@ -233,3 +233,16 @@ MIN_CLIENT_VERSION
   back to a hardcoded support URL.
 - `MIN_CLIENT_VERSION` — minimum required client version for version-gating.
   When set, clients below this version may be prompted to update.
+
+Bundle / docs (optional):
+
+```text
+SCALAR_API_REFERENCE_VERSION
+```
+
+- `SCALAR_API_REFERENCE_VERSION` — explicit version slug for the self-hosted
+  Scalar API docs bundle (`/scalar/standalone.js?v=<version>`). When set, it
+  overrides the value read from `package.json`. Useful in serverless or
+  read-only filesystem deployments where `package.json` may not be available
+  at runtime, so the `immutable` cache header still busts when `@scalar/api-reference`
+  is upgraded.

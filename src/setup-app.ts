@@ -1,6 +1,5 @@
 import { performance } from 'node:perf_hooks';
 import { readFile } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ValidationError } from '@nestjs/common';
 import {
@@ -29,16 +28,29 @@ import { MetricsService } from './common/metrics/metrics.service';
 import { normalizeRoute, shouldSkip } from './common/metrics/metrics.utils';
 
 /**
- * URL for the self-hosted Scalar standalone bundle. The bundle only changes
- * between @scalar/api-reference versions, so the `immutable` cache header on
- * the asset route is safe ONLY if the URL changes when the dependency
- * upgrades. Embedding the resolved version in a query string busts the cache
- * on upgrade; falls back to a bare URL if the version cannot be read.
+ * Resolves the URL for the self-hosted Scalar standalone bundle. The bundle
+ * only changes between @scalar/api-reference versions, so the `immutable` cache
+ * header on the asset route is safe ONLY if the URL changes when the dependency
+ * upgrades. Embedding the resolved version in a query string busts the cache on
+ * upgrade; falls back to a bare URL if the version cannot be read.
+ *
+ * Resolution happens inside `setupApp` rather than at module load time so that
+ * serverless / read-only filesystem deployments can set the version via the
+ * `SCALAR_API_REFERENCE_VERSION` environment variable instead of relying on
+ * a readable `package.json` at boot.
  */
-const SCALAR_STANDALONE_URL = (() => {
+async function resolveScalarStandaloneUrl(): Promise<string> {
+  const envVersion = process.env['SCALAR_API_REFERENCE_VERSION']?.replace(
+    /^[\^~]/,
+    '',
+  );
+  if (envVersion) {
+    return `/scalar/standalone.js?v=${envVersion}`;
+  }
+
   try {
     const pkg = JSON.parse(
-      readFileSync(join(__dirname, '..', 'package.json'), 'utf-8'),
+      await readFile(join(__dirname, '..', 'package.json'), 'utf-8'),
     ) as { dependencies?: Record<string, string> };
     const version = (pkg.dependencies?.['@scalar/api-reference'] ?? '').replace(
       /^[\^~]/,
@@ -50,7 +62,7 @@ const SCALAR_STANDALONE_URL = (() => {
   } catch {
     return '/scalar/standalone.js';
   }
-})();
+}
 
 /**
  * Configures the NestJS application with global middleware, pipes, filters,
@@ -224,6 +236,8 @@ export async function setupApp(
   });
 
   // ── Scalar API Reference ───────────────────────────────────────
+  const scalarStandaloneUrl = await resolveScalarStandaloneUrl();
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Lucent API')
     .setDescription('Lucent backend API documentation')
@@ -255,9 +269,9 @@ export async function setupApp(
       _integration: 'nestjs',
       // Self-host the Scalar standalone bundle instead of loading it from the
       // jsdelivr CDN (unreliable in CN networks → blank page). The URL is
-      // versioned (see SCALAR_STANDALONE_URL) so the immutable cache below is
+      // versioned (see resolveScalarStandaloneUrl) so the immutable cache below is
       // invalidated when the @scalar/api-reference dependency upgrades.
-      cdn: SCALAR_STANDALONE_URL,
+      cdn: scalarStandaloneUrl,
     });
 
   // ── Self-hosted Scalar standalone asset (avoids unreachable CDN) ──
