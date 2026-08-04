@@ -60,4 +60,30 @@ describe('parseRedisUrl', () => {
       db: 3,
     });
   });
+
+  it('strips brackets from IPv6 hostnames', () => {
+    expect(parseRedisUrl('redis://[::1]:6379')).toEqual({
+      host: '::1',
+      port: 6379,
+      db: 0,
+    });
+  });
+
+  it('throws a contextual error for invalid URLs', () => {
+    expect(() => parseRedisUrl('not a redis url')).toThrow(
+      'Invalid Redis URL: "not a redis url"',
+    );
+  });
+
+  it('throws a contextual error for empty input', () => {
+    expect(() => parseRedisUrl('')).toThrow(
+      'Redis URL is required but received an empty value.',
+    );
+  });
+
+  it('throws a contextual error for unsupported schemes', () => {
+    expect(() => parseRedisUrl('http://cache.internal')).toThrow(
+      'Invalid Redis URL scheme: "http:"',
+    );
+  });
 });

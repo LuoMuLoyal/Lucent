@@ -20,14 +20,37 @@ export interface RedisConnectionOptions {
   family?: number;
 }
 
-export function parseRedisUrl(rawUrl: string): RedisConnectionOptions {
-  const url = new URL(rawUrl);
+export function parseRedisUrl(
+  rawUrl: string | null | undefined,
+): RedisConnectionOptions {
+  if (rawUrl == null || rawUrl.trim() === '') {
+    throw new Error('Redis URL is required but received an empty value.');
+  }
+
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new Error(
+      `Invalid Redis URL: "${rawUrl}". Expected format: redis://host:port/db`,
+    );
+  }
+
+  if (url.protocol !== 'redis:' && url.protocol !== 'rediss:') {
+    throw new Error(
+      `Invalid Redis URL scheme: "${url.protocol}" in "${rawUrl}". Expected "redis://" or "rediss://".`,
+    );
+  }
+
   const dbOverride = url.searchParams.get('db');
   const family = url.searchParams.get('family');
   const pathDb = url.pathname ? Number(url.pathname.slice(1)) || 0 : 0;
 
   return {
-    host: url.hostname,
+    // URL.hostname keeps brackets for IPv6 (e.g. "[::1]"), but Redis clients
+    // expect the bare address ("::1"). Strip them here for both ioredis and
+    // BullMQ compatibility.
+    host: url.hostname.replace(/^\[|\]$/g, ''),
     port: Number(url.port) || 6379,
     db: dbOverride != null ? Number(dbOverride) || 0 : pathDb,
     ...(url.username ? { username: url.username } : {}),
