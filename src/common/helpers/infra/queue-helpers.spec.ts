@@ -61,6 +61,19 @@ describe('enqueueOrFallback', () => {
     expect(fallback).toHaveBeenCalledTimes(1);
   });
 
+  it('rethrows programming errors instead of falling back', async () => {
+    const enqueue = vi
+      .fn()
+      .mockRejectedValue(new TypeError('Cannot read property of undefined'));
+    const fallback = vi.fn().mockResolvedValue('sync-result');
+
+    await expect(
+      enqueueOrFallback(true, 'test-queue', enqueue, fallback, 'result'),
+    ).rejects.toThrow(TypeError);
+
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
   it('uses custom fallbackKey in the returned object', async () => {
     const result = await enqueueOrFallback(
       false,

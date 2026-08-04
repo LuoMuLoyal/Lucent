@@ -1,6 +1,41 @@
 import { Logger } from '@nestjs/common';
 
 /**
+ * Connection-related error signatures we are willing to swallow and fall back
+ * from. Programming errors (TypeError / ReferenceError / SyntaxError) and
+ * unrelated runtime failures must bubble up so they are not hidden behind a
+ * silent fallback path.
+ */
+function isQueueConnectionError(error: unknown): boolean {
+  if (
+    error instanceof TypeError ||
+    error instanceof ReferenceError ||
+    error instanceof SyntaxError
+  ) {
+    return false;
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const patterns = [
+    /ECONNREFUSED/i,
+    /ECONNRESET/i,
+    /ETIMEDOUT/i,
+    /ENOTFOUND/i,
+    /EAI_AGAIN/i,
+    /EPIPE/i,
+    /Connection/i,
+    /Redis/i,
+    /socket/i,
+    /timeout/i,
+  ];
+  const haystack = `${error.name} ${error.message}`;
+  return patterns.some((pattern) => pattern.test(haystack));
+}
+
+/**
  * Shared helper for the async-queue-or-sync-fallback pattern used by
  * controllers that support both BullMQ-backed async processing and
  * direct synchronous execution when Redis is unavailable.
@@ -29,6 +64,10 @@ export async function enqueueOrFallback<T>(
         return { jobId };
       }
     } catch (error) {
+      if (!isQueueConnectionError(error)) {
+        throw error;
+      }
+
       // Redis 配置但断连等运行时异常：记日志后走同步回退，避免请求直接 500。
       Logger.error(
         `Enqueue failed for queue "${queueName}", falling back to synchronous processing: ${
