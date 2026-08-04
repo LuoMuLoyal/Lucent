@@ -1,3 +1,10 @@
+---
+status: active
+owner: backend
+quadrant: reference
+updated: 2026-08-04
+---
+
 # Assistant Contract
 
 本文档保留助手合同总览与边界。
@@ -219,6 +226,10 @@ Rules:
   complete `AssistantStreamResultDto`, and a terminal `done` event with `{}`
 - failures use an `error` event with `{ message }`; clients must not treat a
   partial chunk sequence as the persisted final result until `result` arrives
+- transport-layer failures while forwarding a text delta (e.g. SSE client
+  disconnect) are isolated from stream aggregation: the runtime continues
+  collecting the final message and still emits the `result` event, so a single
+  network hiccup does not turn a stream into a 500
 - `proposedActions` never means the backend already wrote data
 - assistant retrieval loops are bounded; the runtime may perform multiple retrieval decisions, but
   only within an explicit server cap

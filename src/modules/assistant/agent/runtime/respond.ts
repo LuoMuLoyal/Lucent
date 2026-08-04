@@ -3,6 +3,7 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIMessage } from '@langchain/core/messages';
 import type { AssistantRuntimeState } from './state';
 import { streamModelResponse } from './model-stream';
+import { extractMessageText } from './message-text.utils';
 
 /** Runtime shape of the respond graph node. */
 export type RespondNode = (
@@ -32,21 +33,7 @@ function hashKey(value: string): string {
 /** Extracts plain text from an LLM response (string / content parts). */
 function extractContent(response: unknown): string {
   if (response instanceof AIMessage) {
-    if (typeof response.content === 'string') {
-      return response.content;
-    }
-    if (Array.isArray(response.content)) {
-      return response.content
-        .map((part) =>
-          typeof part === 'string'
-            ? part
-            : 'text' in part && typeof part.text === 'string'
-              ? part.text
-              : '',
-        )
-        .join('');
-    }
-    return '';
+    return extractMessageText(response.content);
   }
   return typeof response === 'string' ? response : '';
 }

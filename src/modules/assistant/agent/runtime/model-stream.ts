@@ -1,8 +1,10 @@
+import { Logger } from '@nestjs/common';
 import {
   AIMessage,
   AIMessageChunk,
   type BaseMessage,
 } from '@langchain/core/messages';
+import { extractMessageText } from './message-text.utils';
 
 export type StreamableModel = {
   stream(input: BaseMessage[]): Promise<AsyncIterable<unknown>>;
@@ -21,9 +23,22 @@ export async function streamModelResponse(
       continue;
     }
 
-    const text = readChunkText(chunk);
+    const text = extractMessageText(chunk.content);
     if (text.length > 0 && onText != null) {
-      await onText(text);
+      try {
+        await onText(text);
+      } catch (error) {
+        // Transport-layer failures (e.g. SSE client disconnect) must not tear
+        // down the whole stream. Keep aggregating the final message and let the
+        // caller handle downstream delivery in its own error handling.
+        Logger.error(
+          `Assistant stream onText callback failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          error instanceof Error ? error.stack : undefined,
+          'streamModelResponse',
+        );
+      }
     }
 
     aggregated = aggregated == null ? chunk : aggregated.concat(chunk);
@@ -43,24 +58,4 @@ export async function streamModelResponse(
     additional_kwargs: aggregated.additional_kwargs,
     response_metadata: aggregated.response_metadata,
   } as never);
-}
-
-function readChunkText(chunk: AIMessageChunk): string {
-  if (typeof chunk.content === 'string') {
-    return chunk.content;
-  }
-
-  if (!Array.isArray(chunk.content)) {
-    return '';
-  }
-
-  return chunk.content
-    .map((part) =>
-      typeof part === 'string'
-        ? part
-        : 'text' in part && typeof part.text === 'string'
-          ? part.text
-          : '',
-    )
-    .join('');
 }

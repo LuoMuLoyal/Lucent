@@ -5,6 +5,7 @@ import { buildToolDefinitions } from '../../tools/shared/tool-definitions';
 import type { AssistantToolExecutionResult } from '../../types/assistant.types';
 import type { AssistantRuntimeState } from './state';
 import { streamModelResponse } from './model-stream';
+import { extractMessageText } from './message-text.utils';
 
 /** Runtime node signature shared by the main graph and sub-graphs. */
 export type RuntimeNode = (
@@ -60,20 +61,7 @@ export function createAgentNode(deps: {
         };
       }
 
-      const content =
-        typeof response.content === 'string'
-          ? response.content
-          : Array.isArray(response.content)
-            ? response.content
-                .map((part) =>
-                  typeof part === 'string'
-                    ? part
-                    : 'text' in part && typeof part.text === 'string'
-                      ? part.text
-                      : '',
-                )
-                .join('')
-            : '';
+      const content = extractMessageText(response.content);
 
       return {
         messages: [response],

@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
   AIMessageChunk,
   HumanMessage,
@@ -68,5 +69,34 @@ describe('streamModelResponse', () => {
         new HumanMessage('hello'),
       ] as BaseMessage[]),
     ).rejects.toThrow(/without any AI message chunks/);
+  });
+
+  it('continues aggregating when onText callback throws', async () => {
+    const loggerError = vi.spyOn(Logger, 'error').mockImplementation(() => {});
+    const stream = vi
+      .fn()
+      .mockResolvedValue(
+        chunks([
+          new AIMessageChunk({ content: 'Hello' }),
+          new AIMessageChunk({ content: ' world' }),
+        ]),
+      );
+    const onText = vi.fn().mockRejectedValueOnce(new Error('SSE broken'));
+
+    const result = await streamModelResponse(
+      { stream },
+      [new HumanMessage('hello')] as BaseMessage[],
+      onText,
+    );
+
+    expect(result.content).toBe('Hello world');
+    expect(onText).toHaveBeenCalledTimes(2);
+    expect(loggerError).toHaveBeenCalledWith(
+      'Assistant stream onText callback failed: SSE broken',
+      expect.any(String),
+      'streamModelResponse',
+    );
+
+    loggerError.mockRestore();
   });
 });
