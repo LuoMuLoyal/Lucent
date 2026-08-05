@@ -106,6 +106,9 @@ export class AssistantRuntimeService {
       },
       set: async (key, value, ttlSeconds) => {
         await this.cache.set(key, value, ttlSeconds * 1000);
+        this.logger.debug(
+          `respondCache.set key="${key.slice(0, 60)}…" ttl=${String(ttlSeconds)}s`,
+        );
       },
     };
   }
