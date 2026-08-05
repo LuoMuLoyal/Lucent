@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
@@ -18,6 +17,7 @@ import { AssistantToolMedicineLookupService } from './medicine/lookup.service';
 import { AssistantToolProposalService } from './proposal/proposal.service';
 import { AssistantToolReadService } from './read/read.service';
 import { MetricsService } from '../../../common/metrics/metrics.service';
+import { makeShortHash } from '../../../common/helpers/infra/hash.utils';
 
 /**
  * Retrieval tools whose results are public medicine knowledge (no user data).
@@ -126,7 +126,7 @@ export class AssistantToolService {
         query: payload.query.trim().toLowerCase(),
         filters: payload.filters,
       });
-      const cacheKey = `assistant:tool:${toolName}:${context.locale}:${createHash('sha256').update(keySeed).digest('hex').slice(0, 16)}`;
+      const cacheKey = `assistant:tool:${toolName}:${context.locale}:${makeShortHash(keySeed)}`;
 
       const cached = await this.cache.get<string>(cacheKey);
       if (cached != null) {

@@ -1,9 +1,9 @@
-import { createHash } from 'node:crypto';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { AIMessage } from '@langchain/core/messages';
 import type { AssistantRuntimeState } from './state';
 import { streamModelResponse } from './model-stream';
 import { extractMessageText } from './message-text.utils';
+import { makeShortHash } from '../../../../common/helpers/infra/hash.utils';
 
 /** Runtime shape of the respond graph node. */
 export type RespondNode = (
@@ -24,11 +24,6 @@ const RESPONSE_CACHE_TTL_SECONDS = 3600;
 
 /** Bump when the simple-chat prompt or reply formatting changes. */
 const SIMPLE_CHAT_PROMPT_VERSION = 'v1';
-
-/** Stable hash used to key the response cache. */
-function hashKey(value: string): string {
-  return createHash('sha256').update(value).digest('hex').slice(0, 16);
-}
 
 /** Extracts plain text from an LLM response (string / content parts). */
 function extractContent(response: unknown): string {
@@ -73,7 +68,7 @@ export function buildRespondNode(deps: {
       state.toolResults.length === 0 &&
       deps.respondCache != null;
     const cacheKey = cacheable
-      ? `assistant:simple-chat:${state.locale}:${SIMPLE_CHAT_PROMPT_VERSION}:${hashKey(state.userMessage)}`
+      ? `assistant:simple-chat:${state.locale}:${SIMPLE_CHAT_PROMPT_VERSION}:${makeShortHash(state.userMessage)}`
       : null;
 
     if (cacheKey != null && deps.respondCache != null) {
