@@ -1,5 +1,27 @@
 import { Logger } from '@nestjs/common';
 
+/** Errno codes that indicate network/connection failures. */
+const CONNECTION_ERRNO_CODES = new Set([
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'EPIPE',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+]);
+
+/**
+ * Message patterns that specifically indicate a connection-level failure.
+ * Kept narrow to avoid matching business errors that happen to mention
+ * "Redis", "connection", "socket", or "timeout" in a non-connection context.
+ */
+const CONNECTION_MESSAGE_PATTERNS = [
+  /connection (?:refused|reset|lost|closed|terminated|timed out|ended|dropped)/i,
+  /socket (?:hang up|closed|destroyed|ended)/i,
+];
+
 /**
  * Connection-related error signatures we are willing to swallow and fall back
  * from. Programming errors (TypeError / ReferenceError / SyntaxError) and
@@ -19,20 +41,15 @@ function isQueueConnectionError(error: unknown): boolean {
     return false;
   }
 
-  const patterns = [
-    /ECONNREFUSED/i,
-    /ECONNRESET/i,
-    /ETIMEDOUT/i,
-    /ENOTFOUND/i,
-    /EAI_AGAIN/i,
-    /EPIPE/i,
-    /Connection/i,
-    /Redis/i,
-    /socket/i,
-    /timeout/i,
-  ];
+  // Precise errno-code match (preferred).
+  const code = (error as NodeJS.ErrnoException).code;
+  if (code != null && CONNECTION_ERRNO_CODES.has(code)) {
+    return true;
+  }
+
+  // Narrow message-pattern fallback for wrapped errors without a code.
   const haystack = `${error.name} ${error.message}`;
-  return patterns.some((pattern) => pattern.test(haystack));
+  return CONNECTION_MESSAGE_PATTERNS.some((pattern) => pattern.test(haystack));
 }
 
 /**
@@ -47,6 +64,8 @@ function isQueueConnectionError(error: unknown): boolean {
  * @param fallback     Synchronous fallback that produces the result.
  * @param fallbackKey  The envelope key under which the fallback result is
  *                     returned (e.g. `'result'` or `'pdfBase64'`).
+ * @param logger       Optional injected Logger instance for testability.
+ *                     When omitted, falls back to the static Logger.
  * @returns Either `{ jobId }` when the queue accepted the job, or
  *          `{ [fallbackKey]: result }` from the synchronous fallback.
  */
@@ -56,6 +75,7 @@ export async function enqueueOrFallback<T>(
   enqueue: () => Promise<string | null>,
   fallback: () => Promise<T>,
   fallbackKey: string,
+  logger?: Logger,
 ): Promise<Record<string, unknown>> {
   if (isConfigured) {
     try {
@@ -69,13 +89,16 @@ export async function enqueueOrFallback<T>(
       }
 
       // Redis 配置但断连等运行时异常：记日志后走同步回退，避免请求直接 500。
-      Logger.error(
-        `Enqueue failed for queue "${queueName}", falling back to synchronous processing: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        error instanceof Error ? error.stack : undefined,
-        'enqueueOrFallback',
-      );
+      const message = `Enqueue failed for queue "${queueName}", falling back to synchronous processing: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      if (logger != null) {
+        logger.error(message, stack);
+      } else {
+        Logger.error(message, stack, 'enqueueOrFallback');
+      }
     }
   }
 

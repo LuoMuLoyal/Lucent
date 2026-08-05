@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-03
+updated: 2026-08-05
 ---
 
 # Lucent Architecture
@@ -210,7 +210,7 @@ particular, `mail/`, `prisma/`, `config/`, and `i18n/` remain root-level runtime
 
 - `common/helpers/` — pure helper functions, split by domain:
   `prisma/` (query helpers, ownership), `errors/` (API error factories, error info/payload),
-  `format/` (string/number/json/date/search/localized-copy), `infra/` (array/crypto/ip/pagination/queue/retry)
+  `format/` (string/number/json/date/search/localized-copy), `infra/` (array/crypto/hash/ip/pagination/queue/retry)
 - `common/api/` — API envelope + SSE infrastructure; SSE files live in `common/api/sse/`
 - `common/services/` — shared injectable services
 - `common/logger/` — shared Nest logging module

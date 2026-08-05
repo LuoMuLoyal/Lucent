@@ -134,6 +134,7 @@ export class ReportsController {
         () => this.reportSummaryQueueService.enqueue(user.sub, dto, language),
         () => this.reportsAiSummaryService.generate(user.sub, dto, language),
         'result',
+        this.logger,
       ),
     );
   }
@@ -306,6 +307,7 @@ export class ReportsController {
             await this.clinicSummaryService.exportPdf(user.sub, language)
           ).toString('base64'),
         'pdfBase64',
+        this.logger,
       ),
     );
   }

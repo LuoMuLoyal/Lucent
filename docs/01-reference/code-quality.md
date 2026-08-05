@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-04
+updated: 2026-08-05
 ---
 
 # Code Quality / Maintainability
 
-Last updated: 2026-08-04
+Last updated: 2026-08-05
 
 - Barrel files (`index.ts`) must never export `.spec.ts` files — spec exports cause `nest build` to
   compile test files into `dist/`, and runtime barrel loading triggers `describe`/`it` calls that
@@ -202,6 +202,16 @@ Last updated: 2026-08-04
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
   - `today-suggestion/collectors/record.service.ts` 中 `prisma.userSetting.findUnique` 替换为
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
+
+- 2026-08-05 全仓库审查修复（按 `plans/Lucent-review-2026-08-05.md`）：
+  - `isQueueConnectionError` 正则匹配收紧：移除 `/Connection/i`、`/Redis/i`、`/socket/i`、
+    `/timeout/i` 等宽泛模式，改为优先通过 `error.code` 精确匹配 errno 代码（`ECONNREFUSED` 等），
+    仅保留窄化的消息模式 fallback，避免业务错误被误判为连接错误而静默走 fallback。
+  - `respondCache.set` 新增 `logger.debug` 调用，记录 key 前缀和 TTL，提供缓存写入审计追踪。
+  - Redis 默认端口 `6379` 提取为 `REDIS_DEFAULT_PORT` 命名常量。
+  - 重复的短哈希逻辑提取为 `src/common/helpers/infra/hash.utils.ts` 的 `makeShortHash` 函数，
+    `respond.ts` 和 `tool.service.ts` 共享同一实现。
+  - `enqueueOrFallback` 新增可选 `logger` 参数，调用方传入实例 Logger 替代静态 Logger。
 
 - 2026-08-04 审查修复（按 `plans/Lucent-review-2026-08-04.md`）：
   - `parseRedisUrl` 增加输入校验与上下文错误信息，IPv6 地址去除 URL 方括号，避免 `REDIS_URL`

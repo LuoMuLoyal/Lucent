@@ -73,3 +73,5 @@ interface DataExportRequestDto {
 - `monthly` requests are normalized to `last_30_days` before Lucent stores and generates the export,
   even if the caller passes another range value.
 - `ClinicSummaryService` user lookup migrated to `prisma.nonDeleted.user.findFirstOrThrow` API.
+- Report summary and clinic PDF async-queue fallback (`enqueueOrFallback`) now accepts an
+  injected `Logger` instance from the controller for testability and consistent log context.

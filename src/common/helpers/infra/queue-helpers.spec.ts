@@ -61,6 +61,28 @@ describe('enqueueOrFallback', () => {
     expect(fallback).toHaveBeenCalledTimes(1);
   });
 
+  it('falls back to sync when enqueue throws an errno-coded error', async () => {
+    const enqueue = vi.fn().mockImplementation(() => {
+      const err = new Error('connect ECONNREFUSED 127.0.0.1:6379') as Error & {
+        code: string;
+      };
+      err.code = 'ECONNREFUSED';
+      return Promise.reject(err);
+    });
+    const fallback = vi.fn().mockResolvedValue('sync-result');
+
+    const result = await enqueueOrFallback(
+      true,
+      'test-queue',
+      enqueue,
+      fallback,
+      'result',
+    );
+
+    expect(result).toEqual({ result: 'sync-result' });
+    expect(fallback).toHaveBeenCalledTimes(1);
+  });
+
   it('rethrows programming errors instead of falling back', async () => {
     const enqueue = vi
       .fn()
@@ -70,6 +92,36 @@ describe('enqueueOrFallback', () => {
     await expect(
       enqueueOrFallback(true, 'test-queue', enqueue, fallback, 'result'),
     ).rejects.toThrow(TypeError);
+
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it('rethrows business errors that mention Redis but are not connection errors', async () => {
+    const enqueue = vi
+      .fn()
+      .mockRejectedValue(
+        new Error(
+          'Redis transaction failed: invalid data format in user profile',
+        ),
+      );
+    const fallback = vi.fn().mockResolvedValue('sync-result');
+
+    await expect(
+      enqueueOrFallback(true, 'test-queue', enqueue, fallback, 'result'),
+    ).rejects.toThrow('Redis transaction failed');
+
+    expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it('rethrows generic errors that mention timeout but are not connection errors', async () => {
+    const enqueue = vi
+      .fn()
+      .mockRejectedValue(new Error('Operation timeout in business logic'));
+    const fallback = vi.fn().mockResolvedValue('sync-result');
+
+    await expect(
+      enqueueOrFallback(true, 'test-queue', enqueue, fallback, 'result'),
+    ).rejects.toThrow('Operation timeout');
 
     expect(fallback).not.toHaveBeenCalled();
   });
@@ -112,5 +164,33 @@ describe('enqueueOrFallback', () => {
     );
 
     expect(fallback).not.toHaveBeenCalled();
+  });
+
+  it('uses the provided logger instance on connection-error fallback', async () => {
+    const logger = {
+      error: vi.fn(),
+      warn: vi.fn(),
+      log: vi.fn(),
+      debug: vi.fn(),
+      verbose: vi.fn(),
+      fatal: vi.fn(),
+    };
+    const enqueue = vi.fn().mockRejectedValue(new Error('Connection refused'));
+    const fallback = vi.fn().mockResolvedValue('sync-result');
+
+    await enqueueOrFallback(
+      true,
+      'test-queue',
+      enqueue,
+      fallback,
+      'result',
+      logger as never,
+    );
+
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Enqueue failed for queue "test-queue"'),
+      expect.any(String),
+    );
   });
 });
