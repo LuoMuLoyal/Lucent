@@ -10,6 +10,9 @@
  *   override (takes precedence over the pathname db).
  */
 
+/** Default Redis port used when the URL does not specify one. */
+const REDIS_DEFAULT_PORT = 6379;
+
 export interface RedisConnectionOptions {
   host: string;
   port: number;
@@ -51,7 +54,7 @@ export function parseRedisUrl(
     // expect the bare address ("::1"). Strip them here for both ioredis and
     // BullMQ compatibility.
     host: url.hostname.replace(/^\[|\]$/g, ''),
-    port: Number(url.port) || 6379,
+    port: Number(url.port) || REDIS_DEFAULT_PORT,
     db: dbOverride != null ? Number(dbOverride) || 0 : pathDb,
     ...(url.username ? { username: url.username } : {}),
     ...(url.password ? { password: url.password } : {}),
