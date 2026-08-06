@@ -1,4 +1,4 @@
-import { AIMessage, ToolMessage } from '@langchain/core/messages';
+import { ToolMessage } from '@langchain/core/messages';
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import type { AssistantToolName } from '../../tools/shared/tool-types';
 import { buildToolDefinitions } from '../../tools/shared/tool-definitions';
@@ -49,33 +49,27 @@ export function createAgentNode(deps: {
       deps.onText,
     );
 
-    if (response instanceof AIMessage) {
-      const toolCalls = response.tool_calls;
-      if (toolCalls != null && toolCalls.length > 0) {
-        const toolNames = toolCalls.map((tc) => tc.name as AssistantToolName);
-        return {
-          messages: [response],
-          pendingToolCalls: toolNames,
-          finalContent: null,
-          selectedTools: toolNames,
-        };
-      }
-
-      const content = extractMessageText(response.content);
-
+    // streamModelResponse always returns an AIMessage (it throws if no
+    // chunks are received), so no instanceof guard is needed here.
+    const toolCalls = response.tool_calls;
+    if (toolCalls != null && toolCalls.length > 0) {
+      const toolNames = toolCalls.map((tc) => tc.name as AssistantToolName);
       return {
         messages: [response],
-        pendingToolCalls: [],
-        finalContent: content,
-        selectedTools: [],
-        stopReason: 'answered' as const,
+        pendingToolCalls: toolNames,
+        finalContent: null,
+        selectedTools: toolNames,
       };
     }
 
+    const content = extractMessageText(response.content);
+
     return {
+      messages: [response],
       pendingToolCalls: [],
-      finalContent: null,
-      stopReason: 'no_match' as const,
+      finalContent: content,
+      selectedTools: [],
+      stopReason: 'answered' as const,
     };
   };
 }

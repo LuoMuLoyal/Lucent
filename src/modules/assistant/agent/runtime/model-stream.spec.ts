@@ -71,7 +71,7 @@ describe('streamModelResponse', () => {
     ).rejects.toThrow(/without any AI message chunks/);
   });
 
-  it('continues aggregating when onText callback throws', async () => {
+  it('continues aggregating when onText throws a transport error', async () => {
     const loggerError = vi.spyOn(Logger, 'error').mockImplementation(() => {});
     const stream = vi
       .fn()
@@ -81,7 +81,11 @@ describe('streamModelResponse', () => {
           new AIMessageChunk({ content: ' world' }),
         ]),
       );
-    const onText = vi.fn().mockRejectedValueOnce(new Error('SSE broken'));
+    const transportErr = new Error('write EPIPE') as Error & {
+      code: string;
+    };
+    transportErr.code = 'EPIPE';
+    const onText = vi.fn().mockRejectedValueOnce(transportErr);
 
     const result = await streamModelResponse(
       { stream },
@@ -92,10 +96,38 @@ describe('streamModelResponse', () => {
     expect(result.content).toBe('Hello world');
     expect(onText).toHaveBeenCalledTimes(2);
     expect(loggerError).toHaveBeenCalledWith(
-      'Assistant stream onText callback failed: SSE broken',
+      'Assistant stream onText callback failed (transport): write EPIPE',
       expect.any(String),
       'streamModelResponse',
     );
+
+    loggerError.mockRestore();
+  });
+
+  it('rethrows non-transport errors from onText', async () => {
+    const loggerError = vi.spyOn(Logger, 'error').mockImplementation(() => {});
+    const stream = vi
+      .fn()
+      .mockResolvedValue(
+        chunks([
+          new AIMessageChunk({ content: 'Hello' }),
+          new AIMessageChunk({ content: ' world' }),
+        ]),
+      );
+    const onText = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('bad callback logic'));
+
+    await expect(
+      streamModelResponse(
+        { stream },
+        [new HumanMessage('hello')] as BaseMessage[],
+        onText,
+      ),
+    ).rejects.toThrow(TypeError);
+
+    expect(onText).toHaveBeenCalledTimes(1);
+    expect(loggerError).not.toHaveBeenCalled();
 
     loggerError.mockRestore();
   });

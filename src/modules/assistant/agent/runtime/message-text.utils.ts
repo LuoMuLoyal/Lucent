@@ -19,8 +19,12 @@ export function extractMessageText(content: string | unknown[]): string {
       if (typeof part === 'string') {
         return part;
       }
-      if (part != null && typeof part === 'object' && 'text' in part) {
-        const textValue = part.text;
+      if (
+        part != null &&
+        typeof part === 'object' &&
+        Object.prototype.hasOwnProperty.call(part, 'text')
+      ) {
+        const textValue = (part as Record<string, unknown>)['text'];
         if (typeof textValue === 'string') {
           return textValue;
         }

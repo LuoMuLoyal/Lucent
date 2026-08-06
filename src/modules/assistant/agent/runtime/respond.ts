@@ -66,7 +66,9 @@ export function buildRespondNode(deps: {
       state.intent === 'simple_chat' &&
       !state.memoryInjected &&
       state.toolResults.length === 0 &&
-      deps.respondCache != null;
+      deps.respondCache != null &&
+      typeof state.userMessage === 'string' &&
+      state.userMessage.length > 0;
     const cacheKey = cacheable
       ? `assistant:simple-chat:${state.locale}:${SIMPLE_CHAT_PROMPT_VERSION}:${makeShortHash(state.userMessage)}`
       : null;

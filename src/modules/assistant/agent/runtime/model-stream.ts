@@ -10,6 +10,51 @@ export type StreamableModel = {
   stream(input: BaseMessage[]): Promise<AsyncIterable<unknown>>;
 };
 
+/**
+ * Errno / error codes that indicate a transport-layer failure (client
+ * disconnect, broken pipe, premature stream close) rather than a bug in
+ * callback logic. Only these are swallowed so the stream can keep
+ * aggregating the final message for the caller.
+ */
+const TRANSPORT_ERRNO_CODES = new Set([
+  'ECONNRESET',
+  'EPIPE',
+  'ERR_STREAM_PREMATURE_CLOSE',
+  'ERR_STREAM_WRITE_AFTER_END',
+  'ERR_HTTP_HEADERS_SENT',
+]);
+
+/**
+ * Determines whether an error thrown by the `onText` callback is a
+ * transport-layer failure (e.g. SSE client disconnect) that should be
+ * swallowed, or a programming / business error that must bubble up.
+ */
+function isTransportError(error: unknown): boolean {
+  if (
+    error instanceof TypeError ||
+    error instanceof ReferenceError ||
+    error instanceof SyntaxError
+  ) {
+    return false;
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  // AbortError — fetch/stream explicitly aborted by the caller.
+  if (error.name === 'AbortError') {
+    return true;
+  }
+
+  const code = (error as NodeJS.ErrnoException).code;
+  if (code != null && TRANSPORT_ERRNO_CODES.has(code)) {
+    return true;
+  }
+
+  return false;
+}
+
 export async function streamModelResponse(
   model: StreamableModel,
   messages: BaseMessage[],
@@ -28,11 +73,16 @@ export async function streamModelResponse(
       try {
         await onText(text);
       } catch (error) {
-        // Transport-layer failures (e.g. SSE client disconnect) must not tear
-        // down the whole stream. Keep aggregating the final message and let the
-        // caller handle downstream delivery in its own error handling.
+        // Only transport-layer failures (e.g. SSE client disconnect, broken
+        // pipe) are swallowed so the stream can keep aggregating the final
+        // message. Programming errors (TypeError etc.) and business logic
+        // errors must propagate so they are not silently hidden.
+        if (!isTransportError(error)) {
+          throw error;
+        }
+
         Logger.error(
-          `Assistant stream onText callback failed: ${
+          `Assistant stream onText callback failed (transport): ${
             error instanceof Error ? error.message : String(error)
           }`,
           error instanceof Error ? error.stack : undefined,
