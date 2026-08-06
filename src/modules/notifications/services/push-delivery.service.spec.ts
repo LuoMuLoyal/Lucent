@@ -1,60 +1,53 @@
 import { PushDeliveryService } from './push-delivery.service';
-import type { PrismaService } from '../../../prisma';
+import type { PushMessage, PushProvider } from './push-provider.port';
 
-function buildPrisma(overrides: Record<string, unknown> = {}) {
+function buildProvider(
+  overrides: Partial<PushProvider> = {},
+): vi.Mocked<PushProvider> {
   return {
-    userDevice: {
-      findMany: vi.fn().mockResolvedValue([]),
-    },
+    isConfigured: true,
+    send: vi.fn((_aliases: string[], _message: PushMessage) =>
+      Promise.resolve(),
+    ),
     ...overrides,
-  };
+  } as vi.Mocked<PushProvider>;
 }
 
 describe('PushDeliveryService', () => {
   let service: PushDeliveryService;
-  let prisma: ReturnType<typeof buildPrisma>;
+  let provider: vi.Mocked<PushProvider>;
 
   beforeEach(() => {
-    prisma = buildPrisma();
-    service = new PushDeliveryService(prisma as unknown as PrismaService);
+    provider = buildProvider();
+    service = new PushDeliveryService(provider);
   });
 
-  it('does nothing when user has no enabled devices', async () => {
-    prisma.userDevice.findMany.mockResolvedValue([]);
+  it('skips delivery when JPush is not configured', async () => {
+    provider = buildProvider({ isConfigured: false });
+    service = new PushDeliveryService(provider);
 
     await service.sendToUser('user-1', {
       title: 'Test',
       body: 'Body',
     });
 
-    expect(prisma.userDevice.findMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1', notificationsEnabled: true },
-      select: expect.objectContaining({
-        pushToken: true,
-        platform: true,
-      }),
-    });
+    expect(provider.send).not.toHaveBeenCalled();
   });
 
-  it('queries devices with notificationsEnabled=true', async () => {
-    prisma.userDevice.findMany.mockResolvedValue([
-      { id: 'd1', pushToken: 'token-1', platform: 'ios' },
-      { id: 'd2', pushToken: 'token-2', platform: 'android' },
-    ]);
-
-    await service.sendToUser('user-1', {
+  it('sends the user id as the JPush alias', async () => {
+    const payload = {
       title: 'Reminder',
       body: 'Take medicine',
       data: { reminderId: 'r1' },
-    });
+    };
 
-    expect(prisma.userDevice.findMany).toHaveBeenCalledTimes(1);
+    await service.sendToUser('user-1', payload);
+
+    expect(provider.send).toHaveBeenCalledWith(['user-1'], payload);
   });
 
-  it('swallows database errors and does not throw', async () => {
-    prisma.userDevice.findMany.mockRejectedValue(
-      new Error('connection refused'),
-    );
+  it('swallows provider errors and does not throw', async () => {
+    provider.send.mockRejectedValue(new Error('JPush unavailable'));
 
     await expect(
       service.sendToUser('user-1', { title: 'Test', body: 'Body' }),
