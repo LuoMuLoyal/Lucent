@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-05
+updated: 2026-08-06
 ---
 
 # Code Quality / Maintainability
 
-Last updated: 2026-08-05
+Last updated: 2026-08-06
 
 - Barrel files (`index.ts`) must never export `.spec.ts` files — spec exports cause `nest build` to
   compile test files into `dist/`, and runtime barrel loading triggers `describe`/`it` calls that
@@ -202,6 +202,17 @@ Last updated: 2026-08-05
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
   - `today-suggestion/collectors/record.service.ts` 中 `prisma.userSetting.findUnique` 替换为
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
+
+- 2026-08-06 增量审查修复（按 `plans/Lucent-review-2026-08-06.md`）：
+  - `streamModelResponse` 的 `onText` catch 收紧为仅传输层错误（`ECONNRESET`、`EPIPE`、
+    `ERR_STREAM_PREMATURE_CLOSE`、`AbortError` 等），编程错误和业务逻辑错误继续抛出，
+    避免回调内部 Bug 被静默掩盖。
+  - `extractMessageText` 的 `'text' in part` 改为 `Object.prototype.hasOwnProperty.call`，
+    避免原型链属性误判。
+  - `nodes.ts` 移除 `response instanceof AIMessage` 冗余检查及不可达的 `no_match` 分支。
+  - `respond.ts` 缓存 key 构造增加 `userMessage` 非空防御，避免缓存污染。
+  - `setup-app.ts` 中 `resolveScalarStandaloneUrl` catch 块新增 `Logger.warn`，
+    便于 serverless / 只读文件系统环境排查 Scalar 版本解析失败。
 
 - 2026-08-05 全仓库审查修复（按 `plans/Lucent-review-2026-08-05.md`）：
   - `isQueueConnectionError` 正则匹配收紧：移除 `/Connection/i`、`/Redis/i`、`/socket/i`、

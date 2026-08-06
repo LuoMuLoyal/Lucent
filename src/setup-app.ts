@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import type { ValidationError } from '@nestjs/common';
 import {
   BadRequestException,
+  Logger,
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
@@ -59,7 +60,13 @@ async function resolveScalarStandaloneUrl(): Promise<string> {
     return version
       ? `/scalar/standalone.js?v=${version}`
       : '/scalar/standalone.js';
-  } catch {
+  } catch (error) {
+    Logger.warn(
+      `Failed to resolve @scalar/api-reference version from package.json, falling back to bare URL: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      'resolveScalarStandaloneUrl',
+    );
     return '/scalar/standalone.js';
   }
 }
