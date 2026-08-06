@@ -203,7 +203,7 @@ Last updated: 2026-08-06
   - `today-suggestion/collectors/record.service.ts` 中 `prisma.userSetting.findUnique` 替换为
     `userSettingsService.getSettings(userId)`，移除 `PrismaService` 依赖。
 
-- 2026-08-06 增量审查修复（按 `plans/Lucent-review-2026-08-06.md`）：
+- 2026-08-06 增量审查修复：
   - `streamModelResponse` 的 `onText` catch 收紧为仅传输层错误（`ECONNRESET`、`EPIPE`、
     `ERR_STREAM_PREMATURE_CLOSE`、`AbortError` 等），编程错误和业务逻辑错误继续抛出，
     避免回调内部 Bug 被静默掩盖。
