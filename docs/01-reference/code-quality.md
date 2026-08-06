@@ -164,8 +164,8 @@ Last updated: 2026-08-06
 - 2026-07-20 审计日志 + 推送通知投递链路：
   - `AuditLogService` 采用 fire-and-forget 模式（`logFireAndForget()`），审计写入失败不阻塞
     请求（warn 日志 + 错误吞咽），确保用户操作不受审计基础设施影响
-  - `PushDeliveryService` 优雅降级：未配置 FCM/APNs 时为 no-op stub（仅 log.debug），
-    替换 inner block 即可接入真实 SDK，无需修改调用方
+  - `PushDeliveryService` 通过 JPush alias 投递并优雅降级：未配置 JPush 凭证时仅
+    `log.debug` 跳过，provider 失败记录 warn 且不阻塞站内通知
   - `ReminderSchedulerService` 和 `EscalationService` 均集成双通道投递（站内 + 推送），
     推送失败不影响站内通知已创建的记录
 - `AuthNotificationService` 通知类型语义已修正：`notifyOAuthLogin` → `oauth_login`，
