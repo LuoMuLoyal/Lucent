@@ -35,7 +35,6 @@ Lucent's notification system is split into two layers with a clear ownership bou
     only
 - Push delivery (JPush)
   - Status: `PushDeliveryService` sends the user ID as a JPush alias through the JPush REST API. Missing credentials skip delivery; provider failures are logged and do not block the in-app notification flow.
-  - Device registration API: `POST /api/v1/user/user-devices` (register or update by pushToken — cross-user hijack protected, returns 403 if token owned by another user), `GET` (list), `DELETE` (unregister — returns 404 if not found, 403 if owned by another user).
 - Reminder delivery log
   - Status: `ReminderSchedulerService` (`@Cron('* * * * *')`) now writes `UserReminderDelivery` rows every minute for due reminders — matching `scheduledHour:Minute` in user timezone + `daysOfWeek` + date window. Channel=`in_app`, status=`delivered`. Deduplicated by the `(userId, reminderId, scheduledFor)` unique constraint (`findFirst` fast path + `createMany({ skipDuplicates: true })` atomic fallback, at-least-once — see [ADR-0011](../adr/0011-reminder-delivery-at-least-once.md)). Uses cursor-based pagination (batch size 500) to avoid OOM on large datasets.
 - Notification content templates
@@ -180,15 +179,14 @@ UserReminderDelivery {
 6. **Phase F (done on 2026-07-20):** `ReminderSchedulerService` implemented — `@Cron` every
    minute scans due reminders by user timezone, writes `UserReminderDelivery` rows, and sends
    in-app notifications via `NotificationsService`. `PushDeliveryService` integrated as
-   best-effort JPush alias channel. Device registration API (`user-devices` module) remains
-   the current client registration contract until the planned migration removes it.
+   best-effort JPush alias channel. Device registration is handled by the client JPush
+   SDK and no longer has a backend `user-devices` API.
    `AuditLogModule` added for sensitive operation audit trail.
-7. **Phase G (done on 2026-07-21):** Security and reliability hardening — device registration
-   cross-user hijack protection (403), device delete semantic correctness (404/403), scheduler
+7. **Phase G (done on 2026-07-21):** Security and reliability hardening — scheduler
    cursor-based pagination (OOM prevention), scheduler overlap guard, escalation atomic
    conditional update (race condition fix), throttler Redis connection failure graceful
-   degradation, data retention direct `deleteMany` (no ID pre-load), `DevicePlatform` enum
-   exported and DTO type-safe.
+   degradation, data retention direct `deleteMany` (no ID pre-load), and
+   `UserDevicePlatform` retained for `UserSession.platform` compatibility.
 
 At every phase, Luminous remains the notification display layer; Lucent owns the schedule data.
 Reminder and dose-log repository queries migrated to `prisma.nonDeleted` API.

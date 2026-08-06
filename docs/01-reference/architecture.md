@@ -34,7 +34,6 @@ graph TD
         todaySuggestion["today-suggestion<br>(75 files, 44 providers)<br>第二大 feature module"]
         healthCtx["user-health-context"]
         settings["user-settings"]
-        userDevices["user-devices<br>(device registration)"]
     end
 
     subgraph "Internal Services"
@@ -220,7 +219,7 @@ particular, `mail/`, `prisma/`, `config/`, and `i18n/` remain root-level runtime
 
 Root-level `src/config/` is split by role:
 
-- `config/services/` — 7 `registerAs()` config factories (cache, jwt, llm, mail, oauth, tencent-cos, throttler)
+- `config/services/` — 8 `registerAs()` config factories (cache, jwt, jpush, llm, mail, oauth, tencent-cos, throttler)
 - `config/env/` — environment validation, env-file paths, `EnvKey` and `ConfigKey` enums
 - `config/app.config.ts` — root app config; `config/constants.ts` — shared config constants
 
@@ -267,8 +266,7 @@ the prefix is centralized.
   - Via: Controller `@Controller('testing/fullstack-e2e')`
 - `/user/*`
   - Modules: assistant, daily-records, data-export, files, health-context, medicine-dose-logs,
-    medicine-reminders, notifications, reports, settings, today-analysis, today-suggestion,
-    user-devices
+    medicine-reminders, notifications, reports, settings, today-analysis, today-suggestion
   - Via: `RouterModule.register()`
 
 ## Error Handling

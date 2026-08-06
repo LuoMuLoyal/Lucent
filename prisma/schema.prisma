@@ -147,7 +147,6 @@ model User {
   profile                UserProfile?
   identities             UserIdentity[]
   sessions               UserSession[]
-  devices                UserDevice[]
   allergies              UserAllergy[]
   conditions             UserCondition[]
   currentMedicines       UserCurrentMedicine[]
@@ -231,25 +230,6 @@ model UserSession {
   @@index([userId, expiresAt])
   @@index([expiresAt])
   @@map("user_sessions")
-}
-
-model UserDevice {
-  id                   String             @id @default(uuid())
-  userId               String             @map("user_id")
-  platform             UserDevicePlatform
-  deviceName           String?            @map("device_name")
-  pushToken            String?            @unique @map("push_token")
-  locale               String?
-  timezone             String?
-  notificationsEnabled Boolean            @default(false) @map("notifications_enabled")
-  capabilities         Json?              @db.JsonB
-  lastSeenAt           DateTime?          @map("last_seen_at") @db.Timestamptz(3)
-  createdAt            DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, platform])
-  @@map("user_devices")
 }
 
 model UserAllergy {

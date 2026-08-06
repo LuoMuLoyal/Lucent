@@ -48,7 +48,6 @@ import { TodaySuggestionModule } from './modules/today-suggestion/today-suggesti
 import { AssistantModule } from './modules/assistant/assistant.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { DataRetentionModule } from './modules/data-retention/data-retention.module';
-import { UserDevicesModule } from './modules/user-devices/user-devices.module';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
 import { SlowRequestInterceptor } from './common';
 
@@ -89,7 +88,6 @@ import { SlowRequestInterceptor } from './common';
     PrismaModule,
     AuditLogModule,
     DataRetentionModule,
-    UserDevicesModule,
     MailModule,
     AuthModule,
     AccountModule,
@@ -122,7 +120,6 @@ import { SlowRequestInterceptor } from './common';
           UserHealthContextModule,
           MedicineDoseLogsModule,
           MedicineRemindersModule,
-          UserDevicesModule,
           NotificationsModule,
           ReportsModule,
           UserSettingsModule,

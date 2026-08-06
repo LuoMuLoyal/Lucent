@@ -78,7 +78,6 @@ export function createPrismaServiceMock(): DeepMocked<PrismaService> {
       update: vi.fn(),
     },
     userReminderDelivery: { create: vi.fn() },
-    userDevice: { upsert: vi.fn() },
     userNotification: {
       create: vi.fn(),
       findMany: vi.fn(),
