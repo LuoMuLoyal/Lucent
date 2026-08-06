@@ -171,4 +171,48 @@ describe('validateEnvironment', () => {
       }),
     ).toThrow('Incomplete Tencent COS environment variables');
   });
+
+  it('allows JPush to remain disabled when both credentials are absent', () => {
+    expect(() =>
+      validateEnvironment({
+        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
+        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
+        [EnvKey.ADMIN_EMAIL]: adminEmail,
+        [EnvKey.ADMIN_PASSWORD]: adminPassword,
+        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+        [EnvKey.JPUSH_API_BASE_URL]: 'https://api.jpush.cn',
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects incomplete JPush credentials', () => {
+    expect(() =>
+      validateEnvironment({
+        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
+        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
+        [EnvKey.ADMIN_EMAIL]: adminEmail,
+        [EnvKey.ADMIN_PASSWORD]: adminPassword,
+        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+        [EnvKey.JPUSH_APP_KEY]: 'appkey-1',
+      }),
+    ).toThrow(
+      `Incomplete JPush environment variables: ${EnvKey.JPUSH_MASTER_SECRET}`,
+    );
+
+    expect(() =>
+      validateEnvironment({
+        [EnvKey.NODE_ENV]: NodeEnvironment.Development,
+        [EnvKey.JWT_ACCESS_SECRET]: localJwtAccessSecret,
+        [EnvKey.JWT_REFRESH_SECRET]: localJwtRefreshSecret,
+        [EnvKey.ADMIN_EMAIL]: adminEmail,
+        [EnvKey.ADMIN_PASSWORD]: adminPassword,
+        [EnvKey.ADMIN_COOKIE_SECRET]: adminCookieSecret,
+        [EnvKey.JPUSH_MASTER_SECRET]: 'secret-1',
+      }),
+    ).toThrow(
+      `Incomplete JPush environment variables: ${EnvKey.JPUSH_APP_KEY}`,
+    );
+  });
 });

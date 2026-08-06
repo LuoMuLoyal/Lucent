@@ -131,6 +131,13 @@ Run Prisma commands with explicit `NODE_ENV` when not targeting development, for
 NODE_ENV=test pnpm exec prisma migrate deploy
 ```
 
+## JPush
+
+服务端推送通过 JPush REST API 按用户 alias 投递。`JPUSH_APP_KEY` 与
+`JPUSH_MASTER_SECRET` 必须同时配置；两者都为空时推送保持静默禁用，不影响其他业务。
+Master Secret 只能通过本地未跟踪环境文件或部署 secret 注入。`JPUSH_APNS_PRODUCTION`
+必须与 Luminous 的 iOS provisioning/APNs 环境匹配。
+
 ## Runtime Notes
 
 - `GET /api/v1/health` is a readiness alias, not a pure liveness check. It returns dependency detail

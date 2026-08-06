@@ -21,4 +21,7 @@ export enum ConfigKey {
 
   /** Tencent Cloud COS upload configuration */
   TencentCos = 'tencentCos',
+
+  /** JPush notification configuration */
+  Jpush = 'jpush',
 }

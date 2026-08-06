@@ -190,6 +190,11 @@ const envSchema = z.object({
     .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
     .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
 
+  [EnvKey.JPUSH_APP_KEY]: optionalString,
+  [EnvKey.JPUSH_MASTER_SECRET]: optionalString,
+  [EnvKey.JPUSH_APNS_PRODUCTION]: z.enum(['true', 'false']).optional(),
+  [EnvKey.JPUSH_API_BASE_URL]: optionalUri,
+
   [EnvKey.OPENAPI_EXPORT_SKIP_DB_CONNECT]: z.enum(['true', 'false']).optional(),
 
   [EnvKey.MEAL_DEFAULT_PORTION_GRAMS]: z.coerce
@@ -430,6 +435,7 @@ export function validateEnvironment(
 
   assertProductionEnvironment(validated);
   assertTencentCosEnvironment(validated);
+  assertJpushEnvironment(validated);
   assertAiEnvironment(validated);
 
   return validated;
@@ -492,6 +498,29 @@ function assertTencentCosEnvironment(config: EnvironmentVariables): void {
   if (missingKeys.length > 0) {
     throw new Error(
       `Incomplete Tencent COS environment variables: ${missingKeys.join(', ')}`,
+    );
+  }
+}
+
+function assertJpushEnvironment(config: EnvironmentVariables): void {
+  const credentialKeys = [
+    EnvKey.JPUSH_APP_KEY,
+    EnvKey.JPUSH_MASTER_SECRET,
+  ] as const;
+  const hasAnyCredentials = credentialKeys.some((key) =>
+    (config[key] ?? '').trim(),
+  );
+
+  if (!hasAnyCredentials) {
+    return;
+  }
+
+  const missingKeys = credentialKeys.filter(
+    (key) => !(config[key] ?? '').trim(),
+  );
+  if (missingKeys.length > 0) {
+    throw new Error(
+      `Incomplete JPush environment variables: ${missingKeys.join(', ')}`,
     );
   }
 }

@@ -91,6 +91,20 @@ at startup but does not block application launch. QQ, Weibo, and Google each use
 the standard OAuth 2.0 authorization-code flow; WeChat additionally supports a
 mobile SDK path.
 
+JPush notification delivery:
+
+```text
+JPUSH_APP_KEY
+JPUSH_MASTER_SECRET
+JPUSH_APNS_PRODUCTION
+JPUSH_API_BASE_URL
+```
+
+All four variables are optional. AppKey and Master Secret must be configured together;
+if both are absent, Lucent skips push delivery. `JPUSH_APNS_PRODUCTION` accepts `true` or
+`false` and defaults to `false`; `JPUSH_API_BASE_URL` defaults to `https://api.jpush.cn`.
+The Master Secret is sensitive and must not be committed.
+
 Daily-record image uploads through Tencent COS:
 
 ```text
