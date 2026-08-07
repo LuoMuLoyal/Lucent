@@ -115,11 +115,8 @@ export class VerificationCodeService {
   }
 
   async assertClientRateLimit(clientKey?: string): Promise<void> {
-    if (!clientKey) {
-      return;
-    }
-
-    const key = this.clientRateLimitKey(clientKey);
+    const effectiveKey = clientKey || 'unknown';
+    const key = this.clientRateLimitKey(effectiveKey);
     const now = Date.now();
     const bucket = await this.cache.get<RateLimitBucket>(key);
 

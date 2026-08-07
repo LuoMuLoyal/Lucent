@@ -163,6 +163,34 @@ describe('VerificationCodeService', () => {
       ).rejects.toThrow(HttpException);
       expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
     });
+
+    it('should rate-limit even when clientKey is not provided (uses default bucket)', async () => {
+      const resetAt = Date.now() + 60_000;
+      (cache.get as vi.Mock).mockResolvedValue({
+        count: DEFAULT_VERIFICATION_RATE_LIMIT_MAX,
+        resetAt,
+      });
+
+      await expect(
+        service.send('test@example.com', 'register'),
+      ).rejects.toThrow(HttpException);
+      expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    it('should create a default rate-limit bucket when clientKey is not provided', async () => {
+      (cache.get as vi.Mock).mockResolvedValue(undefined);
+      (cache.set as vi.Mock).mockResolvedValue(undefined);
+      mailService.sendVerificationCode.mockResolvedValue(undefined);
+
+      await service.send('test@example.com', 'register');
+
+      const unknownHash = createHash('sha256').update('unknown').digest('hex');
+      expect(cache.set).toHaveBeenCalledWith(
+        `vcode:rl:client:${unknownHash}`,
+        expect.objectContaining({ count: 1 }),
+        DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
+      );
+    });
   });
 
   describe('verify', () => {
