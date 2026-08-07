@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ServiceUnavailableException } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { MedicineRiskCheckService } from './risk-check.service';
 import type { PrismaService } from '../../../../prisma';
@@ -113,12 +114,12 @@ describe('MedicineRiskCheckService', () => {
     expect(prisma.medicineRiskCheckRecord.upsert).toHaveBeenCalled();
   });
 
-  it('runLlmCheck throws when the LLM analysis model is not configured', async () => {
+  it('runLlmCheck throws ServiceUnavailableException when the LLM analysis model is not configured', async () => {
     const { llmGenerator, svc } = build();
     vi.mocked(llmGenerator.hasAnalysisModel).mockReturnValue(false);
 
     await expect(svc.runLlmCheck('u1')).rejects.toThrow(
-      'LLM analysis model is not configured',
+      ServiceUnavailableException,
     );
   });
 

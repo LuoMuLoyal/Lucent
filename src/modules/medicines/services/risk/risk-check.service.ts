@@ -1,13 +1,17 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Injectable, Logger } from '@nestjs/common';
-import { Inject } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../../../prisma';
 import { MedicinesService } from '../medicines.service';
 import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
 import { RiskDetectionService } from './risk-detection.service';
 import { RiskContextBuilderService } from './risk-context-builder.service';
-import { nonDeleted, toInputJsonValue } from '../../../../common';
+import { ResultCode, nonDeleted, toInputJsonValue } from '../../../../common';
 import type {
   MedicineRiskCheckResponseDto,
   MedicineRiskCheckRecordDto,
@@ -73,7 +77,10 @@ export class MedicineRiskCheckService {
 
   async runLlmCheck(userId: string): Promise<MedicineRiskCheckRecordDto> {
     if (!this.llmGenerator.hasAnalysisModel()) {
-      throw new Error('LLM analysis model is not configured');
+      throw new ServiceUnavailableException({
+        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        message: 'LLM analysis model is not configured',
+      });
     }
 
     // 1. Run static check to get baseline findings
@@ -129,13 +136,16 @@ export class MedicineRiskCheckService {
         allergies: {
           where: { isActive: true },
           orderBy: { updatedAt: 'desc' },
+          take: 100,
         },
         conditions: {
           orderBy: { updatedAt: 'desc' },
+          take: 100,
         },
         currentMedicines: {
           where: { isCurrent: true },
           orderBy: { updatedAt: 'desc' },
+          take: 100,
         },
       },
     });
