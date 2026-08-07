@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ServiceUnavailableException } from '@nestjs/common';
 import type { JpushConfig } from '../../../config/services/jpush.config';
 import { JpushPushProvider } from './jpush.provider';
 
@@ -118,7 +119,7 @@ describe('JpushPushProvider', () => {
     expect(batchSizes).toEqual([1000, 1000, 500]);
   });
 
-  it('throws on a non-2xx response', async () => {
+  it('throws ServiceUnavailableException on a non-2xx response', async () => {
     fetchMock.mockResolvedValue({
       ok: false,
       status: 401,
@@ -131,6 +132,6 @@ describe('JpushPushProvider', () => {
         title: 't',
         body: 'b',
       }),
-    ).rejects.toThrow(/JPush push failed.*401/);
+    ).rejects.toThrow(ServiceUnavailableException);
   });
 });

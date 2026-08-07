@@ -1,18 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { JpushConfig } from '../../../config/services/jpush.config';
 import type { PushMessage, PushProvider } from './push-provider.port';
+import { chunkArray, ResultCode } from '../../../common';
 
 export const JPUSH_MAX_ALIASES_PER_REQUEST = 1000;
 
 const JPUSH_TIME_TO_LIVE_SECONDS = 86_400;
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    result.push(items.slice(index, index + size));
-  }
-  return result;
-}
 
 /** Sends notification payloads to JPush REST API v3 by user alias. */
 @Injectable()
@@ -39,7 +36,7 @@ export class JpushPushProvider implements PushProvider {
       return;
     }
 
-    for (const batch of chunk(aliases, JPUSH_MAX_ALIASES_PER_REQUEST)) {
+    for (const batch of chunkArray(aliases, JPUSH_MAX_ALIASES_PER_REQUEST)) {
       await this.sendBatch(batch, message);
     }
   }
@@ -81,9 +78,10 @@ export class JpushPushProvider implements PushProvider {
 
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
-      throw new Error(
-        `JPush push failed: status=${String(response.status)}, body=${detail.slice(0, 500)}`,
-      );
+      throw new ServiceUnavailableException({
+        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        message: `JPush push failed: status=${String(response.status)}, body=${detail.slice(0, 500)}`,
+      });
     }
 
     this.logger.debug(
