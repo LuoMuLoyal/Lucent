@@ -1,4 +1,4 @@
-import { isEmptyArray, shuffleArray } from './array.utils';
+import { chunkArray, isEmptyArray, shuffleArray } from './array.utils';
 
 describe('array.utils', () => {
   describe('isEmptyArray', () => {
@@ -62,6 +62,38 @@ describe('array.utils', () => {
       expect(result).toHaveLength(3);
       const ids = result.map((item) => item.id).sort();
       expect(ids).toEqual([1, 2, 3]);
+    });
+  });
+
+  describe('chunkArray', () => {
+    it('returns a single chunk when array length equals size', () => {
+      expect(chunkArray([1, 2, 3], 3)).toEqual([[1, 2, 3]]);
+    });
+
+    it('returns multiple chunks when array length exceeds size', () => {
+      expect(chunkArray([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+    });
+
+    it('returns a single chunk when array is shorter than size', () => {
+      expect(chunkArray([1, 2], 5)).toEqual([[1, 2]]);
+    });
+
+    it('returns empty array for empty input', () => {
+      expect(chunkArray([], 3)).toEqual([]);
+    });
+
+    it('handles batches exactly divisible by size', () => {
+      expect(chunkArray([1, 2, 3, 4], 2)).toEqual([
+        [1, 2],
+        [3, 4],
+      ]);
+    });
+
+    it('does not mutate the original array', () => {
+      const input = [1, 2, 3, 4, 5];
+      const original = [...input];
+      chunkArray(input, 2);
+      expect(input).toEqual(original);
     });
   });
 });

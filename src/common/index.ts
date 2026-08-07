@@ -50,7 +50,7 @@ export {
 } from './helpers/format/date-time.utils';
 export { safeCompare } from './helpers/infra/crypto.utils';
 export { makeShortHash } from './helpers/infra/hash.utils';
-export { shuffleArray } from './helpers/infra/array.utils';
+export { shuffleArray, chunkArray } from './helpers/infra/array.utils';
 export {
   toNullableInputJsonValue,
   toInputJsonValue,

@@ -20,3 +20,12 @@ export function isEmptyArray(
 ): value is [] | undefined | null {
   return value == null || value.length === 0;
 }
+
+/** Splits an array into chunks of the given size. The final chunk may be shorter. */
+export function chunkArray<T>(items: readonly T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    result.push(items.slice(index, index + size));
+  }
+  return result;
+}
