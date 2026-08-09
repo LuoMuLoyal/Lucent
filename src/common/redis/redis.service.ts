@@ -42,7 +42,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private readonly configService: ConfigService) {
     const url = this.configService.get<string>(EnvKey.REDIS_URL);
-    this.redisUrl = url != null && url.trim().length > 0 ? url : null;
+    this.redisUrl =
+      process.env['OPENAPI_EXPORT_SKIP_REDIS'] === 'true'
+        ? null
+        : url != null && url.trim().length > 0
+          ? url
+          : null;
   }
 
   get isAvailable(): boolean {

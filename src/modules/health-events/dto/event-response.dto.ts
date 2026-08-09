@@ -29,12 +29,14 @@ export class HealthEventCoverageDto {
   checkInCount!: number;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'First check-in calendar date, or null when none exists.',
     nullable: true,
   })
   firstCheckInDate!: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Last check-in calendar date, or null when none exists.',
     nullable: true,
   })
@@ -55,6 +57,7 @@ export class HealthEventItemDto {
   startedAt!: string;
 
   @ApiProperty({
+    type: String,
     description: 'End time in ISO 8601 format, or null while active.',
     nullable: true,
   })
@@ -67,7 +70,7 @@ export class HealthEventItemDto {
   })
   outcome!: HealthEventOutcome | null;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ type: String, nullable: true })
   reasonRecordId!: string | null;
 
   @ApiProperty({ type: String, isArray: true })

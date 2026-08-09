@@ -9,6 +9,7 @@ const { FastifyAdapter } = require('@nestjs/platform-fastify');
 async function main() {
   delete process.env.REDIS_URL;
   process.env.OPENAPI_EXPORT_SKIP_DB_CONNECT = 'true';
+  process.env.OPENAPI_EXPORT_SKIP_REDIS = 'true';
   const repoRoot = path.resolve(__dirname, '..', '..');
 
   const appModulePath = pathToFileURL(

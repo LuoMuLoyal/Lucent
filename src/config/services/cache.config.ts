@@ -26,7 +26,7 @@ export class CacheConfigService implements CacheOptionsFactory {
   async createCacheOptions(): Promise<CacheModuleOptions> {
     const redisUrl = this.configService.get<string>(EnvKey.REDIS_URL);
 
-    if (redisUrl) {
+    if (redisUrl && process.env['OPENAPI_EXPORT_SKIP_REDIS'] !== 'true') {
       const store = await redisStore({
         ...parseRedisUrl(redisUrl),
       });

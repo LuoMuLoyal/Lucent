@@ -24,6 +24,10 @@ Last updated: 2026-08-09
   copy with a fresh build during CI.
 - `pnpm openapi:export` is a standalone script that only runs the OpenAPI export node script;
   `pnpm export:openapi` is the full pipeline (`prisma:generate && build && openapi:export`).
+  The export script sets `OPENAPI_EXPORT_SKIP_DB_CONNECT` and `OPENAPI_EXPORT_SKIP_REDIS` so
+  contract generation does not require local PostgreSQL or Redis; the latter also overrides
+  any `REDIS_URL` loaded from the development env file and keeps cache, throttler, and BullMQ
+  providers in their in-memory/disabled modes.
 - ESLint uses `eslint-config-prettier` (not `eslint-plugin-prettier`) — Prettier formatting is
   enforced by the standalone `pnpm format:check` command and `lint-staged` in pre-commit.
 - CI caches the `.swc` directory across runs via `actions/cache`.

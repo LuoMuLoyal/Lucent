@@ -419,6 +419,10 @@ during its 7-day retention window. Redis URL parsing is shared via
 `common/helpers/infra/redis-url.ts` (queue factory + cache store), supporting
 `family` / `db` query params and credentials.
 
+OpenAPI export is an infrastructure-only bootstrap path: it sets
+`OPENAPI_EXPORT_SKIP_REDIS` so the cache, throttler, direct Redis service, and BullMQ
+factory do not open external connections while the application graph is inspected.
+
 ## Security Elevation
 
 Sensitive routes are protected by `SecurityElevationGuard` plus the `@RequireSecurityElevation()`

@@ -1163,6 +1163,252 @@
         "tags": ["Daily Records"]
       }
     },
+    "/api/v1/user/health-events": {
+      "post": {
+        "operationId": "HealthEventsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHealthEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Start a user-confirmed health event",
+        "tags": ["Health Events"]
+      },
+      "get": {
+        "operationId": "HealthEventsController_list_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Calendar date used to select the check-in in YYYY-MM-DD format.",
+            "schema": {
+              "example": "2026-08-09",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List the user health event history",
+        "tags": ["Health Events"]
+      }
+    },
+    "/api/v1/user/health-events/active": {
+      "get": {
+        "operationId": "HealthEventsController_active_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Calendar date used to select the check-in in YYYY-MM-DD format.",
+            "schema": {
+              "example": "2026-08-09",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventNullableResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get the current active health event",
+        "tags": ["Health Events"]
+      }
+    },
+    "/api/v1/user/health-events/{id}": {
+      "get": {
+        "operationId": "HealthEventsController_get_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "description": "Calendar date used to select the check-in in YYYY-MM-DD format.",
+            "schema": {
+              "example": "2026-08-09",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get one user health event",
+        "tags": ["Health Events"]
+      }
+    },
+    "/api/v1/user/health-events/{id}/check-ins/{date}": {
+      "put": {
+        "operationId": "HealthEventsController_upsertCheckIn_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "example": "2026-08-09",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertHealthEventCheckInDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Upsert a user-confirmed daily event check-in",
+        "tags": ["Health Events"]
+      }
+    },
+    "/api/v1/user/health-events/{id}/end": {
+      "post": {
+        "operationId": "HealthEventsController_end_v1",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndHealthEventDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthEventResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "End a health event with an explicit outcome",
+        "tags": ["Health Events"]
+      }
+    },
     "/api/v1/user/medicine-dose-logs": {
       "get": {
         "operationId": "MedicineDoseLogsController_list_v1",
@@ -5540,6 +5786,12 @@
               }
             ]
           },
+          "healthEventId": {
+            "type": "string",
+            "description": "Linked health event id.",
+            "format": "uuid",
+            "nullable": true
+          },
           "occurredAt": {
             "type": "string",
             "description": "Date in YYYY-MM-DD format.",
@@ -6057,6 +6309,12 @@
             "description": "Record source. Defaults to \"manual\". Use \"apple_health\" or \"health_connect\" for auto-synced records.",
             "example": "manual"
           },
+          "healthEventId": {
+            "type": "string",
+            "description": "Optional active health event association.",
+            "format": "uuid",
+            "nullable": true
+          },
           "payload": {
             "type": "object",
             "description": "Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. endAt is an ISO 8601 timestamp whose date component matches occurredAt (wake date). startAt is the bedtime ISO 8601 timestamp and may fall on the day before occurredAt for cross-midnight sleep. For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. Vital and activity payloads are optional for manual entry."
@@ -6118,6 +6376,11 @@
             "nullable": true,
             "additionalProperties": true
           },
+          "healthEventId": {
+            "type": "string",
+            "description": "Active health event association. Use null to clear.",
+            "nullable": true
+          },
           "attachments": {
             "description": "Replacement attachment metadata list. Omit to keep existing attachments; send [] to clear.",
             "type": "array",
@@ -6126,6 +6389,265 @@
             }
           }
         }
+      },
+      "CreateHealthEventDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Short user-defined event title.",
+            "maxLength": 80
+          },
+          "reasonRecordId": {
+            "type": "object",
+            "description": "Optional daily-record id that prompted this event.",
+            "nullable": true
+          },
+          "currentMedicineIds": {
+            "description": "Optional current-medicine ids to associate with this event.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["title"]
+      },
+      "HealthEventStatus": {
+        "type": "string",
+        "enum": ["active", "ended"]
+      },
+      "HealthEventOutcome": {
+        "type": "string",
+        "enum": ["improved", "unchanged", "worsened"]
+      },
+      "HealthEventCheckInResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "eventId": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "description": "Calendar date in YYYY-MM-DD format."
+          },
+          "outcome": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventOutcome"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation time in ISO 8601 format."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update time in ISO 8601 format."
+          }
+        },
+        "required": [
+          "id",
+          "eventId",
+          "date",
+          "outcome",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "HealthEventCoverageDto": {
+        "type": "object",
+        "properties": {
+          "checkInCount": {
+            "type": "number",
+            "description": "Number of user-confirmed daily check-ins."
+          },
+          "firstCheckInDate": {
+            "type": "string",
+            "description": "First check-in calendar date, or null when none exists.",
+            "nullable": true
+          },
+          "lastCheckInDate": {
+            "type": "string",
+            "description": "Last check-in calendar date, or null when none exists.",
+            "nullable": true
+          }
+        },
+        "required": ["checkInCount"]
+      },
+      "HealthEventItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventStatus"
+              }
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "Start time in ISO 8601 format."
+          },
+          "endedAt": {
+            "type": "string",
+            "description": "End time in ISO 8601 format, or null while active.",
+            "nullable": true
+          },
+          "outcome": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventOutcome"
+              }
+            ]
+          },
+          "reasonRecordId": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentMedicineIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "checkIn": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventCheckInResponseDto"
+              }
+            ]
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/HealthEventCoverageDto"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status",
+          "startedAt",
+          "endedAt",
+          "outcome",
+          "reasonRecordId",
+          "currentMedicineIds",
+          "checkIn",
+          "coverage"
+        ]
+      },
+      "HealthEventResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/HealthEventItemDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "HealthEventNullableResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventItemDto"
+              }
+            ]
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "HealthEventListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HealthEventItemDto"
+            }
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": ["items", "total"]
+      },
+      "HealthEventListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/HealthEventListDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "UpsertHealthEventCheckInDto": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "description": "User-confirmed outcome for the requested calendar date.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventOutcome"
+              }
+            ]
+          }
+        },
+        "required": ["outcome"]
+      },
+      "EndHealthEventDto": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "description": "User-confirmed outcome when ending the event.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventOutcome"
+              }
+            ]
+          }
+        },
+        "required": ["outcome"]
       },
       "DoseLogStatus": {
         "type": "string",
@@ -6137,6 +6659,12 @@
           "id": {
             "type": "string",
             "description": "Dose log id."
+          },
+          "healthEventId": {
+            "type": "string",
+            "description": "Linked health event id.",
+            "format": "uuid",
+            "nullable": true
           },
           "currentMedicineId": {
             "type": "object",
@@ -6231,6 +6759,12 @@
             "type": "string",
             "description": "Linked reminder id for slot-aware logs."
           },
+          "healthEventId": {
+            "type": "object",
+            "description": "Linked active health event id.",
+            "format": "uuid",
+            "nullable": true
+          },
           "status": {
             "example": "taken",
             "allOf": [
@@ -6287,6 +6821,12 @@
           "reminderId": {
             "type": "string",
             "description": "Linked reminder id for slot-aware marks."
+          },
+          "healthEventId": {
+            "type": "object",
+            "description": "Linked active health event id.",
+            "format": "uuid",
+            "nullable": true
           },
           "status": {
             "example": "taken",

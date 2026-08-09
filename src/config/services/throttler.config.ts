@@ -97,7 +97,7 @@ export class ThrottlerConfigService implements ThrottlerOptionsFactory {
       throttlers: [{ ttl: 60_000, limit: 100 }],
     };
 
-    if (redisUrl) {
+    if (redisUrl && process.env['OPENAPI_EXPORT_SKIP_REDIS'] !== 'true') {
       try {
         const mod = await import('ioredis');
         const RedisCtor = mod.default;
