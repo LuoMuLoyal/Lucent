@@ -163,6 +163,39 @@ describe('SuggestionService', () => {
     expect(result.generatedAt).toBeDefined();
   });
 
+  it('characterizes cache-miss generate as pull-triggered pipeline execution', async () => {
+    await service.generate('user-1', '2026-07-09');
+
+    expect(deps.pipeline.run).toHaveBeenCalledWith('user-1', '2026-07-09');
+  });
+
+  it('red: readCurrent returns materialized data without running the pipeline', async () => {
+    const cached: TodaySuggestionsDataDto = {
+      generatedAt: 'materialized-at',
+      primary: buildDto('materialized-1', buildCandidate()),
+    };
+    deps.presentation.getCachedResult.mockResolvedValue(cached);
+
+    const readCurrent = (
+      service as unknown as {
+        readCurrent?: (
+          userId: string,
+          date: string,
+          excludeIds?: string[],
+        ) => Promise<TodaySuggestionsDataDto>;
+      }
+    ).readCurrent;
+
+    // Planned API: Task 4 will split readCurrent from recompute/generate.
+    expect(readCurrent).toBeTypeOf('function');
+    if (readCurrent == null) return;
+
+    const result = await readCurrent.call(service, 'user-1', '2026-07-09');
+
+    expect(result).toEqual(cached);
+    expect(deps.pipeline.run).not.toHaveBeenCalled();
+  });
+
   it('passes a primary candidate through the full pipeline', async () => {
     const candidate = buildCandidate({ candidateId: 'c1' });
     deps.pipeline.run.mockResolvedValue({

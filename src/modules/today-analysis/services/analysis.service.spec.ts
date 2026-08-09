@@ -139,6 +139,46 @@ describe('TodayAnalysisService', () => {
     );
   });
 
+  it('characterizes explicit generate as the current model execution entrypoint', async () => {
+    const service = createService();
+    const modelSpy = modelGenerateSpy(service).mockResolvedValue({
+      summary: '今日记录良好。',
+      bullets: [
+        { kind: 'medication', text: '用药记录完整。' },
+        { kind: 'hydration', text: '饮水记录完整。' },
+      ],
+      actionLabel: '查看今日记录',
+      action: 'today',
+      confidenceNote: '仅供参考。',
+    });
+
+    await service.generate('u1', { date: '2026-06-12' }, 'zh-CN');
+
+    expect(modelSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('red: readCurrent returns existing analysis without invoking generation', async () => {
+    const service = createService();
+    const modelSpy = modelGenerateSpy(service);
+    const readCurrent = (
+      service as unknown as {
+        readCurrent?: (
+          userId: string,
+          date: string,
+          locale: string,
+        ) => Promise<unknown>;
+      }
+    ).readCurrent;
+
+    // Planned API: reads materialized analysis and never starts the LLM path.
+    expect(readCurrent).toBeTypeOf('function');
+    if (readCurrent == null) return;
+
+    await readCurrent.call(service, 'u1', '2026-06-12', 'zh-CN');
+
+    expect(modelSpy).not.toHaveBeenCalled();
+  });
+
   it('falls back when policy rejects the model output', async () => {
     const service = createService();
     modelGenerateSpy(service).mockResolvedValue({
