@@ -96,6 +96,17 @@ rules:
       - docs/01-reference/contracts/mine-settings-contract.md
 
   # ──────────────────────────────────────────────
+  # 健康事件合同
+  # ──────────────────────────────────────────────
+  - name: health-events
+    code:
+      - src/modules/health-events/**
+    docs_required:
+      - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/00-current/Active_Product_Loop.md
+
+  # ──────────────────────────────────────────────
   # 日常记录与餐食分析
   # ──────────────────────────────────────────────
   - name: daily-records

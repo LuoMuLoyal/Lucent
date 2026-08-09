@@ -16,7 +16,8 @@ Last updated: 2026-08-09
 - The current exported contract now includes meal-analysis read hot fields on `DailyRecordItemDto`:
   status, coverage, updated-at, failure-reason, short-description, and top-foods.
 - Health-event association fields on daily records and dose logs are implemented in Lucent first;
-  OpenAPI export and Flutter client regeneration remain a later contract-sync step.
+  `docs/openapi.json` and the Luminous generated Flutter client were regenerated during the
+  Health Event Contract workstream. Live PostgreSQL acceptance remains a separate gate.
 - Lucent CI is split into three parallel Jobs (`ci-lint-typecheck`, `ci-unit`, `ci-e2e`) plus a
   Docker Job. The `ci-e2e` Job runs `Build` then `openapi:export` (reusing `dist/`, no double
   build) before E2E tests to ensure the contract file matches the current code. The file is

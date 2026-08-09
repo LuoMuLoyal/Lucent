@@ -18,7 +18,7 @@ Lucent NestJS 后端的文档库。**活跃文档最小化**——只有会被 A
 - **决策（decision）**：架构决策记录，只增不改
   - [[01-reference/adr/README]]
 - **变更记录**：`02-logs/migration-log/`（按日期排序）、[[02-logs/README]]
-- **当前状态**：[[00-current/TODO]]（活跃延后项，完成后删除条目）
+- **当前状态**：[[00-current/TODO]]（活跃延后项，完成后删除条目）、[[00-current/Active_Product_Loop]]（产品闭环运行时状态）
 
 ## 写文档先选象限
 
@@ -50,6 +50,7 @@ Lucent NestJS 后端的文档库。**活跃文档最小化**——只有会被 A
 - `01-reference/contracts/`（参考）— 前后端 API 边界（Luminous 引用）
 - `01-reference/how-to/`（操作指南）— 每篇指南聚焦一个常见任务
 - `00-current/TODO.md`（当前状态）— 活跃延后项（完成后删除条目）
+- `00-current/Active_Product_Loop.md`（当前状态）— 产品闭环合同与验证边界
 - `02-logs/README.md` — 变更日志索引与主题导航
 - `openapi.json` — 生成产物（`pnpm export:openapi`，禁止手改）
 
