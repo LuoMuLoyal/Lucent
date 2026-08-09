@@ -9,7 +9,8 @@ import { chunkArray, ResultCode } from '../../../common';
 
 export const JPUSH_MAX_ALIASES_PER_REQUEST = 1000;
 
-const JPUSH_TIME_TO_LIVE_SECONDS = 86_400;
+/** JPush push notification TTL: 24 hours (1 day) in seconds. */
+const JPUSH_TIME_TO_LIVE_SECONDS = 24 * 60 * 60;
 
 /** Sends notification payloads to JPush REST API v3 by user alias. */
 @Injectable()
