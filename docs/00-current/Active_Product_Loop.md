@@ -23,8 +23,10 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 ## 验证状态
 
 - 健康事件定向测试：`pnpm test -- src/modules/health-events`，4 个文件、32 tests 通过。
+- PostgreSQL live acceptance：`pnpm test:e2e -- test/e2e/health-events/health-events.e2e-spec.ts`，1 file、1 test 通过；真实流程覆盖用户 A 的症状/当前用药关联、用户 B 的读取和关联隔离、第二个 active 事件冲突、check-in、结束和历史读取。
 - 全仓 `pnpm lint:check`（`--max-warnings=0`）、`pnpm typecheck`、`pnpm test`、`pnpm build`、`pnpm docs:check` 通过。
-- 本轮仍未完成真实 PostgreSQL acceptance flow：本地 `127.0.0.1:15432` 不可连接，因此未声称验证第二个 active event 的数据库拒绝写入，也未声称完成用户 A/B 的 live API 隔离流程。
+- migration `20260809000000_add_health_events` 已分别应用到 development `127.0.0.1:15432/lucent` 和 test `127.0.0.1:5432/lucent`；live E2E 运行在 test runtime，开发库只完成 migration 状态确认。
+- live E2E 在用户 A 首次读取 active event 时确认没有 check-in，随后只有显式 check-in/end API 改变状态；因此没有发现系统建议绕过用户确认写入事件状态的路径。
 
 ## 下一阶段
 
