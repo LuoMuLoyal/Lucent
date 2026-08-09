@@ -1,6 +1,9 @@
 export const MATERIALIZATION_REASON_CODES = [
   'daily_record_changed',
   'dose_log_changed',
+  'reminder_changed',
+  'health_context_changed',
+  'settings_changed',
   'health_event_changed',
 ] as const;
 

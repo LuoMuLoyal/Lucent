@@ -10,8 +10,6 @@ describe('SuggestionCacheInvalidationListener', () => {
   let prisma: {
     user: { findUnique: vi.Mock };
   };
-  let recomputeQueue: { enqueue: vi.Mock };
-
   beforeEach(() => {
     cache = {
       invalidateSignals: vi.fn().mockResolvedValue(undefined),
@@ -25,15 +23,10 @@ describe('SuggestionCacheInvalidationListener', () => {
         }),
       },
     };
-    recomputeQueue = { enqueue: vi.fn().mockResolvedValue(undefined) };
     listener = new SuggestionCacheInvalidationListener(
       cache as never,
       prisma as never,
     );
-    Object.defineProperty(listener, 'recomputeQueue', {
-      configurable: true,
-      value: recomputeQueue,
-    });
   });
 
   describe('handleDailyRecordChanged', () => {
@@ -125,31 +118,6 @@ describe('SuggestionCacheInvalidationListener', () => {
 
       expect(cache.invalidateSignals).toHaveBeenCalled();
     });
-  });
-
-  it('red: domain events enqueue one bounded recompute per user and date', async () => {
-    const recomputeQueue = {
-      enqueue: vi.fn(
-        ({ userId, date }: { userId: string; date: string }) =>
-          `${userId}:${date}`,
-      ),
-    };
-    Object.defineProperty(listener, 'recomputeQueue', {
-      configurable: true,
-      value: recomputeQueue,
-    });
-
-    const payload = { userId: 'user-1', date: '2026-07-17' };
-    await listener.handleDailyRecordChanged(payload);
-    await listener.handleDailyRecordChanged(payload);
-
-    expect(recomputeQueue.enqueue).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: payload.userId,
-        date: payload.date,
-      }),
-    );
-    expect(recomputeQueue.enqueue).toHaveBeenCalledTimes(1);
   });
 
   describe('handleHealthContextChanged', () => {

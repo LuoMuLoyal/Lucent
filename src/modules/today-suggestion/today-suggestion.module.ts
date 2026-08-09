@@ -39,6 +39,9 @@ import { RegistryService } from './services/rules/registry.service';
 import { RuleVersionRegistry } from './services/rules/rule-version-registry.service';
 import { SleepShortfallRuleService } from './services/rules/sleep/sleep-shortfall.service';
 import { WaterShortfallRuleService } from './services/rules/lifestyle/water-shortfall.service';
+import { MaterializationStore } from './services/materialization/store.service';
+import { RecomputeQueueService } from './services/recompute/queue.service';
+import { RecomputeTriggerListener } from './services/recompute/trigger.listener';
 import { SuggestionService } from './services/suggestion.service';
 import type { SuggestionRule } from './types/rule.types';
 
@@ -86,6 +89,10 @@ import type { SuggestionRule } from './types/rule.types';
     // Cache
     SuggestionCacheService,
     SuggestionCacheInvalidationListener,
+    // Recompute trigger and materialization state
+    MaterializationStore,
+    RecomputeQueueService,
+    RecomputeTriggerListener,
     // Notification escalation
     EscalationService,
     // AI explanation
