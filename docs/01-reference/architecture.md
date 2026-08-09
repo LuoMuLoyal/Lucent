@@ -279,6 +279,9 @@ string, data?: T }`. `ApiExceptionFilter` is now resolved from Nest DI instead
 of being `new`-ed in bootstrap code so it can emit structured Winston logs
 with `trace_id`, `span_id`, method, path, status, and stack metadata.
 
+Health event API errors use the `health-events` i18n scope in `src/i18n/en/` and
+`src/i18n/zh-CN/`, keeping outcome, ownership, and date-validation messages localized.
+
 ## Logging Foundation
 
 - `src/common/logger/logger.module.ts` registers the app-wide `nest-winston`

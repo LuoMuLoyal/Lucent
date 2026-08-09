@@ -4,10 +4,18 @@ import {
   HealthEventStatus,
 } from '#generated/prisma/client';
 import { I18nService } from 'nestjs-i18n';
-import { badRequest, conflict, notFound, now } from '../../../common';
+import {
+  DEFAULT_USER_TIMEZONE,
+  badRequest,
+  conflict,
+  formatDateOnlyInTimezone,
+  notFound,
+  now,
+} from '../../../common';
 import {
   HealthEventActiveConflictError,
   HealthEventRepositoryPort,
+  type HealthEventView,
   type HealthEventRecord,
 } from '../repositories/event.repository';
 
@@ -20,6 +28,11 @@ export interface CreateHealthEventInput {
 
 export interface EndHealthEventInput {
   outcome?: string;
+}
+
+export interface HealthEventListView {
+  items: HealthEventView[];
+  total: number;
 }
 
 export function parseHealthEventOutcome(
@@ -98,6 +111,36 @@ export class EventsService {
     return this.repository.findActiveByUserId(userId);
   }
 
+  async findActiveView(
+    userId: string,
+    date?: string,
+  ): Promise<HealthEventView | null> {
+    const event = await this.findActive(userId);
+    return event == null ? null : this.buildView(userId, event, date);
+  }
+
+  async listViews(userId: string, date?: string): Promise<HealthEventListView> {
+    const events = await this.repository.findManyByUserId(userId);
+    if (events.length === 0) {
+      return { items: [], total: 0 };
+    }
+
+    const resolvedDate = await this.resolveViewDate(userId, date);
+    const items = await Promise.all(
+      events.map((event) => this.buildView(userId, event, resolvedDate)),
+    );
+    return { items, total: items.length };
+  }
+
+  async findByIdView(
+    userId: string,
+    eventId: string,
+    date?: string,
+  ): Promise<HealthEventView> {
+    const event = await this.findById(userId, eventId);
+    return this.buildView(userId, event, date);
+  }
+
   async ensureOwnedByUser(
     userId: string,
     eventId: string,
@@ -139,5 +182,30 @@ export class EventsService {
       notFound(this.i18n.t('health-events.not_found'));
     }
     return updated;
+  }
+
+  private async buildView(
+    userId: string,
+    event: HealthEventRecord,
+    date?: string,
+  ): Promise<HealthEventView> {
+    const resolvedDate = await this.resolveViewDate(userId, date);
+    const [checkIn, coverage] = await Promise.all([
+      this.repository.findCheckIn(userId, event.id, resolvedDate),
+      this.repository.findCheckInCoverage(userId, event.id),
+    ]);
+    return { ...event, checkIn, coverage };
+  }
+
+  private async resolveViewDate(
+    userId: string,
+    date?: string,
+  ): Promise<string> {
+    if (date != null) {
+      return date;
+    }
+
+    const timezone = await this.repository.findUserTimezone(userId);
+    return formatDateOnlyInTimezone(now(), timezone ?? DEFAULT_USER_TIMEZONE);
   }
 }

@@ -51,6 +51,9 @@ function buildRepository() {
   return {
     findActiveByUserId: vi.fn(),
     findById: vi.fn().mockResolvedValue(event()),
+    findManyByUserId: vi.fn(),
+    findCheckIn: vi.fn(),
+    findCheckInCoverage: vi.fn(),
     findOwnedCurrentMedicineIds: vi.fn(),
     findOwnedReasonRecord: vi.fn(),
     create: vi.fn(),

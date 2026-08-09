@@ -35,6 +35,17 @@ export interface HealthEventCheckInRecord {
   updatedAt: Date;
 }
 
+export interface HealthEventCoverageRecord {
+  checkInCount: number;
+  firstCheckInDate: Date | null;
+  lastCheckInDate: Date | null;
+}
+
+export interface HealthEventView extends HealthEventRecord {
+  checkIn: HealthEventCheckInRecord | null;
+  coverage: HealthEventCoverageRecord;
+}
+
 export interface HealthEventCreateInput {
   userId: string;
   title: string;
@@ -63,6 +74,19 @@ export abstract class HealthEventRepositoryPort {
     userId: string,
     eventId: string,
   ): Promise<HealthEventRecord | null>;
+
+  abstract findManyByUserId(userId: string): Promise<HealthEventRecord[]>;
+
+  abstract findCheckIn(
+    userId: string,
+    eventId: string,
+    date: string,
+  ): Promise<HealthEventCheckInRecord | null>;
+
+  abstract findCheckInCoverage(
+    userId: string,
+    eventId: string,
+  ): Promise<HealthEventCoverageRecord>;
 
   abstract findOwnedCurrentMedicineIds(
     userId: string,

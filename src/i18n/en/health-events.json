@@ -5,5 +5,6 @@
   "related_reason_record_not_found": "Related reason record not found.",
   "inactive": "Health event is not active.",
   "already_ended": "Health event is already ended.",
-  "invalid_outcome": "Health event outcome must be improved, unchanged, or worsened."
+  "invalid_outcome": "Health event outcome must be improved, unchanged, or worsened.",
+  "invalid_date": "Health event date must be a valid YYYY-MM-DD date."
 }

@@ -10,6 +10,7 @@ import {
   HealthEventActiveConflictError,
   HealthEventRepositoryPort,
   type HealthEventCheckInRecord,
+  type HealthEventCoverageRecord,
   type HealthEventCreateInput,
   type HealthEventRecord,
   type HealthEventUpdateInput,
@@ -74,6 +75,46 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
       select: eventSelect,
     });
     return row == null ? null : this.toEventRecord(row);
+  }
+
+  override async findManyByUserId(userId: string) {
+    const rows = await this.prisma.healthEvent.findMany({
+      where: { userId, deletedAt: null },
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      select: eventSelect,
+    });
+    return rows.map((row) => this.toEventRecord(row));
+  }
+
+  override async findCheckIn(userId: string, eventId: string, date: string) {
+    const row = await this.prisma.healthEventCheckIn.findFirst({
+      where: {
+        eventId,
+        date: parseDateOnly(date),
+        event: { userId, deletedAt: null },
+      },
+      select: checkInSelect,
+    });
+    return row == null ? null : this.toCheckInRecord(row);
+  }
+
+  override async findCheckInCoverage(
+    userId: string,
+    eventId: string,
+  ): Promise<HealthEventCoverageRecord> {
+    const rows = await this.prisma.healthEventCheckIn.findMany({
+      where: {
+        eventId,
+        event: { userId, deletedAt: null },
+      },
+      select: { date: true },
+      orderBy: { date: 'asc' },
+    });
+    return {
+      checkInCount: rows.length,
+      firstCheckInDate: rows[0]?.date ?? null,
+      lastCheckInDate: rows.at(-1)?.date ?? null,
+    };
   }
 
   override async findOwnedCurrentMedicineIds(
@@ -251,5 +292,13 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
         (medicine) => medicine.currentMedicineId,
       ),
     };
+  }
+
+  private toCheckInRecord(
+    row: Prisma.HealthEventCheckInGetPayload<{
+      select: typeof checkInSelect;
+    }>,
+  ): HealthEventCheckInRecord {
+    return row;
   }
 }
