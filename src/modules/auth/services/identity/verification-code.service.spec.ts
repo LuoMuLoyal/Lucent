@@ -14,7 +14,7 @@ import { I18nService } from 'nestjs-i18n';
 import { VerificationCodeService } from './verification-code.service';
 import { MailService } from '../../../../mail/mail.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { ResultCode } from '../../../../common';
+import { ResultCode, RedisService } from '../../../../common';
 import {
   DEFAULT_VERIFICATION_CODE_LENGTH,
   DEFAULT_VERIFICATION_CODE_TTL_MS,
@@ -27,8 +27,14 @@ describe('VerificationCodeService', () => {
   let service: VerificationCodeService;
   let cache: vi.Mocked<Cache>;
   let mailService: vi.Mocked<MailService>;
+  let redisService: { isAvailable: boolean; atomicIncrement: vi.Mock };
 
   beforeEach(async () => {
+    redisService = {
+      isAvailable: false,
+      atomicIncrement: vi.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VerificationCodeService,
@@ -69,6 +75,10 @@ describe('VerificationCodeService', () => {
               return fallback;
             }),
           },
+        },
+        {
+          provide: RedisService,
+          useValue: redisService,
         },
       ],
     }).compile();
@@ -291,6 +301,56 @@ describe('VerificationCodeService', () => {
 
       expect(cache.get).toHaveBeenCalledWith(
         'vcode:cd:reset-password:user@test.com',
+      );
+    });
+  });
+
+  describe('assertClientRateLimit — Redis atomic path', () => {
+    beforeEach(() => {
+      redisService.isAvailable = true;
+    });
+
+    it('uses Redis atomicIncrement and allows when under limit', async () => {
+      redisService.atomicIncrement.mockResolvedValueOnce(1);
+      (cache.get as vi.Mock).mockResolvedValue(undefined);
+      (cache.set as vi.Mock).mockResolvedValue(undefined);
+      mailService.sendVerificationCode.mockResolvedValue(undefined);
+
+      await service.send('test@example.com', 'register', '127.0.0.1');
+
+      expect(redisService.atomicIncrement).toHaveBeenCalledWith(
+        expect.stringMatching(/^vcode:rl:client:[a-f0-9]{64}$/),
+        DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
+      );
+      // Should NOT use cache-based rate-limit path
+      expect(cache.get).not.toHaveBeenCalledWith(
+        expect.stringMatching(/^vcode:rl:client:/),
+      );
+    });
+
+    it('throws 429 when Redis count exceeds max requests', async () => {
+      redisService.atomicIncrement.mockResolvedValueOnce(
+        DEFAULT_VERIFICATION_RATE_LIMIT_MAX + 1,
+      );
+
+      await expect(
+        service.send('test@example.com', 'register', '127.0.0.1'),
+      ).rejects.toThrow(HttpException);
+      expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    it('uses default bucket key when clientKey is not provided', async () => {
+      redisService.atomicIncrement.mockResolvedValueOnce(1);
+      (cache.get as vi.Mock).mockResolvedValue(undefined);
+      (cache.set as vi.Mock).mockResolvedValue(undefined);
+      mailService.sendVerificationCode.mockResolvedValue(undefined);
+
+      await service.send('test@example.com', 'register');
+
+      const unknownHash = createHash('sha256').update('unknown').digest('hex');
+      expect(redisService.atomicIncrement).toHaveBeenCalledWith(
+        `vcode:rl:client:${unknownHash}`,
+        DEFAULT_VERIFICATION_RATE_LIMIT_WINDOW_MS,
       );
     });
   });

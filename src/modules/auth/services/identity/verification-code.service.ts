@@ -13,7 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
 import { createHash, randomInt, timingSafeEqual } from 'node:crypto';
 
-import { ResultCode } from '../../../../common';
+import { ResultCode, RedisService } from '../../../../common';
 import {
   DEFAULT_VERIFICATION_CODE_LENGTH,
   DEFAULT_VERIFICATION_CODE_TTL_MS,
@@ -45,6 +45,7 @@ export class VerificationCodeService {
     private readonly mailService: MailService,
     private readonly i18n: I18nService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {
     this.codeTtlMs = this.configService.get<number>(
       EnvKey.VERIFICATION_CODE_TTL_MS,
@@ -117,6 +118,29 @@ export class VerificationCodeService {
   async assertClientRateLimit(clientKey?: string): Promise<void> {
     const effectiveKey = clientKey || 'unknown';
     const key = this.clientRateLimitKey(effectiveKey);
+
+    // Prefer atomic Redis INCR when available — eliminates the race
+    // condition where concurrent requests could all read the same stale
+    // count and bypass the limit.
+    if (this.redisService.isAvailable) {
+      const count = await this.redisService.atomicIncrement(
+        key,
+        this.rateLimitWindowMs,
+      );
+      if (count > this.rateLimitMaxRequests) {
+        throw new HttpException(
+          {
+            code: ResultCode.VERIFICATION_CODE_RATE_LIMITED,
+            message: this.i18n.t('auth.verification_code_rate_limited'),
+          },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      return;
+    }
+
+    // Fall back to non-atomic cache-based rate limiting when Redis is
+    // not directly available (e.g. in-memory cache in test/dev).
     const now = Date.now();
     const bucket = await this.cache.get<RateLimitBucket>(key);
 
