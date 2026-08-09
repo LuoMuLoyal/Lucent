@@ -78,6 +78,12 @@ enum HealthEventOutcome {
   worsened
 }
 
+enum SuggestionMaterializationStatus {
+  pending
+  ready
+  failed
+}
+
 enum MedicineSource {
   drugbank
   cn
@@ -175,6 +181,7 @@ model User {
   suggestions            UserSuggestion[]
   suggestionBaselines    UserSuggestionBaseline[]
   suggestionFeedbacks    UserSuggestionFeedback[]
+  suggestionMaterializations UserSuggestionMaterialization[]
   medicineRiskCheckRecords MedicineRiskCheckRecord[]
   healthEvents           HealthEvent[]
 
@@ -1204,6 +1211,27 @@ model UserSuggestionBaseline {
   @@unique([userId, dimension])
   // userId+dimension+establishedAt index removed — redundant prefix of unique(userId, dimension), establishedAt rarely queried
   @@map("user_suggestion_baselines")
+}
+
+/// Versioned state for asynchronously materialized Today suggestions.
+model UserSuggestionMaterialization {
+  id              String                           @id @default(uuid())
+  userId          String                           @map("user_id")
+  localDate       DateTime                         @map("local_date") @db.Date
+  sourceVersion   Int                              @default(0) @map("source_version")
+  computedVersion Int                              @default(0) @map("computed_version")
+  status          SuggestionMaterializationStatus @default(pending)
+  reasonCodes     String[]                         @map("reason_codes")
+  lastErrorCode   String?                          @map("last_error_code")
+  queuedAt        DateTime?                        @map("queued_at") @db.Timestamptz(3)
+  computedAt      DateTime?                        @map("computed_at") @db.Timestamptz(3)
+  createdAt       DateTime                         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDate])
+  @@index([userId, status])
+  @@map("user_suggestion_materializations")
 }
 
 /// Feedback-driven suppression records.

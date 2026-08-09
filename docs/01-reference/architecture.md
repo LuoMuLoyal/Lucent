@@ -452,6 +452,12 @@ operations.
   check-ins, and current-medicine links. `UserDailyRecord` and `UserMedicineDoseLog` carry
   an optional `healthEventId`; records are never associated with the active event implicitly.
   The database partial unique index allows at most one non-deleted active event per user.
+- **Suggestion materialization**: `UserSuggestionMaterialization` stores one versioned state
+  per user and local date. It contains source/computed versions, fixed reason codes and
+  processing timestamps only; suggestion content is not stored in this state table. A ready
+  row whose source version is newer than its computed version is exposed as `stale`, allowing
+  the asynchronous recompute worker to advance it without letting an older job overwrite a
+  newer source version.
 
 ## Assistant RAG Data-Source Constraints
 
