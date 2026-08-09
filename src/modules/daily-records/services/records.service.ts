@@ -27,6 +27,7 @@ import {
 import { MealAnalysisQueueService } from './meal-analysis/queue.service';
 import { MealDishTemplateLearningService } from './meal-dish/template-learning.service';
 import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
+import { HealthEventsOwnershipService } from '../../health-events';
 import {
   DAILY_RECORD_CHANGED,
   type DailyRecordChangedPayload,
@@ -39,6 +40,7 @@ export class DailyRecordsService {
   constructor(
     private readonly repository: DailyRecordRepositoryPort,
     private readonly ownershipService: DailyRecordsOwnershipService,
+    private readonly healthEventsOwnershipService: HealthEventsOwnershipService,
     private readonly mapperService: DailyRecordsMapperService,
     private readonly mealAnalysisQueueService: MealAnalysisQueueService,
     private readonly mealDishTemplateLearningService: MealDishTemplateLearningService,
@@ -72,6 +74,14 @@ export class DailyRecordsService {
     this.ensureValidVitalPayload(dto.kind, dto.payload);
     this.ensureValidActivityPayload(dto.kind, dto.payload);
 
+    const healthEventId = dto.healthEventId ?? null;
+    if (healthEventId !== null) {
+      await this.healthEventsOwnershipService.ensureActiveOwnedByUser(
+        userId,
+        healthEventId,
+      );
+    }
+
     const createAttachments = dto.attachments;
     const initialMealPayload =
       dto.kind === DailyRecordKind.meal
@@ -88,6 +98,7 @@ export class DailyRecordsService {
       unit: normalizeNullableText(dto.unit),
       note: normalizeNullableText(dto.note),
       source: dto.source ?? 'manual',
+      healthEventId,
     };
 
     const payloadField =
@@ -163,6 +174,12 @@ export class DailyRecordsService {
 
   async update(userId: string, id: string, dto: UpdateDailyRecordDto) {
     const existing = await this.ownershipService.ensureOwnedByUser(userId, id);
+    if (dto.healthEventId !== undefined && dto.healthEventId !== null) {
+      await this.healthEventsOwnershipService.ensureActiveOwnedByUser(
+        userId,
+        dto.healthEventId,
+      );
+    }
     this.ensureValidSleepFinalState(dto, existing);
     const isMealTarget = (dto.kind ?? existing.kind) === DailyRecordKind.meal;
     const confirmRequested =

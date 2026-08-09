@@ -54,6 +54,12 @@ export class DailyRecordsMapperService {
     if (dto.note !== undefined) {
       data.note = normalizeNullableText(dto.note);
     }
+    if (dto.healthEventId !== undefined) {
+      data.healthEvent =
+        dto.healthEventId === null
+          ? { disconnect: true }
+          : { connect: { id: dto.healthEventId } };
+    }
     if (dto.payload !== undefined) {
       if (targetKind === DailyRecordKind.meal) {
         const payload = buildMealPayloadFromClientInput(
@@ -99,6 +105,7 @@ export class DailyRecordsMapperService {
     return {
       id: record.id,
       kind: record.kind,
+      healthEventId: record.healthEventId,
       occurredAt: formatDateOnly(record.occurredAt),
       occurredTime: record.occurredTime,
       title: record.title,

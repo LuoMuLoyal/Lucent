@@ -4,6 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { DailyRecordKind } from '#generated/prisma/client';
 import { DailyRecordRepositoryPort } from '../repositories/daily-record.repository';
+import { HealthEventsOwnershipService } from '../../health-events';
 import { DailyRecordsOwnershipService } from './ownership.service';
 import { DailyRecordsMapperService } from './mapper.service';
 import { DailyRecordsService } from './records.service';
@@ -31,6 +32,9 @@ describe('DailyRecordsService', () => {
   let mealDishTemplateLearningService: {
     learnFromConfirmedAnalysis: vi.Mock;
   };
+  let healthEventsOwnershipService: {
+    ensureActiveOwnedByUser: vi.Mock;
+  };
 
   beforeEach(async () => {
     mealAnalysisQueueService = {
@@ -38,6 +42,12 @@ describe('DailyRecordsService', () => {
     };
     mealDishTemplateLearningService = {
       learnFromConfirmedAnalysis: vi.fn().mockResolvedValue(undefined),
+    };
+    healthEventsOwnershipService = {
+      ensureActiveOwnedByUser: vi.fn().mockResolvedValue({
+        id: 'health-event-1',
+        status: 'active',
+      }),
     };
 
     txMock = {
@@ -74,6 +84,10 @@ describe('DailyRecordsService', () => {
         DailyRecordsService,
         DailyRecordsOwnershipService,
         DailyRecordsMapperService,
+        {
+          provide: HealthEventsOwnershipService,
+          useValue: healthEventsOwnershipService,
+        },
         {
           provide: MealAnalysisQueueService,
           useValue: mealAnalysisQueueService,
@@ -225,6 +239,105 @@ describe('DailyRecordsService', () => {
     expect(result.occurredTime).toBe('14:20');
   });
 
+  it('should validate and persist an active health event when creating a record', async () => {
+    repository.create.mockResolvedValue({
+      id: 'r-health-event',
+      userId: mockUserId,
+      healthEventId: 'health-event-1',
+      deletedAt: null,
+      kind: 'mood',
+      occurredAt: new Date('2026-06-04'),
+      occurredTime: null,
+      title: null,
+      value: null,
+      unit: null,
+      note: null,
+      source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
+      attachments: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const result = await service.create(mockUserId, {
+      kind: DailyRecordKind.mood,
+      occurredAt: '2026-06-04',
+      healthEventId: 'health-event-1',
+    });
+
+    expect(result.healthEventId).toBe('health-event-1');
+    expect(
+      healthEventsOwnershipService.ensureActiveOwnedByUser,
+    ).toHaveBeenCalledWith(mockUserId, 'health-event-1');
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ healthEventId: 'health-event-1' }),
+    );
+  });
+
+  it.each([
+    ['ended event', new Error('health-events.inactive')],
+    ['foreign event', new Error('health-events.not_found')],
+  ])(
+    'should propagate %s validation errors when creating a record',
+    async (_, error) => {
+      healthEventsOwnershipService.ensureActiveOwnedByUser.mockRejectedValue(
+        error,
+      );
+
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.mood,
+          occurredAt: '2026-06-04',
+          healthEventId: 'health-event-1',
+        }),
+      ).rejects.toBe(error);
+      expect(repository.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it('should not call health event ownership when healthEventId is omitted', async () => {
+    repository.create.mockResolvedValue({
+      id: 'r-without-health-event',
+      userId: mockUserId,
+      healthEventId: null,
+      deletedAt: null,
+      kind: 'mood',
+      occurredAt: new Date('2026-06-04'),
+      occurredTime: null,
+      title: null,
+      value: null,
+      unit: null,
+      note: null,
+      source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
+      attachments: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.create(mockUserId, {
+      kind: DailyRecordKind.mood,
+      occurredAt: '2026-06-04',
+    });
+
+    expect(
+      healthEventsOwnershipService.ensureActiveOwnedByUser,
+    ).not.toHaveBeenCalled();
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ healthEventId: null }),
+    );
+  });
+
   it('should update a record with partial fields', async () => {
     repository.findOwnershipData.mockResolvedValue({
       userId: mockUserId,
@@ -263,6 +376,91 @@ describe('DailyRecordsService', () => {
       note: 'updated',
     });
     expect(result.note).toBe('updated');
+    expect(
+      healthEventsOwnershipService.ensureActiveOwnedByUser,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('should clear a health event when update explicitly provides null', async () => {
+    repository.findOwnershipData.mockResolvedValue({
+      userId: mockUserId,
+      kind: 'mood',
+      payload: null,
+    });
+    repository.update.mockResolvedValue({
+      id: 'r1',
+      userId: mockUserId,
+      healthEventId: null,
+      deletedAt: null,
+      kind: 'mood',
+      occurredAt: new Date('2026-06-04'),
+      occurredTime: null,
+      title: null,
+      value: null,
+      unit: null,
+      note: null,
+      source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
+      attachments: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.update(mockUserId, 'r1', { healthEventId: null });
+
+    expect(
+      healthEventsOwnershipService.ensureActiveOwnedByUser,
+    ).not.toHaveBeenCalled();
+    expect(repository.update).toHaveBeenCalledWith('r1', {
+      healthEvent: { disconnect: true },
+    });
+  });
+
+  it('should validate an active health event when update provides an id', async () => {
+    repository.findOwnershipData.mockResolvedValue({
+      userId: mockUserId,
+      kind: 'mood',
+      payload: null,
+    });
+    repository.update.mockResolvedValue({
+      id: 'r1',
+      userId: mockUserId,
+      healthEventId: 'health-event-1',
+      deletedAt: null,
+      kind: 'mood',
+      occurredAt: new Date('2026-06-04'),
+      occurredTime: null,
+      title: null,
+      value: null,
+      unit: null,
+      note: null,
+      source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
+      attachments: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.update(mockUserId, 'r1', {
+      healthEventId: 'health-event-1',
+    });
+
+    expect(
+      healthEventsOwnershipService.ensureActiveOwnedByUser,
+    ).toHaveBeenCalledWith(mockUserId, 'health-event-1');
+    expect(repository.update).toHaveBeenCalledWith('r1', {
+      healthEvent: { connect: { id: 'health-event-1' } },
+    });
   });
 
   it('should preserve server-owned mealAnalysis when updating meal payload', async () => {
@@ -695,6 +893,7 @@ describe('DailyRecordsService', () => {
       kind: DailyRecordKind.meal,
       occurredAt: '2026-06-04',
       title: 'Breakfast',
+      healthEventId: 'health-event-1',
       attachments: [
         {
           objectKey: 'daily-records/u1/r1/photo.jpg',
@@ -727,6 +926,9 @@ describe('DailyRecordsService', () => {
           publicUrl: 'https://cdn.example.com/photo.jpg',
         },
       ],
+    });
+    expect(txMock.userDailyRecord.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ healthEventId: 'health-event-1' }),
     });
     expect(result.attachments).toHaveLength(1);
     expect(result.attachments[0]?.objectKey).toBe(

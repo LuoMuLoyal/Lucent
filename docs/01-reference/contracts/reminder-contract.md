@@ -30,6 +30,9 @@ Lucent's notification system is split into two layers with a clear ownership bou
 - Backend reminder schedule
   - Status: Implemented schedule-only medicine reminders with optional start/end date window:
     Prisma model + `/api/v1/user/medicine-reminders` CRUD
+- Dose-log to health-event association
+  - Status: Dose logs may explicitly carry an active `healthEventId`; reminder schedules remain
+    independent, and no dose log is automatically assigned to the user's latest event.
 - Backend notification preferences
   - Status: Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example
     only

@@ -10,6 +10,14 @@ export class DailyRecordItemDto {
   @ApiProperty({ enum: DailyRecordKind, enumName: 'DailyRecordKind' })
   kind!: DailyRecordKind;
 
+  @ApiPropertyOptional({
+    description: 'Linked health event id.',
+    format: 'uuid',
+    nullable: true,
+    type: String,
+  })
+  healthEventId?: string | null;
+
   @ApiProperty({
     description: 'Date in YYYY-MM-DD format.',
     example: '2026-06-04',

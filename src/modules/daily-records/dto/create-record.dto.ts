@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsObject,
   IsOptional,
+  IsUUID,
   Matches,
   IsString,
   MaxLength,
@@ -76,6 +77,16 @@ export class CreateDailyRecordDto {
   @IsNotEmpty()
   @MaxLength(50)
   source?: string;
+
+  @ApiPropertyOptional({
+    description: 'Optional active health event association.',
+    format: 'uuid',
+    nullable: true,
+    type: String,
+  })
+  @IsOptional()
+  @IsUUID()
+  healthEventId?: string | null;
 
   @ApiPropertyOptional({
     description:

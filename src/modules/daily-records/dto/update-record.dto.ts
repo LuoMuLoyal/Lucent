@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   IsObject,
   IsOptional,
+  IsUUID,
   Matches,
   IsString,
   MaxLength,
@@ -94,6 +95,15 @@ export class UpdateDailyRecordDto {
   @IsOptional()
   @IsObject()
   payload?: Record<string, unknown> | null;
+
+  @ApiPropertyOptional({
+    description: 'Active health event association. Use null to clear.',
+    nullable: true,
+    type: String,
+  })
+  @IsOptional()
+  @IsUUID()
+  healthEventId?: string | null;
 
   @ApiPropertyOptional({
     type: () => DailyRecordAttachmentInputDto,

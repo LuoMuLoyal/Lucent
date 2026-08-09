@@ -5,6 +5,14 @@ class DoseLogItemDto {
   @ApiProperty({ description: 'Dose log id.' })
   id!: string;
 
+  @ApiPropertyOptional({
+    description: 'Linked health event id.',
+    format: 'uuid',
+    nullable: true,
+    type: String,
+  })
+  healthEventId!: string | null;
+
   @ApiPropertyOptional({ description: 'Linked current medicine id.' })
   currentMedicineId!: string | null;
 

@@ -4,6 +4,7 @@ import { LlmCommonModule } from '../../common';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { PrismaModule } from '../../prisma';
 import { StorageModule } from '../../common';
+import { HealthEventsModule } from '../health-events/health-events.module';
 import {
   DailyRecordReaderPort,
   DailyRecordRepository,
@@ -32,6 +33,7 @@ import { MealDishTemplateLearningService } from './services/meal-dish/template-l
     LlmRuntimeModule,
     StorageModule,
     LlmCommonModule,
+    HealthEventsModule,
   ],
   controllers: [DailyRecordsController],
   providers: [

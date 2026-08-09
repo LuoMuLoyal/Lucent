@@ -15,6 +15,7 @@ import {
 import type { CreateDoseLogDto } from '../dto/create-dose-log.dto';
 
 import type { MarkDoseLogDto } from '../dto/mark-dose-log.dto';
+import { HealthEventsOwnershipService } from '../../health-events';
 
 import type { UpdateDoseLogDto } from '../dto/update-dose-log.dto';
 
@@ -33,6 +34,7 @@ export class MedicineDoseLogsService {
     private readonly repository: MedicineDoseLogRepositoryPort,
     private readonly i18n: I18nService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly healthEventsOwnership: HealthEventsOwnershipService,
   ) {}
 
   async list(
@@ -59,6 +61,7 @@ export class MedicineDoseLogsService {
 
   async create(userId: string, dto: CreateDoseLogDto) {
     const scheduledFor = parseDateOnly(dto.scheduledFor);
+    await this.ensureActiveHealthEvent(userId, dto.healthEventId);
     const reminder = await this.ensureReminderOwned(
       userId,
       dto.reminderId,
@@ -83,6 +86,7 @@ export class MedicineDoseLogsService {
         scheduledTime,
         doseText: dto.doseText,
         note: dto.note,
+        healthEventId: dto.healthEventId,
       }),
     );
     await this.invalidateSuggestionCache(userId, scheduledFor);
@@ -91,6 +95,7 @@ export class MedicineDoseLogsService {
 
   async mark(userId: string, dto: MarkDoseLogDto) {
     const scheduledFor = parseDateOnly(dto.scheduledFor);
+    await this.ensureActiveHealthEvent(userId, dto.healthEventId);
     const reminder = await this.ensureReminderOwned(
       userId,
       dto.reminderId,
@@ -132,6 +137,7 @@ export class MedicineDoseLogsService {
           scheduledTime,
           doseText: dto.doseText,
           note: dto.note,
+          healthEventId: dto.healthEventId,
         }),
       );
       await this.invalidateSuggestionCache(userId, scheduledFor);
@@ -147,6 +153,7 @@ export class MedicineDoseLogsService {
         scheduledTime,
         doseText: dto.doseText,
         note: dto.note,
+        healthEventId: dto.healthEventId,
       }),
     );
     await this.invalidateSuggestionCache(userId, scheduledFor);
@@ -223,6 +230,7 @@ export class MedicineDoseLogsService {
       scheduledTime: string | null;
       doseText: string | null | undefined;
       note: string | null | undefined;
+      healthEventId: string | null | undefined;
     },
   ): Prisma.UserMedicineDoseLogUncheckedCreateInput {
     return {
@@ -235,6 +243,7 @@ export class MedicineDoseLogsService {
       takenAt: input.status === DoseLogStatus.taken ? now() : null,
       doseText: normalizeNullableText(input.doseText),
       note: normalizeNullableText(input.note),
+      healthEventId: input.healthEventId ?? null,
     };
   }
 
@@ -275,8 +284,9 @@ export class MedicineDoseLogsService {
     scheduledTime: string | null;
     doseText: string | null | undefined;
     note: string | null | undefined;
+    healthEventId: string | null | undefined;
   }): Prisma.UserMedicineDoseLogUncheckedUpdateInput {
-    return {
+    const data: Prisma.UserMedicineDoseLogUncheckedUpdateInput = {
       currentMedicineId: input.currentMedicineId,
       reminderId: input.reminderId,
       status: input.status,
@@ -285,11 +295,16 @@ export class MedicineDoseLogsService {
       doseText: normalizeNullableText(input.doseText),
       note: normalizeNullableText(input.note),
     };
+    if (input.healthEventId !== undefined) {
+      data.healthEventId = input.healthEventId;
+    }
+    return data;
   }
 
   private toItem(r: Prisma.UserMedicineDoseLogGetPayload<object>) {
     return {
       id: r.id,
+      healthEventId: r.healthEventId,
       currentMedicineId: r.currentMedicineId,
       reminderId: r.reminderId,
       status: r.status,
@@ -362,6 +377,18 @@ export class MedicineDoseLogsService {
     return `${String(reminder.scheduledHour).padStart(2, '0')}:${String(
       reminder.scheduledMinute,
     ).padStart(2, '0')}`;
+  }
+
+  private async ensureActiveHealthEvent(
+    userId: string,
+    healthEventId: string | null | undefined,
+  ): Promise<void> {
+    if (healthEventId != null) {
+      await this.healthEventsOwnership.ensureActiveOwnedByUser(
+        userId,
+        healthEventId,
+      );
+    }
   }
 
   private async ensureOwned(userId: string, id: string) {

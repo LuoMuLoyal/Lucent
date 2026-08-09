@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-05
+updated: 2026-08-09
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-05
+Last updated: 2026-08-09
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -15,6 +15,8 @@ Last updated: 2026-08-05
   regenerates its `generated/lucent_api/` client from.
 - The current exported contract now includes meal-analysis read hot fields on `DailyRecordItemDto`:
   status, coverage, updated-at, failure-reason, short-description, and top-foods.
+- Health-event association fields on daily records and dose logs are implemented in Lucent first;
+  OpenAPI export and Flutter client regeneration remain a later contract-sync step.
 - Lucent CI is split into three parallel Jobs (`ci-lint-typecheck`, `ci-unit`, `ci-e2e`) plus a
   Docker Job. The `ci-e2e` Job runs `Build` then `openapi:export` (reusing `dist/`, no double
   build) before E2E tests to ensure the contract file matches the current code. The file is

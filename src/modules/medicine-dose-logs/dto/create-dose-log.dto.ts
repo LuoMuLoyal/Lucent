@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MaxLength,
 } from 'class-validator';
@@ -25,6 +26,15 @@ export class CreateDoseLogDto {
   @IsString()
   @IsNotEmpty()
   reminderId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Linked active health event id.',
+    format: 'uuid',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsUUID()
+  healthEventId?: string | null;
 
   @ApiProperty({
     enum: DoseLogStatus,
