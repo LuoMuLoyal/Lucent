@@ -24,6 +24,13 @@ import type { AllergyRecord } from '../../utils/allergy-severity';
 const RISK_CHECK_CACHE_KEY_PREFIX = 'medicines:risk-check';
 const RISK_CHECK_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
+/**
+ * Maximum number of related records (allergies, conditions, current
+ * medicines) fetched per user during a risk check. Prevents extreme data
+ * volumes from causing unbounded query latency.
+ */
+const RISK_CHECK_MAX_RELATED_RECORDS = 100;
+
 @Injectable()
 export class MedicineRiskCheckService {
   private readonly logger = new Logger(MedicineRiskCheckService.name);
@@ -113,15 +120,7 @@ export class MedicineRiskCheckService {
       data: { stale: true },
     });
     // Delete Redis cache for records — next GET will re-read from DB
-    const cacheKey = this.buildRecordsCacheKey(userId);
-    try {
-      await this.cache.del(cacheKey);
-    } catch (error) {
-      this.logger.warn(
-        `Failed to invalidate risk-check cache for user ${userId}; stale data will expire via TTL`,
-        error instanceof Error ? error.stack : undefined,
-      );
-    }
+    await this.invalidateRecordsCache(userId);
   }
 
   // ── Static check logic ──────────────────────────────────────────────────
@@ -136,16 +135,17 @@ export class MedicineRiskCheckService {
         allergies: {
           where: { isActive: true },
           orderBy: { updatedAt: 'desc' },
-          take: 100,
+          take: RISK_CHECK_MAX_RELATED_RECORDS,
         },
         conditions: {
+          where: { status: 'active' },
           orderBy: { updatedAt: 'desc' },
-          take: 100,
+          take: RISK_CHECK_MAX_RELATED_RECORDS,
         },
         currentMedicines: {
           where: { isCurrent: true },
           orderBy: { updatedAt: 'desc' },
-          take: 100,
+          take: RISK_CHECK_MAX_RELATED_RECORDS,
         },
       },
     });
@@ -301,16 +301,8 @@ export class MedicineRiskCheckService {
       },
     });
 
-    // Invalidate cache — best-effort; DB already has correct data
-    const cacheKey = this.buildRecordsCacheKey(userId);
-    try {
-      await this.cache.del(cacheKey);
-    } catch (error) {
-      this.logger.warn(
-        `Failed to invalidate risk-check cache for user ${userId}; stale data will expire via TTL`,
-        error instanceof Error ? error.stack : undefined,
-      );
-    }
+    // Invalidate cache — DB already has correct data
+    await this.invalidateRecordsCache(userId);
 
     return this.toDto(record);
   }
@@ -341,5 +333,37 @@ export class MedicineRiskCheckService {
 
   private buildRecordsCacheKey(userId: string): string {
     return `${RISK_CHECK_CACHE_KEY_PREFIX}:records:${userId}`;
+  }
+
+  /**
+   * Invalidates the records cache for a user. Retries once on failure; if
+   * the retry also fails, logs at `error` level so operators can detect
+   * DB/cache divergence (stale data will still expire via TTL as a
+   * last-resort safety net).
+   */
+  private async invalidateRecordsCache(userId: string): Promise<void> {
+    const cacheKey = this.buildRecordsCacheKey(userId);
+    try {
+      await this.cache.del(cacheKey);
+    } catch (firstError) {
+      // Retry once — transient Redis blips are common
+      try {
+        await this.cache.del(cacheKey);
+      } catch (retryError) {
+        this.logger.error(
+          `Failed to invalidate risk-check cache for user ${userId} after retry; ` +
+            `DB has correct data but cached reads may return stale results until TTL expiry`,
+          retryError instanceof Error ? retryError.stack : undefined,
+          {
+            userId,
+            cacheKey,
+            firstError:
+              firstError instanceof Error
+                ? firstError.message
+                : String(firstError),
+          },
+        );
+      }
+    }
   }
 }

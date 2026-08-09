@@ -197,9 +197,26 @@ describe('MedicineRiskCheckService', () => {
     expect(cache.set).toHaveBeenCalled();
   });
 
-  it('markStale updates records and invalidates cache without throwing when cache.del fails', async () => {
+  it('markStale retries cache invalidation on first failure and succeeds on retry', async () => {
+    const { prisma, cache, svc } = build();
+    vi.mocked(cache.del)
+      .mockRejectedValueOnce(new Error('redis timeout'))
+      .mockResolvedValueOnce(true);
+    vi.mocked(prisma.medicineRiskCheckRecord.updateMany).mockResolvedValue({
+      count: 1,
+    } as never);
+
+    await svc.markStale('u1');
+
+    expect(cache.del).toHaveBeenCalledTimes(2);
+  });
+
+  it('markStale updates records and logs error when cache.del fails after retry', async () => {
     const { prisma, cache, svc } = build();
     vi.mocked(cache.del).mockRejectedValue(new Error('redis down'));
+    const errorSpy = vi
+      .spyOn(svc['logger'], 'error')
+      .mockImplementation(() => undefined);
 
     await expect(svc.markStale('u1')).resolves.toBeUndefined();
 
@@ -207,6 +224,8 @@ describe('MedicineRiskCheckService', () => {
       where: { userId: 'u1' },
       data: { stale: true },
     });
+    expect(cache.del).toHaveBeenCalledTimes(2);
+    expect(errorSpy).toHaveBeenCalled();
   });
 
   it('runStaticCheck evaluates risk for an existing user with eligible medicines', async () => {
@@ -306,17 +325,24 @@ describe('MedicineRiskCheckService', () => {
     );
   });
 
-  it('runStaticCheck tolerates cache invalidation failure during persist', async () => {
+  it('runStaticCheck tolerates cache invalidation failure during persist (retries then logs error)', async () => {
     const { prisma, cache, svc } = build();
     vi.mocked(prisma.user.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.medicineRiskCheckRecord.upsert).mockResolvedValue(
       recordRow as never,
     );
     vi.mocked(cache.del).mockRejectedValue(new Error('redis down'));
+    const errorSpy = vi
+      .spyOn(svc['logger'], 'error')
+      .mockImplementation(() => undefined);
 
     await expect(svc.runStaticCheck('u1')).resolves.toMatchObject({
       checkType: 'static',
     });
+
+    // Should have retried
+    expect(cache.del).toHaveBeenCalledTimes(2);
+    expect(errorSpy).toHaveBeenCalled();
   });
 
   it('runLlmCheck maps llm findings without secondary medicine', async () => {
