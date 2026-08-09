@@ -27,6 +27,7 @@ import { MetricsModule } from './common/metrics/metrics.module';
 import { SseModule } from './common';
 import { BullmqModule } from './common/queue/queue.module';
 import { CronJobsModule } from './common/queue/cron-jobs.module';
+import { RedisModule } from './common/redis/redis.module';
 import { MedicinesModule } from './modules/medicines/medicines.module';
 import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from './modules/medicine-dose-logs/medicine-dose-logs.module';
@@ -85,6 +86,7 @@ import { SlowRequestInterceptor } from './common';
     SseModule,
     BullmqModule,
     CronJobsModule,
+    RedisModule,
     PrismaModule,
     AuditLogModule,
     DataRetentionModule,
