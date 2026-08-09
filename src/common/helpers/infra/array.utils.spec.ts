@@ -95,5 +95,24 @@ describe('array.utils', () => {
       chunkArray(input, 2);
       expect(input).toEqual(original);
     });
+
+    it('throws RangeError when size is 0', () => {
+      expect(() => chunkArray([1, 2, 3], 0)).toThrow(RangeError);
+      expect(() => chunkArray([1, 2, 3], 0)).toThrow(/positive integer/);
+    });
+
+    it('throws RangeError when size is negative', () => {
+      expect(() => chunkArray([1, 2, 3], -1)).toThrow(RangeError);
+      expect(() => chunkArray([1, 2, 3], -5)).toThrow(RangeError);
+    });
+
+    it('throws RangeError when size is not an integer', () => {
+      expect(() => chunkArray([1, 2, 3], 2.5)).toThrow(RangeError);
+      expect(() => chunkArray([1, 2, 3], NaN)).toThrow(RangeError);
+    });
+
+    it('throws RangeError when size is 0 even for empty input', () => {
+      expect(() => chunkArray([], 0)).toThrow(RangeError);
+    });
   });
 });

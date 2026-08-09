@@ -21,8 +21,17 @@ export function isEmptyArray(
   return value == null || value.length === 0;
 }
 
-/** Splits an array into chunks of the given size. The final chunk may be shorter. */
+/**
+ * Splits an array into chunks of the given size. The final chunk may be
+ * shorter. Throws `RangeError` when `size` is not a positive integer to
+ * prevent infinite loops caused by `index += 0`.
+ */
 export function chunkArray<T>(items: readonly T[], size: number): T[][] {
+  if (!Number.isInteger(size) || size <= 0) {
+    throw new RangeError(
+      `chunkArray: size must be a positive integer, received ${String(size)}`,
+    );
+  }
   const result: T[][] = [];
   for (let index = 0; index < items.length; index += size) {
     result.push(items.slice(index, index + size));
