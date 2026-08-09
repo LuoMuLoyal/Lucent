@@ -31,6 +31,7 @@ import { RedisModule } from './common/redis/redis.module';
 import { MedicinesModule } from './modules/medicines/medicines.module';
 import { DailyRecordsModule } from './modules/daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from './modules/medicine-dose-logs/medicine-dose-logs.module';
+import { HealthEventsModule } from './modules/health-events/health-events.module';
 import { MedicineRemindersModule } from './modules/medicine-reminders/medicine-reminders.module';
 import { UserHealthContextModule } from './modules/user-health-context/user-health-context.module';
 import { AccountModule } from './modules/account/account.module';
@@ -97,6 +98,7 @@ import { SlowRequestInterceptor } from './common';
     UserHealthContextModule,
     DailyRecordsModule,
     MedicineDoseLogsModule,
+    HealthEventsModule,
     MedicineRemindersModule,
     EnvironmentModule,
     ReportsModule,
@@ -121,6 +123,7 @@ import { SlowRequestInterceptor } from './common';
           FilesModule,
           UserHealthContextModule,
           MedicineDoseLogsModule,
+          HealthEventsModule,
           MedicineRemindersModule,
           NotificationsModule,
           ReportsModule,

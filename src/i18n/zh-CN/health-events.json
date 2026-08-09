@@ -1,0 +1,9 @@
+{
+  "not_found": "健康事件不存在。",
+  "active_conflict": "用户已有一个进行中的健康事件。",
+  "related_medicine_not_found": "关联的当前用药不存在。",
+  "related_reason_record_not_found": "关联的健康记录不存在。",
+  "inactive": "健康事件当前不是进行中状态。",
+  "already_ended": "健康事件已经结束。",
+  "invalid_outcome": "健康事件结果必须是好转、无变化或恶化。"
+}

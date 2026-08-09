@@ -1,0 +1,143 @@
+import { Injectable } from '@nestjs/common';
+import {
+  HealthEventOutcome,
+  HealthEventStatus,
+} from '#generated/prisma/client';
+import { I18nService } from 'nestjs-i18n';
+import { badRequest, conflict, notFound, now } from '../../../common';
+import {
+  HealthEventActiveConflictError,
+  HealthEventRepositoryPort,
+  type HealthEventRecord,
+} from '../repositories/event.repository';
+
+export interface CreateHealthEventInput {
+  title: string;
+  startedAt?: Date;
+  reasonRecordId?: string | null;
+  currentMedicineIds?: string[];
+}
+
+export interface EndHealthEventInput {
+  outcome?: string;
+}
+
+export function parseHealthEventOutcome(
+  value: unknown,
+  invalidMessage = 'Health event outcome must be improved, unchanged, or worsened.',
+): HealthEventOutcome {
+  if (
+    value === HealthEventOutcome.improved ||
+    value === HealthEventOutcome.unchanged ||
+    value === HealthEventOutcome.worsened
+  ) {
+    return value;
+  }
+  badRequest(invalidMessage);
+}
+
+@Injectable()
+export class EventsService {
+  constructor(
+    private readonly repository: HealthEventRepositoryPort,
+    private readonly i18n: I18nService,
+  ) {}
+
+  async create(
+    userId: string,
+    input: CreateHealthEventInput,
+  ): Promise<HealthEventRecord> {
+    const active = await this.repository.findActiveByUserId(userId);
+    if (active != null) {
+      conflict(this.i18n.t('health-events.active_conflict'));
+    }
+
+    const currentMedicineIds = [...new Set(input.currentMedicineIds ?? [])];
+    const ownedMedicineIds = await this.repository.findOwnedCurrentMedicineIds(
+      userId,
+      currentMedicineIds,
+    );
+    if (new Set(ownedMedicineIds).size !== currentMedicineIds.length) {
+      notFound(this.i18n.t('health-events.related_medicine_not_found'));
+    }
+
+    const reasonRecordId = input.reasonRecordId ?? null;
+    if (
+      reasonRecordId != null &&
+      !(await this.repository.findOwnedReasonRecord(userId, reasonRecordId))
+    ) {
+      notFound(this.i18n.t('health-events.related_reason_record_not_found'));
+    }
+
+    try {
+      return await this.repository.create({
+        userId,
+        title: input.title,
+        status: HealthEventStatus.active,
+        startedAt: input.startedAt ?? now(),
+        reasonRecordId,
+        currentMedicineIds,
+      });
+    } catch (error) {
+      if (error instanceof HealthEventActiveConflictError) {
+        conflict(this.i18n.t('health-events.active_conflict'));
+      }
+      throw error;
+    }
+  }
+
+  async findById(userId: string, eventId: string): Promise<HealthEventRecord> {
+    const event = await this.repository.findById(userId, eventId);
+    if (event == null) {
+      notFound(this.i18n.t('health-events.not_found'));
+    }
+    return event;
+  }
+
+  async findActive(userId: string): Promise<HealthEventRecord | null> {
+    return this.repository.findActiveByUserId(userId);
+  }
+
+  async ensureOwnedByUser(
+    userId: string,
+    eventId: string,
+  ): Promise<HealthEventRecord> {
+    return this.findById(userId, eventId);
+  }
+
+  async ensureActiveOwnedByUser(
+    userId: string,
+    eventId: string,
+  ): Promise<HealthEventRecord> {
+    const event = await this.ensureOwnedByUser(userId, eventId);
+    if (event.status !== HealthEventStatus.active) {
+      badRequest(this.i18n.t('health-events.inactive'));
+    }
+    return event;
+  }
+
+  async end(
+    userId: string,
+    eventId: string,
+    input: EndHealthEventInput | string | undefined,
+  ): Promise<HealthEventRecord> {
+    const outcome = parseHealthEventOutcome(
+      typeof input === 'string' ? input : input?.outcome,
+      this.i18n.t('health-events.invalid_outcome'),
+    );
+    const event = await this.ensureOwnedByUser(userId, eventId);
+    if (event.status !== HealthEventStatus.active) {
+      badRequest(this.i18n.t('health-events.already_ended'));
+    }
+
+    const updated = await this.repository.update(userId, eventId, {
+      status: HealthEventStatus.ended,
+      endedAt: now(),
+      outcome,
+    });
+    if (updated == null) {
+      notFound(this.i18n.t('health-events.not_found'));
+    }
+    return updated;
+  }
+}

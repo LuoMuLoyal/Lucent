@@ -1,0 +1,9 @@
+{
+  "not_found": "Health event not found.",
+  "active_conflict": "The user already has an active health event.",
+  "related_medicine_not_found": "Related current medicine not found.",
+  "related_reason_record_not_found": "Related reason record not found.",
+  "inactive": "Health event is not active.",
+  "already_ended": "Health event is already ended.",
+  "invalid_outcome": "Health event outcome must be improved, unchanged, or worsened."
+}

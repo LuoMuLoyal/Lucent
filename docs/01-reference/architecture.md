@@ -266,8 +266,9 @@ the prefix is centralized.
   - Modules: testing-support
   - Via: Controller `@Controller('testing/fullstack-e2e')`
 - `/user/*`
-  - Modules: assistant, daily-records, data-export, files, health-context, medicine-dose-logs,
-    medicine-reminders, notifications, reports, settings, today-analysis, today-suggestion
+  - Modules: assistant, daily-records, data-export, files, health-context, health-events,
+    medicine-dose-logs, medicine-reminders, notifications, reports, settings, today-analysis,
+    today-suggestion
   - Via: `RouterModule.register()`
 
 ## Error Handling
