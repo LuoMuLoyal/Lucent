@@ -99,6 +99,7 @@ export class MaterializationStore {
         userId: input.userId,
         localDate: parseDateOnly(input.localDate),
         sourceVersion: input.sourceVersion,
+        status: 'pending',
       },
       data: {
         computedVersion: input.sourceVersion,
@@ -119,6 +120,7 @@ export class MaterializationStore {
         userId: input.userId,
         localDate: parseDateOnly(input.localDate),
         sourceVersion: input.sourceVersion,
+        status: 'pending',
       },
       data: {
         status: 'failed',

@@ -90,8 +90,13 @@ interface MockDeps {
     resolveCopy: vi.Mock;
     toDto: vi.Mock;
   };
-  lifecycle: { expireStaleSuggestions: vi.Mock; persistActive: vi.Mock };
+  lifecycle: {
+    expireStaleSuggestions: vi.Mock;
+    persistActive: vi.Mock;
+    getActiveSuggestions: vi.Mock;
+  };
   escalation: { escalateIfNeeded: vi.Mock };
+  materializationStore: { readStatus: vi.Mock };
 }
 
 function buildMocks(): MockDeps {
@@ -120,8 +125,10 @@ function buildMocks(): MockDeps {
     lifecycle: {
       expireStaleSuggestions: vi.fn().mockResolvedValue(undefined),
       persistActive: vi.fn().mockResolvedValue('suggestion-id'),
+      getActiveSuggestions: vi.fn().mockResolvedValue([]),
     },
     escalation: { escalateIfNeeded: vi.fn().mockResolvedValue(undefined) },
+    materializationStore: { readStatus: vi.fn() },
   };
 }
 
@@ -136,6 +143,7 @@ describe('SuggestionService', () => {
       deps.presentation as never,
       deps.lifecycle as never,
       deps.escalation as never,
+      deps.materializationStore as never,
     );
   });
 
@@ -143,6 +151,10 @@ describe('SuggestionService', () => {
     const cached: TodaySuggestionsDataDto = {
       generatedAt: 'old',
       primary: buildDto('cached-1', buildCandidate()),
+      materializationStatus: 'ready',
+      sourceVersion: 1,
+      computedAt: null,
+      retryAfterSeconds: null,
     };
     deps.presentation.getCachedResult.mockResolvedValue(cached);
 
@@ -169,31 +181,109 @@ describe('SuggestionService', () => {
     expect(deps.pipeline.run).toHaveBeenCalledWith('user-1', '2026-07-09');
   });
 
-  it('red: readCurrent returns materialized data without running the pipeline', async () => {
+  it('readCurrent returns materialized data without running the pipeline', async () => {
     const cached: TodaySuggestionsDataDto = {
       generatedAt: 'materialized-at',
       primary: buildDto('materialized-1', buildCandidate()),
+      materializationStatus: 'ready',
+      sourceVersion: 3,
+      computedAt: '2026-07-09T08:00:00.000Z',
+      retryAfterSeconds: null,
     };
     deps.presentation.getCachedResult.mockResolvedValue(cached);
+    deps.materializationStore.readStatus.mockResolvedValue({
+      status: 'ready',
+      sourceVersion: 3,
+      computedVersion: 3,
+      computedAt: new Date('2026-07-09T08:00:00.000Z'),
+    });
 
-    const readCurrent = (
-      service as unknown as {
-        readCurrent?: (
-          userId: string,
-          date: string,
-          excludeIds?: string[],
-        ) => Promise<TodaySuggestionsDataDto>;
-      }
-    ).readCurrent;
+    const result = await service.readCurrent('user-1', '2026-07-09');
 
-    // Planned API: Task 4 will split readCurrent from recompute/generate.
-    expect(readCurrent).toBeTypeOf('function');
-    if (readCurrent == null) return;
-
-    const result = await readCurrent.call(service, 'user-1', '2026-07-09');
-
-    expect(result).toEqual(cached);
+    expect(result).toMatchObject({
+      primary: cached.primary,
+      materializationStatus: 'ready',
+      sourceVersion: 3,
+      computedAt: '2026-07-09T08:00:00.000Z',
+      retryAfterSeconds: null,
+    });
     expect(deps.pipeline.run).not.toHaveBeenCalled();
+  });
+
+  it('returns an empty envelope for a first read without materialization', async () => {
+    deps.materializationStore.readStatus.mockResolvedValue({
+      status: 'empty',
+      sourceVersion: 0,
+      computedVersion: 0,
+      computedAt: null,
+    });
+
+    const result = await service.readCurrent('user-1', '2026-07-09');
+
+    expect(result).toMatchObject({
+      materializationStatus: 'empty',
+      sourceVersion: 0,
+      computedAt: null,
+      retryAfterSeconds: null,
+    });
+    expect(deps.presentation.getCachedResult).not.toHaveBeenCalled();
+    expect(deps.pipeline.run).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['pending', 2, 2],
+    ['failed', 3, 30],
+    ['stale', 4, null],
+  ] as const)(
+    'returns the %s state without running copy generation',
+    async (state, sourceVersion, retryAfterSeconds) => {
+      deps.materializationStore.readStatus.mockResolvedValue({
+        status: state,
+        sourceVersion,
+        computedVersion: state === 'stale' ? sourceVersion - 1 : 0,
+        computedAt:
+          state === 'stale' ? new Date('2026-07-09T08:00:00.000Z') : null,
+      });
+
+      const result = await service.readCurrent(
+        'user-1',
+        '2026-07-09',
+        undefined,
+        { locale: 'en-US' },
+      );
+
+      expect(result).toMatchObject({
+        materializationStatus: state,
+        sourceVersion,
+        retryAfterSeconds,
+      });
+      expect(deps.pipeline.run).not.toHaveBeenCalled();
+      expect(deps.presentation.generateCopy).not.toHaveBeenCalled();
+    },
+  );
+
+  it('falls back to active persisted cards when the ready result cache has expired', async () => {
+    const primary = buildDto('persisted-primary', buildCandidate());
+    const secondary = buildDto(
+      'persisted-secondary',
+      buildCandidate({ candidateId: 'secondary' }),
+    );
+    deps.materializationStore.readStatus.mockResolvedValue({
+      status: 'ready',
+      sourceVersion: 3,
+      computedVersion: 3,
+      computedAt: new Date('2026-07-09T08:00:00.000Z'),
+    });
+    deps.presentation.getCachedResult.mockResolvedValue(undefined);
+    deps.lifecycle.getActiveSuggestions.mockResolvedValue([primary, secondary]);
+
+    const result = await service.readCurrent('user-1', '2026-07-09');
+
+    expect(result.primary).toEqual(primary);
+    expect(result.secondary).toEqual([secondary]);
+    expect(result.observations).toEqual([]);
+    expect(result.materializationStatus).toBe('ready');
+    expect(deps.presentation.generateCopy).not.toHaveBeenCalled();
   });
 
   it('passes a primary candidate through the full pipeline', async () => {
@@ -380,6 +470,38 @@ describe('SuggestionService', () => {
       '2026-07-09',
       mockCopyResult,
       'en-US',
+    );
+  });
+
+  it('passes the source version to persistence during worker recompute', async () => {
+    const candidate = buildCandidate({ candidateId: 'versioned' });
+    deps.pipeline.run.mockResolvedValue({
+      arbitrationResult: {
+        primary: candidate,
+        secondary: [],
+        observations: [],
+      },
+      degraded: false,
+    });
+    deps.lifecycle.persistActive.mockResolvedValue('versioned-id');
+
+    await service.recompute('user-1', '2026-07-09', undefined, {
+      locale: 'zh-CN',
+      sourceVersion: 7,
+    });
+
+    expect(deps.lifecycle.expireStaleSuggestions).toHaveBeenCalledWith(
+      'user-1',
+      '2026-07-09',
+      7,
+    );
+    expect(deps.lifecycle.persistActive).toHaveBeenCalledWith(
+      'user-1',
+      candidate,
+      '2026-07-09',
+      mockCopyResult,
+      'zh-CN',
+      7,
     );
   });
 });

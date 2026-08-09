@@ -9,11 +9,13 @@ import {
   REMINDER_CHANGED,
   HEALTH_CONTEXT_CHANGED,
   SETTINGS_CHANGED,
+  HEALTH_EVENT_CHANGED,
   type DailyRecordChangedPayload,
   type DoseLogChangedPayload,
   type ReminderChangedPayload,
   type HealthContextChangedPayload,
   type SettingsChangedPayload,
+  type HealthEventChangedPayload,
 } from '../../../../common/events/domain-events.js';
 
 /**
@@ -111,6 +113,21 @@ export class SuggestionCacheInvalidationListener {
     } catch (error) {
       this.logger.warn('Failed to invalidate cache on settings.changed', {
         userId: payload.userId,
+        error,
+      });
+    }
+  }
+
+  @OnEvent(HEALTH_EVENT_CHANGED)
+  async handleHealthEventChanged(
+    payload: HealthEventChangedPayload,
+  ): Promise<void> {
+    try {
+      await this.cache.invalidateSignals(payload.userId, payload.date);
+    } catch (error) {
+      this.logger.warn('Failed to invalidate cache on health-event.changed', {
+        userId: payload.userId,
+        date: payload.date,
         error,
       });
     }

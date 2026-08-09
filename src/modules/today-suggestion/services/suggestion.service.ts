@@ -9,6 +9,8 @@ import { SuggestionPresentationService } from './presentation.service';
 import { LifecycleService } from './lifecycle/manager.service';
 import { EscalationService } from './notification/escalation.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
+import { MaterializationStore } from './materialization/store.service';
+import type { MaterializationStatusView } from '../types/materialization.types';
 
 /**
  * Main orchestrator for the Today suggestion engine.
@@ -26,23 +28,86 @@ export class SuggestionService {
     private readonly presentation: SuggestionPresentationService,
     private readonly lifecycle: LifecycleService,
     private readonly escalation: EscalationService,
+    private readonly materializationStore: MaterializationStore,
   ) {}
 
   /**
-   * Generates suggestions for the given user and date.
+   * Reads the current materialization without starting a computation.
    */
-  async generate(
+  async readCurrent(
+    userId: string,
+    date?: string,
+    excludeIds?: string[],
+    _options?: { locale?: string },
+  ): Promise<TodaySuggestionsDataDto> {
+    const targetDate = date ?? formatDateOnly(now());
+    const status = await this.materializationStore.readStatus(
+      userId,
+      targetDate,
+    );
+    const metadata = this.materializationMetadata(status);
+    if (status.status === 'empty') {
+      return {
+        generatedAt: nowIsoString(),
+        secondary: undefined,
+        observations: undefined,
+        ...metadata,
+      };
+    }
+
+    const cachedResult = await this.presentation.getCachedResult(
+      userId,
+      targetDate,
+      SuggestionCacheService.buildExcludeKey(excludeIds),
+    );
+    if (
+      cachedResult == null ||
+      cachedResult.sourceVersion !== status.computedVersion
+    ) {
+      const persisted = await this.lifecycle.getActiveSuggestions(
+        userId,
+        targetDate,
+        status.computedVersion,
+      );
+      const excluded = new Set(excludeIds ?? []);
+      const current = persisted.filter((item) => !excluded.has(item.id));
+      const [primary, ...secondary] = current;
+      return {
+        generatedAt: status.computedAt?.toISOString() ?? nowIsoString(),
+        primary,
+        secondary,
+        observations: [],
+        ...metadata,
+      };
+    }
+
+    return {
+      generatedAt: cachedResult.generatedAt,
+      primary: cachedResult.primary,
+      secondary: cachedResult.secondary,
+      observations: cachedResult.observations,
+      ...(cachedResult.degraded ? { degraded: true } : {}),
+      ...metadata,
+    };
+  }
+
+  /**
+   * Performs a full suggestion recompute for the background worker.
+   */
+  async recompute(
     userId: string,
     date?: string,
     excludeIds?: string[],
     options?: {
       locale?: string;
+      sourceVersion?: number;
     },
   ): Promise<TodaySuggestionsDataDto> {
     const targetDate = date ?? formatDateOnly(now());
     const generatedAt = nowIsoString();
     const excludeKey = SuggestionCacheService.buildExcludeKey(excludeIds);
     const locale = options?.locale ?? 'zh-CN';
+    const sourceVersion = options?.sourceVersion;
 
     // 0. Check suggestion result cache
     const cachedResult = await this.presentation.getCachedResult(
@@ -50,12 +115,19 @@ export class SuggestionService {
       targetDate,
       excludeKey,
     );
-    if (cachedResult != null) {
+    if (
+      cachedResult != null &&
+      (sourceVersion == null || cachedResult.sourceVersion === sourceVersion)
+    ) {
       return {
         generatedAt,
         primary: cachedResult.primary,
         secondary: cachedResult.secondary,
         observations: cachedResult.observations,
+        materializationStatus: 'ready',
+        sourceVersion: sourceVersion ?? cachedResult.sourceVersion,
+        computedAt: generatedAt,
+        retryAfterSeconds: null,
       };
     }
 
@@ -78,7 +150,15 @@ export class SuggestionService {
     );
 
     // 3. Persist active suggestions (expire stale first)
-    await this.lifecycle.expireStaleSuggestions(userId, targetDate);
+    if (sourceVersion == null) {
+      await this.lifecycle.expireStaleSuggestions(userId, targetDate);
+    } else {
+      await this.lifecycle.expireStaleSuggestions(
+        userId,
+        targetDate,
+        sourceVersion,
+      );
+    }
 
     let primaryItem: SuggestionItemDto | undefined;
     const secondaryItems: SuggestionItemDto[] = [];
@@ -90,13 +170,23 @@ export class SuggestionService {
         arbitrationResult.primary.copyGeneration.params,
         locale,
       );
-      const id = await this.lifecycle.persistActive(
-        userId,
-        arbitrationResult.primary,
-        targetDate,
-        copy,
-        locale,
-      );
+      const id =
+        sourceVersion == null
+          ? await this.lifecycle.persistActive(
+              userId,
+              arbitrationResult.primary,
+              targetDate,
+              copy,
+              locale,
+            )
+          : await this.lifecycle.persistActive(
+              userId,
+              arbitrationResult.primary,
+              targetDate,
+              copy,
+              locale,
+              sourceVersion,
+            );
       primaryItem = this.presentation.toDto(
         id,
         arbitrationResult.primary,
@@ -122,13 +212,23 @@ export class SuggestionService {
         candidate.copyGeneration.params,
         locale,
       );
-      const id = await this.lifecycle.persistActive(
-        userId,
-        candidate,
-        targetDate,
-        copy,
-        locale,
-      );
+      const id =
+        sourceVersion == null
+          ? await this.lifecycle.persistActive(
+              userId,
+              candidate,
+              targetDate,
+              copy,
+              locale,
+            )
+          : await this.lifecycle.persistActive(
+              userId,
+              candidate,
+              targetDate,
+              copy,
+              locale,
+              sourceVersion,
+            );
       secondaryItems.push(
         this.presentation.toDto(
           id,
@@ -177,11 +277,50 @@ export class SuggestionService {
       observations:
         filteredObservations.length > 0 ? filteredObservations : undefined,
       ...(degraded ? { degraded: true } : {}),
+      materializationStatus: 'ready',
+      sourceVersion: sourceVersion ?? 0,
+      computedAt: generatedAt,
+      retryAfterSeconds: null,
     };
 
     // 7. Cache the result for subsequent requests
     await this.presentation.cacheResult(userId, targetDate, excludeKey, result);
 
     return result;
+  }
+
+  /**
+   * Compatibility entry point for existing explicit callers. New GET paths
+   * must use {@link readCurrent}; background work uses {@link recompute}.
+   */
+  async generate(
+    userId: string,
+    date?: string,
+    excludeIds?: string[],
+    options?: { locale?: string; sourceVersion?: number },
+  ): Promise<TodaySuggestionsDataDto> {
+    return this.recompute(userId, date, excludeIds, options);
+  }
+
+  private materializationMetadata(
+    status: MaterializationStatusView,
+  ): Pick<
+    TodaySuggestionsDataDto,
+    | 'materializationStatus'
+    | 'sourceVersion'
+    | 'computedAt'
+    | 'retryAfterSeconds'
+  > {
+    return {
+      materializationStatus: status.status,
+      sourceVersion: status.sourceVersion,
+      computedAt: status.computedAt?.toISOString() ?? null,
+      retryAfterSeconds:
+        status.status === 'pending'
+          ? 2
+          : status.status === 'failed'
+            ? 30
+            : null,
+    };
   }
 }

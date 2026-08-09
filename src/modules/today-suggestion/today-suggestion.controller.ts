@@ -85,9 +85,12 @@ export class TodaySuggestionController {
         : [];
 
     const result: TodaySuggestionsDataDto =
-      await this.suggestionService.generate(user.sub, date, normalizedExclude, {
-        locale: acceptLanguage ?? 'zh-CN',
-      });
+      await this.suggestionService.readCurrent(
+        user.sub,
+        date,
+        normalizedExclude,
+        { locale: acceptLanguage ?? 'zh-CN' },
+      );
 
     return successEnvelope(result);
   }

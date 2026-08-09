@@ -4,9 +4,13 @@ import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../../../prisma';
 import { now, nowIsoString, formatDateOnly } from '../../../../common';
 import type { SuggestionCandidate } from '../../types/candidate.types';
+import type { SuggestionItemDto } from '../../dto/suggestion-response.dto';
 
 import type { SuggestionAction } from '../../types/signal.types';
-import { SuggestionLifecycleState } from '../../types/suggestion.types';
+import {
+  SuggestionFeedback,
+  SuggestionLifecycleState,
+} from '../../types/suggestion.types';
 import type { SuggestionHistoryItemDto } from '../../dto/suggestion-history-query.dto';
 import type { Prisma } from '#generated/prisma/client';
 import {
@@ -46,6 +50,7 @@ export class LifecycleService {
     date: string,
     copy: { title: string; reason: string; boundary: string },
     locale: string,
+    sourceVersion?: number,
   ): Promise<string> {
     const now = nowIsoString();
 
@@ -69,6 +74,7 @@ export class LifecycleService {
         notificationEligible: candidate.notificationEligible,
         ...this.optionalSubtype(candidate.subtype),
         locale: this.normalizeLocale(locale),
+        ...(sourceVersion != null ? { sourceVersion } : {}),
         generatedAt: now,
         activatedAt: now,
       },
@@ -95,12 +101,19 @@ export class LifecycleService {
    * Expires suggestions that are no longer active for the given user+date.
    * Called before generating new suggestions to clean up stale cards.
    */
-  async expireStaleSuggestions(userId: string, date: string): Promise<number> {
+  async expireStaleSuggestions(
+    userId: string,
+    date: string,
+    sourceVersion?: number,
+  ): Promise<number> {
     const result = await this.prisma.userSuggestion.updateMany({
       where: {
         userId,
         date: date,
         lifecycleState: SuggestionLifecycleState.ACTIVE,
+        ...(sourceVersion != null
+          ? { sourceVersion: { lte: sourceVersion } }
+          : {}),
         // Expire suggestions not in the current candidate set
         // (they will be replaced by new ones)
       },
@@ -154,6 +167,94 @@ export class LifecycleService {
 
     // Use ruleId+subtype as a composite key for deduplication
     return new Set(records.map((r) => `${r.ruleId}:${r.subtype ?? ''}`));
+  }
+
+  /**
+   * Reads the persisted active cards used to recover a result after the
+   * short-lived suggestion result cache expires. Persisted copy is already
+   * localized, so this method never invokes copy generation. The materialized
+   * Today result has one current locale; do not filter by request locale or a
+   * cache miss in another locale would hide the persisted current cards.
+   */
+  async getActiveSuggestions(
+    userId: string,
+    date: string,
+    sourceVersion?: number,
+  ): Promise<SuggestionItemDto[]> {
+    const records = await this.prisma.userSuggestion.findMany({
+      where: {
+        userId,
+        date,
+        lifecycleState: SuggestionLifecycleState.ACTIVE,
+        ...(sourceVersion != null ? { sourceVersion } : {}),
+      },
+      orderBy: { priorityScore: 'desc' },
+    });
+
+    return records.map((record) => ({
+      id: record.id,
+      type: record.type as SuggestionItemDto['type'],
+      cardTone: this.cardToneFor(record.type),
+      icon: this.iconFor(record.type, record.subtype),
+      title: record.title,
+      reason: record.reason,
+      evidence: record.evidence as never,
+      boundary: record.boundary,
+      primaryAction: record.primaryAction as never,
+      ...(record.secondaryActions != null
+        ? { secondaryActions: record.secondaryActions as never }
+        : {}),
+      confidence: record.confidence as SuggestionItemDto['confidence'],
+      ruleId: record.ruleId,
+      ruleVersion: record.ruleVersion,
+      triggerType: record.triggerType as SuggestionItemDto['triggerType'],
+      lifecycleState: SuggestionLifecycleState.ACTIVE,
+      notificationEligible: record.notificationEligible,
+      feedbackOptions: this.feedbackOptionsFor(record.type),
+      subtype: record.subtype ?? undefined,
+    }));
+  }
+
+  private cardToneFor(type: string): SuggestionItemDto['cardTone'] {
+    if (type === 'confirmed_risk' || type === 'compliance') return 'urgent';
+    if (type === 'trend') return 'warning';
+    if (type === 'behavior_advice') return 'soft';
+    return 'neutral';
+  }
+
+  private iconFor(type: string, subtype: string | null): string {
+    const subtypeIcons: Record<string, string> = {
+      water: 'droplets',
+      sleep: 'moon',
+      symptom: 'activity',
+      caffeine: 'coffee',
+      profile: 'user',
+      empty_today: 'clipboard',
+    };
+    if (subtype != null && subtypeIcons[subtype] != null) {
+      return subtypeIcons[subtype];
+    }
+    const typeIcons: Record<string, string> = {
+      confirmed_risk: 'alert-triangle',
+      compliance: 'pill',
+      trend: 'trending-up',
+      behavior_advice: 'lightbulb',
+      coverage: 'info',
+    };
+    return typeIcons[type] ?? 'lightbulb';
+  }
+
+  private feedbackOptionsFor(
+    type: string,
+  ): SuggestionItemDto['feedbackOptions'] {
+    return type === 'coverage'
+      ? [SuggestionFeedback.ACCEPTED, SuggestionFeedback.LATER]
+      : [
+          SuggestionFeedback.ACCEPTED,
+          SuggestionFeedback.LATER,
+          SuggestionFeedback.NOT_APPLICABLE,
+          SuggestionFeedback.SUPPRESS,
+        ];
   }
 
   /**

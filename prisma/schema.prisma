@@ -1180,6 +1180,7 @@ model UserSuggestion {
   feedbackAt         DateTime?                   @map("feedback_at") @db.Timestamptz(3)
   subtype            String?
   locale             String?                     @map("locale")
+  sourceVersion      Int                        @default(0) @map("source_version")
   generatedAt        DateTime                   @map("generated_at") @db.Timestamptz(3)
   activatedAt        DateTime?                   @map("activated_at") @db.Timestamptz(3)
   fadingAt           DateTime?                   @map("fading_at") @db.Timestamptz(3)

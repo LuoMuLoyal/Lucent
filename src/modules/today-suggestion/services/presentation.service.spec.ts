@@ -108,6 +108,10 @@ describe('SuggestionPresentationService', () => {
       const cached: TodaySuggestionsDataDto = {
         generatedAt: '2026-01-01T00:00:00Z',
         primary: undefined,
+        materializationStatus: 'ready',
+        sourceVersion: 1,
+        computedAt: null,
+        retryAfterSeconds: null,
       };
       deps.cache.getSuggestions.mockResolvedValue(cached);
 
@@ -140,7 +144,13 @@ describe('SuggestionPresentationService', () => {
 
   describe('cacheResult', () => {
     it('delegates to cache.setSuggestions', async () => {
-      const result: TodaySuggestionsDataDto = { generatedAt: 'now' };
+      const result: TodaySuggestionsDataDto = {
+        generatedAt: 'now',
+        materializationStatus: 'ready',
+        sourceVersion: 1,
+        computedAt: null,
+        retryAfterSeconds: null,
+      };
       await service.cacheResult('user-1', '2026-07-09', 'none', result);
 
       expect(deps.cache.setSuggestions).toHaveBeenCalledWith(

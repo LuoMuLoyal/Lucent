@@ -78,6 +78,7 @@ describe('TodaySuggestionController', () => {
           provide: SuggestionService,
           useValue: {
             generate: vi.fn(),
+            readCurrent: vi.fn(),
           },
         },
         {
@@ -122,13 +123,13 @@ describe('TodaySuggestionController', () => {
 
   describe('GET /today/suggestions', () => {
     it('returns suggestions envelope with no excludeIds', async () => {
-      suggestionService.generate.mockResolvedValue(
+      suggestionService.readCurrent.mockResolvedValue(
         mockSuggestionsData as never,
       );
 
       const result = await controller.getSuggestions(mockUser);
 
-      expect(suggestionService.generate).toHaveBeenCalledWith(
+      expect(suggestionService.readCurrent).toHaveBeenCalledWith(
         mockUser.sub,
         undefined,
         [],
@@ -142,13 +143,13 @@ describe('TodaySuggestionController', () => {
     });
 
     it('passes date and single excludeIds as array', async () => {
-      suggestionService.generate.mockResolvedValue(
+      suggestionService.readCurrent.mockResolvedValue(
         mockSuggestionsData as never,
       );
 
       await controller.getSuggestions(mockUser, '2026-07-10', 'sug-dismissed');
 
-      expect(suggestionService.generate).toHaveBeenCalledWith(
+      expect(suggestionService.readCurrent).toHaveBeenCalledWith(
         mockUser.sub,
         '2026-07-10',
         ['sug-dismissed'],
@@ -157,13 +158,13 @@ describe('TodaySuggestionController', () => {
     });
 
     it('passes array excludeIds as-is', async () => {
-      suggestionService.generate.mockResolvedValue(
+      suggestionService.readCurrent.mockResolvedValue(
         mockSuggestionsData as never,
       );
 
       await controller.getSuggestions(mockUser, undefined, ['sug-1', 'sug-2']);
 
-      expect(suggestionService.generate).toHaveBeenCalledWith(
+      expect(suggestionService.readCurrent).toHaveBeenCalledWith(
         mockUser.sub,
         undefined,
         ['sug-1', 'sug-2'],

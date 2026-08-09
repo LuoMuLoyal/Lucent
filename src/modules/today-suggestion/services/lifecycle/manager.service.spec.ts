@@ -90,6 +90,21 @@ describe('LifecycleService', () => {
       expect(call.data.activatedAt).toBeDefined();
     });
 
+    it('persists the recompute source version on the active card', async () => {
+      createMock.mockResolvedValue({ id: 'sug-versioned' });
+
+      await service.persistActive(
+        'user-1',
+        baseCandidate,
+        '2026-07-10',
+        baseCopy,
+        'zh-CN',
+        7,
+      );
+
+      expect(createMock.mock.calls[0]![0].data.sourceVersion).toBe(7);
+    });
+
     it('includes secondaryActions when provided', async () => {
       createMock.mockResolvedValue({ id: 'sug-456' });
       const candidate: SuggestionCandidate = {
@@ -203,6 +218,16 @@ describe('LifecycleService', () => {
 
       expect(count).toBe(0);
     });
+
+    it('does not expire cards written by a newer source version', async () => {
+      updateManyMock.mockResolvedValue({ count: 1 });
+
+      await service.expireStaleSuggestions('user-1', '2026-07-10', 7);
+
+      expect(updateManyMock.mock.calls[0]![0].where.sourceVersion).toEqual({
+        lte: 7,
+      });
+    });
   });
 
   // ── dismissSuggestion ──────────────────────────────────────────────────
@@ -255,6 +280,55 @@ describe('LifecycleService', () => {
       const ids = await service.getActiveSuggestionIds('user-1', '2026-07-10');
 
       expect(ids.size).toBe(0);
+    });
+  });
+
+  describe('getActiveSuggestions', () => {
+    it('returns active persisted cards ordered for Today rendering', async () => {
+      findManyMock.mockResolvedValue([
+        {
+          id: 'sug-primary',
+          type: 'compliance',
+          triggerType: 'event',
+          ruleId: 'dose_rule',
+          ruleVersion: '1.0.0',
+          title: 'Take your medicine',
+          reason: 'A dose is due',
+          boundary: 'Do not double dose',
+          evidence: [],
+          primaryAction: {
+            actionId: 'log',
+            label: 'Log dose',
+            route: '/record/dose',
+            authRequired: true,
+          },
+          secondaryActions: null,
+          priorityScore: 900,
+          confidence: 'high',
+          lifecycleState: 'active',
+          notificationEligible: false,
+          subtype: null,
+          locale: 'zh-CN',
+          generatedAt: new Date('2026-07-09T08:00:00.000Z'),
+        },
+      ]);
+
+      const result = await service.getActiveSuggestions('user-1', '2026-07-09');
+
+      expect(findManyMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-1',
+            date: '2026-07-09',
+            lifecycleState: SuggestionLifecycleState.ACTIVE,
+          }),
+        }),
+      );
+      expect(result[0]).toMatchObject({
+        id: 'sug-primary',
+        title: 'Take your medicine',
+        lifecycleState: SuggestionLifecycleState.ACTIVE,
+      });
     });
   });
 

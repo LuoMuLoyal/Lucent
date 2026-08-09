@@ -45,7 +45,8 @@ export class SuggestionPipelineService {
   ) {}
 
   /**
-   * Runs the full pipeline: collect → rules → suppress → arbitrate.
+   * Pure suggestion computation entry: collect → rules → suppress → arbitrate.
+   * It is invoked by the background recompute path, never by the GET path.
    *
    * Uses signal and baseline caches to avoid redundant queries on repeat
    * invocations within the same cache TTL window.

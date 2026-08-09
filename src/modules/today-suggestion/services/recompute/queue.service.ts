@@ -3,6 +3,7 @@ import type { Queue } from 'bullmq';
 
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
 import type { MaterializationReasonCode } from '../../types/materialization.types';
+import { SuggestionRecomputeWorkerService } from './worker.service';
 
 export const RECOMPUTE_QUEUE_NAME = 'suggestion-recompute';
 export const RECOMPUTE_JOB_NAME = 'recompute';
@@ -24,13 +25,16 @@ export function buildRecomputeJobId(userId: string, localDate: string): string {
 export class RecomputeQueueService {
   private readonly logger = new Logger(RecomputeQueueService.name);
   private readonly queue: Queue<RecomputeJobData> | null;
+  private readonly inlineJobs = new Map<string, Promise<void>>();
 
-  constructor(factory: BullmqQueueFactory) {
+  constructor(
+    factory: BullmqQueueFactory,
+    private readonly worker: SuggestionRecomputeWorkerService,
+  ) {
     const handle = factory.createQueue<RecomputeJobData>({
       name: RECOMPUTE_QUEUE_NAME,
       workerConcurrency: 1,
-      // Task 4 replaces this placeholder with the materialization worker.
-      processor: () => Promise.resolve(),
+      processor: async (job) => this.worker.process(job.data),
     });
     this.queue = handle.queue;
   }
@@ -41,36 +45,65 @@ export class RecomputeQueueService {
 
   async enqueue(data: RecomputeJobData): Promise<string | null> {
     if (!this.queue) {
+      await this.processInline(data);
       return null;
     }
 
     const jobId = buildRecomputeJobId(data.userId, data.localDate);
-    const existing = await this.queue.getJob(jobId);
+    try {
+      const existing = await this.queue.getJob(jobId);
 
-    if (existing != null) {
-      const state = await existing.getState();
-      if (state === 'completed' || state === 'failed') {
-        await existing.remove();
-      } else {
-        const merged = this.mergeData(existing, data);
-        await existing.updateData(merged);
-        if (state === 'delayed') {
-          await existing.changeDelay(RECOMPUTE_DEBOUNCE_MS);
+      if (existing != null) {
+        const state = await existing.getState();
+        if (state === 'completed' || state === 'failed') {
+          await existing.remove();
+        } else {
+          const merged = this.mergeData(existing, data);
+          await existing.updateData(merged);
+          if (state === 'delayed') {
+            await existing.changeDelay(RECOMPUTE_DEBOUNCE_MS);
+          }
+          return jobId;
         }
-        return jobId;
+      }
+
+      const job = await this.queue.add(RECOMPUTE_JOB_NAME, data, {
+        jobId,
+        delay: RECOMPUTE_DEBOUNCE_MS,
+      });
+      this.logger.debug(`Enqueued suggestion recompute ${jobId}`, {
+        userId: data.userId,
+        localDate: data.localDate,
+        sourceVersion: data.sourceVersion,
+      });
+      return job.id ?? jobId;
+    } catch (error) {
+      this.logger.error(
+        `Failed to enqueue suggestion recompute, processing inline: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      await this.processInline(data);
+      return jobId;
+    }
+  }
+
+  private async processInline(data: RecomputeJobData): Promise<void> {
+    const key = buildRecomputeJobId(data.userId, data.localDate);
+    const previous = this.inlineJobs.get(key) ?? Promise.resolve();
+    const current = previous
+      .catch(() => undefined)
+      .then(() => this.worker.process(data));
+    this.inlineJobs.set(key, current);
+
+    try {
+      await current;
+    } finally {
+      if (this.inlineJobs.get(key) === current) {
+        this.inlineJobs.delete(key);
       }
     }
-
-    const job = await this.queue.add(RECOMPUTE_JOB_NAME, data, {
-      jobId,
-      delay: RECOMPUTE_DEBOUNCE_MS,
-    });
-    this.logger.debug(`Enqueued suggestion recompute ${jobId}`, {
-      userId: data.userId,
-      localDate: data.localDate,
-      sourceVersion: data.sourceVersion,
-    });
-    return job.id ?? jobId;
   }
 
   private mergeData(

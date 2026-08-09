@@ -42,6 +42,7 @@ import { WaterShortfallRuleService } from './services/rules/lifestyle/water-shor
 import { MaterializationStore } from './services/materialization/store.service';
 import { RecomputeQueueService } from './services/recompute/queue.service';
 import { RecomputeTriggerListener } from './services/recompute/trigger.listener';
+import { SuggestionRecomputeWorkerService } from './services/recompute/worker.service';
 import { SuggestionService } from './services/suggestion.service';
 import type { SuggestionRule } from './types/rule.types';
 
@@ -91,6 +92,7 @@ import type { SuggestionRule } from './types/rule.types';
     SuggestionCacheInvalidationListener,
     // Recompute trigger and materialization state
     MaterializationStore,
+    SuggestionRecomputeWorkerService,
     RecomputeQueueService,
     RecomputeTriggerListener,
     // Notification escalation

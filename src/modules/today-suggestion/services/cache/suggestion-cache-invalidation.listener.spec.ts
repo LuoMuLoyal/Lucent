@@ -160,4 +160,20 @@ describe('SuggestionCacheInvalidationListener', () => {
       expect(cache.invalidateSignals).toHaveBeenCalled();
     });
   });
+
+  describe('handleHealthEventChanged', () => {
+    it('invalidates signals and result cache for the changed date', async () => {
+      await listener.handleHealthEventChanged({
+        userId: 'user-6',
+        eventId: 'event-1',
+        date: '2026-07-17',
+        change: 'check-in',
+      });
+
+      expect(cache.invalidateSignals).toHaveBeenCalledWith(
+        'user-6',
+        '2026-07-17',
+      );
+    });
+  });
 });

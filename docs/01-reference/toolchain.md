@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-09
+updated: 2026-08-10
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-09
+Last updated: 2026-08-10
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -18,6 +18,11 @@ Last updated: 2026-08-09
 - Health-event association fields on daily records and dose logs are implemented in Lucent first;
   `docs/openapi.json` and the Luminous generated Flutter client were regenerated during the
   Health Event Contract workstream. Live PostgreSQL acceptance remains a separate gate.
+- Proactive Suggestion Runtime Task 4 moves suggestion pipeline execution into the bounded
+  recompute worker. `GET /today/suggestions` reads materialized/cache state only and exposes
+  `materializationStatus`, `sourceVersion`, `computedAt`, and `retryAfterSeconds`; after a
+  source-version race the worker follows up at most three times. Persisted active cards also
+  carry `sourceVersion`, and old-version writes are fenced from newer materializations.
 - Lucent CI is split into three parallel Jobs (`ci-lint-typecheck`, `ci-unit`, `ci-e2e`) plus a
   Docker Job. The `ci-e2e` Job runs `Build` then `openapi:export` (reusing `dist/`, no double
   build) before E2E tests to ensure the contract file matches the current code. The file is

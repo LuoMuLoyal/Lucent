@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SuggestionItemDto } from './suggestion-response.dto';
+import type { MaterializationStatus } from '../types/materialization.types';
 
 /** Data payload for GET /today/suggestions. */
 export class TodaySuggestionsDataDto {
@@ -29,6 +30,29 @@ export class TodaySuggestionsDataDto {
       'When true, one or more suggestion rules threw an error during evaluation — the returned list may be incomplete.',
   })
   degraded?: boolean | undefined;
+
+  @ApiProperty({
+    enum: ['empty', 'pending', 'ready', 'stale', 'failed'],
+    description: 'Current background materialization state',
+  })
+  materializationStatus!: MaterializationStatus;
+
+  @ApiProperty({ description: 'Latest source version observed for this date' })
+  sourceVersion!: number;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'When the last successful materialization completed',
+  })
+  computedAt!: string | null;
+
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Suggested client polling delay in seconds',
+  })
+  retryAfterSeconds!: number | null;
 }
 
 /** Envelope response for GET /today/suggestions. */

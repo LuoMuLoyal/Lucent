@@ -138,4 +138,31 @@ describe('MaterializationStore', () => {
     );
     expect(result.status).toBe('pending');
   });
+
+  it('does not mark a ready materialization failed', async () => {
+    const current = row({
+      status: 'ready',
+      sourceVersion: 3,
+      computedVersion: 3,
+    });
+    prisma.userSuggestionMaterialization.findUnique.mockResolvedValue(current);
+
+    await store.markFailed({
+      userId: 'user-1',
+      localDate: '2026-08-09',
+      sourceVersion: 3,
+      errorCode: 'RECOMPUTE_FAILED',
+    });
+
+    expect(
+      prisma.userSuggestionMaterialization.updateMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          sourceVersion: 3,
+          status: 'pending',
+        }),
+      }),
+    );
+  });
 });

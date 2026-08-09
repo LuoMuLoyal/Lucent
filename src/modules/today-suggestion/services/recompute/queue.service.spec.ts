@@ -27,11 +27,20 @@ function data(overrides: Partial<RecomputeJobData> = {}): RecomputeJobData {
 }
 
 describe('RecomputeQueueService', () => {
+  const worker = { process: vi.fn().mockResolvedValue(undefined) };
+
+  beforeEach(() => {
+    worker.process.mockClear();
+  });
+
   it('is disabled when the shared queue factory has no queue', () => {
     const factory = {
       createQueue: vi.fn().mockReturnValue({ queue: null, worker: null }),
     };
-    const service = new RecomputeQueueService(factory as never);
+    const service = new RecomputeQueueService(
+      factory as never,
+      worker as never,
+    );
 
     expect(service.isConfigured).toBe(false);
   });
@@ -41,7 +50,10 @@ describe('RecomputeQueueService', () => {
       add: vi.fn().mockResolvedValue({ id: 'job-1' }),
       getJob: vi.fn().mockResolvedValue(null),
     };
-    const service = new RecomputeQueueService(buildFactory(queue) as never);
+    const service = new RecomputeQueueService(
+      buildFactory(queue) as never,
+      worker as never,
+    );
 
     await service.enqueue(data());
 
@@ -70,7 +82,10 @@ describe('RecomputeQueueService', () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(existing),
     };
-    const service = new RecomputeQueueService(buildFactory(queue) as never);
+    const service = new RecomputeQueueService(
+      buildFactory(queue) as never,
+      worker as never,
+    );
 
     await service.enqueue(first);
     await service.enqueue(
@@ -101,7 +116,10 @@ describe('RecomputeQueueService', () => {
       add: vi.fn().mockResolvedValue({ id: 'job-2' }),
       getJob: vi.fn().mockResolvedValue(existing),
     };
-    const service = new RecomputeQueueService(buildFactory(queue) as never);
+    const service = new RecomputeQueueService(
+      buildFactory(queue) as never,
+      worker as never,
+    );
 
     await service.enqueue(data({ sourceVersion: 2 }));
 
@@ -113,5 +131,55 @@ describe('RecomputeQueueService', () => {
         jobId: buildRecomputeJobId('user-1', '2026-08-09'),
       }),
     );
+  });
+
+  it('delegates BullMQ processing to the worker', async () => {
+    const queue = {
+      add: vi.fn().mockResolvedValue({ id: 'job-1' }),
+      getJob: vi.fn().mockResolvedValue(null),
+    };
+    const factory = buildFactory(queue);
+    const service = new RecomputeQueueService(
+      factory as never,
+      worker as never,
+    );
+    expect(service.isConfigured).toBe(true);
+    const options = factory.createQueue.mock.calls[0]?.[0] as {
+      processor: (job: { data: RecomputeJobData }) => Promise<void>;
+    };
+
+    await options.processor({ data: data() });
+
+    expect(worker.process).toHaveBeenCalledWith(data());
+  });
+
+  it('processes inline when Redis is not configured', async () => {
+    const factory = {
+      createQueue: vi.fn().mockReturnValue({ queue: null, worker: null }),
+    };
+    const service = new RecomputeQueueService(
+      factory as never,
+      worker as never,
+    );
+
+    await service.enqueue(data());
+
+    expect(worker.process).toHaveBeenCalledWith(data());
+  });
+
+  it('processes inline when a configured Redis queue is unavailable at runtime', async () => {
+    const queue = {
+      add: vi.fn(),
+      getJob: vi.fn().mockRejectedValue(new Error('Redis connection lost')),
+    };
+    const service = new RecomputeQueueService(
+      buildFactory(queue) as never,
+      worker as never,
+    );
+
+    await service.enqueue(data());
+
+    expect(worker.process).toHaveBeenCalledWith(data());
+    expect(queue.add).not.toHaveBeenCalled();
   });
 });

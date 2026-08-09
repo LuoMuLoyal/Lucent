@@ -5440,9 +5440,34 @@
           "degraded": {
             "type": "object",
             "description": "When true, one or more suggestion rules threw an error during evaluation — the returned list may be incomplete."
+          },
+          "materializationStatus": {
+            "type": "string",
+            "enum": ["empty", "pending", "ready", "stale", "failed"],
+            "description": "Current background materialization state"
+          },
+          "sourceVersion": {
+            "type": "number",
+            "description": "Latest source version observed for this date"
+          },
+          "computedAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "When the last successful materialization completed"
+          },
+          "retryAfterSeconds": {
+            "type": "number",
+            "nullable": true,
+            "description": "Suggested client polling delay in seconds"
           }
         },
-        "required": ["generatedAt"]
+        "required": [
+          "generatedAt",
+          "materializationStatus",
+          "sourceVersion",
+          "computedAt",
+          "retryAfterSeconds"
+        ]
       },
       "TodaySuggestionsResponseDto": {
         "type": "object",
