@@ -105,6 +105,7 @@ describe('DailyRecordsService', () => {
 
           userId: mockUserId,
 
+          healthEventId: null,
           deletedAt: null,
           kind: 'water',
           occurredAt: new Date('2026-06-04'),
@@ -144,6 +145,7 @@ describe('DailyRecordsService', () => {
 
           userId: mockUserId,
 
+          healthEventId: null,
           deletedAt: null,
           kind: 'meal',
           occurredAt: new Date('2026-07-01'),
@@ -190,6 +192,7 @@ describe('DailyRecordsService', () => {
 
       userId: mockUserId,
 
+      healthEventId: null,
       deletedAt: null,
       kind: 'mood',
       occurredAt: new Date('2026-06-04'),
@@ -233,6 +236,7 @@ describe('DailyRecordsService', () => {
 
       userId: mockUserId,
 
+      healthEventId: null,
       deletedAt: null,
       kind: 'mood',
       occurredAt: new Date('2026-06-04'),
@@ -280,6 +284,7 @@ describe('DailyRecordsService', () => {
 
       userId: mockUserId,
 
+      healthEventId: null,
       deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-07-01'),
@@ -356,6 +361,7 @@ describe('DailyRecordsService', () => {
 
       userId: mockUserId,
 
+      healthEventId: null,
       deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-07-01'),
@@ -471,6 +477,7 @@ describe('DailyRecordsService', () => {
 
       userId: mockUserId,
 
+      healthEventId: null,
       deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-07-01'),
@@ -593,6 +600,7 @@ describe('DailyRecordsService', () => {
 
       userId: mockUserId,
 
+      healthEventId: null,
       deletedAt: null,
       kind: 'water',
       occurredAt: new Date('2026-06-04'),
@@ -627,6 +635,7 @@ describe('DailyRecordsService', () => {
 
       userId: mockUserId,
 
+      healthEventId: null,
       deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-06-04'),
@@ -646,6 +655,7 @@ describe('DailyRecordsService', () => {
 
       userId: mockUserId,
 
+      healthEventId: null,
       deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-06-04'),
@@ -743,6 +753,7 @@ describe('DailyRecordsService', () => {
 
       userId: mockUserId,
 
+      healthEventId: null,
       deletedAt: null,
       kind: 'meal',
       occurredAt: new Date('2026-06-04'),
@@ -832,6 +843,7 @@ describe('DailyRecordsService', () => {
 
         userId: mockUserId,
 
+        healthEventId: null,
         deletedAt: null,
         kind: 'water',
         occurredAt: new Date('2026-06-04'),
@@ -856,6 +868,7 @@ describe('DailyRecordsService', () => {
 
         userId: mockUserId,
 
+        healthEventId: null,
         deletedAt: null,
         kind: 'water',
         occurredAt: new Date('2026-06-04'),
@@ -880,6 +893,7 @@ describe('DailyRecordsService', () => {
 
         userId: mockUserId,
 
+        healthEventId: null,
         deletedAt: null,
         kind: 'mood',
         occurredAt: new Date('2026-06-04'),
@@ -941,6 +955,7 @@ describe('DailyRecordsService', () => {
 
       userId: mockUserId,
 
+      healthEventId: null,
       deletedAt: null,
       kind: 'water',
       occurredAt: new Date('2026-06-04'),
@@ -983,6 +998,7 @@ describe('DailyRecordsService', () => {
 
         userId: mockUserId,
 
+        healthEventId: null,
         deletedAt: null,
         kind: 'sleep',
         occurredAt: new Date('2026-06-13'),
@@ -1034,6 +1050,7 @@ describe('DailyRecordsService', () => {
       repository.create.mockResolvedValue({
         id: 'rs-start',
         userId: mockUserId,
+        healthEventId: null,
         deletedAt: null,
         kind: 'sleep',
         occurredAt: new Date('2026-06-13'),
@@ -1078,6 +1095,7 @@ describe('DailyRecordsService', () => {
       repository.create.mockResolvedValue({
         id: 'rs-wake',
         userId: mockUserId,
+        healthEventId: null,
         deletedAt: null,
         kind: 'sleep',
         occurredAt: new Date('2026-06-13'),
@@ -1169,6 +1187,7 @@ describe('DailyRecordsService', () => {
       repository.create.mockResolvedValue({
         id: 'rv1',
         userId: mockUserId,
+        healthEventId: null,
         deletedAt: null,
         kind: 'vital',
         occurredAt: new Date('2026-07-29'),
@@ -1211,6 +1230,7 @@ describe('DailyRecordsService', () => {
       repository.create.mockResolvedValue({
         id: 'rv2',
         userId: mockUserId,
+        healthEventId: null,
         deletedAt: null,
         kind: 'vital',
         occurredAt: new Date('2026-07-29'),
@@ -1273,6 +1293,7 @@ describe('DailyRecordsService', () => {
       repository.create.mockResolvedValue({
         id: 'ra1',
         userId: mockUserId,
+        healthEventId: null,
         deletedAt: null,
         kind: 'activity',
         occurredAt: new Date('2026-07-29'),
@@ -1314,6 +1335,7 @@ describe('DailyRecordsService', () => {
       repository.create.mockResolvedValue({
         id: 'ra2',
         userId: mockUserId,
+        healthEventId: null,
         deletedAt: null,
         kind: 'activity',
         occurredAt: new Date('2026-07-29'),

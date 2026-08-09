@@ -48,6 +48,7 @@ describe('MedicineDoseLogsService', () => {
     repository.create.mockResolvedValue({
       id: 'd1',
       userId: 'u1',
+      healthEventId: null,
       currentMedicineId: null,
       status: 'taken',
       scheduledFor: new Date('2026-06-04'),
@@ -66,6 +67,7 @@ describe('MedicineDoseLogsService', () => {
         {
           id: 'd1',
           userId: 'u1',
+          healthEventId: null,
           currentMedicineId: null,
           status: 'taken',
           scheduledFor: new Date('2026-06-04'),
@@ -117,6 +119,7 @@ describe('MedicineDoseLogsService', () => {
     repository.update.mockResolvedValue({
       id: 'd1',
       userId: 'u1',
+      healthEventId: null,
       currentMedicineId: null,
       status: DoseLogStatus.skipped,
       scheduledFor: new Date('2026-06-04'),
@@ -144,6 +147,7 @@ describe('MedicineDoseLogsService', () => {
     repository.update.mockResolvedValue({
       id: 'd1',
       userId: 'u1',
+      healthEventId: null,
       currentMedicineId: null,
       status: DoseLogStatus.taken,
       scheduledFor: new Date('2026-06-04'),
@@ -185,6 +189,7 @@ describe('MedicineDoseLogsService', () => {
     repository.findFirst.mockResolvedValue({
       id: 'dose-1',
       userId: 'u1',
+      healthEventId: null,
       currentMedicineId: 'medicine-1',
       reminderId: 'reminder-1',
       status: DoseLogStatus.planned,
@@ -200,6 +205,7 @@ describe('MedicineDoseLogsService', () => {
     repository.update.mockResolvedValue({
       id: 'dose-1',
       userId: 'u1',
+      healthEventId: null,
       currentMedicineId: 'medicine-1',
       reminderId: 'reminder-1',
       status: DoseLogStatus.taken,

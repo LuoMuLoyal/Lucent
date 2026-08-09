@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-05
+updated: 2026-08-09
 ---
 
 # Lucent Architecture
@@ -27,6 +27,7 @@ graph TD
         dataRetention["data-retention<br>(@Cron cleanup)"]
         files["files"]
         doseLogs["medicine-dose-logs"]
+        healthEvents["health-events"]
         reminders["medicine-reminders<br>(+ scheduler @Cron)"]
         notifications["notifications<br>(+ push delivery)"]
         reports["reports"]
@@ -429,6 +430,10 @@ operations.
 - **Generated client**: `src/generated/prisma/`
 - **Key conventions**: `@map()` for snake_case columns, `@db.Timestamptz(3)` for timestamps,
   soft-delete via `deletedAt`
+- **Health events**: `HealthEvent` owns user-confirmed active/ended periods, daily outcome
+  check-ins, and current-medicine links. `UserDailyRecord` and `UserMedicineDoseLog` carry
+  an optional `healthEventId`; records are never associated with the active event implicitly.
+  The database partial unique index allows at most one non-deleted active event per user.
 
 ## Assistant RAG Data-Source Constraints
 

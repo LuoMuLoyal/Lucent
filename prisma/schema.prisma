@@ -67,6 +67,17 @@ enum UserConditionStatus {
   suspected
 }
 
+enum HealthEventStatus {
+  active
+  ended
+}
+
+enum HealthEventOutcome {
+  improved
+  unchanged
+  worsened
+}
+
 enum MedicineSource {
   drugbank
   cn
@@ -165,6 +176,7 @@ model User {
   suggestionBaselines    UserSuggestionBaseline[]
   suggestionFeedbacks    UserSuggestionFeedback[]
   medicineRiskCheckRecords MedicineRiskCheckRecord[]
+  healthEvents           HealthEvent[]
 
   // status index removed — no runtime query filters by status; PK serves all lookups
   @@map("users")
@@ -287,6 +299,7 @@ model UserCurrentMedicine {
   user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   doseLogs      UserMedicineDoseLog[]
   reminders     UserMedicineReminder[]
+  healthEventMedicines HealthEventMedicine[]
 
   // isCurrent index replaced by partial index in migration (WHERE is_current = true)
   @@index([userId, source])
@@ -354,6 +367,7 @@ model UserMedicineDoseLog {
   userId            String               @map("user_id")
   currentMedicineId String?              @map("current_medicine_id")
   reminderId        String?              @map("reminder_id")
+  healthEventId     String?              @map("health_event_id")
   status            DoseLogStatus        @default(planned)
   scheduledFor      DateTime             @map("scheduled_for") @db.Date
   scheduledTime     String?              @map("scheduled_time") @db.VarChar(5)
@@ -367,13 +381,65 @@ model UserMedicineDoseLog {
   user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
   reminder          UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  healthEvent       HealthEvent?         @relation("HealthEventDoseLogs", fields: [healthEventId], references: [id], onDelete: SetNull)
 
   @@index([userId, scheduledFor])
   // userId+currentMedicineId index removed — redundant prefix of (userId, currentMedicineId, scheduledFor, scheduledTime)
   @@index([userId, reminderId, scheduledFor])
   @@index([userId, currentMedicineId, scheduledFor, scheduledTime])
   @@index([userId, deletedAt])
+  @@index([userId, healthEventId])
   @@map("user_medicine_dose_logs")
+}
+
+model HealthEvent {
+  id             String                @id @default(uuid())
+  userId         String                @map("user_id")
+  title          String
+  status         HealthEventStatus     @default(active)
+  startedAt      DateTime              @map("started_at") @db.Timestamptz(3)
+  endedAt        DateTime?             @map("ended_at") @db.Timestamptz(3)
+  outcome        HealthEventOutcome?
+  reasonRecordId String?               @map("reason_record_id")
+  deletedAt      DateTime?             @map("deleted_at") @db.Timestamptz(3)
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reasonRecord   UserDailyRecord?      @relation("HealthEventReasonRecord", fields: [reasonRecordId], references: [id], onDelete: SetNull)
+  checkIns       HealthEventCheckIn[]
+  medicines      HealthEventMedicine[]
+  dailyRecords   UserDailyRecord[]     @relation("HealthEventDailyRecords")
+  doseLogs       UserMedicineDoseLog[] @relation("HealthEventDoseLogs")
+
+  @@index([userId, status, startedAt])
+  @@index([userId, deletedAt])
+  @@map("health_events")
+}
+
+model HealthEventCheckIn {
+  id        String            @id @default(uuid())
+  eventId   String            @map("event_id")
+  date      DateTime          @db.Date
+  outcome   HealthEventOutcome
+  createdAt DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  event     HealthEvent       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, date])
+  @@map("health_event_check_ins")
+}
+
+model HealthEventMedicine {
+  id                String              @id @default(uuid())
+  eventId           String              @map("event_id")
+  currentMedicineId String              @map("current_medicine_id")
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  event             HealthEvent         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  currentMedicine   UserCurrentMedicine @relation(fields: [currentMedicineId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, currentMedicineId])
+  @@map("health_event_medicines")
 }
 
 model UserDailyRecord {
@@ -394,9 +460,12 @@ model UserDailyRecord {
   mealAnalysisFailureReason String?                     @map("meal_analysis_failure_reason")
   mealSourceRevision        Int                         @default(0) @map("meal_source_revision")
   deletedAt                 DateTime?                   @map("deleted_at") @db.Timestamptz(3)
+  healthEventId             String?                     @map("health_event_id")
   createdAt                 DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                 DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user                      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  healthEvent               HealthEvent?                @relation("HealthEventDailyRecords", fields: [healthEventId], references: [id], onDelete: SetNull)
+  reasonForHealthEvents     HealthEvent[]                @relation("HealthEventReasonRecord")
   attachments               UserDailyRecordAttachment[]
 
   // userId+occurredAt index removed — redundant prefix of (userId, occurredAt, occurredTime)
@@ -405,6 +474,7 @@ model UserDailyRecord {
   @@index([userId, mealAnalysisStatus])
   @@index([userId, mealAnalysisUpdatedAt])
   @@index([userId, deletedAt])
+  @@index([userId, healthEventId])
   @@map("user_daily_records")
 }
 
