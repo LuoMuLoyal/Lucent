@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { HealthEventStatus } from '#generated/prisma/client';
 import { I18nService } from 'nestjs-i18n';
 import {
@@ -18,6 +19,10 @@ import {
   parseHealthEventOutcome,
   type EndHealthEventInput,
 } from './events.service';
+import {
+  HEALTH_EVENT_CHANGED,
+  type HealthEventChangedPayload,
+} from '../../../common/events/domain-events.js';
 
 export type UpsertCheckInInput = EndHealthEventInput;
 
@@ -26,6 +31,7 @@ export class CheckInsService {
   constructor(
     private readonly repository: HealthEventRepositoryPort,
     private readonly i18n: I18nService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async upsert(
@@ -73,6 +79,12 @@ export class CheckInsService {
     if (checkIn == null) {
       notFound(this.i18n.t('health-events.not_found'));
     }
+    await this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
+      userId,
+      eventId,
+      date,
+      change: 'check-in',
+    } satisfies HealthEventChangedPayload);
     return checkIn;
   }
 

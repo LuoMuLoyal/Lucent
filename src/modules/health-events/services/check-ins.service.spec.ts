@@ -4,6 +4,7 @@ import {
   HealthEventStatus,
 } from '#generated/prisma/client';
 import type { I18nService } from 'nestjs-i18n';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 import type {
   HealthEventRepositoryPort,
   HealthEventRecord,
@@ -18,6 +19,12 @@ function buildI18n() {
   return {
     t: vi.fn().mockImplementation((key: string) => key),
   } as unknown as I18nService;
+}
+
+function buildEventEmitter() {
+  return {
+    emitAsync: vi.fn().mockResolvedValue([]),
+  } as unknown as EventEmitter2;
 }
 
 function event(overrides: Partial<HealthEventRecord> = {}): HealthEventRecord {
@@ -75,6 +82,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildI18n(),
+      buildEventEmitter(),
     );
 
     await service.upsert(USER_ID, EVENT_ID, {
@@ -109,6 +117,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       buildI18n(),
+      buildEventEmitter(),
     );
 
     await service.upsert(USER_ID, EVENT_ID, {
@@ -130,6 +139,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await expect(
@@ -148,6 +158,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await expect(
@@ -171,6 +182,7 @@ describe('CheckInsService', () => {
     const service = new CheckInsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await expect(
@@ -179,5 +191,48 @@ describe('CheckInsService', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.upsertCheckIn).not.toHaveBeenCalled();
+  });
+
+  it('emits once after a check-in is persisted', async () => {
+    const repository = buildRepository();
+    const eventEmitter = buildEventEmitter();
+    const service = new CheckInsService(
+      repository as unknown as HealthEventRepositoryPort,
+      buildI18n(),
+      eventEmitter,
+    );
+
+    await service.upsertForDate(USER_ID, EVENT_ID, '2026-07-20', {
+      outcome: HealthEventOutcome.improved,
+    });
+
+    expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
+    expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+      'health-event.changed',
+      {
+        userId: USER_ID,
+        eventId: EVENT_ID,
+        date: '2026-07-20',
+        change: 'check-in',
+      },
+    );
+  });
+
+  it('does not emit when a check-in write fails', async () => {
+    const repository = buildRepository();
+    const eventEmitter = buildEventEmitter();
+    repository.upsertCheckIn.mockRejectedValue(new Error('write failed'));
+    const service = new CheckInsService(
+      repository as unknown as HealthEventRepositoryPort,
+      buildI18n(),
+      eventEmitter,
+    );
+
+    await expect(
+      service.upsertForDate(USER_ID, EVENT_ID, '2026-07-20', {
+        outcome: HealthEventOutcome.improved,
+      }),
+    ).rejects.toThrow('write failed');
+    expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
   });
 });

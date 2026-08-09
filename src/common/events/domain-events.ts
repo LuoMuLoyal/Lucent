@@ -26,6 +26,9 @@ export const HEALTH_CONTEXT_CHANGED = 'health-context.changed';
 /** Emitted when user settings are updated. */
 export const SETTINGS_CHANGED = 'settings.changed';
 
+/** Emitted when a health event is created, ended, or checked in. */
+export const HEALTH_EVENT_CHANGED = 'health-event.changed';
+
 // ─── Event payloads ───
 
 export interface DailyRecordChangedPayload {
@@ -52,10 +55,21 @@ export interface SettingsChangedPayload {
   userId: string;
 }
 
+export type HealthEventChange = 'create' | 'end' | 'check-in';
+
+export interface HealthEventChangedPayload {
+  userId: string;
+  eventId: string;
+  /** ISO date string (YYYY-MM-DD) in the user's timezone. */
+  date: string;
+  change: HealthEventChange;
+}
+
 /** Union of all domain event names for type-safe emission. */
 export type DomainEventName =
   | typeof DAILY_RECORD_CHANGED
   | typeof DOSE_LOG_CHANGED
   | typeof REMINDER_CHANGED
   | typeof HEALTH_CONTEXT_CHANGED
-  | typeof SETTINGS_CHANGED;
+  | typeof SETTINGS_CHANGED
+  | typeof HEALTH_EVENT_CHANGED;

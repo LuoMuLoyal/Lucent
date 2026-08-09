@@ -8,6 +8,7 @@ import {
   HealthEventStatus,
 } from '#generated/prisma/client';
 import type { I18nService } from 'nestjs-i18n';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 import { HealthEventActiveConflictError } from '../repositories/event.repository';
 import type {
   HealthEventRepositoryPort,
@@ -22,6 +23,12 @@ function buildI18n() {
   return {
     t: vi.fn().mockImplementation((key: string) => key),
   } as unknown as I18nService;
+}
+
+function buildEventEmitter() {
+  return {
+    emitAsync: vi.fn().mockResolvedValue([]),
+  } as unknown as EventEmitter2;
 }
 
 function event(overrides: Partial<HealthEventRecord> = {}): HealthEventRecord {
@@ -64,6 +71,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await service.create(USER_ID, {
@@ -84,6 +92,30 @@ describe('EventsService', () => {
     );
   });
 
+  it('emits once after creating an event', async () => {
+    const repository = buildRepository();
+    const i18n = buildI18n();
+    const eventEmitter = buildEventEmitter();
+    const service = new EventsService(
+      repository as unknown as HealthEventRepositoryPort,
+      i18n,
+      eventEmitter,
+    );
+
+    await service.create(USER_ID, { title: 'Headache' });
+
+    expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
+    expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+      'health-event.changed',
+      {
+        userId: USER_ID,
+        eventId: EVENT_ID,
+        date: '2026-07-20',
+        change: 'create',
+      },
+    );
+  });
+
   it('rejects creating a second active event for the same user', async () => {
     const repository = buildRepository();
     const i18n = buildI18n();
@@ -91,6 +123,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await expect(
@@ -106,6 +139,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await expect(
@@ -123,6 +157,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await expect(service.findById('user-2', EVENT_ID)).rejects.toBeInstanceOf(
@@ -137,6 +172,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await expect(service.end(USER_ID, EVENT_ID, {})).rejects.toBeInstanceOf(
@@ -151,9 +187,11 @@ describe('EventsService', () => {
   it('ends an owned active event only after explicit outcome confirmation', async () => {
     const repository = buildRepository();
     const i18n = buildI18n();
+    const eventEmitter = buildEventEmitter();
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      eventEmitter,
     );
 
     await service.end(USER_ID, EVENT_ID, {
@@ -169,6 +207,52 @@ describe('EventsService', () => {
         endedAt: expect.any(Date),
       }),
     );
+    expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
+    expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+      'health-event.changed',
+      expect.objectContaining({
+        userId: USER_ID,
+        eventId: EVENT_ID,
+        change: 'end',
+        date: expect.any(String),
+      }),
+    );
+  });
+
+  it('does not emit when creating an event fails to persist', async () => {
+    const repository = buildRepository();
+    const i18n = buildI18n();
+    const eventEmitter = buildEventEmitter();
+    repository.create.mockRejectedValue(new Error('write failed'));
+    const service = new EventsService(
+      repository as unknown as HealthEventRepositoryPort,
+      i18n,
+      eventEmitter,
+    );
+
+    await expect(
+      service.create(USER_ID, { title: 'Headache' }),
+    ).rejects.toThrow('write failed');
+    expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+  });
+
+  it('does not emit when ending an event fails to persist', async () => {
+    const repository = buildRepository();
+    const i18n = buildI18n();
+    const eventEmitter = buildEventEmitter();
+    repository.update.mockRejectedValue(new Error('write failed'));
+    const service = new EventsService(
+      repository as unknown as HealthEventRepositoryPort,
+      i18n,
+      eventEmitter,
+    );
+
+    await expect(
+      service.end(USER_ID, EVENT_ID, {
+        outcome: HealthEventOutcome.improved,
+      }),
+    ).rejects.toThrow('write failed');
+    expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
   });
 
   it("does not end another user's event", async () => {
@@ -178,6 +262,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await expect(
@@ -199,6 +284,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await expect(
@@ -213,6 +299,7 @@ describe('EventsService', () => {
     const service = new EventsService(
       repository as unknown as HealthEventRepositoryPort,
       i18n,
+      buildEventEmitter(),
     );
 
     await expect(

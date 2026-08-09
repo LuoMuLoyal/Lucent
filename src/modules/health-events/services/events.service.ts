@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   HealthEventOutcome,
   HealthEventStatus,
@@ -18,6 +19,10 @@ import {
   type HealthEventView,
   type HealthEventRecord,
 } from '../repositories/event.repository';
+import {
+  HEALTH_EVENT_CHANGED,
+  type HealthEventChangedPayload,
+} from '../../../common/events/domain-events.js';
 
 export interface CreateHealthEventInput {
   title: string;
@@ -54,6 +59,7 @@ export class EventsService {
   constructor(
     private readonly repository: HealthEventRepositoryPort,
     private readonly i18n: I18nService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(
@@ -82,8 +88,9 @@ export class EventsService {
       notFound(this.i18n.t('health-events.related_reason_record_not_found'));
     }
 
+    let created: HealthEventRecord;
     try {
-      return await this.repository.create({
+      created = await this.repository.create({
         userId,
         title: input.title,
         status: HealthEventStatus.active,
@@ -97,6 +104,18 @@ export class EventsService {
       }
       throw error;
     }
+
+    const timezone = await this.repository.findUserTimezone(userId);
+    await this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
+      userId,
+      eventId: created.id,
+      date: formatDateOnlyInTimezone(
+        created.startedAt,
+        timezone ?? DEFAULT_USER_TIMEZONE,
+      ),
+      change: 'create',
+    } satisfies HealthEventChangedPayload);
+    return created;
   }
 
   async findById(userId: string, eventId: string): Promise<HealthEventRecord> {
@@ -173,14 +192,25 @@ export class EventsService {
       badRequest(this.i18n.t('health-events.already_ended'));
     }
 
+    const endedAt = now();
+    const timezone = await this.repository.findUserTimezone(userId);
     const updated = await this.repository.update(userId, eventId, {
       status: HealthEventStatus.ended,
-      endedAt: now(),
+      endedAt,
       outcome,
     });
     if (updated == null) {
       notFound(this.i18n.t('health-events.not_found'));
     }
+    await this.eventEmitter.emitAsync(HEALTH_EVENT_CHANGED, {
+      userId,
+      eventId,
+      date: formatDateOnlyInTimezone(
+        endedAt,
+        timezone ?? DEFAULT_USER_TIMEZONE,
+      ),
+      change: 'end',
+    } satisfies HealthEventChangedPayload);
     return updated;
   }
 

@@ -142,6 +142,16 @@ forcing them through narrow ports would be over-engineering. These modules may i
 `PrismaService` directly for cross-module reads, but should encapsulate queries in
 internal `repositories/` for cleanliness.
 
+## Domain Event Notifications
+
+`src/common/events/domain-events.ts` defines the typed event-name union and minimal
+payloads used for cross-module invalidation and recomputation. The health-event owner
+publishes `health-event.changed` only after a successful repository transaction for
+event creation, event ending, or daily check-in. Its payload contains only `userId`,
+`eventId`, the user's local `date`, and a fixed `change` value (`create`, `end`, or
+`check-in`); it never carries health-content payloads. Subscribers must treat these
+notifications as post-write triggers and must not mutate the source event state.
+
 ## AI Pipeline Architecture
 
 All AI analysis modules follow a three-layer pattern:
