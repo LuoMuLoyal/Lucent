@@ -12,6 +12,7 @@ import {
 } from './arbitration/arbiter.service';
 import { BaselineService } from './lifecycle/baseline.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
+import type { SuggestionSignal } from '../types/signal.types';
 
 /**
  * Output of the suggestion pipeline: arbitration result + degraded flag.
@@ -21,6 +22,8 @@ export interface PipelineResult {
   arbitrationResult: ArbitrationResult;
   /** True when one or more rules threw an error during evaluation. */
   degraded: boolean;
+  /** Exact signal snapshot used for this recompute. */
+  signals: SuggestionSignal[];
 }
 
 /**
@@ -114,6 +117,6 @@ export class SuggestionPipelineService {
     // 5. Arbitrate
     const arbitrationResult = this.arbitration.arbitrate(adjustedCandidates);
 
-    return { arbitrationResult, degraded };
+    return { arbitrationResult, degraded, signals: allSignals };
   }
 }

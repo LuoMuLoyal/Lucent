@@ -166,6 +166,29 @@ describe('SuggestionService', () => {
     expect(deps.pipeline.run).not.toHaveBeenCalled();
   });
 
+  it('replays cached recompute signals when a successful callback is requested', async () => {
+    const cached: TodaySuggestionsDataDto = {
+      generatedAt: 'old',
+      primary: buildDto('cached-1', buildCandidate()),
+      materializationStatus: 'ready',
+      sourceVersion: 1,
+      computedAt: null,
+      retryAfterSeconds: null,
+    };
+    const signals = [{ signalId: 'signal-1' }];
+    deps.presentation.getCachedResult.mockResolvedValue(cached);
+    deps.pipeline.run.mockResolvedValue({ signals });
+    const onSuccessfulRecompute = vi.fn().mockResolvedValue(undefined);
+
+    await service.recompute('user-1', '2026-07-09', undefined, {
+      sourceVersion: 1,
+      onSuccessfulRecompute,
+    } as never);
+
+    expect(deps.pipeline.run).toHaveBeenCalledWith('user-1', '2026-07-09');
+    expect(onSuccessfulRecompute).toHaveBeenCalledWith(signals);
+  });
+
   it('returns empty result when pipeline produces no candidates', async () => {
     const result = await service.generate('user-1', '2026-07-09');
 
@@ -502,6 +525,40 @@ describe('SuggestionService', () => {
       mockCopyResult,
       'zh-CN',
       7,
+    );
+  });
+
+  it('invokes the successful recompute callback with the pipeline signals after caching the result', async () => {
+    const signals = [
+      {
+        signalId: 'water-1',
+        source: 'record',
+        kind: 'water_count',
+        recordedAt: new Date('2026-07-09T00:00:00.000Z'),
+        payload: { observedValue: 2, coverage: { sufficient: true } },
+        userId: 'user-1',
+        triggerType: 'timer',
+      },
+    ];
+    deps.pipeline.run.mockResolvedValue({
+      arbitrationResult: {
+        primary: null,
+        secondary: [],
+        observations: [],
+      },
+      degraded: false,
+      signals,
+    });
+    const onSuccessfulRecompute = vi.fn().mockResolvedValue(undefined);
+
+    await service.recompute('user-1', '2026-07-09', undefined, {
+      locale: 'zh-CN',
+      onSuccessfulRecompute,
+    } as never);
+
+    expect(onSuccessfulRecompute).toHaveBeenCalledWith(signals);
+    expect(onSuccessfulRecompute.mock.invocationCallOrder[0]).toBeGreaterThan(
+      deps.presentation.cacheResult.mock.invocationCallOrder[0] ?? Infinity,
     );
   });
 });

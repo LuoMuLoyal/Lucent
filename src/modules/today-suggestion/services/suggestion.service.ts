@@ -11,6 +11,13 @@ import { EscalationService } from './notification/escalation.service';
 import { SuggestionCacheService } from './cache/suggestion-cache.service';
 import { MaterializationStore } from './materialization/store.service';
 import type { MaterializationStatusView } from '../types/materialization.types';
+import type { SuggestionSignal } from '../types/signal.types';
+
+export interface SuggestionRecomputeOptions {
+  locale?: string;
+  sourceVersion?: number;
+  onSuccessfulRecompute?: (signals: SuggestionSignal[]) => Promise<void>;
+}
 
 /**
  * Main orchestrator for the Today suggestion engine.
@@ -98,10 +105,7 @@ export class SuggestionService {
     userId: string,
     date?: string,
     excludeIds?: string[],
-    options?: {
-      locale?: string;
-      sourceVersion?: number;
-    },
+    options?: SuggestionRecomputeOptions,
   ): Promise<TodaySuggestionsDataDto> {
     const targetDate = date ?? formatDateOnly(now());
     const generatedAt = nowIsoString();
@@ -119,6 +123,11 @@ export class SuggestionService {
       cachedResult != null &&
       (sourceVersion == null || cachedResult.sourceVersion === sourceVersion)
     ) {
+      if (options?.onSuccessfulRecompute != null) {
+        const { signals } = await this.pipeline.run(userId, targetDate);
+        await options.onSuccessfulRecompute(signals);
+      }
+
       return {
         generatedAt,
         primary: cachedResult.primary,
@@ -132,7 +141,7 @@ export class SuggestionService {
     }
 
     // 1. Pipeline: collect signals → run rules → suppress → arbitrate
-    const { arbitrationResult, degraded } = await this.pipeline.run(
+    const { arbitrationResult, degraded, signals } = await this.pipeline.run(
       userId,
       targetDate,
     );
@@ -286,6 +295,8 @@ export class SuggestionService {
     // 7. Cache the result for subsequent requests
     await this.presentation.cacheResult(userId, targetDate, excludeKey, result);
 
+    await options?.onSuccessfulRecompute?.(signals);
+
     return result;
   }
 
@@ -297,7 +308,7 @@ export class SuggestionService {
     userId: string,
     date?: string,
     excludeIds?: string[],
-    options?: { locale?: string; sourceVersion?: number },
+    options?: SuggestionRecomputeOptions,
   ): Promise<TodaySuggestionsDataDto> {
     return this.recompute(userId, date, excludeIds, options);
   }

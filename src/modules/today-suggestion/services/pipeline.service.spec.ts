@@ -141,6 +141,25 @@ describe('SuggestionPipelineService', () => {
     );
   });
 
+  it('returns the collected signals for post-recompute side effects', async () => {
+    const signals: SuggestionSignal[] = [
+      {
+        signalId: 'water-1',
+        source: 'record',
+        kind: 'water_count',
+        recordedAt: new Date('2026-07-09T00:00:00.000Z'),
+        payload: { observedValue: 2, coverage: { sufficient: true } },
+        userId: 'user-1',
+        triggerType: 'timer' as never,
+      },
+    ];
+    deps.recordCollector.collect.mockResolvedValue(signals);
+
+    const result = await service.run('user-1', '2026-07-09');
+
+    expect(result.signals).toEqual(signals);
+  });
+
   it('uses cached signals when available, skipping collector calls', async () => {
     const cachedSignals: SuggestionSignal[] = [
       {

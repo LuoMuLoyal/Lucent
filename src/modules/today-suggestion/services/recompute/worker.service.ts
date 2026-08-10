@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { SuggestionService } from '../suggestion.service';
 import { MaterializationStore } from '../materialization/store.service';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service';
+import { BaselineService } from '../lifecycle/baseline.service';
 import type { RecomputeJobData } from './queue.service';
 
 const MAX_RECOMPUTE_VERSION_FOLLOW_UPS = 3;
@@ -15,6 +16,7 @@ export class SuggestionRecomputeWorkerService {
     private readonly suggestionService: SuggestionService,
     private readonly materializationStore: MaterializationStore,
     private readonly cache: SuggestionCacheService,
+    private readonly baseline: BaselineService,
   ) {}
 
   async process(job: RecomputeJobData): Promise<void> {
@@ -50,12 +52,39 @@ export class SuggestionRecomputeWorkerService {
           currentJob.userId,
           currentJob.localDate,
         );
+        let baselineObservationError: unknown;
         await this.suggestionService.recompute(
           currentJob.userId,
           currentJob.localDate,
           undefined,
-          { locale: 'zh-CN', sourceVersion: currentJob.sourceVersion },
+          {
+            locale: 'zh-CN',
+            sourceVersion: currentJob.sourceVersion,
+            onSuccessfulRecompute: async (signals) => {
+              try {
+                await this.baseline.recordObservations(
+                  currentJob.userId,
+                  currentJob.localDate,
+                  signals,
+                );
+                await this.cache.invalidateBaseline(currentJob.userId);
+              } catch (error) {
+                baselineObservationError = error;
+              }
+            },
+          },
         );
+
+        if (baselineObservationError != null) {
+          await this.materializationStore.markFailed({
+            userId: currentJob.userId,
+            localDate: currentJob.localDate,
+            sourceVersion: currentJob.sourceVersion,
+            errorCode: 'BASELINE_OBSERVATION_FAILED',
+            computedVersion: currentJob.sourceVersion,
+          });
+          return;
+        }
 
         const latest = await this.materializationStore.readStatus(
           currentJob.userId,

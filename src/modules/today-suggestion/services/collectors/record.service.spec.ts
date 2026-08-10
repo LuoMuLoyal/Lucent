@@ -69,6 +69,8 @@ describe('RecordCollectorService', () => {
         completedCount: 2,
         targetCount: 8,
         remainingCount: 6,
+        observedValue: 2,
+        coverage: { sufficient: true },
       });
     });
 
@@ -84,7 +86,9 @@ describe('RecordCollectorService', () => {
       expect(water!.payload).toMatchObject({
         targetCount: USER_SETTINGS_DEFAULTS.waterTargetCount,
         remainingCount: USER_SETTINGS_DEFAULTS.waterTargetCount,
+        coverage: { sufficient: false },
       });
+      expect(water!.payload).not.toHaveProperty('observedValue');
     });
 
     it('emits a sleep_record signal when a sleep record exists', async () => {
@@ -116,6 +120,8 @@ describe('RecordCollectorService', () => {
         durationMinutes: 420,
         quality: 'good',
         recordId: 's1',
+        observedValue: 420,
+        coverage: { sufficient: true },
       });
     });
 

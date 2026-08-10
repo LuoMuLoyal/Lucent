@@ -113,8 +113,18 @@ export class MaterializationStore {
   }
 
   async markFailed(
-    input: MaterializationVersionInput & { errorCode: string },
+    input: MaterializationVersionInput & {
+      errorCode: string;
+      computedVersion?: number;
+    },
   ): Promise<MaterializationStatusView> {
+    const data = {
+      status: 'failed' as const,
+      lastErrorCode: input.errorCode,
+      ...(input.computedVersion != null
+        ? { computedVersion: input.computedVersion }
+        : {}),
+    };
     await this.prisma.userSuggestionMaterialization.updateMany({
       where: {
         userId: input.userId,
@@ -122,10 +132,7 @@ export class MaterializationStore {
         sourceVersion: input.sourceVersion,
         status: 'pending',
       },
-      data: {
-        status: 'failed',
-        lastErrorCode: input.errorCode,
-      },
+      data,
     });
 
     return this.readStatus(input.userId, input.localDate);

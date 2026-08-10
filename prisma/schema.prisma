@@ -180,6 +180,7 @@ model User {
   notifications          UserNotification[]
   suggestions            UserSuggestion[]
   suggestionBaselines    UserSuggestionBaseline[]
+  suggestionBaselineObservations UserSuggestionBaselineObservation[]
   suggestionFeedbacks    UserSuggestionFeedback[]
   suggestionMaterializations UserSuggestionMaterialization[]
   medicineRiskCheckRecords MedicineRiskCheckRecord[]
@@ -1212,6 +1213,21 @@ model UserSuggestionBaseline {
   @@unique([userId, dimension])
   // userId+dimension+establishedAt index removed — redundant prefix of unique(userId, dimension), establishedAt rarely queried
   @@map("user_suggestion_baselines")
+}
+
+/// Idempotent daily inputs used to build a user's cold-start baseline.
+model UserSuggestionBaselineObservation {
+  id         String          @id @default(uuid())
+  userId     String          @map("user_id")
+  dimension  BaselineDimension
+  localDate  DateTime        @map("local_date") @db.Date
+  value      Float
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dimension, localDate])
+  @@index([userId, dimension])
+  @@map("user_suggestion_baseline_observations")
 }
 
 /// Versioned state for asynchronously materialized Today suggestions.

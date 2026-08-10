@@ -11,7 +11,7 @@ Last updated: 2026-08-10
 
 ## 当前状态
 
-Health Event Contract 已完成后端合同、持久化、所有权校验、领域事件和 OpenAPI 导出；Proactive Suggestion Runtime 已完成 Task 4 的后台重算接线。
+Health Event Contract 已完成后端合同、持久化、所有权校验、领域事件和 OpenAPI 导出；Proactive Suggestion Runtime 已完成 Task 5 的后台重算与 baseline observation 接线。
 
 - `health-events` ownership module 已接入应用模块和 `/user` 路由树；数据库 migration 保存事件、每日 check-in、事件与当前用药的关联，并限制同一用户同时只有一个 active event。
 - 用户只能显式开始和结束事件；结束必须选择 `improved`、`unchanged` 或 `worsened`。每日 check-in 使用同一枚举，每个事件与自然日最多一条并允许更正。
@@ -21,6 +21,8 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - `docs/openapi.json` 已导出六个健康事件操作、状态/结果枚举及可空 `healthEventId` 字段；Luminous 已据此重新生成 Flutter client。
 - 建议重算由 `RecomputeQueueService` 交给 `SuggestionRecomputeWorkerService` 执行；worker 完成采集、规则、仲裁、模板呈现、cache/持久化并标记 `ready`，异常标记 `failed`，新 source version 到达时最多有界追赶 3 次。建议卡和 materialization 都带 source-version fence，旧版本不能覆盖新版本的 active cards。
 - `GET /today/suggestions` 只读取 materialization、cache 和持久化 active cards，不再调用 pipeline 或 LLM；响应包含 `materializationStatus`、`sourceVersion`、`computedAt` 和 `retryAfterSeconds`，支持 `empty/pending/ready/stale/failed`。
+- 成功 recompute 使用同一批 collector signals 写入 baseline observation；仅显式提供 observed value 且 coverage sufficient 的 signal 会写入（包括明确覆盖的 `0`），按 `userId + dimension + localDate` 幂等。
+- baseline 写入失败不会丢弃已生成建议，已生成建议仍可读取；materialization 保留固定错误码 `BASELINE_OBSERVATION_FAILED`，不标记为 ready。
 
 ## 验证状态
 
@@ -30,7 +32,8 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - migration `20260809000000_add_health_events` 已分别应用到 development `127.0.0.1:15432/lucent` 和 test `127.0.0.1:5432/lucent`；live E2E 运行在 test runtime，开发库只完成 migration 状态确认。
 - live E2E 在用户 A 首次读取 active event 时确认没有 check-in，随后只有显式 check-in/end API 改变状态；因此没有发现系统建议绕过用户确认写入事件状态的路径。
 - Proactive Suggestion Runtime Task 4 定向测试：9 个 spec、123 tests 通过；`pnpm typecheck`、`pnpm lint:check`（`--max-warnings=0`）、`pnpm format:check`、`pnpm build`、`pnpm exec prisma validate` 和 `git diff --check` 通过。OpenAPI 已重新导出，语义 diff 为 27 行。新增 `20260809020000_add_suggestion_source_version` 已应用到 development/test PostgreSQL；worker 对已完成同版本任务幂等短路，materialization 失败写入仅作用于 pending 状态。
+- Proactive Suggestion Runtime Task 5 定向测试：7 个 spec、86 tests 通过；`pnpm typecheck`、`pnpm exec prisma validate`、`pnpm prisma:generate` 和 development/test migration deploy 通过。新增 baseline observation 唯一约束已应用到两个本地 PostgreSQL 数据库。
 
 ## 下一阶段
 
-下一阶段是 Proactive Suggestion Runtime Task 5：把成功 recompute 后的 baseline observation 接入生产写入，并验证覆盖率、幂等键和失败降级边界。
+下一阶段是 Proactive Suggestion Runtime Task 6：修正漏服时间计算并按 reminder slot 评估。

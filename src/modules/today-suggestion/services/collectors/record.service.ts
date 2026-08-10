@@ -58,6 +58,10 @@ export class RecordCollectorService {
         completedCount: waterRecords.length,
         targetCount: waterTarget,
         remainingCount: Math.max(waterTarget - waterRecords.length, 0),
+        ...(waterRecords.length > 0
+          ? { observedValue: waterRecords.length }
+          : {}),
+        coverage: { sufficient: waterRecords.length > 0 },
       },
     });
 
@@ -103,6 +107,12 @@ export class RecordCollectorService {
           durationMinutes,
           quality,
           recordId: sleepRecord.id,
+          ...(durationMinutes != null && durationMinutes > 0
+            ? { observedValue: durationMinutes }
+            : {}),
+          coverage: {
+            sufficient: durationMinutes != null && durationMinutes > 0,
+          },
         },
       });
     }
@@ -143,6 +153,12 @@ export class RecordCollectorService {
     );
     if (symptomRecords.length > 0) {
       const symptomByDate = this.buildSymptomTrend(symptomRecords);
+      const todaySymptom = [...symptomRecords]
+        .reverse()
+        .find((r) => r.occurredAt.toISOString().slice(0, 10) === date);
+      const symptomObservedValue = this.parseNumericValue(
+        todaySymptom?.value ?? null,
+      );
       signals.push({
         signalId: `rec_symptom_trend_${date}`,
         source: 'record',
@@ -154,6 +170,10 @@ export class RecordCollectorService {
           byDate: symptomByDate,
           totalRecords: symptomRecords.length,
           uniqueDates: symptomByDate.length,
+          ...(symptomObservedValue != null
+            ? { observedValue: symptomObservedValue }
+            : {}),
+          coverage: { sufficient: symptomObservedValue != null },
         },
       });
     }
@@ -165,6 +185,9 @@ export class RecordCollectorService {
     if (caffeineRecords.length > 0) {
       const caffeineByDate = this.buildCaffeineTrend(caffeineRecords);
       if (caffeineByDate.length > 0) {
+        const todayCaffeine = caffeineByDate.find(
+          (entry) => entry.date === date,
+        )?.count;
         signals.push({
           signalId: `rec_caffeine_trend_${date}`,
           source: 'record',
@@ -175,6 +198,12 @@ export class RecordCollectorService {
           payload: {
             dailyIntakes: caffeineByDate,
             consecutiveDays: caffeineByDate.length,
+            ...(todayCaffeine != null && todayCaffeine > 0
+              ? { observedValue: todayCaffeine }
+              : {}),
+            coverage: {
+              sufficient: todayCaffeine != null && todayCaffeine > 0,
+            },
           },
         });
       }
@@ -204,6 +233,13 @@ export class RecordCollectorService {
     if (moodRecords.length > 0) {
       const moodByDate = this.buildMoodTrend(moodRecords);
       if (moodByDate.length > 0) {
+        const todayMood = [...moodRecords]
+          .reverse()
+          .find((r) => r.occurredAt.toISOString().slice(0, 10) === date);
+        const moodObservedValue = this.parseKnownMoodScore(
+          todayMood?.value ?? null,
+          todayMood?.title ?? null,
+        );
         signals.push({
           signalId: `rec_mood_trend_${date}`,
           source: 'record',
@@ -214,6 +250,10 @@ export class RecordCollectorService {
           payload: {
             dailyMoods: moodByDate,
             consecutiveDays: moodByDate.length,
+            ...(moodObservedValue != null
+              ? { observedValue: moodObservedValue }
+              : {}),
+            coverage: { sufficient: moodObservedValue != null },
           },
         });
       }
@@ -321,7 +361,13 @@ export class RecordCollectorService {
 
   /** Parses a mood score from value/title fields. Returns 1–5 scale. */
   private parseMoodScore(value: string | null, title: string | null): number {
-    // Try numeric value first
+    return this.parseKnownMoodScore(value, title) ?? 3;
+  }
+
+  private parseKnownMoodScore(
+    value: string | null,
+    title: string | null,
+  ): number | null {
     if (value != null) {
       const num = parseInt(value, 10);
       if (!isNaN(num) && num >= 1 && num <= 5) return num;
@@ -353,6 +399,12 @@ export class RecordCollectorService {
     )
       return 1;
 
-    return 3; // default neutral
+    return null;
+  }
+
+  private parseNumericValue(value: string | null): number | null {
+    if (value == null || value.trim() === '') return null;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null;
   }
 }

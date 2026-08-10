@@ -458,6 +458,9 @@ operations.
   row whose source version is newer than its computed version is exposed as `stale`, allowing
   the asynchronous recompute worker to advance it without letting an older job overwrite a
   newer source version.
+- **Suggestion baseline observations**: `UserSuggestionBaselineObservation` stores the
+  collector-provided daily metric value under the unique key `userId + dimension + localDate`;
+  the recompute worker writes the aggregate baseline only after the suggestion result succeeds.
 
 ## Assistant RAG Data-Source Constraints
 

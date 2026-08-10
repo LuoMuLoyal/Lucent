@@ -165,4 +165,29 @@ describe('MaterializationStore', () => {
       }),
     );
   });
+
+  it('advances computedVersion for a baseline observation failure so generated cards remain readable', async () => {
+    const current = row({ sourceVersion: 4, computedVersion: 0 });
+    prisma.userSuggestionMaterialization.findUnique.mockResolvedValue(current);
+
+    await store.markFailed({
+      userId: 'user-1',
+      localDate: '2026-08-09',
+      sourceVersion: 4,
+      computedVersion: 4,
+      errorCode: 'BASELINE_OBSERVATION_FAILED',
+    });
+
+    expect(
+      prisma.userSuggestionMaterialization.updateMany,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          computedVersion: 4,
+          status: 'failed',
+          lastErrorCode: 'BASELINE_OBSERVATION_FAILED',
+        }),
+      }),
+    );
+  });
 });

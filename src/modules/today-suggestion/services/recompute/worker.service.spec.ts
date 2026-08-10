@@ -30,12 +30,34 @@ function status(overrides: Record<string, unknown> = {}) {
 
 describe('SuggestionRecomputeWorkerService', () => {
   it('recomputes the suggestion materialization and marks the same version ready', async () => {
+    const observedSignals = [
+      {
+        signalId: 'rec_water_2026-08-09',
+        source: 'record',
+        kind: 'water_count',
+        recordedAt: new Date('2026-08-09T00:00:00.000Z'),
+        payload: {
+          observedValue: 3,
+          coverage: { sufficient: true },
+        },
+        userId: 'user-1',
+        triggerType: 'timer',
+      },
+    ];
     const suggestionService = {
-      recompute: vi.fn().mockResolvedValue({
-        generatedAt: '2026-08-09T08:00:01.000Z',
-        primary: undefined,
-        secondary: undefined,
-        observations: undefined,
+      recompute: vi.fn().mockImplementation(async (...args: unknown[]) => {
+        const options = args[3] as {
+          onSuccessfulRecompute: (
+            signals: typeof observedSignals,
+          ) => Promise<void>;
+        };
+        await options.onSuccessfulRecompute(observedSignals);
+        return {
+          generatedAt: '2026-08-09T08:00:01.000Z',
+          primary: undefined,
+          secondary: undefined,
+          observations: undefined,
+        };
       }),
     };
     const materializationStore = {
@@ -49,11 +71,18 @@ describe('SuggestionRecomputeWorkerService', () => {
       ),
       markFailed: vi.fn(),
     };
-    const cache = { invalidateSignals: vi.fn().mockResolvedValue(undefined) };
+    const cache = {
+      invalidateSignals: vi.fn().mockResolvedValue(undefined),
+      invalidateBaseline: vi.fn().mockResolvedValue(undefined),
+    };
+    const baseline = {
+      recordObservations: vi.fn().mockResolvedValue(undefined),
+    };
     const worker = new SuggestionRecomputeWorkerService(
       suggestionService as never,
       materializationStore as never,
       cache as never,
+      baseline as never,
     );
 
     await worker.process(job());
@@ -62,8 +91,14 @@ describe('SuggestionRecomputeWorkerService', () => {
       'user-1',
       '2026-08-09',
       undefined,
-      { locale: 'zh-CN', sourceVersion: 1 },
+      expect.objectContaining({ locale: 'zh-CN', sourceVersion: 1 }),
     );
+    expect(baseline.recordObservations).toHaveBeenCalledWith(
+      'user-1',
+      '2026-08-09',
+      observedSignals,
+    );
+    expect(cache.invalidateBaseline).toHaveBeenCalledWith('user-1');
     expect(cache.invalidateSignals).toHaveBeenCalledWith(
       'user-1',
       '2026-08-09',
@@ -89,10 +124,12 @@ describe('SuggestionRecomputeWorkerService', () => {
       markFailed: vi.fn(),
     };
     const cache = { invalidateSignals: vi.fn() };
+    const baseline = { recordObservations: vi.fn() };
     const worker = new SuggestionRecomputeWorkerService(
       suggestionService as never,
       materializationStore as never,
       cache as never,
+      baseline as never,
     );
 
     await worker.process(job({ sourceVersion: 3 }));
@@ -112,11 +149,16 @@ describe('SuggestionRecomputeWorkerService', () => {
       markReady: vi.fn(),
       markFailed: vi.fn().mockResolvedValue(status({ status: 'failed' })),
     };
-    const cache = { invalidateSignals: vi.fn().mockResolvedValue(undefined) };
+    const cache = {
+      invalidateSignals: vi.fn().mockResolvedValue(undefined),
+      invalidateBaseline: vi.fn().mockResolvedValue(undefined),
+    };
+    const baseline = { recordObservations: vi.fn() };
     const worker = new SuggestionRecomputeWorkerService(
       suggestionService as never,
       materializationStore as never,
       cache as never,
+      baseline as never,
     );
 
     await expect(worker.process(job())).rejects.toThrow('rule failed');
@@ -142,11 +184,16 @@ describe('SuggestionRecomputeWorkerService', () => {
       markReady: vi.fn(),
       markFailed: vi.fn().mockResolvedValue(status({ status: 'failed' })),
     };
-    const cache = { invalidateSignals: vi.fn().mockResolvedValue(undefined) };
+    const cache = {
+      invalidateSignals: vi.fn().mockResolvedValue(undefined),
+      invalidateBaseline: vi.fn().mockResolvedValue(undefined),
+    };
+    const baseline = { recordObservations: vi.fn() };
     const worker = new SuggestionRecomputeWorkerService(
       suggestionService as never,
       materializationStore as never,
       cache as never,
+      baseline as never,
     );
 
     await expect(worker.process(job())).rejects.toThrow('rule failed');
@@ -177,10 +224,12 @@ describe('SuggestionRecomputeWorkerService', () => {
       markFailed: vi.fn(),
     };
     const cache = { invalidateSignals: vi.fn().mockResolvedValue(undefined) };
+    const baseline = { recordObservations: vi.fn() };
     const worker = new SuggestionRecomputeWorkerService(
       suggestionService as never,
       materializationStore as never,
       cache as never,
+      baseline as never,
     );
 
     await worker.process(job());
@@ -216,10 +265,12 @@ describe('SuggestionRecomputeWorkerService', () => {
       markFailed: vi.fn(),
     };
     const cache = { invalidateSignals: vi.fn().mockResolvedValue(undefined) };
+    const baseline = { recordObservations: vi.fn() };
     const worker = new SuggestionRecomputeWorkerService(
       suggestionService as never,
       materializationStore as never,
       cache as never,
+      baseline as never,
     );
 
     await worker.process(job());
@@ -231,5 +282,61 @@ describe('SuggestionRecomputeWorkerService', () => {
       localDate: '2026-08-09',
       sourceVersion: 2,
     });
+  });
+
+  it('keeps generated suggestions and records a fixed materialization error when baseline observation fails', async () => {
+    const baselineError = new Error('baseline storage unavailable');
+    const observedSignals = [
+      {
+        signalId: 'rec_water_2026-08-09',
+        source: 'record',
+        kind: 'water_count',
+        recordedAt: new Date('2026-08-09T00:00:00.000Z'),
+        payload: { observedValue: 3, coverage: { sufficient: true } },
+        userId: 'user-1',
+        triggerType: 'timer',
+      },
+    ];
+    const suggestionService = {
+      recompute: vi.fn().mockImplementation(async (...args: unknown[]) => {
+        const options = args[3] as {
+          onSuccessfulRecompute: (
+            signals: typeof observedSignals,
+          ) => Promise<void>;
+        };
+        await options.onSuccessfulRecompute(observedSignals);
+        return { generatedAt: 'generated', primary: undefined };
+      }),
+    };
+    const materializationStore = {
+      readStatus: vi.fn().mockResolvedValue(status()),
+      markReady: vi.fn(),
+      markFailed: vi.fn().mockResolvedValue(status({ status: 'failed' })),
+    };
+    const cache = {
+      invalidateSignals: vi.fn().mockResolvedValue(undefined),
+      invalidateBaseline: vi.fn().mockResolvedValue(undefined),
+    };
+    const baseline = {
+      recordObservations: vi.fn().mockRejectedValue(baselineError),
+    };
+    const worker = new SuggestionRecomputeWorkerService(
+      suggestionService as never,
+      materializationStore as never,
+      cache as never,
+      baseline as never,
+    );
+
+    await expect(worker.process(job())).resolves.toBeUndefined();
+
+    expect(materializationStore.markReady).not.toHaveBeenCalled();
+    expect(materializationStore.markFailed).toHaveBeenCalledWith({
+      userId: 'user-1',
+      localDate: '2026-08-09',
+      sourceVersion: 1,
+      errorCode: 'BASELINE_OBSERVATION_FAILED',
+      computedVersion: 1,
+    });
+    expect(cache.invalidateBaseline).not.toHaveBeenCalled();
   });
 });
