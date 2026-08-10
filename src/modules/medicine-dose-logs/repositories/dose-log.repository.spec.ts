@@ -73,6 +73,13 @@ describe('MedicineDoseLogRepository', () => {
             deletedAt: null,
             scheduledFor: { gte: from, lte: to },
           },
+          select: {
+            currentMedicineId: true,
+            reminderId: true,
+            status: true,
+            scheduledTime: true,
+            scheduledFor: true,
+          },
           orderBy: [{ scheduledFor: 'asc' }],
         }),
       );

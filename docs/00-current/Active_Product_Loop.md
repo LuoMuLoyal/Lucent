@@ -11,7 +11,7 @@ Last updated: 2026-08-10
 
 ## 当前状态
 
-Health Event Contract 已完成后端合同、持久化、所有权校验、领域事件和 OpenAPI 导出；Proactive Suggestion Runtime 已完成 Task 5 的后台重算与 baseline observation 接线。
+Health Event Contract 已完成后端合同、持久化、所有权校验、领域事件和 OpenAPI 导出；Proactive Suggestion Runtime 已完成 Task 6 的后台重算、baseline observation 与 reminder slot 评估接线。
 
 - `health-events` ownership module 已接入应用模块和 `/user` 路由树；数据库 migration 保存事件、每日 check-in、事件与当前用药的关联，并限制同一用户同时只有一个 active event。
 - 用户只能显式开始和结束事件；结束必须选择 `improved`、`unchanged` 或 `worsened`。每日 check-in 使用同一枚举，每个事件与自然日最多一条并允许更正。
@@ -23,6 +23,8 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - `GET /today/suggestions` 只读取 materialization、cache 和持久化 active cards，不再调用 pipeline 或 LLM；响应包含 `materializationStatus`、`sourceVersion`、`computedAt` 和 `retryAfterSeconds`，支持 `empty/pending/ready/stale/failed`。
 - 成功 recompute 使用同一批 collector signals 写入 baseline observation；仅显式提供 observed value 且 coverage sufficient 的 signal 会写入（包括明确覆盖的 `0`），按 `userId + dimension + localDate` 幂等。
 - baseline 写入失败不会丢弃已生成建议，已生成建议仍可读取；materialization 保留固定错误码 `BASELINE_OBSERVATION_FAILED`，不标记为 ready。
+- Medication collector 按 reminder slot 评估 `planned/taken/skipped/unconfirmed/overdueUnconfirmed`，用 `now()` 与用户 profile timezone 组合 `scheduledFor + scheduledTime`；无效时区回退 `Asia/Shanghai`，DST gap 和无效日期不伪造 overdue。
+- dose-log reader 投影带出 `reminderId`；有 reminderId 的日志精确匹配槽位，历史无 reminderId 的日志仅在 medicine+scheduledTime 唯一时 fallback。同药多槽位不再按 medicineId 折叠，missed-dose rule 只消费 `overdueUnconfirmed`，文案保持待确认语义。
 
 ## 验证状态
 
@@ -33,7 +35,8 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - live E2E 在用户 A 首次读取 active event 时确认没有 check-in，随后只有显式 check-in/end API 改变状态；因此没有发现系统建议绕过用户确认写入事件状态的路径。
 - Proactive Suggestion Runtime Task 4 定向测试：9 个 spec、123 tests 通过；`pnpm typecheck`、`pnpm lint:check`（`--max-warnings=0`）、`pnpm format:check`、`pnpm build`、`pnpm exec prisma validate` 和 `git diff --check` 通过。OpenAPI 已重新导出，语义 diff 为 27 行。新增 `20260809020000_add_suggestion_source_version` 已应用到 development/test PostgreSQL；worker 对已完成同版本任务幂等短路，materialization 失败写入仅作用于 pending 状态。
 - Proactive Suggestion Runtime Task 5 定向测试：7 个 spec、86 tests 通过；`pnpm typecheck`、`pnpm exec prisma validate`、`pnpm prisma:generate` 和 development/test migration deploy 通过。新增 baseline observation 唯一约束已应用到两个本地 PostgreSQL 数据库。
+- Proactive Suggestion Runtime Task 6 定向测试：3 个 spec、54 tests 通过；today-suggestion 模块回归 37 个文件、400 tests 通过；`pnpm typecheck`、`pnpm lint:check`（`--max-warnings=0`）、`pnpm format:check`、`pnpm build` 和 `git diff --check` 通过。覆盖用户时区、非法时区 fallback、DST gap/fold、无效日期、reminderId 精确匹配、历史日志歧义和混合 reminder summary。
 
 ## 下一阶段
 
-下一阶段是 Proactive Suggestion Runtime Task 6：修正漏服时间计算并按 reminder slot 评估。
+下一阶段是 Proactive Suggestion Runtime Task 7：让 Today Analysis 事件驱动并限制生成成本。

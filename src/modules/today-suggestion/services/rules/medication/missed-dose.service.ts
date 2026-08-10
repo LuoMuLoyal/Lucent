@@ -21,8 +21,8 @@ import {
  * Type: COMPLIANCE
  * Trigger: EVENT (immediate)
  *
- * Fires when a medicine reminder is past its grace period
- * and no dose log (taken/skipped) exists for it.
+ * Fires when a medicine reminder is past its grace period and remains
+ * unconfirmed. It does not infer a missed dose from a generic pending signal.
  */
 @Injectable()
 export class MissedDoseRuleService implements SuggestionRule {
@@ -31,26 +31,38 @@ export class MissedDoseRuleService implements SuggestionRule {
   readonly type = SuggestionType.COMPLIANCE;
   readonly triggerType = TriggerType.EVENT;
   readonly isBaselineRequired = false;
-  readonly consumableSignalKinds = ['pending_dose'];
+  readonly consumableSignalKinds = ['overdueUnconfirmed'];
 
   match(
     signals: SuggestionSignal[],
     _context: RuleContext,
   ): SuggestionCandidate | null {
-    const pendingSignals = signals.filter(
-      (s) => s.kind === 'pending_dose' && s.source === 'medication',
+    const overdueSignals = signals.filter(
+      (s) => s.kind === 'overdueUnconfirmed' && s.source === 'medication',
     );
 
-    if (pendingSignals.length === 0) {
+    if (overdueSignals.length === 0) {
       return null;
     }
 
-    // Pick the most overdue dose
-    const sorted = pendingSignals
+    // Pick the most overdue unconfirmed dose.
+    const sorted = overdueSignals
       .filter((s) => {
         const overdue = s.payload['overdueMinutes'] as number;
+        const medicineName = s.payload['medicineName'];
+        const scheduledHour = s.payload['scheduledHour'] as number;
+        const scheduledMinute = s.payload['scheduledMinute'] as number;
         return (
-          typeof overdue === 'number' && overdue > MISSED_DOSE_GRACE_MINUTES
+          typeof overdue === 'number' &&
+          Number.isFinite(overdue) &&
+          overdue > MISSED_DOSE_GRACE_MINUTES &&
+          typeof medicineName === 'string' &&
+          Number.isInteger(scheduledHour) &&
+          scheduledHour >= 0 &&
+          scheduledHour <= 23 &&
+          Number.isInteger(scheduledMinute) &&
+          scheduledMinute >= 0 &&
+          scheduledMinute <= 59
         );
       })
       .sort((a, b) => {
@@ -119,6 +131,7 @@ export class MissedDoseRuleService implements SuggestionRule {
           hoursOverdue,
           minsRemainder,
           overdueMinutes,
+          confirmationStatus: 'unconfirmed',
         },
       },
     };

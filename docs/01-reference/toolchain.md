@@ -23,6 +23,10 @@ Last updated: 2026-08-10
   `materializationStatus`, `sourceVersion`, `computedAt`, and `retryAfterSeconds`; after a
   source-version race the worker follows up at most three times. Persisted active cards also
   carry `sourceVersion`, and old-version writes are fenced from newer materializations.
+- Proactive Suggestion Runtime Task 6 aligns reminder-contract documentation with the slot
+  evaluator: dose-log reader facts include `reminderId`, and the collector resolves reminder
+  local time before the suggestion pipeline evaluates overdue status. This is an internal
+  read-model change; it does not require an OpenAPI export or Flutter client regeneration.
 - Lucent CI is split into three parallel Jobs (`ci-lint-typecheck`, `ci-unit`, `ci-e2e`) plus a
   Docker Job. The `ci-e2e` Job runs `Build` then `openapi:export` (reusing `dist/`, no double
   build) before E2E tests to ensure the contract file matches the current code. The file is

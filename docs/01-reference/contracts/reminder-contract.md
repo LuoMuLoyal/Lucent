@@ -1,6 +1,6 @@
 # Reminder / Notification Contract
 
-Last updated: 2026-07-21
+Last updated: 2026-08-10
 
 ## Boundary
 
@@ -128,6 +128,22 @@ UserMedicineReminder {
 - Luminous reads active reminders for Medicine and Today next-dose display. It filters reminders by
   `startDate` / `endDate` when evaluating a target date.
 - Medication inventory/refill tracking is intentionally out of scope.
+
+#### Suggestion slot evaluation
+
+For proactive Today suggestions, a reminder is evaluated as an independent slot,
+not as a medicine-day aggregate:
+
+- `scheduledFor` is the user's local calendar date and `scheduledTime` is combined
+  with the user's profile IANA timezone before comparing with the current instant.
+  Missing or invalid profile timezone falls back to `Asia/Shanghai`; invalid calendar
+  dates and DST gaps do not create a synthetic overdue instant.
+- Dose-log reader facts include `reminderId`. Logs with a reminder ID match that slot
+  exactly. Legacy logs without it may match only when the medicine plus scheduled time
+  identifies one reminder; ambiguous same-time reminders remain unconfirmed.
+- Slot states are `planned`, `taken`, `skipped`, `unconfirmed`, and
+  `overdueUnconfirmed`. Only `overdueUnconfirmed` is eligible for the missed-dose
+  suggestion rule; `unconfirmed` is never presented as proof that a dose was missed.
 
 ### 3. Reminder Delivery Log (read-only, audit)
 

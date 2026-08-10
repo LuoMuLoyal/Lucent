@@ -10,6 +10,7 @@ import { nonDeleted } from '../../../common';
  */
 export interface DoseLogFact {
   currentMedicineId: string | null;
+  reminderId: string | null;
   status: DoseLogStatus;
   scheduledTime: string | null;
   scheduledFor: Date;
@@ -24,6 +25,7 @@ const MAX_READER_FACTS = 500;
 
 const doseLogFactSelect = {
   currentMedicineId: true,
+  reminderId: true,
   status: true,
   scheduledTime: true,
   scheduledFor: true,
