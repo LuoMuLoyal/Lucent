@@ -4,6 +4,7 @@ import type { ReportMetricDto } from '../dto/report-dashboard-response.dto';
 import type {
   MetricDirection,
   MetricStatus,
+  ObservedMedicationMetric,
   ReportDashboardComputed,
   ReportDashboardFacts,
 } from './metrics.types';
@@ -18,7 +19,10 @@ export class ReportsComputationService {
     locale: string,
   ): ReportDashboardComputed {
     const waterSeries = this.buildPublicWaterSeries(facts);
-    const medicationMetric = this.buildMedicationMetric(facts.medicationSeries);
+    const medicationMetric = this.buildMedicationMetric(
+      facts.medicationSeries,
+      facts.observedMedicationSeries,
+    );
     const waterMetric = this.buildWaterMetric(
       waterSeries,
       facts.observedWaterSeries,
@@ -70,9 +74,19 @@ export class ReportsComputationService {
     };
   }
 
-  private buildMedicationMetric(series: number[]): ReportMetricDto {
-    const nonZeroDays = series.filter((value) => value > 0);
-    if (nonZeroDays.length === 0) {
+  private buildMedicationMetric(
+    series: number[],
+    observedSeries?: ObservedMedicationMetric[],
+  ): ReportMetricDto {
+    const values =
+      observedSeries == null
+        ? series.filter((value) => value > 0)
+        : observedSeries.flatMap((metric) =>
+            metric.state === 'observed' && metric.value != null
+              ? [metric.value]
+              : [],
+          );
+    if (values.length === 0) {
       return {
         kind: 'medication',
         value: '--',
@@ -85,7 +99,7 @@ export class ReportsComputationService {
     }
 
     const average = Math.round(
-      nonZeroDays.reduce((sum, value) => sum + value, 0) / nonZeroDays.length,
+      values.reduce((sum, value) => sum + value, 0) / values.length,
     );
     const status: MetricStatus =
       average >= 85 ? 'good' : average >= 60 ? 'stable' : 'needs_attention';

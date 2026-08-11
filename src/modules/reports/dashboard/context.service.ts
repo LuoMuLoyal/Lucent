@@ -25,7 +25,10 @@ import {
   REPORT_RANGE_LAST_7_DAYS,
   type ReportDashboardQueryDto,
 } from '../dto/report-dashboard-query.dto';
-import type { ReportDashboardFacts } from './metrics.types';
+import type {
+  ObservedMedicationMetric,
+  ReportDashboardFacts,
+} from './metrics.types';
 
 @Injectable()
 export class ReportsContextService {
@@ -60,17 +63,22 @@ export class ReportsContextService {
       endDate,
     );
 
+    const observedMedicationSeries = this.buildObservedMedicationSeries(
+      doseLogs,
+      startDate,
+      endDate,
+    );
+
     return {
       range,
       startDate,
       endDate,
       generatedAt: nowIsoString(),
       aiSummaryEnabled: settings.aiSummariesEnabled,
-      medicationSeries: this.buildMedicationSeries(
-        doseLogs,
-        startDate,
-        endDate,
+      medicationSeries: observedMedicationSeries.map((metric) =>
+        metric.value == null ? 0 : metric.value,
       ),
+      observedMedicationSeries,
       // Keep the scalar series for the existing report response until the
       // observed metric is promoted through the OpenAPI DTO. It is derived
       // from the same canonical ml observations below.
@@ -87,31 +95,82 @@ export class ReportsContextService {
     };
   }
 
-  private buildMedicationSeries(
-    doseLogs: Array<{ scheduledFor: Date; status: DoseLogStatus }>,
+  private buildObservedMedicationSeries(
+    doseLogs: Array<{
+      currentMedicineId: string | null;
+      reminderId: string | null;
+      scheduledFor: Date;
+      scheduledTime: string | null;
+      status: DoseLogStatus;
+    }>,
     startDate: Date,
     endDate: Date,
-  ): number[] {
-    const plannedByDay = new Map<string, number>();
-    const completedByDay = new Map<string, number>();
+  ): ObservedMedicationMetric[] {
+    const slotsByDay = new Map<string, Map<string, DoseLogStatus>>();
 
     for (const log of doseLogs) {
+      if (log.reminderId == null) continue;
       const day = this.toDateString(log.scheduledFor);
-      plannedByDay.set(day, (plannedByDay.get(day) ?? 0) + 1);
-      if (log.status === DoseLogStatus.taken) {
-        completedByDay.set(day, (completedByDay.get(day) ?? 0) + 1);
+      const slotKey = [log.reminderId, day, log.scheduledTime ?? ''].join('|');
+      const slots = slotsByDay.get(day) ?? new Map<string, DoseLogStatus>();
+      const previous = slots.get(slotKey);
+      if (
+        previous == null ||
+        this.medicationStatusPriority(log.status) >
+          this.medicationStatusPriority(previous)
+      ) {
+        slots.set(slotKey, log.status);
       }
+      slotsByDay.set(day, slots);
     }
 
     return this.eachDay(startDate, endDate).map((date) => {
       const day = this.toDateString(date);
-      const planned = plannedByDay.get(day) ?? 0;
-      if (planned === 0) {
-        return 0;
-      }
-      const completed = completedByDay.get(day) ?? 0;
-      return Number(((completed / planned) * 100).toFixed(0));
+      const statuses = [...(slotsByDay.get(day)?.values() ?? [])];
+      const expectedCount = statuses.length > 0 ? statuses.length : null;
+      const takenCount = statuses.filter(
+        (status) => status === DoseLogStatus.taken,
+      ).length;
+      const skippedCount = statuses.filter(
+        (status) => status === DoseLogStatus.skipped,
+      ).length;
+      const unconfirmedCount = statuses.filter(
+        (status) => status === DoseLogStatus.planned,
+      ).length;
+      const overdueUnconfirmedCount = statuses.filter(
+        (status) => status === DoseLogStatus.missed,
+      ).length;
+      const observedCount = takenCount + skippedCount;
+      return {
+        value:
+          observedCount === 0 || expectedCount == null
+            ? null
+            : Number(((takenCount / expectedCount) * 100).toFixed(0)),
+        state: observedCount === 0 ? 'unknown' : 'observed',
+        coverage:
+          observedCount === 0
+            ? 'none'
+            : observedCount === expectedCount
+              ? 'sufficient'
+              : 'partial',
+        sources: expectedCount == null ? [] : ['reminder_plan'],
+        observedCount,
+        expectedCount,
+        takenCount,
+        skippedCount,
+        unconfirmedCount,
+        overdueUnconfirmedCount,
+        windowStart: date.toISOString(),
+        windowEnd: new Date(date.getTime() + 86_400_000).toISOString(),
+      } satisfies ObservedMedicationMetric;
     });
+  }
+
+  private medicationStatusPriority(status: DoseLogStatus): number {
+    if (status === DoseLogStatus.taken) return 4;
+    if (status === DoseLogStatus.skipped) return 3;
+    if (status === DoseLogStatus.missed) return 2;
+    return 1;
   }
 
   private buildObservedWaterSeries(

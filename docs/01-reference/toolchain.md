@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-10
+updated: 2026-08-11
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-10
+Last updated: 2026-08-11
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -27,6 +27,9 @@ Last updated: 2026-08-10
   evaluator: dose-log reader facts include `reminderId`, and the collector resolves reminder
   local time before the suggestion pipeline evaluates overdue status. This is an internal
   read-model change; it does not require an OpenAPI export or Flutter client regeneration.
+- Sparse Record Semantics medication slots extend that internal read model through Report
+  context/computation: reminder slot coverage is observed separately from temporary dose logs;
+  no OpenAPI export or Flutter client regeneration is required until the observed DTO phase.
 - Lucent CI is split into three parallel Jobs (`ci-lint-typecheck`, `ci-unit`, `ci-e2e`) plus a
   Docker Job. The `ci-e2e` Job runs `Build` then `openapi:export` (reusing `dist/`, no double
   build) before E2E tests to ensure the contract file matches the current code. The file is

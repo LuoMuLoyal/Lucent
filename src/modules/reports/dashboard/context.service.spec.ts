@@ -320,4 +320,94 @@ describe('ReportsContextService', () => {
     ]);
     expect(context.waterSeries).toEqual([0, 0.5, 0]);
   });
+
+  it('builds medication adherence from independent reminder slots', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    doseLogReader.listFactsInRange = vi.fn().mockResolvedValue([
+      {
+        currentMedicineId: 'med-1',
+        reminderId: 'reminder-08',
+        status: 'taken',
+        scheduledFor: new Date('2026-06-06T00:00:00.000Z'),
+        scheduledTime: '08:00',
+      },
+      {
+        currentMedicineId: 'med-1',
+        reminderId: 'reminder-20',
+        status: 'planned',
+        scheduledFor: new Date('2026-06-06T00:00:00.000Z'),
+        scheduledTime: '20:00',
+      },
+    ]);
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-06',
+      endDate: '2026-06-06',
+    });
+
+    expect(context.observedMedicationSeries).toEqual([
+      expect.objectContaining({
+        value: 50,
+        state: 'observed',
+        coverage: 'partial',
+        observedCount: 1,
+        expectedCount: 2,
+        takenCount: 1,
+        skippedCount: 0,
+        unconfirmedCount: 1,
+        overdueUnconfirmedCount: 0,
+      }),
+    ]);
+    expect(context.medicationSeries).toEqual([50]);
+  });
+
+  it('keeps unplanned temporary dose logs out of adherence', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    doseLogReader.listFactsInRange = vi.fn().mockResolvedValue([
+      {
+        currentMedicineId: 'med-1',
+        reminderId: null,
+        status: 'taken',
+        scheduledFor: new Date('2026-06-06T00:00:00.000Z'),
+        scheduledTime: null,
+      },
+      {
+        currentMedicineId: 'med-1',
+        reminderId: null,
+        status: 'skipped',
+        scheduledFor: new Date('2026-06-06T00:00:00.000Z'),
+        scheduledTime: null,
+      },
+    ]);
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-06',
+      endDate: '2026-06-06',
+    });
+
+    expect(context.observedMedicationSeries).toEqual([
+      expect.objectContaining({
+        value: null,
+        state: 'unknown',
+        coverage: 'none',
+        observedCount: 0,
+        expectedCount: null,
+      }),
+    ]);
+    expect(context.medicationSeries).toEqual([0]);
+  });
 });

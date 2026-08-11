@@ -15,6 +15,13 @@ export type MetricStatus =
 
 export type MetricDirection = 'up' | 'down' | 'flat';
 
+export type ObservedMedicationMetric = ObservedMetric<number> & {
+  takenCount: number;
+  skippedCount: number;
+  unconfirmedCount: number;
+  overdueUnconfirmedCount: number;
+};
+
 export interface ReportDashboardFacts {
   range: ReportRange;
   startDate: Date;
@@ -25,7 +32,7 @@ export interface ReportDashboardFacts {
   waterSeries: number[];
   sleepSeries: number[];
   /** New sparse metric projections; scalar series remain for compatibility. */
-  observedMedicationSeries?: ObservedMetric<number>[];
+  observedMedicationSeries?: ObservedMedicationMetric[];
   observedWaterSeries?: ObservedMetric<number>[];
   observedSleepSeries?: ObservedMetric<number>[];
   mealEstimateSeries: number[];

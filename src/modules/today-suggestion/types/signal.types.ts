@@ -19,7 +19,7 @@ export interface SuggestionSignal {
   kind: string;
   recordedAt: Date;
   payload: Record<string, unknown> & {
-    observedMetric?: ObservedMetric<unknown>;
+    observedMetric?: ObservedMetric<unknown> | Record<string, unknown>;
   };
   userId: string;
   triggerType: TriggerType;

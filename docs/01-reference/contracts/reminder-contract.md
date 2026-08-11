@@ -1,6 +1,6 @@
 # Reminder / Notification Contract
 
-Last updated: 2026-08-10
+Last updated: 2026-08-11
 
 ## Boundary
 
@@ -145,9 +145,16 @@ not as a medicine-day aggregate:
 - Dose-log reader facts include `reminderId`. Logs with a reminder ID match that slot
   exactly. Legacy logs without it may match only when the medicine plus scheduled time
   identifies one reminder; ambiguous same-time reminders remain unconfirmed.
-- Slot states are `planned`, `taken`, `skipped`, `unconfirmed`, and
-  `overdueUnconfirmed`. Only `overdueUnconfirmed` is eligible for the missed-dose
-  suggestion rule; `unconfirmed` is never presented as proof that a dose was missed.
+- Persisted `planned` is mapped to `unconfirmed` at the suggestion/report contract
+  boundary. Slot states exposed to consumers are `taken`, `skipped`, `unconfirmed`, and
+  `overdueUnconfirmed`; only `overdueUnconfirmed` is eligible for the missed-dose
+  suggestion rule.
+- Reminder slots use `reminderId + scheduledFor + scheduledTime` identity. Logs without a
+  reminder are independent temporary observations and do not create adherence denominator
+  slots; a legacy log may match a single unambiguous reminder by medicine and scheduled time.
+- Dashboard adherence exposes `observedMetric`: `taken` is the numerator, `skipped` and
+  `overdueUnconfirmed` remain separate counts, and an unplanned-only window is `unknown`
+  rather than `0%`.
 
 ### 3. Reminder Delivery Log (read-only, audit)
 

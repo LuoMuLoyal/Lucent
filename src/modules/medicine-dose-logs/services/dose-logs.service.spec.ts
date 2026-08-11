@@ -325,6 +325,7 @@ describe('MedicineDoseLogsService', () => {
         userId: 'u1',
         reminderId: 'reminder-1',
         scheduledFor: new Date('2026-07-08T00:00:00.000Z'),
+        scheduledTime: '08:30',
         deletedAt: null,
       },
       { orderBy: [{ updatedAt: 'desc' }] },
@@ -341,6 +342,62 @@ describe('MedicineDoseLogsService', () => {
     );
     expect(result.reminderId).toBe('reminder-1');
     expect(result.scheduledTime).toBe('08:30');
+  });
+
+  it('creates each temporary dose log independently', async () => {
+    repository.findCurrentMedicineById.mockResolvedValue({ userId: 'u1' });
+    repository.findFirst.mockResolvedValue({
+      id: 'temporary-dose-1',
+      userId: 'u1',
+      healthEventId: null,
+      currentMedicineId: 'medicine-1',
+      reminderId: null,
+      status: DoseLogStatus.taken,
+      scheduledFor: new Date('2026-07-08T00:00:00.000Z'),
+      scheduledTime: '08:30',
+      doseText: null,
+      note: null,
+      source: 'manual',
+      deletedAt: null,
+      createdAt: new Date('2026-07-08T01:00:00.000Z'),
+      updatedAt: new Date('2026-07-08T01:00:00.000Z'),
+      takenAt: new Date('2026-07-08T01:00:00.000Z'),
+    });
+    repository.create.mockResolvedValue({
+      id: 'temporary-dose-2',
+      userId: 'u1',
+      healthEventId: null,
+      currentMedicineId: 'medicine-1',
+      reminderId: null,
+      status: DoseLogStatus.taken,
+      scheduledFor: new Date('2026-07-08T00:00:00.000Z'),
+      scheduledTime: '08:30',
+      doseText: null,
+      note: null,
+      source: 'manual',
+      deletedAt: null,
+      createdAt: new Date('2026-07-08T02:00:00.000Z'),
+      updatedAt: new Date('2026-07-08T02:00:00.000Z'),
+      takenAt: new Date('2026-07-08T02:00:00.000Z'),
+    });
+
+    await service.mark('u1', {
+      currentMedicineId: 'medicine-1',
+      status: DoseLogStatus.taken,
+      scheduledFor: '2026-07-08',
+      scheduledTime: '08:30',
+    });
+
+    expect(repository.findFirst).not.toHaveBeenCalled();
+    expect(repository.update).not.toHaveBeenCalled();
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentMedicineId: 'medicine-1',
+        reminderId: null,
+        scheduledFor: new Date('2026-07-08T00:00:00.000Z'),
+        scheduledTime: '08:30',
+      }),
+    );
   });
 
   it('should validate and persist an active health event when mark creates a log', async () => {
@@ -389,6 +446,12 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should preserve an existing health event when mark omits it', async () => {
+    repository.findReminderById.mockResolvedValue({
+      userId: 'u1',
+      currentMedicineId: 'medicine-1',
+      scheduledHour: 8,
+      scheduledMinute: 30,
+    });
     repository.findCurrentMedicineById.mockResolvedValue({ userId: 'u1' });
     repository.findFirst.mockResolvedValue({
       id: 'dose-1',
@@ -426,6 +489,7 @@ describe('MedicineDoseLogsService', () => {
 
     await service.mark('u1', {
       currentMedicineId: 'medicine-1',
+      reminderId: 'reminder-1',
       status: DoseLogStatus.taken,
       scheduledFor: '2026-07-08',
       scheduledTime: '08:30',
@@ -441,6 +505,12 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should clear an existing health event when mark receives null', async () => {
+    repository.findReminderById.mockResolvedValue({
+      userId: 'u1',
+      currentMedicineId: 'medicine-1',
+      scheduledHour: 8,
+      scheduledMinute: 30,
+    });
     repository.findCurrentMedicineById.mockResolvedValue({ userId: 'u1' });
     repository.findFirst.mockResolvedValue({
       id: 'dose-1',
@@ -478,6 +548,7 @@ describe('MedicineDoseLogsService', () => {
 
     const dto = {
       currentMedicineId: 'medicine-1',
+      reminderId: 'reminder-1',
       status: DoseLogStatus.taken,
       scheduledFor: '2026-07-08',
       scheduledTime: '08:30',
@@ -495,6 +566,12 @@ describe('MedicineDoseLogsService', () => {
   });
 
   it('should update an existing health event when mark receives a new id', async () => {
+    repository.findReminderById.mockResolvedValue({
+      userId: 'u1',
+      currentMedicineId: 'medicine-1',
+      scheduledHour: 8,
+      scheduledMinute: 30,
+    });
     healthEventsOwnership.ensureActiveOwnedByUser.mockResolvedValue(
       {} as never,
     );
@@ -535,6 +612,7 @@ describe('MedicineDoseLogsService', () => {
 
     const dto = {
       currentMedicineId: 'medicine-1',
+      reminderId: 'reminder-1',
       status: DoseLogStatus.taken,
       scheduledFor: '2026-07-08',
       scheduledTime: '08:30',

@@ -207,6 +207,118 @@ describe('ReportsComputationService', () => {
       // delta = 77 - 60 = +17
       expect(medMetric.direction).toBe('up');
     });
+
+    it.each([
+      {
+        name: 'taken/taken',
+        statuses: {
+          takenCount: 2,
+          skippedCount: 0,
+          unconfirmedCount: 0,
+          overdueUnconfirmedCount: 0,
+        },
+        value: 100,
+        coverage: 'sufficient' as const,
+        status: 'good' as const,
+      },
+      {
+        name: 'taken/skipped',
+        statuses: {
+          takenCount: 1,
+          skippedCount: 1,
+          unconfirmedCount: 0,
+          overdueUnconfirmedCount: 0,
+        },
+        value: 50,
+        coverage: 'sufficient' as const,
+        status: 'needs_attention' as const,
+      },
+      {
+        name: 'taken/unconfirmed',
+        statuses: {
+          takenCount: 1,
+          skippedCount: 0,
+          unconfirmedCount: 1,
+          overdueUnconfirmedCount: 0,
+        },
+        value: 50,
+        coverage: 'partial' as const,
+        status: 'needs_attention' as const,
+      },
+      {
+        name: 'skipped/unconfirmed',
+        statuses: {
+          takenCount: 0,
+          skippedCount: 1,
+          unconfirmedCount: 1,
+          overdueUnconfirmedCount: 0,
+        },
+        value: 0,
+        coverage: 'partial' as const,
+        status: 'needs_attention' as const,
+      },
+    ])(
+      '$name keeps slot states isolated',
+      ({ statuses, value, coverage, status }) => {
+        const result = service.compute(
+          makeFacts({
+            medicationSeries: [0],
+            observedMedicationSeries: [
+              {
+                value,
+                state: 'observed',
+                coverage,
+                sources: ['reminder_plan'],
+                observedCount:
+                  statuses.takenCount +
+                  statuses.skippedCount +
+                  statuses.overdueUnconfirmedCount,
+                expectedCount: 2,
+                windowStart: '2026-06-06T00:00:00.000Z',
+                windowEnd: '2026-06-07T00:00:00.000Z',
+                ...statuses,
+              },
+            ],
+          }),
+          'en',
+        );
+
+        expect(result.metrics[0]).toMatchObject({
+          value: String(value),
+          status,
+        });
+      },
+    );
+
+    it('returns insufficient data for an all-unknown medication window', () => {
+      const result = service.compute(
+        makeFacts({
+          medicationSeries: [0],
+          observedMedicationSeries: [
+            {
+              value: null,
+              state: 'unknown',
+              coverage: 'none',
+              sources: [],
+              observedCount: 0,
+              expectedCount: null,
+              takenCount: 0,
+              skippedCount: 0,
+              unconfirmedCount: 0,
+              overdueUnconfirmedCount: 0,
+              windowStart: '2026-06-06T00:00:00.000Z',
+              windowEnd: '2026-06-07T00:00:00.000Z',
+            },
+          ],
+        }),
+        'en',
+      );
+
+      expect(result.metrics[0]).toMatchObject({
+        value: '--',
+        status: 'insufficient_data',
+      });
+    });
   });
 
   describe('buildWaterMetric', () => {

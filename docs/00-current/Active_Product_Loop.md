@@ -29,6 +29,7 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Today Analysis materialization 持久化 `sourceVersion`、`computedVersion`、`computedAt`、`generationCount` 和失败状态；每个自然日最多生成 3 次，手动刷新有 5 分钟冷却，旧结果在 `stale/pending/failed` 状态下继续可读。
 - Suggestion recompute 已接入低基数 Prometheus 指标：enqueue、dedupe、job duration、ready/failed 和 stale age；标签不包含 userId、日期或健康内容。
 - Sparse Record Semantics 的 Water 阶段已完成：Today collector、Today Analysis、Report context 与 Report AI context 共用纯 mapper/factory，合法水量统一为整数 ml；unknown、observed zero、非法输入和来源/coverage 不再混淆。旧 Report 升数序列仅作为兼容投影，并由同一 ml 结果派生。
+- Sparse Record Semantics 的服药槽位阶段已完成后端部分：Today collector 与 Report dashboard 以 `reminderId + scheduledFor + scheduledTime` 保持槽位独立；`planned` 在消费合同中映射为 `unconfirmed`，taken/skipped/overdue-unconfirmed 分开计数；无计划临时 dose log 不进入 adherence 分母，无计划窗口返回 unknown。
 
 ## 验证状态
 
@@ -45,6 +46,7 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Proactive Suggestion Runtime Task 9 已完成：Lucent 低基数运行时指标、全量验证和文档 checkpoint 已完成；PostgreSQL + Redis live acceptance 覆盖记录写入后的 worker 物化、首个只读 GET，以及连续 10 次写入后的版本收敛。
 - Task 9 验证：相关定向测试 4 个 spec、49 tests；Today suggestion API E2E 11 tests；临时 live acceptance 1 test；全量 `pnpm test`、`pnpm lint:check`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、Prisma validate、docs check/verify/links 均通过。
 - Sparse Record Semantics Water 阶段验证：Water mapper、Record collector、Report context/computation、water-shortfall 定向测试通过；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build` 通过。药品 slot 与睡眠 episode 的 RED 合同测试保留到后续阶段。
+- Sparse Record Semantics Medication slot 阶段验证：dose-log、medication collector、Report context/computation 定向测试 4 files / 80 tests 通过；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build`、`pnpm format:check` 通过。Flutter observed DTO/domain 迁移和睡眠 episode 仍留在后续阶段。
 
 ## 下一阶段
 

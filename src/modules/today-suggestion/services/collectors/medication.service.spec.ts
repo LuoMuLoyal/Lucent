@@ -169,7 +169,13 @@ describe('MedicationCollectorService', () => {
     );
     (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
     (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
-      { currentMedicineId: 'med-2', status: DoseLogStatus.taken },
+      {
+        currentMedicineId: 'med-2',
+        reminderId: null,
+        status: DoseLogStatus.taken,
+        scheduledFor: new Date('2026-07-09T00:00:00.000Z'),
+        scheduledTime: '08:00',
+      },
     ]);
 
     const signals = await service.collect('user-1', '2026-07-09');
@@ -181,6 +187,188 @@ describe('MedicationCollectorService', () => {
       pendingCount: 1,
       completedCount: 1,
       medicineNames: ['Aspirin', 'Ibuprofen'],
+    });
+  });
+
+  it('reports adherence coverage per reminder slot', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-07-09T02:00:00.000Z'));
+    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+      mockMedicines(),
+    );
+    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+      mockReminders([
+        { id: 'reminder-8', scheduledHour: 8, scheduledMinute: 0 },
+        { id: 'reminder-20', scheduledHour: 20, scheduledMinute: 0 },
+      ]),
+    );
+    (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
+      {
+        currentMedicineId: 'med-1',
+        reminderId: 'reminder-8',
+        status: DoseLogStatus.taken,
+        scheduledFor: new Date('2026-07-09T00:00:00.000Z'),
+        scheduledTime: '08:00',
+      },
+    ]);
+
+    const signals = await service.collect('user-1', '2026-07-09');
+    const summary = signals.find((s) => s.kind === 'medication_summary');
+
+    expect(summary!.payload).toMatchObject({
+      observedMetric: {
+        value: 50,
+        state: 'observed',
+        coverage: 'partial',
+        sources: ['reminder_plan'],
+        observedCount: 1,
+        expectedCount: 2,
+      },
+    });
+  });
+
+  it.each([
+    {
+      name: 'taken/taken',
+      statuses: [DoseLogStatus.taken, DoseLogStatus.taken],
+      expected: {
+        value: 100,
+        state: 'observed',
+        coverage: 'sufficient',
+        observedCount: 2,
+        skippedCount: 0,
+        overdueUnconfirmedCount: 0,
+      },
+    },
+    {
+      name: 'taken/skipped',
+      statuses: [DoseLogStatus.taken, DoseLogStatus.skipped],
+      expected: {
+        value: 50,
+        state: 'observed',
+        coverage: 'sufficient',
+        observedCount: 2,
+        skippedCount: 1,
+        overdueUnconfirmedCount: 0,
+      },
+    },
+    {
+      name: 'taken/unconfirmed',
+      statuses: [DoseLogStatus.taken, undefined],
+      expected: {
+        value: 50,
+        state: 'observed',
+        coverage: 'partial',
+        observedCount: 1,
+        skippedCount: 0,
+        overdueUnconfirmedCount: 0,
+      },
+    },
+    {
+      name: 'skipped/unconfirmed',
+      statuses: [DoseLogStatus.skipped, undefined],
+      expected: {
+        value: 0,
+        state: 'observed',
+        coverage: 'partial',
+        observedCount: 1,
+        skippedCount: 1,
+        overdueUnconfirmedCount: 0,
+      },
+    },
+    {
+      name: 'unknown/unknown',
+      statuses: [undefined, undefined],
+      expected: {
+        value: null,
+        state: 'unknown',
+        coverage: 'none',
+        observedCount: 0,
+        skippedCount: 0,
+        overdueUnconfirmedCount: 0,
+      },
+    },
+  ])(
+    'preserves the $name reminder coverage matrix',
+    async ({ statuses, expected }) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-07-08T23:00:00.000Z'));
+      (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+        mockMedicines(),
+      );
+      (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue(
+        mockReminders([
+          { id: 'reminder-8', scheduledHour: 8, scheduledMinute: 0 },
+          { id: 'reminder-20', scheduledHour: 20, scheduledMinute: 0 },
+        ]),
+      );
+      (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue(
+        statuses.flatMap((status, index) =>
+          status == null
+            ? []
+            : [
+                {
+                  currentMedicineId: 'med-1',
+                  reminderId: `reminder-${index === 0 ? '8' : '20'}`,
+                  status,
+                  scheduledFor: new Date('2026-07-09T00:00:00.000Z'),
+                  scheduledTime: index === 0 ? '08:00' : '20:00',
+                },
+              ],
+        ),
+      );
+
+      const signals = await service.collect('user-1', '2026-07-09');
+      const summary = signals.find((s) => s.kind === 'medication_summary');
+
+      expect(summary!.payload).toMatchObject({
+        observedMetric: {
+          ...expected,
+          sources: ['reminder_plan'],
+          expectedCount: 2,
+        },
+      });
+    },
+  );
+
+  it('keeps temporary dose logs independent and does not calculate adherence without a plan', async () => {
+    (prisma.userCurrentMedicine.findMany as vi.Mock).mockResolvedValue(
+      mockMedicines(),
+    );
+    (prisma.userMedicineReminder.findMany as vi.Mock).mockResolvedValue([]);
+    (doseLogReader.listFactsInRange as vi.Mock).mockResolvedValue([
+      {
+        currentMedicineId: 'med-1',
+        reminderId: null,
+        status: DoseLogStatus.taken,
+        scheduledFor: new Date('2026-07-09T00:00:00.000Z'),
+        scheduledTime: '08:00',
+      },
+      {
+        currentMedicineId: 'med-1',
+        reminderId: null,
+        status: DoseLogStatus.skipped,
+        scheduledFor: new Date('2026-07-09T00:00:00.000Z'),
+        scheduledTime: '08:00',
+      },
+    ]);
+
+    const signals = await service.collect('user-1', '2026-07-09');
+    const summary = signals.find((s) => s.kind === 'medication_summary');
+
+    expect(summary!.payload).toMatchObject({
+      completedCount: 2,
+      pendingCount: 0,
+      skippedCount: 0,
+      overdueUnconfirmedCount: 0,
+      observedMetric: {
+        value: null,
+        state: 'unknown',
+        coverage: 'none',
+        sources: [],
+        observedCount: 0,
+        expectedCount: null,
+      },
     });
   });
 
@@ -400,7 +588,9 @@ describe('MedicationCollectorService', () => {
     expect(
       signals.find((signal) => signal.kind === 'overdueUnconfirmed'),
     ).toBeUndefined();
-    expect(signals.find((signal) => signal.kind === 'planned')).toMatchObject({
+    expect(
+      signals.find((signal) => signal.kind === 'unconfirmed'),
+    ).toMatchObject({
       payload: { scheduledTime: '02:30', overdueMinutes: 0 },
     });
   });

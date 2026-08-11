@@ -119,13 +119,19 @@ export class MedicineDoseLogsService {
       scheduledFor,
       scheduledTime,
     });
-    if (where == null) {
+    if (
+      where == null &&
+      (reminderId != null || currentMedicineId == null || scheduledTime == null)
+    ) {
       badRequest(this.i18n.t('medicine-dose-logs.missing_slot_identifier'));
     }
 
-    const existing = (await this.repository.findFirst(where, {
-      orderBy: [{ updatedAt: 'desc' }],
-    })) as { id: string } | null;
+    const existing =
+      where == null
+        ? null
+        : ((await this.repository.findFirst(where, {
+            orderBy: [{ updatedAt: 'desc' }],
+          })) as { id: string } | null);
 
     if (existing) {
       const record = await this.repository.update(
@@ -262,21 +268,13 @@ export class MedicineDoseLogsService {
         userId: input.userId,
         reminderId: input.reminderId,
         scheduledFor: input.scheduledFor,
-        deletedAt: null,
-      };
-    }
-
-    if (input.currentMedicineId != null && input.scheduledTime != null) {
-      return {
-        userId: input.userId,
-        currentMedicineId: input.currentMedicineId,
-        scheduledFor: input.scheduledFor,
         scheduledTime: input.scheduledTime,
         deletedAt: null,
       };
     }
 
-    // No safe lookup criteria available — caller should reject.
+    // Temporary logs have no stable slot identity other than their own id;
+    // never merge them by medicine/date/time.
     return null;
   }
 

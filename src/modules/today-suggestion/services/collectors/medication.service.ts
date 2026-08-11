@@ -14,7 +14,6 @@ import type { SuggestionSignal } from '../../types/signal.types';
 import { TriggerType } from '../../types/suggestion.types';
 
 type DoseSlotStatus =
-  | 'planned'
   | 'taken'
   | 'skipped'
   | 'unconfirmed'
@@ -83,28 +82,18 @@ export class MedicationCollectorService {
       }),
     ]);
 
-    const completedMedicineIds = new Set(
-      doseLogs
-        .filter(
-          (log) =>
-            log.currentMedicineId != null &&
-            (log.status === DoseLogStatus.taken ||
-              log.status === DoseLogStatus.skipped),
-        )
-        .map((log) => log.currentMedicineId)
-        .filter((id): id is string => id != null),
-    );
     const timezone = this.normalizeTimezone(user?.profile?.timezone);
     const remindersForDate = reminders.filter((reminder) =>
       this.matchesDate(reminder, day, weekday),
     );
-    const doseLogsBySlot = this.indexDoseLogsBySlot(
+    const doseLogIndex = this.indexDoseLogsBySlot(
       doseLogs,
       date,
       remindersForDate,
     );
     let pendingCount = 0;
     let completedCount = 0;
+    const slotStatuses: DoseSlotStatus[] = [];
 
     const signals: SuggestionSignal[] = [];
 
@@ -120,8 +109,13 @@ export class MedicationCollectorService {
           reminder.scheduledHour,
           reminder.scheduledMinute,
         );
-        const slotKey = this.reminderSlotKey(medicine.id, reminder.id);
-        const loggedStatus = doseLogsBySlot.get(slotKey);
+        const slotKey = this.reminderSlotKey(
+          medicine.id,
+          reminder.id,
+          date,
+          scheduledTime,
+        );
+        const loggedStatus = doseLogIndex.reminderStatuses.get(slotKey);
         const scheduledInstant = this.scheduledInstant(
           date,
           scheduledTime,
@@ -138,6 +132,7 @@ export class MedicationCollectorService {
           overdueMinutes,
           scheduledInstant != null,
         );
+        slotStatuses.push(status);
         const payload = {
           medicineId: medicine.id,
           medicineName: medicine.displayName,
@@ -185,25 +180,53 @@ export class MedicationCollectorService {
       // If there are no matching reminders but the medicine has no dose log,
       // still emit a generic "unconfirmed" signal
       if (matchingReminders.length === 0) {
-        if (completedMedicineIds.has(medicine.id)) {
-          completedCount += 1;
-        } else {
+        const temporaryLogs = doseLogIndex.temporaryLogs.filter(
+          (log) => log.currentMedicineId === medicine.id,
+        );
+        if (temporaryLogs.length === 0) {
           pendingCount += 1;
+        } else {
+          for (const log of temporaryLogs) {
+            if (
+              log.status === DoseLogStatus.taken ||
+              log.status === DoseLogStatus.skipped
+            ) {
+              completedCount += 1;
+            } else {
+              pendingCount += 1;
+            }
+          }
         }
-        signals.push({
-          signalId: `med_unconfirmed_${medicine.id}`,
-          source: 'medication',
-          kind: 'unconfirmed_medicine',
-          recordedAt: day,
-          userId,
-          triggerType: TriggerType.EVENT,
-          payload: {
-            medicineId: medicine.id,
-            medicineName: medicine.displayName,
-          },
-        });
+        if (temporaryLogs.length === 0) {
+          signals.push({
+            signalId: `med_unconfirmed_${medicine.id}`,
+            source: 'medication',
+            kind: 'unconfirmed_medicine',
+            recordedAt: day,
+            userId,
+            triggerType: TriggerType.EVENT,
+            payload: {
+              medicineId: medicine.id,
+              medicineName: medicine.displayName,
+            },
+          });
+        }
       }
     }
+
+    const reminderStatuses = slotStatuses;
+    const expectedCount = reminderStatuses.length;
+    const takenCount = reminderStatuses.filter(
+      (status) => status === 'taken',
+    ).length;
+    const skippedCount = reminderStatuses.filter(
+      (status) => status === 'skipped',
+    ).length;
+    const overdueUnconfirmedCount = reminderStatuses.filter(
+      (status) => status === 'overdueUnconfirmed',
+    ).length;
+    const observedCount = takenCount + skippedCount;
+    const hasPlan = expectedCount > 0;
 
     // Current medicines summary signal
     signals.push({
@@ -219,7 +242,33 @@ export class MedicationCollectorService {
         // the summary; counts are based on reminder slots or medicine facts.
         pendingCount,
         completedCount,
+        skippedCount,
+        overdueUnconfirmedCount,
         medicineNames: currentMedicines.map((m) => m.displayName),
+        observedMetric: {
+          value:
+            hasPlan && observedCount > 0
+              ? Number(((takenCount / expectedCount) * 100).toFixed(0))
+              : null,
+          state: observedCount > 0 ? 'observed' : 'unknown',
+          coverage:
+            observedCount === 0
+              ? 'none'
+              : observedCount === expectedCount
+                ? 'sufficient'
+                : 'partial',
+          sources: hasPlan ? ['reminder_plan'] : [],
+          observedCount,
+          expectedCount: hasPlan ? expectedCount : null,
+          takenCount,
+          skippedCount,
+          unconfirmedCount: reminderStatuses.filter(
+            (status) => status === 'unconfirmed',
+          ).length,
+          overdueUnconfirmedCount,
+          windowStart: day.toISOString(),
+          windowEnd: new Date(day.getTime() + 86_400_000).toISOString(),
+        },
       },
     });
 
@@ -230,8 +279,12 @@ export class MedicationCollectorService {
     doseLogs: DoseLogFactShape[],
     date: string,
     reminders: ReminderShape[],
-  ): Map<string, DoseLogStatus> {
+  ): {
+    reminderStatuses: Map<string, DoseLogStatus>;
+    temporaryLogs: DoseLogFactShape[];
+  } {
     const bySlot = new Map<string, DoseLogStatus>();
+    const temporaryLogs: DoseLogFactShape[] = [];
     const reminderIdsByTime = new Map<string, string[]>();
     for (const reminder of reminders) {
       if (reminder.currentMedicineId == null) {
@@ -242,11 +295,9 @@ export class MedicationCollectorService {
         reminder.scheduledMinute,
       );
       const key = this.slotKey(reminder.currentMedicineId, scheduledTime);
-      const reminderIds = reminderIdsByTime.get(key) ?? [];
-      if (!reminderIds.includes(reminder.id)) {
-        reminderIds.push(reminder.id);
-      }
-      reminderIdsByTime.set(key, reminderIds);
+      const ids = reminderIdsByTime.get(key) ?? [];
+      if (!ids.includes(reminder.id)) ids.push(reminder.id);
+      reminderIdsByTime.set(key, ids);
     }
 
     const recordStatus = (key: string, status: DoseLogStatus): void => {
@@ -269,38 +320,48 @@ export class MedicationCollectorService {
 
       if (log.reminderId != null) {
         recordStatus(
-          this.reminderSlotKey(log.currentMedicineId, log.reminderId),
+          this.reminderSlotKey(
+            log.currentMedicineId,
+            log.reminderId,
+            formatDateOnlyInTimezone(log.scheduledFor, 'UTC'),
+            this.normalizeScheduledTime(log.scheduledTime ?? '') ??
+              this.reminderTime(log.reminderId, reminders),
+          ),
           log.status,
         );
         continue;
       }
 
-      if (log.scheduledTime == null) {
-        continue;
-      }
-
-      const scheduledTime = this.normalizeScheduledTime(log.scheduledTime);
-      if (scheduledTime == null) {
-        continue;
-      }
-
-      // Historical logs have no reminderId. They may fall back only when the
-      // medicine/time pair identifies exactly one active reminder slot.
-      const reminderIds = reminderIdsByTime.get(
-        this.slotKey(log.currentMedicineId, scheduledTime),
+      const scheduledTime = this.normalizeScheduledTime(
+        log.scheduledTime ?? '',
       );
+      const reminderIds =
+        scheduledTime == null
+          ? undefined
+          : reminderIdsByTime.get(
+              this.slotKey(log.currentMedicineId, scheduledTime),
+            );
       if (reminderIds?.length === 1) {
         const reminderId = reminderIds[0];
-        if (reminderId == null) {
+        if (reminderId != null) {
+          recordStatus(
+            this.reminderSlotKey(
+              log.currentMedicineId,
+              reminderId,
+              formatDateOnlyInTimezone(log.scheduledFor, 'UTC'),
+              scheduledTime,
+            ),
+            log.status,
+          );
           continue;
         }
-        recordStatus(
-          this.reminderSlotKey(log.currentMedicineId, reminderId),
-          log.status,
-        );
       }
+
+      // A temporary log is an observation in its own slot, even when its
+      // medicine/date/time match another temporary log or reminder.
+      temporaryLogs.push(log);
     }
-    return bySlot;
+    return { reminderStatuses: bySlot, temporaryLogs };
   }
 
   private resolveSlotStatus(
@@ -310,7 +371,7 @@ export class MedicationCollectorService {
   ): DoseSlotStatus {
     if (loggedStatus === DoseLogStatus.taken) return 'taken';
     if (loggedStatus === DoseLogStatus.skipped) return 'skipped';
-    if (!hasScheduledInstant || overdueMinutes <= 0) return 'planned';
+    if (!hasScheduledInstant || overdueMinutes <= 0) return 'unconfirmed';
     if (overdueMinutes > MISSED_DOSE_GRACE_MINUTES) {
       return 'overdueUnconfirmed';
     }
@@ -328,8 +389,26 @@ export class MedicationCollectorService {
     return `${medicineId}|${scheduledTime}`;
   }
 
-  private reminderSlotKey(medicineId: string, reminderId: string): string {
-    return `${medicineId}|${reminderId}`;
+  private reminderSlotKey(
+    medicineId: string,
+    reminderId: string,
+    date?: string,
+    scheduledTime?: string | null,
+  ): string {
+    return `${medicineId}|${reminderId}|${date ?? ''}|${scheduledTime ?? ''}`;
+  }
+
+  private reminderTime(
+    reminderId: string,
+    reminders: ReminderShape[],
+  ): string | null {
+    const reminder = reminders.find((candidate) => candidate.id === reminderId);
+    return reminder == null
+      ? null
+      : this.formatScheduledTime(
+          reminder.scheduledHour,
+          reminder.scheduledMinute,
+        );
   }
 
   private formatScheduledTime(hour: number, minute: number): string {
