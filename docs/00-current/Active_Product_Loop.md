@@ -41,7 +41,9 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Proactive Suggestion Runtime Task 6 定向测试：3 个 spec、54 tests 通过；today-suggestion 模块回归 37 个文件、400 tests 通过；`pnpm typecheck`、`pnpm lint:check`（`--max-warnings=0`）、`pnpm format:check`、`pnpm build` 和 `git diff --check` 通过。覆盖用户时区、非法时区 fallback、DST gap/fold、无效日期、reminderId 精确匹配、历史日志歧义和混合 reminder summary。
 - Proactive Suggestion Runtime Task 7 定向测试：today-analysis 10 个 spec、102 tests 通过；today-suggestion、health-events、daily-records、medicine-dose-logs 回归 61 个 spec、622 tests 通过。`pnpm exec prisma validate`、`pnpm prisma:generate`、`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build` 和 development/test migration deploy 通过。
 - Proactive Suggestion Runtime Task 8 已完成：Luminous Today 消费 `ready/stale/pending/failed/empty`，GET 只读，事件去抖刷新、resume sourceVersion 检查、cold-start cache 保留和 FIFO 请求串行均已覆盖定向测试。
+- Proactive Suggestion Runtime Task 9 已完成：Lucent 低基数运行时指标、全量验证和文档 checkpoint 已完成；PostgreSQL + Redis live acceptance 覆盖记录写入后的 worker 物化、首个只读 GET，以及连续 10 次写入后的版本收敛。
+- Task 9 验证：相关定向测试 4 个 spec、49 tests；Today suggestion API E2E 11 tests；临时 live acceptance 1 test；全量 `pnpm test`、`pnpm lint:check`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、Prisma validate、docs check/verify/links 均通过。
 
 ## 下一阶段
 
-Proactive Suggestion Runtime Task 9 正在完成可观测性、全量验证和文档收尾。
+下一阶段进入 Sparse Record Semantics：统一服药槽位、饮水 ml/coverage、睡眠片段和 unknown 语义；Proactive Suggestion Runtime 保留为已完成的服务端主动重算基础。
