@@ -46,11 +46,11 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Proactive Suggestion Runtime Task 8 已完成：Luminous Today 消费 `ready/stale/pending/failed/empty`，GET 只读，事件去抖刷新、resume sourceVersion 检查、cold-start cache 保留和 FIFO 请求串行均已覆盖定向测试。
 - Proactive Suggestion Runtime Task 9 已完成：Lucent 低基数运行时指标、全量验证和文档 checkpoint 已完成；PostgreSQL + Redis live acceptance 覆盖记录写入后的 worker 物化、首个只读 GET，以及连续 10 次写入后的版本收敛。
 - Task 9 验证：相关定向测试 4 个 spec、49 tests；Today suggestion API E2E 11 tests；临时 live acceptance 1 test；全量 `pnpm test`、`pnpm lint:check`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、Prisma validate、docs check/verify/links 均通过。
-- Sparse Record Semantics Water 阶段验证：Water mapper、Record collector、Report context/computation、water-shortfall 定向测试通过；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build` 通过。药品 slot 的 RED 合同测试保留到后续阶段。
-- Sparse Record Semantics Medication slot 阶段验证：dose-log、medication collector、Report context/computation 定向测试 4 files / 80 tests 通过；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build`、`pnpm format:check` 通过。Flutter observed DTO/domain 迁移和客户端消费边界仍留在后续阶段；后端 Report context/computation 已完成。
+- Sparse Record Semantics Water 阶段验证：Water mapper、Record collector、Report context/computation、water-shortfall 定向测试通过；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build` 通过。药品 slot 定向验证已完成，对应语义和 tests 已由 `83f66ac0` 落地。
+- Sparse Record Semantics Medication slot 阶段验证：dose-log、medication collector、Report context/computation 定向测试 4 files / 80 tests 通过；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build`、`pnpm format:check` 通过。Flutter observed DTO/domain、Report/Today 客户端合同与 Health platform import 已同步完成；Report UI 在 Review 迁移前仍保留 legacy scalar fallback，详见 Luminous Active_UI_Report。
 - Sparse Record Semantics 睡眠 episode 阶段已完成后端语义：新 payload 支持 `nightSleep`/`nap`、`startedAt`/`endedAt`、`durationMinutes` 与可选 `quality`，旧 `startAt`/`endAt` 记录按 nightSleep fallback 读取；Today collector 分开返回夜睡、午睡和总睡眠，并以 warning 保留重叠 episode。
 - Sparse Record Semantics Task 6 验证：`pnpm export:openapi` 生成 114 paths / 258 schemas；三组 observed metric schema 的 nullable 与 enum 语义已核对，OpenAPI 语义 diff 仅包含新增 schema、字段和 deprecated 标记；DTO typecheck、lint（`--max-warnings=0`）和 format check 通过。
 
 ## 下一阶段
 
-下一阶段继续 Sparse Record Semantics：使用已同步的 observed metric OpenAPI 合同接入 Flutter domain mapper 与 UI，再处理平台导入。Water ml/coverage、服药槽位和睡眠 episode 的后端语义已完成。Proactive Suggestion Runtime 保留为已完成的服务端主动重算基础。
+Sparse Record Semantics 已完成跨仓库收口，下一阶段进入 Review Experience。Report legacy scalar fallback 与 Review 尚未完成，仍作为后续边界保留；Water ml/coverage、服药槽位和睡眠 episode 的后端语义已完成。Proactive Suggestion Runtime 保留为已完成的服务端主动重算基础。
