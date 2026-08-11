@@ -1,4 +1,5 @@
 import { formatDateOnly } from '../../../../common';
+import type { ObservedMetric } from '../../../../common';
 import { Injectable } from '@nestjs/common';
 import type {
   ReportDashboardComputed,
@@ -26,6 +27,7 @@ export interface ReportsAiSummaryContext {
   series: {
     medication: number[];
     water: number[];
+    waterObserved?: ObservedMetric<number>[];
     sleep: number[];
     mealEstimate: number[];
   };
@@ -71,6 +73,9 @@ export class ReportsAiSummaryContextService {
       series: {
         medication: facts.medicationSeries,
         water: facts.waterSeries,
+        ...(facts.observedWaterSeries == null
+          ? {}
+          : { waterObserved: facts.observedWaterSeries }),
         sleep: facts.sleepSeries,
         mealEstimate: facts.mealEstimateSeries,
       },
@@ -78,7 +83,15 @@ export class ReportsAiSummaryContextService {
         medicationTrackedDays: facts.medicationSeries.filter(
           (value) => value > 0,
         ).length,
-        waterTrackedDays: facts.waterSeries.filter((value) => value > 0).length,
+        waterTrackedDays:
+          facts.observedWaterSeries == null
+            ? facts.waterSeries.filter((value) => value > 0).length
+            : facts.observedWaterSeries.filter(
+                (metric) =>
+                  metric.state === 'observed' &&
+                  metric.coverage === 'sufficient' &&
+                  metric.value != null,
+              ).length,
         sleepTrackedDays: facts.sleepSeries.filter((value) => value > 0).length,
         mealEstimateTrackedDays: facts.mealEstimateTrackedDays,
       },

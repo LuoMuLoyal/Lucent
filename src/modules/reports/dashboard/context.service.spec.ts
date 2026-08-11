@@ -281,4 +281,43 @@ describe('ReportsContextService', () => {
       failedDays: 0,
     });
   });
+
+  it('keeps water unknown distinct from observed zero and normalizes ml', async () => {
+    const { userSettingsService, dailyRecordReader, doseLogReader } =
+      buildMocks();
+    dailyRecordReader.listFactsInRange = vi.fn().mockResolvedValue([
+      {
+        occurredAt: new Date('2026-06-06T00:00:00.000Z'),
+        kind: 'water',
+        value: '0',
+        unit: 'ml',
+        payload: null,
+      },
+      {
+        occurredAt: new Date('2026-06-07T00:00:00.000Z'),
+        kind: 'water',
+        value: '500',
+        unit: 'ml',
+        payload: null,
+      },
+    ]);
+    const service = new ReportsContextService(
+      userSettingsService as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+    );
+
+    const context = await service.build('u1', {
+      range: REPORT_RANGE_CUSTOM,
+      startDate: '2026-06-06',
+      endDate: '2026-06-08',
+    });
+
+    expect(context.observedWaterSeries).toMatchObject([
+      { value: 0, state: 'observed', coverage: 'sufficient' },
+      { value: 500, state: 'observed', coverage: 'sufficient' },
+      { value: null, state: 'unknown', coverage: 'none' },
+    ]);
+    expect(context.waterSeries).toEqual([0, 0.5, 0]);
+  });
 });

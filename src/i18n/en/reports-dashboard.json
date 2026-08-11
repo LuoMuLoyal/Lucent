@@ -14,6 +14,7 @@
     "hydration_title": "Hydration trend",
     "hydration_body_stable": "Hydration had some consistency over the last {dayCount} days. Keep reinforcing the habit.",
     "hydration_body_attention": "Hydration was not consistent enough over the last {dayCount} days. Try to stabilize daily water intake first.",
+    "hydration_body_insufficient": "There is not enough observed water data in this period to assess a trend.",
     "sleep_title": "Sleep trend",
     "sleep_body_good": "Sleep averaged {avgHours}h over the last {dayCount} days — a healthy duration. Keep the consistent rhythm.",
     "sleep_body_stable": "Sleep averaged {avgHours}h over the last {dayCount} days. Duration is acceptable but could be more consistent.",

@@ -89,10 +89,9 @@ export class ReportsPresenterService {
   ): ReportFindingDto[] {
     const findings: ReportFindingDto[] = [];
 
-    const waterRecords = input.waterSeries.filter((value) => value > 0);
+    const waterRecords = input.waterSeries;
     const lowWaterDays = input.waterSeries.filter(
-      (value) =>
-        value > 0 && value < ReportsPresenterService.LOW_WATER_THRESHOLD_LITERS,
+      (value) => value < ReportsPresenterService.LOW_WATER_THRESHOLD_LITERS,
     ).length;
     if (
       waterRecords.length > 0 &&
@@ -168,10 +167,17 @@ export class ReportsPresenterService {
     locale: string,
   ): ReportPatternDto[] {
     const medicationActive = input.medicationSeries.some((value) => value > 0);
+    const waterObservedDays = input.waterSeries;
     const waterGood =
-      input.waterSeries.filter(
+      waterObservedDays.filter(
         (value) => value >= ReportsPresenterService.HYDRATION_STABLE_LITERS,
       ).length >= ReportsPresenterService.HYDRATION_STABLE_DAYS_THRESHOLD;
+    const waterStatus: MetricStatus =
+      waterObservedDays.length === 0
+        ? 'insufficient_data'
+        : waterGood
+          ? 'stable'
+          : 'needs_attention';
 
     return [
       {
@@ -195,20 +201,32 @@ export class ReportsPresenterService {
         title: this.i18n.t('reports-dashboard.patterns.hydration_title', {
           lang: locale,
         }),
-        status: waterGood ? 'stable' : 'needs_attention',
-        body: waterGood
-          ? this.i18n.t('reports-dashboard.patterns.hydration_body_stable', {
-              lang: locale,
-              args: {
-                dayCount: String(this.dayCount(input.range)),
-              },
-            })
-          : this.i18n.t('reports-dashboard.patterns.hydration_body_attention', {
-              lang: locale,
-              args: {
-                dayCount: String(this.dayCount(input.range)),
-              },
-            }),
+        status: waterStatus,
+        body:
+          waterStatus === 'insufficient_data'
+            ? this.i18n.t(
+                'reports-dashboard.patterns.hydration_body_insufficient',
+                { lang: locale },
+              )
+            : waterGood
+              ? this.i18n.t(
+                  'reports-dashboard.patterns.hydration_body_stable',
+                  {
+                    lang: locale,
+                    args: {
+                      dayCount: String(this.dayCount(input.range)),
+                    },
+                  },
+                )
+              : this.i18n.t(
+                  'reports-dashboard.patterns.hydration_body_attention',
+                  {
+                    lang: locale,
+                    args: {
+                      dayCount: String(this.dayCount(input.range)),
+                    },
+                  },
+                ),
         sparkline: input.waterSeries,
       },
       {

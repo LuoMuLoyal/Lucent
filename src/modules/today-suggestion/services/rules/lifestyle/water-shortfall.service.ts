@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import type { ObservedMetric } from '../../../../../common';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types';
 
 import type { SuggestionSignal } from '../../../types/signal.types';
@@ -51,15 +52,27 @@ export class WaterShortfallRuleService implements SuggestionRule {
       return null;
     }
 
-    const completedCount = waterCountSignal.payload['completedCount'] as number;
-    const targetCount = waterCountSignal.payload['targetCount'] as number;
-    const remainingCount = waterCountSignal.payload['remainingCount'] as number;
+    const observedMetric = waterCountSignal.payload['observedMetric'] as
+      | ObservedMetric<number>
+      | undefined;
+    const observedValue = observedMetric?.value;
+    if (
+      observedMetric == null ||
+      observedMetric.state !== 'observed' ||
+      observedMetric.coverage !== 'sufficient' ||
+      observedValue == null
+    ) {
+      return null;
+    }
+
+    const targetMl = waterCountSignal.payload['targetMl'] as number | undefined;
+    if (targetMl == null || !Number.isFinite(targetMl) || targetMl <= 0) {
+      return null;
+    }
+    const completionRate = observedValue / targetMl;
 
     // Only fire if water is below threshold
-    if (
-      targetCount === 0 ||
-      completedCount / targetCount >= WATER_SHORTFALL_THRESHOLD
-    ) {
+    if (completionRate >= WATER_SHORTFALL_THRESHOLD) {
       return null;
     }
 
@@ -85,13 +98,13 @@ export class WaterShortfallRuleService implements SuggestionRule {
       evidence: [
         {
           kind: 'record',
-          label: 'current_count',
-          value: String(completedCount),
+          label: 'current_ml',
+          value: String(observedValue),
         },
         {
           kind: 'record',
-          label: 'target_count',
-          value: String(targetCount),
+          label: 'target_ml',
+          value: String(targetMl),
         },
         {
           kind: 'baseline',
@@ -112,10 +125,9 @@ export class WaterShortfallRuleService implements SuggestionRule {
       copyGeneration: {
         templateKey: 'water.behind.target',
         params: {
-          completedCount,
-          targetCount,
-          remainingCount,
-          completionRate: Math.round((completedCount / targetCount) * 100),
+          observedMl: observedValue,
+          targetMl,
+          completionRate: Math.round(completionRate * 100),
           consecutiveDays,
         },
       },

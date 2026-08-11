@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-10
+updated: 2026-08-11
 ---
 
 # Lucent Architecture
@@ -120,6 +120,22 @@ when external consumers exist.
 Each reader returns **fact DTOs** (plain data shapes), not Prisma `WhereInput` or model
 objects. Sorting and soft-delete filtering (`nonDeleted`) are baked into the reader
 implementation, so consumers never duplicate these concerns.
+
+### Sparse metric projections
+
+Sparse health observations use the shared `ObservedMetric<T>` contract from
+`src/common/types/observed-metric.types.ts`. A missing value is represented by
+`value: null` and `state: 'unknown'`; an explicitly recorded zero remains
+`state: 'observed'`. The pure water mapper at
+`src/common/helpers/metrics/water-metric.ts` accepts only `ml`, `L`, `liter`, and
+`litre`, returning integer milliliters and an `ignoredCount` for invalid inputs.
+
+Today suggestion collection, Today Analysis context, Report dashboard context,
+and Report AI context all use this mapper and its shared summary-to-metric
+factory. Report's legacy liter scalar series is derived from the observed ml
+series; sufficient observed points are kept (including zero), unknown/partial
+points are omitted from the compatibility projection, and unknown days are not
+included in report averages or AI tracked-day counts.
 
 ### Assistant Consumer-side Ports
 

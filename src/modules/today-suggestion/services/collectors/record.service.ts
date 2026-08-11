@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { parseDateOnly, now } from '../../../../common';
+import {
+  parseDateOnly,
+  now,
+  parseWaterMetric,
+  summarizeWaterMetrics,
+  toObservedWaterMetric,
+  WATER_TARGET_ML_PER_COUNT,
+} from '../../../../common';
 import { DailyRecordKind } from '#generated/prisma/client';
 import { DailyRecordReaderPort } from '../../../daily-records';
 
@@ -45,6 +52,8 @@ export class RecordCollectorService {
     const waterRecords = todayRecords.filter(
       (r) => r.kind === DailyRecordKind.water,
     );
+    const waterSummary = summarizeWaterMetrics(waterRecords);
+    const observedWaterMetric = toObservedWaterMetric(waterSummary, day);
     const waterTarget = settings.waterTargetCount;
 
     signals.push({
@@ -55,19 +64,29 @@ export class RecordCollectorService {
       userId,
       triggerType: TriggerType.TIMER,
       payload: {
-        completedCount: waterRecords.length,
+        // Keep the count fields for the existing rule/copy contract. The
+        // canonical value is `observedMetric.value` in milliliters.
+        completedCount: waterSummary.observedCount,
         targetCount: waterTarget,
-        remainingCount: Math.max(waterTarget - waterRecords.length, 0),
-        ...(waterRecords.length > 0
-          ? { observedValue: waterRecords.length }
+        targetMl: waterTarget * WATER_TARGET_ML_PER_COUNT,
+        targetSource: 'derived_from_legacy_count',
+        remainingCount: Math.max(waterTarget - waterSummary.observedCount, 0),
+        ...(waterSummary.observedCount > 0
+          ? { observedValue: waterSummary.observedCount }
           : {}),
-        coverage: { sufficient: waterRecords.length > 0 },
+        ignoredCount: waterSummary.ignoredCount,
+        observedMetric: observedWaterMetric,
+        coverage: { sufficient: observedWaterMetric.state === 'observed' },
       },
     });
 
     // Multi-day water trend signal
     const multiDayWater = this.buildDailyCounts(
-      multiDayRecords.filter((r) => r.kind === DailyRecordKind.water),
+      multiDayRecords.filter(
+        (r) =>
+          r.kind === DailyRecordKind.water &&
+          parseWaterMetric({ value: r.value, unit: r.unit }) != null,
+      ),
     );
     signals.push({
       signalId: `rec_water_trend_${date}`,
@@ -80,6 +99,8 @@ export class RecordCollectorService {
         dailyCounts: multiDayWater,
         consecutiveDays: multiDayWater.length,
         targetCount: waterTarget,
+        semantics: 'legacy_record_count',
+        source: 'daily_record',
       },
     });
 

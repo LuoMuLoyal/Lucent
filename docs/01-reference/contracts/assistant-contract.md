@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-10
+updated: 2026-08-11
 ---
 
 # Assistant Contract
@@ -85,6 +85,10 @@ starts the LLM pipeline. `POST /api/v1/user/today-analysis/refresh` is the expli
 with a five-minute per-user/date cooldown and a three-generation daily cap. Server-side health
 event, symptom record, dose-log, and eligible suggestion-materialization events enqueue versioned
 jobs; ordinary food, mood, water, and note records do not.
+
+Today Analysis context types may carry the shared sparse `ObservedMetric<T>` shape. Consumers must
+keep `unknown` distinct from an observed zero and must not turn a missing water value into a
+zero-valued fact before generation.
 
 ## AI Copy / Localization
 

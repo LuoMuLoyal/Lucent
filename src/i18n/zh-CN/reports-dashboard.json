@@ -14,6 +14,7 @@
     "hydration_title": "饮水趋势",
     "hydration_body_stable": "近 {dayCount} 天饮水有一定连续性，但仍建议继续巩固。",
     "hydration_body_attention": "近 {dayCount} 天饮水连续性不足，建议先稳定日常补水节奏。",
+    "hydration_body_insufficient": "当前周期内没有足够的有效饮水数据，暂无法评估趋势。",
     "sleep_title": "睡眠趋势",
     "sleep_body_good": "近 {dayCount} 天平均睡眠 {avgHours} 小时，时长较健康，继续保持固定作息。",
     "sleep_body_stable": "近 {dayCount} 天平均睡眠 {avgHours} 小时，时长尚可，但可提升规律性。",

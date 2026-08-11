@@ -1,4 +1,5 @@
 import type { TriggerType } from './suggestion.types';
+import type { ObservedMetric } from '../../../common';
 
 /** Signal source categories. */
 export type SignalSource =
@@ -17,7 +18,9 @@ export interface SuggestionSignal {
   source: SignalSource;
   kind: string;
   recordedAt: Date;
-  payload: Record<string, unknown>;
+  payload: Record<string, unknown> & {
+    observedMetric?: ObservedMetric<unknown>;
+  };
   userId: string;
   triggerType: TriggerType;
 }

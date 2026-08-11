@@ -335,8 +335,8 @@ describe('TodayAnalysisContextService', () => {
           kind: 'water',
           occurredTime: null,
           title: null,
-          value: null,
-          unit: null,
+          value: '250',
+          unit: 'ml',
           note: null,
           payload: null,
           createdAt: new Date('2026-07-01T01:00:00.000Z'),
@@ -345,8 +345,8 @@ describe('TodayAnalysisContextService', () => {
           kind: 'water',
           occurredTime: null,
           title: null,
-          value: null,
-          unit: null,
+          value: '250',
+          unit: 'ml',
           note: null,
           payload: null,
           createdAt: new Date('2026-07-01T02:00:00.000Z'),
@@ -372,8 +372,8 @@ describe('TodayAnalysisContextService', () => {
       kind: 'water',
       occurredTime: null,
       title: null,
-      value: null,
-      unit: null,
+      value: '250',
+      unit: 'ml',
       note: null,
       payload: null,
       createdAt: new Date(
@@ -394,6 +394,62 @@ describe('TodayAnalysisContextService', () => {
 
     expect(context.water.completedCount).toBe(10);
     expect(context.water.remainingCount).toBe(0);
+  });
+
+  it('keeps unknown water from becoming a remaining deficit', async () => {
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([]);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+      reminderReader as never,
+      createMockCache(),
+    );
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.water.observedMetric).toMatchObject({
+      value: null,
+      state: 'unknown',
+      coverage: 'none',
+    });
+    expect(context.water.remainingCount).toBe(0);
+  });
+
+  it('computes Today water from canonical milliliters', async () => {
+    const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+      buildMocks([
+        {
+          kind: 'water',
+          occurredTime: null,
+          title: null,
+          value: '500',
+          unit: 'ml',
+          note: null,
+          payload: null,
+          createdAt: new Date('2026-07-01T01:00:00.000Z'),
+        },
+      ]);
+    const service = new TodayAnalysisContextService(
+      prisma as never,
+      dailyRecordReader as never,
+      doseLogReader as never,
+      reminderReader as never,
+      createMockCache(),
+    );
+
+    const context = await service.build('u1', '2026-07-01');
+
+    expect(context.water).toMatchObject({
+      completedCount: 1,
+      remainingCount: 6,
+      observedMetric: {
+        value: 500,
+        state: 'observed',
+        coverage: 'sufficient',
+      },
+    });
   });
 
   it('includes medication context with pending count and next dose time', async () => {

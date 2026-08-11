@@ -1,4 +1,22 @@
 export type { ApiEnvelope } from './api/api-envelope';
+export {
+  parseWaterMetric,
+  summarizeWaterMetrics,
+  toObservedWaterMetric,
+  WATER_TARGET_ML_PER_COUNT,
+} from './helpers/metrics/water-metric';
+export type {
+  ParsedWaterMetric,
+  WaterMetricInput,
+  WaterMetricState,
+  WaterMetricSummary,
+} from './helpers/metrics/water-metric';
+export type {
+  ObservedMetric,
+  ObservedMetricCoverage,
+  ObservedMetricSource,
+  ObservedMetricState,
+} from './types/observed-metric.types';
 export type { PromptCopy } from './helpers/format/localized-copy';
 export { ApiEnvelopeInterceptor } from './interceptors/api-envelope.interceptor';
 export { BaseAsyncQueueService } from './queue/base-async-queue.service';

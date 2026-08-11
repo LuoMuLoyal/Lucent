@@ -1,4 +1,5 @@
 import { ReportsComputationService } from './computation.service';
+import type { ObservedMetric } from '../../../common';
 import type { ReportsPresenterService } from './presenter.service';
 import type { ReportDashboardFacts } from './metrics.types';
 
@@ -94,6 +95,64 @@ describe('ReportsComputationService', () => {
         'zh-CN',
       );
     });
+
+    it('uses observed water values for every user-visible water series', () => {
+      const observedWaterSeries: ObservedMetric<number>[] = [
+        {
+          value: 0,
+          state: 'observed',
+          coverage: 'sufficient',
+          sources: ['manual'],
+          observedCount: 1,
+          expectedCount: null,
+          windowStart: '2026-07-04T00:00:00.000Z',
+          windowEnd: '2026-07-05T00:00:00.000Z',
+        },
+        {
+          value: null,
+          state: 'unknown',
+          coverage: 'none',
+          sources: [],
+          observedCount: 0,
+          expectedCount: null,
+          windowStart: '2026-07-05T00:00:00.000Z',
+          windowEnd: '2026-07-06T00:00:00.000Z',
+        },
+        {
+          value: 2000,
+          state: 'observed',
+          coverage: 'sufficient',
+          sources: ['manual'],
+          observedCount: 1,
+          expectedCount: null,
+          windowStart: '2026-07-06T00:00:00.000Z',
+          windowEnd: '2026-07-07T00:00:00.000Z',
+        },
+      ];
+
+      const result = service.compute(
+        makeFacts({
+          waterSeries: [0, 0, 0],
+          observedWaterSeries,
+        }),
+        'en',
+      );
+
+      expect(
+        result.metrics.find((metric) => metric.kind === 'water')?.sparkline,
+      ).toEqual([0, 2]);
+      expect(
+        result.trends.find((trend) => trend.kind === 'water')?.values,
+      ).toEqual([0, 2]);
+      expect(presenter.buildFindings).toHaveBeenCalledWith(
+        expect.objectContaining({ waterSeries: [0, 2] }),
+        'en',
+      );
+      expect(presenter.buildPatterns).toHaveBeenCalledWith(
+        expect.objectContaining({ waterSeries: [0, 2] }),
+        'en',
+      );
+    });
   });
 
   describe('buildMedicationMetric', () => {
@@ -151,6 +210,59 @@ describe('ReportsComputationService', () => {
   });
 
   describe('buildWaterMetric', () => {
+    const observed = (
+      value: number | null,
+      state: 'observed' | 'unknown',
+      coverage: 'sufficient' | 'partial' | 'none',
+    ): ObservedMetric<number> => ({
+      value,
+      state,
+      coverage,
+      sources: state === 'observed' ? ['manual'] : [],
+      observedCount: state === 'observed' ? 1 : 0,
+      expectedCount: null,
+      windowStart: '2026-07-04T00:00:00.000Z',
+      windowEnd: '2026-07-11T00:00:00.000Z',
+    });
+
+    it('returns insufficient_data when all days are unknown', () => {
+      const result = service.compute(
+        makeFacts({
+          waterSeries: [0, 0, 0],
+          observedWaterSeries: [
+            observed(null, 'unknown', 'none'),
+            observed(null, 'unknown', 'none'),
+            observed(null, 'unknown', 'none'),
+          ],
+        }),
+        'en',
+      );
+
+      expect(result.metrics[1]).toMatchObject({
+        value: '--',
+        status: 'insufficient_data',
+      });
+    });
+
+    it('keeps an observed zero distinct from unknown days', () => {
+      const result = service.compute(
+        makeFacts({
+          waterSeries: [0, 0, 0],
+          observedWaterSeries: [
+            observed(0, 'observed', 'sufficient'),
+            observed(null, 'unknown', 'none'),
+            observed(null, 'unknown', 'none'),
+          ],
+        }),
+        'en',
+      );
+
+      expect(result.metrics[1]).toMatchObject({
+        value: '0.0',
+        status: 'needs_attention',
+      });
+    });
+
     it('returns good status when average >= 1.8', () => {
       const result = service.compute(
         makeFacts({ waterSeries: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0] }),

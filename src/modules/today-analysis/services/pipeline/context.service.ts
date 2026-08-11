@@ -1,4 +1,10 @@
 import { parseDateOnly } from '../../../../common';
+import {
+  summarizeWaterMetrics,
+  toObservedWaterMetric,
+  WATER_TARGET_ML_PER_COUNT,
+} from '../../../../common';
+import type { ObservedMetric } from '../../../../common';
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
@@ -24,6 +30,7 @@ export interface TodayAnalysisContext {
     completedCount: number;
     targetCount: number;
     remainingCount: number;
+    observedMetric?: ObservedMetric<number>;
   };
   medication: {
     medicineCount: number;
@@ -164,14 +171,30 @@ export class TodayAnalysisContextService {
       (medicine) => medicine.id === nextReminder?.currentMedicineId,
     );
 
-    const waterCompletedCount = dailyRecords.filter(
-      (record) => record.kind === 'water',
-    ).length;
+    const waterSummary = summarizeWaterMetrics(
+      dailyRecords
+        .filter((record) => record.kind === DailyRecordKind.water)
+        .map((record) => ({ value: record.value, unit: record.unit })),
+    );
     const waterTarget =
       typeof waterTargetCount?.value === 'number' &&
       Number.isFinite(waterTargetCount.value)
         ? waterTargetCount.value
         : USER_SETTINGS_DEFAULTS.waterTargetCount;
+    const observedWaterMetric = toObservedWaterMetric(waterSummary, day);
+    const waterCompletedCount = waterSummary.observedCount;
+    const waterRemainingCount =
+      observedWaterMetric.state === 'observed' &&
+      observedWaterMetric.value != null
+        ? Math.max(
+            Math.ceil(
+              (waterTarget * WATER_TARGET_ML_PER_COUNT -
+                observedWaterMetric.value) /
+                WATER_TARGET_ML_PER_COUNT,
+            ),
+            0,
+          )
+        : 0;
     const recordSummary = this.buildRecordSummary(dailyRecords);
     const recentRecords = dailyRecords
       .slice(0, MAX_RECENT_RECORDS)
@@ -183,7 +206,8 @@ export class TodayAnalysisContextService {
       water: {
         completedCount: waterCompletedCount,
         targetCount: waterTarget,
-        remainingCount: Math.max(waterTarget - waterCompletedCount, 0),
+        remainingCount: waterRemainingCount,
+        observedMetric: observedWaterMetric,
       },
       medication: {
         medicineCount: currentMedicines.length,

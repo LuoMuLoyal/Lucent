@@ -5,6 +5,7 @@ import type {
   ReportTrendDto,
 } from '../dto/report-dashboard-response.dto';
 import type { ReportRange } from '../dto/report-dashboard-query.dto';
+import type { ObservedMetric } from '../../../common';
 
 export type MetricStatus =
   | 'good'
@@ -23,6 +24,10 @@ export interface ReportDashboardFacts {
   medicationSeries: number[];
   waterSeries: number[];
   sleepSeries: number[];
+  /** New sparse metric projections; scalar series remain for compatibility. */
+  observedMedicationSeries?: ObservedMetric<number>[];
+  observedWaterSeries?: ObservedMetric<number>[];
+  observedSleepSeries?: ObservedMetric<number>[];
   mealEstimateSeries: number[];
   mealEstimateTrackedDays: number;
   mealEstimateBreakdown: {

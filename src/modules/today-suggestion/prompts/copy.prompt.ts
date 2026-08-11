@@ -55,7 +55,9 @@ Respond with a JSON object containing:
 7. For trend alerts, use cautious language (e.g., "shows a trend" rather than "diagnosed")
 8. Reason should reference specific items from the evidence array when available
 9. For high confidence suggestions, use more direct language; for low confidence, hedge appropriately
-10. suggestionType indicates the card's priority: confirmed_risk/compliance are urgent, behavior_advice is encouraging, coverage is informational
+ 10. suggestionType indicates the card's priority: confirmed_risk/compliance are urgent, behavior_advice is encouraging, coverage is informational
+
+For water.behind.target, treat only observedMl, targetMl, completionRate, and consecutiveDays as factual parameters. Never infer, request, or mention completedCount, targetCount, or remainingCount.
 
 ## Templates Reference
 - coverage.profile.incomplete: Profile missing fields

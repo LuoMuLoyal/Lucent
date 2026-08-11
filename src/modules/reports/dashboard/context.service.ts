@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { badRequest } from '../../../common';
+import {
+  badRequest,
+  summarizeWaterMetrics,
+  toObservedWaterMetric,
+} from '../../../common';
 import {
   formatDateOnly,
   parseDateOnly,
   now,
   nowIsoString,
 } from '../../../common';
+import type { ObservedMetric, WaterMetricInput } from '../../../common';
 import { DoseLogStatus, DailyRecordKind } from '#generated/prisma/client';
 import { DailyRecordReaderPort } from '../../daily-records';
 import { MedicineDoseLogReaderPort } from '../../medicine-dose-logs';
@@ -49,6 +54,11 @@ export class ReportsContextService {
       startDate,
       endDate,
     );
+    const observedWaterSeries = this.buildObservedWaterSeries(
+      dailyRecords,
+      startDate,
+      endDate,
+    );
 
     return {
       range,
@@ -61,7 +71,13 @@ export class ReportsContextService {
         startDate,
         endDate,
       ),
-      waterSeries: this.buildWaterSeries(dailyRecords, startDate, endDate),
+      // Keep the scalar series for the existing report response until the
+      // observed metric is promoted through the OpenAPI DTO. It is derived
+      // from the same canonical ml observations below.
+      waterSeries: observedWaterSeries.map((metric) =>
+        metric.value == null ? 0 : Number((metric.value / 1000).toFixed(2)),
+      ),
+      observedWaterSeries,
       sleepSeries: this.buildSleepSeries(dailyRecords, startDate, endDate),
       mealEstimateSeries: mealEstimateFacts.series,
       mealEstimateTrackedDays: mealEstimateFacts.series.filter(
@@ -98,7 +114,7 @@ export class ReportsContextService {
     });
   }
 
-  private buildWaterSeries(
+  private buildObservedWaterSeries(
     dailyRecords: Array<{
       occurredAt: Date;
       kind: DailyRecordKind;
@@ -107,29 +123,24 @@ export class ReportsContextService {
     }>,
     startDate: Date,
     endDate: Date,
-  ): number[] {
-    const totalsByDay = new Map<string, number>();
+  ): ObservedMetric<number>[] {
+    const recordsByDay = new Map<string, WaterMetricInput[]>();
 
     for (const record of dailyRecords) {
       if (record.kind !== DailyRecordKind.water) {
         continue;
       }
 
-      const liters = this.parseWaterLiters(record.value, record.unit);
-      if (liters == null) {
-        continue;
-      }
-
       const day = this.toDateString(record.occurredAt);
-      totalsByDay.set(
-        day,
-        Number(((totalsByDay.get(day) ?? 0) + liters).toFixed(2)),
-      );
+      const records = recordsByDay.get(day) ?? [];
+      records.push({ value: record.value, unit: record.unit });
+      recordsByDay.set(day, records);
     }
 
     return this.eachDay(startDate, endDate).map((date) => {
-      const total = totalsByDay.get(this.toDateString(date)) ?? 0;
-      return Number(total.toFixed(2));
+      const day = this.toDateString(date);
+      const summary = summarizeWaterMetrics(recordsByDay.get(day) ?? []);
+      return toObservedWaterMetric(summary, date);
     });
   }
 
@@ -257,30 +268,6 @@ export class ReportsContextService {
         failedDays,
       },
     };
-  }
-
-  private parseWaterLiters(
-    rawValue: string | null,
-    rawUnit: string | null,
-  ): number | null {
-    if (!rawValue) {
-      return null;
-    }
-
-    const value = Number(rawValue);
-    if (!Number.isFinite(value) || value <= 0) {
-      return null;
-    }
-
-    const unit = (rawUnit ?? '').trim().toLowerCase();
-    if (unit === 'ml') {
-      return value / 1000;
-    }
-    if (unit === 'l' || unit === 'liter' || unit === 'litre') {
-      return value;
-    }
-
-    return value <= 10 ? value : value / 1000;
   }
 
   private eachDay(startDate: Date, endDate: Date): Date[] {

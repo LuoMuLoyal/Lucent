@@ -51,9 +51,8 @@ export const COPY_TEMPLATES: Record<string, CopyTemplate> = {
   'water.behind.target': {
     description: 'Water intake below target - afternoon reminder',
     requiredParams: [
-      'completedCount',
-      'targetCount',
-      'remainingCount',
+      'observedMl',
+      'targetMl',
       'completionRate',
       'consecutiveDays',
     ],

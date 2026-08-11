@@ -13,9 +13,8 @@ function buildRequest(overrides: Partial<CopyJobData> = {}): CopyJobData {
   return {
     templateKey: 'water.behind.target',
     params: {
-      completedCount: 2,
-      targetCount: 8,
-      remainingCount: 6,
+      observedMl: 500,
+      targetMl: 2000,
       completionRate: 25,
       consecutiveDays: 3,
     },
@@ -26,8 +25,8 @@ function buildRequest(overrides: Partial<CopyJobData> = {}): CopyJobData {
     ruleId: 'water_behind_target',
     subtype: 'water',
     evidence: [
-      { kind: 'record', label: 'current_count', value: '2' },
-      { kind: 'record', label: 'target_count', value: '8' },
+      { kind: 'record', label: 'current_ml', value: '500' },
+      { kind: 'record', label: 'target_ml', value: '2000' },
     ],
     ...overrides,
   };
@@ -128,6 +127,24 @@ describe('SuggestionCopyService', () => {
       expect(result.aiGenerated).toBe(false);
       expect(queueMock.enqueue).not.toHaveBeenCalled();
     });
+  });
+
+  it('requires canonical observed water parameters only', async () => {
+    const result = await service.getOrEnqueue(
+      buildRequest({
+        params: {
+          completedCount: 2,
+          targetCount: 8,
+          remainingCount: 6,
+          completionRate: 25,
+          consecutiveDays: 3,
+        },
+      }),
+      queue,
+    );
+
+    expect(result.aiGenerated).toBe(false);
+    expect(queueMock.enqueue).not.toHaveBeenCalled();
   });
 
   // ─── generateViaLlm (write path) ───

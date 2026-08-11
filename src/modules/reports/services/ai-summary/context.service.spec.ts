@@ -89,4 +89,49 @@ describe('ReportsAiSummaryContextService', () => {
       baseFacts.mealEstimateTrackedDays,
     );
   });
+
+  it('counts water coverage from observed metrics, including explicit zero', () => {
+    const context = service.build(
+      {
+        ...baseFacts,
+        waterSeries: [0, 0, 0],
+        observedWaterSeries: [
+          {
+            value: 0,
+            state: 'observed',
+            coverage: 'sufficient',
+            sources: ['manual'],
+            observedCount: 1,
+            expectedCount: null,
+            windowStart: '2026-06-06T00:00:00.000Z',
+            windowEnd: '2026-06-07T00:00:00.000Z',
+          },
+          {
+            value: null,
+            state: 'unknown',
+            coverage: 'none',
+            sources: [],
+            observedCount: 0,
+            expectedCount: null,
+            windowStart: '2026-06-07T00:00:00.000Z',
+            windowEnd: '2026-06-08T00:00:00.000Z',
+          },
+          {
+            value: 500,
+            state: 'observed',
+            coverage: 'sufficient',
+            sources: ['manual'],
+            observedCount: 1,
+            expectedCount: null,
+            windowStart: '2026-06-08T00:00:00.000Z',
+            windowEnd: '2026-06-09T00:00:00.000Z',
+          },
+        ],
+      },
+      baseComputed,
+    );
+
+    expect(context.dataQuality.waterTrackedDays).toBe(2);
+    expect(context.series.waterObserved).toHaveLength(3);
+  });
 });

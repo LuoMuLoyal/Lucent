@@ -5,7 +5,7 @@ quadrant: reference
 updated: 2026-08-11
 ---
 
-# Active Product Loop — Health Event Contract / Proactive Suggestion Runtime
+# Active Product Loop — Health Event Contract / Sparse Record Semantics
 
 Last updated: 2026-08-11
 
@@ -28,6 +28,7 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Today Analysis 使用 `userId + localDate + sourceVersion` 的 BullMQ job id 合并触发；普通 daily record 不触发，只有 symptom record、health-event create/end、symptom check-in、dose log 和合格的 suggestion materialization 版本进入分析队列。`GET /today-analysis` 只读历史物化结果，不调用 LLM。
 - Today Analysis materialization 持久化 `sourceVersion`、`computedVersion`、`computedAt`、`generationCount` 和失败状态；每个自然日最多生成 3 次，手动刷新有 5 分钟冷却，旧结果在 `stale/pending/failed` 状态下继续可读。
 - Suggestion recompute 已接入低基数 Prometheus 指标：enqueue、dedupe、job duration、ready/failed 和 stale age；标签不包含 userId、日期或健康内容。
+- Sparse Record Semantics 的 Water 阶段已完成：Today collector、Today Analysis、Report context 与 Report AI context 共用纯 mapper/factory，合法水量统一为整数 ml；unknown、observed zero、非法输入和来源/coverage 不再混淆。旧 Report 升数序列仅作为兼容投影，并由同一 ml 结果派生。
 
 ## 验证状态
 
@@ -43,7 +44,8 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Proactive Suggestion Runtime Task 8 已完成：Luminous Today 消费 `ready/stale/pending/failed/empty`，GET 只读，事件去抖刷新、resume sourceVersion 检查、cold-start cache 保留和 FIFO 请求串行均已覆盖定向测试。
 - Proactive Suggestion Runtime Task 9 已完成：Lucent 低基数运行时指标、全量验证和文档 checkpoint 已完成；PostgreSQL + Redis live acceptance 覆盖记录写入后的 worker 物化、首个只读 GET，以及连续 10 次写入后的版本收敛。
 - Task 9 验证：相关定向测试 4 个 spec、49 tests；Today suggestion API E2E 11 tests；临时 live acceptance 1 test；全量 `pnpm test`、`pnpm lint:check`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、Prisma validate、docs check/verify/links 均通过。
+- Sparse Record Semantics Water 阶段验证：Water mapper、Record collector、Report context/computation、water-shortfall 定向测试通过；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build` 通过。药品 slot 与睡眠 episode 的 RED 合同测试保留到后续阶段。
 
 ## 下一阶段
 
-下一阶段进入 Sparse Record Semantics：统一服药槽位、饮水 ml/coverage、睡眠片段和 unknown 语义；Proactive Suggestion Runtime 保留为已完成的服务端主动重算基础。
+下一阶段继续 Sparse Record Semantics：统一服药槽位与睡眠片段；Water ml/coverage 已完成。Proactive Suggestion Runtime 保留为已完成的服务端主动重算基础。

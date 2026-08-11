@@ -75,3 +75,6 @@ interface DataExportRequestDto {
 - `ClinicSummaryService` user lookup migrated to `prisma.nonDeleted.user.findFirstOrThrow` API.
 - Report summary and clinic PDF async-queue fallback (`enqueueOrFallback`) now accepts an
   injected `Logger` instance from the controller for testability and consistent log context.
+- Report dashboard scalar water values used by compatible export paths are derived from the shared
+  canonical milliliter observation. Missing days remain unknown in the source metric and are not
+  counted as zero-liter intake when computing averages.

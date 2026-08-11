@@ -51,13 +51,33 @@ describe('RecordCollectorService', () => {
       (dailyRecordReader.listFactsInRange as vi.Mock)
         // todayRecords
         .mockResolvedValueOnce([
-          makeRecord({ id: 'w1', kind: DailyRecordKind.water }),
-          makeRecord({ id: 'w2', kind: DailyRecordKind.water }),
+          makeRecord({
+            id: 'w1',
+            kind: DailyRecordKind.water,
+            value: '250',
+            unit: 'ml',
+          }),
+          makeRecord({
+            id: 'w2',
+            kind: DailyRecordKind.water,
+            value: '250',
+            unit: 'ml',
+          }),
         ])
         // multiDayRecords
         .mockResolvedValueOnce([
-          makeRecord({ id: 'w1', kind: DailyRecordKind.water }),
-          makeRecord({ id: 'w2', kind: DailyRecordKind.water }),
+          makeRecord({
+            id: 'w1',
+            kind: DailyRecordKind.water,
+            value: '250',
+            unit: 'ml',
+          }),
+          makeRecord({
+            id: 'w2',
+            kind: DailyRecordKind.water,
+            value: '250',
+            unit: 'ml',
+          }),
         ]);
       mockSettings(8);
 
@@ -71,6 +91,11 @@ describe('RecordCollectorService', () => {
         remainingCount: 6,
         observedValue: 2,
         coverage: { sufficient: true },
+      });
+      const trend = signals.find((s) => s.kind === 'water_trend');
+      expect(trend?.payload).toMatchObject({
+        semantics: 'legacy_record_count',
+        source: 'daily_record',
       });
     });
 
@@ -89,6 +114,64 @@ describe('RecordCollectorService', () => {
         coverage: { sufficient: false },
       });
       expect(water!.payload).not.toHaveProperty('observedValue');
+    });
+
+    it('distinguishes unknown water from an explicitly observed zero', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      mockSettings(8);
+
+      const unknownSignals = await service.collect('user-1', '2026-07-09');
+      const unknownWater = unknownSignals.find((s) => s.kind === 'water_count');
+
+      expect(unknownWater!.payload).toMatchObject({
+        observedMetric: {
+          value: null,
+          state: 'unknown',
+          coverage: 'none',
+          sources: [],
+          observedCount: 0,
+          expectedCount: null,
+        },
+      });
+
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([makeRecord({ value: '0', unit: 'ml' })])
+        .mockResolvedValueOnce([makeRecord({ value: '0', unit: 'ml' })]);
+
+      const zeroSignals = await service.collect('user-1', '2026-07-09');
+      const zeroWater = zeroSignals.find((s) => s.kind === 'water_count');
+
+      expect(zeroWater!.payload).toMatchObject({
+        observedMetric: {
+          value: 0,
+          state: 'observed',
+          coverage: 'sufficient',
+          sources: ['manual'],
+          observedCount: 1,
+          expectedCount: null,
+        },
+      });
+    });
+
+    it('normalizes water records to milliliters instead of record count', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce([makeRecord({ value: '500', unit: 'ml' })])
+        .mockResolvedValueOnce([makeRecord({ value: '500', unit: 'ml' })]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+      const water = signals.find((s) => s.kind === 'water_count');
+
+      expect(water!.payload).toMatchObject({
+        observedMetric: {
+          value: 500,
+          state: 'observed',
+          coverage: 'sufficient',
+          sources: ['manual'],
+        },
+      });
     });
 
     it('emits a sleep_record signal when a sleep record exists', async () => {

@@ -17,7 +17,12 @@ export class TodayAnalysisCopyService extends LocalizedCopyService<TodayAnalysis
     locale: string,
   ): TodayAnalysisStructuredOutput {
     const medicationPending = context.medication.pendingCount;
-    const waterRemaining = context.water.remainingCount;
+    const waterRemaining =
+      context.water.observedMetric?.state === 'observed' &&
+      context.water.observedMetric.coverage === 'sufficient' &&
+      context.water.observedMetric.value != null
+        ? context.water.remainingCount
+        : 0;
     const actionLabel = this.t(locale, 'fallback.action_label');
     const action = this.t(locale, 'fallback.action');
     const confidenceNote = this.t(locale, 'fallback.confidence_note');

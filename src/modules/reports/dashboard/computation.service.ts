@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { ObservedMetric } from '../../../common';
 import type { ReportMetricDto } from '../dto/report-dashboard-response.dto';
 import type {
   MetricDirection,
@@ -16,8 +17,12 @@ export class ReportsComputationService {
     facts: ReportDashboardFacts,
     locale: string,
   ): ReportDashboardComputed {
+    const waterSeries = this.buildPublicWaterSeries(facts);
     const medicationMetric = this.buildMedicationMetric(facts.medicationSeries);
-    const waterMetric = this.buildWaterMetric(facts.waterSeries);
+    const waterMetric = this.buildWaterMetric(
+      waterSeries,
+      facts.observedWaterSeries,
+    );
     const sleepMetric = this.buildSleepMetric(facts.sleepSeries);
     const metrics = [medicationMetric, waterMetric, sleepMetric];
 
@@ -35,7 +40,7 @@ export class ReportsComputationService {
           kind: 'water',
           unit: 'L',
           currentValue: waterMetric.value,
-          values: facts.waterSeries,
+          values: waterSeries,
         },
         {
           kind: 'sleep',
@@ -48,7 +53,7 @@ export class ReportsComputationService {
         {
           range: facts.range,
           medicationSeries: facts.medicationSeries,
-          waterSeries: facts.waterSeries,
+          waterSeries,
           sleepStatus: sleepMetric.status,
         },
         locale,
@@ -57,7 +62,7 @@ export class ReportsComputationService {
         {
           range: facts.range,
           medicationSeries: facts.medicationSeries,
-          waterSeries: facts.waterSeries,
+          waterSeries,
           sleepSeries: facts.sleepSeries,
         },
         locale,
@@ -96,10 +101,38 @@ export class ReportsComputationService {
     };
   }
 
-  private buildWaterMetric(series: number[]): ReportMetricDto {
+  private buildWaterMetric(
+    series: number[],
+    observedSeries?: ObservedMetric<number>[],
+  ): ReportMetricDto {
+    const values =
+      observedSeries == null
+        ? series
+        : observedSeries
+            .filter(
+              (metric) =>
+                metric.state === 'observed' &&
+                metric.coverage === 'sufficient' &&
+                metric.value != null,
+            )
+            .flatMap((metric) =>
+              metric.value == null ? [] : [metric.value / 1000],
+            );
+
+    if (values.length === 0) {
+      return {
+        kind: 'water',
+        value: '--',
+        unit: 'L',
+        status: 'insufficient_data',
+        delta: '--',
+        direction: 'flat',
+        sparkline: series,
+      };
+    }
+
     const average =
-      series.reduce((sum, value) => sum + value, 0) /
-      Math.max(series.length, 1);
+      values.reduce((sum, value) => sum + value, 0) / values.length;
     const roundedAverage = Number(average.toFixed(1));
     const status: MetricStatus =
       roundedAverage >= 1.8
@@ -113,13 +146,30 @@ export class ReportsComputationService {
       value: roundedAverage.toFixed(1),
       unit: 'L',
       status,
-      delta: this.deltaNumber(series[0] ?? roundedAverage, roundedAverage, 1),
+      delta: this.deltaNumber(values[0] ?? roundedAverage, roundedAverage, 1),
       direction: this.compareDirection(
-        series[0] ?? roundedAverage,
+        values[0] ?? roundedAverage,
         roundedAverage,
       ),
       sparkline: series,
     };
+  }
+
+  private buildPublicWaterSeries(facts: ReportDashboardFacts): number[] {
+    if (facts.observedWaterSeries == null) {
+      return facts.waterSeries;
+    }
+
+    return facts.observedWaterSeries
+      .filter(
+        (metric) =>
+          metric.state === 'observed' &&
+          metric.coverage === 'sufficient' &&
+          metric.value != null,
+      )
+      .flatMap((metric) =>
+        metric.value == null ? [] : [Number((metric.value / 1000).toFixed(2))],
+      );
   }
 
   private buildSleepMetric(series: number[]): ReportMetricDto {
