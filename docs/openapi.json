@@ -5347,6 +5347,53 @@
         },
         "required": ["actionId", "label", "route", "authRequired"]
       },
+      "SuggestionObservedMetricDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "enum": ["observed", "unknown"]
+          },
+          "coverage": {
+            "type": "string",
+            "enum": ["sufficient", "partial", "none"]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
+            }
+          },
+          "observedCount": {
+            "type": "number"
+          },
+          "expectedCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "windowStart": {
+            "type": "string"
+          },
+          "windowEnd": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "state",
+          "coverage",
+          "sources",
+          "observedCount",
+          "expectedCount",
+          "windowStart",
+          "windowEnd"
+        ]
+      },
       "SuggestionItemDto": {
         "type": "object",
         "properties": {
@@ -5445,6 +5492,9 @@
           "subtype": {
             "type": "object",
             "description": "Sub-type for rendering variety"
+          },
+          "observedMetric": {
+            "$ref": "#/components/schemas/SuggestionObservedMetricDto"
           }
         },
         "required": [
@@ -6398,7 +6448,7 @@
           },
           "payload": {
             "type": "object",
-            "description": "Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. endAt is an ISO 8601 timestamp whose date component matches occurredAt (wake date). startAt is the bedtime ISO 8601 timestamp and may fall on the day before occurredAt for cross-midnight sleep. For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. Vital and activity payloads are optional for manual entry."
+            "description": "Structured payload for kind-specific data. For sleep: { sleepType?: \"nightSleep\"|\"nap\", startedAt?: string, endedAt?: string, durationMinutes, quality? }. Legacy startAt/endAt remain readable and map to nightSleep. endedAt must be later than startedAt; cross-midnight intervals are valid. For vital: { vitalType: \"heartRate\"|\"bloodPressure\"|\"bloodOxygen\"|\"bloodGlucose\"|\"bodyTemperature\"|\"weight\"|\"respiratoryRate\", value: number, unit: string, secondaryValue?: number, secondaryUnit?: string }. For activity: { activityType: \"steps\"|\"flightsClimbed\"|\"distance\"|\"exerciseTime\", value: number, unit: string }. Vital and activity payloads are optional for manual entry."
           },
           "attachments": {
             "description": "Attachment metadata. File upload itself is handled separately.",
@@ -6453,7 +6503,7 @@
           },
           "payload": {
             "type": "object",
-            "description": "Structured payload for kind-specific data. Use null to clear.",
+            "description": "Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality; legacy startAt/endAt remain readable. endedAt must be later than startedAt.",
             "nullable": true,
             "additionalProperties": true
           },
@@ -9840,6 +9890,53 @@
         },
         "required": ["value", "maxValue", "status", "summary"]
       },
+      "ReportObservedMetricDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "enum": ["observed", "unknown"]
+          },
+          "coverage": {
+            "type": "string",
+            "enum": ["sufficient", "partial", "none"]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
+            }
+          },
+          "observedCount": {
+            "type": "number"
+          },
+          "expectedCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "windowStart": {
+            "type": "string"
+          },
+          "windowEnd": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "state",
+          "coverage",
+          "sources",
+          "observedCount",
+          "expectedCount",
+          "windowStart",
+          "windowEnd"
+        ]
+      },
       "ReportMetricDto": {
         "type": "object",
         "properties": {
@@ -9848,27 +9945,36 @@
             "enum": ["medication", "water", "sleep"]
           },
           "value": {
-            "type": "string"
+            "type": "string",
+            "deprecated": true
           },
           "unit": {
-            "type": "string"
+            "type": "string",
+            "deprecated": true
           },
           "status": {
             "type": "string",
-            "enum": ["good", "stable", "needs_attention", "insufficient_data"]
+            "enum": ["good", "stable", "needs_attention", "insufficient_data"],
+            "deprecated": true
           },
           "delta": {
-            "type": "string"
+            "type": "string",
+            "deprecated": true
           },
           "direction": {
             "type": "string",
-            "enum": ["up", "down", "flat"]
+            "enum": ["up", "down", "flat"],
+            "deprecated": true
           },
           "sparkline": {
+            "deprecated": true,
             "type": "array",
             "items": {
               "type": "number"
             }
+          },
+          "observedMetric": {
+            "$ref": "#/components/schemas/ReportObservedMetricDto"
           }
         },
         "required": [
@@ -10709,6 +10815,66 @@
         },
         "required": ["kind", "text"]
       },
+      "TodayAnalysisObservedMetricDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "nullable": true
+          },
+          "state": {
+            "type": "string",
+            "enum": ["observed", "unknown"]
+          },
+          "coverage": {
+            "type": "string",
+            "enum": ["sufficient", "partial", "none"]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
+            }
+          },
+          "observedCount": {
+            "type": "number"
+          },
+          "expectedCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "windowStart": {
+            "type": "string"
+          },
+          "windowEnd": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "state",
+          "coverage",
+          "sources",
+          "observedCount",
+          "expectedCount",
+          "windowStart",
+          "windowEnd"
+        ]
+      },
+      "TodayAnalysisMetricDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["medication", "water", "sleep"]
+          },
+          "observedMetric": {
+            "$ref": "#/components/schemas/TodayAnalysisObservedMetricDto"
+          }
+        },
+        "required": ["kind", "observedMetric"]
+      },
       "TodayAnalysisDataDto": {
         "type": "object",
         "properties": {
@@ -10738,6 +10904,12 @@
           },
           "confidenceNote": {
             "type": "string"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TodayAnalysisMetricDto"
+            }
           }
         },
         "required": [

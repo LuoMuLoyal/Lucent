@@ -28,8 +28,9 @@ Last updated: 2026-08-11
   local time before the suggestion pipeline evaluates overdue status. This is an internal
   read-model change; it does not require an OpenAPI export or Flutter client regeneration.
 - Sparse Record Semantics medication slots extend that internal read model through Report
-  context/computation: reminder slot coverage is observed separately from temporary dose logs;
-  no OpenAPI export or Flutter client regeneration is required until the observed DTO phase.
+  context/computation: reminder slot coverage is observed separately from temporary dose logs.
+  Task 6 now exposes the coverage-aware observed metric schema through OpenAPI; regenerate the
+  Flutter client after each contract export, then let the domain mapper consume the new object.
 - Lucent CI is split into three parallel Jobs (`ci-lint-typecheck`, `ci-unit`, `ci-e2e`) plus a
   Docker Job. The `ci-e2e` Job runs `Build` then `openapi:export` (reusing `dist/`, no double
   build) before E2E tests to ensure the contract file matches the current code. The file is

@@ -1,4 +1,8 @@
-import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  getSchemaPath,
+} from '@nestjs/swagger';
 
 export class TodayAnalysisBulletDto {
   @ApiProperty({
@@ -8,6 +12,44 @@ export class TodayAnalysisBulletDto {
 
   @ApiProperty()
   text!: string;
+}
+
+export class TodayAnalysisObservedMetricDto {
+  @ApiProperty({ type: Number, nullable: true })
+  value!: number | null;
+
+  @ApiProperty({ enum: ['observed', 'unknown'], type: String })
+  state!: 'observed' | 'unknown';
+
+  @ApiProperty({ enum: ['sufficient', 'partial', 'none'], type: String })
+  coverage!: 'sufficient' | 'partial' | 'none';
+
+  @ApiProperty({
+    enum: ['manual', 'health_platform', 'reminder_plan', 'derived'],
+    isArray: true,
+    type: String,
+  })
+  sources!: Array<'manual' | 'health_platform' | 'reminder_plan' | 'derived'>;
+
+  @ApiProperty({ type: Number })
+  observedCount!: number;
+
+  @ApiProperty({ type: Number, nullable: true })
+  expectedCount!: number | null;
+
+  @ApiProperty({ type: String })
+  windowStart!: string;
+
+  @ApiProperty({ type: String })
+  windowEnd!: string;
+}
+
+export class TodayAnalysisMetricDto {
+  @ApiProperty({ enum: ['medication', 'water', 'sleep'], type: String })
+  kind!: 'medication' | 'water' | 'sleep';
+
+  @ApiProperty({ type: () => TodayAnalysisObservedMetricDto })
+  observedMetric!: TodayAnalysisObservedMetricDto;
 }
 
 export class TodayAnalysisDataDto {
@@ -34,6 +76,9 @@ export class TodayAnalysisDataDto {
 
   @ApiProperty()
   confidenceNote!: string;
+
+  @ApiPropertyOptional({ type: () => [TodayAnalysisMetricDto] })
+  metrics?: TodayAnalysisMetricDto[];
 }
 
 export class TodayAnalysisReadDataDto {

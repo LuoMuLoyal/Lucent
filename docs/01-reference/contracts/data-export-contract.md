@@ -81,3 +81,6 @@ interface DataExportRequestDto {
 - Report dashboard scalar water values used by compatible export paths are derived from the shared
   canonical milliliter observation. Missing days remain unknown in the source metric and are not
   counted as zero-liter intake when computing averages.
+- Report metric scalar fields remain a deprecated compatibility projection while the coverage-aware
+  observed metric (`value`, `state`, `coverage`, `sources`, counts, and window) is the contract for
+  new consumers. Export paths must keep missing observations distinct from an observed zero.

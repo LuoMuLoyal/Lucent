@@ -43,6 +43,36 @@ export class SuggestionActionDto {
   authRequired!: boolean;
 }
 
+export class SuggestionObservedMetricDto {
+  @ApiProperty({ type: Number, nullable: true })
+  value!: number | null;
+
+  @ApiProperty({ enum: ['observed', 'unknown'], type: String })
+  state!: 'observed' | 'unknown';
+
+  @ApiProperty({ enum: ['sufficient', 'partial', 'none'], type: String })
+  coverage!: 'sufficient' | 'partial' | 'none';
+
+  @ApiProperty({
+    enum: ['manual', 'health_platform', 'reminder_plan', 'derived'],
+    isArray: true,
+    type: String,
+  })
+  sources!: Array<'manual' | 'health_platform' | 'reminder_plan' | 'derived'>;
+
+  @ApiProperty({ type: Number })
+  observedCount!: number;
+
+  @ApiProperty({ type: Number, nullable: true })
+  expectedCount!: number | null;
+
+  @ApiProperty({ type: String })
+  windowStart!: string;
+
+  @ApiProperty({ type: String })
+  windowEnd!: string;
+}
+
 /** A single suggestion card in the API response. */
 export class SuggestionItemDto {
   @ApiProperty({ description: 'Unique suggestion id' })
@@ -128,4 +158,7 @@ export class SuggestionItemDto {
 
   @ApiPropertyOptional({ description: 'Sub-type for rendering variety' })
   subtype?: string | undefined;
+
+  @ApiPropertyOptional({ type: () => SuggestionObservedMetricDto })
+  observedMetric?: SuggestionObservedMetricDto;
 }

@@ -90,6 +90,11 @@ Today Analysis context types may carry the shared sparse `ObservedMetric<T>` sha
 keep `unknown` distinct from an observed zero and must not turn a missing water value into a
 zero-valued fact before generation.
 
+The OpenAPI DTOs for Today Analysis expose the same observed metric boundary used by Report and
+Today Suggestions: nullable `value` and `expectedCount` remain explicit fields, while `state`,
+`coverage`, and `sources` explain whether a generated fact is usable. Assistant/analysis prompts
+must preserve that distinction and never infer zero from an absent observation.
+
 ## AI Copy / Localization
 
 All user-visible AI copy must flow through the shared localization layer rather than being hardcoded

@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   REPORT_SUPPORTED_RANGES,
   type ReportRange,
@@ -20,33 +20,68 @@ export class ReportDashboardScoreDto {
   summary!: string;
 }
 
+export class ReportObservedMetricDto {
+  @ApiProperty({ type: Number, nullable: true })
+  value!: number | null;
+
+  @ApiProperty({ enum: ['observed', 'unknown'], type: String })
+  state!: 'observed' | 'unknown';
+
+  @ApiProperty({ enum: ['sufficient', 'partial', 'none'], type: String })
+  coverage!: 'sufficient' | 'partial' | 'none';
+
+  @ApiProperty({
+    enum: ['manual', 'health_platform', 'reminder_plan', 'derived'],
+    isArray: true,
+    type: String,
+  })
+  sources!: Array<'manual' | 'health_platform' | 'reminder_plan' | 'derived'>;
+
+  @ApiProperty({ type: Number })
+  observedCount!: number;
+
+  @ApiProperty({ type: Number, nullable: true })
+  expectedCount!: number | null;
+
+  @ApiProperty({ type: String })
+  windowStart!: string;
+
+  @ApiProperty({ type: String })
+  windowEnd!: string;
+}
+
 export class ReportMetricDto {
   @ApiProperty({
     enum: ['medication', 'water', 'sleep'],
   })
   kind!: 'medication' | 'water' | 'sleep';
 
-  @ApiProperty()
+  @ApiProperty({ deprecated: true })
   value!: string;
 
-  @ApiProperty()
+  @ApiProperty({ deprecated: true })
   unit!: string;
 
   @ApiProperty({
     enum: ['good', 'stable', 'needs_attention', 'insufficient_data'],
+    deprecated: true,
   })
   status!: 'good' | 'stable' | 'needs_attention' | 'insufficient_data';
 
-  @ApiProperty()
+  @ApiProperty({ deprecated: true })
   delta!: string;
 
   @ApiProperty({
     enum: ['up', 'down', 'flat'],
+    deprecated: true,
   })
   direction!: 'up' | 'down' | 'flat';
 
-  @ApiProperty({ type: [Number] })
+  @ApiProperty({ type: [Number], deprecated: true })
   sparkline!: number[];
+
+  @ApiPropertyOptional({ type: () => ReportObservedMetricDto })
+  observedMetric?: ReportObservedMetricDto;
 }
 
 export class ReportTrendDto {
