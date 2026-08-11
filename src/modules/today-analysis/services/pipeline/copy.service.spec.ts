@@ -38,6 +38,16 @@ describe('TodayAnalysisCopyService', () => {
           completedCount: 4,
           targetCount: 8,
           remainingCount: 4,
+          observedMetric: {
+            value: 1000,
+            state: 'observed',
+            coverage: 'sufficient',
+            sources: ['manual'],
+            observedCount: 4,
+            expectedCount: null,
+            windowStart: '2026-06-12T00:00:00.000Z',
+            windowEnd: '2026-06-13T00:00:00.000Z',
+          },
         },
         medication: {
           medicineCount: 2,
@@ -121,6 +131,16 @@ describe('TodayAnalysisCopyService', () => {
           completedCount: 2,
           targetCount: 8,
           remainingCount: 6,
+          observedMetric: {
+            value: 500,
+            state: 'observed',
+            coverage: 'sufficient',
+            sources: ['manual'],
+            observedCount: 2,
+            expectedCount: null,
+            windowStart: '2026-06-12T00:00:00.000Z',
+            windowEnd: '2026-06-13T00:00:00.000Z',
+          },
         },
         medication: {
           medicineCount: 0,
