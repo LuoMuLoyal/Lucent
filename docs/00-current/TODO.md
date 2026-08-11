@@ -23,7 +23,7 @@ the relevant `Lucent/docs/00-current/*.md` state file, and record the completion
 
 ### `0.1.0` 发布后：产品闭环重构（已决策，当前禁止启动）
 
-启动门槛：Luminous/Lucent 当前版本完成真实联调、发布验证和 `0.1.0` 正式发布。发布前只修复发布阻断问题；不得提前引入健康事件 schema、主动重算或 Review 新合同。执行顺序见 `Luminous/plans/2026-08-07-post-0.1.0-product-loop-program.md`。
+启动门槛：Luminous/Lucent 当前版本完成真实联调、发布验证和 `0.1.0` 正式发布。发布前只修复发布阻断问题；不得提前引入健康事件 schema、主动重算或 Review 新合同。执行顺序见 `Luminous/plans/2026-08-07-product-loop-program.md`。
 
 - **回顾读模型**：以健康事件聚合发生事实、关键变化、槽位完成情况和下一步；至少一个维度可解释即可返回，禁止跨维度综合健康评分，单维趋势需返回数据覆盖率
 - **旧 Report 指标修正**：`nonZeroDays` 不能排除真实 0% 日期并抬高服药率；无记录日期不能直接写成 0 L 或 `needs_attention`；旧 dashboard 在 Review 切换完成前也必须返回诚实口径
