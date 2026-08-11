@@ -12,6 +12,9 @@ describe('AssistantSummaryRepository', () => {
     prisma = {
       assistantSummaryHistory: {
         upsert: vi.fn(),
+        findUnique: vi.fn(),
+        create: vi.fn(),
+        updateMany: vi.fn(),
         findMany: vi.fn(),
         findFirst: vi.fn(),
       },
@@ -98,6 +101,72 @@ describe('AssistantSummaryRepository', () => {
       const call = prisma.assistantSummaryHistory.upsert.mock.calls[0]?.[0];
       expect(call?.create).toHaveProperty('kind', AiSummaryHistoryKind.report);
       expect(call?.create).toHaveProperty('rangeKey', 'last_7_days');
+    });
+
+    it('does not let an older version overwrite a newer Today summary', async () => {
+      prisma.assistantSummaryHistory.findUnique.mockResolvedValue({
+        ...mockTodayRow,
+        sourceVersion: 8,
+      } as never);
+      prisma.assistantSummaryHistory.updateMany.mockResolvedValue({
+        count: 0,
+      } as never);
+
+      await repository.save({
+        userId: 'user-1',
+        kind: 'today',
+        scopeKey: 'today:2026-07-10',
+        date: '2026-07-10',
+        generatedAt: '2026-07-10T08:00:00.000Z',
+        summary: 'Older summary',
+        bullets: [],
+        actionLabel: 'Review',
+        action: 'check',
+        confidenceNote: 'high',
+        sourceVersion: 7,
+      });
+
+      expect(prisma.assistantSummaryHistory.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-1',
+            scopeKey: 'today:2026-07-10',
+            kind: AiSummaryHistoryKind.today,
+            OR: expect.arrayContaining([
+              { sourceVersion: null },
+              { sourceVersion: { lte: 7 } },
+            ]),
+          }),
+        }),
+      );
+      expect(prisma.assistantSummaryHistory.upsert).not.toHaveBeenCalled();
+      expect(prisma.assistantSummaryHistory.create).not.toHaveBeenCalled();
+    });
+
+    it('handles a concurrent Today summary create without losing the version fence', async () => {
+      prisma.assistantSummaryHistory.findUnique.mockResolvedValue(null);
+      prisma.assistantSummaryHistory.create.mockRejectedValue({
+        code: 'P2002',
+      });
+      prisma.assistantSummaryHistory.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        repository.save({
+          userId: 'user-1',
+          kind: 'today',
+          scopeKey: 'today:2026-07-10',
+          date: '2026-07-10',
+          generatedAt: '2026-07-10T08:00:00.000Z',
+          summary: 'Summary',
+          bullets: [],
+          actionLabel: 'Review',
+          action: 'check',
+          confidenceNote: 'high',
+          sourceVersion: 7,
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(prisma.assistantSummaryHistory.updateMany).toHaveBeenCalled();
     });
   });
 

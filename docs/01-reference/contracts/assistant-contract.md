@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-06
+updated: 2026-08-10
 ---
 
 # Assistant Contract
@@ -27,6 +27,7 @@ Current scope:
 - persisted conversation restore / recent list / open / archive-current
 - explicit separation between persisted conversations and optional cross-conversation memory
 - proposal-only write intents that still require frontend human confirmation
+- persisted Today Analysis reads and explicit, cooldown-protected refreshes
 
 Current non-goals:
 
@@ -78,6 +79,13 @@ Implications:
   passages, and filtered medical QA are separate retrieval tools with different trust boundaries.
   None of them replaces the reviewed medicine safety rule engine.
 
+Today Analysis is a bounded, materialized read model. `GET /api/v1/user/today-analysis` reads the
+latest persisted result and returns `empty`, `pending`, `ready`, `stale`, or `failed`; it never
+starts the LLM pipeline. `POST /api/v1/user/today-analysis/refresh` is the explicit refresh path,
+with a five-minute per-user/date cooldown and a three-generation daily cap. Server-side health
+event, symptom record, dose-log, and eligible suggestion-materialization events enqueue versioned
+jobs; ordinary food, mood, water, and note records do not.
+
 ## AI Copy / Localization
 
 All user-visible AI copy must flow through the shared localization layer rather than being hardcoded
@@ -101,6 +109,8 @@ inline:
 - `POST /api/v1/user/assistant/conversations/:conversationId/open`
 - `POST /api/v1/user/assistant/conversations/:conversationId/confirm`
 - `POST /api/v1/user/assistant/messages/stream`
+- `GET /api/v1/user/today-analysis`
+- `POST /api/v1/user/today-analysis/refresh`
 
 ## Settings Contract
 

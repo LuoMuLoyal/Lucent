@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
@@ -44,6 +45,9 @@ export class HealthEventCoverageDto {
 }
 
 export class HealthEventItemDto {
+  @ApiProperty({ enum: HealthEventKind, enumName: 'HealthEventKind' })
+  kind!: HealthEventKind;
+
   @ApiProperty()
   id!: string;
 

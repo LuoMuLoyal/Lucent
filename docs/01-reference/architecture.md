@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-09
+updated: 2026-08-10
 ---
 
 # Lucent Architecture
@@ -151,6 +151,13 @@ event creation, event ending, or daily check-in. Its payload contains only `user
 `eventId`, the user's local `date`, and a fixed `change` value (`create`, `end`, or
 `check-in`); it never carries health-content payloads. Subscribers must treat these
 notifications as post-write triggers and must not mutate the source event state.
+
+`TodayAnalysisTriggerListener` consumes the same post-write events plus dose-log and
+suggestion-materialization changes. It only schedules symptom records, symptom check-ins,
+health-event create/end, dose-log changes, and suggestion materializations whose reason codes
+include dose or health-event changes. The listener records a versioned materialization row before
+enqueueing `today-analysis:<userId>:<localDate>:<sourceVersion>`; the row fences stale jobs and
+limits generation to three attempts per local date.
 
 ## AI Pipeline Architecture
 
@@ -382,16 +389,16 @@ graph TD
 
 ### Queue Service Details
 
-| Queue                  | Module                 | Concurrency | Result TTL | Notes                                  |
-| ---------------------- | ---------------------- | ----------- | ---------- | -------------------------------------- |
-| meal-analysis          | daily-records          | 1           | 30 min     | Image → LLM vision analysis            |
-| data-export            | data-export            | 1           | 30 min     | Dashboard PDF generation               |
-| medicine-recognition   | medicines              | 1           | 30 min     | Image → LLM medicine recognition       |
-| report-summary         | reports/ai-summary     | 1           | 30 min     | LLM dashboard summary                  |
-| clinic-pdf             | reports/clinic-summary | 1           | 30 min     | Clinic PDF with LLM summary            |
-| today-analysis         | today-analysis         | 1           | 30 min     | LLM today analysis + SSE stream        |
-| suggestion-explanation | today-suggestion       | 1           | 30 min     | LLM suggestion explanation             |
-| mail                   | mail                   | 3           | —          | Transactional email (no async polling) |
+| Queue                  | Module                 | Concurrency | Result TTL | Notes                                                             |
+| ---------------------- | ---------------------- | ----------- | ---------- | ----------------------------------------------------------------- |
+| meal-analysis          | daily-records          | 1           | 30 min     | Image → LLM vision analysis                                       |
+| data-export            | data-export            | 1           | 30 min     | Dashboard PDF generation                                          |
+| medicine-recognition   | medicines              | 1           | 30 min     | Image → LLM medicine recognition                                  |
+| report-summary         | reports/ai-summary     | 1           | 30 min     | LLM dashboard summary                                             |
+| clinic-pdf             | reports/clinic-summary | 1           | 30 min     | Clinic PDF with LLM summary                                       |
+| today-analysis         | today-analysis         | 1           | 30 min     | Versioned event-triggered LLM analysis; GET reads materialization |
+| suggestion-explanation | today-suggestion       | 1           | 30 min     | LLM suggestion explanation                                        |
+| mail                   | mail                   | 3           | —          | Transactional email (no async polling)                            |
 
 In addition to the async job queues above, `CronJobsService` (`src/common/queue/cron-jobs.service.ts`)
 manages two BullMQ repeatable-job queues for scheduled tasks:

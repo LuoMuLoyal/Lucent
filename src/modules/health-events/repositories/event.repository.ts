@@ -1,4 +1,5 @@
 import type {
+  HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
@@ -17,6 +18,8 @@ export interface HealthEventRecord {
   id: string;
   userId: string;
   title: string;
+  /** Always populated by the Prisma implementation; optional for legacy ports. */
+  kind?: HealthEventKind;
   status: HealthEventStatus;
   startedAt: Date;
   endedAt: Date | null;
@@ -49,6 +52,7 @@ export interface HealthEventView extends HealthEventRecord {
 export interface HealthEventCreateInput {
   userId: string;
   title: string;
+  kind: HealthEventKind;
   status: HealthEventStatus;
   startedAt: Date;
   reasonRecordId: string | null;

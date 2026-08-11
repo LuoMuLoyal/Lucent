@@ -1,3 +1,4 @@
+import { HealthEventKind } from '#generated/prisma/client';
 import { formatDateOnlyInTimezone } from '../../../../common';
 import {
   DAILY_RECORD_CHANGED,
@@ -132,6 +133,19 @@ describe('RecomputeTriggerListener', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('does not recompute suggestions for a non-symptom check-in', async () => {
+    await listener.handleHealthEventChanged({
+      userId: 'user-1',
+      eventId: 'event-1',
+      date: '2026-08-08',
+      change: 'check-in',
+      kind: HealthEventKind.other,
+    });
+
+    expect(store.markPending).not.toHaveBeenCalled();
+    expect(queue.enqueue).not.toHaveBeenCalled();
   });
 
   it('does not throw when pending marking or enqueueing fails', async () => {

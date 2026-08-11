@@ -20,6 +20,7 @@ const eventSelect = {
   id: true,
   userId: true,
   title: true,
+  kind: true,
   status: true,
   startedAt: true,
   endedAt: true,
@@ -150,6 +151,7 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
           data: {
             userId: input.userId,
             title: input.title,
+            kind: input.kind,
             status: input.status,
             startedAt: input.startedAt,
             reasonRecordId: input.reasonRecordId,
@@ -282,6 +284,7 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
       id: row.id,
       userId: row.userId,
       title: row.title,
+      kind: row.kind,
       status: row.status,
       startedAt: row.startedAt,
       endedAt: row.endedAt,

@@ -7,6 +7,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { HealthEventKind } from '#generated/prisma/client';
 import { formatDateOnly, successEnvelope } from '../../common';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
@@ -130,6 +131,7 @@ export class HealthEventsController {
     const view = 'checkIn' in event ? event : this.withEmptyView(event);
     return {
       id: view.id,
+      kind: view.kind ?? HealthEventKind.symptom,
       title: view.title,
       status: view.status,
       startedAt: this.toIso(view.startedAt),

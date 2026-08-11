@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
@@ -26,6 +27,7 @@ import {
 
 export interface CreateHealthEventInput {
   title: string;
+  kind?: HealthEventKind;
   startedAt?: Date;
   reasonRecordId?: string | null;
   currentMedicineIds?: string[];
@@ -93,6 +95,7 @@ export class EventsService {
       created = await this.repository.create({
         userId,
         title: input.title,
+        kind: input.kind ?? HealthEventKind.symptom,
         status: HealthEventStatus.active,
         startedAt: input.startedAt ?? now(),
         reasonRecordId,
@@ -114,6 +117,7 @@ export class EventsService {
         timezone ?? DEFAULT_USER_TIMEZONE,
       ),
       change: 'create',
+      kind: created.kind ?? HealthEventKind.symptom,
     } satisfies HealthEventChangedPayload);
     return created;
   }
@@ -210,6 +214,7 @@ export class EventsService {
         timezone ?? DEFAULT_USER_TIMEZONE,
       ),
       change: 'end',
+      kind: updated.kind ?? HealthEventKind.symptom,
     } satisfies HealthEventChangedPayload);
     return updated;
   }

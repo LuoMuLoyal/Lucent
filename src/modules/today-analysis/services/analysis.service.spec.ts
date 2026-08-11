@@ -18,6 +18,17 @@ function modelGenerateSpy(service: TodayAnalysisService) {
   );
 }
 
+function modelGenerateStreamSpy(service: TodayAnalysisService) {
+  return vi.spyOn(
+    (
+      service as unknown as {
+        generatorService: { generateStream: vi.Mock };
+      }
+    ).generatorService,
+    'generateStream',
+  );
+}
+
 function notificationCreateOrReplaceScopedSpy(service: TodayAnalysisService) {
   return vi.spyOn(
     (
@@ -155,6 +166,188 @@ describe('TodayAnalysisService', () => {
     await service.generate('u1', { date: '2026-06-12' }, 'zh-CN');
 
     expect(modelSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses the claimed active fence when committing a versioned generation', async () => {
+    const service = createService({
+      materializationStatus: {
+        status: 'pending',
+        sourceVersion: 4,
+        computedVersion: 3,
+        computedAt: null,
+      },
+      claimActiveVersion: 5,
+    });
+    modelGenerateSpy(service).mockResolvedValue(versionedOutput);
+
+    await service.generateForVersion('u1', { date: '2026-06-12' }, 'zh-CN', 4);
+
+    expect(materializationWriteSpies(service).markReady).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceVersion: 4, activeVersion: 5 }),
+    );
+  });
+
+  it('rejects a claimed generation without an active fence', async () => {
+    const service = createService({
+      materializationStatus: {
+        status: 'pending',
+        sourceVersion: 4,
+        computedVersion: 3,
+        computedAt: null,
+      },
+      claimActiveVersion: null,
+    });
+
+    await expect(
+      service.generateForVersion('u1', { date: '2026-06-12' }, 'zh-CN', 4),
+    ).rejects.toThrow('TODAY_ANALYSIS_CLAIM_FENCE_MISSING');
+  });
+
+  it('uses the claimed active fence when recording a failed versioned generation', async () => {
+    const service = createService({
+      materializationStatus: {
+        status: 'pending',
+        sourceVersion: 4,
+        computedVersion: 3,
+        computedAt: null,
+      },
+      claimActiveVersion: 5,
+    });
+    modelGenerateSpy(service).mockResolvedValue(versionedOutput);
+    (
+      service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
+    ).aiSummaryHistoryService.save.mockRejectedValue(
+      new Error('persist failed'),
+    );
+
+    await expect(
+      service.generateForVersion('u1', { date: '2026-06-12' }, 'zh-CN', 4),
+    ).rejects.toThrow('persist failed');
+
+    expect(materializationWriteSpies(service).markFailed).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceVersion: 4, activeVersion: 5 }),
+    );
+  });
+
+  it('uses the claimed active fence when committing a streamed versioned generation', async () => {
+    const service = createService({
+      materializationStatus: {
+        status: 'pending',
+        sourceVersion: 4,
+        computedVersion: 3,
+        computedAt: null,
+      },
+      claimActiveVersion: 5,
+    });
+    modelGenerateStreamSpy(service).mockResolvedValue(versionedOutput);
+
+    await service.generateStreamForVersion(
+      'u1',
+      { date: '2026-06-12' },
+      'zh-CN',
+      4,
+      () => undefined,
+    );
+
+    expect(materializationWriteSpies(service).markReady).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceVersion: 4, activeVersion: 5 }),
+    );
+  });
+
+  it('uses the claimed active fence when recording a failed streamed generation', async () => {
+    const service = createService({
+      materializationStatus: {
+        status: 'pending',
+        sourceVersion: 4,
+        computedVersion: 3,
+        computedAt: null,
+      },
+      claimActiveVersion: 5,
+    });
+    modelGenerateStreamSpy(service).mockResolvedValue(versionedOutput);
+    (
+      service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
+    ).aiSummaryHistoryService.save.mockRejectedValue(
+      new Error('persist failed'),
+    );
+
+    await expect(
+      service.generateStreamForVersion(
+        'u1',
+        { date: '2026-06-12' },
+        'zh-CN',
+        4,
+        () => undefined,
+      ),
+    ).rejects.toThrow('persist failed');
+
+    expect(materializationWriteSpies(service).markFailed).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceVersion: 4, activeVersion: 5 }),
+    );
+  });
+
+  it('preserves the original generation error when failed cleanup throws', async () => {
+    const service = createService({
+      materializationStatus: {
+        status: 'pending',
+        sourceVersion: 4,
+        computedVersion: 3,
+        computedAt: null,
+      },
+      claimActiveVersion: 5,
+    });
+    const originalError = new Error('original generation error');
+    const cleanupError = new Error('cleanup error');
+    const loggerError = vi.spyOn(
+      (service as unknown as { logger: { error: vi.Mock } }).logger,
+      'error',
+    );
+    (
+      service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
+    ).aiSummaryHistoryService.save.mockRejectedValue(originalError);
+    materializationWriteSpies(service).markFailed.mockRejectedValue(
+      cleanupError,
+    );
+
+    await expect(
+      service.generateForVersion('u1', { date: '2026-06-12' }, 'zh-CN', 4),
+    ).rejects.toBe(originalError);
+    expect(loggerError).toHaveBeenCalled();
+  });
+
+  it('preserves the original streamed generation error when failed cleanup throws', async () => {
+    const service = createService({
+      materializationStatus: {
+        status: 'pending',
+        sourceVersion: 4,
+        computedVersion: 3,
+        computedAt: null,
+      },
+      claimActiveVersion: 5,
+    });
+    const originalError = new Error('original streamed generation error');
+    const cleanupError = new Error('cleanup error');
+    const loggerError = vi.spyOn(
+      (service as unknown as { logger: { error: vi.Mock } }).logger,
+      'error',
+    );
+    (
+      service as unknown as { aiSummaryHistoryService: { save: vi.Mock } }
+    ).aiSummaryHistoryService.save.mockRejectedValue(originalError);
+    materializationWriteSpies(service).markFailed.mockRejectedValue(
+      cleanupError,
+    );
+
+    await expect(
+      service.generateStreamForVersion(
+        'u1',
+        { date: '2026-06-12' },
+        'zh-CN',
+        4,
+        () => undefined,
+      ),
+    ).rejects.toBe(originalError);
+    expect(loggerError).toHaveBeenCalled();
   });
 
   it('red: readCurrent returns existing analysis without invoking generation', async () => {
@@ -337,7 +530,9 @@ describe('TodayAnalysisService', () => {
     expect(result.actionLabel).toBe('查看今日记录');
   });
 
-  it('uses today UTC date when dto.date is omitted', async () => {
+  it('uses the default profile timezone when dto.date is omitted', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-01T16:30:00.000Z'));
     const service = createService();
     // Override the context mock to echo the date passed to build()
     (
@@ -363,17 +558,81 @@ describe('TodayAnalysisService', () => {
 
     const result = await service.generate('u1', {}, 'zh-CN');
 
-    const today = new Date(
-      Date.UTC(
-        new Date().getUTCFullYear(),
-        new Date().getUTCMonth(),
-        new Date().getUTCDate(),
-      ),
-    )
-      .toISOString()
-      .slice(0, 10);
+    expect(result.date).toBe('2026-08-02');
+    vi.useRealTimers();
+  });
 
-    expect(result.date).toBe(today);
+  it('uses the profile timezone when no date is supplied', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-01T23:30:00.000Z'));
+    const service = createService({ timezone: 'America/Los_Angeles' });
+    (
+      service as unknown as {
+        contextService: { build: vi.Mock };
+      }
+    ).contextService.build.mockImplementation(
+      (_userId: string, date: string) => ({
+        ...baseContext,
+        date,
+      }),
+    );
+    modelGenerateSpy(service).mockResolvedValue({
+      summary: '今日记录良好。',
+      bullets: [
+        { kind: 'medication', text: '用药全部完成。' },
+        { kind: 'hydration', text: '饮水已达标。' },
+      ],
+      actionLabel: '查看今日记录',
+      action: 'today',
+      confidenceNote: '仅供参考。',
+    });
+
+    const result = await service.generate('u1', {}, 'zh-CN');
+
+    expect(result.date).toBe('2026-08-01');
+    vi.useRealTimers();
+  });
+
+  it('does not expose a summary before its materialization is ready', async () => {
+    const service = createService({
+      materializationStatus: {
+        status: 'pending',
+        sourceVersion: 2,
+        computedVersion: 1,
+        computedAt: new Date('2026-08-10T08:00:00.000Z'),
+      },
+      summary: { sourceVersion: 2 },
+    });
+
+    await expect(
+      service.readCurrent('u1', '2026-08-10'),
+    ).resolves.toMatchObject({
+      analysis: null,
+      status: 'stale',
+      sourceVersion: 2,
+      computedVersion: 1,
+    });
+  });
+
+  it('does not expose a failed generation when there is no computed version', async () => {
+    const service = createService({
+      materializationStatus: {
+        status: 'failed',
+        sourceVersion: 1,
+        computedVersion: 0,
+        computedAt: null,
+      },
+      summary: { sourceVersion: 1 },
+    });
+
+    await expect(
+      service.readCurrent('u1', '2026-08-10'),
+    ).resolves.toMatchObject({
+      analysis: null,
+      status: 'failed',
+      sourceVersion: 1,
+      computedVersion: 0,
+    });
   });
 
   it('swallows notification failure without breaking generation', async () => {
@@ -460,11 +719,25 @@ describe('TodayAnalysisService', () => {
   function createService(options?: {
     userSettingValue?: boolean;
     config?: LlmConfig;
+    timezone?: string | null;
+    materializationStatus?: {
+      status: 'empty' | 'pending' | 'ready' | 'stale' | 'failed';
+      sourceVersion: number;
+      computedVersion: number;
+      computedAt: Date | null;
+    };
+    summary?: { sourceVersion: number | null };
+    claimActiveVersion?: number | null;
   }) {
     const prisma = {
       userSetting: {
         findFirst: vi.fn().mockResolvedValue({
           value: options?.userSettingValue ?? true,
+        }),
+      },
+      user: {
+        findUnique: vi.fn().mockResolvedValue({
+          profile: { timezone: options?.timezone ?? null },
         }),
       },
     };
@@ -474,7 +747,59 @@ describe('TodayAnalysisService', () => {
     } as unknown as TodayAnalysisContextService;
     const aiSummaryHistoryService = {
       save: vi.fn().mockResolvedValue(undefined),
+      getLatestTodaySummaryByDate: vi.fn().mockResolvedValue(
+        options?.summary == null
+          ? null
+          : {
+              date: '2026-08-10',
+              generatedAt: '2026-08-10T08:00:00.000Z',
+              summary: '旧摘要',
+              bullets: [],
+              actionLabel: '查看今日记录',
+              action: 'today',
+              confidenceNote: '仅供参考。',
+              sourceVersion: options.summary.sourceVersion,
+            },
+      ),
     };
+
+    const materializationStore =
+      options?.materializationStatus == null
+        ? undefined
+        : {
+            readStatus: vi.fn().mockResolvedValue({
+              id: 'materialization-1',
+              userId: 'u1',
+              localDate: new Date('2026-08-10T00:00:00.000Z'),
+              reasonCodes: [],
+              generationCount: 1,
+              activeVersion: null,
+              activeAt: null,
+              lastManualAt: null,
+              lastTriggerKey: null,
+              lastErrorCode: null,
+              queuedAt: null,
+              updatedAt: new Date('2026-08-10T08:00:00.000Z'),
+              ...options.materializationStatus,
+              status:
+                options.materializationStatus.status === 'pending' &&
+                options.materializationStatus.sourceVersion >
+                  options.materializationStatus.computedVersion &&
+                options.materializationStatus.computedVersion > 0
+                  ? 'stale'
+                  : options.materializationStatus.status,
+            }),
+            claimGeneration: vi.fn().mockResolvedValue({
+              claimed: true,
+              status: 'claimed',
+              activeVersion:
+                options.claimActiveVersion === undefined
+                  ? 4
+                  : options.claimActiveVersion,
+            }),
+            markReady: vi.fn().mockResolvedValue(true),
+            markFailed: vi.fn().mockResolvedValue(true),
+          };
 
     const copyService = {
       resolveLocale: vi.fn((language: string | undefined) => {
@@ -584,6 +909,29 @@ describe('TodayAnalysisService', () => {
         safety: { forbiddenPatterns: [] },
       } as never),
       notificationsService,
+      materializationStore as never,
     );
   }
+
+  function materializationWriteSpies(service: TodayAnalysisService) {
+    return (
+      service as unknown as {
+        materializationStore: {
+          markReady: vi.Mock;
+          markFailed: vi.Mock;
+        };
+      }
+    ).materializationStore;
+  }
 });
+
+const versionedOutput = {
+  summary: '今日记录良好。',
+  bullets: [
+    { kind: 'medication' as const, text: '用药记录完整。' },
+    { kind: 'hydration' as const, text: '饮水记录完整。' },
+  ],
+  actionLabel: '查看今日记录',
+  action: 'today',
+  confidenceNote: '仅供参考。',
+};

@@ -28,6 +28,7 @@ export interface PersistSummaryInput {
   actionLabel: string;
   action: string;
   confidenceNote: string;
+  sourceVersion?: number | null;
 }
 
 export interface TodaySummaryRow {
@@ -38,6 +39,7 @@ export interface TodaySummaryRow {
   actionLabel: string;
   action: string;
   confidenceNote: string;
+  sourceVersion?: number | null;
 }
 
 export interface ReportSummaryRow {
@@ -83,6 +85,11 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
   constructor(private readonly prisma: PrismaService) {}
 
   async save(input: PersistSummaryInput): Promise<void> {
+    if (input.kind === 'today' && input.sourceVersion != null) {
+      await this.saveVersionedTodaySummary(input);
+      return;
+    }
+
     await this.prisma.assistantSummaryHistory.upsert({
       where: {
         userId_scopeKey: {
@@ -93,6 +100,51 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
       create: this.toUpsertData(input),
       update: this.toUpsertData(input),
     });
+  }
+
+  private async saveVersionedTodaySummary(
+    input: PersistSummaryInput,
+  ): Promise<void> {
+    const sourceVersion = input.sourceVersion;
+    if (sourceVersion == null) {
+      return;
+    }
+    const where: Prisma.AssistantSummaryHistoryWhereInput = {
+      userId: input.userId,
+      scopeKey: input.scopeKey,
+      kind: AiSummaryHistoryKind.today,
+      OR: [{ sourceVersion: null }, { sourceVersion: { lte: sourceVersion } }],
+    };
+    const existing = await this.prisma.assistantSummaryHistory.findUnique({
+      where: {
+        userId_scopeKey: {
+          userId: input.userId,
+          scopeKey: input.scopeKey,
+        },
+      },
+    });
+    const data = this.toUpsertData(input);
+    const updated = await this.prisma.assistantSummaryHistory.updateMany({
+      where,
+      data,
+    });
+    if (updated.count === 1 || existing != null) {
+      return;
+    }
+
+    try {
+      await this.prisma.assistantSummaryHistory.create({ data });
+    } catch (error) {
+      if (!isUniqueConflict(error)) {
+        throw error;
+      }
+      // A newer writer may have won the unique-key race. Re-run the fenced
+      // update so an older writer cannot replace it.
+      await this.prisma.assistantSummaryHistory.updateMany({
+        where,
+        data,
+      });
+    }
   }
 
   async listRecentTodaySummaries(
@@ -171,6 +223,7 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
       actionLabel: input.actionLabel,
       action: input.action,
       confidenceNote: input.confidenceNote,
+      sourceVersion: input.sourceVersion ?? null,
     };
   }
 
@@ -182,6 +235,7 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
     actionLabel: string;
     action: string;
     confidenceNote: string;
+    sourceVersion?: number | null;
   }): TodaySummaryRow {
     return {
       date: formatDateOnly(row.date),
@@ -191,6 +245,7 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
       actionLabel: row.actionLabel,
       action: row.action,
       confidenceNote: row.confidenceNote,
+      sourceVersion: row.sourceVersion ?? null,
     };
   }
 
@@ -248,4 +303,13 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
       return [];
     });
   }
+}
+
+function isUniqueConflict(error: unknown): boolean {
+  return (
+    error != null &&
+    typeof error === 'object' &&
+    'code' in error &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
 }

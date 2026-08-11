@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, getSchemaPath } from '@nestjs/swagger';
 
 export class TodayAnalysisBulletDto {
   @ApiProperty({
@@ -17,6 +17,9 @@ export class TodayAnalysisDataDto {
   @ApiProperty()
   generatedAt!: string;
 
+  @ApiProperty({ required: false })
+  sourceVersion?: number;
+
   @ApiProperty()
   summary!: string;
 
@@ -33,13 +36,128 @@ export class TodayAnalysisDataDto {
   confidenceNote!: string;
 }
 
-export class TodayAnalysisResponseDto {
-  @ApiProperty({ example: 0 })
+export class TodayAnalysisReadDataDto {
+  @ApiProperty({ nullable: true, type: () => TodayAnalysisDataDto })
+  analysis!: TodayAnalysisDataDto | null;
+
+  @ApiProperty({
+    enum: ['empty', 'pending', 'ready', 'stale', 'failed'],
+    type: String,
+  })
+  status!: 'empty' | 'pending' | 'ready' | 'stale' | 'failed';
+
+  @ApiProperty({ type: Number })
+  sourceVersion!: number;
+
+  @ApiProperty({ type: Number })
+  computedVersion!: number;
+
+  @ApiProperty({ type: String, nullable: true })
+  computedAt!: string | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  retryAfterSeconds!: number | null;
+}
+
+export class TodayAnalysisReadResponseDto {
+  @ApiProperty({ type: Number, example: 0 })
   code!: number;
 
-  @ApiProperty({ example: '' })
+  @ApiProperty({ type: String, example: '' })
   message!: string;
 
+  @ApiProperty({ type: () => TodayAnalysisReadDataDto })
+  data!: TodayAnalysisReadDataDto;
+}
+
+export class TodayAnalysisRefreshPendingDataDto {
+  @ApiProperty({ enum: ['pending'], type: String })
+  status!: 'pending';
+
+  @ApiProperty({ type: String })
+  jobId!: string;
+}
+
+export class TodayAnalysisRefreshReadyDataDto {
+  @ApiProperty({ enum: ['ready'], type: String })
+  status!: 'ready';
+
   @ApiProperty({ type: () => TodayAnalysisDataDto })
-  data!: TodayAnalysisDataDto;
+  analysis!: TodayAnalysisDataDto;
+}
+
+export class TodayAnalysisRefreshResponseDto {
+  @ApiProperty({ type: Number, example: 0 })
+  code!: number;
+
+  @ApiProperty({ type: String, example: '' })
+  message!: string;
+
+  @ApiProperty({
+    oneOf: [
+      { $ref: getSchemaPath(TodayAnalysisDataDto) },
+      { $ref: getSchemaPath(TodayAnalysisReadDataDto) },
+      { $ref: getSchemaPath(TodayAnalysisRefreshPendingDataDto) },
+      { $ref: getSchemaPath(TodayAnalysisRefreshReadyDataDto) },
+    ],
+  })
+  data!:
+    | TodayAnalysisDataDto
+    | TodayAnalysisReadDataDto
+    | TodayAnalysisRefreshPendingDataDto
+    | TodayAnalysisRefreshReadyDataDto;
+}
+
+export class TodayAnalysisGenerateResponseDto {
+  @ApiProperty({ type: Number, example: 0 })
+  code!: number;
+
+  @ApiProperty({ type: String, example: '' })
+  message!: string;
+
+  @ApiProperty({
+    oneOf: [
+      { $ref: getSchemaPath(TodayAnalysisDataDto) },
+      { $ref: getSchemaPath(TodayAnalysisReadDataDto) },
+    ],
+  })
+  data!: TodayAnalysisDataDto | TodayAnalysisReadDataDto;
+}
+
+export class TodayAnalysisAsyncJobDataDto {
+  @ApiProperty({ type: String })
+  jobId!: string;
+}
+
+export class TodayAnalysisAsyncResultDataDto {
+  @ApiProperty({ type: () => TodayAnalysisDataDto })
+  result!: TodayAnalysisDataDto;
+}
+
+export class TodayAnalysisAsyncStatusDataDto {
+  @ApiProperty({
+    enum: ['empty', 'pending', 'ready', 'stale', 'failed'],
+    type: String,
+  })
+  status!: 'empty' | 'pending' | 'ready' | 'stale' | 'failed';
+}
+
+export class TodayAnalysisAsyncResponseDto {
+  @ApiProperty({ type: Number, example: 0 })
+  code!: number;
+
+  @ApiProperty({ type: String, example: '' })
+  message!: string;
+
+  @ApiProperty({
+    oneOf: [
+      { $ref: getSchemaPath(TodayAnalysisAsyncJobDataDto) },
+      { $ref: getSchemaPath(TodayAnalysisAsyncResultDataDto) },
+      { $ref: getSchemaPath(TodayAnalysisAsyncStatusDataDto) },
+    ],
+  })
+  data!:
+    | TodayAnalysisAsyncJobDataDto
+    | TodayAnalysisAsyncResultDataDto
+    | TodayAnalysisAsyncStatusDataDto;
 }

@@ -11,6 +11,11 @@
 
 // ─── Event names ───
 
+import type {
+  DailyRecordKind,
+  HealthEventKind,
+} from '#generated/prisma/client';
+
 /** Emitted when a daily record is created, updated, or soft-deleted. */
 export const DAILY_RECORD_CHANGED = 'daily-record.changed';
 
@@ -29,18 +34,28 @@ export const SETTINGS_CHANGED = 'settings.changed';
 /** Emitted when a health event is created, ended, or checked in. */
 export const HEALTH_EVENT_CHANGED = 'health-event.changed';
 
+/** Emitted when the server advances a Today Suggestion materialization version. */
+export const TODAY_SUGGESTION_MATERIALIZATION_CHANGED =
+  'today-suggestion.materialization.changed';
+
 // ─── Event payloads ───
 
 export interface DailyRecordChangedPayload {
   userId: string;
   /** ISO date string (YYYY-MM-DD) of the record's occurredAt date. */
   date: string;
+  /** Persisted kind; consumers must not infer semantics from title text. */
+  kind?: DailyRecordKind;
+  recordId?: string;
+  triggerKey?: string;
 }
 
 export interface DoseLogChangedPayload {
   userId: string;
   /** ISO date string (YYYY-MM-DD) of the dose log's scheduledFor date. */
   date: string;
+  doseLogId?: string;
+  triggerKey?: string;
 }
 
 export interface ReminderChangedPayload {
@@ -63,6 +78,17 @@ export interface HealthEventChangedPayload {
   /** ISO date string (YYYY-MM-DD) in the user's timezone. */
   date: string;
   change: HealthEventChange;
+  /** Persisted event kind, required by Today Analysis for check-ins. */
+  kind?: HealthEventKind;
+}
+
+export interface TodaySuggestionMaterializationChangedPayload {
+  userId: string;
+  /** ISO date string (YYYY-MM-DD) of the suggestion materialization. */
+  date: string;
+  sourceVersion: number;
+  analysisEligible: boolean;
+  triggerKey?: string;
 }
 
 /** Union of all domain event names for type-safe emission. */
@@ -72,4 +98,5 @@ export type DomainEventName =
   | typeof REMINDER_CHANGED
   | typeof HEALTH_CONTEXT_CHANGED
   | typeof SETTINGS_CHANGED
-  | typeof HEALTH_EVENT_CHANGED;
+  | typeof HEALTH_EVENT_CHANGED
+  | typeof TODAY_SUGGESTION_MATERIALIZATION_CHANGED;

@@ -102,6 +102,7 @@ export class SuggestionRecomputeWorkerService {
           userId: currentJob.userId,
           localDate: currentJob.localDate,
           sourceVersion: currentJob.sourceVersion,
+          reasonCodes: currentJob.reasonCodes,
         });
 
         const afterReady = await this.materializationStore.readStatus(

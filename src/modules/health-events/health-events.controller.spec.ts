@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { validate } from 'class-validator';
 import {
+  HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
@@ -23,6 +24,7 @@ const user: UserPayload = {
 
 const eventView = {
   id: 'event-1',
+  kind: HealthEventKind.symptom,
   title: 'Headache',
   status: HealthEventStatus.active,
   startedAt: '2026-08-09T00:00:00.000Z',

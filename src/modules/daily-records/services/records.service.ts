@@ -147,7 +147,12 @@ export class DailyRecordsService {
         item.item,
         item.queuedRevision ?? undefined,
       );
-      await this.invalidateSuggestionCache(userId, dto.occurredAt);
+      await this.invalidateSuggestionCache(
+        userId,
+        dto.occurredAt,
+        dto.kind,
+        item.item.id,
+      );
       return item.item;
     }
 
@@ -160,7 +165,12 @@ export class DailyRecordsService {
       includeMealPayload: true,
     });
     await this.enqueueMealAnalysisIfNeeded(userId, item);
-    await this.invalidateSuggestionCache(userId, dto.occurredAt);
+    await this.invalidateSuggestionCache(
+      userId,
+      dto.occurredAt,
+      dto.kind,
+      item.id,
+    );
     return item;
   }
 
@@ -257,7 +267,7 @@ export class DailyRecordsService {
         item,
         nextPayload == null ? undefined : getMealSourceRevision(nextPayload),
       );
-      await this.invalidateSuggestionCacheForUpdate(userId, existing, dto);
+      await this.invalidateSuggestionCacheForUpdate(userId, id, existing, dto);
       return item;
     }
 
@@ -276,11 +286,11 @@ export class DailyRecordsService {
       await this.mealDishTemplateLearningService.learnFromConfirmedAnalysis(
         parseMealRecordPayload(item.payload).mealAnalysis,
       );
-      await this.invalidateSuggestionCacheForUpdate(userId, existing, dto);
+      await this.invalidateSuggestionCacheForUpdate(userId, id, existing, dto);
       return item;
     }
     await this.enqueueMealAnalysisIfNeeded(userId, item);
-    await this.invalidateSuggestionCacheForUpdate(userId, existing, dto);
+    await this.invalidateSuggestionCacheForUpdate(userId, id, existing, dto);
     return item;
   }
 
@@ -288,7 +298,12 @@ export class DailyRecordsService {
     const existing = await this.ownershipService.ensureOwnedByUser(userId, id);
     await this.repository.softDelete(id, now());
     if (existing.occurredAt != null) {
-      await this.invalidateSuggestionCache(userId, existing.occurredAt);
+      await this.invalidateSuggestionCache(
+        userId,
+        existing.occurredAt,
+        existing.kind,
+        id,
+      );
     }
   }
 
@@ -304,6 +319,8 @@ export class DailyRecordsService {
   private async invalidateSuggestionCache(
     userId: string,
     occurredAt: string | Date,
+    kind?: DailyRecordKind,
+    recordId?: string,
   ): Promise<void> {
     try {
       const dateStr =
@@ -313,6 +330,8 @@ export class DailyRecordsService {
       await this.eventEmitter.emitAsync(DAILY_RECORD_CHANGED, {
         userId,
         date: dateStr,
+        ...(kind != null ? { kind } : {}),
+        ...(recordId != null ? { recordId } : {}),
       } satisfies DailyRecordChangedPayload);
     } catch (error) {
       // cache invalidation is best-effort
@@ -330,22 +349,41 @@ export class DailyRecordsService {
    */
   private async invalidateSuggestionCacheForUpdate(
     userId: string,
+    recordId: string,
     existing: OwnedRecordSnapshot,
     dto: UpdateDailyRecordDto,
   ): Promise<void> {
     try {
-      const dates = new Set<string>();
-      if (existing.occurredAt != null) {
-        dates.add(formatDateOnly(existing.occurredAt));
-      }
-      if (dto.occurredAt !== undefined) {
-        dates.add(formatDateOnly(parseDateOnly(dto.occurredAt)));
-      }
-      for (const date of dates) {
-        await this.eventEmitter.emitAsync(DAILY_RECORD_CHANGED, {
+      const previousDate =
+        existing.occurredAt != null
+          ? formatDateOnly(existing.occurredAt)
+          : null;
+      const nextDate =
+        dto.occurredAt !== undefined
+          ? formatDateOnly(parseDateOnly(dto.occurredAt))
+          : previousDate;
+      const nextKind = dto.kind ?? existing.kind;
+      const events = new Map<string, DailyRecordChangedPayload>();
+
+      if (previousDate != null) {
+        events.set(`${previousDate}:${existing.kind}`, {
           userId,
-          date,
-        } satisfies DailyRecordChangedPayload);
+          date: previousDate,
+          kind: existing.kind,
+          recordId,
+        });
+      }
+      if (nextDate != null) {
+        events.set(`${nextDate}:${nextKind}`, {
+          userId,
+          date: nextDate,
+          kind: nextKind,
+          recordId,
+        });
+      }
+
+      for (const event of events.values()) {
+        await this.eventEmitter.emitAsync(DAILY_RECORD_CHANGED, event);
       }
     } catch (error) {
       // cache invalidation is best-effort

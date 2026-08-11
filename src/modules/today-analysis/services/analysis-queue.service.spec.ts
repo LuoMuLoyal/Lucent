@@ -38,6 +38,9 @@ function buildFactory(available: boolean): {
 const mockCache = { get: vi.fn(), set: vi.fn() } as unknown as Cache;
 const mockAnalysisService = {
   generate: vi.fn(),
+  resolveDate: vi.fn((_userId: string, date?: string) =>
+    Promise.resolve(date ?? '2026-08-02'),
+  ),
 } as unknown as TodayAnalysisService;
 
 describe('TodayAnalysisQueueService', () => {
@@ -87,5 +90,62 @@ describe('TodayAnalysisQueueService', () => {
       dto,
       language: 'zh-CN',
     });
+  });
+
+  it('uses a stable user/date/version id for event-triggered jobs', async () => {
+    const { factory, mockQueue } = buildFactory(true);
+    mockQueue!.getJob.mockResolvedValue(null);
+    const svc = new TodayAnalysisQueueService(
+      factory,
+      mockCache,
+      mockAnalysisService,
+    );
+
+    await svc.enqueue(
+      'u1',
+      { date: '2026-07-14' },
+      'zh-CN',
+      7,
+      'dose_log_changed',
+      'dose-log:d1',
+    );
+
+    expect(mockQueue!.add).toHaveBeenCalledWith(
+      'generate',
+      {
+        userId: 'u1',
+        dto: { date: '2026-07-14' },
+        language: 'zh-CN',
+        sourceVersion: 7,
+        reasonCode: 'dose_log_changed',
+        triggerKey: 'dose-log:d1',
+      },
+      expect.objectContaining({
+        jobId: 'today-analysis:u1:2026-07-14:7',
+      }),
+    );
+  });
+
+  it('uses the resolved profile-local date in a versioned job id', async () => {
+    const { factory, mockQueue } = buildFactory(true);
+    mockQueue!.getJob.mockResolvedValue(null);
+    const svc = new TodayAnalysisQueueService(
+      factory,
+      mockCache,
+      mockAnalysisService,
+    );
+
+    await svc.enqueue('u1', {}, 'zh-CN', 7, 'dose_log_changed', 'dose-log:d1');
+
+    expect(mockQueue!.add).toHaveBeenCalledWith(
+      'generate',
+      expect.objectContaining({
+        dto: { date: '2026-08-02' },
+        sourceVersion: 7,
+      }),
+      expect.objectContaining({
+        jobId: 'today-analysis:u1:2026-08-02:7',
+      }),
+    );
   });
 });

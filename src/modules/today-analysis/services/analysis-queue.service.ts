@@ -8,14 +8,25 @@ import type { TodayAnalysisDataDto } from '../dto/analysis-response.dto';
 
 import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto';
 
-interface AnalysisJobData {
+export interface AnalysisJobData {
   userId: string;
   dto: GenerateTodayAnalysisDto;
   language: string;
+  sourceVersion?: number;
+  reasonCode?: string;
+  triggerKey?: string;
 }
 
-const QUEUE_NAME = 'today-analysis';
-const JOB_NAME = 'generate';
+export const TODAY_ANALYSIS_QUEUE_NAME = 'today-analysis';
+export const TODAY_ANALYSIS_JOB_NAME = 'generate';
+
+export function buildTodayAnalysisJobId(
+  userId: string,
+  date: string,
+  sourceVersion: number,
+): string {
+  return `${TODAY_ANALYSIS_QUEUE_NAME}:${userId}:${date}:${String(sourceVersion)}`;
+}
 
 /**
  * BullMQ queue for async Today Analysis generation.
@@ -39,11 +50,22 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
     @Inject(CACHE_MANAGER) cache: Cache,
     @Inject(TodayAnalysisService) analysisService: TodayAnalysisService,
   ) {
-    super(QUEUE_NAME, factory, cache, 2, async (job) =>
+    super(TODAY_ANALYSIS_QUEUE_NAME, factory, cache, 1, async (job) =>
       this.processJob(
         job,
         (data) =>
-          this.analysisService.generate(data.userId, data.dto, data.language),
+          data.sourceVersion == null
+            ? this.analysisService.generate(
+                data.userId,
+                data.dto,
+                data.language,
+              )
+            : this.analysisService.generateForVersion(
+                data.userId,
+                data.dto,
+                data.language,
+                data.sourceVersion,
+              ),
         'Today analysis job failed',
       ),
     );
@@ -54,11 +76,50 @@ export class TodayAnalysisQueueService extends BaseAsyncQueueService<
     userId: string,
     dto: GenerateTodayAnalysisDto,
     language: string,
+    sourceVersion?: number,
+    reasonCode?: string,
+    triggerKey?: string,
   ): Promise<string | null> {
     if (!this.queue) {
       return null;
     }
-    const job = await this.queue.add(JOB_NAME, { userId, dto, language });
+    const date = await this.analysisService.resolveDate(userId, dto.date);
+    const resolvedDto: GenerateTodayAnalysisDto =
+      dto.date == null ? { date } : dto;
+    const data: AnalysisJobData = {
+      userId,
+      dto: resolvedDto,
+      language,
+      ...(sourceVersion != null ? { sourceVersion } : {}),
+      ...(reasonCode != null ? { reasonCode } : {}),
+      ...(triggerKey != null ? { triggerKey } : {}),
+    };
+    if (sourceVersion == null) {
+      const job = await this.queue.add(TODAY_ANALYSIS_JOB_NAME, data);
+      return job.id ?? null;
+    }
+
+    const jobId = buildTodayAnalysisJobId(userId, date, sourceVersion);
+    const existing = await this.queue.getJob(jobId);
+    if (existing != null) {
+      const state = await existing.getState();
+      if (state !== 'completed' && state !== 'failed') {
+        await existing.updateData({
+          ...existing.data,
+          ...data,
+          sourceVersion: Math.max(
+            existing.data.sourceVersion ?? sourceVersion,
+            sourceVersion,
+          ),
+        });
+        return jobId;
+      }
+      await existing.remove();
+    }
+
+    const job = await this.queue.add(TODAY_ANALYSIS_JOB_NAME, data, {
+      jobId,
+    });
     return job.id ?? null;
   }
 

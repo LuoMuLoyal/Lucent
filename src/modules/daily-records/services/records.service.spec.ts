@@ -35,6 +35,7 @@ describe('DailyRecordsService', () => {
   let healthEventsOwnershipService: {
     ensureActiveOwnedByUser: vi.Mock;
   };
+  let eventEmitter: { emitAsync: vi.Mock };
 
   beforeEach(async () => {
     mealAnalysisQueueService = {
@@ -48,6 +49,9 @@ describe('DailyRecordsService', () => {
         id: 'health-event-1',
         status: 'active',
       }),
+    };
+    eventEmitter = {
+      emitAsync: vi.fn().mockResolvedValue(undefined),
     };
 
     txMock = {
@@ -102,7 +106,7 @@ describe('DailyRecordsService', () => {
         },
         {
           provide: EventEmitter2,
-          useValue: { emitAsync: vi.fn().mockResolvedValue(undefined) },
+          useValue: eventEmitter,
         },
       ],
     }).compile();
@@ -1185,6 +1189,155 @@ describe('DailyRecordsService', () => {
     expect(repository.update).toHaveBeenCalledWith('r-time-2', {
       occurredTime: '21:05',
     });
+  });
+
+  it('should emit the new kind only for the target date when a record becomes a symptom', async () => {
+    repository.findOwnershipData.mockResolvedValue({
+      userId: mockUserId,
+      kind: DailyRecordKind.water,
+      occurredAt: new Date('2026-06-04'),
+      payload: null,
+    });
+    repository.update.mockResolvedValue({
+      id: 'r-symptom',
+      userId: mockUserId,
+      healthEventId: null,
+      deletedAt: null,
+      kind: DailyRecordKind.symptom,
+      occurredAt: new Date('2026-06-05'),
+      occurredTime: null,
+      title: null,
+      value: null,
+      unit: null,
+      note: null,
+      source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
+      attachments: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.update(mockUserId, 'r-symptom', {
+      kind: DailyRecordKind.symptom,
+      occurredAt: '2026-06-05',
+    });
+
+    expect(eventEmitter.emitAsync).toHaveBeenNthCalledWith(
+      1,
+      'daily-record.changed',
+      {
+        userId: mockUserId,
+        date: '2026-06-04',
+        kind: DailyRecordKind.water,
+        recordId: 'r-symptom',
+      },
+    );
+    expect(eventEmitter.emitAsync).toHaveBeenNthCalledWith(
+      2,
+      'daily-record.changed',
+      {
+        userId: mockUserId,
+        date: '2026-06-05',
+        kind: DailyRecordKind.symptom,
+        recordId: 'r-symptom',
+      },
+    );
+  });
+
+  it.each([
+    ['updates', {}],
+    ['moves', { occurredAt: '2026-06-05' }],
+  ] as const)(
+    'should not emit a symptom event when an ordinary record %s',
+    async (_, dto) => {
+      repository.findOwnershipData.mockResolvedValue({
+        userId: mockUserId,
+        kind: DailyRecordKind.water,
+        occurredAt: new Date('2026-06-04'),
+        payload: null,
+      });
+      const movedDate = 'occurredAt' in dto ? dto.occurredAt : undefined;
+      repository.update.mockResolvedValue({
+        id: 'r-water',
+        userId: mockUserId,
+        healthEventId: null,
+        deletedAt: null,
+        kind: DailyRecordKind.water,
+        occurredAt: new Date(movedDate ?? '2026-06-04'),
+        occurredTime: null,
+        title: null,
+        value: null,
+        unit: null,
+        note: null,
+        source: 'manual',
+        payload: null,
+        mealAnalysisStatus: null,
+        mealAnalysisCoverage: null,
+        mealAnalysisUpdatedAt: null,
+        mealAnalysisFailureReason: null,
+        mealSourceRevision: 0,
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await service.update(mockUserId, 'r-water', dto);
+
+      expect(eventEmitter.emitAsync).not.toHaveBeenCalledWith(
+        'daily-record.changed',
+        expect.objectContaining({ kind: DailyRecordKind.symptom }),
+      );
+    },
+  );
+
+  it('should emit symptom events for both dates when a symptom record moves', async () => {
+    repository.findOwnershipData.mockResolvedValue({
+      userId: mockUserId,
+      kind: DailyRecordKind.symptom,
+      occurredAt: new Date('2026-06-04'),
+      payload: null,
+    });
+    repository.update.mockResolvedValue({
+      id: 'r-moved-symptom',
+      userId: mockUserId,
+      healthEventId: null,
+      deletedAt: null,
+      kind: DailyRecordKind.symptom,
+      occurredAt: new Date('2026-06-05'),
+      occurredTime: null,
+      title: null,
+      value: null,
+      unit: null,
+      note: null,
+      source: 'manual',
+      payload: null,
+      mealAnalysisStatus: null,
+      mealAnalysisCoverage: null,
+      mealAnalysisUpdatedAt: null,
+      mealAnalysisFailureReason: null,
+      mealSourceRevision: 0,
+      attachments: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await service.update(mockUserId, 'r-moved-symptom', {
+      occurredAt: '2026-06-05',
+    });
+
+    expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(2);
+    expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
+      'daily-record.changed',
+      expect.objectContaining({
+        date: '2026-06-05',
+        kind: DailyRecordKind.symptom,
+      }),
+    );
   });
 
   describe('sleep records', () => {

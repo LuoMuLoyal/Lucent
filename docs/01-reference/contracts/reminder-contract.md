@@ -33,6 +33,10 @@ Lucent's notification system is split into two layers with a clear ownership bou
 - Dose-log to health-event association
   - Status: Dose logs may explicitly carry an active `healthEventId`; reminder schedules remain
     independent, and no dose log is automatically assigned to the user's latest event.
+- Dose-log recomputation trigger
+  - Status: A successful dose-log write emits a date-scoped `dose-log.changed` event with the
+    persisted log id. Suggestion materialization consumes it; Today Analysis can enqueue a
+    versioned refresh from the same event, subject to its per-date generation cap.
 - Backend notification preferences
   - Status: Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example
     only

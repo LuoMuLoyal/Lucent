@@ -9,9 +9,11 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
+import { Optional } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
+  ApiExtraModels,
   ApiOperation,
   ApiQuery,
   ApiResponse,
@@ -31,18 +33,52 @@ import { SkipApiEnvelope } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { TodayAnalysisQueueService } from './services/analysis-queue.service';
+import {
+  TodayAnalysisMaterializationStore,
+  type TodayAnalysisPendingResult,
+} from './services/materialization/store.service';
+import type { TodayAnalysisMaterializationView } from './types/materialization.types';
 
 import { TodayAnalysisService } from './services/analysis.service';
 
 import { TodayRecommendationsService } from './services/pipeline/recommendations.service';
 import { GenerateTodayAnalysisDto } from './dto/generate-today-analysis.dto';
 
-import { TodayAnalysisResponseDto } from './dto/analysis-response.dto';
+import {
+  TodayAnalysisAsyncJobDataDto,
+  TodayAnalysisAsyncResultDataDto,
+  TodayAnalysisAsyncResponseDto,
+  TodayAnalysisAsyncStatusDataDto,
+  TodayAnalysisGenerateResponseDto,
+  TodayAnalysisReadResponseDto,
+  TodayAnalysisRefreshPendingDataDto,
+  TodayAnalysisRefreshReadyDataDto,
+  TodayAnalysisRefreshResponseDto,
+} from './dto/analysis-response.dto';
+import {
+  TodayAnalysisStreamErrorDto,
+  TodayAnalysisStreamResultDto,
+  TodayAnalysisStreamSummaryDto,
+} from './dto/analysis-stream-response.dto';
 
 import { TodayRecommendationResponseDto } from './dto/recommendation-response.dto';
 
 @ApiTags('Today Analysis')
 @ApiBearerAuth('access-token')
+@ApiExtraModels(
+  TodayAnalysisAsyncJobDataDto,
+  TodayAnalysisAsyncResultDataDto,
+  TodayAnalysisAsyncResponseDto,
+  TodayAnalysisAsyncStatusDataDto,
+  TodayAnalysisGenerateResponseDto,
+  TodayAnalysisReadResponseDto,
+  TodayAnalysisRefreshPendingDataDto,
+  TodayAnalysisRefreshReadyDataDto,
+  TodayAnalysisRefreshResponseDto,
+  TodayAnalysisStreamErrorDto,
+  TodayAnalysisStreamResultDto,
+  TodayAnalysisStreamSummaryDto,
+)
 @Controller('today-analysis')
 export class TodayAnalysisController {
   private readonly logger = new Logger(TodayAnalysisController.name);
@@ -52,16 +88,109 @@ export class TodayAnalysisController {
     private readonly todayRecommendationsService: TodayRecommendationsService,
     private readonly todayAnalysisQueueService: TodayAnalysisQueueService,
     private readonly sseRegistry: SseConnectionRegistry,
+    @Optional()
+    private readonly materializationStore?: TodayAnalysisMaterializationStore,
   ) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Read the latest persisted Today AI analysis' })
+  @ApiQuery({ name: 'date', required: false, type: String })
+  @ApiResponse({ status: 200, type: TodayAnalysisReadResponseDto })
+  async read(
+    @CurrentUser() user: UserPayload,
+    @Query('date') date: string | undefined,
+    @I18nLang() language: string,
+  ) {
+    const resolvedDate = await this.todayAnalysisService.resolveDate(
+      user.sub,
+      date,
+    );
+    return successEnvelope(
+      await this.todayAnalysisService.readCurrent(
+        user.sub,
+        resolvedDate,
+        language,
+      ),
+    );
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Request a bounded Today AI analysis refresh' })
+  @ApiResponse({ status: 201, type: TodayAnalysisRefreshResponseDto })
+  async refresh(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: GenerateTodayAnalysisDto,
+    @I18nLang() language: string,
+  ) {
+    const request = await this.prepareManualRequest(user.sub, dto);
+    if (request == null) {
+      return successEnvelope(
+        await this.todayAnalysisService.generate(user.sub, dto, language),
+      );
+    }
+
+    if (request.pending == null || !request.pending.shouldQueue) {
+      return successEnvelope(
+        await this.todayAnalysisService.readCurrent(
+          user.sub,
+          request.date,
+          language,
+        ),
+      );
+    }
+
+    if (this.todayAnalysisQueueService.isConfigured) {
+      const jobId = await this.todayAnalysisQueueService.enqueue(
+        user.sub,
+        { date: request.date },
+        language,
+        request.pending.sourceVersion,
+        'manual_refresh',
+        request.pending.lastTriggerKey ?? undefined,
+      );
+      if (jobId != null) {
+        return successEnvelope({ status: 'pending', jobId });
+      }
+    }
+
+    const analysis = await this.todayAnalysisService.generateForVersion(
+      user.sub,
+      { date: request.date },
+      language,
+      request.pending.sourceVersion,
+    );
+    return successEnvelope({ status: 'ready', analysis });
+  }
 
   @Post('generate')
   @ApiOperation({ summary: 'Generate authenticated user today AI analysis' })
-  @ApiResponse({ status: 200, type: TodayAnalysisResponseDto })
+  @ApiResponse({ status: 200, type: TodayAnalysisGenerateResponseDto })
   async generate(
     @CurrentUser() user: UserPayload,
     @Body() dto: GenerateTodayAnalysisDto,
     @I18nLang() language: string,
   ) {
+    const request = await this.prepareManualRequest(user.sub, dto);
+    if (request != null) {
+      if (request.pending == null || !request.pending.shouldQueue) {
+        return successEnvelope(
+          await this.todayAnalysisService.readCurrent(
+            user.sub,
+            request.date,
+            language,
+          ),
+        );
+      }
+      return successEnvelope(
+        await this.todayAnalysisService.generateForVersion(
+          user.sub,
+          { date: request.date },
+          language,
+          request.pending.sourceVersion,
+        ),
+      );
+    }
+
     return successEnvelope(
       await this.todayAnalysisService.generate(user.sub, dto, language),
     );
@@ -72,24 +201,40 @@ export class TodayAnalysisController {
   @ApiResponse({
     status: 202,
     description: 'Job enqueued. Returns jobId for polling.',
-    schema: {
-      type: 'object',
-      properties: {
-        code: { type: 'number', example: 0 },
-        data: {
-          type: 'object',
-          properties: {
-            jobId: { type: 'string' },
-          },
-        },
-      },
-    },
+    type: TodayAnalysisAsyncResponseDto,
   })
   async generateAsync(
     @CurrentUser() user: UserPayload,
     @Body() dto: GenerateTodayAnalysisDto,
     @I18nLang() language: string,
   ) {
+    const request = await this.prepareManualRequest(user.sub, dto);
+    if (request != null) {
+      if (request.pending == null || !request.pending.shouldQueue) {
+        return successEnvelope({ status: request.current.status });
+      }
+      if (this.todayAnalysisQueueService.isConfigured) {
+        const jobId = await this.todayAnalysisQueueService.enqueue(
+          user.sub,
+          { date: request.date },
+          language,
+          request.pending.sourceVersion,
+          'manual_refresh',
+          request.pending.lastTriggerKey ?? undefined,
+        );
+        if (jobId != null) {
+          return successEnvelope({ jobId });
+        }
+      }
+      const result = await this.todayAnalysisService.generateForVersion(
+        user.sub,
+        { date: request.date },
+        language,
+        request.pending.sourceVersion,
+      );
+      return successEnvelope({ result });
+    }
+
     if (this.todayAnalysisQueueService.isConfigured) {
       const jobId = await this.todayAnalysisQueueService.enqueue(
         user.sub,
@@ -166,10 +311,14 @@ export class TodayAnalysisController {
   @ApiResponse({
     status: 200,
     description:
-      'Server-Sent Events stream. Each event has an "event" field (chunk | result | error | done) and a JSON "data" field.',
+      'Server-Sent Events stream without the API envelope. Each event has an "event" field (summary | result | error | done) and a JSON "data" field. Parsed event data follows TodayAnalysisStreamResultDto.',
     content: {
       'text/event-stream': {
-        schema: { type: 'string' },
+        schema: {
+          type: 'string',
+          description:
+            'Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisDataDto; event=error data={message,code?,statusCode?}; event=done data={}.',
+        },
       },
     },
   })
@@ -182,17 +331,35 @@ export class TodayAnalysisController {
     prepareSse(reply.raw, this.sseRegistry);
 
     try {
-      const result = await this.todayAnalysisService.generateStream(
-        user.sub,
-        dto,
-        language,
-        ({ summary }) => {
-          writeSseEvent(reply.raw, {
-            event: 'summary',
-            data: { summary },
-          });
-        },
-      );
+      const onSummary = ({ summary }: { summary: string }) => {
+        writeSseEvent(reply.raw, {
+          event: 'summary',
+          data: { summary },
+        });
+      };
+      const request = await this.prepareManualRequest(user.sub, dto);
+      const result =
+        request == null
+          ? await this.todayAnalysisService.generateStream(
+              user.sub,
+              dto,
+              language,
+              onSummary,
+            )
+          : request.pending == null || !request.pending.shouldQueue
+            ? await this.readStreamFallback(
+                user.sub,
+                request.date,
+                language,
+                onSummary,
+              )
+            : await this.todayAnalysisService.generateStreamForVersion(
+                user.sub,
+                { date: request.date },
+                language,
+                request.pending.sourceVersion,
+                onSummary,
+              );
 
       writeSseEvent(reply.raw, {
         event: 'result',
@@ -216,6 +383,57 @@ export class TodayAnalysisController {
       endSse(reply.raw, this.sseRegistry);
     }
   }
+
+  private async prepareManualRequest(
+    userId: string,
+    dto: GenerateTodayAnalysisDto,
+  ): Promise<ManualGenerationRequest | null> {
+    const store = this.materializationStore;
+    if (store == null) return null;
+
+    const date = await this.todayAnalysisService.resolveDate(userId, dto.date);
+    const current = await store.readStatus(userId, date);
+    if (store.isRefreshCoolingDown(current)) {
+      return { date, current, pending: null };
+    }
+
+    const pending = await store.markPending({
+      userId,
+      localDate: date,
+      reasonCode: 'manual_refresh',
+      manual: true,
+      triggerKey: `manual-refresh:${date}:${String(current.sourceVersion + 1)}`,
+    });
+    return { date, current, pending };
+  }
+
+  private async readStreamFallback(
+    userId: string,
+    date: string,
+    language: string,
+    onSummary: ({ summary }: { summary: string }) => void,
+  ): Promise<
+    NonNullable<
+      Awaited<ReturnType<TodayAnalysisService['readCurrent']>>['analysis']
+    >
+  > {
+    const current = await this.todayAnalysisService.readCurrent(
+      userId,
+      date,
+      language,
+    );
+    if (current.analysis == null) {
+      throw new Error(`TODAY_ANALYSIS_${current.status.toUpperCase()}`);
+    }
+    onSummary({ summary: current.analysis.summary });
+    return current.analysis;
+  }
+}
+
+interface ManualGenerationRequest {
+  date: string;
+  current: TodayAnalysisMaterializationView;
+  pending: TodayAnalysisPendingResult | null;
 }
 
 function httpExceptionPayload(error: unknown): {

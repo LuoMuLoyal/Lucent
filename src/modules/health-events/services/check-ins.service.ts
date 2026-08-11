@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { HealthEventStatus } from '#generated/prisma/client';
+import { HealthEventKind, HealthEventStatus } from '#generated/prisma/client';
 import { I18nService } from 'nestjs-i18n';
 import {
   DEFAULT_USER_TIMEZONE,
@@ -84,6 +84,7 @@ export class CheckInsService {
       eventId,
       date,
       change: 'check-in',
+      kind: event.kind ?? HealthEventKind.symptom,
     } satisfies HealthEventChangedPayload);
     return checkIn;
   }

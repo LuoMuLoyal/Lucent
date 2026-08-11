@@ -49,4 +49,5 @@ export interface MaterializationVersionInput {
   userId: string;
   localDate: string;
   sourceVersion: number;
+  reasonCodes?: MaterializationReasonCode[];
 }

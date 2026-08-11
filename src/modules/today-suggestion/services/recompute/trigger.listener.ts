@@ -89,6 +89,9 @@ export class RecomputeTriggerListener {
   async handleHealthEventChanged(
     payload: HealthEventChangedPayload,
   ): Promise<void> {
+    if (payload.change === 'check-in' && payload.kind === 'other') {
+      return;
+    }
     await this.trigger(
       payload.userId,
       payload.date,

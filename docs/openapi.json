@@ -4152,6 +4152,75 @@
         "tags": ["Assistant"]
       }
     },
+    "/api/v1/user/today-analysis": {
+      "get": {
+        "operationId": "TodayAnalysisController_read_v1",
+        "parameters": [
+          {
+            "name": "date",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayAnalysisReadResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Read the latest persisted Today AI analysis",
+        "tags": ["Today Analysis"]
+      }
+    },
+    "/api/v1/user/today-analysis/refresh": {
+      "post": {
+        "operationId": "TodayAnalysisController_refresh_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateTodayAnalysisDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayAnalysisRefreshResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Request a bounded Today AI analysis refresh",
+        "tags": ["Today Analysis"]
+      }
+    },
     "/api/v1/user/today-analysis/generate": {
       "post": {
         "operationId": "TodayAnalysisController_generate_v1",
@@ -4172,7 +4241,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TodayAnalysisResponseDto"
+                  "$ref": "#/components/schemas/TodayAnalysisGenerateResponseDto"
                 }
               }
             }
@@ -4207,21 +4276,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "number",
-                      "example": 0
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "jobId": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/TodayAnalysisAsyncResponseDto"
                 }
               }
             }
@@ -4320,11 +4375,12 @@
         },
         "responses": {
           "200": {
-            "description": "Server-Sent Events stream. Each event has an \"event\" field (chunk | result | error | done) and a JSON \"data\" field.",
+            "description": "Server-Sent Events stream without the API envelope. Each event has an \"event\" field (summary | result | error | done) and a JSON \"data\" field. Parsed event data follows TodayAnalysisStreamResultDto.",
             "content": {
               "text/event-stream": {
                 "schema": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisDataDto; event=error data={message,code?,statusCode?}; event=done data={}."
                 }
               }
             }
@@ -6415,9 +6471,23 @@
           }
         }
       },
+      "HealthEventKind": {
+        "type": "string",
+        "enum": ["symptom", "other"],
+        "description": "Persisted semantic kind used for check-in routing."
+      },
       "CreateHealthEventDto": {
         "type": "object",
         "properties": {
+          "kind": {
+            "description": "Persisted semantic kind used for check-in routing.",
+            "default": "symptom",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventKind"
+              }
+            ]
+          },
           "title": {
             "type": "string",
             "description": "Short user-defined event title.",
@@ -6507,6 +6577,13 @@
       "HealthEventItemDto": {
         "type": "object",
         "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventKind"
+              }
+            ]
+          },
           "id": {
             "type": "string"
           },
@@ -6562,6 +6639,7 @@
           }
         },
         "required": [
+          "kind",
           "id",
           "title",
           "status",
@@ -10609,15 +10687,14 @@
         },
         "required": ["messages"]
       },
-      "GenerateTodayAnalysisDto": {
+      "TodayAnalysisAsyncJobDataDto": {
         "type": "object",
         "properties": {
-          "date": {
-            "type": "string",
-            "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted.",
-            "example": "2026-06-12"
+          "jobId": {
+            "type": "string"
           }
-        }
+        },
+        "required": ["jobId"]
       },
       "TodayAnalysisBulletDto": {
         "type": "object",
@@ -10640,6 +10717,9 @@
           },
           "generatedAt": {
             "type": "string"
+          },
+          "sourceVersion": {
+            "type": "number"
           },
           "summary": {
             "type": "string"
@@ -10670,7 +10750,16 @@
           "confidenceNote"
         ]
       },
-      "TodayAnalysisResponseDto": {
+      "TodayAnalysisAsyncResultDataDto": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/TodayAnalysisDataDto"
+          }
+        },
+        "required": ["result"]
+      },
+      "TodayAnalysisAsyncResponseDto": {
         "type": "object",
         "properties": {
           "code": {
@@ -10682,10 +10771,230 @@
             "example": ""
           },
           "data": {
-            "$ref": "#/components/schemas/TodayAnalysisDataDto"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TodayAnalysisAsyncJobDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisAsyncStatusDataDto"
+              }
+            ]
           }
         },
         "required": ["code", "message", "data"]
+      },
+      "TodayAnalysisAsyncStatusDataDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["empty", "pending", "ready", "stale", "failed"]
+          }
+        },
+        "required": ["status"]
+      },
+      "TodayAnalysisGenerateResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TodayAnalysisDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
+              }
+            ]
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "TodayAnalysisReadDataDto": {
+        "type": "object",
+        "properties": {
+          "analysis": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TodayAnalysisDataDto"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["empty", "pending", "ready", "stale", "failed"]
+          },
+          "sourceVersion": {
+            "type": "number"
+          },
+          "computedVersion": {
+            "type": "number"
+          },
+          "computedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "retryAfterSeconds": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "analysis",
+          "status",
+          "sourceVersion",
+          "computedVersion",
+          "computedAt",
+          "retryAfterSeconds"
+        ]
+      },
+      "TodayAnalysisReadResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "TodayAnalysisRefreshPendingDataDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending"]
+          },
+          "jobId": {
+            "type": "string"
+          }
+        },
+        "required": ["status", "jobId"]
+      },
+      "TodayAnalysisRefreshReadyDataDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ready"]
+          },
+          "analysis": {
+            "$ref": "#/components/schemas/TodayAnalysisDataDto"
+          }
+        },
+        "required": ["status", "analysis"]
+      },
+      "TodayAnalysisRefreshResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TodayAnalysisDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisRefreshPendingDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataDto"
+              }
+            ]
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "TodayAnalysisStreamErrorDto": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "number"
+          },
+          "statusCode": {
+            "type": "number"
+          }
+        },
+        "required": ["message"]
+      },
+      "TodayAnalysisStreamResultDto": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": ["summary", "result", "error", "done"]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TodayAnalysisStreamSummaryDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisStreamErrorDto"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Empty object for the done event."
+              }
+            ],
+            "description": "Parsed SSE event data. event=summary => TodayAnalysisStreamSummaryDto; event=result => TodayAnalysisDataDto; event=error => TodayAnalysisStreamErrorDto; event=done => {}."
+          }
+        },
+        "required": ["event", "data"]
+      },
+      "TodayAnalysisStreamSummaryDto": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": ["summary"]
+      },
+      "GenerateTodayAnalysisDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Target date in YYYY-MM-DD format. Defaults to backend current day when omitted.",
+            "example": "2026-06-12"
+          }
+        }
       },
       "TodayRecommendationResponseDto": {
         "type": "object",

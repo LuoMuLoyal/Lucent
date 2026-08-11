@@ -78,10 +78,22 @@ enum HealthEventOutcome {
   worsened
 }
 
+enum HealthEventKind {
+  symptom
+  other
+}
+
 enum SuggestionMaterializationStatus {
   pending
   ready
   failed
+}
+
+enum TodayAnalysisMaterializationStatus {
+  pending
+  ready
+  failed
+  capped
 }
 
 enum MedicineSource {
@@ -183,6 +195,7 @@ model User {
   suggestionBaselineObservations UserSuggestionBaselineObservation[]
   suggestionFeedbacks    UserSuggestionFeedback[]
   suggestionMaterializations UserSuggestionMaterialization[]
+  todayAnalysisMaterializations UserTodayAnalysisMaterialization[]
   medicineRiskCheckRecords MedicineRiskCheckRecord[]
   healthEvents           HealthEvent[]
 
@@ -404,6 +417,7 @@ model HealthEvent {
   id             String                @id @default(uuid())
   userId         String                @map("user_id")
   title          String
+  kind           HealthEventKind     @default(symptom)
   status         HealthEventStatus     @default(active)
   startedAt      DateTime              @map("started_at") @db.Timestamptz(3)
   endedAt        DateTime?             @map("ended_at") @db.Timestamptz(3)
@@ -1070,6 +1084,7 @@ model AssistantSummaryHistory {
   actionLabel    String               @map("action_label")
   action         String               @map("action")
   confidenceNote String               @map("confidence_note")
+  sourceVersion  Int?                 @map("source_version")
   createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
   user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1249,6 +1264,33 @@ model UserSuggestionMaterialization {
   @@unique([userId, localDate])
   @@index([userId, status])
   @@map("user_suggestion_materializations")
+}
+
+/// Versioned, bounded Today Analysis state. Summary history stores content;
+/// this row fences jobs and records the per-date generation budget.
+model UserTodayAnalysisMaterialization {
+  id              String                           @id @default(uuid())
+  userId          String                           @map("user_id")
+  localDate       DateTime                         @map("local_date") @db.Date
+  sourceVersion   Int                              @default(0) @map("source_version")
+  computedVersion Int                              @default(0) @map("computed_version")
+  status          TodayAnalysisMaterializationStatus @default(pending)
+  reasonCodes     String[]                         @map("reason_codes")
+  generationCount Int                              @default(0) @map("generation_count")
+  activeVersion   Int?                             @map("active_version")
+  activeAt        DateTime?                        @map("active_at") @db.Timestamptz(3)
+  lastManualAt    DateTime?                        @map("last_manual_at") @db.Timestamptz(3)
+  lastTriggerKey  String?                          @map("last_trigger_key")
+  lastErrorCode   String?                          @map("last_error_code")
+  queuedAt        DateTime?                        @map("queued_at") @db.Timestamptz(3)
+  computedAt      DateTime?                        @map("computed_at") @db.Timestamptz(3)
+  createdAt       DateTime                         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDate])
+  @@index([userId, status])
+  @@map("user_today_analysis_materializations")
 }
 
 /// Feedback-driven suppression records.

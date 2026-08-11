@@ -89,7 +89,7 @@ export class MedicineDoseLogsService {
         healthEventId: dto.healthEventId,
       }),
     );
-    await this.invalidateSuggestionCache(userId, scheduledFor);
+    await this.invalidateSuggestionCache(userId, scheduledFor, record.id);
     return this.toItem(record);
   }
 
@@ -140,7 +140,7 @@ export class MedicineDoseLogsService {
           healthEventId: dto.healthEventId,
         }),
       );
-      await this.invalidateSuggestionCache(userId, scheduledFor);
+      await this.invalidateSuggestionCache(userId, scheduledFor, record.id);
       return this.toItem(record);
     }
 
@@ -156,7 +156,7 @@ export class MedicineDoseLogsService {
         healthEventId: dto.healthEventId,
       }),
     );
-    await this.invalidateSuggestionCache(userId, scheduledFor);
+    await this.invalidateSuggestionCache(userId, scheduledFor, record.id);
     return this.toItem(record);
   }
 
@@ -187,11 +187,13 @@ export class MedicineDoseLogsService {
   private async invalidateSuggestionCache(
     userId: string,
     scheduledFor: Date,
+    doseLogId?: string,
   ): Promise<void> {
     try {
       await this.eventEmitter.emitAsync(DOSE_LOG_CHANGED, {
         userId,
         date: formatDateOnly(scheduledFor),
+        ...(doseLogId != null ? { doseLogId } : {}),
       } satisfies DoseLogChangedPayload);
     } catch (error) {
       // best-effort
@@ -216,6 +218,7 @@ export class MedicineDoseLogsService {
       await this.invalidateSuggestionCache(
         userId,
         (log as { scheduledFor: Date }).scheduledFor,
+        logId,
       );
     }
   }

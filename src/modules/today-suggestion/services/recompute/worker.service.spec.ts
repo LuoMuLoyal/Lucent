@@ -107,6 +107,7 @@ describe('SuggestionRecomputeWorkerService', () => {
       userId: 'user-1',
       localDate: '2026-08-09',
       sourceVersion: 1,
+      reasonCodes: ['daily_record_changed'],
     });
   });
 
@@ -239,6 +240,7 @@ describe('SuggestionRecomputeWorkerService', () => {
       userId: 'user-1',
       localDate: '2026-08-09',
       sourceVersion: 2,
+      reasonCodes: ['daily_record_changed'],
     });
   });
 
@@ -281,6 +283,7 @@ describe('SuggestionRecomputeWorkerService', () => {
       userId: 'user-1',
       localDate: '2026-08-09',
       sourceVersion: 2,
+      reasonCodes: ['daily_record_changed'],
     });
   });
 

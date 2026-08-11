@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
+  HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
@@ -214,6 +215,7 @@ describe('CheckInsService', () => {
         eventId: EVENT_ID,
         date: '2026-07-20',
         change: 'check-in',
+        kind: HealthEventKind.symptom,
       },
     );
   });

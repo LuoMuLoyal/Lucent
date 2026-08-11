@@ -22,6 +22,10 @@ describe('TodayAnalysisController', () => {
           useValue: {
             generate: vi.fn(),
             generateStream: vi.fn(),
+            readCurrent: vi.fn(),
+            resolveDate: vi.fn((_userId: string, date?: string) =>
+              Promise.resolve(date ?? '2026-08-02'),
+            ),
           },
         },
         {
@@ -56,6 +60,55 @@ describe('TodayAnalysisController', () => {
   });
 
   // ── generate ──────────────────────────────────────────────────────────
+
+  it('reads persisted analysis without generating a new one', async () => {
+    const readCurrent = {
+      analysis: null,
+      status: 'empty',
+      sourceVersion: 0,
+      computedVersion: 0,
+      computedAt: null,
+      retryAfterSeconds: null,
+    } as const;
+    service.readCurrent.mockResolvedValue(readCurrent);
+
+    await expect(
+      controller.read(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        '2026-06-12',
+        'zh-CN',
+      ),
+    ).resolves.toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: readCurrent,
+    });
+    expect(service.generate).not.toHaveBeenCalled();
+  });
+
+  it('resolves an omitted controller date through the profile-local date resolver', async () => {
+    service.readCurrent.mockResolvedValue({
+      analysis: null,
+      status: 'empty',
+      sourceVersion: 0,
+      computedVersion: 0,
+      computedAt: null,
+      retryAfterSeconds: null,
+    });
+
+    await controller.read(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      undefined,
+      'zh-CN',
+    );
+
+    expect(service.resolveDate).toHaveBeenCalledWith('u1', undefined);
+    expect(service.readCurrent).toHaveBeenCalledWith(
+      'u1',
+      '2026-08-02',
+      'zh-CN',
+    );
+  });
 
   it('should return today analysis envelope', async () => {
     const analysis = makeAnalysis();

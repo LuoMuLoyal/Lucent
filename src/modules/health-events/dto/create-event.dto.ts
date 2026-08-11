@@ -1,14 +1,26 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
+  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
 } from 'class-validator';
+import { HealthEventKind } from '#generated/prisma/client';
 
 export class CreateHealthEventDto {
+  @ApiPropertyOptional({
+    enum: HealthEventKind,
+    enumName: 'HealthEventKind',
+    description: 'Persisted semantic kind used for check-in routing.',
+    default: HealthEventKind.symptom,
+  })
+  @IsOptional()
+  @IsEnum(HealthEventKind)
+  kind?: HealthEventKind;
+
   @ApiProperty({
     description: 'Short user-defined event title.',
     maxLength: 80,

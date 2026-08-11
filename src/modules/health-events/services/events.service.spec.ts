@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import {
+  HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
@@ -36,6 +37,7 @@ function event(overrides: Partial<HealthEventRecord> = {}): HealthEventRecord {
     id: EVENT_ID,
     userId: USER_ID,
     title: 'Headache',
+    kind: HealthEventKind.symptom,
     status: HealthEventStatus.active,
     startedAt: new Date('2026-07-20T00:30:00.000Z'),
     endedAt: null,
@@ -112,6 +114,7 @@ describe('EventsService', () => {
         eventId: EVENT_ID,
         date: '2026-07-20',
         change: 'create',
+        kind: HealthEventKind.symptom,
       },
     );
   });
