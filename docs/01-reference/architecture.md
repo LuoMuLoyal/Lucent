@@ -341,6 +341,14 @@ Health event API errors use the `health-events` i18n scope in `src/i18n/en/` and
     (`bullmq_jobs_total`, `bullmq_active_jobs`, `bullmq_waiting_jobs`)
   - LLM call duration histogram and token counter
     (`llm_call_duration_seconds`, `llm_tokens_used_total`)
+  - Proactive suggestion recompute counters, duration histogram, ready/failed
+    counters, and stale-age histogram with only low-cardinality operational labels
+    (`today_suggestion_recompute_enqueue_total`,
+    `today_suggestion_recompute_dedupe_total`,
+    `today_suggestion_recompute_duration_seconds`,
+    `today_suggestion_materialization_ready_total`,
+    `today_suggestion_materialization_failed_total`,
+    `today_suggestion_stale_age_seconds`)
 - The `/metrics` endpoint is served as a raw Express route in `setupApp`,
   not a NestJS controller, so it bypasses the interceptor/filter stack.
 - The metrics middleware (`src/common/metrics/metrics.middleware.ts`) uses

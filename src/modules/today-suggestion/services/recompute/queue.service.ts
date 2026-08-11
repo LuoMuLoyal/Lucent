@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
 import { BullmqQueueFactory } from '../../../../common/queue/queue.factory';
+import { MetricsService } from '../../../../common/metrics/metrics.service';
 import type { MaterializationReasonCode } from '../../types/materialization.types';
 import { SuggestionRecomputeWorkerService } from './worker.service';
 
@@ -30,6 +31,7 @@ export class RecomputeQueueService {
   constructor(
     factory: BullmqQueueFactory,
     private readonly worker: SuggestionRecomputeWorkerService,
+    @Optional() private readonly metricsService?: MetricsService,
   ) {
     const handle = factory.createQueue<RecomputeJobData>({
       name: RECOMPUTE_QUEUE_NAME,
@@ -44,6 +46,8 @@ export class RecomputeQueueService {
   }
 
   async enqueue(data: RecomputeJobData): Promise<string | null> {
+    this.metricsService?.recordSuggestionRecomputeEnqueue();
+
     if (!this.queue) {
       await this.processInline(data);
       return null;
@@ -60,6 +64,7 @@ export class RecomputeQueueService {
         } else {
           const merged = this.mergeData(existing, data);
           await existing.updateData(merged);
+          this.metricsService?.recordSuggestionRecomputeDedupe();
           if (state === 'delayed') {
             await existing.changeDelay(RECOMPUTE_DEBOUNCE_MS);
           }

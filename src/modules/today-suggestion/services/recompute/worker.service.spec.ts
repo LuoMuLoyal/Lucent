@@ -78,11 +78,15 @@ describe('SuggestionRecomputeWorkerService', () => {
     const baseline = {
       recordObservations: vi.fn().mockResolvedValue(undefined),
     };
+    const metrics = {
+      recordSuggestionRecomputeDuration: vi.fn(),
+    };
     const worker = new SuggestionRecomputeWorkerService(
       suggestionService as never,
       materializationStore as never,
       cache as never,
       baseline as never,
+      metrics as never,
     );
 
     await worker.process(job());
@@ -109,6 +113,10 @@ describe('SuggestionRecomputeWorkerService', () => {
       sourceVersion: 1,
       reasonCodes: ['daily_record_changed'],
     });
+    expect(metrics.recordSuggestionRecomputeDuration).toHaveBeenCalledWith(
+      'success',
+      expect.any(Number),
+    );
   });
 
   it('skips a job whose source version is already ready', async () => {
@@ -155,11 +163,15 @@ describe('SuggestionRecomputeWorkerService', () => {
       invalidateBaseline: vi.fn().mockResolvedValue(undefined),
     };
     const baseline = { recordObservations: vi.fn() };
+    const metrics = {
+      recordSuggestionRecomputeDuration: vi.fn(),
+    };
     const worker = new SuggestionRecomputeWorkerService(
       suggestionService as never,
       materializationStore as never,
       cache as never,
       baseline as never,
+      metrics as never,
     );
 
     await expect(worker.process(job())).rejects.toThrow('rule failed');
@@ -170,6 +182,10 @@ describe('SuggestionRecomputeWorkerService', () => {
       sourceVersion: 1,
       errorCode: 'RECOMPUTE_FAILED',
     });
+    expect(metrics.recordSuggestionRecomputeDuration).toHaveBeenCalledWith(
+      'failed',
+      expect.any(Number),
+    );
   });
 
   it('preserves the worker error and attempts failed state when status reads fail during recovery', async () => {

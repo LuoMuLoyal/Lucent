@@ -31,6 +31,11 @@ describe('MaterializationStore', () => {
       updateMany: vi.Mock;
     };
   };
+  let metrics: {
+    recordSuggestionMaterializationReady: vi.Mock;
+    recordSuggestionMaterializationFailed: vi.Mock;
+    recordSuggestionStaleAge: vi.Mock;
+  };
 
   beforeEach(() => {
     prisma = {
@@ -41,7 +46,16 @@ describe('MaterializationStore', () => {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
     };
-    store = new MaterializationStore(prisma as never);
+    metrics = {
+      recordSuggestionMaterializationReady: vi.fn(),
+      recordSuggestionMaterializationFailed: vi.fn(),
+      recordSuggestionStaleAge: vi.fn(),
+    };
+    store = new MaterializationStore(
+      prisma as never,
+      undefined,
+      metrics as never,
+    );
   });
 
   it('returns empty when no materialization exists', async () => {
@@ -188,6 +202,42 @@ describe('MaterializationStore', () => {
           lastErrorCode: 'BASELINE_OBSERVATION_FAILED',
         }),
       }),
+    );
+  });
+
+  it('records ready, failed, and stale-age observations', async () => {
+    prisma.userSuggestionMaterialization.findUnique
+      .mockResolvedValueOnce(row({ status: 'pending' }))
+      .mockResolvedValueOnce(
+        row({
+          status: 'ready',
+          sourceVersion: 3,
+          computedVersion: 2,
+          computedAt: new Date(Date.now() - 5_000),
+        }),
+      );
+
+    await store.markReady({
+      userId: 'user-1',
+      localDate: '2026-08-09',
+      sourceVersion: 1,
+    });
+    await store.markFailed({
+      userId: 'user-1',
+      localDate: '2026-08-09',
+      sourceVersion: 1,
+      errorCode: 'RECOMPUTE_FAILED',
+    });
+    await store.readStatus('user-1', '2026-08-09');
+
+    expect(metrics.recordSuggestionMaterializationReady).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(metrics.recordSuggestionMaterializationFailed).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(metrics.recordSuggestionStaleAge).toHaveBeenCalledWith(
+      expect.any(Number),
     );
   });
 });

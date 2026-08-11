@@ -28,9 +28,15 @@ function data(overrides: Partial<RecomputeJobData> = {}): RecomputeJobData {
 
 describe('RecomputeQueueService', () => {
   const worker = { process: vi.fn().mockResolvedValue(undefined) };
+  const metrics = {
+    recordSuggestionRecomputeEnqueue: vi.fn(),
+    recordSuggestionRecomputeDedupe: vi.fn(),
+  };
 
   beforeEach(() => {
     worker.process.mockClear();
+    metrics.recordSuggestionRecomputeEnqueue.mockClear();
+    metrics.recordSuggestionRecomputeDedupe.mockClear();
   });
 
   it('is disabled when the shared queue factory has no queue', () => {
@@ -102,6 +108,40 @@ describe('RecomputeQueueService', () => {
       reasonCodes: ['daily_record_changed', 'health_event_changed'],
     });
     expect(existing.changeDelay).toHaveBeenCalledWith(RECOMPUTE_DEBOUNCE_MS);
+  });
+
+  it('records enqueue and dedupe totals without user or date labels', async () => {
+    const existing = {
+      data: data(),
+      getState: vi.fn().mockResolvedValue('delayed'),
+      updateData: vi.fn().mockResolvedValue(undefined),
+      changeDelay: vi.fn().mockResolvedValue(undefined),
+    };
+    const queue = {
+      add: vi.fn().mockResolvedValue({ id: 'job-1' }),
+      getJob: vi
+        .fn()
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(existing),
+    };
+    const service = new RecomputeQueueService(
+      buildFactory(queue) as never,
+      worker as never,
+      metrics as never,
+    );
+
+    await service.enqueue(
+      data({ userId: 'private-user', localDate: '2026-08-11' }),
+    );
+    await service.enqueue(
+      data({ userId: 'private-user', localDate: '2026-08-11' }),
+    );
+
+    expect(metrics.recordSuggestionRecomputeEnqueue).toHaveBeenCalledTimes(2);
+    expect(metrics.recordSuggestionRecomputeDedupe).toHaveBeenCalledTimes(1);
+    expect(metrics.recordSuggestionRecomputeEnqueue.mock.calls[0]).toHaveLength(
+      0,
+    );
   });
 
   it('replaces a completed job instead of reusing stale retained work', async () => {

@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 
+import { MetricsService } from '../../../../common/metrics/metrics.service';
 import { SuggestionService } from '../suggestion.service';
 import { MaterializationStore } from '../materialization/store.service';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service';
@@ -17,9 +18,27 @@ export class SuggestionRecomputeWorkerService {
     private readonly materializationStore: MaterializationStore,
     private readonly cache: SuggestionCacheService,
     private readonly baseline: BaselineService,
+    @Optional() private readonly metricsService?: MetricsService,
   ) {}
 
   async process(job: RecomputeJobData): Promise<void> {
+    const startedAt = performance.now();
+    try {
+      await this.processRecompute(job);
+      this.metricsService?.recordSuggestionRecomputeDuration(
+        'success',
+        (performance.now() - startedAt) / 1000,
+      );
+    } catch (error) {
+      this.metricsService?.recordSuggestionRecomputeDuration(
+        'failed',
+        (performance.now() - startedAt) / 1000,
+      );
+      throw error;
+    }
+  }
+
+  private async processRecompute(job: RecomputeJobData): Promise<void> {
     let currentJob = job;
 
     for (

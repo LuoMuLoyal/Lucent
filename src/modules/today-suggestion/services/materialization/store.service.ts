@@ -2,6 +2,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { formatDateOnly, parseDateOnly } from '../../../../common';
+import { MetricsService } from '../../../../common/metrics/metrics.service';
 import { PrismaService } from '../../../../prisma';
 import {
   TODAY_SUGGESTION_MATERIALIZATION_CHANGED,
@@ -23,6 +24,7 @@ export class MaterializationStore {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly eventEmitter?: EventEmitter2,
+    @Optional() private readonly metricsService?: MetricsService,
   ) {}
 
   async readStatus(
@@ -50,9 +52,18 @@ export class MaterializationStore {
       };
     }
 
+    const status = this.toPublicStatus(row);
+    if (status === 'stale' && row.computedAt != null) {
+      const ageSeconds = Math.max(
+        0,
+        (Date.now() - row.computedAt.getTime()) / 1000,
+      );
+      this.metricsService?.recordSuggestionStaleAge(ageSeconds);
+    }
+
     return {
       ...row,
-      status: this.toPublicStatus(row),
+      status,
     };
   }
 
@@ -119,6 +130,9 @@ export class MaterializationStore {
         computedAt: new Date(),
       },
     });
+    if (result.count === 1) {
+      this.metricsService?.recordSuggestionMaterializationReady();
+    }
 
     if (result.count === 1 && this.eventEmitter != null) {
       const reasonCodes = input.reasonCodes ?? [];
@@ -162,7 +176,7 @@ export class MaterializationStore {
         ? { computedVersion: input.computedVersion }
         : {}),
     };
-    await this.prisma.userSuggestionMaterialization.updateMany({
+    const result = await this.prisma.userSuggestionMaterialization.updateMany({
       where: {
         userId: input.userId,
         localDate: parseDateOnly(input.localDate),
@@ -171,6 +185,9 @@ export class MaterializationStore {
       },
       data,
     });
+    if (result.count === 1) {
+      this.metricsService?.recordSuggestionMaterializationFailed();
+    }
 
     return this.readStatus(input.userId, input.localDate);
   }

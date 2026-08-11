@@ -213,4 +213,45 @@ describe('MetricsService', () => {
       }).not.toThrow();
     });
   });
+
+  describe('proactive suggestion metrics', () => {
+    it('records recompute and materialization observations without health labels', async () => {
+      service.recordSuggestionRecomputeEnqueue();
+      service.recordSuggestionRecomputeDedupe();
+      service.recordSuggestionRecomputeDuration('success', 0.25);
+      service.recordSuggestionRecomputeDuration('failed', 1.5);
+      service.recordSuggestionMaterializationReady();
+      service.recordSuggestionMaterializationFailed();
+      service.recordSuggestionStaleAge(42);
+
+      const metrics = await service.getMetrics();
+      expect(metrics).toContain('today_suggestion_recompute_enqueue_total');
+      expect(metrics).toContain('today_suggestion_recompute_dedupe_total');
+      expect(metrics).toContain(
+        'today_suggestion_recompute_duration_seconds_bucket',
+      );
+      expect(metrics).toContain('today_suggestion_materialization_ready_total');
+      expect(metrics).toContain(
+        'today_suggestion_materialization_failed_total',
+      );
+      expect(metrics).toContain('today_suggestion_stale_age_seconds_bucket');
+      expect(metrics).toContain('status="success"');
+      expect(metrics).toContain('status="failed"');
+      expect(metrics).not.toContain('userId');
+      expect(metrics).not.toContain('localDate');
+    });
+
+    it('does not throw when proactive metrics are disabled', () => {
+      const svc = createService('test', 'false');
+
+      expect(() => {
+        svc.recordSuggestionRecomputeEnqueue();
+        svc.recordSuggestionRecomputeDedupe();
+        svc.recordSuggestionRecomputeDuration('success', 0.25);
+        svc.recordSuggestionMaterializationReady();
+        svc.recordSuggestionMaterializationFailed();
+        svc.recordSuggestionStaleAge(42);
+      }).not.toThrow();
+    });
+  });
 });

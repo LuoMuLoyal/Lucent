@@ -47,6 +47,15 @@ export class MetricsService implements OnApplicationBootstrap {
 
   private readonly assistantCacheAccesses: Counter;
 
+  // ── Proactive suggestion metrics ─────────────────────────────────────────
+
+  private readonly suggestionRecomputeEnqueues: Counter;
+  private readonly suggestionRecomputeDedupes: Counter;
+  private readonly suggestionRecomputeDuration: Histogram;
+  private readonly suggestionMaterializationReady: Counter;
+  private readonly suggestionMaterializationFailed: Counter;
+  private readonly suggestionStaleAge: Histogram;
+
   constructor(private readonly configService: ConfigService) {
     this.registry = new Registry();
 
@@ -114,6 +123,47 @@ export class MetricsService implements OnApplicationBootstrap {
       name: 'assistant_cache_accesses_total',
       help: 'Assistant cache accesses by layer and hit/miss',
       labelNames: ['kind', 'hit'] as const,
+      registers: [this.registry],
+    });
+
+    // Proactive suggestion metrics intentionally use no user, date, or health
+    // content labels so their cardinality stays bounded.
+    this.suggestionRecomputeEnqueues = new Counter({
+      name: 'today_suggestion_recompute_enqueue_total',
+      help: 'Total proactive suggestion recompute enqueue attempts',
+      registers: [this.registry],
+    });
+
+    this.suggestionRecomputeDedupes = new Counter({
+      name: 'today_suggestion_recompute_dedupe_total',
+      help: 'Total proactive suggestion recompute jobs coalesced',
+      registers: [this.registry],
+    });
+
+    this.suggestionRecomputeDuration = new Histogram({
+      name: 'today_suggestion_recompute_duration_seconds',
+      help: 'Proactive suggestion recompute duration in seconds',
+      labelNames: ['status'] as const,
+      buckets: [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60],
+      registers: [this.registry],
+    });
+
+    this.suggestionMaterializationReady = new Counter({
+      name: 'today_suggestion_materialization_ready_total',
+      help: 'Total proactive suggestion materializations marked ready',
+      registers: [this.registry],
+    });
+
+    this.suggestionMaterializationFailed = new Counter({
+      name: 'today_suggestion_materialization_failed_total',
+      help: 'Total proactive suggestion materializations marked failed',
+      registers: [this.registry],
+    });
+
+    this.suggestionStaleAge = new Histogram({
+      name: 'today_suggestion_stale_age_seconds',
+      help: 'Age in seconds of an observed stale suggestion materialization',
+      buckets: [60, 300, 900, 1_800, 3_600, 10_800, 86_400, 604_800],
       registers: [this.registry],
     });
   }
@@ -235,5 +285,38 @@ export class MetricsService implements OnApplicationBootstrap {
       return;
     }
     this.assistantCacheAccesses.inc({ kind, hit: String(hit) });
+  }
+
+  recordSuggestionRecomputeEnqueue(): void {
+    if (!this.enabled) return;
+    this.suggestionRecomputeEnqueues.inc();
+  }
+
+  recordSuggestionRecomputeDedupe(): void {
+    if (!this.enabled) return;
+    this.suggestionRecomputeDedupes.inc();
+  }
+
+  recordSuggestionRecomputeDuration(
+    status: 'success' | 'failed',
+    durationSeconds: number,
+  ): void {
+    if (!this.enabled) return;
+    this.suggestionRecomputeDuration.observe({ status }, durationSeconds);
+  }
+
+  recordSuggestionMaterializationReady(): void {
+    if (!this.enabled) return;
+    this.suggestionMaterializationReady.inc();
+  }
+
+  recordSuggestionMaterializationFailed(): void {
+    if (!this.enabled) return;
+    this.suggestionMaterializationFailed.inc();
+  }
+
+  recordSuggestionStaleAge(ageSeconds: number): void {
+    if (!this.enabled) return;
+    this.suggestionStaleAge.observe(ageSeconds);
   }
 }

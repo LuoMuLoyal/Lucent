@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-10
+updated: 2026-08-11
 ---
 
 # Active Product Loop — Health Event Contract / Proactive Suggestion Runtime
 
-Last updated: 2026-08-10
+Last updated: 2026-08-11
 
 ## 当前状态
 
@@ -27,6 +27,7 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - dose-log reader 投影带出 `reminderId`；有 reminderId 的日志精确匹配槽位，历史无 reminderId 的日志仅在 medicine+scheduledTime 唯一时 fallback。同药多槽位不再按 medicineId 折叠，missed-dose rule 只消费 `overdueUnconfirmed`，文案保持待确认语义。
 - Today Analysis 使用 `userId + localDate + sourceVersion` 的 BullMQ job id 合并触发；普通 daily record 不触发，只有 symptom record、health-event create/end、symptom check-in、dose log 和合格的 suggestion materialization 版本进入分析队列。`GET /today-analysis` 只读历史物化结果，不调用 LLM。
 - Today Analysis materialization 持久化 `sourceVersion`、`computedVersion`、`computedAt`、`generationCount` 和失败状态；每个自然日最多生成 3 次，手动刷新有 5 分钟冷却，旧结果在 `stale/pending/failed` 状态下继续可读。
+- Suggestion recompute 已接入低基数 Prometheus 指标：enqueue、dedupe、job duration、ready/failed 和 stale age；标签不包含 userId、日期或健康内容。
 
 ## 验证状态
 
@@ -39,7 +40,8 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Proactive Suggestion Runtime Task 5 定向测试：7 个 spec、86 tests 通过；`pnpm typecheck`、`pnpm exec prisma validate`、`pnpm prisma:generate` 和 development/test migration deploy 通过。新增 baseline observation 唯一约束已应用到两个本地 PostgreSQL 数据库。
 - Proactive Suggestion Runtime Task 6 定向测试：3 个 spec、54 tests 通过；today-suggestion 模块回归 37 个文件、400 tests 通过；`pnpm typecheck`、`pnpm lint:check`（`--max-warnings=0`）、`pnpm format:check`、`pnpm build` 和 `git diff --check` 通过。覆盖用户时区、非法时区 fallback、DST gap/fold、无效日期、reminderId 精确匹配、历史日志歧义和混合 reminder summary。
 - Proactive Suggestion Runtime Task 7 定向测试：today-analysis 10 个 spec、102 tests 通过；today-suggestion、health-events、daily-records、medicine-dose-logs 回归 61 个 spec、622 tests 通过。`pnpm exec prisma validate`、`pnpm prisma:generate`、`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build` 和 development/test migration deploy 通过。
+- Proactive Suggestion Runtime Task 8 已完成：Luminous Today 消费 `ready/stale/pending/failed/empty`，GET 只读，事件去抖刷新、resume sourceVersion 检查、cold-start cache 保留和 FIFO 请求串行均已覆盖定向测试。
 
 ## 下一阶段
 
-下一阶段是 Proactive Suggestion Runtime Task 8：让 Flutter Today 状态机消费 `ready/stale/pending/failed/empty`，并保持 Today 页面只读。
+Proactive Suggestion Runtime Task 9 正在完成可观测性、全量验证和文档收尾。
