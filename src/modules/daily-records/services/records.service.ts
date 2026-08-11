@@ -411,7 +411,46 @@ export class DailyRecordsService {
       return;
     }
 
-    if (typeof payload['durationMinutes'] !== 'number') {
+    if (
+      payload['sleepType'] !== undefined &&
+      payload['sleepType'] !== 'nightSleep' &&
+      payload['sleepType'] !== 'nap'
+    ) {
+      badRequest('Sleep payload.sleepType must be nightSleep or nap.');
+    }
+    if (
+      payload['quality'] !== undefined &&
+      typeof payload['quality'] !== 'string'
+    ) {
+      badRequest('Sleep payload.quality must be a string.');
+    }
+
+    const startedAt = payload['startedAt'] ?? payload['startAt'];
+    const endedAt = payload['endedAt'] ?? payload['endAt'];
+    if ((startedAt == null) !== (endedAt == null)) {
+      badRequest('Sleep payload requires both startedAt and endedAt.');
+    }
+    if (startedAt != null && endedAt != null) {
+      if (typeof startedAt !== 'string' || typeof endedAt !== 'string') {
+        badRequest(
+          'Sleep payload startedAt and endedAt must be ISO timestamps.',
+        );
+      }
+      const started = new Date(startedAt);
+      const ended = new Date(endedAt);
+      if (
+        Number.isNaN(started.getTime()) ||
+        Number.isNaN(ended.getTime()) ||
+        ended.getTime() <= started.getTime()
+      ) {
+        badRequest('Sleep payload.endedAt must be later than startedAt.');
+      }
+    }
+
+    if (
+      typeof payload['durationMinutes'] !== 'number' ||
+      !Number.isFinite(payload['durationMinutes'])
+    ) {
       badRequest(
         'Sleep records require payload.durationMinutes as a positive number.',
       );

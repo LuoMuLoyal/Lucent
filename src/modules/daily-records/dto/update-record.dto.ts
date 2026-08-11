@@ -87,7 +87,7 @@ export class UpdateDailyRecordDto {
 
   @ApiPropertyOptional({
     description:
-      'Structured payload for kind-specific data. Use null to clear.',
+      'Structured payload for kind-specific data. Sleep accepts sleepType (nightSleep|nap), startedAt, endedAt, durationMinutes and optional quality; legacy startAt/endAt remain readable. endedAt must be later than startedAt.',
     nullable: true,
     type: Object,
     additionalProperties: true,

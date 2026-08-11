@@ -208,6 +208,63 @@ describe('RecordCollectorService', () => {
       });
     });
 
+    it('keeps night sleep and nap episodes on the same day', async () => {
+      const episodes = [
+        {
+          sleepType: 'nightSleep',
+          startedAt: '2026-07-08T22:30:00.000Z',
+          endedAt: '2026-07-09T05:30:00.000Z',
+          durationMinutes: 420,
+        },
+        {
+          sleepType: 'nap',
+          startedAt: '2026-07-09T13:00:00.000Z',
+          endedAt: '2026-07-09T13:30:00.000Z',
+          durationMinutes: 30,
+        },
+      ];
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        .mockResolvedValueOnce(
+          episodes.map((payload, index) =>
+            makeRecord({
+              id: `sleep-${String(index)}`,
+              kind: DailyRecordKind.sleep,
+              payload,
+            }),
+          ),
+        )
+        .mockResolvedValueOnce(
+          episodes.map((payload, index) =>
+            makeRecord({
+              id: `sleep-${String(index)}`,
+              kind: DailyRecordKind.sleep,
+              payload,
+            }),
+          ),
+        );
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+      const sleep = signals.find((s) => s.kind === 'sleep_record');
+
+      expect(sleep!.payload).toMatchObject({
+        observedMetric: {
+          value: 450,
+          state: 'observed',
+          coverage: 'sufficient',
+          observedCount: 2,
+          expectedCount: null,
+        },
+        episodes: expect.arrayContaining([
+          expect.objectContaining({
+            sleepType: 'nightSleep',
+            durationMinutes: 420,
+          }),
+          expect.objectContaining({ sleepType: 'nap', durationMinutes: 30 }),
+        ]),
+      });
+    });
+
     it('emits a sleep_trend signal when multiple days of sleep exist', async () => {
       const day1 = new Date('2026-07-08T00:00:00.000Z');
       const day2 = new Date('2026-07-09T00:00:00.000Z');

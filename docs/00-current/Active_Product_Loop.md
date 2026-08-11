@@ -47,7 +47,8 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Task 9 验证：相关定向测试 4 个 spec、49 tests；Today suggestion API E2E 11 tests；临时 live acceptance 1 test；全量 `pnpm test`、`pnpm lint:check`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、Prisma validate、docs check/verify/links 均通过。
 - Sparse Record Semantics Water 阶段验证：Water mapper、Record collector、Report context/computation、water-shortfall 定向测试通过；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build` 通过。药品 slot 与睡眠 episode 的 RED 合同测试保留到后续阶段。
 - Sparse Record Semantics Medication slot 阶段验证：dose-log、medication collector、Report context/computation 定向测试 4 files / 80 tests 通过；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build`、`pnpm format:check` 通过。Flutter observed DTO/domain 迁移和睡眠 episode 仍留在后续阶段。
+- Sparse Record Semantics 睡眠 episode 阶段已完成后端语义：新 payload 支持 `nightSleep`/`nap`、`startedAt`/`endedAt`、`durationMinutes` 与可选 `quality`，旧 `startAt`/`endAt` 记录按 nightSleep fallback 读取；Today collector 分开返回夜睡、午睡和总睡眠，并以 warning 保留重叠 episode。
 
 ## 下一阶段
 
-下一阶段继续 Sparse Record Semantics：统一服药槽位与睡眠片段；Water ml/coverage 已完成。Proactive Suggestion Runtime 保留为已完成的服务端主动重算基础。
+下一阶段继续 Sparse Record Semantics：将 medication/sleep observed metric 暴露到 OpenAPI 并同步 Flutter，再处理平台导入。Water ml/coverage、服药槽位和睡眠 episode 的后端语义已完成。Proactive Suggestion Runtime 保留为已完成的服务端主动重算基础。

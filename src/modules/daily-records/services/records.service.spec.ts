@@ -1401,6 +1401,50 @@ describe('DailyRecordsService', () => {
       ).rejects.toThrow(/durationMinutes/);
     });
 
+    it('should reject an unknown sleep type', async () => {
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.sleep,
+          occurredAt: '2026-06-13',
+          payload: {
+            sleepType: 'other',
+            startedAt: '2026-06-12T23:00:00.000Z',
+            endedAt: '2026-06-13T06:30:00.000Z',
+            durationMinutes: 450,
+          },
+        }),
+      ).rejects.toThrow(/sleepType/);
+    });
+
+    it('should reject a sleep episode whose end is not later than its start', async () => {
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.sleep,
+          occurredAt: '2026-06-13',
+          payload: {
+            sleepType: 'nightSleep',
+            startedAt: '2026-06-13T06:30:00.000Z',
+            endedAt: '2026-06-12T23:00:00.000Z',
+            durationMinutes: 450,
+          },
+        }),
+      ).rejects.toThrow(/later than startedAt/);
+    });
+
+    it('should reject a sleep episode with only one endpoint', async () => {
+      await expect(
+        service.create(mockUserId, {
+          kind: DailyRecordKind.sleep,
+          occurredAt: '2026-06-13',
+          payload: {
+            sleepType: 'nap',
+            startedAt: '2026-06-13T13:00:00.000Z',
+            durationMinutes: 30,
+          },
+        }),
+      ).rejects.toThrow(/both startedAt and endedAt/);
+    });
+
     it('should allow temporary sleep start event record without durationMinutes', async () => {
       repository.create.mockResolvedValue({
         id: 'rs-start',
