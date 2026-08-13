@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AssistantModule } from '../assistant/assistant.module';
 import { DailyRecordsModule } from '../daily-records/daily-records.module';
+import { HealthEventsModule } from '../health-events/health-events.module';
 import { LlmCommonModule } from '../../common';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
@@ -26,6 +27,7 @@ import { ReportsContextService } from './dashboard/context.service';
 import { ReportsPresenterService } from './dashboard/presenter.service';
 
 import { ReportsService } from './dashboard/dashboard.service';
+import { EventReviewService } from './services/event-review/review.service';
 import { ReportsController } from './reports.controller';
 
 @Module({
@@ -34,6 +36,7 @@ import { ReportsController } from './reports.controller';
     LlmCommonModule,
     AssistantModule,
     DailyRecordsModule,
+    HealthEventsModule,
     MedicineDoseLogsModule,
     UserSettingsModule,
   ],
@@ -51,6 +54,7 @@ import { ReportsController } from './reports.controller';
     ReportsContextService,
     ReportsPresenterService,
     ReportsService,
+    EventReviewService,
   ],
   exports: [ReportsService],
 })

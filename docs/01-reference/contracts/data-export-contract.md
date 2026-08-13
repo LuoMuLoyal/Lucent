@@ -84,3 +84,7 @@ interface DataExportRequestDto {
 - Report metric scalar fields remain a deprecated compatibility projection while the coverage-aware
   observed metric (`value`, `state`, `coverage`, `sources`, counts, and window) is the contract for
   new consumers. Export paths must keep missing observations distinct from an observed zero.
+- The Event Review read model added to the reports module (review DTO, read service skeleton, and
+  health-event ownership read façade) is read-only and changes no export endpoint or DTO; export and
+  clinic summary remain reachable through their existing endpoints and become More actions in the
+  Review UI rather than primary-path features.

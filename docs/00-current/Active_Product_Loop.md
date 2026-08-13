@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-11
+updated: 2026-08-13
 ---
 
 # Active Product Loop — Health Event Contract / Sparse Record Semantics
 
-Last updated: 2026-08-11
+Last updated: 2026-08-13
 
 ## 当前状态
 
@@ -31,6 +31,7 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Sparse Record Semantics 的 Water 阶段已完成：Today collector、Today Analysis、Report context 与 Report AI context 共用纯 mapper/factory，合法水量统一为整数 ml；unknown、observed zero、非法输入和来源/coverage 不再混淆。旧 Report 升数序列仅作为兼容投影，并由同一 ml 结果派生。
 - Sparse Record Semantics 的服药槽位阶段已完成后端部分：Today collector 与 Report dashboard 以 `reminderId + scheduledFor + scheduledTime` 保持槽位独立；`planned` 在消费合同中映射为 `unconfirmed`，taken/skipped/overdue-unconfirmed 分开计数；无计划临时 dose log 不进入 adherence 分母，无计划窗口返回 unknown。
 - Sparse Record Semantics Task 6 已将 `ObservedMetric` 同构字段暴露到 Report、Today Suggestion 与 Today Analysis 的 OpenAPI schema：`value`/`state`/`coverage`/`sources`/`observedCount`/`expectedCount`/`windowStart`/`windowEnd`；`value` 与 `expectedCount` 必返但允许为 null，Report 旧 scalar 投影保留一个兼容周期并标记 deprecated。
+- Review Experience Task 1 已在 reports 模块落地 event review 读模型骨架：`EventReviewService` 提供按事件详情、current（active 优先→最近 ended→无事件 null）与 status/cursor 列表三种只读入口；四段 section（`whatHappened/keyChanges/completedActions/nextStep`）各带 `available|unknown` 状态，unknown 只返回固定 reason code，coverage summary 复用统一 observed-metric 形状。健康事件跨模块读经 `HealthEventsOwnershipService` 的只读方法（`findActive`、`findMostRecentEnded`、`findTodayCheckIn`、`findCheckInCoverage`、`findManyByUser`），软删除事件与记录不参与回顾。四段 section 计算与 controller/endpoint 留待 Review Experience 后续任务。
 
 ## 验证状态
 
@@ -50,7 +51,8 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Sparse Record Semantics Medication slot 阶段验证：dose-log、medication collector、Report context/computation 定向测试 4 files / 80 tests 通过；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm build`、`pnpm format:check` 通过。Flutter observed DTO/domain、Report/Today 客户端合同与 Health platform import 已同步完成；Report UI 在 Review 迁移前仍保留 legacy scalar fallback，详见 Luminous Active_UI_Report。
 - Sparse Record Semantics 睡眠 episode 阶段已完成后端语义：新 payload 支持 `nightSleep`/`nap`、`startedAt`/`endedAt`、`durationMinutes` 与可选 `quality`，旧 `startAt`/`endAt` 记录按 nightSleep fallback 读取；Today collector 分开返回夜睡、午睡和总睡眠，并以 warning 保留重叠 episode。
 - Sparse Record Semantics Task 6 验证：`pnpm export:openapi` 生成 114 paths / 258 schemas；三组 observed metric schema 的 nullable 与 enum 语义已核对，OpenAPI 语义 diff 仅包含新增 schema、字段和 deprecated 标记；DTO typecheck、lint（`--max-warnings=0`）和 format check 通过。
+- Review Experience Task 1 验证：event review service spec 8 tests（active/ended/稀疏/无事件/foreign 五场景 + current 回退与列表分页）通过；全量 294 files / 3080 tests、`pnpm typecheck`、`pnpm lint:check --max-warnings=0` 通过。controller/endpoint 尚未接入，OpenAPI 暂无新增 path。
 
 ## 下一阶段
 
-Sparse Record Semantics 已完成跨仓库收口，下一阶段进入 Review Experience。Report legacy scalar fallback 与 Review 尚未完成，仍作为后续边界保留；Water ml/coverage、服药槽位和睡眠 episode 的后端语义已完成。Proactive Suggestion Runtime 保留为已完成的服务端主动重算基础。
+Sparse Record Semantics 已完成跨仓库收口，Review Experience 进入 Task 2：event review 读模型骨架（DTO、`EventReviewService` 三种只读入口、ownership 门面只读扩展）已落地，四段 section 计算、controller/endpoint 与 Luminous 客户端尚未完成，仍作为后续边界保留。Report legacy scalar fallback 在 Review 迁移前继续保留；Water ml/coverage、服药槽位和睡眠 episode 的后端语义已完成。Proactive Suggestion Runtime 保留为已完成的服务端主动重算基础。
