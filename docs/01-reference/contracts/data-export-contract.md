@@ -96,3 +96,10 @@ interface DataExportRequestDto {
   the event's medicines (a follow-up extends the risk payload with medicine ids or filters per
   event), and change trends compare only the first and last observation of the window — a simplified
   factual direction, not a regression analysis.
+- Review Experience Task 3 wires the read-only review endpoints (`GET
+/api/v1/user/reports/reviews/current`, `/reviews`, `/reviews/:eventId`) into the reports
+  controller and exports them to `docs/openapi.json` (117 paths). The review list is
+  cursor-paginated (`startedAt|id` composite cursor) with an optional status filter and no
+  7/30-day default contract; none of this changes the data-export request/response DTOs, and the
+  existing dashboard/summary/clinic-summary endpoints keep their response shapes for one
+  compatibility cycle.

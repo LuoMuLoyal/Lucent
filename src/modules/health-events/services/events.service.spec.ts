@@ -54,6 +54,9 @@ function buildRepository() {
     findActiveByUserId: vi.fn().mockResolvedValue(null),
     findById: vi.fn().mockResolvedValue(event()),
     findManyByUserId: vi.fn(),
+    findPageByUserId: vi
+      .fn()
+      .mockResolvedValue({ items: [], hasMore: false, total: 0 }),
     findMostRecentEndedByUserId: vi.fn(),
     findCheckIn: vi.fn(),
     findCheckIns: vi.fn(),

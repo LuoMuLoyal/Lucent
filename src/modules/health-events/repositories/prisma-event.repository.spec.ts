@@ -1,4 +1,5 @@
 import {
+  HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
@@ -10,6 +11,22 @@ import { PrismaEventRepository } from './prisma-event.repository';
 const USER_ID = 'user-1';
 const EVENT_ID = 'event-1';
 
+function eventRow(id: string) {
+  return {
+    id,
+    userId: USER_ID,
+    title: '头痛观察',
+    kind: HealthEventKind.symptom,
+    status: HealthEventStatus.active,
+    startedAt: new Date('2026-08-01T08:00:00.000Z'),
+    endedAt: null,
+    outcome: null,
+    reasonRecordId: null,
+    deletedAt: null,
+    medicines: [{ currentMedicineId: 'med-1' }],
+  };
+}
+
 describe('PrismaEventRepository', () => {
   let repository: PrismaEventRepository;
   let prisma: DeepMocked<PrismaService>;
@@ -18,6 +35,8 @@ describe('PrismaEventRepository', () => {
     prisma = {
       healthEvent: {
         findFirst: vi.fn(),
+        findMany: vi.fn(),
+        count: vi.fn(),
         create: vi.fn(),
         updateMany: vi.fn(),
       },
@@ -136,5 +155,81 @@ describe('PrismaEventRepository', () => {
     expect(result).toBeNull();
     expect(tx.$queryRaw).toHaveBeenCalled();
     expect(tx.healthEventCheckIn.upsert).not.toHaveBeenCalled();
+  });
+
+  it('pages events with a status filter and an exclusive cursor bound', async () => {
+    prisma.healthEvent.findMany.mockResolvedValue([] as never);
+    prisma.healthEvent.count.mockResolvedValue(7 as never);
+    const cursorStartedAt = new Date('2026-08-10T08:00:00.000Z');
+
+    const result = await repository.findPageByUserId(USER_ID, {
+      status: HealthEventStatus.ended,
+      cursor: { startedAt: cursorStartedAt, id: 'evt-x' },
+      limit: 20,
+    });
+
+    expect(prisma.healthEvent.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: USER_ID,
+        deletedAt: null,
+        status: HealthEventStatus.ended,
+        OR: [
+          { startedAt: { lt: cursorStartedAt } },
+          { startedAt: cursorStartedAt, id: { lt: 'evt-x' } },
+        ],
+      },
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      take: 21,
+      select: expect.anything(),
+    });
+    expect(prisma.healthEvent.count).toHaveBeenCalledWith({
+      where: {
+        userId: USER_ID,
+        deletedAt: null,
+        status: HealthEventStatus.ended,
+      },
+    });
+    expect(result).toEqual({ items: [], hasMore: false, total: 7 });
+  });
+
+  it('pages events without status or cursor filters', async () => {
+    prisma.healthEvent.findMany.mockResolvedValue([] as never);
+    prisma.healthEvent.count.mockResolvedValue(0 as never);
+
+    await repository.findPageByUserId(USER_ID, {
+      status: null,
+      cursor: null,
+      limit: 10,
+    });
+
+    expect(prisma.healthEvent.findMany).toHaveBeenCalledWith({
+      where: { userId: USER_ID, deletedAt: null },
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      take: 11,
+      select: expect.anything(),
+    });
+    expect(prisma.healthEvent.count).toHaveBeenCalledWith({
+      where: { userId: USER_ID, deletedAt: null },
+    });
+  });
+
+  it('drops the probe row and reports hasMore when rows exceed the page', async () => {
+    prisma.healthEvent.findMany.mockResolvedValue([
+      eventRow('evt-2'),
+      eventRow('evt-1'),
+      eventRow('evt-0'),
+    ] as never);
+    prisma.healthEvent.count.mockResolvedValue(9 as never);
+
+    const result = await repository.findPageByUserId(USER_ID, {
+      status: null,
+      cursor: null,
+      limit: 2,
+    });
+
+    expect(result.hasMore).toBe(true);
+    expect(result.total).toBe(9);
+    expect(result.items.map((item) => item.id)).toEqual(['evt-2', 'evt-1']);
+    expect(result.items[0]?.currentMedicineIds).toEqual(['med-1']);
   });
 });

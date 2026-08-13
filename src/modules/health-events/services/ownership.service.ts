@@ -9,6 +9,8 @@ import {
   HealthEventRepositoryPort,
   type HealthEventCheckInRecord,
   type HealthEventCoverageRecord,
+  type HealthEventPage,
+  type HealthEventPageQuery,
   type HealthEventRecord,
 } from '../repositories/event.repository';
 
@@ -56,6 +58,17 @@ export class HealthEventsOwnershipService {
   /** Read-only: all of the user's non-deleted events, newest started first. */
   findManyByUser(userId: string): Promise<HealthEventRecord[]> {
     return this.repository.findManyByUserId(userId);
+  }
+
+  /**
+   * Read-only: one page of the user's non-deleted events, newest started
+   * first, with the total matching the status filter and a has-more probe.
+   */
+  findPageByUser(
+    userId: string,
+    query: HealthEventPageQuery,
+  ): Promise<HealthEventPage> {
+    return this.repository.findPageByUserId(userId, query);
   }
 
   /**

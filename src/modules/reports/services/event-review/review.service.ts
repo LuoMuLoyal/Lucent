@@ -42,7 +42,7 @@ const REVIEW_CURSOR_SEPARATOR = '|';
 
 /** Decoded review list cursor; events sort by `startedAt desc, id desc`. */
 interface ReviewCursor {
-  startedAtIso: string;
+  startedAt: Date;
   id: string;
 }
 
@@ -190,35 +190,28 @@ export class EventReviewService {
   }
 
   /**
-   * Known simplification (follow-up for Task 3, see migration log
-   * 2026-08-13): events are pulled in full and filtered/paginated in memory.
-   * A dedicated paginated repository query should replace this when event
-   * history grows.
+   * Lists event reviews one page at a time. Filtering, ordering
+   * (`startedAt desc, id desc`), the composite cursor bound, the has-more
+   * probe and the status-filtered total are all executed by the repository
+   * page query — no in-memory filtering over the full event history.
    */
   async list(
     userId: string,
     query: EventReviewListQueryDto,
   ): Promise<EventReviewListDataDto> {
     const limit = query.limit ?? DEFAULT_REVIEW_LIST_LIMIT;
-    const events = await this.healthEvents.findManyByUser(userId);
-    const statusFiltered =
-      query.status == null
-        ? events
-        : events.filter((event) => event.status === query.status);
     const cursor = this.resolveCursor(query.cursor);
-    const afterCursor =
-      cursor == null
-        ? statusFiltered
-        : statusFiltered.filter((event) => this.isAfterCursor(event, cursor));
-    const page = afterCursor.slice(0, limit);
-    const lastItem = page.at(-1);
+    const page = await this.healthEvents.findPageByUser(userId, {
+      status: query.status ?? null,
+      cursor,
+      limit,
+    });
+    const lastItem = page.items.at(-1);
     return {
-      items: page.map((event) => this.toEventDto(event)),
-      total: statusFiltered.length,
+      items: page.items.map((event) => this.toEventDto(event)),
+      total: page.total,
       nextCursor:
-        afterCursor.length > limit && lastItem != null
-          ? this.encodeCursor(lastItem)
-          : null,
+        page.hasMore && lastItem != null ? this.encodeCursor(lastItem) : null,
     };
   }
 
@@ -383,27 +376,15 @@ export class EventReviewService {
     ) {
       badRequest('Invalid review cursor.');
     }
-    return { startedAtIso, id };
+    const startedAt = new Date(startedAtIso);
+    if (Number.isNaN(startedAt.getTime())) {
+      badRequest('Invalid review cursor.');
+    }
+    return { startedAt, id };
   }
 
   private encodeCursor(event: HealthEventRecord): string {
     return `${event.startedAt.toISOString()}${REVIEW_CURSOR_SEPARATOR}${event.id}`;
-  }
-
-  /**
-   * Events are ordered by `startedAt desc, id desc`. An event belongs to the
-   * next page when it sorts strictly after the cursor pair, so events sharing
-   * the cursor's startedAt are not skipped at page boundaries.
-   */
-  private isAfterCursor(
-    event: HealthEventRecord,
-    cursor: ReviewCursor,
-  ): boolean {
-    const startedAtIso = event.startedAt.toISOString();
-    return (
-      startedAtIso < cursor.startedAtIso ||
-      (startedAtIso === cursor.startedAtIso && event.id < cursor.id)
-    );
   }
 
   private toTodayCheckIn(

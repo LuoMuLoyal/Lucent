@@ -66,6 +66,28 @@ export interface HealthEventUpdateInput {
 }
 
 /**
+ * One page of a user's event history, ordered `startedAt desc, id desc`.
+ * Business-shaped: the composite review-list cursor is decoded by the caller
+ * into the exclusive `startedAt`/`id` bound.
+ */
+export interface HealthEventPageQuery {
+  /** Status filter, or null for all statuses. */
+  status: HealthEventStatus | null;
+  /** Exclusive lower bound: only events sorting strictly after this pair. */
+  cursor: { startedAt: Date; id: string } | null;
+  /** Page size in records (> 0). */
+  limit: number;
+}
+
+export interface HealthEventPage {
+  items: HealthEventRecord[];
+  /** True when another page exists beyond this one. */
+  hasMore: boolean;
+  /** Total events matching the status filter (cursor not applied). */
+  total: number;
+}
+
+/**
  * Persistence boundary for health events. Services receive business-shaped
  * arguments only; Prisma query input types stay inside the implementation.
  */
@@ -80,6 +102,12 @@ export abstract class HealthEventRepositoryPort {
   ): Promise<HealthEventRecord | null>;
 
   abstract findManyByUserId(userId: string): Promise<HealthEventRecord[]>;
+
+  /** The user's non-deleted events as one page, newest started first. */
+  abstract findPageByUserId(
+    userId: string,
+    query: HealthEventPageQuery,
+  ): Promise<HealthEventPage>;
 
   /** The user's most recently started ended event, or null when none exists. */
   abstract findMostRecentEndedByUserId(

@@ -40,6 +40,9 @@ function buildService() {
   const repository = {
     findActiveByUserId: vi.fn().mockResolvedValue(null),
     findManyByUserId: vi.fn().mockResolvedValue([]),
+    findPageByUserId: vi
+      .fn()
+      .mockResolvedValue({ items: [], hasMore: false, total: 0 }),
     findMostRecentEndedByUserId: vi.fn().mockResolvedValue(null),
     findUserTimezone: vi.fn().mockResolvedValue(null),
     findCheckIn: vi.fn().mockResolvedValue(null),
@@ -184,6 +187,31 @@ describe('HealthEventsOwnershipService', () => {
       await expect(
         service.findCheckInCoverage(USER_ID, EVENT_ID),
       ).resolves.toEqual(coverage);
+    });
+  });
+
+  describe('findPageByUser', () => {
+    it('delegates the paginated read to the repository', async () => {
+      const { service, repository } = buildService();
+      const page = {
+        items: [eventFixture({ status: HealthEventStatus.ended })],
+        hasMore: false,
+        total: 1,
+      };
+      repository.findPageByUserId.mockResolvedValue(page);
+      const query = {
+        status: HealthEventStatus.ended,
+        cursor: {
+          startedAt: new Date('2026-08-10T08:00:00.000Z'),
+          id: 'evt-1',
+        },
+        limit: 20,
+      };
+
+      await expect(service.findPageByUser(USER_ID, query)).resolves.toEqual(
+        page,
+      );
+      expect(repository.findPageByUserId).toHaveBeenCalledWith(USER_ID, query);
     });
   });
 

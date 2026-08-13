@@ -2,17 +2,22 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-11
+updated: 2026-08-13
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-11
+Last updated: 2026-08-13
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
 - local `docs/openapi.json` remains the exported backend contract artifact that Luminous
   regenerates its `generated/lucent_api/` client from.
+- Review Experience Task 3 exports three read-only review endpoints to `docs/openapi.json`
+  (`/api/v1/user/reports/reviews/current`, `/reviews`, `/reviews/{eventId}`; 117 paths / 272
+  schemas) alongside the unchanged dashboard/summary/clinic-summary paths; the generated file
+  uses expanded array formatting from `JSON.stringify(document, null, 2)`. Task 4 regenerates the
+  Luminous client with `dart run tool/bootstrap_generated_sources.dart` before consuming them.
 - The current exported contract now includes meal-analysis read hot fields on `DailyRecordItemDto`:
   status, coverage, updated-at, failure-reason, short-description, and top-foods.
 - Health-event association fields on daily records and dose logs are implemented in Lucent first;

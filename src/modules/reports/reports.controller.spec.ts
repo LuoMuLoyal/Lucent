@@ -2,6 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { I18nService } from 'nestjs-i18n';
+import { HealthEventKind, HealthEventStatus } from '#generated/prisma/client';
 import { ResultCode, SseConnectionRegistry } from '../../common';
 import {
   REPORT_RANGE_CUSTOM,
@@ -12,10 +13,12 @@ import {
 import type { ReportDashboardDataDto } from './dto/report-dashboard-response.dto';
 
 import type { ReportSummaryDataDto } from './dto/report-summary-response.dto';
+import type { EventReviewDataDto } from './dto/event-review-response.dto';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
 import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
 import { ClinicSummaryService } from './services/clinic-summary/summary.service';
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
+import { EventReviewService } from './services/event-review/review.service';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './dashboard/dashboard.service';
 describe('ReportsController', () => {
@@ -23,6 +26,7 @@ describe('ReportsController', () => {
   let service: vi.Mocked<ReportsService>;
   let aiSummaryService: vi.Mocked<ReportsAiSummaryService>;
   let clinicSummaryService: vi.Mocked<ClinicSummaryService>;
+  let eventReviewService: vi.Mocked<EventReviewService>;
   let sseRegistry: SseConnectionRegistry;
 
   beforeEach(async () => {
@@ -69,6 +73,14 @@ describe('ReportsController', () => {
           },
         },
         {
+          provide: EventReviewService,
+          useValue: {
+            buildCurrent: vi.fn(),
+            list: vi.fn(),
+            buildForEvent: vi.fn(),
+          },
+        },
+        {
           provide: SseConnectionRegistry,
           useValue: {
             register: vi.fn(),
@@ -89,6 +101,7 @@ describe('ReportsController', () => {
     service = module.get(ReportsService);
     aiSummaryService = module.get(ReportsAiSummaryService);
     clinicSummaryService = module.get(ClinicSummaryService);
+    eventReviewService = module.get(EventReviewService);
     sseRegistry = module.get(SseConnectionRegistry);
   });
 
@@ -402,6 +415,88 @@ describe('ReportsController', () => {
       ),
     ).rejects.toThrow(HttpException);
   });
+
+  // ── getCurrentReview ──────────────────────────────────────────────
+
+  it('returns the current event review envelope', async () => {
+    const review = makeReview();
+    eventReviewService.buildCurrent.mockResolvedValue(review);
+
+    expect(
+      await controller.getCurrentReview({
+        sub: 'u1',
+        email: 'a@b.c',
+        status: 'active',
+      }),
+    ).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: review,
+    });
+    expect(eventReviewService.buildCurrent).toHaveBeenCalledWith('u1');
+  });
+
+  it('returns a success envelope with null data when no event review exists', async () => {
+    eventReviewService.buildCurrent.mockResolvedValue(null);
+
+    expect(
+      await controller.getCurrentReview({
+        sub: 'u1',
+        email: 'a@b.c',
+        status: 'active',
+      }),
+    ).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: null,
+    });
+  });
+
+  // ── listReviews ───────────────────────────────────────────────────
+
+  it('returns the review list envelope and forwards status and cursor', async () => {
+    const listData = {
+      items: [makeReview().event],
+      total: 1,
+      nextCursor: null,
+    };
+    eventReviewService.list.mockResolvedValue(listData);
+    const query = { status: HealthEventStatus.ended, limit: 20 };
+
+    expect(
+      await controller.listReviews(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        query,
+      ),
+    ).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: listData,
+    });
+    expect(eventReviewService.list).toHaveBeenCalledWith('u1', query);
+  });
+
+  // ── getEventReview ────────────────────────────────────────────────
+
+  it('returns the event review envelope for the event id', async () => {
+    const review = makeReview();
+    eventReviewService.buildForEvent.mockResolvedValue(review);
+
+    expect(
+      await controller.getEventReview(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'evt-1',
+      ),
+    ).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: review,
+    });
+    expect(eventReviewService.buildForEvent).toHaveBeenCalledWith(
+      'u1',
+      'evt-1',
+    );
+  });
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -482,6 +577,92 @@ function makeSummary(
     actionLabel: '查看报告',
     action: 'today',
     confidenceNote: '仅基于近 30 天已记录数据生成，不构成诊断或治疗建议。',
+    ...overrides,
+  };
+}
+
+function makeReview(
+  overrides: Partial<EventReviewDataDto> = {},
+): EventReviewDataDto {
+  return {
+    event: {
+      id: 'evt-1',
+      kind: HealthEventKind.symptom,
+      title: '头痛观察',
+      status: HealthEventStatus.active,
+      startedAt: '2026-08-01T08:00:00.000Z',
+      endedAt: null,
+      outcome: null,
+      currentMedicineIds: ['med-1'],
+    },
+    sections: {
+      whatHappened: {
+        state: 'available',
+        facts: {
+          code: 'health_event',
+          arguments: {
+            kind: HealthEventKind.symptom,
+            title: '头痛观察',
+            startedAt: '2026-08-01T08:00:00.000Z',
+            endedAt: null,
+            medicineIds: ['med-1'],
+            symptomRecordCount: 1,
+            checkInCount: 2,
+          },
+        },
+      },
+      keyChanges: { state: 'unknown', reasonCode: 'no_observations' },
+      completedActions: {
+        state: 'unknown',
+        reasonCode: 'no_completed_actions',
+      },
+      nextStep: {
+        state: 'available',
+        facts: {
+          code: 'active_check_in',
+          arguments: { hasTodayCheckIn: false },
+        },
+      },
+    },
+    coverage: {
+      checkIns: {
+        state: 'observed',
+        coverage: 'partial',
+        sources: ['manual'],
+        observedCount: 2,
+        expectedCount: null,
+        firstCheckInDate: '2026-08-10',
+        lastCheckInDate: '2026-08-11',
+        todayCheckIn: null,
+        windowStart: '2026-08-01T08:00:00.000Z',
+        windowEnd: '2026-08-13T12:00:00.000Z',
+      },
+      dailyRecords: {
+        state: 'unknown',
+        coverage: 'none',
+        sources: [],
+        observedCount: 0,
+        expectedCount: null,
+        windowStart: '2026-08-01T08:00:00.000Z',
+        windowEnd: '2026-08-13T12:00:00.000Z',
+      },
+      doseLogs: {
+        state: 'unknown',
+        coverage: 'none',
+        sources: [],
+        observedCount: 0,
+        expectedCount: null,
+        windowStart: '2026-08-01T08:00:00.000Z',
+        windowEnd: '2026-08-13T12:00:00.000Z',
+      },
+    },
+    sourceTimestamps: {
+      checkIns: '2026-08-11',
+      dailyRecords: null,
+      doseLogs: null,
+    },
+    availableActions: ['check_in', 'end_event'],
+    generatedAt: '2026-08-13T12:00:00.000Z',
     ...overrides,
   };
 }

@@ -12,6 +12,7 @@ import {
   type HealthEventCheckInRecord,
   type HealthEventCoverageRecord,
   type HealthEventCreateInput,
+  type HealthEventPageQuery,
   type HealthEventRecord,
   type HealthEventUpdateInput,
 } from './event.repository';
@@ -85,6 +86,46 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
       select: eventSelect,
     });
     return rows.map((row) => this.toEventRecord(row));
+  }
+
+  override async findPageByUserId(userId: string, query: HealthEventPageQuery) {
+    const statusWhere: Prisma.HealthEventWhereInput = {
+      userId,
+      deletedAt: null,
+    };
+    if (query.status != null) {
+      statusWhere.status = query.status;
+    }
+    const pageWhere: Prisma.HealthEventWhereInput =
+      query.cursor == null
+        ? statusWhere
+        : {
+            ...statusWhere,
+            OR: [
+              { startedAt: { lt: query.cursor.startedAt } },
+              {
+                startedAt: query.cursor.startedAt,
+                id: { lt: query.cursor.id },
+              },
+            ],
+          };
+
+    const [rows, total] = await Promise.all([
+      this.prisma.healthEvent.findMany({
+        where: pageWhere,
+        orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+        // One extra row probes whether another page exists.
+        take: query.limit + 1,
+        select: eventSelect,
+      }),
+      this.prisma.healthEvent.count({ where: statusWhere }),
+    ]);
+    const hasMore = rows.length > query.limit;
+    return {
+      items: rows.slice(0, query.limit).map((row) => this.toEventRecord(row)),
+      hasMore,
+      total,
+    };
   }
 
   override async findMostRecentEndedByUserId(userId: string) {

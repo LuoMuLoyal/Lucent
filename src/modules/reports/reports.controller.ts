@@ -15,6 +15,7 @@ import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -56,7 +57,14 @@ import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
 
 import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import { EventReviewService } from './services/event-review/review.service';
 import { ReportsService } from './dashboard/dashboard.service';
+import { EventReviewListQueryDto } from './dto/event-review-list-query.dto';
+import {
+  EventReviewListResponseDto,
+  EventReviewNullableResponseDto,
+  EventReviewResponseDto,
+} from './dto/event-review-response.dto';
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')
@@ -70,6 +78,7 @@ export class ReportsController {
     private readonly reportSummaryQueueService: ReportSummaryQueueService,
     private readonly clinicSummaryService: ClinicSummaryService,
     private readonly clinicSummaryPdfQueueService: ClinicSummaryPdfQueueService,
+    private readonly eventReviewService: EventReviewService,
     private readonly sseRegistry: SseConnectionRegistry,
     private readonly i18n: I18nService,
   ) {}
@@ -385,5 +394,44 @@ export class ReportsController {
       );
     }
     reply.send(pdf);
+  }
+
+  // ── Event review ─────────────────────────────────────────────────────
+  // Declared before `reviews/:eventId` so the static `current` path wins.
+
+  @Get('reviews/current')
+  @ApiOperation({
+    summary: 'Get the current event review for the authenticated user',
+  })
+  @ApiResponse({ status: 200, type: EventReviewNullableResponseDto })
+  async getCurrentReview(@CurrentUser() user: UserPayload) {
+    // Prefers the active event, then the most recent ended one. No events:
+    // a success envelope with null data, not a 404.
+    return successEnvelope(
+      await this.eventReviewService.buildCurrent(user.sub),
+    );
+  }
+
+  @Get('reviews')
+  @ApiOperation({ summary: 'List the user event review history' })
+  @ApiResponse({ status: 200, type: EventReviewListResponseDto })
+  async listReviews(
+    @CurrentUser() user: UserPayload,
+    @Query() query: EventReviewListQueryDto = new EventReviewListQueryDto(),
+  ) {
+    return successEnvelope(await this.eventReviewService.list(user.sub, query));
+  }
+
+  @Get('reviews/:eventId')
+  @ApiOperation({ summary: 'Get one user event review by event id' })
+  @ApiParam({ name: 'eventId' })
+  @ApiResponse({ status: 200, type: EventReviewResponseDto })
+  async getEventReview(
+    @CurrentUser() user: UserPayload,
+    @Param('eventId') eventId: string,
+  ) {
+    return successEnvelope(
+      await this.eventReviewService.buildForEvent(user.sub, eventId),
+    );
   }
 }

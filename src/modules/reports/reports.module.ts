@@ -66,6 +66,6 @@ import { ReportsController } from './reports.controller';
     EventReviewActionsService,
     EventReviewNextStepService,
   ],
-  exports: [ReportsService],
+  exports: [ReportsService, EventReviewService],
 })
 export class ReportsModule {}

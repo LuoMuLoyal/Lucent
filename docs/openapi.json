@@ -3939,6 +3939,122 @@
         "tags": ["Reports"]
       }
     },
+    "/api/v1/user/reports/reviews/current": {
+      "get": {
+        "operationId": "ReportsController_getCurrentReview_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventReviewNullableResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get the current event review for the authenticated user",
+        "tags": ["Reports"]
+      }
+    },
+    "/api/v1/user/reports/reviews": {
+      "get": {
+        "operationId": "ReportsController_listReviews_v1",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter events by status. No time range is required.",
+            "schema": {
+              "$ref": "#/components/schemas/HealthEventStatus"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque cursor for pagination: composite of the last item startedAt ISO 8601 value and id joined with \"|\", as returned by nextCursor. Must not be constructed by the client.",
+            "schema": {
+              "example": "2026-08-01T08:00:00.000Z|evt-1",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Page size (1-100).",
+            "schema": {
+              "maximum": 100,
+              "default": 20,
+              "example": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventReviewListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List the user event review history",
+        "tags": ["Reports"]
+      }
+    },
+    "/api/v1/user/reports/reviews/{eventId}": {
+      "get": {
+        "operationId": "ReportsController_getEventReview_v1",
+        "parameters": [
+          {
+            "name": "eventId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventReviewResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get one user event review by event id",
+        "tags": ["Reports"]
+      }
+    },
     "/api/v1/user/assistant/capabilities": {
       "get": {
         "operationId": "AssistantController_getCapabilities_v1",
@@ -10323,6 +10439,417 @@
           }
         },
         "required": ["shareUrl", "expiresAt"]
+      },
+      "EventReviewEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventKind"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventStatus"
+              }
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "Start time in ISO 8601 format."
+          },
+          "endedAt": {
+            "type": "string",
+            "nullable": true,
+            "description": "End time in ISO 8601 format, or null while active."
+          },
+          "outcome": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventOutcome"
+              }
+            ]
+          },
+          "currentMedicineIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "status",
+          "startedAt",
+          "endedAt",
+          "outcome",
+          "currentMedicineIds"
+        ]
+      },
+      "EventReviewSectionFactsDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Structured fact code; localized by the client."
+          },
+          "arguments": {
+            "type": "object",
+            "description": "Structured fact arguments for the client localizer."
+          }
+        },
+        "required": ["code", "arguments"]
+      },
+      "EventReviewSectionDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["available", "unknown"]
+          },
+          "reasonCode": {
+            "type": "string",
+            "enum": [
+              "no_observations",
+              "no_completed_actions",
+              "insufficient_coverage"
+            ],
+            "description": "Fixed reason code when state is unknown: no_observations (window has no observations), no_completed_actions (no confirmed doses or check-ins), insufficient_coverage (observations exist but no trend is computable)."
+          },
+          "facts": {
+            "description": "Basic facts when state is available.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventReviewSectionFactsDto"
+              }
+            ]
+          }
+        },
+        "required": ["state"]
+      },
+      "EventReviewSectionsDto": {
+        "type": "object",
+        "properties": {
+          "whatHappened": {
+            "$ref": "#/components/schemas/EventReviewSectionDto"
+          },
+          "keyChanges": {
+            "$ref": "#/components/schemas/EventReviewSectionDto"
+          },
+          "completedActions": {
+            "$ref": "#/components/schemas/EventReviewSectionDto"
+          },
+          "nextStep": {
+            "$ref": "#/components/schemas/EventReviewSectionDto"
+          }
+        },
+        "required": [
+          "whatHappened",
+          "keyChanges",
+          "completedActions",
+          "nextStep"
+        ]
+      },
+      "EventReviewTodayCheckInDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Calendar date in YYYY-MM-DD format."
+          },
+          "outcome": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventOutcome"
+              }
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Last update time in ISO 8601 format."
+          }
+        },
+        "required": ["date", "outcome", "updatedAt"]
+      },
+      "EventReviewCheckInCoverageDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["observed", "unknown"]
+          },
+          "coverage": {
+            "type": "string",
+            "enum": ["sufficient", "partial", "none"],
+            "description": "'none' when no check-ins exist; 'partial' when check-ins exist but sufficiency is not yet assessed by the section services."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
+            }
+          },
+          "observedCount": {
+            "type": "number",
+            "description": "Number of user-confirmed check-ins."
+          },
+          "expectedCount": {
+            "type": "number",
+            "nullable": true,
+            "description": "No fixed expectation exists for check-ins."
+          },
+          "firstCheckInDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "First check-in calendar date, or null when none exists."
+          },
+          "lastCheckInDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Last check-in calendar date, or null when none exists."
+          },
+          "todayCheckIn": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventReviewTodayCheckInDto"
+              }
+            ]
+          },
+          "windowStart": {
+            "type": "string",
+            "description": "Event window start in ISO 8601 format."
+          },
+          "windowEnd": {
+            "type": "string",
+            "description": "Event window end in ISO 8601 format."
+          }
+        },
+        "required": [
+          "state",
+          "coverage",
+          "sources",
+          "observedCount",
+          "expectedCount",
+          "firstCheckInDate",
+          "lastCheckInDate",
+          "todayCheckIn",
+          "windowStart",
+          "windowEnd"
+        ]
+      },
+      "EventReviewObservedSourceDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["observed", "unknown"]
+          },
+          "coverage": {
+            "type": "string",
+            "enum": ["sufficient", "partial", "none"],
+            "description": "The skeleton emits 'none' or 'partial'; sufficiency assessment lands with the section services."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
+            }
+          },
+          "observedCount": {
+            "type": "number",
+            "description": "Number of observations in the event window."
+          },
+          "expectedCount": {
+            "type": "number",
+            "nullable": true,
+            "description": "No fixed expectation is defined for this source yet."
+          },
+          "windowStart": {
+            "type": "string",
+            "description": "Event window start in ISO 8601 format."
+          },
+          "windowEnd": {
+            "type": "string",
+            "description": "Event window end in ISO 8601 format."
+          }
+        },
+        "required": [
+          "state",
+          "coverage",
+          "sources",
+          "observedCount",
+          "expectedCount",
+          "windowStart",
+          "windowEnd"
+        ]
+      },
+      "EventReviewCoverageSummaryDto": {
+        "type": "object",
+        "properties": {
+          "checkIns": {
+            "$ref": "#/components/schemas/EventReviewCheckInCoverageDto"
+          },
+          "dailyRecords": {
+            "$ref": "#/components/schemas/EventReviewObservedSourceDto"
+          },
+          "doseLogs": {
+            "$ref": "#/components/schemas/EventReviewObservedSourceDto"
+          }
+        },
+        "required": ["checkIns", "dailyRecords", "doseLogs"]
+      },
+      "EventReviewSourceTimestampsDto": {
+        "type": "object",
+        "properties": {
+          "checkIns": {
+            "type": "string",
+            "nullable": true,
+            "description": "Last check-in calendar date (YYYY-MM-DD), or null."
+          },
+          "dailyRecords": {
+            "type": "string",
+            "nullable": true,
+            "description": "Latest daily-record creation time in the event window (ISO 8601), or null."
+          },
+          "doseLogs": {
+            "type": "string",
+            "nullable": true,
+            "description": "Latest dose-log scheduled time in the event window (ISO 8601), or null."
+          }
+        },
+        "required": ["checkIns", "dailyRecords", "doseLogs"]
+      },
+      "EventReviewDataDto": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/EventReviewEventDto"
+          },
+          "sections": {
+            "$ref": "#/components/schemas/EventReviewSectionsDto"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/EventReviewCoverageSummaryDto"
+          },
+          "sourceTimestamps": {
+            "$ref": "#/components/schemas/EventReviewSourceTimestampsDto"
+          },
+          "availableActions": {
+            "type": "array",
+            "description": "Actions the user can take from this review, mapped by the client.",
+            "items": {
+              "type": "string",
+              "enum": ["check_in", "end_event", "clinic_summary", "export"]
+            }
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "Review assembly time in ISO 8601 format."
+          }
+        },
+        "required": [
+          "event",
+          "sections",
+          "coverage",
+          "sourceTimestamps",
+          "availableActions",
+          "generatedAt"
+        ]
+      },
+      "EventReviewNullableResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EventReviewDataDto"
+              }
+            ]
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "EventReviewListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventReviewEventDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total matching events for the filter."
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true,
+            "description": "Cursor for the next page (last item startedAt in ISO 8601), or null on the last page."
+          }
+        },
+        "required": ["items", "total", "nextCursor"]
+      },
+      "EventReviewListResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/EventReviewListDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "EventReviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/EventReviewDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
       },
       "AssistantToolCapabilityDto": {
         "type": "object",

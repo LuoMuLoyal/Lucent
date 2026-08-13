@@ -9,3 +9,4 @@ export {
   REPORT_RANGE_LAST_30_DAYS,
 } from './dto/report-dashboard-query.dto';
 export { ReportsService } from './dashboard/dashboard.service';
+export { EventReviewService } from './services/event-review/review.service';

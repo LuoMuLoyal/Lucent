@@ -108,7 +108,9 @@ function buildService() {
       lastCheckInDate: null,
     }),
     findCheckIns: vi.fn().mockResolvedValue([]),
-    findManyByUser: vi.fn().mockResolvedValue([]),
+    findPageByUser: vi
+      .fn()
+      .mockResolvedValue({ items: [], hasMore: false, total: 0 }),
     findUserTimezone: vi.fn().mockResolvedValue(null),
   };
   const dailyRecordReader = {
@@ -691,27 +693,30 @@ describe('EventReviewService', () => {
   });
 
   describe('list', () => {
-    it('paginates by cursor with status filtering', async () => {
+    it('paginates by cursor with status filtering via the repository page query', async () => {
       const { service, ownership } = buildService();
-      const events = [
-        {
-          ...endedEventFixture(),
-          id: 'evt-3',
-          startedAt: new Date('2026-08-10T08:00:00.000Z'),
-        },
-        {
-          ...endedEventFixture(),
-          id: 'evt-2',
-          startedAt: new Date('2026-08-05T08:00:00.000Z'),
-        },
-        {
-          ...endedEventFixture(),
-          id: 'evt-1',
-          startedAt: new Date('2026-08-01T08:00:00.000Z'),
-        },
-        activeEventFixture(),
-      ];
-      ownership.findManyByUser.mockResolvedValue(events);
+      const evt3 = {
+        ...endedEventFixture(),
+        id: 'evt-3',
+        startedAt: new Date('2026-08-10T08:00:00.000Z'),
+      };
+      const evt2 = {
+        ...endedEventFixture(),
+        id: 'evt-2',
+        startedAt: new Date('2026-08-05T08:00:00.000Z'),
+      };
+      const evt1 = {
+        ...endedEventFixture(),
+        id: 'evt-1',
+        startedAt: new Date('2026-08-01T08:00:00.000Z'),
+      };
+      ownership.findPageByUser
+        .mockResolvedValueOnce({ items: [evt3, evt2], hasMore: true, total: 3 })
+        .mockResolvedValueOnce({
+          items: [evt1],
+          hasMore: false,
+          total: 3,
+        });
 
       const firstPage = await service.list(USER_ID, {
         status: HealthEventStatus.ended,
@@ -724,6 +729,11 @@ describe('EventReviewService', () => {
       ]);
       expect(firstPage.total).toBe(3);
       expect(firstPage.nextCursor).toBe('2026-08-05T08:00:00.000Z|evt-2');
+      expect(ownership.findPageByUser).toHaveBeenNthCalledWith(1, USER_ID, {
+        status: HealthEventStatus.ended,
+        cursor: null,
+        limit: 2,
+      });
 
       const secondPage = await service.list(USER_ID, {
         status: HealthEventStatus.ended,
@@ -736,21 +746,41 @@ describe('EventReviewService', () => {
       expect(secondPage.items.map((item) => item.id)).toEqual(['evt-1']);
       expect(secondPage.total).toBe(3);
       expect(secondPage.nextCursor).toBeNull();
+      expect(ownership.findPageByUser).toHaveBeenNthCalledWith(2, USER_ID, {
+        status: HealthEventStatus.ended,
+        cursor: {
+          startedAt: new Date('2026-08-05T08:00:00.000Z'),
+          id: 'evt-2',
+        },
+        limit: 2,
+      });
     });
 
-    it('does not skip events sharing the same startedAt across pages', async () => {
+    it('passes a decoded cursor for events sharing the same startedAt', async () => {
       const { service, ownership } = buildService();
       const sharedStartedAt = new Date('2026-08-05T08:00:00.000Z');
-      const events = [
-        { ...endedEventFixture(), id: 'evt-b', startedAt: sharedStartedAt },
-        { ...endedEventFixture(), id: 'evt-a', startedAt: sharedStartedAt },
-        {
-          ...endedEventFixture(),
-          id: 'evt-older',
-          startedAt: new Date('2026-08-01T08:00:00.000Z'),
-        },
-      ];
-      ownership.findManyByUser.mockResolvedValue(events);
+      const evtB = {
+        ...endedEventFixture(),
+        id: 'evt-b',
+        startedAt: sharedStartedAt,
+      };
+      const evtA = {
+        ...endedEventFixture(),
+        id: 'evt-a',
+        startedAt: sharedStartedAt,
+      };
+      const evtOlder = {
+        ...endedEventFixture(),
+        id: 'evt-older',
+        startedAt: new Date('2026-08-01T08:00:00.000Z'),
+      };
+      ownership.findPageByUser
+        .mockResolvedValueOnce({ items: [evtB, evtA], hasMore: true, total: 3 })
+        .mockResolvedValueOnce({
+          items: [evtOlder],
+          hasMore: false,
+          total: 3,
+        });
 
       const firstPage = await service.list(USER_ID, {
         status: HealthEventStatus.ended,
@@ -774,6 +804,11 @@ describe('EventReviewService', () => {
       expect(secondPage.items.map((item) => item.id)).toEqual(['evt-older']);
       expect(secondPage.total).toBe(3);
       expect(secondPage.nextCursor).toBeNull();
+      expect(ownership.findPageByUser).toHaveBeenNthCalledWith(2, USER_ID, {
+        status: HealthEventStatus.ended,
+        cursor: { startedAt: sharedStartedAt, id: 'evt-a' },
+        limit: 2,
+      });
     });
 
     it('rejects a malformed cursor', async () => {
@@ -785,16 +820,28 @@ describe('EventReviewService', () => {
       await expect(
         service.list(USER_ID, { cursor: 'a|b|c' }),
       ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        service.list(USER_ID, { cursor: 'not-a-date|evt-1' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('returns an empty list when the user has no events', async () => {
       const { service, ownership } = buildService();
-      ownership.findManyByUser.mockResolvedValue([]);
+      ownership.findPageByUser.mockResolvedValue({
+        items: [],
+        hasMore: false,
+        total: 0,
+      });
 
       await expect(service.list(USER_ID, {})).resolves.toEqual({
         items: [],
         total: 0,
         nextCursor: null,
+      });
+      expect(ownership.findPageByUser).toHaveBeenCalledWith(USER_ID, {
+        status: null,
+        cursor: null,
+        limit: 20,
       });
     });
   });
