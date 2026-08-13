@@ -92,4 +92,7 @@ interface DataExportRequestDto {
   applies to the export DTOs above. The four review sections emit structured fact codes and
   arguments (localized by the client) with fixed reason codes for unknown sections; red flags stay
   limited to the reviewed static medication rules, so no free-text review copy enters the export
-  contract.
+  contract. Known limitations: red flags are user-level static risk results and are not aligned to
+  the event's medicines (a follow-up extends the risk payload with medicine ids or filters per
+  event), and change trends compare only the first and last observation of the window — a simplified
+  factual direction, not a regression analysis.

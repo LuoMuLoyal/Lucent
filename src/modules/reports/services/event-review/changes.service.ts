@@ -74,6 +74,11 @@ export class EventReviewChangesService {
     const sleep = this.numericTrend(sleepPoints);
 
     if (checkIns == null && water == null && sleep == null) {
+      // Edge note (kept by design): dose logs are completed actions, not
+      // change observations — a window with dose logs but no check-ins or
+      // water/sleep records still reports `no_observations` here because no
+      // change trend can be computed; the dose activity is surfaced by the
+      // completedActions section instead.
       const hasAnyObservation =
         input.checkIns.length > 0 ||
         waterPoints.length > 0 ||

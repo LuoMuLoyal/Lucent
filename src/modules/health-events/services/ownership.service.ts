@@ -70,6 +70,15 @@ export class HealthEventsOwnershipService {
   }
 
   /**
+   * Read-only: the user's profile timezone, or null when unset. Exposed so
+   * consumers can align calendar-day window boundaries (e.g. the event
+   * review start day) with the user's local date.
+   */
+  findUserTimezone(userId: string): Promise<string | null> {
+    return this.repository.findUserTimezone(userId);
+  }
+
+  /**
    * Read-only: the event's check-in for today in the user's timezone, or
    * null when the event has no check-in today.
    */

@@ -1,10 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DailyRecordKind, HealthEventStatus } from '#generated/prisma/client';
 import {
+  DEFAULT_USER_TIMEZONE,
   badRequest,
   formatDateOnly,
+  formatDateOnlyInTimezone,
   now,
   nowIsoString,
+  parseDateOnly,
 } from '../../../../common';
 import type { ObservedMetricSource } from '../../../../common';
 import {
@@ -97,6 +100,12 @@ export class EventReviewService {
     const event = await this.healthEvents.ensureOwnedByUser(userId, eventId);
     const eventDto = this.toEventDto(event);
     const windowEnd = event.endedAt ?? now();
+    // Window lower bound: the event start day at 00:00 in the user's
+    // timezone. Daily records and dose logs are stored as calendar dates
+    // (UTC midnight), so a midday `startedAt` would otherwise exclude the
+    // whole start day.
+    const timezone = await this.healthEvents.findUserTimezone(userId);
+    const windowStart = this.toWindowStart(event.startedAt, timezone);
 
     const [
       todayCheckIn,
@@ -114,32 +123,21 @@ export class EventReviewService {
       this.healthEvents.findTodayCheckIn(userId, eventId),
       this.healthEvents.findCheckInCoverage(userId, eventId),
       this.healthEvents.findCheckIns(userId, eventId),
-      this.dailyRecordReader.listFactsInRange(
-        userId,
-        event.startedAt,
-        windowEnd,
-      ),
-      this.dailyRecordReader.countFactsInRange(
-        userId,
-        event.startedAt,
-        windowEnd,
-        [DailyRecordKind.symptom],
-      ),
-      this.dailyRecordReader.countFactsInRange(
-        userId,
-        event.startedAt,
-        windowEnd,
-      ),
+      this.dailyRecordReader.listFactsInRange(userId, windowStart, windowEnd),
+      this.dailyRecordReader.countFactsInRange(userId, windowStart, windowEnd, [
+        DailyRecordKind.symptom,
+      ]),
+      this.dailyRecordReader.countFactsInRange(userId, windowStart, windowEnd),
       this.dailyRecordReader.findLatestCreatedAtInRange(
         userId,
-        event.startedAt,
+        windowStart,
         windowEnd,
       ),
-      this.doseLogReader.listFactsInRange(userId, event.startedAt, windowEnd),
-      this.doseLogReader.countFactsInRange(userId, event.startedAt, windowEnd),
+      this.doseLogReader.listFactsInRange(userId, windowStart, windowEnd),
+      this.doseLogReader.countFactsInRange(userId, windowStart, windowEnd),
       this.doseLogReader.findLatestScheduledForInRange(
         userId,
-        event.startedAt,
+        windowStart,
         windowEnd,
       ),
       this.loadStaticRedFlags(userId),
@@ -161,6 +159,17 @@ export class EventReviewService {
         latestDoseLogScheduledFor,
         redFlags,
       },
+    );
+  }
+
+  /**
+   * Resolves the calendar-day start of the event in the user's timezone as a
+   * UTC-midnight date, matching how daily records (`occurredAt`) and dose
+   * logs (`scheduledFor`) are stored.
+   */
+  private toWindowStart(startedAt: Date, timezone: string | null): Date {
+    return parseDateOnly(
+      formatDateOnlyInTimezone(startedAt, timezone ?? DEFAULT_USER_TIMEZONE),
     );
   }
 
@@ -215,17 +224,23 @@ export class EventReviewService {
 
   /**
    * Red flags come from the reviewed static medication risk check only
-   * (severeAllergy / informationGap rules). The read is best-effort: when
-   * the risk service or its cache is unavailable the review stays usable
-   * without red flags.
+   * (severeAllergy / informationGap rules). Stale records are skipped — a
+   * stale static check no longer matches the user's medicines. Known
+   * limitation (Task 3 follow-up, see migration log 2026-08-13): red flags
+   * are user-level and are not aligned to the event's medicines. The read
+   * is best-effort: when the risk service or its cache is unavailable the
+   * review stays usable without red flags.
    */
   private async loadStaticRedFlags(
     userId: string,
   ): Promise<ReviewRedFlagInput[]> {
     try {
       const records = await this.riskCheck.getRecords(userId);
-      const redFlags = records.static?.result.redFlags ?? [];
-      return redFlags.map((flag) => ({
+      const staticRecord = records.static;
+      if (staticRecord == null || staticRecord.stale) {
+        return [];
+      }
+      return staticRecord.result.redFlags.map((flag) => ({
         rule: flag.rule,
         medicineName: flag.primaryMedicineName,
         ...(flag.relatedLabel != null
@@ -324,6 +339,11 @@ export class EventReviewService {
     if (facts.doseLogCount === 0) {
       return [];
     }
+    // Known simplification (Task 3 follow-up, see migration log 2026-08-13):
+    // the reminder-linked check reads the capped reader list, so in windows
+    // with >500 dose logs a reminder-linked log could be missed and the
+    // source mislabeled as `manual`. A dedicated has-reminder query should
+    // replace this when such windows become realistic.
     const hasReminderLinkedDoseLog = facts.doseLogs.some(
       (log) => log.reminderId != null,
     );

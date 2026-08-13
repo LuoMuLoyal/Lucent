@@ -155,4 +155,26 @@ describe('EventReviewNextStepService', () => {
 
     expect(section.facts?.arguments).not.toHaveProperty('redFlags');
   });
+
+  it('drops red flags whose rule is outside the reviewed allowlist', () => {
+    const service = buildService();
+    const input: ReviewNextStepInput = {
+      event: eventFixture(),
+      hasTodayCheckIn: true,
+      redFlags: [
+        { rule: 'severeAllergy', medicineName: '阿司匹林' },
+        {
+          rule: 'unreviewedRule',
+          medicineName: '未知规则药',
+        } as unknown as ReviewNextStepInput['redFlags'][number],
+      ],
+    };
+
+    const section = service.build(input);
+
+    expect(section.facts?.arguments).toEqual({
+      hasTodayCheckIn: true,
+      redFlags: [{ rule: 'severeAllergy', medicineName: '阿司匹林' }],
+    });
+  });
 });

@@ -27,6 +27,17 @@ export interface ReviewNextStepInput {
 }
 
 /**
+ * Runtime allowlist of reviewed static red-flag rules. Rules outside this
+ * list (e.g. persisted JSON widened by a future backend version) are
+ * dropped at the mapping point, keeping the "reviewed rules only" boundary
+ * self-enforcing.
+ */
+const REVIEWED_RED_FLAG_RULES: readonly string[] = [
+  'severeAllergy',
+  'informationGap',
+];
+
+/**
  * NextStep section builder with fixed rules only — no LLM.
  *
  * - active event without a today check-in → remind the user to confirm;
@@ -38,11 +49,15 @@ export interface ReviewNextStepInput {
 @Injectable()
 export class EventReviewNextStepService {
   build(input: ReviewNextStepInput): EventReviewSectionDto {
-    const redFlags = input.redFlags.map((flag) => ({
-      rule: flag.rule,
-      medicineName: flag.medicineName,
-      ...(flag.relatedLabel != null ? { relatedLabel: flag.relatedLabel } : {}),
-    }));
+    const redFlags = input.redFlags
+      .filter((flag) => REVIEWED_RED_FLAG_RULES.includes(flag.rule))
+      .map((flag) => ({
+        rule: flag.rule,
+        medicineName: flag.medicineName,
+        ...(flag.relatedLabel != null
+          ? { relatedLabel: flag.relatedLabel }
+          : {}),
+      }));
 
     if (input.event.status === HealthEventStatus.active) {
       return {

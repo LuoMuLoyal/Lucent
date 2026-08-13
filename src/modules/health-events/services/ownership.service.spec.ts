@@ -200,5 +200,15 @@ describe('HealthEventsOwnershipService', () => {
       expect(repository.findActiveByUserId).toHaveBeenCalledWith(USER_ID);
       expect(repository.findManyByUserId).toHaveBeenCalledWith(USER_ID);
     });
+
+    it('delegates findUserTimezone to the repository', async () => {
+      const { service, repository } = buildService();
+      repository.findUserTimezone.mockResolvedValue('America/New_York');
+
+      await expect(service.findUserTimezone(USER_ID)).resolves.toBe(
+        'America/New_York',
+      );
+      expect(repository.findUserTimezone).toHaveBeenCalledWith(USER_ID);
+    });
   });
 });

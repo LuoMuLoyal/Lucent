@@ -18,6 +18,8 @@ import { EventReviewService } from './review.service';
 
 const USER_ID = 'u1';
 const STARTED_AT = new Date('2026-08-01T08:00:00.000Z');
+/** Start day at UTC midnight in the default timezone (Asia/Shanghai). */
+const WINDOW_START = new Date('2026-08-01T00:00:00.000Z');
 const TODAY_INSTANT = new Date('2026-08-13T12:00:00.000Z');
 
 function activeEventFixture() {
@@ -107,6 +109,7 @@ function buildService() {
     }),
     findCheckIns: vi.fn().mockResolvedValue([]),
     findManyByUser: vi.fn().mockResolvedValue([]),
+    findUserTimezone: vi.fn().mockResolvedValue(null),
   };
   const dailyRecordReader = {
     listFactsInRange: vi.fn().mockResolvedValue([]),
@@ -305,28 +308,28 @@ describe('EventReviewService', () => {
       );
       expect(dailyRecordReader.listFactsInRange).toHaveBeenCalledWith(
         USER_ID,
-        STARTED_AT,
+        WINDOW_START,
         TODAY_INSTANT,
       );
       expect(dailyRecordReader.countFactsInRange).toHaveBeenCalledWith(
         USER_ID,
-        STARTED_AT,
+        WINDOW_START,
         TODAY_INSTANT,
         [DailyRecordKind.symptom],
       );
       expect(dailyRecordReader.countFactsInRange).toHaveBeenCalledWith(
         USER_ID,
-        STARTED_AT,
+        WINDOW_START,
         TODAY_INSTANT,
       );
       expect(doseLogReader.listFactsInRange).toHaveBeenCalledWith(
         USER_ID,
-        STARTED_AT,
+        WINDOW_START,
         TODAY_INSTANT,
       );
       expect(doseLogReader.countFactsInRange).toHaveBeenCalledWith(
         USER_ID,
-        STARTED_AT,
+        WINDOW_START,
         TODAY_INSTANT,
       );
     });
@@ -414,12 +417,12 @@ describe('EventReviewService', () => {
       });
       expect(dailyRecordReader.listFactsInRange).toHaveBeenCalledWith(
         USER_ID,
-        STARTED_AT,
+        WINDOW_START,
         new Date('2026-08-10T20:00:00.000Z'),
       );
       expect(doseLogReader.listFactsInRange).toHaveBeenCalledWith(
         USER_ID,
-        STARTED_AT,
+        WINDOW_START,
         new Date('2026-08-10T20:00:00.000Z'),
       );
     });
@@ -498,6 +501,7 @@ describe('EventReviewService', () => {
       ownership.ensureOwnedByUser.mockResolvedValue(activeEventFixture());
       riskCheck.getRecords.mockResolvedValue({
         static: {
+          stale: false,
           result: {
             redFlags: [
               {
@@ -552,6 +556,64 @@ describe('EventReviewService', () => {
           arguments: { hasTodayCheckIn: false },
         },
       });
+    });
+
+    it('skips red flags from a stale static risk check', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(TODAY_INSTANT);
+      const { service, ownership, riskCheck } = buildService();
+      ownership.ensureOwnedByUser.mockResolvedValue(activeEventFixture());
+      riskCheck.getRecords.mockResolvedValue({
+        static: {
+          stale: true,
+          result: {
+            redFlags: [
+              {
+                rule: 'severeAllergy',
+                primaryMedicineName: '阿司匹林',
+                relatedLabel: '阿司匹林',
+              },
+            ],
+          },
+        },
+        llm: null,
+      });
+
+      const review = await service.buildForEvent(USER_ID, 'evt-active');
+
+      expect(review.sections.nextStep).toEqual({
+        state: 'available',
+        facts: {
+          code: 'active_check_in',
+          arguments: { hasTodayCheckIn: false },
+        },
+      });
+    });
+
+    it('resolves the window start to the event start day in the profile timezone', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(TODAY_INSTANT);
+      const { service, ownership, dailyRecordReader } = buildService();
+      ownership.ensureOwnedByUser.mockResolvedValue({
+        ...activeEventFixture(),
+        // 2026-08-01T05:00Z is still 2026-07-31 in America/Los_Angeles.
+        startedAt: new Date('2026-08-01T05:00:00.000Z'),
+      });
+      ownership.findUserTimezone.mockResolvedValue('America/Los_Angeles');
+
+      await service.buildForEvent(USER_ID, 'evt-active');
+
+      const windowStart = new Date('2026-07-31T00:00:00.000Z');
+      expect(dailyRecordReader.listFactsInRange).toHaveBeenCalledWith(
+        USER_ID,
+        windowStart,
+        TODAY_INSTANT,
+      );
+      expect(dailyRecordReader.countFactsInRange).toHaveBeenCalledWith(
+        USER_ID,
+        windowStart,
+        TODAY_INSTANT,
+      );
     });
 
     it('rejects with not found for a foreign event without reading sources', async () => {
