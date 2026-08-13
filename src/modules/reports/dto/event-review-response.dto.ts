@@ -23,6 +23,14 @@ import type {
 
 export type EventReviewSectionState = 'available' | 'unknown';
 
+/**
+ * Fixed reason codes for unknown sections. The Task 2 section services may
+ * extend this union without changing the section DTO shape.
+ */
+export type EventReviewSectionReasonCode =
+  | 'no_observations'
+  | 'no_completed_actions';
+
 export type EventReviewAction =
   | 'check_in'
   | 'end_event'
@@ -47,13 +55,14 @@ export class EventReviewSectionDto {
   state!: EventReviewSectionState;
 
   @ApiPropertyOptional({
+    enum: ['no_observations', 'no_completed_actions'],
     type: String,
     description:
-      'Fixed reason code when state is unknown. Current codes: ' +
-      'no_observations (window has no observations), ' +
-      'no_completed_actions (no confirmed doses or check-ins).',
+      'Fixed reason code when state is unknown: no_observations (window has ' +
+      'no observations), no_completed_actions (no confirmed doses or ' +
+      'check-ins). Task 2 section services may extend this set.',
   })
-  reasonCode?: string;
+  reasonCode?: EventReviewSectionReasonCode;
 
   @ApiPropertyOptional({
     type: () => EventReviewSectionFactsDto,

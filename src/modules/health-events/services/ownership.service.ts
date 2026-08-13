@@ -48,6 +48,11 @@ export class HealthEventsOwnershipService {
   /**
    * Read-only: the user's most recently started ended event, or null when
    * none exists.
+   *
+   * Known simplification (follow-up for Task 2/3, see migration log
+   * 2026-08-13): relies on the repository's `startedAt desc` ordering and
+   * pulls all events in memory; a dedicated query should replace this when
+   * event history grows.
    */
   async findMostRecentEnded(userId: string): Promise<HealthEventRecord | null> {
     const events = await this.repository.findManyByUserId(userId);

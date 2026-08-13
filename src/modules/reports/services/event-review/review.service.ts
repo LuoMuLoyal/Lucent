@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { DoseLogStatus, HealthEventStatus } from '#generated/prisma/client';
 import {
-  DoseLogStatus,
-  HealthEventKind,
-  HealthEventStatus,
-} from '#generated/prisma/client';
-import { formatDateOnly, now, nowIsoString } from '../../../../common';
+  badRequest,
+  formatDateOnly,
+  now,
+  nowIsoString,
+} from '../../../../common';
 import type { ObservedMetricSource } from '../../../../common';
 import {
   HealthEventsOwnershipService,
@@ -24,6 +25,15 @@ import type {
 import type { EventReviewListQueryDto } from '../../dto/event-review-list-query.dto';
 
 const DEFAULT_REVIEW_LIST_LIMIT = 20;
+
+/** Separator joining the composite review list cursor (`startedAt|id`). */
+const REVIEW_CURSOR_SEPARATOR = '|';
+
+/** Decoded review list cursor; events sort by `startedAt desc, id desc`. */
+interface ReviewCursor {
+  startedAtIso: string;
+  id: string;
+}
 
 /** Raw facts the assembler needs; keeps section builders DTO-typed only. */
 interface ReviewWindowFacts {
@@ -61,8 +71,13 @@ export class EventReviewService {
     eventId: string,
   ): Promise<EventReviewDataDto> {
     const event = await this.healthEvents.ensureOwnedByUser(userId, eventId);
+    const eventDto = this.toEventDto(event);
     const windowEnd = event.endedAt ?? now();
 
+    // Reader ports cap facts at MAX_READER_FACTS (500) per range, so the
+    // counts and "latest" timestamps below are capped summaries rather than
+    // exact totals. Task 2/3 follow-up: replace with dedicated count/latest
+    // queries (see migration log 2026-08-13).
     const [todayCheckIn, checkInCoverage, dailyRecords, doseLogs] =
       await Promise.all([
         this.healthEvents.findTodayCheckIn(userId, eventId),
@@ -76,7 +91,7 @@ export class EventReviewService {
       ]);
 
     return this.assemble(
-      this.toEventDto(event),
+      eventDto,
       todayCheckIn == null ? null : this.toTodayCheckIn(todayCheckIn),
       {
         windowEnd,
@@ -103,6 +118,10 @@ export class EventReviewService {
   }
 
   async buildCurrent(userId: string): Promise<EventReviewDataDto | null> {
+    // Known simplification (follow-up for Task 2/3, see migration log
+    // 2026-08-13): the selected event is read here and again inside
+    // buildForEvent, which re-validates ownership. An internal assembler
+    // taking the record directly can collapse this into a single read.
     const active = await this.healthEvents.findActive(userId);
     if (active != null) {
       return this.buildForEvent(userId, active.id);
@@ -114,6 +133,12 @@ export class EventReviewService {
     return null;
   }
 
+  /**
+   * Known simplification (follow-up for Task 2/3, see migration log
+   * 2026-08-13): events are pulled in full and filtered/paginated in memory.
+   * A dedicated paginated repository query should replace this when event
+   * history grows.
+   */
   async list(
     userId: string,
     query: EventReviewListQueryDto,
@@ -124,13 +149,11 @@ export class EventReviewService {
       query.status == null
         ? events
         : events.filter((event) => event.status === query.status);
-    const cursor = query.cursor;
+    const cursor = this.resolveCursor(query.cursor);
     const afterCursor =
       cursor == null
         ? statusFiltered
-        : statusFiltered.filter(
-            (event) => event.startedAt.toISOString() < cursor,
-          );
+        : statusFiltered.filter((event) => this.isAfterCursor(event, cursor));
     const page = afterCursor.slice(0, limit);
     const lastItem = page.at(-1);
     return {
@@ -138,7 +161,7 @@ export class EventReviewService {
       total: statusFiltered.length,
       nextCursor:
         afterCursor.length > limit && lastItem != null
-          ? lastItem.startedAt.toISOString()
+          ? this.encodeCursor(lastItem)
           : null,
     };
   }
@@ -304,9 +327,15 @@ export class EventReviewService {
   }
 
   private toEventDto(event: HealthEventRecord): EventReviewEventDto {
+    // `kind` is optional on the repository record only for legacy ports; the
+    // Prisma-backed read always populates it. Fail loudly on a missing value
+    // instead of silently defaulting to `symptom` and mislabeling the event.
+    if (event.kind == null) {
+      throw new Error(`Health event ${event.id} has no kind.`);
+    }
     return {
       id: event.id,
-      kind: event.kind ?? HealthEventKind.symptom,
+      kind: event.kind,
       title: event.title,
       status: event.status,
       startedAt: event.startedAt.toISOString(),
@@ -314,6 +343,43 @@ export class EventReviewService {
       outcome: event.outcome,
       currentMedicineIds: [...event.currentMedicineIds],
     };
+  }
+
+  private resolveCursor(cursor: string | undefined): ReviewCursor | null {
+    if (cursor == null) {
+      return null;
+    }
+    const [startedAtIso, id, ...rest] = cursor.split(REVIEW_CURSOR_SEPARATOR);
+    if (
+      rest.length > 0 ||
+      startedAtIso == null ||
+      id == null ||
+      startedAtIso === '' ||
+      id === ''
+    ) {
+      badRequest('Invalid review cursor.');
+    }
+    return { startedAtIso, id };
+  }
+
+  private encodeCursor(event: HealthEventRecord): string {
+    return `${event.startedAt.toISOString()}${REVIEW_CURSOR_SEPARATOR}${event.id}`;
+  }
+
+  /**
+   * Events are ordered by `startedAt desc, id desc`. An event belongs to the
+   * next page when it sorts strictly after the cursor pair, so events sharing
+   * the cursor's startedAt are not skipped at page boundaries.
+   */
+  private isAfterCursor(
+    event: HealthEventRecord,
+    cursor: ReviewCursor,
+  ): boolean {
+    const startedAtIso = event.startedAt.toISOString();
+    return (
+      startedAtIso < cursor.startedAtIso ||
+      (startedAtIso === cursor.startedAtIso && event.id < cursor.id)
+    );
   }
 
   private toTodayCheckIn(

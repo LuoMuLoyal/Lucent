@@ -1,13 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import {
-  IsEnum,
-  IsInt,
-  IsISO8601,
-  IsOptional,
-  Max,
-  Min,
-} from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { HealthEventStatus } from '#generated/prisma/client';
 
 export class EventReviewListQueryDto {
@@ -23,12 +16,13 @@ export class EventReviewListQueryDto {
   @ApiPropertyOptional({
     type: String,
     description:
-      'Opaque cursor for pagination: the startedAt ISO 8601 value of the ' +
-      'last item from the previous page.',
-    example: '2026-08-01T08:00:00.000Z',
+      'Opaque cursor for pagination: composite of the last item startedAt ' +
+      'ISO 8601 value and id joined with "|", as returned by nextCursor. ' +
+      'Must not be constructed by the client.',
+    example: '2026-08-01T08:00:00.000Z|evt-1',
   })
   @IsOptional()
-  @IsISO8601({ strict: true })
+  @IsString()
   cursor?: string;
 
   @ApiPropertyOptional({

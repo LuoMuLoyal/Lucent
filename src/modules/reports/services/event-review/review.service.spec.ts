@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   DailyRecordKind,
   DoseLogStatus,
@@ -351,6 +351,19 @@ describe('EventReviewService', () => {
       expect(doseLogReader.listFactsInRange).not.toHaveBeenCalled();
       expect(ownership.findTodayCheckIn).not.toHaveBeenCalled();
     });
+
+    it('rejects an event record missing its kind instead of defaulting to symptom', async () => {
+      const { service, ownership } = buildService();
+      const missingKindEvent: Record<string, unknown> = {
+        ...activeEventFixture(),
+      };
+      missingKindEvent['kind'] = undefined;
+      ownership.ensureOwnedByUser.mockResolvedValue(missingKindEvent);
+
+      await expect(
+        service.buildForEvent(USER_ID, 'evt-active'),
+      ).rejects.toThrow('has no kind');
+    });
   });
 
   describe('buildCurrent', () => {
@@ -421,7 +434,7 @@ describe('EventReviewService', () => {
         'evt-2',
       ]);
       expect(firstPage.total).toBe(3);
-      expect(firstPage.nextCursor).toBe('2026-08-05T08:00:00.000Z');
+      expect(firstPage.nextCursor).toBe('2026-08-05T08:00:00.000Z|evt-2');
 
       const secondPage = await service.list(USER_ID, {
         status: HealthEventStatus.ended,
@@ -434,6 +447,55 @@ describe('EventReviewService', () => {
       expect(secondPage.items.map((item) => item.id)).toEqual(['evt-1']);
       expect(secondPage.total).toBe(3);
       expect(secondPage.nextCursor).toBeNull();
+    });
+
+    it('does not skip events sharing the same startedAt across pages', async () => {
+      const { service, ownership } = buildService();
+      const sharedStartedAt = new Date('2026-08-05T08:00:00.000Z');
+      const events = [
+        { ...endedEventFixture(), id: 'evt-b', startedAt: sharedStartedAt },
+        { ...endedEventFixture(), id: 'evt-a', startedAt: sharedStartedAt },
+        {
+          ...endedEventFixture(),
+          id: 'evt-older',
+          startedAt: new Date('2026-08-01T08:00:00.000Z'),
+        },
+      ];
+      ownership.findManyByUser.mockResolvedValue(events);
+
+      const firstPage = await service.list(USER_ID, {
+        status: HealthEventStatus.ended,
+        limit: 2,
+      });
+
+      expect(firstPage.items.map((item) => item.id)).toEqual([
+        'evt-b',
+        'evt-a',
+      ]);
+      expect(firstPage.nextCursor).toBe('2026-08-05T08:00:00.000Z|evt-a');
+
+      const secondPage = await service.list(USER_ID, {
+        status: HealthEventStatus.ended,
+        ...(firstPage.nextCursor == null
+          ? {}
+          : { cursor: firstPage.nextCursor }),
+        limit: 2,
+      });
+
+      expect(secondPage.items.map((item) => item.id)).toEqual(['evt-older']);
+      expect(secondPage.total).toBe(3);
+      expect(secondPage.nextCursor).toBeNull();
+    });
+
+    it('rejects a malformed cursor', async () => {
+      const { service } = buildService();
+
+      await expect(
+        service.list(USER_ID, { cursor: '2026-08-05T08:00:00.000Z' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        service.list(USER_ID, { cursor: 'a|b|c' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
 
     it('returns an empty list when the user has no events', async () => {

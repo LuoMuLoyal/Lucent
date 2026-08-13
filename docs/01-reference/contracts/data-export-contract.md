@@ -87,4 +87,6 @@ interface DataExportRequestDto {
 - The Event Review read model added to the reports module (review DTO, read service skeleton, and
   health-event ownership read façade) is read-only and changes no export endpoint or DTO; export and
   clinic summary remain reachable through their existing endpoints and become More actions in the
-  Review UI rather than primary-path features.
+  Review UI rather than primary-path features. The review history list uses a composite
+  `startedAt|id` opaque cursor and `unknown` sections with fixed reason codes; neither concept
+  applies to the export DTOs above.
