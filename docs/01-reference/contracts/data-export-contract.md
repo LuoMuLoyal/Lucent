@@ -103,3 +103,6 @@ interface DataExportRequestDto {
   7/30-day default contract; none of this changes the data-export request/response DTOs, and the
   existing dashboard/summary/clinic-summary endpoints keep their response shapes for one
   compatibility cycle.
+- The review list `limit` query parameter is documented in the OpenAPI schema as an integer with
+  `minimum: 1` and `maximum: 100` (default 20), matching the runtime `@IsInt`/`@Min`/`@Max`
+  validation; malformed cursors are rejected with 400 before any repository read.

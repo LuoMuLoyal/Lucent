@@ -29,8 +29,9 @@ export class EventReviewListQueryDto {
     description: 'Page size (1-100).',
     example: 20,
     default: 20,
+    minimum: 1,
     maximum: 100,
-    type: Number,
+    type: 'integer',
   })
   @IsOptional()
   @Type(() => Number)

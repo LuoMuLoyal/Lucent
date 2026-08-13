@@ -103,7 +103,12 @@ export abstract class HealthEventRepositoryPort {
 
   abstract findManyByUserId(userId: string): Promise<HealthEventRecord[]>;
 
-  /** The user's non-deleted events as one page, newest started first. */
+  /** The user's non-deleted events as one page, newest started first.
+   *
+   * `items` and `total` come from two independent queries, so `total` is an
+   * approximate snapshot for the status filter — the cursor bound does not
+   * apply to the count and concurrent writes may shift either side.
+   */
   abstract findPageByUserId(
     userId: string,
     query: HealthEventPageQuery,

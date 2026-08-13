@@ -24,6 +24,9 @@ const CLINIC_SHARE_PATH = '/api/v1/user/reports/clinic-summary/share';
 const CLINIC_SHARED_PATH = '/api/v1/user/reports/clinic-summary/shared';
 const CLINIC_PREVIEW_PDF_PATH =
   '/api/v1/user/reports/clinic-summary/preview/pdf';
+const REVIEWS_CURRENT_PATH = '/api/v1/user/reports/reviews/current';
+const REVIEWS_PATH = '/api/v1/user/reports/reviews';
+const HEALTH_EVENTS_PATH = '/api/v1/user/health-events';
 
 describe('Reports API (e2e)', () => {
   let ctx: E2eTestContext;
@@ -349,6 +352,105 @@ describe('Reports API (e2e)', () => {
       );
       const body = response.body as Buffer;
       expect(body.length).toBeGreaterThan(0);
+    });
+  });
+
+  // ── Event Review ────────────────────────────────────────────
+
+  describe('GET /api/v1/user/reports/reviews*', () => {
+    it('should return 401 for unauthenticated requests', async () => {
+      await request(app.getHttpServer()).get(REVIEWS_CURRENT_PATH).expect(401);
+      await request(app.getHttpServer()).get(REVIEWS_PATH).expect(401);
+      await request(app.getHttpServer())
+        .get(`${REVIEWS_PATH}/some-event-id`)
+        .expect(401);
+    });
+
+    it('should return an empty envelope with null data when the user has no events', async () => {
+      const response = await request(app.getHttpServer())
+        .get(REVIEWS_CURRENT_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      const body = response.body as ApiEnvelope;
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      expect(body.data).toBeNull();
+    });
+
+    it('should reject an invalid cursor and an invalid status', async () => {
+      await request(app.getHttpServer())
+        .get(`${REVIEWS_PATH}?cursor=2026-08-01T08:00:00.000Z`)
+        .set('Authorization', bearer(accessToken))
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .get(`${REVIEWS_PATH}?status=not_a_status`)
+        .set('Authorization', bearer(accessToken))
+        .expect(400);
+    });
+
+    it('should return the current review for an active event and list it', async () => {
+      const createResponse = await request(app.getHttpServer())
+        .post(HEALTH_EVENTS_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ title: 'e2e 回顾事件' })
+        .expect(201);
+      const created = expectData(
+        createResponse.body as ApiEnvelope<{ id: string }>,
+      );
+
+      const currentResponse = await request(app.getHttpServer())
+        .get(REVIEWS_CURRENT_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+      const currentBody = currentResponse.body as ApiEnvelope<{
+        event: { id: string; status: string };
+      }>;
+      expect(currentBody.code).toBe(ResultCode.SUCCESS);
+      expect(expectData(currentBody).event.id).toBe(created.id);
+
+      const listResponse = await request(app.getHttpServer())
+        .get(`${REVIEWS_PATH}?status=active`)
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+      const listBody = listResponse.body as ApiEnvelope<{
+        items: Array<{ id: string }>;
+        total: number;
+        nextCursor: string | null;
+      }>;
+      expect(listBody.code).toBe(ResultCode.SUCCESS);
+      const listData = expectData(listBody);
+      expect(listData.total).toBe(1);
+      expect(listData.items[0]?.id).toBe(created.id);
+      expect(listData.nextCursor).toBeNull();
+    });
+
+    it('should return 404 for a foreign event review', async () => {
+      const otherUser = await createTestUser(
+        ctx.prisma,
+        undefined,
+        'ReviewForeignUser',
+      );
+      const otherToken = await createAccessToken(
+        ctx.jwtService,
+        ctx.configService,
+        otherUser.id,
+        otherUser.email,
+      );
+
+      const createResponse = await request(app.getHttpServer())
+        .post(HEALTH_EVENTS_PATH)
+        .set('Authorization', bearer(otherToken))
+        .send({ title: '他人事件' })
+        .expect(201);
+      const created = expectData(
+        createResponse.body as ApiEnvelope<{ id: string }>,
+      );
+
+      await request(app.getHttpServer())
+        .get(`${REVIEWS_PATH}/${created.id}`)
+        .set('Authorization', bearer(accessToken))
+        .expect(404);
     });
   });
 });

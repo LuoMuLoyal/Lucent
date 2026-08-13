@@ -40,6 +40,14 @@ const DEFAULT_REVIEW_LIST_LIMIT = 20;
 /** Separator joining the composite review list cursor (`startedAt|id`). */
 const REVIEW_CURSOR_SEPARATOR = '|';
 
+/**
+ * Exact shape emitted by `Date#toISOString` (millisecond precision + Z
+ * suffix) — the only shape `encodeCursor` ever produces, so the strict match
+ * cannot reject a cursor this service issued itself.
+ */
+const REVIEW_CURSOR_STARTED_AT_PATTERN =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
 /** Decoded review list cursor; events sort by `startedAt desc, id desc`. */
 interface ReviewCursor {
   startedAt: Date;
@@ -374,6 +382,11 @@ export class EventReviewService {
       startedAtIso === '' ||
       id === ''
     ) {
+      badRequest('Invalid review cursor.');
+    }
+    // Strict ISO-8601 instant shape check before parsing: rejects date-only
+    // or locale-formatted values that `new Date` would silently accept.
+    if (!REVIEW_CURSOR_STARTED_AT_PATTERN.test(startedAtIso)) {
       badRequest('Invalid review cursor.');
     }
     const startedAt = new Date(startedAtIso);

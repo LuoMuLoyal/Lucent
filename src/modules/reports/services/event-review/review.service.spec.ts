@@ -690,6 +690,22 @@ describe('EventReviewService', () => {
         'evt-ended',
       );
     });
+
+    it('prefers the active event when both active and ended events exist', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(TODAY_INSTANT);
+      const { service, ownership } = buildService();
+      const buildForEventSpy = vi.spyOn(service, 'buildForEvent');
+      ownership.findActive.mockResolvedValue(activeEventFixture());
+      ownership.findMostRecentEnded.mockResolvedValue(endedEventFixture());
+      ownership.ensureOwnedByUser.mockResolvedValue(activeEventFixture());
+
+      const review = await service.buildCurrent(USER_ID);
+
+      expect(review?.event.id).toBe('evt-active');
+      expect(buildForEventSpy).toHaveBeenCalledWith(USER_ID, 'evt-active');
+      expect(ownership.findMostRecentEnded).not.toHaveBeenCalled();
+    });
   });
 
   describe('list', () => {
@@ -822,6 +838,10 @@ describe('EventReviewService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
       await expect(
         service.list(USER_ID, { cursor: 'not-a-date|evt-1' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      // Parseable by `new Date` but not the exact toISOString shape.
+      await expect(
+        service.list(USER_ID, { cursor: '2026-08-05T08:00:00Z|evt-1' }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 

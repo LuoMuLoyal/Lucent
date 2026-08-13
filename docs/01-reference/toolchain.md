@@ -15,9 +15,10 @@ Last updated: 2026-08-13
   regenerates its `generated/lucent_api/` client from.
 - Review Experience Task 3 exports three read-only review endpoints to `docs/openapi.json`
   (`/api/v1/user/reports/reviews/current`, `/reviews`, `/reviews/{eventId}`; 117 paths / 272
-  schemas) alongside the unchanged dashboard/summary/clinic-summary paths; the generated file
-  uses expanded array formatting from `JSON.stringify(document, null, 2)`. Task 4 regenerates the
-  Luminous client with `dart run tool/bootstrap_generated_sources.dart` before consuming them.
+  schemas) alongside the unchanged dashboard/summary/clinic-summary paths. The export script
+  emits `JSON.stringify(document, null, 2)` with expanded arrays; the pre-commit prettier pass
+  re-compacts them, so committed diffs stay semantic-only. Task 4 regenerates the Luminous
+  client with `dart run tool/bootstrap_generated_sources.dart` before consuming them.
 - The current exported contract now includes meal-analysis read hot fields on `DailyRecordItemDto`:
   status, coverage, updated-at, failure-reason, short-description, and top-foods.
 - Health-event association fields on daily records and dose logs are implemented in Lucent first;

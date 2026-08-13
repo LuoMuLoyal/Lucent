@@ -110,6 +110,10 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
             ],
           };
 
+    // Two independent queries: the page rows (one extra row probes whether
+    // another page exists) and the status-filtered total. The cursor bound
+    // deliberately does not apply to the count, so `total` is an approximate
+    // snapshot — it counts the whole filter, not the remaining pages.
     const [rows, total] = await Promise.all([
       this.prisma.healthEvent.findMany({
         where: pageWhere,

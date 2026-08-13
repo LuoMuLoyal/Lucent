@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-11
+updated: 2026-08-13
 ---
 
 # Lucent TODO
 
-Last updated: 2026-08-11
+Last updated: 2026-08-13
 
 This file keeps active backend follow-up items that are intentionally deferred.
 Keep durable implementation context in the owning code comments when the TODO is tightly coupled to
@@ -21,14 +21,12 @@ the relevant `Lucent/docs/00-current/*.md` state file, and record the completion
 
 ## 后续可做
 
-### `0.1.0` 发布后：产品闭环重构（已决策，当前禁止启动）
+### 产品闭环重构（已决策，Workstream 1 已完成）
 
-启动门槛：Luminous/Lucent 当前版本完成真实联调、发布验证和 `0.1.0` 正式发布。发布前只修复发布阻断问题；不得提前引入健康事件 schema、主动重算或 Review 新合同。执行顺序见 `Luminous/plans/2026-08-07-product-loop-program.md`。
+Review Experience（Workstream 1）已完成收口：健康事件读模型、四段 section 服务、三个 review endpoint、第五 Tab「回顾」主路径与 `/report` 兼容路由均已落地。剩余条目属 **Visit Summary and Product Measurement（Workstream 2）**，总计划见 `Luminous/plans/2026-08-07-product-loop-program.md`，执行计划见 `Luminous/plans/2026-08-07-visit-summary-and-product-measurement.md`。
 
-- **回顾读模型**：以健康事件聚合发生事实、关键变化、槽位完成情况和下一步；至少一个维度可解释即可返回，禁止跨维度综合健康评分，单维趋势需返回数据覆盖率
-- **旧 Report 指标修正**：`nonZeroDays` 不能排除真实 0% 日期并抬高服药率；无记录日期不能直接写成 0 L 或 `needs_attention`；旧 dashboard 在 Review 切换完成前也必须返回诚实口径
-- **报告出口降级**：hospital/monthly/print/clinic share 保留兼容，但从默认回顾内容移入“更多”；修正 clinic summary 固定 `last_30_days` 却不读取近期记录、`findings` 永远为空，以及 share URL 缺少 `/user` 的合同错误
-- **闭环测量**：以最小化、可审计事件记录建议曝光/处理、健康事件起止与结果确认、回顾打开、摘要预览、导出请求和分享链接访问；不得把请求生成成功等同于医生查看或用户获益
+- **报告出口降级（剩余部分，Workstream 2）**：hospital/monthly/print/clinic share 已保留兼容并从默认回顾内容移入「更多」（已完成）；仍待修正 clinic summary 固定 `last_30_days` 却不读取近期记录、`findings` 永远为空，以及 share URL 缺少 `/user` 的合同错误
+- **闭环测量（Workstream 2）**：以最小化、可审计事件记录建议曝光/处理、健康事件起止与结果确认、回顾打开、摘要预览、导出请求和分享链接访问；不得把请求生成成功等同于医生查看或用户获益
 
 ### B2：环境数据接入真实天气 API（P3）
 

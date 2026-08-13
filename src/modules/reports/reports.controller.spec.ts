@@ -461,7 +461,11 @@ describe('ReportsController', () => {
       nextCursor: null,
     };
     eventReviewService.list.mockResolvedValue(listData);
-    const query = { status: HealthEventStatus.ended, limit: 20 };
+    const query = {
+      status: HealthEventStatus.ended,
+      cursor: '2026-08-05T08:00:00.000Z|evt-1',
+      limit: 20,
+    };
 
     expect(
       await controller.listReviews(
