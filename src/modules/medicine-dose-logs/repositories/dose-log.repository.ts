@@ -38,12 +38,34 @@ const doseLogFactSelect = {
  * MedicineDoseLogRepositoryPort.
  */
 export abstract class MedicineDoseLogReaderPort {
-  /** Lists non-deleted dose logs with `scheduledFor` in [from, to] (inclusive). */
+  /**
+   * Lists non-deleted dose logs with `scheduledFor` in [from, to]
+   * (inclusive). Capped at MAX_READER_FACTS — use
+   * {@link countFactsInRange} / {@link findLatestScheduledForInRange} for
+   * exact totals and timestamps.
+   */
   abstract listFactsInRange(
     userId: string,
     from: Date,
     to: Date,
   ): Promise<DoseLogFact[]>;
+
+  /** Exact count of non-deleted dose logs with `scheduledFor` in [from, to]. */
+  abstract countFactsInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<number>;
+
+  /**
+   * Latest `scheduledFor` among non-deleted dose logs in [from, to], or null
+   * when none exists.
+   */
+  abstract findLatestScheduledForInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<Date | null>;
 }
 
 /**
@@ -127,6 +149,37 @@ export class MedicineDoseLogRepository
       orderBy: [{ scheduledFor: 'asc' }],
       take: MAX_READER_FACTS,
     });
+  }
+
+  async countFactsInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<number> {
+    return this.prisma.userMedicineDoseLog.count({
+      where: {
+        userId,
+        ...nonDeleted,
+        scheduledFor: { gte: from, lte: to },
+      },
+    });
+  }
+
+  async findLatestScheduledForInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<Date | null> {
+    const row = await this.prisma.userMedicineDoseLog.findFirst({
+      where: {
+        userId,
+        ...nonDeleted,
+        scheduledFor: { gte: from, lte: to },
+      },
+      select: { scheduledFor: true },
+      orderBy: [{ scheduledFor: 'desc' }],
+    });
+    return row?.scheduledFor ?? null;
   }
 
   override findMany(

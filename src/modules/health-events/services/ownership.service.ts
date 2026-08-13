@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { HealthEventStatus } from '#generated/prisma/client';
 import {
   DEFAULT_USER_TIMEZONE,
   formatDateOnlyInTimezone,
@@ -47,23 +46,27 @@ export class HealthEventsOwnershipService {
 
   /**
    * Read-only: the user's most recently started ended event, or null when
-   * none exists.
-   *
-   * Known simplification (follow-up for Task 2/3, see migration log
-   * 2026-08-13): relies on the repository's `startedAt desc` ordering and
-   * pulls all events in memory; a dedicated query should replace this when
-   * event history grows.
+   * none exists. Backed by a targeted repository query instead of an
+   * in-memory filter over the full event list.
    */
-  async findMostRecentEnded(userId: string): Promise<HealthEventRecord | null> {
-    const events = await this.repository.findManyByUserId(userId);
-    return (
-      events.find((event) => event.status === HealthEventStatus.ended) ?? null
-    );
+  findMostRecentEnded(userId: string): Promise<HealthEventRecord | null> {
+    return this.repository.findMostRecentEndedByUserId(userId);
   }
 
   /** Read-only: all of the user's non-deleted events, newest started first. */
   findManyByUser(userId: string): Promise<HealthEventRecord[]> {
     return this.repository.findManyByUserId(userId);
+  }
+
+  /**
+   * Read-only: the event's check-ins ordered by date ascending (used by the
+   * review changes/actions sections).
+   */
+  findCheckIns(
+    userId: string,
+    eventId: string,
+  ): Promise<HealthEventCheckInRecord[]> {
+    return this.repository.findCheckIns(userId, eventId);
   }
 
   /**

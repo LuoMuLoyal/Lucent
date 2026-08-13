@@ -4,6 +4,7 @@ import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { HealthEventsModule } from '../health-events/health-events.module';
 import { LlmCommonModule } from '../../common';
 import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
+import { MedicinesModule } from '../medicines/medicines.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { ReportsAiSummaryContextService } from './services/ai-summary/context.service';
@@ -28,6 +29,10 @@ import { ReportsPresenterService } from './dashboard/presenter.service';
 
 import { ReportsService } from './dashboard/dashboard.service';
 import { EventReviewService } from './services/event-review/review.service';
+import { EventReviewFactsService } from './services/event-review/facts.service';
+import { EventReviewChangesService } from './services/event-review/changes.service';
+import { EventReviewActionsService } from './services/event-review/actions.service';
+import { EventReviewNextStepService } from './services/event-review/next-step.service';
 import { ReportsController } from './reports.controller';
 
 @Module({
@@ -37,6 +42,7 @@ import { ReportsController } from './reports.controller';
     AssistantModule,
     DailyRecordsModule,
     HealthEventsModule,
+    MedicinesModule,
     MedicineDoseLogsModule,
     UserSettingsModule,
   ],
@@ -55,6 +61,10 @@ import { ReportsController } from './reports.controller';
     ReportsPresenterService,
     ReportsService,
     EventReviewService,
+    EventReviewFactsService,
+    EventReviewChangesService,
+    EventReviewActionsService,
+    EventReviewNextStepService,
   ],
   exports: [ReportsService],
 })

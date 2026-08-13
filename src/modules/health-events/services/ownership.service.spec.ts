@@ -40,8 +40,10 @@ function buildService() {
   const repository = {
     findActiveByUserId: vi.fn().mockResolvedValue(null),
     findManyByUserId: vi.fn().mockResolvedValue([]),
+    findMostRecentEndedByUserId: vi.fn().mockResolvedValue(null),
     findUserTimezone: vi.fn().mockResolvedValue(null),
     findCheckIn: vi.fn().mockResolvedValue(null),
+    findCheckIns: vi.fn().mockResolvedValue([]),
     findCheckInCoverage: vi.fn().mockResolvedValue({
       checkInCount: 0,
       firstCheckInDate: null,
@@ -101,7 +103,7 @@ describe('HealthEventsOwnershipService', () => {
   });
 
   describe('findMostRecentEnded', () => {
-    it('returns the most recently started ended event from the repository order', async () => {
+    it('delegates to the targeted most-recent-ended repository query', async () => {
       const { service, repository } = buildService();
       const newestEnded = eventFixture({
         id: 'evt-new',
@@ -110,35 +112,44 @@ describe('HealthEventsOwnershipService', () => {
         endedAt: new Date('2026-08-11T08:00:00.000Z'),
         outcome: HealthEventOutcome.improved,
       });
-      const newerActive = eventFixture({
-        id: 'evt-active',
-        startedAt: new Date('2026-08-09T08:00:00.000Z'),
-      });
-      const olderEnded = eventFixture({
-        id: 'evt-old',
-        status: HealthEventStatus.ended,
-        startedAt: new Date('2026-08-01T08:00:00.000Z'),
-        endedAt: new Date('2026-08-02T08:00:00.000Z'),
-        outcome: HealthEventOutcome.worsened,
-      });
-      // Repository contract: startedAt desc, id desc.
-      repository.findManyByUserId.mockResolvedValue([
-        newestEnded,
-        newerActive,
-        olderEnded,
-      ]);
+      repository.findMostRecentEndedByUserId.mockResolvedValue(newestEnded);
 
       await expect(service.findMostRecentEnded(USER_ID)).resolves.toEqual(
         newestEnded,
       );
-      expect(repository.findManyByUserId).toHaveBeenCalledWith(USER_ID);
+      expect(repository.findMostRecentEndedByUserId).toHaveBeenCalledWith(
+        USER_ID,
+      );
+      expect(repository.findManyByUserId).not.toHaveBeenCalled();
     });
 
     it('returns null when the user has no ended event', async () => {
       const { service, repository } = buildService();
-      repository.findManyByUserId.mockResolvedValue([eventFixture()]);
+      repository.findMostRecentEndedByUserId.mockResolvedValue(null);
 
       await expect(service.findMostRecentEnded(USER_ID)).resolves.toBeNull();
+    });
+  });
+
+  describe('findCheckIns', () => {
+    it('delegates the ordered check-in read to the repository', async () => {
+      const { service, repository } = buildService();
+      const checkIns = [
+        {
+          id: 'ci-1',
+          eventId: EVENT_ID,
+          date: new Date('2026-08-10T00:00:00.000Z'),
+          outcome: HealthEventOutcome.unchanged,
+          createdAt: new Date('2026-08-10T09:00:00.000Z'),
+          updatedAt: new Date('2026-08-10T09:30:00.000Z'),
+        },
+      ];
+      repository.findCheckIns.mockResolvedValue(checkIns);
+
+      await expect(service.findCheckIns(USER_ID, EVENT_ID)).resolves.toEqual(
+        checkIns,
+      );
+      expect(repository.findCheckIns).toHaveBeenCalledWith(USER_ID, EVENT_ID);
     });
   });
 

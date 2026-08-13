@@ -86,6 +86,68 @@ describe('MedicineDoseLogRepository', () => {
     });
   });
 
+  describe('countFactsInRange (MedicineDoseLogReaderPort)', () => {
+    it('counts non-deleted dose logs in range', async () => {
+      const from = new Date('2026-07-01');
+      const to = new Date('2026-07-07');
+      prisma.userMedicineDoseLog.count.mockResolvedValue(6 as never);
+
+      await expect(
+        repository.countFactsInRange('user-1', from, to),
+      ).resolves.toBe(6);
+
+      expect(prisma.userMedicineDoseLog.count).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          deletedAt: null,
+          scheduledFor: { gte: from, lte: to },
+        },
+      });
+    });
+  });
+
+  describe('findLatestScheduledForInRange (MedicineDoseLogReaderPort)', () => {
+    it('returns the latest scheduledFor in range', async () => {
+      const scheduledFor = new Date('2026-07-05T08:00:00.000Z');
+      prisma.userMedicineDoseLog.findFirst.mockResolvedValue({
+        scheduledFor,
+      } as never);
+
+      await expect(
+        repository.findLatestScheduledForInRange(
+          'user-1',
+          new Date('2026-07-01'),
+          new Date('2026-07-07'),
+        ),
+      ).resolves.toEqual(scheduledFor);
+
+      expect(prisma.userMedicineDoseLog.findFirst).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          deletedAt: null,
+          scheduledFor: {
+            gte: new Date('2026-07-01'),
+            lte: new Date('2026-07-07'),
+          },
+        },
+        select: { scheduledFor: true },
+        orderBy: [{ scheduledFor: 'desc' }],
+      });
+    });
+
+    it('returns null when no dose logs exist', async () => {
+      prisma.userMedicineDoseLog.findFirst.mockResolvedValue(null as never);
+
+      await expect(
+        repository.findLatestScheduledForInRange(
+          'user-1',
+          new Date('2026-07-01'),
+          new Date('2026-07-07'),
+        ),
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('findManyWithCount', () => {
     it('queries with pagination and returns total', async () => {
       prisma.userMedicineDoseLog.findMany.mockResolvedValue([

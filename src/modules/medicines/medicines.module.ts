@@ -33,6 +33,10 @@ import { DrugbankMedicinesService } from './adapters/drugbank.service';
     DrugbankMedicinesService,
     CnMedicinesService,
   ],
-  exports: [DrugbankMedicinesService, CnMedicinesService],
+  exports: [
+    DrugbankMedicinesService,
+    CnMedicinesService,
+    MedicineRiskCheckService,
+  ],
 })
 export class MedicinesModule {}

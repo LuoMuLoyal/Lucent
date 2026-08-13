@@ -80,13 +80,35 @@ const dailyRecordFactSelect = {
  * write paths stay behind DailyRecordsService / DailyRecordRepositoryPort.
  */
 export abstract class DailyRecordReaderPort {
-  /** Lists non-deleted records with `occurredAt` in [from, to] (inclusive). */
+  /**
+   * Lists non-deleted records with `occurredAt` in [from, to] (inclusive).
+   * Capped at MAX_READER_FACTS — use {@link countFactsInRange} /
+   * {@link findLatestCreatedAtInRange} for exact totals and timestamps.
+   */
   abstract listFactsInRange(
     userId: string,
     from: Date,
     to: Date,
     kinds?: DailyRecordKind[],
   ): Promise<DailyRecordFact[]>;
+
+  /** Exact count of non-deleted records with `occurredAt` in [from, to]. */
+  abstract countFactsInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+    kinds?: DailyRecordKind[],
+  ): Promise<number>;
+
+  /**
+   * Latest `createdAt` among non-deleted records in [from, to], or null when
+   * none exists.
+   */
+  abstract findLatestCreatedAtInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<Date | null>;
 }
 
 /**
@@ -175,6 +197,39 @@ export class DailyRecordRepository
       orderBy: [{ occurredAt: 'asc' }, { createdAt: 'asc' }],
       take: MAX_READER_FACTS,
     });
+  }
+
+  async countFactsInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+    kinds?: DailyRecordKind[],
+  ): Promise<number> {
+    return this.prisma.userDailyRecord.count({
+      where: {
+        userId,
+        ...nonDeleted,
+        occurredAt: { gte: from, lte: to },
+        ...(kinds != null && kinds.length > 0 ? { kind: { in: kinds } } : {}),
+      },
+    });
+  }
+
+  async findLatestCreatedAtInRange(
+    userId: string,
+    from: Date,
+    to: Date,
+  ): Promise<Date | null> {
+    const row = await this.prisma.userDailyRecord.findFirst({
+      where: {
+        userId,
+        ...nonDeleted,
+        occurredAt: { gte: from, lte: to },
+      },
+      select: { createdAt: true },
+      orderBy: [{ createdAt: 'desc' }],
+    });
+    return row?.createdAt ?? null;
   }
 
   async findManyWithAttachments(

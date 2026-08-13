@@ -81,11 +81,22 @@ export abstract class HealthEventRepositoryPort {
 
   abstract findManyByUserId(userId: string): Promise<HealthEventRecord[]>;
 
+  /** The user's most recently started ended event, or null when none exists. */
+  abstract findMostRecentEndedByUserId(
+    userId: string,
+  ): Promise<HealthEventRecord | null>;
+
   abstract findCheckIn(
     userId: string,
     eventId: string,
     date: string,
   ): Promise<HealthEventCheckInRecord | null>;
+
+  /** The event's check-ins ordered by date ascending. */
+  abstract findCheckIns(
+    userId: string,
+    eventId: string,
+  ): Promise<HealthEventCheckInRecord[]>;
 
   abstract findCheckInCoverage(
     userId: string,

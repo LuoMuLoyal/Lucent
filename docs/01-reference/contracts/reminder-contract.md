@@ -1,6 +1,6 @@
 # Reminder / Notification Contract
 
-Last updated: 2026-08-11
+Last updated: 2026-08-13
 
 ## Boundary
 
@@ -44,6 +44,11 @@ Lucent's notification system is split into two layers with a clear ownership bou
   - Status: `PushDeliveryService` sends the user ID as a JPush alias through the JPush REST API. Missing credentials skip delivery; provider failures are logged and do not block the in-app notification flow.
 - Reminder delivery log
   - Status: `ReminderSchedulerService` (`@Cron('* * * * *')`) now writes `UserReminderDelivery` rows every minute for due reminders — matching `scheduledHour:Minute` in user timezone + `daysOfWeek` + date window. Channel=`in_app`, status=`delivered`. Deduplicated by the `(userId, reminderId, scheduledFor)` unique constraint (`findFirst` fast path + `createMany({ skipDuplicates: true })` atomic fallback, at-least-once — see [ADR-0011](../adr/0011-reminder-delivery-at-least-once.md)). Uses cursor-based pagination (batch size 500) to avoid OOM on large datasets.
+- Medicine risk check cross-module read
+  - Status: `MedicineRiskCheckService` is exported from `MedicinesModule` (persisted static/LLM
+    risk records behind a 30-minute cache). The reports event review next-step section reads only
+    the static `redFlags` (`severeAllergy`/`informationGap` reviewed rules) as structured
+    data and degrades to an empty list when the read fails.
 - Notification content templates
   - Status: Not implemented
 

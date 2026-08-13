@@ -9,6 +9,11 @@ import {
 import type { HealthEventsOwnershipService } from '../../../health-events';
 import type { DailyRecordReaderPort } from '../../../daily-records';
 import type { MedicineDoseLogReaderPort } from '../../../medicine-dose-logs';
+import type { MedicineRiskCheckService } from '../../../medicines';
+import { EventReviewFactsService } from './facts.service';
+import { EventReviewChangesService } from './changes.service';
+import { EventReviewActionsService } from './actions.service';
+import { EventReviewNextStepService } from './next-step.service';
 import { EventReviewService } from './review.service';
 
 const USER_ID = 'u1';
@@ -38,6 +43,27 @@ function endedEventFixture() {
     status: HealthEventStatus.ended,
     endedAt: new Date('2026-08-10T20:00:00.000Z'),
     outcome: HealthEventOutcome.improved,
+  };
+}
+
+function checkInFixture(
+  date: Date,
+  outcome: HealthEventOutcome,
+): {
+  id: string;
+  eventId: string;
+  date: Date;
+  outcome: HealthEventOutcome;
+  createdAt: Date;
+  updatedAt: Date;
+} {
+  return {
+    id: `ci-${date.toISOString()}`,
+    eventId: 'evt-active',
+    date,
+    outcome,
+    createdAt: new Date(date.getTime() + 3_600_000),
+    updatedAt: new Date(date.getTime() + 3_600_000),
   };
 }
 
@@ -79,20 +105,33 @@ function buildService() {
       firstCheckInDate: null,
       lastCheckInDate: null,
     }),
+    findCheckIns: vi.fn().mockResolvedValue([]),
     findManyByUser: vi.fn().mockResolvedValue([]),
   };
   const dailyRecordReader = {
     listFactsInRange: vi.fn().mockResolvedValue([]),
+    countFactsInRange: vi.fn().mockResolvedValue(0),
+    findLatestCreatedAtInRange: vi.fn().mockResolvedValue(null),
   };
   const doseLogReader = {
     listFactsInRange: vi.fn().mockResolvedValue([]),
+    countFactsInRange: vi.fn().mockResolvedValue(0),
+    findLatestScheduledForInRange: vi.fn().mockResolvedValue(null),
+  };
+  const riskCheck = {
+    getRecords: vi.fn().mockResolvedValue({ static: null, llm: null }),
   };
   const service = new EventReviewService(
     ownership as unknown as HealthEventsOwnershipService,
     dailyRecordReader as unknown as DailyRecordReaderPort,
     doseLogReader as unknown as MedicineDoseLogReaderPort,
+    new EventReviewFactsService(),
+    new EventReviewChangesService(),
+    new EventReviewActionsService(),
+    new EventReviewNextStepService(),
+    riskCheck as unknown as MedicineRiskCheckService,
   );
-  return { service, ownership, dailyRecordReader, doseLogReader };
+  return { service, ownership, dailyRecordReader, doseLogReader, riskCheck };
 }
 
 describe('EventReviewService', () => {
@@ -101,7 +140,7 @@ describe('EventReviewService', () => {
   });
 
   describe('buildForEvent', () => {
-    it('returns event facts and available sections for an active event with a today check-in', async () => {
+    it('returns section facts and exact coverage for an active event with a today check-in', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(TODAY_INSTANT);
       const { service, ownership, dailyRecordReader, doseLogReader } =
@@ -120,9 +159,27 @@ describe('EventReviewService', () => {
         firstCheckInDate: new Date('2026-08-10T00:00:00.000Z'),
         lastCheckInDate: new Date('2026-08-13T00:00:00.000Z'),
       });
+      ownership.findCheckIns.mockResolvedValue([
+        checkInFixture(
+          new Date('2026-08-10T00:00:00.000Z'),
+          HealthEventOutcome.worsened,
+        ),
+        checkInFixture(
+          new Date('2026-08-11T00:00:00.000Z'),
+          HealthEventOutcome.unchanged,
+        ),
+        checkInFixture(
+          new Date('2026-08-13T00:00:00.000Z'),
+          HealthEventOutcome.unchanged,
+        ),
+      ]);
       dailyRecordReader.listFactsInRange.mockResolvedValue([
         dailyRecordFixture(),
       ]);
+      dailyRecordReader.countFactsInRange.mockResolvedValue(1);
+      dailyRecordReader.findLatestCreatedAtInRange.mockResolvedValue(
+        new Date('2026-08-02T08:00:00.000Z'),
+      );
       doseLogReader.listFactsInRange.mockResolvedValue([
         doseLogFixture(),
         doseLogFixture({
@@ -130,6 +187,10 @@ describe('EventReviewService', () => {
           scheduledFor: new Date('2026-08-13T08:00:00.000Z'),
         }),
       ]);
+      doseLogReader.countFactsInRange.mockResolvedValue(2);
+      doseLogReader.findLatestScheduledForInRange.mockResolvedValue(
+        new Date('2026-08-13T08:00:00.000Z'),
+      );
 
       const review = await service.buildForEvent(USER_ID, 'evt-active');
 
@@ -148,23 +209,46 @@ describe('EventReviewService', () => {
         facts: {
           code: 'health_event',
           arguments: {
+            kind: HealthEventKind.symptom,
+            title: '头痛观察',
             startedAt: '2026-08-01T08:00:00.000Z',
             endedAt: null,
+            medicineIds: ['med-1'],
+            symptomRecordCount: 1,
+            checkInCount: 3,
           },
         },
       });
       expect(review.sections.keyChanges).toEqual({
         state: 'available',
         facts: {
-          code: 'observed_coverage',
-          arguments: { checkInCount: 3, dailyRecordCount: 1, doseLogCount: 2 },
+          code: 'observed_changes',
+          arguments: {
+            checkIns: {
+              direction: 'improved',
+              fromOutcome: HealthEventOutcome.worsened,
+              toOutcome: HealthEventOutcome.unchanged,
+              firstDate: '2026-08-10',
+              lastDate: '2026-08-13',
+              count: 3,
+            },
+            water: null,
+            sleep: null,
+          },
         },
       });
       expect(review.sections.completedActions).toEqual({
         state: 'available',
         facts: {
           code: 'completed_actions',
-          arguments: { confirmedDoseLogs: 1, skippedDoseLogs: 0, checkIns: 3 },
+          arguments: {
+            doseSlots: { confirmed: 1, skipped: 0, unconfirmed: 1 },
+            checkIns: [
+              { date: '2026-08-10', outcome: HealthEventOutcome.worsened },
+              { date: '2026-08-11', outcome: HealthEventOutcome.unchanged },
+              { date: '2026-08-13', outcome: HealthEventOutcome.unchanged },
+            ],
+          },
         },
       });
       expect(review.sections.nextStep).toEqual({
@@ -215,12 +299,32 @@ describe('EventReviewService', () => {
         USER_ID,
         'evt-active',
       );
+      expect(ownership.findCheckIns).toHaveBeenCalledWith(
+        USER_ID,
+        'evt-active',
+      );
       expect(dailyRecordReader.listFactsInRange).toHaveBeenCalledWith(
         USER_ID,
         STARTED_AT,
         TODAY_INSTANT,
       );
+      expect(dailyRecordReader.countFactsInRange).toHaveBeenCalledWith(
+        USER_ID,
+        STARTED_AT,
+        TODAY_INSTANT,
+        [DailyRecordKind.symptom],
+      );
+      expect(dailyRecordReader.countFactsInRange).toHaveBeenCalledWith(
+        USER_ID,
+        STARTED_AT,
+        TODAY_INSTANT,
+      );
       expect(doseLogReader.listFactsInRange).toHaveBeenCalledWith(
+        USER_ID,
+        STARTED_AT,
+        TODAY_INSTANT,
+      );
+      expect(doseLogReader.countFactsInRange).toHaveBeenCalledWith(
         USER_ID,
         STARTED_AT,
         TODAY_INSTANT,
@@ -238,6 +342,16 @@ describe('EventReviewService', () => {
         firstCheckInDate: new Date('2026-08-08T00:00:00.000Z'),
         lastCheckInDate: new Date('2026-08-10T00:00:00.000Z'),
       });
+      ownership.findCheckIns.mockResolvedValue([
+        checkInFixture(
+          new Date('2026-08-08T00:00:00.000Z'),
+          HealthEventOutcome.unchanged,
+        ),
+        checkInFixture(
+          new Date('2026-08-10T00:00:00.000Z'),
+          HealthEventOutcome.improved,
+        ),
+      ]);
 
       const review = await service.buildForEvent(USER_ID, 'evt-ended');
 
@@ -246,6 +360,24 @@ describe('EventReviewService', () => {
         status: HealthEventStatus.ended,
         endedAt: '2026-08-10T20:00:00.000Z',
         outcome: HealthEventOutcome.improved,
+      });
+      expect(review.sections.keyChanges).toEqual({
+        state: 'available',
+        facts: {
+          code: 'observed_changes',
+          arguments: {
+            checkIns: {
+              direction: 'improved',
+              fromOutcome: HealthEventOutcome.unchanged,
+              toOutcome: HealthEventOutcome.improved,
+              firstDate: '2026-08-08',
+              lastDate: '2026-08-10',
+              count: 2,
+            },
+            water: null,
+            sleep: null,
+          },
+        },
       });
       expect(review.sections.nextStep).toEqual({
         state: 'available',
@@ -258,7 +390,13 @@ describe('EventReviewService', () => {
         state: 'available',
         facts: {
           code: 'completed_actions',
-          arguments: { confirmedDoseLogs: 0, skippedDoseLogs: 0, checkIns: 2 },
+          arguments: {
+            doseSlots: { confirmed: 0, skipped: 0, unconfirmed: 0 },
+            checkIns: [
+              { date: '2026-08-08', outcome: HealthEventOutcome.unchanged },
+              { date: '2026-08-10', outcome: HealthEventOutcome.improved },
+            ],
+          },
         },
       });
       expect(review.coverage.checkIns).toMatchObject({
@@ -269,7 +407,11 @@ describe('EventReviewService', () => {
         windowEnd: '2026-08-10T20:00:00.000Z',
       });
       expect(review.availableActions).toEqual(['clinic_summary', 'export']);
-      expect(review.sourceTimestamps.checkIns).toBe('2026-08-10');
+      expect(review.sourceTimestamps).toEqual({
+        checkIns: '2026-08-10',
+        dailyRecords: null,
+        doseLogs: null,
+      });
       expect(dailyRecordReader.listFactsInRange).toHaveBeenCalledWith(
         USER_ID,
         STARTED_AT,
@@ -292,7 +434,21 @@ describe('EventReviewService', () => {
 
       expect(review.event.id).toBe('evt-active');
       expect(review.event.title).toBe('头痛观察');
-      expect(review.sections.whatHappened.state).toBe('available');
+      expect(review.sections.whatHappened).toEqual({
+        state: 'available',
+        facts: {
+          code: 'health_event',
+          arguments: {
+            kind: HealthEventKind.symptom,
+            title: '头痛观察',
+            startedAt: '2026-08-01T08:00:00.000Z',
+            endedAt: null,
+            medicineIds: ['med-1'],
+            symptomRecordCount: 0,
+            checkInCount: 0,
+          },
+        },
+      });
       expect(review.sections.keyChanges).toEqual({
         state: 'unknown',
         reasonCode: 'no_observations',
@@ -335,9 +491,77 @@ describe('EventReviewService', () => {
       expect(review.availableActions).toEqual(['check_in', 'end_event']);
     });
 
+    it('attaches reviewed static red flags to the next-step section', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(TODAY_INSTANT);
+      const { service, ownership, riskCheck } = buildService();
+      ownership.ensureOwnedByUser.mockResolvedValue(activeEventFixture());
+      riskCheck.getRecords.mockResolvedValue({
+        static: {
+          result: {
+            redFlags: [
+              {
+                rule: 'severeAllergy',
+                primaryMedicineName: '阿司匹林',
+                relatedLabel: '阿司匹林',
+              },
+              {
+                rule: 'informationGap',
+                primaryMedicineName: '手写药名',
+              },
+            ],
+          },
+        },
+        llm: null,
+      });
+
+      const review = await service.buildForEvent(USER_ID, 'evt-active');
+
+      expect(review.sections.nextStep).toEqual({
+        state: 'available',
+        facts: {
+          code: 'active_check_in',
+          arguments: {
+            hasTodayCheckIn: false,
+            redFlags: [
+              {
+                rule: 'severeAllergy',
+                medicineName: '阿司匹林',
+                relatedLabel: '阿司匹林',
+              },
+              { rule: 'informationGap', medicineName: '手写药名' },
+            ],
+          },
+        },
+      });
+    });
+
+    it('keeps the review usable when the static risk read fails', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(TODAY_INSTANT);
+      const { service, ownership, riskCheck } = buildService();
+      ownership.ensureOwnedByUser.mockResolvedValue(activeEventFixture());
+      riskCheck.getRecords.mockRejectedValue(new Error('cache unavailable'));
+
+      const review = await service.buildForEvent(USER_ID, 'evt-active');
+
+      expect(review.sections.nextStep).toEqual({
+        state: 'available',
+        facts: {
+          code: 'active_check_in',
+          arguments: { hasTodayCheckIn: false },
+        },
+      });
+    });
+
     it('rejects with not found for a foreign event without reading sources', async () => {
-      const { service, ownership, dailyRecordReader, doseLogReader } =
-        buildService();
+      const {
+        service,
+        ownership,
+        dailyRecordReader,
+        doseLogReader,
+        riskCheck,
+      } = buildService();
       const notFoundError = new NotFoundException({
         code: 404,
         message: 'health-events.not_found',
@@ -348,8 +572,11 @@ describe('EventReviewService', () => {
         notFoundError,
       );
       expect(dailyRecordReader.listFactsInRange).not.toHaveBeenCalled();
+      expect(dailyRecordReader.countFactsInRange).not.toHaveBeenCalled();
       expect(doseLogReader.listFactsInRange).not.toHaveBeenCalled();
       expect(ownership.findTodayCheckIn).not.toHaveBeenCalled();
+      expect(ownership.findCheckIns).not.toHaveBeenCalled();
+      expect(riskCheck.getRecords).not.toHaveBeenCalled();
     });
 
     it('rejects an event record missing its kind instead of defaulting to symptom', async () => {

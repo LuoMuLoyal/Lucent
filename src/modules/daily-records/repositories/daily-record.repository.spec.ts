@@ -197,6 +197,82 @@ describe('DailyRecordRepository', () => {
     });
   });
 
+  describe('countFactsInRange (DailyRecordReaderPort)', () => {
+    it('counts non-deleted records in range', async () => {
+      const from = new Date('2026-07-01');
+      const to = new Date('2026-07-07');
+      prisma.userDailyRecord.count.mockResolvedValue(4);
+
+      await expect(
+        repository.countFactsInRange('user-1', from, to),
+      ).resolves.toBe(4);
+
+      expect(prisma.userDailyRecord.count).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          deletedAt: null,
+          occurredAt: { gte: from, lte: to },
+        },
+      });
+    });
+
+    it('adds kind IN filter when kinds are provided', async () => {
+      prisma.userDailyRecord.count.mockResolvedValue(2);
+
+      await repository.countFactsInRange(
+        'user-1',
+        new Date('2026-07-01'),
+        new Date('2026-07-07'),
+        ['symptom'],
+      );
+
+      const call = prisma.userDailyRecord.count.mock.calls[0]?.[0];
+      expect(call?.where).toHaveProperty('kind', { in: ['symptom'] });
+    });
+  });
+
+  describe('findLatestCreatedAtInRange (DailyRecordReaderPort)', () => {
+    it('returns the latest createdAt in range', async () => {
+      const createdAt = new Date('2026-07-05T08:00:00.000Z');
+      prisma.userDailyRecord.findFirst.mockResolvedValue({
+        createdAt,
+      } as never);
+
+      await expect(
+        repository.findLatestCreatedAtInRange(
+          'user-1',
+          new Date('2026-07-01'),
+          new Date('2026-07-07'),
+        ),
+      ).resolves.toEqual(createdAt);
+
+      expect(prisma.userDailyRecord.findFirst).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          deletedAt: null,
+          occurredAt: {
+            gte: new Date('2026-07-01'),
+            lte: new Date('2026-07-07'),
+          },
+        },
+        select: { createdAt: true },
+        orderBy: [{ createdAt: 'desc' }],
+      });
+    });
+
+    it('returns null when no records exist', async () => {
+      prisma.userDailyRecord.findFirst.mockResolvedValue(null as never);
+
+      await expect(
+        repository.findLatestCreatedAtInRange(
+          'user-1',
+          new Date('2026-07-01'),
+          new Date('2026-07-07'),
+        ),
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('create', () => {
     it('creates with provided data and includes attachments', async () => {
       const data = { userId: 'user-1', kind: 'water', occurredAt: new Date() };

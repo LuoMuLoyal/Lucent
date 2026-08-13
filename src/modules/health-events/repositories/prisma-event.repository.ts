@@ -87,6 +87,19 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
     return rows.map((row) => this.toEventRecord(row));
   }
 
+  override async findMostRecentEndedByUserId(userId: string) {
+    const row = await this.prisma.healthEvent.findFirst({
+      where: {
+        userId,
+        status: HealthEventStatus.ended,
+        deletedAt: null,
+      },
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      select: eventSelect,
+    });
+    return row == null ? null : this.toEventRecord(row);
+  }
+
   override async findCheckIn(userId: string, eventId: string, date: string) {
     const row = await this.prisma.healthEventCheckIn.findFirst({
       where: {
@@ -97,6 +110,18 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
       select: checkInSelect,
     });
     return row == null ? null : this.toCheckInRecord(row);
+  }
+
+  override async findCheckIns(userId: string, eventId: string) {
+    const rows = await this.prisma.healthEventCheckIn.findMany({
+      where: {
+        eventId,
+        event: { userId, deletedAt: null },
+      },
+      select: checkInSelect,
+      orderBy: { date: 'asc' },
+    });
+    return rows.map((row) => this.toCheckInRecord(row));
   }
 
   override async findCheckInCoverage(

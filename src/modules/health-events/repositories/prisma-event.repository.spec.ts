@@ -23,6 +23,7 @@ describe('PrismaEventRepository', () => {
       },
       healthEventCheckIn: {
         upsert: vi.fn(),
+        findMany: vi.fn(),
       },
       userCurrentMedicine: {
         findMany: vi.fn(),
@@ -30,6 +31,44 @@ describe('PrismaEventRepository', () => {
       $transaction: vi.fn(),
     } as unknown as DeepMocked<PrismaService>;
     repository = new PrismaEventRepository(prisma);
+  });
+
+  it('queries the targeted most-recent-ended event', async () => {
+    prisma.healthEvent.findFirst.mockResolvedValue(null as never);
+
+    await repository.findMostRecentEndedByUserId(USER_ID);
+
+    expect(prisma.healthEvent.findFirst).toHaveBeenCalledWith({
+      where: {
+        userId: USER_ID,
+        status: HealthEventStatus.ended,
+        deletedAt: null,
+      },
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+      select: expect.anything(),
+    });
+  });
+
+  it('lists check-ins ordered by date for an owned event', async () => {
+    prisma.healthEventCheckIn.findMany.mockResolvedValue([] as never);
+
+    await repository.findCheckIns(USER_ID, EVENT_ID);
+
+    expect(prisma.healthEventCheckIn.findMany).toHaveBeenCalledWith({
+      where: {
+        eventId: EVENT_ID,
+        event: { userId: USER_ID, deletedAt: null },
+      },
+      select: {
+        id: true,
+        eventId: true,
+        date: true,
+        outcome: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { date: 'asc' },
+    });
   });
 
   it('only returns current medicines owned by the user', async () => {

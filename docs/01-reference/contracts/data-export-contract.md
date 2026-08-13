@@ -89,4 +89,7 @@ interface DataExportRequestDto {
   clinic summary remain reachable through their existing endpoints and become More actions in the
   Review UI rather than primary-path features. The review history list uses a composite
   `startedAt|id` opaque cursor and `unknown` sections with fixed reason codes; neither concept
-  applies to the export DTOs above.
+  applies to the export DTOs above. The four review sections emit structured fact codes and
+  arguments (localized by the client) with fixed reason codes for unknown sections; red flags stay
+  limited to the reviewed static medication rules, so no free-text review copy enters the export
+  contract.
