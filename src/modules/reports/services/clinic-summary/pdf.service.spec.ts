@@ -130,5 +130,19 @@ describe('ClinicSummaryPdfService', () => {
       // The PDFs should be different since the titles and labels differ
       expect(zhBuffer.equals(enBuffer)).toBe(false);
     }, 30_000);
+
+    // ── Workstream 2 red lock (fix owned by VS3) ──────────────────────────
+
+    it('renders findings into the PDF when the summary contains them', async () => {
+      const withFindings = makeSummary({
+        findings: ['hydration_low', 'dose_stable'],
+      });
+      const withoutFindings = makeSummary();
+
+      const bufferWith = await service.buildPdf(withFindings, 'en');
+      const bufferWithout = await service.buildPdf(withoutFindings, 'en');
+
+      expect(bufferWith.equals(bufferWithout)).toBe(false);
+    }, 30_000);
   });
 });

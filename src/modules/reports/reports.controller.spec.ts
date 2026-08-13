@@ -348,7 +348,7 @@ describe('ReportsController', () => {
     });
   });
 
-  it('throws HttpException 410 when shared summary not found', async () => {
+  it('throws HttpException 404 when the shared summary token is expired or revoked', async () => {
     clinicSummaryService.getSharedSummary.mockResolvedValue(null);
 
     await expect(
@@ -359,7 +359,7 @@ describe('ReportsController', () => {
       await controller.getSharedClinicSummary('expired-token', 'zh-CN');
     } catch (e) {
       expect(e).toBeInstanceOf(HttpException);
-      expect((e as HttpException).getStatus()).toBe(HttpStatus.GONE);
+      expect((e as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
     }
   });
 
@@ -402,7 +402,7 @@ describe('ReportsController', () => {
     expect(reply.send).toHaveBeenCalledWith(pdfBuffer);
   });
 
-  it('throws HttpException 410 when shared PDF token is expired', async () => {
+  it('throws HttpException 404 when the shared PDF token is expired or revoked', async () => {
     clinicSummaryService.exportSharedPdf.mockResolvedValue(null);
 
     const reply = makeMockReply([]);
@@ -414,6 +414,16 @@ describe('ReportsController', () => {
         reply,
       ),
     ).rejects.toThrow(HttpException);
+
+    try {
+      await controller.downloadSharedClinicSummaryPdf(
+        'expired-token',
+        'zh-CN',
+        reply,
+      );
+    } catch (e) {
+      expect((e as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+    }
   });
 
   // ── getCurrentReview ──────────────────────────────────────────────

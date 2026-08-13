@@ -5,6 +5,136 @@ import type { I18nService } from 'nestjs-i18n';
 import { ClinicSummaryService } from './summary.service';
 import type { ClinicSummaryPdfService } from './pdf.service';
 import type { PrismaService } from '../../../../prisma';
+import type {
+  ClinicSummaryDto,
+  ClinicSummaryShareResponseDto,
+} from '../../dto/clinic-summary-response.dto';
+
+/**
+ * TDD red-lock surface (Workstream 2, VS2-VS4 will make these real).
+ *
+ * Today `buildClinicSummary` / `exportPdf` / `createShareLink` accept no
+ * scope or field-selection options, so the failing tests below call through
+ * this widened cast. Implementing tasks own the actual signatures; these
+ * casts stay local to this spec.
+ */
+interface ClinicSummaryOptions {
+  range?: string;
+  selectedFields?: string[];
+}
+
+interface SummaryServiceSurface {
+  buildClinicSummary(
+    userId: string,
+    locale?: string,
+    options?: ClinicSummaryOptions,
+  ): Promise<ClinicSummaryDto>;
+  exportPdf(
+    userId: string,
+    locale?: string,
+    options?: ClinicSummaryOptions,
+  ): Promise<Buffer>;
+  createShareLink(
+    userId: string,
+    locale?: string,
+    options?: ClinicSummaryOptions,
+  ): Promise<ClinicSummaryShareResponseDto>;
+}
+
+/** Widened constructor so tests can inject the event-review source the fix
+ *  (VS3) will wire in; extra runtime args are harmless today. */
+function withEventReview(
+  prisma: DeepMocked<PrismaService>,
+  cache: { get: vi.Mock; set: vi.Mock },
+  pdf: vi.Mocked<ClinicSummaryPdfService>,
+  config: vi.Mocked<ConfigService>,
+  eventReview: { buildCurrent: vi.Mock },
+): ClinicSummaryService {
+  const Ctor = ClinicSummaryService as unknown as new (
+    ...args: unknown[]
+  ) => ClinicSummaryService;
+  return new Ctor(prisma, cache, pdf, config, i18nMock, eventReview);
+}
+
+/** Minimal event-review read model the summary findings/coverage must reuse. */
+const mockEventReview = {
+  event: {
+    id: 'evt-1',
+    kind: 'symptom',
+    title: '头痛观察',
+    status: 'active',
+    startedAt: '2026-08-01T08:00:00.000Z',
+    endedAt: null,
+    outcome: null,
+    currentMedicineIds: [],
+  },
+  sections: {
+    whatHappened: {
+      state: 'available',
+      facts: {
+        code: 'health_event',
+        arguments: { kind: 'symptom', symptomRecordCount: 1, checkInCount: 2 },
+      },
+    },
+    keyChanges: {
+      state: 'available',
+      facts: {
+        code: 'observed_changes',
+        arguments: { water: 'up', sleep: 'stable', dose: null },
+      },
+    },
+    completedActions: { state: 'unknown', reasonCode: 'no_completed_actions' },
+    nextStep: {
+      state: 'available',
+      facts: { code: 'active_check_in', arguments: { hasTodayCheckIn: false } },
+    },
+  },
+  coverage: {
+    checkIns: {
+      state: 'observed',
+      coverage: 'partial',
+      sources: ['manual'],
+      observedCount: 2,
+      expectedCount: null,
+      windowStart: '2026-08-01T08:00:00.000Z',
+      windowEnd: '2026-08-13T12:00:00.000Z',
+    },
+    dailyRecords: {
+      state: 'observed',
+      coverage: 'partial',
+      sources: ['manual'],
+      observedCount: 3,
+      expectedCount: null,
+      windowStart: '2026-08-01T08:00:00.000Z',
+      windowEnd: '2026-08-13T12:00:00.000Z',
+    },
+    doseLogs: {
+      state: 'observed',
+      coverage: 'partial',
+      sources: ['manual'],
+      observedCount: 4,
+      expectedCount: null,
+      windowStart: '2026-08-01T08:00:00.000Z',
+      windowEnd: '2026-08-13T12:00:00.000Z',
+    },
+  },
+  sourceTimestamps: {
+    checkIns: '2026-08-11',
+    dailyRecords: '2026-08-10',
+    doseLogs: '2026-08-10',
+  },
+  availableActions: ['check_in'],
+  generatedAt: '2026-08-13T12:00:00.000Z',
+};
+
+const i18nMock = {
+  t: vi.fn((key: string) => {
+    if (key.includes('disclaimer')) return 'disclaimer-text';
+    if (key.includes('anonymous_name')) return '匿名用户';
+    if (key.includes('share_link_expired')) return 'Share link expired.';
+    return key;
+  }),
+} as unknown as I18nService;
 
 describe('ClinicSummaryService', () => {
   let service: ClinicSummaryService;
@@ -12,15 +142,6 @@ describe('ClinicSummaryService', () => {
   let cacheManager: { get: vi.Mock; set: vi.Mock };
   let pdfService: vi.Mocked<ClinicSummaryPdfService>;
   let configService: vi.Mocked<ConfigService>;
-
-  const i18nMock = {
-    t: vi.fn((key: string) => {
-      if (key.includes('disclaimer')) return 'disclaimer-text';
-      if (key.includes('anonymous_name')) return '匿名用户';
-      if (key.includes('share_link_expired')) return 'Share link expired.';
-      return key;
-    }),
-  } as unknown as I18nService;
 
   beforeEach(() => {
     prisma = {
@@ -137,6 +258,80 @@ describe('ClinicSummaryService', () => {
       expect(result.conditions).toHaveLength(0);
       expect(result.currentMedicines).toHaveLength(0);
     });
+
+    // ── Workstream 2 red locks (fix owned by VS3) ─────────────────────────
+
+    it('returns the requested 7-day range instead of hard-coded last_30_days', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+
+      const result = await (
+        service as unknown as SummaryServiceSurface
+      ).buildClinicSummary('user-1', 'zh-CN', { range: 'last_7_days' });
+
+      expect(result.dataRange).toBe('last_7_days');
+    });
+
+    it('populates findings from the active event review instead of leaving them empty', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      const eventReview = {
+        buildCurrent: vi.fn().mockResolvedValue(mockEventReview),
+      };
+      const serviceWithReview = withEventReview(
+        prisma,
+        cacheManager,
+        pdfService,
+        configService,
+        eventReview,
+      );
+
+      const result = await serviceWithReview.buildClinicSummary(
+        'user-1',
+        'zh-CN',
+      );
+
+      expect(result.findings).toBeDefined();
+      expect(result.findings!.length).toBeGreaterThan(0);
+    });
+
+    it('exposes one unified water/dose/sleep coverage from the event review', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      const eventReview = {
+        buildCurrent: vi.fn().mockResolvedValue(mockEventReview),
+      };
+      const serviceWithReview = withEventReview(
+        prisma,
+        cacheManager,
+        pdfService,
+        configService,
+        eventReview,
+      );
+
+      const result = await serviceWithReview.buildClinicSummary(
+        'user-1',
+        'zh-CN',
+      );
+      const coverage = (
+        result as unknown as { coverage?: Record<string, unknown> }
+      ).coverage;
+
+      expect(coverage).toBeDefined();
+      expect(coverage!['water']).toBeDefined();
+      expect(coverage!['dose']).toBeDefined();
+      expect(coverage!['sleep']).toBeDefined();
+    });
+
+    it('excludes deselected fields from the preview summary', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+
+      const result = await (
+        service as unknown as SummaryServiceSurface
+      ).buildClinicSummary('user-1', 'zh-CN', {
+        selectedFields: ['profile', 'allergies'],
+      });
+
+      expect(result.conditions).toBeUndefined();
+      expect(result.currentMedicines).toBeUndefined();
+    });
   });
 
   describe('createShareLink', () => {
@@ -148,7 +343,7 @@ describe('ClinicSummaryService', () => {
 
       expect(result.shareUrl).toContain('https://lumos.app');
       expect(result.shareUrl).toContain(
-        '/api/v1/reports/clinic-summary/shared/',
+        '/api/v1/user/reports/clinic-summary/shared/',
       );
       expect(result.expiresAt).toBeDefined();
       expect(cacheManager.set).toHaveBeenCalledWith(
@@ -165,6 +360,38 @@ describe('ClinicSummaryService', () => {
       const result = await service.createShareLink('user-1', 'zh-CN');
 
       expect(result.shareUrl).toContain('localhost:3000');
+    });
+
+    // ── Workstream 2 red locks (fix owned by VS3/VS4) ─────────────────────
+
+    it('builds the share URL against the actual /user public controller route', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      configService.get.mockReturnValue({ publicBaseUrl: 'https://lumos.app' });
+
+      const result = await service.createShareLink('user-1', 'zh-CN');
+
+      expect(result.shareUrl).toContain(
+        '/api/v1/user/reports/clinic-summary/shared/',
+      );
+    });
+
+    it('stores only the selected fields in the shared summary', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      configService.get.mockReturnValue({ publicBaseUrl: 'https://lumos.app' });
+
+      await (service as unknown as SummaryServiceSurface).createShareLink(
+        'user-1',
+        'zh-CN',
+        {
+          selectedFields: ['profile', 'allergies'],
+        },
+      );
+
+      expect(cacheManager.set).toHaveBeenCalledWith(
+        expect.stringContaining('clinic-share:'),
+        expect.objectContaining({ conditions: undefined }),
+        expect.any(Number),
+      );
     });
   });
 
@@ -188,6 +415,48 @@ describe('ClinicSummaryService', () => {
 
       expect(result).toBeNull();
     });
+
+    // ── Workstream 2 red locks (fix owned by VS2) ─────────────────────────
+
+    it('returns null for a revoked share even when a cached copy exists', async () => {
+      const cached = { generatedAt: '2026-07-10', dataRange: 'last_30_days' };
+      cacheManager.get.mockResolvedValue(cached);
+      const shareStore = {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'share-1',
+          revokedAt: new Date('2026-08-12T00:00:00.000Z'),
+        }),
+      };
+      (
+        prisma as unknown as { userClinicSummaryShare: typeof shareStore }
+      ).userClinicSummaryShare = shareStore;
+
+      const result = await service.getSharedSummary('revoked-token');
+
+      expect(result).toBeNull();
+    });
+
+    it('records accessedAt and accessCount when a share is opened successfully', async () => {
+      const cached = { generatedAt: '2026-07-10', dataRange: 'last_30_days' };
+      cacheManager.get.mockResolvedValue(cached);
+      const shareStore = { update: vi.fn().mockResolvedValue({}) };
+      (
+        prisma as unknown as { userClinicSummaryShare: typeof shareStore }
+      ).userClinicSummaryShare = shareStore;
+
+      const result = await service.getSharedSummary('valid-token');
+
+      expect(result).not.toBeNull();
+      expect(shareStore.update).toHaveBeenCalled();
+      expect(shareStore.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            lastAccessedAt: expect.anything(),
+            accessCount: { increment: 1 },
+          }),
+        }),
+      );
+    });
   });
 
   describe('exportPdf', () => {
@@ -201,6 +470,25 @@ describe('ClinicSummaryService', () => {
         'zh-CN',
       );
       expect(result).toEqual(Buffer.from('pdf-bytes'));
+    });
+
+    // ── Workstream 2 red lock (fix owned by VS3) ──────────────────────────
+
+    it('passes only the selected fields to the PDF builder', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+
+      await (service as unknown as SummaryServiceSurface).exportPdf(
+        'user-1',
+        'zh-CN',
+        {
+          selectedFields: ['profile', 'allergies'],
+        },
+      );
+
+      expect(pdfService.buildPdf).toHaveBeenCalledWith(
+        expect.objectContaining({ conditions: undefined }),
+        'zh-CN',
+      );
     });
   });
 
