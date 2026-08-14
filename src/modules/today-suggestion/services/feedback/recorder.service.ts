@@ -1,4 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
+} from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma';
 import { now, formatDateOnly } from '../../../../common';
 import {
@@ -15,6 +20,7 @@ import {
   FEEDBACK_NOT_APPLICABLE_REDUCTION_PERCENT,
 } from '../../constants/feedback.constants';
 import { SuggestionCacheService } from '../cache/suggestion-cache.service';
+import { ProductEventsService } from '../../../product-events';
 
 /** Effect label returned to the client after recording feedback. */
 export type FeedbackEffect =
@@ -60,6 +66,7 @@ export class FeedbackService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly suggestionCache: SuggestionCacheService,
+    private readonly productEvents: ProductEventsService,
   ) {}
 
   /**
@@ -132,6 +139,16 @@ export class FeedbackService {
       userId,
       formatDateOnly(now()),
     );
+
+    // Server-authoritative action event — only after the feedback write
+    // succeeded. Carries the suggestion's FIXED rule code (allowlisted), never
+    // the suggestion copy or any free text.
+    await this.productEvents.emitServerEvent(userId, {
+      name: ProductEventName.suggestion_actioned,
+      surface: ProductEventSurface.today,
+      result: ProductEventResult.success,
+      suggestionRuleCode: suggestion.ruleId,
+    });
 
     return {
       suggestionId,

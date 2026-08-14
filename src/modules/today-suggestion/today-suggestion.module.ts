@@ -7,6 +7,7 @@ import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
+import { ProductEventsModule } from '../product-events/product-events.module';
 
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionPipelineService } from './services/pipeline.service';
@@ -60,6 +61,7 @@ import type { SuggestionRule } from './types/rule.types';
     DailyRecordsModule,
     MedicineDoseLogsModule,
     UserSettingsModule,
+    ProductEventsModule,
   ],
   controllers: [TodaySuggestionController],
   providers: [

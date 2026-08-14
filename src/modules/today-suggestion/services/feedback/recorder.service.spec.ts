@@ -1,4 +1,9 @@
 import { NotFoundException } from '@nestjs/common';
+import {
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
+} from '#generated/prisma/client';
 import { FeedbackService } from './recorder.service';
 import {
   SuggestionType,
@@ -23,6 +28,7 @@ describe('FeedbackService', () => {
   let feedbackCreateMock: vi.Mock;
   let feedbackFindManyMock: vi.Mock;
   let transactionMock: vi.Mock;
+  let emitServerEventMock: vi.Mock;
 
   beforeEach(() => {
     findFirstMock = vi.fn();
@@ -33,6 +39,7 @@ describe('FeedbackService', () => {
     updateMock = vi.fn();
     feedbackCreateMock = vi.fn();
     feedbackFindManyMock = vi.fn();
+    emitServerEventMock = vi.fn().mockResolvedValue(undefined);
 
     const prismaMock = {
       userSuggestion: {
@@ -61,6 +68,7 @@ describe('FeedbackService', () => {
       {
         invalidateSuggestions: vi.fn().mockResolvedValue(undefined),
       } as never,
+      { emitServerEvent: emitServerEventMock } as never,
     );
   });
 
@@ -236,6 +244,48 @@ describe('FeedbackService', () => {
       await expect(
         service.recordFeedback('user-1', 'sug-1', SuggestionFeedback.LATER),
       ).rejects.toThrow('TX failed');
+    });
+
+    it('should emit suggestion_actioned with the fixed rule code after a successful write', async () => {
+      findFirstMock.mockResolvedValue({
+        id: 'sug-1',
+        type: 'behavior_advice',
+        ruleId: 'water_behind_target',
+        priorityScore: 400,
+        lifecycleState: 'active',
+      });
+      feedbackCreateMock.mockResolvedValue({});
+      updateManyMock.mockResolvedValue({ count: 1 });
+
+      await service.recordFeedback(
+        'user-1',
+        'sug-1',
+        SuggestionFeedback.ACCEPTED,
+      );
+
+      expect(emitServerEventMock).toHaveBeenCalledTimes(1);
+      expect(emitServerEventMock).toHaveBeenCalledWith('user-1', {
+        name: ProductEventName.suggestion_actioned,
+        surface: ProductEventSurface.today,
+        result: ProductEventResult.success,
+        suggestionRuleCode: 'water_behind_target',
+      });
+    });
+
+    it('should not emit the product event when the main transaction fails', async () => {
+      findFirstMock.mockResolvedValue({
+        id: 'sug-1',
+        type: 'compliance',
+        ruleId: 'missed_dose_pending',
+        priorityScore: 800,
+        lifecycleState: 'active',
+      });
+      transactionMock.mockRejectedValue(new Error('TX failed'));
+
+      await expect(
+        service.recordFeedback('user-1', 'sug-1', SuggestionFeedback.LATER),
+      ).rejects.toThrow('TX failed');
+      expect(emitServerEventMock).not.toHaveBeenCalled();
     });
 
     it('should return correct suggestionId and feedback in result', async () => {
