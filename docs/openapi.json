@@ -10933,6 +10933,61 @@
         },
         "required": ["nickname", "sexAtBirth"]
       },
+      "ClinicSummaryAllergyDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Allergy label (e.g. 青霉素)"
+          },
+          "reaction": {
+            "type": "string",
+            "description": "Reaction description",
+            "nullable": true
+          },
+          "severity": {
+            "type": "string",
+            "description": "Severity level",
+            "nullable": true
+          }
+        },
+        "required": ["label", "reaction", "severity"]
+      },
+      "ClinicSummaryConditionDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Condition label (e.g. 高血压)"
+          },
+          "status": {
+            "type": "string",
+            "description": "Current status",
+            "nullable": true
+          },
+          "diagnosedYear": {
+            "type": "number",
+            "description": "Year of diagnosis (YYYY)",
+            "nullable": true
+          }
+        },
+        "required": ["label", "status"]
+      },
+      "ClinicSummaryMedicineDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "description": "Generic medicine name"
+          },
+          "doseText": {
+            "type": "string",
+            "description": "Dose instruction",
+            "nullable": true
+          }
+        },
+        "required": ["displayName"]
+      },
       "ClinicSummaryDto": {
         "type": "object",
         "properties": {
@@ -10967,7 +11022,7 @@
             "description": "Legacy range label (last_7_days | last_30_days | custom | event); kept as a compatibility alias of scopeLabel."
           },
           "profile": {
-            "description": "De-identified profile",
+            "description": "De-identified profile. Optional: omitted when the section is deselected via selectedFields.",
             "allOf": [
               {
                 "$ref": "#/components/schemas/ClinicSummaryProfileDto"
@@ -10975,24 +11030,24 @@
             ]
           },
           "allergies": {
-            "description": "Active allergies",
+            "description": "Active allergies. Optional: omitted when the section is deselected.",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ClinicSummaryAllergyDto"
             }
           },
           "conditions": {
-            "description": "Active conditions",
+            "description": "Active conditions. Optional: omitted when the section is deselected.",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ClinicSummaryConditionDto"
             }
           },
           "currentMedicines": {
-            "description": "Current medicines",
+            "description": "Current medicines. Optional: omitted when the section is deselected.",
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ClinicSummaryMedicineDto"
             }
           },
           "findings": {
@@ -11015,10 +11070,6 @@
           "selectedFields",
           "coverage",
           "dataRange",
-          "profile",
-          "allergies",
-          "conditions",
-          "currentMedicines",
           "disclaimer"
         ]
       },

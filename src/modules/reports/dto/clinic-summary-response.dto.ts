@@ -168,17 +168,37 @@ export class ClinicSummaryDto {
   })
   dataRange!: string;
 
-  @ApiProperty({ description: 'De-identified profile' })
-  profile!: ClinicSummaryProfileDto;
+  @ApiPropertyOptional({
+    type: () => ClinicSummaryProfileDto,
+    description:
+      'De-identified profile. Optional: omitted when the section is ' +
+      'deselected via selectedFields.',
+  })
+  profile?: ClinicSummaryProfileDto;
 
-  @ApiProperty({ description: 'Active allergies' })
-  allergies!: ClinicSummaryAllergyDto[];
+  @ApiPropertyOptional({
+    type: () => ClinicSummaryAllergyDto,
+    isArray: true,
+    description:
+      'Active allergies. Optional: omitted when the section is deselected.',
+  })
+  allergies?: ClinicSummaryAllergyDto[];
 
-  @ApiProperty({ description: 'Active conditions' })
-  conditions!: ClinicSummaryConditionDto[];
+  @ApiPropertyOptional({
+    type: () => ClinicSummaryConditionDto,
+    isArray: true,
+    description:
+      'Active conditions. Optional: omitted when the section is deselected.',
+  })
+  conditions?: ClinicSummaryConditionDto[];
 
-  @ApiProperty({ description: 'Current medicines' })
-  currentMedicines!: ClinicSummaryMedicineDto[];
+  @ApiPropertyOptional({
+    type: () => ClinicSummaryMedicineDto,
+    isArray: true,
+    description:
+      'Current medicines. Optional: omitted when the section is deselected.',
+  })
+  currentMedicines?: ClinicSummaryMedicineDto[];
 
   @ApiPropertyOptional({
     description:

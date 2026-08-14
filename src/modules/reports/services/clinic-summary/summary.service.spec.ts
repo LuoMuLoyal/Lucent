@@ -227,15 +227,15 @@ describe('ClinicSummaryService', () => {
 
       const result = await service.buildClinicSummary('user-1', 'zh-CN');
 
-      expect(result.profile.nickname).toBe('张**');
-      expect(result.profile.age).toBeGreaterThan(0);
-      expect(result.profile.sexAtBirth).toBe('male');
-      expect(result.profile.bloodType).toBe('A');
-      expect(result.allergies).toHaveLength(2);
-      expect(result.allergies[0]!.label).toBe('青霉素');
-      expect(result.conditions).toHaveLength(1);
-      expect(result.conditions[0]!.diagnosedYear).toBe(2023);
-      expect(result.currentMedicines).toHaveLength(1);
+      expect(result.profile!.nickname).toBe('张**');
+      expect(result.profile!.age).toBeGreaterThan(0);
+      expect(result.profile!.sexAtBirth).toBe('male');
+      expect(result.profile!.bloodType).toBe('A');
+      expect(result.allergies!).toHaveLength(2);
+      expect(result.allergies![0]!.label).toBe('青霉素');
+      expect(result.conditions!).toHaveLength(1);
+      expect(result.conditions![0]!.diagnosedYear).toBe(2023);
+      expect(result.currentMedicines!).toHaveLength(1);
       expect(result.dataRange).toBe('last_30_days');
       expect(result.disclaimer).toContain('disclaimer-text');
     });
@@ -248,9 +248,9 @@ describe('ClinicSummaryService', () => {
 
       const result = await service.buildClinicSummary('user-1', 'zh-CN');
 
-      expect(result.profile.age).toBeNull();
-      expect(result.profile.sexAtBirth).toBeNull();
-      expect(result.profile.bloodType).toBeNull();
+      expect(result.profile!.age).toBeNull();
+      expect(result.profile!.sexAtBirth).toBeNull();
+      expect(result.profile!.bloodType).toBeNull();
     });
 
     it('handles null nickname', async () => {
@@ -260,7 +260,7 @@ describe('ClinicSummaryService', () => {
       });
 
       const result = await service.buildClinicSummary('user-1', 'zh-CN');
-      expect(result.profile.nickname).toBe('匿名用户');
+      expect(result.profile!.nickname).toBe('匿名用户');
     });
 
     it('handles single-character nickname', async () => {
@@ -270,7 +270,7 @@ describe('ClinicSummaryService', () => {
       });
 
       const result = await service.buildClinicSummary('user-1', 'zh-CN');
-      expect(result.profile.nickname).toBe('A');
+      expect(result.profile!.nickname).toBe('A');
     });
 
     it('handles empty allergies and conditions', async () => {
@@ -282,9 +282,9 @@ describe('ClinicSummaryService', () => {
       });
 
       const result = await service.buildClinicSummary('user-1', 'zh-CN');
-      expect(result.allergies).toHaveLength(0);
-      expect(result.conditions).toHaveLength(0);
-      expect(result.currentMedicines).toHaveLength(0);
+      expect(result.allergies!).toHaveLength(0);
+      expect(result.conditions!).toHaveLength(0);
+      expect(result.currentMedicines!).toHaveLength(0);
     });
 
     // ── Workstream 2 red locks (fix owned by VS3) ─────────────────────────
@@ -884,7 +884,7 @@ describe('ClinicSummaryService', () => {
       });
 
       const result = await service.buildClinicSummary('user-1', 'zh-CN');
-      expect(result.profile.nickname).toBe('张**');
+      expect(result.profile!.nickname).toBe('张**');
     });
 
     it('returns 匿名用户 for null name', async () => {
@@ -894,7 +894,7 @@ describe('ClinicSummaryService', () => {
       });
 
       const result = await service.buildClinicSummary('user-1', 'zh-CN');
-      expect(result.profile.nickname).toBe('匿名用户');
+      expect(result.profile!.nickname).toBe('匿名用户');
     });
   });
 

@@ -5,10 +5,10 @@ import { readFile } from 'node:fs/promises';
 import type {
   ClinicSummaryAllergyDto,
   ClinicSummaryConditionDto,
+  ClinicSummaryDto,
   ClinicSummaryMedicineDto,
   ClinicSummaryProfileDto,
 } from '../../dto/clinic-summary-response.dto';
-import type { ClinicSummarySectionView } from './summary-view';
 import {
   CONTENT_WIDTH,
   MARGIN_X,
@@ -33,10 +33,7 @@ const INSUFFICIENT_COVERAGE_CODE = 'insufficient_coverage';
 
 @Injectable()
 export class ClinicSummaryPdfService {
-  async buildPdf(
-    summary: ClinicSummarySectionView,
-    locale: string,
-  ): Promise<Buffer> {
+  async buildPdf(summary: ClinicSummaryDto, locale: string): Promise<Buffer> {
     const isZh = locale.toLowerCase().startsWith('zh');
 
     const pdf = await PDFDocument.create({ updateMetadata: false });
@@ -458,7 +455,7 @@ export class ClinicSummaryPdfService {
   private applyMetadata(
     pdf: PDFDocument,
     title: string,
-    summary: ClinicSummarySectionView,
+    summary: ClinicSummaryDto,
     isZh: boolean,
   ): void {
     const subject = isZh
