@@ -7,4 +7,8 @@ export {
   CreateProductEventBatchDto,
   CreateProductEventDto,
 } from './dto/create-product-event.dto';
+export {
+  ProductEventsService,
+  type ServerProductEventInput,
+} from './services/events.service';
 export type { ProductEventRecordResult } from './services/events.service';

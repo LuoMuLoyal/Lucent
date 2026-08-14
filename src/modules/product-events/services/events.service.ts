@@ -1,5 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
+import { Injectable, Logger } from '@nestjs/common';
+import {
+  HealthEventStatus,
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
+  UserDevicePlatform,
+} from '#generated/prisma/client';
 import { badRequest, now } from '../../../common';
+import { MetricsService } from '../../../common/metrics/metrics.service';
 import { PrismaService } from '../../../prisma';
 import { isKnownSuggestionRuleCode } from '../constants/rule-code-allowlist.constants';
 import {
@@ -16,6 +25,32 @@ export interface ProductEventRecordResult {
 }
 
 /**
+ * One server-emitted product event. Server-side events carry no meaningful
+ * appVersion/platform (there is no client build to attribute), so this input
+ * omits those client-only fields: `recordServerEvents` fills `appVersion:
+ * 'server'`, `platform: web`, a `server-<uuid>` clientEventId and a default
+ * `occurredAt` (now) for the caller. The HTTP DTO stays strict for clients.
+ */
+export interface ServerProductEventInput {
+  name: ProductEventName;
+  surface: ProductEventSurface;
+  result: ProductEventResult;
+  /** Lifecycle status — health_event_started (active) / health_event_ended (ended). */
+  eventStatus?: HealthEventStatus | null;
+  /** Known server-side suggestion rule code (allowlisted). */
+  suggestionRuleCode?: string | null;
+  /** Event time; defaults to now. */
+  occurredAt?: Date;
+}
+
+/**
+ * Server events carry no client build to attribute — fixed markers so the
+ * raw store stays honest about the source of the row.
+ */
+const SERVER_APP_VERSION = 'server';
+const SERVER_PLATFORM = UserDevicePlatform.web;
+
+/**
  * Write-only product measurement store (privacy-minimal: enums + bounded
  * attributes, no metadata JSON, no free text). No aggregation happens on the
  * request path — raw events only; aggregates are a separate task.
@@ -26,7 +61,12 @@ export interface ProductEventRecordResult {
  */
 @Injectable()
 export class ProductEventsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(ProductEventsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly metrics: MetricsService,
+  ) {}
 
   async recordBatch(
     userId: string,
@@ -51,6 +91,61 @@ export class ProductEventsService {
     });
 
     return { received: events.length, recorded: recorded.count };
+  }
+
+  /**
+   * Server-internal batch write (Task 6 emitters). Same validation and
+   * idempotent `createMany` path as `recordBatch`, with the client-only
+   * fields supplied server-side: `appVersion: 'server'`, `platform: web`,
+   * a unique `server-<uuid>` clientEventId per event (so retries and
+   * duplicate emissions never double-insert), and `occurredAt` defaulting to
+   * now. The HTTP contract (DTO) is untouched — this is not reachable from
+   * the controller.
+   */
+  async recordServerEvents(
+    userId: string,
+    events: ServerProductEventInput[],
+  ): Promise<ProductEventRecordResult> {
+    return this.recordBatch(
+      userId,
+      events.map((event) => ({
+        name: event.name,
+        surface: event.surface,
+        result: event.result,
+        ...(event.eventStatus != null
+          ? { eventStatus: event.eventStatus }
+          : {}),
+        ...(event.suggestionRuleCode != null
+          ? { suggestionRuleCode: event.suggestionRuleCode }
+          : {}),
+        appVersion: SERVER_APP_VERSION,
+        platform: SERVER_PLATFORM,
+        occurredAt: (event.occurredAt ?? now()).toISOString(),
+        clientEventId: `server-${randomUUID()}`,
+      })),
+    );
+  }
+
+  /**
+   * Fire-and-forget emission for server-authoritative events: NEVER throws.
+   * A failed product-event write logs a low-sensitivity error (event name +
+   * error message only — no userId, no event content) and increments the
+   * emission-failure metric; the caller's main transaction is neither rolled
+   * back nor failed. Called only AFTER the main write already succeeded.
+   */
+  async emitServerEvent(
+    userId: string,
+    event: ServerProductEventInput,
+  ): Promise<void> {
+    try {
+      await this.recordServerEvents(userId, [event]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Product event emission failed (${event.name}): ${message}`,
+      );
+      this.metrics.recordProductEventEmissionFailure(event.name);
+    }
   }
 
   /**

@@ -56,6 +56,10 @@ export class MetricsService implements OnApplicationBootstrap {
   private readonly suggestionMaterializationFailed: Counter;
   private readonly suggestionStaleAge: Histogram;
 
+  // ── Product event metrics ───────────────────────────────────────────────
+
+  private readonly productEventEmissionFailures: Counter;
+
   constructor(private readonly configService: ConfigService) {
     this.registry = new Registry();
 
@@ -164,6 +168,15 @@ export class MetricsService implements OnApplicationBootstrap {
       name: 'today_suggestion_stale_age_seconds',
       help: 'Age in seconds of an observed stale suggestion materialization',
       buckets: [60, 300, 900, 1_800, 3_600, 10_800, 86_400, 604_800],
+      registers: [this.registry],
+    });
+
+    // Labeled only by the fixed event name (11 values) — no userId, date or
+    // health content in labels, so cardinality stays bounded.
+    this.productEventEmissionFailures = new Counter({
+      name: 'product_event_emission_failure_total',
+      help: 'Total server-side product event emission failures by event name',
+      labelNames: ['event'] as const,
       registers: [this.registry],
     });
   }
@@ -318,5 +331,15 @@ export class MetricsService implements OnApplicationBootstrap {
   recordSuggestionStaleAge(ageSeconds: number): void {
     if (!this.enabled) return;
     this.suggestionStaleAge.observe(ageSeconds);
+  }
+
+  /**
+   * Records a server-side product event emission failure (event name only —
+   * no userId, no event content). Called from the fire-and-forget emission
+   * path in `ProductEventsService.emitServerEvent`.
+   */
+  recordProductEventEmissionFailure(eventName: string): void {
+    if (!this.enabled) return;
+    this.productEventEmissionFailures.inc({ event: eventName });
   }
 }

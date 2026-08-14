@@ -7,5 +7,6 @@ import { ProductEventsService } from './services/events.service';
   imports: [PrismaModule],
   controllers: [ProductEventsController],
   providers: [ProductEventsService],
+  exports: [ProductEventsService],
 })
 export class ProductEventsModule {}

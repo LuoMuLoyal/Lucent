@@ -254,4 +254,28 @@ describe('MetricsService', () => {
       }).not.toThrow();
     });
   });
+
+  describe('recordProductEventEmissionFailure', () => {
+    it('records an emission failure labeled only by the fixed event name', async () => {
+      service.recordProductEventEmissionFailure('health_event_started');
+      service.recordProductEventEmissionFailure('health_event_started');
+      service.recordProductEventEmissionFailure('visit_summary_share_opened');
+
+      const metrics = await service.getMetrics();
+      expect(metrics).toContain('product_event_emission_failure_total');
+      expect(metrics).toContain('event="health_event_started"');
+      expect(metrics).toContain('event="visit_summary_share_opened"');
+      // No user/date/health identifiers may ever leak into the labels.
+      expect(metrics).not.toContain('userId');
+      expect(metrics).not.toContain('localDate');
+    });
+
+    it('does not throw when disabled', () => {
+      const svc = createService('test', 'false');
+
+      expect(() => {
+        svc.recordProductEventEmissionFailure('health_event_started');
+      }).not.toThrow();
+    });
+  });
 });

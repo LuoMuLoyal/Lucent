@@ -16,7 +16,11 @@ import { DeterioratingTrendRuleService } from '../../today-suggestion/services/r
 import { WaterShortfallRuleService } from '../../today-suggestion/services/rules/lifestyle/water-shortfall.service';
 import { SUGGESTION_RULE_CODE_ALLOWLIST } from '../constants/rule-code-allowlist.constants';
 import type { CreateProductEventDto } from '../dto/create-product-event.dto';
-import { ProductEventsService } from './events.service';
+import type { MetricsService } from '../../../common/metrics/metrics.service';
+import {
+  ProductEventsService,
+  type ServerProductEventInput,
+} from './events.service';
 
 const USER_ID = 'user-1';
 
@@ -35,6 +39,17 @@ function event(
   };
 }
 
+function serverEvent(
+  overrides: Partial<ServerProductEventInput> = {},
+): ServerProductEventInput {
+  return {
+    name: ProductEventName.health_event_started,
+    surface: ProductEventSurface.review,
+    result: ProductEventResult.success,
+    ...overrides,
+  };
+}
+
 function buildPrisma() {
   return {
     userProductEvent: {
@@ -45,13 +60,24 @@ function buildPrisma() {
   };
 }
 
+function buildMetrics() {
+  return {
+    recordProductEventEmissionFailure: vi.fn(),
+  } as unknown as MetricsService;
+}
+
 describe('ProductEventsService', () => {
   let prisma: ReturnType<typeof buildPrisma>;
+  let metrics: MetricsService;
   let service: ProductEventsService;
 
   beforeEach(() => {
     prisma = buildPrisma();
-    service = new ProductEventsService(prisma as unknown as PrismaService);
+    metrics = buildMetrics();
+    service = new ProductEventsService(
+      prisma as unknown as PrismaService,
+      metrics,
+    );
   });
 
   it('records a batch and returns received/recorded counts', async () => {
@@ -205,5 +231,137 @@ describe('ProductEventsService', () => {
     expect([...SUGGESTION_RULE_CODE_ALLOWLIST].sort()).toEqual(
       [...registeredRuleIds].sort(),
     );
+  });
+
+  describe('recordServerEvents', () => {
+    it('supplies server markers and a unique clientEventId per event', async () => {
+      await service.recordServerEvents(USER_ID, [serverEvent()]);
+
+      expect(prisma.userProductEvent.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            userId: USER_ID,
+            name: ProductEventName.health_event_started,
+            appVersion: 'server',
+            platform: UserDevicePlatform.web,
+            clientEventId: expect.stringMatching(/^server-[0-9a-f-]{36}$/),
+            occurredAt: expect.any(Date),
+          }),
+        ],
+        skipDuplicates: true,
+      });
+    });
+
+    it('defaults occurredAt to now when the caller omits it', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-08-14T06:00:00.000Z'));
+      try {
+        await service.recordServerEvents(USER_ID, [serverEvent()]);
+
+        const data = (
+          prisma.userProductEvent.createMany.mock.calls[0]![0] as {
+            data: { occurredAt: Date }[];
+          }
+        ).data;
+        expect(data[0]!.occurredAt).toEqual(
+          new Date('2026-08-14T06:00:00.000Z'),
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('honors an explicit occurredAt and passes optional attributes through', async () => {
+      await service.recordServerEvents(USER_ID, [
+        serverEvent({
+          name: ProductEventName.health_event_ended,
+          result: ProductEventResult.improved,
+          eventStatus: HealthEventStatus.ended,
+          suggestionRuleCode: 'water_behind_target',
+          occurredAt: new Date('2026-08-14T08:30:00.000Z'),
+        }),
+      ]);
+
+      const data = (
+        prisma.userProductEvent.createMany.mock.calls[0]![0] as {
+          data: Record<string, unknown>[];
+        }
+      ).data;
+      expect(data[0]).toMatchObject({
+        result: ProductEventResult.improved,
+        eventStatus: HealthEventStatus.ended,
+        suggestionRuleCode: 'water_behind_target',
+      });
+      expect(data[0]!['occurredAt']).toEqual(
+        new Date('2026-08-14T08:30:00.000Z'),
+      );
+    });
+
+    it('rejects a non-allowlisted suggestion rule code before writing', async () => {
+      await expect(
+        service.recordServerEvents(USER_ID, [
+          serverEvent({ suggestionRuleCode: 'free-form-code' }),
+        ]),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(prisma.userProductEvent.createMany).not.toHaveBeenCalled();
+    });
+
+    it('generates distinct clientEventIds so retried emissions never collide', async () => {
+      await service.recordServerEvents(USER_ID, [serverEvent()]);
+      await service.recordServerEvents(USER_ID, [serverEvent()]);
+
+      const calls = prisma.userProductEvent.createMany.mock.calls as {
+        data: { clientEventId: string }[];
+      }[][];
+      const first = calls[0]![0]!.data[0]!.clientEventId;
+      const second = calls[1]![0]!.data[0]!.clientEventId;
+      expect(first).not.toBe(second);
+    });
+  });
+
+  describe('emitServerEvent', () => {
+    it('records the event after a successful write', async () => {
+      await service.emitServerEvent(USER_ID, serverEvent());
+
+      expect(prisma.userProductEvent.createMany).toHaveBeenCalledTimes(1);
+      expect(metrics.recordProductEventEmissionFailure).not.toHaveBeenCalled();
+    });
+
+    it('never throws on a failed write, logs low-sensitivity error and bumps the metric', async () => {
+      const loggerSpy = vi
+        .spyOn(service['logger'], 'error')
+        .mockImplementation(() => undefined);
+      prisma.userProductEvent.createMany.mockRejectedValue(
+        new Error('db down'),
+      );
+
+      await expect(
+        service.emitServerEvent(USER_ID, serverEvent()),
+      ).resolves.toBeUndefined();
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Product event emission failed (health_event_started)',
+        ),
+      );
+      expect(loggerSpy).toHaveBeenCalledWith(
+        expect.not.stringContaining(USER_ID),
+      );
+      expect(metrics.recordProductEventEmissionFailure).toHaveBeenCalledWith(
+        ProductEventName.health_event_started,
+      );
+      loggerSpy.mockRestore();
+    });
+
+    it('does not fail the caller when the emission write is rejected', async () => {
+      prisma.userProductEvent.createMany.mockRejectedValue(
+        new Error('db down'),
+      );
+
+      await expect(
+        service.emitServerEvent(USER_ID, serverEvent()),
+      ).resolves.toBeUndefined();
+    });
   });
 });
