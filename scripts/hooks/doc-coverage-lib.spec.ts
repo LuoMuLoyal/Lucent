@@ -14,6 +14,7 @@ import {
   globToRegExp,
   hasMultipleH1,
   isActiveDoc,
+  isFrozenDoc,
   isFrontMatterRequired,
   parseDocMapYaml,
   parseFrontMatter,
@@ -382,5 +383,38 @@ rules:
       - docs/02-logs/migration-log/*.md
 `);
     expect(findUncoveredModuleDirs(literal, ['foo'])).toEqual([]);
+  });
+});
+
+describe('isFrozenDoc', () => {
+  it('recognizes status: frozen only', () => {
+    expect(isFrozenDoc('---\nstatus: frozen\n---\n# F')).toBe(true);
+    expect(isFrozenDoc('---\nstatus: active\n---\n# A')).toBe(false);
+    expect(isFrozenDoc('---\nstatus: stale\n---\n# S')).toBe(false);
+    expect(isFrozenDoc(undefined)).toBe(false);
+    expect(isFrozenDoc('# No front-matter')).toBe(false);
+  });
+});
+
+describe('getStaleByFrontMatter (frozen)', () => {
+  it('does not flag status: frozen docs', () => {
+    const contents: Record<string, string> = {
+      'docs/01-reference/f.md': `---
+status: frozen
+updated: 2026-01-01
+---`,
+      'docs/01-reference/a.md': `---
+status: active
+updated: 2026-01-01
+---`,
+    };
+    expect(
+      getStaleByFrontMatter(
+        ['docs/01-reference/f.md', 'docs/01-reference/a.md'],
+        contents,
+        '2026-08-01',
+        90,
+      ),
+    ).toEqual(['docs/01-reference/a.md']);
   });
 });

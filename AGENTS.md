@@ -21,11 +21,15 @@ After every code change, run the documentation check tool (`pnpm docs:check`) to
   `environment-variables.md`, and `README.md`.
 - **Doc lifecycle**: active docs older than 90 days without updates, or unreferenced by
   `doc-map.yaml`, are flagged by `node scripts/hooks/check-docs-updated.ts --verify` — review,
-  update, or archive them to `docs/03-archive/`.
+  update, or archive them to `docs/03-archive/`. Docs marked `status: frozen` are exempt from
+  the 90-day freshness checks.
 - **Front-matter**: every active doc in `01-reference/*.md`, `01-reference/how-to/*.md`, and
-  `00-current/*.md` must carry YAML front-matter (`status: active` / `owner: backend` /
+  `00-current/*.md` must carry YAML front-matter (`status: active|frozen` / `owner: backend` /
   `quadrant: reference|how-to|explanation` / `updated: YYYY-MM-DD`); `--verify` flags missing
-  blocks, stale `updated`, and `status: stale` docs not yet archived.
+  blocks, stale `updated`, and `status: stale` docs not yet archived. `status: frozen` marks a
+  doc intentionally frozen (desktop/Web-freeze, feature-freeze) — exempt from the freshness
+  checks but still must carry valid front-matter; `status: stale` means the doc should be
+  archived, not frozen.
 - Completed items are **deleted** outright — no markers.
 
 ## Read First

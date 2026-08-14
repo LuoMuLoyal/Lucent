@@ -99,6 +99,17 @@ export function findStaleStatusDocs(
   });
 }
 
+/**
+ * Docs intentionally frozen (`status: frozen`): exempt from the freshness
+ * checks (both front-matter `updated` and git last-modified), but still must
+ * carry valid front-matter. Distinct from `status: stale`, which means the
+ * doc should be archived.
+ */
+export function isFrozenDoc(content: string | undefined): boolean {
+  if (content === undefined) return false;
+  return parseFrontMatter(content).status === 'frozen';
+}
+
 export interface DocCoverageRule {
   name: string;
   codePatterns: string[];

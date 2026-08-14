@@ -9,7 +9,8 @@
 // - Verify (--verify): check doc-map references, migration-log plan/spec
 //   references, single-H1 structure, front-matter metadata (missing / stale
 //   `updated` / `status: stale`), stale active docs, unreferenced docs, and
-//   module-dir doc-map coverage. Bypass: SKIP_DOC_CHECK=1 or `git commit --no-verify`.
+//   module-dir doc-map coverage. `status: frozen` docs are exempt from the
+//   freshness checks. Bypass: SKIP_DOC_CHECK=1 or `git commit --no-verify`.
 
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -27,6 +28,7 @@ import {
   getTodayDate,
   getTodayLogPath,
   isActiveDoc,
+  isFrozenDoc,
   loadDocMap,
   buildReport,
   renderReport,
@@ -160,8 +162,13 @@ function runVerify(repoRoot: string): void {
       (p) => `${p}: status=stale but not archived — move to 03-archive/`,
     ),
   );
+  // Frozen docs are exempt from freshness checks; everything else is judged
+  // by both front-matter `updated` and last git modification.
+  const unfrozenActiveDocs = activeDocs.filter(
+    (p) => !isFrozenDoc(contentByPath[p]),
+  );
   problems.push(
-    ...getStaleDocs(activeDocs, lastModified, today).map(
+    ...getStaleDocs(unfrozenActiveDocs, lastModified, today).map(
       (p) =>
         `${p}: stale (>${STALE_DOC_THRESHOLD_DAYS}d without update — review or archive)`,
     ),
@@ -229,7 +236,8 @@ Options:
   --verify            Verify doc-map + migration-log references, H1 structure,
                       front-matter metadata, stale active docs, doc readership,
                       and module-dir coverage (every src/modules/* dir must be
-                      matched by a doc-map rule); exit(1) on problems.
+                      matched by a doc-map rule). Docs marked 'status: frozen'
+                      are exempt from the freshness checks; exit(1) on problems.
   --help              Show this help text.
 
 Environment:
