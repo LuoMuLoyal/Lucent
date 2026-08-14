@@ -30,10 +30,12 @@ export const CLINIC_SUMMARY_SELECTABLE_FIELDS: string[] = Object.values(
 );
 
 /**
- * Clinic Summary request scope: either `eventId` or a complete
- * `dateFrom`/`dateTo` pair. Event scope wins when both are supplied (the
+ * Clinic Summary request scope: `eventId` or a complete `dateFrom`/`dateTo`
+ * pair, or neither (an empty scope falls back to the default `last_30_days`
+ * range — legacy semantics). Event scope wins when both are supplied (the
  * share-record layer in ShareService stays strict XOR at the persistence
- * boundary; the controller forwards only the winning scope).
+ * boundary; the controller forwards only the winning scope, materializing
+ * the default range when no scope is given).
  *
  * Date-range semantics: the window covers `dateFrom`..`dateTo` INCLUSIVE
  * (both calendar days included); the response `end` is the exclusive upper
@@ -57,10 +59,16 @@ export class ClinicSummaryRequestDto {
 
   @ApiPropertyOptional({
     description:
-      'Date-range scope start (ISO 8601 date, YYYY-MM-DD). Required when ' +
-      'eventId is absent; ignored when eventId is present.',
+      'Date-range scope start (ISO 8601 date, YYYY-MM-DD). Both dates are ' +
+      'required whenever a date range is given (a partial pair is ' +
+      'rejected); ignored when eventId is present. When neither eventId nor ' +
+      'a date range is supplied, the summary falls back to the default ' +
+      'last_30_days range (legacy semantics).',
   })
-  @ValidateIf((o: ClinicSummaryRequestDto) => o.eventId == null)
+  @ValidateIf(
+    (o: ClinicSummaryRequestDto) =>
+      o.eventId == null && (o.dateFrom != null || o.dateTo != null),
+  )
   @IsDefined()
   @IsDateString()
   dateFrom?: string;
@@ -68,10 +76,16 @@ export class ClinicSummaryRequestDto {
   @ApiPropertyOptional({
     description:
       'Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar ' +
-      'day; required when eventId is absent; span must cover at most ' +
-      `${String(CLINIC_SUMMARY_MAX_RANGE_DAYS)} inclusive calendar days.`,
+      'day; both dates required whenever a date range is given; span must ' +
+      'cover at most ' +
+      `${String(CLINIC_SUMMARY_MAX_RANGE_DAYS)} inclusive calendar days. ` +
+      'When neither eventId nor a date range is supplied, the summary ' +
+      'falls back to the default last_30_days range (legacy semantics).',
   })
-  @ValidateIf((o: ClinicSummaryRequestDto) => o.eventId == null)
+  @ValidateIf(
+    (o: ClinicSummaryRequestDto) =>
+      o.eventId == null && (o.dateFrom != null || o.dateTo != null),
+  )
   @IsDefined()
   @IsDateString()
   dateTo?: string;

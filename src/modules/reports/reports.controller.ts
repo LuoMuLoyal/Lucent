@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import {
   Body,
   Controller,
@@ -69,7 +68,10 @@ import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.s
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
 
-import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import {
+  ClinicSummaryService,
+  sharedSummaryCacheKey,
+} from './services/clinic-summary/summary.service';
 import type { ClinicSummaryOptions } from './services/clinic-summary/summary.service';
 import { ShareService } from './services/clinic-summary/share.service';
 import { EventReviewService } from './services/event-review/review.service';
@@ -80,6 +82,9 @@ import {
   EventReviewNullableResponseDto,
   EventReviewResponseDto,
 } from './dto/event-review-response.dto';
+
+/** Milliseconds per day — used to materialize the default share range. */
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 @ApiTags('Reports')
 @ApiBearerAuth('access-token')
@@ -113,8 +118,8 @@ export class ReportsController {
   /**
    * Summary-service options mirroring the request DTO. Event scope wins (the
    * service resolves eventId first and ignores the date pair), so both are
-   * forwarded verbatim; the strict-XOR share-record layer below receives
-   * only the winning scope.
+   * forwarded verbatim; an empty scope is forwarded as-is and the service
+   * falls back to the default last_30_days range.
    */
   private toSummaryOptions(dto: ClinicSummaryRequestDto): ClinicSummaryOptions {
     const options: ClinicSummaryOptions = {};
@@ -134,13 +139,33 @@ export class ReportsController {
   }
 
   /**
-   * Cache key of the shared summary view. Mirrors the private scheme in
-   * `ClinicSummaryService` (`clinic-share:` + sha256 hex of the plaintext
-   * token): the service is the only reader on the public path, so the key
-   * must stay byte-identical to its scheme.
+   * Winning scope for the strict-XOR share record layer. Event scope wins;
+   * a supplied date pair passes through; when neither is given the legacy
+   * default range (last 30 inclusive calendar days ending today, UTC) is
+   * materialized so the persisted record always carries an explicit scope —
+   * matching the default view `ClinicSummaryService` builds for an unscoped
+   * request.
    */
-  private sharedViewKey(token: string): string {
-    return `clinic-share:${createHash('sha256').update(token).digest('hex')}`;
+  private toShareScope(dto: ClinicSummaryRequestDto): {
+    eventId: string | null;
+    dateFrom: string | null;
+    dateTo: string | null;
+  } {
+    if (dto.eventId != null) {
+      return { eventId: dto.eventId, dateFrom: null, dateTo: null };
+    }
+    if (dto.dateFrom != null && dto.dateTo != null) {
+      return { eventId: null, dateFrom: dto.dateFrom, dateTo: dto.dateTo };
+    }
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    return {
+      eventId: null,
+      dateFrom: new Date(today.getTime() - 29 * MS_PER_DAY)
+        .toISOString()
+        .slice(0, 10),
+      dateTo: today.toISOString().slice(0, 10),
+    };
   }
 
   /**
@@ -344,12 +369,11 @@ export class ReportsController {
       language,
       options,
     );
-    // Event scope wins: only the winning scope reaches the strict-XOR share
-    // record layer; the omitted selection defaults to every share field.
+    // Only the winning scope reaches the strict-XOR share record layer (an
+    // empty scope is materialized as the default range); the omitted
+    // selection defaults to every share field.
     const share = await this.shareService.createShare(user.sub, {
-      eventId: dto.eventId ?? null,
-      dateFrom: dto.eventId != null ? null : (dto.dateFrom ?? null),
-      dateTo: dto.eventId != null ? null : (dto.dateTo ?? null),
+      ...this.toShareScope(dto),
       selectedFields: dto.selectedFields ?? [
         ...CLINIC_SUMMARY_SELECTABLE_FIELDS,
       ],
@@ -357,11 +381,21 @@ export class ReportsController {
     // Link the persisted grant to its view: the public read gate
     // (ClinicSummaryService.getSharedSummary) serves this cached copy keyed
     // by the share token hash, and the persisted record gates/revokes it.
-    await this.cacheManager.set(
-      this.sharedViewKey(share.token),
-      summary,
-      ReportsController.SHARED_VIEW_TTL_MS,
-    );
+    // Persist-then-cache order is security-correct; if the cache write fails
+    // the grant is rolled back best-effort so no orphaned share record can
+    // outlive a view the gate can never serve.
+    try {
+      await this.cacheManager.set(
+        sharedSummaryCacheKey(share.token),
+        summary,
+        ReportsController.SHARED_VIEW_TTL_MS,
+      );
+    } catch (error) {
+      await this.shareService
+        .revokeShare(user.sub, share.shareId)
+        .catch(() => undefined);
+      throw error;
+    }
     return successEnvelope({
       shareId: share.shareId,
       token: share.token,
@@ -436,9 +470,11 @@ export class ReportsController {
   @ApiResponse({
     status: 201,
     description:
-      'Job enqueued (returns jobId for polling) — or the base64 PDF ' +
-      'synchronously when the request carries a custom scope (the queue job ' +
-      'only supports the default scope).',
+      'Unscoped requests use the async queue job (jobId for polling); an ' +
+      'explicit scope is exported synchronously with the requested scope ' +
+      'honored (pdfBase64) because the queue job only carries the default ' +
+      'scope. When no queue is configured, both paths return the base64 PDF ' +
+      'synchronously.',
     schema: {
       type: 'object',
       properties: {
@@ -459,10 +495,10 @@ export class ReportsController {
     @I18nLang() language: string,
   ) {
     const options = this.toSummaryOptions(dto);
-    // The queue job carries only userId + locale (PdfExportJobData), so a
-    // scoped request is exported synchronously with the requested scope
+    // The queue job carries only userId + locale (PdfExportJobData), so an
+    // explicit scope is exported synchronously with the requested scope
     // honored — the async path never silently drops event/date/field
-    // selection. Unscoped requests keep the async job as before.
+    // selection. Unscoped (default-scope) requests keep the async job.
     const hasCustomScope =
       dto.eventId != null ||
       dto.dateFrom != null ||

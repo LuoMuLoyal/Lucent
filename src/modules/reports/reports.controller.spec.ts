@@ -1,6 +1,5 @@
-import { createHash } from 'node:crypto';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { ConfigService } from '@nestjs/config';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
@@ -22,7 +21,10 @@ import type { ClinicSummaryDto } from './dto/clinic-summary-response.dto';
 import { CLINIC_SUMMARY_SELECTABLE_FIELDS } from './dto/clinic-summary-request.dto';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
 import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
-import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import {
+  ClinicSummaryService,
+  sharedSummaryCacheKey,
+} from './services/clinic-summary/summary.service';
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
 import { ShareService } from './services/clinic-summary/share.service';
 import { EventReviewService } from './services/event-review/review.service';
@@ -31,10 +33,6 @@ import { ReportsService } from './dashboard/dashboard.service';
 
 /** TTL mirror of ReportsController.SHARED_VIEW_TTL_MS (7 days). */
 const SHARED_VIEW_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-function sha256(value: string): string {
-  return createHash('sha256').update(value).digest('hex');
-}
 
 /** All six share-field enum values as the store layer types them. */
 const ALL_SHARE_FIELDS = [
@@ -46,6 +44,11 @@ describe('ReportsController', () => {
   let aiSummaryService: vi.Mocked<ReportsAiSummaryService>;
   let clinicSummaryService: vi.Mocked<ClinicSummaryService>;
   let shareService: vi.Mocked<ShareService>;
+  let pdfQueueService: {
+    isConfigured: boolean;
+    enqueue: vi.Mock;
+    getStatus: vi.Mock;
+  };
   let cacheManager: { get: vi.Mock; set: vi.Mock };
   let eventReviewService: vi.Mocked<EventReviewService>;
   let sseRegistry: SseConnectionRegistry;
@@ -71,7 +74,6 @@ describe('ReportsController', () => {
           provide: ClinicSummaryService,
           useValue: {
             buildClinicSummary: vi.fn(),
-            createShareLink: vi.fn(),
             getSharedSummary: vi.fn(),
             exportPdf: vi.fn(),
             exportSharedPdf: vi.fn(),
@@ -145,6 +147,7 @@ describe('ReportsController', () => {
     aiSummaryService = module.get(ReportsAiSummaryService);
     clinicSummaryService = module.get(ClinicSummaryService);
     shareService = module.get(ShareService);
+    pdfQueueService = module.get(ClinicSummaryPdfQueueService);
     cacheManager = module.get(CACHE_MANAGER);
     eventReviewService = module.get(EventReviewService);
     sseRegistry = module.get(SseConnectionRegistry);
@@ -380,10 +383,11 @@ describe('ReportsController', () => {
       dateTo: null,
       selectedFields: ['event_overview'],
     });
-    // The cached shared payload is keyed by the share token hash so the
-    // public read gate (getSharedSummary) can serve exactly this view.
+    // The cached shared payload is keyed by the share token hash (single
+    // key derivation shared with the service) so the public read gate
+    // (getSharedSummary) can serve exactly this view.
     expect(cacheManager.set).toHaveBeenCalledWith(
-      `clinic-share:${sha256('tok123')}`,
+      sharedSummaryCacheKey('tok123'),
       summary,
       SHARED_VIEW_TTL_MS,
     );
@@ -481,6 +485,74 @@ describe('ReportsController', () => {
     });
   });
 
+  it('materializes the default last_30_days range when no scope is supplied', async () => {
+    clinicSummaryService.buildClinicSummary.mockResolvedValue(
+      makeClinicSummary(),
+    );
+    shareService.createShare.mockResolvedValue({
+      shareId: 'share-1',
+      token: 'tok123',
+      expiresAt: new Date('2026-07-18T08:00:00.000Z'),
+      scope: {
+        eventId: null,
+        dateFrom: new Date(),
+        dateTo: new Date(),
+      },
+      selectedFields: ALL_SHARE_FIELDS,
+    });
+
+    await controller.shareClinicSummary(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      {},
+      'zh-CN',
+    );
+
+    // The strict-XOR share record always receives an explicit scope; the
+    // default range mirrors the service's last_30_days window (30 inclusive
+    // calendar days ending today, UTC).
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const expectedDateTo = today.toISOString().slice(0, 10);
+    const expectedDateFrom = new Date(
+      today.getTime() - 29 * 24 * 60 * 60 * 1000,
+    )
+      .toISOString()
+      .slice(0, 10);
+    expect(shareService.createShare).toHaveBeenCalledWith('u1', {
+      eventId: null,
+      dateFrom: expectedDateFrom,
+      dateTo: expectedDateTo,
+      selectedFields: [...CLINIC_SUMMARY_SELECTABLE_FIELDS],
+    });
+  });
+
+  it('revokes the share best-effort and rethrows when the cache write fails', async () => {
+    clinicSummaryService.buildClinicSummary.mockResolvedValue(
+      makeClinicSummary(),
+    );
+    shareService.createShare.mockResolvedValue({
+      shareId: 'share-1',
+      token: 'tok123',
+      expiresAt: new Date('2026-07-18T08:00:00.000Z'),
+      scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
+      selectedFields: ['event_overview'],
+    });
+    shareService.revokeShare.mockResolvedValue(true);
+    cacheManager.set.mockRejectedValue(new Error('cache down'));
+
+    await expect(
+      controller.shareClinicSummary(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        { eventId: 'evt-1' },
+        'zh-CN',
+      ),
+    ).rejects.toThrow('cache down');
+
+    // The persisted grant is rolled back so no orphaned share can outlive a
+    // view the public gate can never serve.
+    expect(shareService.revokeShare).toHaveBeenCalledWith('u1', 'share-1');
+  });
+
   // ── getSharedClinicSummary ────────────────────────────────────────────
 
   it('returns shared clinic summary envelope when token is valid', async () => {
@@ -507,14 +579,7 @@ describe('ReportsController', () => {
 
     await expect(
       controller.getSharedClinicSummary('expired-token', 'zh-CN'),
-    ).rejects.toThrow(HttpException);
-
-    try {
-      await controller.getSharedClinicSummary('expired-token', 'zh-CN');
-    } catch (e) {
-      expect(e).toBeInstanceOf(HttpException);
-      expect((e as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
-    }
+    ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
   });
 
   // ── downloadClinicSummaryPdf ──────────────────────────────────────────
@@ -561,6 +626,28 @@ describe('ReportsController', () => {
     });
   });
 
+  it('routes an unscoped export through the async queue path', async () => {
+    const pdfBuffer = Buffer.from('%PDF-1.4 mock');
+    clinicSummaryService.exportPdf.mockResolvedValue(pdfBuffer);
+
+    const result = await controller.exportClinicSummaryPdfAsync(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      {},
+      'zh-CN',
+    );
+
+    // isConfigured is false in this harness → the queue is skipped and the
+    // default-scope fallback produces the PDF; the request must NOT take the
+    // scoped sync branch (no options forwarded).
+    expect(pdfQueueService.enqueue).not.toHaveBeenCalled();
+    expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN');
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: { pdfBase64: pdfBuffer.toString('base64') },
+    });
+  });
+
   // ── revokeClinicSummaryShare ──────────────────────────────────────────
 
   it('revokes a share owned by the current user', async () => {
@@ -589,17 +676,7 @@ describe('ReportsController', () => {
         'foreign-share',
         'zh-CN',
       ),
-    ).rejects.toThrow(HttpException);
-
-    try {
-      await controller.revokeClinicSummaryShare(
-        { sub: 'u1', email: 'a@b.c', status: 'active' },
-        'foreign-share',
-        'zh-CN',
-      );
-    } catch (e) {
-      expect((e as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
-    }
+    ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
   });
 
   // ── downloadSharedClinicSummaryPdf ────────────────────────────────────
@@ -634,17 +711,7 @@ describe('ReportsController', () => {
         'zh-CN',
         reply,
       ),
-    ).rejects.toThrow(HttpException);
-
-    try {
-      await controller.downloadSharedClinicSummaryPdf(
-        'expired-token',
-        'zh-CN',
-        reply,
-      );
-    } catch (e) {
-      expect((e as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
-    }
+    ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
   });
 
   // ── getCurrentReview ──────────────────────────────────────────────

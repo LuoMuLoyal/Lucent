@@ -3881,7 +3881,7 @@
         },
         "responses": {
           "201": {
-            "description": "Job enqueued (returns jobId for polling) — or the base64 PDF synchronously when the request carries a custom scope (the queue job only supports the default scope).",
+            "description": "Unscoped requests use the async queue job (jobId for polling); an explicit scope is exported synchronously with the requested scope honored (pdfBase64) because the queue job only carries the default scope. When no queue is configured, both paths return the base64 PDF synchronously.",
             "content": {
               "application/json": {
                 "schema": {
@@ -10411,11 +10411,11 @@
           },
           "dateFrom": {
             "type": "string",
-            "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Required when eventId is absent; ignored when eventId is present."
+            "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Both dates are required whenever a date range is given (a partial pair is rejected); ignored when eventId is present. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
           },
           "dateTo": {
             "type": "string",
-            "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; required when eventId is absent; span must cover at most 30 inclusive calendar days."
+            "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; both dates required whenever a date range is given; span must cover at most 30 inclusive calendar days. When neither eventId nor a date range is supplied, the summary falls back to the default last_30_days range (legacy semantics)."
           },
           "selectedFields": {
             "type": "array",

@@ -205,11 +205,11 @@ describe('Reports API (e2e)', () => {
       await request(app.getHttpServer()).post(CLINIC_PREVIEW_PATH).expect(401);
     });
 
-    it('should return a de-identified clinic summary for authenticated user', async () => {
+    it('should return a de-identified clinic summary for authenticated user (default scope)', async () => {
+      // Empty scope falls back to the legacy default last_30_days range.
       const response = await request(app.getHttpServer())
         .post(CLINIC_PREVIEW_PATH)
         .set('Authorization', bearer(accessToken))
-        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
 
       const body = response.body as ApiEnvelope<{
@@ -230,14 +230,33 @@ describe('Reports API (e2e)', () => {
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.generatedAt).toBeTruthy();
-      // The explicit date range shapes the scope (no fixed last_30_days).
-      expect(data.dataRange).toBe('custom');
+      expect(data.dataRange).toBe('last_30_days');
       // nickname should be masked (de-identified)
       expect(data.profile.nickname).not.toBe('ReportsUser');
       expect(data.disclaimer).toBeTruthy();
       expect(Array.isArray(data.allergies)).toBe(true);
       expect(Array.isArray(data.conditions)).toBe(true);
       expect(Array.isArray(data.currentMedicines)).toBe(true);
+    });
+
+    it('should honor an explicit date-range scope', async () => {
+      const response = await request(app.getHttpServer())
+        .post(CLINIC_PREVIEW_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
+        .expect(201);
+
+      const data = expectData(
+        response.body as ApiEnvelope<{
+          dataRange: string;
+          start: string;
+          end: string;
+        }>,
+      );
+      expect(data.dataRange).toBe('custom');
+      expect(data.start).toBe('2026-07-01T00:00:00.000Z');
+      // Exclusive upper bound: the day after the inclusive dateTo.
+      expect(data.end).toBe('2026-07-31T00:00:00.000Z');
     });
   });
 
@@ -283,6 +302,33 @@ describe('Reports API (e2e)', () => {
       expect(data.scope.dateTo).toBe('2026-07-30T00:00:00.000Z');
       // Omitted selection defaults to every share field.
       expect(data.selectedFields.length).toBeGreaterThan(0);
+    });
+
+    it('should create a share with the default range when no scope is supplied', async () => {
+      // Legacy-compatible: an empty scope defaults to last_30_days, which is
+      // materialized as an explicit date pair on the strict-XOR share record.
+      const response = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(201);
+
+      const data = expectData(
+        response.body as ApiEnvelope<{
+          scope: {
+            eventId: string | null;
+            dateFrom: string | null;
+            dateTo: string | null;
+          };
+        }>,
+      );
+      expect(data.scope.eventId).toBeNull();
+      expect(data.scope.dateFrom).toBeTruthy();
+      expect(data.scope.dateTo).toBeTruthy();
+      // The default window spans 30 inclusive calendar days ending today.
+      const from = new Date(data.scope.dateFrom!);
+      const to = new Date(data.scope.dateTo!);
+      const spanDays = (to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000);
+      expect(spanDays).toBe(29);
     });
 
     it('should reject a date range missing one endpoint', async () => {
@@ -519,6 +565,35 @@ describe('Reports API (e2e)', () => {
       expect(data.currentMedicines).toBeUndefined();
       expect(data.selectedFields).toEqual(['profile']);
     });
+
+    it('should record exactly one access per public read (single recorder)', async () => {
+      const shareRes = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
+        .expect(201);
+      const share = expectData(
+        shareRes.body as ApiEnvelope<{ shareId: string; shareUrl: string }>,
+      );
+      const token = share.shareUrl.split('/').pop()!;
+
+      // Two summary opens + one PDF open must each record exactly once; if
+      // both recorders ran per read, the counter would double.
+      await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/${token}`)
+        .expect(200);
+      await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/${token}`)
+        .expect(200);
+      await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/${token}/pdf`)
+        .expect(200);
+
+      const record = await ctx.prisma.userClinicSummaryShare.findUnique({
+        where: { id: share.shareId },
+      });
+      expect(record?.accessCount).toBe(3);
+    });
   });
 
   describe('POST /api/v1/user/reports/clinic-summary/export/async', () => {
@@ -526,6 +601,34 @@ describe('Reports API (e2e)', () => {
       await request(app.getHttpServer())
         .post(CLINIC_EXPORT_ASYNC_PATH)
         .expect(401);
+    });
+
+    it('should accept an unscoped (default-scope) export request', async () => {
+      // The queue is not configured in the test runtime, so this returns the
+      // synchronous fallback PDF — proving the default-scope branch is
+      // reachable instead of being rejected by the request DTO.
+      const response = await request(app.getHttpServer())
+        .post(CLINIC_EXPORT_ASYNC_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(201);
+
+      const body = response.body as ApiEnvelope<{ pdfBase64?: string }>;
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      const data = expectData(body);
+      expect(typeof data.pdfBase64).toBe('string');
+    });
+
+    it('should export a scoped request synchronously with the scope honored', async () => {
+      const response = await request(app.getHttpServer())
+        .post(CLINIC_EXPORT_ASYNC_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
+        .expect(201);
+
+      const data = expectData(
+        response.body as ApiEnvelope<{ pdfBase64?: string }>,
+      );
+      expect(typeof data.pdfBase64).toBe('string');
     });
   });
 
