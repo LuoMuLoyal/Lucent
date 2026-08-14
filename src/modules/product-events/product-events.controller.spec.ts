@@ -90,6 +90,27 @@ describe('ProductEventsController', () => {
     });
   });
 
+  it('propagates the future-skew 400 from the service', async () => {
+    eventsService.recordBatch.mockRejectedValue(
+      new BadRequestException({
+        code: ResultCode.BAD_REQUEST,
+        message: 'occurredAt must not be more than 24 hours in the future',
+      }),
+    );
+
+    const dto = {
+      events: [validEvent({ occurredAt: '2099-01-01T00:00:00.000Z' })],
+    } as CreateProductEventBatchDto;
+
+    await expect(controller.recordBatch(user, dto)).rejects.toMatchObject({
+      status: 400,
+    });
+    expect(eventsService.recordBatch).toHaveBeenCalledWith(
+      user.sub,
+      dto.events,
+    );
+  });
+
   describe('CreateProductEventBatchDto validation', () => {
     it('accepts a valid batch', async () => {
       const dto = new CreateProductEventBatchDto();

@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { badRequest } from '../../../common';
+import { badRequest, now } from '../../../common';
 import { PrismaService } from '../../../prisma';
 import { isKnownSuggestionRuleCode } from '../constants/rule-code-allowlist.constants';
-import { CreateProductEventDto } from '../dto/create-product-event.dto';
+import {
+  MAX_PRODUCT_EVENT_FUTURE_SKEW_MS,
+  CreateProductEventDto,
+} from '../dto/create-product-event.dto';
 
 /** Result of a batch write: events received vs rows actually inserted. */
 export interface ProductEventRecordResult {
@@ -29,7 +32,7 @@ export class ProductEventsService {
     userId: string,
     events: CreateProductEventDto[],
   ): Promise<ProductEventRecordResult> {
-    this.assertKnownRuleCodes(events);
+    this.assertValidEvents(events);
 
     const recorded = await this.prisma.userProductEvent.createMany({
       data: events.map((event) => ({
@@ -51,16 +54,24 @@ export class ProductEventsService {
   }
 
   /**
-   * Rejects the whole batch when any event carries a `suggestionRuleCode`
-   * outside the server-side allowlist — no free-form strings. Nothing is
-   * written if any code is unknown.
+   * Rejects the whole batch when any event fails a server-side boundary:
+   * - `suggestionRuleCode` outside the server-side allowlist — no free-form
+   *   strings;
+   * - `occurredAt` more than `MAX_PRODUCT_EVENT_FUTURE_SKEW_MS` into the
+   *   future, which would never match the 90-day retention cleanup.
+   *
+   * Nothing is written if any event is invalid.
    */
-  private assertKnownRuleCodes(events: CreateProductEventDto[]): void {
+  private assertValidEvents(events: CreateProductEventDto[]): void {
+    const futureCutoff = now().getTime() + MAX_PRODUCT_EVENT_FUTURE_SKEW_MS;
     for (const event of events) {
       if (!isKnownSuggestionRuleCode(event.suggestionRuleCode)) {
         badRequest(
           `Unknown suggestion rule code: ${String(event.suggestionRuleCode)}`,
         );
+      }
+      if (new Date(event.occurredAt).getTime() > futureCutoff) {
+        badRequest('occurredAt must not be more than 24 hours in the future');
       }
     }
   }

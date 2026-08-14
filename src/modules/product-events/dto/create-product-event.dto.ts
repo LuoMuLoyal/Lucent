@@ -27,6 +27,15 @@ import {
 export const MAX_PRODUCT_EVENTS_PER_REQUEST = 50;
 
 /**
+ * Max allowed skew of `occurredAt` into the future (24h). Keeps raw events
+ * from being posted with far-future timestamps, which would never match the
+ * 90-day retention cleanup (a hard privacy guarantee). Enforced in
+ * `ProductEventsService` (typed 400), consistent with the repo's service-side
+ * date-boundary validation convention.
+ */
+export const MAX_PRODUCT_EVENT_FUTURE_SKEW_MS = 24 * 60 * 60 * 1000;
+
+/**
  * One privacy-minimal product event. Whitelist-only: the global ValidationPipe
  * (`whitelist: true, forbidNonWhitelisted: true`) rejects any field not
  * declared here — in particular a client-supplied `userId`, free text, or a

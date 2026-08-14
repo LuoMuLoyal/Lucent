@@ -4,9 +4,11 @@
  * registered in today-suggestion's `RegistryService` (each rule service
  * exposes `readonly ruleId`). No free-form strings are ever accepted.
  *
- * MUST stay in sync with the today-suggestion rule registry —
- * `events.service.spec.ts` locks this set against the actual rule service
- * classes, so adding a rule without updating this list breaks the build.
+ * Sync guarantee: the drift-guard test in `events.service.spec.ts`
+ * instantiates the registered rule service classes and asserts set equality
+ * against this list. Adding a rule to the registry therefore requires
+ * updating BOTH this allowlist AND the spec's registered-rule list; the
+ * drift-guard test then locks the two sides together.
  */
 export const SUGGESTION_RULE_CODE_ALLOWLIST: ReadonlySet<string> = new Set([
   'water_behind_target',

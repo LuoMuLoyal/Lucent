@@ -146,6 +146,36 @@ describe('ProductEventsService', () => {
     expect(prisma.userProductEvent.createMany).not.toHaveBeenCalled();
   });
 
+  it('rejects an occurredAt more than 24h in the future (retention evasion)', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-14T00:00:00.000Z'));
+    try {
+      await expect(
+        service.recordBatch(USER_ID, [
+          event({ occurredAt: '2026-08-15T00:00:01.000Z' }),
+        ]),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(prisma.userProductEvent.createMany).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('accepts an occurredAt within the 24h future-skew window', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-14T00:00:00.000Z'));
+    try {
+      const result = await service.recordBatch(USER_ID, [
+        event({ occurredAt: '2026-08-14T23:59:59.000Z' }),
+      ]);
+
+      expect(result.recorded).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('accepts every rule code registered in the today-suggestion rule set', async () => {
     const result = await service.recordBatch(
       USER_ID,
