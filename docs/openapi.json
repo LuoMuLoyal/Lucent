@@ -3742,8 +3742,18 @@
       "post": {
         "operationId": "ReportsController_previewClinicSummary_v1",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClinicSummaryRequestDto"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -3767,8 +3777,18 @@
       "post": {
         "operationId": "ReportsController_shareClinicSummary_v1",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClinicSummaryRequestDto"
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -3784,7 +3804,7 @@
             "access-token": []
           }
         ],
-        "summary": "Create a shareable link for the clinic summary (24h expiry)",
+        "summary": "Create a revocable share link for the clinic summary (7-day expiry)",
         "tags": ["Reports"]
       }
     },
@@ -3813,12 +3833,35 @@
             }
           }
         },
+        "security": [],
+        "summary": "Access a shared clinic summary by token (no auth required)",
+        "tags": ["Reports"]
+      }
+    },
+    "/api/v1/user/reports/clinic-summary/shares/{shareId}": {
+      "delete": {
+        "operationId": "ReportsController_revokeClinicSummaryShare_v1",
+        "parameters": [
+          {
+            "name": "shareId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Share revoked; the shared URL now returns 404."
+          }
+        },
         "security": [
           {
             "access-token": []
           }
         ],
-        "summary": "Access a shared clinic summary by token (no auth required)",
+        "summary": "Revoke a clinic summary share (current user owns the share)",
         "tags": ["Reports"]
       }
     },
@@ -3826,9 +3869,19 @@
       "post": {
         "operationId": "ReportsController_exportClinicSummaryPdfAsync_v1",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClinicSummaryRequestDto"
+              }
+            }
+          }
+        },
         "responses": {
-          "202": {
-            "description": "Job enqueued. Returns jobId for polling.",
+          "201": {
+            "description": "Job enqueued (returns jobId for polling) — or the base64 PDF synchronously when the request carries a custom scope (the queue job only supports the default scope).",
             "content": {
               "application/json": {
                 "schema": {
@@ -3842,6 +3895,9 @@
                       "type": "object",
                       "properties": {
                         "jobId": {
+                          "type": "string"
+                        },
+                        "pdfBase64": {
                           "type": "string"
                         }
                       }
@@ -3889,9 +3945,19 @@
       }
     },
     "/api/v1/user/reports/clinic-summary/preview/pdf": {
-      "get": {
+      "post": {
         "operationId": "ReportsController_downloadClinicSummaryPdf_v1",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClinicSummaryRequestDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "PDF file",
@@ -3905,7 +3971,7 @@
             "access-token": []
           }
         ],
-        "summary": "Download a de-identified clinic summary as PDF (auth required)",
+        "summary": "Download a de-identified clinic summary as PDF (auth required) — POST so the request scope (eventId/date range + selectedFields) can be carried in the body, like the preview and export endpoints.",
         "tags": ["Reports"]
       }
     },
@@ -3930,11 +3996,7 @@
             }
           }
         },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
+        "security": [],
         "summary": "Download a shared clinic summary as PDF (no auth required)",
         "tags": ["Reports"]
       }
@@ -10340,6 +10402,38 @@
         },
         "required": ["code", "message", "data"]
       },
+      "ClinicSummaryRequestDto": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "description": "Event scope: build the summary from this event review. Wins over dateFrom/dateTo when both are supplied."
+          },
+          "dateFrom": {
+            "type": "string",
+            "description": "Date-range scope start (ISO 8601 date, YYYY-MM-DD). Required when eventId is absent; ignored when eventId is present."
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar day; required when eventId is absent; span must cover at most 30 inclusive calendar days."
+          },
+          "selectedFields": {
+            "type": "array",
+            "description": "Summary sections to include. Empty arrays and unknown values are rejected; when omitted every section is included.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "event_overview",
+                "symptom_changes",
+                "medication_slots",
+                "water",
+                "sleep",
+                "notes"
+              ]
+            }
+          }
+        }
+      },
       "ClinicSummaryCoverageEntryDto": {
         "type": "object",
         "properties": {
@@ -10521,9 +10615,38 @@
           "disclaimer"
         ]
       },
+      "ClinicSummaryShareScopeDto": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Event scope id"
+          },
+          "dateFrom": {
+            "type": "string",
+            "nullable": true,
+            "description": "Date-range scope start (ISO 8601), or null for an event scope"
+          },
+          "dateTo": {
+            "type": "string",
+            "nullable": true,
+            "description": "Date-range scope end (ISO 8601), or null for an event scope"
+          }
+        },
+        "required": ["eventId", "dateFrom", "dateTo"]
+      },
       "ClinicSummaryShareResponseDto": {
         "type": "object",
         "properties": {
+          "shareId": {
+            "type": "string",
+            "description": "Persisted share record id (used for revocation). Always present on the create response; optional only because the legacy `createShareLink` service method (cache-only shares) does not emit it."
+          },
+          "token": {
+            "type": "string",
+            "description": "Plaintext token — returned exactly once at creation, never persisted or logged"
+          },
           "shareUrl": {
             "type": "string",
             "description": "Shareable URL"
@@ -10531,6 +10654,16 @@
           "expiresAt": {
             "type": "string",
             "description": "Expiration time (ISO 8601)"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/ClinicSummaryShareScopeDto"
+          },
+          "selectedFields": {
+            "description": "Share fields the link may expose",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": ["shareUrl", "expiresAt"]

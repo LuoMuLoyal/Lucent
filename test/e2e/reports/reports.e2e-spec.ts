@@ -21,7 +21,10 @@ const SUMMARY_GENERATE_PATH = '/api/v1/user/reports/summary/generate';
 const SUMMARY_STREAM_PATH = '/api/v1/user/reports/summary/generate/stream';
 const CLINIC_PREVIEW_PATH = '/api/v1/user/reports/clinic-summary/preview';
 const CLINIC_SHARE_PATH = '/api/v1/user/reports/clinic-summary/share';
+const CLINIC_SHARES_PATH = '/api/v1/user/reports/clinic-summary/shares';
 const CLINIC_SHARED_PATH = '/api/v1/user/reports/clinic-summary/shared';
+const CLINIC_EXPORT_ASYNC_PATH =
+  '/api/v1/user/reports/clinic-summary/export/async';
 const CLINIC_PREVIEW_PDF_PATH =
   '/api/v1/user/reports/clinic-summary/preview/pdf';
 const REVIEWS_CURRENT_PATH = '/api/v1/user/reports/reviews/current';
@@ -206,6 +209,7 @@ describe('Reports API (e2e)', () => {
       const response = await request(app.getHttpServer())
         .post(CLINIC_PREVIEW_PATH)
         .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
 
       const body = response.body as ApiEnvelope<{
@@ -226,7 +230,8 @@ describe('Reports API (e2e)', () => {
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.generatedAt).toBeTruthy();
-      expect(data.dataRange).toBe('last_30_days');
+      // The explicit date range shapes the scope (no fixed last_30_days).
+      expect(data.dataRange).toBe('custom');
       // nickname should be masked (de-identified)
       expect(data.profile.nickname).not.toBe('ReportsUser');
       expect(data.disclaimer).toBeTruthy();
@@ -241,38 +246,215 @@ describe('Reports API (e2e)', () => {
       await request(app.getHttpServer()).post(CLINIC_SHARE_PATH).expect(401);
     });
 
-    it('should create a shareable link with expiry', async () => {
+    it('should create a shareable link with a 7-day expiry', async () => {
       const response = await request(app.getHttpServer())
         .post(CLINIC_SHARE_PATH)
         .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
 
       const body = response.body as ApiEnvelope<{
+        shareId: string;
+        token: string;
         shareUrl: string;
         expiresAt: string;
+        scope: {
+          eventId: string | null;
+          dateFrom: string | null;
+          dateTo: string | null;
+        };
+        selectedFields: string[];
       }>;
 
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
-      expect(data.shareUrl).toContain('/clinic-summary/shared/');
+      expect(data.shareId).toBeTruthy();
+      expect(data.token).toBeTruthy();
+      expect(data.shareUrl).toContain(
+        '/api/v1/user/reports/clinic-summary/shared/',
+      );
+      expect(data.shareUrl).toContain(data.token);
       expect(data.expiresAt).toBeTruthy();
       // expiry should be in the future
       expect(new Date(data.expiresAt).getTime()).toBeGreaterThan(Date.now());
+      // The date-range scope is persisted on the share record.
+      expect(data.scope.eventId).toBeNull();
+      expect(data.scope.dateFrom).toBe('2026-07-01T00:00:00.000Z');
+      expect(data.scope.dateTo).toBe('2026-07-30T00:00:00.000Z');
+      // Omitted selection defaults to every share field.
+      expect(data.selectedFields.length).toBeGreaterThan(0);
+    });
+
+    it('should reject a date range missing one endpoint', async () => {
+      await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-08-01' })
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ dateTo: '2026-08-07' })
+        .expect(400);
+    });
+
+    it('should reject a date range longer than 30 inclusive days', async () => {
+      await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-01-01', dateTo: '2026-02-01' })
+        .expect(400);
+    });
+
+    it('should reject an unknown selectedFields value', async () => {
+      await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ selectedFields: ['event_overview', 'doctor_notes'] })
+        .expect(400);
+    });
+
+    it('should reject an empty selectedFields array', async () => {
+      await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ selectedFields: [] })
+        .expect(400);
+    });
+
+    it('should honor the event scope when both eventId and a date range are supplied', async () => {
+      // Uses its own user: the created event must not leak into the later
+      // reviews tests, which expect the shared main user to stay event-free.
+      const eventUser = await createTestUser(
+        ctx.prisma,
+        undefined,
+        'ShareEventUser',
+      );
+      const eventToken = await createAccessToken(
+        ctx.jwtService,
+        ctx.configService,
+        eventUser.id,
+        eventUser.email,
+      );
+      const eventRes = await request(app.getHttpServer())
+        .post(HEALTH_EVENTS_PATH)
+        .set('Authorization', bearer(eventToken))
+        .send({ title: 'e2e 分享事件' })
+        .expect(201);
+      const event = expectData(eventRes.body as ApiEnvelope<{ id: string }>);
+
+      const response = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(eventToken))
+        .send({
+          eventId: event.id,
+          dateFrom: '2026-08-01',
+          dateTo: '2026-08-07',
+          selectedFields: ['event_overview'],
+        })
+        .expect(201);
+
+      const data = expectData(
+        response.body as ApiEnvelope<{
+          scope: {
+            eventId: string | null;
+            dateFrom: string | null;
+            dateTo: string | null;
+          };
+        }>,
+      );
+      // Event scope wins: the strict-XOR share record stores only the event.
+      expect(data.scope.eventId).toBe(event.id);
+      expect(data.scope.dateFrom).toBeNull();
+      expect(data.scope.dateTo).toBeNull();
     });
   });
 
-  describe('GET /api/v1/reports/clinic-summary/shared/:token', () => {
-    it('should return 410 for an invalid or expired token', async () => {
+  describe('DELETE /api/v1/user/reports/clinic-summary/shares/:shareId', () => {
+    it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer())
-        .get(`${CLINIC_SHARED_PATH}/invalid-token-12345`)
-        .expect(410);
+        .delete(`${CLINIC_SHARES_PATH}/some-share`)
+        .expect(401);
     });
 
-    it('should return the shared clinic summary for a valid token', async () => {
-      // First create a share link
+    it('should revoke an owned share and make its URL return 404', async () => {
       const shareRes = await request(app.getHttpServer())
         .post(CLINIC_SHARE_PATH)
         .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
+        .expect(201);
+      const share = expectData(
+        shareRes.body as ApiEnvelope<{
+          shareId: string;
+          shareUrl: string;
+        }>,
+      );
+      const token = share.shareUrl.split('/').pop()!;
+
+      await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/${token}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .delete(`${CLINIC_SHARES_PATH}/${share.shareId}`)
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      // The revoked URL now behaves like an unknown token: 404, not 410.
+      await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/${token}`)
+        .expect(404);
+    });
+
+    it('should return 404 for an unknown or foreign share id', async () => {
+      const otherUser = await createTestUser(
+        ctx.prisma,
+        undefined,
+        'ShareForeignUser',
+      );
+      const otherToken = await createAccessToken(
+        ctx.jwtService,
+        ctx.configService,
+        otherUser.id,
+        otherUser.email,
+      );
+      const shareRes = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(otherToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
+        .expect(201);
+      const foreignShareId = expectData(
+        shareRes.body as ApiEnvelope<{ shareId: string }>,
+      ).shareId;
+
+      // Unknown id
+      await request(app.getHttpServer())
+        .delete(`${CLINIC_SHARES_PATH}/no-such-share`)
+        .set('Authorization', bearer(accessToken))
+        .expect(404);
+
+      // Not owned by the caller
+      await request(app.getHttpServer())
+        .delete(`${CLINIC_SHARES_PATH}/${foreignShareId}`)
+        .set('Authorization', bearer(accessToken))
+        .expect(404);
+    });
+  });
+
+  describe('GET /api/v1/user/reports/clinic-summary/shared/:token', () => {
+    it('should return 404 for an invalid or expired token', async () => {
+      await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/invalid-token-12345`)
+        .expect(404);
+    });
+
+    it('should return the shared clinic summary for a valid token', async () => {
+      // First create a share link for an explicit date range
+      const shareRes = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
 
       const shareData = expectData(
@@ -295,22 +477,71 @@ describe('Reports API (e2e)', () => {
       expect(body.code).toBe(ResultCode.SUCCESS);
       const data = expectData(body);
       expect(data.generatedAt).toBeTruthy();
-      expect(data.dataRange).toBe('last_30_days');
+      expect(data.dataRange).toBe('custom');
       expect(data.disclaimer).toBeTruthy();
+    });
+
+    it('should honor the selected fields of the share', async () => {
+      const shareRes = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({
+          dateFrom: '2026-07-01',
+          dateTo: '2026-07-30',
+          // event_overview resolves to the profile section — the request
+          // DTO accepts only the six share-field enum values.
+          selectedFields: ['event_overview'],
+        })
+        .expect(201);
+      const token = expectData(
+        shareRes.body as ApiEnvelope<{ shareUrl: string }>,
+      )
+        .shareUrl.split('/')
+        .pop()!;
+
+      const response = await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/${token}`)
+        .expect(200);
+
+      const data = expectData(
+        response.body as ApiEnvelope<{
+          profile: unknown;
+          allergies?: unknown;
+          conditions?: unknown;
+          currentMedicines?: unknown;
+          selectedFields: string[];
+        }>,
+      );
+      // Only the selected section is present; deselected sections never leak.
+      expect(data.profile).toBeDefined();
+      expect(data.allergies).toBeUndefined();
+      expect(data.conditions).toBeUndefined();
+      expect(data.currentMedicines).toBeUndefined();
+      expect(data.selectedFields).toEqual(['profile']);
     });
   });
 
-  describe('GET /api/v1/user/reports/clinic-summary/preview/pdf', () => {
+  describe('POST /api/v1/user/reports/clinic-summary/export/async', () => {
     it('should return 401 for unauthenticated request', async () => {
       await request(app.getHttpServer())
-        .get(CLINIC_PREVIEW_PDF_PATH)
+        .post(CLINIC_EXPORT_ASYNC_PATH)
+        .expect(401);
+    });
+  });
+
+  describe('POST /api/v1/user/reports/clinic-summary/preview/pdf', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer())
+        .post(CLINIC_PREVIEW_PDF_PATH)
         .expect(401);
     });
 
     it('should download a PDF file for authenticated user', async () => {
+      // The request body honors the scoped range/fields.
       const response = await request(app.getHttpServer())
-        .get(CLINIC_PREVIEW_PDF_PATH)
+        .post(CLINIC_PREVIEW_PDF_PATH)
         .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(200);
 
       expect(response.headers['content-type']).toBe('application/pdf');
@@ -323,11 +554,11 @@ describe('Reports API (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/reports/clinic-summary/shared/:token/pdf', () => {
-    it('should return 410 for an invalid or expired token', async () => {
+  describe('GET /api/v1/user/reports/clinic-summary/shared/:token/pdf', () => {
+    it('should return 404 for an invalid or expired token', async () => {
       await request(app.getHttpServer())
         .get(`${CLINIC_SHARED_PATH}/invalid-token-pdf-12345/pdf`)
-        .expect(410);
+        .expect(404);
     });
 
     it('should download a PDF file for a valid shared token', async () => {
@@ -335,6 +566,7 @@ describe('Reports API (e2e)', () => {
       const shareRes = await request(app.getHttpServer())
         .post(CLINIC_SHARE_PATH)
         .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
         .expect(201);
 
       const shareData = expectData(
