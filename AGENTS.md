@@ -13,6 +13,9 @@ After every code change, run the documentation check tool (`pnpm docs:check`) to
   - Single-day log files keep exactly one `# ` H1; sections use `##` (no date prefix).
   - When referencing a plan file, note it was executed and the file is gone
     (「实施完毕文件已删」), otherwise `--verify` flags an orphan reference.
+  - Entries describe change scope and verification conclusions; do not write exact
+    numbers that must stay in sync on later edits (e.g. total test counts).
+    （日志条目描述变更范围与验证结论，不写需要持续同步的精确数字（如测试总数）。）
 - **Current state**: runtime/architecture changes go into the relevant `docs/00-current/*.md`
   sub-file, not into `Current_State.md` (index only).
 - **Closing a TODO**: delete the line from `docs/00-current/TODO.md`.
