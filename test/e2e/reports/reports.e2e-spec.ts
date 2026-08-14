@@ -451,6 +451,12 @@ describe('Reports API (e2e)', () => {
       await request(app.getHttpServer())
         .get(`${CLINIC_SHARED_PATH}/${token}`)
         .expect(404);
+
+      // The shared PDF dies with it — revocation is not bypassable via the
+      // PDF route.
+      await request(app.getHttpServer())
+        .get(`${CLINIC_SHARED_PATH}/${token}/pdf`)
+        .expect(404);
     });
 
     it('should return 404 for an unknown or foreign share id', async () => {
