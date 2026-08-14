@@ -4,6 +4,9 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
 } from '#generated/prisma/client';
 import { I18nService } from 'nestjs-i18n';
 import {
@@ -24,6 +27,25 @@ import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
 } from '../../../common/events/domain-events.js';
+import { ProductEventsService } from '../../product-events';
+
+/**
+ * `ProductEventResult` mirrors `HealthEventOutcome` string-for-string in the
+ * schema (improved/unchanged/worsened); the explicit switch keeps the link
+ * visible and type-checked.
+ */
+export function toProductEventResult(
+  outcome: HealthEventOutcome,
+): ProductEventResult {
+  switch (outcome) {
+    case HealthEventOutcome.improved:
+      return ProductEventResult.improved;
+    case HealthEventOutcome.unchanged:
+      return ProductEventResult.unchanged;
+    case HealthEventOutcome.worsened:
+      return ProductEventResult.worsened;
+  }
+}
 
 export interface CreateHealthEventInput {
   title: string;
@@ -62,6 +84,7 @@ export class EventsService {
     private readonly repository: HealthEventRepositoryPort,
     private readonly i18n: I18nService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly productEvents: ProductEventsService,
   ) {}
 
   async create(
@@ -119,6 +142,16 @@ export class EventsService {
       change: 'create',
       kind: created.kind ?? HealthEventKind.symptom,
     } satisfies HealthEventChangedPayload);
+
+    // Server-authoritative lifecycle event — emitted only after the create
+    // write succeeded; the client must not re-report health_event_started.
+    await this.productEvents.emitServerEvent(userId, {
+      name: ProductEventName.health_event_started,
+      surface: ProductEventSurface.review,
+      result: ProductEventResult.success,
+      eventStatus: HealthEventStatus.active,
+      occurredAt: created.startedAt,
+    });
     return created;
   }
 
@@ -216,6 +249,17 @@ export class EventsService {
       change: 'end',
       kind: updated.kind ?? HealthEventKind.symptom,
     } satisfies HealthEventChangedPayload);
+
+    // The end flow carries the definitive outcome, so health_event_ended
+    // reports it as `result`; health_event_outcome_confirmed belongs to the
+    // daily check-in (CheckInsService) — no double emission.
+    await this.productEvents.emitServerEvent(userId, {
+      name: ProductEventName.health_event_ended,
+      surface: ProductEventSurface.review,
+      result: toProductEventResult(outcome),
+      eventStatus: HealthEventStatus.ended,
+      occurredAt: endedAt,
+    });
     return updated;
   }
 

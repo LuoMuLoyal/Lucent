@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { HealthEventKind, HealthEventStatus } from '#generated/prisma/client';
+import {
+  HealthEventKind,
+  HealthEventStatus,
+  ProductEventName,
+  ProductEventSurface,
+} from '#generated/prisma/client';
 import { I18nService } from 'nestjs-i18n';
 import {
   DEFAULT_USER_TIMEZONE,
@@ -17,12 +22,14 @@ import {
 } from '../repositories/event.repository';
 import {
   parseHealthEventOutcome,
+  toProductEventResult,
   type EndHealthEventInput,
 } from './events.service';
 import {
   HEALTH_EVENT_CHANGED,
   type HealthEventChangedPayload,
 } from '../../../common/events/domain-events.js';
+import { ProductEventsService } from '../../product-events';
 
 export type UpsertCheckInInput = EndHealthEventInput;
 
@@ -32,6 +39,7 @@ export class CheckInsService {
     private readonly repository: HealthEventRepositoryPort,
     private readonly i18n: I18nService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly productEvents: ProductEventsService,
   ) {}
 
   async upsert(
@@ -86,6 +94,15 @@ export class CheckInsService {
       change: 'check-in',
       kind: event.kind ?? HealthEventKind.symptom,
     } satisfies HealthEventChangedPayload);
+
+    // A successful check-in confirms the user's outcome for that day —
+    // server-authoritative, emitted only after the upsert write succeeded.
+    await this.productEvents.emitServerEvent(userId, {
+      name: ProductEventName.health_event_outcome_confirmed,
+      surface: ProductEventSurface.review,
+      result: toProductEventResult(outcome),
+      occurredAt: now(),
+    });
     return checkIn;
   }
 

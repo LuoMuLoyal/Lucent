@@ -7,6 +7,9 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
 } from '#generated/prisma/client';
 import type { I18nService } from 'nestjs-i18n';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
@@ -15,6 +18,7 @@ import type {
   HealthEventRepositoryPort,
   HealthEventRecord,
 } from '../repositories/event.repository';
+import type { ProductEventsService } from '../../product-events';
 import { EventsService } from './events.service';
 
 const USER_ID = 'user-1';
@@ -30,6 +34,14 @@ function buildEventEmitter() {
   return {
     emitAsync: vi.fn().mockResolvedValue([]),
   } as unknown as EventEmitter2;
+}
+
+function buildProductEvents() {
+  return {
+    emitServerEvent: vi.fn().mockResolvedValue(undefined),
+    recordServerEvents: vi.fn().mockResolvedValue({ received: 1, recorded: 1 }),
+    recordBatch: vi.fn().mockResolvedValue({ received: 1, recorded: 1 }),
+  } as unknown as ProductEventsService;
 }
 
 function event(overrides: Partial<HealthEventRecord> = {}): HealthEventRecord {
@@ -79,6 +91,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await service.create(USER_ID, {
@@ -107,6 +120,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       eventEmitter,
+      buildProductEvents(),
     );
 
     await service.create(USER_ID, { title: 'Headache' });
@@ -132,6 +146,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await expect(
@@ -148,6 +163,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await expect(
@@ -166,6 +182,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await expect(service.findById('user-2', EVENT_ID)).rejects.toBeInstanceOf(
@@ -181,6 +198,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await expect(service.end(USER_ID, EVENT_ID, {})).rejects.toBeInstanceOf(
@@ -200,6 +218,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       eventEmitter,
+      buildProductEvents(),
     );
 
     await service.end(USER_ID, EVENT_ID, {
@@ -236,6 +255,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       eventEmitter,
+      buildProductEvents(),
     );
 
     await expect(
@@ -253,6 +273,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       eventEmitter,
+      buildProductEvents(),
     );
 
     await expect(
@@ -271,6 +292,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await expect(
@@ -293,6 +315,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await expect(
@@ -308,6 +331,7 @@ describe('EventsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await expect(
@@ -316,5 +340,96 @@ describe('EventsService', () => {
       response: { message: 'health-events.invalid_outcome' },
     });
     expect(i18n.t).toHaveBeenCalledWith('health-events.invalid_outcome');
+  });
+
+  it('emits health_event_started after the create write succeeds', async () => {
+    const repository = buildRepository();
+    const productEvents = buildProductEvents();
+    const startedAt = new Date('2026-07-20T00:30:00.000Z');
+    repository.create.mockResolvedValue(event({ startedAt }));
+    const service = new EventsService(
+      repository as unknown as HealthEventRepositoryPort,
+      buildI18n(),
+      buildEventEmitter(),
+      productEvents,
+    );
+
+    await service.create(USER_ID, { title: 'Headache' });
+
+    expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
+    expect(productEvents.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
+      name: ProductEventName.health_event_started,
+      surface: ProductEventSurface.review,
+      result: ProductEventResult.success,
+      eventStatus: HealthEventStatus.active,
+      occurredAt: startedAt,
+    });
+  });
+
+  it('emits health_event_ended with the chosen outcome as result', async () => {
+    const repository = buildRepository();
+    const productEvents = buildProductEvents();
+    repository.update.mockResolvedValue(
+      event({
+        status: HealthEventStatus.ended,
+        outcome: HealthEventOutcome.improved,
+        endedAt: new Date('2026-07-21T00:30:00.000Z'),
+      }),
+    );
+    const service = new EventsService(
+      repository as unknown as HealthEventRepositoryPort,
+      buildI18n(),
+      buildEventEmitter(),
+      productEvents,
+    );
+
+    await service.end(USER_ID, EVENT_ID, {
+      outcome: HealthEventOutcome.improved,
+    });
+
+    expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
+    expect(productEvents.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
+      name: ProductEventName.health_event_ended,
+      surface: ProductEventSurface.review,
+      result: ProductEventResult.improved,
+      eventStatus: HealthEventStatus.ended,
+      occurredAt: expect.any(Date),
+    });
+  });
+
+  it('does not emit product events when the create write fails', async () => {
+    const repository = buildRepository();
+    const productEvents = buildProductEvents();
+    repository.create.mockRejectedValue(new Error('write failed'));
+    const service = new EventsService(
+      repository as unknown as HealthEventRepositoryPort,
+      buildI18n(),
+      buildEventEmitter(),
+      productEvents,
+    );
+
+    await expect(
+      service.create(USER_ID, { title: 'Headache' }),
+    ).rejects.toThrow('write failed');
+    expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
+  });
+
+  it('does not emit product events when the end write fails', async () => {
+    const repository = buildRepository();
+    const productEvents = buildProductEvents();
+    repository.update.mockRejectedValue(new Error('write failed'));
+    const service = new EventsService(
+      repository as unknown as HealthEventRepositoryPort,
+      buildI18n(),
+      buildEventEmitter(),
+      productEvents,
+    );
+
+    await expect(
+      service.end(USER_ID, EVENT_ID, {
+        outcome: HealthEventOutcome.improved,
+      }),
+    ).rejects.toThrow('write failed');
+    expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
   });
 });

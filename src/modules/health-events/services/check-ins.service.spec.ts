@@ -3,6 +3,9 @@ import {
   HealthEventKind,
   HealthEventOutcome,
   HealthEventStatus,
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
 } from '#generated/prisma/client';
 import type { I18nService } from 'nestjs-i18n';
 import type { EventEmitter2 } from '@nestjs/event-emitter';
@@ -11,6 +14,7 @@ import type {
   HealthEventRecord,
   HealthEventCheckInRecord,
 } from '../repositories/event.repository';
+import type { ProductEventsService } from '../../product-events';
 import { CheckInsService } from './check-ins.service';
 
 const USER_ID = 'user-1';
@@ -26,6 +30,12 @@ function buildEventEmitter() {
   return {
     emitAsync: vi.fn().mockResolvedValue([]),
   } as unknown as EventEmitter2;
+}
+
+function buildProductEvents() {
+  return {
+    emitServerEvent: vi.fn().mockResolvedValue(undefined),
+  } as unknown as ProductEventsService;
 }
 
 function event(overrides: Partial<HealthEventRecord> = {}): HealthEventRecord {
@@ -89,6 +99,7 @@ describe('CheckInsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       buildI18n(),
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await service.upsert(USER_ID, EVENT_ID, {
@@ -124,6 +135,7 @@ describe('CheckInsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       buildI18n(),
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await service.upsert(USER_ID, EVENT_ID, {
@@ -146,6 +158,7 @@ describe('CheckInsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await expect(
@@ -165,6 +178,7 @@ describe('CheckInsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await expect(
@@ -189,6 +203,7 @@ describe('CheckInsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       i18n,
       buildEventEmitter(),
+      buildProductEvents(),
     );
 
     await expect(
@@ -206,6 +221,7 @@ describe('CheckInsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       buildI18n(),
       eventEmitter,
+      buildProductEvents(),
     );
 
     await service.upsertForDate(USER_ID, EVENT_ID, '2026-07-20', {
@@ -233,6 +249,7 @@ describe('CheckInsService', () => {
       repository as unknown as HealthEventRepositoryPort,
       buildI18n(),
       eventEmitter,
+      buildProductEvents(),
     );
 
     await expect(
@@ -241,5 +258,47 @@ describe('CheckInsService', () => {
       }),
     ).rejects.toThrow('write failed');
     expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+  });
+
+  it('emits health_event_outcome_confirmed with the check-in outcome after the upsert succeeds', async () => {
+    const repository = buildRepository();
+    const productEvents = buildProductEvents();
+    const service = new CheckInsService(
+      repository as unknown as HealthEventRepositoryPort,
+      buildI18n(),
+      buildEventEmitter(),
+      productEvents,
+    );
+
+    await service.upsertForDate(USER_ID, EVENT_ID, '2026-07-20', {
+      outcome: HealthEventOutcome.worsened,
+    });
+
+    expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
+    expect(productEvents.emitServerEvent).toHaveBeenCalledWith(USER_ID, {
+      name: ProductEventName.health_event_outcome_confirmed,
+      surface: ProductEventSurface.review,
+      result: ProductEventResult.worsened,
+      occurredAt: expect.any(Date),
+    });
+  });
+
+  it('does not emit the product event when the check-in write fails', async () => {
+    const repository = buildRepository();
+    const productEvents = buildProductEvents();
+    repository.upsertCheckIn.mockRejectedValue(new Error('write failed'));
+    const service = new CheckInsService(
+      repository as unknown as HealthEventRepositoryPort,
+      buildI18n(),
+      buildEventEmitter(),
+      productEvents,
+    );
+
+    await expect(
+      service.upsertForDate(USER_ID, EVENT_ID, '2026-07-20', {
+        outcome: HealthEventOutcome.improved,
+      }),
+    ).rejects.toThrow('write failed');
+    expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
   });
 });
