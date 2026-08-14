@@ -1,5 +1,6 @@
 {
   "disclaimer": "This summary is generated from self-reported health data and is for reference only. It cannot replace professional medical diagnosis. Refer to the actual medication instructions for details.",
   "anonymous_name": "Anonymous",
-  "share_link_expired": "Share link expired or invalid."
+  "share_link_expired": "Share link expired or invalid.",
+  "share_not_found": "Share record not found or already revoked."
 }

@@ -193,10 +193,54 @@ export class ClinicSummaryDto {
   disclaimer!: string;
 }
 
+export class ClinicSummaryShareScopeDto {
+  @ApiProperty({ type: String, nullable: true, description: 'Event scope id' })
+  eventId!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Date-range scope start (ISO 8601), or null for an event scope',
+  })
+  dateFrom!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Date-range scope end (ISO 8601), or null for an event scope',
+  })
+  dateTo!: string | null;
+}
+
 export class ClinicSummaryShareResponseDto {
+  @ApiPropertyOptional({
+    description:
+      'Persisted share record id (used for revocation). Always present on ' +
+      'the create response; optional only because the legacy ' +
+      '`createShareLink` service method (cache-only shares) does not emit it.',
+  })
+  shareId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Plaintext token — returned exactly once at creation, never persisted or logged',
+  })
+  token?: string;
+
   @ApiProperty({ description: 'Shareable URL' })
   shareUrl!: string;
 
   @ApiProperty({ description: 'Expiration time (ISO 8601)' })
   expiresAt!: string;
+
+  @ApiPropertyOptional({ type: () => ClinicSummaryShareScopeDto })
+  scope?: ClinicSummaryShareScopeDto;
+
+  @ApiPropertyOptional({
+    type: String,
+    isArray: true,
+    description: 'Share fields the link may expose',
+  })
+  selectedFields?: string[];
 }

@@ -1,16 +1,23 @@
+import { createHash } from 'node:crypto';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Header,
+  HttpCode,
   HttpException,
   HttpStatus,
+  Inject,
   Logger,
   Param,
   Post,
   Query,
   Res,
 } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
+import { ConfigService } from '@nestjs/config';
 import { SkipThrottle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
@@ -21,6 +28,8 @@ import {
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { I18nLang, I18nService } from 'nestjs-i18n';
+
+import { ConfigKey } from '../../config/env/config-keys.enum';
 
 import {
   successEnvelope,
@@ -51,12 +60,18 @@ import {
   ClinicSummaryDto,
   ClinicSummaryShareResponseDto,
 } from './dto/clinic-summary-response.dto';
+import {
+  ClinicSummaryRequestDto,
+  CLINIC_SUMMARY_SELECTABLE_FIELDS,
+} from './dto/clinic-summary-request.dto';
 import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
 
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
 
 import { ClinicSummaryService } from './services/clinic-summary/summary.service';
+import type { ClinicSummaryOptions } from './services/clinic-summary/summary.service';
+import { ShareService } from './services/clinic-summary/share.service';
 import { EventReviewService } from './services/event-review/review.service';
 import { ReportsService } from './dashboard/dashboard.service';
 import { EventReviewListQueryDto } from './dto/event-review-list-query.dto';
@@ -78,10 +93,68 @@ export class ReportsController {
     private readonly reportSummaryQueueService: ReportSummaryQueueService,
     private readonly clinicSummaryService: ClinicSummaryService,
     private readonly clinicSummaryPdfQueueService: ClinicSummaryPdfQueueService,
+    private readonly shareService: ShareService,
     private readonly eventReviewService: EventReviewService,
     private readonly sseRegistry: SseConnectionRegistry,
     private readonly i18n: I18nService,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    private readonly configService: ConfigService,
   ) {}
+
+  /**
+   * TTL of the shared summary view cached under the share token at create
+   * time. Mirrors `ShareService.DEFAULT_SHARE_TTL_DAYS` (7 days) so the
+   * cached copy never outlives the persisted grant and the grant never
+   * outlives the copy — `ClinicSummaryService.getSharedSummary` (the single
+   * public-read gate) still re-checks revokedAt/expiresAt before serving.
+   */
+  private static readonly SHARED_VIEW_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+  /**
+   * Summary-service options mirroring the request DTO. Event scope wins (the
+   * service resolves eventId first and ignores the date pair), so both are
+   * forwarded verbatim; the strict-XOR share-record layer below receives
+   * only the winning scope.
+   */
+  private toSummaryOptions(dto: ClinicSummaryRequestDto): ClinicSummaryOptions {
+    const options: ClinicSummaryOptions = {};
+    if (dto.eventId != null) {
+      options.eventId = dto.eventId;
+    }
+    if (dto.dateFrom != null) {
+      options.dateFrom = dto.dateFrom;
+    }
+    if (dto.dateTo != null) {
+      options.dateTo = dto.dateTo;
+    }
+    if (dto.selectedFields != null) {
+      options.selectedFields = dto.selectedFields;
+    }
+    return options;
+  }
+
+  /**
+   * Cache key of the shared summary view. Mirrors the private scheme in
+   * `ClinicSummaryService` (`clinic-share:` + sha256 hex of the plaintext
+   * token): the service is the only reader on the public path, so the key
+   * must stay byte-identical to its scheme.
+   */
+  private sharedViewKey(token: string): string {
+    return `clinic-share:${createHash('sha256').update(token).digest('hex')}`;
+  }
+
+  /**
+   * Public share URL. Base URL comes from the existing app configuration
+   * (`PUBLIC_BASE_URL`, falling back to localhost) — never hardcoded here.
+   * The token travels as a path parameter only, never in a query string.
+   */
+  private buildShareUrl(token: string): string {
+    const appConfig = this.configService.get<{ publicBaseUrl: string }>(
+      ConfigKey.App,
+    );
+    const baseUrl = appConfig?.publicBaseUrl ?? 'http://localhost:3000';
+    return `${baseUrl}/api/v1/user/reports/clinic-summary/shared/${token}`;
+  }
 
   @Get('dashboard')
   @ApiOperation({ summary: 'Get authenticated user report dashboard' })
@@ -236,34 +309,81 @@ export class ReportsController {
     summary:
       'Generate a de-identified clinic summary for sharing with a doctor',
   })
-  @ApiResponse({ status: 200, type: ClinicSummaryDto })
+  @ApiResponse({ status: 201, type: ClinicSummaryDto })
   async previewClinicSummary(
     @CurrentUser() user: UserPayload,
+    @Body() dto: ClinicSummaryRequestDto,
     @I18nLang() language: string,
   ) {
     return successEnvelope(
-      await this.clinicSummaryService.buildClinicSummary(user.sub, language),
+      await this.clinicSummaryService.buildClinicSummary(
+        user.sub,
+        language,
+        this.toSummaryOptions(dto),
+      ),
     );
   }
 
   @Post('clinic-summary/share')
   @ApiOperation({
-    summary: 'Create a shareable link for the clinic summary (24h expiry)',
+    summary:
+      'Create a revocable share link for the clinic summary (7-day expiry)',
   })
-  @ApiResponse({ status: 200, type: ClinicSummaryShareResponseDto })
+  @ApiResponse({ status: 201, type: ClinicSummaryShareResponseDto })
   async shareClinicSummary(
     @CurrentUser() user: UserPayload,
+    @Body() dto: ClinicSummaryRequestDto,
     @I18nLang() language: string,
   ) {
-    return successEnvelope(
-      await this.clinicSummaryService.createShareLink(user.sub, language),
+    const options = this.toSummaryOptions(dto);
+    // Single filtered view: preview, PDF and the shared payload all consume
+    // the same summary built here, so the cached share cannot drift from what
+    // the owner previews (field-drift lock, Task 3).
+    const summary = await this.clinicSummaryService.buildClinicSummary(
+      user.sub,
+      language,
+      options,
     );
+    // Event scope wins: only the winning scope reaches the strict-XOR share
+    // record layer; the omitted selection defaults to every share field.
+    const share = await this.shareService.createShare(user.sub, {
+      eventId: dto.eventId ?? null,
+      dateFrom: dto.eventId != null ? null : (dto.dateFrom ?? null),
+      dateTo: dto.eventId != null ? null : (dto.dateTo ?? null),
+      selectedFields: dto.selectedFields ?? [
+        ...CLINIC_SUMMARY_SELECTABLE_FIELDS,
+      ],
+    });
+    // Link the persisted grant to its view: the public read gate
+    // (ClinicSummaryService.getSharedSummary) serves this cached copy keyed
+    // by the share token hash, and the persisted record gates/revokes it.
+    await this.cacheManager.set(
+      this.sharedViewKey(share.token),
+      summary,
+      ReportsController.SHARED_VIEW_TTL_MS,
+    );
+    return successEnvelope({
+      shareId: share.shareId,
+      token: share.token,
+      shareUrl: this.buildShareUrl(share.token),
+      expiresAt: share.expiresAt.toISOString(),
+      scope: {
+        eventId: share.scope.eventId,
+        dateFrom: share.scope.dateFrom?.toISOString() ?? null,
+        dateTo: share.scope.dateTo?.toISOString() ?? null,
+      },
+      selectedFields: share.selectedFields,
+    });
   }
 
   @Public()
   @Get('clinic-summary/shared/:token')
   @ApiOperation({
     summary: 'Access a shared clinic summary by token (no auth required)',
+    // Class-level @ApiBearerAuth would mark every operation as secured;
+    // explicit empty security keeps this public route unauthenticated in the
+    // generated spec (the runtime guard already opts out via @Public()).
+    security: [],
   })
   @ApiResponse({ status: 200, type: ClinicSummaryDto })
   async getSharedClinicSummary(
@@ -276,10 +396,37 @@ export class ReportsController {
         await this.i18n.t('reports-clinic-summary.share_link_expired', {
           lang: language,
         }),
-        HttpStatus.GONE,
+        HttpStatus.NOT_FOUND,
       );
     }
     return successEnvelope(summary);
+  }
+
+  @Delete('clinic-summary/shares/:shareId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Revoke a clinic summary share (current user owns the share)',
+  })
+  @ApiParam({ name: 'shareId' })
+  @ApiResponse({
+    status: 200,
+    description: 'Share revoked; the shared URL now returns 404.',
+  })
+  async revokeClinicSummaryShare(
+    @CurrentUser() user: UserPayload,
+    @Param('shareId') shareId: string,
+    @I18nLang() language: string,
+  ) {
+    const revoked = await this.shareService.revokeShare(user.sub, shareId);
+    if (!revoked) {
+      throw new HttpException(
+        await this.i18n.t('reports-clinic-summary.share_not_found', {
+          lang: language,
+        }),
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    return successEnvelope(null);
   }
 
   @Post('clinic-summary/export/async')
@@ -287,8 +434,11 @@ export class ReportsController {
     summary: 'Enqueue async clinic summary PDF export',
   })
   @ApiResponse({
-    status: 202,
-    description: 'Job enqueued. Returns jobId for polling.',
+    status: 201,
+    description:
+      'Job enqueued (returns jobId for polling) — or the base64 PDF ' +
+      'synchronously when the request carries a custom scope (the queue job ' +
+      'only supports the default scope).',
     schema: {
       type: 'object',
       properties: {
@@ -297,6 +447,7 @@ export class ReportsController {
           type: 'object',
           properties: {
             jobId: { type: 'string' },
+            pdfBase64: { type: 'string' },
           },
         },
       },
@@ -304,8 +455,26 @@ export class ReportsController {
   })
   async exportClinicSummaryPdfAsync(
     @CurrentUser() user: UserPayload,
+    @Body() dto: ClinicSummaryRequestDto,
     @I18nLang() language: string,
   ) {
+    const options = this.toSummaryOptions(dto);
+    // The queue job carries only userId + locale (PdfExportJobData), so a
+    // scoped request is exported synchronously with the requested scope
+    // honored — the async path never silently drops event/date/field
+    // selection. Unscoped requests keep the async job as before.
+    const hasCustomScope =
+      dto.eventId != null ||
+      dto.dateFrom != null ||
+      dto.dateTo != null ||
+      dto.selectedFields != null;
+    if (hasCustomScope) {
+      return successEnvelope({
+        pdfBase64: (
+          await this.clinicSummaryService.exportPdf(user.sub, language, options)
+        ).toString('base64'),
+      });
+    }
     return successEnvelope(
       await enqueueOrFallback(
         this.clinicSummaryPdfQueueService.isConfigured,
@@ -344,11 +513,15 @@ export class ReportsController {
     return successEnvelope(status);
   }
 
-  @Get('clinic-summary/preview/pdf')
+  @Post('clinic-summary/preview/pdf')
+  @HttpCode(HttpStatus.OK)
   @Header('Content-Type', 'application/pdf')
   @Header('Content-Disposition', 'attachment; filename="clinic-summary.pdf"')
   @ApiOperation({
-    summary: 'Download a de-identified clinic summary as PDF (auth required)',
+    summary:
+      'Download a de-identified clinic summary as PDF (auth required) — ' +
+      'POST so the request scope (eventId/date range + selectedFields) can ' +
+      'be carried in the body, like the preview and export endpoints.',
   })
   @ApiResponse({
     status: 200,
@@ -357,10 +530,15 @@ export class ReportsController {
   })
   async downloadClinicSummaryPdf(
     @CurrentUser() user: UserPayload,
+    @Body() dto: ClinicSummaryRequestDto,
     @I18nLang() language: string,
     @Res({ passthrough: false }) reply: FastifyReply,
   ): Promise<void> {
-    const pdf = await this.clinicSummaryService.exportPdf(user.sub, language);
+    const pdf = await this.clinicSummaryService.exportPdf(
+      user.sub,
+      language,
+      this.toSummaryOptions(dto),
+    );
     reply.send(pdf);
   }
 
@@ -370,6 +548,7 @@ export class ReportsController {
   @Header('Content-Disposition', 'attachment; filename="clinic-summary.pdf"')
   @ApiOperation({
     summary: 'Download a shared clinic summary as PDF (no auth required)',
+    security: [],
   })
   @ApiResponse({
     status: 200,
@@ -390,7 +569,7 @@ export class ReportsController {
         await this.i18n.t('reports-clinic-summary.share_link_expired', {
           lang: language,
         }),
-        HttpStatus.GONE,
+        HttpStatus.NOT_FOUND,
       );
     }
     reply.send(pdf);

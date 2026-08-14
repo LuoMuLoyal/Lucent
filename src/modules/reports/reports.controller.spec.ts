@@ -1,8 +1,12 @@
+import { createHash } from 'node:crypto';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
+import { ConfigService } from '@nestjs/config';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { HealthEventKind, HealthEventStatus } from '#generated/prisma/client';
+import type { ClinicSummaryShareField } from '#generated/prisma/client';
 import { ResultCode, SseConnectionRegistry } from '../../common';
 import {
   REPORT_RANGE_CUSTOM,
@@ -15,18 +19,34 @@ import type { ReportDashboardDataDto } from './dto/report-dashboard-response.dto
 import type { ReportSummaryDataDto } from './dto/report-summary-response.dto';
 import type { EventReviewDataDto } from './dto/event-review-response.dto';
 import type { ClinicSummaryDto } from './dto/clinic-summary-response.dto';
+import { CLINIC_SUMMARY_SELECTABLE_FIELDS } from './dto/clinic-summary-request.dto';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
 import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
 import { ClinicSummaryService } from './services/clinic-summary/summary.service';
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
+import { ShareService } from './services/clinic-summary/share.service';
 import { EventReviewService } from './services/event-review/review.service';
 import { ReportsController } from './reports.controller';
 import { ReportsService } from './dashboard/dashboard.service';
+
+/** TTL mirror of ReportsController.SHARED_VIEW_TTL_MS (7 days). */
+const SHARED_VIEW_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
+
+/** All six share-field enum values as the store layer types them. */
+const ALL_SHARE_FIELDS = [
+  ...CLINIC_SUMMARY_SELECTABLE_FIELDS,
+] as ClinicSummaryShareField[];
 describe('ReportsController', () => {
   let controller: ReportsController;
   let service: vi.Mocked<ReportsService>;
   let aiSummaryService: vi.Mocked<ReportsAiSummaryService>;
   let clinicSummaryService: vi.Mocked<ClinicSummaryService>;
+  let shareService: vi.Mocked<ShareService>;
+  let cacheManager: { get: vi.Mock; set: vi.Mock };
   let eventReviewService: vi.Mocked<EventReviewService>;
   let sseRegistry: SseConnectionRegistry;
 
@@ -55,6 +75,28 @@ describe('ReportsController', () => {
             getSharedSummary: vi.fn(),
             exportPdf: vi.fn(),
             exportSharedPdf: vi.fn(),
+          },
+        },
+        {
+          provide: ShareService,
+          useValue: {
+            createShare: vi.fn(),
+            revokeShare: vi.fn(),
+          },
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            get: vi.fn(),
+            set: vi.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: vi
+              .fn()
+              .mockReturnValue({ publicBaseUrl: 'http://localhost:3000' }),
           },
         },
         {
@@ -102,6 +144,8 @@ describe('ReportsController', () => {
     service = module.get(ReportsService);
     aiSummaryService = module.get(ReportsAiSummaryService);
     clinicSummaryService = module.get(ClinicSummaryService);
+    shareService = module.get(ShareService);
+    cacheManager = module.get(CACHE_MANAGER);
     eventReviewService = module.get(EventReviewService);
     sseRegistry = module.get(SseConnectionRegistry);
   });
@@ -258,12 +302,14 @@ describe('ReportsController', () => {
         email: 'a@b.c',
         status: 'active',
       },
+      {},
       'zh-CN',
     );
 
     expect(clinicSummaryService.buildClinicSummary).toHaveBeenCalledWith(
       'u1',
       'zh-CN',
+      {},
     );
     expect(result).toEqual({
       code: ResultCode.SUCCESS,
@@ -272,15 +318,46 @@ describe('ReportsController', () => {
     });
   });
 
+  it('forwards the request scope and field selection to the summary service', async () => {
+    clinicSummaryService.buildClinicSummary.mockResolvedValue(
+      makeClinicSummary(),
+    );
+
+    await controller.previewClinicSummary(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      {
+        eventId: 'evt-1',
+        dateFrom: '2026-08-01',
+        dateTo: '2026-08-10',
+        selectedFields: ['profile', 'sleep'],
+      },
+      'zh-CN',
+    );
+
+    expect(clinicSummaryService.buildClinicSummary).toHaveBeenCalledWith(
+      'u1',
+      'zh-CN',
+      {
+        eventId: 'evt-1',
+        dateFrom: '2026-08-01',
+        dateTo: '2026-08-10',
+        selectedFields: ['profile', 'sleep'],
+      },
+    );
+  });
+
   // ── shareClinicSummary ────────────────────────────────────────────────
 
-  it('returns share link envelope', async () => {
-    const shareResponse = {
-      shareUrl:
-        'http://localhost:3000/api/v1/reports/clinic-summary/shared/abc123',
-      expiresAt: '2026-07-11T08:00:00.000Z',
-    };
-    clinicSummaryService.createShareLink.mockResolvedValue(shareResponse);
+  it('creates a share record and returns the share URL built from the configured base URL', async () => {
+    const summary = makeClinicSummary();
+    clinicSummaryService.buildClinicSummary.mockResolvedValue(summary);
+    shareService.createShare.mockResolvedValue({
+      shareId: 'share-1',
+      token: 'tok123',
+      expiresAt: new Date('2026-07-18T08:00:00.000Z'),
+      scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
+      selectedFields: ['event_overview'],
+    });
 
     const result = await controller.shareClinicSummary(
       {
@@ -288,17 +365,119 @@ describe('ReportsController', () => {
         email: 'a@b.c',
         status: 'active',
       },
+      { eventId: 'evt-1', selectedFields: ['event_overview'] },
       'zh-CN',
     );
 
-    expect(clinicSummaryService.createShareLink).toHaveBeenCalledWith(
+    expect(clinicSummaryService.buildClinicSummary).toHaveBeenCalledWith(
       'u1',
       'zh-CN',
+      { eventId: 'evt-1', selectedFields: ['event_overview'] },
+    );
+    expect(shareService.createShare).toHaveBeenCalledWith('u1', {
+      eventId: 'evt-1',
+      dateFrom: null,
+      dateTo: null,
+      selectedFields: ['event_overview'],
+    });
+    // The cached shared payload is keyed by the share token hash so the
+    // public read gate (getSharedSummary) can serve exactly this view.
+    expect(cacheManager.set).toHaveBeenCalledWith(
+      `clinic-share:${sha256('tok123')}`,
+      summary,
+      SHARED_VIEW_TTL_MS,
     );
     expect(result).toEqual({
       code: ResultCode.SUCCESS,
       message: '',
-      data: shareResponse,
+      data: {
+        shareId: 'share-1',
+        token: 'tok123',
+        shareUrl:
+          'http://localhost:3000/api/v1/user/reports/clinic-summary/shared/tok123',
+        expiresAt: '2026-07-18T08:00:00.000Z',
+        scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
+        selectedFields: ['event_overview'],
+      },
+    });
+  });
+
+  it('forwards only the winning event scope to the share store when dates are also supplied', async () => {
+    clinicSummaryService.buildClinicSummary.mockResolvedValue(
+      makeClinicSummary(),
+    );
+    shareService.createShare.mockResolvedValue({
+      shareId: 'share-1',
+      token: 'tok123',
+      expiresAt: new Date('2026-07-18T08:00:00.000Z'),
+      scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
+      selectedFields: ['event_overview'],
+    });
+
+    await controller.shareClinicSummary(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      {
+        eventId: 'evt-1',
+        dateFrom: '2026-08-01',
+        dateTo: '2026-08-10',
+      },
+      'zh-CN',
+    );
+
+    // Event scope wins: the strict-XOR share record layer sees only the
+    // event, never the date pair.
+    expect(shareService.createShare).toHaveBeenCalledWith('u1', {
+      eventId: 'evt-1',
+      dateFrom: null,
+      dateTo: null,
+      selectedFields: [...CLINIC_SUMMARY_SELECTABLE_FIELDS],
+    });
+  });
+
+  it('defaults selectedFields to every share field when omitted', async () => {
+    clinicSummaryService.buildClinicSummary.mockResolvedValue(
+      makeClinicSummary(),
+    );
+    shareService.createShare.mockResolvedValue({
+      shareId: 'share-1',
+      token: 'tok123',
+      expiresAt: new Date('2026-07-18T08:00:00.000Z'),
+      scope: {
+        eventId: null,
+        dateFrom: new Date('2026-08-01'),
+        dateTo: new Date('2026-08-07'),
+      },
+      selectedFields: ALL_SHARE_FIELDS,
+    });
+
+    const result = await controller.shareClinicSummary(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      { dateFrom: '2026-08-01', dateTo: '2026-08-07' },
+      'zh-CN',
+    );
+
+    expect(shareService.createShare).toHaveBeenCalledWith('u1', {
+      eventId: null,
+      dateFrom: '2026-08-01',
+      dateTo: '2026-08-07',
+      selectedFields: [...CLINIC_SUMMARY_SELECTABLE_FIELDS],
+    });
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: {
+        shareId: 'share-1',
+        token: 'tok123',
+        shareUrl:
+          'http://localhost:3000/api/v1/user/reports/clinic-summary/shared/tok123',
+        expiresAt: '2026-07-18T08:00:00.000Z',
+        scope: {
+          eventId: null,
+          dateFrom: '2026-08-01T00:00:00.000Z',
+          dateTo: '2026-08-07T00:00:00.000Z',
+        },
+        selectedFields: [...CLINIC_SUMMARY_SELECTABLE_FIELDS],
+      },
     });
   });
 
@@ -348,12 +527,79 @@ describe('ReportsController', () => {
 
     await controller.downloadClinicSummaryPdf(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
+      { eventId: 'evt-1', selectedFields: ['profile'] },
       'zh-CN',
       reply,
     );
 
-    expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN');
+    expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN', {
+      eventId: 'evt-1',
+      selectedFields: ['profile'],
+    });
     expect(reply.send).toHaveBeenCalledWith(pdfBuffer);
+  });
+
+  // ── exportClinicSummaryPdfAsync ───────────────────────────────────────
+
+  it('exports a scoped request synchronously so the queue never drops the scope', async () => {
+    const pdfBuffer = Buffer.from('%PDF-1.4 mock');
+    clinicSummaryService.exportPdf.mockResolvedValue(pdfBuffer);
+
+    const result = await controller.exportClinicSummaryPdfAsync(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      { eventId: 'evt-1' },
+      'zh-CN',
+    );
+
+    expect(clinicSummaryService.exportPdf).toHaveBeenCalledWith('u1', 'zh-CN', {
+      eventId: 'evt-1',
+    });
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: { pdfBase64: pdfBuffer.toString('base64') },
+    });
+  });
+
+  // ── revokeClinicSummaryShare ──────────────────────────────────────────
+
+  it('revokes a share owned by the current user', async () => {
+    shareService.revokeShare.mockResolvedValue(true);
+
+    const result = await controller.revokeClinicSummaryShare(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      'share-1',
+      'zh-CN',
+    );
+
+    expect(shareService.revokeShare).toHaveBeenCalledWith('u1', 'share-1');
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: null,
+    });
+  });
+
+  it('throws HttpException 404 when the share is not found or not owned', async () => {
+    shareService.revokeShare.mockResolvedValue(false);
+
+    await expect(
+      controller.revokeClinicSummaryShare(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'foreign-share',
+        'zh-CN',
+      ),
+    ).rejects.toThrow(HttpException);
+
+    try {
+      await controller.revokeClinicSummaryShare(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'foreign-share',
+        'zh-CN',
+      );
+    } catch (e) {
+      expect((e as HttpException).getStatus()).toBe(HttpStatus.NOT_FOUND);
+    }
   });
 
   // ── downloadSharedClinicSummaryPdf ────────────────────────────────────
