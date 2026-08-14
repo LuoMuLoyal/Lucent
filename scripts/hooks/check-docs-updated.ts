@@ -8,8 +8,8 @@
 // - Warning-only (--warning-only): print per-rule report without blocking.
 // - Verify (--verify): check doc-map references, migration-log plan/spec
 //   references, single-H1 structure, front-matter metadata (missing / stale
-//   `updated` / `status: stale`), stale active docs, unreferenced docs.
-// Bypass: SKIP_DOC_CHECK=1 or `git commit --no-verify`.
+//   `updated` / `status: stale`), stale active docs, unreferenced docs, and
+//   module-dir doc-map coverage. Bypass: SKIP_DOC_CHECK=1 or `git commit --no-verify`.
 
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
@@ -20,6 +20,7 @@ import {
   collectVerifyProblems,
   findDocsMissingFrontMatter,
   findStaleStatusDocs,
+  findUncoveredModuleDirs,
   findUnreferencedActiveDocs,
   getStaleByFrontMatter,
   getStaleDocs,
@@ -170,6 +171,21 @@ function runVerify(repoRoot: string): void {
       (p) => `${p}: unreferenced by doc-map — consider archiving`,
     ),
   );
+  // Every directory under src/modules/* must be matched by at least one
+  // doc-map rule's `code` glob (or a documented exemption) so new modules
+  // cannot land without documentation governance.
+  const modulesDir = resolve(repoRoot, 'src', 'modules');
+  if (existsSync(modulesDir)) {
+    const moduleDirs = readdirSync(modulesDir, { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name);
+    problems.push(
+      ...findUncoveredModuleDirs(rules, moduleDirs).map(
+        (dir) =>
+          `${dir}: module dir not covered by any doc-map rule — add a rule or a documented exemption`,
+      ),
+    );
+  }
 
   if (problems.length > 0) {
     console.error(
@@ -178,7 +194,7 @@ function runVerify(repoRoot: string): void {
     process.exit(1);
   }
   console.log(
-    'Doc verification passed (references, H1 structure, front-matter, freshness, readership).',
+    'Doc verification passed (doc-map references, H1 structure, front-matter, freshness, readership, module coverage).',
   );
 }
 
@@ -211,8 +227,9 @@ Options:
   --staged            Read staged changes instead of the working tree.
   --warning-only      Do not block; just print the per-rule report.
   --verify            Verify doc-map + migration-log references, H1 structure,
-                      front-matter metadata, stale active docs, and doc
-                      readership; exit(1) on problems.
+                      front-matter metadata, stale active docs, doc readership,
+                      and module-dir coverage (every src/modules/* dir must be
+                      matched by a doc-map rule); exit(1) on problems.
   --help              Show this help text.
 
 Environment:

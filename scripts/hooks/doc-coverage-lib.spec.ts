@@ -6,6 +6,7 @@ import {
   findDocMapGlobOrphans,
   findDocsMissingFrontMatter,
   findStaleStatusDocs,
+  findUncoveredModuleDirs,
   findUnreferencedActiveDocs,
   getStaleByFrontMatter,
   getStaleDocs,
@@ -349,5 +350,37 @@ status: active
         contents,
       ),
     ).toEqual(['docs/01-reference/a.md']);
+  });
+});
+
+describe('findUncoveredModuleDirs', () => {
+  const rules = parseDocMapYaml(`
+rules:
+  - name: auth-security
+    code:
+      - src/modules/auth/**
+    docs_required:
+      - docs/02-logs/migration-log/*.md
+  - name: audit-log
+    code:
+      - src/modules/audit-log/**
+    docs_required:
+      - docs/02-logs/migration-log/*.md
+`);
+  it('flags module dirs not matched by any rule', () => {
+    expect(
+      findUncoveredModuleDirs(rules, ['auth', 'audit-log', 'product-events']),
+    ).toEqual(['product-events']);
+  });
+  it('probe matches literal code patterns too', () => {
+    const literal = parseDocMapYaml(`
+rules:
+  - name: special
+    code:
+      - src/modules/foo/foo.module.ts
+    docs_required:
+      - docs/02-logs/migration-log/*.md
+`);
+    expect(findUncoveredModuleDirs(literal, ['foo'])).toEqual([]);
   });
 });

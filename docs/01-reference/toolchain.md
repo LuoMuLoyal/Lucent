@@ -124,3 +124,4 @@ Last updated: 2026-08-14
     [ADR-0011](adr/0011-reminder-delivery-at-least-once.md)。
 - **文档覆盖规则补全**（2026-08-14）：`docs/doc-map.yaml` 新增 `product-events`（`src/modules/product-events/**`）与 `data-retention`（`src/modules/data-retention/**`）两条规则，并在 `report-export` 规则追加 `docs/01-reference/data-retention.md`——此前这两个模块的代码变更无映射规则，隐私测量与保留策略的文档同步依赖人工。
 - **OpenAPI 导出格式收敛**（2026-08-14）：`scripts/contract/export-openapi.ts` 写盘前在进程内套用仓库 `.prettierrc` 格式化（prettier 3 ESM-only，`await import` 动态加载），并跟随工作树行尾约定（`core.autocrlf=true` 时为 CRLF），`pnpm export:openapi` 重复导出零 diff，不再依赖提交时的归一化。
+- **模块目录文档覆盖校验**（2026-08-14）：`pnpm docs:verify` 检查 `src/modules/*` 每个目录是否被 doc-map 至少一条规则的 `code` glob 命中（或显式豁免），新增模块不再能漏配文档治理；本次补 `audit-log` 规则。

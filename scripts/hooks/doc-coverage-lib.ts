@@ -456,6 +456,32 @@ export const EXEMPT_UNREFERENCED_PATTERNS: string[] = [
   'docs/01-reference/environment-variables.md',
 ];
 
+/**
+ * Module dirs under `src/modules/*` intentionally exempt from doc-map coverage.
+ * Keep this list minimal — prefer adding a doc-map rule over an exemption.
+ * Document the reason next to each entry.
+ */
+export const MODULE_COVERAGE_EXEMPTIONS: string[] = [];
+
+/**
+ * Module dirs under `src/modules/*` not matched by any rule's `code` glob.
+ * New modules must ship with a doc-map rule so their changes are governed.
+ */
+export function findUncoveredModuleDirs(
+  rules: DocCoverageRule[],
+  moduleDirs: string[],
+): string[] {
+  return moduleDirs.filter((dir) => {
+    if (MODULE_COVERAGE_EXEMPTIONS.includes(dir)) return false;
+    // Every NestJS module has a `<name>.module.ts` at its root (repo convention);
+    // probe with that file so both glob and literal code patterns can match.
+    const probe = `src/modules/${dir}/${dir}.module.ts`;
+    return !rules.some((rule) =>
+      rule.codePatterns.some((pattern) => matchesPattern(probe, pattern)),
+    );
+  });
+}
+
 /** Active docs (except READMEs and standing-channel docs) not referenced by any doc-map rule. */
 export function findUnreferencedActiveDocs(
   rules: DocCoverageRule[],

@@ -83,6 +83,18 @@ rules:
       - docs/02-logs/migration-log/*.md
 
   # ──────────────────────────────────────────────
+  # 审计日志（audit-log，全局安全操作记录）
+  # ──────────────────────────────────────────────
+  - name: audit-log
+    code:
+      - src/modules/audit-log/**
+    docs_required:
+      - docs/02-logs/migration-log/*.md
+    docs_any_of:
+      - docs/01-reference/architecture.md
+      - docs/01-reference/code-quality.md
+
+  # ──────────────────────────────────────────────
   # 用户域（user、health-context、settings）
   # ──────────────────────────────────────────────
   - name: user-domain
