@@ -21,6 +21,7 @@ import { ClinicSummaryService } from './services/clinic-summary/summary.service'
 import { ClinicSummaryPdfQueueService } from './services/clinic-summary/pdf-queue.service';
 
 import { ClinicSummaryPdfService } from './services/clinic-summary/pdf.service';
+import { ShareService } from './services/clinic-summary/share.service';
 import { ReportsComputationService } from './dashboard/computation.service';
 
 import { ReportsContextService } from './dashboard/context.service';
@@ -56,6 +57,7 @@ import { ReportsController } from './reports.controller';
     ClinicSummaryService,
     ClinicSummaryPdfQueueService,
     ClinicSummaryPdfService,
+    ShareService,
     ReportsComputationService,
     ReportsContextService,
     ReportsPresenterService,
