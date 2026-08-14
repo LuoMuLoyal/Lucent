@@ -28,8 +28,15 @@ export interface ProductEventRecordResult {
  * One server-emitted product event. Server-side events carry no meaningful
  * appVersion/platform (there is no client build to attribute), so this input
  * omits those client-only fields: `recordServerEvents` fills `appVersion:
- * 'server'`, `platform: web`, a `server-<uuid>` clientEventId and a default
- * `occurredAt` (now) for the caller. The HTTP DTO stays strict for clients.
+ * 'server'`, `platform: web` and a default `occurredAt` (now) for the caller.
+ * The HTTP DTO stays strict for clients.
+ *
+ * `clientEventId` semantics: by default each emission gets a fresh
+ * `server-<uuid>` (per-occurrence events — share opens, suggestion actions).
+ * Retryable lifecycle emitters MAY pass a DETERMINISTIC id derived from the
+ * business operation identity (`server-health-started-<eventId>`, …), so a
+ * client retry that re-runs an idempotent main write is deduped by the
+ * (userId, clientEventId) unique constraint instead of double-inserting.
  */
 export interface ServerProductEventInput {
   name: ProductEventName;
@@ -41,6 +48,11 @@ export interface ServerProductEventInput {
   suggestionRuleCode?: string | null;
   /** Event time; defaults to now. */
   occurredAt?: Date;
+  /**
+   * Explicit clientEventId (deterministic, business-operation-derived) for
+   * retryable emitters; when omitted a fresh `server-<uuid>` is generated.
+   */
+  clientEventId?: string;
 }
 
 /**
@@ -97,10 +109,14 @@ export class ProductEventsService {
    * Server-internal batch write (Task 6 emitters). Same validation and
    * idempotent `createMany` path as `recordBatch`, with the client-only
    * fields supplied server-side: `appVersion: 'server'`, `platform: web`,
-   * a unique `server-<uuid>` clientEventId per event (so retries and
-   * duplicate emissions never double-insert), and `occurredAt` defaulting to
-   * now. The HTTP contract (DTO) is untouched — this is not reachable from
-   * the controller.
+   * `occurredAt` defaulting to now, and `clientEventId` defaulting to a fresh
+   * `server-<uuid>` per event. Emitters of retryable lifecycle operations
+   * pass a DETERMINISTIC id (see `ServerProductEventInput.clientEventId`) so
+   * the unique (userId, clientEventId) constraint dedupes client retries that
+   * re-run an idempotent main write; per-occurrence events (share opens,
+   * suggestion actions) intentionally keep the per-emission uuid because each
+   * occurrence is a distinct event. The HTTP contract (DTO) is untouched —
+   * this is not reachable from the controller.
    */
   async recordServerEvents(
     userId: string,
@@ -121,7 +137,7 @@ export class ProductEventsService {
         appVersion: SERVER_APP_VERSION,
         platform: SERVER_PLATFORM,
         occurredAt: (event.occurredAt ?? now()).toISOString(),
-        clientEventId: `server-${randomUUID()}`,
+        clientEventId: event.clientEventId ?? `server-${randomUUID()}`,
       })),
     );
   }

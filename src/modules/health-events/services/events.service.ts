@@ -145,12 +145,19 @@ export class EventsService {
 
     // Server-authoritative lifecycle event — emitted only after the create
     // write succeeded; the client must not re-report health_event_started.
+    // Deterministic clientEventId: a client retry that re-runs this idempotent
+    // create is deduped by the (userId, clientEventId) unique constraint.
+    // Caveat: a user-supplied `startedAt` more than 24h in the future fails
+    // the product-event future-skew check, so the started event is dropped
+    // (low-sensitivity log + emission-failure metric only — the main create
+    // is unaffected).
     await this.productEvents.emitServerEvent(userId, {
       name: ProductEventName.health_event_started,
       surface: ProductEventSurface.review,
       result: ProductEventResult.success,
       eventStatus: HealthEventStatus.active,
       occurredAt: created.startedAt,
+      clientEventId: `server-health-started-${created.id}`,
     });
     return created;
   }
@@ -252,13 +259,15 @@ export class EventsService {
 
     // The end flow carries the definitive outcome, so health_event_ended
     // reports it as `result`; health_event_outcome_confirmed belongs to the
-    // daily check-in (CheckInsService) — no double emission.
+    // daily check-in (CheckInsService) — no double emission. Deterministic
+    // clientEventId dedupes retries that re-run this idempotent end write.
     await this.productEvents.emitServerEvent(userId, {
       name: ProductEventName.health_event_ended,
       surface: ProductEventSurface.review,
       result: toProductEventResult(outcome),
       eventStatus: HealthEventStatus.ended,
       occurredAt: endedAt,
+      clientEventId: `server-health-ended-${eventId}`,
     });
     return updated;
   }

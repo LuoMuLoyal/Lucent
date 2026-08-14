@@ -265,14 +265,17 @@ describe('Health Event Contract API (e2e)', () => {
     expect(events[0]).toMatchObject({
       result: 'success',
       eventStatus: 'active',
+      clientEventId: `server-health-started-${created.id}`,
     });
     expect(events[1]).toMatchObject({
       result: 'improved',
       eventStatus: null,
+      clientEventId: `server-checkin-${created.id}-${CHECK_IN_DATE}`,
     });
     expect(events[2]).toMatchObject({
       result: 'unchanged',
       eventStatus: 'ended',
+      clientEventId: `server-health-ended-${created.id}`,
     });
   }, 30_000);
 });

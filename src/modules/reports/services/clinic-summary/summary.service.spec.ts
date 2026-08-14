@@ -753,6 +753,12 @@ describe('ClinicSummaryService', () => {
         surface: ProductEventSurface.system,
         result: ProductEventResult.success,
       });
+      // Each successful open is a distinct event (accessCount increments per
+      // open) — no deterministic clientEventId; the uuid default keeps opens
+      // unique across reads.
+      expect(
+        productEvents.emitServerEvent.mock.calls[0]![1],
+      ).not.toHaveProperty('clientEventId');
     });
 
     it('emits no open event for a legacy cache-only share (no owner to attribute)', async () => {

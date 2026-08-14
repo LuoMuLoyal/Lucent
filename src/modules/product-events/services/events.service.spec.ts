@@ -307,7 +307,26 @@ describe('ProductEventsService', () => {
       expect(prisma.userProductEvent.createMany).not.toHaveBeenCalled();
     });
 
-    it('generates distinct clientEventIds so retried emissions never collide', async () => {
+    it('honors an explicit deterministic clientEventId for retryable emitters', async () => {
+      await service.recordServerEvents(USER_ID, [
+        serverEvent({
+          name: ProductEventName.health_event_started,
+          clientEventId: 'server-health-started-evt-1',
+        }),
+        serverEvent({ name: ProductEventName.health_event_ended }),
+      ]);
+
+      const data = (
+        prisma.userProductEvent.createMany.mock.calls[0]![0] as {
+          data: { clientEventId: string }[];
+        }
+      ).data;
+      expect(data[0]!.clientEventId).toBe('server-health-started-evt-1');
+      // Omitted ids keep the fresh per-emission uuid default.
+      expect(data[1]!.clientEventId).toMatch(/^server-[0-9a-f-]{36}$/);
+    });
+
+    it('defaults to a fresh per-emission uuid so per-occurrence events never collide', async () => {
       await service.recordServerEvents(USER_ID, [serverEvent()]);
       await service.recordServerEvents(USER_ID, [serverEvent()]);
 

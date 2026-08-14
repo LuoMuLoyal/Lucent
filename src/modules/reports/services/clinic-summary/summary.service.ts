@@ -262,7 +262,9 @@ export class ClinicSummaryService {
     // the share OWNER's userId (the persisted grant is the only identity
     // here) — the visitor's identity/IP is never part of the payload, and
     // legacy cache-only shares (no store record) emit nothing because there
-    // is no owner to attribute to.
+    // is no owner to attribute to. No deterministic clientEventId: each
+    // successful open is a DISTINCT event (accessCount increments per open
+    // too), so the per-emission `server-<uuid>` default is intentional.
     await this.productEvents.emitServerEvent(record.userId, {
       name: ProductEventName.visit_summary_share_opened,
       surface: ProductEventSurface.system,

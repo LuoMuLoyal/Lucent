@@ -498,6 +498,7 @@ describe('ShareService', () => {
         name: ProductEventName.visit_summary_share_created,
         surface: ProductEventSurface.review,
         result: ProductEventResult.success,
+        clientEventId: 'server-share-created-share-1',
       });
     });
 
@@ -521,6 +522,7 @@ describe('ShareService', () => {
         name: ProductEventName.visit_summary_share_revoked,
         surface: ProductEventSurface.review,
         result: ProductEventResult.success,
+        clientEventId: 'server-share-revoked-share-1',
       });
     });
 

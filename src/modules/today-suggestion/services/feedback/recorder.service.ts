@@ -142,7 +142,10 @@ export class FeedbackService {
 
     // Server-authoritative action event — only after the feedback write
     // succeeded. Carries the suggestion's FIXED rule code (allowlisted), never
-    // the suggestion copy or any free text.
+    // the suggestion copy or any free text. No deterministic clientEventId:
+    // the main write appends a NEW userSuggestionFeedback row per action (not
+    // an upsert), so a retry would legitimately produce a second action — a
+    // fresh per-emission id counts each action exactly once.
     await this.productEvents.emitServerEvent(userId, {
       name: ProductEventName.suggestion_actioned,
       surface: ProductEventSurface.today,

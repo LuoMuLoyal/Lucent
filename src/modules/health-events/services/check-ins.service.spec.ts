@@ -280,6 +280,7 @@ describe('CheckInsService', () => {
       surface: ProductEventSurface.review,
       result: ProductEventResult.worsened,
       occurredAt: expect.any(Date),
+      clientEventId: `server-checkin-${EVENT_ID}-2026-07-20`,
     });
   });
 

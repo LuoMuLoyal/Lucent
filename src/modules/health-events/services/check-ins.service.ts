@@ -97,11 +97,14 @@ export class CheckInsService {
 
     // A successful check-in confirms the user's outcome for that day —
     // server-authoritative, emitted only after the upsert write succeeded.
+    // Deterministic clientEventId: the upsert is per (event, calendar date),
+    // so a retry yields the same id and the unique constraint dedupes it.
     await this.productEvents.emitServerEvent(userId, {
       name: ProductEventName.health_event_outcome_confirmed,
       surface: ProductEventSurface.review,
       result: toProductEventResult(outcome),
       occurredAt: now(),
+      clientEventId: `server-checkin-${eventId}-${date}`,
     });
     return checkIn;
   }

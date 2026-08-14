@@ -111,11 +111,14 @@ export class ShareService {
     });
 
     // Server-authoritative lifecycle event — emitted only after the share
-    // insert succeeded.
+    // insert succeeded. Deterministic clientEventId: a retry that re-runs
+    // this idempotent create (or the controller's best-effort cache-fallback
+    // revoke) is deduped by the (userId, clientEventId) unique constraint.
     await this.productEvents.emitServerEvent(userId, {
       name: ProductEventName.visit_summary_share_created,
       surface: ProductEventSurface.review,
       result: ProductEventResult.success,
+      clientEventId: `server-share-created-${record.id}`,
     });
 
     return {
@@ -172,10 +175,12 @@ export class ShareService {
     });
     if (result.count > 0) {
       // Server-authoritative lifecycle event — only after a real revocation.
+      // Deterministic clientEventId dedupes retries of this idempotent revoke.
       await this.productEvents.emitServerEvent(userId, {
         name: ProductEventName.visit_summary_share_revoked,
         surface: ProductEventSurface.review,
         result: ProductEventResult.success,
+        clientEventId: `server-share-revoked-${shareId}`,
       });
     }
     return result.count > 0;

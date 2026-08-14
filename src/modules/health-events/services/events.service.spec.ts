@@ -363,6 +363,7 @@ describe('EventsService', () => {
       result: ProductEventResult.success,
       eventStatus: HealthEventStatus.active,
       occurredAt: startedAt,
+      clientEventId: `server-health-started-${EVENT_ID}`,
     });
   });
 
@@ -394,6 +395,7 @@ describe('EventsService', () => {
       result: ProductEventResult.improved,
       eventStatus: HealthEventStatus.ended,
       occurredAt: expect.any(Date),
+      clientEventId: `server-health-ended-${EVENT_ID}`,
     });
   });
 
