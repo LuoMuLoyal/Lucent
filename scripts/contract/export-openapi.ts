@@ -1,10 +1,47 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { execSync } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 const { NestFactory } = require('@nestjs/core');
 const { ConfigService } = require('@nestjs/config');
 const { SwaggerModule } = require('@nestjs/swagger');
 const { FastifyAdapter } = require('@nestjs/platform-fastify');
+
+/**
+ * Format JSON with the repo's prettier config (scripts/format uses prettier).
+ * Keeps `docs/openapi.json` in the same style as a committed artifact, so
+ * re-running the export produces zero diff on a clean tree.
+ */
+async function formatJsonWithRepoPrettier(content, outputPath, repoRoot) {
+  const prettier = await import('prettier');
+  const prettierConfig = JSON.parse(
+    fs.readFileSync(path.resolve(repoRoot, '.prettierrc'), 'utf-8'),
+  );
+  return prettier.format(content, {
+    ...prettierConfig,
+    filepath: outputPath,
+  });
+}
+
+/**
+ * Match the worktree line-ending convention: with `core.autocrlf=true` (the
+ * Windows default) git checks files out as CRLF, so an LF write would show a
+ * cosmetic "modified" state until git touches the file. CI (autocrlf unset)
+ * keeps LF. Prettier emits LF; convert only when the worktree expects CRLF.
+ */
+function toWorktreeEol(content, repoRoot) {
+  try {
+    const autocrlf = execSync('git config --get core.autocrlf', {
+      cwd: repoRoot,
+      encoding: 'utf-8',
+    })
+      .trim()
+      .toLowerCase();
+    return autocrlf === 'true' ? content.replace(/\n/g, '\r\n') : content;
+  } catch {
+    return content;
+  }
+}
 
 async function main() {
   delete process.env.REDIS_URL;
@@ -40,11 +77,13 @@ async function main() {
   });
 
   const outputPath = path.resolve(repoRoot, 'docs', 'openapi.json');
-  fs.writeFileSync(
+  const json = `${JSON.stringify(document, null, 2)}\n`;
+  const formatted = await formatJsonWithRepoPrettier(
+    json,
     outputPath,
-    `${JSON.stringify(document, null, 2)}\n`,
-    'utf-8',
+    repoRoot,
   );
+  fs.writeFileSync(outputPath, toWorktreeEol(formatted, repoRoot), 'utf-8');
 
   console.log(`OpenAPI spec exported to: ${outputPath}`);
   console.log(`Paths: ${Object.keys(document.paths).length}`);

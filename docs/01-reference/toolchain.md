@@ -123,3 +123,4 @@ Last updated: 2026-08-14
     `createMany({ skipDuplicates: true })`，「至少一次投递」语义见
     [ADR-0011](adr/0011-reminder-delivery-at-least-once.md)。
 - **文档覆盖规则补全**（2026-08-14）：`docs/doc-map.yaml` 新增 `product-events`（`src/modules/product-events/**`）与 `data-retention`（`src/modules/data-retention/**`）两条规则，并在 `report-export` 规则追加 `docs/01-reference/data-retention.md`——此前这两个模块的代码变更无映射规则，隐私测量与保留策略的文档同步依赖人工。
+- **OpenAPI 导出格式收敛**（2026-08-14）：`scripts/contract/export-openapi.ts` 写盘前在进程内套用仓库 `.prettierrc` 格式化（prettier 3 ESM-only，`await import` 动态加载），并跟随工作树行尾约定（`core.autocrlf=true` 时为 CRLF），`pnpm export:openapi` 重复导出零 diff，不再依赖提交时的归一化。
