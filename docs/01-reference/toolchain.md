@@ -127,3 +127,4 @@ Last updated: 2026-08-14
 - **模块目录文档覆盖校验**（2026-08-14）：`pnpm docs:verify` 检查 `src/modules/*` 每个目录是否被 doc-map 至少一条规则的 `code` glob 命中（或显式豁免），新增模块不再能漏配文档治理；本次补 `audit-log` 规则。
 - **冻结文档语义**（2026-08-14）：front-matter `status: frozen` 标记有意冻结的文档（桌面/Web-freeze 等），豁免 90 天新鲜度检查但必须保留完整 front-matter；与 `status: stale`（应归档）语义区分。
 - **迁移日志条目约定**（2026-08-14）：日志条目描述变更范围与验证结论，不写需要持续同步的精确数字（如测试总数），见 AGENTS.md。
+- **文档工具链加固**（2026-08-14）：模块豁免列表参数化并补单测（常量命名对齐 `EXEMPT_*_PATTERNS` 前缀）、冻结豁免抽 `withoutFrozenDocs` 助手、导出脚本改 `prettier.resolveConfig` 解析配置并以临时文件原子写盘。

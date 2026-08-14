@@ -110,6 +110,18 @@ export function isFrozenDoc(content: string | undefined): boolean {
   return parseFrontMatter(content).status === 'frozen';
 }
 
+/**
+ * Paths that are NOT marked `status: frozen` in their front-matter. The git
+ * last-modified freshness check uses this so frozen docs stay exempt without
+ * duplicating the front-matter gate at every call site.
+ */
+export function withoutFrozenDocs(
+  paths: string[],
+  contentByPath: Record<string, string>,
+): string[] {
+  return paths.filter((path) => !isFrozenDoc(contentByPath[path]));
+}
+
 export interface DocCoverageRule {
   name: string;
   codePatterns: string[];
@@ -472,18 +484,21 @@ export const EXEMPT_UNREFERENCED_PATTERNS: string[] = [
  * Keep this list minimal — prefer adding a doc-map rule over an exemption.
  * Document the reason next to each entry.
  */
-export const MODULE_COVERAGE_EXEMPTIONS: string[] = [];
+export const EXEMPT_MODULE_PATTERNS: string[] = [];
 
 /**
  * Module dirs under `src/modules/*` not matched by any rule's `code` glob.
  * New modules must ship with a doc-map rule so their changes are governed.
+ * `exemptions` is injectable so the branch is testable; defaults to the
+ * documented exemption list.
  */
 export function findUncoveredModuleDirs(
   rules: DocCoverageRule[],
   moduleDirs: string[],
+  exemptions: string[] = EXEMPT_MODULE_PATTERNS,
 ): string[] {
   return moduleDirs.filter((dir) => {
-    if (MODULE_COVERAGE_EXEMPTIONS.includes(dir)) return false;
+    if (exemptions.includes(dir)) return false;
     // Every NestJS module has a `<name>.module.ts` at its root (repo convention);
     // probe with that file so both glob and literal code patterns can match.
     const probe = `src/modules/${dir}/${dir}.module.ts`;

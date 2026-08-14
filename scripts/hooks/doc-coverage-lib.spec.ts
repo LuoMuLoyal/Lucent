@@ -18,6 +18,7 @@ import {
   isFrontMatterRequired,
   parseDocMapYaml,
   parseFrontMatter,
+  withoutFrozenDocs,
 } from './doc-coverage-lib.ts';
 
 const SAMPLE_YAML = `
@@ -384,6 +385,15 @@ rules:
 `);
     expect(findUncoveredModuleDirs(literal, ['foo'])).toEqual([]);
   });
+  it('respects explicit exemptions', () => {
+    expect(
+      findUncoveredModuleDirs(
+        rules,
+        ['auth', 'audit-log', 'product-events'],
+        ['product-events', 'brand-new-module'],
+      ),
+    ).toEqual([]);
+  });
 });
 
 describe('isFrozenDoc', () => {
@@ -393,6 +403,43 @@ describe('isFrozenDoc', () => {
     expect(isFrozenDoc('---\nstatus: stale\n---\n# S')).toBe(false);
     expect(isFrozenDoc(undefined)).toBe(false);
     expect(isFrozenDoc('# No front-matter')).toBe(false);
+  });
+});
+
+describe('withoutFrozenDocs', () => {
+  it('drops paths marked status: frozen, keeps the rest', () => {
+    const contents: Record<string, string> = {
+      'docs/01-reference/f.md': `---
+status: frozen
+---`,
+      'docs/01-reference/a.md': `---
+status: active
+---`,
+      'docs/01-reference/s.md': `---
+status: stale
+---`,
+      'docs/01-reference/n.md': '# No front-matter',
+    };
+    expect(
+      withoutFrozenDocs(
+        [
+          'docs/01-reference/f.md',
+          'docs/01-reference/a.md',
+          'docs/01-reference/s.md',
+          'docs/01-reference/n.md',
+        ],
+        contents,
+      ),
+    ).toEqual([
+      'docs/01-reference/a.md',
+      'docs/01-reference/s.md',
+      'docs/01-reference/n.md',
+    ]);
+  });
+  it('keeps paths without content', () => {
+    expect(withoutFrozenDocs(['docs/01-reference/x.md'], {})).toEqual([
+      'docs/01-reference/x.md',
+    ]);
   });
 });
 

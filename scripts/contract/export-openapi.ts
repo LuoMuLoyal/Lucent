@@ -14,9 +14,7 @@ const { FastifyAdapter } = require('@nestjs/platform-fastify');
  */
 async function formatJsonWithRepoPrettier(content, outputPath, repoRoot) {
   const prettier = await import('prettier');
-  const prettierConfig = JSON.parse(
-    fs.readFileSync(path.resolve(repoRoot, '.prettierrc'), 'utf-8'),
-  );
+  const prettierConfig = await prettier.resolveConfig(repoRoot);
   return prettier.format(content, {
     ...prettierConfig,
     filepath: outputPath,
@@ -27,9 +25,12 @@ async function formatJsonWithRepoPrettier(content, outputPath, repoRoot) {
  * Match the worktree line-ending convention: with `core.autocrlf=true` (the
  * Windows default) git checks files out as CRLF, so an LF write would show a
  * cosmetic "modified" state until git touches the file. CI (autocrlf unset)
- * keeps LF. Prettier emits LF; convert only when the worktree expects CRLF.
+ * keeps LF. Prettier emits LF; convert only when the worktree expects CRLF —
+ * and never convert content that is already CRLF (e.g. a prettier config with
+ * `endOfLine: crlf`), which would corrupt it with `\r\r\n` sequences.
  */
 function toWorktreeEol(content, repoRoot) {
+  if (content.includes('\r\n')) return content;
   try {
     const autocrlf = execSync('git config --get core.autocrlf', {
       cwd: repoRoot,
@@ -83,7 +84,16 @@ async function main() {
     outputPath,
     repoRoot,
   );
-  fs.writeFileSync(outputPath, toWorktreeEol(formatted, repoRoot), 'utf-8');
+  // Write via temp file + rename so the committed artifact is replaced
+  // atomically (no partial file if the export fails midway).
+  const tmpPath = `${outputPath}.tmp`;
+  try {
+    fs.writeFileSync(tmpPath, toWorktreeEol(formatted, repoRoot), 'utf-8');
+    fs.renameSync(tmpPath, outputPath);
+  } catch (error) {
+    fs.rmSync(tmpPath, { force: true });
+    throw error;
+  }
 
   console.log(`OpenAPI spec exported to: ${outputPath}`);
   console.log(`Paths: ${Object.keys(document.paths).length}`);

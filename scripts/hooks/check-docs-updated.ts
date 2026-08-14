@@ -28,11 +28,11 @@ import {
   getTodayDate,
   getTodayLogPath,
   isActiveDoc,
-  isFrozenDoc,
   loadDocMap,
   buildReport,
   renderReport,
   STALE_DOC_THRESHOLD_DAYS,
+  withoutFrozenDocs,
 } from './doc-coverage-lib.ts';
 
 const SOURCE_CODE_PATTERNS: RegExp[] = [/^src\/.*\.ts$/];
@@ -164,9 +164,7 @@ function runVerify(repoRoot: string): void {
   );
   // Frozen docs are exempt from freshness checks; everything else is judged
   // by both front-matter `updated` and last git modification.
-  const unfrozenActiveDocs = activeDocs.filter(
-    (p) => !isFrozenDoc(contentByPath[p]),
-  );
+  const unfrozenActiveDocs = withoutFrozenDocs(activeDocs, contentByPath);
   problems.push(
     ...getStaleDocs(unfrozenActiveDocs, lastModified, today).map(
       (p) =>
