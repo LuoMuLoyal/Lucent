@@ -726,12 +726,13 @@ describe('Reports API (e2e)', () => {
           selectedFields: string[];
         }>,
       );
-      // Only the selected section is present; deselected sections never leak.
+      // Only the selected section plus the always-included allergies are
+      // present; other deselected sections never leak.
       expect(data.profile).toBeDefined();
-      expect(data.allergies).toBeUndefined();
+      expect(data.allergies).toBeDefined();
       expect(data.conditions).toBeUndefined();
       expect(data.currentMedicines).toBeUndefined();
-      expect(data.selectedFields).toEqual(['profile']);
+      expect(data.selectedFields).toEqual(['profile', 'allergies']);
     });
 
     it('should record exactly one access per public read (single recorder)', async () => {
