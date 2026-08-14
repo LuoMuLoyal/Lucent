@@ -38,7 +38,6 @@ v2.0.0 水平扩展时需验证多实例限流计数器在 Redis 中的正确性
 
 ### 高级可观测性（基础已完成）
 
-基础可观测性已就位（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标 + Alertmanager 告警规则）。以下为进阶项：
+基础可观测性已就位（Prometheus metrics + Grafana dashboards + LLM/BullMQ 指标 + Alertmanager 告警规则 + OpenTelemetry 分布式追踪：`src/tracing.ts`、`trace-context.utils.ts`、base-llm-generator 集成）。以下为进阶项：
 
-- OpenTelemetry 分布式追踪
 - 添加 synthetic uptime monitoring
