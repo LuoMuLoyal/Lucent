@@ -1,8 +1,8 @@
 import { config as loadEnv } from 'dotenv';
 import { ConfigService } from '@nestjs/config';
 import winston from 'winston';
-import { aiConfig } from '../../src/config/ai.config';
-import { EnvKey } from '../../src/config/env-keys.enum';
+import { EnvKey } from '../../src/config/env/env-keys.enum';
+import { llmConfig } from '../../src/config/services/llm.config';
 import { LlmRuntimeService } from '../../src/llm-runtime/services/llm-runtime.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
 import { MealAnalysisVisionService } from '../../src/modules/daily-records/services/meal-analysis/vision.service';
@@ -30,8 +30,8 @@ async function main() {
     transports: [new winston.transports.Console()],
   });
   const prisma = new PrismaService(configService, logger);
-  const llmRuntimeService = new LlmRuntimeService(aiConfig());
-  const safetyPolicyService = new LlmSafetyPolicyService(aiConfig());
+  const llmRuntimeService = new LlmRuntimeService(llmConfig());
+  const safetyPolicyService = new LlmSafetyPolicyService(llmConfig());
   const mealAnalysisVisionService = new MealAnalysisVisionService(
     llmRuntimeService,
     safetyPolicyService,

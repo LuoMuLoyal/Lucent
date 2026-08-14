@@ -84,7 +84,7 @@ export function successEnvelope<T>(data: T): ApiEnvelope<T> {
 export function errorEnvelope(
   code: ResultCode,
   message: string,
-): ApiEnvelope<never> {
+): ApiEnvelope<null> {
   return {
     code,
     message,
