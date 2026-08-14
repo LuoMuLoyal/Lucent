@@ -488,6 +488,174 @@ describe('Reports API (e2e)', () => {
     });
   });
 
+  describe('GET /api/v1/user/reports/clinic-summary/shares', () => {
+    it('should return 401 for unauthenticated request', async () => {
+      await request(app.getHttpServer()).get(CLINIC_SHARES_PATH).expect(401);
+    });
+
+    it('should list the current user shares shaped without token fields', async () => {
+      const shareRes = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
+        .expect(201);
+      const created = expectData(
+        shareRes.body as ApiEnvelope<{ shareId: string; token: string }>,
+      );
+
+      const response = await request(app.getHttpServer())
+        .get(CLINIC_SHARES_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      const body = response.body as ApiEnvelope<{
+        items: Array<{
+          id: string;
+          createdAt: string;
+          expiresAt: string;
+          revokedAt: string | null;
+          accessCount: number;
+          firstAccessedAt: string | null;
+          lastAccessedAt: string | null;
+          scope: {
+            eventId: string | null;
+            dateFrom: string | null;
+            dateTo: string | null;
+          };
+          selectedFields: string[];
+        }>;
+      }>;
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      const data = expectData(body);
+      expect(Array.isArray(data.items)).toBe(true);
+
+      const item = data.items.find((s) => s.id === created.shareId);
+      expect(item).toBeDefined();
+      expect(item!.createdAt).toBeTruthy();
+      expect(new Date(item!.expiresAt).getTime()).toBeGreaterThan(Date.now());
+      expect(item!.revokedAt).toBeNull();
+      expect(item!.accessCount).toBe(0);
+      expect(item!.firstAccessedAt).toBeNull();
+      expect(item!.lastAccessedAt).toBeNull();
+      expect(item!.scope).toEqual({
+        eventId: null,
+        dateFrom: '2026-07-01T00:00:00.000Z',
+        dateTo: '2026-07-30T00:00:00.000Z',
+      });
+      expect(Array.isArray(item!.selectedFields)).toBe(true);
+      expect(item!.selectedFields.length).toBeGreaterThan(0);
+
+      // The plaintext token is returned exactly once at creation; it must
+      // never appear anywhere in the list payload.
+      expect(JSON.stringify(data.items)).not.toContain(created.token);
+      for (const s of data.items) {
+        expect(s).not.toHaveProperty('token');
+        expect(s).not.toHaveProperty('tokenHash');
+      }
+    });
+
+    it('should list shares newest first, revoked shares included', async () => {
+      const firstRes = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
+        .expect(201);
+      const first = expectData(
+        firstRes.body as ApiEnvelope<{ shareId: string }>,
+      );
+
+      // Short delay so the two createdAt timestamps are distinct.
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const secondRes = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(accessToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
+        .expect(201);
+      const second = expectData(
+        secondRes.body as ApiEnvelope<{ shareId: string }>,
+      );
+
+      // Revoke the older share: revoked shares stay listed with revokedAt.
+      await request(app.getHttpServer())
+        .delete(`${CLINIC_SHARES_PATH}/${first.shareId}`)
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+
+      const response = await request(app.getHttpServer())
+        .get(CLINIC_SHARES_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+      const data = expectData(
+        response.body as ApiEnvelope<{
+          items: Array<{
+            id: string;
+            createdAt: string;
+            revokedAt: string | null;
+          }>;
+        }>,
+      );
+
+      const ids = data.items.map((s) => s.id);
+      expect(ids).toContain(first.shareId);
+      expect(ids).toContain(second.shareId);
+      expect(ids.indexOf(second.shareId)).toBeLessThan(
+        ids.indexOf(first.shareId),
+      );
+      // createdAt desc across the whole list.
+      const createdTimes = data.items.map((s) =>
+        new Date(s.createdAt).getTime(),
+      );
+      for (let i = 1; i < createdTimes.length; i += 1) {
+        expect(createdTimes[i - 1]!).toBeGreaterThanOrEqual(createdTimes[i]!);
+      }
+      const revoked = data.items.find((s) => s.id === first.shareId);
+      expect(revoked!.revokedAt).not.toBeNull();
+    });
+
+    it('should never expose other users shares', async () => {
+      const otherUser = await createTestUser(
+        ctx.prisma,
+        undefined,
+        'ShareListForeignUser',
+      );
+      const otherToken = await createAccessToken(
+        ctx.jwtService,
+        ctx.configService,
+        otherUser.id,
+        otherUser.email,
+      );
+      const foreignRes = await request(app.getHttpServer())
+        .post(CLINIC_SHARE_PATH)
+        .set('Authorization', bearer(otherToken))
+        .send({ dateFrom: '2026-07-01', dateTo: '2026-07-30' })
+        .expect(201);
+      const foreignShareId = expectData(
+        foreignRes.body as ApiEnvelope<{ shareId: string }>,
+      ).shareId;
+
+      // The main user's list must not contain the foreign share…
+      const myRes = await request(app.getHttpServer())
+        .get(CLINIC_SHARES_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(200);
+      const myItems = expectData(
+        myRes.body as ApiEnvelope<{ items: Array<{ id: string }> }>,
+      ).items;
+      expect(myItems.some((s) => s.id === foreignShareId)).toBe(false);
+
+      // …and the foreign user sees exactly their own share.
+      const foreignListRes = await request(app.getHttpServer())
+        .get(CLINIC_SHARES_PATH)
+        .set('Authorization', bearer(otherToken))
+        .expect(200);
+      const foreignItems = expectData(
+        foreignListRes.body as ApiEnvelope<{ items: Array<{ id: string }> }>,
+      ).items;
+      expect(foreignItems.map((s) => s.id)).toEqual([foreignShareId]);
+    });
+  });
+
   describe('GET /api/v1/user/reports/clinic-summary/shared/:token', () => {
     it('should return 404 for an invalid or expired token', async () => {
       await request(app.getHttpServer())

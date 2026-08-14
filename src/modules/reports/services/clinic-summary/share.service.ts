@@ -65,6 +65,28 @@ export interface ShareReadModel {
 }
 
 /**
+ * One entry of the owner's share list — same hygiene as `ShareReadModel`
+ * (never the raw entity, so `tokenHash`/`token`/`userId` cannot leak), plus
+ * `createdAt` for the management UI's ordering. Field is `id` (not `shareId`)
+ * because the list item is the record itself, not a create/open result.
+ */
+export interface ShareListItemReadModel {
+  id: string;
+  createdAt: Date;
+  expiresAt: Date;
+  revokedAt: Date | null;
+  accessCount: number;
+  firstAccessedAt: Date | null;
+  lastAccessedAt: Date | null;
+  scope: {
+    eventId: string | null;
+    dateFrom: Date | null;
+    dateTo: Date | null;
+  };
+  selectedFields: ClinicSummaryShareField[];
+}
+
+/**
  * Persisted, revocable clinic-summary shares. Only the sha256 token hash is
  * stored; no summary JSON and no plaintext token are ever persisted. The
  * response is rebuilt from the current authorized scope on each open, so the
@@ -165,6 +187,33 @@ export class ShareService {
     if (result.count === 0) return null;
 
     return { ...this.toReadModel(record), accessCount: record.accessCount + 1 };
+  }
+
+  /**
+   * Read-only list of the caller's shares, newest first. Revoked shares stay
+   * listed (the management UI shows them with `revokedAt`); only the shaped
+   * list item model is ever returned, so the token hash can never leak.
+   */
+  async listSharesForUser(userId: string): Promise<ShareListItemReadModel[]> {
+    const records = await this.prisma.userClinicSummaryShare.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return records.map((record) => ({
+      id: record.id,
+      createdAt: record.createdAt,
+      expiresAt: record.expiresAt,
+      revokedAt: record.revokedAt,
+      accessCount: record.accessCount,
+      firstAccessedAt: record.firstAccessedAt,
+      lastAccessedAt: record.lastAccessedAt,
+      scope: {
+        eventId: record.eventId,
+        dateFrom: record.dateFrom,
+        dateTo: record.dateTo,
+      },
+      selectedFields: record.selectedFields,
+    }));
   }
 
   /** Ownership-scoped revoke. Returns false for unknown ids or non-owners. */

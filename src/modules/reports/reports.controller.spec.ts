@@ -83,6 +83,7 @@ describe('ReportsController', () => {
           provide: ShareService,
           useValue: {
             createShare: vi.fn(),
+            listSharesForUser: vi.fn(),
             revokeShare: vi.fn(),
           },
         },
@@ -551,6 +552,72 @@ describe('ReportsController', () => {
     // The persisted grant is rolled back so no orphaned share can outlive a
     // view the public gate can never serve.
     expect(shareService.revokeShare).toHaveBeenCalledWith('u1', 'share-1');
+  });
+
+  // ── listClinicSummaryShares ────────────────────────────────────────────
+
+  it('lists the current user shares in the list envelope without token fields', async () => {
+    shareService.listSharesForUser.mockResolvedValue([
+      {
+        id: 'share-1',
+        createdAt: new Date('2026-08-14T08:00:00.000Z'),
+        expiresAt: new Date('2026-08-21T08:00:00.000Z'),
+        revokedAt: null,
+        accessCount: 2,
+        firstAccessedAt: new Date('2026-08-15T08:00:00.000Z'),
+        lastAccessedAt: new Date('2026-08-16T08:00:00.000Z'),
+        scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
+        selectedFields: ['event_overview'],
+      },
+    ]);
+
+    const result = await controller.listClinicSummaryShares({
+      sub: 'u1',
+      email: 'a@b.c',
+      status: 'active',
+    });
+
+    expect(shareService.listSharesForUser).toHaveBeenCalledWith('u1');
+    expect(result).toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: {
+        items: [
+          {
+            id: 'share-1',
+            createdAt: new Date('2026-08-14T08:00:00.000Z'),
+            expiresAt: new Date('2026-08-21T08:00:00.000Z'),
+            revokedAt: null,
+            accessCount: 2,
+            firstAccessedAt: new Date('2026-08-15T08:00:00.000Z'),
+            lastAccessedAt: new Date('2026-08-16T08:00:00.000Z'),
+            scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
+            selectedFields: ['event_overview'],
+          },
+        ],
+      },
+    });
+    // The list payload mirrors the service read model: no token ever surfaces.
+    expect(result.data!.items[0]).not.toHaveProperty('tokenHash');
+    expect(result.data!.items[0]).not.toHaveProperty('token');
+  });
+
+  it('scopes the list query to the caller so foreign shares never leak', async () => {
+    shareService.listSharesForUser.mockResolvedValue([]);
+
+    await controller.listClinicSummaryShares({
+      sub: 'u1',
+      email: 'a@b.c',
+      status: 'active',
+    });
+    await controller.listClinicSummaryShares({
+      sub: 'u2',
+      email: 'b@c.d',
+      status: 'active',
+    });
+
+    expect(shareService.listSharesForUser).toHaveBeenNthCalledWith(1, 'u1');
+    expect(shareService.listSharesForUser).toHaveBeenNthCalledWith(2, 'u2');
   });
 
   // ── getSharedClinicSummary ────────────────────────────────────────────

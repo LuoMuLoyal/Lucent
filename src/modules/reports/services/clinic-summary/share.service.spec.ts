@@ -35,6 +35,7 @@ interface ShareRow {
 
 type ShareStore = {
   findFirst: vi.Mock;
+  findMany: vi.Mock;
   create: vi.Mock;
   updateMany: vi.Mock;
 };
@@ -52,6 +53,14 @@ function makeShareStore(rows: ShareRow[]): ShareStore {
           return Promise.resolve(null);
         }
         return Promise.resolve(row);
+      },
+    ),
+    findMany: vi.fn(
+      (args: { where: { userId: string }; orderBy: { createdAt: 'desc' } }) => {
+        const owned = rows
+          .filter((r) => r.userId === args.where.userId)
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        return Promise.resolve(owned);
       },
     ),
     create: vi.fn(),
@@ -446,6 +455,119 @@ describe('ShareService', () => {
       expect(result!.expiresAt).toBeInstanceOf(Date);
       expect(result).not.toHaveProperty('tokenHash');
       expect(result).not.toHaveProperty('userId');
+    });
+  });
+
+  describe('listSharesForUser', () => {
+    const makeRow = (overrides: Partial<ShareRow> = {}): ShareRow => ({
+      id: 'share-1',
+      userId: 'user-1',
+      tokenHash: sha256('token-1'),
+      eventId: 'evt-1',
+      dateFrom: null,
+      dateTo: null,
+      selectedFields: ['event_overview'],
+      expiresAt: new Date('2026-08-21T00:00:00.000Z'),
+      revokedAt: null,
+      firstAccessedAt: null,
+      lastAccessedAt: null,
+      accessCount: 0,
+      createdAt: new Date('2026-08-14T08:00:00.000Z'),
+      ...overrides,
+    });
+
+    const makeService = (store: ShareStore): ShareService => {
+      const testPrisma = {
+        userClinicSummaryShare: store,
+      } as unknown as DeepMocked<PrismaService>;
+      return new ShareService(testPrisma, {
+        emitServerEvent,
+      } as unknown as ProductEventsService);
+    };
+
+    it('queries with the userId scope and createdAt desc ordering', async () => {
+      const store = makeShareStore([]);
+      service = makeService(store);
+
+      await service.listSharesForUser('user-1');
+
+      expect(store.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+
+    it('returns only the caller shares, newest first, revoked shares included', async () => {
+      const store = makeShareStore([
+        makeRow({
+          id: 'share-old',
+          createdAt: new Date('2026-08-01T00:00:00.000Z'),
+        }),
+        makeRow({
+          id: 'share-revoked',
+          createdAt: new Date('2026-08-10T00:00:00.000Z'),
+          revokedAt: new Date('2026-08-12T00:00:00.000Z'),
+        }),
+        makeRow({
+          id: 'share-new',
+          createdAt: new Date('2026-08-14T08:00:00.000Z'),
+        }),
+        // Foreign share — must never appear in the caller's list.
+        makeRow({
+          id: 'share-foreign',
+          userId: 'user-2',
+          createdAt: new Date('2026-08-14T09:00:00.000Z'),
+        }),
+      ]);
+      service = makeService(store);
+
+      const result = await service.listSharesForUser('user-1');
+
+      expect(result.map((s) => s.id)).toEqual([
+        'share-new',
+        'share-revoked',
+        'share-old',
+      ]);
+      expect(result[1]?.revokedAt).toEqual(
+        new Date('2026-08-12T00:00:00.000Z'),
+      );
+    });
+
+    it('returns an empty list for a user with no shares', async () => {
+      const store = makeShareStore([makeRow({ userId: 'user-2' })]);
+      service = makeService(store);
+
+      const result = await service.listSharesForUser('user-1');
+
+      expect(result).toEqual([]);
+    });
+
+    it('returns a shaped list item without tokenHash, token or userId', async () => {
+      const store = makeShareStore([
+        makeRow({
+          accessCount: 3,
+          firstAccessedAt: new Date('2026-08-15T00:00:00.000Z'),
+          lastAccessedAt: new Date('2026-08-16T12:00:00.000Z'),
+        }),
+      ]);
+      service = makeService(store);
+
+      const [item] = await service.listSharesForUser('user-1');
+
+      expect(item).toMatchObject({
+        id: 'share-1',
+        createdAt: new Date('2026-08-14T08:00:00.000Z'),
+        expiresAt: new Date('2026-08-21T00:00:00.000Z'),
+        revokedAt: null,
+        accessCount: 3,
+        firstAccessedAt: new Date('2026-08-15T00:00:00.000Z'),
+        lastAccessedAt: new Date('2026-08-16T12:00:00.000Z'),
+        scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
+        selectedFields: ['event_overview'],
+      });
+      expect(item).not.toHaveProperty('tokenHash');
+      expect(item).not.toHaveProperty('token');
+      expect(item).not.toHaveProperty('userId');
     });
   });
 

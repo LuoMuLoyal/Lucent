@@ -59,6 +59,7 @@ import {
   ClinicSummaryDto,
   ClinicSummaryShareResponseDto,
 } from './dto/clinic-summary-response.dto';
+import { ClinicSummaryShareListResponseDto } from './dto/clinic-summary-share-list.dto';
 import {
   ClinicSummaryRequestDto,
   CLINIC_SUMMARY_SELECTABLE_FIELDS,
@@ -407,6 +408,17 @@ export class ReportsController {
         dateTo: share.scope.dateTo?.toISOString() ?? null,
       },
       selectedFields: share.selectedFields,
+    });
+  }
+
+  @Get('clinic-summary/shares')
+  @ApiOperation({
+    summary: 'List the clinic summary shares of the authenticated user',
+  })
+  @ApiResponse({ status: 200, type: ClinicSummaryShareListResponseDto })
+  async listClinicSummaryShares(@CurrentUser() user: UserPayload) {
+    return successEnvelope({
+      items: await this.shareService.listSharesForUser(user.sub),
     });
   }
 
