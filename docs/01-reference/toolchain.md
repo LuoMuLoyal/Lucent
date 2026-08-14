@@ -122,3 +122,4 @@ Last updated: 2026-08-14
     `@@unique([userId, reminderId, scheduledFor])`（迁移含历史重复清理），scheduler 写入改
     `createMany({ skipDuplicates: true })`，「至少一次投递」语义见
     [ADR-0011](adr/0011-reminder-delivery-at-least-once.md)。
+- **文档覆盖规则补全**（2026-08-14）：`docs/doc-map.yaml` 新增 `product-events`（`src/modules/product-events/**`）与 `data-retention`（`src/modules/data-retention/**`）两条规则，并在 `report-export` 规则追加 `docs/01-reference/data-retention.md`——此前这两个模块的代码变更无映射规则，隐私测量与保留策略的文档同步依赖人工。

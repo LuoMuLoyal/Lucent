@@ -10,6 +10,7 @@ Lucent NestJS 后端的文档库。**活跃文档最小化**——只有会被 A
 - **参考（reference）**：事实清单，给正在实现/排查功能的人
   - [[01-reference/environment]]、[[01-reference/environment-variables]]、
     [[01-reference/toolchain]]、[[01-reference/code-quality]]、[[01-reference/deployment]]、
+    [[01-reference/data-retention]]（数据保留与账户删除语义）、
     [[01-reference/contracts/README]]（前后端 API 边界）、[[Glossary]]
 - **操作指南（how-to）**：完成任务的最小可执行步骤
   - [[01-reference/how-to/README]]（新增模块 / 部署 / 备份恢复 / 药品导入 / 客户端同步）
@@ -44,6 +45,7 @@ Lucent NestJS 后端的文档库。**活跃文档最小化**——只有会被 A
 - `01-reference/environment.md`（参考）— 本地环境、Docker、脚本与运行时基线
 - `01-reference/environment-variables.md`（参考）— 环境变量完整参考（唯一事实源）
 - `01-reference/deployment.md`（参考）— 生产部署模型参考
+- `01-reference/data-retention.md`（参考）— 数据保留、清理管道与账户删除级联
 - `01-reference/toolchain.md`（参考）— 工具链、OpenAPI 导出、CI、hooks
 - `01-reference/code-quality.md`（参考）— 代码质量与可维护性约定
 - `01-reference/adr/`（决策）— 架构决策记录

@@ -15,6 +15,7 @@ Last updated: 2026-08-14
 - 设计决策（阈值口径）：漏斗小样本阈值作用于**窗口级**核心事件总数（五阶段计数之和），不按单日分组判定——窗口总数低于 `MIN_FUNNEL_GROUP_SIZE` 时整窗抑制 daily 细节。
 - 设计决策（计数口径）：漏斗计数是去重后的**事件**计数（`(userId, clientEventId)` 唯一约束去重），不是去重用户数；阶段比值不构成转化率。
 - 健康事件服务端事件（started/ended/outcome_confirmed）、建议 actioned 与分享生命周期事件的上报发射保持不变；记录率以保存成功为分子（`recorded`），客户端 quick-entry tap 计数不参与任何服务端指标。
+- Product Measurement Task 10（收口）已完成：保留策略写入 `01-reference/data-retention.md`（原始产品事件 90 天按 occurredAt 清理、账户硬删除 FK 级联即时清除、分享 7 天 TTL + token 仅哈希存储 + 撤销、漏斗无持久化聚合故窗口受原始保留期约束）；安全扫描确认新代码无明文 token/症状/药名/note 进入日志、Sentry breadcrumb、指标标签（`product_event_emission_failure_total` 仅固定事件名标签）与产品事件载荷；Luminous 侧公开分享页信封兼容修复（raw Dio 解信封 + 缺省 section 补齐）与漏斗合同模型同步已完成，撤销后 Web/PDF 均 404。
 
 Health Event Contract 已完成后端合同、持久化、所有权校验、领域事件和 OpenAPI 导出；Proactive Suggestion Runtime 已完成 Task 7 的后台重算、baseline observation、reminder slot 评估和 Today Analysis 物化接线。
 
@@ -62,9 +63,17 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - Review Experience Task 2 验证：四个 section spec 26 tests、review service spec 13 tests、ownership/repository/reader port 定向测试通过；全量 `pnpm test`（299 files / 3128 tests）、`pnpm typecheck`、`pnpm lint:check --max-warnings=0` 通过。controller/endpoint 尚未接入，OpenAPI 暂无新增 path。
 - Review Experience Task 3 验证：reports 模块 19 files / 170 tests（controller spec 新增 current/list/:eventId 四用例 + 旧 endpoint 回归保留）、health-events 模块 5 files / 47 tests 通过；`pnpm export:openapi` 生成 117 paths / 272 schemas，语义 diff 仅新增 3 个 review path 与 14 个 EventReview schema，旧 dashboard path 确认保留；`pnpm typecheck`、`pnpm lint:check --max-warnings=0`、`pnpm docs:check` 通过。复审验证：reports e2e 26 tests（含 review 5 tests，test runtime PostgreSQL 实跑）、reports + health-events 单元 24 files / 218 tests 通过；limit schema 语义 diff 仅 type number→integer + 新增 minimum。
 - Review Experience Task 10 全量验证：Lucent `pnpm lint:check`、`pnpm typecheck`、`pnpm test`（299 files / 3141 tests）、`pnpm build`、`pnpm export:openapi`（117 paths / 272 schemas，语义无变化，工作区文件维持既有 prettier 格式）、`pnpm docs:check`、`pnpm docs:verify`（references/H1/front-matter/freshness/readership 全过）、`pnpm docs:links`（110 个 markdown 文件无坏链）通过；Luminous `dart run scripts/bootstrap_generated_sources.dart`、`flutter analyze`、`flutter test`（3067 passed / 1 skipped 为既有）、`dart run scripts/run_daily_checks.dart`、`dart run scripts/check_doc_coverage.dart --warning-only`、`dart run scripts/check_doc_links.dart` 通过；双仓 `git diff --check` 无空白错误。
+- Workstream 2（Visit Summary and Product Measurement）Task 10 全量验证：Lucent `pnpm lint:check`、`pnpm typecheck`、`pnpm test`（304 files / 3287 tests）、`pnpm build`、`pnpm export:openapi`（121 paths / 290 schemas，语义零变化）、`pnpm docs:check`、`pnpm docs:verify`、`pnpm docs:links`（111 个 markdown 文件无坏链）、`pnpm test:security`（4 files / 62 tests）、`pnpm test:e2e`（30 files / 449 tests，含 reports 分享闭环「preview → 字段选择 → PDF → share → 公开打开 ×2 → PDF → accessCount=3 → 撤销 → GET/PDF 均 404」与漏斗「核心/optional 分离、optional 为零不影响核心」断言）全绿；Luminous `dart run scripts/bootstrap_generated_sources.dart`（两次运行无漂移）、`flutter analyze`（零问题）、`flutter test`（3119 passed / 1 skipped 为既有）、`dart run scripts/run_daily_checks.dart`、`dart run scripts/check_doc_coverage.dart --warning-only`、`dart run scripts/check_doc_links.dart`（137 文件无坏链）通过；桌面闭环 e2e（`integration_test/report/review_closed_loop_e2e_test.dart`）`-d windows` 实跑 1 test 通过；移动端实机运行仍受环境限制（Windows 桌面宿主，未伪造结果）。
 
 ## 下一阶段
 
-Review Experience（Workstream 1）已完成收口：第五 Tab 用户任务为事件优先「回顾」，`/report` 保留为兼容路由（深链与 shell 行为不变），旧 dashboard 仅经「更多 → 历史报告」（`/report/legacy`）可达，桌面/Web 未做功能对等，旧 dashboard 代码尚未删除（删除评估留待兼容期结束）。`buildCurrent` 双重读取收敛为低优先级遗留项，`doseLogSources` capped 判定与 red flag 用户级限制保持文档化限制；Report legacy scalar fallback 在兼容期内继续保留（已标记 deprecated）。
+Review Experience（Workstream 1）与 Visit Summary and Product Measurement（Workstream 2）均已收口，产品闭环程序（`Luminous/plans/2026-08-07-product-loop-program.md` 及子计划）实施完毕文件已删：健康事件、建议曝光/处理、回顾打开与可选就诊摘要出口（preview/export/share/open）全链路可测量（服务端权威事件 + 客户端成功边界 + 管理员漏斗），分享可撤销、7 天有效、token 仅存哈希，字段级隐私默认不含自由文本备注。
 
-下一阶段为 **Visit Summary and Product Measurement（Workstream 2）**，计划见 `Luminous/plans/2026-08-07-visit-summary-and-product-measurement.md`：clinic summary 改为 event/date scope + 字段选择 + 可撤销 share record（修正固定 `last_30_days`、findings 恒空与 share URL 缺 `/user` 的合同错误），产品行为事件进入独立低敏表（固定 event name/surface/success，无症状/药名/note/token 等健康内容），Luminous 只在用户真实看到或操作成功后上报；导出与分享不反向阻塞核心闭环。Proactive Suggestion Runtime 保留为已完成的服务端主动重算基础。
+后续按延后项推进（见 `docs/00-current/TODO.md` 与 Luminous Next_Plan/ROADMAP）：
+
+- **B2**：环境数据接入真实天气 API（v1.1.0，替换静态数据源）
+- **B3**：多实例限流验证（v2.0.0 水平扩展时验证 Redis 计数器）
+- **B4**：账户删除流程增加匿名化数据导出 → 数据可移植性 JSON 导出（GDPR/PIPL）
+- 高级可观测性：OpenTelemetry 分布式追踪、synthetic uptime monitoring
+- 合同债：clinic summary 四个 section 键服务端改可选（当前客户端占位反序列化）
+- 兼容期清理评估：legacy dashboard 代码删除、`createShareLink` 清理（Task 4 标记）、Report legacy scalar fallback
