@@ -150,10 +150,11 @@ export class ClinicSummaryDto {
   end!: string;
 
   @ApiProperty({
+    type: String,
+    isArray: true,
     description:
       'Effective included sections after field selection ' +
       '(profile/allergies/conditions/currentMedicines).',
-    isArray: true,
   })
   selectedFields!: string[];
 

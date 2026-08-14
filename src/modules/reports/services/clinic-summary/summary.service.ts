@@ -32,7 +32,7 @@ import { ClinicSummaryPdfService } from './pdf.service';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
-} from './summary-view.model';
+} from './summary-view';
 
 const SHARE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SHARE_KEY_PREFIX = 'clinic-share:';
@@ -53,9 +53,15 @@ export interface ClinicSummaryOptions {
   range?: string;
   /** Event scope; wins over range/dateFrom/dateTo when supplied. */
   eventId?: string;
-  /** Date-range scope start (YYYY-MM-DD); both dates required. */
+  /**
+   * Date-range scope start (YYYY-MM-DD, inclusive calendar day); both
+   * dates required.
+   */
   dateFrom?: string;
-  /** Date-range scope end (YYYY-MM-DD); span capped at 30 days. */
+  /**
+   * Date-range scope end (YYYY-MM-DD, inclusive calendar day); both dates
+   * required; span capped at `CLINIC_SUMMARY_MAX_RANGE_DAYS` inclusive days.
+   */
   dateTo?: string;
   /** Sections to include; omit for all sections. */
   selectedFields?: string[];
@@ -64,7 +70,12 @@ export interface ClinicSummaryOptions {
 interface ResolvedScope {
   scopeLabel: string;
   dataRange: string;
+  /** Window start (ISO 8601). Calendar-day scopes: 00:00 UTC of the first covered day. */
   start: string;
+  /**
+   * Window end (ISO 8601), EXCLUSIVE. Calendar-day scopes: 00:00 UTC of the
+   * day AFTER the last covered day; event scopes: the exact endedAt/now.
+   */
   end: string;
   review: EventReviewDataDto | null;
 }
@@ -193,27 +204,32 @@ export class ClinicSummaryService {
     // Gate the cached copy against the persisted share grant: revoked or
     // expired shares are denied even when a cached copy exists. A missing
     // store record means a legacy pre-persistence share — the cache copy is
-    // its only source of truth (expiry is handled by the cache TTL).
+    // its only source of truth (expiry is handled by the cache TTL), so no
+    // gate applies.
     const record = await this.prisma.userClinicSummaryShare.findFirst({
       where: { tokenHash },
     });
     if (record == null) return cached;
-    const nowMs = Date.now();
-    if (record.revokedAt != null || record.expiresAt.getTime() <= nowMs) {
+    const nowDate = new Date();
+    if (
+      record.revokedAt != null ||
+      record.expiresAt.getTime() <= nowDate.getTime()
+    ) {
       return null;
     }
 
-    const accessedAt = new Date();
-    await this.prisma.userClinicSummaryShare.update({
-      where: { id: record.id },
+    // Guarded write closes the read→write race (ShareService pattern): the
+    // WHERE re-checks revokedAt/expiresAt, so a share revoked mid-flight
+    // records no access and yields null instead of serving the cached copy.
+    const result = await this.prisma.userClinicSummaryShare.updateMany({
+      where: { id: record.id, revokedAt: null, expiresAt: { gt: nowDate } },
       data: {
         accessCount: { increment: 1 },
-        lastAccessedAt: accessedAt,
-        ...(record.firstAccessedAt == null
-          ? { firstAccessedAt: accessedAt }
-          : {}),
+        lastAccessedAt: nowDate,
+        ...(record.firstAccessedAt == null ? { firstAccessedAt: nowDate } : {}),
       },
     });
+    if (result.count === 0) return null;
     return cached;
   }
 
@@ -267,8 +283,14 @@ export class ClinicSummaryService {
       badRequest(`不支持的 summary 范围: ${range}`);
     }
 
-    // Custom date range (both bounds required, span capped at the existing
-    // product safety cap — the legacy summary never exceeded 30 days).
+    // Custom date range. Semantics: the window covers dateFrom..dateTo
+    // INCLUSIVE (both calendar days, UTC); the response `end` is the
+    // exclusive upper bound (dateTo + 1 day at 00:00 UTC). The span is
+    // capped at the existing product safety cap — at most
+    // CLINIC_SUMMARY_MAX_RANGE_DAYS inclusive calendar days. Note: findings
+    // and coverage are still bound to the current/relevant event review (or
+    // 资料不足 when none exists) and do NOT honor the date window yet —
+    // content-window binding is a later task.
     if (options.dateFrom != null || options.dateTo != null) {
       if (options.dateFrom == null || options.dateTo == null) {
         badRequest('dateFrom 与 dateTo 必须同时指定');
@@ -287,7 +309,9 @@ export class ClinicSummaryService {
       if (spanDays < 0) {
         badRequest('dateFrom 不能晚于 dateTo');
       }
-      if (spanDays > CLINIC_SUMMARY_MAX_RANGE_DAYS) {
+      // spanDays is the day DIFFERENCE; the inclusive calendar-day count is
+      // spanDays + 1 (dateFrom == dateTo is a valid single-day window).
+      if (spanDays + 1 > CLINIC_SUMMARY_MAX_RANGE_DAYS) {
         badRequest(
           `日期范围不能超过 ${String(CLINIC_SUMMARY_MAX_RANGE_DAYS)} 天`,
         );
@@ -296,14 +320,15 @@ export class ClinicSummaryService {
         scopeLabel: 'custom',
         dataRange: 'custom',
         start: startDate.toISOString(),
-        end: endDate.toISOString(),
+        end: new Date(endDate.getTime() + MS_PER_DAY).toISOString(),
         review,
       };
     }
 
-    const end = now();
-    const start = new Date(end);
-    start.setUTCDate(start.getUTCDate() - (days - 1));
+    // Fixed ranges follow the same calendar-day convention: [start, end)
+    // covers `days` inclusive UTC calendar days ending today.
+    const end = this.startOfNextUtcDay();
+    const start = new Date(end.getTime() - days * MS_PER_DAY);
     return {
       scopeLabel: range,
       dataRange: range,
@@ -311,6 +336,13 @@ export class ClinicSummaryService {
       end: end.toISOString(),
       review,
     };
+  }
+
+  /** 00:00 UTC of the day after today — the exclusive end of today's window. */
+  private startOfNextUtcDay(): Date {
+    const today = now();
+    today.setUTCHours(0, 0, 0, 0);
+    return new Date(today.getTime() + MS_PER_DAY);
   }
 
   // ── Findings & coverage (event-review facts only) ─────────

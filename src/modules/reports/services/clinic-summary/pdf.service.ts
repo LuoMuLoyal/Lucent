@@ -8,7 +8,7 @@ import type {
   ClinicSummaryMedicineDto,
   ClinicSummaryProfileDto,
 } from '../../dto/clinic-summary-response.dto';
-import type { ClinicSummarySectionView } from './summary-view.model';
+import type { ClinicSummarySectionView } from './summary-view';
 import {
   CONTENT_WIDTH,
   MARGIN_X,
@@ -27,6 +27,9 @@ import {
 
 const FONT_PATH =
   require.resolve('@fontpkg/source-han-sans-sc-vf/SourceHanSansSC-VF.otf');
+
+/** Fixed 资料不足 finding code — localized on the PDF instead of raw. */
+const INSUFFICIENT_COVERAGE_CODE = 'insufficient_coverage';
 
 @Injectable()
 export class ClinicSummaryPdfService {
@@ -142,11 +145,20 @@ export class ClinicSummaryPdfService {
   ): void {
     // Findings are structured fact/change codes reused from the event review
     // (Luminous localizes them in the UI); the PDF prints the codes verbatim
-    // so it never fabricates copy.
+    // so it never fabricates copy. The single fixed 资料不足 statement
+    // (`insufficient_coverage`) is rendered as localized text instead of a
+    // raw code — it is the one finding whose meaning must be readable by a
+    // doctor without the client.
+    const codeLabel = (code: string): string =>
+      code === INSUFFICIENT_COVERAGE_CODE
+        ? isZh
+          ? '资料不足'
+          : 'Insufficient data'
+        : code;
     for (const code of findings) {
       ensureSpace(context, 1);
       const rowY = context.cursorY;
-      context.page.drawText(`• ${code}`, {
+      context.page.drawText(`• ${codeLabel(code)}`, {
         x: MARGIN_X,
         y: rowY,
         size: 10,

@@ -10455,7 +10455,7 @@
             "description": "Effective included sections after field selection (profile/allergies/conditions/currentMedicines).",
             "type": "array",
             "items": {
-              "type": "array"
+              "type": "string"
             }
           },
           "coverage": {

@@ -4,6 +4,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsDateString,
+  IsDefined,
   IsIn,
   IsOptional,
   IsString,
@@ -12,8 +13,9 @@ import {
 import { ClinicSummaryShareField } from '#generated/prisma/client';
 
 /**
- * Maximum span of a date-range clinic-summary scope, in days. Mirrors the
- * product's largest supported report range (`REPORT_RANGE_LAST_30_DAYS` in
+ * Maximum span of a date-range clinic-summary scope, in INCLUSIVE calendar
+ * days (dateFrom..dateTo both counted). Mirrors the product's largest
+ * supported report range (`REPORT_RANGE_LAST_30_DAYS` in
  * report-dashboard-query.dto.ts): the legacy summary default
  * `last_30_days` never exceeded 30 days, so custom date ranges stay within
  * the same safety cap. Enforced at scope-resolution time in
@@ -31,8 +33,17 @@ export const CLINIC_SUMMARY_SELECTABLE_FIELDS: string[] = Object.values(
  * Clinic Summary request scope: either `eventId` or a complete
  * `dateFrom`/`dateTo` pair. Event scope wins when both are supplied (the
  * share-record layer in ShareService stays strict XOR at the persistence
- * boundary; the controller forwards only the winning scope). Date ranges are
- * capped at {@link CLINIC_SUMMARY_MAX_RANGE_DAYS}.
+ * boundary; the controller forwards only the winning scope).
+ *
+ * Date-range semantics: the window covers `dateFrom`..`dateTo` INCLUSIVE
+ * (both calendar days included); the response `end` is the exclusive upper
+ * bound (dateTo + 1 day). The span is capped at
+ * {@link CLINIC_SUMMARY_MAX_RANGE_DAYS} inclusive calendar days.
+ *
+ * Known limitation (content-window binding is a later task): findings and
+ * coverage are bound to the current/relevant event review (or the fixed
+ * 资料不足 statement when no review exists) and do NOT yet honor the custom
+ * date window — the window only shapes scopeLabel/start/end.
  */
 export class ClinicSummaryRequestDto {
   @ApiPropertyOptional({
@@ -50,15 +61,18 @@ export class ClinicSummaryRequestDto {
       'eventId is absent; ignored when eventId is present.',
   })
   @ValidateIf((o: ClinicSummaryRequestDto) => o.eventId == null)
+  @IsDefined()
   @IsDateString()
   dateFrom?: string;
 
   @ApiPropertyOptional({
     description:
-      'Date-range scope end (ISO 8601 date, YYYY-MM-DD). Required when ' +
-      `eventId is absent; span must not exceed ${String(CLINIC_SUMMARY_MAX_RANGE_DAYS)} days.`,
+      'Date-range scope end (ISO 8601 date, YYYY-MM-DD). Inclusive calendar ' +
+      'day; required when eventId is absent; span must cover at most ' +
+      `${String(CLINIC_SUMMARY_MAX_RANGE_DAYS)} inclusive calendar days.`,
   })
   @ValidateIf((o: ClinicSummaryRequestDto) => o.eventId == null)
+  @IsDefined()
   @IsDateString()
   dateTo?: string;
 

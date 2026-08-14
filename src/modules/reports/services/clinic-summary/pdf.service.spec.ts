@@ -186,5 +186,21 @@ describe('ClinicSummaryPdfService', () => {
 
       expect(bufferWith.equals(bufferWithout)).toBe(false);
     }, 30_000);
+
+    it('renders the fixed insufficient_coverage statement localized per locale', async () => {
+      // The 资料不足 statement is localized on the PDF (zh 资料不足 / en
+      // Insufficient data); other finding codes stay raw.
+      const bufferZh = await service.buildPdf(
+        makeSummary({ findings: ['insufficient_coverage'] }),
+        'zh-CN',
+      );
+      const bufferEn = await service.buildPdf(
+        makeSummary({ findings: ['insufficient_coverage'] }),
+        'en',
+      );
+
+      expect(bufferZh.length).toBeGreaterThan(0);
+      expect(bufferZh.equals(bufferEn)).toBe(false);
+    }, 30_000);
   });
 });

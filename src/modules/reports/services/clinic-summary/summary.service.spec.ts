@@ -1,11 +1,15 @@
 import { createHash } from 'node:crypto';
+import { BadRequestException } from '@nestjs/common';
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
 import { ClinicSummaryService } from './summary.service';
 import type { ClinicSummaryPdfService } from './pdf.service';
 import type { PrismaService } from '../../../../prisma';
-import { CLINIC_SUMMARY_SECTION_KEYS } from './summary-view.model';
+import {
+  CLINIC_SUMMARY_SECTION_KEYS,
+  resolveSectionKeys,
+} from './summary-view';
 import type {
   ClinicSummaryDto,
   ClinicSummaryShareResponseDto,
@@ -21,6 +25,9 @@ import type {
  */
 interface ClinicSummaryOptions {
   range?: string;
+  eventId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   selectedFields?: string[];
 }
 
@@ -49,7 +56,7 @@ function withEventReview(
   cache: { get: vi.Mock; set: vi.Mock },
   pdf: vi.Mocked<ClinicSummaryPdfService>,
   config: vi.Mocked<ConfigService>,
-  eventReview: { buildCurrent: vi.Mock },
+  eventReview: { buildCurrent: vi.Mock; buildForEvent?: vi.Mock },
 ): ClinicSummaryService {
   const Ctor = ClinicSummaryService as unknown as new (
     ...args: unknown[]
@@ -333,6 +340,202 @@ describe('ClinicSummaryService', () => {
       expect(result.conditions).toBeUndefined();
       expect(result.currentMedicines).toBeUndefined();
     });
+
+    // ── Scope & date semantics (Task 3 review locks) ──────────────────────
+
+    it('builds from the event review when eventId is supplied, event wins over dates', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      const eventReview = {
+        buildCurrent: vi.fn(),
+        buildForEvent: vi.fn().mockResolvedValue({
+          ...mockEventReview,
+          event: {
+            ...mockEventReview.event,
+            endedAt: '2026-08-10T09:00:00.000Z',
+          },
+        }),
+      };
+      const serviceWithReview = withEventReview(
+        prisma,
+        cacheManager,
+        pdfService,
+        configService,
+        eventReview,
+      );
+
+      const result = await serviceWithReview.buildClinicSummary(
+        'user-1',
+        'zh-CN',
+        {
+          eventId: 'evt-1',
+          dateFrom: '2026-08-01',
+          dateTo: '2026-08-30',
+        },
+      );
+
+      expect(eventReview.buildForEvent).toHaveBeenCalledWith('user-1', 'evt-1');
+      expect(eventReview.buildCurrent).not.toHaveBeenCalled();
+      expect(result.scopeLabel).toBe('头痛观察');
+      expect(result.dataRange).toBe('event');
+      expect(result.start).toBe('2026-08-01T08:00:00.000Z');
+      expect(result.end).toBe('2026-08-10T09:00:00.000Z');
+    });
+
+    it('rejects a date pair missing one bound', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+
+      await expect(
+        (service as unknown as SummaryServiceSurface).buildClinicSummary(
+          'user-1',
+          'zh-CN',
+          { dateFrom: '2026-08-01' },
+        ),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        (service as unknown as SummaryServiceSurface).buildClinicSummary(
+          'user-1',
+          'zh-CN',
+          { dateTo: '2026-08-30' },
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects a date span beyond 30 inclusive calendar days', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+
+      // 2026-08-01..2026-08-31 = 31 inclusive calendar days > cap.
+      await expect(
+        (service as unknown as SummaryServiceSurface).buildClinicSummary(
+          'user-1',
+          'zh-CN',
+          { dateFrom: '2026-08-01', dateTo: '2026-08-31' },
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts a 30-inclusive-day date span at the boundary with exclusive end', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+
+      const result = await (
+        service as unknown as SummaryServiceSurface
+      ).buildClinicSummary('user-1', 'zh-CN', {
+        dateFrom: '2026-08-01',
+        dateTo: '2026-08-30',
+      });
+
+      expect(result.scopeLabel).toBe('custom');
+      expect(result.dataRange).toBe('custom');
+      expect(result.start).toBe('2026-08-01T00:00:00.000Z');
+      // end is the exclusive upper bound: dateTo + 1 day at 00:00 UTC.
+      expect(result.end).toBe('2026-08-31T00:00:00.000Z');
+    });
+
+    it('accepts a single-day date range', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+
+      const result = await (
+        service as unknown as SummaryServiceSurface
+      ).buildClinicSummary('user-1', 'zh-CN', {
+        dateFrom: '2026-08-01',
+        dateTo: '2026-08-01',
+      });
+
+      expect(result.scopeLabel).toBe('custom');
+      expect(result.start).toBe('2026-08-01T00:00:00.000Z');
+      expect(result.end).toBe('2026-08-02T00:00:00.000Z');
+    });
+
+    it('falls back to the fixed 资料不足 code when no event review exists', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+
+      const result = await service.buildClinicSummary('user-1', 'zh-CN');
+
+      expect(result.findings).toEqual(['insufficient_coverage']);
+      const coverage = (
+        result as unknown as { coverage?: Record<string, unknown> }
+      ).coverage;
+      expect(coverage!['water']).toEqual(
+        expect.objectContaining({
+          state: 'unknown',
+          coverage: 'none',
+          observedCount: 0,
+        }),
+      );
+    });
+
+    it('falls back to 资料不足 when the event review reports no event', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      const eventReview = {
+        buildCurrent: vi.fn().mockResolvedValue(null),
+      };
+      const serviceWithReview = withEventReview(
+        prisma,
+        cacheManager,
+        pdfService,
+        configService,
+        eventReview,
+      );
+
+      const result = await serviceWithReview.buildClinicSummary(
+        'user-1',
+        'zh-CN',
+      );
+
+      expect(result.findings).toEqual(['insufficient_coverage']);
+    });
+
+    it('returns a metadata-only summary when only water/sleep/notes are selected', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+
+      const result = await (
+        service as unknown as SummaryServiceSurface
+      ).buildClinicSummary('user-1', 'zh-CN', {
+        selectedFields: ['water', 'sleep', 'notes'],
+      });
+
+      expect(result.profile).toBeUndefined();
+      expect(result.allergies).toBeUndefined();
+      expect(result.conditions).toBeUndefined();
+      expect(result.currentMedicines).toBeUndefined();
+      expect(result.selectedFields).toEqual([]);
+      expect(result.scopeLabel).toBeDefined();
+      expect(result.generatedAt).toBeDefined();
+      expect(result.coverage).toBeDefined();
+      expect(result.findings).toBeDefined();
+      expect(result.disclaimer).toBeDefined();
+    });
+  });
+
+  // ── Share-field → section translation (Task 3 review locks) ────────────
+
+  describe('resolveSectionKeys', () => {
+    it('maps the six share-field enum values onto the four summary sections', () => {
+      expect(
+        resolveSectionKeys([
+          'event_overview',
+          'symptom_changes',
+          'medication_slots',
+          'water',
+          'sleep',
+          'notes',
+        ]),
+      ).toEqual(['profile', 'conditions', 'currentMedicines']);
+    });
+
+    it('maps water/sleep/notes selections to no section', () => {
+      expect(resolveSectionKeys(['water', 'sleep', 'notes'])).toEqual([]);
+    });
+
+    it('passes section keys through unchanged and deduplicates', () => {
+      expect(resolveSectionKeys(['profile', 'profile', 'allergies'])).toEqual([
+        'profile',
+        'allergies',
+      ]);
+    });
+
+    it('ignores unknown values', () => {
+      expect(resolveSectionKeys(['unknown_field'])).toEqual([]);
+    });
   });
 
   describe('createShareLink', () => {
@@ -454,7 +657,7 @@ describe('ClinicSummaryService', () => {
           expiresAt: new Date(Date.now() + 60_000),
           firstAccessedAt: null,
         }),
-        update: vi.fn().mockResolvedValue({}),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       };
       (
         prisma as unknown as { userClinicSummaryShare: typeof shareStore }
@@ -463,15 +666,44 @@ describe('ClinicSummaryService', () => {
       const result = await service.getSharedSummary('valid-token');
 
       expect(result).not.toBeNull();
-      expect(shareStore.update).toHaveBeenCalled();
-      expect(shareStore.update).toHaveBeenCalledWith(
+      expect(shareStore.updateMany).toHaveBeenCalled();
+      expect(shareStore.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'share-1',
+            revokedAt: null,
+            expiresAt: { gt: expect.any(Date) },
+          }),
           data: expect.objectContaining({
             lastAccessedAt: expect.anything(),
             accessCount: { increment: 1 },
           }),
         }),
       );
+    });
+
+    it('returns null when the guarded access write matches no live share', async () => {
+      // Revoked/expired between the read and the guarded write (count 0)
+      // must deny the cached copy — the read→write race is closed.
+      const cached = { generatedAt: '2026-07-10', dataRange: 'last_30_days' };
+      cacheManager.get.mockResolvedValue(cached);
+      const shareStore = {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'share-1',
+          revokedAt: null,
+          expiresAt: new Date(Date.now() + 60_000),
+          firstAccessedAt: null,
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      };
+      (
+        prisma as unknown as { userClinicSummaryShare: typeof shareStore }
+      ).userClinicSummaryShare = shareStore;
+
+      const result = await service.getSharedSummary('racing-token');
+
+      expect(result).toBeNull();
+      expect(shareStore.updateMany).toHaveBeenCalled();
     });
   });
 
