@@ -28,4 +28,3 @@ CREATE INDEX "user_clinic_summary_shares_user_id_created_at_idx" ON "user_clinic
 
 -- AddForeignKey
 ALTER TABLE "user_clinic_summary_shares" ADD CONSTRAINT "user_clinic_summary_shares_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-

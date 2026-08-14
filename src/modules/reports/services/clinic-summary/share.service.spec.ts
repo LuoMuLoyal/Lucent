@@ -6,9 +6,10 @@ import { ShareService } from './share.service';
 
 /**
  * Persisted-share store fake. Mirrors the generated `userClinicSummaryShare`
- * delegate's `findFirst` where semantics (tokenHash + revokedAt: null +
- * expiresAt > now) so tests exercise real filter behavior, not just mock
- * plumbing.
+ * delegate's guarded semantics so tests exercise real filter behavior:
+ * - `findFirst` honors tokenHash + revokedAt: null + expiresAt > now;
+ * - `updateMany` honors id + revokedAt: null + expiresAt > now and reports
+ *   `count: 0` when the row is missing / revoked / expired (no P2025).
  */
 interface ShareRow {
   id: string;
@@ -26,12 +27,13 @@ interface ShareRow {
   createdAt: Date;
 }
 
-function makeShareStore(rows: ShareRow[]): {
+type ShareStore = {
   findFirst: vi.Mock;
   create: vi.Mock;
-  update: vi.Mock;
   updateMany: vi.Mock;
-} {
+};
+
+function makeShareStore(rows: ShareRow[]): ShareStore {
   return {
     findFirst: vi.fn(
       (args: {
@@ -47,9 +49,43 @@ function makeShareStore(rows: ShareRow[]): {
       },
     ),
     create: vi.fn(),
-    update: vi.fn(),
-    updateMany: vi.fn(),
+    updateMany: vi.fn(
+      (args: {
+        where: {
+          id: string;
+          revokedAt?: null;
+          expiresAt?: { gt: Date };
+          userId?: string;
+        };
+      }) => {
+        const row = rows.find((r) => r.id === args.where.id);
+        if (!row) return Promise.resolve({ count: 0 });
+        if (row.revokedAt !== null) return Promise.resolve({ count: 0 });
+        const gt = args.where.expiresAt?.gt;
+        if (gt && row.expiresAt.getTime() <= gt.getTime()) {
+          return Promise.resolve({ count: 0 });
+        }
+        return Promise.resolve({ count: 1 });
+      },
+    ),
   };
+}
+
+/** Resolves the `create` delegate with a row built from the persisted data. */
+function mockCreatedShare(shareStore: ShareStore): void {
+  shareStore.create.mockImplementation(
+    ({ data }: { data: Record<string, unknown> }) =>
+      Promise.resolve({
+        id: 'share-1',
+        userId: 'user-1',
+        createdAt: new Date(),
+        revokedAt: null,
+        firstAccessedAt: null,
+        lastAccessedAt: null,
+        accessCount: 0,
+        ...data,
+      }),
+  );
 }
 
 function sha256(value: string): string {
@@ -64,7 +100,7 @@ const validShareInput = {
 describe('ShareService', () => {
   let service: ShareService;
   let prisma: DeepMocked<PrismaService>;
-  let shareStore: ReturnType<typeof makeShareStore>;
+  let shareStore: ShareStore;
 
   beforeEach(() => {
     shareStore = makeShareStore([]);
@@ -76,19 +112,7 @@ describe('ShareService', () => {
 
   describe('createShare', () => {
     it('returns the plaintext token exactly once and stores only its sha256 hash', async () => {
-      shareStore.create.mockImplementation(
-        ({ data }: { data: Record<string, unknown> }) =>
-          Promise.resolve({
-            id: 'share-1',
-            userId: 'user-1',
-            createdAt: new Date(),
-            revokedAt: null,
-            firstAccessedAt: null,
-            lastAccessedAt: null,
-            accessCount: 0,
-            ...data,
-          }),
-      );
+      mockCreatedShare(shareStore);
 
       const result = await service.createShare('user-1', validShareInput);
 
@@ -104,21 +128,30 @@ describe('ShareService', () => {
       expect(stored.tokenHash).not.toBe(result.token);
     });
 
+    it('returns a shaped result without tokenHash, userId or the token hash', async () => {
+      mockCreatedShare(shareStore);
+
+      const result = await service.createShare('user-1', validShareInput);
+
+      expect(result.shareId).toBe('share-1');
+      expect(result.expiresAt).toBeInstanceOf(Date);
+      expect(result.scope).toEqual({
+        eventId: 'evt-1',
+        dateFrom: null,
+        dateTo: null,
+      });
+      expect(result.selectedFields).toEqual([
+        'event_overview',
+        'sleep',
+        'notes',
+      ]);
+      expect(result).not.toHaveProperty('tokenHash');
+      expect(result).not.toHaveProperty('userId');
+    });
+
     it('sets expiresAt from the default TTL and persists the scope', async () => {
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-      shareStore.create.mockImplementation(
-        ({ data }: { data: Record<string, unknown> }) =>
-          Promise.resolve({
-            id: 'share-1',
-            userId: 'user-1',
-            createdAt: new Date(),
-            revokedAt: null,
-            firstAccessedAt: null,
-            lastAccessedAt: null,
-            accessCount: 0,
-            ...data,
-          }),
-      );
+      mockCreatedShare(shareStore);
 
       await service.createShare('user-1', validShareInput);
 
@@ -141,19 +174,7 @@ describe('ShareService', () => {
     });
 
     it('persists a date range scope when no eventId is given', async () => {
-      shareStore.create.mockImplementation(
-        ({ data }: { data: Record<string, unknown> }) =>
-          Promise.resolve({
-            id: 'share-1',
-            userId: 'user-1',
-            createdAt: new Date(),
-            revokedAt: null,
-            firstAccessedAt: null,
-            lastAccessedAt: null,
-            accessCount: 0,
-            ...data,
-          }),
-      );
+      mockCreatedShare(shareStore);
 
       await service.createShare('user-1', {
         dateFrom: '2026-08-01',
@@ -169,6 +190,22 @@ describe('ShareService', () => {
       expect(stored.eventId).toBeNull();
       expect(stored.dateFrom).toBeInstanceOf(Date);
       expect(stored.dateTo).toBeInstanceOf(Date);
+    });
+
+    it('dedupes duplicate selectedFields before persisting', async () => {
+      mockCreatedShare(shareStore);
+
+      await service.createShare('user-1', {
+        eventId: 'evt-1',
+        selectedFields: ['water', 'water', 'sleep', 'water'],
+      });
+
+      const stored = (
+        shareStore.create.mock.calls[0]![0] as {
+          data: { selectedFields: string[] };
+        }
+      ).data;
+      expect(stored.selectedFields).toEqual(['water', 'sleep']);
     });
 
     it('rejects an empty selectedFields selection', async () => {
@@ -221,6 +258,28 @@ describe('ShareService', () => {
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
+
+    it('rejects an invalid date string', async () => {
+      await expect(
+        service.createShare('user-1', {
+          dateFrom: 'not-a-date',
+          dateTo: '2026-08-07',
+          selectedFields: ['water'],
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(shareStore.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a date range where dateFrom is after dateTo', async () => {
+      await expect(
+        service.createShare('user-1', {
+          dateFrom: '2026-08-07',
+          dateTo: '2026-08-01',
+          selectedFields: ['water'],
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(shareStore.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('getSharedSummaryByToken', () => {
@@ -241,13 +300,20 @@ describe('ShareService', () => {
       ...overrides,
     });
 
+    const makeService = (store: ShareStore): ShareService => {
+      const testPrisma = {
+        userClinicSummaryShare: store,
+      } as unknown as DeepMocked<PrismaService>;
+      return new ShareService(testPrisma);
+    };
+
     it('looks up by the sha256 token hash', async () => {
-      shareStore.findFirst = makeShareStore([makeValidRow()])
-        .findFirst as vi.Mock;
+      const store = makeShareStore([makeValidRow()]);
+      service = makeService(store);
 
       await service.getSharedSummaryByToken('valid-token');
 
-      expect(shareStore.findFirst).toHaveBeenCalledWith(
+      expect(store.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             tokenHash: sha256('valid-token'),
@@ -261,7 +327,7 @@ describe('ShareService', () => {
     it('returns null for an unknown token', async () => {
       const result = await service.getSharedSummaryByToken('missing-token');
       expect(result).toBeNull();
-      expect(shareStore.update).not.toHaveBeenCalled();
+      expect(shareStore.updateMany).not.toHaveBeenCalled();
     });
 
     it('returns null for an expired share', async () => {
@@ -271,10 +337,7 @@ describe('ShareService', () => {
           expiresAt: new Date(Date.now() - 1000),
         }),
       ]);
-      prisma = {
-        userClinicSummaryShare: store,
-      } as unknown as DeepMocked<PrismaService>;
-      service = new ShareService(prisma);
+      service = makeService(store);
 
       const result = await service.getSharedSummaryByToken('expired-token');
       expect(result).toBeNull();
@@ -291,30 +354,40 @@ describe('ShareService', () => {
           tokenHash: sha256('revoked-token'),
         }),
       ]);
-      prisma = {
-        userClinicSummaryShare: store,
-      } as unknown as DeepMocked<PrismaService>;
-      service = new ShareService(prisma);
+      service = makeService(store);
 
       const result = await service.getSharedSummaryByToken('revoked-token');
       expect(result).toBeNull();
     });
 
-    it('atomically records the first access in one prisma update call', async () => {
+    it('returns null and records no access when the share is revoked mid-flight', async () => {
       const store = makeShareStore([makeValidRow()]);
-      store.update.mockResolvedValue({});
-      prisma = {
-        userClinicSummaryShare: store,
-      } as unknown as DeepMocked<PrismaService>;
-      service = new ShareService(prisma);
+      // findFirst still resolves the row, but the guarded updateMany reports
+      // count 0 — as if the share was revoked between read and write.
+      store.updateMany.mockResolvedValue({ count: 0 });
+      service = makeService(store);
+
+      const result = await service.getSharedSummaryByToken('valid-token');
+
+      expect(result).toBeNull();
+      expect(store.updateMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('atomically records the first access in one guarded updateMany call', async () => {
+      const store = makeShareStore([makeValidRow()]);
+      service = makeService(store);
 
       const result = await service.getSharedSummaryByToken('valid-token');
 
       expect(result).not.toBeNull();
-      expect(store.update).toHaveBeenCalledTimes(1);
-      expect(store.update).toHaveBeenCalledWith(
+      expect(store.updateMany).toHaveBeenCalledTimes(1);
+      expect(store.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'share-1' },
+          where: expect.objectContaining({
+            id: 'share-1',
+            revokedAt: null,
+            expiresAt: { gt: expect.any(Date) },
+          }),
           data: expect.objectContaining({
             accessCount: { increment: 1 },
             firstAccessedAt: expect.any(Date),
@@ -329,21 +402,38 @@ describe('ShareService', () => {
       const store = makeShareStore([
         makeValidRow({ firstAccessedAt: already, accessCount: 3 }),
       ]);
-      store.update.mockResolvedValue({});
-      prisma = {
-        userClinicSummaryShare: store,
-      } as unknown as DeepMocked<PrismaService>;
-      service = new ShareService(prisma);
+      service = makeService(store);
 
       await service.getSharedSummaryByToken('valid-token');
 
-      expect(store.update).toHaveBeenCalledTimes(1);
+      expect(store.updateMany).toHaveBeenCalledTimes(1);
       const data = (
-        store.update.mock.calls[0]![0] as { data: Record<string, unknown> }
+        store.updateMany.mock.calls[0]![0] as { data: Record<string, unknown> }
       ).data;
       expect(data['accessCount']).toEqual({ increment: 1 });
       expect(data['firstAccessedAt']).toBeUndefined();
       expect(data['lastAccessedAt']).toEqual(expect.any(Date));
+    });
+
+    it('returns a shaped read model without tokenHash or userId', async () => {
+      const store = makeShareStore([makeValidRow()]);
+      service = makeService(store);
+
+      const result = await service.getSharedSummaryByToken('valid-token');
+
+      expect(result).not.toBeNull();
+      expect(result).toMatchObject({
+        shareId: 'share-1',
+        scope: { eventId: 'evt-1', dateFrom: null, dateTo: null },
+        selectedFields: ['event_overview'],
+        revokedAt: null,
+        firstAccessedAt: null,
+        lastAccessedAt: null,
+        accessCount: 1, // pre-update 0 + the recorded increment
+      });
+      expect(result!.expiresAt).toBeInstanceOf(Date);
+      expect(result).not.toHaveProperty('tokenHash');
+      expect(result).not.toHaveProperty('userId');
     });
   });
 

@@ -1,10 +1,16 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ClinicSummaryShareField } from '#generated/prisma/client';
 import type { UserClinicSummaryShare } from '#generated/prisma/client';
+import { badRequest } from '../../../../common';
 import { PrismaService } from '../../../../prisma';
 
-/** Default lifetime of a share link, in days. */
+/**
+ * Default lifetime of a share link, in days. Intentionally longer than the
+ * legacy 24h summary-cache TTL: shares are persisted grants that can be
+ * revoked or expired server-side at any time, so a longer TTL cannot keep
+ * stale data alive the way the old cache copy would.
+ */
 const DEFAULT_SHARE_TTL_DAYS = 7;
 
 const SHARE_FIELD_VALUES = Object.values(ClinicSummaryShareField) as string[];
@@ -30,6 +36,26 @@ export interface CreateShareResult {
     dateTo: Date | null;
   };
   selectedFields: ClinicSummaryShareField[];
+}
+
+/**
+ * Read result of a shared clinic summary — deliberately shaped WITHOUT the
+ * raw entity's `tokenHash` and `userId`, so response building (and any
+ * serialization) can never leak the hash or the owner id.
+ */
+export interface ShareReadModel {
+  shareId: string;
+  scope: {
+    eventId: string | null;
+    dateFrom: Date | null;
+    dateTo: Date | null;
+  };
+  selectedFields: ClinicSummaryShareField[];
+  expiresAt: Date;
+  revokedAt: Date | null;
+  firstAccessedAt: Date | null;
+  lastAccessedAt: Date | null;
+  accessCount: number;
 }
 
 /**
@@ -83,34 +109,34 @@ export class ShareService {
   /**
    * Resolves a share by its plaintext token. Returns null for unknown,
    * expired or revoked shares. On success the access is recorded atomically
-   * (single update: accessCount increment, firstAccessedAt on first open,
-   * lastAccessedAt every open).
+   * via a single guarded `updateMany`: `revokedAt: null` re-checked in the
+   * WHERE closes the read→write race (a share revoked mid-flight records no
+   * access and yields null), and `updateMany` never raises P2025 if the row
+   * disappears between the read and the write.
    */
-  async getSharedSummaryByToken(
-    token: string,
-  ): Promise<UserClinicSummaryShare | null> {
-    const share = await this.prisma.userClinicSummaryShare.findFirst({
-      where: {
-        tokenHash: this.hashToken(token),
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
+  async getSharedSummaryByToken(token: string): Promise<ShareReadModel | null> {
+    const tokenHash = this.hashToken(token);
+    const now = new Date();
+
+    const record = await this.prisma.userClinicSummaryShare.findFirst({
+      where: { tokenHash, revokedAt: null, expiresAt: { gt: now } },
     });
-    if (!share) return null;
+    if (!record) return null;
 
     const accessedAt = new Date();
-    await this.prisma.userClinicSummaryShare.update({
-      where: { id: share.id },
+    const result = await this.prisma.userClinicSummaryShare.updateMany({
+      where: { id: record.id, revokedAt: null, expiresAt: { gt: now } },
       data: {
         accessCount: { increment: 1 },
         lastAccessedAt: accessedAt,
-        ...(share.firstAccessedAt === null
+        ...(record.firstAccessedAt === null
           ? { firstAccessedAt: accessedAt }
           : {}),
       },
     });
+    if (result.count === 0) return null;
 
-    return share;
+    return { ...this.toReadModel(record), accessCount: record.accessCount + 1 };
   }
 
   /** Ownership-scoped revoke. Returns false for unknown ids or non-owners. */
@@ -126,15 +152,16 @@ export class ShareService {
 
   private validateSelectedFields(fields: string[]): ClinicSummaryShareField[] {
     if (!Array.isArray(fields) || fields.length === 0) {
-      throw new BadRequestException('selectedFields 不能为空');
+      badRequest('selectedFields 不能为空');
     }
     const allowed = new Set(SHARE_FIELD_VALUES);
     for (const field of fields) {
       if (!allowed.has(field)) {
-        throw new BadRequestException(`不支持的分享字段: ${field}`);
+        badRequest(`不支持的分享字段: ${field}`);
       }
     }
-    return fields as ClinicSummaryShareField[];
+    // Dedupe keeps the first-occurrence order.
+    return [...new Set(fields)] as ClinicSummaryShareField[];
   }
 
   private validateScope(input: CreateShareInput): {
@@ -146,27 +173,55 @@ export class ShareService {
       typeof input.eventId === 'string' && input.eventId !== ''
         ? input.eventId
         : null;
-    const dateFrom =
-      typeof input.dateFrom === 'string' || input.dateFrom instanceof Date
-        ? new Date(input.dateFrom)
-        : null;
-    const dateTo =
-      typeof input.dateTo === 'string' || input.dateTo instanceof Date
-        ? new Date(input.dateTo)
-        : null;
+    const dateFrom = this.parseDate(input.dateFrom);
+    const dateTo = this.parseDate(input.dateTo);
 
     if (eventId && (dateFrom || dateTo)) {
-      throw new BadRequestException('eventId 与日期范围不能同时指定');
+      badRequest('eventId 与日期范围不能同时指定');
     }
     if (!eventId && !(dateFrom && dateTo)) {
-      throw new BadRequestException(
-        '必须指定 eventId 或完整的 dateFrom/dateTo 日期范围',
-      );
+      badRequest('必须指定 eventId 或完整的 dateFrom/dateTo 日期范围');
+    }
+    if (dateFrom && dateTo && dateFrom.getTime() > dateTo.getTime()) {
+      badRequest('dateFrom 不能晚于 dateTo');
     }
 
     return { eventId, dateFrom, dateTo };
   }
 
+  private parseDate(value: Date | string | null | undefined): Date | null {
+    if (value == null) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      badRequest(`无效的日期: ${String(value)}`);
+    }
+    return date;
+  }
+
+  // ── Read model ────────────────────────────────────────────
+
+  private toReadModel(record: UserClinicSummaryShare): ShareReadModel {
+    return {
+      shareId: record.id,
+      scope: {
+        eventId: record.eventId,
+        dateFrom: record.dateFrom,
+        dateTo: record.dateTo,
+      },
+      selectedFields: record.selectedFields,
+      expiresAt: record.expiresAt,
+      revokedAt: record.revokedAt,
+      firstAccessedAt: record.firstAccessedAt,
+      lastAccessedAt: record.lastAccessedAt,
+      accessCount: record.accessCount,
+    };
+  }
+
+  /**
+   * Plaintext token → sha256 hex. Only the hash is ever persisted; tokenHash
+   * is @unique, so a hash collision (~2^-256) would fail the insert rather
+   * than leak or overwrite another token — no retry is attempted.
+   */
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
