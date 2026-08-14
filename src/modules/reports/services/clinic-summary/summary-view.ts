@@ -25,10 +25,13 @@ export type ClinicSummarySectionKey =
  * vocabulary → the current DTO section keys). `water` / `sleep` / `notes`
  * have no standalone DTO section yet — their data lives inside `findings`
  * (single array) and `coverage` (always included), so they map to no
- * section. Selecting only those yields a metadata-only summary instead of
- * an error; the mapping is the single translation point the controller uses
- * to forward request-DTO values into the service. Partial because unknown
- * enum values may reach the resolver at runtime.
+ * section. `allergies` is deliberately NOT a selectable share field: like
+ * `findings` and `coverage` it is always included in every output view (see
+ * [resolveSectionKeys]). Selecting only the un-mapped fields yields a
+ * metadata-only summary (allergies + findings + coverage) instead of an
+ * error; the mapping is the single translation point the controller uses to
+ * forward request-DTO values into the service. Partial because unknown enum
+ * values may reach the resolver at runtime.
  */
 export const CLINIC_SUMMARY_SHARE_FIELD_SECTIONS: Partial<
   Record<ClinicSummaryShareField, ClinicSummarySectionKey[]>
@@ -45,6 +48,12 @@ export const CLINIC_SUMMARY_SHARE_FIELD_SECTIONS: Partial<
  * Resolves a raw field list (section keys OR the six share-field enum
  * values) into the effective section keys, preserving first-occurrence
  * order and deduplicating. Unknown values are ignored.
+ *
+ * `allergies` is always included: it is not one of the six selectable share
+ * fields, so it must behave like the always-present metadata (findings /
+ * coverage) rather than a section the owner can deselect — otherwise any
+ * explicit selection would silently drop allergies from every output path
+ * (preview / PDF / share).
  */
 export function resolveSectionKeys(
   fields: readonly string[],
@@ -63,6 +72,11 @@ export function resolveSectionKeys(
         resolved.push(candidate);
       }
     }
+  }
+  // Allergies are never selectable — always present, appended last so the
+  // mapped selection keeps its first-occurrence order.
+  if (!resolved.includes('allergies')) {
+    resolved.push('allergies');
   }
   return resolved;
 }

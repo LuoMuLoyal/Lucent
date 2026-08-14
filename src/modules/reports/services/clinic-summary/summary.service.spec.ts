@@ -514,10 +514,11 @@ describe('ClinicSummaryService', () => {
       });
 
       expect(result.profile).toBeUndefined();
-      expect(result.allergies).toBeUndefined();
+      // Allergies are not a selectable share field — always present.
+      expect(result.allergies).toBeDefined();
       expect(result.conditions).toBeUndefined();
       expect(result.currentMedicines).toBeUndefined();
-      expect(result.selectedFields).toEqual([]);
+      expect(result.selectedFields).toEqual(['allergies']);
       expect(result.scopeLabel).toBeDefined();
       expect(result.generatedAt).toBeDefined();
       expect(result.coverage).toBeDefined();
@@ -529,7 +530,7 @@ describe('ClinicSummaryService', () => {
   // ── Share-field → section translation (Task 3 review locks) ────────────
 
   describe('resolveSectionKeys', () => {
-    it('maps the six share-field enum values onto the four summary sections', () => {
+    it('maps the six share-field enum values onto the mapped sections plus the always-included allergies', () => {
       expect(
         resolveSectionKeys([
           'event_overview',
@@ -539,11 +540,13 @@ describe('ClinicSummaryService', () => {
           'sleep',
           'notes',
         ]),
-      ).toEqual(['profile', 'conditions', 'currentMedicines']);
+      ).toEqual(['profile', 'conditions', 'currentMedicines', 'allergies']);
     });
 
-    it('maps water/sleep/notes selections to no section', () => {
-      expect(resolveSectionKeys(['water', 'sleep', 'notes'])).toEqual([]);
+    it('maps water/sleep/notes selections to allergies only', () => {
+      expect(resolveSectionKeys(['water', 'sleep', 'notes'])).toEqual([
+        'allergies',
+      ]);
     });
 
     it('passes section keys through unchanged and deduplicates', () => {
@@ -553,8 +556,8 @@ describe('ClinicSummaryService', () => {
       ]);
     });
 
-    it('ignores unknown values', () => {
-      expect(resolveSectionKeys(['unknown_field'])).toEqual([]);
+    it('ignores unknown values but keeps allergies', () => {
+      expect(resolveSectionKeys(['unknown_field'])).toEqual(['allergies']);
     });
   });
 
@@ -931,7 +934,7 @@ describe('ClinicSummaryService', () => {
       const sharedPayload = cacheManager.set.mock
         .calls[0]![1] as unknown as Record<string, unknown>;
 
-      expect(previewKeys).toEqual(['conditions', 'profile']);
+      expect(previewKeys).toEqual(['allergies', 'conditions', 'profile']);
       expect(sectionKeys(pdfInput)).toEqual(previewKeys);
       expect(sectionKeys(sharedPayload)).toEqual(previewKeys);
     });
