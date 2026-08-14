@@ -32,6 +32,16 @@ function queryValues(prisma: ReturnType<typeof buildPrisma>): unknown[] {
   return sql?.values ?? [];
 }
 
+/** Raw SQL text actually sent to PostgreSQL (Prisma.sql tagged template). */
+function queryText(prisma: ReturnType<typeof buildPrisma>): string {
+  const firstCall = prisma.$queryRaw.mock.calls[0];
+  if (firstCall == null) {
+    return '';
+  }
+  const sql = firstCall[0] as { text?: string } | undefined;
+  return sql?.text ?? '';
+}
+
 function asDate(value: unknown): Date {
   expect(value).toBeInstanceOf(Date);
   return value as Date;
@@ -119,6 +129,31 @@ describe('ProductFunnelService', () => {
     const [from, to] = queryValues(prisma);
     expect(asDate(from).toISOString()).toBe('2026-08-14T00:00:00.000Z');
     expect(asDate(to).toISOString()).toBe('2026-08-17T00:00:00.000Z');
+
+    // Lock the query shape too: bucketing must be explicit-UTC and grouped by
+    // day × name — otherwise a silent regression could switch to the session
+    // timezone or a per-row scan and only show up in live e2e.
+    const text = queryText(prisma);
+    expect(text).toContain("AT TIME ZONE 'UTC'");
+    expect(text).toContain('GROUP BY 1, 2');
+  });
+
+  it('buckets a +08:00-offset midnight datetime into its UTC calendar day', async () => {
+    prisma.$queryRaw.mockResolvedValue([]);
+
+    // 2026-08-14T00:30:00+08:00 == 2026-08-13T16:30:00Z → UTC day 08-13;
+    // 2026-08-14T23:30:00+08:00 == 2026-08-14T15:30:00Z → UTC day 08-14.
+    // The window must be derived from the instants, not the literal date part.
+    const result = await service.getFunnel({
+      dateFrom: '2026-08-14T00:30:00+08:00',
+      dateTo: '2026-08-14T23:30:00+08:00',
+    });
+
+    expect(result.window.dateFrom).toBe('2026-08-13');
+    expect(result.window.dateTo).toBe('2026-08-14');
+    const [from, to] = queryValues(prisma);
+    expect(asDate(from).toISOString()).toBe('2026-08-13T00:00:00.000Z');
+    expect(asDate(to).toISOString()).toBe('2026-08-15T00:00:00.000Z');
   });
 
   it('buckets by the UTC calendar day even when full datetimes are passed', async () => {

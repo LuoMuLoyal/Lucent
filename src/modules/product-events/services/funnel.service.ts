@@ -57,6 +57,11 @@ interface CoreCounts {
  * flow carries the outcome in `result` (Task 6) and check-ins confirm an
  * outcome per calendar day — both are the same user-visible "ended/outcome"
  * step, so the funnel counts them together.
+ *
+ * DEV NOTE: every new `ProductEventName` enum value MUST be mapped here or in
+ * `OPTIONAL_COUNT_BY_EVENT_NAME` — the raw query counts all names, but the
+ * fold below ignores unmapped ones, so an unmapped name silently drops out of
+ * the metrics with no error.
  */
 const CORE_STAGE_BY_EVENT_NAME: Readonly<
   Partial<Record<ProductEventName, keyof CoreCounts>>
@@ -209,14 +214,28 @@ export class ProductFunnelService {
   }
 }
 
-/** Parse an ISO date/datetime into its UTC calendar-day start (00:00 UTC). */
+/**
+ * Parse an ISO date/datetime into its UTC calendar-day start (00:00 UTC).
+ * The UTC day is derived from the parsed INSTANT, not the literal date part
+ * of the string: a non-Z offset like '2026-08-14T00:30:00+08:00' (accepted by
+ * `@IsDateString`) is 2026-08-13T16:30:00Z and therefore falls on UTC day
+ * 08-13, per the query contract ("the UTC calendar day is used"). Date-only
+ * values ('YYYY-MM-DD') parse as UTC midnight.
+ */
 function utcDayStart(value: string): Date {
-  const dateOnly = value.slice(0, 10);
-  const date = new Date(`${dateOnly}T00:00:00.000Z`);
-  if (Number.isNaN(date.getTime())) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
     badRequest('无效的日期范围');
   }
-  return date;
+  // The ISO date part must be zero-padded (YYYY-MM-DD) — V8's loose parser
+  // would otherwise accept shapes like '2026-8-4', which the contract
+  // (`@IsDateString` ISO 8601) does not allow. The check looks at the literal
+  // prefix only for FORMAT; the day itself comes from the instant above.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value.slice(0, 10))) {
+    badRequest('无效的日期范围');
+  }
+  const dateOnly = parsed.toISOString().slice(0, 10);
+  return new Date(`${dateOnly}T00:00:00.000Z`);
 }
 
 /** YYYY-MM-DD of the UTC calendar day the instant falls in. */

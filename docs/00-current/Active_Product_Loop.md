@@ -12,6 +12,8 @@ Last updated: 2026-08-14
 ## 当前状态
 
 - Product Measurement Task 9 已完成首个产品闭环聚合查询：`GET /api/v1/user/product-events/funnel` 为内部管理员专用（`AdminGuard` 复用 AdminJS 的 `ADMIN_EMAIL` 身份，普通用户 403、未认证 401），按 UTC 日历日聚合核心漏斗（event started → suggestion impression/actioned → event ended/outcome → review opened，ended 与 outcome_confirmed 合并为一阶段）并单独输出 optional 就诊摘要 preview/export/share/open 计数，绝不输出逐用户事件、健康内容或自由文本；窗口缺省最后 30 个包含日（UTC），显式范围上限 30 天；窗口核心总数低于 `MIN_FUNNEL_GROUP_SIZE = 10` 时抑制 daily 分组细节（`detailsSuppressed: true`）但保留 totals。
+- 设计决策（阈值口径）：漏斗小样本阈值作用于**窗口级**核心事件总数（五阶段计数之和），不按单日分组判定——窗口总数低于 `MIN_FUNNEL_GROUP_SIZE` 时整窗抑制 daily 细节。
+- 设计决策（计数口径）：漏斗计数是去重后的**事件**计数（`(userId, clientEventId)` 唯一约束去重），不是去重用户数；阶段比值不构成转化率。
 - 健康事件服务端事件（started/ended/outcome_confirmed）、建议 actioned 与分享生命周期事件的上报发射保持不变；记录率以保存成功为分子（`recorded`），客户端 quick-entry tap 计数不参与任何服务端指标。
 
 Health Event Contract 已完成后端合同、持久化、所有权校验、领域事件和 OpenAPI 导出；Proactive Suggestion Runtime 已完成 Task 7 的后台重算、baseline observation、reminder slot 评估和 Today Analysis 物化接线。
