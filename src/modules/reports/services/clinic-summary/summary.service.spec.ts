@@ -1,9 +1,8 @@
-import { createHash } from 'node:crypto';
 import { BadRequestException } from '@nestjs/common';
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
-import { ClinicSummaryService } from './summary.service';
+import { ClinicSummaryService, sharedSummaryCacheKey } from './summary.service';
 import type { ClinicSummaryPdfService } from './pdf.service';
 import type { PrismaService } from '../../../../prisma';
 import {
@@ -615,7 +614,7 @@ describe('ClinicSummaryService', () => {
 
       expect(result).toEqual(cached);
       expect(cacheManager.get).toHaveBeenCalledWith(
-        `clinic-share:${createHash('sha256').update('some-token').digest('hex')}`,
+        sharedSummaryCacheKey('some-token'),
       );
     });
 

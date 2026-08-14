@@ -35,7 +35,6 @@ import {
 } from './summary-view';
 
 const SHARE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const SHARE_KEY_PREFIX = 'clinic-share:';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const DEFAULT_RANGE = 'last_30_days';
 const RANGE_DAY_COUNTS: Record<string, number> = {
@@ -46,6 +45,21 @@ const RANGE_DAY_COUNTS: Record<string, number> = {
 const EVENT_SCOPE_RANGE_LABEL = 'event';
 /** Fixed 资料不足 statement code — never replaced by generic AI conclusions. */
 const INSUFFICIENT_COVERAGE_CODE = 'insufficient_coverage';
+
+/**
+ * Cache-key prefix of the shared summary view, keyed by the sha256 hex of
+ * the plaintext share token. The controller writes this key at share-create
+ * time and `getSharedSummary` (the single public-read gate) reads it, so the
+ * derivation MUST stay in one place — never re-derive it elsewhere.
+ */
+export const SHARE_CACHE_KEY_PREFIX = 'clinic-share:';
+
+/** Cache key of the shared summary view for a plaintext share token. */
+export function sharedSummaryCacheKey(token: string): string {
+  return `${SHARE_CACHE_KEY_PREFIX}${createHash('sha256')
+    .update(token)
+    .digest('hex')}`;
+}
 
 /** Scope and field-selection options accepted by every summary output path. */
 export interface ClinicSummaryOptions {
@@ -172,6 +186,14 @@ export class ClinicSummaryService {
     ) as ClinicSummaryDto;
   }
 
+  /**
+   * Legacy cache-only share creation — superseded by the revocable
+   * `ShareService` flow wired in the controller (Task 4). Kept for the
+   * legacy pre-persistence bridge in `getSharedSummary` and its spec;
+   * removal is scheduled for the Task 10 cleanup. New code must use
+   * `ShareService.createShare` (persisted, revocable record) instead; the
+   * controller no longer calls this method.
+   */
   async createShareLink(
     userId: string,
     locale: string = 'en',
@@ -179,8 +201,7 @@ export class ClinicSummaryService {
   ): Promise<ClinicSummaryShareResponseDto> {
     const summary = await this.buildClinicSummary(userId, locale, options);
     const token = randomBytes(32).toString('hex');
-    const tokenHash = this.hashToken(token);
-    const key = `${SHARE_KEY_PREFIX}${tokenHash}`;
+    const key = sharedSummaryCacheKey(token);
 
     await this.cacheManager.set(key, summary, SHARE_TTL_MS);
 
@@ -196,8 +217,7 @@ export class ClinicSummaryService {
   }
 
   async getSharedSummary(token: string): Promise<ClinicSummaryDto | null> {
-    const tokenHash = this.hashToken(token);
-    const key = `${SHARE_KEY_PREFIX}${tokenHash}`;
+    const key = sharedSummaryCacheKey(token);
     const cached = await this.cacheManager.get<ClinicSummaryDto>(key);
     if (cached == null) return null;
 
@@ -207,7 +227,7 @@ export class ClinicSummaryService {
     // its only source of truth (expiry is handled by the cache TTL), so no
     // gate applies.
     const record = await this.prisma.userClinicSummaryShare.findFirst({
-      where: { tokenHash },
+      where: { tokenHash: createHash('sha256').update(token).digest('hex') },
     });
     if (record == null) return cached;
     const nowDate = new Date();
@@ -447,9 +467,5 @@ export class ClinicSummaryService {
       });
     if (name.length <= 1) return name;
     return name.charAt(0) + '**';
-  }
-
-  private hashToken(token: string): string {
-    return createHash('sha256').update(token).digest('hex');
   }
 }
