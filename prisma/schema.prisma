@@ -199,6 +199,7 @@ model User {
   medicineRiskCheckRecords MedicineRiskCheckRecord[]
   healthEvents           HealthEvent[]
   clinicSummaryShares    UserClinicSummaryShare[]
+  productEvents          UserProductEvent[]
 
   // status index removed — no runtime query filters by status; PK serves all lookups
   @@map("users")
@@ -1151,6 +1152,72 @@ model UserClinicSummaryShare {
 
   @@index([userId, createdAt])
   @@map("user_clinic_summary_shares")
+}
+
+/// Fixed set of product measurement event names (privacy-minimal contract:
+/// enums and bounded attributes only — no free text, no metadata JSON).
+enum ProductEventName {
+  health_event_started
+  health_event_ended
+  health_event_outcome_confirmed
+  suggestion_impression
+  suggestion_actioned
+  review_opened
+  visit_summary_previewed
+  visit_summary_exported
+  visit_summary_share_created
+  visit_summary_share_opened
+  visit_summary_share_revoked
+}
+
+/// In-app surface where the event occurred; `system` marks server-initiated
+/// events with no client surface (server-authoritative emission, Task 6).
+enum ProductEventSurface {
+  today
+  record
+  review
+  more
+  notification
+  system
+}
+
+/// Result classification. Health-event lifecycle events report the health
+/// outcome semantics (improved/unchanged/worsened), all other events report
+/// success/failure. No free text is ever stored.
+enum ProductEventResult {
+  success
+  failure
+  improved
+  unchanged
+  worsened
+}
+
+/// Privacy-minimal product measurement event. `clientEventId` enables client
+/// retry idempotency via @@unique([userId, clientEventId]). Raw events are
+/// deleted after 90 days (retention scans by `occurredAt`) and immediately on
+/// account hard-delete (FK onDelete: Cascade).
+model UserProductEvent {
+  id                 String              @id @default(uuid())
+  userId             String              @map("user_id")
+  clientEventId      String              @map("client_event_id")
+  name               ProductEventName
+  surface            ProductEventSurface
+  result             ProductEventResult
+  eventStatus        HealthEventStatus?  @map("event_status")
+  suggestionRuleCode String?             @map("suggestion_rule_code")
+  appVersion         String              @map("app_version")
+  platform           UserDevicePlatform
+  occurredAt         DateTime            @map("occurred_at") @db.Timestamptz(3)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Client retry idempotency: same (userId, clientEventId) never double-inserts
+  @@unique([userId, clientEventId])
+  // 90-day raw retention cleanup scans by event time
+  @@index([occurredAt])
+  // per-user time-ordered scans (account deletion + later daily aggregates)
+  @@index([userId, occurredAt])
+  @@map("user_product_events")
 }
 
 model MedicineSafetyTip {
