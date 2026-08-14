@@ -10340,6 +10340,73 @@
         },
         "required": ["code", "message", "data"]
       },
+      "ClinicSummaryCoverageEntryDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["observed", "unknown"]
+          },
+          "coverage": {
+            "type": "string",
+            "enum": ["sufficient", "partial", "none"],
+            "description": "'none' when the source has no observations; 'partial' when observations exist but sufficiency is not assessed."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["manual", "health_platform", "reminder_plan", "derived"]
+            }
+          },
+          "observedCount": {
+            "type": "number",
+            "description": "Number of observations in the window."
+          },
+          "expectedCount": {
+            "type": "number",
+            "nullable": true,
+            "description": "No fixed expectation is defined yet."
+          },
+          "windowStart": {
+            "type": "string",
+            "nullable": true,
+            "description": "Window start (ISO 8601), or null when nothing was observed."
+          },
+          "windowEnd": {
+            "type": "string",
+            "nullable": true,
+            "description": "Window end (ISO 8601), or null when nothing was observed."
+          }
+        },
+        "required": [
+          "state",
+          "coverage",
+          "sources",
+          "observedCount",
+          "expectedCount",
+          "windowStart",
+          "windowEnd"
+        ]
+      },
+      "ClinicSummaryCoverageDto": {
+        "type": "object",
+        "properties": {
+          "checkIns": {
+            "$ref": "#/components/schemas/ClinicSummaryCoverageEntryDto"
+          },
+          "water": {
+            "$ref": "#/components/schemas/ClinicSummaryCoverageEntryDto"
+          },
+          "dose": {
+            "$ref": "#/components/schemas/ClinicSummaryCoverageEntryDto"
+          },
+          "sleep": {
+            "$ref": "#/components/schemas/ClinicSummaryCoverageEntryDto"
+          }
+        },
+        "required": ["checkIns", "water", "dose", "sleep"]
+      },
       "ClinicSummaryProfileDto": {
         "type": "object",
         "properties": {
@@ -10372,9 +10439,31 @@
             "type": "string",
             "description": "Generated timestamp"
           },
+          "scopeLabel": {
+            "type": "string",
+            "description": "Scope label: last_7_days | last_30_days | custom for date-range scopes, or the event title for an event scope."
+          },
+          "start": {
+            "type": "string",
+            "description": "Real window start (ISO 8601)."
+          },
+          "end": {
+            "type": "string",
+            "description": "Real window end (ISO 8601)."
+          },
+          "selectedFields": {
+            "description": "Effective included sections after field selection (profile/allergies/conditions/currentMedicines).",
+            "type": "array",
+            "items": {
+              "type": "array"
+            }
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/ClinicSummaryCoverageDto"
+          },
           "dataRange": {
             "type": "string",
-            "description": "Data range (e.g. last_30_days)"
+            "description": "Legacy range label (last_7_days | last_30_days | custom | event); kept as a compatibility alias of scopeLabel."
           },
           "profile": {
             "description": "De-identified profile",
@@ -10406,7 +10495,7 @@
             }
           },
           "findings": {
-            "description": "Key findings / notes for the doctor",
+            "description": "Structured facts and change codes reused from the event review (e.g. health_event, observed_changes, no_completed_actions, active_check_in). `insufficient_coverage` is the fixed 资料不足 statement — no generic AI conclusions are ever added.",
             "type": "array",
             "items": {
               "type": "string"
@@ -10419,6 +10508,11 @@
         },
         "required": [
           "generatedAt",
+          "scopeLabel",
+          "start",
+          "end",
+          "selectedFields",
+          "coverage",
           "dataRange",
           "profile",
           "allergies",

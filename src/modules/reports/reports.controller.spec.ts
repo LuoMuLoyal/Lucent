@@ -14,6 +14,7 @@ import type { ReportDashboardDataDto } from './dto/report-dashboard-response.dto
 
 import type { ReportSummaryDataDto } from './dto/report-summary-response.dto';
 import type { EventReviewDataDto } from './dto/event-review-response.dto';
+import type { ClinicSummaryDto } from './dto/clinic-summary-response.dto';
 import { ReportsAiSummaryService } from './services/ai-summary/summary.service';
 import { ReportSummaryQueueService } from './services/ai-summary/summary-queue.service';
 import { ClinicSummaryService } from './services/clinic-summary/summary.service';
@@ -248,20 +249,7 @@ describe('ReportsController', () => {
   // ── previewClinicSummary ──────────────────────────────────────────────
 
   it('returns clinic summary preview envelope', async () => {
-    const summary = {
-      generatedAt: '2026-07-10T08:00:00.000Z',
-      dataRange: 'last_30_days',
-      profile: {
-        nickname: '匿**',
-        age: 30,
-        sexAtBirth: 'male',
-        bloodType: 'A',
-      },
-      allergies: [],
-      conditions: [],
-      currentMedicines: [],
-      disclaimer: '此摘要仅供参考。',
-    };
+    const summary = makeClinicSummary();
     clinicSummaryService.buildClinicSummary.mockResolvedValue(summary);
 
     const result = await controller.previewClinicSummary(
@@ -317,20 +305,7 @@ describe('ReportsController', () => {
   // ── getSharedClinicSummary ────────────────────────────────────────────
 
   it('returns shared clinic summary envelope when token is valid', async () => {
-    const summary = {
-      generatedAt: '2026-07-10T08:00:00.000Z',
-      dataRange: 'last_30_days',
-      profile: {
-        nickname: '匿**',
-        age: 30,
-        sexAtBirth: 'male',
-        bloodType: 'A',
-      },
-      allergies: [],
-      conditions: [],
-      currentMedicines: [],
-      disclaimer: '此摘要仅供参考。',
-    };
+    const summary = makeClinicSummary();
     clinicSummaryService.getSharedSummary.mockResolvedValue(summary);
 
     const result = await controller.getSharedClinicSummary(
@@ -514,6 +489,65 @@ describe('ReportsController', () => {
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────
+
+function makeClinicSummary(): ClinicSummaryDto {
+  return {
+    generatedAt: '2026-07-10T08:00:00.000Z',
+    dataRange: 'last_30_days',
+    scopeLabel: 'last_30_days',
+    start: '2026-06-11T00:00:00.000Z',
+    end: '2026-07-10T08:00:00.000Z',
+    selectedFields: ['profile', 'allergies', 'conditions', 'currentMedicines'],
+    coverage: {
+      checkIns: {
+        state: 'unknown',
+        coverage: 'none',
+        sources: [],
+        observedCount: 0,
+        expectedCount: null,
+        windowStart: null,
+        windowEnd: null,
+      },
+      water: {
+        state: 'unknown',
+        coverage: 'none',
+        sources: [],
+        observedCount: 0,
+        expectedCount: null,
+        windowStart: null,
+        windowEnd: null,
+      },
+      dose: {
+        state: 'unknown',
+        coverage: 'none',
+        sources: [],
+        observedCount: 0,
+        expectedCount: null,
+        windowStart: null,
+        windowEnd: null,
+      },
+      sleep: {
+        state: 'unknown',
+        coverage: 'none',
+        sources: [],
+        observedCount: 0,
+        expectedCount: null,
+        windowStart: null,
+        windowEnd: null,
+      },
+    },
+    profile: {
+      nickname: '匿**',
+      age: 30,
+      sexAtBirth: 'male',
+      bloodType: 'A',
+    },
+    allergies: [],
+    conditions: [],
+    currentMedicines: [],
+    disclaimer: '此摘要仅供参考。',
+  };
+}
 
 function makeMockReply(
   events: Array<{ event: string; data: unknown }>,

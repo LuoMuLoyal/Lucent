@@ -5,6 +5,7 @@ import type { I18nService } from 'nestjs-i18n';
 import { ClinicSummaryService } from './summary.service';
 import type { ClinicSummaryPdfService } from './pdf.service';
 import type { PrismaService } from '../../../../prisma';
+import { CLINIC_SUMMARY_SECTION_KEYS } from './summary-view.model';
 import type {
   ClinicSummaryDto,
   ClinicSummaryShareResponseDto,
@@ -399,6 +400,13 @@ describe('ClinicSummaryService', () => {
     it('returns cached summary when found', async () => {
       const cached = { generatedAt: '2026-07-10', dataRange: 'last_30_days' };
       cacheManager.get.mockResolvedValue(cached);
+      // No persisted share record (legacy pre-persistence share) → the cache
+      // copy is the source of truth.
+      (
+        prisma as unknown as {
+          userClinicSummaryShare: { findFirst: vi.Mock };
+        }
+      ).userClinicSummaryShare = { findFirst: vi.fn().mockResolvedValue(null) };
 
       const result = await service.getSharedSummary('some-token');
 
@@ -439,7 +447,15 @@ describe('ClinicSummaryService', () => {
     it('records accessedAt and accessCount when a share is opened successfully', async () => {
       const cached = { generatedAt: '2026-07-10', dataRange: 'last_30_days' };
       cacheManager.get.mockResolvedValue(cached);
-      const shareStore = { update: vi.fn().mockResolvedValue({}) };
+      const shareStore = {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'share-1',
+          revokedAt: null,
+          expiresAt: new Date(Date.now() + 60_000),
+          firstAccessedAt: null,
+        }),
+        update: vi.fn().mockResolvedValue({}),
+      };
       (
         prisma as unknown as { userClinicSummaryShare: typeof shareStore }
       ).userClinicSummaryShare = shareStore;
@@ -518,6 +534,12 @@ describe('ClinicSummaryService', () => {
         disclaimer: 'test',
       };
       cacheManager.get.mockResolvedValue(cached);
+      // Legacy pre-persistence share: no store record, cache is the source.
+      (
+        prisma as unknown as {
+          userClinicSummaryShare: { findFirst: vi.Mock };
+        }
+      ).userClinicSummaryShare = { findFirst: vi.fn().mockResolvedValue(null) };
 
       const result = await service.exportSharedPdf('valid-token', 'en');
 
@@ -545,6 +567,58 @@ describe('ClinicSummaryService', () => {
 
       const result = await service.buildClinicSummary('user-1', 'zh-CN');
       expect(result.profile.nickname).toBe('匿名用户');
+    });
+  });
+
+  // ── Field-drift lock (Task 3) ──────────────────────────────────────────
+  // One request must yield the identical section set on every output path:
+  // preview response, PDF builder input and the shared (cached) payload.
+  // The share response builder (Task 4) will consume the same view model.
+
+  describe('selected-field view model field drift', () => {
+    const sectionKeys = (value: Record<string, unknown>): string[] =>
+      [...CLINIC_SUMMARY_SECTION_KEYS]
+        .filter((key) => value[key] !== undefined)
+        .sort();
+
+    it('preview, PDF input and shared payload expose identical section sets', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+      configService.get.mockReturnValue({ publicBaseUrl: 'https://lumos.app' });
+      const surface = service as unknown as SummaryServiceSurface;
+      const options = {
+        range: 'last_7_days',
+        selectedFields: ['profile', 'conditions'],
+      };
+
+      const preview = await surface.buildClinicSummary(
+        'user-1',
+        'zh-CN',
+        options,
+      );
+      await surface.exportPdf('user-1', 'zh-CN', options);
+      await surface.createShareLink('user-1', 'zh-CN', options);
+
+      const previewKeys = sectionKeys(
+        preview as unknown as Record<string, unknown>,
+      );
+      const pdfInput = pdfService.buildPdf.mock
+        .calls[0]![0] as unknown as Record<string, unknown>;
+      const sharedPayload = cacheManager.set.mock
+        .calls[0]![1] as unknown as Record<string, unknown>;
+
+      expect(previewKeys).toEqual(['conditions', 'profile']);
+      expect(sectionKeys(pdfInput)).toEqual(previewKeys);
+      expect(sectionKeys(sharedPayload)).toEqual(previewKeys);
+    });
+
+    it('keeps every section when no selection is given', async () => {
+      (prisma.user.findFirstOrThrow as vi.Mock).mockResolvedValue(mockUserRow);
+
+      const result = await service.buildClinicSummary('user-1', 'zh-CN');
+
+      expect(sectionKeys(result as unknown as Record<string, unknown>)).toEqual(
+        [...CLINIC_SUMMARY_SECTION_KEYS].sort(),
+      );
     });
   });
 });
