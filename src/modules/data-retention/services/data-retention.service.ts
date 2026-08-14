@@ -12,12 +12,23 @@ const READ_NOTIFICATION_RETENTION_DAYS = 30;
 const SOFT_DELETED_ACCOUNT_RETENTION_DAYS = 30;
 
 /**
+ * Retention period for raw product events (90 days). Measured from
+ * `occurredAt` (the client-reported event time), not `createdAt` (server
+ * receipt time): an offline client buffer could otherwise push receipt far
+ * later than the event itself, extending raw retention past the contract.
+ * Account hard-delete removes a user's raw events immediately via the FK
+ * cascade on `UserProductEvent.userId`.
+ */
+const RAW_PRODUCT_EVENT_RETENTION_DAYS = 90;
+
+/**
  * Periodically cleans up expired and stale data to prevent database bloat.
  *
  * Runs daily at 3:00 AM UTC (via BullMQ Repeatable Job) and removes:
  * - Expired user sessions (`expiresAt` has passed)
  * - Read notifications older than 30 days
  * - Expired suggestion feedback suppressions (`expiresAt` has passed)
+ * - Raw product events older than 90 days (by `occurredAt`)
  * - Soft-deleted accounts past the 30-day retention window (permanent cascade delete)
  *
  * Uses `deleteMany` for bulk deletion. Errors are logged but do not
@@ -35,6 +46,7 @@ export class DataRetentionService {
     await this.cleanupExpiredSessions(currentTime);
     await this.cleanupOldReadNotifications(currentTime);
     await this.cleanupExpiredFeedback(currentTime);
+    await this.cleanupExpiredProductEvents(currentTime);
     await this.cleanupSoftDeletedAccounts(currentTime);
   }
 
@@ -101,6 +113,31 @@ export class DataRetentionService {
     } catch (error) {
       this.logger.error(
         `Failed to cleanup expired feedback: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  /** Deletes raw product events older than the 90-day retention window. */
+  private async cleanupExpiredProductEvents(currentTime: Date): Promise<void> {
+    try {
+      const threshold = new Date(currentTime);
+      threshold.setUTCDate(
+        threshold.getUTCDate() - RAW_PRODUCT_EVENT_RETENTION_DAYS,
+      );
+
+      const result = await this.prisma.userProductEvent.deleteMany({
+        where: { occurredAt: { lt: threshold } },
+      });
+
+      if (result.count > 0) {
+        this.logger.log(
+          `Deleted ${String(result.count)} raw product event(s) older than ${String(RAW_PRODUCT_EVENT_RETENTION_DAYS)} days`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to cleanup expired product events: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
     }

@@ -43,6 +43,7 @@ import { LegalDocumentsModule } from './modules/legal-documents/legal-documents.
 import { DataExportModule } from './modules/data-export/data-export.module';
 import { FilesModule } from './modules/files/files.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ProductEventsModule } from './modules/product-events/product-events.module';
 import { TestingSupportModule } from './modules/testing-support/testing-support.module';
 import { LlmRuntimeModule } from './llm-runtime/llm-runtime.module';
 import { TodayAnalysisModule } from './modules/today-analysis/today-analysis.module';
@@ -112,6 +113,7 @@ import { SlowRequestInterceptor } from './common';
     DataExportModule,
     FilesModule,
     NotificationsModule,
+    ProductEventsModule,
     ...(process.env['NODE_ENV'] === 'test' ? [TestingSupportModule] : []),
     RouterModule.register([
       {
@@ -126,6 +128,7 @@ import { SlowRequestInterceptor } from './common';
           HealthEventsModule,
           MedicineRemindersModule,
           NotificationsModule,
+          ProductEventsModule,
           ReportsModule,
           UserSettingsModule,
           TodayAnalysisModule,
