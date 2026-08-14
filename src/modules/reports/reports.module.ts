@@ -7,6 +7,7 @@ import { LlmRuntimeModule } from '../../llm-runtime/llm-runtime.module';
 import { MedicinesModule } from '../medicines/medicines.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
+import { ProductEventsModule } from '../product-events/product-events.module';
 import { ReportsAiSummaryContextService } from './services/ai-summary/context.service';
 
 import { ReportsLlmSummaryCopyService } from './services/ai-summary/copy.service';
@@ -46,6 +47,7 @@ import { ReportsController } from './reports.controller';
     MedicinesModule,
     MedicineDoseLogsModule,
     UserSettingsModule,
+    ProductEventsModule,
   ],
   controllers: [ReportsController],
   providers: [

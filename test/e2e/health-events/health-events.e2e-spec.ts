@@ -217,4 +217,62 @@ describe('Health Event Contract API (e2e)', () => {
       coverage: { checkInCount: 1 },
     });
   }, 30_000);
+
+  it('records server-authoritative product events on the happy path (start → check-in → end)', async () => {
+    const user = await createTestUser(ctx.prisma, undefined, 'HealthEventP');
+    userIds.push(user.id);
+    const token = await createToken(user);
+
+    const createResponse = await request(app.getHttpServer())
+      .post(HEALTH_EVENTS_PATH)
+      .set('Authorization', bearer(token))
+      .send({ title: '测量事件' })
+      .expect(201);
+    const created = expectData(
+      createResponse.body as ApiEnvelope<HealthEventItem>,
+    );
+
+    await request(app.getHttpServer())
+      .put(`${HEALTH_EVENTS_PATH}/${created.id}/check-ins/${CHECK_IN_DATE}`)
+      .set('Authorization', bearer(token))
+      .send({ outcome: HealthEventOutcome.improved })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post(`${HEALTH_EVENTS_PATH}/${created.id}/end`)
+      .set('Authorization', bearer(token))
+      .send({ outcome: HealthEventOutcome.unchanged })
+      .expect(201);
+
+    const events = await ctx.prisma.userProductEvent.findMany({
+      where: { userId: user.id },
+      orderBy: { occurredAt: 'asc' },
+    });
+
+    expect(events).toHaveLength(3);
+    expect(events.map((e) => e.name)).toEqual([
+      'health_event_started',
+      'health_event_outcome_confirmed',
+      'health_event_ended',
+    ]);
+    // Server-emitted rows carry the fixed server markers, never a client build.
+    for (const event of events) {
+      expect(event.appVersion).toBe('server');
+      expect(event.platform).toBe('web');
+      expect(event.surface).toBe('review');
+      expect(event.clientEventId).toMatch(/^server-/);
+    }
+    expect(events[0]).toMatchObject({
+      result: 'success',
+      eventStatus: 'active',
+    });
+    expect(events[1]).toMatchObject({
+      result: 'improved',
+      eventStatus: null,
+    });
+    expect(events[2]).toMatchObject({
+      result: 'unchanged',
+      eventStatus: 'ended',
+    });
+  }, 30_000);
 });

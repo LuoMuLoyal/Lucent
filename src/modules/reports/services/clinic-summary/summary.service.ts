@@ -4,6 +4,11 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
 import type { Cache } from 'cache-manager';
 import { I18nService } from 'nestjs-i18n';
+import {
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
+} from '#generated/prisma/client';
 import { PrismaService } from '../../../../prisma';
 import {
   badRequest,
@@ -29,6 +34,7 @@ import type {
 } from '../../dto/event-review-response.dto';
 import { EventReviewService } from '../event-review/review.service';
 import { ClinicSummaryPdfService } from './pdf.service';
+import { ProductEventsService } from '../../../product-events';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
@@ -102,6 +108,7 @@ export class ClinicSummaryService {
     private readonly pdfService: ClinicSummaryPdfService,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
+    private readonly productEvents: ProductEventsService,
     @Optional() private readonly eventReview?: EventReviewService,
   ) {}
 
@@ -250,6 +257,17 @@ export class ClinicSummaryService {
       },
     });
     if (result.count === 0) return null;
+
+    // Single share_opened emission per successful public read. Attributed to
+    // the share OWNER's userId (the persisted grant is the only identity
+    // here) — the visitor's identity/IP is never part of the payload, and
+    // legacy cache-only shares (no store record) emit nothing because there
+    // is no owner to attribute to.
+    await this.productEvents.emitServerEvent(record.userId, {
+      name: ProductEventName.visit_summary_share_opened,
+      surface: ProductEventSurface.system,
+      result: ProductEventResult.success,
+    });
     return cached;
   }
 

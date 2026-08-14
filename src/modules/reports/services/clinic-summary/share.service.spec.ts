@@ -1,7 +1,13 @@
 import { createHash } from 'node:crypto';
 import { BadRequestException } from '@nestjs/common';
+import {
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
+} from '#generated/prisma/client';
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { PrismaService } from '../../../../prisma';
+import type { ProductEventsService } from '../../../product-events';
 import { ShareService } from './share.service';
 
 /**
@@ -101,13 +107,17 @@ describe('ShareService', () => {
   let service: ShareService;
   let prisma: DeepMocked<PrismaService>;
   let shareStore: ShareStore;
+  let emitServerEvent: vi.Mock;
 
   beforeEach(() => {
     shareStore = makeShareStore([]);
     prisma = {
       userClinicSummaryShare: shareStore,
     } as unknown as DeepMocked<PrismaService>;
-    service = new ShareService(prisma);
+    emitServerEvent = vi.fn().mockResolvedValue(undefined);
+    service = new ShareService(prisma, {
+      emitServerEvent,
+    } as unknown as ProductEventsService);
   });
 
   describe('createShare', () => {
@@ -304,7 +314,9 @@ describe('ShareService', () => {
       const testPrisma = {
         userClinicSummaryShare: store,
       } as unknown as DeepMocked<PrismaService>;
-      return new ShareService(testPrisma);
+      return new ShareService(testPrisma, {
+        emitServerEvent,
+      } as unknown as ProductEventsService);
     };
 
     it('looks up by the sha256 token hash', async () => {
@@ -472,6 +484,82 @@ describe('ShareService', () => {
       const result = await service.revokeShare('user-1', 'no-such-share');
 
       expect(result).toBe(false);
+    });
+  });
+
+  describe('product event emission', () => {
+    it('emits visit_summary_share_created after a successful createShare', async () => {
+      mockCreatedShare(shareStore);
+
+      await service.createShare('user-1', validShareInput);
+
+      expect(emitServerEvent).toHaveBeenCalledTimes(1);
+      expect(emitServerEvent).toHaveBeenCalledWith('user-1', {
+        name: ProductEventName.visit_summary_share_created,
+        surface: ProductEventSurface.review,
+        result: ProductEventResult.success,
+      });
+    });
+
+    it('emits no product event when the share insert fails', async () => {
+      shareStore.create.mockRejectedValue(new Error('write failed'));
+
+      await expect(
+        service.createShare('user-1', validShareInput),
+      ).rejects.toThrow('write failed');
+      expect(emitServerEvent).not.toHaveBeenCalled();
+    });
+
+    it('emits visit_summary_share_revoked only when a real revocation happened', async () => {
+      shareStore.updateMany.mockResolvedValue({ count: 1 });
+
+      const revoked = await service.revokeShare('user-1', 'share-1');
+
+      expect(revoked).toBe(true);
+      expect(emitServerEvent).toHaveBeenCalledTimes(1);
+      expect(emitServerEvent).toHaveBeenCalledWith('user-1', {
+        name: ProductEventName.visit_summary_share_revoked,
+        surface: ProductEventSurface.review,
+        result: ProductEventResult.success,
+      });
+    });
+
+    it('emits no product event when revoke matches nothing', async () => {
+      shareStore.updateMany.mockResolvedValue({ count: 0 });
+
+      const revoked = await service.revokeShare('other-user', 'share-1');
+
+      expect(revoked).toBe(false);
+      expect(emitServerEvent).not.toHaveBeenCalled();
+    });
+
+    it('does not emit the open event here — single emission lives in ClinicSummaryService.getSharedSummary', async () => {
+      const store = makeShareStore([
+        {
+          id: 'share-1',
+          userId: 'user-1',
+          tokenHash: sha256('valid-token'),
+          eventId: 'evt-1',
+          dateFrom: null,
+          dateTo: null,
+          selectedFields: ['event_overview'],
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          revokedAt: null,
+          firstAccessedAt: null,
+          lastAccessedAt: null,
+          accessCount: 0,
+          createdAt: new Date(),
+        },
+      ]);
+      const openService = new ShareService(
+        { userClinicSummaryShare: store } as unknown as PrismaService,
+        { emitServerEvent } as unknown as ProductEventsService,
+      );
+
+      const result = await openService.getSharedSummaryByToken('valid-token');
+
+      expect(result).not.toBeNull();
+      expect(emitServerEvent).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,9 +1,15 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import { ClinicSummaryShareField } from '#generated/prisma/client';
+import {
+  ClinicSummaryShareField,
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
+} from '#generated/prisma/client';
 import type { UserClinicSummaryShare } from '#generated/prisma/client';
 import { badRequest } from '../../../../common';
 import { PrismaService } from '../../../../prisma';
+import { ProductEventsService } from '../../../product-events';
 
 /**
  * Default lifetime of a share link, in days. Intentionally longer than the
@@ -63,10 +69,21 @@ export interface ShareReadModel {
  * stored; no summary JSON and no plaintext token are ever persisted. The
  * response is rebuilt from the current authorized scope on each open, so the
  * share record (scope + selected fields) is returned as the read result.
+ *
+ * The share domain records its own lifecycle product events: created /
+ * revoked after the corresponding write succeeds (surface `review` — the
+ * authenticated in-app report screen where the owner acts). The OPEN event is
+ * NOT emitted here: `getSharedSummaryByToken` is a storage primitive not on
+ * any controller path — the production public open flows through
+ * `ClinicSummaryService.getSharedSummary`, which emits
+ * `visit_summary_share_opened` exactly once per successful read.
  */
 @Injectable()
 export class ShareService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly productEvents: ProductEventsService,
+  ) {}
 
   async createShare(
     userId: string,
@@ -91,6 +108,14 @@ export class ShareService {
         selectedFields,
         expiresAt,
       },
+    });
+
+    // Server-authoritative lifecycle event — emitted only after the share
+    // insert succeeded.
+    await this.productEvents.emitServerEvent(userId, {
+      name: ProductEventName.visit_summary_share_created,
+      surface: ProductEventSurface.review,
+      result: ProductEventResult.success,
     });
 
     return {
@@ -145,6 +170,14 @@ export class ShareService {
       where: { id: shareId, userId },
       data: { revokedAt: new Date() },
     });
+    if (result.count > 0) {
+      // Server-authoritative lifecycle event — only after a real revocation.
+      await this.productEvents.emitServerEvent(userId, {
+        name: ProductEventName.visit_summary_share_revoked,
+        surface: ProductEventSurface.review,
+        result: ProductEventResult.success,
+      });
+    }
     return result.count > 0;
   }
 

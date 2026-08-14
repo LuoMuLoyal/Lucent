@@ -2,9 +2,15 @@ import { BadRequestException } from '@nestjs/common';
 import type { DeepMocked } from '../../../../common/types/deep-mocked';
 import type { ConfigService } from '@nestjs/config';
 import type { I18nService } from 'nestjs-i18n';
+import {
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
+} from '#generated/prisma/client';
 import { ClinicSummaryService, sharedSummaryCacheKey } from './summary.service';
 import type { ClinicSummaryPdfService } from './pdf.service';
 import type { PrismaService } from '../../../../prisma';
+import type { ProductEventsService } from '../../../product-events';
 import {
   CLINIC_SUMMARY_SECTION_KEYS,
   resolveSectionKeys,
@@ -57,10 +63,21 @@ function withEventReview(
   config: vi.Mocked<ConfigService>,
   eventReview: { buildCurrent: vi.Mock; buildForEvent?: vi.Mock },
 ): ClinicSummaryService {
+  const productEvents = {
+    emitServerEvent: vi.fn().mockResolvedValue(undefined),
+  } as unknown as ProductEventsService;
   const Ctor = ClinicSummaryService as unknown as new (
     ...args: unknown[]
   ) => ClinicSummaryService;
-  return new Ctor(prisma, cache, pdf, config, i18nMock, eventReview);
+  return new Ctor(
+    prisma,
+    cache,
+    pdf,
+    config,
+    i18nMock,
+    productEvents,
+    eventReview,
+  );
 }
 
 /** Minimal event-review read model the summary findings/coverage must reuse. */
@@ -149,6 +166,7 @@ describe('ClinicSummaryService', () => {
   let cacheManager: { get: vi.Mock; set: vi.Mock };
   let pdfService: vi.Mocked<ClinicSummaryPdfService>;
   let configService: vi.Mocked<ConfigService>;
+  let productEvents: { emitServerEvent: vi.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -170,12 +188,15 @@ describe('ClinicSummaryService', () => {
       get: vi.fn(),
     } as unknown as vi.Mocked<ConfigService>;
 
+    productEvents = { emitServerEvent: vi.fn().mockResolvedValue(undefined) };
+
     service = new ClinicSummaryService(
       prisma,
       cacheManager as never,
       pdfService,
       configService,
       i18nMock,
+      productEvents as unknown as ProductEventsService,
     );
   });
 
@@ -689,6 +710,7 @@ describe('ClinicSummaryService', () => {
       const shareStore = {
         findFirst: vi.fn().mockResolvedValue({
           id: 'share-1',
+          userId: 'owner-1',
           revokedAt: null,
           expiresAt: new Date(Date.now() + 60_000),
           firstAccessedAt: null,
@@ -703,6 +725,72 @@ describe('ClinicSummaryService', () => {
 
       expect(result).toBeNull();
       expect(shareStore.updateMany).toHaveBeenCalled();
+    });
+
+    it('emits visit_summary_share_opened to the share owner after a successful open', async () => {
+      const cached = { generatedAt: '2026-07-10', dataRange: 'last_30_days' };
+      cacheManager.get.mockResolvedValue(cached);
+      const shareStore = {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'share-1',
+          userId: 'owner-1',
+          revokedAt: null,
+          expiresAt: new Date(Date.now() + 60_000),
+          firstAccessedAt: null,
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      };
+      (
+        prisma as unknown as { userClinicSummaryShare: typeof shareStore }
+      ).userClinicSummaryShare = shareStore;
+
+      const result = await service.getSharedSummary('valid-token');
+
+      expect(result).toEqual(cached);
+      expect(productEvents.emitServerEvent).toHaveBeenCalledTimes(1);
+      expect(productEvents.emitServerEvent).toHaveBeenCalledWith('owner-1', {
+        name: ProductEventName.visit_summary_share_opened,
+        surface: ProductEventSurface.system,
+        result: ProductEventResult.success,
+      });
+    });
+
+    it('emits no open event for a legacy cache-only share (no owner to attribute)', async () => {
+      const cached = { generatedAt: '2026-07-10', dataRange: 'last_30_days' };
+      cacheManager.get.mockResolvedValue(cached);
+      (
+        prisma as unknown as {
+          userClinicSummaryShare: { findFirst: vi.Mock };
+        }
+      ).userClinicSummaryShare = { findFirst: vi.fn().mockResolvedValue(null) };
+
+      const result = await service.getSharedSummary('legacy-token');
+
+      expect(result).toEqual(cached);
+      expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
+    });
+
+    it('emits no open event when the guarded access write is denied', async () => {
+      const cached = { generatedAt: '2026-07-10', dataRange: 'last_30_days' };
+      cacheManager.get.mockResolvedValue(cached);
+      const shareStore = {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'share-1',
+          userId: 'owner-1',
+          revokedAt: null,
+          expiresAt: new Date(Date.now() + 60_000),
+          firstAccessedAt: null,
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+      };
+      (
+        prisma as unknown as { userClinicSummaryShare: typeof shareStore }
+      ).userClinicSummaryShare = shareStore;
+
+      const result = await service.getSharedSummary('racing-token');
+
+      expect(result).toBeNull();
+      expect(productEvents.emitServerEvent).not.toHaveBeenCalled();
     });
   });
 
