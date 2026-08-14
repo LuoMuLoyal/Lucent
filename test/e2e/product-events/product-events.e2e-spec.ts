@@ -1,4 +1,10 @@
 import request from 'supertest';
+import {
+  ProductEventName,
+  ProductEventResult,
+  ProductEventSurface,
+  type Prisma,
+} from '#generated/prisma/client';
 
 import type { ApiEnvelope } from '../../../src/common';
 import { ResultCode } from '../../../src/common';
@@ -17,6 +23,12 @@ import type {
 } from '../../helpers/e2e-helpers';
 
 const PRODUCT_EVENTS_PATH = '/api/v1/user/product-events';
+const FUNNEL_PATH = `${PRODUCT_EVENTS_PATH}/funnel`;
+
+// Dedicated window for the funnel e2e tests — no other test in this file
+// seeds events on these dates, so the aggregated counts stay exact.
+const FUNNEL_DATE = '2026-01-10';
+const FUNNEL_DATE_SMALL_SAMPLE = '2026-01-11';
 
 function validEvent(overrides: Record<string, unknown> = {}) {
   return {
@@ -31,11 +43,44 @@ function validEvent(overrides: Record<string, unknown> = {}) {
   };
 }
 
+interface SeedEvent {
+  name: ProductEventName;
+  surface: ProductEventSurface;
+  result: ProductEventResult;
+  occurredAt: string;
+  clientEventId: string;
+}
+
+/** Insert raw product events directly (the write path is covered elsewhere). */
+function seedEvents(
+  ctx: E2eTestContext,
+  targetUser: TestUser,
+  events: SeedEvent[],
+): Promise<unknown> {
+  const data: Prisma.UserProductEventCreateManyInput[] = events.map(
+    (event) => ({
+      userId: targetUser.id,
+      clientEventId: event.clientEventId,
+      name: event.name,
+      surface: event.surface,
+      result: event.result,
+      eventStatus: null,
+      suggestionRuleCode: null,
+      appVersion: '1.2.0',
+      platform: 'ios',
+      occurredAt: new Date(event.occurredAt),
+    }),
+  );
+  return ctx.prisma.userProductEvent.createMany({ data });
+}
+
 describe('Product Events API (e2e)', () => {
   let ctx: E2eTestContext;
   let app: E2eApp;
   let user: TestUser;
   let accessToken: string;
+  let admin: TestUser;
+  let adminToken: string;
 
   beforeAll(async () => {
     ctx = await createTestApp();
@@ -48,6 +93,16 @@ describe('Product Events API (e2e)', () => {
       ctx.configService,
       user.id,
       user.email,
+    );
+
+    const adminEmail = ctx.configService.get<string>('ADMIN_EMAIL');
+    expect(adminEmail).toBeTruthy();
+    admin = await createTestUser(ctx.prisma, adminEmail, 'FunnelAdmin');
+    adminToken = await createAccessToken(
+      ctx.jwtService,
+      ctx.configService,
+      admin.id,
+      adminEmail as string,
     );
   });
 
@@ -225,5 +280,224 @@ describe('Product Events API (e2e)', () => {
       .set('Authorization', bearer(accessToken))
       .send({ events: [] })
       .expect(400);
+  });
+
+  describe('funnel aggregation (admin)', () => {
+    it('returns 401 for an unauthenticated request', async () => {
+      await request(app.getHttpServer()).get(FUNNEL_PATH).expect(401);
+    });
+
+    it('returns 403 for a regular user', async () => {
+      await request(app.getHttpServer())
+        .get(FUNNEL_PATH)
+        .set('Authorization', bearer(accessToken))
+        .expect(403);
+    });
+
+    it('aggregates two users into one window with counts only and optional events separated', async () => {
+      const secondUser = await createTestUser(
+        ctx.prisma,
+        undefined,
+        'FunnelSecondUser',
+      );
+      await seedEvents(ctx, user, [
+        {
+          name: ProductEventName.health_event_started,
+          surface: ProductEventSurface.review,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T02:00:00.000Z`,
+          clientEventId: 'funnel-a-start-1',
+        },
+        {
+          name: ProductEventName.health_event_started,
+          surface: ProductEventSurface.review,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T03:00:00.000Z`,
+          clientEventId: 'funnel-a-start-2',
+        },
+        {
+          name: ProductEventName.suggestion_impression,
+          surface: ProductEventSurface.today,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T04:00:00.000Z`,
+          clientEventId: 'funnel-a-imp-1',
+        },
+        {
+          name: ProductEventName.suggestion_actioned,
+          surface: ProductEventSurface.today,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T05:00:00.000Z`,
+          clientEventId: 'funnel-a-act-1',
+        },
+        {
+          name: ProductEventName.health_event_ended,
+          surface: ProductEventSurface.review,
+          result: ProductEventResult.improved,
+          occurredAt: `${FUNNEL_DATE}T06:00:00.000Z`,
+          clientEventId: 'funnel-a-ended-1',
+        },
+        {
+          name: ProductEventName.visit_summary_previewed,
+          surface: ProductEventSurface.review,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T07:00:00.000Z`,
+          clientEventId: 'funnel-a-preview-1',
+        },
+      ]);
+      await seedEvents(ctx, secondUser, [
+        {
+          name: ProductEventName.health_event_started,
+          surface: ProductEventSurface.review,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T02:30:00.000Z`,
+          clientEventId: 'funnel-b-start-1',
+        },
+        {
+          name: ProductEventName.health_event_started,
+          surface: ProductEventSurface.review,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T02:45:00.000Z`,
+          clientEventId: 'funnel-b-start-2',
+        },
+        {
+          name: ProductEventName.suggestion_impression,
+          surface: ProductEventSurface.today,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T04:30:00.000Z`,
+          clientEventId: 'funnel-b-imp-1',
+        },
+        {
+          name: ProductEventName.suggestion_impression,
+          surface: ProductEventSurface.today,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T04:45:00.000Z`,
+          clientEventId: 'funnel-b-imp-2',
+        },
+        {
+          name: ProductEventName.suggestion_actioned,
+          surface: ProductEventSurface.today,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T05:30:00.000Z`,
+          clientEventId: 'funnel-b-act-1',
+        },
+        {
+          name: ProductEventName.review_opened,
+          surface: ProductEventSurface.review,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE}T08:00:00.000Z`,
+          clientEventId: 'funnel-b-review-1',
+        },
+      ]);
+
+      const response = await request(app.getHttpServer())
+        .get(FUNNEL_PATH)
+        .query({ dateFrom: FUNNEL_DATE, dateTo: FUNNEL_DATE })
+        .set('Authorization', bearer(adminToken))
+        .expect(200);
+
+      const data = expectData(response.body) as {
+        daily: Array<Record<string, number | string>>;
+        optional: Record<string, number>;
+        totals: Record<string, number>;
+        window: {
+          dateFrom: string;
+          dateTo: string;
+          generatedAt: string;
+          detailsSuppressed: boolean;
+        };
+      };
+
+      // Both users' events land in the same day and stage counts.
+      expect(data.totals).toEqual({
+        eventStarted: 4,
+        suggestionImpression: 3,
+        suggestionActioned: 2,
+        eventEndedOrOutcome: 1,
+        reviewOpened: 1,
+      });
+      expect(data.daily).toEqual([
+        {
+          date: FUNNEL_DATE,
+          eventStarted: 4,
+          suggestionImpression: 3,
+          suggestionActioned: 2,
+          eventEndedOrOutcome: 1,
+          reviewOpened: 1,
+        },
+      ]);
+      // Optional visit-summary events are counted separately — the preview
+      // never lands in the core funnel, and the core result is unaffected.
+      expect(data.optional).toEqual({
+        visitSummaryPreviewed: 1,
+        visitSummaryExported: 0,
+        visitSummaryShareCreated: 0,
+        visitSummaryShareOpened: 0,
+      });
+      expect(data.window).toMatchObject({
+        dateFrom: FUNNEL_DATE,
+        dateTo: FUNNEL_DATE,
+        detailsSuppressed: false,
+      });
+      expect(typeof data.window.generatedAt).toBe('string');
+
+      // The response payload carries counts only — no user identity or
+      // health content of any kind.
+      const json = JSON.stringify(response.body);
+      expect(json).not.toContain('userId');
+      expect(json).not.toContain('symptom');
+      expect(json).not.toContain('suggestionRuleCode');
+    });
+
+    it('suppresses daily details below the small-sample threshold', async () => {
+      await seedEvents(ctx, user, [
+        {
+          name: ProductEventName.health_event_started,
+          surface: ProductEventSurface.review,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE_SMALL_SAMPLE}T02:00:00.000Z`,
+          clientEventId: 'funnel-small-1',
+        },
+        {
+          name: ProductEventName.review_opened,
+          surface: ProductEventSurface.review,
+          result: ProductEventResult.success,
+          occurredAt: `${FUNNEL_DATE_SMALL_SAMPLE}T03:00:00.000Z`,
+          clientEventId: 'funnel-small-2',
+        },
+      ]);
+
+      const response = await request(app.getHttpServer())
+        .get(FUNNEL_PATH)
+        .query({
+          dateFrom: FUNNEL_DATE_SMALL_SAMPLE,
+          dateTo: FUNNEL_DATE_SMALL_SAMPLE,
+        })
+        .set('Authorization', bearer(adminToken))
+        .expect(200);
+
+      const data = expectData(response.body) as {
+        daily: unknown[];
+        totals: Record<string, number>;
+        window: { detailsSuppressed: boolean };
+      };
+      expect(data.daily).toEqual([]);
+      expect(data.window.detailsSuppressed).toBe(true);
+      // Totals are still returned.
+      expect(data.totals).toEqual({
+        eventStarted: 1,
+        suggestionImpression: 0,
+        suggestionActioned: 0,
+        eventEndedOrOutcome: 0,
+        reviewOpened: 1,
+      });
+    });
+
+    it('rejects a date range beyond the 30-day cap', async () => {
+      await request(app.getHttpServer())
+        .get(FUNNEL_PATH)
+        .query({ dateFrom: '2026-01-01', dateTo: '2026-02-01' })
+        .set('Authorization', bearer(adminToken))
+        .expect(400);
+    });
   });
 });

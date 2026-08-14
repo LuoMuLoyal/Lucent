@@ -2,17 +2,22 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-13
+updated: 2026-08-14
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-13
+Last updated: 2026-08-14
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
 - local `docs/openapi.json` remains the exported backend contract artifact that Luminous
   regenerates its `generated/lucent_api/` client from.
+- Product Measurement Task 9 exports the first admin aggregation endpoint
+  `GET /api/v1/user/product-events/funnel` (120 → 121 paths / 285 → 290 schemas; five
+  count-only Funnel\* DTOs, no existing path/schema changes). It is an internal admin surface
+  (JWT email must match `ADMIN_EMAIL`), not part of the Luminous client contract; the Flutter
+  client does not need regeneration for it.
 - Review Experience Task 3 exports three read-only review endpoints to `docs/openapi.json`
   (`/api/v1/user/reports/reviews/current`, `/reviews`, `/reviews/{eventId}`; 117 paths / 272
   schemas) alongside the unchanged dashboard/summary/clinic-summary paths. The export script

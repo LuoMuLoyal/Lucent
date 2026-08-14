@@ -1438,6 +1438,59 @@
         "tags": ["Product Events"]
       }
     },
+    "/api/v1/user/product-events/funnel": {
+      "get": {
+        "description": "Internal admin surface (JWT email must match ADMIN_EMAIL; regular users get 403). Aggregates the core product loop per UTC calendar day — event started → suggestion impression/actioned → event ended/outcome → review opened — plus optional visit-summary events separately. Counts only: the response carries no health content, rule codes, user ids or per-user detail. Per-day details are suppressed below the small-sample threshold.",
+        "operationId": "ProductEventsController_getFunnel_v1",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "description": "Window start (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used.",
+            "schema": {
+              "example": "2026-07-16",
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "description": "Window end (inclusive), ISO 8601 date (YYYY-MM-DD) or datetime; the UTC calendar day is used.",
+            "schema": {
+              "example": "2026-08-14",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated funnel counts for the requested window.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunnelResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token."
+          },
+          "403": {
+            "description": "Authenticated but not the internal admin (ADMIN_EMAIL)."
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Admin-only daily product funnel aggregation",
+        "tags": ["Product Events"]
+      }
+    },
     "/api/v1/user/medicine-dose-logs": {
       "get": {
         "operationId": "MedicineDoseLogsController_list_v1",
@@ -7165,6 +7218,175 @@
           }
         },
         "required": ["events"]
+      },
+      "FunnelDailyCountsDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "UTC calendar day (YYYY-MM-DD).",
+            "example": "2026-08-14"
+          },
+          "eventStarted": {
+            "type": "number",
+            "description": "health_event_started count.",
+            "example": 12
+          },
+          "suggestionImpression": {
+            "type": "number",
+            "description": "suggestion_impression count.",
+            "example": 9
+          },
+          "suggestionActioned": {
+            "type": "number",
+            "description": "suggestion_actioned count.",
+            "example": 4
+          },
+          "eventEndedOrOutcome": {
+            "type": "number",
+            "description": "health_event_ended + health_event_outcome_confirmed count — the ended/outcome stage (both names are the same user-visible step).",
+            "example": 3
+          },
+          "reviewOpened": {
+            "type": "number",
+            "description": "review_opened count.",
+            "example": 5
+          }
+        },
+        "required": [
+          "date",
+          "eventStarted",
+          "suggestionImpression",
+          "suggestionActioned",
+          "eventEndedOrOutcome",
+          "reviewOpened"
+        ]
+      },
+      "FunnelOptionalCountsDto": {
+        "type": "object",
+        "properties": {
+          "visitSummaryPreviewed": {
+            "type": "number",
+            "description": "visit_summary_previewed count.",
+            "example": 2
+          },
+          "visitSummaryExported": {
+            "type": "number",
+            "description": "visit_summary_exported count.",
+            "example": 1
+          },
+          "visitSummaryShareCreated": {
+            "type": "number",
+            "description": "visit_summary_share_created count.",
+            "example": 1
+          },
+          "visitSummaryShareOpened": {
+            "type": "number",
+            "description": "visit_summary_share_opened count.",
+            "example": 1
+          }
+        },
+        "required": [
+          "visitSummaryPreviewed",
+          "visitSummaryExported",
+          "visitSummaryShareCreated",
+          "visitSummaryShareOpened"
+        ]
+      },
+      "FunnelTotalsDto": {
+        "type": "object",
+        "properties": {
+          "eventStarted": {
+            "type": "number",
+            "description": "health_event_started count.",
+            "example": 42
+          },
+          "suggestionImpression": {
+            "type": "number",
+            "description": "suggestion_impression count.",
+            "example": 31
+          },
+          "suggestionActioned": {
+            "type": "number",
+            "description": "suggestion_actioned count.",
+            "example": 12
+          },
+          "eventEndedOrOutcome": {
+            "type": "number",
+            "description": "ended/outcome stage count.",
+            "example": 9
+          },
+          "reviewOpened": {
+            "type": "number",
+            "description": "review_opened count.",
+            "example": 14
+          }
+        },
+        "required": [
+          "eventStarted",
+          "suggestionImpression",
+          "suggestionActioned",
+          "eventEndedOrOutcome",
+          "reviewOpened"
+        ]
+      },
+      "FunnelWindowDto": {
+        "type": "object",
+        "properties": {
+          "dateFrom": {
+            "type": "string",
+            "description": "Window start (inclusive), UTC calendar day (YYYY-MM-DD).",
+            "example": "2026-07-16"
+          },
+          "dateTo": {
+            "type": "string",
+            "description": "Window end (inclusive), UTC calendar day (YYYY-MM-DD).",
+            "example": "2026-08-14"
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "Response generation time (ISO 8601).",
+            "example": "2026-08-14T02:00:00.000Z"
+          },
+          "detailsSuppressed": {
+            "type": "boolean",
+            "description": "True when the window core-funnel total is below the fixed small-sample threshold — per-day group details are suppressed (daily is empty), window totals are still returned so the admin UI knows the sample is too small to break down.",
+            "example": true
+          }
+        },
+        "required": ["dateFrom", "dateTo", "generatedAt", "detailsSuppressed"]
+      },
+      "FunnelResponseDto": {
+        "type": "object",
+        "properties": {
+          "daily": {
+            "description": "Per-UTC-day core funnel counts, ascending by date; empty when detailsSuppressed is true.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FunnelDailyCountsDto"
+            }
+          },
+          "optional": {
+            "description": "Window totals of the optional visit-summary events.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FunnelOptionalCountsDto"
+              }
+            ]
+          },
+          "totals": {
+            "description": "Window totals of the core funnel (same breakdown as daily).",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FunnelTotalsDto"
+              }
+            ]
+          },
+          "window": {
+            "$ref": "#/components/schemas/FunnelWindowDto"
+          }
+        },
+        "required": ["daily", "optional", "totals", "window"]
       },
       "DoseLogStatus": {
         "type": "string",

@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { validate } from 'class-validator';
 import {
@@ -14,8 +15,10 @@ import {
   CreateProductEventBatchDto,
   CreateProductEventDto,
 } from './dto/create-product-event.dto';
+import { FunnelQueryDto } from './dto/funnel-query.dto';
 import { ProductEventsController } from './product-events.controller';
 import { ProductEventsService } from './services/events.service';
+import { ProductFunnelService } from './services/funnel.service';
 
 const user: UserPayload = {
   sub: 'user-1',
@@ -42,6 +45,7 @@ const PIPE_OPTIONS = { whitelist: true, forbidNonWhitelisted: true };
 describe('ProductEventsController', () => {
   let controller: ProductEventsController;
   let eventsService: vi.Mocked<ProductEventsService>;
+  let funnelService: vi.Mocked<ProductFunnelService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -51,11 +55,22 @@ describe('ProductEventsController', () => {
           provide: ProductEventsService,
           useValue: { recordBatch: vi.fn() },
         },
+        {
+          provide: ProductFunnelService,
+          useValue: { getFunnel: vi.fn() },
+        },
+        // The controller's @UseGuards(AdminGuard) is instantiated by the
+        // testing module; AdminGuard needs ConfigService to resolve.
+        {
+          provide: ConfigService,
+          useValue: { get: vi.fn() },
+        },
       ],
     }).compile();
 
     controller = module.get(ProductEventsController);
     eventsService = module.get(ProductEventsService);
+    funnelService = module.get(ProductFunnelService);
   });
 
   it('records the batch for the authenticated user and returns an envelope', async () => {
@@ -247,6 +262,108 @@ describe('ProductEventsController', () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0]?.property).toBe('events');
+    });
+  });
+
+  describe('funnel aggregation', () => {
+    const funnelResult = {
+      daily: [],
+      optional: {
+        visitSummaryPreviewed: 0,
+        visitSummaryExported: 0,
+        visitSummaryShareCreated: 0,
+        visitSummaryShareOpened: 0,
+      },
+      totals: {
+        eventStarted: 0,
+        suggestionImpression: 0,
+        suggestionActioned: 0,
+        eventEndedOrOutcome: 0,
+        reviewOpened: 0,
+      },
+      window: {
+        dateFrom: '2026-07-16',
+        dateTo: '2026-08-14',
+        generatedAt: '2026-08-14T02:00:00.000Z',
+        detailsSuppressed: true,
+      },
+    };
+
+    it('forwards the query params and returns the funnel envelope', async () => {
+      funnelService.getFunnel.mockResolvedValue(funnelResult);
+
+      const query: FunnelQueryDto = {
+        dateFrom: '2026-07-16',
+        dateTo: '2026-08-14',
+      };
+      const result = await controller.getFunnel(query);
+
+      expect(funnelService.getFunnel).toHaveBeenCalledWith(query);
+      expect(result).toEqual({
+        code: ResultCode.SUCCESS,
+        message: '',
+        data: funnelResult,
+      });
+    });
+
+    it('propagates the date-range-cap 400 from the service', async () => {
+      funnelService.getFunnel.mockRejectedValue(
+        new BadRequestException({
+          code: ResultCode.BAD_REQUEST,
+          message: '日期范围不能超过 30 天',
+        }),
+      );
+
+      await expect(
+        controller.getFunnel({ dateFrom: '2026-08-14', dateTo: '2026-09-13' }),
+      ).rejects.toMatchObject({ status: 400 });
+    });
+  });
+
+  describe('FunnelQueryDto validation', () => {
+    it('accepts date-only params', async () => {
+      const dto = Object.assign(new FunnelQueryDto(), {
+        dateFrom: '2026-07-16',
+        dateTo: '2026-08-14',
+      });
+
+      const errors = await validate(dto, PIPE_OPTIONS);
+
+      expect(errors).toEqual([]);
+    });
+
+    it('accepts full ISO datetimes and an empty query', async () => {
+      const dto = Object.assign(new FunnelQueryDto(), {
+        dateFrom: '2026-07-16T10:00:00.000Z',
+        dateTo: '2026-08-14T10:00:00.000Z',
+      });
+
+      expect(await validate(dto, PIPE_OPTIONS)).toEqual([]);
+      expect(await validate(new FunnelQueryDto(), PIPE_OPTIONS)).toEqual([]);
+    });
+
+    it('rejects a non-ISO date string', async () => {
+      const dto = Object.assign(new FunnelQueryDto(), {
+        dateFrom: 'yesterday',
+        dateTo: '2026-08-14',
+      });
+
+      const errors = await validate(dto, PIPE_OPTIONS);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.property).toBe('dateFrom');
+    });
+
+    it('rejects non-whitelisted query params', async () => {
+      const dto = Object.assign(new FunnelQueryDto(), {
+        dateFrom: '2026-08-14',
+        userId: 'user-1',
+      });
+
+      const errors = await validate(dto, PIPE_OPTIONS);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.property).toBe('userId');
     });
   });
 });
