@@ -75,5 +75,4 @@ Review Experience（Workstream 1）与 Visit Summary and Product Measurement（W
 - **B3**：多实例限流验证（v2.0.0 水平扩展时验证 Redis 计数器）
 - **B4**：账户删除流程增加匿名化数据导出 → 数据可移植性 JSON 导出（GDPR/PIPL）
 - 高级可观测性：OpenTelemetry 分布式追踪、synthetic uptime monitoring
-- 合同债：clinic summary 四个 section 键服务端改可选（当前客户端占位反序列化）
 - 兼容期清理评估：legacy dashboard 代码删除、`createShareLink` 清理（Task 4 标记）、Report legacy scalar fallback
