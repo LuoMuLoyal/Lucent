@@ -78,6 +78,14 @@ export class NotificationDetailDto extends NotificationListItemDto {
   readAt!: string | null;
 }
 
+export class NotificationListDataDto {
+  @ApiProperty({ type: () => [NotificationListItemDto] })
+  items!: NotificationListItemDto[];
+
+  @ApiProperty({ description: 'Total count of notifications for the user.' })
+  total!: number;
+}
+
 export class NotificationListResponseDto {
   @ApiProperty({ description: 'Result code.', example: 0 })
   code!: number;
@@ -85,11 +93,8 @@ export class NotificationListResponseDto {
   @ApiProperty({ description: 'Message.', example: '' })
   message!: string;
 
-  @ApiProperty({ type: () => [NotificationListItemDto] })
-  items!: NotificationListItemDto[];
-
-  @ApiProperty({ description: 'Total count of notifications for the user.' })
-  total!: number;
+  @ApiProperty({ type: () => NotificationListDataDto })
+  data!: NotificationListDataDto;
 }
 
 export class NotificationDetailResponseDto {
@@ -103,6 +108,11 @@ export class NotificationDetailResponseDto {
   data!: NotificationDetailDto | null;
 }
 
+export class UnreadCountDataDto {
+  @ApiProperty({ description: 'Number of unread notifications.', example: 3 })
+  count!: number;
+}
+
 export class UnreadCountResponseDto {
   @ApiProperty({ description: 'Result code.', example: 0 })
   code!: number;
@@ -110,8 +120,8 @@ export class UnreadCountResponseDto {
   @ApiProperty({ description: 'Message.', example: '' })
   message!: string;
 
-  @ApiProperty({ description: 'Number of unread notifications.', example: 3 })
-  count!: number;
+  @ApiProperty({ type: () => UnreadCountDataDto })
+  data!: UnreadCountDataDto;
 }
 
 export class CreateNotificationDto {
