@@ -1,9 +1,11 @@
 import { BadRequestException } from '@nestjs/common';
+import { ProductEventName } from '#generated/prisma/client';
 import type { PrismaService } from '../../../prisma';
 import {
   DEFAULT_FUNNEL_WINDOW_DAYS,
   MIN_FUNNEL_GROUP_SIZE,
   ProductFunnelService,
+  isFunnelEventNameAccountedFor,
 } from './funnel.service';
 
 interface RawRow {
@@ -385,5 +387,15 @@ describe('ProductFunnelService', () => {
       expect(error).toBeInstanceOf(BadRequestException);
       expect((error as BadRequestException).getStatus()).toBe(400);
     }
+  });
+
+  it('accounts for every ProductEventName value — no silent metric dropouts', () => {
+    // Enforces the funnel fold's DEV NOTE: a new enum value must be mapped to
+    // a core stage or an optional count, or declared uncounted — otherwise
+    // the raw query would count it and the fold would silently ignore it.
+    const unmapped = Object.values(ProductEventName).filter(
+      (name) => !isFunnelEventNameAccountedFor(name),
+    );
+    expect(unmapped).toEqual([]);
   });
 });

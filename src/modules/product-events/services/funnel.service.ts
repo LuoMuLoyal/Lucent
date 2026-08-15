@@ -69,9 +69,11 @@ interface CoreCounts {
  * step, so the funnel counts them together.
  *
  * DEV NOTE: every new `ProductEventName` enum value MUST be mapped here or in
- * `OPTIONAL_COUNT_BY_EVENT_NAME` — the raw query counts all names, but the
- * fold below ignores unmapped ones, so an unmapped name silently drops out of
- * the metrics with no error.
+ * `OPTIONAL_COUNT_BY_EVENT_NAME`, or explicitly declared uncounted in
+ * `INTENTIONALLY_UNCOUNTED_EVENT_NAMES` — the raw query counts all names, but
+ * the fold below ignores unmapped ones, so an unmapped name silently drops
+ * out of the metrics with no error. This is enforced by the completeness
+ * spec (`isFunnelEventNameAccountedFor` iterates the enum).
  */
 const CORE_STAGE_BY_EVENT_NAME: Readonly<
   Partial<Record<ProductEventName, keyof CoreCounts>>
@@ -88,7 +90,8 @@ const CORE_STAGE_BY_EVENT_NAME: Readonly<
  * OPTIONAL visit-summary events — counted separately and NEVER part of the
  * core funnel success criteria (plan: 单独输出 optional，不把它作为核心漏斗
  * 成功条件). `visit_summary_share_revoked` is a lifecycle signal with no
- * funnel meaning and is intentionally not counted anywhere.
+ * funnel meaning and is intentionally not counted anywhere (see
+ * `INTENTIONALLY_UNCOUNTED_EVENT_NAMES`).
  */
 const OPTIONAL_COUNT_BY_EVENT_NAME: Readonly<
   Partial<Record<ProductEventName, keyof FunnelOptionalCountsDto>>
@@ -98,6 +101,28 @@ const OPTIONAL_COUNT_BY_EVENT_NAME: Readonly<
   [ProductEventName.visit_summary_share_created]: 'visitSummaryShareCreated',
   [ProductEventName.visit_summary_share_opened]: 'visitSummaryShareOpened',
 };
+
+/**
+ * Enum values deliberately NOT counted anywhere in the funnel — they must
+ * still be declared here so the completeness spec can distinguish an
+ * intentional exclusion from a forgotten mapping.
+ */
+const INTENTIONALLY_UNCOUNTED_EVENT_NAMES: ReadonlySet<ProductEventName> =
+  new Set([ProductEventName.visit_summary_share_revoked]);
+
+/**
+ * Whether a `ProductEventName` is accounted for by the funnel fold: mapped to
+ * a core stage, an optional count, or explicitly declared uncounted. The
+ * completeness spec iterates the enum and fails when a new value is added
+ * without being mapped or declared — no silent metric dropouts.
+ */
+export function isFunnelEventNameAccountedFor(name: ProductEventName): boolean {
+  return (
+    CORE_STAGE_BY_EVENT_NAME[name] != null ||
+    OPTIONAL_COUNT_BY_EVENT_NAME[name] != null ||
+    INTENTIONALLY_UNCOUNTED_EVENT_NAMES.has(name)
+  );
+}
 
 /**
  * Aggregated product-loop queries (Task 9). The events table is write-only on
