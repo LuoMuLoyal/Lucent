@@ -26,6 +26,16 @@ export const DEFAULT_FUNNEL_WINDOW_DAYS = 30;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+/**
+ * Whole UTC days since the epoch of a UTC-midnight instant. Exact by
+ * construction (the ms epoch has no leap seconds), so the difference of two
+ * such values is the true calendar-day difference — no DST-affected ms
+ * rounding can skew a window span.
+ */
+function utcDayNumber(date: Date): number {
+  return Math.floor(date.getTime() / MS_PER_DAY);
+}
+
 /** One aggregated row from the raw day×name grouping. */
 interface FunnelAggregateRow {
   /** UTC calendar day (YYYY-MM-DD). */
@@ -201,7 +211,11 @@ export class ProductFunnelService {
 
     const start = utcDayStart(query.dateFrom);
     const end = utcDayStart(query.dateTo);
-    const spanDays = Math.round((end.getTime() - start.getTime()) / MS_PER_DAY);
+    // Calendar-day difference: both bounds are UTC-midnight instants, so
+    // `utcDayNumber(end) - utcDayNumber(start)` is the exact day count —
+    // immune to the ms-rounding drift that `Math.round` over milliseconds
+    // would introduce at DST boundaries.
+    const spanDays = utcDayNumber(end) - utcDayNumber(start);
     if (spanDays < 0) {
       badRequest('dateFrom 不能晚于 dateTo');
     }
