@@ -213,6 +213,17 @@ export class ClinicSummaryDto {
   disclaimer!: string;
 }
 
+export class ClinicSummaryResponseDto {
+  @ApiProperty({ description: 'Result code.', example: 0 })
+  code!: number;
+
+  @ApiProperty({ description: 'Message.', example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => ClinicSummaryDto })
+  data!: ClinicSummaryDto;
+}
+
 export class ClinicSummaryShareScopeDto {
   @ApiProperty({ type: String, nullable: true, description: 'Event scope id' })
   eventId!: string | null;
@@ -233,7 +244,7 @@ export class ClinicSummaryShareScopeDto {
   dateTo!: string | null;
 }
 
-export class ClinicSummaryShareResponseDto {
+export class ClinicSummaryShareDataDto {
   @ApiPropertyOptional({
     description:
       'Persisted share record id (used for revocation). Always present on ' +
@@ -263,4 +274,15 @@ export class ClinicSummaryShareResponseDto {
     description: 'Share fields the link may expose',
   })
   selectedFields?: string[];
+}
+
+export class ClinicSummaryShareResponseDto {
+  @ApiProperty({ description: 'Result code.', example: 0 })
+  code!: number;
+
+  @ApiProperty({ description: 'Message.', example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => ClinicSummaryShareDataDto })
+  data!: ClinicSummaryShareDataDto;
 }

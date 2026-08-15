@@ -26,7 +26,7 @@ import type {
   ClinicSummaryAllergyDto,
   ClinicSummaryConditionDto,
   ClinicSummaryMedicineDto,
-  ClinicSummaryShareResponseDto,
+  ClinicSummaryShareDataDto,
 } from '../../dto/clinic-summary-response.dto';
 import type {
   EventReviewCoverageSummaryDto,
@@ -219,7 +219,7 @@ export class ClinicSummaryService {
     userId: string,
     locale: string = 'en',
     options: ClinicSummaryOptions = {},
-  ): Promise<ClinicSummaryShareResponseDto> {
+  ): Promise<ClinicSummaryShareDataDto> {
     const summary = await this.buildClinicSummary(userId, locale, options);
     const token = randomBytes(32).toString('hex');
     const key = sharedSummaryCacheKey(token);

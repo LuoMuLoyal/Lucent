@@ -56,7 +56,7 @@ import { ReportDashboardResponseDto } from './dto/report-dashboard-response.dto'
 import { ReportSummaryResponseDto } from './dto/report-summary-response.dto';
 
 import {
-  ClinicSummaryDto,
+  ClinicSummaryResponseDto,
   ClinicSummaryShareResponseDto,
 } from './dto/clinic-summary-response.dto';
 import { ClinicSummaryShareListResponseDto } from './dto/clinic-summary-share-list.dto';
@@ -335,7 +335,7 @@ export class ReportsController {
     summary:
       'Generate a de-identified clinic summary for sharing with a doctor',
   })
-  @ApiResponse({ status: 201, type: ClinicSummaryDto })
+  @ApiResponse({ status: 201, type: ClinicSummaryResponseDto })
   async previewClinicSummary(
     @CurrentUser() user: UserPayload,
     @Body() dto: ClinicSummaryRequestDto,
@@ -431,7 +431,7 @@ export class ReportsController {
     // generated spec (the runtime guard already opts out via @Public()).
     security: [],
   })
-  @ApiResponse({ status: 200, type: ClinicSummaryDto })
+  @ApiResponse({ status: 200, type: ClinicSummaryResponseDto })
   async getSharedClinicSummary(
     @Param('token') token: string,
     @I18nLang() language: string,

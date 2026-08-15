@@ -106,3 +106,10 @@ interface DataExportRequestDto {
 - The review list `limit` query parameter is documented in the OpenAPI schema as an integer with
   `minimum: 1` and `maximum: 100` (default 20), matching the runtime `@IsInt`/`@Min`/`@Max`
   validation; malformed cursors are rejected with 400 before any repository read.
+
+### Clinic Summary 分享/预览响应信封
+
+`POST /clinic-summary/preview`、`GET /clinic-summary/shared/{token}` 的响应类型统一为
+`ClinicSummaryResponseDto`(`{code,message,data:ClinicSummaryDto}`);`POST /clinic-summary/share`
+为 `ClinicSummaryShareResponseDto`(`{code,message,data:ClinicSummaryShareDataDto}`)。
+与全局 `ApiEnvelopeInterceptor` 的 `{code,message,data}` 契约一致(2026-08-15 修复)。
