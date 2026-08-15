@@ -41,7 +41,7 @@ export class VerifySecurityPinDto {
   pin!: string;
 }
 
-export class SecurityPinElevationResponseDto {
+export class SecurityPinElevationDataDto {
   @ApiProperty({ description: 'Short-lived signed elevation token' })
   elevationToken!: string;
 
@@ -49,6 +49,17 @@ export class SecurityPinElevationResponseDto {
     description: 'ISO-8601 timestamp when the elevation token expires',
   })
   expiresAt!: string;
+}
+
+export class SecurityPinElevationResponseDto {
+  @ApiProperty({ description: 'Result code.', example: 0 })
+  code!: number;
+
+  @ApiProperty({ description: 'Message.', example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => SecurityPinElevationDataDto })
+  data!: SecurityPinElevationDataDto;
 }
 
 export class SecurityPinSettingsDto {
