@@ -119,8 +119,8 @@ export class FunnelWindowDto {
   detailsSuppressed!: boolean;
 }
 
-/** Full funnel aggregation response (admin endpoint). */
-export class FunnelResponseDto {
+/** Full funnel aggregation payload (admin endpoint). */
+export class FunnelDataDto {
   @ApiProperty({
     type: FunnelDailyCountsDto,
     isArray: true,
@@ -143,4 +143,16 @@ export class FunnelResponseDto {
 
   @ApiProperty({ type: FunnelWindowDto })
   window!: FunnelWindowDto;
+}
+
+/** Full funnel aggregation response (admin endpoint). */
+export class FunnelResponseDto {
+  @ApiProperty({ description: 'Result code.', example: 0 })
+  code!: number;
+
+  @ApiProperty({ description: 'Message.', example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => FunnelDataDto })
+  data!: FunnelDataDto;
 }

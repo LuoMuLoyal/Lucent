@@ -8,8 +8,8 @@ import {
 } from '../dto/funnel-query.dto';
 import type {
   FunnelDailyCountsDto,
+  FunnelDataDto,
   FunnelOptionalCountsDto,
-  FunnelResponseDto,
 } from '../dto/funnel-response.dto';
 
 /**
@@ -145,7 +145,7 @@ export class ProductFunnelService {
    * UTC-calendar-day window. One read over the `occurredAt` index; grouping
    * is cross-user by design, and no user-level detail is ever selected.
    */
-  async getFunnel(query: FunnelQueryDto): Promise<FunnelResponseDto> {
+  async getFunnel(query: FunnelQueryDto): Promise<FunnelDataDto> {
     const { dateFrom, dateTo } = this.resolveWindow(query);
     const windowStart = utcDayStart(dateFrom);
     // Exclusive upper bound: the day AFTER dateTo at 00:00 UTC.

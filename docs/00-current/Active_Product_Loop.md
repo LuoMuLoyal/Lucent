@@ -77,3 +77,9 @@ Review Experience（Workstream 1）与 Visit Summary and Product Measurement（W
 - **B4**：账户删除流程增加匿名化数据导出 → 数据可移植性 JSON 导出（GDPR/PIPL）
 - 高级可观测性：OpenTelemetry 分布式追踪、synthetic uptime monitoring
 - 兼容期清理评估：legacy dashboard 代码删除、`createShareLink` 清理（Task 4 标记）、Report legacy scalar fallback
+
+### 2026-08-15 — Funnel 响应契约信封化
+
+`FunnelResponseDto` 由扁平结构(`daily/optional/totals/window`)修正为信封结构
+(`{code,message,data:FunnelDataDto}`);`funnel.service.ts` `getFunnel` 返回 `FunnelDataDto`,
+controller 经 `successEnvelope` 包装。响应形状不变,仅补全缺失的 `data` 层。
