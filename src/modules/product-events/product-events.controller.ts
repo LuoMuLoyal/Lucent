@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -25,6 +26,11 @@ export class ProductEventsController {
   ) {}
 
   @Post()
+  // Batch ingestion amplifies writes (up to MAX_PRODUCT_EVENTS_PER_REQUEST
+  // events per request), so it gets a dedicated stricter limit on top of the
+  // global throttler: 10 req/min caps the sustained write rate even though
+  // the global 100 req/min would allow five times as many rows per minute.
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @ApiOperation({
     summary: 'Record a batch of privacy-minimal product events',
     description:

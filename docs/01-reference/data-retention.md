@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-14
+updated: 2026-08-15
 ---
 
 # Data Retention — 数据保留与账户删除语义
@@ -31,6 +31,8 @@ updated: 2026-08-14
   该上限保护隐私硬保证。
 - 索引 `[occurredAt]` 供清理扫描；`[userId, occurredAt]` 供账户删除级联与日聚合查询。
 - 事件载荷只含白名单枚举与固定属性，**无 metadata JSON 列**——保留面没有健康内容可泄漏。
+- 写入面防护：`POST /product-events` 在全局限流（100 req/min）之上叠加专属限流（10 req/min，
+  单批 ≤50 事件），高频小批量无法放大数据库写入压力，保留/清理管道不被滥用压垮。
 
 ## 账户删除与级联
 
