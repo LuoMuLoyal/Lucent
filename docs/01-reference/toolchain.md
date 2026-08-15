@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-14
+updated: 2026-08-15
 ---
 
 # Toolchain / Contract
 
-Last updated: 2026-08-14
+Last updated: 2026-08-15
 
 - Local backend toolchain baseline is Node.js `24.x` plus pnpm `11.x`; CI and Corepack docs pin the
   recommended baseline to `11.9.0`.
@@ -128,3 +128,5 @@ Last updated: 2026-08-14
 - **冻结文档语义**（2026-08-14）：front-matter `status: frozen` 标记有意冻结的文档（桌面/Web-freeze 等），豁免 90 天新鲜度检查但必须保留完整 front-matter；与 `status: stale`（应归档）语义区分。
 - **迁移日志条目约定**（2026-08-14）：日志条目描述变更范围与验证结论，不写需要持续同步的精确数字（如测试总数），见 AGENTS.md。
 - **文档工具链加固**（2026-08-14）：模块豁免列表参数化并补单测（常量命名对齐 `EXEMPT_*_PATTERNS` 前缀）、冻结豁免抽 `withoutFrozenDocs` 助手、导出脚本改 `prettier.resolveConfig` 解析配置并以临时文件原子写盘。
+
+- 2026-08-15:响应契约信封化修复后重新执行 `pnpm export:openapi`(121 paths / 299 schemas)。修复的 6 个响应 DTO(`NotificationListResponseDto`、`UnreadCountResponseDto`、`ClinicSummaryResponseDto`、`ClinicSummaryShareResponseDto`、`FunnelResponseDto`、`SecurityPinElevationResponseDto`)此前缺少 `data` 嵌套层,与全局信封拦截器行为不一致;现全部为 `{code,message,data}` 结构。

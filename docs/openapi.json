@@ -3840,7 +3840,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ClinicSummaryDto"
+                  "$ref": "#/components/schemas/ClinicSummaryResponseDto"
                 }
               }
             }
@@ -3934,7 +3934,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ClinicSummaryDto"
+                  "$ref": "#/components/schemas/ClinicSummaryResponseDto"
                 }
               }
             }
@@ -5458,6 +5458,22 @@
         },
         "required": ["id", "type", "title", "content", "isRead", "createdAt"]
       },
+      "NotificationListDataDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationListItemDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total count of notifications for the user."
+          }
+        },
+        "required": ["items", "total"]
+      },
       "NotificationListResponseDto": {
         "type": "object",
         "properties": {
@@ -5471,18 +5487,22 @@
             "description": "Message.",
             "example": ""
           },
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/NotificationListItemDto"
-            }
-          },
-          "total": {
-            "type": "number",
-            "description": "Total count of notifications for the user."
+          "data": {
+            "$ref": "#/components/schemas/NotificationListDataDto"
           }
         },
-        "required": ["code", "message", "items", "total"]
+        "required": ["code", "message", "data"]
+      },
+      "UnreadCountDataDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number",
+            "description": "Number of unread notifications.",
+            "example": 3
+          }
+        },
+        "required": ["count"]
       },
       "UnreadCountResponseDto": {
         "type": "object",
@@ -5497,13 +5517,11 @@
             "description": "Message.",
             "example": ""
           },
-          "count": {
-            "type": "number",
-            "description": "Number of unread notifications.",
-            "example": 3
+          "data": {
+            "$ref": "#/components/schemas/UnreadCountDataDto"
           }
         },
-        "required": ["code", "message", "count"]
+        "required": ["code", "message", "data"]
       },
       "NotificationDetailDto": {
         "type": "object",
@@ -7356,7 +7374,7 @@
         },
         "required": ["dateFrom", "dateTo", "generatedAt", "detailsSuppressed"]
       },
-      "FunnelResponseDto": {
+      "FunnelDataDto": {
         "type": "object",
         "properties": {
           "daily": {
@@ -7387,6 +7405,25 @@
           }
         },
         "required": ["daily", "optional", "totals", "window"]
+      },
+      "FunnelResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/FunnelDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
       },
       "DoseLogStatus": {
         "type": "string",
@@ -7812,7 +7849,7 @@
         },
         "required": ["pin"]
       },
-      "SecurityPinElevationResponseDto": {
+      "SecurityPinElevationDataDto": {
         "type": "object",
         "properties": {
           "elevationToken": {
@@ -7825,6 +7862,25 @@
           }
         },
         "required": ["elevationToken", "expiresAt"]
+      },
+      "SecurityPinElevationResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/SecurityPinElevationDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
       },
       "ChangeSecurityPinDto": {
         "type": "object",
@@ -11073,6 +11129,25 @@
           "disclaimer"
         ]
       },
+      "ClinicSummaryResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/ClinicSummaryDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
       "ClinicSummaryShareScopeDto": {
         "type": "object",
         "properties": {
@@ -11094,7 +11169,7 @@
         },
         "required": ["eventId", "dateFrom", "dateTo"]
       },
-      "ClinicSummaryShareResponseDto": {
+      "ClinicSummaryShareDataDto": {
         "type": "object",
         "properties": {
           "shareId": {
@@ -11125,6 +11200,25 @@
           }
         },
         "required": ["shareUrl", "expiresAt"]
+      },
+      "ClinicSummaryShareResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/ClinicSummaryShareDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
       },
       "ClinicSummaryShareListItemDto": {
         "type": "object",
