@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import {
   HealthEventStatus,
+  Prisma,
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
@@ -347,7 +348,7 @@ describe('ProductEventsService', () => {
       expect(metrics.recordProductEventEmissionFailure).not.toHaveBeenCalled();
     });
 
-    it('never throws on a failed write, logs low-sensitivity error and bumps the metric', async () => {
+    it('never throws on a failed write, logs only a fixed identifier and bumps the metric', async () => {
       const loggerSpy = vi
         .spyOn(service['logger'], 'error')
         .mockImplementation(() => undefined);
@@ -359,16 +360,39 @@ describe('ProductEventsService', () => {
         service.emitServerEvent(USER_ID, serverEvent()),
       ).resolves.toBeUndefined();
 
+      // Raw driver message is whitelisted out — the log carries the fixed
+      // event name + error class only, never message internals.
       expect(loggerSpy).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'Product event emission failed (health_event_started)',
-        ),
+        'Product event emission failed (health_event_started): Error',
+      );
+      expect(loggerSpy).not.toHaveBeenCalledWith(
+        expect.stringContaining('db down'),
       );
       expect(loggerSpy).toHaveBeenCalledWith(
         expect.not.stringContaining(USER_ID),
       );
       expect(metrics.recordProductEventEmissionFailure).toHaveBeenCalledWith(
         ProductEventName.health_event_started,
+      );
+      loggerSpy.mockRestore();
+    });
+
+    it('logs the stable Prisma error code for known request errors', async () => {
+      const loggerSpy = vi
+        .spyOn(service['logger'], 'error')
+        .mockImplementation(() => undefined);
+      const prismaError = Object.assign(
+        Object.create(Prisma.PrismaClientKnownRequestError.prototype),
+        { code: 'P2002' },
+      ) as Error;
+      prisma.userProductEvent.createMany.mockRejectedValue(prismaError);
+
+      await expect(
+        service.emitServerEvent(USER_ID, serverEvent()),
+      ).resolves.toBeUndefined();
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        'Product event emission failed (health_event_started): prisma P2002',
       );
       loggerSpy.mockRestore();
     });

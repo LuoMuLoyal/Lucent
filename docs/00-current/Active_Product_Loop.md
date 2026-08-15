@@ -2,15 +2,16 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-14
+updated: 2026-08-15
 ---
 
 # Active Product Loop — Health Event Contract / Sparse Record Semantics
 
-Last updated: 2026-08-14
+Last updated: 2026-08-15
 
 ## 当前状态
 
+- 2026-08-14 增量审查修复（5 项 🟡）：`POST /product-events` 在全局限流（100 req/min）之上叠加专属限流（10 req/min，单批 ≤50 事件，持续写入速率封顶）；漏斗窗口跨度改用 UTC 午夜瞬间的日历日差计算（`utcDayNumber`，不再毫秒四舍五入，无 DST 边界误差）；`emitServerEvent` 失败日志只记录固定标识（Prisma 错误码或错误类名），原始 driver message 永不入日志；`ProductEventName` 每个枚举值必须映射到核心阶段/optional 计数或显式声明不计数（`INTENTIONALLY_UNCOUNTED_EVENT_NAMES`），由 spec 遍历枚举强制——新增枚举值未处理时测试失败，杜绝漏斗指标静默丢数。
 - Product Measurement Task 9 已完成首个产品闭环聚合查询：`GET /api/v1/user/product-events/funnel` 为内部管理员专用（`AdminGuard` 复用 AdminJS 的 `ADMIN_EMAIL` 身份，普通用户 403、未认证 401），按 UTC 日历日聚合核心漏斗（event started → suggestion impression/actioned → event ended/outcome → review opened，ended 与 outcome_confirmed 合并为一阶段）并单独输出 optional 就诊摘要 preview/export/share/open 计数，绝不输出逐用户事件、健康内容或自由文本；窗口缺省最后 30 个包含日（UTC），显式范围上限 30 天；窗口核心总数低于 `MIN_FUNNEL_GROUP_SIZE = 10` 时抑制 daily 分组细节（`detailsSuppressed: true`）但保留 totals。
 - 设计决策（阈值口径）：漏斗小样本阈值作用于**窗口级**核心事件总数（五阶段计数之和），不按单日分组判定——窗口总数低于 `MIN_FUNNEL_GROUP_SIZE` 时整窗抑制 daily 细节。
 - 设计决策（计数口径）：漏斗计数是去重后的**事件**计数（`(userId, clientEventId)` 唯一约束去重），不是去重用户数；阶段比值不构成转化率。

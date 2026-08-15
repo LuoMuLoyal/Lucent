@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   HealthEventStatus,
+  Prisma,
   ProductEventName,
   ProductEventResult,
   ProductEventSurface,
@@ -144,10 +145,12 @@ export class ProductEventsService {
 
   /**
    * Fire-and-forget emission for server-authoritative events: NEVER throws.
-   * A failed product-event write logs a low-sensitivity error (event name +
-   * error message only — no userId, no event content) and increments the
-   * emission-failure metric; the caller's main transaction is neither rolled
-   * back nor failed. Called only AFTER the main write already succeeded.
+   * A failed product-event write logs a low-sensitivity identifier (event
+   * name + fixed Prisma error code or error class — never the raw driver
+   * message, which can embed connection strings, hosts, table names or the
+   * event payload) and increments the emission-failure metric; the caller's
+   * main transaction is neither rolled back nor failed. Called only AFTER
+   * the main write already succeeded.
    */
   async emitServerEvent(
     userId: string,
@@ -156,9 +159,17 @@ export class ProductEventsService {
     try {
       await this.recordServerEvents(userId, [event]);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      // Whitelist the log detail: Prisma's stable, non-sensitive error codes
+      // (P1001, P2002, …) or the error class name — the raw message is never
+      // logged, so a driver/Prisma failure cannot leak internals.
+      const detail =
+        error instanceof Prisma.PrismaClientKnownRequestError
+          ? `prisma ${error.code}`
+          : error instanceof Error
+            ? error.constructor.name
+            : 'unknown error';
       this.logger.error(
-        `Product event emission failed (${event.name}): ${message}`,
+        `Product event emission failed (${event.name}): ${detail}`,
       );
       this.metrics.recordProductEventEmissionFailure(event.name);
     }
