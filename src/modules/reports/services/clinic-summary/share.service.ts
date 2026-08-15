@@ -7,7 +7,7 @@ import {
   ProductEventSurface,
 } from '#generated/prisma/client';
 import type { UserClinicSummaryShare } from '#generated/prisma/client';
-import { badRequest } from '../../../../common';
+import { badRequest, now } from '../../../../common';
 import { PrismaService } from '../../../../prisma';
 import { ProductEventsService } from '../../../product-events';
 
@@ -117,7 +117,7 @@ export class ShareService {
     const token = randomBytes(32).toString('base64url');
     const tokenHash = this.hashToken(token);
     const expiresAt = new Date(
-      Date.now() + DEFAULT_SHARE_TTL_DAYS * 24 * 60 * 60 * 1000,
+      now().getTime() + DEFAULT_SHARE_TTL_DAYS * 24 * 60 * 60 * 1000,
     );
 
     const record = await this.prisma.userClinicSummaryShare.create({
@@ -166,16 +166,16 @@ export class ShareService {
    */
   async getSharedSummaryByToken(token: string): Promise<ShareReadModel | null> {
     const tokenHash = this.hashToken(token);
-    const now = new Date();
+    const nowDate = now();
 
     const record = await this.prisma.userClinicSummaryShare.findFirst({
-      where: { tokenHash, revokedAt: null, expiresAt: { gt: now } },
+      where: { tokenHash, revokedAt: null, expiresAt: { gt: nowDate } },
     });
     if (!record) return null;
 
-    const accessedAt = new Date();
+    const accessedAt = now();
     const result = await this.prisma.userClinicSummaryShare.updateMany({
-      where: { id: record.id, revokedAt: null, expiresAt: { gt: now } },
+      where: { id: record.id, revokedAt: null, expiresAt: { gt: nowDate } },
       data: {
         accessCount: { increment: 1 },
         lastAccessedAt: accessedAt,
@@ -220,7 +220,7 @@ export class ShareService {
   async revokeShare(userId: string, shareId: string): Promise<boolean> {
     const result = await this.prisma.userClinicSummaryShare.updateMany({
       where: { id: shareId, userId },
-      data: { revokedAt: new Date() },
+      data: { revokedAt: now() },
     });
     if (result.count > 0) {
       // Server-authoritative lifecycle event — only after a real revocation.
