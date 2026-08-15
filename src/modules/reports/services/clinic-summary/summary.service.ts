@@ -42,15 +42,29 @@ import {
 
 const SHARE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const DEFAULT_RANGE = 'last_30_days';
+
+/**
+ * Canonical summary range labels — the single source of truth for the fixed
+ * scope strings shared by `scopeLabel`/`dataRange` and the fixed-range map
+ * below. Mirrors the dashboard's `REPORT_RANGE_*` constants
+ * (report-dashboard-query.dto.ts); keep both in sync.
+ */
+export const SUMMARY_RANGE_LABELS = {
+  last7Days: 'last_7_days',
+  last30Days: 'last_30_days',
+  /** Event-scope range label; the event title becomes scopeLabel. */
+  event: 'event',
+  /** Custom date-range scope label. */
+  custom: 'custom',
+} as const;
+
+const DEFAULT_RANGE = SUMMARY_RANGE_LABELS.last30Days;
 const RANGE_DAY_COUNTS: Record<string, number> = {
-  last_7_days: 7,
-  last_30_days: 30,
+  [SUMMARY_RANGE_LABELS.last7Days]: 7,
+  [SUMMARY_RANGE_LABELS.last30Days]: 30,
 };
-/** Event-scope legacy range label; the event title becomes scopeLabel. */
-const EVENT_SCOPE_RANGE_LABEL = 'event';
 /** Fixed 资料不足 statement code — never replaced by generic AI conclusions. */
-const INSUFFICIENT_COVERAGE_CODE = 'insufficient_coverage';
+export const INSUFFICIENT_COVERAGE_CODE = 'insufficient_coverage';
 
 /**
  * Cache-key prefix of the shared summary view, keyed by the sha256 hex of
@@ -305,7 +319,7 @@ export class ClinicSummaryService {
       );
       return {
         scopeLabel: review.event.title,
-        dataRange: EVENT_SCOPE_RANGE_LABEL,
+        dataRange: SUMMARY_RANGE_LABELS.event,
         start: review.event.startedAt,
         end: review.event.endedAt ?? nowIsoString(),
         review,
@@ -357,8 +371,8 @@ export class ClinicSummaryService {
         );
       }
       return {
-        scopeLabel: 'custom',
-        dataRange: 'custom',
+        scopeLabel: SUMMARY_RANGE_LABELS.custom,
+        dataRange: SUMMARY_RANGE_LABELS.custom,
         start: startDate.toISOString(),
         end: new Date(endDate.getTime() + MS_PER_DAY).toISOString(),
         review,
