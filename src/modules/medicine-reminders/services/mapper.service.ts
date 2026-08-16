@@ -9,6 +9,7 @@ import { Prisma } from '#generated/prisma/client';
 import type { CreateMedicineReminderDto } from '../dto/create.dto';
 
 import type { UpdateMedicineReminderDto } from '../dto/update.dto';
+import type { UpsertMedicineReminderGroupDto } from '../dto/upsert-group.dto';
 import type {
   MedicineReminderRecord,
   OwnedMedicineReminderRecord,
@@ -87,6 +88,23 @@ export class MedicineRemindersMapperService {
     return data;
   }
 
+  toGroupUpsertData(userId: string, dto: UpsertMedicineReminderGroupDto) {
+    const shared = this.toGroupSharedData(dto);
+
+    return dto.slots.map((slot) => ({
+      userId,
+      ...shared,
+      scheduledHour: slot.scheduledHour,
+      scheduledMinute: slot.scheduledMinute,
+    })) satisfies Prisma.UserMedicineReminderUncheckedCreateInput[];
+  }
+
+  toGroupUpdateData(dto: UpsertMedicineReminderGroupDto) {
+    return this.toGroupSharedData(
+      dto,
+    ) satisfies Prisma.UserMedicineReminderUncheckedUpdateInput;
+  }
+
   toDeliveryWhere(userId: string, date?: string) {
     const where: Prisma.UserReminderDeliveryWhereInput = { userId };
 
@@ -132,6 +150,22 @@ export class MedicineRemindersMapperService {
       deliveredAt: record.deliveredAt?.toISOString() ?? null,
       errorMessage: record.errorMessage,
       createdAt: record.createdAt.toISOString(),
+    };
+  }
+
+  private toGroupSharedData(dto: UpsertMedicineReminderGroupDto) {
+    const startDate = this.parseOptionalDate(dto.startDate);
+    const endDate = this.parseOptionalDate(dto.endDate);
+    this.assertValidDateWindow(startDate, endDate);
+
+    return {
+      currentMedicineId: dto.currentMedicineId,
+      label: normalizeNullableText(dto.label),
+      daysOfWeek: this.normalizeDaysOfWeek(dto.daysOfWeek),
+      startDate,
+      endDate,
+      isActive: dto.isActive ?? true,
+      note: normalizeNullableText(dto.note),
     };
   }
 

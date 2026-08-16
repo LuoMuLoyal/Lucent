@@ -297,6 +297,181 @@ describe('Medicine Reminders API (e2e)', () => {
     await request(app.getHttpServer()).get(BASE_PATH).expect(401);
   });
 
+  // ── Group upsert ────────────────────────────────────────────
+
+  describe('PUT /api/v1/user/medicine-reminders/group', () => {
+    it('should create a new group with two slots', async () => {
+      const { user, token } = await createUserWithToken();
+      const medicine = await createCurrentMedicine(user.id);
+
+      const res = await request(app.getHttpServer())
+        .put(`${BASE_PATH}/group`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          currentMedicineId: medicine.id,
+          label: 'Metformin',
+          daysOfWeek: [1, 2, 3],
+          slots: [
+            { scheduledHour: 8, scheduledMinute: 30 },
+            { scheduledHour: 20, scheduledMinute: 5 },
+          ],
+        })
+        .expect(200);
+
+      const body = res.body as ApiEnvelope<{ items: any[] }>;
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      expect(body.data!.items).toHaveLength(2);
+      expect(
+        body.data!.items.every((i) => i.currentMedicineId === medicine.id),
+      ).toBe(true);
+    });
+
+    it('should update, add, and soft-delete removed slots', async () => {
+      const { user, token } = await createUserWithToken();
+      const medicine = await createCurrentMedicine(user.id);
+
+      const first = await request(app.getHttpServer())
+        .put(`${BASE_PATH}/group`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          currentMedicineId: medicine.id,
+          slots: [
+            { scheduledHour: 8, scheduledMinute: 0 },
+            { scheduledHour: 12, scheduledMinute: 0 },
+          ],
+        })
+        .expect(200);
+
+      const firstBody = first.body as ApiEnvelope<{ items: any[] }>;
+      const keptId = firstBody.data!.items[0]!.id;
+      const removedId = firstBody.data!.items[1]!.id;
+
+      const second = await request(app.getHttpServer())
+        .put(`${BASE_PATH}/group`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          currentMedicineId: medicine.id,
+          slots: [
+            { id: keptId, scheduledHour: 9, scheduledMinute: 15 },
+            { scheduledHour: 21, scheduledMinute: 45 },
+          ],
+        })
+        .expect(200);
+
+      const secondBody = second.body as ApiEnvelope<{ items: any[] }>;
+      expect(secondBody.data!.items).toHaveLength(2);
+
+      const kept = secondBody.data!.items.find((i) => i.id === keptId);
+      expect(kept!.scheduledHour).toBe(9);
+      expect(kept!.scheduledMinute).toBe(15);
+
+      const removed = await ctx.prisma.userMedicineReminder.findUniqueOrThrow({
+        where: { id: removedId },
+      });
+      expect(removed.deletedAt).not.toBeNull();
+      expect(removed.isActive).toBe(false);
+    });
+
+    it('should return 404 when a slot id belongs to another user', async () => {
+      const { user, token } = await createUserWithToken();
+      const medicine = await createCurrentMedicine(user.id);
+      const { user: otherUser } = await createUserWithToken();
+      const otherMedicine = await createCurrentMedicine(otherUser.id);
+
+      const foreign = await ctx.prisma.userMedicineReminder.create({
+        data: {
+          userId: otherUser.id,
+          currentMedicineId: otherMedicine.id,
+          scheduledHour: 8,
+          scheduledMinute: 0,
+        },
+      });
+
+      await request(app.getHttpServer())
+        .put(`${BASE_PATH}/group`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          currentMedicineId: medicine.id,
+          slots: [{ id: foreign.id, scheduledHour: 8, scheduledMinute: 0 }],
+        })
+        .expect(404);
+    });
+
+    it('should reject invalid slot hour/minute', async () => {
+      const { user, token } = await createUserWithToken();
+      const medicine = await createCurrentMedicine(user.id);
+
+      await request(app.getHttpServer())
+        .put(`${BASE_PATH}/group`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          currentMedicineId: medicine.id,
+          slots: [{ scheduledHour: 24, scheduledMinute: 0 }],
+        })
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .put(`${BASE_PATH}/group`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          currentMedicineId: medicine.id,
+          slots: [{ scheduledHour: 8, scheduledMinute: 60 }],
+        })
+        .expect(400);
+    });
+
+    it('should be idempotent when submitting the same slots again', async () => {
+      const { user, token } = await createUserWithToken();
+      const medicine = await createCurrentMedicine(user.id);
+
+      const first = await request(app.getHttpServer())
+        .put(`${BASE_PATH}/group`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          currentMedicineId: medicine.id,
+          slots: [
+            { scheduledHour: 8, scheduledMinute: 0 },
+            { scheduledHour: 20, scheduledMinute: 0 },
+          ],
+        })
+        .expect(200);
+
+      const firstBody = first.body as ApiEnvelope<{
+        items: Array<{
+          id: string;
+          scheduledHour: number;
+          scheduledMinute: number;
+        }>;
+      }>;
+      const firstIds = firstBody.data!.items.map((i) => i.id).sort();
+
+      const second = await request(app.getHttpServer())
+        .put(`${BASE_PATH}/group`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          currentMedicineId: medicine.id,
+          slots: firstBody.data!.items.map((i) => ({
+            id: i.id,
+            scheduledHour: i.scheduledHour,
+            scheduledMinute: i.scheduledMinute,
+          })),
+        })
+        .expect(200);
+
+      const secondBody = second.body as ApiEnvelope<{
+        items: Array<{ id: string }>;
+      }>;
+      expect(secondBody.data!.items.map((i) => i.id).sort()).toEqual(firstIds);
+      expect(secondBody.data!.items).toHaveLength(2);
+
+      const rows = await ctx.prisma.userMedicineReminder.findMany({
+        where: { userId: user.id, currentMedicineId: medicine.id },
+      });
+      const activeRows = rows.filter((r) => r.deletedAt === null);
+      expect(activeRows).toHaveLength(2);
+    });
+  });
+
   // ── Reminder Deliveries ────────────────────────────────────
 
   describe('GET /api/v1/user/reminder-deliveries', () => {

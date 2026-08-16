@@ -248,6 +248,41 @@
         "tags": ["Medicine Reminders"]
       }
     },
+    "/api/v1/user/medicine-reminders/group": {
+      "put": {
+        "operationId": "MedicineRemindersController_upsertGroup_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertMedicineReminderGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MedicineReminderListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Upsert a whole medicine reminder group",
+        "tags": ["Medicine Reminders"]
+      }
+    },
     "/api/v1/user/reminder-deliveries": {
       "get": {
         "operationId": "ReminderDeliveriesController_list_v1",
@@ -5367,6 +5402,79 @@
             "nullable": true
           }
         }
+      },
+      "UpsertReminderSlotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Existing reminder id to update. Omit to create a new slot."
+          },
+          "scheduledHour": {
+            "type": "number",
+            "description": "Scheduled local hour, 0-23.",
+            "example": 8
+          },
+          "scheduledMinute": {
+            "type": "number",
+            "description": "Scheduled local minute, 0-59.",
+            "example": 30
+          }
+        },
+        "required": ["scheduledHour", "scheduledMinute"]
+      },
+      "UpsertMedicineReminderGroupDto": {
+        "type": "object",
+        "properties": {
+          "currentMedicineId": {
+            "type": "string",
+            "description": "Linked current medicine id."
+          },
+          "label": {
+            "type": "string",
+            "description": "Reminder label.",
+            "nullable": true
+          },
+          "daysOfWeek": {
+            "description": "Weekday numbers 0-6, where null means every day.",
+            "nullable": true,
+            "example": [1, 2, 3, 4, 5],
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts.",
+            "nullable": true,
+            "example": "2026-06-09"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends.",
+            "nullable": true,
+            "example": "2026-06-30"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active.",
+            "default": true
+          },
+          "note": {
+            "type": "string",
+            "description": "User note.",
+            "nullable": true
+          },
+          "slots": {
+            "description": "Reminder slots for this medicine. Replaces the whole group.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpsertReminderSlotDto"
+            }
+          }
+        },
+        "required": ["currentMedicineId", "slots"]
       },
       "ReminderDeliveryItemDto": {
         "type": "object",

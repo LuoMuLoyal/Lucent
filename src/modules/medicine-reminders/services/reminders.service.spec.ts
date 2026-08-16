@@ -9,6 +9,7 @@ import { MedicineRemindersOwnershipService } from './ownership.service';
 import { MedicineRemindersMapperService } from './mapper.service';
 import { MedicineRemindersService } from './reminders.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { REMINDER_CHANGED } from '../../../common/events/domain-events.js';
 
 const now = new Date('2026-06-08T12:00:00.000Z');
 
@@ -36,6 +37,7 @@ describe('MedicineRemindersService', () => {
   let service: MedicineRemindersService;
 
   let repository: Mocked<MedicineReminderRepositoryPort>;
+  let eventEmitter: Mocked<EventEmitter2>;
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
@@ -56,6 +58,7 @@ describe('MedicineRemindersService', () => {
             findManyDeliveries: vi.fn(),
             findReminderById: vi.fn(),
             findCurrentMedicine: vi.fn(),
+            transaction: vi.fn(),
           },
         },
         {
@@ -69,6 +72,9 @@ describe('MedicineRemindersService', () => {
     repository = module.get(
       MedicineReminderRepositoryPort,
     ) as unknown as Mocked<MedicineReminderRepositoryPort>;
+    eventEmitter = module.get(
+      EventEmitter2,
+    ) as unknown as Mocked<EventEmitter2>;
   });
 
   it('should create a reminder with normalized text and weekdays', async () => {
@@ -311,6 +317,188 @@ describe('MedicineRemindersService', () => {
       deliveredAt: '2026-06-10T08:00:10.000Z',
       errorMessage: null,
       createdAt: '2026-06-08T12:00:00.000Z',
+    });
+  });
+
+  describe('upsertGroup', () => {
+    function transactionClient() {
+      return {
+        userMedicineReminder: {
+          findMany: vi.fn(),
+          create: vi.fn(),
+          update: vi.fn(),
+          updateMany: vi.fn(),
+        },
+      };
+    }
+
+    it('should update, create, and soft-delete stale rows within one transaction', async () => {
+      repository.findCurrentMedicine.mockResolvedValue({
+        id: 'medicine-1',
+        userId: 'user-1',
+      });
+
+      const tx = transactionClient();
+      repository.transaction.mockImplementation((fn) =>
+        (fn as (txArg: unknown) => Promise<unknown>)(tx),
+      );
+
+      tx.userMedicineReminder.findMany
+        .mockResolvedValueOnce([{ id: 'slot-1' }])
+        .mockResolvedValueOnce([
+          reminderRecord({
+            id: 'slot-1',
+            scheduledHour: 8,
+            scheduledMinute: 30,
+          }),
+          reminderRecord({
+            id: 'slot-2',
+            scheduledHour: 20,
+            scheduledMinute: 5,
+          }),
+        ]);
+      tx.userMedicineReminder.update.mockResolvedValue(
+        reminderRecord({ id: 'slot-1' }),
+      );
+      tx.userMedicineReminder.create.mockResolvedValue(
+        reminderRecord({ id: 'slot-2' }),
+      );
+      tx.userMedicineReminder.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.upsertGroup('user-1', {
+        currentMedicineId: 'medicine-1',
+        slots: [
+          { id: 'slot-1', scheduledHour: 8, scheduledMinute: 30 },
+          { scheduledHour: 20, scheduledMinute: 5 },
+        ],
+      });
+
+      expect(tx.userMedicineReminder.findMany).toHaveBeenNthCalledWith(1, {
+        where: {
+          id: { in: ['slot-1'] },
+          userId: 'user-1',
+          currentMedicineId: 'medicine-1',
+          ...nonDeleted,
+        },
+        select: { id: true },
+      });
+
+      expect(tx.userMedicineReminder.update).toHaveBeenCalledTimes(1);
+      expect(tx.userMedicineReminder.update).toHaveBeenCalledWith({
+        where: { id: 'slot-1' },
+        data: expect.objectContaining({
+          scheduledHour: 8,
+          scheduledMinute: 30,
+        }),
+      });
+
+      expect(tx.userMedicineReminder.create).toHaveBeenCalledTimes(1);
+      expect(tx.userMedicineReminder.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'user-1',
+          scheduledHour: 20,
+          scheduledMinute: 5,
+        }),
+      });
+
+      expect(tx.userMedicineReminder.updateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          currentMedicineId: 'medicine-1',
+          ...nonDeleted,
+          id: { notIn: ['slot-1'] },
+        },
+        data: { deletedAt: expect.any(Date), isActive: false },
+      });
+
+      expect(repository.transaction).toHaveBeenCalledTimes(1);
+      expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(REMINDER_CHANGED, {
+        userId: 'user-1',
+      });
+
+      expect(result.items).toHaveLength(2);
+    });
+
+    it('should return 404 when a slot id does not belong to the group', async () => {
+      repository.findCurrentMedicine.mockResolvedValue({
+        id: 'medicine-1',
+        userId: 'user-1',
+      });
+
+      const tx = transactionClient();
+      repository.transaction.mockImplementation((fn) =>
+        (fn as (txArg: unknown) => Promise<unknown>)(tx),
+      );
+      tx.userMedicineReminder.findMany.mockResolvedValueOnce([]);
+
+      await expect(
+        service.upsertGroup('user-1', {
+          currentMedicineId: 'medicine-1',
+          slots: [{ id: 'foreign-slot', scheduledHour: 8, scheduledMinute: 0 }],
+        }),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('should reject empty slots with a 400', async () => {
+      await expect(
+        service.upsertGroup('user-1', {
+          currentMedicineId: 'medicine-1',
+          slots: [],
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(repository.transaction).not.toHaveBeenCalled();
+      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+    });
+
+    it('should emit REMINDER_CHANGED exactly once after commit', async () => {
+      repository.findCurrentMedicine.mockResolvedValue({
+        id: 'medicine-1',
+        userId: 'user-1',
+      });
+
+      const tx = transactionClient();
+      repository.transaction.mockImplementation((fn) =>
+        (fn as (txArg: unknown) => Promise<unknown>)(tx),
+      );
+      tx.userMedicineReminder.findMany.mockResolvedValueOnce([
+        reminderRecord({ id: 'slot-1' }),
+      ]);
+      tx.userMedicineReminder.create.mockResolvedValue(
+        reminderRecord({ id: 'slot-1' }),
+      );
+      tx.userMedicineReminder.updateMany.mockResolvedValue({ count: 0 });
+
+      await service.upsertGroup('user-1', {
+        currentMedicineId: 'medicine-1',
+        slots: [{ scheduledHour: 8, scheduledMinute: 0 }],
+      });
+
+      expect(eventEmitter.emitAsync).toHaveBeenCalledTimes(1);
+      expect(eventEmitter.emitAsync).toHaveBeenCalledWith(REMINDER_CHANGED, {
+        userId: 'user-1',
+      });
+    });
+
+    it('should roll back and not emit an event when the transaction fails', async () => {
+      repository.findCurrentMedicine.mockResolvedValue({
+        id: 'medicine-1',
+        userId: 'user-1',
+      });
+
+      repository.transaction.mockRejectedValue(new Error('boom'));
+
+      await expect(
+        service.upsertGroup('user-1', {
+          currentMedicineId: 'medicine-1',
+          slots: [{ scheduledHour: 8, scheduledMinute: 0 }],
+        }),
+      ).rejects.toThrow('boom');
+
+      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
     });
   });
 });

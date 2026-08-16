@@ -142,6 +142,105 @@ describe('MedicineRemindersMapperService', () => {
     });
   });
 
+  // ── toGroupUpsertData / toGroupUpdateData ─────────────────────────────
+
+  describe('toGroupUpsertData', () => {
+    it('maps shared group fields onto each slot', () => {
+      const data = service.toGroupUpsertData('user-1', {
+        currentMedicineId: 'medicine-1',
+        label: ' Morning dose ',
+        daysOfWeek: [5, 1, 3, 1],
+        startDate: '2026-06-10',
+        endDate: '2026-06-20',
+        isActive: true,
+        note: ' After breakfast ',
+        slots: [
+          { scheduledHour: 8, scheduledMinute: 30 },
+          { scheduledHour: 20, scheduledMinute: 5 },
+        ],
+      });
+
+      expect(data).toEqual([
+        {
+          userId: 'user-1',
+          currentMedicineId: 'medicine-1',
+          label: 'Morning dose',
+          daysOfWeek: [1, 3, 5],
+          startDate: new Date('2026-06-10T00:00:00.000Z'),
+          endDate: new Date('2026-06-20T00:00:00.000Z'),
+          isActive: true,
+          note: 'After breakfast',
+          scheduledHour: 8,
+          scheduledMinute: 30,
+        },
+        {
+          userId: 'user-1',
+          currentMedicineId: 'medicine-1',
+          label: 'Morning dose',
+          daysOfWeek: [1, 3, 5],
+          startDate: new Date('2026-06-10T00:00:00.000Z'),
+          endDate: new Date('2026-06-20T00:00:00.000Z'),
+          isActive: true,
+          note: 'After breakfast',
+          scheduledHour: 20,
+          scheduledMinute: 5,
+        },
+      ]);
+    });
+
+    it('defaults isActive to true and normalizes null weekdays', () => {
+      const data = service.toGroupUpsertData('user-1', {
+        currentMedicineId: 'medicine-1',
+        daysOfWeek: null,
+        slots: [{ scheduledHour: 9, scheduledMinute: 0 }],
+      });
+
+      expect(data[0]).toMatchObject({
+        currentMedicineId: 'medicine-1',
+        daysOfWeek: Prisma.JsonNull,
+        isActive: true,
+        scheduledHour: 9,
+        scheduledMinute: 0,
+      });
+    });
+  });
+
+  describe('toGroupUpdateData', () => {
+    it('returns shared group fields without userId or schedule fields', () => {
+      const data = service.toGroupUpdateData({
+        currentMedicineId: 'medicine-1',
+        label: ' Evening ',
+        daysOfWeek: [2, 2, 4],
+        startDate: '2026-06-10',
+        endDate: null,
+        isActive: false,
+        note: ' Before bed ',
+        slots: [{ scheduledHour: 8, scheduledMinute: 0 }],
+      });
+
+      expect(data).toEqual({
+        currentMedicineId: 'medicine-1',
+        label: 'Evening',
+        daysOfWeek: [2, 4],
+        startDate: new Date('2026-06-10T00:00:00.000Z'),
+        endDate: null,
+        isActive: false,
+        note: 'Before bed',
+      });
+    });
+
+    it('throws BadRequestException when endDate is before startDate', () => {
+      expect(() =>
+        service.toGroupUpdateData({
+          currentMedicineId: 'medicine-1',
+          startDate: '2026-06-20',
+          endDate: '2026-06-10',
+          slots: [{ scheduledHour: 8, scheduledMinute: 0 }],
+        }),
+      ).toThrow(BadRequestException);
+    });
+  });
+
   // ── toUpdateData ───────────────────────────────────────────────────────
 
   describe('toUpdateData', () => {

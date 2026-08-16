@@ -25,6 +25,7 @@ describe('MedicineRemindersController', () => {
             create: vi.fn(),
             update: vi.fn(),
             delete: vi.fn(),
+            upsertGroup: vi.fn(),
           },
         },
       ],
@@ -110,6 +111,28 @@ describe('MedicineRemindersController', () => {
         code: ResultCode.SUCCESS,
         message: '',
         data: null,
+      });
+    });
+  });
+
+  describe('PUT /user/medicine-reminders/group', () => {
+    it('should upsert a whole reminder group', async () => {
+      const dto = {
+        currentMedicineId: 'med-1',
+        slots: [
+          { scheduledHour: 8, scheduledMinute: 0 },
+          { scheduledHour: 20, scheduledMinute: 30 },
+        ],
+      };
+      service.upsertGroup.mockResolvedValue({ items: [] } as any);
+
+      const result = await controller.upsertGroup(mockUser, dto as any);
+
+      expect(service.upsertGroup).toHaveBeenCalledWith(mockUser.sub, dto);
+      expect(result).toEqual({
+        code: ResultCode.SUCCESS,
+        message: '',
+        data: { items: [] },
       });
     });
   });

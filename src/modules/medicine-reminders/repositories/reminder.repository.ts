@@ -84,6 +84,10 @@ export abstract class MedicineReminderRepositoryPort {
     id: string,
     userId: string,
   ): Promise<{ id: string; userId: string } | null>;
+
+  abstract transaction<T>(
+    fn: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T>;
 }
 
 @Injectable()
@@ -162,5 +166,9 @@ export class MedicineReminderRepository
       where: { id, userId, isCurrent: true },
       select: { id: true, userId: true },
     });
+  }
+
+  override transaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>) {
+    return this.prisma.$transaction(fn);
   }
 }

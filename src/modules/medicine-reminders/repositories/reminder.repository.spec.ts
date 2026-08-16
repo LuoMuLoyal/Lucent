@@ -26,6 +26,7 @@ describe('MedicineReminderRepository', () => {
       userCurrentMedicine: {
         findFirst: vi.fn(),
       },
+      $transaction: vi.fn(),
     } as unknown as DeepMocked<PrismaService>;
 
     repository = new MedicineReminderRepository(prisma);
@@ -159,6 +160,20 @@ describe('MedicineReminderRepository', () => {
       expect(
         await repository.findCurrentMedicine('missing', 'user-1'),
       ).toBeNull();
+    });
+  });
+
+  describe('transaction', () => {
+    it('delegates to prisma.$transaction', async () => {
+      const txFn = vi.fn().mockResolvedValue('result');
+      prisma.$transaction.mockImplementation(
+        (_fn: never) => txFn() as Promise<string>,
+      );
+
+      const result = await repository.transaction(txFn as never);
+
+      expect(result).toBe('result');
+      expect(prisma.$transaction).toHaveBeenCalled();
     });
   });
 });

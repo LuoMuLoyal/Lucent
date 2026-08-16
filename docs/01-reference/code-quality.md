@@ -272,3 +272,12 @@ Last updated: 2026-08-16
     同一翻译结果；`findDueReminders` select 复用既有 user→profile join 补 `locale`。
   - 新增 i18n key：`medicine-reminders.reminder_fallback_label` 与
     `medicine-reminders.reminder_due_content`（`{label}` 插值，zh-CN / en 各一份）。
+
+- 2026-08-16 提醒组整组 upsert（F-6）：
+  - `MedicineReminderRepositoryPort` 新增 `transaction<T>(fn)` 端口（实现委托 `prisma.$transaction`），
+    事务边界下沉到 repository，服务层不直接依赖 `PrismaService`。
+  - 组级字段复用 `mapper.service` 私有 helper（`parseOptionalDate` / `assertValidDateWindow` /
+    `normalizeDaysOfWeek` / `normalizeNullableText`），新增 `toGroupUpsertData` / `toGroupUpdateData`
+    逐槽生成 Prisma 输入，避免与 create/update 路径重复实现。
+  - 整组 upsert 在单事务内完成 update/create/`updateMany` 软删，提交后只发一次 `reminder.changed`
+    事件，消除逐槽提交在弱网下的半保存窗口；空 slots 服务层防御性 400（DTO 已 `@ArrayMinSize(1)`）。

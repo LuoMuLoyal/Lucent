@@ -132,11 +132,22 @@ UserMedicineReminder {
 - `DELETE`
   - Path: `/api/v1/user/medicine-reminders/:id`
   - Description: Delete reminder
+- `PUT`
+  - Path: `/api/v1/user/medicine-reminders/group`
+  - Description: Upsert a whole reminder group for a medicine in a single transaction.
+    Body: `{ currentMedicineId, label?, daysOfWeek?, startDate?, endDate?, isActive?, note?,
+slots: [{ id?, scheduledHour, scheduledMinute }] }` (`slots` requires at least one entry).
 
 **Notes:**
 
 - `daysOfWeek = null` means every day; otherwise weekday numbers are `0-6` with Sunday as `0`.
 - Delete is a soft delete: `deletedAt` is set and `isActive` becomes `false`.
+- `PUT .../group` treats `slots` as the source of truth and replaces the whole group for
+  `currentMedicineId`: a slot with an `id` updates the existing row (the id must belong to the user,
+  reference the same `currentMedicineId`, and not be soft-deleted, otherwise `404`), a slot without
+  an `id` is created, and every existing non-deleted group row whose id is absent from the request is
+  implicitly soft-deleted (`deletedAt=now()`, `isActive=false`). The whole operation runs in one
+  transaction and emits a single `reminder.changed` event after commit.
 - Luminous reads active reminders for Medicine and Today next-dose display. It filters reminders by
   `startDate` / `endDate` when evaluating a target date.
 - Medication inventory/refill tracking is intentionally out of scope.

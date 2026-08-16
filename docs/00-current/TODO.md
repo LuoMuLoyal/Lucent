@@ -21,6 +21,13 @@ the relevant `Lucent/docs/00-current/*.md` state file, and record the completion
 
 ## 后续可做
 
+### F-6 提醒组整组 upsert 审查 P2 清单（2026-08-16，不阻塞）
+
+- P2-1 `src/modules/medicine-reminders/services/reminders.service.spec.ts`「rollback」用例的 mock 未执行事务回调，只验证失败不发事件、未真正验证回滚语义（回滚由 Prisma `$transaction` 保证，repository spec 已验委托）。验收：mock 的 transaction 实现执行回调并断言 tx 内调用，或加注释说明覆盖边界。
+- P2-2 `services/reminders.service.ts` 空 slots 防御分支用硬编码英文而非 `i18n.t`（DTO @ArrayMinSize 已拦截，实际不可达）。验收：改 i18n 或删除冗余分支。
+- P2-3 同槽 id 重复未拒绝，last-write-wins。验收：如需拒绝可在 service 加重复 id 校验（badRequest）。
+- P2-4 `docs/01-reference/contracts/reminder-contract.md` 未显式写明组级可选字段省略时的重置语义（省略 label/daysOfWeek/startDate/endDate/note→null、isActive→true）。验收：在 Notes 段补明整组替换的字段语义，避免前端误按「部分更新」理解。
+
 ### F-8 提醒文案 i18n 审查 P2 清单（2026-08-16，不阻塞）
 
 - P2-1 空串 locale 兜底：`src/modules/medicine-reminders/services/scheduler.service.ts` `locale == null ? 'zh-CN' : resolveLocale(locale)` 不捕获空串（`resolveLocale('')` → 'en'）。主流写入路径 `normalizeNullableText` 已把空串转 null，仅 OAuth 透传理论可能。验收：改为 `locale == null || locale.trim() === '' ? 'zh-CN' : resolveLocale(locale)` 或确认各 OAuth provider 以 null 表示未设置后保持。

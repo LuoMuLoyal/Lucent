@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -27,6 +28,7 @@ import {
 } from './dto/response.dto';
 
 import { UpdateMedicineReminderDto } from './dto/update.dto';
+import { UpsertMedicineReminderGroupDto } from './dto/upsert-group.dto';
 import { MedicineRemindersService } from './services/reminders.service';
 
 @ApiTags('Medicine Reminders')
@@ -83,6 +85,18 @@ export class MedicineRemindersController {
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     await this.remindersService.delete(user.sub, id);
     return successEnvelope(null);
+  }
+
+  @Put('group')
+  @ApiOperation({ summary: 'Upsert a whole medicine reminder group' })
+  @ApiResponse({ status: 200, type: MedicineReminderListResponseDto })
+  async upsertGroup(
+    @CurrentUser() user: UserPayload,
+    @Body() dto: UpsertMedicineReminderGroupDto,
+  ) {
+    return successEnvelope(
+      await this.remindersService.upsertGroup(user.sub, dto),
+    );
   }
 
   private parseBoolean(value: string | undefined): boolean {
