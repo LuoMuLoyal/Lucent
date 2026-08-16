@@ -114,7 +114,7 @@ function checkJpushConfig(): void {
   const masterSecret = getEnvValue(envPath, 'JPUSH_MASTER_SECRET');
   if (!appKey || !masterSecret) {
     console.warn(
-      '  WARNING: JPush 未配置，推送静默禁用；0.1.0 发布门槛要求 JPUSH_APP_KEY/JPUSH_MASTER_SECRET 已配齐并经真机验证。',
+      '  WARNING: JPush 未配置，推送静默禁用；只配其中一项会导致应用启动失败。0.1.0 发布门槛要求 `JPUSH_APP_KEY`/`JPUSH_MASTER_SECRET` 已配齐并经真机验证。',
     );
     return;
   }

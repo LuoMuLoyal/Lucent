@@ -100,8 +100,10 @@ JPUSH_APNS_PRODUCTION
 JPUSH_API_BASE_URL
 ```
 
-All four variables are optional. AppKey and Master Secret must be configured together;
-if either is empty, Lucent skips push delivery. `JPUSH_APNS_PRODUCTION` accepts `true` or
+All four variables are optional. `JPUSH_APP_KEY` and `JPUSH_MASTER_SECRET` must be
+configured as a pair: if both are empty, push delivery stays silently disabled
+(production logs a startup `warn`); setting only one of the pair fails startup —
+the pair must always be set together. `JPUSH_APNS_PRODUCTION` accepts `true` or
 `false` and defaults to `false`; `JPUSH_API_BASE_URL` defaults to `https://api.jpush.cn`.
 The Master Secret is sensitive and must not be committed.
 

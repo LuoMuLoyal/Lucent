@@ -134,9 +134,10 @@ NODE_ENV=test pnpm exec prisma migrate deploy
 ## JPush
 
 服务端推送通过 JPush REST API 按用户 alias 投递。`JPUSH_APP_KEY` 与
-`JPUSH_MASTER_SECRET` 必须同时配置；两者都为空时推送保持静默禁用，不影响其他业务。
-Master Secret 只能通过本地未跟踪环境文件或部署 secret 注入。`JPUSH_APNS_PRODUCTION`
-必须与 Luminous 的 iOS provisioning/APNs 环境匹配。
+`JPUSH_MASTER_SECRET` 必须同时配置；两者都为空时推送保持静默禁用，不影响其他业务；
+仅配其中一项会导致启动失败，必须成对配置。Master Secret 只能通过本地未跟踪环境文件
+或部署 secret 注入。`JPUSH_APNS_PRODUCTION` 必须与 Luminous 的 iOS provisioning/APNs
+环境匹配。
 
 生产 `.env` 需配齐 `JPUSH_APP_KEY` / `JPUSH_MASTER_SECRET`（经 `/opt/lucent/.env`
 注入，不入库，见 [[deployment]]）。缺失时服务在启动日志输出一条 `warn`
