@@ -3,5 +3,7 @@
   "reminder_not_found": "未找到提醒",
   "invalid_date": "无效的日期",
   "days_of_week_empty": "星期不可为空",
-  "end_before_start": "结束日期不可早于开始日期"
+  "end_before_start": "结束日期不可早于开始日期",
+  "reminder_fallback_label": "用药提醒",
+  "reminder_due_content": "该吃药了：{label}"
 }

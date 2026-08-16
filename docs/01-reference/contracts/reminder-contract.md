@@ -50,7 +50,10 @@ Lucent's notification system is split into two layers with a clear ownership bou
     the static `redFlags` (`severeAllergy`/`informationGap` reviewed rules) as structured
     data and degrades to an empty list when the read fails.
 - Notification content templates
-  - Status: Not implemented
+  - Status: Implemented — the scheduler localizes reminder title/content per `UserProfile.locale`
+    via `I18nService` (keys `medicine-reminders.reminder_fallback_label` and
+    `medicine-reminders.reminder_due_content`, `{label}` interpolation). Missing locale falls
+    back to `zh-CN`; in-app and JPush share the same translated copy.
 
 ## Planned API Surface
 

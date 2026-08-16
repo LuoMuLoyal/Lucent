@@ -265,3 +265,10 @@ Last updated: 2026-08-16
     `formatLocalDate`、`wallClockToScheduledFor`），scheduler 与回执服务共用；
     新增 `delivery-moment.spec.ts`、`delivery-receipts.service.spec.ts`，扩展
     scheduler / push-delivery / controller spec 与 e2e 覆盖。
+
+- 2026-08-16 提醒文案 i18n（F-8）：
+  - 调度器提醒标题/正文从硬编码中文改为经 `I18nService` 按 `UserProfile.locale`
+    本地化（fallback `zh-CN`，`resolveLocale` 归一化），in-app 与 JPush 两处复用
+    同一翻译结果；`findDueReminders` select 复用既有 user→profile join 补 `locale`。
+  - 新增 i18n key：`medicine-reminders.reminder_fallback_label` 与
+    `medicine-reminders.reminder_due_content`（`{label}` 插值，zh-CN / en 各一份）。

@@ -1,11 +1,13 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
+import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../prisma';
 import { NotificationsService } from '../../notifications';
 import { PushDeliveryService } from '../../notifications';
 import { now } from '../../../common';
 import { formatDateOnly } from '../../../common';
+import { resolveLocale } from '../../../common';
 import {
   DELIVERY_CHANNEL_IN_APP,
   DELIVERY_CHANNEL_LOCAL,
@@ -53,6 +55,7 @@ interface DueReminder {
   userId: string;
   label: string | null;
   timezone: string | null;
+  locale: string | null;
 }
 
 /** Local time components used for matching. */
@@ -91,6 +94,7 @@ export class ReminderSchedulerService {
     private readonly notificationsService: NotificationsService,
     private readonly pushDeliveryService: PushDeliveryService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly i18n: I18nService,
   ) {}
 
   async dispatchDueReminders(): Promise<void> {
@@ -155,7 +159,7 @@ export class ReminderSchedulerService {
           endDate: true,
           user: {
             select: {
-              profile: { select: { timezone: true } },
+              profile: { select: { timezone: true, locale: true } },
             },
           },
         },
@@ -163,6 +167,7 @@ export class ReminderSchedulerService {
 
       for (const row of rows) {
         const timezone = row.user.profile?.timezone ?? null;
+        const locale = row.user.profile?.locale ?? null;
         const local = this.getLocalTime(currentTime, timezone);
 
         if (!this.isReminderDue(row, local)) {
@@ -174,6 +179,7 @@ export class ReminderSchedulerService {
           userId: row.userId,
           label: row.label,
           timezone,
+          locale,
         });
       }
 
@@ -242,7 +248,19 @@ export class ReminderSchedulerService {
       }
 
       const localDate = formatLocalDate(scheduledFor, reminder.timezone);
-      const label = reminder.label ?? '用药提醒';
+      // 用户未设置 locale 时显式回退 zh-CN（保持现状中文文案）；resolveLocale
+      // 对 null/undefined 会回退 en，因此需先判空再归一化。
+      const lang =
+        reminder.locale == null ? 'zh-CN' : resolveLocale(reminder.locale);
+      const fallbackLabel = this.i18n.t(
+        'medicine-reminders.reminder_fallback_label',
+        { lang },
+      );
+      const label = reminder.label ?? fallbackLabel;
+      const content = this.i18n.t('medicine-reminders.reminder_due_content', {
+        lang,
+        args: { label },
+      });
 
       // b. 先发站内通知。如果失败，不写任何投递记录，下一个 tick 重试
       //    （原语义保留）。
@@ -251,7 +269,7 @@ export class ReminderSchedulerService {
         {
           type: 'medicine_reminder',
           title: label,
-          content: `该吃药了：${label}`,
+          content,
           action: 'medicine',
           actionPayload: {
             source: `medicine_reminder_${reminder.id}`,
@@ -313,7 +331,7 @@ export class ReminderSchedulerService {
         reminder.userId,
         {
           title: label,
-          body: `该吃药了：${label}`,
+          body: content,
           data: { reminderId: reminder.id, action: 'medicine_reminder' },
         },
       );

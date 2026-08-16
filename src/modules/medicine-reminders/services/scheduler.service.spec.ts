@@ -3,6 +3,7 @@ import type { NotificationsService } from '../../notifications';
 import type { PushDeliveryService } from '../../notifications';
 import type { PrismaService } from '../../../prisma';
 import type { Cache } from 'cache-manager';
+import type { I18nService } from 'nestjs-i18n';
 
 // 2026-07-20T00:30:00.000Z = 08:30 Monday in Asia/Shanghai
 const TEST_TIME = new Date('2026-07-20T00:30:00.000Z');
@@ -18,7 +19,7 @@ function buildReminderRow(overrides: Record<string, unknown> = {}) {
     startDate: null,
     endDate: null,
     user: {
-      profile: { timezone: null },
+      profile: { timezone: null, locale: null },
     },
     ...overrides,
   };
@@ -76,12 +77,37 @@ function buildCache() {
   };
 }
 
+/** i18n fake：仅实现调度器用到的两个 key，按 lang 返回中/英文案。 */
+function buildI18n() {
+  const t = vi.fn(
+    (
+      key: string,
+      options?: { lang?: string; args?: Record<string, string> },
+    ): string => {
+      const lang = options?.lang ?? 'en';
+      const args = options?.args ?? {};
+      if (key === 'medicine-reminders.reminder_fallback_label') {
+        return lang === 'en' ? 'Medication reminder' : '用药提醒';
+      }
+      if (key === 'medicine-reminders.reminder_due_content') {
+        const label = args['label'] ?? '';
+        return lang === 'en'
+          ? `Time to take your medicine: ${label}`
+          : `该吃药了：${label}`;
+      }
+      return key;
+    },
+  );
+  return { t };
+}
+
 describe('ReminderSchedulerService', () => {
   let service: ReminderSchedulerService;
   let prisma: ReturnType<typeof buildPrisma>;
   let notifications: ReturnType<typeof buildNotifications>;
   let pushDelivery: ReturnType<typeof buildPushDelivery>;
   let cache: ReturnType<typeof buildCache>;
+  let i18n: ReturnType<typeof buildI18n>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -91,12 +117,14 @@ describe('ReminderSchedulerService', () => {
     notifications = buildNotifications();
     pushDelivery = buildPushDelivery();
     cache = buildCache();
+    i18n = buildI18n();
 
     service = new ReminderSchedulerService(
       prisma as unknown as PrismaService,
       notifications as unknown as NotificationsService,
       pushDelivery as unknown as PushDeliveryService,
       cache as unknown as Cache,
+      i18n as unknown as I18nService,
     );
   });
 
@@ -233,6 +261,77 @@ describe('ReminderSchedulerService', () => {
         content: '该吃药了：用药提醒',
       }),
       expect.anything(),
+    );
+  });
+
+  // ── i18n ────────────────────────────────────────────────────────
+
+  it('localizes reminder copy to English when profile locale is en', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow({
+        label: 'Morning dose',
+        user: { profile: { timezone: null, locale: 'en' } },
+      }),
+    ]);
+
+    await service.dispatchDueReminders();
+
+    expect(i18n.t).toHaveBeenCalledWith(
+      'medicine-reminders.reminder_fallback_label',
+      { lang: 'en' },
+    );
+    expect(i18n.t).toHaveBeenCalledWith(
+      'medicine-reminders.reminder_due_content',
+      { lang: 'en', args: { label: 'Morning dose' } },
+    );
+    expect(notifications.createOrReplaceScoped).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        title: 'Morning dose',
+        content: 'Time to take your medicine: Morning dose',
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('falls back to zh-CN when profile locale is null', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow({
+        label: null,
+        user: { profile: { timezone: null, locale: null } },
+      }),
+    ]);
+
+    await service.dispatchDueReminders();
+
+    expect(i18n.t).toHaveBeenCalledWith(
+      'medicine-reminders.reminder_fallback_label',
+      { lang: 'zh-CN' },
+    );
+    expect(i18n.t).toHaveBeenCalledWith(
+      'medicine-reminders.reminder_due_content',
+      { lang: 'zh-CN', args: { label: '用药提醒' } },
+    );
+    expect(notifications.createOrReplaceScoped).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        title: '用药提醒',
+        content: '该吃药了：用药提醒',
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('passes the reminder label as the interpolation arg', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow({ label: 'Breakfast dose' }),
+    ]);
+
+    await service.dispatchDueReminders();
+
+    expect(i18n.t).toHaveBeenCalledWith(
+      'medicine-reminders.reminder_due_content',
+      { lang: 'zh-CN', args: { label: 'Breakfast dose' } },
     );
   });
 

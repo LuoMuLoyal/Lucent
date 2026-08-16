@@ -3,5 +3,7 @@
   "reminder_not_found": "Reminder not found",
   "invalid_date": "Invalid date",
   "days_of_week_empty": "Days of week must not be empty",
-  "end_before_start": "End date must not be before start date"
+  "end_before_start": "End date must not be before start date",
+  "reminder_fallback_label": "Medication reminder",
+  "reminder_due_content": "Time to take your medicine: {label}"
 }
