@@ -585,6 +585,31 @@ describe('Medicine Reminders API (e2e)', () => {
         .expect(400);
     });
 
+    it('should reject a receipt with an invalid scheduledDate', async () => {
+      const { user, token } = await createUserWithToken();
+      const medicine = await createCurrentMedicine(user.id);
+      const reminder = await ctx.prisma.userMedicineReminder.create({
+        data: {
+          userId: user.id,
+          currentMedicineId: medicine.id,
+          scheduledHour: 8,
+          scheduledMinute: 0,
+        },
+      });
+
+      // 完整 ISO 时间戳能通过 IsDateString 但会让 wallClockToScheduledFor
+      // 得到 NaN → 500；仅接受 YYYY-MM-DD，非法输入直接 400。
+      await request(app.getHttpServer())
+        .post(`${DELIVERIES_PATH}/receipts`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          reminderId: reminder.id,
+          scheduledDate: '2026-07-10T08:00:00.000Z',
+          scheduledTime: '08:00',
+        })
+        .expect(400);
+    });
+
     it('should report and persist local capability', async () => {
       const { token } = await createUserWithToken();
 

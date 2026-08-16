@@ -1,10 +1,12 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { validate } from 'class-validator';
 import { ResultCode } from '../../common';
 import type { UserPayload } from '../auth';
 
 import { ReminderDeliveriesController } from './reminder-deliveries.controller';
 import { MedicineRemindersService } from './services/reminders.service';
 import { DeliveryReceiptsService } from './services/delivery-receipts.service';
+import { ReminderDeliveryReceiptDto } from './dto/reminder-delivery-receipt.dto';
 
 const mockUser: UserPayload = {
   sub: 'user-uuid-1',
@@ -166,5 +168,33 @@ describe('ReminderDeliveriesController', () => {
       message: '',
       data: { state: 'active' },
     });
+  });
+});
+
+describe('ReminderDeliveryReceiptDto validation', () => {
+  it('rejects a full ISO timestamp as scheduledDate (only YYYY-MM-DD passes)', async () => {
+    const invalid = Object.assign(new ReminderDeliveryReceiptDto(), {
+      reminderId: 'reminder-1',
+      scheduledDate: '2026-07-20T08:30:00.000Z',
+      scheduledTime: '08:30',
+    });
+    const wrongFormat = Object.assign(new ReminderDeliveryReceiptDto(), {
+      reminderId: 'reminder-1',
+      scheduledDate: '2026/07/20',
+      scheduledTime: '08:30',
+    });
+
+    expect(await validate(invalid)).not.toHaveLength(0);
+    expect(await validate(wrongFormat)).not.toHaveLength(0);
+  });
+
+  it('accepts a YYYY-MM-DD scheduledDate', async () => {
+    const valid = Object.assign(new ReminderDeliveryReceiptDto(), {
+      reminderId: 'reminder-1',
+      scheduledDate: '2026-07-20',
+      scheduledTime: '08:30',
+    });
+
+    expect(await validate(valid)).toHaveLength(0);
   });
 });

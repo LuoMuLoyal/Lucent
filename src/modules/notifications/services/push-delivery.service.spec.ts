@@ -22,7 +22,7 @@ describe('PushDeliveryService', () => {
     service = new PushDeliveryService(provider);
   });
 
-  it('returns { sent: false } without error when JPush is not configured', async () => {
+  it('returns { sent: false, errorMessage: push_not_configured } when JPush is not configured', async () => {
     provider = buildProvider({ isConfigured: false });
     service = new PushDeliveryService(provider);
 
@@ -32,7 +32,10 @@ describe('PushDeliveryService', () => {
     });
 
     expect(provider.send).not.toHaveBeenCalled();
-    expect(result).toEqual({ sent: false });
+    expect(result).toEqual({
+      sent: false,
+      errorMessage: 'push_not_configured',
+    });
   });
 
   it('sends the user id as the JPush alias and reports success', async () => {

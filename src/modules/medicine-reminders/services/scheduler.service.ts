@@ -355,14 +355,22 @@ export class ReminderSchedulerService {
 
   /**
    * 读取用户本地调度能力缓存（`reminder:local-capability:{userId}`）。
-   * 缓存缺失视为 `unconfirmed`（能力未知，允许 JPush 回退）。
+   * 缓存缺失或读取异常均视为 `unconfirmed`（能力未知，允许 JPush 回退）。
+   * 缓存异常只 warn 一次并继续走 push 兜底，不中断 dispatch——否则
+   * in_app 行已写而 JPush 兜底会被静默跳过（下一 tick 去重）。
    */
   private async readLocalCapability(
     userId: string,
   ): Promise<ResolvedLocalCapability> {
-    const cached = await this.cache.get<string>(
-      localCapabilityCacheKey(userId),
-    );
+    let cached: string | undefined;
+    try {
+      cached = await this.cache.get<string>(localCapabilityCacheKey(userId));
+    } catch (error) {
+      this.logger.warn(
+        `Failed to read local capability cache for user ${userId}: ${this.formatError(error)}`,
+      );
+      return 'unconfirmed';
+    }
     if (
       cached === 'active' ||
       cached === 'unavailable' ||

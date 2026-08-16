@@ -51,7 +51,11 @@ function buildNotifications() {
 
 function buildPushDelivery() {
   return {
-    sendToUser: vi.fn().mockResolvedValue({ sent: false }),
+    // 未配置语义：errorMessage 固定为 push_not_configured（区别于真失败）
+    sendToUser: vi.fn().mockResolvedValue({
+      sent: false,
+      errorMessage: 'push_not_configured',
+    }),
   };
 }
 
@@ -395,6 +399,28 @@ describe('ReminderSchedulerService', () => {
     expect(pushDelivery.sendToUser).toHaveBeenCalledTimes(1);
   });
 
+  it('continues with push when the capability cache read fails', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow(),
+    ]);
+    cache.get.mockRejectedValue(new Error('redis down'));
+    pushDelivery.sendToUser.mockResolvedValue({ sent: true });
+
+    await service.dispatchDueReminders();
+
+    // 缓存异常不中断 dispatch：按 unconfirmed 继续发 push
+    expect(cache.get).toHaveBeenCalledWith('reminder:local-capability:user-1');
+    expect(pushDelivery.sendToUser).toHaveBeenCalledTimes(1);
+    expect(pushWrites()).toHaveLength(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        channel: 'push',
+        status: 'delivered',
+      }),
+      skipDuplicates: true,
+    });
+  });
+
   // ── Local delivery row skips push ────────────────────────────────
 
   it('skips push when a local delivery row already exists', async () => {
@@ -410,6 +436,33 @@ describe('ReminderSchedulerService', () => {
 
     expect(pushDelivery.sendToUser).not.toHaveBeenCalled();
     expect(pushWrites()).toHaveLength(0);
+  });
+
+  it('checks the local delivery row with a channel filter', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow(),
+    ]);
+
+    await service.dispatchDueReminders();
+
+    // 第一次 findFirst：in_app 去重（channel='in_app'）
+    expect(prisma.userReminderDelivery.findFirst).toHaveBeenNthCalledWith(1, {
+      where: {
+        reminderId: 'reminder-1',
+        scheduledFor: new Date('2026-07-20T00:30:00.000Z'),
+        channel: 'in_app',
+      },
+      select: { id: true },
+    });
+    // 第二次 findFirst：local 行检查（channel='local'）
+    expect(prisma.userReminderDelivery.findFirst).toHaveBeenNthCalledWith(2, {
+      where: {
+        reminderId: 'reminder-1',
+        scheduledFor: new Date('2026-07-20T00:30:00.000Z'),
+        channel: 'local',
+      },
+      select: { id: true },
+    });
   });
 
   // ── Push result rows ─────────────────────────────────────────────
@@ -461,11 +514,11 @@ describe('ReminderSchedulerService', () => {
     });
   });
 
-  it('writes a failed push row without error message when push is not configured', async () => {
+  it('writes a failed push row with push_not_configured when push is not configured', async () => {
     prisma.userMedicineReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
-    // 默认 mock 已返回 { sent: false }（未配置语义）
+    // 默认 mock 返回未配置语义 { sent: false, errorMessage: 'push_not_configured' }
 
     await service.dispatchDueReminders();
 
@@ -474,7 +527,7 @@ describe('ReminderSchedulerService', () => {
       data: expect.objectContaining({
         channel: 'push',
         status: 'failed',
-        errorMessage: null,
+        errorMessage: 'push_not_configured',
       }),
       skipDuplicates: true,
     });

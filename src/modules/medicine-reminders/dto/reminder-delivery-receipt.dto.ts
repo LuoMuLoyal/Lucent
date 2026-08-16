@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsString, Matches } from 'class-validator';
+import { IsNotEmpty, IsString, Matches } from 'class-validator';
 
 /**
  * 本地通知投递回执请求体。
@@ -18,7 +18,9 @@ export class ReminderDeliveryReceiptDto {
     description: 'Local scheduled date in YYYY-MM-DD format.',
     example: '2026-07-20',
   })
-  @IsDateString()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'scheduledDate must match YYYY-MM-DD',
+  })
   scheduledDate!: string;
 
   @ApiProperty({

@@ -159,6 +159,28 @@ describe('DeliveryReceiptsService', () => {
     expect(item.id).toBe('delivery-1');
   });
 
+  it('returns the same row without error when concurrent double-reports race on createMany', async () => {
+    // 并发双报：两个请求都在 createMany 前读到 null；第二个 createMany 命中
+    // 唯一约束去重（count: 0），行仍由兜底读取返回，不抛错、不重复写入。
+    prisma.userReminderDelivery.findFirst
+      .mockResolvedValueOnce(null) // 请求 A 首次查找
+      .mockResolvedValueOnce(null) // 请求 B 首次查找
+      .mockResolvedValueOnce(DELIVERY_ROW) // A 写后兜底读取
+      .mockResolvedValueOnce(DELIVERY_ROW); // B 写后兜底读取
+    prisma.userReminderDelivery.createMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+
+    const [first, second] = await Promise.all([
+      service.recordLocalReceipt('user-1', dto),
+      service.recordLocalReceipt('user-1', dto),
+    ]);
+
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(2);
+    expect(first.id).toBe('delivery-1');
+    expect(second.id).toBe('delivery-1');
+  });
+
   it('propagates ownership failure without any writes', async () => {
     ownership.ensureOwnedByUser.mockRejectedValue(new Error('not found'));
 
