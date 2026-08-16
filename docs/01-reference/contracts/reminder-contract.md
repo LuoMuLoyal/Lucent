@@ -148,6 +148,9 @@ slots: [{ id?, scheduledHour, scheduledMinute }] }` (`slots` requires at least o
   an `id` is created, and every existing non-deleted group row whose id is absent from the request is
   implicitly soft-deleted (`deletedAt=now()`, `isActive=false`). The whole operation runs in one
   transaction and emits a single `reminder.changed` event after commit.
+- When a group-level optional field is omitted, `label`, `daysOfWeek`, `startDate`, `endDate`,
+  and `note` are reset to `null` (cleared); an omitted `isActive` defaults to `true`. `slots`
+  must contain at least one entry.
 - Luminous reads active reminders for Medicine and Today next-dose display. It filters reminders by
   `startDate` / `endDate` when evaluating a target date.
 - Medication inventory/refill tracking is intentionally out of scope.

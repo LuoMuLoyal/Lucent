@@ -88,7 +88,7 @@ export class MedicineRemindersService {
 
   async upsertGroup(userId: string, dto: UpsertMedicineReminderGroupDto) {
     if (dto.slots.length === 0) {
-      badRequest('Reminder group must contain at least one slot.');
+      badRequest(this.i18n.t('medicine-reminders.reminder_group_empty'));
     }
 
     await this.ownershipService.ensureCurrentMedicineOwnedByUser(

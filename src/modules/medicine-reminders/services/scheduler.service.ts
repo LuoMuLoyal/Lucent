@@ -36,7 +36,7 @@ const WEEKDAY_MAP: Record<string, number> = {
   Sat: 6,
 };
 
-/** Raw reminder row with joined user profile timezone. */
+/** Raw reminder row with joined user profile timezone and locale. */
 interface ReminderWithTimezone {
   id: string;
   userId: string;
@@ -46,7 +46,9 @@ interface ReminderWithTimezone {
   daysOfWeek: unknown;
   startDate: Date | null;
   endDate: Date | null;
-  user: { profile: { timezone: string | null } | null } | null;
+  user: {
+    profile: { timezone: string | null; locale: string | null } | null;
+  } | null;
 }
 
 /** A reminder that is due at the current time. */
@@ -248,10 +250,12 @@ export class ReminderSchedulerService {
       }
 
       const localDate = formatLocalDate(scheduledFor, reminder.timezone);
-      // 用户未设置 locale 时显式回退 zh-CN（保持现状中文文案）；resolveLocale
-      // 对 null/undefined 会回退 en，因此需先判空再归一化。
+      // 用户未设置 locale 或为空串时显式回退 zh-CN（保持现状中文文案）；
+      // resolveLocale 对 null 回退 en，空串同 null 兜底 zh-CN 保持现状。
       const lang =
-        reminder.locale == null ? 'zh-CN' : resolveLocale(reminder.locale);
+        reminder.locale == null || reminder.locale.trim() === ''
+          ? 'zh-CN'
+          : resolveLocale(reminder.locale);
       const fallbackLabel = this.i18n.t(
         'medicine-reminders.reminder_fallback_label',
         { lang },

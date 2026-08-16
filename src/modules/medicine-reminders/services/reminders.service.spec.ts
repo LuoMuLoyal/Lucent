@@ -443,13 +443,17 @@ describe('MedicineRemindersService', () => {
     });
 
     it('should reject empty slots with a 400', async () => {
-      await expect(
-        service.upsertGroup('user-1', {
+      const error = await service
+        .upsertGroup('user-1', {
           currentMedicineId: 'medicine-1',
           slots: [],
-        }),
-      ).rejects.toThrow(BadRequestException);
+        })
+        .catch((e: unknown) => e);
 
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        message: 'medicine-reminders.reminder_group_empty',
+      });
       expect(repository.transaction).not.toHaveBeenCalled();
       expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
     });

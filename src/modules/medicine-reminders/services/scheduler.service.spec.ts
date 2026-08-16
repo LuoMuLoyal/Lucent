@@ -322,6 +322,34 @@ describe('ReminderSchedulerService', () => {
     );
   });
 
+  it('falls back to zh-CN when profile locale is an empty string', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow({
+        label: null,
+        user: { profile: { timezone: null, locale: '' } },
+      }),
+    ]);
+
+    await service.dispatchDueReminders();
+
+    expect(i18n.t).toHaveBeenCalledWith(
+      'medicine-reminders.reminder_fallback_label',
+      { lang: 'zh-CN' },
+    );
+    expect(i18n.t).toHaveBeenCalledWith(
+      'medicine-reminders.reminder_due_content',
+      { lang: 'zh-CN', args: { label: '用药提醒' } },
+    );
+    expect(notifications.createOrReplaceScoped).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        title: '用药提醒',
+        content: '该吃药了：用药提醒',
+      }),
+      expect.anything(),
+    );
+  });
+
   it('passes the reminder label as the interpolation arg', async () => {
     prisma.userMedicineReminder.findMany.mockResolvedValue([
       buildReminderRow({ label: 'Breakfast dose' }),
