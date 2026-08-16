@@ -1,6 +1,6 @@
 # Reminder / Notification Contract
 
-Last updated: 2026-08-13
+Last updated: 2026-08-16
 
 ## Boundary
 
@@ -41,9 +41,9 @@ Lucent's notification system is split into two layers with a clear ownership bou
   - Status: Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example
     only
 - Push delivery (JPush)
-  - Status: `PushDeliveryService` sends the user ID as a JPush alias through the JPush REST API. Missing credentials skip delivery; provider failures are logged and do not block the in-app notification flow.
+  - Status: `PushDeliveryService` sends the user ID as a JPush alias through the JPush REST API. Missing credentials skip delivery and the send result resolves `{ sent: false }`. Provider failures are logged and do not block the in-app notification flow. Push is a **background fallback only**: the scheduler sends it when the user's local capability is `unconfirmed` or `unavailable`, and never when it is `active` or `disabled`.
 - Reminder delivery log
-  - Status: `ReminderSchedulerService` (`@Cron('* * * * *')`) now writes `UserReminderDelivery` rows every minute for due reminders — matching `scheduledHour:Minute` in user timezone + `daysOfWeek` + date window. Channel=`in_app`, status=`delivered`. Deduplicated by the `(userId, reminderId, scheduledFor)` unique constraint (`findFirst` fast path + `createMany({ skipDuplicates: true })` atomic fallback, at-least-once — see [ADR-0011](../adr/0011-reminder-delivery-at-least-once.md)). Uses cursor-based pagination (batch size 500) to avoid OOM on large datasets.
+  - Status: `ReminderSchedulerService` (BullMQ `@Cron('* * * * *')` equivalent) writes `UserReminderDelivery` rows every minute for due reminders — matching `scheduledHour:Minute` in user timezone + `daysOfWeek` + date window. **Three channels** each get their own audit row per reminder event (ADR-0013): `in_app` always (in-app notification center record), `local` written idempotently by the client receipt endpoint, `push` written by the scheduler with the actual send result (`delivered`/`failed`). Deduplicated per channel by the `(userId, reminderId, scheduledFor, channel)` unique constraint (`findFirst` fast path + `createMany({ skipDuplicates: true })` atomic fallback, at-least-once — see [ADR-0011](../adr/0011-reminder-delivery-at-least-once.md) and [ADR-0013](../adr/0013-reminder-delivery-three-channel.md)). Uses cursor-based pagination (batch size 500) to avoid OOM on large datasets.
 - Medicine risk check cross-module read
   - Status: `MedicineRiskCheckService` is exported from `MedicinesModule` (persisted static/LLM
     risk records behind a 30-minute cache). The reports event review next-step section reads only
@@ -161,9 +161,15 @@ not as a medicine-day aggregate:
   `overdueUnconfirmed` remain separate counts, and an unplanned-only window is `unknown`
   rather than `0%`.
 
-### 3. Reminder Delivery Log (read-only, audit)
+### 3. Reminder Delivery Log (read + write, audit)
 
-**Status:** implemented. `ReminderSchedulerService` (`@Cron('* * * * *')`) writes delivery rows every minute for due reminders, creating `UserReminderDelivery` records with `channel='in_app'` and `status='delivered'`. Push delivery via `PushDeliveryService` is integrated as a best-effort second channel through the JPush alias provider; missing credentials skip the network request and provider failures do not block in-app delivery. Uses cursor-based pagination (batch size 500) to avoid OOM. Overlap dedup is DB-level: `(userId, reminderId, scheduledFor)` unique constraint + `findFirst` fast path + `createMany({ skipDuplicates: true })` (at-least-once, see [ADR-0011](../adr/0011-reminder-delivery-at-least-once.md)); the previous in-process overlap guard has been removed.
+**Status:** implemented. `ReminderSchedulerService` (BullMQ `@Cron('* * * * *')` equivalent) writes delivery rows every minute for due reminders. **Three channels** per reminder event, each with its own audit row (ADR-0013):
+
+- `in_app` — always written by the scheduler as the notification-center record (`status='delivered'`), best-effort JPush and local display are decoupled from it.
+- `local` — written idempotently by the client via `POST .../receipts` after the local notification is actually shown (`status='delivered'`). If a local row exists for the event, the scheduler skips push entirely.
+- `push` — written by the scheduler only when the user's local capability is `unconfirmed`/`unavailable`; result is `delivered` or `failed` (with `errorMessage`). `active`/`disabled` capability means no push at all.
+
+Local capability is reported by the client via `PUT .../local-capability` and cached for 14 days. Overlap dedup is DB-level per channel: `(userId, reminderId, scheduledFor, channel)` unique constraint + `findFirst` fast path + `createMany({ skipDuplicates: true })` (at-least-once, see [ADR-0011](../adr/0011-reminder-delivery-at-least-once.md) and [ADR-0013](../adr/0013-reminder-delivery-three-channel.md)); the previous in-process overlap guard has been removed. Uses cursor-based pagination (batch size 500) to avoid OOM.
 
 **Model:** `UserReminderDelivery` (new Prisma model)
 
@@ -173,20 +179,33 @@ UserReminderDelivery {
   userId       String
   reminderId   String?
   deviceId     String?
-  channel      String    // "local" | "push" | "email"
+  channel      String    // "in_app" | "local" | "push"
   status       String    // "scheduled" | "delivered" | "failed"
   scheduledFor DateTime
   deliveredAt  DateTime?
   errorMessage String?
   createdAt    DateTime
+  // @@unique([userId, reminderId, scheduledFor, channel])
 }
 ```
 
-**API endpoint:**
+**API endpoints:**
 
 - `GET`
   - Path: `/api/v1/user/reminder-deliveries?date=&limit=`
   - Description: Read delivery log
+- `POST`
+  - Path: `/api/v1/user/reminder-deliveries/receipts`
+  - Description: Record a local notification delivery receipt (idempotent).
+    Body: `{ reminderId, scheduledDate: 'YYYY-MM-DD', scheduledTime: 'HH:mm' }`.
+    `scheduledFor` is derived from wall-clock date/time in the user's profile
+    timezone (default `Asia/Shanghai`), truncated to the minute. Returns the
+    persisted `channel='local'`, `status='delivered'` row.
+- `PUT`
+  - Path: `/api/v1/user/reminder-deliveries/local-capability`
+  - Description: Report client local scheduling capability.
+    Body: `{ state: 'active' | 'unavailable' | 'disabled' }`. Cached for
+    14 days and used by the scheduler to gate the JPush fallback.
 
 ## Explicit Non-Goals
 
@@ -222,6 +241,11 @@ UserReminderDelivery {
    conditional update (race condition fix), throttler Redis connection failure graceful
    degradation, data retention direct `deleteMany` (no ID pre-load), and
    `UserDevicePlatform` retained for `UserSession.platform` compatibility.
+8. **Phase H (done on 2026-08-16):** Three-channel delivery audit (ADR-0013) — unique
+   constraint extended with `channel`; scheduler writes `in_app` always, skips push when a
+   `local` row exists, and writes `push` rows (`delivered`/`failed`) gated by the local
+   capability cache; `PushDeliveryService.sendToUser` returns a `PushSendResult`;
+   `POST .../receipts` (idempotent local receipt) and `PUT .../local-capability` added.
 
 At every phase, Luminous remains the notification display layer; Lucent owns the schedule data.
 Reminder and dose-log repository queries migrated to `prisma.nonDeleted` API.

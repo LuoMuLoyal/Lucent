@@ -1,21 +1,24 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../../prisma';
 import { NotificationsService } from '../../notifications';
 import { PushDeliveryService } from '../../notifications';
 import { now } from '../../../common';
 import { formatDateOnly } from '../../../common';
+import {
+  DELIVERY_CHANNEL_IN_APP,
+  DELIVERY_CHANNEL_LOCAL,
+  DELIVERY_CHANNEL_PUSH,
+  DELIVERY_STATUS_DELIVERED,
+  DELIVERY_STATUS_FAILED,
+  localCapabilityCacheKey,
+  type ResolvedLocalCapability,
+} from '../constants/delivery.constants';
+import { DEFAULT_TIMEZONE, formatLocalDate } from './delivery-moment';
 
 /** Cron expression for the reminder scheduler — every minute. */
 export const REMINDER_SCHEDULER_CRON = '* * * * *';
-
-/** Default timezone when user profile has no timezone set. */
-const DEFAULT_TIMEZONE = 'Asia/Shanghai';
-
-/** Channel name for in-app notification delivery. */
-const DELIVERY_CHANNEL_IN_APP = 'in_app';
-
-/** Delivery status when a notification is successfully sent. */
-const DELIVERY_STATUS_DELIVERED = 'delivered';
 
 /** Batch size for paginated reminder queries. */
 const REMINDER_QUERY_BATCH_SIZE = 500;
@@ -69,11 +72,15 @@ interface LocalTime {
  * `isDispatching` re-entrancy guard has been removed: BullMQ guarantees a
  * single worker does not consume the same job concurrently, and adjacent
  * repeat instances that might overlap are deduplicated by the
- * `(userId, reminderId, scheduledFor)` unique constraint: `findFirst` is the
- * fast path, and `createMany({ skipDuplicates: true })` makes the record write
- * atomic under a race (see ADR-0011). Delivery is at-least-once — a
- * notification can be sent twice in a true multi-instance overlap, but the
- * delivery record is never duplicated.
+ * `(userId, reminderId, scheduledFor, channel)` unique constraint: `findFirst`
+ * is the fast path, and `createMany({ skipDuplicates: true })` makes the
+ * record write atomic under a race (see ADR-0011 / ADR-0013). Delivery is
+ * at-least-once — a notification can be sent twice in a true multi-instance
+ * overlap, but the delivery record is never duplicated.
+ *
+ * Three-channel semantics（ADR-0013）：in_app 始终写入通知中心；local 由客户端
+ * 展示后幂等回写（存在即跳过 push）；push 仅在本地能力为 unconfirmed/unavailable
+ * 时作为后台回退发送，active/disabled 完全不发。
  */
 @Injectable()
 export class ReminderSchedulerService {
@@ -83,6 +90,7 @@ export class ReminderSchedulerService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly pushDeliveryService: PushDeliveryService,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
   async dispatchDueReminders(): Promise<void> {
@@ -218,8 +226,14 @@ export class ReminderSchedulerService {
     scheduledFor: Date,
   ): Promise<void> {
     try {
+      // a. 站内通知去重（快速路径）：同一事件已有 in_app 行则整体跳过
+      //    （含 local/push 回退），避免重复打扰。
       const already = await this.prisma.userReminderDelivery.findFirst({
-        where: { reminderId: reminder.id, scheduledFor },
+        where: {
+          reminderId: reminder.id,
+          scheduledFor,
+          channel: DELIVERY_CHANNEL_IN_APP,
+        },
         select: { id: true },
       });
 
@@ -227,14 +241,11 @@ export class ReminderSchedulerService {
         return;
       }
 
-      const localDate = this.formatLocalDate(scheduledFor, reminder.timezone);
+      const localDate = formatLocalDate(scheduledFor, reminder.timezone);
       const label = reminder.label ?? '用药提醒';
 
-      // Send the notification FIRST. If it fails, no delivery record is
-      // created, so the next scheduler tick will retry. The previous order
-      // (create delivery record first, then send notification) meant that a
-      // notification failure would permanently block the reminder because the
-      // dedup check would find the delivery record and skip.
+      // b. 先发站内通知。如果失败，不写任何投递记录，下一个 tick 重试
+      //    （原语义保留）。
       await this.notificationsService.createOrReplaceScoped(
         reminder.userId,
         {
@@ -254,11 +265,9 @@ export class ReminderSchedulerService {
         },
       );
 
-      // Notification succeeded — now persist the delivery record for dedup.
-      // `createMany({ skipDuplicates: true })` + the (userId, reminderId,
-      // scheduledFor) unique constraint make the record write atomic: if an
-      // overlapping tick also passed the findFirst fast path, its insert is
-      // silently skipped instead of throwing P2002.
+      // c. 站内通知成功——写入 in_app 审计行（通知中心记录）。唯一约束
+      //    (userId, reminderId, scheduledFor, channel) 保证重叠 tick 的
+      //    重复 insert 被原子跳过（skipDuplicates），不会抛 P2002。
       await this.prisma.userReminderDelivery.createMany({
         data: {
           userId: reminder.userId,
@@ -275,18 +284,93 @@ export class ReminderSchedulerService {
         `Dispatched reminder ${reminder.id} to user ${reminder.userId}`,
       );
 
-      // Push notification (best-effort — no-op when not configured)
-      await this.pushDeliveryService.sendToUser(reminder.userId, {
-        title: label,
-        body: `该吃药了：${label}`,
-        data: { reminderId: reminder.id, action: 'medicine_reminder' },
+      // d. 本地已送达（客户端幂等回写 local 行）→ 跳过 push，保证
+      //    「一个事件最多一次打扰」。
+      const localDelivery = await this.prisma.userReminderDelivery.findFirst({
+        where: {
+          reminderId: reminder.id,
+          scheduledFor,
+          channel: DELIVERY_CHANNEL_LOCAL,
+        },
+        select: { id: true },
       });
+
+      if (localDelivery != null) {
+        return;
+      }
+
+      // e. 本地调度能力门控：active（本地可达）/ disabled（用户关闭）时
+      //    完全不发 push；仅 unconfirmed（能力未知，首次下发前）或
+      //    unavailable（本地不可达）时允许 JPush 后台回退。
+      const capability = await this.readLocalCapability(reminder.userId);
+      if (capability === 'active' || capability === 'disabled') {
+        return;
+      }
+
+      // f. JPush 后台回退（best-effort——未配置时静默失败），按结果落 push
+      //    审计行；push 失败不重试（见 ADR-0013）。
+      const result = await this.pushDeliveryService.sendToUser(
+        reminder.userId,
+        {
+          title: label,
+          body: `该吃药了：${label}`,
+          data: { reminderId: reminder.id, action: 'medicine_reminder' },
+        },
+      );
+
+      if (result.sent) {
+        await this.prisma.userReminderDelivery.createMany({
+          data: {
+            userId: reminder.userId,
+            reminderId: reminder.id,
+            channel: DELIVERY_CHANNEL_PUSH,
+            status: DELIVERY_STATUS_DELIVERED,
+            scheduledFor,
+            deliveredAt: now(),
+          },
+          skipDuplicates: true,
+        });
+      } else {
+        await this.prisma.userReminderDelivery.createMany({
+          data: {
+            userId: reminder.userId,
+            reminderId: reminder.id,
+            channel: DELIVERY_CHANNEL_PUSH,
+            status: DELIVERY_STATUS_FAILED,
+            scheduledFor,
+            errorMessage: result.errorMessage ?? null,
+          },
+          skipDuplicates: true,
+        });
+      }
     } catch (error) {
       this.logger.error(
         `Failed to dispatch reminder ${reminder.id}: ${this.formatError(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
     }
+  }
+
+  // ─── Local capability ──────────────────────────────────────────────
+
+  /**
+   * 读取用户本地调度能力缓存（`reminder:local-capability:{userId}`）。
+   * 缓存缺失视为 `unconfirmed`（能力未知，允许 JPush 回退）。
+   */
+  private async readLocalCapability(
+    userId: string,
+  ): Promise<ResolvedLocalCapability> {
+    const cached = await this.cache.get<string>(
+      localCapabilityCacheKey(userId),
+    );
+    if (
+      cached === 'active' ||
+      cached === 'unavailable' ||
+      cached === 'disabled'
+    ) {
+      return cached;
+    }
+    return 'unconfirmed';
   }
 
   // ─── Timezone helpers ────────────────────────────────────────────────
@@ -312,26 +396,9 @@ export class ReminderSchedulerService {
     const minute = Number.parseInt(this.readPart(parts, 'minute', '0'), 10);
     const weekdayStr = this.readPart(parts, 'weekday', 'Sun');
     const weekday = WEEKDAY_MAP[weekdayStr] ?? 0;
-    const dateStr = this.formatLocalDate(date, timezone);
+    const dateStr = formatLocalDate(date, timezone);
 
     return { hour, minute, weekday, dateStr };
-  }
-
-  /**
-   * Returns the local date as a YYYY-MM-DD string in the given timezone.
-   * Uses the `en-CA` locale which natively produces ISO-style dates.
-   */
-  private formatLocalDate(date: Date, timezone: string | null): string {
-    const tz = timezone || DEFAULT_TIMEZONE;
-
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).formatToParts(date);
-
-    return `${this.readPart(parts, 'year', '2026')}-${this.readPart(parts, 'month', '01')}-${this.readPart(parts, 'day', '01')}`;
   }
 
   // ─── Utils ──────────────────────────────────────────────────────────

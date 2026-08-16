@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-06
+updated: 2026-08-16
 ---
 
 # Code Quality / Maintainability
 
-Last updated: 2026-08-06
+Last updated: 2026-08-16
 
 - Barrel files (`index.ts`) must never export `.spec.ts` files — spec exports cause `nest build` to
   compile test files into `dist/`, and runtime barrel loading triggers `describe`/`it` calls that
@@ -168,6 +168,9 @@ Last updated: 2026-08-06
     `log.debug` 跳过，provider 失败记录 warn 且不阻塞站内通知
   - `ReminderSchedulerService` 和 `EscalationService` 均集成双通道投递（站内 + 推送），
     推送失败不影响站内通知已创建的记录
+    （2026-08-16 起 `ReminderSchedulerService` 升级为三通道审计——in_app 始终写入、
+    local 由客户端回执幂等回写、push 仅在本地能力 unconfirmed/unavailable 时后台回退，
+    见 ADR-0013；`EscalationService` 仍为站内 + 推送双通道）
 - `AuthNotificationService` 通知类型语义已修正：`notifyOAuthLogin` → `oauth_login`，
   `notifyIdentityLinked` → `identity_linked`（原均误用 `password_changed`）
 - `DataRetentionService`（`@Cron('0 3 * * *')`）每日清理过期会话、已读通知（30天）、
@@ -246,3 +249,19 @@ Last updated: 2026-08-06
   - `classify.ts` 0% 为缓存误报已确认排除：清 `node_modules/.vite` 后单文件实测 ≥90%。
   - 全量基线：`pnpm test:ci` 274 文件 2769 用例零失败；`pnpm test:coverage` 整体 lines 90.25%
     （阈值 lines 80 / functions 78 / statements 79 / branches 68）。
+
+- 2026-08-16 提醒投递三通道落库（F-4，ADR-0013）：
+  - `UserReminderDelivery` 唯一约束 `(userId, reminderId, scheduledFor)` →
+    `(userId, reminderId, scheduledFor, channel)`，同一提醒事件三通道各一行审计。
+  - 调度器三通道流程：in_app 始终写入 → local 行已存在则跳过 push → 本地能力
+    （`reminder:local-capability:{userId}` 缓存，TTL 14 天）active/disabled 不发 push、
+    unconfirmed/unavailable 才 JPush 回退 → push 结果按 delivered/failed 落行。
+  - `PushDeliveryService.sendToUser` 返回 `{ sent, errorMessage? }`（永不 reject，
+    未配置返回 `{ sent: false }`），调度器据此落 push 审计行。
+  - 新增投递写入接口：`POST /api/v1/user/reminder-deliveries/receipts`（本地回执，
+    墙钟时间按 profile 时区换算 UTC 截断分钟，幂等 upsert）与
+    `PUT /api/v1/user/reminder-deliveries/local-capability`（能力上报）。
+  - 时区换算抽为 `services/delivery-moment.ts`（`DEFAULT_TIMEZONE`、
+    `formatLocalDate`、`wallClockToScheduledFor`），scheduler 与回执服务共用；
+    新增 `delivery-moment.spec.ts`、`delivery-receipts.service.spec.ts`，扩展
+    scheduler / push-delivery / controller spec 与 e2e 覆盖。

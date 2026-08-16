@@ -5,6 +5,7 @@ import { MedicineRemindersOwnershipService } from './services/ownership.service'
 import { MedicineRemindersMapperService } from './services/mapper.service';
 import { MedicineRemindersService } from './services/reminders.service';
 import { ReminderSchedulerService } from './services/scheduler.service';
+import { DeliveryReceiptsService } from './services/delivery-receipts.service';
 import { ReminderDeliveriesController } from './reminder-deliveries.controller';
 import {
   MedicineReminderRepositoryPort,
@@ -29,6 +30,7 @@ import {
     MedicineRemindersMapperService,
     MedicineRemindersService,
     ReminderSchedulerService,
+    DeliveryReceiptsService,
   ],
   exports: [
     MedicineRemindersService,

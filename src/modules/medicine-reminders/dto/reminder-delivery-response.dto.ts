@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { LocalCapabilityState } from '../constants/delivery.constants';
 
-class ReminderDeliveryItemDto {
+export class ReminderDeliveryItemDto {
   @ApiProperty({ description: 'Delivery log id.' })
   id!: string;
 
@@ -49,4 +50,42 @@ export class ReminderDeliveryListResponseDto {
 
   @ApiProperty({ type: () => ReminderDeliveryListDataDto })
   data!: ReminderDeliveryListDataDto;
+}
+
+class ReminderDeliveryReceiptDataDto {
+  @ApiProperty({ type: () => ReminderDeliveryItemDto })
+  item!: ReminderDeliveryItemDto;
+}
+
+/** 本地通知回执响应信封：`{ code, message, data: { item } }`。 */
+export class ReminderDeliveryReceiptResponseDto {
+  @ApiProperty({ example: 0 })
+  code!: number;
+
+  @ApiProperty({ example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => ReminderDeliveryReceiptDataDto })
+  data!: ReminderDeliveryReceiptDataDto;
+}
+
+class LocalCapabilityDataDto {
+  @ApiProperty({
+    description: 'Persisted local scheduling capability state.',
+    enum: ['active', 'unavailable', 'disabled'],
+    example: 'active',
+  })
+  state!: LocalCapabilityState;
+}
+
+/** 本地调度能力上报响应信封：`{ code, message, data: { state } }`。 */
+export class LocalCapabilityResponseDto {
+  @ApiProperty({ example: 0 })
+  code!: number;
+
+  @ApiProperty({ example: '' })
+  message!: string;
+
+  @ApiProperty({ type: () => LocalCapabilityDataDto })
+  data!: LocalCapabilityDataDto;
 }

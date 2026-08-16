@@ -22,35 +22,43 @@ describe('PushDeliveryService', () => {
     service = new PushDeliveryService(provider);
   });
 
-  it('skips delivery when JPush is not configured', async () => {
+  it('returns { sent: false } without error when JPush is not configured', async () => {
     provider = buildProvider({ isConfigured: false });
     service = new PushDeliveryService(provider);
 
-    await service.sendToUser('user-1', {
+    const result = await service.sendToUser('user-1', {
       title: 'Test',
       body: 'Body',
     });
 
     expect(provider.send).not.toHaveBeenCalled();
+    expect(result).toEqual({ sent: false });
   });
 
-  it('sends the user id as the JPush alias', async () => {
+  it('sends the user id as the JPush alias and reports success', async () => {
     const payload = {
       title: 'Reminder',
       body: 'Take medicine',
       data: { reminderId: 'r1' },
     };
 
-    await service.sendToUser('user-1', payload);
+    const result = await service.sendToUser('user-1', payload);
 
     expect(provider.send).toHaveBeenCalledWith(['user-1'], payload);
+    expect(result).toEqual({ sent: true });
   });
 
-  it('swallows provider errors and does not throw', async () => {
+  it('swallows provider errors and reports failure with the error message', async () => {
     provider.send.mockRejectedValue(new Error('JPush unavailable'));
 
-    await expect(
-      service.sendToUser('user-1', { title: 'Test', body: 'Body' }),
-    ).resolves.toBeUndefined();
+    const result = await service.sendToUser('user-1', {
+      title: 'Test',
+      body: 'Body',
+    });
+
+    expect(result).toEqual({
+      sent: false,
+      errorMessage: 'JPush unavailable',
+    });
   });
 });

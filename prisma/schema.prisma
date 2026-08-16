@@ -370,7 +370,9 @@ model UserReminderDelivery {
   user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   reminder     UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
 
-  @@unique([userId, reminderId, scheduledFor])
+  // 一个提醒事件（userId+reminderId+scheduledFor）允许 in_app/local/push 各一行，
+  // 三通道各自落审计行；同一通道同一事件最多一行（见 ADR-0013）。
+  @@unique([userId, reminderId, scheduledFor, channel])
   @@index([userId, scheduledFor])
   @@index([userId, reminderId])
   @@index([userId, channel, status])

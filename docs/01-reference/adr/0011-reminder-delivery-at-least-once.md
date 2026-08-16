@@ -4,6 +4,12 @@
 - **Date**: 2026-08-03
 - **Deciders**: LuoMuLoyal
 
+> **部分修订**：本 ADR 的 `(userId, reminderId, scheduledFor)` 唯一约束部分
+> 已被 [ADR-0013](0013-reminder-delivery-three-channel.md) 修订——唯一键
+> 加入 `channel` 维度（`(userId, reminderId, scheduledFor, channel)`），
+> 同一提醒事件允许 in_app/local/push 各一行。in_app 通道的
+> at-least-once 语义与「先发通知、后写记录」顺序不变。
+
 ## Context
 
 `ReminderSchedulerService` 每分钟经 BullMQ Repeatable Job 扫描到期用药提醒并投递

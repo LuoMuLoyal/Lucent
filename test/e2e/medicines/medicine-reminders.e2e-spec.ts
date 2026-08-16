@@ -434,4 +434,179 @@ describe('Medicine Reminders API (e2e)', () => {
       expect(body.data!.items).toHaveLength(2);
     });
   });
+
+  // ── Reminder delivery write endpoints ───────────────────────────
+
+  describe('reminder delivery write endpoints', () => {
+    it('should require auth for receipts and capability endpoints', async () => {
+      await request(app.getHttpServer())
+        .post(`${DELIVERIES_PATH}/receipts`)
+        .send({
+          reminderId: 'x',
+          scheduledDate: '2026-07-10',
+          scheduledTime: '08:00',
+        })
+        .expect(401);
+      await request(app.getHttpServer())
+        .put(`${DELIVERIES_PATH}/local-capability`)
+        .send({ state: 'active' })
+        .expect(401);
+    });
+
+    it('should record a local delivery receipt idempotently', async () => {
+      const { user, token } = await createUserWithToken();
+      const medicine = await createCurrentMedicine(user.id);
+      const reminder = await ctx.prisma.userMedicineReminder.create({
+        data: {
+          userId: user.id,
+          currentMedicineId: medicine.id,
+          label: 'Morning dose',
+          scheduledHour: 8,
+          scheduledMinute: 0,
+        },
+      });
+
+      const body = {
+        reminderId: reminder.id,
+        scheduledDate: '2026-07-10',
+        scheduledTime: '08:00',
+      };
+
+      // Asia/Shanghai 08:00 → UTC 2026-07-10T00:00:00.000Z
+      const res = await request(app.getHttpServer())
+        .post(`${DELIVERIES_PATH}/receipts`)
+        .set(AUTH_HEADER, bearer(token))
+        .send(body)
+        .expect(201);
+
+      const created = res.body as ApiEnvelope<{
+        item: {
+          id: string;
+          channel: string;
+          status: string;
+          scheduledFor: string;
+        };
+      }>;
+      expect(created.code).toBe(ResultCode.SUCCESS);
+      expect(created.data!.item.channel).toBe('local');
+      expect(created.data!.item.status).toBe('delivered');
+      expect(created.data!.item.scheduledFor).toBe('2026-07-10T00:00:00.000Z');
+
+      // 幂等：重复上报返回同一行，不新增
+      const again = await request(app.getHttpServer())
+        .post(`${DELIVERIES_PATH}/receipts`)
+        .set(AUTH_HEADER, bearer(token))
+        .send(body)
+        .expect(201);
+
+      const second = again.body as ApiEnvelope<{ item: { id: string } }>;
+      expect(second.data!.item.id).toBe(created.data!.item.id);
+
+      const rows = await ctx.prisma.userReminderDelivery.findMany({
+        where: { userId: user.id, channel: 'local' },
+      });
+      expect(rows).toHaveLength(1);
+    });
+
+    it('should respect the profile timezone when recording a receipt', async () => {
+      const { user, token } = await createUserWithToken();
+      await ctx.prisma.userProfile.create({
+        data: { userId: user.id, timezone: 'America/New_York' },
+      });
+      const medicine = await createCurrentMedicine(user.id);
+      const reminder = await ctx.prisma.userMedicineReminder.create({
+        data: {
+          userId: user.id,
+          currentMedicineId: medicine.id,
+          scheduledHour: 8,
+          scheduledMinute: 0,
+        },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post(`${DELIVERIES_PATH}/receipts`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          reminderId: reminder.id,
+          scheduledDate: '2026-07-10',
+          scheduledTime: '08:00',
+        })
+        .expect(201);
+
+      const body = res.body as ApiEnvelope<{ item: { scheduledFor: string } }>;
+      // America/New_York（7月 UTC-4）08:00 → UTC 12:00
+      expect(body.data!.item.scheduledFor).toBe('2026-07-10T12:00:00.000Z');
+    });
+
+    it('should return 404 when the receipt targets a foreign reminder', async () => {
+      const { token } = await createUserWithToken();
+      const { user: otherUser } = await createUserWithToken();
+      const medicine = await createCurrentMedicine(otherUser.id);
+      const foreignReminder = await ctx.prisma.userMedicineReminder.create({
+        data: {
+          userId: otherUser.id,
+          currentMedicineId: medicine.id,
+          scheduledHour: 8,
+          scheduledMinute: 0,
+        },
+      });
+
+      await request(app.getHttpServer())
+        .post(`${DELIVERIES_PATH}/receipts`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          reminderId: foreignReminder.id,
+          scheduledDate: '2026-07-10',
+          scheduledTime: '08:00',
+        })
+        .expect(404);
+    });
+
+    it('should reject a receipt with an invalid scheduledTime', async () => {
+      const { user, token } = await createUserWithToken();
+      const medicine = await createCurrentMedicine(user.id);
+      const reminder = await ctx.prisma.userMedicineReminder.create({
+        data: {
+          userId: user.id,
+          currentMedicineId: medicine.id,
+          scheduledHour: 8,
+          scheduledMinute: 0,
+        },
+      });
+
+      await request(app.getHttpServer())
+        .post(`${DELIVERIES_PATH}/receipts`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({
+          reminderId: reminder.id,
+          scheduledDate: '2026-07-10',
+          scheduledTime: '25:00',
+        })
+        .expect(400);
+    });
+
+    it('should report and persist local capability', async () => {
+      const { token } = await createUserWithToken();
+
+      const res = await request(app.getHttpServer())
+        .put(`${DELIVERIES_PATH}/local-capability`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({ state: 'active' })
+        .expect(200);
+
+      const body = res.body as ApiEnvelope<{ state: string }>;
+      expect(body.code).toBe(ResultCode.SUCCESS);
+      expect(body.data!.state).toBe('active');
+    });
+
+    it('should reject an invalid local capability state', async () => {
+      const { token } = await createUserWithToken();
+
+      await request(app.getHttpServer())
+        .put(`${DELIVERIES_PATH}/local-capability`)
+        .set(AUTH_HEADER, bearer(token))
+        .send({ state: 'maybe' })
+        .expect(400);
+    });
+  });
 });

@@ -294,6 +294,76 @@
         "tags": ["Reminder Deliveries"]
       }
     },
+    "/api/v1/user/reminder-deliveries/receipts": {
+      "post": {
+        "operationId": "ReminderDeliveriesController_recordReceipt_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReminderDeliveryReceiptDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderDeliveryReceiptResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Record a local notification delivery receipt (idempotent)",
+        "tags": ["Reminder Deliveries"]
+      }
+    },
+    "/api/v1/user/reminder-deliveries/local-capability": {
+      "put": {
+        "operationId": "ReminderDeliveriesController_reportLocalCapability_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocalCapabilityStateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalCapabilityResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Report client local scheduling capability",
+        "tags": ["Reminder Deliveries"]
+      }
+    },
     "/api/v1/user/notifications": {
       "post": {
         "operationId": "NotificationsController_create_v1",
@@ -5367,6 +5437,93 @@
           },
           "data": {
             "$ref": "#/components/schemas/ReminderDeliveryListDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "ReminderDeliveryReceiptDto": {
+        "type": "object",
+        "properties": {
+          "reminderId": {
+            "type": "string",
+            "description": "Linked medicine reminder id."
+          },
+          "scheduledDate": {
+            "type": "string",
+            "description": "Local scheduled date in YYYY-MM-DD format.",
+            "example": "2026-07-20"
+          },
+          "scheduledTime": {
+            "type": "string",
+            "description": "Local scheduled time in HH:mm format (24h).",
+            "example": "08:30"
+          }
+        },
+        "required": ["reminderId", "scheduledDate", "scheduledTime"]
+      },
+      "ReminderDeliveryReceiptDataDto": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "$ref": "#/components/schemas/ReminderDeliveryItemDto"
+          }
+        },
+        "required": ["item"]
+      },
+      "ReminderDeliveryReceiptResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReminderDeliveryReceiptDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "LocalCapabilityStateDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "description": "Local scheduling capability state.",
+            "enum": ["active", "unavailable", "disabled"],
+            "example": "active"
+          }
+        },
+        "required": ["state"]
+      },
+      "LocalCapabilityDataDto": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "description": "Persisted local scheduling capability state.",
+            "enum": ["active", "unavailable", "disabled"],
+            "example": "active"
+          }
+        },
+        "required": ["state"]
+      },
+      "LocalCapabilityResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/LocalCapabilityDataDto"
           }
         },
         "required": ["code", "message", "data"]

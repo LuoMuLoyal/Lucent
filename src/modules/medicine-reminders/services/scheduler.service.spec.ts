@@ -2,6 +2,7 @@ import { ReminderSchedulerService } from './scheduler.service';
 import type { NotificationsService } from '../../notifications';
 import type { PushDeliveryService } from '../../notifications';
 import type { PrismaService } from '../../../prisma';
+import type { Cache } from 'cache-manager';
 
 // 2026-07-20T00:30:00.000Z = 08:30 Monday in Asia/Shanghai
 const TEST_TIME = new Date('2026-07-20T00:30:00.000Z');
@@ -50,7 +51,24 @@ function buildNotifications() {
 
 function buildPushDelivery() {
   return {
-    sendToUser: vi.fn().mockResolvedValue(undefined),
+    sendToUser: vi.fn().mockResolvedValue({ sent: false }),
+  };
+}
+
+/** 简易内存缓存 fake：缺失视为未命中（undefined → 'unconfirmed'）。 */
+function buildCache() {
+  const store = new Map<string, string>();
+  return {
+    store,
+    get: vi.fn((key: string) => Promise.resolve(store.get(key))),
+    set: vi.fn((key: string, value: string, _ttl?: number) => {
+      store.set(key, value);
+      return Promise.resolve(value);
+    }),
+    del: vi.fn((key: string) => {
+      store.delete(key);
+      return Promise.resolve();
+    }),
   };
 }
 
@@ -59,6 +77,7 @@ describe('ReminderSchedulerService', () => {
   let prisma: ReturnType<typeof buildPrisma>;
   let notifications: ReturnType<typeof buildNotifications>;
   let pushDelivery: ReturnType<typeof buildPushDelivery>;
+  let cache: ReturnType<typeof buildCache>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -67,17 +86,26 @@ describe('ReminderSchedulerService', () => {
     prisma = buildPrisma();
     notifications = buildNotifications();
     pushDelivery = buildPushDelivery();
+    cache = buildCache();
 
     service = new ReminderSchedulerService(
       prisma as unknown as PrismaService,
       notifications as unknown as NotificationsService,
       pushDelivery as unknown as PushDeliveryService,
+      cache as unknown as Cache,
     );
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
+
+  /** 收集写入的 push 审计行（channel='push' 的 createMany 调用）。 */
+  function pushWrites(): Array<{ data: Record<string, unknown> }> {
+    return prisma.userReminderDelivery.createMany.mock.calls
+      .map((call) => call[0] as { data: Record<string, unknown> })
+      .filter((args) => args.data['channel'] === 'push');
+  }
 
   // ── No-op cases ──────────────────────────────────────────────────
 
@@ -144,23 +172,24 @@ describe('ReminderSchedulerService', () => {
 
   // ── Happy path ───────────────────────────────────────────────────
 
-  it('creates a delivery record and sends a notification for a due reminder', async () => {
+  it('creates an in_app delivery record and sends a notification for a due reminder', async () => {
     prisma.userMedicineReminder.findMany.mockResolvedValue([
       buildReminderRow({ label: 'Breakfast dose' }),
     ]);
 
     await service.dispatchDueReminders();
 
-    // Delivery dedup check
+    // 站内去重检查按 in_app 通道过滤
     expect(prisma.userReminderDelivery.findFirst).toHaveBeenCalledWith({
       where: {
         reminderId: 'reminder-1',
         scheduledFor: new Date('2026-07-20T00:30:00.000Z'),
+        channel: 'in_app',
       },
       select: { id: true },
     });
 
-    // Delivery record created
+    // in_app 审计行写入
     expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: 'user-1',
@@ -172,7 +201,7 @@ describe('ReminderSchedulerService', () => {
       skipDuplicates: true,
     });
 
-    // Notification sent
+    // 通知发送
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({
@@ -205,7 +234,7 @@ describe('ReminderSchedulerService', () => {
 
   // ── Deduplication ───────────────────────────────────────────────
 
-  it('skips dispatch when a delivery record already exists', async () => {
+  it('skips dispatch when an in_app delivery record already exists', async () => {
     prisma.userMedicineReminder.findMany.mockResolvedValue([
       buildReminderRow(),
     ]);
@@ -217,6 +246,7 @@ describe('ReminderSchedulerService', () => {
 
     expect(prisma.userReminderDelivery.createMany).not.toHaveBeenCalled();
     expect(notifications.createOrReplaceScoped).not.toHaveBeenCalled();
+    expect(pushDelivery.sendToUser).not.toHaveBeenCalled();
   });
 
   // ── Multiple reminders ──────────────────────────────────────────
@@ -229,7 +259,8 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
-    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(2);
+    // 每个提醒 = 1 条 in_app + 1 条 push（能力 unconfirmed 且未配置→failed）
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(4);
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledTimes(2);
   });
 
@@ -249,7 +280,7 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
-    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(2);
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledTimes(1);
   });
 
@@ -279,8 +310,8 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
-    // Only the second reminder's delivery record should be created
-    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(1);
+    // 只有第二个提醒写记录：1 条 in_app + 1 条 push
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(2);
     expect(notifications.createOrReplaceScoped).toHaveBeenCalledTimes(2);
   });
 
@@ -293,7 +324,7 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
-    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(2);
   });
 
   it('fires when daysOfWeek includes the current weekday', async () => {
@@ -304,6 +335,148 @@ describe('ReminderSchedulerService', () => {
 
     await service.dispatchDueReminders();
 
-    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledTimes(2);
+  });
+
+  // ── Local capability gating ─────────────────────────────────────
+
+  it('skips push entirely when local capability is active', async () => {
+    cache.store.set('reminder:local-capability:user-1', 'active');
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow(),
+    ]);
+
+    await service.dispatchDueReminders();
+
+    expect(cache.get).toHaveBeenCalledWith('reminder:local-capability:user-1');
+    expect(pushDelivery.sendToUser).not.toHaveBeenCalled();
+    expect(pushWrites()).toHaveLength(0);
+  });
+
+  it('skips push entirely when local capability is disabled', async () => {
+    cache.store.set('reminder:local-capability:user-1', 'disabled');
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow(),
+    ]);
+
+    await service.dispatchDueReminders();
+
+    expect(pushDelivery.sendToUser).not.toHaveBeenCalled();
+    expect(pushWrites()).toHaveLength(0);
+  });
+
+  it('sends push when local capability is unconfirmed (cache miss)', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow(),
+    ]);
+    pushDelivery.sendToUser.mockResolvedValue({ sent: true });
+
+    await service.dispatchDueReminders();
+
+    expect(pushDelivery.sendToUser).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        title: 'Morning dose',
+        body: '该吃药了：Morning dose',
+        data: { reminderId: 'reminder-1', action: 'medicine_reminder' },
+      }),
+    );
+  });
+
+  it('sends push when local capability is unavailable', async () => {
+    cache.store.set('reminder:local-capability:user-1', 'unavailable');
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow(),
+    ]);
+    pushDelivery.sendToUser.mockResolvedValue({ sent: true });
+
+    await service.dispatchDueReminders();
+
+    expect(pushDelivery.sendToUser).toHaveBeenCalledTimes(1);
+  });
+
+  // ── Local delivery row skips push ────────────────────────────────
+
+  it('skips push when a local delivery row already exists', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow(),
+    ]);
+    // 第一次 findFirst（in_app 去重）→ null；第二次（local 行）→ 已存在
+    prisma.userReminderDelivery.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'local-delivery' });
+
+    await service.dispatchDueReminders();
+
+    expect(pushDelivery.sendToUser).not.toHaveBeenCalled();
+    expect(pushWrites()).toHaveLength(0);
+  });
+
+  // ── Push result rows ─────────────────────────────────────────────
+
+  it('writes a delivered push row when push succeeds', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow(),
+    ]);
+    pushDelivery.sendToUser.mockResolvedValue({ sent: true });
+
+    await service.dispatchDueReminders();
+
+    expect(pushWrites()).toHaveLength(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-1',
+        reminderId: 'reminder-1',
+        channel: 'push',
+        status: 'delivered',
+        scheduledFor: new Date('2026-07-20T00:30:00.000Z'),
+        deliveredAt: expect.any(Date),
+      }),
+      skipDuplicates: true,
+    });
+  });
+
+  it('writes a failed push row with error message when push fails', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow(),
+    ]);
+    pushDelivery.sendToUser.mockResolvedValue({
+      sent: false,
+      errorMessage: 'JPush unavailable',
+    });
+
+    await service.dispatchDueReminders();
+
+    expect(pushWrites()).toHaveLength(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-1',
+        reminderId: 'reminder-1',
+        channel: 'push',
+        status: 'failed',
+        scheduledFor: new Date('2026-07-20T00:30:00.000Z'),
+        errorMessage: 'JPush unavailable',
+      }),
+      skipDuplicates: true,
+    });
+  });
+
+  it('writes a failed push row without error message when push is not configured', async () => {
+    prisma.userMedicineReminder.findMany.mockResolvedValue([
+      buildReminderRow(),
+    ]);
+    // 默认 mock 已返回 { sent: false }（未配置语义）
+
+    await service.dispatchDueReminders();
+
+    expect(pushWrites()).toHaveLength(1);
+    expect(prisma.userReminderDelivery.createMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        channel: 'push',
+        status: 'failed',
+        errorMessage: null,
+      }),
+      skipDuplicates: true,
+    });
   });
 });

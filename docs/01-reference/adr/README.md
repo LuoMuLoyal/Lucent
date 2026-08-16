@@ -91,3 +91,15 @@ What becomes easier or harder as a result of this decision?
   - Title: 跨模块数据访问治理（表归属 + 读/写规则 + 提供方 reader port）
   - Status: accepted
   - Date: 2026-07-17
+- [0010](0010-otel-tracing.md)
+  - Title: Full-Stack Tracing — OpenTelemetry + Jaeger, Retire requestId
+  - Status: accepted
+  - Date: 2026-08-01
+- [0011](0011-reminder-delivery-at-least-once.md)
+  - Title: Reminder 投递去重的至少一次语义（唯一约束部分已被 0013 修订）
+  - Status: accepted
+  - Date: 2026-08-03
+- [0013](0013-reminder-delivery-three-channel.md)
+  - Title: 提醒投递记录三通道落库（in_app / local / push）
+  - Status: accepted
+  - Date: 2026-08-16
