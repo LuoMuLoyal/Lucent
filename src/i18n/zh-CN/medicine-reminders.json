@@ -6,5 +6,6 @@
   "end_before_start": "结束日期不可早于开始日期",
   "reminder_fallback_label": "用药提醒",
   "reminder_due_content": "该吃药了：{label}",
-  "reminder_group_empty": "提醒组必须至少包含一个时段"
+  "reminder_group_empty": "提醒组必须至少包含一个时段",
+  "reminder_group_duplicate_slot": "提醒组内时段 id 重复"
 }

@@ -98,13 +98,19 @@ export class MedicineRemindersService {
 
     const createData = this.mapperService.toGroupUpsertData(userId, dto);
     const updateData = this.mapperService.toGroupUpdateData(dto);
-    const incomingIds = Array.from(
-      new Set(
-        dto.slots
-          .map((slot) => slot.id)
-          .filter((id): id is string => id != null),
-      ),
-    );
+
+    // Reject duplicate slot ids up front: deduping below would otherwise turn
+    // duplicates into silent last-write-wins inside the transaction.
+    const slotIds = dto.slots
+      .map((slot) => slot.id)
+      .filter((id): id is string => id != null);
+    if (new Set(slotIds).size !== slotIds.length) {
+      badRequest(
+        this.i18n.t('medicine-reminders.reminder_group_duplicate_slot'),
+      );
+    }
+
+    const incomingIds = Array.from(new Set(slotIds));
 
     const items = await this.repository.transaction(async (tx) => {
       // Slots carrying an id must belong to this user + medicine and not be

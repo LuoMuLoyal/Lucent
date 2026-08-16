@@ -6,5 +6,6 @@
   "end_before_start": "End date must not be before start date",
   "reminder_fallback_label": "Medication reminder",
   "reminder_due_content": "Time to take your medicine: {label}",
-  "reminder_group_empty": "Reminder group must contain at least one slot."
+  "reminder_group_empty": "Reminder group must contain at least one slot.",
+  "reminder_group_duplicate_slot": "Reminder group contains duplicate slot ids."
 }

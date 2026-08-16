@@ -21,15 +21,6 @@ the relevant `Lucent/docs/00-current/*.md` state file, and record the completion
 
 ## 后续可做
 
-### F-6 提醒组整组 upsert 审查 P2 遗留（2026-08-16，不阻塞）
-
-- P2-1 `src/modules/medicine-reminders/services/reminders.service.spec.ts`「rollback」用例的 mock 未执行事务回调，只验证失败不发事件、未真正验证回滚语义（回滚由 Prisma `$transaction` 保证，repository spec 已验委托）。验收：mock 的 transaction 实现执行回调并断言 tx 内调用，或加注释说明覆盖边界。
-- P2-3 同槽 id 重复未拒绝，last-write-wins。验收：如需拒绝可在 service 加重复 id 校验（badRequest）。
-
-### F-8 提醒文案 i18n 审查 P2 遗留（2026-08-16，不阻塞）
-
-- P2-4 `docs-openapi` 规则对 `docs/01-reference/contracts/**` 的 docs_any_of 仅指向 toolchain.md，编辑 reminder-contract.md 会持续打印非阻塞提示。验收：评估 doc-map `docs-openapi` 规则 any_of 是否应包含 reminder-contract 相关文档，或接受提示。
-
 ### B2：环境数据接入真实天气 API（P3）
 
 静态环境数据已标注 `dataSource: 'static'`（`src/modules/environment/config/reference.ts`）。

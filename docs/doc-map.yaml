@@ -240,4 +240,8 @@ rules:
     docs_required:
       - docs/02-logs/migration-log/*.md
     docs_any_of:
+      # Editing a contract doc itself satisfies the rule (`*` matches the
+      # single-level files directly under contracts/); toolchain.md remains an
+      # alternative for openapi.json-only edits.
       - docs/01-reference/toolchain.md
+      - docs/01-reference/contracts/*.md

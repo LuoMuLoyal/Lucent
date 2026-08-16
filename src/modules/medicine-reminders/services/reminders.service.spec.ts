@@ -458,6 +458,30 @@ describe('MedicineRemindersService', () => {
       expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
     });
 
+    it('should reject duplicate slot ids with a 400', async () => {
+      repository.findCurrentMedicine.mockResolvedValue({
+        id: 'medicine-1',
+        userId: 'user-1',
+      });
+
+      const error = await service
+        .upsertGroup('user-1', {
+          currentMedicineId: 'medicine-1',
+          slots: [
+            { id: 'slot-1', scheduledHour: 8, scheduledMinute: 0 },
+            { id: 'slot-1', scheduledHour: 20, scheduledMinute: 0 },
+          ],
+        })
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(BadRequestException);
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        message: 'medicine-reminders.reminder_group_duplicate_slot',
+      });
+      expect(repository.transaction).not.toHaveBeenCalled();
+      expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
+    });
+
     it('should emit REMINDER_CHANGED exactly once after commit', async () => {
       repository.findCurrentMedicine.mockResolvedValue({
         id: 'medicine-1',
@@ -493,7 +517,17 @@ describe('MedicineRemindersService', () => {
         userId: 'user-1',
       });
 
-      repository.transaction.mockRejectedValue(new Error('boom'));
+      // Atomic rollback is guaranteed by Prisma `$transaction`, delegated by the
+      // repository (verified in reminder.repository.spec.ts). This test focuses
+      // on the service not swallowing the error and not emitting the event: run
+      // the transaction callback against the tx client so its writes execute,
+      // then reject the transaction to simulate a post-callback failure.
+      const tx = transactionClient();
+      tx.userMedicineReminder.findMany.mockResolvedValue([]);
+      repository.transaction.mockImplementation(async (fn) => {
+        await (fn as (txArg: unknown) => Promise<unknown>)(tx);
+        throw new Error('boom');
+      });
 
       await expect(
         service.upsertGroup('user-1', {
@@ -502,6 +536,9 @@ describe('MedicineRemindersService', () => {
         }),
       ).rejects.toThrow('boom');
 
+      expect(repository.transaction).toHaveBeenCalledTimes(1);
+      expect(tx.userMedicineReminder.updateMany).toHaveBeenCalled();
+      expect(tx.userMedicineReminder.create).toHaveBeenCalled();
       expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
     });
   });
