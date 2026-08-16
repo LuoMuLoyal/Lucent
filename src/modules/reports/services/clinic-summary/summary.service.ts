@@ -233,7 +233,7 @@ export class ClinicSummaryService {
 
     return {
       shareUrl: `${baseUrl}/api/v1/user/reports/clinic-summary/shared/${token}`,
-      expiresAt: new Date(Date.now() + SHARE_TTL_MS).toISOString(),
+      expiresAt: new Date(now().getTime() + SHARE_TTL_MS).toISOString(),
     };
   }
 
@@ -251,7 +251,7 @@ export class ClinicSummaryService {
       where: { tokenHash: createHash('sha256').update(token).digest('hex') },
     });
     if (record == null) return cached;
-    const nowDate = new Date();
+    const nowDate = now();
     if (
       record.revokedAt != null ||
       record.expiresAt.getTime() <= nowDate.getTime()

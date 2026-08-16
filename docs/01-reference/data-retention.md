@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-15
+updated: 2026-08-16
 ---
 
 # Data Retention — 数据保留与账户删除语义
@@ -59,3 +59,5 @@ updated: 2026-08-15
   随账户硬删除级联清除。
 - 公开读取每次原子记录 `accessCount`/`lastAccessedAt`（首次记 `firstAccessedAt`）；
   无逐次访问明细、无访问者身份信息。
+- 分享过期判定与生命周期时间戳统一取自公共时间源 `now()`（含 legacy cache-only 分享路径
+  `ClinicSummaryService.createShareLink`/`getSharedSummary`），与 `ShareService` 一致。

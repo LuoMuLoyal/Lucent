@@ -17,7 +17,7 @@ import {
 } from './summary-view';
 import type {
   ClinicSummaryDto,
-  ClinicSummaryShareResponseDto,
+  ClinicSummaryShareDataDto,
 } from '../../dto/clinic-summary-response.dto';
 
 /**
@@ -51,7 +51,7 @@ interface SummaryServiceSurface {
     userId: string,
     locale?: string,
     options?: ClinicSummaryOptions,
-  ): Promise<ClinicSummaryShareResponseDto>;
+  ): Promise<ClinicSummaryShareDataDto>;
 }
 
 /** Widened constructor so tests can inject the event-review source the fix
