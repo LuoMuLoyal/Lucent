@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-04
+updated: 2026-08-16
 ---
 
 # Environment Variables
@@ -101,9 +101,13 @@ JPUSH_API_BASE_URL
 ```
 
 All four variables are optional. AppKey and Master Secret must be configured together;
-if both are absent, Lucent skips push delivery. `JPUSH_APNS_PRODUCTION` accepts `true` or
+if either is empty, Lucent skips push delivery. `JPUSH_APNS_PRODUCTION` accepts `true` or
 `false` and defaults to `false`; `JPUSH_API_BASE_URL` defaults to `https://api.jpush.cn`.
 The Master Secret is sensitive and must not be committed.
+
+**0.1.0 发布门槛**：生产环境必须配齐 `JPUSH_APP_KEY` / `JPUSH_MASTER_SECRET`（经
+`/opt/lucent/.env` 注入）并完成真机验证。缺失时服务静默禁用推送并在启动日志 `warn`，
+`deploy.ts` 预检输出高亮 WARNING（不阻塞部署）；门槛本身见 [[deployment]] 最低上线检查。
 
 Daily-record image uploads through Tencent COS:
 

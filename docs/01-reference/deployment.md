@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-02
+updated: 2026-08-16
 ---
 
 # Lucent Deployment
 
-Last updated: 2026-07-17
+Last updated: 2026-08-16
 
 这份文档描述当前生产部署模型：Docker Compose 单机部署 + **单 slot 停机部署**（每次发布
 15~45s 停机窗口，低峰时段发布）+ 镜像 tag 回滚。蓝绿双 slot 已于 2026-07-17 移除，决策
@@ -291,6 +291,15 @@ docker exec lucent-app curl -u ${METRICS_USER}:${METRICS_PASSWORD} http://127.0.
 - Nginx 能正常反代 HTTPS 请求
 - `/metrics` 通过 Nginx 返回 `403`
 - `/metrics` 直连 app 容器无认证返回 `401`，有认证返回 `200`
+
+### 发布门槛（0.1.0）
+
+- **JPush 密钥已配齐**：`JPUSH_APP_KEY` / `JPUSH_MASTER_SECRET` 已填入服务器
+  `/opt/lucent/.env`，且经真机验证完成闭环——推送到达 → 未读数失效刷新 → 点击跳转
+  `/notifications`。**缺任一项不得发布 0.1.0。**
+  - 部署前复核：`deploy.ts` 预检在 [1/12] 检查密钥，缺失时输出高亮 WARNING（不阻塞
+    部署，门槛靠人工执行本检查）；运行期复核：`docker compose logs app | grep "JPush
+is not configured"` 不应有匹配（密钥已配齐时无该 warn）。
 
 ## 部署后 Smoke Test
 

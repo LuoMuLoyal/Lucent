@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ServiceUnavailableException } from '@nestjs/common';
+import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import type { JpushConfig } from '../../../config/services/jpush.config';
 import { JpushPushProvider } from './jpush.provider';
 
@@ -37,6 +37,29 @@ describe('JpushPushProvider', () => {
     expect(
       new JpushPushProvider(buildConfig({ masterSecret: '' })).isConfigured,
     ).toBe(false);
+  });
+
+  it('warns once at construction when unconfigured in production', () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const previousNodeEnv = process.env['NODE_ENV'];
+    process.env['NODE_ENV'] = 'production';
+    try {
+      new JpushPushProvider(buildConfig({ appKey: '' }));
+
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy.mock.calls[0]?.[0]).toContain(
+        'JPush is not configured — push delivery is silently disabled.',
+      );
+    } finally {
+      if (previousNodeEnv === undefined) {
+        delete process.env['NODE_ENV'];
+      } else {
+        process.env['NODE_ENV'] = previousNodeEnv;
+      }
+      warnSpy.mockRestore();
+    }
   });
 
   it('does not call fetch when not configured or aliases are empty', async () => {

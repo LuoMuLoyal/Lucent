@@ -102,6 +102,27 @@ function runRenderConfigs(): void {
   }
 }
 
+/**
+ * JPush credential precheck (0.1.0 release gate, best-effort).
+ * Reads JPUSH_APP_KEY / JPUSH_MASTER_SECRET from .env. Missing credentials
+ * only warn loudly — push stays silently disabled and the deploy proceeds;
+ * the release gate itself is enforced via docs/01-reference/deployment.md.
+ */
+function checkJpushConfig(): void {
+  const envPath = path.join(DEPLOY_DIR, '.env');
+  const appKey = getEnvValue(envPath, 'JPUSH_APP_KEY');
+  const masterSecret = getEnvValue(envPath, 'JPUSH_MASTER_SECRET');
+  if (!appKey || !masterSecret) {
+    console.warn(
+      '  WARNING: JPush 未配置，推送静默禁用；0.1.0 发布门槛要求 JPUSH_APP_KEY/JPUSH_MASTER_SECRET 已配齐并经真机验证。',
+    );
+    return;
+  }
+  console.log(
+    '  JPush configured: JPUSH_APP_KEY / JPUSH_MASTER_SECRET present in .env.',
+  );
+}
+
 // ── .env management ────────────────────────────────────────────
 
 function readEnvFile(envPath: string): Record<string, string> {
@@ -428,6 +449,7 @@ function deploy(): void {
   ensureFile(path.join(DEPLOY_DIR, '.env'));
   ensureDirectories();
   runRenderConfigs();
+  checkJpushConfig();
 
   // 2. Read current LUCENT_IMAGE as rollback target
   console.log('[2/12] Reading current image (rollback target)...');

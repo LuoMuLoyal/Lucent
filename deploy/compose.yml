@@ -83,6 +83,11 @@ services:
       PORT: '3000'
       METRICS_USER: ${METRICS_USER}
       METRICS_PASSWORD: ${METRICS_PASSWORD}
+      # JPush 推送密钥：经 /opt/lucent/.env 注入（不入库，见 docs/01-reference/environment.md）。
+      # 缺失时服务静默禁用推送并在启动日志 warn；0.1.0 发布门槛要求已配齐并经真机验证。
+      JPUSH_APP_KEY: ${JPUSH_APP_KEY:-}
+      JPUSH_MASTER_SECRET: ${JPUSH_MASTER_SECRET:-}
+      JPUSH_APNS_PRODUCTION: ${JPUSH_APNS_PRODUCTION:-false}
       TRUST_PROXY: 'true'
     expose:
       - '3000'

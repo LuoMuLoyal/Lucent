@@ -25,6 +25,11 @@ export class JpushPushProvider implements PushProvider {
   constructor(config: JpushConfig) {
     this.isConfigured =
       config.appKey.trim().length > 0 && config.masterSecret.trim().length > 0;
+    if (!this.isConfigured && process.env['NODE_ENV'] === 'production') {
+      this.logger.warn(
+        'JPush is not configured — push delivery is silently disabled. Fill JPUSH_APP_KEY / JPUSH_MASTER_SECRET before the 0.1.0 release.',
+      );
+    }
     this.authorization = `Basic ${Buffer.from(
       `${config.appKey}:${config.masterSecret}`,
     ).toString('base64')}`;
