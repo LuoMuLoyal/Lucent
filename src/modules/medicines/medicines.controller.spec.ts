@@ -1,9 +1,11 @@
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import type { TestingModule } from '@nestjs/testing';
 import { Test } from '@nestjs/testing';
 import { MedicinesController } from './medicines.controller';
 import { MedicinesService } from './services/medicines.service';
 import { MedicineRecognitionQueueService } from './services/recognition-queue.service';
 import { MedicineRiskCheckService } from './services/risk/risk-check.service';
+import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto';
 
 describe('MedicinesController', () => {
   let controller: MedicinesController;
@@ -178,10 +180,58 @@ describe('MedicinesController', () => {
       );
 
       const svc = riskCheckService();
-      expect(svc.runStaticCheck).toHaveBeenCalledWith('u1');
+      expect(svc.runStaticCheck).toHaveBeenCalledWith('u1', undefined);
       expect(svc.runLlmCheck).toHaveBeenCalledWith('u1');
       expect(svc.runStaticCheck).toHaveBeenCalledTimes(1);
       expect(svc.runLlmCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('POST /risk-check rejects a candidate pre-check with llm type (400)', async () => {
+      await expect(
+        controller.runRiskCheck(
+          { sub: 'u1' } as never,
+          {
+            type: 'llm',
+            candidate: { source: 'cn', id: 'cn-1' },
+          } as never,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      const svc = riskCheckService();
+      expect(svc.runLlmCheck).not.toHaveBeenCalled();
+      expect(svc.runStaticCheck).not.toHaveBeenCalled();
+    });
+
+    it('POST /risk-check forwards the candidate to runStaticCheck', async () => {
+      const candidate = { source: 'cn' as const, id: 'cn-1' };
+
+      await controller.runRiskCheck(
+        { sub: 'u1' } as never,
+        { type: 'static', candidate } as never,
+      );
+
+      expect(riskCheckService().runStaticCheck).toHaveBeenCalledWith(
+        'u1',
+        candidate,
+      );
+    });
+
+    it('POST /risk-check rejects a candidate missing source or id via DTO validation (400)', async () => {
+      // Mirrors the global ValidationPipe options from setup-app.ts
+      const pipe = new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      });
+
+      for (const candidate of [{ id: 'cn-1' }, { source: 'cn' }]) {
+        await expect(
+          pipe.transform({ type: 'static', candidate } as never, {
+            type: 'body',
+            metatype: RunRiskCheckDto,
+          }),
+        ).rejects.toThrow(BadRequestException);
+      }
     });
   });
 

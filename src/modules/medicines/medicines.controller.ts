@@ -21,7 +21,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
-import { successEnvelope } from '../../common';
+import { badRequest, successEnvelope } from '../../common';
 import { CurrentUser } from '../auth';
 
 import { Public } from '../auth';
@@ -191,10 +191,14 @@ export class MedicinesController {
     @CurrentUser() user: UserPayload,
     @Body() dto: RunRiskCheckDto,
   ) {
+    if (dto.candidate != null && dto.type === 'llm') {
+      badRequest('候选预检仅支持 static 检查');
+    }
+
     const record =
       dto.type === 'llm'
         ? await this.riskCheckService.runLlmCheck(user.sub)
-        : await this.riskCheckService.runStaticCheck(user.sub);
+        : await this.riskCheckService.runStaticCheck(user.sub, dto.candidate);
     return successEnvelope(record);
   }
 

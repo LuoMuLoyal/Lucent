@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
@@ -11,13 +12,20 @@ import { MedicinesService } from '../medicines.service';
 import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
 import { RiskDetectionService } from './risk-detection.service';
 import { RiskContextBuilderService } from './risk-context-builder.service';
-import { ResultCode, nonDeleted, toInputJsonValue } from '../../../../common';
+import {
+  ResultCode,
+  badRequest,
+  nonDeleted,
+  toInputJsonValue,
+} from '../../../../common';
 import type {
   MedicineRiskCheckResponseDto,
   MedicineRiskCheckRecordDto,
   MedicineRiskLevel,
 } from '../../dto/risk/risk-check-response.dto';
+import type { RiskCheckCandidateDto } from '../../dto/risk/risk-check-request.dto';
 import type { MedicineRiskLlmOutput } from '../../schemas/risk-check.schema';
+import type { MedicineDetailDataDto } from '../../dto/detail.dto';
 import type { MedicineDetailWrapper } from '../../utils/ingredient-canonicalization';
 import type { AllergyRecord } from '../../utils/allergy-severity';
 
@@ -77,8 +85,26 @@ export class MedicineRiskCheckService {
     return mapped;
   }
 
-  async runStaticCheck(userId: string): Promise<MedicineRiskCheckRecordDto> {
-    const response = await this.evaluateStaticCheck(userId);
+  async runStaticCheck(
+    userId: string,
+    candidate?: RiskCheckCandidateDto,
+  ): Promise<MedicineRiskCheckRecordDto> {
+    const response = await this.evaluateStaticCheck(userId, candidate);
+
+    if (candidate != null) {
+      // 候选预检为即时预览，不落库；避免把未建档药品写入最新检查记录。
+      const now = new Date();
+      return {
+        checkType: 'static',
+        result: response,
+        riskScore: response.overallRiskScore,
+        riskLevel: response.overallRiskLevel,
+        stale: false,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      };
+    }
+
     return this.persistRecord(userId, 'static', response);
   }
 
@@ -127,6 +153,7 @@ export class MedicineRiskCheckService {
 
   private async evaluateStaticCheck(
     userId: string,
+    candidate?: RiskCheckCandidateDto,
   ): Promise<MedicineRiskCheckResponseDto> {
     // 1. Get health context directly from DB
     const user = await this.prisma.user.findFirst({
@@ -215,6 +242,47 @@ export class MedicineRiskCheckService {
       }
     }
 
+    // 2b. Candidate pre-check (加药前预检): the candidate detail is resolved
+    // eagerly and must fail loudly — never silently downgraded to an uncovered
+    // item (that semantics is reserved for box items whose data is temporarily
+    // unavailable). If the box already holds the same source + sourceRefId, the
+    // candidate is not added again (avoids duplicate counts/findings).
+    let candidateIncluded = false;
+    if (candidate != null) {
+      const candidateSourceRefId = candidate.id.trim();
+      const alreadyInBox = currentMedicines.some(
+        (item) =>
+          item.source === candidate.source &&
+          (item.sourceRefId ?? '').trim() === candidateSourceRefId,
+      );
+      if (!alreadyInBox) {
+        let detail: MedicineDetailDataDto;
+        try {
+          detail = await this.medicinesService.getDetailWithCache(
+            candidateSourceRefId,
+            { source: candidate.source },
+            false,
+          );
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            throw error;
+          }
+          badRequest('候选药品资料不可用，无法进行预检');
+        }
+        details.push({
+          item: {
+            id: candidate.id,
+            source: candidate.source,
+            sourceRefId: candidateSourceRefId,
+            displayName: detail.name,
+            startedAt: null,
+          },
+          detail,
+        });
+        candidateIncluded = true;
+      }
+    }
+
     // 3. Identify uncovered medicines (no detail fetched)
     const uncoveredItems = currentMedicines
       .filter((item) => !details.some((d) => d.item.id === item.id))
@@ -236,7 +304,8 @@ export class MedicineRiskCheckService {
     return {
       overallRiskLevel: riskLevel,
       overallRiskScore: riskScore,
-      currentMedicineCount: currentMedicines.length,
+      currentMedicineCount:
+        currentMedicines.length + (candidateIncluded ? 1 : 0),
       checkedMedicineCount: details.length,
       findings,
       coverageIssues,

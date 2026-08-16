@@ -19,6 +19,14 @@ the relevant `Lucent/docs/00-current/*.md` state file, and record the completion
 `Lucent/docs/02-logs/migration-log/YYYY-MM-DD.md` and
 `Luminous/docs/03-logs/migration-log/YYYY-MM-DD.md` as cross-repo sync evidence.
 
+### B5：风险检查候选预检的错误可观测性（P3，2026-08-16 F-9 审查 P2）
+
+`MedicineRiskCheckService.evaluateStaticCheck` 候选详情解析失败时，非 NotFound 异常被 `badRequest('候选药品资料不可用…')` 包装为 400 且原始错误不记录日志（`services/risk/risk-check.service.ts`）。建议：抛错前 `logger.warn` 记录原始 error，或将上游知识库服务类异常转 502/503；验收：候选资料不可用时仍显式失败，且日志可定位原始异常。
+
+### B6：候选预检与药品详情知识缓存的交互口径（P3，2026-08-16 F-9 审查 P2）
+
+候选预检通过 `getDetailWithCache(candidate.id, {source}, false)` 取详情，miss 时会写入药品详情知识缓存（`services/medicines.service.ts`）；「预检不落库」口径仅指 risk-check records 与 records 缓存（已确认不触碰）。验收：确认该口径并在必要时文档化；无行为改动。
+
 ## 后续可做
 
 ### B2：环境数据接入真实天气 API（P3）

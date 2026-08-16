@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { MedicineRiskCheckService } from './risk-check.service';
 import type { PrismaService } from '../../../../prisma';
@@ -398,5 +402,158 @@ describe('MedicineRiskCheckService', () => {
       'secondaryMedicineName',
     );
     expect(result.result).not.toHaveProperty('overallRecommendation');
+  });
+
+  it('runStaticCheck with a candidate includes it in the evaluation without persisting', async () => {
+    const { prisma, medicinesService, riskDetection, cache, svc } = build();
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      allergies: [],
+      conditions: [],
+      currentMedicines: [
+        {
+          id: 'm1',
+          source: 'cn',
+          sourceRefId: 'cn-1',
+          displayName: '对乙酰氨基酚',
+          startedAt: new Date('2026-06-01T00:00:00.000Z'),
+        },
+      ],
+    } as never);
+    vi.mocked(medicinesService.getDetailWithCache).mockImplementation(
+      (id: string) =>
+        Promise.resolve(
+          id === 'cn-1'
+            ? { id: 'cn-1', name: '对乙酰氨基酚', source: 'cn' }
+            : { id, name: `候选药品-${id}`, source: 'cn' },
+        ) as never,
+    );
+    vi.mocked(riskDetection.evaluateStaticRisk).mockReturnValue({
+      findings: [
+        {
+          type: 'duplicateIngredient',
+          severity: 'medium',
+          context: 'none',
+          primaryMedicineName: '候选药品-cn-2',
+          secondaryMedicineName: '对乙酰氨基酚',
+          evidence: 'acetaminophen',
+        },
+      ],
+      coverageIssues: [],
+      redFlags: [],
+      riskScore: 15,
+      riskLevel: 'caution',
+    });
+
+    const result = await svc.runStaticCheck('u1', {
+      source: 'cn',
+      id: 'cn-2',
+    });
+
+    expect(medicinesService.getDetailWithCache).toHaveBeenCalledWith(
+      'cn-2',
+      { source: 'cn' },
+      false,
+    );
+    expect(riskDetection.evaluateStaticRisk).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          item: expect.objectContaining({
+            id: 'cn-2',
+            source: 'cn',
+            sourceRefId: 'cn-2',
+          }),
+        }),
+      ]),
+      [],
+      [],
+    );
+    // 候选作为 details 一员参与检测：计数 +1
+    expect(result.result.currentMedicineCount).toBe(2);
+    expect(result.result.checkedMedicineCount).toBe(2);
+    expect(result.result.findings[0]?.primaryMedicineName).toBe(
+      '候选药品-cn-2',
+    );
+    // 候选预检不落库、不动缓存
+    expect(prisma.medicineRiskCheckRecord.upsert).not.toHaveBeenCalled();
+    expect(cache.del).not.toHaveBeenCalled();
+    // 返回 record 形 DTO 即时快照
+    expect(result).toMatchObject({
+      checkType: 'static',
+      stale: false,
+      riskScore: 15,
+      riskLevel: 'caution',
+    });
+    expect(result.createdAt).toEqual(result.updatedAt);
+  });
+
+  it('runStaticCheck does not re-add a candidate already in the box', async () => {
+    const { prisma, medicinesService, riskDetection, svc } = build();
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      allergies: [],
+      conditions: [],
+      currentMedicines: [
+        {
+          id: 'm1',
+          source: 'cn',
+          sourceRefId: ' cn-1 ',
+          displayName: '对乙酰氨基酚',
+          startedAt: new Date('2026-06-01T00:00:00.000Z'),
+        },
+      ],
+    } as never);
+    vi.mocked(medicinesService.getDetailWithCache).mockResolvedValue({
+      id: 'cn-1',
+      name: '对乙酰氨基酚',
+      source: 'cn',
+    } as never);
+
+    const result = await svc.runStaticCheck('u1', {
+      source: 'cn',
+      id: 'cn-1',
+    });
+
+    // 药箱已有同 source + sourceRefId（trim 后比较），候选不再单独加入
+    expect(medicinesService.getDetailWithCache).toHaveBeenCalledTimes(1);
+    const [detailsArg] = vi.mocked(riskDetection.evaluateStaticRisk).mock
+      .calls[0]!;
+    expect(detailsArg).toHaveLength(1);
+    expect(result.result.currentMedicineCount).toBe(1);
+    expect(result.result.checkedMedicineCount).toBe(1);
+  });
+
+  it('runStaticCheck propagates NotFoundException when the candidate detail is missing', async () => {
+    const { prisma, medicinesService, svc } = build();
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    } as never);
+    vi.mocked(medicinesService.getDetailWithCache).mockRejectedValue(
+      new NotFoundException('medicine not found'),
+    );
+
+    await expect(
+      svc.runStaticCheck('u1', { source: 'cn', id: 'missing' }),
+    ).rejects.toThrow(NotFoundException);
+
+    expect(prisma.medicineRiskCheckRecord.upsert).not.toHaveBeenCalled();
+  });
+
+  it('runStaticCheck wraps non-NotFound candidate resolution failures as badRequest', async () => {
+    const { prisma, medicinesService, svc } = build();
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({
+      allergies: [],
+      conditions: [],
+      currentMedicines: [],
+    } as never);
+    vi.mocked(medicinesService.getDetailWithCache).mockRejectedValue(
+      new Error('upstream timeout'),
+    );
+
+    await expect(
+      svc.runStaticCheck('u1', { source: 'drugbank', id: 'DB00001' }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(prisma.medicineRiskCheckRecord.upsert).not.toHaveBeenCalled();
   });
 });

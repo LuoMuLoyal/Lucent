@@ -49,6 +49,14 @@ Lucent's notification system is split into two layers with a clear ownership bou
     risk records behind a 30-minute cache). The reports event review next-step section reads only
     the static `redFlags` (`severeAllergy`/`informationGap` reviewed rules) as structured
     data and degrades to an empty list when the read fails.
+  - Pre-add pre-check (`POST /medicines/risk-check` with `candidate`): the client submits the
+    trusted-source `source`/`id` of the medicine about to be added; the service resolves its
+    detail and runs an immediate static check against the current box. The result is returned
+    as a record-shaped preview (`stale: false`, current timestamps) **without persisting or
+    writing the records cache** — it never becomes the latest risk-check record. A candidate
+    already in the box (same source + trimmed sourceRefId) is not re-added. Unresolvable
+    candidate data fails loudly (404/400) instead of being downgraded to an uncovered item, so
+    the client can degrade honestly. `candidate` is rejected for LLM checks.
 - Notification content templates
   - Status: Implemented — the scheduler localizes reminder title/content per `UserProfile.locale`
     via `I18nService` (keys `medicine-reminders.reminder_fallback_label` and

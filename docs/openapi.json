@@ -9724,6 +9724,21 @@
         },
         "required": ["code", "message", "data"]
       },
+      "RiskCheckCandidateDto": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["cn", "drugbank"],
+            "description": "候选药品所在的可信药品库来源"
+          },
+          "id": {
+            "type": "string",
+            "description": "候选药品在可信药品库中的 id"
+          }
+        },
+        "required": ["source", "id"]
+      },
       "RunRiskCheckDto": {
         "type": "object",
         "properties": {
@@ -9731,6 +9746,14 @@
             "type": "string",
             "enum": ["static", "llm"],
             "description": "Type of risk check to run"
+          },
+          "candidate": {
+            "description": "加药前预检的可信药品库候选；仅 type=static 时允许；预检不落库",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RiskCheckCandidateDto"
+              }
+            ]
           }
         },
         "required": ["type"]
