@@ -383,7 +383,7 @@ model UserReminderDelivery {
 enum DoseLogStatus {
   taken
   skipped
-  missed
+  missed // 历史兼容，不落库；漏服语义由后端 overdueUnconfirmed 派生，前端保持消费方
   planned
 }
 

@@ -76,6 +76,8 @@ export class MedicinesController {
     private readonly riskCheckService: MedicineRiskCheckService,
   ) {}
 
+  // TODO(archive): 接口完整但当前无任何 C 端 UI 消费方（死代码保留）；
+  // 若未来做随机安全贴士，应在移动端药品详情页内以审核内容卡片形式重做。
   @Public()
   @Get('safety-tips')
   @ApiOperation({ summary: 'Get random medication safety tips' })
