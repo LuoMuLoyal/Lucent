@@ -309,7 +309,11 @@ export async function setupApp(
         reply.status(404).send('Scalar bundle not found');
         return;
       }
-      throw err;
+      Logger.warn(
+        `Failed to serve Scalar standalone bundle: ${err instanceof Error ? err.message : String(err)}`,
+        err instanceof Error ? err.stack : undefined,
+      );
+      reply.status(500).send('Failed to serve Scalar bundle');
     }
   });
 
