@@ -158,7 +158,7 @@ export class SuggestionPresentationService {
       evidence: candidate.evidence.map((e) => ({
         ...e,
         label: this.localizeEvidenceLabel(e.label, locale),
-        value: this.localizeEvidenceValue(e.value, locale),
+        value: this.localizeEvidenceValue(e.value, locale, e.args),
       })),
       boundary: copy.boundary,
       primaryAction,
@@ -237,10 +237,17 @@ export class SuggestionPresentationService {
     return this.i18n.t(`today-suggestion.evidence.${label}`, { lang: locale });
   }
 
-  private localizeEvidenceValue(value: string, locale: string): string {
+  private localizeEvidenceValue(
+    value: string,
+    locale: string,
+    args?: Record<string, string | number>,
+  ): string {
     const key = `today-suggestion.evidence_value.${value}`;
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion -- tsc infers unknown (variable assignment loses generic inference), ESLint infers string
-    const translated = this.i18n.t(key, { lang: locale }) as string;
+    const translated = this.i18n.t(
+      key,
+      args != null ? { lang: locale, args } : { lang: locale },
+    ) as string;
     // When i18n can't find the key, it returns the key path itself — fall back to raw value
     return translated === key ? value : translated;
   }

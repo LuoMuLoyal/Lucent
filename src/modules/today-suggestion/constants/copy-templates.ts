@@ -88,6 +88,7 @@ export const COPY_TEMPLATES: Record<string, CopyTemplate> = {
       'latestDuration',
       'overlappingDays',
     ],
+    optionalParams: ['mentionedRecordCount', 'mentionedDayCount'],
     actionKeys: ['record_meal'],
   },
 

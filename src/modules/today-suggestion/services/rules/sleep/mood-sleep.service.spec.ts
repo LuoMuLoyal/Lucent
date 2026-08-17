@@ -1,5 +1,8 @@
 import { MoodSleepRuleService } from './mood-sleep.service';
-import { SuggestionType } from '../../../types/suggestion.types';
+import {
+  SuggestionType,
+  SuggestionConfidence,
+} from '../../../types/suggestion.types';
 import { buildContext, buildSignal } from '../test-helpers';
 
 describe('MoodSleepRuleService', () => {
@@ -46,8 +49,19 @@ describe('MoodSleepRuleService', () => {
     const candidate = rule.match(signals, buildContext());
     expect(candidate).not.toBeNull();
     expect(candidate!.subtype).toBe('mood');
+    expect(candidate!.confidence).toBe(SuggestionConfidence.LOW);
     expect(candidate!.copyGeneration.templateKey).toBe(
       'mood.sleep.correlation',
+    );
+    expect(candidate!.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'record',
+          label: 'mood_parsed_records',
+          value: 'mood_parsed_records_value',
+          args: { count: 3 },
+        }),
+      ]),
     );
   });
 
@@ -138,6 +152,33 @@ describe('MoodSleepRuleService', () => {
         payload: {
           dailyMoods: [{ date: '2026-07-09', moodScore: 2, label: 'bad' }],
           consecutiveDays: 1,
+        },
+      }),
+      buildSignal({
+        source: 'record',
+        kind: 'sleep_trend',
+        payload: {
+          dailyDurations: [
+            { date: '2026-07-08', durationMinutes: 300 },
+            { date: '2026-07-09', durationMinutes: 300 },
+          ],
+          consecutiveDays: 2,
+        },
+      }),
+    ];
+
+    const candidate = rule.match(signals, buildContext());
+    expect(candidate).toBeNull();
+  });
+
+  it('should not match when no parseable mood records exist', () => {
+    const signals = [
+      buildSignal({
+        source: 'record',
+        kind: 'mood_trend',
+        payload: {
+          dailyMoods: [],
+          consecutiveDays: 0,
         },
       }),
       buildSignal({

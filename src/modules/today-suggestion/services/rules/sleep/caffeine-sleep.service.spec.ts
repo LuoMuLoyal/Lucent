@@ -34,6 +34,8 @@ describe('CaffeineSleepRuleService', () => {
             { date: '2026-07-09', count: 2 },
           ],
           consecutiveDays: 3,
+          mentionedRecordCount: 7,
+          mentionedDayCount: 3,
         },
       }),
       buildSignal({
@@ -54,9 +56,23 @@ describe('CaffeineSleepRuleService', () => {
     expect(candidate).not.toBeNull();
     expect(candidate!.type).toBe(SuggestionType.BEHAVIOR_ADVICE);
     expect(candidate!.subtype).toBe('caffeine');
-    expect(candidate!.confidence).toBe(SuggestionConfidence.MEDIUM);
+    expect(candidate!.confidence).toBe(SuggestionConfidence.LOW);
     expect(candidate!.copyGeneration.templateKey).toBe(
       'caffeine.sleep.correlation',
+    );
+    expect(candidate!.copyGeneration.params).toMatchObject({
+      mentionedRecordCount: 7,
+      mentionedDayCount: 3,
+    });
+    expect(candidate!.evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'record',
+          label: 'caffeine_mentioned_records',
+          value: 'caffeine_mentioned_records_value',
+          args: { count: 7, days: 3 },
+        }),
+      ]),
     );
   });
 

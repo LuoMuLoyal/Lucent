@@ -363,6 +363,42 @@ describe('RecordCollectorService', () => {
       expect(caffeine).toBeDefined();
       expect(caffeine!.payload).toMatchObject({
         consecutiveDays: 2,
+        mentionedRecordCount: 2,
+        mentionedDayCount: 2,
+      });
+    });
+
+    it('counts meal records that mention caffeine in the note even when title is empty', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'c1',
+            kind: DailyRecordKind.meal,
+            title: null,
+            note: 'drank coffee',
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+          }),
+          makeRecord({
+            id: 'c2',
+            kind: DailyRecordKind.meal,
+            title: '',
+            note: 'energy drink',
+            occurredAt: new Date('2026-07-08T00:00:00.000Z'),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const caffeine = signals.find((s) => s.kind === 'caffeine_trend');
+      expect(caffeine).toBeDefined();
+      expect(caffeine!.payload).toMatchObject({
+        consecutiveDays: 2,
+        mentionedRecordCount: 2,
+        mentionedDayCount: 2,
       });
     });
 
@@ -402,6 +438,43 @@ describe('RecordCollectorService', () => {
       expect(mood).toBeDefined();
       expect(mood!.payload).toMatchObject({
         consecutiveDays: 2,
+      });
+    });
+
+    it('does not include unparseable mood records in mood_trend', async () => {
+      (dailyRecordReader.listFactsInRange as vi.Mock)
+        // todayRecords
+        .mockResolvedValueOnce([])
+        // multiDayRecords
+        .mockResolvedValueOnce([
+          makeRecord({
+            id: 'm0',
+            kind: DailyRecordKind.mood,
+            title: 'Unknown',
+            value: null,
+            occurredAt: new Date('2026-07-08T00:00:00.000Z'),
+          }),
+          makeRecord({
+            id: 'm1',
+            kind: DailyRecordKind.mood,
+            title: 'Good',
+            value: '4',
+            occurredAt: new Date('2026-07-09T00:00:00.000Z'),
+          }),
+        ]);
+      mockSettings(8);
+
+      const signals = await service.collect('user-1', '2026-07-09');
+
+      const mood = signals.find((s) => s.kind === 'mood_trend');
+      expect(mood).toBeDefined();
+      expect(mood!.payload).toMatchObject({
+        consecutiveDays: 1,
+      });
+      expect(mood!.payload['dailyMoods']).toHaveLength(1);
+      expect(mood!.payload['dailyMoods'][0]).toMatchObject({
+        moodScore: 4,
+        label: 'Good',
       });
     });
 

@@ -12,6 +12,8 @@
     "mood_record_days": "情绪记录天数",
     "caffeine_record_days": "咖啡因记录天数",
     "caffeine_total_count": "咖啡因摄入总次数",
+    "caffeine_mentioned_records": "近 N 天提到咖啡/茶的餐饮记录",
+    "mood_parsed_records": "可解析情绪记录数（已剔除 unknown）",
     "sleep_decline": "睡眠下降幅度",
     "latest_severity": "最新严重度",
     "trend_direction": "趋势方向",
@@ -21,7 +23,9 @@
   },
   "evidence_value": {
     "unconfirmed": "未确认",
-    "worsening": "加重"
+    "worsening": "加重",
+    "caffeine_mentioned_records_value": "{{count}} 条记录 / {{days}} 天",
+    "mood_parsed_records_value": "{{count}} 条（已剔除无法解析 / unknown 记录）"
   },
   "action": {
     "go_record": "去记录",

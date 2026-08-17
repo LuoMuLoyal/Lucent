@@ -92,6 +92,9 @@ export class MoodSleepRuleService implements SuggestionRule {
     const sortedMoods = [...dailyMoods].sort((a, b) =>
       a.date.localeCompare(b.date),
     );
+    if (sortedMoods.length === 0) {
+      return null;
+    }
     const latestMood = sortedMoods[sortedMoods.length - 1];
     if (latestMood == null || latestMood.moodScore > MOOD_LOW_THRESHOLD) {
       return null;
@@ -142,6 +145,14 @@ export class MoodSleepRuleService implements SuggestionRule {
         },
         {
           kind: 'record',
+          label: 'mood_parsed_records',
+          value: 'mood_parsed_records_value',
+          args: {
+            count: sortedMoods.length,
+          },
+        },
+        {
+          kind: 'record',
           label: 'latest_sleep_duration',
           value: `${String(hours)}h ${String(mins)}m`,
         },
@@ -158,7 +169,7 @@ export class MoodSleepRuleService implements SuggestionRule {
         authRequired: true,
       },
       priorityScore: MOOD_SLEEP_BASE_SCORE,
-      confidence: SuggestionConfidence.MEDIUM,
+      confidence: SuggestionConfidence.LOW,
       notificationEligible: false,
       subtype: 'mood',
       copyGeneration: {

@@ -78,6 +78,12 @@ export class CaffeineSleepRuleService implements SuggestionRule {
       | DailyIntake[]
       | null;
     const caffeineDays = caffeineSignal.payload['consecutiveDays'] as number;
+    const mentionedRecordCount =
+      (caffeineSignal.payload['mentionedRecordCount'] as number | undefined) ??
+      0;
+    const mentionedDayCount =
+      (caffeineSignal.payload['mentionedDayCount'] as number | undefined) ??
+      caffeineDays;
 
     if (dailyIntakes == null || caffeineDays < CAFFEINE_SLEEP_MIN_DAYS) {
       return null;
@@ -129,13 +135,12 @@ export class CaffeineSleepRuleService implements SuggestionRule {
       evidence: [
         {
           kind: 'record',
-          label: 'caffeine_record_days',
-          value: String(caffeineDays),
-        },
-        {
-          kind: 'record',
-          label: 'caffeine_total_count',
-          value: String(totalCaffeine),
+          label: 'caffeine_mentioned_records',
+          value: 'caffeine_mentioned_records_value',
+          args: {
+            count: mentionedRecordCount,
+            days: mentionedDayCount,
+          },
         },
         {
           kind: 'trend',
@@ -155,7 +160,7 @@ export class CaffeineSleepRuleService implements SuggestionRule {
         authRequired: true,
       },
       priorityScore: CAFFEINE_SLEEP_BASE_SCORE,
-      confidence: SuggestionConfidence.MEDIUM,
+      confidence: SuggestionConfidence.LOW,
       notificationEligible: false,
       subtype: 'caffeine',
       copyGeneration: {
@@ -168,6 +173,8 @@ export class CaffeineSleepRuleService implements SuggestionRule {
           mins,
           latestDuration,
           overlappingDays: overlappingDates.length,
+          mentionedRecordCount,
+          mentionedDayCount,
         },
       },
     };

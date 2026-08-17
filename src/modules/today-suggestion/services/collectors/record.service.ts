@@ -211,7 +211,10 @@ export class RecordCollectorService {
 
     // Caffeine trend signal (for caffeine-sleep correlation rule)
     const caffeineRecords = multiDayRecords.filter(
-      (r) => r.kind === DailyRecordKind.meal && r.title != null,
+      (r) =>
+        r.kind === DailyRecordKind.meal &&
+        ((r.title != null && r.title !== '') ||
+          (r.note != null && r.note !== '')),
     );
     if (caffeineRecords.length > 0) {
       const caffeineByDate = this.buildCaffeineTrend(caffeineRecords);
@@ -219,6 +222,11 @@ export class RecordCollectorService {
         const todayCaffeine = caffeineByDate.find(
           (entry) => entry.date === date,
         )?.count;
+        const mentionedRecordCount = caffeineByDate.reduce(
+          (sum, entry) => sum + entry.count,
+          0,
+        );
+        const mentionedDayCount = caffeineByDate.length;
         signals.push({
           signalId: `rec_caffeine_trend_${date}`,
           source: 'record',
@@ -229,6 +237,8 @@ export class RecordCollectorService {
           payload: {
             dailyIntakes: caffeineByDate,
             consecutiveDays: caffeineByDate.length,
+            mentionedRecordCount,
+            mentionedDayCount,
             ...(todayCaffeine != null && todayCaffeine > 0
               ? { observedValue: todayCaffeine }
               : {}),
@@ -488,7 +498,9 @@ export class RecordCollectorService {
         note.includes('coffee') ||
         note.includes('咖啡') ||
         note.includes('tea') ||
-        note.includes('茶');
+        note.includes('茶') ||
+        note.includes('energy') ||
+        note.includes('能量饮料');
       if (!isCaffeine) continue;
       const dateKey = record.occurredAt.toISOString().slice(0, 10);
       byDate.set(dateKey, (byDate.get(dateKey) ?? 0) + 1);
@@ -510,9 +522,10 @@ export class RecordCollectorService {
   }> {
     const byDate = new Map<string, { moodScore: number; label: string }>();
     for (const record of records) {
+      const moodScore = this.parseMoodScore(record.value, record.title);
+      if (moodScore == null) continue;
       const dateKey = record.occurredAt.toISOString().slice(0, 10);
       const label = record.title ?? record.value ?? 'unknown';
-      const moodScore = this.parseMoodScore(record.value, record.title);
       // Keep the latest entry per date (records are ordered asc by occurredAt)
       byDate.set(dateKey, { moodScore, label });
     }
@@ -523,9 +536,12 @@ export class RecordCollectorService {
     }));
   }
 
-  /** Parses a mood score from value/title fields. Returns 1–5 scale. */
-  private parseMoodScore(value: string | null, title: string | null): number {
-    return this.parseKnownMoodScore(value, title) ?? 3;
+  /** Parses a mood score from value/title fields. Returns 1–5 scale or null. */
+  private parseMoodScore(
+    value: string | null,
+    title: string | null,
+  ): number | null {
+    return this.parseKnownMoodScore(value, title);
   }
 
   private parseKnownMoodScore(

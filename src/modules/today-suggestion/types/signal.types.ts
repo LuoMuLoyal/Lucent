@@ -37,6 +37,8 @@ export interface EvidenceItem {
   kind: 'record' | 'reminder' | 'risk_check' | 'trend' | 'profile' | 'baseline';
   label: string;
   value: string;
+  /** Optional interpolation args for localizing dynamic values. */
+  args?: Record<string, string | number>;
   recordId?: string;
   medicineId?: string;
 }

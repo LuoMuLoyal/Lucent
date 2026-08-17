@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-16
+updated: 2026-08-17
 ---
 
 # Code Quality / Maintainability
 
-Last updated: 2026-08-16
+Last updated: 2026-08-17
 
 - Barrel files (`index.ts`) must never export `.spec.ts` files — spec exports cause `nest build` to
   compile test files into `dist/`, and runtime barrel loading triggers `describe`/`it` calls that
@@ -281,3 +281,7 @@ Last updated: 2026-08-16
     逐槽生成 Prisma 输入，避免与 create/update 路径重复实现。
   - 整组 upsert 在单事务内完成 update/create/`updateMany` 软删，提交后只发一次 `reminder.changed`
     事件，消除逐槽提交在弱网下的半保存窗口；空 slots 服务层防御性 400（DTO 已 `@ArrayMinSize(1)`）。
+
+- 2026-08-17 today-suggestion evidence i18n：规则生成的 evidence label（如
+  `caffeine_mentioned_records`、`mood_parsed_records`）需在
+  `src/i18n/{zh-CN,en}/today-suggestion.json` 中保持同 key，确保文案/解释层能一致本地化。
