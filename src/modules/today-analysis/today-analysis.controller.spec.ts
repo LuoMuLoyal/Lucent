@@ -39,7 +39,7 @@ describe('TodayAnalysisController', () => {
         {
           provide: TodayRecommendationsService,
           useValue: {
-            getRandomRecommendations: vi.fn(),
+            getColdStartGuides: vi.fn(),
           },
         },
         {
@@ -137,48 +137,68 @@ describe('TodayAnalysisController', () => {
 
   // ── getRecommendations ────────────────────────────────────────────────
 
-  it('returns recommendations with single exclude string', () => {
-    const recs = [
-      { id: 'sleep', text: '今晚早睡 15 分钟。', category: 'sleep' },
+  it('returns cold-start guides with single exclude string', () => {
+    const guides = [
+      {
+        id: 'add-medicine',
+        text: '在用药页添加当前服用的药品，建立提醒计划。',
+        category: 'onboarding',
+      },
     ];
-    recommendationsService.getRandomRecommendations.mockReturnValue(recs);
+    recommendationsService.getColdStartGuides.mockReturnValue(guides);
 
-    const result = controller.getRecommendations('hydration', 'zh-CN');
+    const result = controller.getRecommendations('add-medicine', 'zh-CN');
 
-    expect(
-      recommendationsService.getRandomRecommendations,
-    ).toHaveBeenCalledWith(['hydration'], 'zh-CN');
+    expect(recommendationsService.getColdStartGuides).toHaveBeenCalledWith(
+      ['add-medicine'],
+      'zh-CN',
+    );
     expect(result).toEqual({
       code: ResultCode.SUCCESS,
       message: '',
-      data: recs,
+      data: guides,
     });
   });
 
-  it('returns recommendations with array exclude', () => {
-    const recs = [
-      { id: 'sleep', text: 'Go to bed 15 minutes earlier.', category: 'sleep' },
+  it('returns cold-start guides with array exclude', () => {
+    const guides = [
+      {
+        id: 'log-water',
+        text: 'Log a glass of water to start tracking daily intake.',
+        category: 'onboarding',
+      },
     ];
-    recommendationsService.getRandomRecommendations.mockReturnValue(recs);
+    recommendationsService.getColdStartGuides.mockReturnValue(guides);
 
-    const result = controller.getRecommendations(['hydration', 'walk'], 'en');
+    const result = controller.getRecommendations(
+      ['add-medicine', 'log-water'],
+      'en',
+    );
 
-    expect(
-      recommendationsService.getRandomRecommendations,
-    ).toHaveBeenCalledWith(['hydration', 'walk'], 'en');
-    expect(result.data).toEqual(recs);
+    expect(recommendationsService.getColdStartGuides).toHaveBeenCalledWith(
+      ['add-medicine', 'log-water'],
+      'en',
+    );
+    expect(result.data).toEqual(guides);
   });
 
-  it('returns recommendations with no exclude', () => {
-    const recs = [{ id: 'hydration', text: 'Drink water.' }];
-    recommendationsService.getRandomRecommendations.mockReturnValue(recs);
+  it('returns cold-start guides with no exclude', () => {
+    const guides = [
+      {
+        id: 'add-medicine',
+        text: 'Add your current medicines and set up reminder plans.',
+        category: 'onboarding',
+      },
+    ];
+    recommendationsService.getColdStartGuides.mockReturnValue(guides);
 
     const result = controller.getRecommendations(undefined, 'en');
 
-    expect(
-      recommendationsService.getRandomRecommendations,
-    ).toHaveBeenCalledWith([], 'en');
-    expect(result.data).toEqual(recs);
+    expect(recommendationsService.getColdStartGuides).toHaveBeenCalledWith(
+      [],
+      'en',
+    );
+    expect(result.data).toEqual(guides);
   });
 
   // ── generateStream ────────────────────────────────────────────────────

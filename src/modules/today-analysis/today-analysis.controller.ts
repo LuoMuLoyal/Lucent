@@ -277,14 +277,13 @@ export class TodayAnalysisController {
   }
 
   @Get('recommendations')
-  @ApiOperation({ summary: 'Get random daily health recommendations' })
+  @ApiOperation({ summary: 'Get cold-start onboarding guide cards' })
   @ApiQuery({
     name: 'exclude',
     required: false,
     isArray: true,
     type: String,
-    description:
-      'Recommendation IDs from the last response, used for deduplication',
+    description: 'Guide IDs from the last response, used for deduplication',
   })
   @ApiResponse({
     status: 200,
@@ -300,12 +299,11 @@ export class TodayAnalysisController {
       : exclude
         ? [exclude]
         : [];
-    const recommendations =
-      this.todayRecommendationsService.getRandomRecommendations(
-        normalizedExclude,
-        lang,
-      );
-    return successEnvelope(recommendations);
+    const guides = this.todayRecommendationsService.getColdStartGuides(
+      normalizedExclude,
+      lang,
+    );
+    return successEnvelope(guides);
   }
 
   @SkipThrottle()
