@@ -54,13 +54,16 @@ describe('AssistantConversationRepository', () => {
   });
 
   describe('listRecentSummaries', () => {
-    it('queries with limit and userId', async () => {
+    it('queries with limit and userId, excluding deleted conversations', async () => {
       prisma.assistantConversation.findMany.mockResolvedValue([] as never);
 
       await repository.listRecentSummaries('user-1', 10);
 
       const call = prisma.assistantConversation.findMany.mock.calls[0]?.[0];
-      expect(call?.where).toEqual({ userId: 'user-1' });
+      expect(call?.where).toEqual({
+        userId: 'user-1',
+        status: { not: AssistantConversationStatus.deleted },
+      });
       expect(call?.take).toBe(10);
     });
   });
@@ -134,6 +137,49 @@ describe('AssistantConversationRepository', () => {
         expect.objectContaining({
           where: { id: 'conv-1', userId: 'user-1' },
           data: { status: AssistantConversationStatus.archived },
+        }),
+      );
+    });
+  });
+
+  describe('softDelete', () => {
+    it('updates status to deleted with userId filter', async () => {
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+
+      await repository.softDelete('user-1', 'conv-1');
+
+      expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'conv-1', userId: 'user-1' },
+          data: { status: AssistantConversationStatus.deleted },
+        }),
+      );
+    });
+  });
+
+  describe('updateTitle', () => {
+    it('updates the title with userId filter', async () => {
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+
+      await repository.updateTitle('user-1', 'conv-1', 'New title');
+
+      expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'conv-1', userId: 'user-1' },
+          data: { title: 'New title' },
+        }),
+      );
+    });
+
+    it('clears the title to null with userId filter', async () => {
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+
+      await repository.updateTitle('user-1', 'conv-1', null);
+
+      expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'conv-1', userId: 'user-1' },
+          data: { title: null },
         }),
       );
     });

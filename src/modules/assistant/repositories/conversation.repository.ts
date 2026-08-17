@@ -84,6 +84,17 @@ export abstract class AssistantConversationRepositoryPort {
     conversationId: string,
   ): Promise<ConversationWithMessages>;
 
+  abstract softDelete(
+    userId: string,
+    conversationId: string,
+  ): Promise<ConversationWithMessages>;
+
+  abstract updateTitle(
+    userId: string,
+    conversationId: string,
+    title: string | null,
+  ): Promise<ConversationWithMessages>;
+
   abstract activateConversation(
     userId: string,
     conversationId: string,
@@ -118,7 +129,10 @@ export class AssistantConversationRepository implements AssistantConversationRep
   ): Promise<ConversationSummary[]> {
     return this.prisma.assistantConversation.findMany({
       ...conversationSummaryArgs,
-      where: { userId },
+      where: {
+        userId,
+        status: { not: AssistantConversationStatus.deleted },
+      },
       orderBy: [
         { lastMessageAt: 'desc' },
         { updatedAt: 'desc' },
@@ -166,6 +180,29 @@ export class AssistantConversationRepository implements AssistantConversationRep
       ...conversationWithMessagesArgs,
       where: { id: conversationId, userId },
       data: { status: AssistantConversationStatus.archived },
+    });
+  }
+
+  async softDelete(
+    userId: string,
+    conversationId: string,
+  ): Promise<ConversationWithMessages> {
+    return this.prisma.assistantConversation.update({
+      ...conversationWithMessagesArgs,
+      where: { id: conversationId, userId },
+      data: { status: AssistantConversationStatus.deleted },
+    });
+  }
+
+  async updateTitle(
+    userId: string,
+    conversationId: string,
+    title: string | null,
+  ): Promise<ConversationWithMessages> {
+    return this.prisma.assistantConversation.update({
+      ...conversationWithMessagesArgs,
+      where: { id: conversationId, userId },
+      data: { title },
     });
   }
 

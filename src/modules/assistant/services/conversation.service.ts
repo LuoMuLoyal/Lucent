@@ -75,6 +75,10 @@ export class AssistantConversationService {
       notFound(this.i18n.t('assistant.conversation_not_found'));
     }
 
+    if (conversation.status === 'deleted') {
+      notFound(this.i18n.t('assistant.conversation_not_found'));
+    }
+
     await this.repository.activateConversation(userId, conversationId);
 
     const opened = await this.repository.findWithMessagesById(
@@ -83,6 +87,57 @@ export class AssistantConversationService {
     );
 
     return this.toSnapshot(opened);
+  }
+
+  /**
+   * Renames an existing non-deleted conversation. Deleted conversations are
+   * treated as missing (404) so a soft-deleted conversation can never be
+   * surfaced again through this path.
+   */
+  async renameConversation(
+    userId: string,
+    conversationId: string,
+    title: string | null,
+  ): Promise<AssistantConversationSnapshot> {
+    const conversation = await this.repository.findWithMessages(
+      userId,
+      conversationId,
+    );
+
+    if (conversation == null || conversation.status === 'deleted') {
+      notFound(this.i18n.t('assistant.conversation_not_found'));
+    }
+
+    const updated = await this.repository.updateTitle(
+      userId,
+      conversationId,
+      title,
+    );
+
+    return this.toSnapshot(updated);
+  }
+
+  /**
+   * Soft-deletes an existing non-deleted conversation. Deleted conversations
+   * are treated as missing (404) so repeated deletes stay idempotent from the
+   * client's perspective.
+   */
+  async deleteConversation(
+    userId: string,
+    conversationId: string,
+  ): Promise<AssistantConversationSnapshot> {
+    const conversation = await this.repository.findWithMessages(
+      userId,
+      conversationId,
+    );
+
+    if (conversation == null || conversation.status === 'deleted') {
+      notFound(this.i18n.t('assistant.conversation_not_found'));
+    }
+
+    const deleted = await this.repository.softDelete(userId, conversationId);
+
+    return this.toSnapshot(deleted);
   }
 
   async clearLatestConversation(

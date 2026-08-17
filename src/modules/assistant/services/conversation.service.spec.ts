@@ -51,6 +51,8 @@ describe('AssistantConversationService', () => {
       findWithMessagesById: vi.fn(),
       create: vi.fn(),
       archiveConversation: vi.fn(),
+      softDelete: vi.fn(),
+      updateTitle: vi.fn(),
       activateConversation: vi.fn().mockResolvedValue(undefined),
       persistTurn: vi.fn(),
     };
@@ -147,6 +149,103 @@ describe('AssistantConversationService', () => {
       await expect(
         service.openConversation('user-1', 'nonexistent'),
       ).rejects.toThrow();
+    });
+
+    it('throws when the conversation is deleted', async () => {
+      repo.findWithMessages.mockResolvedValue(
+        buildConversation({ status: 'deleted' as never }),
+      );
+
+      await expect(
+        service.openConversation('user-1', 'conv-1'),
+      ).rejects.toThrow();
+      expect(repo.activateConversation).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('renameConversation', () => {
+    it('updates the title and returns the snapshot', async () => {
+      const conv = buildConversation();
+      const updated = buildConversation({ title: 'New title' });
+      repo.findWithMessages.mockResolvedValue(conv);
+      repo.updateTitle.mockResolvedValue(updated);
+
+      const result = await service.renameConversation(
+        'user-1',
+        'conv-1',
+        'New title',
+      );
+
+      expect(repo.updateTitle).toHaveBeenCalledWith(
+        'user-1',
+        'conv-1',
+        'New title',
+      );
+      expect(result.title).toBe('New title');
+    });
+
+    it('clears the title to null when requested', async () => {
+      repo.findWithMessages.mockResolvedValue(buildConversation());
+      repo.updateTitle.mockResolvedValue(buildConversation({ title: null }));
+
+      const result = await service.renameConversation('user-1', 'conv-1', null);
+
+      expect(repo.updateTitle).toHaveBeenCalledWith('user-1', 'conv-1', null);
+      expect(result.title).toBeNull();
+    });
+
+    it('throws when conversation not found', async () => {
+      repo.findWithMessages.mockResolvedValue(null);
+
+      await expect(
+        service.renameConversation('user-1', 'nonexistent', 'T'),
+      ).rejects.toThrow();
+      expect(repo.updateTitle).not.toHaveBeenCalled();
+    });
+
+    it('throws when the conversation is deleted', async () => {
+      repo.findWithMessages.mockResolvedValue(
+        buildConversation({ status: 'deleted' as never }),
+      );
+
+      await expect(
+        service.renameConversation('user-1', 'conv-1', 'T'),
+      ).rejects.toThrow();
+      expect(repo.updateTitle).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteConversation', () => {
+    it('soft-deletes and returns the deleted snapshot', async () => {
+      const conv = buildConversation();
+      const deleted = buildConversation({ status: 'deleted' as never });
+      repo.findWithMessages.mockResolvedValue(conv);
+      repo.softDelete.mockResolvedValue(deleted);
+
+      const result = await service.deleteConversation('user-1', 'conv-1');
+
+      expect(repo.softDelete).toHaveBeenCalledWith('user-1', 'conv-1');
+      expect(result.status).toBe('deleted');
+    });
+
+    it('throws when conversation not found', async () => {
+      repo.findWithMessages.mockResolvedValue(null);
+
+      await expect(
+        service.deleteConversation('user-1', 'nonexistent'),
+      ).rejects.toThrow();
+      expect(repo.softDelete).not.toHaveBeenCalled();
+    });
+
+    it('throws when the conversation is already deleted', async () => {
+      repo.findWithMessages.mockResolvedValue(
+        buildConversation({ status: 'deleted' as never }),
+      );
+
+      await expect(
+        service.deleteConversation('user-1', 'conv-1'),
+      ).rejects.toThrow();
+      expect(repo.softDelete).not.toHaveBeenCalled();
     });
   });
 

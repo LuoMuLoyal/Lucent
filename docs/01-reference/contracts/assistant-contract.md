@@ -116,6 +116,8 @@ inline:
 - `POST /api/v1/user/assistant/latest/clear`
 - `GET /api/v1/user/assistant/conversations`
 - `POST /api/v1/user/assistant/conversations/:conversationId/open`
+- `PATCH /api/v1/user/assistant/conversations/:conversationId` — rename a conversation (body `{ title }`, non-empty, ≤ 48 chars); returns the updated conversation
+- `DELETE /api/v1/user/assistant/conversations/:conversationId` — soft-delete a conversation (`status = deleted`); returns the deleted conversation
 - `POST /api/v1/user/assistant/conversations/:conversationId/confirm`
 - `POST /api/v1/user/assistant/messages/stream`
 - `GET /api/v1/user/today-analysis`
@@ -151,7 +153,7 @@ Latest / list / open all operate on persisted assistant conversations.
 interface AssistantConversationDto {
   id: string;
   title: string | null;
-  status: 'active' | 'archived';
+  status: 'active' | 'archived' | 'deleted';
   messages: Array<{
     role: 'user' | 'assistant';
     content: string;
@@ -169,6 +171,8 @@ Behavior:
 - `latest` returns the latest active conversation or `null`
 - `latest/clear` archives the latest active conversation instead of deleting rows
 - `open` promotes the selected conversation to active and archives the previous active one
+- `PATCH conversations/:id` renames a non-deleted conversation (title only); deleted conversations are treated as not found (404)
+- `DELETE conversations/:id` soft-deletes a conversation (status `deleted`); list/latest/open all exclude deleted conversations, and operating on an already-deleted conversation returns 404
 - persisted assistant conversations are not the same thing as historical Today/Report AI summaries
 
 ## Streaming Contract

@@ -48,7 +48,7 @@ export interface AssistantConversationSnapshotMessage {
 export interface AssistantConversationSnapshot {
   id: string;
   title: string | null;
-  status: 'active' | 'archived';
+  status: 'active' | 'archived' | 'deleted';
   messages: AssistantConversationSnapshotMessage[];
   lastMessageAt: string | null;
   createdAt: string;
@@ -58,7 +58,7 @@ export interface AssistantConversationSnapshot {
 export interface AssistantConversationSummary {
   id: string;
   title: string | null;
-  status: 'active' | 'archived';
+  status: 'active' | 'archived' | 'deleted';
   lastMessageAt: string | null;
   createdAt: string;
   updatedAt: string;

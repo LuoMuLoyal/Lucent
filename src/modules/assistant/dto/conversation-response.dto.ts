@@ -40,10 +40,10 @@ export class AssistantConversationDataDto {
   title!: string | null;
 
   @ApiProperty({
-    enum: ['active', 'archived'],
+    enum: ['active', 'archived', 'deleted'],
     description: 'Current conversation status.',
   })
-  status!: 'active' | 'archived';
+  status!: 'active' | 'archived' | 'deleted';
 
   @ApiProperty({
     type: [AssistantConversationMessageDto],

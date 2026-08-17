@@ -4483,6 +4483,82 @@
         "tags": ["Assistant"]
       }
     },
+    "/api/v1/user/assistant/conversations/{conversationId}": {
+      "patch": {
+        "operationId": "AssistantController_renameConversation_v1",
+        "parameters": [
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameConversationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantConversationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Rename one persisted assistant conversation (title only)",
+        "tags": ["Assistant"]
+      },
+      "delete": {
+        "operationId": "AssistantController_deleteConversation_v1",
+        "parameters": [
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantConversationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Soft-delete one persisted assistant conversation",
+        "tags": ["Assistant"]
+      }
+    },
     "/api/v1/user/assistant/latest/clear": {
       "post": {
         "operationId": "AssistantController_clearLatestConversation_v1",
@@ -4717,7 +4793,7 @@
             "name": "exclude",
             "required": false,
             "in": "query",
-            "description": "Recommendation IDs from the last response, used for deduplication",
+            "description": "Guide IDs from the last response, used for deduplication",
             "schema": {
               "type": "array",
               "items": {
@@ -4746,7 +4822,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get random daily health recommendations",
+        "summary": "Get cold-start onboarding guide cards",
         "tags": ["Today Analysis"]
       }
     },
@@ -12193,7 +12269,7 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "archived"],
+            "enum": ["active", "archived", "deleted"],
             "description": "Current conversation status."
           },
           "lastMessageAt": {
@@ -12283,7 +12359,7 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "archived"],
+            "enum": ["active", "archived", "deleted"],
             "description": "Current conversation status."
           },
           "messages": {
@@ -12404,6 +12480,16 @@
           }
         },
         "required": ["code", "message", "data"]
+      },
+      "RenameConversationDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "New conversation title (1-48 chars). Empty or whitespace-only titles are rejected; clients keep empty names local-only."
+          }
+        },
+        "required": ["title"]
       },
       "AssistantClearResultDataDto": {
         "type": "object",

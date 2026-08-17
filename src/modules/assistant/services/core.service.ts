@@ -106,6 +106,28 @@ export class AssistantService {
     };
   }
 
+  async renameConversation(
+    userId: string,
+    conversationId: string,
+    title: string | null,
+  ): Promise<AssistantConversationDataDto> {
+    return this.assistantConversationService.renameConversation(
+      userId,
+      conversationId,
+      title,
+    );
+  }
+
+  async deleteConversation(
+    userId: string,
+    conversationId: string,
+  ): Promise<AssistantConversationDataDto> {
+    return this.assistantConversationService.deleteConversation(
+      userId,
+      conversationId,
+    );
+  }
+
   async confirmProposal(
     userId: string,
     conversationId: string,

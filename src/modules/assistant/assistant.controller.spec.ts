@@ -43,6 +43,8 @@ describe('AssistantController', () => {
             openConversation: vi.fn(),
             clearLatestConversation: vi.fn(),
             confirmProposal: vi.fn(),
+            renameConversation: vi.fn(),
+            deleteConversation: vi.fn(),
             getFoundationCapabilities: vi.fn(),
             streamMessages: vi.fn(),
           },
@@ -457,6 +459,92 @@ describe('AssistantController', () => {
       'u1',
       'conversation-1',
       { proposalIds: ['proposal-1'], decision: 'approved' },
+    );
+  });
+
+  it('renames one persisted conversation envelope', async () => {
+    service.renameConversation.mockResolvedValue({
+      id: 'conversation-1',
+      title: '新标题',
+      status: 'active',
+      messages: [
+        {
+          role: 'user',
+          content: '最近睡眠怎样？',
+          usedTools: [],
+          createdAt: '2026-06-18T10:00:00.000Z',
+        },
+      ],
+      lastMessageAt: '2026-06-18T10:00:00.000Z',
+      createdAt: '2026-06-18T10:00:00.000Z',
+      updatedAt: '2026-06-18T10:05:00.000Z',
+    });
+
+    await expect(
+      controller.renameConversation(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'conversation-1',
+        { title: '新标题' },
+      ),
+    ).resolves.toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: {
+        id: 'conversation-1',
+        title: '新标题',
+        status: 'active',
+        messages: [
+          {
+            role: 'user',
+            content: '最近睡眠怎样？',
+            usedTools: [],
+            createdAt: '2026-06-18T10:00:00.000Z',
+          },
+        ],
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T10:00:00.000Z',
+        updatedAt: '2026-06-18T10:05:00.000Z',
+      },
+    });
+    expect(service.renameConversation).toHaveBeenCalledWith(
+      'u1',
+      'conversation-1',
+      '新标题',
+    );
+  });
+
+  it('deletes one persisted conversation envelope', async () => {
+    service.deleteConversation.mockResolvedValue({
+      id: 'conversation-1',
+      title: '最近睡眠怎样？',
+      status: 'deleted',
+      messages: [],
+      lastMessageAt: '2026-06-18T10:00:00.000Z',
+      createdAt: '2026-06-18T10:00:00.000Z',
+      updatedAt: '2026-06-18T10:05:00.000Z',
+    });
+
+    await expect(
+      controller.deleteConversation(
+        { sub: 'u1', email: 'a@b.c', status: 'active' },
+        'conversation-1',
+      ),
+    ).resolves.toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: {
+        id: 'conversation-1',
+        title: '最近睡眠怎样？',
+        status: 'deleted',
+        messages: [],
+        lastMessageAt: '2026-06-18T10:00:00.000Z',
+        createdAt: '2026-06-18T10:00:00.000Z',
+        updatedAt: '2026-06-18T10:05:00.000Z',
+      },
+    });
+    expect(service.deleteConversation).toHaveBeenCalledWith(
+      'u1',
+      'conversation-1',
     );
   });
 

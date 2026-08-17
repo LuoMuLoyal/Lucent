@@ -1,10 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   Logger,
   Param,
+  Patch,
   Post,
   Res,
 } from '@nestjs/common';
@@ -37,6 +39,8 @@ import { AssistantConversationListResponseDto } from './dto/conversation-list-re
 import { AssistantConversationResponseDto } from './dto/conversation-response.dto';
 
 import { StreamAssistantMessagesDto } from './dto/stream-messages.dto';
+
+import { RenameConversationDto } from './dto/rename-conversation.dto';
 
 import {
   AssistantConfirmResultResponseDto,
@@ -120,6 +124,39 @@ export class AssistantController {
         conversationId,
         dto,
       ),
+    );
+  }
+
+  @Patch('conversations/:conversationId')
+  @ApiOperation({
+    summary: 'Rename one persisted assistant conversation (title only)',
+  })
+  @ApiResponse({ status: 200, type: AssistantConversationResponseDto })
+  async renameConversation(
+    @CurrentUser() user: UserPayload,
+    @Param('conversationId') conversationId: string,
+    @Body() dto: RenameConversationDto,
+  ) {
+    return successEnvelope(
+      await this.assistantService.renameConversation(
+        user.sub,
+        conversationId,
+        dto.title,
+      ),
+    );
+  }
+
+  @Delete('conversations/:conversationId')
+  @ApiOperation({
+    summary: 'Soft-delete one persisted assistant conversation',
+  })
+  @ApiResponse({ status: 200, type: AssistantConversationResponseDto })
+  async deleteConversation(
+    @CurrentUser() user: UserPayload,
+    @Param('conversationId') conversationId: string,
+  ) {
+    return successEnvelope(
+      await this.assistantService.deleteConversation(user.sub, conversationId),
     );
   }
 

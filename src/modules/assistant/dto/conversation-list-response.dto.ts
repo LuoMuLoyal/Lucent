@@ -14,10 +14,10 @@ export class AssistantConversationSummaryDto {
   title!: string | null;
 
   @ApiProperty({
-    enum: ['active', 'archived'],
+    enum: ['active', 'archived', 'deleted'],
     description: 'Current conversation status.',
   })
-  status!: 'active' | 'archived';
+  status!: 'active' | 'archived' | 'deleted';
 
   @ApiProperty({
     description: 'ISO-8601 timestamp of the latest conversation activity.',
