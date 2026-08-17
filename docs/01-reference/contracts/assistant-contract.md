@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-11
+updated: 2026-08-17
 ---
 
 # Assistant Contract
@@ -215,8 +215,8 @@ Rules:
 - the thread must have a `pending` review; confirming twice or an unknown
   conversation id is rejected
 - an expired review is rejected and must be regenerated
-- on `approved` the client still applies the real write locally; on `rejected`
-  no write happens
+- on `approved` the server applies the approved writes atomically from the
+  thread proposals before resuming; on `rejected` nothing is written
 
 Final result payload:
 

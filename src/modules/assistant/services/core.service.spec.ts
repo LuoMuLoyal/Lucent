@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   ForbiddenException,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { AssistantRuntimeService } from '../agent/runtime.service';
 import type { UserSettingsService } from '../../user-settings';
+import type { DailyRecordsService } from '../../daily-records';
 import type { AssistantPolicyService } from './policy.service';
 import type { AssistantToolService } from '../tools/tool.service';
 import type { AssistantConversationService } from './conversation.service';
@@ -61,6 +63,7 @@ describe('AssistantService', () => {
   let service: AssistantService;
   let runtime: vi.Mocked<AssistantRuntimeService>;
   let userSettings: vi.Mocked<UserSettingsService>;
+  let dailyRecords: vi.Mocked<DailyRecordsService>;
   let policy: vi.Mocked<AssistantPolicyService>;
   let toolExecutor: vi.Mocked<AssistantToolService>;
   let conversation: vi.Mocked<AssistantConversationService>;
@@ -70,13 +73,21 @@ describe('AssistantService', () => {
       describeFoundation: vi.fn().mockResolvedValue(mockFoundation),
       runConversation: vi.fn(),
       resumeConversation: vi.fn(),
+      readPendingProposals: vi.fn(),
       streamPreGeneratedContent: vi.fn(),
       generateStream: vi.fn(),
     } as unknown as vi.Mocked<AssistantRuntimeService>;
 
     userSettings = {
       getSettings: vi.fn().mockResolvedValue(mockSettings),
+      updateSettings: vi.fn(),
     } as unknown as vi.Mocked<UserSettingsService>;
+
+    dailyRecords = {
+      create: vi.fn().mockResolvedValue({ id: 'record-1' }),
+      update: vi.fn().mockResolvedValue({ id: 'record-1' }),
+      delete: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<DailyRecordsService>;
 
     policy = {
       evaluate: vi.fn().mockReturnValue(mockPolicy),
@@ -102,6 +113,7 @@ describe('AssistantService', () => {
       policy,
       toolExecutor,
       conversation,
+      dailyRecords,
     );
   });
 
@@ -205,6 +217,50 @@ describe('AssistantService', () => {
   describe('confirmProposal', () => {
     const dto = { proposalIds: ['proposal-1'], decision: 'approved' as const };
 
+    const pendingReview = {
+      proposalIds: ['proposal-1'],
+      status: 'pending' as const,
+      expiresAt: '2099-01-01T00:00:00.000Z',
+    };
+
+    const createProposal = {
+      id: 'proposal-1',
+      type: 'create_daily_record' as const,
+      status: 'proposed' as const,
+      confirmationRequired: true,
+      title: '记录喝水',
+      summary: '喝水 500ml',
+      reason: null,
+      previewFields: [],
+      target: { kind: 'daily_record' as const, label: '喝水' },
+      constraints: [],
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      payloadVersion: 1,
+      payload: {
+        type: 'create_daily_record' as const,
+        draft: {
+          kind: 'water' as const,
+          occurredAt: '2026-08-17',
+          title: '喝水',
+          value: '500',
+          unit: 'ml',
+          note: null,
+          payload: null,
+        },
+      },
+    };
+
+    beforeEach(() => {
+      conversation.getConversation.mockResolvedValue(mockConversation);
+      runtime.readPendingProposals.mockResolvedValue({
+        pendingReview,
+        proposals: [createProposal],
+      });
+      runtime.resumeConversation.mockResolvedValue({
+        finalContent: '已确认。',
+      });
+    });
+
     it('throws NotFoundException when the conversation is missing', async () => {
       conversation.getConversation.mockResolvedValue(null);
 
@@ -212,10 +268,10 @@ describe('AssistantService', () => {
         service.confirmProposal('user-1', 'conv-1', dto),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(runtime.resumeConversation).not.toHaveBeenCalled();
+      expect(runtime.readPendingProposals).not.toHaveBeenCalled();
     });
 
-    it('resumes the thread and returns the decision result', async () => {
-      conversation.getConversation.mockResolvedValue(mockConversation);
+    it('applies approved create_daily_record writes server-side then resumes', async () => {
       runtime.resumeConversation.mockResolvedValue({
         finalContent: '已确认。',
       });
@@ -225,6 +281,14 @@ describe('AssistantService', () => {
         note: 'ok',
       });
 
+      expect(runtime.readPendingProposals).toHaveBeenCalledWith('conv-1');
+      expect(dailyRecords.create).toHaveBeenCalledWith('user-1', {
+        kind: 'water',
+        occurredAt: '2026-08-17',
+        title: '喝水',
+        value: '500',
+        unit: 'ml',
+      });
       expect(runtime.resumeConversation).toHaveBeenCalledWith({
         userId: 'user-1',
         conversationId: 'conv-1',
@@ -237,6 +301,177 @@ describe('AssistantService', () => {
         status: 'approved',
         finalContent: '已确认。',
       });
+    });
+
+    it('applies update_daily_record with null-clear semantics preserved', async () => {
+      runtime.readPendingProposals.mockResolvedValue({
+        pendingReview,
+        proposals: [
+          {
+            ...createProposal,
+            id: 'proposal-2',
+            type: 'update_daily_record' as const,
+            payload: {
+              type: 'update_daily_record' as const,
+              recordId: 'record-9',
+              draft: { title: '新标题', value: null },
+            },
+          },
+        ],
+      });
+
+      await service.confirmProposal('user-1', 'conv-1', {
+        proposalIds: ['proposal-2'],
+        decision: 'approved',
+      });
+
+      expect(dailyRecords.update).toHaveBeenCalledWith('user-1', 'record-9', {
+        title: '新标题',
+        value: null,
+      });
+    });
+
+    it('applies delete_daily_record with the record id', async () => {
+      runtime.readPendingProposals.mockResolvedValue({
+        pendingReview,
+        proposals: [
+          {
+            ...createProposal,
+            id: 'proposal-3',
+            type: 'delete_daily_record' as const,
+            payload: {
+              type: 'delete_daily_record' as const,
+              recordId: 'record-7',
+            },
+          },
+        ],
+      });
+
+      await service.confirmProposal('user-1', 'conv-1', {
+        proposalIds: ['proposal-3'],
+        decision: 'approved',
+      });
+
+      expect(dailyRecords.delete).toHaveBeenCalledWith('user-1', 'record-7');
+    });
+
+    it('applies update_user_settings with the draft fields', async () => {
+      runtime.readPendingProposals.mockResolvedValue({
+        pendingReview,
+        proposals: [
+          {
+            ...createProposal,
+            id: 'proposal-4',
+            type: 'update_user_settings' as const,
+            payload: {
+              type: 'update_user_settings' as const,
+              draft: {
+                assistantEnabled: true,
+                assistantMemoryEnabled: false,
+                assistantContext: { dailyRecords: true },
+              },
+            },
+          },
+        ],
+      });
+
+      await service.confirmProposal('user-1', 'conv-1', {
+        proposalIds: ['proposal-4'],
+        decision: 'approved',
+      });
+
+      expect(userSettings.updateSettings).toHaveBeenCalledWith('user-1', {
+        assistantEnabled: true,
+        assistantMemoryEnabled: false,
+        assistantContext: { dailyRecords: true },
+      });
+    });
+
+    it('does not write and only resumes when rejected', async () => {
+      runtime.resumeConversation.mockResolvedValue({
+        finalContent: '已拒绝。',
+      });
+
+      const result = await service.confirmProposal('user-1', 'conv-1', {
+        proposalIds: ['proposal-1'],
+        decision: 'rejected',
+      });
+
+      expect(runtime.readPendingProposals).not.toHaveBeenCalled();
+      expect(dailyRecords.create).not.toHaveBeenCalled();
+      expect(dailyRecords.update).not.toHaveBeenCalled();
+      expect(dailyRecords.delete).not.toHaveBeenCalled();
+      expect(userSettings.updateSettings).not.toHaveBeenCalled();
+      expect(runtime.resumeConversation).toHaveBeenCalledWith({
+        userId: 'user-1',
+        conversationId: 'conv-1',
+        decision: 'rejected',
+      });
+      expect(result.status).toBe('rejected');
+    });
+
+    it('rejects when the pending review is missing', async () => {
+      runtime.readPendingProposals.mockResolvedValue({
+        pendingReview: null,
+        proposals: [],
+      });
+
+      await expect(
+        service.confirmProposal('user-1', 'conv-1', dto),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(dailyRecords.create).not.toHaveBeenCalled();
+      expect(runtime.resumeConversation).not.toHaveBeenCalled();
+    });
+
+    it('rejects when the pending review is not pending', async () => {
+      runtime.readPendingProposals.mockResolvedValue({
+        pendingReview: { ...pendingReview, status: 'approved' },
+        proposals: [createProposal],
+      });
+
+      await expect(
+        service.confirmProposal('user-1', 'conv-1', dto),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(dailyRecords.create).not.toHaveBeenCalled();
+      expect(runtime.resumeConversation).not.toHaveBeenCalled();
+    });
+
+    it('rejects an expired pending review without writing', async () => {
+      runtime.readPendingProposals.mockResolvedValue({
+        pendingReview: {
+          ...pendingReview,
+          expiresAt: '2020-01-01T00:00:00.000Z',
+        },
+        proposals: [createProposal],
+      });
+
+      await expect(
+        service.confirmProposal('user-1', 'conv-1', dto),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(dailyRecords.create).not.toHaveBeenCalled();
+      expect(runtime.resumeConversation).not.toHaveBeenCalled();
+    });
+
+    it('propagates write failures and does not resume the thread', async () => {
+      dailyRecords.create.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        service.confirmProposal('user-1', 'conv-1', dto),
+      ).rejects.toThrow('db down');
+      expect(runtime.resumeConversation).not.toHaveBeenCalled();
+    });
+
+    it('rejects when the proposal id is not in the pending review', async () => {
+      runtime.readPendingProposals.mockResolvedValue({
+        pendingReview,
+        proposals: [],
+      });
+
+      await expect(
+        service.confirmProposal('user-1', 'conv-1', dto),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(dailyRecords.create).not.toHaveBeenCalled();
+      expect(runtime.resumeConversation).not.toHaveBeenCalled();
     });
   });
 

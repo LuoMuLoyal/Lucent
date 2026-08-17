@@ -15,6 +15,7 @@ import type { AssistantRuntimeCapabilities } from '../types/assistant.types';
 import type {
   AssistantMessageResult,
   AssistantConversationMessage,
+  AssistantProposedAction,
   AssistantStreamChunkEvent,
   AssistantToolExecutionResult,
 } from '../types/assistant.types';
@@ -222,28 +223,7 @@ export class AssistantRuntimeService {
     decision: 'approved' | 'rejected';
     note?: string;
   }): Promise<{ finalContent: string | null }> {
-    const checkpointer = this.checkpointerService.getSaver();
-    if (checkpointer == null) {
-      badRequest(
-        'Checkpoint persistence is unavailable; cannot resume the review.',
-      );
-    }
-
-    const graph = buildAssistantRuntimeGraph({
-      createModel: () =>
-        this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
-      // The resume path never reaches the agent↔tools loop; tools are only
-      // executed by the original (now suspended) invocation.
-      executeTools: () => Promise.resolve([]),
-      buildSystemPrompt: buildAssistantSystemPrompt,
-      buildReadSystemPrompt,
-      buildWriteSystemPrompt,
-      buildKnowledgeSystemPrompt,
-      buildSimpleChatSystemPrompt,
-      respondCache: this.respondCache,
-      checkpointer,
-      conversationId: input.conversationId,
-    });
+    const graph = this.buildGraphWithCheckpointer(input.conversationId);
     const config = { configurable: { thread_id: input.conversationId } };
 
     const snapshot = await graph.getState(config);
@@ -267,6 +247,31 @@ export class AssistantRuntimeService {
       config,
     );
     return { finalContent: result.finalContent ?? null };
+  }
+
+  /**
+   * Reads the pending review and its proposals from the suspended thread's
+   * checkpoint without resuming it. The confirm endpoint uses this to apply
+   * approved writes server-side before the thread resumes.
+   */
+  async readPendingProposals(conversationId: string): Promise<{
+    pendingReview: AssistantPendingReview | null;
+    proposals: AssistantProposedAction[];
+  }> {
+    const graph = this.buildGraphWithCheckpointer(conversationId);
+    const config = { configurable: { thread_id: conversationId } };
+
+    const snapshot = await graph.getState(config);
+    const values = snapshot.values as {
+      pendingReview?: AssistantPendingReview;
+      toolResults?: AssistantToolExecutionResult[];
+    };
+    return {
+      pendingReview: values.pendingReview ?? null,
+      proposals: (values.toolResults ?? []).flatMap(
+        (result) => result.proposedActions ?? [],
+      ),
+    };
   }
 
   /**
@@ -400,6 +405,36 @@ export class AssistantRuntimeService {
       implementedToolNames: ASSISTANT_IMPLEMENTED_TOOL_NAMES,
       contextSources: ASSISTANT_CONTEXT_SOURCES,
     };
+  }
+
+  /**
+   * Builds the persisted graph for a conversation thread. Requires checkpoint
+   * persistence (badRequest otherwise): the resume and pending-proposal-read
+   * paths only make sense for checkpointed threads.
+   */
+  private buildGraphWithCheckpointer(conversationId: string) {
+    const checkpointer = this.checkpointerService.getSaver();
+    if (checkpointer == null) {
+      badRequest(
+        'Checkpoint persistence is unavailable; cannot resume the review.',
+      );
+    }
+
+    return buildAssistantRuntimeGraph({
+      createModel: () =>
+        this.llmRuntimeService.createChatModel('chat', CHAT_MODEL_OPTIONS),
+      // The resume/read path never reaches the agent↔tools loop; tools are
+      // only executed by the original (now suspended) invocation.
+      executeTools: () => Promise.resolve([]),
+      buildSystemPrompt: buildAssistantSystemPrompt,
+      buildReadSystemPrompt,
+      buildWriteSystemPrompt,
+      buildKnowledgeSystemPrompt,
+      buildSimpleChatSystemPrompt,
+      respondCache: this.respondCache,
+      checkpointer,
+      conversationId,
+    });
   }
 
   private buildMessages(

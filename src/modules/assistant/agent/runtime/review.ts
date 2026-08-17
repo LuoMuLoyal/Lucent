@@ -54,8 +54,9 @@ export function createWriteReviewSetupNode() {
 /**
  * Node 2: suspends the thread via `interrupt` and waits for the client's
  * decision. On resume the decision is written back to `pendingReview` and a
- * guidance message is appended so the reply never claims the write happened
- * automatically (the client still applies the real write).
+ * guidance message is appended so the reply never repeats sensitive details
+ * (the approved writes were already applied server-side by the confirm
+ * endpoint before the thread resumed).
  */
 export function createWriteReviewNode() {
   return (state: AssistantRuntimeState) => {
@@ -86,7 +87,7 @@ export function createWriteReviewNode() {
       messages: [
         new SystemMessage(
           decision.decision === 'approved'
-            ? 'The user approved the proposal. Confirm the write still needs to be applied on the client side; do not claim it was applied automatically.'
+            ? 'The user approved the proposal and the writes were applied server-side. Acknowledge completion without repeating sensitive details.'
             : 'The user rejected the proposal. Do not perform or imply any write.',
         ),
       ],

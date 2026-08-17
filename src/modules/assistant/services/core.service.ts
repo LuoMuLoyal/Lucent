@@ -1,6 +1,9 @@
 import { badRequest, forbidden, notFound } from '../../../common';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ResultCode } from '../../../common';
+import { DailyRecordsService } from '../../daily-records';
+import type { CreateDailyRecordDto } from '../../daily-records/dto/create-record.dto';
+import type { UpdateDailyRecordDto } from '../../daily-records/dto/update-record.dto';
 import type { AssistantCapabilitiesDataDto } from '../dto/capabilities-response.dto';
 
 import type { AssistantConversationDataDto } from '../dto/conversation-response.dto';
@@ -25,6 +28,7 @@ import { nowIsoString } from '../../../common';
 import type {
   AssistantConversationMessage,
   AssistantMessageResult,
+  AssistantProposedAction,
   AssistantStreamChunkEvent,
   AssistantToolExecutionContext,
   AssistantToolExecutionResult,
@@ -39,6 +43,7 @@ export class AssistantService {
     private readonly assistantPolicyService: AssistantPolicyService,
     private readonly assistantToolExecutor: AssistantToolService,
     private readonly assistantConversationService: AssistantConversationService,
+    private readonly dailyRecordsService: DailyRecordsService,
   ) {}
 
   async getFoundationCapabilities(): Promise<AssistantRuntimeCapabilities> {
@@ -115,6 +120,19 @@ export class AssistantService {
       notFound('Conversation not found.');
     }
 
+    // On approval the writes are applied server-side from the suspended
+    // thread's proposals BEFORE the thread is resumed. Any write failure
+    // aborts the confirm (the thread stays suspended at the review point) and
+    // surfaces to the client as a failed confirm — never "confirmed but not
+    // written".
+    if (dto.decision === 'approved') {
+      await this.applyApprovedProposals(
+        userId,
+        conversationId,
+        dto.proposalIds,
+      );
+    }
+
     const { finalContent } =
       await this.assistantAgentService.resumeConversation({
         userId,
@@ -128,6 +146,124 @@ export class AssistantService {
       status: dto.decision,
       finalContent,
     };
+  }
+
+  /**
+   * Applies the approved write proposals (only the ones the client explicitly
+   * named that still exist in the thread state), in order, scoped to the
+   * conversation owner. Revalidates the review state read from the checkpoint
+   * so double-confirm / expiry checks behave the same as resumeConversation.
+   */
+  private async applyApprovedProposals(
+    userId: string,
+    conversationId: string,
+    proposalIds: string[],
+  ): Promise<void> {
+    const { pendingReview, proposals } =
+      await this.assistantAgentService.readPendingProposals(conversationId);
+    if (pendingReview == null || pendingReview.status !== 'pending') {
+      badRequest('No pending proposal review for this conversation.');
+    }
+    if (
+      pendingReview.expiresAt != null &&
+      new Date(pendingReview.expiresAt).getTime() < Date.now()
+    ) {
+      badRequest(
+        'The proposal review expired. Ask the assistant to regenerate it.',
+      );
+    }
+
+    const toWrite = proposals.filter((proposal) =>
+      proposalIds.includes(proposal.id),
+    );
+    if (toWrite.length === 0 && proposalIds.length > 0) {
+      badRequest('Proposal not found in the pending review.');
+    }
+
+    for (const proposal of toWrite) {
+      await this.applyProposalWrite(userId, proposal);
+    }
+  }
+
+  private async applyProposalWrite(
+    userId: string,
+    proposal: AssistantProposedAction,
+  ): Promise<void> {
+    // The payload union is discriminated on its own `type` field; switching on
+    // it narrows each payload variant below.
+    switch (proposal.payload.type) {
+      case 'create_daily_record': {
+        const draft = proposal.payload.draft;
+        const createDto: CreateDailyRecordDto = {
+          // kind is generated-side bounded to the assistant kind union;
+          // invalid values are rejected by the service's enum validation.
+          kind: draft.kind,
+          occurredAt: draft.occurredAt,
+          ...(draft.title != null ? { title: draft.title } : {}),
+          ...(draft.value != null ? { value: draft.value } : {}),
+          ...(draft.unit != null ? { unit: draft.unit } : {}),
+          ...(draft.note != null ? { note: draft.note } : {}),
+          ...(draft.payload != null ? { payload: draft.payload } : {}),
+        };
+        await this.dailyRecordsService.create(userId, createDto);
+        break;
+      }
+      case 'update_daily_record': {
+        const draft = proposal.payload.draft;
+        // UpdateDailyRecordDto semantics: a key present with `null` clears
+        // the field, an absent key leaves it unchanged. The draft carries
+        // only the keys the assistant intended to change, so pass them
+        // through verbatim (null values included). occurredAt is the
+        // exception: the DTO does not allow null for it (a record always has
+        // a date), so a null draft value is skipped.
+        const updateDto: UpdateDailyRecordDto = {};
+        if (draft.occurredAt != null) {
+          updateDto.occurredAt = draft.occurredAt;
+        }
+        if (draft.title !== undefined) {
+          updateDto.title = draft.title;
+        }
+        if (draft.value !== undefined) {
+          updateDto.value = draft.value;
+        }
+        if (draft.unit !== undefined) {
+          updateDto.unit = draft.unit;
+        }
+        if (draft.note !== undefined) {
+          updateDto.note = draft.note;
+        }
+        if (draft.payload !== undefined) {
+          updateDto.payload = draft.payload;
+        }
+        await this.dailyRecordsService.update(
+          userId,
+          proposal.payload.recordId,
+          updateDto,
+        );
+        break;
+      }
+      case 'delete_daily_record':
+        await this.dailyRecordsService.delete(
+          userId,
+          proposal.payload.recordId,
+        );
+        break;
+      case 'update_user_settings': {
+        const draft = proposal.payload.draft;
+        await this.userSettingsService.updateSettings(userId, {
+          ...(draft.assistantEnabled != null
+            ? { assistantEnabled: draft.assistantEnabled }
+            : {}),
+          ...(draft.assistantMemoryEnabled != null
+            ? { assistantMemoryEnabled: draft.assistantMemoryEnabled }
+            : {}),
+          ...(draft.assistantContext != null
+            ? { assistantContext: draft.assistantContext }
+            : {}),
+        });
+        break;
+      }
+    }
   }
 
   async streamMessages(

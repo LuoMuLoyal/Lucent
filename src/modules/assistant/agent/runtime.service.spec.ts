@@ -460,42 +460,109 @@ describe('AssistantRuntimeService', () => {
     expect(foundation.ragEnabled).toBe(false);
   });
 
-  describe('resumeConversation', () => {
-    /** Builds a service whose checkpointer is a fresh MemorySaver and whose model produces one proposal then a reply. */
-    function buildResumeService(expiresAt: string) {
-      const responses = [
-        new AIMessageChunk({
-          content: '',
-          tool_calls: [
-            {
-              name: 'propose_create_daily_record',
-              id: 'call_0',
-              args: {},
-            },
-          ],
-        }),
-        new AIMessageChunk({
-          content: '已确认，请在记录页完成保存。',
-        }),
-      ];
-      const mockModel = {
-        bindTools: vi.fn().mockReturnThis(),
-        invoke: vi.fn(),
-        stream: vi.fn().mockImplementation(async () => {
+  /** Builds a service whose checkpointer is a fresh MemorySaver and whose model produces one proposal then a reply. */
+  function buildResumeService(expiresAt: string) {
+    const responses = [
+      new AIMessageChunk({
+        content: '',
+        tool_calls: [
+          {
+            name: 'propose_create_daily_record',
+            id: 'call_0',
+            args: {},
+          },
+        ],
+      }),
+      new AIMessageChunk({
+        content: '已确认，请在记录页完成保存。',
+      }),
+    ];
+    const mockModel = {
+      bindTools: vi.fn().mockReturnThis(),
+      invoke: vi.fn(),
+      stream: vi.fn().mockImplementation(async () => {
+        await Promise.resolve();
+        const response = responses.shift();
+        return (async function* () {
           await Promise.resolve();
-          const response = responses.shift();
-          return (async function* () {
-            await Promise.resolve();
-            if (response != null) {
-              yield response;
-            }
-          })();
-        }),
-      };
+          if (response != null) {
+            yield response;
+          }
+        })();
+      }),
+    };
+    const llmRuntimeService = {
+      hasRoleConfig: vi.fn().mockReturnValue(true),
+      getModelName: vi.fn().mockReturnValue('test-model'),
+      createChatModel: vi.fn().mockReturnValue(mockModel),
+    } as unknown as LlmRuntimeService;
+    const saver = new MemorySaver();
+    const service = new AssistantRuntimeService(
+      llmRuntimeService,
+      buildLeafletService() as never,
+      buildMetricsService() as never,
+      new LlmCircuitBreakerService(),
+      buildCacheService() as never,
+      { getSaver: () => saver } as never,
+    );
+    const executeTools = vi.fn().mockResolvedValue([
+      {
+        name: 'propose_create_daily_record',
+        data: { draft: {} },
+        proposedActions: [
+          {
+            id: 'proposal-1',
+            type: 'create_daily_record',
+            status: 'proposed',
+            expiresAt,
+          },
+        ],
+      },
+    ]);
+    const conversationInput = {
+      userId: 'u1',
+      userMessage: '帮我记录今天喝水 500ml',
+      locale: 'zh-CN' as const,
+      enabledContextSources: ['health_profile' as const],
+      conversationId: 'conv-1',
+    };
+    return { service, executeTools, conversationInput };
+  }
+
+  describe('readPendingProposals', () => {
+    it('reads the pending review and proposals from a suspended thread', async () => {
+      const { service, executeTools, conversationInput } = buildResumeService(
+        '2099-01-01T00:00:00.000Z',
+      );
+
+      await service.runConversation(conversationInput, executeTools as never);
+
+      const read = await service.readPendingProposals('conv-1');
+      expect(read.pendingReview).toMatchObject({
+        proposalIds: ['proposal-1'],
+        status: 'pending',
+      });
+      expect(read.proposals).toHaveLength(1);
+      expect(read.proposals[0]).toMatchObject({
+        id: 'proposal-1',
+        type: 'create_daily_record',
+      });
+    });
+
+    it('returns null review and empty proposals for a thread without proposals', async () => {
       const llmRuntimeService = {
         hasRoleConfig: vi.fn().mockReturnValue(true),
         getModelName: vi.fn().mockReturnValue('test-model'),
-        createChatModel: vi.fn().mockReturnValue(mockModel),
+        createChatModel: vi.fn().mockReturnValue({
+          bindTools: vi.fn().mockReturnThis(),
+          invoke: vi.fn(),
+          stream: vi.fn().mockResolvedValue(
+            (async function* () {
+              await Promise.resolve();
+              yield new AIMessageChunk({ content: '你好！' });
+            })(),
+          ),
+        }),
       } as unknown as LlmRuntimeService;
       const saver = new MemorySaver();
       const service = new AssistantRuntimeService(
@@ -506,30 +573,26 @@ describe('AssistantRuntimeService', () => {
         buildCacheService() as never,
         { getSaver: () => saver } as never,
       );
-      const executeTools = vi.fn().mockResolvedValue([
-        {
-          name: 'propose_create_daily_record',
-          data: { draft: {} },
-          proposedActions: [
-            {
-              id: 'proposal-1',
-              type: 'create_daily_record',
-              status: 'proposed',
-              expiresAt,
-            },
-          ],
-        },
-      ]);
-      const conversationInput = {
-        userId: 'u1',
-        userMessage: '帮我记录今天喝水 500ml',
-        locale: 'zh-CN' as const,
-        enabledContextSources: ['health_profile' as const],
-        conversationId: 'conv-1',
-      };
-      return { service, executeTools, conversationInput };
-    }
 
+      // A plain chat turn never suspends; the state has no pending review.
+      await service.runConversation(
+        {
+          userId: 'u1',
+          userMessage: '你好',
+          locale: 'zh-CN',
+          enabledContextSources: ['health_profile'],
+          conversationId: 'conv-1',
+        },
+        (() => Promise.resolve([])) as never,
+      );
+
+      const read = await service.readPendingProposals('conv-1');
+      expect(read.pendingReview).toBeNull();
+      expect(read.proposals).toEqual([]);
+    });
+  });
+
+  describe('resumeConversation', () => {
     it('resumes a pending review after approval', async () => {
       const { service, executeTools, conversationInput } = buildResumeService(
         '2099-01-01T00:00:00.000Z',
