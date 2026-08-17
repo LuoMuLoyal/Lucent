@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import type { SuggestionRule, RuleContext } from '../../../types/rule.types';
 
@@ -33,6 +33,14 @@ export class MissedDoseRuleService implements SuggestionRule {
   readonly isBaselineRequired = false;
   readonly consumableSignalKinds = ['overdueUnconfirmed'];
 
+  /**
+   * Matches the most overdue unconfirmed medication dose.
+   *
+   * Signal payloads for the generated `skip_dose` route are passed through to
+   * {@link buildSkipRoute}. `scheduledFor` (ISO date string) and `scheduledTime`
+   * (time label string) are expected to be strings when present; the route
+   * builder omits them with a warning if that assumption is violated.
+   */
   match(
     signals: SuggestionSignal[],
     _context: RuleContext,
@@ -114,7 +122,7 @@ export class MissedDoseRuleService implements SuggestionRule {
         {
           actionId: 'skip_dose',
           label: 'skip_dose',
-          route: '/medicine?action=skip',
+          route: buildSkipRoute(signal),
           authRequired: true,
         },
       ],
@@ -135,5 +143,36 @@ export class MissedDoseRuleService implements SuggestionRule {
         },
       },
     };
+  }
+}
+
+const logger = new Logger(MissedDoseRuleService.name);
+
+function buildSkipRoute(signal: SuggestionSignal): string {
+  const params = new URLSearchParams();
+  params.set('action', 'skip');
+
+  appendStringParam(params, 'currentMedicineId', signal.payload['medicineId']);
+  appendStringParam(params, 'reminderId', signal.payload['reminderId']);
+  appendStringParam(params, 'scheduledFor', signal.payload['scheduledFor']);
+  appendStringParam(params, 'scheduledTime', signal.payload['scheduledTime']);
+
+  return `/medicine?${params.toString()}`;
+}
+
+function appendStringParam(
+  params: URLSearchParams,
+  key: string,
+  value: unknown,
+): void {
+  if (typeof value === 'string' && value.length > 0) {
+    params.set(key, value);
+    return;
+  }
+
+  if (value !== undefined && value !== null) {
+    logger.warn(
+      `Omitting "${key}" from skip_dose route: expected a non-empty string, received ${typeof value}`,
+    );
   }
 }

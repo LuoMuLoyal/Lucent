@@ -47,6 +47,91 @@ describe('MissedDoseRuleService', () => {
     );
   });
 
+  it('should expose a skip_dose route with slot-aware query parameters', () => {
+    const signals = [
+      buildSignal({
+        kind: 'overdueUnconfirmed',
+        payload: {
+          medicineId: 'med-1',
+          medicineName: 'Test Medicine',
+          reminderId: 'rem-1',
+          scheduledFor: '2026-07-09',
+          scheduledTime: '08:00',
+          scheduledHour: 8,
+          scheduledMinute: 0,
+          overdueMinutes: 60,
+          status: 'overdueUnconfirmed',
+        },
+      }),
+    ];
+
+    const candidate = rule.match(signals, buildContext());
+    expect(candidate).not.toBeNull();
+
+    const skipAction = candidate!.secondaryActions![0]!;
+    expect(skipAction.actionId).toBe('skip_dose');
+
+    const routeUrl = new URL(`http://localhost${skipAction.route}`);
+    expect(routeUrl.searchParams.get('action')).toBe('skip');
+    expect(routeUrl.searchParams.get('currentMedicineId')).toBe('med-1');
+    expect(routeUrl.searchParams.get('reminderId')).toBe('rem-1');
+    expect(routeUrl.searchParams.get('scheduledFor')).toBe('2026-07-09');
+    expect(routeUrl.searchParams.get('scheduledTime')).toBe('08:00');
+  });
+
+  it('should omit optional query parameters when payload fields are missing', () => {
+    const signals = [
+      buildSignal({
+        kind: 'overdueUnconfirmed',
+        payload: {
+          medicineId: 'med-1',
+          medicineName: 'Test Medicine',
+          scheduledFor: '2026-07-09',
+          scheduledHour: 8,
+          scheduledMinute: 0,
+          overdueMinutes: 60,
+          status: 'overdueUnconfirmed',
+        },
+      }),
+    ];
+
+    const candidate = rule.match(signals, buildContext());
+    expect(candidate).not.toBeNull();
+
+    const skipAction = candidate!.secondaryActions![0]!;
+    const routeUrl = new URL(`http://localhost${skipAction.route}`);
+    expect(routeUrl.searchParams.get('action')).toBe('skip');
+    expect(routeUrl.searchParams.get('currentMedicineId')).toBe('med-1');
+    expect(routeUrl.searchParams.get('reminderId')).toBeNull();
+    expect(routeUrl.searchParams.get('scheduledFor')).toBe('2026-07-09');
+    expect(routeUrl.searchParams.get('scheduledTime')).toBeNull();
+  });
+
+  it('should not include currentMedicineId when payload lacks medicineId', () => {
+    const signals = [
+      buildSignal({
+        kind: 'overdueUnconfirmed',
+        payload: {
+          medicineName: 'Test Medicine',
+          scheduledFor: '2026-07-09',
+          scheduledHour: 8,
+          scheduledMinute: 0,
+          overdueMinutes: 60,
+          status: 'overdueUnconfirmed',
+        },
+      }),
+    ];
+
+    const candidate = rule.match(signals, buildContext());
+    expect(candidate).not.toBeNull();
+
+    const skipAction = candidate!.secondaryActions![0]!;
+    const routeUrl = new URL(`http://localhost${skipAction.route}`);
+    expect(routeUrl.searchParams.get('action')).toBe('skip');
+    expect(routeUrl.searchParams.get('currentMedicineId')).toBeNull();
+    expect(routeUrl.searchParams.get('scheduledFor')).toBe('2026-07-09');
+  });
+
   it('should not match pending_dose even when its status is overdueUnconfirmed', () => {
     const signals = [
       buildSignal({
