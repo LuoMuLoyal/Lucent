@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import {
   HealthEventOutcome,
   HealthEventStatus,
@@ -245,7 +245,9 @@ export class PrismaEventRepository extends HealthEventRepositoryPort {
       });
 
       if (row == null) {
-        throw new Error('Created health event could not be read back.');
+        throw new InternalServerErrorException(
+          'Created health event could not be read back.',
+        );
       }
       return this.toEventRecord(row);
     } catch (error) {
