@@ -278,8 +278,9 @@ export class AuthOAuthFacadeService {
     this.authNotificationService
       .notifyIdentityLinked(userId, profile)
       .catch((error: unknown) => {
-        this.logger.warn(
+        this.logger.error(
           `Failed to send identity-linked notification for user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
+          error instanceof Error ? error.stack : undefined,
         );
       });
   }
@@ -311,8 +312,9 @@ export class AuthOAuthFacadeService {
     this.authNotificationService
       .notifyOAuthLogin(updatedUser.id, profile)
       .catch((error: unknown) => {
-        this.logger.warn(
+        this.logger.error(
           `Failed to send oauth-login notification for user ${updatedUser.id}: ${error instanceof Error ? error.message : String(error)}`,
+          error instanceof Error ? error.stack : undefined,
         );
       });
     return { user: updatedUser, ...tokens };
