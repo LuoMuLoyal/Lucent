@@ -6,11 +6,13 @@ import {
   TODAY_SUGGESTION_MATERIALIZATION_CHANGED,
 } from '../../../../common/events/domain-events';
 import { TodayAnalysisTriggerListener } from './trigger.listener';
+import type { TodayAnalysisContextService } from '../pipeline/context.service';
 
 describe('TodayAnalysisTriggerListener', () => {
   let listener: TodayAnalysisTriggerListener;
   let store: { markPending: vi.Mock };
   let queue: { enqueue: vi.Mock };
+  let contextService: { shouldTriggerForDimension: vi.Mock };
 
   beforeEach(() => {
     store = {
@@ -21,15 +23,24 @@ describe('TodayAnalysisTriggerListener', () => {
       }),
     };
     queue = { enqueue: vi.fn().mockResolvedValue('job-1') };
-    listener = new TodayAnalysisTriggerListener(store as never, queue as never);
+    contextService = {
+      shouldTriggerForDimension: vi.fn().mockResolvedValue(false),
+    };
+    listener = new TodayAnalysisTriggerListener(
+      store as never,
+      queue as never,
+      contextService as unknown as TodayAnalysisContextService,
+    );
   });
 
   it.each([
     DailyRecordKind.water,
     DailyRecordKind.meal,
+    DailyRecordKind.sleep,
     DailyRecordKind.mood,
-    DailyRecordKind.note,
-  ])('does not queue ordinary %s records', async (kind) => {
+  ])('queues %s records only when dimension gate passes', async (kind) => {
+    contextService.shouldTriggerForDimension.mockResolvedValue(true);
+
     await listener.handleDailyRecordChanged({
       userId: 'user-1',
       date: '2026-08-10',
@@ -37,6 +48,59 @@ describe('TodayAnalysisTriggerListener', () => {
       recordId: 'record-1',
     });
 
+    expect(contextService.shouldTriggerForDimension).toHaveBeenCalledWith(
+      'user-1',
+      '2026-08-10',
+      kind,
+    );
+    expect(store.markPending).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        localDate: '2026-08-10',
+        reasonCode: 'daily_record_changed',
+      }),
+    );
+    expect(queue.enqueue).toHaveBeenCalledWith(
+      'user-1',
+      { date: '2026-08-10' },
+      'zh-CN',
+      4,
+      'daily_record_changed',
+      'daily-record:record-1',
+    );
+  });
+
+  it.each([
+    DailyRecordKind.water,
+    DailyRecordKind.meal,
+    DailyRecordKind.sleep,
+    DailyRecordKind.mood,
+  ])('does not queue %s records when dimension gate fails', async (kind) => {
+    await listener.handleDailyRecordChanged({
+      userId: 'user-1',
+      date: '2026-08-10',
+      kind,
+      recordId: 'record-1',
+    });
+
+    expect(contextService.shouldTriggerForDimension).toHaveBeenCalledWith(
+      'user-1',
+      '2026-08-10',
+      kind,
+    );
+    expect(store.markPending).not.toHaveBeenCalled();
+    expect(queue.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('does not queue note records', async () => {
+    await listener.handleDailyRecordChanged({
+      userId: 'user-1',
+      date: '2026-08-10',
+      kind: DailyRecordKind.note,
+      recordId: 'record-1',
+    });
+
+    expect(contextService.shouldTriggerForDimension).not.toHaveBeenCalled();
     expect(store.markPending).not.toHaveBeenCalled();
     expect(queue.enqueue).not.toHaveBeenCalled();
   });
@@ -49,6 +113,7 @@ describe('TodayAnalysisTriggerListener', () => {
       recordId: 'record-1',
     });
 
+    expect(contextService.shouldTriggerForDimension).not.toHaveBeenCalled();
     expect(store.markPending).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'user-1',

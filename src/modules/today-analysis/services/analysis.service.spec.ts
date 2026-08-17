@@ -1,11 +1,15 @@
 import { ForbiddenException } from '@nestjs/common';
 import type { LlmConfig } from '../../../config/services/llm.config';
 import type { TodayAnalysisCopyService } from './pipeline/copy.service';
-import type { TodayAnalysisContextService } from './pipeline/context.service';
+import type {
+  TodayAnalysisContext,
+  TodayAnalysisContextService,
+} from './pipeline/context.service';
+import type { NotificationsService } from '../../notifications';
 import type { TodayAnalysisGeneratorService } from './pipeline/generator.service';
 import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
 import { TodayAnalysisService } from './analysis.service';
-import type { NotificationsService } from '../../notifications';
+import type { PushDeliveryService } from '../../notifications';
 
 function modelGenerateSpy(service: TodayAnalysisService) {
   return vi.spyOn(
@@ -37,6 +41,17 @@ function notificationCreateOrReplaceScopedSpy(service: TodayAnalysisService) {
       }
     ).notificationsService,
     'createOrReplaceScoped',
+  );
+}
+
+function pushDeliverySendToUserSpy(service: TodayAnalysisService) {
+  return vi.spyOn(
+    (
+      service as unknown as {
+        pushDeliveryService: { sendToUser: vi.Mock };
+      }
+    ).pushDeliveryService,
+    'sendToUser',
   );
 }
 
@@ -81,9 +96,42 @@ describe('TodayAnalysisService', () => {
     },
   };
 
+  const emptyContext: TodayAnalysisContext = {
+    date: '2026-06-12',
+    water: {
+      completedCount: 0,
+      targetCount: 8,
+      remainingCount: 0,
+    },
+    medication: {
+      medicineCount: 0,
+      pendingCount: 0,
+      nextDoseTimeLabel: '--',
+      nextMedicineName: null,
+      currentMedicineNames: [],
+    },
+    recordSummary: [],
+    recentRecords: [],
+    sleep: {
+      status: 'insufficient_data',
+      durationMinutes: null,
+      quality: null,
+      startAt: null,
+      endAt: null,
+      deepMinutes: null,
+      lightMinutes: null,
+      remMinutes: null,
+    },
+    lowRiskContext: {
+      activeAllergyCount: 0,
+      currentMedicineCount: 0,
+    },
+  };
+
   it('returns model output when policy accepts it', async () => {
     const service = createService();
     const notifySpy = notificationCreateOrReplaceScopedSpy(service);
+    const pushSpy = pushDeliverySendToUserSpy(service);
     const modelOutput = {
       summary: '今日记录主要集中在饮水和用药，仍有一项待确认。',
       bullets: [
@@ -111,8 +159,9 @@ describe('TodayAnalysisService', () => {
 
     expect(result.summary).toBe(modelOutput.summary);
     expect(result.bullets).toEqual(modelOutput.bullets);
-    expect(notifySpy).toHaveBeenNthCalledWith(
-      1,
+    expect(result.aiGenerated).toBe(true);
+    expect(notifySpy).toHaveBeenCalledTimes(1);
+    expect(notifySpy).toHaveBeenCalledWith(
       'u1',
       {
         type: 'ai_today_summary',
@@ -129,25 +178,98 @@ describe('TodayAnalysisService', () => {
         source: 'today-analysis',
       },
     );
-    expect(notifySpy).toHaveBeenNthCalledWith(
-      2,
-      'u1',
-      {
-        type: 'ai_proactive_suggestion',
-        title: 'AI 主动建议',
-        content: modelOutput.bullets[0]?.text,
-        action: 'today',
-        actionPayload: {
-          date: '2026-06-12',
-          source: 'today-analysis',
-          actionLabel: '查看今日记录',
+    expect(pushSpy).toHaveBeenCalledWith('u1', {
+      title: 'AI 今日总结已生成',
+      body: modelOutput.summary,
+    });
+  });
+
+  it('marks aiGenerated as false when using fallback', async () => {
+    const service = createService({
+      config: {
+        ...baseConfig,
+        analysis: {
+          apiKey: null,
+          baseUrl: null,
+          model: null,
         },
       },
-      {
-        date: '2026-06-12',
-        source: 'today-analysis',
-      },
+    });
+    const notifySpy = notificationCreateOrReplaceScopedSpy(service);
+
+    const result = await service.generate(
+      'u1',
+      { date: '2026-06-12' },
+      'zh-CN',
     );
+
+    expect(result.aiGenerated).toBe(false);
+    expect(notifySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns empty status and does not persist or notify when context is empty', async () => {
+    const service = createService({
+      context: emptyContext,
+      materializationStatus: {
+        status: 'empty',
+        sourceVersion: 0,
+        computedVersion: 0,
+        computedAt: null,
+      },
+    });
+    const modelSpy = modelGenerateSpy(service);
+    const notifySpy = notificationCreateOrReplaceScopedSpy(service);
+    const pushSpy = pushDeliverySendToUserSpy(service);
+    const aiSummaryHistoryService = (
+      service as unknown as {
+        aiSummaryHistoryService: { save: vi.Mock };
+      }
+    ).aiSummaryHistoryService;
+
+    const result = await service.generateForVersion(
+      'u1',
+      { date: '2026-06-12' },
+      'zh-CN',
+      1,
+    );
+
+    expect('status' in result).toBe(true);
+    expect(result).toMatchObject({ status: 'empty' });
+    expect(modelSpy).not.toHaveBeenCalled();
+    expect(notifySpy).not.toHaveBeenCalled();
+    expect(pushSpy).not.toHaveBeenCalled();
+    expect(aiSummaryHistoryService.save).not.toHaveBeenCalled();
+  });
+
+  it('readCurrent includes aiGenerated from persisted summary', async () => {
+    const service = createService({
+      materializationStatus: {
+        status: 'ready',
+        sourceVersion: 2,
+        computedVersion: 2,
+        computedAt: new Date('2026-08-10T08:00:00.000Z'),
+      },
+      summary: { sourceVersion: 2 },
+    });
+    (
+      service as unknown as {
+        aiSummaryHistoryService: { getLatestTodaySummaryByDate: vi.Mock };
+      }
+    ).aiSummaryHistoryService.getLatestTodaySummaryByDate.mockResolvedValue({
+      date: '2026-08-10',
+      generatedAt: '2026-08-10T08:00:00.000Z',
+      summary: '旧摘要',
+      bullets: [],
+      actionLabel: '查看今日记录',
+      action: 'today',
+      confidenceNote: '仅供参考。',
+      aiGenerated: true,
+      sourceVersion: 2,
+    });
+
+    const result = await service.readCurrent('u1', '2026-08-10');
+
+    expect(result.analysis?.aiGenerated).toBe(true);
   });
 
   it('characterizes explicit generate as the current model execution entrypoint', async () => {
@@ -660,35 +782,10 @@ describe('TodayAnalysisService', () => {
     );
 
     expect(result.summary).toBe('今日记录良好。');
-    expect(notifySpy).toHaveBeenCalledTimes(2);
+    expect(notifySpy).toHaveBeenCalledTimes(1);
   });
 
-  it('builds proactive suggestion notification from summary when bullets are empty', async () => {
-    const service = createService();
-    const notifySpy = notificationCreateOrReplaceScopedSpy(service);
-    modelGenerateSpy(service).mockResolvedValue({
-      summary: '今日整体状态稳定。',
-      bullets: [],
-      actionLabel: '查看今日记录',
-      action: 'today',
-      confidenceNote: '仅供参考。',
-    });
-
-    const result = await service.generate(
-      'u1',
-      { date: '2026-06-12' },
-      'zh-CN',
-    );
-
-    expect(result.bullets).toEqual([]);
-
-    // The 2nd notification call (proactive suggestion) should use the summary text
-    // because bullets[0] is undefined
-    const secondCallArgs = notifySpy.mock.calls[1];
-    expect(secondCallArgs?.[1]?.content).toBe('今日整体状态稳定。');
-  });
-
-  it('includes confidenceNote in the persisted data', async () => {
+  it('includes confidenceNote and aiGenerated in the persisted data', async () => {
     const service = createService();
     const aiSummaryHistoryService = (
       service as unknown as {
@@ -712,6 +809,7 @@ describe('TodayAnalysisService', () => {
     expect(aiSummaryHistoryService.save).toHaveBeenCalledWith(
       expect.objectContaining({
         confidenceNote: '高置信度。',
+        aiGenerated: true,
       }),
     );
   });
@@ -728,6 +826,7 @@ describe('TodayAnalysisService', () => {
     };
     summary?: { sourceVersion: number | null };
     claimActiveVersion?: number | null;
+    context?: TodayAnalysisContext;
   }) {
     const prisma = {
       userSetting: {
@@ -743,7 +842,7 @@ describe('TodayAnalysisService', () => {
     };
 
     const contextService = {
-      build: vi.fn().mockResolvedValue(baseContext),
+      build: vi.fn().mockResolvedValue(options?.context ?? baseContext),
     } as unknown as TodayAnalysisContextService;
     const aiSummaryHistoryService = {
       save: vi.fn().mockResolvedValue(undefined),
@@ -758,6 +857,7 @@ describe('TodayAnalysisService', () => {
               actionLabel: '查看今日记录',
               action: 'today',
               confidenceNote: '仅供参考。',
+              aiGenerated: false,
               sourceVersion: options.summary.sourceVersion,
             },
       ),
@@ -899,6 +999,9 @@ describe('TodayAnalysisService', () => {
       create: vi.fn(),
       createOrReplaceScoped: vi.fn(),
     } as unknown as NotificationsService;
+    const pushDeliveryService = {
+      sendToUser: vi.fn().mockResolvedValue({ sent: true }),
+    } as unknown as PushDeliveryService;
     return new TodayAnalysisService(
       prisma as never,
       aiSummaryHistoryService as never,
@@ -909,6 +1012,7 @@ describe('TodayAnalysisService', () => {
         safety: { forbiddenPatterns: [] },
       } as never),
       notificationsService,
+      pushDeliveryService,
       materializationStore as never,
     );
   }

@@ -24,6 +24,8 @@ import {
 const MAX_RECENT_RECORDS = 8;
 const MAX_CURRENT_MEDICINE_NAMES = 5;
 
+type TriggerDimension = 'water' | 'meal' | 'sleep' | 'mood';
+
 export interface TodayAnalysisContext {
   date: string;
   water: {
@@ -244,6 +246,165 @@ export class TodayAnalysisContextService {
       kind,
       count,
     }));
+  }
+
+  /**
+   * Dimension-level gate for event-driven Today Analysis recompute.
+   *
+   * A daily-record change for water/meal/sleep/mood only triggers analysis when
+   * either the dimension has accumulated enough signal in the last 7 days, or
+   * today's value represents a sharp shift versus the prior 7-day baseline.
+   */
+  async shouldTriggerForDimension(
+    userId: string,
+    date: string,
+    kind: TriggerDimension,
+  ): Promise<boolean> {
+    const day = this.parseDate(date);
+    const start = new Date(day);
+    start.setUTCDate(start.getUTCDate() - 13);
+    const records = await this.dailyRecordReader.listFactsInRange(
+      userId,
+      start,
+      day,
+      [kind],
+    );
+
+    const last7Days = new Date(day);
+    last7Days.setUTCDate(last7Days.getUTCDate() - 6);
+
+    const recentRecords = records.filter((r) => r.occurredAt >= last7Days);
+    const priorRecords = records.filter((r) => r.occurredAt < last7Days);
+
+    const coverage = recentRecords.length;
+    if (coverage >= 3) {
+      return true;
+    }
+
+    const todayRecords = records.filter(
+      (r) => r.occurredAt.toISOString().slice(0, 10) === date,
+    );
+
+    const todayValue = this.aggregateDimensionValue(kind, todayRecords);
+    const priorBaseline = this.computeBaselineAverage(kind, priorRecords);
+
+    if (priorBaseline <= 0) {
+      return false;
+    }
+
+    const change = Math.abs(todayValue - priorBaseline) / priorBaseline;
+    return change >= 0.5;
+  }
+
+  private aggregateDimensionValue(
+    kind: TriggerDimension,
+    records: DailyRecordFact[],
+  ): number {
+    switch (kind) {
+      case DailyRecordKind.water: {
+        return records.reduce((sum, record) => {
+          const value = Number(record.value);
+          return sum + (Number.isFinite(value) && value > 0 ? value : 0);
+        }, 0);
+      }
+      case DailyRecordKind.sleep: {
+        const record = records[0];
+        if (record == null) return 0;
+        const payload = record.payload as Record<string, unknown> | null;
+        const durationMinutes =
+          typeof payload?.['durationMinutes'] === 'number'
+            ? payload['durationMinutes']
+            : null;
+        return typeof durationMinutes === 'number' && durationMinutes > 0
+          ? durationMinutes
+          : 0;
+      }
+      case DailyRecordKind.mood: {
+        if (records.length === 0) return 0;
+        const scores = records
+          .map((record) => this.parseMoodScore(record.value, record.title))
+          .filter((score): score is number => score != null);
+        if (scores.length === 0) return 0;
+        return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+      }
+      case DailyRecordKind.meal: {
+        return records.filter((record) => this.isAnalyzedMeal(record)).length;
+      }
+      default:
+        return records.length;
+    }
+  }
+
+  private computeBaselineAverage(
+    kind: TriggerDimension,
+    records: DailyRecordFact[],
+  ): number {
+    if (records.length === 0) {
+      return 0;
+    }
+
+    const byDate = new Map<string, DailyRecordFact[]>();
+    for (const record of records) {
+      const dateKey = record.occurredAt.toISOString().slice(0, 10);
+      const group = byDate.get(dateKey) ?? [];
+      group.push(record);
+      byDate.set(dateKey, group);
+    }
+
+    const dailyValues = Array.from(byDate.values()).map((dayRecords) =>
+      this.aggregateDimensionValue(kind, dayRecords),
+    );
+
+    if (dailyValues.length === 0) {
+      return 0;
+    }
+
+    return (
+      dailyValues.reduce((sum, value) => sum + value, 0) / dailyValues.length
+    );
+  }
+
+  private isAnalyzedMeal(record: DailyRecordFact): boolean {
+    const payload = parseMealRecordPayload(record.payload);
+    const status = payload.mealAnalysis?.analysisStatus;
+    return status === 'confirmed' || status === 'unconfirmed';
+  }
+
+  private parseMoodScore(
+    value: string | null,
+    title: string | null,
+  ): number | null {
+    if (value != null) {
+      const num = Number(value);
+      if (Number.isFinite(num) && num >= 1 && num <= 5) return num;
+    }
+
+    const text = (title ?? '').toLowerCase();
+    if (
+      text.includes('great') ||
+      text.includes('很好') ||
+      text.includes('开心')
+    )
+      return 5;
+    if (text.includes('good') || text.includes('好') || text.includes('happy'))
+      return 4;
+    if (
+      text.includes('ok') ||
+      text.includes('fine') ||
+      text.includes('还好') ||
+      text.includes('一般')
+    )
+      return 3;
+    if (text.includes('bad') || text.includes('不好') || text.includes('难过'))
+      return 2;
+    if (
+      text.includes('terrible') ||
+      text.includes('很差') ||
+      text.includes('崩溃')
+    )
+      return 1;
+
+    return null;
   }
 
   // Sleep date convention: a sleep record's `occurredAt` is the wake date

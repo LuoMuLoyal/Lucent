@@ -77,6 +77,9 @@ export class TodayAnalysisDataDto {
   @ApiProperty()
   confidenceNote!: string;
 
+  @ApiProperty({ type: Boolean })
+  aiGenerated!: boolean;
+
   @ApiPropertyOptional({ type: () => [TodayAnalysisMetricDto] })
   metrics?: TodayAnalysisMetricDto[];
 }
@@ -175,8 +178,13 @@ export class TodayAnalysisAsyncJobDataDto {
 }
 
 export class TodayAnalysisAsyncResultDataDto {
-  @ApiProperty({ type: () => TodayAnalysisDataDto })
-  result!: TodayAnalysisDataDto;
+  @ApiProperty({
+    oneOf: [
+      { $ref: getSchemaPath(TodayAnalysisDataDto) },
+      { $ref: getSchemaPath(TodayAnalysisReadDataDto) },
+    ],
+  })
+  result!: TodayAnalysisDataDto | TodayAnalysisReadDataDto;
 }
 
 export class TodayAnalysisAsyncStatusDataDto {

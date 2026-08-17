@@ -12484,6 +12484,83 @@
         },
         "required": ["jobId"]
       },
+      "TodayAnalysisAsyncResultDataDto": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TodayAnalysisDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
+              }
+            ]
+          }
+        },
+        "required": ["result"]
+      },
+      "TodayAnalysisAsyncResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TodayAnalysisAsyncJobDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisAsyncStatusDataDto"
+              }
+            ]
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "TodayAnalysisAsyncStatusDataDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["empty", "pending", "ready", "stale", "failed"]
+          }
+        },
+        "required": ["status"]
+      },
+      "TodayAnalysisGenerateResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TodayAnalysisDataDto"
+              },
+              {
+                "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
+              }
+            ]
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
       "TodayAnalysisBulletDto": {
         "type": "object",
         "properties": {
@@ -12587,6 +12664,9 @@
           "confidenceNote": {
             "type": "string"
           },
+          "aiGenerated": {
+            "type": "boolean"
+          },
           "metrics": {
             "type": "array",
             "items": {
@@ -12601,78 +12681,9 @@
           "bullets",
           "actionLabel",
           "action",
-          "confidenceNote"
+          "confidenceNote",
+          "aiGenerated"
         ]
-      },
-      "TodayAnalysisAsyncResultDataDto": {
-        "type": "object",
-        "properties": {
-          "result": {
-            "$ref": "#/components/schemas/TodayAnalysisDataDto"
-          }
-        },
-        "required": ["result"]
-      },
-      "TodayAnalysisAsyncResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/TodayAnalysisAsyncJobDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TodayAnalysisAsyncStatusDataDto"
-              }
-            ]
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "TodayAnalysisAsyncStatusDataDto": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": ["empty", "pending", "ready", "stale", "failed"]
-          }
-        },
-        "required": ["status"]
-      },
-      "TodayAnalysisGenerateResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/TodayAnalysisDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
-              }
-            ]
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "TodayAnalysisReadDataDto": {
         "type": "object",

@@ -13,7 +13,7 @@ import {
 } from '../../../common';
 import type { CreateNotificationDto } from '../../notifications';
 import { HistoricalAiSummaryService } from '../../assistant';
-import { NotificationsService } from '../../notifications';
+import { NotificationsService, PushDeliveryService } from '../../notifications';
 import { PrismaService } from '../../../prisma';
 import { BaseLlmSummaryService } from '../../../common/llm/base-llm-summary.service';
 import { LlmSafetyPolicyService } from '../../../common/llm/llm-safety-policy.service';
@@ -67,6 +67,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     generatorService: TodayAnalysisGeneratorService,
     policyService: LlmSafetyPolicyService,
     private readonly notificationsService: NotificationsService,
+    private readonly pushDeliveryService: PushDeliveryService,
     @Optional()
     private readonly materializationStore?: TodayAnalysisMaterializationStore,
   ) {
@@ -99,12 +100,20 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     dto: GenerateTodayAnalysisDto,
     language: string,
     sourceVersion: number,
-  ): Promise<TodayAnalysisDataDto> {
+  ): Promise<TodayAnalysisDataDto | TodayAnalysisReadDataDto> {
     const date = await this.resolveDate(userId, dto.date);
+    const empty = await this.checkEmptyContext(userId, date, language);
+    if (empty != null) {
+      return empty;
+    }
+
     const versionedDto = this.toVersionedDto(dto, date, sourceVersion);
     const store = this.materializationStore;
     if (store == null) {
-      const data = await super.generate(userId, versionedDto, language);
+      const data = await this.generate(userId, versionedDto, language);
+      if ('status' in data) {
+        return data;
+      }
       data.sourceVersion = sourceVersion;
       return data;
     }
@@ -127,7 +136,17 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     const activeVersion = claim.activeVersion;
 
     try {
-      const data = await super.generate(userId, versionedDto, language);
+      const data = await this.generate(userId, versionedDto, language);
+      if ('status' in data) {
+        await store.markFailed({
+          userId,
+          localDate: date,
+          sourceVersion,
+          activeVersion,
+          errorCode: 'ANALYSIS_CONTEXT_EMPTY',
+        });
+        return data;
+      }
       const committed = await store.markReady({
         userId,
         localDate: date,
@@ -158,11 +177,19 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     language: string,
     sourceVersion: number,
     onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
-  ): Promise<TodayAnalysisDataDto> {
+  ): Promise<TodayAnalysisDataDto | TodayAnalysisReadDataDto> {
     const date = await this.resolveDate(userId, dto.date);
+    const empty = await this.checkEmptyContext(userId, date, language);
+    if (empty != null) {
+      return empty;
+    }
+
     const store = this.materializationStore;
     if (store == null) {
-      const data = await super.generateStream(userId, dto, language, onSummary);
+      const data = await this.generateStream(userId, dto, language, onSummary);
+      if ('status' in data) {
+        return data;
+      }
       data.sourceVersion = sourceVersion;
       return data;
     }
@@ -185,12 +212,22 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     const activeVersion = claim.activeVersion;
 
     try {
-      const data = await super.generateStream(
+      const data = await this.generateStream(
         userId,
         this.toVersionedDto(dto, date, sourceVersion),
         language,
         onSummary,
       );
+      if ('status' in data) {
+        await store.markFailed({
+          userId,
+          localDate: date,
+          sourceVersion,
+          activeVersion,
+          errorCode: 'ANALYSIS_CONTEXT_EMPTY',
+        });
+        return data;
+      }
       const committed = await store.markReady({
         userId,
         localDate: date,
@@ -255,8 +292,23 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
             actionLabel: summary.actionLabel,
             action: summary.action,
             confidenceNote: summary.confidenceNote,
+            aiGenerated: summary.aiGenerated ?? false,
           } satisfies TodayAnalysisDataDto)
         : null;
+
+    if (analysis == null && status.status === 'empty') {
+      const context = await this.contextService.build(userId, date);
+      if (!this.hasMeaningfulContext(context)) {
+        return {
+          analysis: null,
+          status: 'empty',
+          sourceVersion: status.sourceVersion,
+          computedVersion: status.computedVersion,
+          computedAt: status.computedAt?.toISOString() ?? null,
+          retryAfterSeconds: null,
+        };
+      }
+    }
 
     return {
       analysis,
@@ -292,6 +344,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     context: TodayAnalysisContext,
     output: TodayAnalysisStructuredOutput,
     metadata: TodayAnalysisMetadata,
+    aiGenerated: boolean,
   ): TodayAnalysisDataDto {
     return {
       date: context.date,
@@ -304,6 +357,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
       actionLabel: output.actionLabel,
       action: output.action,
       confidenceNote: output.confidenceNote,
+      aiGenerated,
     };
   }
 
@@ -322,6 +376,7 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
       actionLabel: data.actionLabel,
       action: data.action,
       confidenceNote: data.confidenceNote,
+      aiGenerated: data.aiGenerated,
       sourceVersion: data.sourceVersion ?? null,
     });
   }
@@ -338,17 +393,10 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
       date: data.date,
       source: 'today-analysis',
     } as const;
+    const notification = this.buildTodaySummaryNotification(data);
 
-    await this.createNotificationSafely(
-      userId,
-      this.buildTodaySummaryNotification(data),
-      scope,
-    );
-    await this.createNotificationSafely(
-      userId,
-      this.buildProactiveSuggestionNotification(data),
-      scope,
-    );
+    await this.createNotificationSafely(userId, notification, scope);
+    await this.deliverPushBestEffort(userId, notification);
   }
 
   private toVersionedDto(
@@ -394,20 +442,26 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     };
   }
 
-  private buildProactiveSuggestionNotification(
-    data: TodayAnalysisDataDto,
-  ): CreateNotificationDto {
-    return {
-      type: 'ai_proactive_suggestion',
-      title: 'AI 主动建议',
-      content: data.bullets[0]?.text ?? data.summary,
-      action: data.action,
-      actionPayload: {
-        date: data.date,
-        source: 'today-analysis',
-        actionLabel: data.actionLabel,
-      },
-    };
+  private async deliverPushBestEffort(
+    userId: string,
+    notification: CreateNotificationDto,
+  ): Promise<void> {
+    try {
+      await this.pushDeliveryService.sendToUser(userId, {
+        title: notification.title,
+        body: notification.content,
+      });
+    } catch (error) {
+      const date =
+        notification.actionPayload != null &&
+        typeof notification.actionPayload === 'object' &&
+        'date' in notification.actionPayload
+          ? String(notification.actionPayload['date'])
+          : 'unknown';
+      this.logger.warn(
+        `Failed to deliver push for user ${userId} (source=today-analysis, date=${date}): ${String(error)}`,
+      );
+    }
   }
 
   private async createNotificationSafely(
@@ -425,6 +479,53 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
         `Failed to create scoped notification for user ${userId} (source=${scope.source}, date=${scope.date}): ${String(error)}`,
       );
     }
+  }
+
+  private async checkEmptyContext(
+    userId: string,
+    date: string,
+    _language: string,
+  ): Promise<TodayAnalysisReadDataDto | null> {
+    const context = await this.contextService.build(userId, date);
+    if (this.hasMeaningfulContext(context)) {
+      return null;
+    }
+
+    const emptyStatus =
+      this.materializationStore == null
+        ? {
+            status: 'empty' as const,
+            sourceVersion: 0,
+            computedVersion: 0,
+            computedAt: null,
+          }
+        : await this.materializationStore.readStatus(userId, date);
+
+    return {
+      analysis: null,
+      status: emptyStatus.status,
+      sourceVersion: emptyStatus.sourceVersion,
+      computedVersion: emptyStatus.computedVersion,
+      computedAt: emptyStatus.computedAt?.toISOString() ?? null,
+      retryAfterSeconds: emptyStatus.status === 'pending' ? 5 : null,
+    };
+  }
+
+  private hasMeaningfulContext(context: TodayAnalysisContext): boolean {
+    if (context.medication.medicineCount > 0) return true;
+    if (context.lowRiskContext.activeAllergyCount > 0) return true;
+    if (context.lowRiskContext.currentMedicineCount > 0) return true;
+
+    const meaningfulKinds = new Set<string>([
+      'water',
+      'meal',
+      'sleep',
+      'mood',
+      'symptom',
+    ]);
+    return context.recordSummary.some(
+      (record) => meaningfulKinds.has(record.kind) && record.count > 0,
+    );
   }
 }
 

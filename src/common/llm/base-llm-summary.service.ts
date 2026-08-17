@@ -65,7 +65,7 @@ export abstract class BaseLlmSummaryService<
     const locale = this.copyService.resolveLocale(language);
     await this.assertAiSummariesEnabled(userId, locale);
     const prepared = await this.prepare(userId, dto, locale);
-    const output = await this.generateStructuredOutput(
+    const { output, aiGenerated } = await this.generateStructuredOutput(
       prepared.context,
       prepared.locale,
     );
@@ -73,6 +73,7 @@ export abstract class BaseLlmSummaryService<
       prepared.context,
       output,
       prepared.metadata as TMetadata,
+      aiGenerated,
     );
     await this.persistSummary(userId, data);
     await this.afterPersist(userId, data);
@@ -88,7 +89,7 @@ export abstract class BaseLlmSummaryService<
     const locale = this.copyService.resolveLocale(language);
     await this.assertAiSummariesEnabled(userId, locale);
     const prepared = await this.prepare(userId, dto, locale);
-    const output = await this.generateStructuredOutputStream(
+    const { output, aiGenerated } = await this.generateStructuredOutputStream(
       prepared.context,
       prepared.locale,
       onSummary,
@@ -97,6 +98,7 @@ export abstract class BaseLlmSummaryService<
       prepared.context,
       output,
       prepared.metadata as TMetadata,
+      aiGenerated,
     );
     await this.persistSummary(userId, data);
     await this.afterPersist(userId, data);
@@ -113,6 +115,7 @@ export abstract class BaseLlmSummaryService<
     context: TContext,
     output: TOutput,
     metadata: TMetadata,
+    aiGenerated: boolean,
   ): TDataDto;
 
   protected abstract persistSummary(
@@ -155,12 +158,15 @@ export abstract class BaseLlmSummaryService<
   private async generateStructuredOutput(
     context: TContext,
     locale: string,
-  ): Promise<TOutput> {
+  ): Promise<{ output: TOutput; aiGenerated: boolean }> {
     if (!this.generatorService.hasAnalysisModel()) {
       this.logger.warn(
         `Model is not configured for ${this.buildLogContext(context)}; falling back`,
       );
-      return this.copyService.buildFallback(context, locale);
+      return {
+        output: this.copyService.buildFallback(context, locale),
+        aiGenerated: false,
+      };
     }
 
     try {
@@ -169,7 +175,7 @@ export abstract class BaseLlmSummaryService<
         this.copyService.buildPromptCopy(locale),
       );
       if (this.policyService.isSafe(this.extractTexts(raw))) {
-        return raw;
+        return { output: raw, aiGenerated: true };
       }
 
       this.logger.warn(
@@ -182,21 +188,24 @@ export abstract class BaseLlmSummaryService<
       );
     }
 
-    return this.copyService.buildFallback(context, locale);
+    return {
+      output: this.copyService.buildFallback(context, locale),
+      aiGenerated: false,
+    };
   }
 
   private async generateStructuredOutputStream(
     context: TContext,
     locale: string,
     onSummary: (event: StreamSummaryEvent) => void | Promise<void>,
-  ): Promise<TOutput> {
+  ): Promise<{ output: TOutput; aiGenerated: boolean }> {
     if (!this.generatorService.hasAnalysisModel()) {
       this.logger.warn(
         `Model is not configured for ${this.buildLogContext(context)}; falling back`,
       );
       const fallback = this.copyService.buildFallback(context, locale);
       await this.emitGuaranteedSummary(fallback.summary, false, onSummary);
-      return fallback;
+      return { output: fallback, aiGenerated: false };
     }
 
     let emittedSummary = false;
@@ -220,7 +229,7 @@ export abstract class BaseLlmSummaryService<
           emittedSummary,
           onSummary,
         );
-        return raw;
+        return { output: raw, aiGenerated: true };
       }
 
       this.logger.warn(
@@ -239,7 +248,7 @@ export abstract class BaseLlmSummaryService<
       emittedSummary,
       onSummary,
     );
-    return fallback;
+    return { output: fallback, aiGenerated: false };
   }
 
   private async emitGuaranteedSummary(

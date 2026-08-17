@@ -72,6 +72,7 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
     context: ReportsAiSummaryContext,
     output: ReportSummaryStructuredOutput,
     _metadata: unknown,
+    _aiGenerated: boolean,
   ): ReportSummaryDataDto {
     return {
       range: context.range,

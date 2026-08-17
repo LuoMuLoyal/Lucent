@@ -28,6 +28,7 @@ export interface PersistSummaryInput {
   actionLabel: string;
   action: string;
   confidenceNote: string;
+  aiGenerated?: boolean;
   sourceVersion?: number | null;
 }
 
@@ -39,6 +40,7 @@ export interface TodaySummaryRow {
   actionLabel: string;
   action: string;
   confidenceNote: string;
+  aiGenerated?: boolean;
   sourceVersion?: number | null;
 }
 
@@ -223,6 +225,7 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
       actionLabel: input.actionLabel,
       action: input.action,
       confidenceNote: input.confidenceNote,
+      aiGenerated: input.aiGenerated ?? false,
       sourceVersion: input.sourceVersion ?? null,
     };
   }
@@ -235,6 +238,7 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
     actionLabel: string;
     action: string;
     confidenceNote: string;
+    aiGenerated: boolean;
     sourceVersion?: number | null;
   }): TodaySummaryRow {
     return {
@@ -245,6 +249,7 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
       actionLabel: row.actionLabel,
       action: row.action,
       confidenceNote: row.confidenceNote,
+      aiGenerated: row.aiGenerated,
       sourceVersion: row.sourceVersion ?? null,
     };
   }

@@ -79,7 +79,12 @@ class TestSummaryService extends BaseLlmSummaryService<
     };
   }
 
-  protected toDataDto(_context: TestContext, output: TestOutput): TestDataDto {
+  protected toDataDto(
+    _context: TestContext,
+    output: TestOutput,
+    _metadata: unknown,
+    _aiGenerated: boolean,
+  ): TestDataDto {
     return output;
   }
 

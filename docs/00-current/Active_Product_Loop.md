@@ -2,12 +2,12 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-15
+updated: 2026-08-17
 ---
 
 # Active Product Loop — Health Event Contract / Sparse Record Semantics
 
-Last updated: 2026-08-15
+Last updated: 2026-08-17
 
 ## 当前状态
 
@@ -32,7 +32,11 @@ Health Event Contract 已完成后端合同、持久化、所有权校验、领�
 - baseline 写入失败不会丢弃已生成建议，已生成建议仍可读取；materialization 保留固定错误码 `BASELINE_OBSERVATION_FAILED`，不标记为 ready。
 - Medication collector 按 reminder slot 评估 `planned/taken/skipped/unconfirmed/overdueUnconfirmed`，用 `now()` 与用户 profile timezone 组合 `scheduledFor + scheduledTime`；无效时区回退 `Asia/Shanghai`，DST gap 和无效日期不伪造 overdue。
 - dose-log reader 投影带出 `reminderId`；有 reminderId 的日志精确匹配槽位，历史无 reminderId 的日志仅在 medicine+scheduledTime 唯一时 fallback。同药多槽位不再按 medicineId 折叠，missed-dose rule 只消费 `overdueUnconfirmed`，文案保持待确认语义。
-- Today Analysis 使用 `userId + localDate + sourceVersion` 的 BullMQ job id 合并触发；普通 daily record 不触发，只有 symptom record、health-event create/end、symptom check-in、dose log 和合格的 suggestion materialization 版本进入分析队列。`GET /today-analysis` 只读历史物化结果，不调用 LLM。
+- Today Analysis 使用 `userId + localDate + sourceVersion` 的 BullMQ job id 合并触发；`GET /today-analysis` 只读历史物化结果，不调用 LLM。
+- Today Analysis 触发源：symptom record、health-event create/end、symptom check-in、dose log、合格的 suggestion materialization 版本，以及经过维度门控的 water / meal / sleep / mood 日常记录。维度门控要求近 7 天该维度有效记录 >= 3 条，或今日值较 prior 7 天基线变化 >= 50%；基线不存在时保守不触发。
+- Today Analysis 空上下文守卫：当用户当日无任何用药、过敏、water/meal/sleep/mood/symptom 记录时，生成入口直接返回 `empty`，不进入 LLM/fallback、不持久化、不创建通知。
+- Today Analysis 物化结果 `TodayAnalysisDataDto` 携带 `aiGenerated` 标志；模型输出经安全校验使用时为 `true`，模板兜底时为 `false`，并随摘要历史持久化。
+- Today Analysis 通知执行器每天每个用户最多创建/替换一条 `ai_today_summary` 通知（scope `{ source: 'today-analysis', date }`），内容取自最新物化 summary；不再同时创建 `ai_proactive_suggestion` 类型通知。JPush 投递保持尽力而为，本地通知优先策略由 Luminous 端实现。
 - Today Analysis materialization 持久化 `sourceVersion`、`computedVersion`、`computedAt`、`generationCount` 和失败状态；每个自然日最多生成 3 次，手动刷新有 5 分钟冷却，旧结果在 `stale/pending/failed` 状态下继续可读。
 - Suggestion recompute 已接入低基数 Prometheus 指标：enqueue、dedupe、job duration、ready/failed 和 stale age；标签不包含 userId、日期或健康内容。
 - Sparse Record Semantics 的 Water 阶段已完成：Today collector、Today Analysis、Report context 与 Report AI context 共用纯 mapper/factory，合法水量统一为整数 ml；unknown、observed zero、非法输入和来源/coverage 不再混淆。旧 Report 升数序列仅作为兼容投影，并由同一 ml 结果派生。

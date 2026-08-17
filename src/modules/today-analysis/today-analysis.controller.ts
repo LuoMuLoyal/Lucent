@@ -154,13 +154,16 @@ export class TodayAnalysisController {
       }
     }
 
-    const analysis = await this.todayAnalysisService.generateForVersion(
+    const data = await this.todayAnalysisService.generateForVersion(
       user.sub,
       { date: request.date },
       language,
       request.pending.sourceVersion,
     );
-    return successEnvelope({ status: 'ready', analysis });
+    if ('status' in data) {
+      return successEnvelope(data);
+    }
+    return successEnvelope({ status: 'ready', analysis: data });
   }
 
   @Post('generate')
@@ -182,14 +185,16 @@ export class TodayAnalysisController {
           ),
         );
       }
-      return successEnvelope(
-        await this.todayAnalysisService.generateForVersion(
-          user.sub,
-          { date: request.date },
-          language,
-          request.pending.sourceVersion,
-        ),
+      const data = await this.todayAnalysisService.generateForVersion(
+        user.sub,
+        { date: request.date },
+        language,
+        request.pending.sourceVersion,
       );
+      if ('status' in data) {
+        return successEnvelope(data);
+      }
+      return successEnvelope(data);
     }
 
     return successEnvelope(

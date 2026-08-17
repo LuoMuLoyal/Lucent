@@ -4,7 +4,10 @@ import type { Cache } from 'cache-manager';
 import { BullmqQueueFactory } from '../../../common/queue/queue.factory';
 import { BaseAsyncQueueService } from '../../../common';
 import { TodayAnalysisService } from './analysis.service';
-import type { TodayAnalysisDataDto } from '../dto/analysis-response.dto';
+import type {
+  TodayAnalysisDataDto,
+  TodayAnalysisReadDataDto,
+} from '../dto/analysis-response.dto';
 
 import type { GenerateTodayAnalysisDto } from '../dto/generate-today-analysis.dto';
 
@@ -41,7 +44,7 @@ export function buildTodayAnalysisJobId(
 @Injectable()
 export class TodayAnalysisQueueService extends BaseAsyncQueueService<
   AnalysisJobData,
-  TodayAnalysisDataDto
+  TodayAnalysisDataDto | TodayAnalysisReadDataDto
 > {
   private readonly analysisService: TodayAnalysisService;
 

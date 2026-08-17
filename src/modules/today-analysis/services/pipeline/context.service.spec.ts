@@ -1,4 +1,5 @@
 import { TodayAnalysisContextService } from './context.service';
+import { DailyRecordKind } from '#generated/prisma/client';
 
 function createMockCache() {
   return {
@@ -916,5 +917,204 @@ describe('TodayAnalysisContextService', () => {
     const context = await service.build('u1', '2026-07-01');
 
     expect(context.medication.nextDoseTimeLabel).toBe('--');
+  });
+
+  describe('shouldTriggerForDimension', () => {
+    it('passes when coverage reaches 3 records in the last 7 days', async () => {
+      const records = Array.from({ length: 3 }, (_, i) => ({
+        kind: 'water',
+        occurredAt: new Date(`2026-07-0${i + 1}T08:00:00.000Z`),
+        value: '250',
+        unit: 'ml',
+        payload: null,
+        createdAt: new Date(`2026-07-0${i + 1}T08:00:00.000Z`),
+      }));
+      const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+        buildMocks(records);
+      const service = new TodayAnalysisContextService(
+        prisma as never,
+        dailyRecordReader as never,
+        doseLogReader as never,
+        reminderReader as never,
+        createMockCache(),
+      );
+
+      const result = await service.shouldTriggerForDimension(
+        'u1',
+        '2026-07-03',
+        DailyRecordKind.water,
+      );
+
+      expect(result).toBe(true);
+    });
+
+    it('fails when coverage is below 3 and change is small', async () => {
+      const records = [
+        {
+          kind: 'water',
+          occurredAt: new Date('2026-07-01T08:00:00.000Z'),
+          value: '250',
+          unit: 'ml',
+          payload: null,
+          createdAt: new Date('2026-07-01T08:00:00.000Z'),
+        },
+        {
+          kind: 'water',
+          occurredAt: new Date('2026-06-25T08:00:00.000Z'),
+          value: '250',
+          unit: 'ml',
+          payload: null,
+          createdAt: new Date('2026-06-25T08:00:00.000Z'),
+        },
+      ];
+      const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+        buildMocks(records);
+      const service = new TodayAnalysisContextService(
+        prisma as never,
+        dailyRecordReader as never,
+        doseLogReader as never,
+        reminderReader as never,
+        createMockCache(),
+      );
+
+      const result = await service.shouldTriggerForDimension(
+        'u1',
+        '2026-07-01',
+        DailyRecordKind.water,
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it('passes for water when today increases >= 50% over baseline', async () => {
+      const records = [
+        {
+          kind: 'water',
+          occurredAt: new Date('2026-07-01T08:00:00.000Z'),
+          value: '1500',
+          unit: 'ml',
+          payload: null,
+          createdAt: new Date('2026-07-01T08:00:00.000Z'),
+        },
+        ...Array.from({ length: 7 }, (_, i) => ({
+          kind: 'water',
+          occurredAt: new Date(`2026-06-2${4 + i}T08:00:00.000Z`),
+          value: '500',
+          unit: 'ml',
+          payload: null,
+          createdAt: new Date(`2026-06-2${4 + i}T08:00:00.000Z`),
+        })),
+      ];
+      const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+        buildMocks(records);
+      const service = new TodayAnalysisContextService(
+        prisma as never,
+        dailyRecordReader as never,
+        doseLogReader as never,
+        reminderReader as never,
+        createMockCache(),
+      );
+
+      const result = await service.shouldTriggerForDimension(
+        'u1',
+        '2026-07-01',
+        DailyRecordKind.water,
+      );
+
+      expect(result).toBe(true);
+    });
+
+    it('passes for sleep when duration changes >= 50% over baseline', async () => {
+      const records = [
+        {
+          kind: 'sleep',
+          occurredAt: new Date('2026-07-01T08:00:00.000Z'),
+          value: null,
+          unit: null,
+          payload: { durationMinutes: 120 },
+          createdAt: new Date('2026-07-01T08:00:00.000Z'),
+        },
+        ...Array.from({ length: 7 }, (_, i) => ({
+          kind: 'sleep',
+          occurredAt: new Date(`2026-06-2${4 + i}T08:00:00.000Z`),
+          value: null,
+          unit: null,
+          payload: { durationMinutes: 480 },
+          createdAt: new Date(`2026-06-2${4 + i}T08:00:00.000Z`),
+        })),
+      ];
+      const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+        buildMocks(records);
+      const service = new TodayAnalysisContextService(
+        prisma as never,
+        dailyRecordReader as never,
+        doseLogReader as never,
+        reminderReader as never,
+        createMockCache(),
+      );
+
+      const result = await service.shouldTriggerForDimension(
+        'u1',
+        '2026-07-01',
+        DailyRecordKind.sleep,
+      );
+
+      expect(result).toBe(true);
+    });
+
+    it('passes for meal when today count increases >= 50% over baseline', async () => {
+      const records = [
+        {
+          kind: 'meal',
+          occurredAt: new Date('2026-07-01T08:00:00.000Z'),
+          value: null,
+          unit: null,
+          payload: {
+            mealAnalysis: { analysisStatus: 'confirmed', coverage: 'complete' },
+          },
+          createdAt: new Date('2026-07-01T08:00:00.000Z'),
+        },
+        {
+          kind: 'meal',
+          occurredAt: new Date('2026-07-01T12:00:00.000Z'),
+          value: null,
+          unit: null,
+          payload: {
+            mealAnalysis: { analysisStatus: 'confirmed', coverage: 'complete' },
+          },
+          createdAt: new Date('2026-07-01T12:00:00.000Z'),
+        },
+        ...Array.from({ length: 7 }, (_, i) => ({
+          kind: 'meal',
+          occurredAt: new Date(`2026-06-2${4 + i}T08:00:00.000Z`),
+          value: null,
+          unit: null,
+          payload: {
+            mealAnalysis: {
+              analysisStatus: 'confirmed',
+              coverage: 'complete',
+            },
+          },
+          createdAt: new Date(`2026-06-2${4 + i}T08:00:00.000Z`),
+        })),
+      ];
+      const { prisma, dailyRecordReader, doseLogReader, reminderReader } =
+        buildMocks(records);
+      const service = new TodayAnalysisContextService(
+        prisma as never,
+        dailyRecordReader as never,
+        doseLogReader as never,
+        reminderReader as never,
+        createMockCache(),
+      );
+
+      const result = await service.shouldTriggerForDimension(
+        'u1',
+        '2026-07-01',
+        DailyRecordKind.meal,
+      );
+
+      expect(result).toBe(true);
+    });
   });
 });

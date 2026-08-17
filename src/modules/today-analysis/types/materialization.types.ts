@@ -4,6 +4,7 @@ export const TODAY_ANALYSIS_CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 
 export const TODAY_ANALYSIS_REASON_CODES = [
   'symptom_check_in',
+  'daily_record_changed',
   'health_event_changed',
   'dose_log_changed',
   'suggestion_materialization_changed',

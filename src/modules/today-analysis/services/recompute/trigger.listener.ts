@@ -14,6 +14,7 @@ import {
 import { TodayAnalysisMaterializationStore } from '../materialization/store.service';
 import type { TodayAnalysisReasonCode } from '../../types/materialization.types';
 import { TodayAnalysisQueueService } from '../analysis-queue.service';
+import { TodayAnalysisContextService } from '../pipeline/context.service';
 
 @Injectable()
 export class TodayAnalysisTriggerListener {
@@ -22,19 +23,45 @@ export class TodayAnalysisTriggerListener {
   constructor(
     private readonly store: TodayAnalysisMaterializationStore,
     private readonly queue: TodayAnalysisQueueService,
+    private readonly contextService: TodayAnalysisContextService,
   ) {}
 
   @OnEvent(DAILY_RECORD_CHANGED)
   async handleDailyRecordChanged(
     payload: DailyRecordChangedPayload,
   ): Promise<void> {
-    if (payload.kind !== DailyRecordKind.symptom) return;
-    await this.trigger(
-      payload.userId,
-      payload.date,
-      'symptom_check_in',
-      payload.triggerKey ?? `daily-record:${payload.recordId ?? payload.date}`,
-    );
+    if (payload.kind === DailyRecordKind.symptom) {
+      await this.trigger(
+        payload.userId,
+        payload.date,
+        'symptom_check_in',
+        payload.triggerKey ??
+          `daily-record:${payload.recordId ?? payload.date}`,
+      );
+      return;
+    }
+
+    if (
+      payload.kind === DailyRecordKind.water ||
+      payload.kind === DailyRecordKind.meal ||
+      payload.kind === DailyRecordKind.sleep ||
+      payload.kind === DailyRecordKind.mood
+    ) {
+      const shouldTrigger = await this.contextService.shouldTriggerForDimension(
+        payload.userId,
+        payload.date,
+        payload.kind,
+      );
+      if (!shouldTrigger) return;
+
+      await this.trigger(
+        payload.userId,
+        payload.date,
+        'daily_record_changed',
+        payload.triggerKey ??
+          `daily-record:${payload.recordId ?? payload.date}`,
+      );
+    }
   }
 
   @OnEvent(DOSE_LOG_CHANGED)
