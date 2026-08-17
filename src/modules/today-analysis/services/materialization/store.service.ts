@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Prisma } from '#generated/prisma/client';
 import { parseDateOnly } from '../../../../common';
 import { PrismaService } from '../../../../prisma';
@@ -241,7 +241,9 @@ export class TodayAnalysisMaterializationStore {
         throw error;
       }
     }
-    throw new Error('TODAY_ANALYSIS_TRANSACTION_RETRY_EXHAUSTED');
+    throw new InternalServerErrorException(
+      'TODAY_ANALYSIS_TRANSACTION_RETRY_EXHAUSTED',
+    );
   }
 
   async markReady(input: MarkTodayAnalysisReadyInput): Promise<boolean> {

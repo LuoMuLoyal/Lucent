@@ -27,6 +27,7 @@ import {
   prepareSse,
   writeSseEvent,
   SseConnectionRegistry,
+  conflict,
 } from '../../common';
 import { extractErrorInfo } from '../../common';
 import { SkipApiEnvelope } from '../../common';
@@ -423,7 +424,7 @@ export class TodayAnalysisController {
       language,
     );
     if (current.analysis == null) {
-      throw new Error(`TODAY_ANALYSIS_${current.status.toUpperCase()}`);
+      conflict(`TODAY_ANALYSIS_${current.status.toUpperCase()}`);
     }
     onSummary({ summary: current.analysis.summary });
     return current.analysis;

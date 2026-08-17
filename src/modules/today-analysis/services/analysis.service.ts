@@ -1,7 +1,13 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  Optional,
+} from '@nestjs/common';
 
 import {
   DEFAULT_USER_TIMEZONE,
+  conflict,
   formatDateOnlyInTimezone,
   now,
 } from '../../../common';
@@ -107,14 +113,16 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     if (!claim.claimed) {
       const current = await this.readCurrent(userId, date, language);
       if (current.analysis == null) {
-        throw new Error(`TODAY_ANALYSIS_${claim.status.toUpperCase()}`);
+        conflict(`TODAY_ANALYSIS_${claim.status.toUpperCase()}`);
       }
       return current.analysis;
     }
     // The store may be malformed at runtime even though the TypeScript union is sound.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (claim.activeVersion == null) {
-      throw new Error('TODAY_ANALYSIS_CLAIM_FENCE_MISSING');
+      throw new InternalServerErrorException(
+        'TODAY_ANALYSIS_CLAIM_FENCE_MISSING',
+      );
     }
     const activeVersion = claim.activeVersion;
 
@@ -163,14 +171,16 @@ export class TodayAnalysisService extends BaseLlmSummaryService<
     if (!claim.claimed) {
       const current = await this.readCurrent(userId, date, language);
       if (current.analysis == null) {
-        throw new Error(`TODAY_ANALYSIS_${claim.status.toUpperCase()}`);
+        conflict(`TODAY_ANALYSIS_${claim.status.toUpperCase()}`);
       }
       return current.analysis;
     }
     // The store may be malformed at runtime even though the TypeScript union is sound.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (claim.activeVersion == null) {
-      throw new Error('TODAY_ANALYSIS_CLAIM_FENCE_MISSING');
+      throw new InternalServerErrorException(
+        'TODAY_ANALYSIS_CLAIM_FENCE_MISSING',
+      );
     }
     const activeVersion = claim.activeVersion;
 
