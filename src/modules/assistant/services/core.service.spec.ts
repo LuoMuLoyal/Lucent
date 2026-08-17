@@ -77,6 +77,8 @@ describe('AssistantService', () => {
       readPendingProposals: vi.fn(),
       streamPreGeneratedContent: vi.fn(),
       generateStream: vi.fn(),
+      regenerateLastMessage: vi.fn(),
+      replayFromCheckpoint: vi.fn(),
     } as unknown as vi.Mocked<AssistantRuntimeService>;
 
     userSettings = {
@@ -106,6 +108,7 @@ describe('AssistantService', () => {
       getConversation: vi.fn(),
       persistAssistantTurn: vi.fn(),
       buildMemoryBlock: vi.fn().mockResolvedValue(''),
+      appendAssistantMessage: vi.fn(),
     } as unknown as vi.Mocked<AssistantConversationService>;
 
     service = new AssistantService(
@@ -761,6 +764,82 @@ describe('AssistantService', () => {
       );
 
       expect(result.toolDetails).toEqual([]);
+    });
+  });
+
+  describe('regenerateConversation', () => {
+    it('replays the recorded checkpoint, streams, and persists the new answer', async () => {
+      conversation.getConversation.mockResolvedValue(mockConversation);
+      runtime.regenerateLastMessage.mockResolvedValue({
+        checkpointId: 'checkpoint-1',
+        sourceMessageId: 'msg-last',
+      });
+      runtime.replayFromCheckpoint.mockImplementation(
+        async (_id, _cp, onText) => {
+          await onText('重新生成');
+          await onText('的回答');
+          return { finalContent: '重新生成的回答' };
+        },
+      );
+      conversation.appendAssistantMessage.mockResolvedValue(mockConversation);
+
+      const chunks: string[] = [];
+      const result = await service.regenerateConversation(
+        'user-1',
+        'conv-1',
+        ({ content }) => {
+          chunks.push(content);
+        },
+      );
+
+      expect(runtime.regenerateLastMessage).toHaveBeenCalledWith(
+        'user-1',
+        'conv-1',
+      );
+      expect(runtime.replayFromCheckpoint).toHaveBeenCalledWith(
+        'conv-1',
+        'checkpoint-1',
+        expect.any(Function),
+      );
+      expect(conversation.appendAssistantMessage).toHaveBeenCalledWith(
+        'user-1',
+        'conv-1',
+        '重新生成的回答',
+      );
+      expect(chunks).toEqual(['重新生成', '的回答']);
+      expect(result).toMatchObject({
+        conversationId: 'conv-1',
+        role: 'assistant',
+        content: '重新生成的回答',
+        usedTools: [],
+        proposedActions: [],
+        toolDetails: [],
+      });
+      expect(result.generatedAt).toEqual(expect.any(String));
+    });
+
+    it('rejects when the conversation does not exist', async () => {
+      conversation.getConversation.mockResolvedValue(null);
+
+      await expect(
+        service.regenerateConversation('user-1', 'conv-1', vi.fn()),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('does not persist when the replay fails', async () => {
+      conversation.getConversation.mockResolvedValue(mockConversation);
+      runtime.regenerateLastMessage.mockResolvedValue({
+        checkpointId: 'checkpoint-1',
+        sourceMessageId: 'msg-last',
+      });
+      runtime.replayFromCheckpoint.mockRejectedValue(
+        new Error('LLM unavailable'),
+      );
+
+      await expect(
+        service.regenerateConversation('user-1', 'conv-1', vi.fn()),
+      ).rejects.toThrow('LLM unavailable');
+      expect(conversation.appendAssistantMessage).not.toHaveBeenCalled();
     });
   });
 });

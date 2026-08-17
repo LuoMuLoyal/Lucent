@@ -194,6 +194,34 @@ interface StreamAssistantMessagesDto {
 When `conversationId` is present the turn runs on the persisted LangGraph thread
 (checkpointed, with in-graph proposal review); when absent it stays stateless.
 
+## Regeneration Contract
+
+`POST /api/v1/user/assistant/conversations/:conversationId/regenerate` (SSE)
+regenerates the last assistant message of a persisted conversation using
+LangGraph time travel: the thread is forked from the recorded checkpoint right
+before the `respond` node and that node re-streams a fresh answer. The old
+answer stays in the conversation as a revision; the new answer is persisted as
+a new assistant message.
+
+SSE events match the streaming contract (`chunk` → `result` → `done`, or
+`error`). The `result` payload is the same `AssistantMessageDataDto` shape
+(`conversationId`, `role: 'assistant'`, `content`, `generatedAt`, `usedTools`,
+`proposedActions`, `toolDetails`); regenerated answers carry empty
+`usedTools`/`proposedActions`/`toolDetails` because only the `respond` node is
+replayed, never the tool loop.
+
+Rules:
+
+- only the last persisted assistant message of the conversation can be
+  regenerated; anything else returns 400
+- the checkpoint must be locatable and its assistant text must equal the
+  persisted message text (message 定位), otherwise 400
+- duplicate regenerations of the same source message within 30 seconds return
+  409 (idempotency window), backed by the `assistant_regenerations` table
+- a missing/deleted conversation returns 404
+- `simple_chat` turns (whose thread never holds an assistant message) and
+  turns that ended with a guidance message appended are not regenerable in v1
+
 ## Confirm Contract
 
 `POST /api/v1/user/assistant/conversations/:conversationId/confirm` approves or

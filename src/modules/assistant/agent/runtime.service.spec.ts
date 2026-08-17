@@ -33,6 +33,24 @@ function buildCheckpointerService() {
   return { getSaver: () => null };
 }
 
+function buildConversationRepository() {
+  return {
+    findLatestActiveWithMessages: vi.fn(),
+    listRecentSummaries: vi.fn(),
+    findWithMessages: vi.fn(),
+    findWithMessagesById: vi.fn(),
+    create: vi.fn(),
+    archiveConversation: vi.fn(),
+    softDelete: vi.fn(),
+    updateTitle: vi.fn(),
+    activateConversation: vi.fn(),
+    persistTurn: vi.fn(),
+    appendAssistantMessage: vi.fn(),
+    findRecentRegeneration: vi.fn(),
+    createRegeneration: vi.fn(),
+  };
+}
+
 function buildLeafletService(hasChunks = false) {
   return {
     hasIndexedChunks: vi.fn().mockResolvedValue(hasChunks),
@@ -58,6 +76,7 @@ describe('AssistantRuntimeService', () => {
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
       buildCheckpointerService() as never,
+      buildConversationRepository() as never,
     );
 
     expect(service.hasChatModel()).toBe(true);
@@ -158,6 +177,7 @@ describe('AssistantRuntimeService', () => {
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
       buildCheckpointerService() as never,
+      buildConversationRepository() as never,
     );
     const onChunk = vi.fn();
 
@@ -198,6 +218,7 @@ describe('AssistantRuntimeService', () => {
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
       buildCheckpointerService() as never,
+      buildConversationRepository() as never,
     );
     const onChunk = vi.fn();
 
@@ -255,6 +276,7 @@ describe('AssistantRuntimeService', () => {
       new LlmCircuitBreakerService(),
       cacheService as never,
       buildCheckpointerService() as never,
+      buildConversationRepository() as never,
     );
 
     const result = await service.runConversation(
@@ -302,6 +324,7 @@ describe('AssistantRuntimeService', () => {
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
       buildCheckpointerService() as never,
+      buildConversationRepository() as never,
     );
     const chunks: string[] = [];
     let conversationResolved = false;
@@ -347,6 +370,7 @@ describe('AssistantRuntimeService', () => {
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
       buildCheckpointerService() as never,
+      buildConversationRepository() as never,
     );
 
     await expect(
@@ -382,6 +406,7 @@ describe('AssistantRuntimeService', () => {
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
       buildCheckpointerService() as never,
+      buildConversationRepository() as never,
     );
 
     await expect(
@@ -423,6 +448,7 @@ describe('AssistantRuntimeService', () => {
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
       buildCheckpointerService() as never,
+      buildConversationRepository() as never,
     );
     const onChunk = vi.fn();
 
@@ -452,6 +478,7 @@ describe('AssistantRuntimeService', () => {
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
       buildCheckpointerService() as never,
+      buildConversationRepository() as never,
     );
 
     const foundation = await service.describeFoundation();
@@ -504,6 +531,7 @@ describe('AssistantRuntimeService', () => {
       new LlmCircuitBreakerService(),
       buildCacheService() as never,
       { getSaver: () => saver } as never,
+      buildConversationRepository() as never,
     );
     const executeTools = vi.fn().mockResolvedValue([
       {
@@ -572,6 +600,7 @@ describe('AssistantRuntimeService', () => {
         new LlmCircuitBreakerService(),
         buildCacheService() as never,
         { getSaver: () => saver } as never,
+        buildConversationRepository() as never,
       );
 
       // A plain chat turn never suspends; the state has no pending review.
@@ -645,6 +674,234 @@ describe('AssistantRuntimeService', () => {
           decision: 'approved',
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
+
+  describe('regenerateLastMessage', () => {
+    const ASSISTANT_CONTENT = '你的睡眠情况总结';
+    const CONVERSATION_ID = 'conv-reg';
+    const USER_ID = 'u-reg';
+
+    /** Builds a service whose graph runs over a MemorySaver thread and whose model answers with plain text (read flow). */
+    function buildRegenerateHarness() {
+      const responses = [
+        new AIMessageChunk({ content: ASSISTANT_CONTENT }),
+        // second answer consumed by replayFromCheckpoint's respond re-run
+        new AIMessageChunk({ content: '重新生成的睡眠总结' }),
+      ];
+      const mockModel = {
+        bindTools: vi.fn().mockReturnThis(),
+        invoke: vi.fn(),
+        stream: vi.fn().mockImplementation(async () => {
+          await Promise.resolve();
+          const response = responses.shift();
+          return (async function* () {
+            await Promise.resolve();
+            if (response != null) {
+              yield response;
+            }
+          })();
+        }),
+      };
+      const llmRuntimeService = {
+        hasRoleConfig: vi.fn().mockReturnValue(true),
+        getModelName: vi.fn().mockReturnValue('test-model'),
+        createChatModel: vi.fn().mockReturnValue(mockModel),
+      } as unknown as LlmRuntimeService;
+      const saver = new MemorySaver();
+      const repository = {
+        findWithMessages: vi.fn(),
+        findRecentRegeneration: vi.fn().mockResolvedValue(null),
+        createRegeneration: vi.fn().mockResolvedValue({ id: 'reg-1' }),
+      };
+      const service = new AssistantRuntimeService(
+        llmRuntimeService,
+        buildLeafletService() as never,
+        buildMetricsService() as never,
+        new LlmCircuitBreakerService(),
+        buildCacheService() as never,
+        { getSaver: () => saver } as never,
+        repository as never,
+      );
+      return { service, repository, mockModel };
+    }
+
+    function buildConversationWithMessages(
+      lastAssistantContent: string,
+    ): unknown {
+      const now = new Date();
+      return {
+        id: CONVERSATION_ID,
+        userId: USER_ID,
+        title: null,
+        status: 'active' as never,
+        messages: [
+          {
+            id: 'msg-user-1',
+            conversationId: CONVERSATION_ID,
+            userId: USER_ID,
+            role: 'user',
+            content: '最近睡眠怎么样',
+            usedTools: [],
+            createdAt: new Date(now.getTime() - 60000),
+            updatedAt: new Date(now.getTime() - 60000),
+          },
+          {
+            id: 'msg-assistant-last',
+            conversationId: CONVERSATION_ID,
+            userId: USER_ID,
+            role: 'assistant',
+            content: lastAssistantContent,
+            usedTools: [],
+            createdAt: now,
+            updatedAt: now,
+          },
+        ],
+        lastMessageAt: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+    }
+
+    it('locates the respond checkpoint and records the mapping', async () => {
+      const { service, repository } = buildRegenerateHarness();
+      // Run one real conversation so the thread has checkpoint history.
+      await service.runConversation(
+        {
+          userId: USER_ID,
+          userMessage: '最近睡眠怎么样',
+          locale: 'zh-CN',
+          enabledContextSources: ['health_profile'],
+          conversationId: CONVERSATION_ID,
+        },
+        (() => Promise.resolve([])) as never,
+      );
+      repository.findWithMessages.mockResolvedValue(
+        buildConversationWithMessages(ASSISTANT_CONTENT),
+      );
+
+      const result = await service.regenerateLastMessage(
+        USER_ID,
+        CONVERSATION_ID,
+      );
+
+      expect(result.sourceMessageId).toBe('msg-assistant-last');
+      expect(result.checkpointId).toEqual(expect.any(String));
+      expect(repository.createRegeneration).toHaveBeenCalledWith({
+        conversationId: CONVERSATION_ID,
+        userId: USER_ID,
+        sourceMessageId: 'msg-assistant-last',
+        checkpointId: result.checkpointId,
+      });
+    });
+
+    it('rejects when the last persisted message is not assistant', async () => {
+      const { service, repository } = buildRegenerateHarness();
+      await service.runConversation(
+        {
+          userId: USER_ID,
+          userMessage: '最近睡眠怎么样',
+          locale: 'zh-CN',
+          enabledContextSources: ['health_profile'],
+          conversationId: CONVERSATION_ID,
+        },
+        (() => Promise.resolve([])) as never,
+      );
+      const conversation = buildConversationWithMessages(ASSISTANT_CONTENT) as {
+        messages: Array<{ id: string; role: string; content: string }>;
+      };
+      conversation.messages = conversation.messages.filter(
+        (message) => message.role !== 'assistant',
+      );
+      repository.findWithMessages.mockResolvedValue(conversation);
+
+      await expect(
+        service.regenerateLastMessage(USER_ID, CONVERSATION_ID),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects when the checkpoint text does not match the persisted message', async () => {
+      const { service, repository } = buildRegenerateHarness();
+      await service.runConversation(
+        {
+          userId: USER_ID,
+          userMessage: '最近睡眠怎么样',
+          locale: 'zh-CN',
+          enabledContextSources: ['health_profile'],
+          conversationId: CONVERSATION_ID,
+        },
+        (() => Promise.resolve([])) as never,
+      );
+      // The DB says the last answer was something else entirely.
+      repository.findWithMessages.mockResolvedValue(
+        buildConversationWithMessages('完全不同的旧答案'),
+      );
+
+      await expect(
+        service.regenerateLastMessage(USER_ID, CONVERSATION_ID),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects duplicate regenerations within the idempotency window', async () => {
+      const { service, repository } = buildRegenerateHarness();
+      await service.runConversation(
+        {
+          userId: USER_ID,
+          userMessage: '最近睡眠怎么样',
+          locale: 'zh-CN',
+          enabledContextSources: ['health_profile'],
+          conversationId: CONVERSATION_ID,
+        },
+        (() => Promise.resolve([])) as never,
+      );
+      repository.findWithMessages.mockResolvedValue(
+        buildConversationWithMessages(ASSISTANT_CONTENT),
+      );
+      repository.findRecentRegeneration.mockResolvedValue({
+        id: 'reg-existing',
+        createdAt: new Date(),
+      });
+
+      await expect(
+        service.regenerateLastMessage(USER_ID, CONVERSATION_ID),
+      ).rejects.toMatchObject({ status: 409 });
+    });
+
+    it('replays the respond node and appends the new answer to the thread', async () => {
+      const { service, repository, mockModel } = buildRegenerateHarness();
+      await service.runConversation(
+        {
+          userId: USER_ID,
+          userMessage: '最近睡眠怎么样',
+          locale: 'zh-CN',
+          enabledContextSources: ['health_profile'],
+          conversationId: CONVERSATION_ID,
+        },
+        (() => Promise.resolve([])) as never,
+      );
+      repository.findWithMessages.mockResolvedValue(
+        buildConversationWithMessages(ASSISTANT_CONTENT),
+      );
+
+      const { checkpointId } = await service.regenerateLastMessage(
+        USER_ID,
+        CONVERSATION_ID,
+      );
+
+      const streamed: string[] = [];
+      const { finalContent } = await service.replayFromCheckpoint(
+        CONVERSATION_ID,
+        checkpointId,
+        (text) => {
+          streamed.push(text);
+        },
+      );
+
+      expect(
+        (mockModel.stream as ReturnType<typeof vi.fn>).mock.calls,
+      ).toHaveLength(2);
+      expect(finalContent).toBe('重新生成的睡眠总结');
+      expect(streamed).toContain('重新生成的睡眠总结');
     });
   });
 });

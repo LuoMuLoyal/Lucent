@@ -231,6 +231,65 @@ export class AssistantController {
       endSse(reply.raw, this.sseRegistry);
     }
   }
+  @SkipThrottle()
+  @Post('conversations/:conversationId/regenerate')
+  @SkipApiEnvelope()
+  @ApiOperation({
+    summary:
+      'Regenerate the last assistant message of a persisted conversation (SSE)',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Server-Sent Events stream. Each event has an "event" field (chunk | result | error | done) and a JSON "data" field.',
+    content: {
+      'text/event-stream': {
+        schema: { type: 'string' },
+      },
+    },
+  })
+  async regenerateLastMessage(
+    @CurrentUser() user: UserPayload,
+    @Param('conversationId') conversationId: string,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    prepareSse(reply.raw, this.sseRegistry);
+
+    try {
+      const result = await this.assistantService.regenerateConversation(
+        user.sub,
+        conversationId,
+        ({ content }) => {
+          writeSseEvent(reply.raw, {
+            event: 'chunk',
+            data: { content },
+          });
+        },
+      );
+
+      writeSseEvent(reply.raw, {
+        event: 'result',
+        data: result,
+      });
+      writeSseEvent(reply.raw, {
+        event: 'done',
+        data: {},
+      });
+    } catch (error) {
+      const payload = this.resolveErrorPayload(error);
+      this.logger.error(
+        `Assistant regenerate failed for user ${user.sub} conversation ${conversationId}: ${payload.logMessage}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      writeSseEvent(reply.raw, {
+        event: 'error',
+        data: { message: payload.clientMessage },
+      });
+    } finally {
+      endSse(reply.raw, this.sseRegistry);
+    }
+  }
+
   private resolveErrorPayload(error: unknown): {
     clientMessage: string;
     logMessage: string;

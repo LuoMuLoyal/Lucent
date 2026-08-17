@@ -190,6 +190,7 @@ model User {
   assistantConversations AssistantConversation[]
   assistantMessages      AssistantMessage[]
   assistantMemories      AssistantMemory[]
+  assistantRegenerations AssistantRegeneration[]
   assistantSummaryHistories AssistantSummaryHistory[]
   notifications          UserNotification[]
   suggestions            UserSuggestion[]
@@ -1113,6 +1114,23 @@ model AssistantMemory {
 
   @@index([userId, createdAt])
   @@map("assistant_memories")
+}
+
+/// Message→checkpoint mapping for assistant answer regeneration (F-5b).
+/// Records which LangGraph checkpoint produced the persisted assistant
+/// message, plus an idempotency key (conversationId + sourceMessageId).
+model AssistantRegeneration {
+  id              String   @id @default(uuid())
+  conversationId  String   @map("conversation_id")
+  userId          String   @map("user_id")
+  sourceMessageId String   @map("source_message_id")
+  checkpointId    String   @map("checkpoint_id")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, sourceMessageId])
+  @@index([userId, createdAt])
+  @@map("assistant_regenerations")
 }
 
 model UserNotification {

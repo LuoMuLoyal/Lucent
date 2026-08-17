@@ -203,6 +203,24 @@ export class AssistantConversationService {
   }
 
   /**
+   * Appends a standalone assistant message to an existing conversation and
+   * bumps its `lastMessageAt`. Used by the regeneration path (F-5b): the new
+   * answer is persisted as a fresh message while the old answer stays put.
+   */
+  async appendAssistantMessage(
+    userId: string,
+    conversationId: string,
+    content: string,
+  ): Promise<AssistantConversationSnapshot> {
+    const saved = await this.repository.appendAssistantMessage(
+      conversationId,
+      userId,
+      content,
+    );
+    return this.toSnapshot(saved);
+  }
+
+  /**
    * Returns the persisted cross-conversation memory block (delegates to
    * AssistantMemoryService). Raw conversation text is never injected into the
    * prompt anymore (F-9); the block contains at most 5 structured memories.

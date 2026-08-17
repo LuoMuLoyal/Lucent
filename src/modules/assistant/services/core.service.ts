@@ -396,6 +396,57 @@ export class AssistantService {
   }
 
   /**
+   * Regenerates the last assistant message of a persisted conversation
+   * (F-5b) using LangGraph time travel: replays the `respond` node from the
+   * recorded checkpoint and streams a fresh answer. The old answer stays in
+   * the conversation as a revision; the new answer is persisted as a new
+   * assistant message.
+   */
+  async regenerateConversation(
+    userId: string,
+    conversationId: string,
+    onChunk: (event: AssistantStreamChunkEvent) => void | Promise<void>,
+  ): Promise<AssistantMessageDataDto> {
+    const conversation =
+      await this.assistantConversationService.getConversation(
+        userId,
+        conversationId,
+      );
+    if (conversation == null) {
+      notFound('Conversation not found.');
+    }
+
+    const { checkpointId } =
+      await this.assistantAgentService.regenerateLastMessage(
+        userId,
+        conversationId,
+      );
+
+    const { finalContent } =
+      await this.assistantAgentService.replayFromCheckpoint(
+        conversationId,
+        checkpointId,
+        (text) => onChunk({ content: text }),
+      );
+
+    await this.assistantConversationService.appendAssistantMessage(
+      userId,
+      conversationId,
+      finalContent,
+    );
+
+    return {
+      conversationId,
+      role: 'assistant',
+      content: finalContent,
+      generatedAt: nowIsoString(),
+      usedTools: [],
+      proposedActions: [],
+      toolDetails: [],
+    };
+  }
+
+  /**
    * Projects tool execution envelopes into the SSE result payload for the
    * client source strip. Only fields that actually exist in the envelope data
    * are included; the field is optional and absent for older messages.

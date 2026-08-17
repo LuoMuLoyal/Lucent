@@ -1,13 +1,14 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { Command } from '@langchain/langgraph';
-import { badRequest } from '../../../common';
+import { Command, type StateSnapshot } from '@langchain/langgraph';
+import { badRequest, conflict, notFound } from '../../../common';
 import {
   AIMessage,
   AIMessageChunk,
   HumanMessage,
   SystemMessage,
+  type BaseMessage,
 } from '@langchain/core/messages';
 import { LlmRuntimeService } from '../../../llm-runtime';
 import { MetricsService } from '../../../common/metrics/metrics.service';
@@ -41,6 +42,8 @@ import { ASSISTANT_RUNTIME_NODE_NAMES } from './runtime/state';
 import type { AssistantValidationFlags } from './runtime/state';
 import type { AssistantPendingReview } from './runtime/state';
 import { AssistantCheckpointerService } from './checkpointer.service';
+import { extractMessageText } from './runtime/message-text.utils';
+import { AssistantConversationRepositoryPort } from '../repositories/conversation.repository';
 
 import {
   buildAssistantRuntimeGraph,
@@ -88,6 +91,7 @@ export class AssistantRuntimeService {
     private readonly circuitBreaker: LlmCircuitBreakerService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
     private readonly checkpointerService: AssistantCheckpointerService,
+    private readonly conversationRepository: AssistantConversationRepositoryPort,
   ) {}
 
   hasChatModel(): boolean {
@@ -412,7 +416,10 @@ export class AssistantRuntimeService {
    * persistence (badRequest otherwise): the resume and pending-proposal-read
    * paths only make sense for checkpointed threads.
    */
-  private buildGraphWithCheckpointer(conversationId: string) {
+  private buildGraphWithCheckpointer(
+    conversationId: string,
+    onText?: (text: string) => void | Promise<void>,
+  ) {
     const checkpointer = this.checkpointerService.getSaver();
     if (checkpointer == null) {
       badRequest(
@@ -431,10 +438,156 @@ export class AssistantRuntimeService {
       buildWriteSystemPrompt,
       buildKnowledgeSystemPrompt,
       buildSimpleChatSystemPrompt,
+      ...(onText != null ? { onText } : {}),
       respondCache: this.respondCache,
       checkpointer,
       conversationId,
     });
+  }
+
+  /**
+   * Locates the LangGraph checkpoint right before the last assistant answer
+   * was produced (the `respond` node) and records the message→checkpoint
+   * mapping for a later time-travel regeneration (F-5b).
+   *
+   * The caller must hold a conversation whose last persisted message is an
+   * assistant reply. Only the latest such answer can be regenerated; the
+   * checkpoint is matched by `next` containing `respond` and by the final
+   * assistant message text equal to the persisted one (message 定位).
+   *
+   * Idempotency: a regeneration for the same (conversation, source message)
+   * within 30 seconds is rejected with 409.
+   */
+  async regenerateLastMessage(
+    userId: string,
+    conversationId: string,
+  ): Promise<{ checkpointId: string; sourceMessageId: string }> {
+    const conversation = await this.conversationRepository.findWithMessages(
+      userId,
+      conversationId,
+    );
+    if (conversation == null || conversation.status === 'deleted') {
+      notFound('Conversation not found.');
+    }
+
+    const dbMessages = conversation.messages;
+    const lastDbMessage = dbMessages.at(-1);
+    if (lastDbMessage == null || lastDbMessage.role !== 'assistant') {
+      badRequest('Only the last assistant message can be regenerated.');
+    }
+    const lastDbContent = lastDbMessage.content;
+
+    const graph = this.buildGraphWithCheckpointer(conversationId);
+    const config = { configurable: { thread_id: conversationId } };
+
+    const history: StateSnapshot[] = [];
+    try {
+      for await (const snapshot of graph.getStateHistory(config)) {
+        history.push(snapshot);
+      }
+    } catch (error) {
+      this.logger.error(
+        `getStateHistory failed for conversation ${conversationId}: ${String(error)}`,
+      );
+      badRequest('Cannot read the conversation generation history.');
+    }
+
+    // Newest first; the checkpoint right before `respond` still lists it in
+    // `next` and ends with the assistant message that produced the answer.
+    const target = history.find((snapshot) => {
+      if (!snapshot.next.includes('respond')) {
+        return false;
+      }
+      const rawValues = snapshot.values as Record<string, unknown>;
+      const rawMessages = rawValues['messages'];
+      if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
+        return false;
+      }
+      const last = rawMessages.at(-1) as BaseMessage;
+      if (last.type !== 'ai') {
+        return false;
+      }
+      return extractMessageText(last.content) === lastDbContent;
+    });
+
+    if (target == null) {
+      badRequest('Cannot locate the generation state of the last message.');
+    }
+    const checkpointId =
+      target.config.configurable == null
+        ? undefined
+        : (target.config.configurable['checkpoint_id'] as string | undefined);
+    if (checkpointId == null) {
+      badRequest('Cannot locate the generation state of the last message.');
+    }
+
+    const recent = await this.conversationRepository.findRecentRegeneration(
+      conversationId,
+      lastDbMessage.id,
+    );
+    if (recent != null) {
+      conflict('A regeneration is already in progress for this message.');
+    }
+
+    await this.conversationRepository.createRegeneration({
+      conversationId,
+      userId,
+      sourceMessageId: lastDbMessage.id,
+      checkpointId,
+    });
+
+    return { checkpointId, sourceMessageId: lastDbMessage.id };
+  }
+
+  /**
+   * Time-travel replay: forks the thread from the checkpoint recorded by
+   * {@link regenerateLastMessage}, clears `finalContent`/`stopReason` so the
+   * `respond` node re-streams a fresh answer, and appends the new assistant
+   * message to the thread (the old answer stays in the history). Returns the
+   * newly generated content.
+   */
+  async replayFromCheckpoint(
+    conversationId: string,
+    checkpointId: string,
+    onText: (text: string) => void | Promise<void>,
+  ): Promise<{ finalContent: string }> {
+    const graph = this.buildGraphWithCheckpointer(conversationId, onText);
+    const config = { configurable: { thread_id: conversationId } };
+
+    // Fork the thread from the recorded checkpoint and clear the final
+    // content so `respond` re-streams a fresh answer. `asNode` is left to
+    // inference: the inferred writer (the last node that ran, e.g. the
+    // sub-graph) also replays its conditional branch, so the fork resumes at
+    // `respond` exactly as the original invocation did.
+    await graph.updateState(
+      {
+        configurable: {
+          thread_id: conversationId,
+          checkpoint_id: checkpointId,
+          checkpoint_ns: '',
+        },
+      },
+      { finalContent: null, stopReason: null },
+    );
+
+    const result: { finalContent?: string | null } = await graph.invoke(
+      null,
+      config,
+    );
+    const finalContent = result.finalContent ?? '';
+    if (finalContent.trim().length === 0) {
+      throw new Error('Assistant regeneration ended without any content.');
+    }
+
+    // `respond` writes only `finalContent`; persist the new answer into the
+    // thread so future turns see it (the old assistant message is retained).
+    await graph.updateState(
+      config,
+      { messages: [new AIMessage(finalContent)] },
+      'respond',
+    );
+
+    return { finalContent };
   }
 
   private buildMessages(

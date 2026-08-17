@@ -47,6 +47,7 @@ describe('AssistantController', () => {
             deleteConversation: vi.fn(),
             getFoundationCapabilities: vi.fn(),
             streamMessages: vi.fn(),
+            regenerateConversation: vi.fn(),
           },
         },
         {
@@ -571,6 +572,76 @@ describe('AssistantController', () => {
       data: {
         message: 'forbidden',
       },
+    });
+    expect(endSse).toHaveBeenCalledWith(response.raw, sseRegistry);
+  });
+
+  it('streams chunk, result, and done SSE events for regeneration', async () => {
+    const response = { raw: {} } as unknown as FastifyReply;
+    service.regenerateConversation.mockImplementation(
+      async (_userId, _conversationId, onChunk) => {
+        await onChunk({ content: '新的' });
+        return {
+          conversationId: 'conversation-1',
+          role: 'assistant',
+          content: '新的回答',
+          usedTools: [],
+          generatedAt: '2026-08-17T12:00:00.000Z',
+        };
+      },
+    );
+
+    await controller.regenerateLastMessage(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      'conversation-1',
+      response,
+    );
+
+    expect(service.regenerateConversation).toHaveBeenCalledWith(
+      'u1',
+      'conversation-1',
+      expect.any(Function),
+    );
+    expect(prepareSse).toHaveBeenCalledWith(response.raw, sseRegistry);
+    expect(writeSseEvent).toHaveBeenNthCalledWith(1, response.raw, {
+      event: 'chunk',
+      data: { content: '新的' },
+    });
+    expect(writeSseEvent).toHaveBeenNthCalledWith(2, response.raw, {
+      event: 'result',
+      data: {
+        conversationId: 'conversation-1',
+        role: 'assistant',
+        content: '新的回答',
+        usedTools: [],
+        generatedAt: '2026-08-17T12:00:00.000Z',
+      },
+    });
+    expect(writeSseEvent).toHaveBeenNthCalledWith(3, response.raw, {
+      event: 'done',
+      data: {},
+    });
+    expect(endSse).toHaveBeenCalledWith(response.raw, sseRegistry);
+  });
+
+  it('streams an error SSE event when regeneration fails', async () => {
+    const response = { raw: {} } as unknown as FastifyReply;
+    service.regenerateConversation.mockRejectedValue(
+      new ForbiddenException({
+        code: ResultCode.FORBIDDEN,
+        message: 'regenerate-forbidden',
+      }),
+    );
+
+    await controller.regenerateLastMessage(
+      { sub: 'u1', email: 'a@b.c', status: 'active' },
+      'conversation-1',
+      response,
+    );
+
+    expect(writeSseEvent).toHaveBeenCalledWith(response.raw, {
+      event: 'error',
+      data: { message: 'regenerate-forbidden' },
     });
     expect(endSse).toHaveBeenCalledWith(response.raw, sseRegistry);
   });

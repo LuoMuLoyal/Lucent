@@ -55,6 +55,9 @@ describe('AssistantConversationService', () => {
       updateTitle: vi.fn(),
       activateConversation: vi.fn().mockResolvedValue(undefined),
       persistTurn: vi.fn(),
+      appendAssistantMessage: vi.fn(),
+      findRecentRegeneration: vi.fn(),
+      createRegeneration: vi.fn(),
     };
     i18n = {
       t: vi.fn().mockReturnValue('Conversation not found'),

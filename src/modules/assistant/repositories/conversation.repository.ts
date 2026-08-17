@@ -48,6 +48,17 @@ export interface PersistTurnInput {
   assistantTimestamp: Date;
 }
 
+/** Input for recording a message→checkpoint mapping (F-5b regeneration). */
+export interface RegenerationRecordInput {
+  conversationId: string;
+  userId: string;
+  sourceMessageId: string;
+  checkpointId: string;
+}
+
+/** Idempotency window for duplicate regenerations of the same message. */
+export const REGENERATION_IDEMPOTENCY_WINDOW_MS = 30_000;
+
 /**
  * Repository interface for assistant conversation data access.
  *
@@ -103,6 +114,28 @@ export abstract class AssistantConversationRepositoryPort {
   abstract persistTurn(
     input: PersistTurnInput,
   ): Promise<ConversationWithMessages>;
+
+  /**
+   * Appends a standalone assistant message (no user messages, no dedup) and
+   * bumps `lastMessageAt`. Used by the regeneration path.
+   */
+  abstract appendAssistantMessage(
+    conversationId: string,
+    userId: string,
+    content: string,
+    usedTools?: string[],
+  ): Promise<ConversationWithMessages>;
+
+  /** Latest regeneration record for the message within the idempotency window. */
+  abstract findRecentRegeneration(
+    conversationId: string,
+    sourceMessageId: string,
+  ): Promise<{ id: string; createdAt: Date } | null>;
+
+  /** Persists the message→checkpoint mapping for a regeneration. */
+  abstract createRegeneration(
+    input: RegenerationRecordInput,
+  ): Promise<{ id: string }>;
 }
 
 @Injectable()
@@ -264,5 +297,53 @@ export class AssistantConversationRepository implements AssistantConversationRep
     });
 
     return this.findWithMessagesById(input.userId, input.conversationId);
+  }
+
+  async appendAssistantMessage(
+    conversationId: string,
+    userId: string,
+    content: string,
+    usedTools: string[] = [],
+  ): Promise<ConversationWithMessages> {
+    const timestamp = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.assistantMessage.create({
+        data: {
+          conversationId,
+          userId,
+          role: 'assistant',
+          content,
+          usedTools,
+          createdAt: timestamp,
+        },
+      });
+      await tx.assistantConversation.update({
+        where: { id: conversationId, userId },
+        data: { lastMessageAt: timestamp },
+      });
+    });
+
+    return this.findWithMessagesById(userId, conversationId);
+  }
+
+  async findRecentRegeneration(
+    conversationId: string,
+    sourceMessageId: string,
+  ): Promise<{ id: string; createdAt: Date } | null> {
+    const since = new Date(Date.now() - REGENERATION_IDEMPOTENCY_WINDOW_MS);
+    return this.prisma.assistantRegeneration.findFirst({
+      where: { conversationId, sourceMessageId, createdAt: { gte: since } },
+      select: { id: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createRegeneration(
+    input: RegenerationRecordInput,
+  ): Promise<{ id: string }> {
+    return this.prisma.assistantRegeneration.create({
+      data: input,
+      select: { id: true },
+    });
   }
 }

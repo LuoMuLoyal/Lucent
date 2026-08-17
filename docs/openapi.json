@@ -4619,6 +4619,40 @@
         "tags": ["Assistant"]
       }
     },
+    "/api/v1/user/assistant/conversations/{conversationId}/regenerate": {
+      "post": {
+        "operationId": "AssistantController_regenerateLastMessage_v1",
+        "parameters": [
+          {
+            "name": "conversationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-Sent Events stream. Each event has an \"event\" field (chunk | result | error | done) and a JSON \"data\" field.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Regenerate the last assistant message of a persisted conversation (SSE)",
+        "tags": ["Assistant"]
+      }
+    },
     "/api/v1/user/today-analysis": {
       "get": {
         "operationId": "TodayAnalysisController_read_v1",
