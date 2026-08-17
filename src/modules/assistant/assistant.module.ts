@@ -13,6 +13,7 @@ import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { AssistantRuntimeService } from './agent/runtime.service';
 import { AssistantCheckpointerService } from './agent/checkpointer.service';
 import { AssistantConversationService } from './services/conversation.service';
+import { AssistantMemoryService } from './services/memory.service';
 import { AssistantController } from './assistant.controller';
 import { AssistantPolicyService } from './services/policy.service';
 import { HistoricalAiSummaryService } from './services/historical-ai-summary.service';
@@ -26,6 +27,10 @@ import {
   AssistantConversationRepository,
   AssistantConversationRepositoryPort,
 } from './repositories/conversation.repository';
+import {
+  AssistantMemoryRepository,
+  AssistantMemoryRepositoryPort,
+} from './repositories/memory.repository';
 
 import {
   AssistantSummaryRepository,
@@ -74,10 +79,15 @@ import { VectorStoreFactory } from './tools/vector/vector-store.factory';
       useClass: AssistantConversationRepository,
     },
     {
+      provide: AssistantMemoryRepositoryPort,
+      useClass: AssistantMemoryRepository,
+    },
+    {
       provide: AssistantSummaryRepositoryPort,
       useClass: AssistantSummaryRepository,
     },
     AssistantConversationService,
+    AssistantMemoryService,
     AssistantPolicyService,
     HistoricalAiSummaryService,
     AssistantContextService,

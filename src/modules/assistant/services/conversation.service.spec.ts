@@ -4,6 +4,7 @@ import type {
   ConversationWithMessages,
   ConversationSummary,
 } from '../repositories/conversation.repository';
+import type { AssistantMemoryService } from './memory.service';
 import { AssistantConversationService } from './conversation.service';
 
 function buildConversation(
@@ -40,6 +41,7 @@ describe('AssistantConversationService', () => {
   let service: AssistantConversationService;
   let repo: vi.Mocked<AssistantConversationRepositoryPort>;
   let i18n: vi.Mocked<I18nService>;
+  let memoryService: vi.Mocked<AssistantMemoryService>;
 
   beforeEach(() => {
     repo = {
@@ -51,13 +53,18 @@ describe('AssistantConversationService', () => {
       archiveConversation: vi.fn(),
       activateConversation: vi.fn().mockResolvedValue(undefined),
       persistTurn: vi.fn(),
-      findForMemory: vi.fn(),
     };
     i18n = {
       t: vi.fn().mockReturnValue('Conversation not found'),
     } as unknown as vi.Mocked<I18nService>;
+    memoryService = {
+      buildMemoryBlock: vi.fn().mockResolvedValue(''),
+      scheduleExtraction: vi.fn().mockResolvedValue(undefined),
+      extractAndStore: vi.fn().mockResolvedValue(undefined),
+      deleteAllForUser: vi.fn().mockResolvedValue(undefined),
+    } as unknown as vi.Mocked<AssistantMemoryService>;
 
-    service = new AssistantConversationService(repo, i18n);
+    service = new AssistantConversationService(repo, i18n, memoryService);
   });
 
   describe('getLatestConversation', () => {
@@ -157,12 +164,28 @@ describe('AssistantConversationService', () => {
       expect(result!.status).toBe('archived');
     });
 
-    it('returns null when no active conversation', async () => {
+    it('schedules memory extraction for the archived conversation', async () => {
+      const conv = buildConversation();
+      repo.findLatestActiveWithMessages.mockResolvedValue(conv);
+      repo.archiveConversation.mockResolvedValue(
+        buildConversation({ status: 'archived' as never }),
+      );
+
+      await service.clearLatestConversation('user-1');
+
+      expect(memoryService.scheduleExtraction).toHaveBeenCalledWith(
+        'user-1',
+        'conv-1',
+      );
+    });
+
+    it('does not schedule extraction when no active conversation', async () => {
       repo.findLatestActiveWithMessages.mockResolvedValue(null);
 
       const result = await service.clearLatestConversation('user-1');
 
       expect(result).toBeNull();
+      expect(memoryService.scheduleExtraction).not.toHaveBeenCalled();
     });
   });
 
@@ -258,63 +281,23 @@ describe('AssistantConversationService', () => {
   });
 
   describe('buildMemoryBlock', () => {
-    it('returns empty string when no conversations', async () => {
-      repo.findForMemory.mockResolvedValue([]);
+    it('delegates to the memory service', async () => {
+      memoryService.buildMemoryBlock.mockResolvedValue(
+        'Persisted cross-conversation memory is enabled for this user.',
+      );
+
+      const result = await service.buildMemoryBlock('user-1');
+
+      expect(memoryService.buildMemoryBlock).toHaveBeenCalledWith('user-1');
+      expect(result).toContain('Persisted cross-conversation memory');
+    });
+
+    it('returns empty string when the memory service has no memories', async () => {
+      memoryService.buildMemoryBlock.mockResolvedValue('');
 
       const result = await service.buildMemoryBlock('user-1');
 
       expect(result).toBe('');
-    });
-
-    it('builds memory text from conversations', async () => {
-      repo.findForMemory.mockResolvedValue([
-        buildConversation({
-          id: 'conv-1',
-          title: 'Sleep discussion',
-          messages: [
-            {
-              id: 'msg-1',
-              role: 'assistant',
-              content: 'Your sleep was good.',
-              usedTools: [],
-              createdAt: new Date('2026-07-10T08:00:00.000Z'),
-              conversationId: 'conv-1',
-              userId: 'user-1',
-              updatedAt: new Date(),
-            },
-            {
-              id: 'msg-2',
-              role: 'user',
-              content: 'How was my sleep?',
-              usedTools: [],
-              createdAt: new Date('2026-07-10T07:00:00.000Z'),
-              conversationId: 'conv-1',
-              userId: 'user-1',
-              updatedAt: new Date(),
-            },
-          ],
-        }),
-      ]);
-
-      const result = await service.buildMemoryBlock('user-1');
-
-      expect(result).toContain('Sleep discussion');
-      expect(result).toContain('Persisted cross-conversation memory');
-      expect(result).toContain('user: How was my sleep?');
-    });
-
-    it('uses conversation id when title is empty', async () => {
-      repo.findForMemory.mockResolvedValue([
-        buildConversation({
-          id: 'conv-no-title',
-          title: null,
-          messages: [],
-        }),
-      ]);
-
-      const result = await service.buildMemoryBlock('user-1');
-
-      expect(result).toContain('conv-no-title');
     });
   });
 });

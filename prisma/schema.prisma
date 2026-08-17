@@ -188,6 +188,7 @@ model User {
   dataExportRequests     DataExportRequest[]
   assistantConversations AssistantConversation[]
   assistantMessages      AssistantMessage[]
+  assistantMemories      AssistantMemory[]
   assistantSummaryHistories AssistantSummaryHistory[]
   notifications          UserNotification[]
   suggestions            UserSuggestion[]
@@ -1099,6 +1100,18 @@ model AssistantSummaryHistory {
   @@index([userId, date])
   @@index([userId, rangeKey, generatedAt])
   @@map("assistant_summary_histories")
+}
+
+model AssistantMemory {
+  id                   String   @id @default(uuid())
+  userId               String   @map("user_id")
+  sourceConversationId String   @map("source_conversation_id")
+  content              String
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("assistant_memories")
 }
 
 model UserNotification {

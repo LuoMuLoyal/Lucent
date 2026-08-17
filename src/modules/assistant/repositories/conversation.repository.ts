@@ -92,12 +92,6 @@ export abstract class AssistantConversationRepositoryPort {
   abstract persistTurn(
     input: PersistTurnInput,
   ): Promise<ConversationWithMessages>;
-
-  abstract findForMemory(
-    userId: string,
-    conversationLimit: number,
-    messageLimit: number,
-  ): Promise<ConversationWithMessages[]>;
 }
 
 @Injectable()
@@ -233,27 +227,5 @@ export class AssistantConversationRepository implements AssistantConversationRep
     });
 
     return this.findWithMessagesById(input.userId, input.conversationId);
-  }
-
-  async findForMemory(
-    userId: string,
-    conversationLimit: number,
-    messageLimit: number,
-  ): Promise<ConversationWithMessages[]> {
-    return this.prisma.assistantConversation.findMany({
-      where: { userId },
-      include: {
-        messages: {
-          orderBy: { createdAt: 'desc' },
-          take: messageLimit,
-        },
-      },
-      orderBy: [
-        { lastMessageAt: 'desc' },
-        { updatedAt: 'desc' },
-        { createdAt: 'desc' },
-      ],
-      take: conversationLimit,
-    });
   }
 }

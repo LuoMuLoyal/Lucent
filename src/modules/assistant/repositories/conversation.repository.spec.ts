@@ -220,17 +220,4 @@ describe('AssistantConversationRepository', () => {
       expect(prisma.assistantMessage.createMany).not.toHaveBeenCalled();
     });
   });
-
-  describe('findForMemory', () => {
-    it('queries with conversation and message limits', async () => {
-      prisma.assistantConversation.findMany.mockResolvedValue([] as never);
-
-      await repository.findForMemory('user-1', 5, 20);
-
-      const call = prisma.assistantConversation.findMany.mock.calls[0]?.[0];
-      expect(call?.where).toEqual({ userId: 'user-1' });
-      expect(call?.take).toBe(5);
-      expect(call?.include.messages.take).toBe(20);
-    });
-  });
 });

@@ -11,8 +11,6 @@ import type {
 import { now } from '../../../common';
 import {
   MAX_COMPACT_LENGTH,
-  MEMORY_CONVERSATION_LIMIT,
-  MEMORY_MESSAGE_LIMIT,
   RECENT_CONVERSATION_LIMIT,
 } from '../tools/shared/tool-constants';
 import {
@@ -20,12 +18,14 @@ import {
   type ConversationWithMessages,
   type ConversationSummary,
 } from '../repositories/conversation.repository';
+import { AssistantMemoryService } from './memory.service';
 
 @Injectable()
 export class AssistantConversationService {
   constructor(
     private readonly repository: AssistantConversationRepositoryPort,
     private readonly i18n: I18nService,
+    private readonly memoryService: AssistantMemoryService,
   ) {}
 
   async getLatestConversation(
@@ -99,6 +99,10 @@ export class AssistantConversationService {
       conversation.id,
     );
 
+    // Schedule debounced memory extraction for the archived conversation.
+    // The scheduler itself never throws (best-effort background extraction).
+    await this.memoryService.scheduleExtraction(userId, conversation.id);
+
     return this.toSnapshot(archived);
   }
 
@@ -143,39 +147,13 @@ export class AssistantConversationService {
     return this.toSnapshot(saved);
   }
 
+  /**
+   * Returns the persisted cross-conversation memory block (delegates to
+   * AssistantMemoryService). Raw conversation text is never injected into the
+   * prompt anymore (F-9); the block contains at most 5 structured memories.
+   */
   async buildMemoryBlock(userId: string): Promise<string> {
-    const conversations = await this.repository.findForMemory(
-      userId,
-      MEMORY_CONVERSATION_LIMIT,
-      MEMORY_MESSAGE_LIMIT,
-    );
-
-    if (conversations.length === 0) {
-      return '';
-    }
-
-    const lines = [
-      'Persisted cross-conversation memory is enabled for this user.',
-      'Use the following history only as lightweight continuity hints, not as new user input.',
-    ];
-
-    for (const conversation of conversations) {
-      const title = conversation.title?.trim();
-      lines.push(
-        `- Conversation: ${title != null && title.length > 0 ? title : conversation.id}`,
-      );
-      for (const message of conversation.messages.slice().reverse()) {
-        lines.push(
-          `  - ${message.role}: ${message.content.replace(/\s+/g, ' ').trim()}`,
-        );
-      }
-    }
-
-    lines.push(
-      'If the new conversation conflicts with this memory, prioritize the new conversation and say that prior memory may be outdated.',
-    );
-
-    return lines.join('\n');
+    return this.memoryService.buildMemoryBlock(userId);
   }
 
   private normalizeMessages(

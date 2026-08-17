@@ -29,12 +29,6 @@ export const ASSISTANT_VECTOR_MAX_LIMIT = 8;
 /** Maximum number of recent conversations returned by the assistant conversation list. */
 export const RECENT_CONVERSATION_LIMIT = 20;
 
-/** Maximum number of past conversations included in the assistant memory prompt. */
-export const MEMORY_CONVERSATION_LIMIT = 3;
-
-/** Maximum number of messages per conversation included in the assistant memory prompt. */
-export const MEMORY_MESSAGE_LIMIT = 6;
-
 /** Maximum compact text length before truncation in assistant tool outputs. */
 export const MAX_COMPACT_LENGTH = 48;
 
