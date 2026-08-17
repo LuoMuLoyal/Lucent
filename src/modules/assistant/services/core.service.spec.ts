@@ -14,6 +14,7 @@ import type {
   AssistantRuntimeCapabilities,
   AssistantPolicySnapshot,
   AssistantConversationSnapshot,
+  AssistantProposedAction,
 } from '../types/assistant.types';
 import { AssistantService } from './core.service';
 
@@ -223,7 +224,7 @@ describe('AssistantService', () => {
       expiresAt: '2099-01-01T00:00:00.000Z',
     };
 
-    const createProposal = {
+    const createProposal: AssistantProposedAction = {
       id: 'proposal-1',
       type: 'create_daily_record' as const,
       status: 'proposed' as const,
