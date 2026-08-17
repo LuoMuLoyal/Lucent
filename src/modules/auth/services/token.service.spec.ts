@@ -154,7 +154,7 @@ describe('AuthTokenService', () => {
       sessionRepo.claimSessionForRefresh.mockResolvedValueOnce(false);
 
       await expect(service.refresh(oldToken)).rejects.toThrow(
-        'REFRESH_TOKEN_INVALID',
+        'auth.refresh_token_invalid',
       );
       expect(sessionRepo.claimSessionForRefresh).toHaveBeenCalledWith(
         'session-2',
@@ -163,7 +163,7 @@ describe('AuthTokenService', () => {
 
     it('should throw for missing session', async () => {
       await expect(service.refresh('unknown')).rejects.toThrow(
-        'REFRESH_TOKEN_INVALID',
+        'auth.refresh_token_invalid',
       );
     });
 
@@ -178,7 +178,7 @@ describe('AuthTokenService', () => {
       });
 
       await expect(service.refresh('revoked-token')).rejects.toThrow(
-        'REFRESH_TOKEN_INVALID',
+        'auth.refresh_token_invalid',
       );
     });
 
@@ -193,7 +193,7 @@ describe('AuthTokenService', () => {
       });
 
       await expect(service.refresh('expired-token')).rejects.toThrow(
-        'REFRESH_TOKEN_INVALID',
+        'auth.refresh_token_invalid',
       );
     });
   });

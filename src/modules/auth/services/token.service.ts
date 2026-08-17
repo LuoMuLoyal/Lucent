@@ -1,6 +1,7 @@
 import {
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -11,7 +12,7 @@ import { I18nService } from 'nestjs-i18n';
 import { User } from '#generated/prisma/client';
 import { ConfigKey } from '../../../config/env/config-keys.enum';
 
-import { now } from '../../../common';
+import { now, unauthorized } from '../../../common';
 import type {
   AuthRequestContext,
   TokenPair,
@@ -106,7 +107,9 @@ export class AuthTokenService {
         `JWT signing failed for user ${user.id} after session creation: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
-      throw error;
+      throw new InternalServerErrorException(
+        'Token signing failed after session creation; please re-authenticate.',
+      );
     }
 
     return {
@@ -132,7 +135,7 @@ export class AuthTokenService {
       );
 
     if (!record || record.expiresAt < now() || record.revokedAt !== null) {
-      throw new Error('REFRESH_TOKEN_INVALID');
+      unauthorized(this.i18n.t('auth.refresh_token_invalid'));
     }
 
     // Atomically claim the session by deleting it before generating new tokens.
@@ -145,7 +148,7 @@ export class AuthTokenService {
       record.id,
     );
     if (!claimed) {
-      throw new Error('REFRESH_TOKEN_INVALID');
+      unauthorized(this.i18n.t('auth.refresh_token_invalid'));
     }
 
     const tokens = await this.generateTokenPair(record.user, context);
