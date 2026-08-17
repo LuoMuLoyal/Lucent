@@ -190,10 +190,14 @@ export class MedicineRemindersService {
         userId,
       } satisfies ReminderChangedPayload);
     } catch (error) {
-      this.logger.warn('Failed to emit reminder.changed event', {
-        userId,
-        error,
-      });
+      this.logger.error(
+        'Failed to emit reminder.changed event',
+        error instanceof Error ? error.stack : undefined,
+        {
+          userId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
     }
   }
 
