@@ -1,4 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import {
   AIMessageChunk,
@@ -81,7 +85,9 @@ export abstract class BaseLlmGeneratorService<
         } catch (error) {
           span.recordException(error as Error);
           span.setStatus({ code: SpanStatusCode.ERROR });
-          throw error;
+          throw new ServiceUnavailableException(
+            `LLM generate failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
         } finally {
           span.end();
         }
@@ -141,7 +147,9 @@ export abstract class BaseLlmGeneratorService<
         'error',
         (performance.now() - start) / 1000,
       );
-      throw error;
+      throw new ServiceUnavailableException(
+        `LLM generate failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
@@ -217,7 +225,9 @@ export abstract class BaseLlmGeneratorService<
         'error',
         (performance.now() - start) / 1000,
       );
-      throw error;
+      throw new ServiceUnavailableException(
+        `LLM stream acquire failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
 
     let accumulated: AIMessageChunk | undefined;
@@ -248,7 +258,7 @@ export abstract class BaseLlmGeneratorService<
       }
 
       if (accumulated === undefined) {
-        throw new Error(
+        throw new ServiceUnavailableException(
           `${this.options.streamName} stream ended without any message chunks.`,
         );
       }
@@ -257,7 +267,7 @@ export abstract class BaseLlmGeneratorService<
         this.toGenerationChunk(accumulated),
       ])) as unknown; // narrowed by this.schema.parse(result) below
       if (result == null) {
-        throw new Error(
+        throw new ServiceUnavailableException(
           `${this.options.streamName} stream ended without a structured result.`,
         );
       }
@@ -279,7 +289,9 @@ export abstract class BaseLlmGeneratorService<
         'error',
         (performance.now() - start) / 1000,
       );
-      throw error;
+      throw new ServiceUnavailableException(
+        `LLM stream failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 
