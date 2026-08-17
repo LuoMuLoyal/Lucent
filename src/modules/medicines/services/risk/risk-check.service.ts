@@ -84,6 +84,7 @@ export class MedicineRiskCheckService {
     };
 
     await this.cache.set(cacheKey, mapped, RISK_CHECK_CACHE_TTL_MS);
+    this.logger.debug(`Cache set: risk-check records (userId=${userId})`);
     return mapped;
   }
 
