@@ -98,7 +98,11 @@ export class RecomputeQueueService {
     const key = buildRecomputeJobId(data.userId, data.localDate);
     const previous = this.inlineJobs.get(key) ?? Promise.resolve();
     const current = previous
-      .catch(() => undefined)
+      .catch((prevError: unknown) => {
+        this.logger.warn(
+          `Previous inline recompute failed for ${key}: ${prevError instanceof Error ? prevError.message : String(prevError)}`,
+        );
+      })
       .then(() => this.worker.process(data));
     this.inlineJobs.set(key, current);
 
