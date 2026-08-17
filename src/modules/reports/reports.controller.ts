@@ -394,7 +394,12 @@ export class ReportsController {
     } catch (error) {
       await this.shareService
         .revokeShare(user.sub, share.shareId)
-        .catch(() => undefined);
+        .catch((rollbackError: unknown) => {
+          this.logger.error(
+            `Failed to revoke orphaned share ${share.shareId} after cache write failure: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+            rollbackError instanceof Error ? rollbackError.stack : undefined,
+          );
+        });
       throw error;
     }
     return successEnvelope({
