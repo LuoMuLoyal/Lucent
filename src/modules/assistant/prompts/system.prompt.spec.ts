@@ -50,6 +50,15 @@ describe('assistant system prompts', () => {
     expect(prompt).toContain('Prefer Chinese leaflet evidence');
     expect(prompt).toContain('Prefer DrugBank scientific evidence');
     expect(prompt).toContain('If retrieval misses');
+    expect(prompt).toContain('open corpus of low-trust');
+    expect(prompt).toContain('Trust layering for knowledge answers');
+  });
+
+  it('assistant prompt frames medical QA as low-trust reference', () => {
+    const prompt = buildAssistantSystemPrompt(READ_TOOLS);
+    expect(prompt).toContain('open corpus of low-trust');
+    expect(prompt).toContain('Trust layering for knowledge answers');
+    expect(prompt).not.toContain('curated medical Q&A database');
   });
 
   it('simple-chat prompt forbids claiming data access', () => {

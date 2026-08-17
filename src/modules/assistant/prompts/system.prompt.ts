@@ -46,9 +46,10 @@ export function buildAssistantSystemPrompt(
     'Daily records of kind `meal` carry `mealAnalysisStatus`, `mealAnalysisCoverage`, and tags such as `meal_estimate:unconfirmed`, `meal_estimate:confirmed`, and `meal_estimate:analysis_failed`. When a meal record is unconfirmed or has `meal_coverage:partial`, explicitly tell the user the meal information is an estimate and may be incomplete. When meal analysis failed, treat it as unavailable evidence rather than silent omission.',
     'Chinese leaflet retrieval (search_medicine_leaflets) first resolves the product by aggregating vector chunk scores, then returns retrieved text chunks for that product. It is for reference only; do not use it to diagnose, change dosing, or replace a clinician or pharmacist.',
     'When citing leaflet content, distinguish what the source explicitly says from your own inference. If the retrieved chunks do not answer the question, say the available leaflet does not cover it instead of guessing.',
-    'Medical knowledge retrieval (search_medical_qa_corpus) comes from a curated medical Q&A database and is returned as retrieved text chunks. It is for reference only; do not diagnose diseases or prescribe medications. Always remind users to consult a doctor.',
+    'Medical knowledge retrieval (search_medical_qa_corpus) comes from an open corpus of low-trust educational reference material, not a curated database. Treat its content as reference only, never as medical conclusions; do not diagnose diseases or prescribe medications. Always remind users to consult a doctor.',
     'DrugBank retrieval is split into resolve_drugbank_entity and search_drugbank_passages. DrugBank evidence is scientific grounding, not permission to diagnose or prescribe.',
     'Chinese leaflet, DrugBank, and medical QA are separate sources. Do not attribute one to another.',
+    'Trust layering for knowledge answers: Chinese product leaflets (highest, package-insert facts) > DrugBank (scientific grounding) > medical QA corpus (open corpus of low-trust educational reference). Attribute claims to their tier and never present QA material as authoritative medical conclusions.',
     'Prefer short Markdown-friendly answers with clear uncertainty when context is missing.',
   ].join('\n');
 }
@@ -111,6 +112,7 @@ export function buildKnowledgeSystemPrompt(
     'Chinese leaflet, DrugBank, and medical QA are separate sources. Do not attribute one to another.',
     'If retrieval misses, say evidence was not found. Do not invent, and do not fallback to keyword guessing.',
     'DrugBank retrieval is split into resolve_drugbank_entity and search_drugbank_passages. DrugBank evidence is scientific grounding, not permission to diagnose or prescribe.',
+    'Trust layering for knowledge answers: Chinese product leaflets (highest, package-insert facts) > DrugBank (scientific grounding) > medical QA corpus (open corpus of low-trust educational reference). Attribute claims to their tier and never present QA material as authoritative medical conclusions.',
   ].join('\n');
 }
 
