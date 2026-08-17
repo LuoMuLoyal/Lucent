@@ -1,5 +1,5 @@
 import { formatDateOnly } from '../../../common';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import type { ReportDashboardDataDto } from '../dto/report-dashboard-response.dto';
@@ -11,6 +11,8 @@ import { ReportsContextService } from './context.service';
 @Injectable()
 export class ReportsService {
   private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  private readonly logger = new Logger(ReportsService.name);
 
   constructor(
     private readonly contextService: ReportsContextService,
@@ -48,6 +50,9 @@ export class ReportsService {
     };
 
     await this.cache.set(cacheKey, result, ReportsService.CACHE_TTL_MS);
+    this.logger.debug(
+      `Cache set: dashboard (userId=${userId}, key=${cacheKey})`,
+    );
     return result;
   }
 }
