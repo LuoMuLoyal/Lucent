@@ -88,6 +88,7 @@ export abstract class BaseAsyncQueueService<TData, TResult> {
     ttlMs: number = DEFAULT_RESULT_TTL_MS,
   ): Promise<void> {
     await this.cache.set(this.resultKey(jobId), result, ttlMs);
+    this.logger.debug(`Cache set: job result (jobId=${jobId})`);
   }
 
   /**
