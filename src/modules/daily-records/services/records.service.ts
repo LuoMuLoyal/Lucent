@@ -1,6 +1,10 @@
 import { normalizeNullableText } from '../../../common';
 import { parseDateOnly, now, formatDateOnly } from '../../../common';
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { badRequest } from '../../../common';
 import { DailyRecordKind, Prisma } from '#generated/prisma/client';
@@ -127,7 +131,9 @@ export class DailyRecordsService {
         ) {
           const attachment = createAttachments[0];
           if (attachment == null) {
-            throw new Error('Expected one meal attachment after length check.');
+            throw new InternalServerErrorException(
+              'Expected one meal attachment after length check.',
+            );
           }
           const queuedPayload = markMealAnalysisQueued(record.payload, {
             imageObjectKey: attachment.objectKey,
