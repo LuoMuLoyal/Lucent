@@ -11,6 +11,7 @@ import type { MedicinesService } from '../medicines.service';
 import type { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
 import type { RiskDetectionService } from './risk-detection.service';
 import type { RiskContextBuilderService } from './risk-context-builder.service';
+import type { I18nService } from 'nestjs-i18n';
 
 function build() {
   const prisma = {
@@ -45,6 +46,9 @@ function build() {
     set: vi.fn(),
     del: vi.fn(),
   } as unknown as Cache;
+  const i18n = {
+    t: vi.fn((key: string) => key),
+  } as unknown as I18nService;
   const svc = new MedicineRiskCheckService(
     prisma,
     medicinesService,
@@ -52,6 +56,7 @@ function build() {
     riskDetection,
     riskContextBuilder,
     cache,
+    i18n,
   );
   return {
     prisma,
@@ -60,6 +65,7 @@ function build() {
     riskDetection,
     riskContextBuilder,
     cache,
+    i18n,
     svc,
   };
 }

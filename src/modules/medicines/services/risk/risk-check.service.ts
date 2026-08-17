@@ -7,6 +7,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
+import { I18nService } from 'nestjs-i18n';
 import { PrismaService } from '../../../../prisma';
 import { MedicinesService } from '../medicines.service';
 import { MedicineRiskLlmGeneratorService } from './risk-llm-generator.service';
@@ -50,6 +51,7 @@ export class MedicineRiskCheckService {
     private readonly riskDetection: RiskDetectionService,
     private readonly riskContextBuilder: RiskContextBuilderService,
     @Inject(CACHE_MANAGER) private readonly cache: Cache,
+    private readonly i18n: I18nService,
   ) {}
 
   // ── Public API ──────────────────────────────────────────────────────────
@@ -267,7 +269,7 @@ export class MedicineRiskCheckService {
           if (error instanceof NotFoundException) {
             throw error;
           }
-          badRequest('候选药品资料不可用，无法进行预检');
+          badRequest(this.i18n.t('medicine.candidate_unavailable'));
         }
         details.push({
           item: {
