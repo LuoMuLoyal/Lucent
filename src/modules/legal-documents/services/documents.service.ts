@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../../../prisma';
@@ -17,6 +17,8 @@ import {
 export class LegalDocumentsService {
   private static readonly LIST_TTL_MS = 60 * 60 * 1000; // 1 hour
   private static readonly DETAIL_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+  private readonly logger = new Logger(LegalDocumentsService.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -52,6 +54,7 @@ export class LegalDocumentsService {
 
     const result = { items, updatedAt };
     await this.cache.set(cacheKey, result, LegalDocumentsService.LIST_TTL_MS);
+    this.logger.debug(`Cache set: legal-documents list (key=${cacheKey})`);
     return result;
   }
 
@@ -83,6 +86,7 @@ export class LegalDocumentsService {
     };
 
     await this.cache.set(cacheKey, result, LegalDocumentsService.DETAIL_TTL_MS);
+    this.logger.debug(`Cache set: legal-documents detail (key=${cacheKey})`);
     return result;
   }
 
