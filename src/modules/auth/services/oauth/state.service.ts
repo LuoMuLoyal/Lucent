@@ -63,6 +63,9 @@ export class AuthOAuthStateService {
       },
       this.stateTtlMs,
     );
+    this.logger.debug(
+      `OAuth state created (provider=${provider}, purpose=${purpose})`,
+    );
     return { state, ttlSec: this.stateTtlMs / 1000 };
   }
 
@@ -74,6 +77,9 @@ export class AuthOAuthStateService {
     const key = this.stateKey(provider, state);
     const entry = await this.cache.get<OAuthStateEntry>(key);
     await this.cache.del(key);
+    this.logger.debug(
+      `OAuth state consumed (provider=${provider}, purpose=${purpose})`,
+    );
     if (!this.isValidEntry(provider, entry, purpose)) {
       unauthorized(this.i18n.t('auth.oauth_state_invalid'));
     }
