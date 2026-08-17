@@ -368,5 +368,163 @@ describe('AssistantService', () => {
       });
       expect(result.conversationId).toBe('conv-1');
     });
+
+    it('maps knowledge tool envelopes into toolDetails', async () => {
+      runtime.runConversation.mockResolvedValue({
+        ...mockRunConversationResult,
+        toolResults: [
+          {
+            name: 'search_medicine_leaflets',
+            data: {
+              query: { medicineQuery: '布洛芬' },
+              result: {
+                medicine: { source: 'cn', name: '布洛芬缓释胶囊' },
+                resolvedProduct: {
+                  source: 'cn',
+                  productId: 'p-1',
+                  name: '布洛芬缓释胶囊',
+                },
+                leaflets: [],
+                chunks: [],
+                candidates: [],
+                page: { limit: 4, offset: 0, hasMore: false, queryHash: 'h' },
+              },
+              coverage: { status: 'complete', reason: null },
+              timeRange: {
+                timezone: 'UTC',
+                startDate: null,
+                endDate: null,
+              },
+              source: {
+                tool: 'search_medicine_leaflets',
+                generatedAt: '2026-08-17T00:00:00.000Z',
+                tables: ['cn_medicine_leaflets', 'medicine_leaflet_chunks'],
+              },
+              confidence: {
+                level: 'high',
+                reason:
+                  'Resolved a Chinese leaflet product through vector aggregation before retrieving chunks.',
+              },
+              ambiguities: ['布洛芬颗粒'],
+            },
+          },
+          {
+            name: 'search_medical_qa_corpus',
+            data: {
+              query: { medicineQuery: '布洛芬' },
+              result: {
+                knowledge: [],
+                disclaimer: 'AI 回答仅供参考,不构成诊疗建议。',
+                page: { limit: 4, offset: 0, hasMore: false, queryHash: 'h' },
+              },
+              coverage: {
+                status: 'empty',
+                reason: 'No relevant medical knowledge found for this query.',
+              },
+              timeRange: {
+                timezone: 'UTC',
+                startDate: null,
+                endDate: null,
+              },
+              source: {
+                tool: 'search_medical_qa_corpus',
+                generatedAt: '2026-08-17T00:00:00.000Z',
+                tables: ['medical_qa_embeddings'],
+              },
+              confidence: { level: 'low', reason: 'No matching chunks.' },
+              ambiguities: [],
+            },
+          },
+        ],
+      } as never);
+      runtime.streamPreGeneratedContent.mockResolvedValue({
+        ...mockStreamResult,
+        usedToolNames: ['search_medicine_leaflets', 'search_medical_qa_corpus'],
+      } as never);
+      conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
+
+      const result = await service.streamMessages(
+        'user-1',
+        dto,
+        'zh-CN',
+        onChunk,
+      );
+
+      expect(result.toolDetails).toEqual([
+        {
+          name: 'search_medicine_leaflets',
+          label: '布洛芬缓释胶囊',
+          coverage: { status: 'complete', reason: null },
+          confidence: {
+            level: 'high',
+            reason:
+              'Resolved a Chinese leaflet product through vector aggregation before retrieving chunks.',
+          },
+          ambiguities: ['布洛芬颗粒'],
+          source: {
+            tool: 'search_medicine_leaflets',
+            generatedAt: '2026-08-17T00:00:00.000Z',
+            tables: ['cn_medicine_leaflets', 'medicine_leaflet_chunks'],
+          },
+        },
+        {
+          name: 'search_medical_qa_corpus',
+          coverage: {
+            status: 'empty',
+            reason: 'No relevant medical knowledge found for this query.',
+          },
+          confidence: { level: 'low', reason: 'No matching chunks.' },
+          source: {
+            tool: 'search_medical_qa_corpus',
+            generatedAt: '2026-08-17T00:00:00.000Z',
+            tables: ['medical_qa_embeddings'],
+          },
+          disclaimer: 'AI 回答仅供参考,不构成诊疗建议。',
+        },
+      ]);
+    });
+
+    it('emits name-only toolDetails for proposal tools', async () => {
+      runtime.runConversation.mockResolvedValue({
+        ...mockRunConversationResult,
+        toolResults: [
+          {
+            name: 'propose_create_daily_record',
+            data: { type: 'create_daily_record', draft: {} },
+          },
+        ],
+      } as never);
+      runtime.streamPreGeneratedContent.mockResolvedValue({
+        ...mockStreamResult,
+        usedToolNames: ['propose_create_daily_record'],
+      } as never);
+      conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
+
+      const result = await service.streamMessages(
+        'user-1',
+        dto,
+        'zh-CN',
+        onChunk,
+      );
+
+      expect(result.toolDetails).toEqual([
+        { name: 'propose_create_daily_record' },
+      ]);
+    });
+
+    it('returns empty toolDetails when no tools ran', async () => {
+      runtime.runConversation.mockResolvedValue(mockRunConversationResult);
+      runtime.streamPreGeneratedContent.mockResolvedValue(mockStreamResult);
+      conversation.persistAssistantTurn.mockResolvedValue(mockConversation);
+
+      const result = await service.streamMessages(
+        'user-1',
+        dto,
+        'zh-CN',
+        onChunk,
+      );
+
+      expect(result.toolDetails).toEqual([]);
+    });
   });
 });

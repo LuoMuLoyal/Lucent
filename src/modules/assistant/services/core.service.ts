@@ -5,7 +5,10 @@ import type { AssistantCapabilitiesDataDto } from '../dto/capabilities-response.
 
 import type { AssistantConversationDataDto } from '../dto/conversation-response.dto';
 
-import type { AssistantMessageDataDto } from '../dto/stream-response.dto';
+import type {
+  AssistantMessageDataDto,
+  AssistantToolDetailDto,
+} from '../dto/stream-response.dto';
 
 import type { StreamAssistantMessagesDto } from '../dto/stream-messages.dto';
 import type {
@@ -24,7 +27,9 @@ import type {
   AssistantMessageResult,
   AssistantStreamChunkEvent,
   AssistantToolExecutionContext,
+  AssistantToolExecutionResult,
 } from '../types/assistant.types';
+import type { AssistantToolName } from '../tools/shared/tool-types';
 
 @Injectable()
 export class AssistantService {
@@ -228,7 +233,106 @@ export class AssistantService {
       proposedActions: conversationResult.toolResults.flatMap(
         (toolResult) => toolResult.proposedActions ?? [],
       ),
+      toolDetails: this.buildToolDetails(conversationResult.toolResults),
     };
+  }
+
+  /**
+   * Projects tool execution envelopes into the SSE result payload for the
+   * client source strip. Only fields that actually exist in the envelope data
+   * are included; the field is optional and absent for older messages.
+   */
+  private buildToolDetails(
+    results: AssistantToolExecutionResult[],
+  ): AssistantToolDetailDto[] {
+    return results.map((result) => {
+      const data = result.data;
+      const coverage =
+        typeof data['coverage'] === 'object' && data['coverage'] != null
+          ? (data['coverage'] as {
+              status: 'complete' | 'partial' | 'empty';
+              reason: string | null;
+            })
+          : undefined;
+      const confidence =
+        typeof data['confidence'] === 'object' && data['confidence'] != null
+          ? (data['confidence'] as {
+              level: 'high' | 'medium' | 'low';
+              reason: string;
+            })
+          : undefined;
+      const ambiguities = Array.isArray(data['ambiguities'])
+        ? (data['ambiguities'] as unknown[]).filter(
+            (value): value is string => typeof value === 'string',
+          )
+        : undefined;
+      const source =
+        typeof data['source'] === 'object' && data['source'] != null
+          ? (data['source'] as {
+              tool: string;
+              generatedAt: string;
+              tables: string[];
+            })
+          : undefined;
+      const resultData = data['result'];
+      const disclaimer =
+        typeof resultData === 'object' &&
+        resultData != null &&
+        typeof (resultData as Record<string, unknown>)['disclaimer'] ===
+          'string'
+          ? ((resultData as Record<string, unknown>)['disclaimer'] as string)
+          : undefined;
+      const label = this.extractToolLabel(result.name, data);
+
+      const detail: AssistantToolDetailDto = { name: result.name };
+      if (label != null) detail.label = label;
+      if (coverage != null) detail.coverage = coverage;
+      if (confidence != null) detail.confidence = confidence;
+      if (ambiguities != null && ambiguities.length > 0) {
+        detail.ambiguities = ambiguities;
+      }
+      if (source != null) detail.source = source;
+      if (disclaimer != null) detail.disclaimer = disclaimer;
+      return detail;
+    });
+  }
+
+  private extractToolLabel(
+    name: AssistantToolName,
+    data: Record<string, unknown>,
+  ): string | null {
+    switch (name) {
+      case 'search_medicine_leaflets':
+        return (
+          this.readNestedString(data, ['result', 'resolvedProduct', 'name']) ??
+          this.readNestedString(data, ['result', 'medicine', 'name'])
+        );
+      case 'search_drugbank_passages':
+        return this.readNestedString(data, [
+          'result',
+          'passages',
+          0,
+          'drugName',
+        ]);
+      case 'resolve_drugbank_entity':
+        return this.readNestedString(data, ['result', 'entities', 0, 'name']);
+      default:
+        return null;
+    }
+  }
+
+  private readNestedString(
+    data: Record<string, unknown>,
+    path: Array<string | number>,
+  ): string | null {
+    let current: unknown = data;
+    for (const key of path) {
+      if (current == null || typeof current !== 'object') {
+        return null;
+      }
+      current = (current as Record<string | number, unknown>)[key];
+    }
+    return typeof current === 'string' ? current : null;
   }
 
   private normalizeConversation(

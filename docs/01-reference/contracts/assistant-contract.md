@@ -228,6 +228,27 @@ interface AssistantStreamResultDto {
   usedTools: string[];
   generatedAt: string;
   proposedActions?: AssistantProposedActionDto[];
+  toolDetails?: AssistantToolDetailDto[];
+}
+```
+
+`toolDetails` is an optional, backward-compatible extension of the `result`
+event (F-7 source strip): one entry per executed tool, carrying only fields
+that exist in the tool result envelope. It is **not persisted** server-side,
+so messages loaded from history never include it. Shape:
+
+```ts
+interface AssistantToolDetailDto {
+  name: string; // matches an entry in usedTools
+  label?: string | null; // display subject, e.g. resolved product name
+  coverage?: {
+    status: 'complete' | 'partial' | 'empty';
+    reason: string | null;
+  } | null;
+  confidence?: { level: 'high' | 'medium' | 'low'; reason: string } | null;
+  ambiguities?: string[];
+  source?: { tool: string; generatedAt: string; tables: string[] } | null;
+  disclaimer?: string | null; // medical knowledge disclaimer, when the tool emits one
 }
 ```
 

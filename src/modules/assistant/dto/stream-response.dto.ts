@@ -1,6 +1,68 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { AssistantProposedActionDto } from './proposed-action.dto';
 
+export class AssistantToolDetailDto {
+  @ApiProperty({ description: 'Tool name used during generation.' })
+  name!: string;
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: String,
+    description: 'Optional display subject, e.g. the resolved product name.',
+  })
+  label?: string | null;
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: Object,
+    description: 'Optional result envelope coverage.',
+  })
+  coverage?: {
+    status: 'complete' | 'partial' | 'empty';
+    reason: string | null;
+  } | null;
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: Object,
+    description: 'Optional result envelope confidence.',
+  })
+  confidence?: {
+    level: 'high' | 'medium' | 'low';
+    reason: string;
+  } | null;
+
+  @ApiProperty({
+    required: false,
+    type: [String],
+    description: 'Optional result envelope ambiguities.',
+  })
+  ambiguities?: string[];
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: Object,
+    description: 'Optional result envelope source meta.',
+  })
+  source?: {
+    tool: string;
+    generatedAt: string;
+    tables: string[];
+  } | null;
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: String,
+    description: 'Optional medical knowledge disclaimer from the tool result.',
+  })
+  disclaimer?: string | null;
+}
+
 export class AssistantStreamChunkDto {
   @ApiProperty({
     description: 'Incremental assistant text chunk for SSE rendering.',
@@ -46,6 +108,9 @@ export class AssistantMessageDataDto {
       'Optional proposal-only write intents that still require explicit client confirmation.',
   })
   proposedActions?: AssistantProposedActionDto[];
+
+  @ApiProperty({ required: false, type: AssistantToolDetailDto, isArray: true })
+  toolDetails?: AssistantToolDetailDto[];
 }
 
 export class AssistantClearResultDataDto {
