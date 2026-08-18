@@ -85,6 +85,13 @@ export abstract class BaseLlmGeneratorService<
         } catch (error) {
           span.recordException(error as Error);
           span.setStatus({ code: SpanStatusCode.ERROR });
+          // Preserve the original exception if it is already a NestJS HTTP
+          // exception (e.g. LlmCircuitOpenError, which extends
+          // ServiceUnavailableException) so callers can distinguish circuit
+          // breaker rejections from genuine generation failures.
+          if (error instanceof ServiceUnavailableException) {
+            throw error;
+          }
           throw new ServiceUnavailableException(
             `LLM generate failed: ${error instanceof Error ? error.message : String(error)}`,
           );
