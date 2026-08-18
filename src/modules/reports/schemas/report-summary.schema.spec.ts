@@ -1,19 +1,24 @@
-import {
-  reportSummarySchema,
-  REPORT_SUMMARY_BULLET_KINDS,
-} from './report-summary.schema';
+import { reportSummarySchema } from './report-summary.schema';
 
 describe('reportSummarySchema', () => {
   function buildValid(overrides: Record<string, unknown> = {}) {
     return {
-      summary: '本周健康状况良好',
-      bullets: [
-        { kind: 'medication', text: '按时服药' },
-        { kind: 'hydration', text: '饮水充足' },
-      ],
-      actionLabel: '查看详情',
-      action: 'view_report',
-      confidenceNote: '基于最近7天数据',
+      summary: '近 7 天有 5 天记录了用药数据，饮水数据覆盖率较低。',
+      coverage: {
+        medication: { trackedDays: 5, totalDays: 7 },
+        water: { trackedDays: 3, totalDays: 7 },
+        sleep: { trackedDays: 0, totalDays: 7 },
+      },
+      observedPattern: {
+        kind: 'medication' as const,
+        text: '用药完成率连续 5 天保持在 80% 以上。',
+        source: 'reminder_plan',
+      },
+      lowRiskAction: {
+        label: '查看报告',
+        text: '继续按当前节奏记录日常饮水量。',
+      },
+      disclaimer: '仅基于近 7 天已记录数据，不构成诊断或治疗建议。',
       ...overrides,
     };
   }
@@ -23,25 +28,18 @@ describe('reportSummarySchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('accepts all valid bullet kinds', () => {
-    const bullets = REPORT_SUMMARY_BULLET_KINDS.map((kind) => ({
-      kind,
-      text: 'text',
-    }));
-    // Use first 3 to stay within max
+  it('accepts null observedPattern (data insufficient)', () => {
     const result = reportSummarySchema.safeParse(
-      buildValid({ bullets: bullets.slice(0, 3) }),
+      buildValid({ observedPattern: null }),
     );
     expect(result.success).toBe(true);
   });
 
-  it('rejects an invalid bullet kind', () => {
+  it('accepts null lowRiskAction', () => {
     const result = reportSummarySchema.safeParse(
-      buildValid({
-        bullets: [{ kind: 'invalid', text: 'text' }],
-      }),
+      buildValid({ lowRiskAction: null }),
     );
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 
   it('rejects summary exceeding 160 chars', () => {
@@ -56,55 +54,60 @@ describe('reportSummarySchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects bullets with fewer than 2 items', () => {
-    const result = reportSummarySchema.safeParse(
-      buildValid({ bullets: [{ kind: 'general', text: 'only one' }] }),
-    );
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects bullets with more than 3 items', () => {
-    const result = reportSummarySchema.safeParse({
-      ...buildValid(),
-      bullets: [
-        { kind: 'medication', text: 'a' },
-        { kind: 'hydration', text: 'b' },
-        { kind: 'sleep', text: 'c' },
-        { kind: 'general', text: 'd' },
-      ],
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects bullet text exceeding 96 chars', () => {
+  it('rejects invalid observedPattern kind', () => {
     const result = reportSummarySchema.safeParse(
       buildValid({
-        bullets: [
-          { kind: 'medication', text: 'x'.repeat(97) },
-          { kind: 'hydration', text: 'ok' },
-        ],
+        observedPattern: { kind: 'invalid', text: 'text', source: 'src' },
       }),
     );
     expect(result.success).toBe(false);
   });
 
-  it('rejects actionLabel exceeding 24 chars', () => {
+  it('rejects observedPattern text exceeding 96 chars', () => {
     const result = reportSummarySchema.safeParse(
-      buildValid({ actionLabel: 'x'.repeat(25) }),
+      buildValid({
+        observedPattern: {
+          kind: 'medication',
+          text: 'x'.repeat(97),
+          source: 'reminder_plan',
+        },
+      }),
     );
     expect(result.success).toBe(false);
   });
 
-  it('rejects action exceeding 24 chars', () => {
+  it('rejects lowRiskAction label exceeding 24 chars', () => {
     const result = reportSummarySchema.safeParse(
-      buildValid({ action: 'x'.repeat(25) }),
+      buildValid({
+        lowRiskAction: { label: 'x'.repeat(25), text: 'ok' },
+      }),
     );
     expect(result.success).toBe(false);
   });
 
-  it('rejects confidenceNote exceeding 96 chars', () => {
+  it('rejects disclaimer exceeding 120 chars', () => {
     const result = reportSummarySchema.safeParse(
-      buildValid({ confidenceNote: 'x'.repeat(97) }),
+      buildValid({ disclaimer: 'x'.repeat(121) }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing coverage', () => {
+    const result = reportSummarySchema.safeParse(
+      buildValid({ coverage: undefined }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects negative trackedDays', () => {
+    const result = reportSummarySchema.safeParse(
+      buildValid({
+        coverage: {
+          medication: { trackedDays: -1, totalDays: 7 },
+          water: { trackedDays: 3, totalDays: 7 },
+          sleep: { trackedDays: 0, totalDays: 7 },
+        },
+      }),
     );
     expect(result.success).toBe(false);
   });

@@ -1077,31 +1077,32 @@ model AssistantMessage {
 }
 
 model AssistantSummaryHistory {
-  id             String               @id @default(uuid())
-  userId         String               @map("user_id")
-  kind           AiSummaryHistoryKind
-  scopeKey       String               @map("scope_key")
-  date           DateTime?            @db.Date
-  rangeKey       String?              @map("range_key")
-  startDate      DateTime?            @map("start_date") @db.Date
-  endDate        DateTime?            @map("end_date") @db.Date
-  generatedAt    DateTime             @map("generated_at") @db.Timestamptz(3)
-  summary        String
-  bullets        Json                 @db.JsonB
-  actionLabel    String               @map("action_label")
-  action         String               @map("action")
-  confidenceNote String               @map("confidence_note")
-  aiGenerated    Boolean              @default(false) @map("ai_generated")
-  sourceVersion  Int?                 @map("source_version")
-  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+id             String               @id @default(uuid())
+userId         String               @map("user_id")
+kind           AiSummaryHistoryKind
+scopeKey       String               @map("scope_key")
+date           DateTime?            @db.Date
+rangeKey       String?              @map("range_key")
+startDate      DateTime?            @map("start_date") @db.Date
+endDate        DateTime?            @map("end_date") @db.Date
+generatedAt    DateTime             @map("generated_at") @db.Timestamptz(3)
+summary        String
+bullets        Json                 @db.JsonB
+actionLabel    String               @map("action_label")
+action         String               @map("action")
+confidenceNote String               @map("confidence_note")
+payload        Json?                @db.JsonB
+aiGenerated    Boolean              @default(false) @map("ai_generated")
+sourceVersion  Int?                 @map("source_version")
+createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, scopeKey])
-  @@index([userId, kind, generatedAt])
-  @@index([userId, date])
-  @@index([userId, rangeKey, generatedAt])
-  @@map("assistant_summary_histories")
+@@unique([userId, scopeKey])
+@@index([userId, kind, generatedAt])
+@@index([userId, date])
+@@index([userId, rangeKey, generatedAt])
+@@map("assistant_summary_histories")
 }
 
 model AssistantMemory {

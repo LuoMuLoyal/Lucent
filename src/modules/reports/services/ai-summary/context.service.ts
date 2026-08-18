@@ -6,15 +6,20 @@ import type {
   ReportDashboardFacts,
 } from '../../dashboard/metrics.types';
 
+export interface ReportsAiSummaryCoverageDimension {
+  trackedDays: number;
+  totalDays: number;
+}
+
 export interface ReportsAiSummaryContext {
   range: ReportDashboardFacts['range'];
   startDate: string;
   endDate: string;
   generatedAt: string;
-  score: {
-    value: number;
-    maxValue: number;
-    status: ReportDashboardComputed['score']['status'];
+  coverage: {
+    medication: ReportsAiSummaryCoverageDimension;
+    water: ReportsAiSummaryCoverageDimension;
+    sleep: ReportsAiSummaryCoverageDimension;
   };
   metrics: Array<{
     kind: ReportDashboardComputed['metrics'][number]['kind'];
@@ -31,12 +36,6 @@ export interface ReportsAiSummaryContext {
     sleep: number[];
     mealEstimate: number[];
   };
-  dataQuality: {
-    medicationTrackedDays: number;
-    waterTrackedDays: number;
-    sleepTrackedDays: number;
-    mealEstimateTrackedDays: number;
-  };
   mealEstimateBreakdown: {
     confirmedDays: number;
     estimatedDays: number;
@@ -52,15 +51,38 @@ export class ReportsAiSummaryContextService {
     facts: ReportDashboardFacts,
     computed: ReportDashboardComputed,
   ): ReportsAiSummaryContext {
+    const totalDays = facts.range === 'last_30_days' ? 30 : 7;
+
+    const medicationTrackedDays =
+      facts.observedMedicationSeries == null
+        ? facts.medicationSeries.filter((value) => value > 0).length
+        : facts.observedMedicationSeries.filter(
+            (metric) => metric.state === 'observed' && metric.value != null,
+          ).length;
+
+    const waterTrackedDays =
+      facts.observedWaterSeries == null
+        ? facts.waterSeries.filter((value) => value > 0).length
+        : facts.observedWaterSeries.filter(
+            (metric) =>
+              metric.state === 'observed' &&
+              metric.coverage === 'sufficient' &&
+              metric.value != null,
+          ).length;
+
+    const sleepTrackedDays = facts.sleepSeries.filter(
+      (value) => value > 0,
+    ).length;
+
     return {
       range: facts.range,
       startDate: formatDateOnly(facts.startDate),
       endDate: formatDateOnly(facts.endDate),
       generatedAt: facts.generatedAt,
-      score: {
-        value: computed.score.value,
-        maxValue: computed.score.maxValue,
-        status: computed.score.status,
+      coverage: {
+        medication: { trackedDays: medicationTrackedDays, totalDays },
+        water: { trackedDays: waterTrackedDays, totalDays },
+        sleep: { trackedDays: sleepTrackedDays, totalDays },
       },
       metrics: computed.metrics.map((metric) => ({
         kind: metric.kind,
@@ -78,22 +100,6 @@ export class ReportsAiSummaryContextService {
           : { waterObserved: facts.observedWaterSeries }),
         sleep: facts.sleepSeries,
         mealEstimate: facts.mealEstimateSeries,
-      },
-      dataQuality: {
-        medicationTrackedDays: facts.medicationSeries.filter(
-          (value) => value > 0,
-        ).length,
-        waterTrackedDays:
-          facts.observedWaterSeries == null
-            ? facts.waterSeries.filter((value) => value > 0).length
-            : facts.observedWaterSeries.filter(
-                (metric) =>
-                  metric.state === 'observed' &&
-                  metric.coverage === 'sufficient' &&
-                  metric.value != null,
-              ).length,
-        sleepTrackedDays: facts.sleepSeries.filter((value) => value > 0).length,
-        mealEstimateTrackedDays: facts.mealEstimateTrackedDays,
       },
       mealEstimateBreakdown: facts.mealEstimateBreakdown,
     };

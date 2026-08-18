@@ -5,6 +5,7 @@ import { LlmCircuitBreakerService } from '../../../../common/llm/llm-circuit-bre
 import { AI_MODEL_TIMEOUT_MS } from '../../../../config/constants';
 import { REPORT_RANGE_LAST_30_DAYS } from '../../dto/report-dashboard-query.dto';
 import { ReportsAiSummaryGeneratorService } from './generator.service';
+import type { ReportsAiSummaryContext } from './context.service';
 
 function buildMetricsService() {
   return {
@@ -20,17 +21,86 @@ function buildMetricsService() {
   } as unknown as MetricsService;
 }
 
+const baseContext: ReportsAiSummaryContext = {
+  range: REPORT_RANGE_LAST_30_DAYS,
+  startDate: '2026-05-14',
+  endDate: '2026-06-12',
+  generatedAt: '2026-06-12T08:00:00.000Z',
+  coverage: {
+    medication: { trackedDays: 30, totalDays: 30 },
+    water: { trackedDays: 30, totalDays: 30 },
+    sleep: { trackedDays: 0, totalDays: 30 },
+  },
+  metrics: [
+    {
+      kind: 'medication' as const,
+      value: '83',
+      unit: '%',
+      status: 'stable' as const,
+      delta: '+17%',
+      direction: 'up' as const,
+    },
+    {
+      kind: 'water' as const,
+      value: '1.5',
+      unit: 'L',
+      status: 'stable' as const,
+      delta: '-0.3',
+      direction: 'down' as const,
+    },
+    {
+      kind: 'sleep' as const,
+      value: '--',
+      unit: 'h',
+      status: 'insufficient_data' as const,
+      delta: '--',
+      direction: 'flat' as const,
+    },
+  ],
+  series: {
+    medication: Array<number>(30).fill(80),
+    water: Array<number>(30).fill(1.6),
+    sleep: Array<number>(30).fill(0),
+    mealEstimate: Array<number>(30).fill(1),
+  },
+  mealEstimateBreakdown: {
+    confirmedDays: 30,
+    estimatedDays: 0,
+    partialDays: 0,
+    analyzingDays: 0,
+    failedDays: 0,
+  },
+};
+
+const basePromptCopy = {
+  userIntro: 'intro',
+  tone: 'tone',
+  actionLabelHint: 'hint',
+  factsLabel: 'facts',
+};
+
+const baseModelOutput = {
+  summary: 'ok',
+  coverage: {
+    medication: { trackedDays: 30, totalDays: 30 },
+    water: { trackedDays: 30, totalDays: 30 },
+    sleep: { trackedDays: 0, totalDays: 30 },
+  },
+  observedPattern: {
+    kind: 'medication' as const,
+    text: '用药完成率连续 5 天保持在 80% 以上。',
+    source: 'reminder_plan',
+  },
+  lowRiskAction: {
+    label: '查看报告',
+    text: '继续按当前节奏记录日常饮水量。',
+  },
+  disclaimer: '仅基于近 30 天已记录数据，不构成诊断或治疗建议。',
+};
+
 describe('ReportsAiSummaryGeneratorService', () => {
   it('delegates generation to llm runtime with structured output', async () => {
-    const invoke = vi.fn().mockResolvedValue({
-      summary: 'ok',
-      bullets: [
-        { kind: 'general', text: 'a' },
-        { kind: 'sleep', text: 'b' },
-      ],
-      actionLabel: 'View report',
-      confidenceNote: 'Generated from records only.',
-    });
+    const invoke = vi.fn().mockResolvedValue(baseModelOutput);
     const withStructuredOutput = vi.fn().mockReturnValue({ invoke });
     const createChatModel = vi.fn().mockReturnValue({ withStructuredOutput });
     const service = new ReportsAiSummaryGeneratorService(
@@ -43,70 +113,7 @@ describe('ReportsAiSummaryGeneratorService', () => {
       new LlmCircuitBreakerService(),
     );
 
-    const result = await service.generate(
-      {
-        range: REPORT_RANGE_LAST_30_DAYS,
-        startDate: '2026-05-14',
-        endDate: '2026-06-12',
-        generatedAt: '2026-06-12T08:00:00.000Z',
-        score: {
-          value: 78,
-          maxValue: 100,
-          status: 'stable',
-        },
-        metrics: [
-          {
-            kind: 'medication',
-            value: '83',
-            unit: '%',
-            status: 'stable',
-            delta: '+17%',
-            direction: 'up',
-          },
-          {
-            kind: 'water',
-            value: '1.5',
-            unit: 'L',
-            status: 'stable',
-            delta: '-0.3',
-            direction: 'down',
-          },
-          {
-            kind: 'sleep',
-            value: '--',
-            unit: 'h',
-            status: 'insufficient_data',
-            delta: '--',
-            direction: 'flat',
-          },
-        ],
-        series: {
-          medication: Array<number>(30).fill(80),
-          water: Array<number>(30).fill(1.6),
-          sleep: Array<number>(30).fill(0),
-          mealEstimate: Array<number>(30).fill(1),
-        },
-        dataQuality: {
-          medicationTrackedDays: 30,
-          waterTrackedDays: 30,
-          sleepTrackedDays: 0,
-          mealEstimateTrackedDays: 30,
-        },
-        mealEstimateBreakdown: {
-          confirmedDays: 30,
-          estimatedDays: 0,
-          partialDays: 0,
-          analyzingDays: 0,
-          failedDays: 0,
-        },
-      },
-      {
-        userIntro: 'intro',
-        tone: 'tone',
-        actionLabelHint: 'hint',
-        factsLabel: 'facts',
-      },
-    );
+    const result = await service.generate(baseContext, basePromptCopy);
 
     expect(createChatModel).toHaveBeenCalledWith('analysis', {
       timeout: AI_MODEL_TIMEOUT_MS,
@@ -139,42 +146,15 @@ describe('ReportsAiSummaryGeneratorService', () => {
     await expect(
       service.generate(
         {
-          range: REPORT_RANGE_LAST_30_DAYS,
-          startDate: '2026-05-14',
-          endDate: '2026-06-12',
-          generatedAt: '2026-06-12T08:00:00.000Z',
-          score: {
-            value: 50,
-            maxValue: 100,
-            status: 'stable',
+          ...baseContext,
+          coverage: {
+            medication: { trackedDays: 0, totalDays: 30 },
+            water: { trackedDays: 0, totalDays: 30 },
+            sleep: { trackedDays: 0, totalDays: 30 },
           },
           metrics: [],
-          series: {
-            medication: [],
-            water: [],
-            sleep: [],
-            mealEstimate: [],
-          },
-          dataQuality: {
-            medicationTrackedDays: 0,
-            waterTrackedDays: 0,
-            sleepTrackedDays: 0,
-            mealEstimateTrackedDays: 0,
-          },
-          mealEstimateBreakdown: {
-            confirmedDays: 0,
-            estimatedDays: 0,
-            partialDays: 0,
-            analyzingDays: 0,
-            failedDays: 0,
-          },
         },
-        {
-          userIntro: 'intro',
-          tone: 'tone',
-          actionLabelHint: 'hint',
-          factsLabel: 'facts',
-        },
+        basePromptCopy,
       ),
     ).rejects.toThrow('LLM timeout');
 
@@ -187,12 +167,7 @@ describe('ReportsAiSummaryGeneratorService', () => {
   });
 
   it('records success metric with duration after successful generation', async () => {
-    const invoke = vi.fn().mockResolvedValue({
-      summary: 'ok',
-      bullets: [],
-      actionLabel: 'View',
-      confidenceNote: 'note',
-    });
+    const invoke = vi.fn().mockResolvedValue(baseModelOutput);
     const withStructuredOutput = vi.fn().mockReturnValue({ invoke });
     const createChatModel = vi.fn().mockReturnValue({ withStructuredOutput });
     const metricsService = buildMetricsService();
@@ -206,36 +181,7 @@ describe('ReportsAiSummaryGeneratorService', () => {
       new LlmCircuitBreakerService(),
     );
 
-    await service.generate(
-      {
-        range: REPORT_RANGE_LAST_30_DAYS,
-        startDate: '2026-05-14',
-        endDate: '2026-06-12',
-        generatedAt: '2026-06-12T08:00:00.000Z',
-        score: { value: 50, maxValue: 100, status: 'stable' },
-        metrics: [],
-        series: { medication: [], water: [], sleep: [], mealEstimate: [] },
-        dataQuality: {
-          medicationTrackedDays: 0,
-          waterTrackedDays: 0,
-          sleepTrackedDays: 0,
-          mealEstimateTrackedDays: 0,
-        },
-        mealEstimateBreakdown: {
-          confirmedDays: 0,
-          estimatedDays: 0,
-          partialDays: 0,
-          analyzingDays: 0,
-          failedDays: 0,
-        },
-      },
-      {
-        userIntro: 'intro',
-        tone: 'tone',
-        actionLabelHint: 'hint',
-        factsLabel: 'facts',
-      },
-    );
+    await service.generate(baseContext, basePromptCopy);
 
     expect(metricsService.recordLlmCall).toHaveBeenCalledWith(
       'analysis',

@@ -4,21 +4,21 @@
   "fallback": {
     "action": "today",
     "action_label": "查看报告",
-    "confidence_note": "仅基于近 {dayCount} 天已记录数据生成，不构成诊断或治疗建议。",
+    "disclaimer": "仅基于近 {dayCount} 天已记录数据，不构成诊断或治疗建议。",
+    "abstain": "近 {dayCount} 天三项指标（用药、饮水、睡眠）均无足够记录数据，暂不生成洞察总结。请先持续记录日常数据。",
     "summary_default": "近 {dayCount} 天记录已更新，可先根据已有记录继续巩固日常节奏。",
     "summary_needs_attention": "近 {dayCount} 天用药完成率约为 {medicationValue}%，平均饮水量约为 {waterValue}L，仍有一些基础习惯值得继续巩固。",
     "summary_stable": "近 {dayCount} 天用药记录整体较稳，饮水也有一定连续性，可以继续按当前节奏保持。",
-    "bullet_medication_tracked": "近 {dayCount} 天里有 {medicationTrackedDays} 天有用药记录，当前完成表现约为 {medicationValue}%。",
-    "bullet_medication_missing": "近 {dayCount} 天还没有足够的用药记录，后续补记后总结会更稳定。",
-    "bullet_hydration_tracked": "近 {dayCount} 天平均饮水量约 {waterValue}L，建议继续提升偏低的几天。",
-    "bullet_hydration_missing": "近 {dayCount} 天还缺少足够的饮水记录，先持续记录日常补水节奏会更有参考价值。",
-    "bullet_sleep_tracked": "近 {dayCount} 天已有 {sleepTrackedDays} 天睡眠数据，后续可以继续保持记录连续性。",
-    "bullet_sleep_missing": "当前仍缺少真实睡眠数据，补上后总结会更完整。"
+    "pattern_medication_good": "近 {trackedDays} 天用药完成率保持在 {value}% 以上，来源：用药提醒记录。",
+    "pattern_medication_attention": "近 {trackedDays} 天用药完成率约为 {value}%，低于预期，来源：用药提醒记录。",
+    "pattern_hydration": "近 {trackedDays} 天平均饮水量约为 {value}L，来源：每日饮水记录。",
+    "action_hydration": "建议继续记录日常饮水量，保持补水节奏。",
+    "action_logging": "建议继续记录用药情况，保持数据连续性。"
   },
   "prompt": {
-    "user_intro": "请基于提供的 JSON 事实生成一段简短的{languageLabel}报告总结。",
-    "tone": "语气保持平静、具体，不要做诊断。",
-    "action_label_hint": "actionLabel 应尽量贴近“{actionLabel}”。",
+    "user_intro": "请基于提供的 JSON 事实生成一段简短的{languageLabel}纵向健康洞察总结。",
+    "tone": "语气保持平静、具体，不要做诊断。数据不足时直接弃权，不生成泛化长文。",
+    "action_label_hint": "lowRiskAction 的 label 应尽量贴近「{actionLabel}」。",
     "facts_label": "事实 JSON："
   }
 }

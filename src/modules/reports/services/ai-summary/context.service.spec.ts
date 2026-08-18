@@ -85,9 +85,23 @@ describe('ReportsAiSummaryContextService', () => {
     const context = service.build(baseFacts, baseComputed);
 
     expect(context.series.mealEstimate).toEqual(baseFacts.mealEstimateSeries);
-    expect(context.dataQuality.mealEstimateTrackedDays).toBe(
-      baseFacts.mealEstimateTrackedDays,
-    );
+  });
+
+  it('builds coverage dimensions with trackedDays and totalDays', () => {
+    const context = service.build(baseFacts, baseComputed);
+
+    expect(context.coverage.medication).toEqual({
+      trackedDays: 6,
+      totalDays: 7,
+    });
+    expect(context.coverage.water).toEqual({
+      trackedDays: 7,
+      totalDays: 7,
+    });
+    expect(context.coverage.sleep).toEqual({
+      trackedDays: 0,
+      totalDays: 7,
+    });
   });
 
   it('counts water coverage from observed metrics, including explicit zero', () => {
@@ -131,7 +145,7 @@ describe('ReportsAiSummaryContextService', () => {
       baseComputed,
     );
 
-    expect(context.dataQuality.waterTrackedDays).toBe(2);
+    expect(context.coverage.water.trackedDays).toBe(2);
     expect(context.series.waterObserved).toHaveLength(3);
   });
 });

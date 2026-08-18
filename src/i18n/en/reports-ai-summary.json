@@ -4,21 +4,21 @@
   "fallback": {
     "action": "today",
     "action_label": "View report",
-    "confidence_note": "Generated only from the last {dayCount} days of recorded data. This is not a diagnosis or treatment advice.",
+    "disclaimer": "Generated only from the last {dayCount} days of recorded data. This is not a diagnosis or treatment advice.",
+    "abstain": "Insufficient data across all three dimensions (medication, water, sleep) in the last {dayCount} days. No insight is generated. Please keep logging daily data.",
     "summary_default": "The last {dayCount} days of records were updated. You can keep strengthening the daily routine based on what is already logged.",
     "summary_needs_attention": "Medication completion was about {medicationValue}% over the last {dayCount} days and average water intake was about {waterValue}L, so a few basic habits are still worth tightening up.",
     "summary_stable": "Medication records looked fairly steady over the last {dayCount} days, and hydration also showed some continuity. Keeping the current rhythm is reasonable.",
-    "bullet_medication_tracked": "{medicationTrackedDays} of the last {dayCount} days contain medication records, with current completion performance around {medicationValue}%.",
-    "bullet_medication_missing": "There are not enough medication records across the last {dayCount} days yet. The report summary will be more reliable after more logging.",
-    "bullet_hydration_tracked": "Average water intake was about {waterValue}L across the last {dayCount} days, and a few lower days are still worth tightening up.",
-    "bullet_hydration_missing": "There are not enough water records across the last {dayCount} days yet. Start with logging the daily hydration rhythm more consistently.",
-    "bullet_sleep_tracked": "{sleepTrackedDays} of the last {dayCount} days already contain sleep data. Keeping that continuity will make the report more useful.",
-    "bullet_sleep_missing": "Real sleep data is still missing, so the report summary remains incomplete."
+    "pattern_medication_good": "Medication adherence stayed above {value}% for {trackedDays} days. Source: reminder plan.",
+    "pattern_medication_attention": "Medication adherence was around {value}% across {trackedDays} days, below expected. Source: reminder plan.",
+    "pattern_hydration": "Average water intake was about {value}L across {trackedDays} days. Source: daily water records.",
+    "action_hydration": "Keep logging daily water intake to maintain hydration rhythm.",
+    "action_logging": "Keep logging medication to maintain data continuity."
   },
   "prompt": {
-    "user_intro": "Generate a brief {languageLabel} report summary for the supplied JSON facts.",
-    "tone": "Keep the tone calm, concrete, and non-diagnostic.",
-    "action_label_hint": "The actionLabel should stay close to \"{actionLabel}\".",
+    "user_intro": "Generate a brief {languageLabel} longitudinal health insight for the supplied JSON facts.",
+    "tone": "Keep the tone calm, concrete, and non-diagnostic. Abstain when data is insufficient — do not generate generalized prose.",
+    "action_label_hint": "The lowRiskAction label should stay close to \"{actionLabel}\".",
     "facts_label": "Facts JSON:"
   }
 }

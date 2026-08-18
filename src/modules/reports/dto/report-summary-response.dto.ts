@@ -1,14 +1,42 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   REPORT_SUPPORTED_RANGES,
   type ReportRange,
 } from './report-dashboard-query.dto';
 
-export class ReportSummaryBulletDto {
-  @ApiProperty({
-    enum: ['medication', 'hydration', 'sleep', 'general'],
-  })
-  kind!: 'medication' | 'hydration' | 'sleep' | 'general';
+export class ReportCoverageDimensionDto {
+  @ApiProperty()
+  trackedDays!: number;
+
+  @ApiProperty()
+  totalDays!: number;
+}
+
+export class ReportCoverageDto {
+  @ApiProperty({ type: () => ReportCoverageDimensionDto })
+  medication!: ReportCoverageDimensionDto;
+
+  @ApiProperty({ type: () => ReportCoverageDimensionDto })
+  water!: ReportCoverageDimensionDto;
+
+  @ApiProperty({ type: () => ReportCoverageDimensionDto })
+  sleep!: ReportCoverageDimensionDto;
+}
+
+export class ReportObservedPatternDto {
+  @ApiProperty({ enum: ['medication', 'hydration', 'sleep'] })
+  kind!: 'medication' | 'hydration' | 'sleep';
+
+  @ApiProperty()
+  text!: string;
+
+  @ApiProperty()
+  source!: string;
+}
+
+export class ReportLowRiskActionDto {
+  @ApiProperty()
+  label!: string;
 
   @ApiProperty()
   text!: string;
@@ -32,17 +60,27 @@ export class ReportSummaryDataDto {
   @ApiProperty()
   summary!: string;
 
-  @ApiProperty({ type: () => ReportSummaryBulletDto, isArray: true })
-  bullets!: ReportSummaryBulletDto[];
+  @ApiProperty({ type: () => ReportCoverageDto })
+  coverage!: ReportCoverageDto;
+
+  @ApiPropertyOptional({
+    type: () => ReportObservedPatternDto,
+    nullable: true,
+    description:
+      'At most one source-backed observed pattern. Null when data is insufficient.',
+  })
+  observedPattern!: ReportObservedPatternDto | null;
+
+  @ApiPropertyOptional({
+    type: () => ReportLowRiskActionDto,
+    nullable: true,
+    description:
+      'At most one low-risk action. Null when no action is warranted.',
+  })
+  lowRiskAction!: ReportLowRiskActionDto | null;
 
   @ApiProperty()
-  actionLabel!: string;
-
-  @ApiProperty()
-  action!: string;
-
-  @ApiProperty()
-  confidenceNote!: string;
+  disclaimer!: string;
 }
 
 export class ReportSummaryResponseDto {

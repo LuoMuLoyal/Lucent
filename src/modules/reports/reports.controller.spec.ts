@@ -992,19 +992,21 @@ function makeSummary(
     endDate: '2026-06-12',
     generatedAt: '2026-06-12T08:00:00.000Z',
     summary: '本月记录已更新。',
-    bullets: [
-      {
-        kind: 'medication',
-        text: '本月用药节奏整体稳定。',
-      },
-      {
-        kind: 'hydration',
-        text: '饮水仍有几天偏低。',
-      },
-    ],
-    actionLabel: '查看报告',
-    action: 'today',
-    confidenceNote: '仅基于近 30 天已记录数据生成，不构成诊断或治疗建议。',
+    coverage: {
+      medication: { trackedDays: 25, totalDays: 30 },
+      water: { trackedDays: 20, totalDays: 30 },
+      sleep: { trackedDays: 0, totalDays: 30 },
+    },
+    observedPattern: {
+      kind: 'medication',
+      text: '本月用药节奏整体稳定。',
+      source: 'reminder_plan',
+    },
+    lowRiskAction: {
+      label: '查看报告',
+      text: '继续记录日常饮水量。',
+    },
+    disclaimer: '仅基于近 30 天已记录数据，不构成诊断或治疗建议。',
     ...overrides,
   };
 }

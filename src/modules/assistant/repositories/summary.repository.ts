@@ -14,6 +14,11 @@ export type SummaryBullet = {
   text: string;
 };
 
+export interface CoverageDimension {
+  trackedDays: number;
+  totalDays: number;
+}
+
 export interface PersistSummaryInput {
   userId: string;
   kind: 'today' | 'report';
@@ -24,10 +29,33 @@ export interface PersistSummaryInput {
   endDate?: string | null;
   generatedAt: string;
   summary: string;
-  bullets: SummaryBullet[];
-  actionLabel: string;
-  action: string;
-  confidenceNote: string;
+  /** Today summary bullets (required for kind='today'). */
+  bullets?: SummaryBullet[];
+  /** Today summary action label (required for kind='today'). */
+  actionLabel?: string;
+  /** Today summary action (required for kind='today'). */
+  action?: string;
+  /** Today summary confidence note (required for kind='today'). */
+  confidenceNote?: string;
+  /** Report summary coverage (required for kind='report'). */
+  coverage?: {
+    medication: CoverageDimension;
+    water: CoverageDimension;
+    sleep: CoverageDimension;
+  };
+  /** Report summary observed pattern (nullable for kind='report'). */
+  observedPattern?: {
+    kind: string;
+    text: string;
+    source: string;
+  } | null;
+  /** Report summary low-risk action (nullable for kind='report'). */
+  lowRiskAction?: {
+    label: string;
+    text: string;
+  } | null;
+  /** Report summary disclaimer (required for kind='report'). */
+  disclaimer?: string;
   aiGenerated?: boolean;
   sourceVersion?: number | null;
 }
@@ -50,6 +78,22 @@ export interface ReportSummaryRow {
   endDate: string | null;
   generatedAt: string;
   summary: string;
+  coverage?: {
+    medication: CoverageDimension;
+    water: CoverageDimension;
+    sleep: CoverageDimension;
+  } | null;
+  observedPattern?: {
+    kind: string;
+    text: string;
+    source: string;
+  } | null;
+  lowRiskAction?: {
+    label: string;
+    text: string;
+  } | null;
+  disclaimer?: string | null;
+  // Legacy fields (still present in DB for today summaries)
   bullets: SummaryBullet[];
   actionLabel: string;
   action: string;
@@ -208,12 +252,19 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
   private toUpsertData(
     input: PersistSummaryInput,
   ): Prisma.AssistantSummaryHistoryUncheckedCreateInput {
-    return {
+    const isToday = input.kind === 'today';
+    const reportPayload =
+      !isToday &&
+      (input.coverage != null ||
+        input.observedPattern !== undefined ||
+        input.lowRiskAction !== undefined ||
+        input.disclaimer != null)
+        ? this.buildReportPayload(input)
+        : null;
+
+    const data: Prisma.AssistantSummaryHistoryUncheckedCreateInput = {
       userId: input.userId,
-      kind:
-        input.kind === 'today'
-          ? AiSummaryHistoryKind.today
-          : AiSummaryHistoryKind.report,
+      kind: isToday ? AiSummaryHistoryKind.today : AiSummaryHistoryKind.report,
       scopeKey: input.scopeKey,
       date: this.parseDate(input.date),
       rangeKey: input.rangeKey ?? null,
@@ -221,13 +272,36 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
       endDate: this.parseDate(input.endDate),
       generatedAt: new Date(input.generatedAt),
       summary: input.summary,
-      bullets: input.bullets,
-      actionLabel: input.actionLabel,
-      action: input.action,
-      confidenceNote: input.confidenceNote,
+      bullets: isToday ? (input.bullets ?? []) : [],
+      actionLabel: isToday ? (input.actionLabel ?? '') : '',
+      action: isToday ? (input.action ?? '') : '',
+      confidenceNote: isToday ? (input.confidenceNote ?? '') : '',
       aiGenerated: input.aiGenerated ?? false,
       sourceVersion: input.sourceVersion ?? null,
     };
+    if (reportPayload != null) {
+      data.payload = reportPayload as never;
+    }
+    return data;
+  }
+
+  private buildReportPayload(
+    input: PersistSummaryInput,
+  ): Record<string, unknown> {
+    const payload: Record<string, unknown> = {};
+    if (input.coverage != null) {
+      payload['coverage'] = input.coverage;
+    }
+    if (input.observedPattern !== undefined) {
+      payload['observedPattern'] = input.observedPattern;
+    }
+    if (input.lowRiskAction !== undefined) {
+      payload['lowRiskAction'] = input.lowRiskAction;
+    }
+    if (input.disclaimer != null) {
+      payload['disclaimer'] = input.disclaimer;
+    }
+    return payload;
   }
 
   private toTodaySummary(row: {
@@ -264,17 +338,55 @@ export class AssistantSummaryRepository implements AssistantSummaryRepositoryPor
     actionLabel: string;
     action: string;
     confidenceNote: string;
+    payload?: unknown;
   }): ReportSummaryRow {
+    const payload = this.readReportPayload(row.payload);
     return {
       rangeKey: row.rangeKey,
       startDate: formatDateOnly(row.startDate),
       endDate: formatDateOnly(row.endDate),
       generatedAt: row.generatedAt.toISOString(),
       summary: row.summary,
+      coverage: payload?.coverage ?? null,
+      observedPattern: payload?.observedPattern ?? null,
+      lowRiskAction: payload?.lowRiskAction ?? null,
+      disclaimer: payload?.disclaimer ?? null,
       bullets: this.readBullets(row.bullets),
       actionLabel: row.actionLabel,
       action: row.action,
       confidenceNote: row.confidenceNote,
+    };
+  }
+
+  private readReportPayload(raw: unknown): {
+    coverage?: ReportSummaryRow['coverage'];
+    observedPattern?: ReportSummaryRow['observedPattern'];
+    lowRiskAction?: ReportSummaryRow['lowRiskAction'];
+    disclaimer?: string | null;
+  } | null {
+    if (raw == null || typeof raw !== 'object') return null;
+    const obj = raw as Record<string, unknown>;
+    return {
+      ...(obj['coverage'] != null
+        ? { coverage: obj['coverage'] as ReportSummaryRow['coverage'] }
+        : {}),
+      ...(obj['observedPattern'] !== undefined
+        ? {
+            observedPattern: obj[
+              'observedPattern'
+            ] as ReportSummaryRow['observedPattern'],
+          }
+        : {}),
+      ...(obj['lowRiskAction'] !== undefined
+        ? {
+            lowRiskAction: obj[
+              'lowRiskAction'
+            ] as ReportSummaryRow['lowRiskAction'],
+          }
+        : {}),
+      ...(obj['disclaimer'] != null
+        ? { disclaimer: obj['disclaimer'] as string }
+        : {}),
     };
   }
 

@@ -23,10 +23,10 @@ export interface PreparedLlmSummary<TContext, TMetadata = unknown> {
 
 export interface LlmStructuredOutput extends Record<string, unknown> {
   summary: string;
-  bullets: Array<{ text: string }>;
-  actionLabel: string;
-  action: string;
-  confidenceNote: string;
+  bullets?: Array<{ text: string }>;
+  actionLabel?: string;
+  action?: string;
+  confidenceNote?: string;
 }
 
 /**
@@ -126,7 +126,20 @@ export abstract class BaseLlmSummaryService<
   protected abstract buildLogContext(context: TContext): string;
 
   private extractTexts(output: TOutput): string[] {
-    return [output.summary, ...output.bullets.map((bullet) => bullet.text)];
+    const texts: string[] = [output.summary];
+    if (output.bullets != null) {
+      texts.push(...output.bullets.map((bullet) => bullet.text));
+    }
+    if (output.actionLabel != null) {
+      texts.push(output.actionLabel);
+    }
+    if (output.action != null) {
+      texts.push(output.action);
+    }
+    if (output.confidenceNote != null) {
+      texts.push(output.confidenceNote);
+    }
+    return texts;
   }
 
   protected async afterPersist(

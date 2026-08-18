@@ -80,10 +80,14 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
       endDate: context.endDate,
       generatedAt: context.generatedAt,
       summary: output.summary,
-      bullets: output.bullets,
-      actionLabel: output.actionLabel,
-      action: output.action,
-      confidenceNote: output.confidenceNote,
+      coverage: {
+        medication: context.coverage.medication,
+        water: context.coverage.water,
+        sleep: context.coverage.sleep,
+      },
+      observedPattern: output.observedPattern,
+      lowRiskAction: output.lowRiskAction,
+      disclaimer: output.disclaimer,
     };
   }
 
@@ -100,10 +104,10 @@ export class ReportsAiSummaryService extends BaseLlmSummaryService<
       endDate: data.endDate,
       generatedAt: data.generatedAt,
       summary: data.summary,
-      bullets: data.bullets,
-      actionLabel: data.actionLabel,
-      action: data.action,
-      confidenceNote: data.confidenceNote,
+      coverage: data.coverage,
+      observedPattern: data.observedPattern,
+      lowRiskAction: data.lowRiskAction,
+      disclaimer: data.disclaimer,
     });
   }
 

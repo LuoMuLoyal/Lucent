@@ -11211,18 +11211,60 @@
           }
         }
       },
-      "ReportSummaryBulletDto": {
+      "ReportCoverageDimensionDto": {
+        "type": "object",
+        "properties": {
+          "trackedDays": {
+            "type": "number"
+          },
+          "totalDays": {
+            "type": "number"
+          }
+        },
+        "required": ["trackedDays", "totalDays"]
+      },
+      "ReportCoverageDto": {
+        "type": "object",
+        "properties": {
+          "medication": {
+            "$ref": "#/components/schemas/ReportCoverageDimensionDto"
+          },
+          "water": {
+            "$ref": "#/components/schemas/ReportCoverageDimensionDto"
+          },
+          "sleep": {
+            "$ref": "#/components/schemas/ReportCoverageDimensionDto"
+          }
+        },
+        "required": ["medication", "water", "sleep"]
+      },
+      "ReportObservedPatternDto": {
         "type": "object",
         "properties": {
           "kind": {
             "type": "string",
-            "enum": ["medication", "hydration", "sleep", "general"]
+            "enum": ["medication", "hydration", "sleep"]
+          },
+          "text": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": ["kind", "text", "source"]
+      },
+      "ReportLowRiskActionDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
           },
           "text": {
             "type": "string"
           }
         },
-        "required": ["kind", "text"]
+        "required": ["label", "text"]
       },
       "ReportSummaryDataDto": {
         "type": "object",
@@ -11243,19 +11285,30 @@
           "summary": {
             "type": "string"
           },
-          "bullets": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ReportSummaryBulletDto"
-            }
+          "coverage": {
+            "$ref": "#/components/schemas/ReportCoverageDto"
           },
-          "actionLabel": {
-            "type": "string"
+          "observedPattern": {
+            "nullable": true,
+            "description": "At most one source-backed observed pattern. Null when data is insufficient.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReportObservedPatternDto"
+              }
+            ]
           },
-          "action": {
-            "type": "string"
+          "lowRiskAction": {
+            "nullable": true,
+            "description": "At most one low-risk action. Null when no action is warranted.",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReportLowRiskActionDto"
+              }
+            ]
           },
-          "confidenceNote": {
+          "disclaimer": {
             "type": "string"
           }
         },
@@ -11265,10 +11318,8 @@
           "endDate",
           "generatedAt",
           "summary",
-          "bullets",
-          "actionLabel",
-          "action",
-          "confidenceNote"
+          "coverage",
+          "disclaimer"
         ]
       },
       "ReportSummaryResponseDto": {

@@ -21,10 +21,10 @@ type TestOutput = LlmStructuredOutput;
 
 interface TestDataDto {
   summary: string;
-  bullets: Array<{ text: string }>;
-  actionLabel: string;
-  action: string;
-  confidenceNote: string;
+  bullets?: Array<{ text: string }>;
+  actionLabel?: string;
+  action?: string;
+  confidenceNote?: string;
 }
 
 interface TestGenerateDto {

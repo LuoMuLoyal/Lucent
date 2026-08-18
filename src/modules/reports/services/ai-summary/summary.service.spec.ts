@@ -105,10 +105,10 @@ describe('ReportsAiSummaryService', () => {
     startDate: '2026-06-06',
     endDate: '2026-06-12',
     generatedAt: '2026-06-12T08:00:00.000Z',
-    score: {
-      value: 78,
-      maxValue: 100,
-      status: 'stable' as const,
+    coverage: {
+      medication: { trackedDays: 6, totalDays: 7 },
+      water: { trackedDays: 7, totalDays: 7 },
+      sleep: { trackedDays: 0, totalDays: 7 },
     },
     metrics: [
       {
@@ -142,12 +142,6 @@ describe('ReportsAiSummaryService', () => {
       sleep: baseFacts.sleepSeries,
       mealEstimate: baseFacts.mealEstimateSeries,
     },
-    dataQuality: {
-      medicationTrackedDays: 6,
-      waterTrackedDays: 7,
-      sleepTrackedDays: 0,
-      mealEstimateTrackedDays: 4,
-    },
     mealEstimateBreakdown: {
       confirmedDays: 2,
       estimatedDays: 2,
@@ -160,24 +154,18 @@ describe('ReportsAiSummaryService', () => {
   it('returns model output when policy accepts it', async () => {
     const service = createService();
     const modelOutput = {
-      summary: '本周用药记录整体稳定，饮水连续性一般，睡眠仍缺少真实记录。',
-      bullets: [
-        {
-          kind: 'medication' as const,
-          text: '本周大多数天都有用药记录，继续保持固定节奏。',
-        },
-        {
-          kind: 'hydration' as const,
-          text: '饮水均值接近目标线，但仍有几天偏低。',
-        },
-        {
-          kind: 'sleep' as const,
-          text: '睡眠数据仍缺失，补上后周报会更完整。',
-        },
-      ],
-      actionLabel: '查看报告',
-      action: 'today',
-      confidenceNote: '仅基于近 7 天已记录数据生成，不构成诊断或治疗建议。',
+      summary: '近 7 天用药记录整体稳定，饮水连续性一般，睡眠仍缺少真实记录。',
+      coverage: baseAiContext.coverage,
+      observedPattern: {
+        kind: 'medication' as const,
+        text: '用药完成率连续 5 天保持在 80% 以上。',
+        source: 'reminder_plan',
+      },
+      lowRiskAction: {
+        label: '查看报告',
+        text: '继续按当前节奏记录日常饮水量。',
+      },
+      disclaimer: '仅基于近 7 天已记录数据，不构成诊断或治疗建议。',
     };
 
     modelGenerateSpy(service).mockResolvedValue(modelOutput);
@@ -189,26 +177,24 @@ describe('ReportsAiSummaryService', () => {
     );
 
     expect(result.summary).toBe(modelOutput.summary);
-    expect(result.bullets).toEqual(modelOutput.bullets);
+    expect(result.observedPattern).toEqual(modelOutput.observedPattern);
   });
 
   it('falls back when policy rejects the model output', async () => {
     const service = createService();
     modelGenerateSpy(service).mockResolvedValue({
       summary: '建议停药并调整剂量。',
-      bullets: [
-        {
-          kind: 'medication',
-          text: '建议停药后观察。',
-        },
-        {
-          kind: 'hydration',
-          text: '可以先多喝水。',
-        },
-      ],
-      actionLabel: '查看报告',
-      action: 'today',
-      confidenceNote: '仅供参考。',
+      coverage: baseAiContext.coverage,
+      observedPattern: {
+        kind: 'medication',
+        text: '建议停药后观察。',
+        source: 'reminder_plan',
+      },
+      lowRiskAction: {
+        label: '查看报告',
+        text: '可以先多喝水。',
+      },
+      disclaimer: '仅供参考。',
     });
 
     const result = await service.generate(
@@ -217,8 +203,8 @@ describe('ReportsAiSummaryService', () => {
       'zh-CN',
     );
 
-    expect(result.summary).toContain('本周');
-    expect(result.bullets[2]?.kind).toBe('sleep');
+    expect(result.summary).toContain('近');
+    expect(result.observedPattern).not.toBeNull();
   });
 
   it('falls back when the model invocation throws', async () => {
@@ -231,10 +217,8 @@ describe('ReportsAiSummaryService', () => {
       'zh-CN',
     );
 
-    expect(result.actionLabel).toBe('查看报告');
-    expect(result.confidenceNote).toBe(
-      '仅基于近 7 天已记录数据生成，不构成诊断或治疗建议。',
-    );
+    expect(result.disclaimer).toContain('近 7 天');
+    expect(result.coverage).toEqual(baseAiContext.coverage);
   });
 
   it('falls back in English when requested language is English', async () => {
@@ -247,11 +231,7 @@ describe('ReportsAiSummaryService', () => {
       'en-US',
     );
 
-    expect(result.actionLabel).toBe('View report');
-    expect(result.confidenceNote).toBe(
-      'Generated only from the last 7 days of recorded data. This is not a diagnosis or treatment advice.',
-    );
-    expect(result.bullets[2]?.text).toContain('Sleep data');
+    expect(result.disclaimer).toContain('last 7 days');
   });
 
   it('rejects when ai summaries are disabled by user setting', async () => {
@@ -282,8 +262,8 @@ describe('ReportsAiSummaryService', () => {
       'zh-CN',
     );
 
-    expect(result.summary).toContain('本周');
-    expect(result.actionLabel).toBe('查看报告');
+    expect(result.summary).toContain('近');
+    expect(result.disclaimer).toContain('近 7 天');
   });
 
   it('passes 30-day range through and returns monthly fallback copy', async () => {
@@ -309,17 +289,16 @@ describe('ReportsAiSummaryService', () => {
         ...baseAiContext,
         range: REPORT_RANGE_LAST_30_DAYS,
         startDate: '2026-05-14',
+        coverage: {
+          medication: { trackedDays: 30, totalDays: 30 },
+          water: { trackedDays: 30, totalDays: 30 },
+          sleep: { trackedDays: 0, totalDays: 30 },
+        },
         series: {
           medication: Array<number>(30).fill(100),
           water: Array<number>(30).fill(1.6),
           sleep: Array<number>(30).fill(0),
           mealEstimate: Array<number>(30).fill(1),
-        },
-        dataQuality: {
-          medicationTrackedDays: 30,
-          waterTrackedDays: 30,
-          sleepTrackedDays: 0,
-          mealEstimateTrackedDays: 30,
         },
         mealEstimateBreakdown: {
           confirmedDays: 30,
@@ -341,7 +320,38 @@ describe('ReportsAiSummaryService', () => {
 
     expect(result.range).toBe(REPORT_RANGE_LAST_30_DAYS);
     expect(result.startDate).toBe('2026-05-14');
-    expect(result.confidenceNote).toContain('近 30 天');
+    expect(result.disclaimer).toContain('近 30 天');
+  });
+
+  it('abstains when all three dimensions have zero tracked days', async () => {
+    const service = createService({
+      facts: {
+        ...baseFacts,
+        medicationSeries: [0, 0, 0, 0, 0, 0, 0],
+        waterSeries: [0, 0, 0, 0, 0, 0, 0],
+        sleepSeries: [0, 0, 0, 0, 0, 0, 0],
+      },
+      context: {
+        ...baseAiContext,
+        coverage: {
+          medication: { trackedDays: 0, totalDays: 7 },
+          water: { trackedDays: 0, totalDays: 7 },
+          sleep: { trackedDays: 0, totalDays: 7 },
+        },
+      },
+    });
+
+    modelGenerateSpy(service).mockRejectedValue(new Error('model failed'));
+
+    const result = await service.generate(
+      'u1',
+      { range: REPORT_RANGE_LAST_7_DAYS },
+      'zh-CN',
+    );
+
+    expect(result.observedPattern).toBeNull();
+    expect(result.lowRiskAction).toBeNull();
+    expect(result.summary).toContain('暂不生成');
   });
 
   function createService(options?: {
@@ -388,73 +398,62 @@ describe('ReportsAiSummaryService', () => {
       buildPromptCopy: vi.fn((locale: string) => ({
         userIntro:
           locale === 'zh-CN'
-            ? '请基于提供的 JSON 事实生成一段简短的中文报告总结。'
-            : 'Generate a brief English report summary for the supplied JSON facts.',
+            ? '请基于提供的 JSON 事实生成一段简短的中文纵向健康洞察总结。'
+            : 'Generate a brief English longitudinal health insight for the supplied JSON facts.',
         tone:
           locale === 'zh-CN'
-            ? '语气保持平静、具体，不要做诊断。'
-            : 'Keep the tone calm, concrete, and non-diagnostic.',
+            ? '语气保持平静、具体，不要做诊断。数据不足时直接弃权。'
+            : 'Keep the tone calm, concrete, and non-diagnostic. Abstain when data is insufficient.',
         actionLabelHint:
           locale === 'zh-CN'
-            ? 'actionLabel 应尽量贴近“查看报告”。'
-            : 'The actionLabel should stay close to "View report".',
+            ? 'lowRiskAction 的 label 应尽量贴近"查看报告"。'
+            : 'The lowRiskAction label should stay close to "View report".',
         factsLabel: locale === 'zh-CN' ? '事实 JSON：' : 'Facts JSON:',
       })),
       buildFallback: vi.fn((context: typeof baseAiContext, locale: string) => {
-        const dayLabel =
-          context.range === REPORT_RANGE_LAST_30_DAYS ? '30' : '7';
-        if (locale === 'zh-CN') {
+        const dayCount = context.coverage.medication.totalDays;
+        const allInsufficient =
+          context.coverage.medication.trackedDays === 0 &&
+          context.coverage.water.trackedDays === 0 &&
+          context.coverage.sleep.trackedDays === 0;
+        const disclaimer =
+          locale === 'zh-CN'
+            ? `仅基于近 ${dayCount} 天已记录数据，不构成诊断或治疗建议。`
+            : `Generated only from the last ${dayCount} days of recorded data. This is not a diagnosis or treatment advice.`;
+        if (allInsufficient) {
           return {
             summary:
-              context.range === REPORT_RANGE_LAST_30_DAYS
-                ? '本月记录已更新，饮水和用药可以继续按当前节奏补稳，睡眠数据仍待补充。'
-                : '本周记录已更新，饮水和用药可以继续按当前节奏补稳，睡眠数据仍待补充。',
-            bullets: [
-              {
-                kind: 'medication' as const,
-                text: `近 ${dayLabel} 天里有 ${String(context.dataQuality.medicationTrackedDays)} 天有用药记录，可继续保持固定节奏。`,
-              },
-              {
-                kind: 'hydration' as const,
-                text: `近 ${dayLabel} 天饮水均值约 ${context.metrics[1]?.value ?? '--'}L，仍建议把偏低的几天补齐。`,
-              },
-              {
-                kind: 'sleep' as const,
-                text:
-                  context.range === REPORT_RANGE_LAST_30_DAYS
-                    ? '当前仍缺少真实睡眠数据，补上后月报会更完整。'
-                    : '当前仍缺少真实睡眠数据，补上后周报会更完整。',
-              },
-            ],
-            actionLabel: '查看报告',
-            confidenceNote: `仅基于近 ${dayLabel} 天已记录数据生成，不构成诊断或治疗建议。`,
+              locale === 'zh-CN'
+                ? `近 ${dayCount} 天三项指标均无足够记录数据，暂不生成洞察总结。`
+                : `Insufficient data across all three dimensions in the last ${dayCount} days. No insight is generated.`,
+            coverage: context.coverage,
+            observedPattern: null,
+            lowRiskAction: null,
+            disclaimer,
           };
         }
-
+        const med = context.metrics.find((m) => m.kind === 'medication');
         return {
           summary:
-            context.range === REPORT_RANGE_LAST_30_DAYS
-              ? 'This month has enough records to review medication and hydration, while sleep data is still missing.'
-              : 'This week has enough records to review medication and hydration, while sleep data is still missing.',
-          bullets: [
-            {
-              kind: 'medication' as const,
-              text: '${String(context.dataQuality.medicationTrackedDays)} of the last $dayLabel days contain medication records. Keep the current rhythm steady.',
-            },
-            {
-              kind: 'hydration' as const,
-              text: `Average water intake was about ${context.metrics[1]?.value ?? '--'}L across the last ${dayLabel} days, and a few lower days are still worth filling in.`,
-            },
-            {
-              kind: 'sleep' as const,
-              text:
-                context.range === REPORT_RANGE_LAST_30_DAYS
-                  ? 'Sleep data is still missing, so the monthly summary remains limited.'
-                  : 'Sleep data is still missing, so the weekly summary remains limited.',
-            },
-          ],
-          actionLabel: 'View report',
-          confidenceNote: `Generated only from the last ${dayLabel} days of recorded data. This is not a diagnosis or treatment advice.`,
+            locale === 'zh-CN'
+              ? `近 ${dayCount} 天记录已更新。`
+              : `The last ${dayCount} days of records were updated.`,
+          coverage: context.coverage,
+          observedPattern: med
+            ? {
+                kind: 'medication' as const,
+                text: `近 ${context.coverage.medication.trackedDays} 天用药完成率约为 ${med.value}%。`,
+                source: 'reminder_plan',
+              }
+            : null,
+          lowRiskAction: {
+            label: locale === 'zh-CN' ? '查看报告' : 'View report',
+            text:
+              locale === 'zh-CN'
+                ? '建议继续记录日常饮水量。'
+                : 'Keep logging daily water intake.',
+          },
+          disclaimer,
         };
       }),
     } as unknown as ReportsLlmSummaryCopyService;
