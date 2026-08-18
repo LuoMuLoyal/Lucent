@@ -74,6 +74,11 @@ interface ReviewWindowFacts {
   latestDoseLogScheduledFor: Date | null;
   /** Reviewed static medication red flags; empty when unavailable. */
   redFlags: ReviewRedFlagInput[];
+  /**
+   * Title of the daily record that triggered the event, resolved from
+   * `event.reasonRecordId`; null when absent or unresolvable.
+   */
+  reasonRecordTitle: string | null;
 }
 
 /**
@@ -127,6 +132,7 @@ export class EventReviewService {
       doseLogCount,
       latestDoseLogScheduledFor,
       redFlags,
+      reasonRecordTitle,
     ] = await Promise.all([
       this.healthEvents.findTodayCheckIn(userId, eventId),
       this.healthEvents.findCheckInCoverage(userId, eventId),
@@ -149,6 +155,7 @@ export class EventReviewService {
         windowEnd,
       ),
       this.loadStaticRedFlags(userId),
+      this.resolveReasonRecordTitle(userId, eventId, event.reasonRecordId),
     ]);
 
     return this.assemble(
@@ -166,8 +173,38 @@ export class EventReviewService {
         doseLogCount,
         latestDoseLogScheduledFor,
         redFlags,
+        reasonRecordTitle,
       },
     );
+  }
+
+  /**
+   * Resolves the triggering record's title for the whatHappened fact.
+   * Best-effort: a missing record or a failed read degrades to null and
+   * never blocks the review (the header simply omits the trigger line).
+   */
+  private async resolveReasonRecordTitle(
+    userId: string,
+    eventId: string,
+    reasonRecordId: string | null,
+  ): Promise<string | null> {
+    if (reasonRecordId == null) {
+      return null;
+    }
+    try {
+      const record = await this.dailyRecordReader.findByIdWithAttachments(
+        userId,
+        reasonRecordId,
+      );
+      return record?.title ?? null;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to resolve reason record title for event review (event=${eventId}, record=${reasonRecordId}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return null;
+    }
   }
 
   /**
@@ -272,6 +309,7 @@ export class EventReviewService {
           event,
           symptomRecordCount: facts.symptomRecordCount,
           checkInCount,
+          reasonRecordTitle: facts.reasonRecordTitle,
         }),
         keyChanges: this.changesSection.build({
           checkIns: facts.checkIns,

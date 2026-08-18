@@ -117,6 +117,7 @@ function buildService() {
     listFactsInRange: vi.fn().mockResolvedValue([]),
     countFactsInRange: vi.fn().mockResolvedValue(0),
     findLatestCreatedAtInRange: vi.fn().mockResolvedValue(null),
+    findByIdWithAttachments: vi.fn().mockResolvedValue(null),
   };
   const doseLogReader = {
     listFactsInRange: vi.fn().mockResolvedValue([]),
@@ -221,6 +222,7 @@ describe('EventReviewService', () => {
             medicineIds: ['med-1'],
             symptomRecordCount: 1,
             checkInCount: 3,
+            reasonRecordTitle: null,
           },
         },
       });
@@ -451,6 +453,7 @@ describe('EventReviewService', () => {
             medicineIds: ['med-1'],
             symptomRecordCount: 0,
             checkInCount: 0,
+            reasonRecordTitle: null,
           },
         },
       });
@@ -616,6 +619,74 @@ describe('EventReviewService', () => {
         windowStart,
         TODAY_INSTANT,
       );
+    });
+
+    it('resolves the triggering record title into the whatHappened facts', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(TODAY_INSTANT);
+      const { service, ownership, dailyRecordReader } = buildService();
+      ownership.ensureOwnedByUser.mockResolvedValue({
+        ...activeEventFixture(),
+        reasonRecordId: 'rec-reason',
+      });
+      dailyRecordReader.findByIdWithAttachments.mockResolvedValue({
+        id: 'rec-reason',
+        title: '头晕',
+      });
+
+      const review = await service.buildForEvent(USER_ID, 'evt-active');
+
+      expect(
+        review.sections.whatHappened.facts?.arguments['reasonRecordTitle'],
+      ).toBe('头晕');
+      expect(dailyRecordReader.findByIdWithAttachments).toHaveBeenCalledWith(
+        USER_ID,
+        'rec-reason',
+      );
+    });
+
+    it('keeps reasonRecordTitle null when the triggering record is missing', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(TODAY_INSTANT);
+      const { service, ownership, dailyRecordReader } = buildService();
+      ownership.ensureOwnedByUser.mockResolvedValue({
+        ...activeEventFixture(),
+        reasonRecordId: 'rec-gone',
+      });
+      dailyRecordReader.findByIdWithAttachments.mockResolvedValue(null);
+
+      const review = await service.buildForEvent(USER_ID, 'evt-active');
+
+      expect(
+        review.sections.whatHappened.facts?.arguments['reasonRecordTitle'],
+      ).toBeNull();
+    });
+
+    it('keeps the review usable when the triggering record read fails', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(TODAY_INSTANT);
+      const { service, ownership, dailyRecordReader } = buildService();
+      ownership.ensureOwnedByUser.mockResolvedValue({
+        ...activeEventFixture(),
+        reasonRecordId: 'rec-failing',
+      });
+      dailyRecordReader.findByIdWithAttachments.mockRejectedValue(
+        new Error('db unavailable'),
+      );
+
+      const review = await service.buildForEvent(USER_ID, 'evt-active');
+
+      expect(review.event.id).toBe('evt-active');
+      expect(
+        review.sections.whatHappened.facts?.arguments['reasonRecordTitle'],
+      ).toBeNull();
+      expect(review.sections.nextStep).toEqual({
+        state: 'available',
+        facts: {
+          code: 'active_check_in',
+          arguments: { hasTodayCheckIn: false },
+        },
+      });
     });
 
     it('rejects with not found for a foreign event without reading sources', async () => {

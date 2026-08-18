@@ -36,6 +36,7 @@ describe('EventReviewFactsService', () => {
       event: eventFixture(),
       symptomRecordCount: 3,
       checkInCount: 5,
+      reasonRecordTitle: null,
     };
 
     expect(service.build(input)).toEqual({
@@ -50,6 +51,7 @@ describe('EventReviewFactsService', () => {
           medicineIds: ['med-1', 'med-2'],
           symptomRecordCount: 3,
           checkInCount: 5,
+          reasonRecordTitle: null,
         },
       },
     });
@@ -65,6 +67,7 @@ describe('EventReviewFactsService', () => {
       }),
       symptomRecordCount: 1,
       checkInCount: 2,
+      reasonRecordTitle: null,
     };
 
     expect(service.build(input).facts?.arguments).toEqual({
@@ -75,6 +78,7 @@ describe('EventReviewFactsService', () => {
       medicineIds: ['med-1', 'med-2'],
       symptomRecordCount: 1,
       checkInCount: 2,
+      reasonRecordTitle: null,
     });
   });
 
@@ -84,6 +88,7 @@ describe('EventReviewFactsService', () => {
       event: eventFixture(),
       symptomRecordCount: 0,
       checkInCount: 0,
+      reasonRecordTitle: null,
     };
 
     const section = service.build(input);
@@ -100,11 +105,33 @@ describe('EventReviewFactsService', () => {
       event,
       symptomRecordCount: 0,
       checkInCount: 0,
+      reasonRecordTitle: null,
     };
 
     const section = service.build(input);
     event.currentMedicineIds.push('med-3');
 
     expect(section.facts?.arguments['medicineIds']).toEqual(['med-1', 'med-2']);
+  });
+
+  it('always emits the reasonRecordTitle argument, null or title', () => {
+    const service = buildService();
+
+    expect(
+      service.build({
+        event: eventFixture(),
+        symptomRecordCount: 0,
+        checkInCount: 0,
+        reasonRecordTitle: null,
+      }).facts?.arguments['reasonRecordTitle'],
+    ).toBeNull();
+    expect(
+      service.build({
+        event: eventFixture(),
+        symptomRecordCount: 0,
+        checkInCount: 0,
+        reasonRecordTitle: '头晕',
+      }).facts?.arguments['reasonRecordTitle'],
+    ).toBe('头晕');
   });
 });

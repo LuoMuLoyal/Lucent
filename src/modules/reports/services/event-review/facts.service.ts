@@ -11,6 +11,12 @@ export interface ReviewEventFactInput {
   symptomRecordCount: number;
   /** Count of user-confirmed check-ins for the event. */
   checkInCount: number;
+  /**
+   * Title of the daily record that triggered the event (from
+   * `HealthEventRecord.reasonRecordId`), or null when the event has no
+   * trigger record or the record could not be resolved.
+   */
+  reasonRecordTitle: string | null;
 }
 
 /**
@@ -36,6 +42,7 @@ export class EventReviewFactsService {
           medicineIds: [...event.currentMedicineIds],
           symptomRecordCount: input.symptomRecordCount,
           checkInCount: input.checkInCount,
+          reasonRecordTitle: input.reasonRecordTitle,
         },
       },
     };

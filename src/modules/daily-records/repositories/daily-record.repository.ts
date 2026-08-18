@@ -109,6 +109,17 @@ export abstract class DailyRecordReaderPort {
     from: Date,
     to: Date,
   ): Promise<Date | null>;
+
+  /**
+   * Fetches a single non-deleted record with attachments by id, or null
+   * when it does not exist or belongs to another user. Used by consumers
+   * that need one record's fields by id (e.g. the event review resolving
+   * the triggering record's title).
+   */
+  abstract findByIdWithAttachments(
+    userId: string,
+    id: string,
+  ): Promise<DailyRecordShape | null>;
 }
 
 /**
