@@ -82,6 +82,28 @@ describe('AssistantToolProposalService', () => {
       expect(result.proposedActions).toBeUndefined();
       expect(result.data).toHaveProperty('candidates', []);
     });
+
+    it('refuses generation for an unsupported candidate kind (F-16)', async () => {
+      candidateGenerator.generate.mockResolvedValue({
+        confirmationHint: 'Unsupported kind',
+        items: [
+          {
+            ...mockCandidateItem,
+            kind: 'mood',
+          },
+        ],
+      } as never);
+
+      const result = await service.buildCreateDailyRecordProposal(
+        mockContext,
+        'propose_create_daily_record',
+      );
+
+      expect(result.proposedActions).toBeUndefined();
+      expect(result.data['unsupportedKind']).toBe('mood');
+      expect(result.data['reason']).toEqual(expect.any(String));
+      expect(result.data['candidates']).toHaveLength(1);
+    });
   });
 
   describe('buildUpdateDailyRecordProposal', () => {

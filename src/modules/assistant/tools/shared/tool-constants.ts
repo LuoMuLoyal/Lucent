@@ -42,6 +42,23 @@ export const MAX_COMPACT_LENGTH = 48;
 /** Maximum number of tool execution loops allowed in the assistant runtime graph. */
 export const MAX_TOOL_LOOPS = 3;
 
+/**
+ * Daily record kinds the assistant write path can create (F-16). Mirrors the
+ * union of `AssistantCreateDailyRecordProposalPayload.draft.kind`: the
+ * candidate generator may emit exactly these kinds, and the server-side write
+ * path (`DailyRecordKind` enum) accepts them. Any candidate kind outside this
+ * list is rejected at generation time instead of being silently downgraded.
+ */
+export const ASSISTANT_CREATE_RECORD_KINDS = [
+  'water',
+  'meal',
+  'symptom',
+  'note',
+  'sleep',
+  'vital',
+  'activity',
+] as const;
+
 /** Scoring weights used when ranking daily-record mutation targets. */
 export const MUTATION_MATCH_WEIGHTS = {
   kind: 10,

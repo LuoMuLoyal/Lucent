@@ -13,6 +13,7 @@ import type {
 import type { AssistantToolName } from '../shared/tool-types';
 import { AssistantToolRecordQueryService } from '../records/query.service';
 import {
+  ASSISTANT_CREATE_RECORD_KINDS,
   DEFAULT_PROPOSAL_DATE_OFFSET_DAYS,
   PROPOSAL_TTL_MINUTES,
 } from '../shared/tool-constants';
@@ -70,6 +71,29 @@ export class AssistantToolProposalService {
           selectedDate: occurredAtResolution.date,
           ambiguities: occurredAtResolution.ambiguities,
           candidates: [],
+        },
+      };
+    }
+
+    // F-16: reject generation for a kind the assistant write path cannot
+    // create, instead of silently downgrading it to a generic note. The
+    // candidate generator normally emits only supported kinds, but a future
+    // schema extension or a stray kind must surface as a refusal with the
+    // offending kind attached for diagnostics.
+    if (!ASSISTANT_CREATE_RECORD_KINDS.includes(first.kind)) {
+      return {
+        name: toolName,
+        data: {
+          confirmationHint: candidates.confirmationHint,
+          selectedDate: occurredAtResolution.date,
+          ambiguities: occurredAtResolution.ambiguities,
+          candidates: candidates.items,
+          unsupportedKind: first.kind,
+          reason: localeText(
+            context.locale,
+            '该记录类型暂不支持自动记录，请手动添加。',
+            'This record kind is not supported for auto-recording yet. Please add it manually.',
+          ),
         },
       };
     }
