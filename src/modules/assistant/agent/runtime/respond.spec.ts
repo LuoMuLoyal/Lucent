@@ -149,7 +149,7 @@ describe('respond node', () => {
       stopReason: 'answered',
     });
     expect(mockStream).toHaveBeenCalledTimes(1);
-    const sentMessages = mockStream.mock.calls[0][0] as unknown[];
+    const sentMessages = mockStream.mock.calls[0]![0] as unknown[];
     expect(sentMessages).toHaveLength(1);
     const system = sentMessages[0] as { content: string };
     expect(system.content).toContain('tool loop budget');
@@ -179,7 +179,7 @@ describe('respond node', () => {
     );
 
     expect(mockStream).toHaveBeenCalledTimes(1);
-    const sentMessages = mockStream.mock.calls[0][0] as unknown[];
+    const sentMessages = mockStream.mock.calls[0]![0] as unknown[];
     expect(sentMessages).toHaveLength(0);
   });
 
@@ -205,7 +205,7 @@ describe('respond node', () => {
     );
 
     expect(mockStream).toHaveBeenCalledTimes(1);
-    const sentMessages = mockStream.mock.calls[0][0] as unknown[];
+    const sentMessages = mockStream.mock.calls[0]![0] as unknown[];
     expect(sentMessages).toHaveLength(0);
   });
 });
