@@ -472,7 +472,7 @@ describe('RecordCollectorService', () => {
         consecutiveDays: 1,
       });
       expect(mood!.payload['dailyMoods']).toHaveLength(1);
-      expect(mood!.payload['dailyMoods'][0]).toMatchObject({
+      expect((mood!.payload['dailyMoods'] as unknown[])[0]).toMatchObject({
         moodScore: 4,
         label: 'Good',
       });
