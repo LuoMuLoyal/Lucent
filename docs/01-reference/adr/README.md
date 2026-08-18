@@ -64,8 +64,8 @@ What becomes easier or harder as a result of this decision?
   - Status: accepted
   - Date: 2026-06-12
 - [0003](0003-api-envelope-contract.md)
-  - Title: API Envelope Contract
-  - Status: accepted
+  - Title: API Envelope Contract (successful responses; error portion superseded by 0012)
+  - Status: accepted (partially superseded by 0012)
   - Date: 2026-05-27
 - [0004](0004-deployment-model.md)
   - Title: GitHub Actions + Tencent TCR Deployment Model
@@ -99,6 +99,10 @@ What becomes easier or harder as a result of this decision?
   - Title: Reminder 投递去重的至少一次语义（唯一约束部分已被 0013 修订）
   - Status: accepted
   - Date: 2026-08-03
+- [0012](0012-error-contract-and-result-boundary.md)
+  - Title: Error Contract and Result Boundary
+  - Status: accepted
+  - Date: 2026-08-18
 - [0013](0013-reminder-delivery-three-channel.md)
   - Title: 提醒投递记录三通道落库（in_app / local / push）
   - Status: accepted

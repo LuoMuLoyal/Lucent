@@ -1,48 +1,62 @@
 # ADR-0003: API Envelope Contract
 
-- **Status**: accepted
+- **Status**: accepted (partially superseded by ADR-0012)
 - **Date**: 2026-05-27
 - **Deciders**: LuoMuLoyal
 
+> ADR-0012 supersedes the error-response portion of this decision. This ADR remains authoritative
+> only for the successful JSON response envelope.
+
 ## Context
 
-The API needs a consistent response format so the Flutter client can handle success and error cases
-uniformly. Without a contract, each endpoint could return different shapes, forcing the client to
-write per-endpoint error handling.
+The API needs a predictable successful response format so the Flutter client can decode endpoint
+payloads consistently. The original decision also placed errors in the same envelope, but that made
+HTTP failures appear successful to generic clients and retry infrastructure. The current error
+contract is now defined by ADR-0012.
 
 ## Decision
 
-All API responses use a uniform envelope:
+Successful JSON API responses use this envelope:
 
 ```json
 {
   "code": 0,
-  "message": "ok",
-  "data": { ... }
+  "message": "",
+  "data": { "id": "record_123" },
+  "meta": { "traceId": "..." }
 }
 ```
 
-- `code`: numeric status code. `0` = success. Non-zero codes follow a `HHHSSS` schema (HTTP status
-  prefix + endpoint-specific suffix).
-- `message`: human-readable message (localized via i18n).
-- `data`: endpoint-specific payload. `null` for empty responses.
+- `code` is always `0` for a successful response.
+- `message` is empty for successful responses.
+- `data` contains the endpoint payload and may be `null` for a successful empty operation.
+- `meta` is optional and may contain safe diagnostic metadata such as `traceId`.
+- The success envelope is documented in OpenAPI and is the generated-client success contract.
+- Health checks remain successful envelope endpoints when they return JSON.
 
-## Options Considered
+Ordinary HTTP 4xx and 5xx responses are not covered by this success envelope. They use RFC 9457
+`application/problem+json` as specified by ADR-0012.
 
-- Uniform envelope
-  - Pros: Single client parser, consistent error handling
-  - Cons: Slightly more bytes on wire, nesting
-- HTTP status codes only, varied body shapes
-  - Pros: Lean responses
-  - Cons: Inconsistent error detail, client must handle per-endpoint
-- GraphQL
-  - Pros: Self-documenting, client-specified fields
-  - Cons: Over-engineered for this use case, adds complexity
+## Historical Options Considered
+
+### One envelope for both success and failure
+
+This was accepted in the original decision because it gave the client one parser. It is retained
+here as historical context only. ADR-0012 replaces it because a non-zero business code inside HTTP
+200 is misclassified by proxies, retries, caches, and generic clients.
+
+### HTTP status codes with varied successful bodies
+
+Rejected for successful responses. It would force the generated client to handle many endpoint
+success shapes without the stable envelope.
+
+### GraphQL
+
+Rejected as over-engineered for this API.
 
 ## Consequences
 
-- Flutter client uses a single `ApiResponse<T>` wrapper for all endpoints
-- Error codes are documented in the generated OpenAPI spec via DTO decorators
-- ValidationPipe errors map to consistent error codes (e.g., 400002 for validation failures)
-- Health check endpoints also follow the envelope (`/health`, `/health/live`, `/health/ready`,
-  `/health/deep`)
+- Successful endpoint DTOs continue to describe the success envelope.
+- The error filter and error DTOs follow ADR-0012 rather than this ADR's historical numeric error
+  envelope.
+- OpenAPI export and Luminous client generation remain required when the success contract changes.
