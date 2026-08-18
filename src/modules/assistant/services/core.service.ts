@@ -174,7 +174,11 @@ export class AssistantService {
    * Applies the approved write proposals (only the ones the client explicitly
    * named that still exist in the thread state), in order, scoped to the
    * conversation owner. Revalidates the review state read from the checkpoint
-   * so double-confirm / expiry checks behave the same as resumeConversation.
+   * so double-confirm behaves the same as resumeConversation.
+   *
+   * Expiry is validated per proposal (F-11): any approved proposal whose own
+   * `expiresAt` is past due rejects the whole confirm, so a stale proposal can
+   * never be written just because a sibling in the same batch is still fresh.
    */
   private async applyApprovedProposals(
     userId: string,
@@ -186,20 +190,21 @@ export class AssistantService {
     if (pendingReview == null || pendingReview.status !== 'pending') {
       badRequest('No pending proposal review for this conversation.');
     }
-    if (
-      pendingReview.expiresAt != null &&
-      new Date(pendingReview.expiresAt).getTime() < Date.now()
-    ) {
-      badRequest(
-        'The proposal review expired. Ask the assistant to regenerate it.',
-      );
-    }
 
     const toWrite = proposals.filter((proposal) =>
       proposalIds.includes(proposal.id),
     );
     if (toWrite.length === 0 && proposalIds.length > 0) {
       badRequest('Proposal not found in the pending review.');
+    }
+
+    const now = Date.now();
+    if (
+      toWrite.some((proposal) => new Date(proposal.expiresAt).getTime() < now)
+    ) {
+      badRequest(
+        'The proposal review expired. Ask the assistant to regenerate it.',
+      );
     }
 
     for (const proposal of toWrite) {

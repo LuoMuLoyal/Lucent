@@ -659,22 +659,6 @@ describe('AssistantRuntimeService', () => {
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
     });
-
-    it('rejects an expired review', async () => {
-      const { service, executeTools, conversationInput } = buildResumeService(
-        '2020-01-01T00:00:00.000Z',
-      );
-
-      await service.runConversation(conversationInput, executeTools as never);
-
-      await expect(
-        service.resumeConversation({
-          userId: 'u1',
-          conversationId: 'conv-1',
-          decision: 'approved',
-        }),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
   });
 
   describe('regenerateLastMessage', () => {

@@ -1,7 +1,9 @@
 import { AIMessage, AIMessageChunk } from '@langchain/core/messages';
 import { Command, MemorySaver } from '@langchain/langgraph';
 import { describe, expect, it, vi } from 'vitest';
+import type { AssistantToolExecutionResult } from '../../types/assistant.types';
 import { buildAssistantRuntimeGraph } from './graph';
+import { collectProposalReview } from './review';
 
 const BASE_INPUT = {
   userId: 'user-1',
@@ -99,6 +101,40 @@ describe('in-graph proposal review (HITL)', () => {
     expect(resumed.pendingReview?.note).toBe('ok');
     expect(resumed.pendingReview?.decidedAt).toBeTypeOf('string');
     expect(resumed.finalContent).toBe('已确认，请在记录页完成保存。');
+  });
+
+  it('does not compute a batch-level expiry in the review request (F-11)', () => {
+    // Two proposals with different per-proposal expiries: collectProposalReview
+    // must NOT surface the earliest one — expiry is validated per proposal at
+    // confirm time instead.
+    const review = collectProposalReview([
+      {
+        name: 'propose_create_daily_record',
+        data: { draft: {} },
+        proposedActions: [
+          {
+            id: 'proposal-fresh',
+            expiresAt: '2099-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+      {
+        name: 'propose_create_daily_record',
+        data: { draft: {} },
+        proposedActions: [
+          {
+            id: 'proposal-stale',
+            expiresAt: '2020-01-01T00:00:00.000Z',
+          },
+        ],
+      },
+    ] as unknown as readonly AssistantToolExecutionResult[]);
+    expect(review).toEqual({
+      proposalIds: ['proposal-fresh', 'proposal-stale'],
+    });
+    expect(
+      Object.prototype.hasOwnProperty.call(review ?? {}, 'expiresAt'),
+    ).toBe(false);
   });
 
   it('records rejection without claiming any write', async () => {

@@ -237,14 +237,9 @@ export class AssistantRuntimeService {
     if (pending == null || pending.status !== 'pending') {
       badRequest('No pending proposal review for this conversation.');
     }
-    if (
-      pending.expiresAt != null &&
-      new Date(pending.expiresAt).getTime() < Date.now()
-    ) {
-      badRequest(
-        'The proposal review expired. Ask the assistant to regenerate it.',
-      );
-    }
+    // Expiry is validated per proposal by the confirm endpoint before the
+    // thread is resumed (applyApprovedProposals), so no batch-level expiry
+    // check exists here (F-11).
 
     const result = await graph.invoke(
       new Command({ resume: { decision: input.decision, note: input.note } }),

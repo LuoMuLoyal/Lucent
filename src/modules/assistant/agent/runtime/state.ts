@@ -36,12 +36,14 @@ export const DEFAULT_VALIDATION_FLAGS: AssistantValidationFlags = {
 /** Lifecycle of an in-graph proposal review (human-in-the-loop). */
 export type AssistantProposalReviewStatus = 'pending' | 'approved' | 'rejected';
 
-/** Persisted review state written before the interrupt node suspends the thread. */
+/**
+ * Persisted review state written before the interrupt node suspends the
+ * thread. Expiry is evaluated per proposal (`AssistantProposedAction.expiresAt`)
+ * by the confirm endpoint, so no batch-level expiry is stored here (F-11).
+ */
 export interface AssistantPendingReview {
   proposalIds: string[];
   status: AssistantProposalReviewStatus;
-  /** Earliest proposal expiry; confirm endpoint rejects when past due. */
-  expiresAt?: string;
   decidedAt?: string;
   note?: string;
 }

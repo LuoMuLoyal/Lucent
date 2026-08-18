@@ -224,7 +224,6 @@ describe('AssistantService', () => {
     const pendingReview = {
       proposalIds: ['proposal-1'],
       status: 'pending' as const,
-      expiresAt: '2099-01-01T00:00:00.000Z',
     };
 
     const createProposal: AssistantProposedAction = {
@@ -440,20 +439,63 @@ describe('AssistantService', () => {
       expect(runtime.resumeConversation).not.toHaveBeenCalled();
     });
 
-    it('rejects an expired pending review without writing', async () => {
+    it('rejects when any approved proposal is individually expired (F-11)', async () => {
+      const freshProposal: AssistantProposedAction = {
+        ...createProposal,
+        id: 'proposal-fresh',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+      };
+      const staleProposal: AssistantProposedAction = {
+        ...createProposal,
+        id: 'proposal-stale',
+        expiresAt: '2020-01-01T00:00:00.000Z',
+      };
       runtime.readPendingProposals.mockResolvedValue({
         pendingReview: {
           ...pendingReview,
-          expiresAt: '2020-01-01T00:00:00.000Z',
+          proposalIds: ['proposal-fresh', 'proposal-stale'],
         },
-        proposals: [createProposal],
+        proposals: [freshProposal, staleProposal],
       });
 
       await expect(
-        service.confirmProposal('user-1', 'conv-1', dto),
+        service.confirmProposal('user-1', 'conv-1', {
+          proposalIds: ['proposal-fresh', 'proposal-stale'],
+          decision: 'approved',
+        }),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(dailyRecords.create).not.toHaveBeenCalled();
       expect(runtime.resumeConversation).not.toHaveBeenCalled();
+    });
+
+    it('accepts when all approved proposals are individually unexpired (F-11)', async () => {
+      const first: AssistantProposedAction = {
+        ...createProposal,
+        id: 'proposal-a',
+      };
+      const second: AssistantProposedAction = {
+        ...createProposal,
+        id: 'proposal-b',
+      };
+      runtime.readPendingProposals.mockResolvedValue({
+        pendingReview: {
+          ...pendingReview,
+          proposalIds: ['proposal-a', 'proposal-b'],
+        },
+        proposals: [first, second],
+      });
+
+      await service.confirmProposal('user-1', 'conv-1', {
+        proposalIds: ['proposal-a', 'proposal-b'],
+        decision: 'approved',
+      });
+
+      expect(dailyRecords.create).toHaveBeenCalledTimes(2);
+      expect(runtime.resumeConversation).toHaveBeenCalledWith({
+        userId: 'user-1',
+        conversationId: 'conv-1',
+        decision: 'approved',
+      });
     });
 
     it('propagates write failures and does not resume the thread', async () => {

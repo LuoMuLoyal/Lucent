@@ -6,7 +6,6 @@ import type { AssistantPendingReview, AssistantRuntimeState } from './state';
 /** Payload exposed to the suspended thread's caller via getState/interrupt. */
 export interface AssistantReviewRequest {
   proposalIds: string[];
-  expiresAt?: string;
 }
 
 /** Decision supplied by the client when resuming the thread. */
@@ -18,6 +17,11 @@ export interface AssistantReviewDecision {
 /**
  * Extracts proposal metadata from accumulated tool results.
  * Returns null when no proposal is pending confirmation.
+ *
+ * Batch-level expiry is intentionally NOT exposed here anymore (F-11): each
+ * proposal carries its own `expiresAt` and the confirm endpoint validates
+ * expiry per proposal, so a single stale proposal cannot be hidden by a fresh
+ * sibling inside the same batch.
  */
 export function collectProposalReview(
   toolResults: readonly AssistantToolExecutionResult[],
@@ -26,12 +30,7 @@ export function collectProposalReview(
     (result) => result.proposedActions?.map((action) => action.id) ?? [],
   );
   if (proposalIds.length === 0) return null;
-  const expiresAt = toolResults
-    .flatMap((result) => result.proposedActions ?? [])
-    .map((action) => action.expiresAt)
-    .sort()[0];
-  if (expiresAt == null) return { proposalIds };
-  return { proposalIds, expiresAt };
+  return { proposalIds };
 }
 
 /**
@@ -63,21 +62,14 @@ export function createWriteReviewNode() {
     const pending = state.pendingReview;
     const review: AssistantReviewRequest =
       pending != null
-        ? {
-            proposalIds: pending.proposalIds,
-            ...(pending.expiresAt != null
-              ? { expiresAt: pending.expiresAt }
-              : {}),
-          }
+        ? { proposalIds: pending.proposalIds }
         : (collectProposalReview(state.toolResults) ?? { proposalIds: [] });
     const decision = interrupt<AssistantReviewRequest, AssistantReviewDecision>(
       review,
     );
     const proposalIds = pending?.proposalIds ?? review.proposalIds;
-    const expiresAt = pending?.expiresAt ?? review.expiresAt;
     const pendingReview: AssistantPendingReview = {
       proposalIds,
-      ...(expiresAt != null ? { expiresAt } : {}),
       status: decision.decision,
       decidedAt: new Date().toISOString(),
       ...(decision.note != null ? { note: decision.note } : {}),
