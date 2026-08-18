@@ -1,7 +1,10 @@
 import { notFound } from '../../../common';
 import { truncate } from '../../../common';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
+import { LlmRuntimeService } from '../../../llm-runtime';
 
 import type {
   AssistantConversationMessage,
@@ -20,12 +23,36 @@ import {
 } from '../repositories/conversation.repository';
 import { AssistantMemoryService } from './memory.service';
 
+/**
+ * Best-effort LLM title refinement (F-2): the conversation is created with a
+ * synchronous truncated first-message title, then a background chat-model call
+ * proposes a short Chinese title. Any failure degrades silently and leaves the
+ * initial truncated title in place.
+ */
+const TITLE_REFINEMENT_SYSTEM_PROMPT = [
+  'You are a conversation titler for a personal health assistant.',
+  "Write ONE short title (at most 20 characters) that summarizes the user's first message.",
+  'Write in Chinese. Output ONLY the title text — no quotes, no punctuation marks, no explanation.',
+].join(' ');
+
+/** Maximum length of a refined title (LLM output is clamped to this). */
+const TITLE_REFINEMENT_MAX_LENGTH = 20;
+
+const TITLE_MODEL_OPTIONS = {
+  timeout: AI_MODEL_TIMEOUT_MS,
+  temperature: 0,
+  maxRetries: 0,
+} as const;
+
 @Injectable()
 export class AssistantConversationService {
+  private readonly logger = new Logger(AssistantConversationService.name);
+
   constructor(
     private readonly repository: AssistantConversationRepositoryPort,
     private readonly i18n: I18nService,
     private readonly memoryService: AssistantMemoryService,
+    private readonly llmRuntimeService: LlmRuntimeService,
   ) {}
 
   async getLatestConversation(
@@ -177,6 +204,7 @@ export class AssistantConversationService {
         input.userId,
         this.buildConversationTitle(normalized),
       ));
+    const created = activeConversation == null;
 
     const existingMessages = conversation.messages.map((message) => ({
       role: message.role,
@@ -198,6 +226,20 @@ export class AssistantConversationService {
       usedTools: input.usedTools,
       assistantTimestamp: assistantNow,
     });
+
+    // F-2: best-effort LLM title refinement for brand-new conversations. The
+    // synchronous truncated title stays until the background call replaces it;
+    // failures are swallowed and the initial title remains.
+    if (created) {
+      const firstUserMessage = this.readFirstUserMessage(normalized);
+      if (firstUserMessage != null) {
+        void this.enrichTitleWithLlm(
+          input.userId,
+          conversation.id,
+          firstUserMessage,
+        );
+      }
+    }
 
     return this.toSnapshot(saved);
   }
@@ -284,6 +326,82 @@ export class AssistantConversationService {
     }
 
     return truncate(compact, MAX_COMPACT_LENGTH);
+  }
+
+  private readFirstUserMessage(
+    messages: AssistantConversationMessage[],
+  ): string | null {
+    const first = messages.find((message) => message.role === 'user');
+    return first == null ? null : first.content;
+  }
+
+  /**
+   * Fire-and-forget LLM title refinement for a newly created conversation
+   * (F-2). Never throws: unconfigured model, LLM failure, unparsable output or
+   * a user-renamed title all resolve to a silent no-op that keeps the initial
+   * truncated title. Only replaces the title while it still equals the initial
+   * truncation, so a title the user manually renamed is never overwritten.
+   */
+  private async enrichTitleWithLlm(
+    userId: string,
+    conversationId: string,
+    firstUserMessage: string,
+  ): Promise<void> {
+    try {
+      const current = await this.repository.findWithMessages(
+        userId,
+        conversationId,
+      );
+      const initialTitle = this.buildConversationTitle([
+        { role: 'user', content: firstUserMessage },
+      ]);
+      if (current == null || current.title !== initialTitle) {
+        return;
+      }
+
+      if (!this.llmRuntimeService.hasRoleConfig('chat')) {
+        return;
+      }
+
+      const model = this.llmRuntimeService.createChatModel(
+        'chat',
+        TITLE_MODEL_OPTIONS,
+      );
+      const response = await model.invoke([
+        new SystemMessage(TITLE_REFINEMENT_SYSTEM_PROMPT),
+        new HumanMessage(firstUserMessage),
+      ]);
+      const refined = this.parseRefinedTitle(response.content);
+      if (refined == null) {
+        return;
+      }
+
+      await this.repository.updateTitle(userId, conversationId, refined);
+    } catch (error) {
+      // Best-effort: title refinement must never break the persistence flow.
+      this.logger.debug(
+        `Title refinement skipped for conversation ${conversationId}: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Parses the model's title output. Strips surrounding quotes/backticks,
+   * collapses whitespace, and clamps to TITLE_REFINEMENT_MAX_LENGTH. Returns
+   * null when nothing usable remains (silent degradation).
+   */
+  private parseRefinedTitle(content: unknown): string | null {
+    if (typeof content !== 'string') {
+      return null;
+    }
+    let title = content.trim().replace(/^[`"“”']+|[`"“”']+$/g, '');
+    title = title.replace(/\s+/g, ' ').trim();
+    if (title.length === 0) {
+      return null;
+    }
+    return title.length > TITLE_REFINEMENT_MAX_LENGTH
+      ? title.slice(0, TITLE_REFINEMENT_MAX_LENGTH)
+      : title;
   }
 
   private toSnapshot(

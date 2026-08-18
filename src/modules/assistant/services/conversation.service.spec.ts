@@ -1,4 +1,5 @@
 import type { I18nService } from 'nestjs-i18n';
+import type { LlmRuntimeService } from '../../../llm-runtime';
 import type {
   AssistantConversationRepositoryPort,
   ConversationWithMessages,
@@ -42,8 +43,18 @@ describe('AssistantConversationService', () => {
   let repo: vi.Mocked<AssistantConversationRepositoryPort>;
   let i18n: vi.Mocked<I18nService>;
   let memoryService: vi.Mocked<AssistantMemoryService>;
+  let llmRuntimeService: {
+    hasRoleConfig: ReturnType<typeof vi.fn>;
+    createChatModel: ReturnType<typeof vi.fn>;
+  };
+  let invoke: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    invoke = vi.fn();
+    llmRuntimeService = {
+      hasRoleConfig: vi.fn().mockReturnValue(true),
+      createChatModel: vi.fn().mockReturnValue({ invoke }),
+    };
     repo = {
       findLatestActiveWithMessages: vi.fn(),
       listRecentSummaries: vi.fn(),
@@ -69,7 +80,12 @@ describe('AssistantConversationService', () => {
       deleteAllForUser: vi.fn().mockResolvedValue(undefined),
     } as unknown as vi.Mocked<AssistantMemoryService>;
 
-    service = new AssistantConversationService(repo, i18n, memoryService);
+    service = new AssistantConversationService(
+      repo,
+      i18n,
+      memoryService,
+      llmRuntimeService as unknown as LlmRuntimeService,
+    );
   });
 
   describe('getLatestConversation', () => {
@@ -379,6 +395,126 @@ describe('AssistantConversationService', () => {
       });
 
       expect(repo.create).toHaveBeenCalledWith('user-1', null);
+    });
+  });
+
+  describe('enrichTitleWithLlm (F-2 best-effort title refinement)', () => {
+    function setupNewConversation() {
+      repo.findLatestActiveWithMessages.mockResolvedValue(null);
+      repo.create.mockResolvedValue(
+        buildConversation({ id: 'new-conv', title: 'Hello' }),
+      );
+      repo.persistTurn.mockResolvedValue(buildConversation({ id: 'new-conv' }));
+    }
+
+    it('replaces the initial truncated title with the LLM title for a new conversation', async () => {
+      setupNewConversation();
+      repo.findWithMessages.mockResolvedValue(
+        buildConversation({ id: 'new-conv', title: 'Hello' }),
+      );
+      invoke.mockResolvedValue({ content: '我今天的饮水情况' });
+      repo.updateTitle.mockResolvedValue(
+        buildConversation({ id: 'new-conv', title: '我今天的饮水情况' }),
+      );
+
+      await service.persistAssistantTurn({
+        userId: 'user-1',
+        messages: [{ role: 'user', content: 'Hello' }],
+        assistantContent: 'Hi there',
+        usedTools: [],
+      });
+
+      await vi.waitFor(() => {
+        expect(repo.updateTitle).toHaveBeenCalledWith(
+          'user-1',
+          'new-conv',
+          '我今天的饮水情况',
+        );
+      });
+      expect(llmRuntimeService.createChatModel).toHaveBeenCalled();
+    });
+
+    it('keeps the truncated title when the LLM call fails', async () => {
+      setupNewConversation();
+      repo.findWithMessages.mockResolvedValue(
+        buildConversation({ id: 'new-conv', title: 'Hello' }),
+      );
+      invoke.mockRejectedValue(new Error('LLM unavailable'));
+
+      await expect(
+        service.persistAssistantTurn({
+          userId: 'user-1',
+          messages: [{ role: 'user', content: 'Hello' }],
+          assistantContent: 'Hi there',
+          usedTools: [],
+        }),
+      ).resolves.toBeDefined();
+
+      await vi.waitFor(() => {
+        expect(invoke).toHaveBeenCalled();
+      });
+      expect(repo.updateTitle).not.toHaveBeenCalled();
+    });
+
+    it('does not overwrite a title the user already renamed', async () => {
+      setupNewConversation();
+      repo.findWithMessages.mockResolvedValue(
+        buildConversation({ id: 'new-conv', title: '用户手改标题' }),
+      );
+
+      await service.persistAssistantTurn({
+        userId: 'user-1',
+        messages: [{ role: 'user', content: 'Hello' }],
+        assistantContent: 'Hi there',
+        usedTools: [],
+      });
+
+      await vi.waitFor(() => {
+        expect(repo.findWithMessages).toHaveBeenCalled();
+      });
+      expect(invoke).not.toHaveBeenCalled();
+      expect(repo.updateTitle).not.toHaveBeenCalled();
+    });
+
+    it('skips refinement when the chat model is not configured', async () => {
+      setupNewConversation();
+      repo.findWithMessages.mockResolvedValue(
+        buildConversation({ id: 'new-conv', title: 'Hello' }),
+      );
+      llmRuntimeService.hasRoleConfig.mockReturnValue(false);
+
+      await service.persistAssistantTurn({
+        userId: 'user-1',
+        messages: [{ role: 'user', content: 'Hello' }],
+        assistantContent: 'Hi there',
+        usedTools: [],
+      });
+
+      await vi.waitFor(() => {
+        expect(repo.findWithMessages).toHaveBeenCalled();
+      });
+      expect(llmRuntimeService.createChatModel).not.toHaveBeenCalled();
+      expect(repo.updateTitle).not.toHaveBeenCalled();
+    });
+
+    it('does not refine an existing reused conversation', async () => {
+      repo.findLatestActiveWithMessages.mockResolvedValue(
+        buildConversation({ id: 'existing-conv' }),
+      );
+      repo.persistTurn.mockResolvedValue(
+        buildConversation({ id: 'existing-conv' }),
+      );
+
+      await service.persistAssistantTurn({
+        userId: 'user-1',
+        messages: [{ role: 'user', content: 'Hello' }],
+        assistantContent: 'Hi there',
+        usedTools: [],
+      });
+
+      expect(repo.create).not.toHaveBeenCalled();
+      expect(invoke).not.toHaveBeenCalled();
+      expect(repo.updateTitle).not.toHaveBeenCalled();
     });
   });
 
