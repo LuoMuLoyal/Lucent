@@ -8,6 +8,7 @@ import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { ProductEventsModule } from '../product-events/product-events.module';
+import { HealthEventsModule } from '../health-events/health-events.module';
 
 import { TodaySuggestionController } from './today-suggestion.controller';
 import { SuggestionPipelineService } from './services/pipeline.service';
@@ -20,6 +21,7 @@ import { SuggestionCacheService } from './services/cache/suggestion-cache.servic
 import { MedicationCollectorService } from './services/collectors/medication.service';
 import { ProfileCollectorService } from './services/collectors/profile.service';
 import { RecordCollectorService } from './services/collectors/record.service';
+import { HealthEventCollectorService } from './services/collectors/health-event.service';
 import { SuggestionCopyLlmService } from './services/copy/llm-generator.service';
 import { SuggestionCopyQueueService } from './services/copy/queue.service';
 import { SuggestionCopyService } from './services/copy/writer.service';
@@ -33,6 +35,7 @@ import { LifecycleService } from './services/lifecycle/manager.service';
 import { EscalationService } from './services/notification/escalation.service';
 import { CaffeineSleepRuleService } from './services/rules/sleep/caffeine-sleep.service';
 import { CoverageRuleService } from './services/rules/medication/coverage.service';
+import { EventCheckInTrendRuleService } from './services/rules/health/event-check-in-trend.service';
 import { DeterioratingTrendRuleService } from './services/rules/lifestyle/deteriorating-trend.service';
 import { MissedDoseRuleService } from './services/rules/medication/missed-dose.service';
 import { MoodSleepRuleService } from './services/rules/sleep/mood-sleep.service';
@@ -62,6 +65,7 @@ import type { SuggestionRule } from './types/rule.types';
     MedicineDoseLogsModule,
     UserSettingsModule,
     ProductEventsModule,
+    HealthEventsModule,
   ],
   controllers: [TodaySuggestionController],
   providers: [
@@ -69,6 +73,7 @@ import type { SuggestionRule } from './types/rule.types';
     MedicationCollectorService,
     RecordCollectorService,
     ProfileCollectorService,
+    HealthEventCollectorService,
     // Rules (injectable, registered in registry at startup)
     RegistryService,
     RuleVersionRegistry,
@@ -79,6 +84,7 @@ import type { SuggestionRule } from './types/rule.types';
     CaffeineSleepRuleService,
     MoodSleepRuleService,
     CoverageRuleService,
+    EventCheckInTrendRuleService,
     // Arbitration
     ArbitrationService,
     ScoringService,
@@ -130,6 +136,7 @@ export class TodaySuggestionModule implements OnModuleInit {
     private readonly caffeineSleepRule: CaffeineSleepRuleService,
     private readonly moodSleepRule: MoodSleepRuleService,
     private readonly coverageRule: CoverageRuleService,
+    private readonly eventCheckInTrendRule: EventCheckInTrendRuleService,
   ) {}
 
   onModuleInit() {
@@ -141,6 +148,7 @@ export class TodaySuggestionModule implements OnModuleInit {
       this.caffeineSleepRule,
       this.moodSleepRule,
       this.coverageRule,
+      this.eventCheckInTrendRule,
     ];
 
     for (const rule of rules) {

@@ -104,6 +104,13 @@ export const COPY_TEMPLATES: Record<string, CopyTemplate> = {
     optionalParams: ['confidence'],
     actionKeys: ['record_symptom', 'consult_doctor'],
   },
+  'health_event.check_in_trend': {
+    description:
+      'Health event check-in trend shows worsening or new symptom records during event',
+    requiredParams: ['consecutiveWorsenedCheckIns', 'symptomRecordCount'],
+    optionalParams: ['worsenedCount'],
+    actionKeys: ['review_event'],
+  },
 };
 
 /**
@@ -124,6 +131,7 @@ export const ACTION_LABEL_TEMPLATES: Record<
   record_meal: { default: 'record_meal', short: 'record' },
   record_symptom: { default: 'record_symptom', short: 'record' },
   consult_doctor: { default: 'consult_doctor', short: 'consult' },
+  review_event: { default: 'review_event', short: 'review' },
 };
 
 /**

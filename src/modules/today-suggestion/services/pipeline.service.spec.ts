@@ -51,6 +51,7 @@ interface MockDeps {
   medicationCollector: { collect: vi.Mock };
   recordCollector: { collect: vi.Mock; getTimeOfDay: vi.Mock };
   profileCollector: { collect: vi.Mock };
+  healthEventCollector: { collect: vi.Mock };
   registry: { getAll: vi.Mock };
   suppression: { filterAndAdjust: vi.Mock };
   arbitration: { arbitrate: vi.Mock };
@@ -71,6 +72,7 @@ function buildMocks(): MockDeps {
       getTimeOfDay: vi.fn().mockReturnValue('morning' as const),
     },
     profileCollector: { collect: vi.fn().mockResolvedValue([]) },
+    healthEventCollector: { collect: vi.fn().mockResolvedValue([]) },
     registry: { getAll: vi.fn().mockReturnValue([]) },
     suppression: {
       filterAndAdjust: vi.fn().mockResolvedValue({
@@ -107,6 +109,7 @@ describe('SuggestionPipelineService', () => {
       deps.medicationCollector as never,
       deps.recordCollector as never,
       deps.profileCollector as never,
+      deps.healthEventCollector as never,
       deps.registry as never,
       deps.suppression as never,
       deps.arbitration as never,
@@ -124,7 +127,7 @@ describe('SuggestionPipelineService', () => {
     expect(result.degraded).toBe(false);
   });
 
-  it('collects signals from all three collectors in parallel', async () => {
+  it('collects signals from all collectors in parallel', async () => {
     await service.run('user-1', '2026-07-09');
 
     expect(deps.medicationCollector.collect).toHaveBeenCalledWith(
@@ -136,6 +139,10 @@ describe('SuggestionPipelineService', () => {
       '2026-07-09',
     );
     expect(deps.profileCollector.collect).toHaveBeenCalledWith(
+      'user-1',
+      '2026-07-09',
+    );
+    expect(deps.healthEventCollector.collect).toHaveBeenCalledWith(
       'user-1',
       '2026-07-09',
     );
@@ -179,6 +186,7 @@ describe('SuggestionPipelineService', () => {
     expect(deps.medicationCollector.collect).not.toHaveBeenCalled();
     expect(deps.recordCollector.collect).not.toHaveBeenCalled();
     expect(deps.profileCollector.collect).not.toHaveBeenCalled();
+    expect(deps.healthEventCollector.collect).not.toHaveBeenCalled();
   });
 
   it('caches collected signals for subsequent requests', async () => {

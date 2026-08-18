@@ -141,6 +141,22 @@ export const COPY_FALLBACK: Record<string, Record<string, FallbackCopy>> = {
       actionLabel: 'Log symptom',
     },
   },
+  'health_event.check_in_trend': {
+    'zh-CN': {
+      title: '事件趋势需关注',
+      reason: '当前健康事件出现加重趋势或新增症状记录，建议回顾事件进展。',
+      boundary: '事件趋势建议仅供参考，持续加重请咨询医生。',
+      actionLabel: '查看事件',
+    },
+    'en-US': {
+      title: 'Event trend needs attention',
+      reason:
+        'Your current health event shows a worsening trend or new symptom records. Review its progress.',
+      boundary:
+        'Event trend suggestions are for reference only. Consult a doctor if symptoms persist.',
+      actionLabel: 'Review event',
+    },
+  },
 };
 
 /**

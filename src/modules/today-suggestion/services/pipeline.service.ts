@@ -4,6 +4,7 @@ import type { RuleContext } from '../types/rule.types';
 import { MedicationCollectorService } from './collectors/medication.service';
 import { RecordCollectorService } from './collectors/record.service';
 import { ProfileCollectorService } from './collectors/profile.service';
+import { HealthEventCollectorService } from './collectors/health-event.service';
 import { RegistryService } from './rules/registry.service';
 import { SuppressionService } from './arbitration/suppression.service';
 import {
@@ -40,6 +41,7 @@ export class SuggestionPipelineService {
     private readonly medicationCollector: MedicationCollectorService,
     private readonly recordCollector: RecordCollectorService,
     private readonly profileCollector: ProfileCollectorService,
+    private readonly healthEventCollector: HealthEventCollectorService,
     private readonly registry: RegistryService,
     private readonly suppression: SuppressionService,
     private readonly arbitration: ArbitrationService,
@@ -58,14 +60,24 @@ export class SuggestionPipelineService {
     // 1. Collect signals (use signal cache if available)
     let allSignals = await this.cache.getSignals(userId, targetDate);
     if (allSignals == null) {
-      const [medicationSignals, recordSignals, profileSignals] =
-        await Promise.all([
-          this.medicationCollector.collect(userId, targetDate),
-          this.recordCollector.collect(userId, targetDate),
-          this.profileCollector.collect(userId, targetDate),
-        ]);
+      const [
+        medicationSignals,
+        recordSignals,
+        profileSignals,
+        healthEventSignals,
+      ] = await Promise.all([
+        this.medicationCollector.collect(userId, targetDate),
+        this.recordCollector.collect(userId, targetDate),
+        this.profileCollector.collect(userId, targetDate),
+        this.healthEventCollector.collect(userId, targetDate),
+      ]);
 
-      allSignals = [...medicationSignals, ...recordSignals, ...profileSignals];
+      allSignals = [
+        ...medicationSignals,
+        ...recordSignals,
+        ...profileSignals,
+        ...healthEventSignals,
+      ];
 
       await this.cache.setSignals(userId, targetDate, allSignals);
     }

@@ -7,7 +7,8 @@ export type SignalSource =
   | 'record'
   | 'risk_check'
   | 'profile'
-  | 'environment';
+  | 'environment'
+  | 'health_event';
 
 /**
  * A single unit of raw evidence collected from the database.
