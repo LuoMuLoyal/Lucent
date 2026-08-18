@@ -19,12 +19,13 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 COPY tsconfig.json tsconfig.build.json .swcrc nest-cli.json ./
+COPY scripts ./scripts
 COPY src ./src
 # 生成 Prisma Client（输出到 generated/prisma，由 schema.prisma output 字段决定）
-# 注意：直接调用 prisma generate，不走 pnpm prisma:generate 脚本（该脚本还会跑 fix-generated-prisma-internal.ts）
-# fix-generated-prisma-internal.ts 仅用于本地开发（将 internal/*.ts 编译为 .js），
-# prisma 7 的 prisma-client provider 在 Docker 中直接生成 .js，不需要后处理
-RUN pnpm exec prisma generate
+# 使用 pnpm prisma:generate 而非直接 prisma generate：prisma 7 的 prisma-client
+# provider 只生成 .ts 文件，prisma:generate 脚本会额外运行 fix-generated-prisma-internal.ts
+# 将 .ts 编译为 .js（运行时 dist/ 中的 require() 需要 .js 文件）
+RUN pnpm prisma:generate
 # 编译 TypeScript（nest build 会根据 assets 配置复制 i18n JSON 到 dist/）
 RUN --mount=type=cache,id=swc,target=/root/.swc \
     pnpm run build
