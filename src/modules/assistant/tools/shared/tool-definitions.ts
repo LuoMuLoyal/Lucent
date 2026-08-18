@@ -51,7 +51,7 @@ const TOOL_DESCRIPTIONS: Record<AssistantToolName, string> = {
   search_medicine_leaflets:
     'Search medicine leaflets (package inserts) for usage, dosage, contraindications, and side effects.',
   search_medical_qa_corpus:
-    'Search a curated medical Q&A corpus for disease knowledge, pathology, and prevention.',
+    'Search an open medical Q&A corpus (low-trust educational reference) for disease knowledge, pathology, and prevention.',
   resolve_drugbank_entity:
     'Resolve a drug name to a DrugBank entity for scientific pharmacology data.',
   get_drugbank_detail:

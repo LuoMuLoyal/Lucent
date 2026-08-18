@@ -51,6 +51,19 @@ Why it is different from leaflet and DrugBank RAG:
 The frontend linear medication suggestion/risk flow must not consume this QA corpus in the current
 phase.
 
+### 可验证性分层与检索上限（F-15，2026-08-17 落地）
+
+语料治理按「可验证性」分层，检索侧不静默：
+
+- **可引用来源（优先）**：说明书检索（`search_medicine_leaflets`，`source: 'cn'`）、DrugBank 科学检索
+  （`search_drugbank_passages`，entity-scoped）、食物成分表/已审校数据（如存在）。
+- **开放语料（兜底）**：本 QA 数据集无任何结构化来源字段（embedding metadata 仅
+  `qaId` / `question` / `safetyLabel`），因此 `search_medical_qa_corpus` 的每条检索结果统一输出
+  `verifiability: 'open_corpus'` 与 `sourceNote: '开放语料,低可信教育参考,无独立可验证来源'`，
+  供客户端来源条呈现低可信提示；标记在服务端 chunk 映射处生成（不改数据库、不改导入脚本）。
+- **检索上限**：医疗问答检索每页最多 5 条（`MEDICAL_QA_MAX_LIMIT = 5`），检索结果只保留最相关的
+  5 条证据；说明书 / DrugBank 检索不受影响，维持各自上限。
+
 As of 4.0.0, `ChineseDrugData_Master_V2/ChineseDrugData_Master_V2.xlsx` is the locked CN source for
 both structured product lookup and leaflet RAG. The data fusion pipeline is frozen for 4.0.0;
 further improvements (DrugBank bridging, product aggregation, English translation) are scheduled for

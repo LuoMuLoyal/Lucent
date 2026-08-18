@@ -14,10 +14,20 @@ import {
 import { parseSearchPayload } from '../drugbank/entity-resolve.service';
 import {
   ASSISTANT_VECTOR_DEFAULT_LIMIT,
-  ASSISTANT_VECTOR_MAX_LIMIT,
+  MEDICAL_QA_MAX_LIMIT,
 } from '../shared/tool-constants';
 
 const EMBEDDINGS_TABLE = 'medical_qa_embeddings';
+
+/**
+ * The alpaca_zh_demo.json source carries no structured provenance fields
+ * (embed metadata is only qaId/question/safetyLabel), so every retrieved
+ * chunk is uniformly tagged as an open corpus of low-trust educational
+ * reference. Markers are generated here at the chunk-mapping layer — no DB
+ * or import-script change.
+ */
+const OPEN_CORPUS_VERIFIABILITY = 'open_corpus' as const;
+const OPEN_CORPUS_SOURCE_NOTE = '开放语料,低可信教育参考,无独立可验证来源';
 
 @Injectable()
 export class AssistantToolMedicalKnowledgeService {
@@ -129,6 +139,8 @@ export class AssistantToolMedicalKnowledgeService {
       answer: doc.pageContent,
       safetyLabel: doc.metadata['safetyLabel'] as string,
       topic: (doc.metadata['topic'] as string | undefined) ?? 'general',
+      verifiability: OPEN_CORPUS_VERIFIABILITY,
+      sourceNote: OPEN_CORPUS_SOURCE_NOTE,
       rank: offset + index + 1,
       score,
     }));
@@ -166,6 +178,6 @@ export class AssistantToolMedicalKnowledgeService {
 
 function normalizeLimit(limit: number | undefined): number {
   if (limit == null || Number.isNaN(limit))
-    return ASSISTANT_VECTOR_DEFAULT_LIMIT;
-  return Math.max(1, Math.min(ASSISTANT_VECTOR_MAX_LIMIT, Math.trunc(limit)));
+    return Math.min(ASSISTANT_VECTOR_DEFAULT_LIMIT, MEDICAL_QA_MAX_LIMIT);
+  return Math.max(1, Math.min(MEDICAL_QA_MAX_LIMIT, Math.trunc(limit)));
 }

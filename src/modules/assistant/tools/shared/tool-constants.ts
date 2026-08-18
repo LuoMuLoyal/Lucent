@@ -26,6 +26,13 @@ export const ASSISTANT_VECTOR_DEFAULT_LIMIT = 4;
 /** Maximum page size for assistant vector retrieval tools. */
 export const ASSISTANT_VECTOR_MAX_LIMIT = 8;
 
+/**
+ * Hard cap for medical Q&A corpus retrieval (5 evidence items per page).
+ * Kept below the generic vector max so the open low-trust corpus never
+ * out-ranks the citability layering; leaflet/DrugBank tools are unaffected.
+ */
+export const MEDICAL_QA_MAX_LIMIT = 5;
+
 /** Maximum number of recent conversations returned by the assistant conversation list. */
 export const RECENT_CONVERSATION_LIMIT = 20;
 
