@@ -41,7 +41,6 @@ export class ReportsService {
       startDate: formatDateOnly(facts.startDate),
       endDate: formatDateOnly(facts.endDate),
       generatedAt: facts.generatedAt,
-      score: computed.score,
       metrics: computed.metrics,
       trends: computed.trends,
       findings: computed.findings,

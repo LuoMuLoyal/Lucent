@@ -29,12 +29,6 @@ describe('ReportsAiSummaryContextService', () => {
   };
 
   const baseComputed: ReportDashboardComputed = {
-    score: {
-      value: 78,
-      maxValue: 100,
-      status: 'stable',
-      summary: '本周记录较完整。',
-    },
     metrics: [
       {
         kind: 'medication',

@@ -10936,25 +10936,6 @@
         },
         "required": ["code", "message", "data"]
       },
-      "ReportDashboardScoreDto": {
-        "type": "object",
-        "properties": {
-          "value": {
-            "type": "number"
-          },
-          "maxValue": {
-            "type": "number"
-          },
-          "status": {
-            "type": "string",
-            "enum": ["good", "stable", "needs_attention", "insufficient_data"]
-          },
-          "summary": {
-            "type": "string"
-          }
-        },
-        "required": ["value", "maxValue", "status", "summary"]
-      },
       "ReportObservedMetricDto": {
         "type": "object",
         "properties": {
@@ -11132,9 +11113,6 @@
           "generatedAt": {
             "type": "string"
           },
-          "score": {
-            "$ref": "#/components/schemas/ReportDashboardScoreDto"
-          },
           "metrics": {
             "type": "array",
             "items": {
@@ -11168,7 +11146,6 @@
           "startDate",
           "endDate",
           "generatedAt",
-          "score",
           "metrics",
           "trends",
           "findings",

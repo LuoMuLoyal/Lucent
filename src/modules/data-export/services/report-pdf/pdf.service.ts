@@ -24,7 +24,6 @@ import {
   drawMetricsGrid,
   drawPageChrome,
   drawPageDecorations,
-  drawScoreCard,
   drawSectionTitle,
   drawSubsectionTitle,
   drawTrendTable,
@@ -139,7 +138,6 @@ export class ReportExportPdfService {
     context.cursorY -= 30;
 
     drawSectionTitle(context, summaryLabel);
-    drawScoreCard(context, report, isZh);
     context.cursorY -= 2;
     drawWrappedText(
       context,

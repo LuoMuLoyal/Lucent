@@ -31,12 +31,6 @@ describe('ReportsService', () => {
     } as unknown as ReportsContextService;
     const computationService = {
       compute: vi.fn().mockReturnValue({
-        score: {
-          value: 61,
-          maxValue: 100,
-          status: 'needs_attention',
-          summary: '本周报告数据已更新。',
-        },
         metrics: [
           {
             kind: 'medication',
@@ -161,12 +155,6 @@ describe('ReportsService', () => {
     } as unknown as ReportsContextService;
     const computationService = {
       compute: vi.fn().mockReturnValue({
-        score: {
-          value: 88,
-          maxValue: 100,
-          status: 'good',
-          summary: '报告数据已更新。',
-        },
         metrics: [],
         trends: [],
         findings: [],
@@ -220,12 +208,6 @@ describe('ReportsService', () => {
     } as unknown as ReportsContextService;
     const computationService = {
       compute: vi.fn().mockReturnValue({
-        score: {
-          value: 70,
-          maxValue: 100,
-          status: 'stable',
-          summary: 'Sleep was healthy.',
-        },
         metrics: [
           {
             kind: 'sleep',

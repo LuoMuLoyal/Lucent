@@ -48,7 +48,6 @@ export interface ReportDashboardFacts {
 
 export interface ReportDashboardComputed {
   metrics: ReportMetricDto[];
-  score: ReportDashboardDataDto['score'];
   trends: ReportTrendDto[];
   findings: ReportDashboardDataDto['findings'];
   patterns: ReportPatternDto[];

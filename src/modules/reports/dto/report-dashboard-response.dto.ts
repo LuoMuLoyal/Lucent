@@ -4,22 +4,6 @@ import {
   type ReportRange,
 } from './report-dashboard-query.dto';
 
-export class ReportDashboardScoreDto {
-  @ApiProperty()
-  value!: number;
-
-  @ApiProperty()
-  maxValue!: number;
-
-  @ApiProperty({
-    enum: ['good', 'stable', 'needs_attention', 'insufficient_data'],
-  })
-  status!: 'good' | 'stable' | 'needs_attention' | 'insufficient_data';
-
-  @ApiProperty()
-  summary!: string;
-}
-
 export class ReportObservedMetricDto {
   @ApiProperty({ type: Number, nullable: true })
   value!: number | null;
@@ -148,9 +132,6 @@ export class ReportDashboardDataDto {
 
   @ApiProperty()
   generatedAt!: string;
-
-  @ApiProperty({ type: ReportDashboardScoreDto })
-  score!: ReportDashboardScoreDto;
 
   @ApiProperty({ type: [ReportMetricDto] })
   metrics!: ReportMetricDto[];

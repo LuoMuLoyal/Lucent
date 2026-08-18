@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import type {
-  ReportDashboardDataDto,
   ReportFindingDto,
   ReportPatternDto,
 } from '../dto/report-dashboard-response.dto';
@@ -37,46 +36,6 @@ export class ReportsPresenterService {
   private static readonly SLEEP_STABLE_HOURS = 5;
 
   constructor(private readonly i18n: I18nService) {}
-
-  buildScore(
-    statuses: MetricStatus[],
-    locale: string,
-  ): ReportDashboardDataDto['score'] {
-    const scoreParts = statuses.map((status) => {
-      switch (status) {
-        case 'good':
-          return 35;
-        case 'stable':
-          return 25;
-        case 'needs_attention':
-          return 15;
-        case 'insufficient_data':
-          return 18;
-      }
-    });
-
-    const value = Math.min(
-      100,
-      Math.max(
-        0,
-        scoreParts.reduce((sum, part) => sum + part, 0),
-      ),
-    );
-
-    let status: MetricStatus = 'stable';
-    if (value >= 85) {
-      status = 'good';
-    } else if (value < 65) {
-      status = 'needs_attention';
-    }
-
-    return {
-      value,
-      maxValue: 100,
-      status,
-      summary: this.buildScoreSummary(statuses, locale),
-    };
-  }
 
   buildFindings(
     input: {
@@ -276,57 +235,6 @@ export class ReportsPresenterService {
         avgHours: avg,
         dayCount: String(this.dayCount(range)),
       },
-    });
-  }
-
-  private buildScoreSummary(statuses: MetricStatus[], locale: string): string {
-    const medicationStatus = statuses[0];
-    const waterStatus = statuses[1];
-    const sleepStatus = statuses[2];
-    const parts: string[] = [];
-
-    if (medicationStatus === 'good') {
-      parts.push(
-        this.i18n.t('reports-dashboard.score.part_medication_good', {
-          lang: locale,
-        }),
-      );
-    }
-    if (waterStatus === 'needs_attention') {
-      parts.push(
-        this.i18n.t('reports-dashboard.score.part_hydration_attention', {
-          lang: locale,
-        }),
-      );
-    }
-    if (sleepStatus === 'insufficient_data') {
-      parts.push(
-        this.i18n.t('reports-dashboard.score.part_sleep_insufficient', {
-          lang: locale,
-        }),
-      );
-    } else if (sleepStatus === 'good') {
-      parts.push(
-        this.i18n.t('reports-dashboard.score.part_sleep_good', {
-          lang: locale,
-        }),
-      );
-    } else if (sleepStatus === 'needs_attention') {
-      parts.push(
-        this.i18n.t('reports-dashboard.score.part_sleep_attention', {
-          lang: locale,
-        }),
-      );
-    }
-
-    if (parts.length > 0) {
-      const separator = locale.startsWith('zh') ? '，' : ', ';
-      const ending = locale.startsWith('zh') ? '。' : '.';
-      return parts.join(separator) + ending;
-    }
-
-    return this.i18n.t('reports-dashboard.score.default_summary', {
-      lang: locale,
     });
   }
 

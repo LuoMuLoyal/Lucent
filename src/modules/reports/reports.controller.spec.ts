@@ -968,12 +968,6 @@ function makeDashboard(
     startDate: '2026-06-06',
     endDate: '2026-06-12',
     generatedAt: '2026-06-12T00:00:00.000Z',
-    score: {
-      value: 78,
-      maxValue: 100,
-      status: 'stable',
-      summary: '本周记录较完整。',
-    },
     metrics: [],
     trends: [],
     findings: [],

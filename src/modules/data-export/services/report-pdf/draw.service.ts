@@ -17,11 +17,7 @@ import type {
 } from '../../constants/report-pdf.constants';
 import { statusLabel, statusPalette } from '../../utils/report-pdf.theme';
 import { metricLabel } from '../../utils/report-pdf.theme';
-import type {
-  ReportDashboardDataDto,
-  ReportMetricDto,
-  ReportTrendDto,
-} from '../../../reports';
+import type { ReportMetricDto, ReportTrendDto } from '../../../reports';
 
 export type PdfColor = ReturnType<typeof rgb>;
 
@@ -110,116 +106,6 @@ function truncateSparkline(
     }
   }
   return parts.join(' ');
-}
-
-function buildScoreBreakdown(
-  metrics: ReportMetricDto[],
-  isZh: boolean,
-): string {
-  const parts = metrics.map((m) => {
-    const label = metricLabel(m.kind, isZh);
-    const score = metricScoreValue(m.status);
-    const sign = score >= 0 ? '+' : '';
-    return `${label} ${sign}${String(score)}`;
-  });
-  return parts.join('  |  ');
-}
-
-/**
- * Maps a metric status to a numeric score for the score breakdown.
- * `insufficient_data` and unknown statuses return 0 (unscored) so they
- * never appear healthier than `needs_attention`.
- */
-function metricScoreValue(status: string): number {
-  switch (status) {
-    case 'good':
-      return 35;
-    case 'stable':
-      return 25;
-    case 'needs_attention':
-      return 15;
-    default:
-      return 0;
-  }
-}
-
-export function drawScoreCard(
-  context: PageContext,
-  report: ReportDashboardDataDto,
-  isZh: boolean,
-): void {
-  const palette = statusPalette(report.score.status);
-  const summaryLines = wrapText(
-    report.score.summary,
-    context.cjkFont,
-    11,
-    CONTENT_WIDTH - 28,
-  );
-  const breakdownText = buildScoreBreakdown(report.metrics, isZh);
-  const boxHeight = 68 + summaryLines.length * 15;
-  ensureHeight(context, boxHeight);
-  const boxY = context.cursorY - boxHeight;
-  context.page.drawRectangle({
-    x: MARGIN_X,
-    y: boxY,
-    width: CONTENT_WIDTH,
-    height: boxHeight,
-    color: palette.fill,
-    borderColor: palette.border,
-    borderWidth: 0.8,
-  });
-  context.page.drawRectangle({
-    x: MARGIN_X,
-    y: boxY,
-    width: 4,
-    height: boxHeight,
-    color: palette.accent,
-  });
-  const scoreLabel = isZh ? '健康评分' : 'Health score';
-  const scoreValue = `${String(report.score.value)} / ${String(report.score.maxValue)}`;
-  const statusText = statusLabel(report.score.status, isZh);
-  const valueWidth = context.cjkFont.widthOfTextAtSize(scoreValue, 22);
-  const valueX = PAGE_WIDTH - MARGIN_X - 16 - valueWidth;
-  context.page.drawText(scoreLabel, {
-    x: MARGIN_X + 14,
-    y: context.cursorY - 18,
-    size: 11,
-    font: context.cjkFont,
-    color: rgb(0.34, 0.41, 0.5),
-  });
-  context.page.drawText(statusText, {
-    x: MARGIN_X + 14,
-    y: context.cursorY - 38,
-    size: 14,
-    font: context.cjkFont,
-    color: palette.text,
-  });
-  context.page.drawText(scoreValue, {
-    x: valueX,
-    y: context.cursorY - 34,
-    size: 22,
-    font: context.cjkFont,
-    color: rgb(0.14, 0.19, 0.26),
-  });
-  context.page.drawText(breakdownText, {
-    x: MARGIN_X + 14,
-    y: context.cursorY - 54,
-    size: 9.5,
-    font: context.cjkFont,
-    color: rgb(0.4, 0.45, 0.53),
-  });
-  let textY = context.cursorY - 74;
-  for (const line of summaryLines) {
-    context.page.drawText(line, {
-      x: MARGIN_X + 14,
-      y: textY,
-      size: 11,
-      font: context.cjkFont,
-      color: rgb(0.22, 0.27, 0.33),
-    });
-    textY -= 15;
-  }
-  context.cursorY = boxY - 10;
 }
 
 export function drawMetricsGrid(

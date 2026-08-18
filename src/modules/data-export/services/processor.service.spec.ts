@@ -247,12 +247,6 @@ function sampleReport() {
     endDate: '2026-06-15',
     generatedAt: '2026-06-15T09:30:00.000Z',
     aiSummaryEnabled: true,
-    score: {
-      value: 78,
-      maxValue: 100,
-      status: 'stable',
-      summary: '过去 7 天整体稳定，饮水仍需加强。',
-    },
     metrics: [],
     trends: [],
     findings: [],

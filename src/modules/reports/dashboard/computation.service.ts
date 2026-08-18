@@ -32,7 +32,6 @@ export class ReportsComputationService {
 
     return {
       metrics,
-      score: this.presenter.buildScore(this.buildScoreStatus(metrics), locale),
       trends: [
         {
           kind: 'medication',
@@ -222,10 +221,6 @@ export class ReportsComputationService {
       ),
       sparkline: series,
     };
-  }
-
-  private buildScoreStatus(metrics: ReportMetricDto[]): MetricStatus[] {
-    return metrics.map((metric) => metric.status);
   }
 
   private compareDirection(

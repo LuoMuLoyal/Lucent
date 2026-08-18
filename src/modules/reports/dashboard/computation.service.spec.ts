@@ -9,12 +9,6 @@ describe('ReportsComputationService', () => {
 
   beforeEach(() => {
     presenter = {
-      buildScore: vi.fn().mockReturnValue({
-        value: 80,
-        maxValue: 100,
-        status: 'stable',
-        summary: 'Score summary',
-      }),
       buildFindings: vi.fn().mockReturnValue([]),
       buildPatterns: vi.fn().mockReturnValue([]),
     } as unknown as vi.Mocked<ReportsPresenterService>;
@@ -46,7 +40,7 @@ describe('ReportsComputationService', () => {
   });
 
   describe('compute', () => {
-    it('builds metrics, score, trends, findings, and patterns', () => {
+    it('builds metrics, trends, findings, and patterns', () => {
       const facts = makeFacts();
       const result = service.compute(facts, 'zh-CN');
 
@@ -54,17 +48,6 @@ describe('ReportsComputationService', () => {
       expect(result.metrics[0]!.kind).toBe('medication');
       expect(result.metrics[1]!.kind).toBe('water');
       expect(result.metrics[2]!.kind).toBe('sleep');
-
-      expect(result.score).toEqual({
-        value: 80,
-        maxValue: 100,
-        status: 'stable',
-        summary: 'Score summary',
-      });
-      expect(presenter.buildScore).toHaveBeenCalledWith(
-        expect.arrayContaining([expect.any(String)]),
-        'zh-CN',
-      );
 
       expect(result.trends).toHaveLength(3);
       expect(result.trends[0]!).toEqual({

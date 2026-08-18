@@ -33,17 +33,6 @@ function createMockI18n(): I18nService {
       'Sleep averaged {avgHours}h over the last {dayCount} days. Duration is acceptable but could be more consistent.',
     'reports-dashboard.patterns.sleep_body_attention':
       'Sleep averaged only {avgHours}h over the last {dayCount} days. Consider adjusting bedtime to improve rest.',
-    'reports-dashboard.score.part_medication_good':
-      'Medication completion was stable',
-    'reports-dashboard.score.part_hydration_attention':
-      'Hydration still has room to improve',
-    'reports-dashboard.score.part_sleep_insufficient':
-      'Sleep data is not sufficient yet',
-    'reports-dashboard.score.part_sleep_good': 'Sleep duration was healthy',
-    'reports-dashboard.score.part_sleep_attention':
-      'Sleep duration needs improvement',
-    'reports-dashboard.score.default_summary':
-      'The report data has been updated.',
   };
   return {
     t: (key: string, opts?: { args?: Record<string, string> }) => {
@@ -60,18 +49,6 @@ function createMockI18n(): I18nService {
 
 describe('ReportsPresenterService', () => {
   const service = new ReportsPresenterService(createMockI18n());
-
-  it('builds en score summary from metric statuses', () => {
-    const score = service.buildScore(
-      ['good', 'needs_attention', 'insufficient_data'],
-      'en',
-    );
-
-    expect(score.value).toBeGreaterThan(0);
-    expect(score.summary).toContain('Medication completion was stable');
-    expect(score.summary).toContain('Hydration still has room to improve');
-    expect(score.summary).toContain('Sleep data is not sufficient yet');
-  });
 
   it('builds findings and patterns from computed series', () => {
     const findings = service.buildFindings(
@@ -97,22 +74,6 @@ describe('ReportsPresenterService', () => {
     expect(findings[0]?.kind).toBe('hydration');
     expect(patterns).toHaveLength(3);
     expect(patterns[2]?.kind).toBe('sleep');
-  });
-
-  it('uses comma separator for en locale', () => {
-    const score = service.buildScore(
-      ['good', 'needs_attention', 'insufficient_data'],
-      'en',
-    );
-
-    expect(score.summary).toContain(', ');
-    expect(score.summary.endsWith('.')).toBe(true);
-  });
-
-  it('returns default summary when no conditions match', () => {
-    const score = service.buildScore(['stable', 'stable', 'stable'], 'en');
-
-    expect(score.summary).toBe('The report data has been updated.');
   });
 
   it('builds sleep pattern with real data when series has values', () => {
@@ -148,18 +109,5 @@ describe('ReportsPresenterService', () => {
     if (!sleepPattern) throw new Error('sleep pattern not found');
     expect(sleepPattern.status).toBe('insufficient_data');
     expect(sleepPattern.body).toContain('Not enough sleep data');
-  });
-
-  it('sleep score summary includes good/attention parts when data exists', () => {
-    const goodScore = service.buildScore(['stable', 'stable', 'good'], 'en');
-    expect(goodScore.summary).toContain('Sleep duration was healthy');
-
-    const attentionScore = service.buildScore(
-      ['stable', 'stable', 'needs_attention'],
-      'en',
-    );
-    expect(attentionScore.summary).toContain(
-      'Sleep duration needs improvement',
-    );
   });
 });
