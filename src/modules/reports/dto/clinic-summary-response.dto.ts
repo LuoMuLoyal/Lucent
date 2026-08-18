@@ -53,19 +53,34 @@ export class ClinicSummaryCoverageEntryDto {
  * `water` and `sleep` both derive from daily records; `dose` from dose logs;
  * `checkIns` is the check-in source. All entries share the observed-metric
  * contract so the summary never re-implements aggregation rules.
+ *
+ * `water` and `sleep` are each controlled by their own share-field toggle
+ * (R-2): when the field is not selected the entry is set to `undefined` so
+ * no output path leaks the coverage. `checkIns` and `dose` are always
+ * present (they are not one of the six selectable fields).
  */
 export class ClinicSummaryCoverageDto {
   @ApiProperty({ type: () => ClinicSummaryCoverageEntryDto })
   checkIns!: ClinicSummaryCoverageEntryDto;
 
-  @ApiProperty({ type: () => ClinicSummaryCoverageEntryDto })
-  water!: ClinicSummaryCoverageEntryDto;
+  @ApiPropertyOptional({
+    type: () => ClinicSummaryCoverageEntryDto,
+    description:
+      'Water coverage. Optional: omitted when the `water` field is ' +
+      'deselected via selectedFields.',
+  })
+  water?: ClinicSummaryCoverageEntryDto;
 
   @ApiProperty({ type: () => ClinicSummaryCoverageEntryDto })
   dose!: ClinicSummaryCoverageEntryDto;
 
-  @ApiProperty({ type: () => ClinicSummaryCoverageEntryDto })
-  sleep!: ClinicSummaryCoverageEntryDto;
+  @ApiPropertyOptional({
+    type: () => ClinicSummaryCoverageEntryDto,
+    description:
+      'Sleep coverage. Optional: omitted when the `sleep` field is ' +
+      'deselected via selectedFields.',
+  })
+  sleep?: ClinicSummaryCoverageEntryDto;
 }
 
 export class ClinicSummaryProfileDto {
@@ -130,6 +145,50 @@ export class ClinicSummaryMedicineDto {
     nullable: true,
   })
   doseText?: string | null;
+}
+
+/**
+ * A daily water intake fact — only records with a parsable ml value are
+ * included (R-2). No trend is computed for a single data point; at least two
+ * different dates are required for any trend conclusion.
+ */
+export class ClinicSummaryWaterEntryDto {
+  @ApiProperty({ description: 'Calendar date in YYYY-MM-DD format.' })
+  date!: string;
+
+  @ApiProperty({ description: 'Water intake in milliliters.' })
+  ml!: number;
+}
+
+/**
+ * A daily sleep duration fact — only records with a positive duration are
+ * included (R-2). No trend is computed for a single data point.
+ */
+export class ClinicSummarySleepEntryDto {
+  @ApiProperty({ description: 'Calendar date in YYYY-MM-DD format.' })
+  date!: string;
+
+  @ApiProperty({ description: 'Sleep duration in minutes.' })
+  minutes!: number;
+}
+
+/**
+ * A free-text note record — date, record kind, and the original note text.
+ * Controlled by the `notes` field toggle (R-2); defaults to off so the user
+ * must explicitly opt in before notes appear in preview / PDF / share.
+ */
+export class ClinicSummaryNoteEntryDto {
+  @ApiProperty({ description: 'Calendar date in YYYY-MM-DD format.' })
+  date!: string;
+
+  @ApiProperty({
+    description:
+      'Daily record kind (water/meal/vital/mood/symptom/activity/note/sleep).',
+  })
+  kind!: string;
+
+  @ApiProperty({ description: 'Original note text.' })
+  text!: string;
 }
 
 export class ClinicSummaryDto {
@@ -205,9 +264,41 @@ export class ClinicSummaryDto {
       'Structured facts and change codes reused from the event review ' +
       '(e.g. health_event, observed_changes, no_completed_actions, ' +
       'active_check_in). `insufficient_coverage` is the fixed 资料不足 ' +
-      'statement — no generic AI conclusions are ever added.',
+      'statement — no generic AI conclusions are ever added. ' +
+      'Controlled by the `event_overview` field toggle (R-2): omitted ' +
+      'when the field is deselected.',
   })
   findings?: string[];
+
+  @ApiPropertyOptional({
+    type: () => ClinicSummaryWaterEntryDto,
+    isArray: true,
+    description:
+      'Daily water intake facts (only records with a parsable ml value). ' +
+      'Controlled by the `water` field toggle (R-2): omitted when the ' +
+      'field is deselected.',
+  })
+  waterEntries?: ClinicSummaryWaterEntryDto[];
+
+  @ApiPropertyOptional({
+    type: () => ClinicSummarySleepEntryDto,
+    isArray: true,
+    description:
+      'Daily sleep duration facts (only records with a positive duration). ' +
+      'Controlled by the `sleep` field toggle (R-2): omitted when the ' +
+      'field is deselected.',
+  })
+  sleepEntries?: ClinicSummarySleepEntryDto[];
+
+  @ApiPropertyOptional({
+    type: () => ClinicSummaryNoteEntryDto,
+    isArray: true,
+    description:
+      'Free-text note records (date, kind, original text). Controlled ' +
+      'by the `notes` field toggle (R-2): omitted when the field is ' +
+      'deselected. Defaults to off — the user must explicitly opt in.',
+  })
+  noteEntries?: ClinicSummaryNoteEntryDto[];
 
   @ApiProperty({ description: 'Disclaimer text' })
   disclaimer!: string;

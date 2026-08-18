@@ -12,6 +12,7 @@ import type { ClinicSummaryPdfService } from './pdf.service';
 import type { PrismaService } from '../../../../prisma';
 import type { ProductEventsService } from '../../../product-events';
 import {
+  applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
   resolveSectionKeys,
 } from './summary-view';
@@ -172,6 +173,13 @@ describe('ClinicSummaryService', () => {
     prisma = {
       user: {
         findFirstOrThrow: vi.fn(),
+      },
+      userDailyRecord: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      userClinicSummaryShare: {
+        findFirst: vi.fn(),
+        updateMany: vi.fn(),
       },
     } as unknown as DeepMocked<PrismaService>;
 
@@ -522,7 +530,15 @@ describe('ClinicSummaryService', () => {
       expect(result.scopeLabel).toBeDefined();
       expect(result.generatedAt).toBeDefined();
       expect(result.coverage).toBeDefined();
-      expect(result.findings).toBeDefined();
+      // R-2: findings are gated by event_overview; without it, findings
+      // are not included.
+      expect(result.findings).toBeUndefined();
+      // Coverage water/sleep are gated by their own toggles; since water
+      // and sleep ARE selected, their coverage entries are present.
+      // But the mock returns no event review, so coverage entries are
+      // the empty state — still included because the toggle is on.
+      expect(result.coverage.water).toBeDefined();
+      expect(result.coverage.sleep).toBeDefined();
       expect(result.disclaimer).toBeDefined();
     });
   });
@@ -558,6 +574,143 @@ describe('ClinicSummaryService', () => {
 
     it('ignores unknown values but keeps allergies', () => {
       expect(resolveSectionKeys(['unknown_field'])).toEqual(['allergies']);
+    });
+  });
+
+  // ── R-2: Six-toggle field gating (applySelectedFields) ──────────────
+
+  describe('applySelectedFields — six-toggle gating (R-2)', () => {
+    // Build a full summary with every field populated.
+    const fullSummary: ClinicSummaryDto = {
+      generatedAt: '2026-08-18T10:00:00.000Z',
+      dataRange: 'last_30_days',
+      scopeLabel: 'last_30_days',
+      start: '2026-07-20T00:00:00.000Z',
+      end: '2026-08-19T00:00:00.000Z',
+      selectedFields: [
+        'profile',
+        'allergies',
+        'conditions',
+        'currentMedicines',
+      ],
+      profile: {
+        nickname: '张**',
+        age: 30,
+        sexAtBirth: 'male',
+        bloodType: 'A',
+      },
+      allergies: [{ label: '青霉素', reaction: null, severity: null }],
+      conditions: [{ label: '高血压', status: 'active', diagnosedYear: 2020 }],
+      currentMedicines: [{ displayName: '氨氯地平', doseText: '5mg' }],
+      findings: ['health_event', 'observed_changes'],
+      coverage: {
+        checkIns: {
+          state: 'observed',
+          coverage: 'partial',
+          sources: ['manual'],
+          observedCount: 2,
+          expectedCount: null,
+          windowStart: '2026-08-01T00:00:00.000Z',
+          windowEnd: '2026-08-18T00:00:00.000Z',
+        },
+        water: {
+          state: 'observed',
+          coverage: 'partial',
+          sources: ['manual'],
+          observedCount: 5,
+          expectedCount: null,
+          windowStart: '2026-08-01T00:00:00.000Z',
+          windowEnd: '2026-08-18T00:00:00.000Z',
+        },
+        dose: {
+          state: 'observed',
+          coverage: 'partial',
+          sources: ['manual'],
+          observedCount: 10,
+          expectedCount: null,
+          windowStart: '2026-08-01T00:00:00.000Z',
+          windowEnd: '2026-08-18T00:00:00.000Z',
+        },
+        sleep: {
+          state: 'observed',
+          coverage: 'partial',
+          sources: ['manual'],
+          observedCount: 5,
+          expectedCount: null,
+          windowStart: '2026-08-01T00:00:00.000Z',
+          windowEnd: '2026-08-18T00:00:00.000Z',
+        },
+      },
+      waterEntries: [{ date: '2026-08-10', ml: 1500 }],
+      sleepEntries: [{ date: '2026-08-10', minutes: 420 }],
+      noteEntries: [{ date: '2026-08-10', kind: 'note', text: 'some note' }],
+      disclaimer: 'disclaimer-text',
+    };
+
+    it('includes everything when no selection is given', () => {
+      const result = applySelectedFields(fullSummary, undefined);
+      expect(result.profile).toBeDefined();
+      expect(result.allergies).toBeDefined();
+      expect(result.conditions).toBeDefined();
+      expect(result.currentMedicines).toBeDefined();
+      expect(result.findings).toBeDefined();
+      expect(result.coverage.water).toBeDefined();
+      expect(result.coverage.dose).toBeDefined();
+      expect(result.coverage.sleep).toBeDefined();
+      expect(result.waterEntries).toBeDefined();
+      expect(result.sleepEntries).toBeDefined();
+      expect(result.noteEntries).toBeUndefined();
+    });
+
+    it('gates findings behind event_overview', () => {
+      const result = applySelectedFields(fullSummary, [
+        'symptom_changes',
+        'medication_slots',
+      ]);
+      expect(result.findings).toBeUndefined();
+      expect(result.profile).toBeUndefined();
+      expect(result.conditions).toBeDefined();
+      expect(result.currentMedicines).toBeDefined();
+    });
+
+    it('gates water coverage + waterEntries behind the water toggle', () => {
+      const result = applySelectedFields(fullSummary, [
+        'event_overview',
+        'water',
+      ]);
+      expect(result.coverage.water).toBeDefined();
+      expect(result.waterEntries).toBeDefined();
+      expect(result.coverage.sleep).toBeUndefined();
+      expect(result.sleepEntries).toBeUndefined();
+    });
+
+    it('gates sleep coverage + sleepEntries behind the sleep toggle', () => {
+      const result = applySelectedFields(fullSummary, [
+        'event_overview',
+        'sleep',
+      ]);
+      expect(result.coverage.sleep).toBeDefined();
+      expect(result.sleepEntries).toBeDefined();
+      expect(result.coverage.water).toBeUndefined();
+      expect(result.waterEntries).toBeUndefined();
+    });
+
+    it('gates noteEntries behind the notes toggle (off by default)', () => {
+      const result = applySelectedFields(fullSummary, ['event_overview']);
+      expect(result.noteEntries).toBeUndefined();
+
+      const withNotes = applySelectedFields(fullSummary, [
+        'event_overview',
+        'notes',
+      ]);
+      expect(withNotes.noteEntries).toBeDefined();
+      expect(withNotes.noteEntries!.length).toBe(1);
+    });
+
+    it('always includes coverage.checkIns and coverage.dose regardless of selection', () => {
+      const result = applySelectedFields(fullSummary, ['notes']);
+      expect(result.coverage.checkIns).toBeDefined();
+      expect(result.coverage.dose).toBeDefined();
     });
   });
 

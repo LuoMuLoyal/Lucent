@@ -11376,16 +11376,26 @@
             "$ref": "#/components/schemas/ClinicSummaryCoverageEntryDto"
           },
           "water": {
-            "$ref": "#/components/schemas/ClinicSummaryCoverageEntryDto"
+            "description": "Water coverage. Optional: omitted when the `water` field is deselected via selectedFields.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClinicSummaryCoverageEntryDto"
+              }
+            ]
           },
           "dose": {
             "$ref": "#/components/schemas/ClinicSummaryCoverageEntryDto"
           },
           "sleep": {
-            "$ref": "#/components/schemas/ClinicSummaryCoverageEntryDto"
+            "description": "Sleep coverage. Optional: omitted when the `sleep` field is deselected via selectedFields.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClinicSummaryCoverageEntryDto"
+              }
+            ]
           }
         },
-        "required": ["checkIns", "water", "dose", "sleep"]
+        "required": ["checkIns", "dose"]
       },
       "ClinicSummaryProfileDto": {
         "type": "object",
@@ -11467,6 +11477,52 @@
         },
         "required": ["displayName"]
       },
+      "ClinicSummaryWaterEntryDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Calendar date in YYYY-MM-DD format."
+          },
+          "ml": {
+            "type": "number",
+            "description": "Water intake in milliliters."
+          }
+        },
+        "required": ["date", "ml"]
+      },
+      "ClinicSummarySleepEntryDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Calendar date in YYYY-MM-DD format."
+          },
+          "minutes": {
+            "type": "number",
+            "description": "Sleep duration in minutes."
+          }
+        },
+        "required": ["date", "minutes"]
+      },
+      "ClinicSummaryNoteEntryDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Calendar date in YYYY-MM-DD format."
+          },
+          "kind": {
+            "type": "string",
+            "description": "Daily record kind (water/meal/vital/mood/symptom/activity/note/sleep)."
+          },
+          "text": {
+            "type": "string",
+            "description": "Original note text."
+          }
+        },
+        "required": ["date", "kind", "text"]
+      },
       "ClinicSummaryDto": {
         "type": "object",
         "properties": {
@@ -11530,10 +11586,31 @@
             }
           },
           "findings": {
-            "description": "Structured facts and change codes reused from the event review (e.g. health_event, observed_changes, no_completed_actions, active_check_in). `insufficient_coverage` is the fixed 资料不足 statement — no generic AI conclusions are ever added.",
+            "description": "Structured facts and change codes reused from the event review (e.g. health_event, observed_changes, no_completed_actions, active_check_in). `insufficient_coverage` is the fixed 资料不足 statement — no generic AI conclusions are ever added. Controlled by the `event_overview` field toggle (R-2): omitted when the field is deselected.",
             "type": "array",
             "items": {
               "type": "string"
+            }
+          },
+          "waterEntries": {
+            "description": "Daily water intake facts (only records with a parsable ml value). Controlled by the `water` field toggle (R-2): omitted when the field is deselected.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClinicSummaryWaterEntryDto"
+            }
+          },
+          "sleepEntries": {
+            "description": "Daily sleep duration facts (only records with a positive duration). Controlled by the `sleep` field toggle (R-2): omitted when the field is deselected.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClinicSummarySleepEntryDto"
+            }
+          },
+          "noteEntries": {
+            "description": "Free-text note records (date, kind, original text). Controlled by the `notes` field toggle (R-2): omitted when the field is deselected. Defaults to off — the user must explicitly opt in.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClinicSummaryNoteEntryDto"
             }
           },
           "disclaimer": {

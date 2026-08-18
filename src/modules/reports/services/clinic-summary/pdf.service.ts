@@ -7,7 +7,10 @@ import type {
   ClinicSummaryConditionDto,
   ClinicSummaryDto,
   ClinicSummaryMedicineDto,
+  ClinicSummaryNoteEntryDto,
   ClinicSummaryProfileDto,
+  ClinicSummarySleepEntryDto,
+  ClinicSummaryWaterEntryDto,
 } from '../../dto/clinic-summary-response.dto';
 import {
   CONTENT_WIDTH,
@@ -106,6 +109,24 @@ export class ClinicSummaryPdfService {
     if (summary.findings != null && summary.findings.length > 0) {
       drawSectionTitle(context, isZh ? '要点发现' : 'Key Findings');
       this.drawFindingsSection(context, summary.findings, isZh, cjkFont);
+      context.cursorY -= 8;
+    }
+
+    if (summary.waterEntries != null && summary.waterEntries.length > 0) {
+      drawSectionTitle(context, isZh ? '饮水记录' : 'Water Intake');
+      this.drawWaterSection(context, summary.waterEntries, isZh, cjkFont);
+      context.cursorY -= 8;
+    }
+
+    if (summary.sleepEntries != null && summary.sleepEntries.length > 0) {
+      drawSectionTitle(context, isZh ? '睡眠记录' : 'Sleep');
+      this.drawSleepSection(context, summary.sleepEntries, isZh, cjkFont);
+      context.cursorY -= 8;
+    }
+
+    if (summary.noteEntries != null && summary.noteEntries.length > 0) {
+      drawSectionTitle(context, isZh ? '备注' : 'Notes');
+      this.drawNotesSection(context, summary.noteEntries, isZh, cjkFont);
       context.cursorY -= 8;
     }
 
@@ -421,6 +442,180 @@ export class ClinicSummaryPdfService {
         color: rgb(0.22, 0.27, 0.33),
       });
       context.cursorY -= 17;
+    }
+  }
+
+  // ── Water / Sleep / Notes drawing helpers ───────────────────
+
+  private drawWaterSection(
+    context: PageContext,
+    entries: ClinicSummaryWaterEntryDto[],
+    isZh: boolean,
+    font: EmbeddedFont,
+  ): void {
+    const dateLabel = isZh ? '日期' : 'Date';
+    const mlLabel = isZh ? '饮水量(ml)' : 'Intake (ml)';
+    const dateW = 160;
+
+    ensureSpace(context, 1, 6);
+    const headerY = context.cursorY;
+    context.page.drawText(dateLabel, {
+      x: MARGIN_X,
+      y: headerY,
+      size: 9,
+      font,
+      color: rgb(0.4, 0.45, 0.53),
+    });
+    context.page.drawText(mlLabel, {
+      x: MARGIN_X + dateW,
+      y: headerY,
+      size: 9,
+      font,
+      color: rgb(0.4, 0.45, 0.53),
+    });
+    context.cursorY -= 16;
+
+    for (const e of entries) {
+      ensureSpace(context, 1);
+      const rowY = context.cursorY;
+      context.page.drawText(e.date, {
+        x: MARGIN_X,
+        y: rowY,
+        size: 11,
+        font,
+        color: rgb(0.14, 0.19, 0.26),
+      });
+      context.page.drawText(String(e.ml), {
+        x: MARGIN_X + dateW,
+        y: rowY,
+        size: 11,
+        font,
+        color: rgb(0.22, 0.27, 0.33),
+      });
+      context.cursorY -= 17;
+    }
+  }
+
+  private drawSleepSection(
+    context: PageContext,
+    entries: ClinicSummarySleepEntryDto[],
+    isZh: boolean,
+    font: EmbeddedFont,
+  ): void {
+    const dateLabel = isZh ? '日期' : 'Date';
+    const durLabel = isZh ? '时长(分钟)' : 'Duration (min)';
+    const dateW = 160;
+
+    ensureSpace(context, 1, 6);
+    const headerY = context.cursorY;
+    context.page.drawText(dateLabel, {
+      x: MARGIN_X,
+      y: headerY,
+      size: 9,
+      font,
+      color: rgb(0.4, 0.45, 0.53),
+    });
+    context.page.drawText(durLabel, {
+      x: MARGIN_X + dateW,
+      y: headerY,
+      size: 9,
+      font,
+      color: rgb(0.4, 0.45, 0.53),
+    });
+    context.cursorY -= 16;
+
+    for (const e of entries) {
+      ensureSpace(context, 1);
+      const rowY = context.cursorY;
+      context.page.drawText(e.date, {
+        x: MARGIN_X,
+        y: rowY,
+        size: 11,
+        font,
+        color: rgb(0.14, 0.19, 0.26),
+      });
+      context.page.drawText(String(e.minutes), {
+        x: MARGIN_X + dateW,
+        y: rowY,
+        size: 11,
+        font,
+        color: rgb(0.22, 0.27, 0.33),
+      });
+      context.cursorY -= 17;
+    }
+  }
+
+  private drawNotesSection(
+    context: PageContext,
+    entries: ClinicSummaryNoteEntryDto[],
+    isZh: boolean,
+    font: EmbeddedFont,
+  ): void {
+    const dateLabel = isZh ? '日期' : 'Date';
+    const kindLabel = isZh ? '类型' : 'Kind';
+    const textLabel = isZh ? '备注' : 'Note';
+    const dateW = 120;
+    const kindW = 100;
+
+    ensureSpace(context, 1, 6);
+    const headerY = context.cursorY;
+    context.page.drawText(dateLabel, {
+      x: MARGIN_X,
+      y: headerY,
+      size: 9,
+      font,
+      color: rgb(0.4, 0.45, 0.53),
+    });
+    context.page.drawText(kindLabel, {
+      x: MARGIN_X + dateW,
+      y: headerY,
+      size: 9,
+      font,
+      color: rgb(0.4, 0.45, 0.53),
+    });
+    context.page.drawText(textLabel, {
+      x: MARGIN_X + dateW + kindW,
+      y: headerY,
+      size: 9,
+      font,
+      color: rgb(0.4, 0.45, 0.53),
+    });
+    context.cursorY -= 16;
+
+    for (const e of entries) {
+      const noteLines = wrapText(
+        e.text,
+        font,
+        10,
+        CONTENT_WIDTH - dateW - kindW,
+      );
+      ensureSpace(context, noteLines.length, 4);
+      const rowY = context.cursorY;
+      context.page.drawText(e.date, {
+        x: MARGIN_X,
+        y: rowY,
+        size: 11,
+        font,
+        color: rgb(0.14, 0.19, 0.26),
+      });
+      context.page.drawText(e.kind, {
+        x: MARGIN_X + dateW,
+        y: rowY,
+        size: 11,
+        font,
+        color: rgb(0.22, 0.27, 0.33),
+      });
+      for (const line of noteLines) {
+        context.page.drawText(line, {
+          x: MARGIN_X + dateW + kindW,
+          y: context.cursorY,
+          size: 10,
+          font,
+          color: rgb(0.22, 0.27, 0.33),
+        });
+        context.cursorY -= 14;
+      }
+      context.cursorY -= 3;
     }
   }
 

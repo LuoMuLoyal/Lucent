@@ -26,7 +26,10 @@ import type {
   ClinicSummaryAllergyDto,
   ClinicSummaryConditionDto,
   ClinicSummaryMedicineDto,
+  ClinicSummaryNoteEntryDto,
   ClinicSummaryShareDataDto,
+  ClinicSummarySleepEntryDto,
+  ClinicSummaryWaterEntryDto,
 } from '../../dto/clinic-summary-response.dto';
 import type {
   EventReviewCoverageSummaryDto,
@@ -35,6 +38,7 @@ import type {
 import { EventReviewService } from '../event-review/review.service';
 import { ClinicSummaryPdfService } from './pdf.service';
 import { ProductEventsService } from '../../../product-events';
+import type { DailyRecordFact } from '../../../daily-records/repositories/daily-record.repository';
 import {
   applySelectedFields,
   CLINIC_SUMMARY_SECTION_KEYS,
@@ -182,6 +186,14 @@ export class ClinicSummaryService {
         }) satisfies ClinicSummaryMedicineDto,
     );
 
+    // Fetch daily records in the summary window for water/sleep/notes
+    // entries. The window is defined by the resolved scope start/end.
+    const dailyRecords = await this.fetchDailyRecords(
+      userId,
+      new Date(scope.start),
+      new Date(scope.end),
+    );
+
     const summary: ClinicSummaryDto = {
       generatedAt: nowIsoString(),
       dataRange: scope.dataRange,
@@ -195,6 +207,9 @@ export class ClinicSummaryService {
       currentMedicines,
       findings: this.buildFindings(scope.review),
       coverage: this.buildCoverage(scope.review),
+      waterEntries: this.buildWaterEntries(dailyRecords),
+      sleepEntries: this.buildSleepEntries(dailyRecords),
+      noteEntries: this.buildNoteEntries(dailyRecords),
       disclaimer: this.i18n.t('reports-clinic-summary.disclaimer', {
         lang: locale,
       }),
@@ -443,6 +458,155 @@ export class ClinicSummaryService {
       sleep: this.toCoverageEntry(review.coverage.dailyRecords),
       dose: this.toCoverageEntry(review.coverage.doseLogs),
     };
+  }
+
+  // ── Daily records (water/sleep/notes entries) ────────────────
+
+  /**
+   * Fetches daily records in the summary window for water/sleep/notes
+   * entries. Non-deleted records only.
+   */
+  private async fetchDailyRecords(
+    userId: string,
+    start: Date,
+    end: Date,
+  ): Promise<DailyRecordFact[]> {
+    const records = await this.prisma.userDailyRecord.findMany({
+      where: {
+        userId,
+        deletedAt: null,
+        occurredAt: { gte: start, lt: end },
+      },
+      orderBy: { occurredAt: 'asc' },
+      select: {
+        id: true,
+        kind: true,
+        occurredAt: true,
+        occurredTime: true,
+        title: true,
+        value: true,
+        unit: true,
+        note: true,
+        payload: true,
+        createdAt: true,
+      },
+    });
+    return records;
+  }
+
+  /**
+   * Water entries: only records with kind=water and a parsable ml value.
+   * The value field may contain a numeric string; the payload may carry a
+   * structured `ml` property. Both paths are tried.
+   */
+  private buildWaterEntries(
+    records: DailyRecordFact[],
+  ): ClinicSummaryWaterEntryDto[] {
+    const entries: ClinicSummaryWaterEntryDto[] = [];
+    for (const r of records) {
+      if (r.kind !== 'water') continue;
+      const ml = this.parseMl(r);
+      if (ml != null && ml > 0) {
+        entries.push({
+          date: this.toDateString(r.occurredAt),
+          ml,
+        });
+      }
+    }
+    return entries;
+  }
+
+  /**
+   * Sleep entries: only records with kind=sleep and a positive duration.
+   * The value field may contain minutes or an ISO duration; payload may
+   * carry `minutes` or `hours`.
+   */
+  private buildSleepEntries(
+    records: DailyRecordFact[],
+  ): ClinicSummarySleepEntryDto[] {
+    const entries: ClinicSummarySleepEntryDto[] = [];
+    for (const r of records) {
+      if (r.kind !== 'sleep') continue;
+      const minutes = this.parseMinutes(r);
+      if (minutes != null && minutes > 0) {
+        entries.push({
+          date: this.toDateString(r.occurredAt),
+          minutes,
+        });
+      }
+    }
+    return entries;
+  }
+
+  /**
+   * Note entries: any record with a non-empty note field. Includes date,
+   * record kind, and the original note text.
+   */
+  private buildNoteEntries(
+    records: DailyRecordFact[],
+  ): ClinicSummaryNoteEntryDto[] {
+    const entries: ClinicSummaryNoteEntryDto[] = [];
+    for (const r of records) {
+      if (!r.note || r.note.trim() === '') continue;
+      entries.push({
+        date: this.toDateString(r.occurredAt),
+        kind: r.kind,
+        text: r.note,
+      });
+    }
+    return entries;
+  }
+
+  /** Parse a milliliter value from a daily record (value or payload.ml). */
+  private parseMl(r: DailyRecordFact): number | null {
+    // Try value field first.
+    if (r.value != null) {
+      const parsed = parseFloat(r.value);
+      if (!Number.isNaN(parsed) && parsed > 0) return Math.round(parsed);
+    }
+    // Try payload['ml'].
+    if (r.payload != null && typeof r.payload === 'object') {
+      const ml = (r.payload as Record<string, unknown>)['ml'];
+      if (typeof ml === 'number' && ml > 0) return Math.round(ml);
+      if (typeof ml === 'string') {
+        const parsed = parseFloat(ml);
+        if (!Number.isNaN(parsed) && parsed > 0) return Math.round(parsed);
+      }
+    }
+    return null;
+  }
+
+  /** Parse a duration in minutes from a daily record (value or payload). */
+  private parseMinutes(r: DailyRecordFact): number | null {
+    // Try payload['minutes'] first.
+    if (r.payload != null && typeof r.payload === 'object') {
+      const payload = r.payload as Record<string, unknown>;
+      const minutes = payload['minutes'];
+      if (typeof minutes === 'number' && minutes > 0)
+        return Math.round(minutes);
+      const hours = payload['hours'];
+      if (typeof hours === 'number' && hours > 0) {
+        return Math.round(hours * 60);
+      }
+    }
+    // Try value field.
+    if (r.value != null) {
+      const parsed = parseFloat(r.value);
+      if (!Number.isNaN(parsed) && parsed > 0) {
+        // If unit is hours, convert; otherwise assume minutes.
+        const unit = r.unit?.toLowerCase() ?? '';
+        if (unit.includes('h') && !unit.includes('min')) {
+          return Math.round(parsed * 60);
+        }
+        return Math.round(parsed);
+      }
+    }
+    return null;
+  }
+
+  /** Format a Date as a YYYY-MM-DD calendar date. */
+  private toDateString(date: Date): string {
+    return date.toISOString().slice(0, 10);
   }
 
   private toCoverageEntry(
