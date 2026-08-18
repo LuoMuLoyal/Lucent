@@ -160,9 +160,12 @@ export class AssistantMemoryService {
     this.pendingExtractions.set(userId, entry);
   }
 
-  /** Removes all persisted memories for a user (memory-erase entry point). */
-  async deleteAllForUser(userId: string): Promise<void> {
-    await this.memoryRepository.deleteAllForUser(userId);
+  /**
+   * Removes all persisted memories for a user (memory-erase entry point).
+   * Returns the number of deleted memory rows so the API can surface it.
+   */
+  async deleteAllForUser(userId: string): Promise<number> {
+    return this.memoryRepository.deleteAllForUser(userId);
   }
 
   private lastMessages(

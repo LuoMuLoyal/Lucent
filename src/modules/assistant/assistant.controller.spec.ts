@@ -45,6 +45,7 @@ describe('AssistantController', () => {
             confirmProposal: vi.fn(),
             renameConversation: vi.fn(),
             deleteConversation: vi.fn(),
+            clearAssistantMemory: vi.fn(),
             getFoundationCapabilities: vi.fn(),
             streamMessages: vi.fn(),
             regenerateConversation: vi.fn(),
@@ -547,6 +548,19 @@ describe('AssistantController', () => {
       'u1',
       'conversation-1',
     );
+  });
+
+  it('erases assistant memories and returns the cleared count envelope', async () => {
+    service.clearAssistantMemory.mockResolvedValue({ cleared: 3 });
+
+    await expect(
+      controller.clearMemory({ sub: 'u1', email: 'a@b.c', status: 'active' }),
+    ).resolves.toEqual({
+      code: ResultCode.SUCCESS,
+      message: '',
+      data: { cleared: 3 },
+    });
+    expect(service.clearAssistantMemory).toHaveBeenCalledWith('u1');
   });
 
   it('streams an error SSE event when service throws', async () => {

@@ -4559,6 +4559,31 @@
         "tags": ["Assistant"]
       }
     },
+    "/api/v1/user/assistant/memory": {
+      "delete": {
+        "operationId": "AssistantController_clearMemory_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantClearMemoryResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Erase all persisted assistant memories for the user",
+        "tags": ["Assistant"]
+      }
+    },
     "/api/v1/user/assistant/latest/clear": {
       "post": {
         "operationId": "AssistantController_clearLatestConversation_v1",
@@ -12524,6 +12549,36 @@
           }
         },
         "required": ["title"]
+      },
+      "AssistantClearMemoryDataDto": {
+        "type": "object",
+        "properties": {
+          "cleared": {
+            "type": "number",
+            "description": "Number of persisted assistant memory rows deleted.",
+            "example": 3
+          }
+        },
+        "required": ["cleared"]
+      },
+      "AssistantClearMemoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "description": "Result code.",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "description": "Message.",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/AssistantClearMemoryDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
       },
       "AssistantClearResultDataDto": {
         "type": "object",

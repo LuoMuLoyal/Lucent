@@ -28,6 +28,9 @@ Current scope:
 - explicit separation between persisted conversations and optional cross-conversation memory
 - proposal-only write intents that still require frontend human confirmation
 - persisted Today Analysis reads and explicit, cooldown-protected refreshes
+- per-user memory erase (full wipe entry point)
+- LLM-refined conversation titles (best-effort background refinement)
+- per-tool execution timeout with parallel read-only tool execution
 
 Current non-goals:
 
@@ -118,6 +121,7 @@ inline:
 - `POST /api/v1/user/assistant/conversations/:conversationId/open`
 - `PATCH /api/v1/user/assistant/conversations/:conversationId` — rename a conversation (body `{ title }`, non-empty, ≤ 48 chars); returns the updated conversation
 - `DELETE /api/v1/user/assistant/conversations/:conversationId` — soft-delete a conversation (`status = deleted`); returns the deleted conversation
+- `DELETE /api/v1/user/assistant/memory` — erase all persisted cross-conversation memories of the authenticated user; returns `{ cleared }` (number of deleted memory rows)
 - `POST /api/v1/user/assistant/conversations/:conversationId/confirm`
 - `POST /api/v1/user/assistant/messages/stream`
 - `GET /api/v1/user/today-analysis`
@@ -221,6 +225,30 @@ Rules:
 - a missing/deleted conversation returns 404
 - `simple_chat` turns (whose thread never holds an assistant message) and
   turns that ended with a guidance message appended are not regenerable in v1
+
+## Memory Contract
+
+Cross-conversation memory is persisted per user (`assistant_memories` table),
+distilled from archived conversations by a debounced background extraction; it
+is injected as a bounded prompt block (max 5 memories) for new conversations.
+
+`DELETE /api/v1/user/assistant/memory` erases **all** persisted memories of the
+authenticated user:
+
+```ts
+interface AssistantClearMemoryDataDto {
+  cleared: number; // number of deleted memory rows
+}
+```
+
+Rules:
+
+- the endpoint is idempotent: deleting when no memory exists returns `cleared: 0`
+- deleting a single conversation does **not** remove its memory rows — the
+  conversation-delete ↔ memory linkage is a later task (this endpoint is the
+  settings-page full erase entry point)
+- memory erasure does not affect conversations, messages, or Today/Report
+  summaries
 
 ## Confirm Contract
 

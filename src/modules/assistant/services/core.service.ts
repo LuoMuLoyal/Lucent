@@ -24,6 +24,7 @@ import { UserSettingsService } from '../../user-settings';
 import { AssistantPolicyService } from './policy.service';
 import { AssistantToolService } from '../tools/tool.service';
 import { AssistantConversationService } from './conversation.service';
+import { AssistantMemoryService } from './memory.service';
 import { nowIsoString } from '../../../common';
 import type {
   AssistantConversationMessage,
@@ -44,6 +45,7 @@ export class AssistantService {
     private readonly assistantToolExecutor: AssistantToolService,
     private readonly assistantConversationService: AssistantConversationService,
     private readonly dailyRecordsService: DailyRecordsService,
+    private readonly assistantMemoryService: AssistantMemoryService,
   ) {}
 
   async getFoundationCapabilities(): Promise<AssistantRuntimeCapabilities> {
@@ -126,6 +128,17 @@ export class AssistantService {
       userId,
       conversationId,
     );
+  }
+
+  /**
+   * Erases all persisted cross-conversation memories for the user (F-9
+   * memory-erase entry point, used by the settings page). Deleting a single
+   * conversation does not touch memory rows — that linkage is left for a
+   * later task.
+   */
+  async clearAssistantMemory(userId: string): Promise<{ cleared: number }> {
+    const cleared = await this.assistantMemoryService.deleteAllForUser(userId);
+    return { cleared };
   }
 
   async confirmProposal(

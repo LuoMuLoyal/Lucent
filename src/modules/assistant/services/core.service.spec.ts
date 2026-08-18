@@ -10,6 +10,7 @@ import type { DailyRecordsService } from '../../daily-records';
 import type { AssistantPolicyService } from './policy.service';
 import type { AssistantToolService } from '../tools/tool.service';
 import type { AssistantConversationService } from './conversation.service';
+import type { AssistantMemoryService } from './memory.service';
 import type {
   AssistantRuntimeCapabilities,
   AssistantPolicySnapshot,
@@ -68,6 +69,7 @@ describe('AssistantService', () => {
   let policy: vi.Mocked<AssistantPolicyService>;
   let toolExecutor: vi.Mocked<AssistantToolService>;
   let conversation: vi.Mocked<AssistantConversationService>;
+  let memory: vi.Mocked<AssistantMemoryService>;
 
   beforeEach(() => {
     runtime = {
@@ -111,6 +113,10 @@ describe('AssistantService', () => {
       appendAssistantMessage: vi.fn(),
     } as unknown as vi.Mocked<AssistantConversationService>;
 
+    memory = {
+      deleteAllForUser: vi.fn().mockResolvedValue(3),
+    } as unknown as vi.Mocked<AssistantMemoryService>;
+
     service = new AssistantService(
       runtime,
       userSettings,
@@ -118,6 +124,7 @@ describe('AssistantService', () => {
       toolExecutor,
       conversation,
       dailyRecords,
+      memory,
     );
   });
 
@@ -518,6 +525,15 @@ describe('AssistantService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(dailyRecords.create).not.toHaveBeenCalled();
       expect(runtime.resumeConversation).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('clearAssistantMemory', () => {
+    it('delegates to the memory service and returns the cleared count', async () => {
+      const result = await service.clearAssistantMemory('user-1');
+
+      expect(memory.deleteAllForUser).toHaveBeenCalledWith('user-1');
+      expect(result).toEqual({ cleared: 3 });
     });
   });
 

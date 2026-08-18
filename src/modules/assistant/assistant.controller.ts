@@ -34,6 +34,8 @@ import { AssistantCapabilitiesResponseDto } from './dto/capabilities-response.dt
 
 import { AssistantClearResultResponseDto } from './dto/stream-response.dto';
 
+import { AssistantClearMemoryResponseDto } from './dto/clear-memory-response.dto';
+
 import { AssistantConversationListResponseDto } from './dto/conversation-list-response.dto';
 
 import { AssistantConversationResponseDto } from './dto/conversation-response.dto';
@@ -157,6 +159,17 @@ export class AssistantController {
   ) {
     return successEnvelope(
       await this.assistantService.deleteConversation(user.sub, conversationId),
+    );
+  }
+
+  @Delete('memory')
+  @ApiOperation({
+    summary: 'Erase all persisted assistant memories for the user',
+  })
+  @ApiResponse({ status: 200, type: AssistantClearMemoryResponseDto })
+  async clearMemory(@CurrentUser() user: UserPayload) {
+    return successEnvelope(
+      await this.assistantService.clearAssistantMemory(user.sub),
     );
   }
 
