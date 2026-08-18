@@ -1,5 +1,6 @@
 import { DailyRecordKind } from '#generated/prisma/client';
 import type { AssistantToolExecutionContext } from '../types/assistant.types';
+import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants';
 import { AssistantToolLeafletReadService } from './leaflet/read.service';
 import { AssistantToolDrugbankEntityResolveService } from './drugbank/entity-resolve.service';
 import { AssistantToolDrugbankSearchService } from './drugbank/search.service';
@@ -566,5 +567,103 @@ describe('AssistantToolService', () => {
     expect(firstAction.target.label).toEqual(expect.stringContaining('water'));
     expect(firstAction.constraints).toEqual(expect.any(Array));
     expect(firstAction.expiresAt).toEqual(expect.any(String));
+  });
+
+  it('returns a timeout envelope when a tool exceeds the per-tool timeout (F-6)', async () => {
+    const { service, deps } = buildExecutor();
+    deps.aiSummaryHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
+      new Promise(() => {
+        // never settles
+      }),
+    );
+
+    const pending = service.executeMany(buildContext(), [
+      'get_today_summary_by_date',
+    ]);
+
+    await vi.advanceTimersByTimeAsync(TOOL_EXECUTION_TIMEOUT_MS);
+    const results = await pending;
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      name: 'get_today_summary_by_date',
+      timeout: true,
+      data: {
+        timeout: true,
+        reason: 'Tool execution timed out.',
+      },
+    });
+    expect(results[0]?.proposedActions).toBeUndefined();
+  });
+
+  it('runs read tools in parallel and preserves the input order (F-6)', async () => {
+    const { service, deps } = buildExecutor();
+    let releaseSummary!: (value: unknown) => void;
+    const summaryGate = new Promise((resolve) => {
+      releaseSummary = resolve;
+    });
+    deps.aiSummaryHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
+      summaryGate.then(() => ({
+        date: '2026-06-17',
+        generatedAt: '2026-06-17T09:00:00.000Z',
+        summary: 'Yesterday was steadier.',
+        bullets: [],
+        actionLabel: 'Keep it up',
+        confidenceNote: 'Based on stored summary.',
+      })),
+    );
+    deps.dailyRecordsService.list.mockResolvedValue({ items: [] });
+
+    const pending = service.executeMany(buildContext(), [
+      'get_today_summary_by_date',
+      'get_today_records',
+    ]);
+
+    // Both read tools must already be running while the summary tool is still
+    // blocked on its gate — evidence of parallel start, not serial execution.
+    expect(
+      deps.aiSummaryHistoryService.getLatestTodaySummaryByDate,
+    ).toHaveBeenCalled();
+    expect(deps.dailyRecordsService.list).toHaveBeenCalled();
+
+    releaseSummary!({});
+    const results = await pending;
+
+    expect(results.map((result) => result.name)).toEqual([
+      'get_today_summary_by_date',
+      'get_today_records',
+    ]);
+  });
+
+  it('keeps proposal tools serial (F-6)', async () => {
+    const { service, deps } = buildExecutor();
+    let releaseList!: (value: unknown) => void;
+    const listGate = new Promise((resolve) => {
+      releaseList = resolve;
+    });
+    const listMock = vi
+      .fn()
+      .mockReturnValueOnce(listGate)
+      .mockResolvedValueOnce({ items: [] });
+    deps.dailyRecordsService.list = listMock;
+
+    const pending = service.executeMany(
+      buildContext({ userMessage: '把今天那条记录改一下' }),
+      ['propose_update_daily_record', 'propose_delete_daily_record'],
+    );
+
+    // The first proposal tool is blocked on the gate; the second must NOT have
+    // started yet (serial execution).
+    await Promise.resolve();
+    expect(listMock).toHaveBeenCalledTimes(1);
+
+    releaseList!({ items: [] });
+    const results = await pending;
+
+    expect(results.map((result) => result.name)).toEqual([
+      'propose_update_daily_record',
+      'propose_delete_daily_record',
+    ]);
+    expect(listMock).toHaveBeenCalledTimes(2);
   });
 });

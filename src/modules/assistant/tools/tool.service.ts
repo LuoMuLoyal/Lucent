@@ -6,6 +6,8 @@ import type {
   AssistantToolExecutionResult,
 } from '../types/assistant.types';
 import type { AssistantToolName } from './shared/tool-types';
+import { ASSISTANT_READ_TOOL_NAMES } from './shared/tool-types';
+import { TOOL_EXECUTION_TIMEOUT_MS } from './shared/tool-constants';
 import { AssistantToolLeafletReadService } from './leaflet/read.service';
 import {
   AssistantToolDrugbankEntityResolveService,
@@ -37,6 +39,12 @@ const KNOWLEDGE_TOOL_NAMES = new Set<AssistantToolName>([
 /** TTL for tool-level retrieval caches (ms). */
 const TOOL_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+/**
+ * Read-only tool names, as a Set for O(1) classification of tools eligible
+ * for parallel execution (F-6). Derived from the shared tuple.
+ */
+const READ_TOOL_NAMES = new Set<AssistantToolName>(ASSISTANT_READ_TOOL_NAMES);
+
 @Injectable()
 export class AssistantToolService {
   constructor(
@@ -51,16 +59,112 @@ export class AssistantToolService {
     private readonly metricsService: MetricsService,
   ) {}
 
+  /**
+   * Executes the requested tools and returns results in the input order.
+   *
+   * Concurrency (F-6): read-only tools (see `ASSISTANT_READ_TOOL_NAMES`) run
+   * in parallel since they are side-effect-free queries, while proposal tools
+   * run serially to keep write-draft assembly deterministic. Every tool is
+   * bounded by `TOOL_EXECUTION_TIMEOUT_MS`; a timeout yields a result
+   * envelope with `{ timeout: true, reason }` instead of aborting the graph.
+   *
+   * `search_medicine_leaflets` is the one read tool with an in-batch
+   * dependency: it consumes the resolved CN product id produced by
+   * `get_cn_medicine_detail`, so it executes after the parallel read batch
+   * with the finished results available for context building.
+   */
   async executeMany(
     context: AssistantToolExecutionContext,
     toolNames: readonly AssistantToolName[],
   ): Promise<AssistantToolExecutionResult[]> {
-    const results: AssistantToolExecutionResult[] = [];
-    for (const toolName of toolNames) {
-      const toolContext = this.buildToolContext(context, toolName, results);
-      results.push(await this.executeOne(toolContext, toolName));
+    const results: Array<AssistantToolExecutionResult | undefined> = new Array<
+      AssistantToolExecutionResult | undefined
+    >(toolNames.length);
+
+    const readEntries = toolNames
+      .map((name, index) => ({ name, index }))
+      .filter(({ name }) => READ_TOOL_NAMES.has(name));
+    const proposeEntries = toolNames
+      .map((name, index) => ({ name, index }))
+      .filter(({ name }) => !READ_TOOL_NAMES.has(name));
+
+    // Read tools (except leaflet) run concurrently.
+    const parallelReads = readEntries.filter(
+      ({ name }) => name !== 'search_medicine_leaflets',
+    );
+    if (parallelReads.length > 0) {
+      const executed = await Promise.all(
+        parallelReads.map(async ({ name, index }) => ({
+          index,
+          result: await this.executeWithTimeout(context, name),
+        })),
+      );
+      for (const { index, result } of executed) {
+        results[index] = result;
+      }
     }
-    return results;
+
+    // Leaflet runs after the parallel batch so its product-id context can see
+    // the finished `get_cn_medicine_detail` result.
+    const leafletEntry = readEntries.find(
+      ({ name }) => name === 'search_medicine_leaflets',
+    );
+    if (leafletEntry != null) {
+      const filled = results.filter(
+        (result): result is AssistantToolExecutionResult => result != null,
+      );
+      const leafletContext = this.buildToolContext(
+        context,
+        'search_medicine_leaflets',
+        filled,
+      );
+      results[leafletEntry.index] = await this.executeWithTimeout(
+        leafletContext,
+        'search_medicine_leaflets',
+      );
+    }
+
+    // Proposal tools stay serial.
+    for (const { name, index } of proposeEntries) {
+      results[index] = await this.executeWithTimeout(context, name);
+    }
+
+    return results as AssistantToolExecutionResult[];
+  }
+
+  /**
+   * Runs one tool with a per-tool timeout. When the tool exceeds
+   * `TOOL_EXECUTION_TIMEOUT_MS`, a timeout envelope is returned instead of the
+   * tool result — the graph keeps running and the model sees the timeout
+   * inside the envelope data. The underlying execution is not cancelled (JS
+   * cannot abort it); its eventual settlement is swallowed so a late failure
+   * never surfaces as an unhandled rejection.
+   */
+  private executeWithTimeout(
+    context: AssistantToolExecutionContext,
+    toolName: AssistantToolName,
+  ): Promise<AssistantToolExecutionResult> {
+    const execution = this.executeOne(context, toolName);
+    const timeout = new Promise<AssistantToolExecutionResult>((resolve) => {
+      const timer = setTimeout(() => {
+        resolve({
+          name: toolName,
+          data: {
+            timeout: true,
+            reason: 'Tool execution timed out.',
+          },
+          timeout: true,
+        });
+      }, TOOL_EXECUTION_TIMEOUT_MS);
+      // Do not keep the event loop alive just for the timeout loser.
+      timer.unref();
+    });
+    // Safety net for the loser of the race: it is still running and may reject
+    // after the timeout already won — that rejection must not become
+    // unhandled. Errors that settle BEFORE the timeout still propagate through
+    // the race as before.
+    execution.catch(() => undefined);
+    return Promise.race([execution, timeout]);
   }
 
   private buildToolContext(

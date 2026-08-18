@@ -59,6 +59,9 @@ export const ASSISTANT_CREATE_RECORD_KINDS = [
   'activity',
 ] as const;
 
+/** Per-tool execution timeout before a tool result is replaced with a timeout envelope (F-6). */
+export const TOOL_EXECUTION_TIMEOUT_MS = 20_000;
+
 /** Scoring weights used when ranking daily-record mutation targets. */
 export const MUTATION_MATCH_WEIGHTS = {
   kind: 10,

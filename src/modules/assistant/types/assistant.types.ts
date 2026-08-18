@@ -205,6 +205,12 @@ export interface AssistantToolExecutionResult {
   name: AssistantToolName;
   data: Record<string, unknown>;
   proposedActions?: AssistantProposedAction[];
+  /**
+   * True when the tool hit the per-tool execution timeout (F-6); the data
+   * envelope then carries `{ timeout: true, reason: ... }` so the model can
+   * observe the timeout without the graph aborting.
+   */
+  timeout?: boolean;
 }
 
 export interface AssistantToolExecutionContext {
