@@ -1,0 +1,58 @@
+// Domain: User Health Context (Allergies, Conditions)
+// Owning module: user-health-context
+
+enum UserAllergyKind {
+  drug
+  food
+  environment
+  other
+}
+
+enum UserAllergySeverity {
+  mild
+  moderate
+  severe
+  unknown
+}
+
+enum UserConditionStatus {
+  active
+  resolved
+  suspected
+}
+
+model UserAllergy {
+  id         String               @id @default(uuid())
+  userId     String               @map("user_id")
+  kind       UserAllergyKind
+  label      String
+  reaction   String?
+  severity   UserAllergySeverity? @default(unknown)
+  isActive   Boolean              @default(true) @map("is_active")
+  note       String?
+  extras     Json?                @db.JsonB
+  recordedAt DateTime?            @map("recorded_at") @db.Timestamptz(3)
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@map("user_allergies")
+}
+
+model UserCondition {
+  id          String              @id @default(uuid())
+  userId      String              @map("user_id")
+  label       String
+  status      UserConditionStatus @default(active)
+  diagnosedAt DateTime?           @map("diagnosed_at") @db.Date
+  resolvedAt  DateTime?           @map("resolved_at") @db.Date
+  note        String?
+  extras      Json?               @db.JsonB
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("user_conditions")
+}

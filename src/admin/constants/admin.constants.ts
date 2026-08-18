@@ -1,7 +1,8 @@
 import type { AdminResourceConfig } from '../types/admin.types';
 
 export const ADMIN_ROOT_PATH = '/admin';
-export const SCHEMA_PATH = 'prisma/schema.prisma';
+export const SCHEMA_DIR = 'prisma';
+export const SCHEMA_MAIN_FILE = 'schema.prisma';
 export const ADMIN_EMAIL_KEY = 'ADMIN_EMAIL';
 export const ADMIN_PASSWORD_KEY = 'ADMIN_PASSWORD';
 export const ADMIN_COOKIE_SECRET_KEY = 'ADMIN_COOKIE_SECRET';

@@ -1,0 +1,176 @@
+// Domain: Platform Infrastructure (Data Export, Notifications, Legal Documents, Clinic Summary Shares, Product Events)
+// Owning modules: data-export, notifications, legal-documents, reports (clinic summary), product-events
+
+enum UserNotificationType {
+  ai_today_summary
+  ai_proactive_suggestion
+  medicine_missed_dose
+  password_changed
+  report_generated
+  medicine_reminder
+  system_announcement
+  oauth_login
+  identity_linked
+}
+
+/// Fixed set of clinic-summary sections a share may grant access to. The
+/// section names follow the problem-oriented summary view model (Task 3);
+/// field control happens at response build time from this stored selection.
+enum ClinicSummaryShareField {
+  event_overview
+  symptom_changes
+  medication_slots
+  water
+  sleep
+  notes
+}
+
+/// Fixed set of product measurement event names (privacy-minimal contract:
+/// enums and bounded attributes only — no free text, no metadata JSON).
+enum ProductEventName {
+  health_event_started
+  health_event_ended
+  health_event_outcome_confirmed
+  suggestion_impression
+  suggestion_actioned
+  review_opened
+  visit_summary_previewed
+  visit_summary_exported
+  visit_summary_share_created
+  visit_summary_share_opened
+  visit_summary_share_revoked
+}
+
+/// In-app surface where the event occurred; `system` marks server-initiated
+/// events with no client surface (server-authoritative emission, Task 6).
+enum ProductEventSurface {
+  today
+  record
+  review
+  more
+  notification
+  system
+}
+
+/// Result classification. Health-event lifecycle events report the health
+/// outcome semantics (improved/unchanged/worsened), all other events report
+/// success/failure. No free text is ever stored.
+enum ProductEventResult {
+  success
+  failure
+  improved
+  unchanged
+  worsened
+}
+
+model DataExportRequest {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  kind         String
+  format       String
+  range        String
+  status       String    @default("requested")
+  objectKey    String?   @map("object_key")
+  bucket       String?
+  provider     String?
+  fileName     String?   @map("file_name")
+  fileSizeBytes Int?     @map("file_size_bytes")
+  completedAt  DateTime? @map("completed_at") @db.Timestamptz(3)
+  downloadUrl  String?   @map("download_url")
+  errorMessage String?   @map("error_message")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // userId+createdAt index removed — redundant prefix of (userId, kind, createdAt)
+  @@index([userId, kind, createdAt])
+  @@map("data_export_requests")
+}
+
+model UserNotification {
+  id            String                @id @default(uuid())
+  userId        String                @map("user_id")
+  type          UserNotificationType  @map("type")
+  title         String
+  content       String
+  action        String?               @map("action")
+  actionPayload Json?                 @map("action_payload") @db.JsonB
+  isRead        Boolean               @default(false) @map("is_read")
+  readAt        DateTime?             @map("read_at") @db.Timestamptz(3)
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  // isRead index replaced by partial index in migration (WHERE is_read = false)
+  @@map("user_notifications")
+}
+
+/// Revocable grant for a shared clinic summary. Only the sha256 token hash is
+/// stored — the plaintext token is returned exactly once at creation and never
+/// persisted. Scope is either `eventId` or a `dateFrom`/`dateTo` pair (event
+/// scope priority is a read-side concern); the summary itself is never cached
+/// here, responses are rebuilt from the current authorized scope each time.
+model UserClinicSummaryShare {
+  id              String                     @id @default(uuid())
+  userId          String                     @map("user_id")
+  tokenHash       String                     @unique @map("token_hash")
+  eventId         String?                    @map("event_id")
+  dateFrom        DateTime?                  @map("date_from") @db.Date
+  dateTo          DateTime?                  @map("date_to") @db.Date
+  selectedFields  ClinicSummaryShareField[]  @map("selected_fields")
+  expiresAt       DateTime                   @map("expires_at") @db.Timestamptz(3)
+  revokedAt       DateTime?                  @map("revoked_at") @db.Timestamptz(3)
+  firstAccessedAt DateTime?                  @map("first_accessed_at") @db.Timestamptz(3)
+  lastAccessedAt  DateTime?                  @map("last_accessed_at") @db.Timestamptz(3)
+  accessCount     Int                        @default(0) @map("access_count")
+  createdAt       DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  user            User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("user_clinic_summary_shares")
+}
+
+/// Privacy-minimal product measurement event. `clientEventId` enables client
+/// retry idempotency via @@unique([userId, clientEventId]). Raw events are
+/// deleted after 90 days (retention scans by `occurredAt`) and immediately on
+/// account hard-delete (FK onDelete: Cascade).
+model UserProductEvent {
+  id                 String              @id @default(uuid())
+  userId             String              @map("user_id")
+  clientEventId      String              @map("client_event_id")
+  name               ProductEventName
+  surface            ProductEventSurface
+  result             ProductEventResult
+  eventStatus        HealthEventStatus?  @map("event_status")
+  suggestionRuleCode String?             @map("suggestion_rule_code")
+  appVersion         String              @map("app_version")
+  platform           UserDevicePlatform
+  occurredAt         DateTime            @map("occurred_at") @db.Timestamptz(3)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Client retry idempotency: same (userId, clientEventId) never double-inserts
+  @@unique([userId, clientEventId])
+  // 90-day raw retention cleanup scans by event time
+  @@index([occurredAt])
+  // per-user time-ordered scans (account deletion + later daily aggregates)
+  @@index([userId, occurredAt])
+  @@map("user_product_events")
+}
+
+/// Legal / compliance documents served to the Luminous app.
+model LegalDocument {
+  id        String   @id @default(uuid())
+  docType   String   @unique @map("doc_type")
+  titleZh   String   @map("title_zh")
+  titleEn   String   @map("title_en")
+  contentZh String   @map("content_zh")
+  contentEn String   @map("content_en")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  // isActive index removed — table is tiny, seq scan sufficient
+  @@map("legal_documents")
+}

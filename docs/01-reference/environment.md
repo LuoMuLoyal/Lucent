@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-16
+updated: 2026-08-18
 ---
 
 # Lucent Environment
@@ -163,8 +163,9 @@ NODE_ENV=test pnpm exec prisma migrate deploy
   `./data/postgresql` to container path `/var/lib/postgresql`.
 - `pnpm export:openapi` runs in explicit OpenAPI export mode and skips Prisma database connect
   during app startup so contract generation does not require a live DB connection.
-- Production image must include `prisma.config.ts` together with `prisma/schema.prisma`; Prisma 7
-  `migrate deploy` reads the datasource URL from that config file inside the container.
+- Production image must include `prisma.config.ts` together with the entire `prisma/` directory
+  (multi-file schema: `schema.prisma` + `models/*.prisma`); Prisma 7 `migrate deploy` reads the
+  datasource URL from that config file inside the container.
 - AdminJS bundles its frontend assets at runtime during Nest bootstrap. Required Babel plugins for
   that bundle path must stay in production dependencies, not only devDependencies, or `/admin`
   startup can fail even after the container is already running app bootstrap code.

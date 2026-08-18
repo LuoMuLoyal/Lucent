@@ -1,7 +1,13 @@
 import { buildPrismaClientModule } from './prisma-module.service';
 
 vi.mock('node:fs/promises', () => ({
-  readFile: vi.fn().mockResolvedValue('model User { id String @id }'),
+  readdir: vi.fn().mockResolvedValue(['user.prisma', 'assistant.prisma']),
+  readFile: vi.fn().mockImplementation((path: string) => {
+    if (path === 'prisma/schema.prisma') {
+      return Promise.resolve('generator client { provider = "prisma-client" }');
+    }
+    return Promise.resolve('model User { id String @id }');
+  }),
 }));
 
 vi.mock('@prisma/internals', () => ({
@@ -11,7 +17,7 @@ vi.mock('@prisma/internals', () => ({
 }));
 
 describe('buildPrismaClientModule', () => {
-  it('reads the schema file and returns Prisma DMMF', async () => {
+  it('reads the multi-file schema and returns Prisma DMMF', async () => {
     const result = await buildPrismaClientModule();
 
     expect(result).toHaveProperty('Prisma');

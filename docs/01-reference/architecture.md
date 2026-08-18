@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-11
+updated: 2026-08-18
 ---
 
 # Lucent Architecture
@@ -475,8 +475,8 @@ operations.
 ## Database
 
 - **ORM**: Prisma 7 (client provider: `prisma-client`)
-- **Schema**: `prisma/schema.prisma`
-- **Generated client**: `src/generated/prisma/`
+- **Schema**: multi-file — `prisma/schema.prisma` (generator + datasource only) + `prisma/models/*.prisma` (10 domain files)
+- **Generated client**: `generated/prisma/` (via `pnpm prisma:generate` — includes SWC `.ts`→`.js` post-fix)
 - **Key conventions**: `@map()` for snake_case columns, `@db.Timestamptz(3)` for timestamps,
   soft-delete via `deletedAt`
 - **Health events**: `HealthEvent` owns user-confirmed active/ended periods, daily outcome

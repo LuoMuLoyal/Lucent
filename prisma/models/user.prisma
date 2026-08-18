@@ -1,0 +1,184 @@
+// Domain: User Core (User, Identity, Session, Profile, Settings, Audit)
+// Owning modules: user, auth, user-settings, audit-log
+
+enum UserStatus {
+  active
+  suspended
+  deleted
+}
+
+enum SexAtBirth {
+  female
+  male
+  intersex
+  unknown
+}
+
+enum UnitSystem {
+  metric
+  imperial
+}
+
+enum UserSessionDeviceType {
+  mobile
+  tablet
+  desktop
+  web
+  watch
+  server
+  other
+}
+
+enum UserDevicePlatform {
+  ios
+  android
+  web
+  windows
+  macos
+  linux
+  watchos
+  other
+}
+
+model User {
+  id                     String                      @id @default(uuid())
+  email                  String?                     @unique
+  passwordHash           String?                     @map("password_hash") // argon2 hashed for local accounts
+  nickname               String?
+  avatar                 String?
+  status                 UserStatus                  @default(active)
+  emailVerifiedAt        DateTime?                   @map("email_verified_at") @db.Timestamptz(3)
+  lastLoginAt            DateTime?                   @map("last_login_at") @db.Timestamptz(3)
+  securityPinEnabled       Boolean                     @default(false) @map("security_pin_enabled")
+  securityPinHash          String?                     @map("security_pin_hash")
+  securityPinChangedAt     DateTime?                   @map("security_pin_changed_at") @db.Timestamptz(3)
+  securityElevationVersion Int                         @default(0) @map("security_elevation_version")
+  deletedAt                DateTime?                   @map("deleted_at") @db.Timestamptz(3)
+  createdAt              DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  profile                UserProfile?
+  identities             UserIdentity[]
+  sessions               UserSession[]
+  allergies              UserAllergy[]
+  conditions             UserCondition[]
+  currentMedicines       UserCurrentMedicine[]
+  medicineReminders      UserMedicineReminder[]
+  reminderDeliveries     UserReminderDelivery[]
+  dailyRecords           UserDailyRecord[]
+  dailyRecordAttachments UserDailyRecordAttachment[]
+  doseLogs               UserMedicineDoseLog[]
+  settings               UserSetting[]
+  dataExportRequests     DataExportRequest[]
+  assistantConversations AssistantConversation[]
+  assistantMessages      AssistantMessage[]
+  assistantMemories      AssistantMemory[]
+  assistantRegenerations AssistantRegeneration[]
+  assistantSummaryHistories AssistantSummaryHistory[]
+  notifications          UserNotification[]
+  suggestions            UserSuggestion[]
+  suggestionBaselines    UserSuggestionBaseline[]
+  suggestionBaselineObservations UserSuggestionBaselineObservation[]
+  suggestionFeedbacks    UserSuggestionFeedback[]
+  suggestionMaterializations UserSuggestionMaterialization[]
+  todayAnalysisMaterializations UserTodayAnalysisMaterialization[]
+  medicineRiskCheckRecords MedicineRiskCheckRecord[]
+  healthEvents           HealthEvent[]
+  clinicSummaryShares    UserClinicSummaryShare[]
+  productEvents          UserProductEvent[]
+
+  // status index removed — no runtime query filters by status; PK serves all lookups
+  @@map("users")
+}
+
+model UserIdentity {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  provider        String
+  providerUserId  String    @map("provider_user_id")
+  providerUnionId String?   @map("provider_union_id")
+  email           String?
+  emailVerifiedAt DateTime? @map("email_verified_at") @db.Timestamptz(3)
+  rawProfile      Json?     @map("raw_profile") @db.JsonB
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@index([userId])
+  @@index([providerUnionId])
+  @@index([email])
+  @@map("user_identities")
+}
+
+model UserProfile {
+  userId                String          @id @map("user_id")
+  birthDate             DateTime?       @map("birth_date") @db.Date
+  sexAtBirth            SexAtBirth?     @map("sex_at_birth")
+  heightCm              Int?            @map("height_cm")
+  bloodType             String?         @map("blood_type")
+  locale                String?
+  timezone              String?
+  unitSystem            UnitSystem?     @map("unit_system")
+  onboardingCompletedAt DateTime?       @map("onboarding_completed_at") @db.Timestamptz(3)
+  extras                Json?           @db.JsonB
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                  User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model UserSession {
+  id               String                 @id @default(uuid())
+  userId           String                 @map("user_id")
+  refreshTokenHash String                 @unique @map("refresh_token_hash")
+  deviceType       UserSessionDeviceType? @map("device_type")
+  deviceName       String?                @map("device_name")
+  platform         UserDevicePlatform?
+  appVersion       String?                @map("app_version")
+  ipAddress        String?                @map("ip_address")
+  userAgent        String?                @map("user_agent")
+  context          Json?                  @db.JsonB
+  lastUsedAt       DateTime?              @map("last_used_at") @db.Timestamptz(3)
+  expiresAt        DateTime               @map("expires_at") @db.Timestamptz(3)
+  revokedAt        DateTime?             @map("revoked_at") @db.Timestamptz(3)
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+model UserSetting {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  key       String
+  value     Json?    @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  // userId index removed — redundant prefix of unique(userId, key)
+  @@map("user_settings")
+}
+
+/// Security audit trail for sensitive operations.
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  action       String
+  resourceType String?  @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  metadata     Json?    @db.JsonB
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("audit_logs")
+}

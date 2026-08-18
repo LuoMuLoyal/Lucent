@@ -1,0 +1,154 @@
+// Domain: User Medicine Management (Current Medicines, Reminders, Dose Logs, Risk Checks, Safety Tips)
+// Owning modules: medicine-dose-logs, medicine-reminders, medicines (risk check + safety tips)
+
+enum MedicineSource {
+  drugbank
+  cn
+  manual
+}
+
+enum DoseLogStatus {
+  taken
+  skipped
+  missed // 历史兼容，不落库；漏服语义由后端 overdueUnconfirmed 派生，前端保持消费方
+  planned
+}
+
+model UserCurrentMedicine {
+  id            String                @id @default(uuid())
+  userId        String                @map("user_id")
+  source        MedicineSource
+  sourceRefId   String?               @map("source_ref_id")
+  displayName   String                @map("display_name")
+  strengthText  String?               @map("strength_text")
+  doseText      String?               @map("dose_text")
+  route         String?
+  startedAt     DateTime?             @map("started_at") @db.Date
+  endedAt       DateTime?             @map("ended_at") @db.Date
+  isCurrent     Boolean               @default(true) @map("is_current")
+  note          String?
+  sourcePayload Json?                 @map("source_payload") @db.JsonB
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doseLogs      UserMedicineDoseLog[]
+  reminders     UserMedicineReminder[]
+  healthEventMedicines HealthEventMedicine[]
+
+  // isCurrent index replaced by partial index in migration (WHERE is_current = true)
+  @@index([userId, source])
+  @@map("user_current_medicines")
+}
+
+model UserMedicineReminder {
+  id                String               @id @default(uuid())
+  userId            String               @map("user_id")
+  currentMedicineId String?              @map("current_medicine_id")
+  label             String?
+  scheduledHour     Int                  @map("scheduled_hour")
+  scheduledMinute   Int                  @map("scheduled_minute")
+  daysOfWeek        Json?                @map("days_of_week") @db.JsonB
+  startDate         DateTime?            @map("start_date") @db.Date
+  endDate           DateTime?            @map("end_date") @db.Date
+  isActive          Boolean              @default(true) @map("is_active")
+  note              String?
+  deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz(3)
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
+  deliveries        UserReminderDelivery[]
+  doseLogs          UserMedicineDoseLog[]
+
+  // isActive index replaced by partial index in migration (WHERE is_active = true AND deleted_at IS NULL)
+  @@index([userId, currentMedicineId])
+  @@index([userId, deletedAt])
+  @@index([userId, startDate, endDate])
+  @@map("user_medicine_reminders")
+}
+
+model UserReminderDelivery {
+  id           String                @id @default(uuid())
+  userId       String                @map("user_id")
+  reminderId   String?               @map("reminder_id")
+  deviceId     String?               @map("device_id")
+  channel      String
+  status       String
+  scheduledFor DateTime              @map("scheduled_for") @db.Timestamptz(3)
+  deliveredAt  DateTime?             @map("delivered_at") @db.Timestamptz(3)
+  errorMessage String?               @map("error_message")
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminder     UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+
+  // 一个提醒事件（userId+reminderId+scheduledFor）允许 in_app/local/push 各一行，
+  // 三通道各自落审计行；同一通道同一事件最多一行（见 ADR-0013）。
+  @@unique([userId, reminderId, scheduledFor, channel])
+  @@index([userId, scheduledFor])
+  @@index([userId, reminderId])
+  @@index([userId, channel, status])
+  @@index([scheduledFor])
+  @@map("user_reminder_deliveries")
+}
+
+model UserMedicineDoseLog {
+  id                String               @id @default(uuid())
+  userId            String               @map("user_id")
+  currentMedicineId String?              @map("current_medicine_id")
+  reminderId        String?              @map("reminder_id")
+  healthEventId     String?              @map("health_event_id")
+  status            DoseLogStatus        @default(planned)
+  scheduledFor      DateTime             @map("scheduled_for") @db.Date
+  scheduledTime     String?              @map("scheduled_time") @db.VarChar(5)
+  takenAt           DateTime?            @map("taken_at") @db.Timestamptz(3)
+  doseText          String?
+  note              String?
+  source            String?              @default("manual")
+  deletedAt         DateTime?            @map("deleted_at") @db.Timestamptz(3)
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentMedicine   UserCurrentMedicine? @relation(fields: [currentMedicineId], references: [id], onDelete: SetNull)
+  reminder          UserMedicineReminder? @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  healthEvent       HealthEvent?         @relation("HealthEventDoseLogs", fields: [healthEventId], references: [id], onDelete: SetNull)
+
+  @@index([userId, scheduledFor])
+  // userId+currentMedicineId index removed — redundant prefix of (userId, currentMedicineId, scheduledFor, scheduledTime)
+  @@index([userId, reminderId, scheduledFor])
+  @@index([userId, currentMedicineId, scheduledFor, scheduledTime])
+  @@index([userId, deletedAt])
+  @@index([userId, healthEventId])
+  @@map("user_medicine_dose_logs")
+}
+
+/// Persisted medicine risk check result per user per check type.
+model MedicineRiskCheckRecord {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  checkType   String   @map("check_type") // "static" | "llm"
+  result      Json     @db.JsonB // complete check result JSON
+  riskScore   Int      @map("risk_score") // 0-100
+  riskLevel   String   @map("risk_level") // "safe" | "caution" | "risk" | "danger"
+  stale       Boolean  @default(false) // marked true on events, false after new check
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, checkType])
+  @@index([userId, checkType])
+  @@map("medicine_risk_check_records")
+}
+
+model MedicineSafetyTip {
+  id        String   @id @default(uuid())
+  contentZh String   @map("content_zh")
+  contentEn String   @map("content_en")
+  category  String
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  // isActive+sortOrder index removed — table is tiny, seq scan sufficient
+  @@map("medicine_safety_tips")
+}

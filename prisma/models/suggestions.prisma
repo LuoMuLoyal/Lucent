@@ -1,0 +1,196 @@
+// Domain: Suggestion Engine (Suggestions, Baselines, Materialization, Feedback)
+// Owning modules: today-suggestion, today-analysis
+
+enum SuggestionType {
+  confirmed_risk
+  compliance
+  trend
+  behavior_advice
+  coverage
+}
+
+enum SuggestionTriggerType {
+  event
+  timer
+}
+
+enum SuggestionLifecycleState {
+  generated
+  active
+  fading
+  expired
+  dismissed
+}
+
+enum SuggestionConfidence {
+  high
+  medium
+  low
+}
+
+enum SuggestionFeedbackType {
+  accepted
+  later
+  not_applicable
+  suppress
+}
+
+enum BaselineDimension {
+  water_intake
+  sleep_duration
+  caffeine_intake
+  symptom_severity
+  medication_adherence
+  mood
+}
+
+enum SuggestionMaterializationStatus {
+  pending
+  ready
+  failed
+}
+
+enum TodayAnalysisMaterializationStatus {
+  pending
+  ready
+  failed
+  capped
+}
+
+/// Persisted suggestion card for Today page and Report history.
+model UserSuggestion {
+  id                 String                     @id @default(uuid())
+  userId             String                     @map("user_id")
+  date               String                     @map("date")
+  type               SuggestionType             @map("type")
+  triggerType        SuggestionTriggerType      @map("trigger_type")
+  ruleId             String                     @map("rule_id")
+  ruleVersion        String                     @map("rule_version")
+  title              String
+  reason             String
+  boundary           String
+  evidence           Json                       @db.JsonB
+  primaryAction      Json                       @map("primary_action") @db.JsonB
+  secondaryActions   Json?                      @map("secondary_actions") @db.JsonB
+  priorityScore      Int                        @map("priority_score")
+  confidence         SuggestionConfidence
+  lifecycleState     SuggestionLifecycleState   @default(generated) @map("lifecycle_state")
+  notificationEligible Boolean                   @default(false) @map("notification_eligible")
+  notificationSentAt DateTime?                   @map("notification_sent_at") @db.Timestamptz(3)
+  feedback           SuggestionFeedbackType?
+  feedbackAt         DateTime?                   @map("feedback_at") @db.Timestamptz(3)
+  subtype            String?
+  locale             String?                     @map("locale")
+  sourceVersion      Int                        @default(0) @map("source_version")
+  generatedAt        DateTime                   @map("generated_at") @db.Timestamptz(3)
+  activatedAt        DateTime?                   @map("activated_at") @db.Timestamptz(3)
+  fadingAt           DateTime?                   @map("fading_at") @db.Timestamptz(3)
+  expiredAt          DateTime?                   @map("expired_at") @db.Timestamptz(3)
+  createdAt          DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user               User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([userId, date, locale])
+  @@index([userId, date, lifecycleState])
+  @@index([userId, type, generatedAt])
+  @@index([userId, lifecycleState, generatedAt])
+  @@map("user_suggestions")
+}
+
+/// Cold-start baseline tracking per user per dimension.
+model UserSuggestionBaseline {
+  id              String            @id @default(uuid())
+  userId          String            @map("user_id")
+  dimension       BaselineDimension
+  daysCollected   Int               @default(0) @map("days_collected")
+  baselineValue   Float?            @map("baseline_value")
+  establishedAt   DateTime?         @map("established_at") @db.Timestamptz(3)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dimension])
+  // userId+dimension+establishedAt index removed — redundant prefix of unique(userId, dimension), establishedAt rarely queried
+  @@map("user_suggestion_baselines")
+}
+
+/// Idempotent daily inputs used to build a user's cold-start baseline.
+model UserSuggestionBaselineObservation {
+  id         String          @id @default(uuid())
+  userId     String          @map("user_id")
+  dimension  BaselineDimension
+  localDate  DateTime        @map("local_date") @db.Date
+  value      Float
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dimension, localDate])
+  @@index([userId, dimension])
+  @@map("user_suggestion_baseline_observations")
+}
+
+/// Versioned state for asynchronously materialized Today suggestions.
+model UserSuggestionMaterialization {
+  id              String                           @id @default(uuid())
+  userId          String                           @map("user_id")
+  localDate       DateTime                         @map("local_date") @db.Date
+  sourceVersion   Int                              @default(0) @map("source_version")
+  computedVersion Int                              @default(0) @map("computed_version")
+  status          SuggestionMaterializationStatus @default(pending)
+  reasonCodes     String[]                         @map("reason_codes")
+  lastErrorCode   String?                          @map("last_error_code")
+  queuedAt        DateTime?                        @map("queued_at") @db.Timestamptz(3)
+  computedAt      DateTime?                        @map("computed_at") @db.Timestamptz(3)
+  createdAt       DateTime                         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDate])
+  @@index([userId, status])
+  @@map("user_suggestion_materializations")
+}
+
+/// Versioned, bounded Today Analysis state. Summary history stores content;
+/// this row fences jobs and records the per-date generation budget.
+model UserTodayAnalysisMaterialization {
+  id              String                           @id @default(uuid())
+  userId          String                           @map("user_id")
+  localDate       DateTime                         @map("local_date") @db.Date
+  sourceVersion   Int                              @default(0) @map("source_version")
+  computedVersion Int                              @default(0) @map("computed_version")
+  status          TodayAnalysisMaterializationStatus @default(pending)
+  reasonCodes     String[]                         @map("reason_codes")
+  generationCount Int                              @default(0) @map("generation_count")
+  activeVersion   Int?                             @map("active_version")
+  activeAt        DateTime?                        @map("active_at") @db.Timestamptz(3)
+  lastManualAt    DateTime?                        @map("last_manual_at") @db.Timestamptz(3)
+  lastTriggerKey  String?                          @map("last_trigger_key")
+  lastErrorCode   String?                          @map("last_error_code")
+  queuedAt        DateTime?                        @map("queued_at") @db.Timestamptz(3)
+  computedAt      DateTime?                        @map("computed_at") @db.Timestamptz(3)
+  createdAt       DateTime                         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User                             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDate])
+  @@index([userId, status])
+  @@map("user_today_analysis_materializations")
+}
+
+/// Feedback-driven suppression records.
+model UserSuggestionFeedback {
+  id              String                @id @default(uuid())
+  userId          String                @map("user_id")
+  suggestionId    String                @map("suggestion_id")
+  suggestionType  SuggestionType        @map("suggestion_type")
+  feedback        SuggestionFeedbackType
+  appliedAt       DateTime              @default(now()) @map("applied_at") @db.Timestamptz(3)
+  expiresAt       DateTime?             @map("expires_at") @db.Timestamptz(3)
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, suggestionType, expiresAt])
+  @@index([userId, suggestionId])
+  @@map("user_suggestion_feedbacks")
+}

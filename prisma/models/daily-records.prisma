@@ -1,0 +1,88 @@
+// Domain: Daily Records (User Daily Records, Attachments, Meal Analysis)
+// Owning module: daily-records
+
+enum DailyRecordKind {
+  water
+  meal
+  vital
+  mood
+  symptom
+  activity
+  note
+  sleep
+}
+
+enum DailyRecordAttachmentKind {
+  image
+}
+
+enum MealAnalysisStatus {
+  analyzing
+  unconfirmed
+  confirmed
+  analysis_failed
+}
+
+enum MealAnalysisCoverage {
+  none
+  partial
+  complete
+}
+
+model UserDailyRecord {
+  id                        String                      @id @default(uuid())
+  userId                    String                      @map("user_id")
+  kind                      DailyRecordKind
+  occurredAt                DateTime                    @map("occurred_at") @db.Date
+  occurredTime              String?                     @map("occurred_time") @db.VarChar(5)
+  title                     String?
+  value                     String?
+  unit                      String?
+  note                      String?
+  payload                   Json?                       @db.JsonB
+  source                    String?                     @default("manual")
+  mealAnalysisStatus        MealAnalysisStatus?         @map("meal_analysis_status")
+  mealAnalysisCoverage      MealAnalysisCoverage?       @map("meal_analysis_coverage")
+  mealAnalysisUpdatedAt     DateTime?                   @map("meal_analysis_updated_at") @db.Timestamptz(3)
+  mealAnalysisFailureReason String?                     @map("meal_analysis_failure_reason")
+  mealSourceRevision        Int                         @default(0) @map("meal_source_revision")
+  deletedAt                 DateTime?                   @map("deleted_at") @db.Timestamptz(3)
+  healthEventId             String?                     @map("health_event_id")
+  createdAt                 DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  healthEvent               HealthEvent?                @relation("HealthEventDailyRecords", fields: [healthEventId], references: [id], onDelete: SetNull)
+  reasonForHealthEvents     HealthEvent[]                @relation("HealthEventReasonRecord")
+  attachments               UserDailyRecordAttachment[]
+
+  // userId+occurredAt index removed — redundant prefix of (userId, occurredAt, occurredTime)
+  @@index([userId, occurredAt, occurredTime])
+  @@index([userId, kind])
+  @@index([userId, mealAnalysisStatus])
+  @@index([userId, mealAnalysisUpdatedAt])
+  @@index([userId, deletedAt])
+  @@index([userId, healthEventId])
+  @@map("user_daily_records")
+}
+
+model UserDailyRecordAttachment {
+  id          String                    @id @default(uuid())
+  userId      String                    @map("user_id")
+  recordId    String                    @map("record_id")
+  kind        DailyRecordAttachmentKind @default(image)
+  objectKey   String                    @map("object_key")
+  bucket      String?
+  provider    String?
+  fileName    String?                   @map("file_name")
+  contentType String?                   @map("content_type")
+  sizeBytes   Int?                      @map("size_bytes")
+  width       Int?
+  height      Int?
+  publicUrl   String?                   @map("public_url")
+  createdAt   DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  record      UserDailyRecord           @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordId])
+  @@map("user_daily_record_attachments")
+}
