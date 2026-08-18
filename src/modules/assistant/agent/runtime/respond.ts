@@ -1,5 +1,6 @@
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { AIMessage } from '@langchain/core/messages';
+import { AIMessage, SystemMessage } from '@langchain/core/messages';
+import { MAX_TOOL_LOOPS } from '../../tools/shared/tool-constants';
 import type { AssistantRuntimeState } from './state';
 import { streamModelResponse } from './model-stream';
 import { extractMessageText } from './message-text.utils';
@@ -22,6 +23,14 @@ export interface AssistantRespondCache {
 /** TTL for cached simple-chat replies (seconds). */
 const RESPONSE_CACHE_TTL_SECONDS = 3600;
 
+/**
+ * Instructs the fallback reply when the tool loop budget ran out while tool
+ * calls were still pending, so the model tells the user the tool rounds were
+ * exhausted instead of silently answering without the tool results.
+ */
+const TOOL_LOOP_EXHAUSTED_PROMPT =
+  'The tool loop budget was exhausted before the requested tool calls could complete. Tell the user the tool rounds were exhausted and answer with what is known, clearly stating the limitation.';
+
 /** Bump when the simple-chat prompt or reply formatting changes. */
 const SIMPLE_CHAT_PROMPT_VERSION = 'v1';
 
@@ -41,6 +50,10 @@ function extractContent(response: unknown): string {
  * - When `finalContent` is null (simple-chat fast path, or the tool loop ended
  *   without a text reply), makes a light tool-free LLM call over the current
  *   messages and stores the result.
+ * - When the tool loop budget was exhausted with tool calls still pending
+ *   (`pendingToolCalls` non-empty and `loopCount >= MAX_TOOL_LOOPS`), an
+ *   explicit SystemMessage is appended to the model input so the fallback
+ *   reply tells the user the tool rounds were exhausted.
  *
  * Output-side validation mirrors `generateStream`'s empty-content error so a
  * blank reply never reaches the client.
@@ -83,12 +96,19 @@ export function buildRespondNode(deps: {
       }
     }
 
+    // Tool-loop fallback: when the agent loop hit MAX_TOOL_LOOPS with tool
+    // calls still pending, append an explicit instruction so the fallback
+    // reply states the tool rounds were exhausted instead of answering out
+    // of context. The cacheable fast path never reaches here (pending tool
+    // calls imply tool results).
+    const toolBudgetExhausted =
+      state.pendingToolCalls.length > 0 && state.loopCount >= MAX_TOOL_LOOPS;
+    const messages = toolBudgetExhausted
+      ? [...state.messages, new SystemMessage(TOOL_LOOP_EXHAUSTED_PROMPT)]
+      : state.messages;
+
     const model = deps.createModel();
-    const response = await streamModelResponse(
-      model,
-      state.messages,
-      deps.onText,
-    );
+    const response = await streamModelResponse(model, messages, deps.onText);
     const content = extractContent(response).trim();
     if (content.length === 0) {
       throw new Error('Assistant stream ended without any assistant content.');
