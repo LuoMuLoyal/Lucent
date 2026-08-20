@@ -1,5 +1,5 @@
 import type { PrismaService } from '../../../../prisma';
-import type { CosStorageRuntime } from '../../../../common';
+import type { ObjectStorageRuntime } from '../../../../common';
 import type { MealAnalysisMatcherService } from '../meal-analysis/matcher.service';
 import type { MealAnalysisVisionService } from '../meal-analysis/vision.service';
 import { MealAnalysisWorkerService } from '../meal-analysis/worker.service';
@@ -282,9 +282,10 @@ describe('MealAnalysisWorkerService', () => {
       sourceRevision: 2,
     });
 
-    expect(uploadRuntime.createSignedGetUrl).toHaveBeenCalledWith(
-      'daily-records/u1/meal-4.jpg',
-    );
+    expect(uploadRuntime.createSignedGetUrl).toHaveBeenCalledWith({
+      objectKey: 'daily-records/u1/meal-4.jpg',
+      audience: 'external',
+    });
     expect(vision.recognizeFromImageUrl).toHaveBeenCalledWith(
       'https://cos.example.com/signed-meal-4.jpg',
     );
@@ -453,11 +454,14 @@ function buildVisionService(options: {
   };
 }
 
-function buildUploadRuntime(): Pick<CosStorageRuntime, 'createSignedGetUrl'> {
+function buildUploadRuntime(): Pick<
+  ObjectStorageRuntime,
+  'createSignedGetUrl'
+> {
   return {
     createSignedGetUrl: vi
       .fn()
-      .mockReturnValue('https://cos.example.com/signed-meal-4.jpg'),
+      .mockResolvedValue('https://cos.example.com/signed-meal-4.jpg'),
   };
 }
 

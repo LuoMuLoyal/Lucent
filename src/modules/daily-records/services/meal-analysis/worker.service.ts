@@ -3,7 +3,7 @@ import { DailyRecordKind, type Prisma } from '#generated/prisma/client';
 import { normalizeNullableText } from '../../../../common';
 import { toInputJsonValue } from '../../../../common';
 import { PrismaService } from '../../../../prisma';
-import { CosStorageRuntime } from '../../../../common';
+import { ObjectStorageRuntime } from '../../../../common';
 import {
   getMealSourceRevision,
   parseMealRecordPayload,
@@ -25,7 +25,7 @@ export class MealAnalysisWorkerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mealAnalysisVisionService: MealAnalysisVisionService,
-    private readonly cosStorageRuntime: CosStorageRuntime,
+    private readonly storageRuntime: ObjectStorageRuntime,
     private readonly mealAnalysisMatcherService: MealAnalysisMatcherService,
   ) {}
 
@@ -96,9 +96,10 @@ export class MealAnalysisWorkerService {
       return;
     }
 
-    const signedImageUrl = this.cosStorageRuntime.createSignedGetUrl(
-      attachment.objectKey,
-    );
+    const signedImageUrl = await this.storageRuntime.createSignedGetUrl({
+      objectKey: attachment.objectKey,
+      audience: 'external',
+    });
     const recognition =
       await this.mealAnalysisVisionService.recognizeFromImageUrl(
         signedImageUrl,
