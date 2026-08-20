@@ -14,3 +14,4 @@ allowBuilds:
 
 overrides:
   stack-trace: 0.0.10
+  find-my-way: 9.6.0
