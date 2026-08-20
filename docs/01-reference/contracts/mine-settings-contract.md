@@ -4,7 +4,6 @@
 
 子文档：
 
-- [[support-resources-contract]]
 - [[app-info-contract]]
 - [[data-export-contract]]
 
@@ -12,12 +11,12 @@
 
 This contract defines the Lucent API for Mine/Settings data that was previously
 static or toast-only on the Luminous client. It covers user-owned settings,
-public support resources, app metadata, and data-export request status.
+app metadata, and data-export request status.
 
 ## Boundary
 
-- **Lucent provides:** user settings storage, static support-resource reference
-  data, app metadata, and data-export request/status tracking.
+- **Lucent provides:** user settings storage, app metadata, and data-export
+  request/status tracking.
 - **Luminous consumes:** displays settings values, routes to real pages, shows
   contract-backed status for rows that were previously fake.
 - **Device-local state stays local:** OS notification permission, local notification
@@ -33,7 +32,6 @@ public support resources, app metadata, and data-export request status.
 - **Language preference** → `Device` — Also written through health-context locale
 - **Notification permission** → `Device` — OS-level grant, not a server preference
 - **Reminder scheduling** → `Device` — Local notification controller
-- **Help / about reference entries** → `Server` — Static reference data served from Lucent
 - **App about metadata** → `Server` — Read from package/config, not hardcoded client
 - **Data export request** → `Server` — Status plus first real report-PDF export flow
 
@@ -101,8 +99,8 @@ model DataExportRequest {
 - Export row should POST the desired export kind/format/range and show the latest status from GET.
 - Report export UI should refresh latest status before opening a previously shown `downloadUrl`,
   because signed URLs expire.
-- Help/about rows should read from `GET /api/v1/public/support-resources?scope=help`
-  and `GET /api/v1/public/app-info`.
+- Help/about feedback and update checks should read from
+  `GET /api/v1/public/app-info`; FAQ content stays in the client assets.
 - Signed-out state must not call protected settings APIs; keep those rows
   disabled or labeled as sign-in-required.
 

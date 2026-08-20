@@ -43,8 +43,6 @@ Each contract document defines:
   - API Surface: Environment snapshot API (pollen, UV, air quality, etc.)
 - `mine-settings-contract.md`
   - API Surface: Mine/Settings overview and user settings
-- `support-resources-contract.md`
-  - API Surface: Public support resource entries
 - `app-info-contract.md`
   - API Surface: App metadata endpoint
 - `data-export-contract.md`

@@ -4,7 +4,6 @@
 
 相关子文档：
 
-- [[support-resources-contract]]
 - [[data-export-contract]]
 
 ### 4. App Info

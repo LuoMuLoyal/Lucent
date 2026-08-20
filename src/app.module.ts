@@ -38,7 +38,7 @@ import { AccountModule } from './modules/account/account.module';
 import { EnvironmentModule } from './modules/environment/environment.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { UserSettingsModule } from './modules/user-settings/user-settings.module';
-import { SupportResourcesModule } from './modules/support-resources/support-resources.module';
+import { AppInfoModule } from './modules/app-info/app-info.module';
 import { LegalDocumentsModule } from './modules/legal-documents/legal-documents.module';
 import { DataExportModule } from './modules/data-export/data-export.module';
 import { FilesModule } from './modules/files/files.module';
@@ -109,7 +109,7 @@ import { SlowRequestInterceptor } from './common';
     TodayAnalysisModule,
     TodaySuggestionModule,
     UserSettingsModule,
-    SupportResourcesModule,
+    AppInfoModule,
     LegalDocumentsModule,
     DataExportModule,
     FilesModule,

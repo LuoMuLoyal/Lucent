@@ -4,7 +4,6 @@
 
 相关子文档：
 
-- [[support-resources-contract]]
 - [[app-info-contract]]
 
 ### 5. Data Export Requests

@@ -259,22 +259,6 @@ describe('API Contract Tests (e2e)', () => {
     });
   });
 
-  describe('GET /api/v1/public/support-resources — contract', () => {
-    it('should match SupportResourceListResponseDto shape', async () => {
-      const res = await request(app.getHttpServer())
-        .get('/api/v1/public/support-resources')
-        .expect(200);
-
-      assertEnvelopeShape(res.body);
-
-      const schema = resolveRef(
-        spec,
-        '#/components/schemas/SupportResourceListResponseDto',
-      );
-      assertRequiredProperties(res.body.data, schema, spec);
-    });
-  });
-
   describe('GET /api/v1/public/app-info — contract', () => {
     it('should match AppInfoResponseDto shape', async () => {
       const res = await request(app.getHttpServer())

@@ -4921,40 +4921,9 @@
         "tags": ["Today Analysis"]
       }
     },
-    "/api/v1/public/support-resources": {
-      "get": {
-        "operationId": "SupportResourcesController_getResources_v1",
-        "parameters": [
-          {
-            "name": "scope",
-            "required": false,
-            "in": "query",
-            "description": "Filter by scope: 'help', 'about'. Default: all.",
-            "schema": {
-              "type": "string",
-              "enum": ["help", "about"]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SupportResourceListResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "summary": "Get static support resource entries",
-        "tags": ["Support Resources"]
-      }
-    },
     "/api/v1/public/app-info": {
       "get": {
-        "operationId": "SupportResourcesController_getAppInfo_v1",
+        "operationId": "AppInfoController_getAppInfo_v1",
         "parameters": [],
         "responses": {
           "200": {
@@ -4969,7 +4938,7 @@
           }
         },
         "summary": "Get application metadata",
-        "tags": ["Support Resources"]
+        "tags": ["App Info"]
       }
     },
     "/api/v1/legal-documents": {
@@ -7286,8 +7255,7 @@
       },
       "HealthEventKind": {
         "type": "string",
-        "enum": ["symptom", "other"],
-        "description": "Persisted semantic kind used for check-in routing."
+        "enum": ["symptom", "other"]
       },
       "CreateHealthEventDto": {
         "type": "object",
@@ -13217,102 +13185,6 @@
           }
         },
         "required": ["id", "text"]
-      },
-      "SupportResourceScope": {
-        "type": "string",
-        "enum": ["help", "about"]
-      },
-      "SupportResourceActionType": {
-        "type": "string",
-        "enum": ["url", "phone", "internal"]
-      },
-      "SupportResourceDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "help-faq"
-          },
-          "scope": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SupportResourceScope"
-              }
-            ]
-          },
-          "title": {
-            "type": "string",
-            "example": "FAQ"
-          },
-          "titleKey": {
-            "type": "string",
-            "nullable": true
-          },
-          "subtitle": {
-            "type": "string",
-            "nullable": true
-          },
-          "subtitleKey": {
-            "type": "string",
-            "nullable": true
-          },
-          "icon": {
-            "type": "string",
-            "nullable": true
-          },
-          "actionUrl": {
-            "type": "string",
-            "nullable": true
-          },
-          "actionType": {
-            "nullable": true,
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SupportResourceActionType"
-              }
-            ]
-          },
-          "available": {
-            "type": "boolean",
-            "description": "Whether the resource is currently available."
-          }
-        },
-        "required": ["id", "scope", "title", "available"]
-      },
-      "SupportResourceListDataDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SupportResourceDto"
-            }
-          },
-          "updatedAt": {
-            "type": "string",
-            "description": "ISO-8601 timestamp of last reference data revision."
-          }
-        },
-        "required": ["items", "updatedAt"]
-      },
-      "SupportResourceListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/SupportResourceListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "AppInfoDataDto": {
         "type": "object",

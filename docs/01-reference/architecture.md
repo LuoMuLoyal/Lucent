@@ -16,7 +16,7 @@ graph TD
         account["account<br>/account/*"]
         medicines["medicines<br>/medicines/*"]
         environment["environment<br>/environment"]
-        support["support-resources<br>/public/*"]
+        appInfo["app-info<br>/public/app-info"]
     end
 
     subgraph "User Resources (RouterModule /user/*)"
@@ -297,7 +297,7 @@ the prefix is centralized.
   - Modules: environment
   - Via: Controller `@Controller('environment')`
 - `/public/*`
-  - Modules: support-resources
+  - Modules: app-info
   - Via: Controller `@Controller('public')`
 - `/testing/*`
   - Modules: testing-support
