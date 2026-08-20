@@ -15,9 +15,6 @@ import { EnvKey } from '../../../config/env/env-keys.enum';
  * Requires `TESTING_SHARED_SECRET` env var to be set. The client must send
  * the secret in the `x-testing-secret` header. Comparison uses
  * `timingSafeEqual` to prevent timing side-channels.
- *
- * This guard should always be used alongside `JwtAuthGuard` so that
- * testing endpoints require both authentication and the shared secret.
  */
 @Injectable()
 export class TestingSharedSecretGuard implements CanActivate {

@@ -369,10 +369,10 @@ Health event API errors use the `health-events` i18n scope in `src/i18n/en/` and
     `today_suggestion_materialization_ready_total`,
     `today_suggestion_materialization_failed_total`,
     `today_suggestion_stale_age_seconds`)
-- The `/metrics` endpoint is served as a raw Express route in `setupApp`,
+- The `/metrics` endpoint is served as a raw Fastify route in `setupApp`,
   not a NestJS controller, so it bypasses the interceptor/filter stack.
-- The metrics middleware (`src/common/metrics/metrics.middleware.ts`) uses
-  `res.on('finish')` to capture the final HTTP status code. Route paths are
+- HTTP request metrics are recorded by the inline `onResponse` hook in
+  `setup-app.ts`, which captures the final HTTP status code. Route paths are
   normalised (UUIDs and numeric IDs → `:id`) to prevent label cardinality
   explosion.
 - `METRICS_ENABLED` env var controls activation (default `true`, forced off in
@@ -394,15 +394,25 @@ graph TD
         factory --> base
     end
 
-    subgraph "Queue Services (7 + 1 mail)"
-        meal["meal-analysis<br>(daily-records)"]
-        export["data-export<br>(data-export)"]
+    subgraph "BaseAsync Queue Services (6)"
         recog["medicine-recognition<br>(medicines)"]
         report["report-summary<br>(reports/ai-summary)"]
         clinic["clinic-pdf<br>(reports/clinic-summary)"]
         analysis["today-analysis<br>(today-analysis)"]
+        copy["suggestion-copy-generation<br>(today-suggestion)"]
         explain["suggestion-explanation<br>(today-suggestion)"]
+    end
+
+    subgraph "Direct Queue Services (4)"
+        meal["meal-analysis<br>(daily-records)"]
+        export["data-export<br>(data-export)"]
         mail["mail<br>(mail/)"]
+        recompute["suggestion-recompute<br>(today-suggestion)"]
+    end
+
+    subgraph "Repeatable Job Queues (2)"
+        cron["lucent-cron<br>(data-retention/lifecycle/weekly-insight)"]
+        dispatch["lucent-reminder-dispatch<br>(medicine-reminders)"]
     end
 
     base --> meal
@@ -411,22 +421,32 @@ graph TD
     base --> report
     base --> clinic
     base --> analysis
+    base --> copy
     base --> explain
     factory --> mail
+    factory --> meal
+    factory --> export
+    factory --> recompute
+    factory --> cron
+    factory --> dispatch
 ```
 
 ### Queue Service Details
 
-| Queue                  | Module                 | Concurrency | Result TTL | Notes                                                             |
-| ---------------------- | ---------------------- | ----------- | ---------- | ----------------------------------------------------------------- |
-| meal-analysis          | daily-records          | 1           | 30 min     | Image → LLM vision analysis                                       |
-| data-export            | data-export            | 1           | 30 min     | Dashboard PDF generation                                          |
-| medicine-recognition   | medicines              | 1           | 30 min     | Image → LLM medicine recognition                                  |
-| report-summary         | reports/ai-summary     | 1           | 30 min     | LLM dashboard summary                                             |
-| clinic-pdf             | reports/clinic-summary | 1           | 30 min     | Clinic PDF with LLM summary                                       |
-| today-analysis         | today-analysis         | 1           | 30 min     | Versioned event-triggered LLM analysis; GET reads materialization |
-| suggestion-explanation | today-suggestion       | 1           | 30 min     | LLM suggestion explanation                                        |
-| mail                   | mail                   | 3           | —          | Transactional email (no async polling)                            |
+| Queue                      | Module                 | Concurrency | Result TTL | Notes                                                    |
+| -------------------------- | ---------------------- | ----------- | ---------- | -------------------------------------------------------- |
+| meal-analysis              | daily-records          | 1           | —          | Direct worker; image → LLM vision analysis               |
+| data-export                | data-export            | 1           | —          | Direct worker; dashboard PDF generation                  |
+| medicine-recognition       | medicines              | 1           | 30 min     | BaseAsync; image → LLM medicine recognition              |
+| report-summary             | reports/ai-summary     | 2           | 30 min     | BaseAsync; LLM dashboard summary                         |
+| clinic-pdf                 | reports/clinic-summary | 1           | 30 min     | BaseAsync; clinic PDF with LLM summary                   |
+| today-analysis             | today-analysis         | 1           | 30 min     | BaseAsync; versioned event-triggered LLM analysis        |
+| suggestion-copy-generation | today-suggestion       | 3           | 30 min     | BaseAsync; suggestion copy generation                    |
+| suggestion-explanation     | today-suggestion       | 2           | 30 min     | BaseAsync; LLM suggestion explanation                    |
+| suggestion-recompute       | today-suggestion       | 1           | —          | Direct debounced materialization worker                  |
+| mail                       | mail                   | 3           | —          | Direct transactional email worker                        |
+| lucent-cron                | common/queue           | 2           | —          | Repeatable retention/lifecycle/weekly-insight schedulers |
+| lucent-reminder-dispatch   | common/queue           | 1           | —          | Repeatable medicine reminder dispatch                    |
 
 In addition to the async job queues above, `CronJobsService` (`src/common/queue/cron-jobs.service.ts`)
 manages two BullMQ repeatable-job queues for scheduled tasks:
