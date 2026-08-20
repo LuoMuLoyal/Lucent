@@ -49,7 +49,7 @@ export class DailyRecordImageUploadDto {
   objectKey!: string;
 
   @ApiProperty({
-    description: 'Signed PUT URL for direct COS upload.',
+    description: 'Signed PUT URL for direct object storage upload.',
   })
   uploadUrl!: string;
 
@@ -60,7 +60,7 @@ export class DailyRecordImageUploadDto {
 
   @ApiProperty({
     description:
-      'Optional public/CDN URL when TENCENT_COS_PUBLIC_BASE_URL is configured.',
+      'Optional public/CDN URL when a public base URL is configured.',
   })
   publicUrl!: string | null;
 

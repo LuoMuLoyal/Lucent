@@ -40,7 +40,7 @@ export class DailyRecordAttachmentInputDto {
   bucket?: string | null;
 
   @ApiPropertyOptional({
-    description: 'Storage provider, currently tencent-cos.',
+    description: 'Storage provider (e.g. tencent-cos, s3).',
     type: String,
     nullable: true,
   })
