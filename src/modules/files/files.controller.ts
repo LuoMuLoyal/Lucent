@@ -15,12 +15,11 @@ export class FilesController {
   @Post('upload')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create a presigned upload URL for a file' })
-  createUpload(
+  async createUpload(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateFileUploadDto,
   ) {
-    return successEnvelope(
-      this.filesService.createPresignedUpload(user.sub, dto),
-    );
+    const result = await this.filesService.createPresignedUpload(user.sub, dto);
+    return successEnvelope(result);
   }
 }

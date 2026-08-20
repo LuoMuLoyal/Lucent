@@ -1,7 +1,9 @@
 import { BadRequestException } from '@nestjs/common';
 import type { I18nService } from 'nestjs-i18n';
-import type { TencentCosConfig } from '../../../config/services/tencent-cos.config';
-import type { CosStorageRuntime } from '../../../common';
+import type {
+  ObjectStorageConfig,
+  ObjectStorageRuntime,
+} from '../../../common';
 import { FilesService } from './files.service';
 
 const mockI18n = {
@@ -18,10 +20,11 @@ describe('FilesService', () => {
     vi.clearAllMocks();
   });
 
-  function testConfig(overrides?: Partial<TencentCosConfig>): TencentCosConfig {
+  function testConfig(
+    overrides?: Partial<ObjectStorageConfig>,
+  ): ObjectStorageConfig {
     return {
-      secretId: 'secret-id',
-      secretKey: 'secret-key',
+      provider: 'tencent-cos',
       bucket: 'lucent-test-bucket',
       region: 'ap-guangzhou',
       publicBaseUrl: 'https://cdn.example.com/',
@@ -32,28 +35,27 @@ describe('FilesService', () => {
     };
   }
 
-  function runtimeDouble(
-    config: TencentCosConfig,
-  ): vi.Mocked<CosStorageRuntime> {
-    const runtime: Pick<
-      vi.Mocked<CosStorageRuntime>,
-      'getConfig' | 'createSignedPutUrl'
-    > = {
+  function runtimeDouble(config: ObjectStorageConfig): ObjectStorageRuntime {
+    return {
+      provider: config.provider,
       getConfig: vi.fn().mockReturnValue(config),
       createSignedPutUrl: vi
         .fn()
-        .mockReturnValue('https://signed-upload.example.com'),
-    };
-
-    return runtime as vi.Mocked<CosStorageRuntime>;
+        .mockResolvedValue('https://signed-upload.example.com'),
+      createSignedGetUrl: vi
+        .fn()
+        .mockResolvedValue('https://signed-download.example.com'),
+      uploadBuffer: vi.fn().mockResolvedValue(undefined),
+      isConfigured: vi.fn().mockReturnValue(true),
+    } as unknown as ObjectStorageRuntime;
   }
 
   describe('createPresignedUpload', () => {
-    it('should create a presigned upload URL for a valid image', () => {
+    it('should create a presigned upload URL for a valid image', async () => {
       const runtime = runtimeDouble(testConfig());
       const service = new FilesService(runtime, mockI18n);
 
-      const result = service.createPresignedUpload('user-1', {
+      const result = await service.createPresignedUpload('user-1', {
         contentType: 'image/jpeg',
         sizeBytes: 204800,
         fileName: 'photo.jpg',
@@ -72,47 +74,47 @@ describe('FilesService', () => {
       expect(runtime.createSignedPutUrl).toHaveBeenCalledTimes(1);
     });
 
-    it('should reject unsupported content types', () => {
+    it('should reject unsupported content types', async () => {
       const service = new FilesService(runtimeDouble(testConfig()), mockI18n);
 
-      expect(() =>
+      await expect(
         service.createPresignedUpload('user-1', {
           contentType: 'application/pdf',
           sizeBytes: 1024,
         }),
-      ).toThrow(BadRequestException);
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should reject empty contentType', () => {
+    it('should reject empty contentType', async () => {
       const service = new FilesService(runtimeDouble(testConfig()), mockI18n);
 
-      expect(() =>
+      await expect(
         service.createPresignedUpload('user-1', {
           contentType: '   ',
           sizeBytes: 1024,
         }),
-      ).toThrow(BadRequestException);
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should reject files exceeding the size limit', () => {
+    it('should reject files exceeding the size limit', async () => {
       const service = new FilesService(
         runtimeDouble(testConfig({ maxUploadBytes: 1000 })),
         mockI18n,
       );
 
-      expect(() =>
+      await expect(
         service.createPresignedUpload('user-1', {
           contentType: 'image/png',
           sizeBytes: 1001,
         }),
-      ).toThrow(BadRequestException);
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should use .jpg extension for image/jpeg content type', () => {
+    it('should use .jpg extension for image/jpeg content type', async () => {
       const runtime = runtimeDouble(testConfig());
       const service = new FilesService(runtime, mockI18n);
 
-      const result = service.createPresignedUpload('user-1', {
+      const result = await service.createPresignedUpload('user-1', {
         contentType: 'image/jpeg',
         sizeBytes: 1024,
         fileName: 'photo.jpeg',
@@ -121,11 +123,11 @@ describe('FilesService', () => {
       expect(result.objectKey).toMatch(/\.jpg$/);
     });
 
-    it('should fall back to .bin when fileName has no extension', () => {
+    it('should fall back to .bin when fileName has no extension', async () => {
       const runtime = runtimeDouble(testConfig());
       const service = new FilesService(runtime, mockI18n);
 
-      const result = service.createPresignedUpload('user-1', {
+      const result = await service.createPresignedUpload('user-1', {
         contentType: 'image/webp',
         sizeBytes: 1024,
         fileName: 'noext',
@@ -134,13 +136,13 @@ describe('FilesService', () => {
       expect(result.objectKey).toMatch(/\.bin$/);
     });
 
-    it('should return null publicUrl when publicBaseUrl is not configured', () => {
+    it('should return null publicUrl when publicBaseUrl is not configured', async () => {
       const service = new FilesService(
         runtimeDouble(testConfig({ publicBaseUrl: '' })),
         mockI18n,
       );
 
-      const result = service.createPresignedUpload('user-1', {
+      const result = await service.createPresignedUpload('user-1', {
         contentType: 'image/gif',
         sizeBytes: 1024,
       });
@@ -148,11 +150,11 @@ describe('FilesService', () => {
       expect(result.publicUrl).toBeNull();
     });
 
-    it('should handle mixed-case content type', () => {
+    it('should handle mixed-case content type', async () => {
       const runtime = runtimeDouble(testConfig());
       const service = new FilesService(runtime, mockI18n);
 
-      const result = service.createPresignedUpload('user-1', {
+      const result = await service.createPresignedUpload('user-1', {
         contentType: 'Image/JPEG',
         sizeBytes: 1024,
         fileName: 'photo.jpg',
@@ -162,10 +164,10 @@ describe('FilesService', () => {
       expect(result.objectKey).toMatch(/\.jpg$/);
     });
 
-    it('should accept sizeBytes of 0', () => {
+    it('should accept sizeBytes of 0', async () => {
       const service = new FilesService(runtimeDouble(testConfig()), mockI18n);
 
-      const result = service.createPresignedUpload('user-1', {
+      const result = await service.createPresignedUpload('user-1', {
         contentType: 'image/png',
         sizeBytes: 0,
       });
@@ -173,11 +175,11 @@ describe('FilesService', () => {
       expect(result.objectKey).toBeDefined();
     });
 
-    it('should accept file at exact size limit', () => {
+    it('should accept file at exact size limit', async () => {
       const runtime = runtimeDouble(testConfig({ maxUploadBytes: 1024 }));
       const service = new FilesService(runtime, mockI18n);
 
-      const result = service.createPresignedUpload('user-1', {
+      const result = await service.createPresignedUpload('user-1', {
         contentType: 'image/png',
         sizeBytes: 1024,
         fileName: 'exact.png',
@@ -186,11 +188,11 @@ describe('FilesService', () => {
       expect(result.objectKey).toMatch(/\.png$/);
     });
 
-    it('should use .png extension for image/png content type', () => {
+    it('should use .png extension for image/png content type', async () => {
       const runtime = runtimeDouble(testConfig());
       const service = new FilesService(runtime, mockI18n);
 
-      const result = service.createPresignedUpload('user-1', {
+      const result = await service.createPresignedUpload('user-1', {
         contentType: 'image/png',
         sizeBytes: 1024,
         fileName: 'photo.png',
@@ -199,17 +201,29 @@ describe('FilesService', () => {
       expect(result.objectKey).toMatch(/\.png$/);
     });
 
-    it('should use .gif extension for image/gif content type', () => {
+    it('should use .gif extension for image/gif content type', async () => {
       const runtime = runtimeDouble(testConfig());
       const service = new FilesService(runtime, mockI18n);
 
-      const result = service.createPresignedUpload('user-1', {
+      const result = await service.createPresignedUpload('user-1', {
         contentType: 'image/gif',
         sizeBytes: 1024,
         fileName: 'animation.gif',
       });
 
       expect(result.objectKey).toMatch(/\.gif$/);
+    });
+
+    it('should return provider from runtime config', async () => {
+      const runtime = runtimeDouble(testConfig({ provider: 's3' }));
+      const service = new FilesService(runtime, mockI18n);
+
+      const result = await service.createPresignedUpload('user-1', {
+        contentType: 'image/png',
+        sizeBytes: 1024,
+      });
+
+      expect(result.provider).toBe('s3');
     });
   });
 });

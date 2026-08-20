@@ -6,19 +6,17 @@ import { I18nService } from 'nestjs-i18n';
 
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
 import { badRequest } from '../../../common';
-import { CosStorageRuntime } from '../../../common';
+import { ObjectStorageRuntime } from '../../../common';
 import type { CreateFileUploadDto } from '../dto/create-file-upload.dto';
-
-const PROVIDER = 'tencent-cos';
 
 @Injectable()
 export class FilesService {
   constructor(
-    private readonly runtime: CosStorageRuntime,
+    private readonly runtime: ObjectStorageRuntime,
     private readonly i18n: I18nService,
   ) {}
 
-  createPresignedUpload(userId: string, dto: CreateFileUploadDto) {
+  async createPresignedUpload(userId: string, dto: CreateFileUploadDto) {
     const config = this.runtime.getConfig();
 
     const contentType = dto.contentType.trim().toLowerCase();
@@ -34,7 +32,7 @@ export class FilesService {
       contentType === 'image/jpeg' ? '.jpg' : extname(dto.fileName ?? '.bin');
     const objectKey = `files/${userId}/${randomUUID()}${ext || '.bin'}`;
     const headers = { 'Content-Type': contentType };
-    const uploadUrl = this.runtime.createSignedPutUrl({
+    const uploadUrl = await this.runtime.createSignedPutUrl({
       objectKey,
       contentType,
     });
@@ -43,7 +41,7 @@ export class FilesService {
     ).toISOString();
 
     return {
-      provider: PROVIDER,
+      provider: config.provider,
       bucket: config.bucket,
       objectKey,
       uploadUrl,

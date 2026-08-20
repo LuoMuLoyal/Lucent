@@ -21,7 +21,7 @@ describe('FilesController', () => {
 
   beforeEach(async () => {
     filesService = {
-      createPresignedUpload: vi.fn().mockReturnValue(mockResult),
+      createPresignedUpload: vi.fn().mockResolvedValue(mockResult),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -39,7 +39,7 @@ describe('FilesController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('should call filesService.createPresignedUpload and return success envelope', () => {
+  it('should call filesService.createPresignedUpload and return success envelope', async () => {
     const dto = {
       contentType: 'image/jpeg',
       sizeBytes: 204800,
@@ -48,7 +48,7 @@ describe('FilesController', () => {
 
     const user = { sub: 'user-1', email: 'test@example.com', status: 'active' };
 
-    const result = controller.createUpload(user, dto);
+    const result = await controller.createUpload(user, dto);
 
     expect(filesService.createPresignedUpload).toHaveBeenCalledWith(
       'user-1',
