@@ -3,6 +3,7 @@
 
 enum UserNotificationType {
   ai_today_summary
+  ai_weekly_insight
   ai_proactive_suggestion
   medicine_missed_dose
   password_changed
@@ -11,6 +12,24 @@ enum UserNotificationType {
   system_announcement
   oauth_login
   identity_linked
+}
+
+/// User-scoped notification controls. This is intentionally separate from
+/// generic user settings because server-side notification producers consume
+/// these values as delivery gates.
+model UserNotificationPreference {
+  userId                 String   @id @map("user_id")
+  healthAlertsEnabled    Boolean  @default(true) @map("health_alerts_enabled")
+  weeklyInsightEnabled   Boolean  @default(false) @map("weekly_insight_enabled")
+  waterRemindersEnabled  Boolean  @default(true) @map("water_reminders_enabled")
+  sleepReminderEnabled   Boolean  @default(false) @map("sleep_reminder_enabled")
+  sleepBedtimeMinutes    Int?     @map("sleep_bedtime_minutes")
+  sleepWakeTimeMinutes   Int?     @map("sleep_wake_time_minutes")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_notification_preferences")
 }
 
 /// Fixed set of clinic-summary sections a share may grant access to. The
@@ -91,6 +110,7 @@ model UserNotification {
   id            String                @id @default(uuid())
   userId        String                @map("user_id")
   type          UserNotificationType  @map("type")
+  scopeKey      String?               @map("scope_key")
   title         String
   content       String
   action        String?               @map("action")
@@ -102,6 +122,7 @@ model UserNotification {
   user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@unique([userId, type, scopeKey])
   // isRead index replaced by partial index in migration (WHERE is_read = false)
   @@map("user_notifications")
 }

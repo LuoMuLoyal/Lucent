@@ -75,6 +75,7 @@ model User {
   assistantRegenerations AssistantRegeneration[]
   assistantSummaryHistories AssistantSummaryHistory[]
   notifications          UserNotification[]
+  notificationPreference  UserNotificationPreference?
   suggestions            UserSuggestion[]
   suggestionBaselines    UserSuggestionBaseline[]
   suggestionBaselineObservations UserSuggestionBaselineObservation[]

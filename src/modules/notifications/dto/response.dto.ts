@@ -4,6 +4,7 @@ import { type UserNotificationType } from '#generated/prisma/client';
 
 export const USER_NOTIFICATION_TYPES = [
   'ai_today_summary',
+  'ai_weekly_insight',
   'ai_proactive_suggestion',
   'medicine_missed_dose',
   'password_changed',

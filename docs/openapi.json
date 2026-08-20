@@ -5132,6 +5132,64 @@
         "summary": "Create a presigned upload URL for a file",
         "tags": ["Files"]
       }
+    },
+    "/api/v1/user/notification-preferences": {
+      "get": {
+        "operationId": "NotificationPreferencesController_get_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get authenticated user notification preferences",
+        "tags": ["Notification Preferences"]
+      },
+      "patch": {
+        "operationId": "NotificationPreferencesController_patch_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNotificationPreferencesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPreferencesResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Patch authenticated user notification preferences",
+        "tags": ["Notification Preferences"]
+      }
     }
   },
   "info": {
@@ -5775,6 +5833,7 @@
         "type": "string",
         "enum": [
           "ai_today_summary",
+          "ai_weekly_insight",
           "ai_proactive_suggestion",
           "medicine_missed_dose",
           "password_changed",
@@ -13559,6 +13618,105 @@
           }
         },
         "required": ["contentType", "sizeBytes"]
+      },
+      "NotificationPreferencesDataDto": {
+        "type": "object",
+        "properties": {
+          "healthAlertsEnabled": {
+            "type": "boolean"
+          },
+          "weeklyInsightEnabled": {
+            "type": "boolean"
+          },
+          "waterRemindersEnabled": {
+            "type": "boolean"
+          },
+          "sleepReminderEnabled": {
+            "type": "boolean"
+          },
+          "sleepBedtimeMinutes": {
+            "type": "number",
+            "format": "int32",
+            "nullable": true
+          },
+          "sleepWakeTimeMinutes": {
+            "type": "number",
+            "format": "int32",
+            "nullable": true
+          },
+          "configured": {
+            "type": "boolean",
+            "description": "Whether the user has a persisted preference row."
+          },
+          "updatedAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "healthAlertsEnabled",
+          "weeklyInsightEnabled",
+          "waterRemindersEnabled",
+          "sleepReminderEnabled",
+          "sleepBedtimeMinutes",
+          "sleepWakeTimeMinutes",
+          "configured",
+          "updatedAt"
+        ]
+      },
+      "NotificationPreferencesResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "number",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": ""
+          },
+          "data": {
+            "$ref": "#/components/schemas/NotificationPreferencesDataDto"
+          }
+        },
+        "required": ["code", "message", "data"]
+      },
+      "UpdateNotificationPreferencesDto": {
+        "type": "object",
+        "properties": {
+          "healthAlertsEnabled": {
+            "type": "boolean",
+            "description": "Enable health-rule notifications."
+          },
+          "weeklyInsightEnabled": {
+            "type": "boolean",
+            "description": "Enable weekly longitudinal insights."
+          },
+          "waterRemindersEnabled": {
+            "type": "boolean",
+            "description": "Enable water shortfall notifications."
+          },
+          "sleepReminderEnabled": {
+            "type": "boolean",
+            "description": "Enable local bedtime sleep reminders."
+          },
+          "sleepBedtimeMinutes": {
+            "type": "number",
+            "format": "int32",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 1439,
+            "description": "Bedtime as minutes after local midnight."
+          },
+          "sleepWakeTimeMinutes": {
+            "type": "number",
+            "format": "int32",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 1439,
+            "description": "Wake time as minutes after local midnight."
+          }
+        }
       }
     }
   }
