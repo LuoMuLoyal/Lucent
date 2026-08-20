@@ -9,7 +9,9 @@ function main() {
   const shouldBuild = args.includes('--build');
   const services = args.filter((arg) => arg !== '--build');
   const targetServices =
-    services.length > 0 ? services : ['postgres-dev', 'postgres-test', 'redis'];
+    services.length > 0
+      ? services
+      : ['postgres-dev', 'postgres-test', 'redis', 'seaweedfs'];
 
   const dockerArgs = [
     'compose',

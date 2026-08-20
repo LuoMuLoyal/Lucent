@@ -61,7 +61,43 @@ services:
       - '16686:16686' # Jaeger UI
       - '4318:4318' # OTLP HTTP receiver
 
+  # ── SeaweedFS (dev-only S3-compatible object storage) ──────
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.41
+    container_name: lucent-seaweedfs
+    restart: unless-stopped
+    command: >
+      weed server
+      -dir=/data
+      -s3
+      -master.port=9333
+      -volume.port=8080
+      -filer.port=8888
+      -s3.port=8333
+    environment:
+      AWS_ACCESS_KEY_ID: lucent-dev
+      AWS_SECRET_ACCESS_KEY: lucent-dev-secret
+    ports:
+      - '8333:8333' # S3 API
+      - '8888:8888' # Filer (anonymous read for dev)
+    volumes:
+      - seaweedfs-data:/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'weed',
+          'shell',
+          '-master=localhost:9333',
+          '-cluster=',
+          'cluster.check',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   pgdata-dev:
   pgdata-test:
   redisdata:
+  seaweedfs-data:
