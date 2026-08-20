@@ -190,6 +190,39 @@ const envSchema = z.object({
     .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
     .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
 
+  // ── Object storage provider selection ───────────────────────────
+  [EnvKey.STORAGE_PROVIDER]: z
+    .enum(['tencent-cos', 's3'])
+    .default('tencent-cos'),
+
+  // ── S3-compatible storage (dev: SeaweedFS) ──────────────────────
+  [EnvKey.STORAGE_S3_ENDPOINT]: httpUrl,
+  [EnvKey.STORAGE_S3_CLIENT_ENDPOINT]: httpUrl,
+  [EnvKey.STORAGE_S3_EXTERNAL_ENDPOINT]: httpUrl,
+  [EnvKey.STORAGE_S3_PUBLIC_BASE_URL]: httpUrl,
+  [EnvKey.STORAGE_S3_ACCESS_KEY]: optionalString,
+  [EnvKey.STORAGE_S3_SECRET_KEY]: optionalString,
+  [EnvKey.STORAGE_S3_BUCKET]: optionalString,
+  [EnvKey.STORAGE_S3_REGION]: optionalString,
+  [EnvKey.STORAGE_S3_UPLOAD_EXPIRES_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
+    .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
+  [EnvKey.STORAGE_S3_MAX_UPLOAD_BYTES]: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_COS_MAX_UPLOAD_BYTES)
+    .default(DEFAULT_COS_MAX_UPLOAD_BYTES),
+  [EnvKey.STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS]: z.coerce
+    .number()
+    .int()
+    .min(60)
+    .max(MAX_COS_UPLOAD_EXPIRY_SECONDS)
+    .default(DEFAULT_COS_UPLOAD_EXPIRY_SECONDS),
+
   [EnvKey.JPUSH_APP_KEY]: optionalString,
   [EnvKey.JPUSH_MASTER_SECRET]: optionalString,
   [EnvKey.JPUSH_APNS_PRODUCTION]: z.enum(['true', 'false']).optional(),
@@ -435,6 +468,7 @@ export function validateEnvironment(
 
   assertProductionEnvironment(validated);
   assertTencentCosEnvironment(validated);
+  assertS3StorageEnvironment(validated);
   assertJpushEnvironment(validated);
   assertAiEnvironment(validated);
 
@@ -498,6 +532,27 @@ function assertTencentCosEnvironment(config: EnvironmentVariables): void {
   if (missingKeys.length > 0) {
     throw new Error(
       `Incomplete Tencent COS environment variables: ${missingKeys.join(', ')}`,
+    );
+  }
+}
+
+function assertS3StorageEnvironment(config: EnvironmentVariables): void {
+  const provider = config[EnvKey.STORAGE_PROVIDER];
+  if (provider !== 's3') {
+    return;
+  }
+
+  const requiredKeys = [
+    EnvKey.STORAGE_S3_ENDPOINT,
+    EnvKey.STORAGE_S3_ACCESS_KEY,
+    EnvKey.STORAGE_S3_SECRET_KEY,
+    EnvKey.STORAGE_S3_BUCKET,
+  ] as const;
+  const missingKeys = requiredKeys.filter((key) => !(config[key] ?? '').trim());
+
+  if (missingKeys.length > 0) {
+    throw new Error(
+      `Incomplete S3 storage environment variables when STORAGE_PROVIDER=s3: ${missingKeys.join(', ')}`,
     );
   }
 }

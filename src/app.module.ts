@@ -12,6 +12,7 @@ import { llmConfig } from './config/services/llm.config';
 import { jwtConfig } from './config/services/jwt.config';
 import { oauthConfig } from './config/services/oauth.config';
 import { tencentCosConfig } from './config/services/tencent-cos.config';
+import { s3StorageConfig } from './config/services/s3-storage.config';
 import { jpushConfig } from './config/services/jpush.config';
 import { getEnvFilePaths } from './config/env/env-file-paths';
 import { validateEnvironment } from './config/env/environment.validation';
@@ -70,6 +71,7 @@ import { SlowRequestInterceptor } from './common';
         jwtConfig,
         oauthConfig,
         tencentCosConfig,
+        s3StorageConfig,
         jpushConfig,
       ],
       validate: validateEnvironment,

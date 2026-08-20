@@ -22,6 +22,9 @@ export enum ConfigKey {
   /** Tencent Cloud COS upload configuration */
   TencentCos = 'tencentCos',
 
+  /** S3-compatible object storage configuration (dev: SeaweedFS) */
+  S3Storage = 's3Storage',
+
   /** JPush notification configuration */
   Jpush = 'jpush',
 }

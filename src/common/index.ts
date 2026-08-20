@@ -20,7 +20,17 @@ export type {
 export type { PromptCopy } from './helpers/format/localized-copy';
 export { ApiEnvelopeInterceptor } from './interceptors/api-envelope.interceptor';
 export { BaseAsyncQueueService } from './queue/base-async-queue.service';
-export { CosStorageRuntime } from './storage/cos-storage.runtime';
+export { ObjectStorageRuntime } from './storage/object-storage.runtime';
+export type {
+  ObjectStorageConfig,
+  SignedGetUrlInput,
+  SignedPutUrlInput,
+  UploadBufferInput,
+  SignedUrlAudience,
+  StorageProvider,
+} from './storage/object-storage.runtime';
+export { TencentCosStorageRuntime } from './storage/tencent-cos.runtime';
+export { S3StorageRuntime } from './storage/s3.runtime';
 export { LlmCommonModule } from './llm/llm-common.module';
 export { ResultCode, successEnvelope } from './api/api-envelope';
 export { SkipApiEnvelope } from './interceptors/skip-api-envelope.decorator';

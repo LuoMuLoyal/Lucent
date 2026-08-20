@@ -1,6 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import type { TencentCosConfig } from '../../config/services/tencent-cos.config';
-import { CosStorageRuntime } from './cos-storage.runtime';
+import { TencentCosStorageRuntime } from './tencent-cos.runtime';
 
 const mockCos = {
   getObjectUrl: vi.fn(),
@@ -40,7 +40,7 @@ function buildConfigService(config: TencentCosConfig): ConfigService {
 
 const cosMock = COS as unknown as vi.Mock;
 
-describe('CosStorageRuntime', () => {
+describe('TencentCosStorageRuntime', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -49,7 +49,7 @@ describe('CosStorageRuntime', () => {
     const config = buildConfig();
     const configService = buildConfigService(config);
 
-    new CosStorageRuntime(configService);
+    new TencentCosStorageRuntime(configService);
 
     expect(cosMock).toHaveBeenCalledWith({
       SecretId: 'test-secret-id',
@@ -57,16 +57,37 @@ describe('CosStorageRuntime', () => {
     });
   });
 
-  it('getConfig() returns the resolved config', () => {
+  it('getConfig() returns the provider-agnostic config', () => {
     const config = buildConfig({ bucket: 'my-bucket' });
     const configService = buildConfigService(config);
 
-    const runtime = new CosStorageRuntime(configService);
+    const runtime = new TencentCosStorageRuntime(configService);
+    const result = runtime.getConfig();
 
-    expect(runtime.getConfig()).toBe(config);
+    expect(result.provider).toBe('tencent-cos');
+    expect(result.bucket).toBe('my-bucket');
+    expect(result.region).toBe('ap-guangzhou');
+    expect(result.publicBaseUrl).toBe('https://cdn.example.com');
+    expect(result.uploadExpiresSeconds).toBe(600);
+    expect(result.maxUploadBytes).toBe(10_485_760);
+    expect(result.downloadExpiresSeconds).toBe(600);
   });
 
-  it('createSignedPutUrl delegates to cos.getObjectUrl with PUT method', () => {
+  it('isConfigured() returns true when all credentials and bucket are set', () => {
+    const configService = buildConfigService(buildConfig());
+    const runtime = new TencentCosStorageRuntime(configService);
+
+    expect(runtime.isConfigured()).toBe(true);
+  });
+
+  it('isConfigured() returns false when secretId is empty', () => {
+    const configService = buildConfigService(buildConfig({ secretId: '' }));
+    const runtime = new TencentCosStorageRuntime(configService);
+
+    expect(runtime.isConfigured()).toBe(false);
+  });
+
+  it('createSignedPutUrl delegates to cos.getObjectUrl with PUT method', async () => {
     const config = buildConfig({
       bucket: 'put-bucket',
       region: 'us-east',
@@ -75,8 +96,8 @@ describe('CosStorageRuntime', () => {
     const configService = buildConfigService(config);
     mockCos.getObjectUrl.mockReturnValue('https://signed-put-url.example.com');
 
-    const runtime = new CosStorageRuntime(configService);
-    const url = runtime.createSignedPutUrl({
+    const runtime = new TencentCosStorageRuntime(configService);
+    const url = await runtime.createSignedPutUrl({
       objectKey: 'uploads/test-file.png',
       contentType: 'image/png',
     });
@@ -95,7 +116,7 @@ describe('CosStorageRuntime', () => {
     });
   });
 
-  it('createSignedGetUrl delegates to cos.getObjectUrl with GET method', () => {
+  it('createSignedGetUrl delegates to cos.getObjectUrl with GET method for client audience', async () => {
     const config = buildConfig({
       bucket: 'get-bucket',
       region: 'eu-west',
@@ -104,8 +125,11 @@ describe('CosStorageRuntime', () => {
     const configService = buildConfigService(config);
     mockCos.getObjectUrl.mockReturnValue('https://signed-get-url.example.com');
 
-    const runtime = new CosStorageRuntime(configService);
-    const url = runtime.createSignedGetUrl('downloads/report.pdf');
+    const runtime = new TencentCosStorageRuntime(configService);
+    const url = await runtime.createSignedGetUrl({
+      objectKey: 'downloads/report.pdf',
+      audience: 'client',
+    });
 
     expect(url).toBe('https://signed-get-url.example.com');
     expect(mockCos.getObjectUrl).toHaveBeenCalledWith({
@@ -118,6 +142,20 @@ describe('CosStorageRuntime', () => {
     });
   });
 
+  it('createSignedGetUrl for external audience returns the same COS URL', async () => {
+    const config = buildConfig();
+    const configService = buildConfigService(config);
+    mockCos.getObjectUrl.mockReturnValue('https://signed-get-url.example.com');
+
+    const runtime = new TencentCosStorageRuntime(configService);
+    const url = await runtime.createSignedGetUrl({
+      objectKey: 'downloads/report.pdf',
+      audience: 'external',
+    });
+
+    expect(url).toBe('https://signed-get-url.example.com');
+  });
+
   it('uploadBuffer calls cos.putObject with buffer and metadata', async () => {
     const config = buildConfig({
       bucket: 'upload-bucket',
@@ -126,7 +164,7 @@ describe('CosStorageRuntime', () => {
     const configService = buildConfigService(config);
     mockCos.putObject.mockResolvedValue({});
 
-    const runtime = new CosStorageRuntime(configService);
+    const runtime = new TencentCosStorageRuntime(configService);
     const buffer = Buffer.from('test file content');
 
     await runtime.uploadBuffer({
@@ -150,7 +188,7 @@ describe('CosStorageRuntime', () => {
     const configService = buildConfigService(config);
     mockCos.putObject.mockRejectedValue(new Error('COS upload failed'));
 
-    const runtime = new CosStorageRuntime(configService);
+    const runtime = new TencentCosStorageRuntime(configService);
 
     await expect(
       runtime.uploadBuffer({
