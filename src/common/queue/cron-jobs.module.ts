@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { DataRetentionModule } from '../../modules/data-retention/data-retention.module';
 import { MedicineRemindersModule } from '../../modules/medicine-reminders/medicine-reminders.module';
 import { TodaySuggestionModule } from '../../modules/today-suggestion/today-suggestion.module';
+import { NotificationPreferencesModule } from '../../modules/notification-preferences/notification-preferences.module';
 import { CronJobsService } from './cron-jobs.service';
 
 /**
@@ -16,6 +17,7 @@ import { CronJobsService } from './cron-jobs.service';
     DataRetentionModule,
     MedicineRemindersModule,
     TodaySuggestionModule,
+    NotificationPreferencesModule,
   ],
   providers: [CronJobsService],
 })

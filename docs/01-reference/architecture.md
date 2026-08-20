@@ -2,7 +2,7 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-18
+updated: 2026-08-20
 ---
 
 # Lucent Architecture
@@ -30,6 +30,7 @@ graph TD
         healthEvents["health-events"]
         reminders["medicine-reminders<br>(+ scheduler @Cron)"]
         notifications["notifications<br>(+ push delivery)"]
+        notificationPreferences["notification-preferences<br>(remote gates + weekly insight)"]
         reports["reports"]
         today["today-analysis"]
         todaySuggestion["today-suggestion<br>(75 files, 44 providers)<br>第二大 feature module"]
@@ -80,6 +81,9 @@ graph TD
     todaySuggestion --> healthCtx
     todaySuggestion --> settings
     todaySuggestion --> notifications
+    todaySuggestion --> notificationPreferences
+    notificationPreferences --> reports
+    notificationPreferences --> notifications
     dataExport --> reports
     dataExport --> notifications
     dataExport --> security
@@ -427,10 +431,10 @@ graph TD
 In addition to the async job queues above, `CronJobsService` (`src/common/queue/cron-jobs.service.ts`)
 manages two BullMQ repeatable-job queues for scheduled tasks:
 
-| Queue                      | Schedulers                                    | Concurrency | Notes                                             |
-| -------------------------- | --------------------------------------------- | ----------- | ------------------------------------------------- |
-| `lucent-cron`              | `data-retention-cleanup`, `lifecycle-refresh` | 2           | Low-frequency cron jobs sharing one queue         |
-| `lucent-reminder-dispatch` | `reminder-dispatch`                           | 1           | High-frequency medicine reminder dispatch (1 min) |
+| Queue                      | Schedulers                                                      | Concurrency | Notes                                                                          |
+| -------------------------- | --------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------ |
+| `lucent-cron`              | `data-retention-cleanup`, `lifecycle-refresh`, `weekly-insight` | 2           | Low-frequency cron jobs sharing one queue; weekly insight checks user timezone |
+| `lucent-reminder-dispatch` | `reminder-dispatch`                                             | 1           | High-frequency medicine reminder dispatch (1 min)                              |
 
 Schedulers are registered with `upsertJobScheduler` so cron rules survive restarts and update
 idempotently. When a scheduler is moved between queues (for example, the `reminder-dispatch`

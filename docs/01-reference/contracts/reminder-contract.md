@@ -47,6 +47,9 @@ Lucent's notification system is split into two layers with a clear ownership bou
   - Today escalation maps `sleep_shortfall`, `event_check_in_trend`, and `deteriorating_symptom`
     to `healthAlertsEnabled`; `water_behind_target` maps only to `waterRemindersEnabled`;
     `missed_dose_pending` is unaffected.
+  - Weekly insight is a separate `ai_weekly_insight` notification chain. The shared BullMQ cron
+    queue checks each user's profile timezone for Monday 09:00, uses the Reports 7-day summary,
+    skips empty series, and deduplicates by user/week scope.
 - Push delivery (JPush)
   - Status: `PushDeliveryService` sends the user ID as a JPush alias through the JPush REST API. Missing credentials skip delivery and the send result resolves `{ sent: false }`. Provider failures are logged and do not block the in-app notification flow. Push is a **background fallback only**: the scheduler sends it when the user's local capability is `unconfirmed` or `unavailable`, and never when it is `active` or `disabled`.
 - Reminder delivery log

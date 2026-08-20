@@ -3,6 +3,7 @@ import type { BullmqQueueFactory } from './queue.factory';
 import type { DataRetentionService } from '../../modules/data-retention/services/data-retention.service';
 import type { LifecycleService } from '../../modules/today-suggestion/services/lifecycle/manager.service';
 import type { ReminderSchedulerService } from '../../modules/medicine-reminders/services/scheduler.service';
+import type { WeeklyInsightSchedulerService } from '../../modules/notification-preferences/services/weekly-insight-scheduler.service';
 import {
   CronJobsService,
   CRON_QUEUE_NAME,
@@ -82,6 +83,9 @@ function buildServices() {
     reminderSchedulerService: {
       dispatchDueReminders: vi.fn().mockResolvedValue(undefined),
     } as unknown as ReminderSchedulerService,
+    weeklyInsightSchedulerService: {
+      runTick: vi.fn().mockResolvedValue(undefined),
+    } as unknown as WeeklyInsightSchedulerService,
   };
 }
 
@@ -91,6 +95,7 @@ describe('CronJobsService', () => {
   let dataRetentionService: DataRetentionService;
   let lifecycleService: LifecycleService;
   let reminderSchedulerService: ReminderSchedulerService;
+  let weeklyInsightSchedulerService: WeeklyInsightSchedulerService;
   let service: CronJobsService;
 
   beforeEach(() => {
@@ -108,12 +113,14 @@ describe('CronJobsService', () => {
       dataRetentionService = svcs.dataRetentionService;
       lifecycleService = svcs.lifecycleService;
       reminderSchedulerService = svcs.reminderSchedulerService;
+      weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
 
       service = new CronJobsService(
         factory,
         dataRetentionService,
         lifecycleService,
         reminderSchedulerService,
+        weeklyInsightSchedulerService,
       );
 
       await service.onModuleInit();
@@ -131,12 +138,14 @@ describe('CronJobsService', () => {
       dataRetentionService = svcs.dataRetentionService;
       lifecycleService = svcs.lifecycleService;
       reminderSchedulerService = svcs.reminderSchedulerService;
+      weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
 
       service = new CronJobsService(
         factory,
         dataRetentionService,
         lifecycleService,
         reminderSchedulerService,
+        weeklyInsightSchedulerService,
       );
 
       await service.onModuleInit();
@@ -173,6 +182,15 @@ describe('CronJobsService', () => {
         'lifecycle-refresh',
         expect.objectContaining({ tz: 'UTC' }),
         expect.objectContaining({ name: 'lifecycle-refresh' }),
+      );
+    });
+
+    it('registers weekly insight scheduler on the shared cron queue', () => {
+      const cronQ = captured.find((c) => c.name === CRON_QUEUE_NAME);
+      expect(cronQ?.upsertJobScheduler).toHaveBeenCalledWith(
+        'weekly-insight',
+        { pattern: '* * * * *', tz: 'UTC' },
+        expect.objectContaining({ name: 'weekly-insight' }),
       );
     });
 
@@ -218,12 +236,14 @@ describe('CronJobsService', () => {
       dataRetentionService = svcs.dataRetentionService;
       lifecycleService = svcs.lifecycleService;
       reminderSchedulerService = svcs.reminderSchedulerService;
+      weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
 
       service = new CronJobsService(
         factory,
         dataRetentionService,
         lifecycleService,
         reminderSchedulerService,
+        weeklyInsightSchedulerService,
       );
 
       await service.onModuleInit();
@@ -271,6 +291,15 @@ describe('CronJobsService', () => {
         reminderSchedulerService.dispatchDueReminders,
       ).not.toHaveBeenCalled();
     });
+
+    it('dispatches weekly-insight to WeeklyInsightSchedulerService', async () => {
+      await cronProcessor({
+        id: '5',
+        name: 'weekly-insight',
+        data: {},
+      });
+      expect(weeklyInsightSchedulerService.runTick).toHaveBeenCalledOnce();
+    });
   });
 
   describe('reminder queue processor', () => {
@@ -284,12 +313,14 @@ describe('CronJobsService', () => {
       dataRetentionService = svcs.dataRetentionService;
       lifecycleService = svcs.lifecycleService;
       reminderSchedulerService = svcs.reminderSchedulerService;
+      weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
 
       service = new CronJobsService(
         factory,
         dataRetentionService,
         lifecycleService,
         reminderSchedulerService,
+        weeklyInsightSchedulerService,
       );
 
       await service.onModuleInit();
@@ -338,12 +369,14 @@ describe('CronJobsService', () => {
       dataRetentionService = svcs.dataRetentionService;
       lifecycleService = svcs.lifecycleService;
       reminderSchedulerService = svcs.reminderSchedulerService;
+      weeklyInsightSchedulerService = svcs.weeklyInsightSchedulerService;
 
       service = new CronJobsService(
         factory,
         dataRetentionService,
         lifecycleService,
         reminderSchedulerService,
+        weeklyInsightSchedulerService,
       );
 
       await service.onModuleInit();

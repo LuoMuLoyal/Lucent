@@ -48,6 +48,7 @@ describe('NotificationsService', () => {
       $transaction: vi.fn(),
       userNotification: {
         create: vi.fn(),
+        upsert: vi.fn(),
         findMany: vi.fn(),
         count: vi.fn(),
         findFirst: vi.fn(),
@@ -143,6 +144,46 @@ describe('NotificationsService', () => {
   });
 
   describe('createOrReplaceScoped', () => {
+    it('upserts a notification with an explicit scope key', async () => {
+      (prismaService.userNotification.upsert as vi.Mock).mockResolvedValue({
+        ...mockScopedSuggestionRow,
+        id: 'notif-weekly-insight',
+      });
+
+      const result = await service.createOrReplaceScoped(
+        'user-uuid-1',
+        {
+          type: 'ai_weekly_insight',
+          title: 'Weekly health insight',
+          content: 'Your weekly trend is stable.',
+          action: 'report',
+          actionPayload: {
+            source: 'ai_weekly_insight',
+            date: '2026-06-08',
+          },
+        },
+        {
+          source: 'ai_weekly_insight',
+          date: '2026-06-08',
+          scopeKey: '2026-06-08',
+        },
+      );
+
+      expect(result.id).toBe('notif-weekly-insight');
+      expect(prismaService.userNotification.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId_type_scopeKey: {
+              userId: 'user-uuid-1',
+              type: 'ai_weekly_insight',
+              scopeKey: '2026-06-08',
+            },
+          },
+        }),
+      );
+      expect(prismaService.userNotification.findMany).not.toHaveBeenCalled();
+    });
+
     it('creates a new notification when no scoped duplicate exists', async () => {
       (prismaService.userNotification.findMany as vi.Mock).mockResolvedValue([
         {

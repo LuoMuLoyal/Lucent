@@ -28,6 +28,7 @@ type UserNotificationRow = Prisma.UserNotificationGetPayload<{
 interface NotificationScope {
   source: string;
   date: string;
+  scopeKey?: string;
 }
 
 @Injectable()
@@ -60,6 +61,34 @@ export class NotificationsService {
   ): Promise<NotificationListItemDto> {
     const created = await this.prisma.$transaction<UserNotificationRow>(
       async (tx) => {
+        if (scope.scopeKey != null) {
+          return tx.userNotification.upsert({
+            where: {
+              userId_type_scopeKey: {
+                userId,
+                type: dto.type,
+                scopeKey: scope.scopeKey,
+              },
+            },
+            update: {
+              title: dto.title,
+              content: dto.content,
+              action: dto.action ?? null,
+              actionPayload: toInputJsonValue(dto.actionPayload ?? null),
+            },
+            create: {
+              userId,
+              type: dto.type,
+              scopeKey: scope.scopeKey,
+              title: dto.title,
+              content: dto.content,
+              action: dto.action ?? null,
+              actionPayload: toInputJsonValue(dto.actionPayload ?? null),
+            },
+            select: notificationSelect,
+          });
+        }
+
         const existing = await tx.userNotification.findMany({
           where: {
             userId,

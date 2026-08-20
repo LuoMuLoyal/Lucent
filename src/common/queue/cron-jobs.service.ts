@@ -7,6 +7,7 @@ import { LifecycleService } from '../../modules/today-suggestion/services/lifecy
 import { LIFECYCLE_REFRESH_CRON } from '../../modules/today-suggestion/constants/lifecycle.constants';
 import { ReminderSchedulerService } from '../../modules/medicine-reminders/services/scheduler.service';
 import { REMINDER_SCHEDULER_CRON } from '../../modules/medicine-reminders/services/scheduler.service';
+import { WeeklyInsightSchedulerService } from '../../modules/notification-preferences/services/weekly-insight-scheduler.service';
 
 /** BullMQ queue name for low-frequency cron jobs (lifecycle + data-retention). */
 export const CRON_QUEUE_NAME = 'lucent-cron';
@@ -18,11 +19,13 @@ export const REMINDER_QUEUE_NAME = 'lucent-reminder-dispatch';
 const SCHEDULER_DATA_RETENTION = 'data-retention-cleanup';
 const SCHEDULER_LIFECYCLE = 'lifecycle-refresh';
 const SCHEDULER_REMINDER = 'reminder-dispatch';
+const SCHEDULER_WEEKLY_INSIGHT = 'weekly-insight';
 
 /** Job names — the worker processor dispatches on these. */
 const JOB_DATA_RETENTION = 'data-retention-cleanup';
 const JOB_LIFECYCLE = 'lifecycle-refresh';
 const JOB_REMINDER = 'reminder-dispatch';
+const JOB_WEEKLY_INSIGHT = 'weekly-insight';
 
 /**
  * Registers and processes cron-driven tasks as BullMQ Repeatable Jobs.
@@ -48,6 +51,7 @@ export class CronJobsService implements OnModuleInit {
     private readonly dataRetentionService: DataRetentionService,
     private readonly lifecycleService: LifecycleService,
     private readonly reminderSchedulerService: ReminderSchedulerService,
+    private readonly weeklyInsightSchedulerService: WeeklyInsightSchedulerService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -67,6 +71,9 @@ export class CronJobsService implements OnModuleInit {
             return;
           case JOB_LIFECYCLE:
             await this.lifecycleService.refreshLifecycleStates();
+            return;
+          case JOB_WEEKLY_INSIGHT:
+            await this.weeklyInsightSchedulerService.runTick();
             return;
           default:
             this.logger.warn(`Unknown cron job name: ${job.name}`);
@@ -124,6 +131,11 @@ export class CronJobsService implements OnModuleInit {
           SCHEDULER_LIFECYCLE,
           { pattern: LIFECYCLE_REFRESH_CRON, tz: 'UTC' },
           { name: JOB_LIFECYCLE, data: {} },
+        ),
+        cronQueue.upsertJobScheduler(
+          SCHEDULER_WEEKLY_INSIGHT,
+          { pattern: '* * * * *', tz: 'UTC' },
+          { name: JOB_WEEKLY_INSIGHT, data: {} },
         ),
       );
     }
