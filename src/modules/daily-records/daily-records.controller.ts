@@ -87,14 +87,17 @@ export class DailyRecordsController {
 
   @Post('attachments/images/presign-upload')
   @ApiOperation({
-    summary: 'Create a Tencent COS signed URL for daily record image upload',
+    summary: 'Create a signed URL for daily record image upload',
   })
   @ApiResponse({ status: 201, type: DailyRecordImageUploadResponseDto })
-  createImageUpload(
+  async createImageUpload(
     @CurrentUser() user: UserPayload,
     @Body() dto: CreateDailyRecordImageUploadDto,
   ) {
-    const result = this.imageUploadService.createPresignedUpload(user.sub, dto);
+    const result = await this.imageUploadService.createPresignedUpload(
+      user.sub,
+      dto,
+    );
     return successEnvelope(result);
   }
 

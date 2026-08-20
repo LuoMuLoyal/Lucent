@@ -119,7 +119,7 @@ describe('DailyRecordsController', () => {
   });
 
   describe('createImageUpload', () => {
-    it('calls imageUploadService.createPresignedUpload', () => {
+    it('calls imageUploadService.createPresignedUpload', async () => {
       const dto = {
         filename: 'test.jpg',
         contentType: 'image/jpeg',
@@ -129,9 +129,9 @@ describe('DailyRecordsController', () => {
         uploadUrl: 'https://cos.example.com',
         objectKey: 'key-1',
       } as never;
-      imageUploadService.createPresignedUpload.mockReturnValue(data);
+      imageUploadService.createPresignedUpload.mockResolvedValue(data);
 
-      const result = controller.createImageUpload(mockUser, dto);
+      const result = await controller.createImageUpload(mockUser, dto);
 
       expect(imageUploadService.createPresignedUpload).toHaveBeenCalledWith(
         'user-1',

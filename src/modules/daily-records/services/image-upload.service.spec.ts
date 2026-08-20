@@ -2,8 +2,10 @@ import {
   BadRequestException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { TencentCosConfig } from '../../../config/services/tencent-cos.config';
-import type { CosStorageRuntime } from '../../../common';
+import type {
+  ObjectStorageConfig,
+  ObjectStorageRuntime,
+} from '../../../common';
 import type { I18nService } from 'nestjs-i18n';
 import { DailyRecordImageUploadService } from './image-upload.service';
 
@@ -16,18 +18,19 @@ describe('DailyRecordImageUploadService', () => {
     vi.clearAllMocks();
   });
 
-  it('should create a Tencent COS signed upload URL', () => {
+  it('should create a signed upload URL', async () => {
     const runtime = runtimeDouble(testConfig());
     const service = new DailyRecordImageUploadService(runtime, mockI18n);
     const expectedObjectKeyPattern =
       /^daily-records\/user-1\/\d{4}\/\d{2}\/\d{2}\/[0-9a-f-]+\.jpg$/;
 
-    const result = service.createPresignedUpload('user-1', {
+    const result = await service.createPresignedUpload('user-1', {
       contentType: 'image/jpeg',
       sizeBytes: 1234,
       fileName: 'breakfast.jpeg',
     });
-    const signedPutArgs = runtime.createSignedPutUrl.mock.calls[0]?.[0];
+    const signedPutArgs = vi.mocked(runtime.createSignedPutUrl).mock
+      .calls[0]?.[0];
 
     expect(runtime.createSignedPutUrl).toHaveBeenCalledTimes(1);
     expect(signedPutArgs).toBeDefined();
@@ -42,53 +45,64 @@ describe('DailyRecordImageUploadService', () => {
     expect(result.maxSizeBytes).toBe(10_485_760);
   });
 
-  it('should reject unsupported content types', () => {
+  it('should reject unsupported content types', async () => {
     const service = new DailyRecordImageUploadService(
       runtimeDouble(testConfig()),
       mockI18n,
     );
 
-    expect(() =>
+    await expect(
       service.createPresignedUpload('user-1', {
         contentType: 'application/pdf',
         sizeBytes: 1234,
       }),
-    ).toThrow(BadRequestException);
+    ).rejects.toThrow(BadRequestException);
   });
 
-  it('should reject images larger than configured limit', () => {
+  it('should reject images larger than configured limit', async () => {
     const service = new DailyRecordImageUploadService(
       runtimeDouble({ ...testConfig(), maxUploadBytes: 1000 }),
       mockI18n,
     );
 
-    expect(() =>
+    await expect(
       service.createPresignedUpload('user-1', {
         contentType: 'image/png',
         sizeBytes: 1001,
       }),
-    ).toThrow(BadRequestException);
+    ).rejects.toThrow(BadRequestException);
   });
 
-  it('should fail when Tencent COS is not configured', () => {
+  it('should fail when storage is not configured', async () => {
     const service = new DailyRecordImageUploadService(
-      runtimeDouble({ ...testConfig(), secretId: '' }),
+      runtimeDouble({ ...testConfig() }, false),
       mockI18n,
     );
 
-    expect(() =>
+    await expect(
       service.createPresignedUpload('user-1', {
         contentType: 'image/png',
         sizeBytes: 1000,
       }),
-    ).toThrow(ServiceUnavailableException);
+    ).rejects.toThrow(ServiceUnavailableException);
+  });
+
+  it('should return provider from runtime config', async () => {
+    const runtime = runtimeDouble({ ...testConfig(), provider: 's3' });
+    const service = new DailyRecordImageUploadService(runtime, mockI18n);
+
+    const result = await service.createPresignedUpload('user-1', {
+      contentType: 'image/jpeg',
+      sizeBytes: 1234,
+    });
+
+    expect(result.provider).toBe('s3');
   });
 });
 
-function testConfig(): TencentCosConfig {
+function testConfig(): ObjectStorageConfig {
   return {
-    secretId: 'secret-id',
-    secretKey: 'secret-key',
+    provider: 'tencent-cos',
     bucket: 'lucent-test-bucket',
     region: 'ap-guangzhou',
     publicBaseUrl: 'https://cdn.example.com/',
@@ -98,16 +112,20 @@ function testConfig(): TencentCosConfig {
   };
 }
 
-function runtimeDouble(config: TencentCosConfig): vi.Mocked<CosStorageRuntime> {
-  const runtime: Pick<
-    vi.Mocked<CosStorageRuntime>,
-    'getConfig' | 'createSignedPutUrl'
-  > = {
+function runtimeDouble(
+  config: ObjectStorageConfig,
+  configured = true,
+): ObjectStorageRuntime {
+  return {
+    provider: config.provider,
     getConfig: vi.fn().mockReturnValue(config),
     createSignedPutUrl: vi
       .fn()
-      .mockReturnValue('https://signed-upload.example.com'),
-  };
-
-  return runtime as vi.Mocked<CosStorageRuntime>;
+      .mockResolvedValue('https://signed-upload.example.com'),
+    createSignedGetUrl: vi
+      .fn()
+      .mockResolvedValue('https://signed-download.example.com'),
+    uploadBuffer: vi.fn().mockResolvedValue(undefined),
+    isConfigured: vi.fn().mockReturnValue(configured),
+  } as unknown as ObjectStorageRuntime;
 }

@@ -6,19 +6,23 @@ import { extname } from 'node:path';
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
 import { ResultCode } from '../../../common';
 import { now } from '../../../common';
-import { CosStorageRuntime } from '../../../common';
+import {
+  ObjectStorageRuntime,
+  type ObjectStorageConfig,
+} from '../../../common';
 import type { CreateDailyRecordImageUploadDto } from '../dto/candidates/record-image-upload.dto';
-
-const PROVIDER = 'tencent-cos';
 
 @Injectable()
 export class DailyRecordImageUploadService {
   constructor(
-    private readonly runtime: CosStorageRuntime,
+    private readonly runtime: ObjectStorageRuntime,
     private readonly i18n: I18nService,
   ) {}
 
-  createPresignedUpload(userId: string, dto: CreateDailyRecordImageUploadDto) {
+  async createPresignedUpload(
+    userId: string,
+    dto: CreateDailyRecordImageUploadDto,
+  ) {
     const config = this.runtime.getConfig();
     this.assertConfigured();
 
@@ -35,7 +39,7 @@ export class DailyRecordImageUploadService {
     const headers = {
       'Content-Type': contentType,
     };
-    const uploadUrl = this.runtime.createSignedPutUrl({
+    const uploadUrl = await this.runtime.createSignedPutUrl({
       objectKey,
       contentType,
     });
@@ -44,28 +48,22 @@ export class DailyRecordImageUploadService {
     ).toISOString();
 
     return {
-      provider: PROVIDER,
+      provider: config.provider,
       bucket: config.bucket,
       objectKey,
       uploadUrl,
       headers,
-      publicUrl: this.createPublicUrl(objectKey),
+      publicUrl: this.createPublicUrl(objectKey, config),
       expiresAt,
       maxSizeBytes: config.maxUploadBytes,
     };
   }
 
   private assertConfigured(): void {
-    const config = this.runtime.getConfig();
-    if (
-      !config.secretId ||
-      !config.secretKey ||
-      !config.bucket ||
-      !config.region
-    ) {
+    if (!this.runtime.isConfigured()) {
       throw new ServiceUnavailableException({
         code: ResultCode.EXTERNAL_SERVICE_ERROR,
-        message: 'Tencent COS upload is not configured',
+        message: 'Object storage is not configured',
       });
     }
   }
@@ -107,8 +105,11 @@ export class DailyRecordImageUploadService {
     }
   }
 
-  private createPublicUrl(objectKey: string): string | null {
-    const baseUrl = this.runtime.getConfig().publicBaseUrl.trim();
+  private createPublicUrl(
+    objectKey: string,
+    config: ObjectStorageConfig,
+  ): string | null {
+    const baseUrl = config.publicBaseUrl.trim();
     if (!baseUrl) {
       return null;
     }
