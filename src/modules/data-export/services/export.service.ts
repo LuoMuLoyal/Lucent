@@ -70,10 +70,10 @@ export class DataExportService {
           format,
           range: effectiveRange,
           status: 'unavailable',
-          errorMessage: 'Tencent COS export storage is not configured',
+          errorMessage: 'Object storage is not configured',
         },
       });
-      return this.toDto(created);
+      return await this.toDto(created);
     }
 
     const created = await this.prisma.dataExportRequest.create({
@@ -94,7 +94,7 @@ export class DataExportService {
           userId,
           language,
         });
-        return this.toDto(created);
+        return await this.toDto(created);
       } catch (error) {
         // Redis 配置但断连：记日志后走下方 inline 同步处理，避免 500 丢任务。
         this.logger.error(
@@ -117,7 +117,7 @@ export class DataExportService {
       where: { id: created.id },
     });
 
-    return this.toDto(completed);
+    return await this.toDto(completed);
   }
 
   async getLatestRequest(
@@ -129,10 +129,12 @@ export class DataExportService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return row ? this.toDto(row) : null;
+    return row ? await this.toDto(row) : null;
   }
 
-  private toDto(row: DataExportRequestRow): DataExportRequestDataDto {
+  private async toDto(
+    row: DataExportRequestRow,
+  ): Promise<DataExportRequestDataDto> {
     return {
       id: row.id,
       kind: row.kind,
@@ -142,7 +144,8 @@ export class DataExportService {
       requestedAt: row.createdAt.toISOString(),
       completedAt: row.completedAt?.toISOString() ?? null,
       downloadUrl:
-        row.downloadUrl ?? this.storageService.createDownloadUrl(row.objectKey),
+        row.downloadUrl ??
+        (await this.storageService.createDownloadUrl(row.objectKey)),
       fileName: row.fileName,
       fileSizeBytes: row.fileSizeBytes,
       errorMessage: row.errorMessage,

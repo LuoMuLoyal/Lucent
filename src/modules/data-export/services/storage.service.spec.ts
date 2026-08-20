@@ -1,6 +1,8 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import type { TencentCosConfig } from '../../../config/services/tencent-cos.config';
-import type { CosStorageRuntime } from '../../../common';
+import type {
+  ObjectStorageConfig,
+  ObjectStorageRuntime,
+} from '../../../common';
 import { DataExportStorageService } from './storage.service';
 
 describe('DataExportStorageService', () => {
@@ -15,7 +17,7 @@ describe('DataExportStorageService', () => {
     });
 
     expect(runtime.uploadBuffer).toHaveBeenCalledTimes(1);
-    expect(runtime.uploadBuffer.mock.calls[0]?.[0].contentType).toBe(
+    expect(vi.mocked(runtime.uploadBuffer).mock.calls[0]?.[0].contentType).toBe(
       'application/pdf',
     );
     expect(result.provider).toBe('tencent-cos');
@@ -26,21 +28,31 @@ describe('DataExportStorageService', () => {
     expect(result.fileSizeBytes).toBe(Buffer.from('pdf bytes').byteLength);
   });
 
-  it('creates a signed download url when object key exists', () => {
+  it('creates a signed download url when object key exists', async () => {
     const runtime = runtimeDouble(testConfig());
     const service = new DataExportStorageService(runtime);
 
-    const result = service.createDownloadUrl('exports/user-1/report.pdf');
+    const result = await service.createDownloadUrl('exports/user-1/report.pdf');
 
     expect(result).toBe('https://signed-download.example.com');
-    expect(runtime.createSignedGetUrl).toHaveBeenCalledWith(
-      'exports/user-1/report.pdf',
-    );
+    expect(runtime.createSignedGetUrl).toHaveBeenCalledWith({
+      objectKey: 'exports/user-1/report.pdf',
+      audience: 'client',
+    });
   });
 
-  it('throws when upload is attempted without COS config', async () => {
+  it('returns null when object key is null', async () => {
+    const runtime = runtimeDouble(testConfig());
+    const service = new DataExportStorageService(runtime);
+
+    const result = await service.createDownloadUrl(null);
+
+    expect(result).toBeNull();
+  });
+
+  it('throws when upload is attempted without storage config', async () => {
     const service = new DataExportStorageService(
-      runtimeDouble({ ...testConfig(), secretId: '' }),
+      runtimeDouble(testConfig(), false),
     );
 
     await expect(
@@ -51,12 +63,24 @@ describe('DataExportStorageService', () => {
       }),
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
+
+  it('returns provider from runtime config', async () => {
+    const runtime = runtimeDouble({ ...testConfig(), provider: 's3' });
+    const service = new DataExportStorageService(runtime);
+
+    const result = await service.uploadPdf({
+      userId: 'user-1',
+      fileName: 'report.pdf',
+      body: Buffer.from('pdf bytes'),
+    });
+
+    expect(result.provider).toBe('s3');
+  });
 });
 
-function testConfig(): TencentCosConfig {
+function testConfig(): ObjectStorageConfig {
   return {
-    secretId: 'secret-id',
-    secretKey: 'secret-key',
+    provider: 'tencent-cos',
     bucket: 'lucent-test-bucket',
     region: 'ap-guangzhou',
     publicBaseUrl: '',
@@ -66,12 +90,20 @@ function testConfig(): TencentCosConfig {
   };
 }
 
-function runtimeDouble(config: TencentCosConfig): vi.Mocked<CosStorageRuntime> {
+function runtimeDouble(
+  config: ObjectStorageConfig,
+  configured = true,
+): ObjectStorageRuntime {
   return {
+    provider: config.provider,
     getConfig: vi.fn().mockReturnValue(config),
     uploadBuffer: vi.fn().mockResolvedValue(undefined),
     createSignedGetUrl: vi
       .fn()
-      .mockReturnValue('https://signed-download.example.com'),
-  } as unknown as vi.Mocked<CosStorageRuntime>;
+      .mockResolvedValue('https://signed-download.example.com'),
+    createSignedPutUrl: vi
+      .fn()
+      .mockResolvedValue('https://signed-upload.example.com'),
+    isConfigured: vi.fn().mockReturnValue(configured),
+  } as unknown as ObjectStorageRuntime;
 }

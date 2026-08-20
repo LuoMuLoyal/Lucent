@@ -1,21 +1,15 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
-import { ResultCode } from '../../../common';
+import { ResultCode, ObjectStorageRuntime } from '../../../common';
 import { now } from '../../../common';
-import { CosStorageRuntime } from '../../../common';
-
-const PROVIDER = 'tencent-cos';
 
 @Injectable()
 export class DataExportStorageService {
-  constructor(private readonly runtime: CosStorageRuntime) {}
+  constructor(private readonly runtime: ObjectStorageRuntime) {}
 
   isConfigured(): boolean {
-    const config = this.runtime.getConfig();
-    return Boolean(
-      config.secretId && config.secretKey && config.bucket && config.region,
-    );
+    return this.runtime.isConfigured();
   }
 
   async uploadPdf(params: {
@@ -37,20 +31,24 @@ export class DataExportStorageService {
       body: params.body,
     });
 
+    const config = this.runtime.getConfig();
     return {
       objectKey,
-      bucket: this.runtime.getConfig().bucket,
-      provider: PROVIDER,
+      bucket: config.bucket,
+      provider: config.provider,
       fileSizeBytes: params.body.byteLength,
     };
   }
 
-  createDownloadUrl(objectKey: string | null): string | null {
+  async createDownloadUrl(objectKey: string | null): Promise<string | null> {
     if (!objectKey || !this.isConfigured()) {
       return null;
     }
 
-    return this.runtime.createSignedGetUrl(objectKey);
+    return this.runtime.createSignedGetUrl({
+      objectKey,
+      audience: 'client',
+    });
   }
 
   private assertConfigured(): void {
@@ -60,7 +58,7 @@ export class DataExportStorageService {
 
     throw new ServiceUnavailableException({
       code: ResultCode.EXTERNAL_SERVICE_ERROR,
-      message: 'Tencent COS export storage is not configured',
+      message: 'Object storage is not configured',
     });
   }
 

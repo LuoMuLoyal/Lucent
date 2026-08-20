@@ -26,7 +26,7 @@ describe('DataExportService', () => {
       isConfigured: vi.fn().mockReturnValue(true),
       createDownloadUrl: vi
         .fn()
-        .mockReturnValue('https://cos.example.com/file'),
+        .mockResolvedValue('https://cos.example.com/file'),
     } as unknown as vi.Mocked<DataExportStorageService>;
 
     queueService = {
@@ -82,7 +82,7 @@ describe('DataExportService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             status: 'unavailable',
-            errorMessage: 'Tencent COS export storage is not configured',
+            errorMessage: 'Object storage is not configured',
           }),
         }),
       );
