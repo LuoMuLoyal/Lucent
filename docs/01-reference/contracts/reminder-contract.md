@@ -1,6 +1,6 @@
 # Reminder / Notification Contract
 
-Last updated: 2026-08-16
+Last updated: 2026-08-20
 
 ## Boundary
 
@@ -9,7 +9,8 @@ Lucent's notification system is split into two layers with a clear ownership bou
 **Device-local layer** — owned by Luminous, no backend involvement:
 
 - System notification permission request and status
-- Local notification preference toggles (medication reminders, health alerts, weekly summaries)
+- Local notification preference cache and sleep reminder scheduling (medication reminders remain
+  on the existing local chain)
 - Local-only scheduled notifications (triggered by on-device timer, not by Lucent)
 - Push token / FCM / APNs registration (future, not yet scoped)
 
@@ -38,8 +39,14 @@ Lucent's notification system is split into two layers with a clear ownership bou
     persisted log id. Suggestion materialization consumes it; Today Analysis can enqueue a
     versioned refresh from the same event, subject to its per-date generation cap.
 - Backend notification preferences
-  - Status: Not implemented — `UserProfile.extras.preferredReminderHour` exists as OpenAPI example
-    only
+  - Status: Implemented as `UserNotificationPreference`, a 1:1 user-owned model exposed by
+    `GET/PATCH /api/v1/user/notification-preferences`.
+  - Defaults are `healthAlertsEnabled=true`, `weeklyInsightEnabled=false`,
+    `waterRemindersEnabled=true`, `sleepReminderEnabled=false`; sleep minute fields are nullable
+    and validated in the inclusive range `0..1439`. GET reports `configured` and `updatedAt`.
+  - Today escalation maps `sleep_shortfall`, `event_check_in_trend`, and `deteriorating_symptom`
+    to `healthAlertsEnabled`; `water_behind_target` maps only to `waterRemindersEnabled`;
+    `missed_dose_pending` is unaffected.
 - Push delivery (JPush)
   - Status: `PushDeliveryService` sends the user ID as a JPush alias through the JPush REST API. Missing credentials skip delivery and the send result resolves `{ sent: false }`. Provider failures are logged and do not block the in-app notification flow. Push is a **background fallback only**: the scheduler sends it when the user's local capability is `unconfirmed` or `unavailable`, and never when it is `active` or `disabled`.
 - Reminder delivery log
@@ -67,17 +74,17 @@ Lucent's notification system is split into two layers with a clear ownership bou
 
 ### 1. Notification Preferences (User-scoped)
 
-**Model:** `UserNotificationPreference` (new Prisma model, 1:1 with User)
+**Model:** `UserNotificationPreference` (Prisma model, 1:1 with User)
 
 ```
 UserNotificationPreference {
   userId           String   @id
-  medicationEnabled  Boolean  @default(true)
-  healthAlertEnabled Boolean  @default(false)
-  weeklySummaryEnabled Boolean @default(false)
-  preferredStartHour  Int?     // 0-23, local device time
-  preferredEndHour    Int?     // 0-23, local device time
-  quietWeekends       Boolean  @default(false)
+  healthAlertsEnabled   Boolean  @default(true)
+  weeklyInsightEnabled  Boolean  @default(false)
+  waterRemindersEnabled Boolean  @default(true)
+  sleepReminderEnabled  Boolean  @default(false)
+  sleepBedtimeMinutes   Int?     // 0-1439, local device time
+  sleepWakeTimeMinutes  Int?     // 0-1439, local device time
   createdAt         DateTime
   updatedAt         DateTime
 }
@@ -95,10 +102,10 @@ UserNotificationPreference {
 **Notes:**
 
 - These preferences are backed by Lucent and synced across devices.
-- They do NOT control actual notification delivery — only the user's intent.
-- Local device prefs in `SharedPreferences` remain the source of truth for on-device behavior until
-  backend delivery exists.
-- The `preferredReminderHour` from the OpenAPI `extras` example will be migrated here.
+- Health/water/weekly server producers consume their fields as delivery gates; sleep scheduling
+  remains a Luminous local notification concern.
+- Luminous keeps SharedPreferences as a cache and one-time migration source for legacy values;
+  configured remote values are authoritative.
 
 ### 2. Reminder Schedule (User-scoped, per-medicine)
 

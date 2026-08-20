@@ -13,4 +13,6 @@ Lucent stores user-scoped notification preferences in
 
 - The preference row stores health, weekly insight, water, and sleep reminder
   intent for cross-device consumers.
+- Today health escalation reads `healthAlertsEnabled`; the water shortfall rule
+  reads `waterRemindersEnabled` independently.
 - Missing preference rows return the documented defaults with `configured: false`.

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma';
 import { NotificationsService } from '../../../notifications';
 import { PushDeliveryService } from '../../../notifications';
+import { NotificationPreferencesService } from '../../../notification-preferences';
 import { now } from '../../../../common';
 import type { SuggestionCandidate } from '../../types/candidate.types';
 import {
@@ -34,6 +35,7 @@ export class EscalationService {
     private readonly notificationsService: NotificationsService,
     private readonly pushDeliveryService: PushDeliveryService,
     private readonly prisma: PrismaService,
+    private readonly notificationPreferencesService: NotificationPreferencesService,
   ) {}
 
   /**
@@ -54,6 +56,15 @@ export class EscalationService {
     copy: { title: string; reason: string },
   ): Promise<boolean> {
     if (!this.isEligible(candidate)) {
+      return false;
+    }
+
+    if (
+      !(await this.notificationPreferencesService.isRuleEnabled(
+        userId,
+        candidate.ruleId,
+      ))
+    ) {
       return false;
     }
 

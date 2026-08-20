@@ -6,6 +6,7 @@ import { PrismaModule } from '../../prisma';
 import { DailyRecordsModule } from '../daily-records/daily-records.module';
 import { MedicineDoseLogsModule } from '../medicine-dose-logs/medicine-dose-logs.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { NotificationPreferencesModule } from '../notification-preferences/notification-preferences.module';
 import { UserSettingsModule } from '../user-settings/user-settings.module';
 import { ProductEventsModule } from '../product-events/product-events.module';
 import { HealthEventsModule } from '../health-events/health-events.module';
@@ -59,6 +60,7 @@ import type { SuggestionRule } from './types/rule.types';
   imports: [
     PrismaModule,
     NotificationsModule,
+    NotificationPreferencesModule,
     LlmRuntimeModule,
     LlmCommonModule,
     DailyRecordsModule,
