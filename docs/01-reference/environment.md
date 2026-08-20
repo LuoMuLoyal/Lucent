@@ -78,6 +78,10 @@ Local Docker stack note:
 - If you previously created local PostgreSQL volumes from the plain Postgres image, recreating the
   containers is usually enough. If the old volume state is incompatible or still lacks the extension
   binary, remove the local dev/test volumes and let Docker initialize them again.
+- `pnpm dev:stack` also starts SeaweedFS (`chrislusf/seaweedfs:4.41`) as the dev-only S3-compatible
+  object storage. SeaweedFS exposes the S3 API on port `8333` and the Filer on port `8888`.
+  Set `STORAGE_PROVIDER=s3` and configure `STORAGE_S3_*` in `.env.development` to use it.
+  See ADR-0014 for the object storage provider abstraction.
 
 ## Scripts
 
@@ -192,11 +196,21 @@ NODE_ENV=test pnpm exec prisma migrate deploy
 - Mail delivery uses BullMQ when `REDIS_URL` is set and immediate send when Redis is absent.
 - WeChat Web OAuth state is cached for 10 minutes. Desktop login may include a loopback callback URI
   in OAuth state.
-- Daily-record image uploads use presigned Tencent COS PUT URLs; clients upload directly to COS,
-  then save returned attachment metadata on the daily record.
-- Report PDF exports also reuse Tencent COS. Lucent uploads the generated PDF from the server side,
-  stores the COS object key in `data_export_requests`, and returns a short-lived signed GET URL
-  through the latest export status API.
+- Daily-record image uploads use presigned PUT URLs from the configured object storage provider;
+  clients upload directly to the provider, then save returned attachment metadata on the daily record.
+  In production the provider is Tencent COS; in development it can be SeaweedFS (S3) via `STORAGE_PROVIDER=s3`.
+- Report PDF exports also reuse the configured object storage. Lucent uploads the generated PDF from
+  the server side, stores the object key in `data_export_requests`, and returns a short-lived signed GET
+  URL through the latest export status API.
+- When `STORAGE_PROVIDER=s3`, three S3 endpoints are used: `STORAGE_S3_ENDPOINT` (server-side
+  operations), `STORAGE_S3_CLIENT_ENDPOINT` (presigned URLs for the Flutter client, defaults to
+  the internal endpoint), and `STORAGE_S3_EXTERNAL_ENDPOINT` (optional, for remote services like
+  vision models). Android emulator should set `STORAGE_S3_CLIENT_ENDPOINT` to `http://10.0.2.2:8333`.
+- `STORAGE_S3_PUBLIC_BASE_URL` (e.g. `http://10.0.2.2:8888/buckets/lucent-dev`) enables anonymous
+  Filer reads for local image display. This is a dev-only convenience and must not be used in
+  production.
+- When `STORAGE_S3_EXTERNAL_ENDPOINT` is not set, the meal-analysis worker will fail with a clear
+  configuration error instead of sending a local `127.0.0.1` URL to a remote vision model.
 - Generated report PDFs now include repeated page header/footer chrome, page numbers, and PDF
   metadata so exported files are usable outside the app as standalone documents.
 - Medicine search cache TTL is 5 minutes; medicine detail cache TTL is 15 minutes.

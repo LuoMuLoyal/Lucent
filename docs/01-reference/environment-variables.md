@@ -111,7 +111,7 @@ The Master Secret is sensitive and must not be committed.
 `/opt/lucent/.env` 注入）并完成真机验证。缺失时服务静默禁用推送并在启动日志 `warn`，
 `deploy.ts` 预检输出高亮 WARNING（不阻塞部署）；门槛本身见 [[deployment]] 最低上线检查。
 
-Daily-record image uploads through Tencent COS:
+Daily-record image uploads through object storage (Tencent COS or S3):
 
 ```text
 TENCENT_COS_SECRET_ID
@@ -128,6 +128,29 @@ TENCENT_COS_DOWNLOAD_EXPIRES_SECONDS
 only after at least one of `TENCENT_COS_SECRET_ID`, `TENCENT_COS_SECRET_KEY`, or
 `TENCENT_COS_BUCKET` is set; from that point, all of `TENCENT_COS_SECRET_ID`,
 `TENCENT_COS_SECRET_KEY`, `TENCENT_COS_BUCKET`, and `TENCENT_COS_REGION` must be set together.
+
+S3-compatible object storage (dev: SeaweedFS) — set `STORAGE_PROVIDER=s3` to use:
+
+```text
+STORAGE_PROVIDER=s3
+STORAGE_S3_ENDPOINT
+STORAGE_S3_CLIENT_ENDPOINT
+STORAGE_S3_EXTERNAL_ENDPOINT
+STORAGE_S3_PUBLIC_BASE_URL
+STORAGE_S3_ACCESS_KEY
+STORAGE_S3_SECRET_KEY
+STORAGE_S3_BUCKET
+STORAGE_S3_REGION
+STORAGE_S3_UPLOAD_EXPIRES_SECONDS
+STORAGE_S3_MAX_UPLOAD_BYTES
+STORAGE_S3_DOWNLOAD_EXPIRES_SECONDS
+```
+
+`STORAGE_PROVIDER` defaults to `tencent-cos`; when set to `s3`, all of `STORAGE_S3_ENDPOINT`,
+`STORAGE_S3_ACCESS_KEY`, `STORAGE_S3_SECRET_KEY`, and `STORAGE_S3_BUCKET` must be set together.
+`STORAGE_S3_CLIENT_ENDPOINT` defaults to `STORAGE_S3_ENDPOINT` when empty.
+`STORAGE_S3_EXTERNAL_ENDPOINT` is optional; when absent, requests for external-audience URLs
+(e.g. meal-analysis vision model) will fail with a clear configuration error.
 
 Mail:
 

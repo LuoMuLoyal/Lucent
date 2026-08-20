@@ -28,7 +28,7 @@ knowledge retrieval, and data export.
 corepack enable
 corepack prepare pnpm@11.9.0 --activate
 pnpm install
-pnpm dev:stack        # start local PostgreSQL + Redis
+pnpm dev:stack        # start local PostgreSQL + Redis + SeaweedFS
 pnpm db:migrate       # apply migrations
 pnpm start:dev        # start dev server
 ```
@@ -116,6 +116,10 @@ Local infrastructure note:
 - `pnpm dev:stack` now starts both local PostgreSQL services from `pgvector/pgvector:pg18`.
 - This is required for Lucent assistant RAG indexing because local scripts and `PGVectorStore` expect the `vector` extension to exist.
 - GitHub Actions CI now uses the same `pgvector/pgvector:pg18` PostgreSQL family for its test database service so vector-dependent backend paths are not validated against a weaker database baseline than local development.
+- `pnpm dev:stack` also starts SeaweedFS (`chrislusf/seaweedfs:4.41`) as the dev-only S3-compatible
+  object storage (S3 API on port `8333`, Filer on `8888`). Set `STORAGE_PROVIDER=s3` and configure
+  `STORAGE_S3_*` in `.env.development` to use local object storage instead of Tencent COS.
+  See ADR-0014 for details.
 
 For the mobile full-stack E2E lane, run Lucent against the test database so
 the test-only support route is available:

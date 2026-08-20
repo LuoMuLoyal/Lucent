@@ -107,3 +107,7 @@ What becomes easier or harder as a result of this decision?
   - Title: 提醒投递记录三通道落库（in_app / local / push）
   - Status: accepted
   - Date: 2026-08-16
+- [0014](0014-object-storage-provider-abstraction.md)
+  - Title: Object Storage Provider Abstraction
+  - Status: accepted
+  - Date: 2026-08-17
