@@ -28,7 +28,7 @@ interface CreateDataExportRequestDto {
 }
 ```
 
-**POST Response (201):** `{ code: 0, data: DataExportRequestDto }`
+**POST Response (201):** `DataExportRequestDto`
 
 Lucent persists the request row first, then tries to generate the export immediately.
 When the BullMQ queue is unavailable (Redis not configured, or enqueue fails at
@@ -40,7 +40,7 @@ Current real implementations are:
 - `monthly + pdf + last_30_days`
 - `print + pdf + last_7_days`
 
-**GET Response:** `{ code: 0, data: DataExportRequestDto | null }`
+**GET Response:** `DataExportRequestDto | null`
 
 Returns the most recent export request for the authenticated user, or `null`
 if none exists.
@@ -106,9 +106,8 @@ interface DataExportRequestDto {
   `minimum: 1` and `maximum: 100` (default 20), matching the runtime `@IsInt`/`@Min`/`@Max`
   validation; malformed cursors are rejected with 400 before any repository read.
 
-### Clinic Summary 分享/预览响应信封
+### Clinic Summary 分享/预览响应
 
-`POST /clinic-summary/preview`、`GET /clinic-summary/shared/{token}` 的响应类型统一为
-`ClinicSummaryResponseDto`(`{code,message,data:ClinicSummaryDto}`);`POST /clinic-summary/share`
-为 `ClinicSummaryShareResponseDto`(`{code,message,data:ClinicSummaryShareDataDto}`)。
-与全局 `ApiEnvelopeInterceptor` 的 `{code,message,data}` 契约一致(2026-08-15 修复)。
+`POST /clinic-summary/preview`、`GET /clinic-summary/shared/{token}` 的成功响应直接返回
+`ClinicSummaryDto`；`POST /clinic-summary/share` 的成功响应直接返回
+`ClinicSummaryShareDataDto`。错误响应使用 `application/problem+json`。

@@ -138,7 +138,7 @@ PATCH /api/v1/user/settings
 
 Both require authentication (`Bearer` token).
 
-**GET Response:** `{ code: 0, data: UserSettingsDto }`
+**GET Response:** `UserSettingsDto`
 
 ```typescript
 interface UserSettingsDto {
@@ -228,7 +228,7 @@ interface DisableSecurityPinDto {
 }
 ```
 
-**Verify response:** `{ code: 0, data: SecurityPinElevationResponseDto }`
+**Verify response:** `SecurityPinElevationResponseDto`
 
 ```typescript
 interface SecurityPinElevationResponseDto {

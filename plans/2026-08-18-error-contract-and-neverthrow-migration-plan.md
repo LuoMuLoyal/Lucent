@@ -14,7 +14,7 @@ Status: blocked until the Luminous 2026-08-16 plan gate is complete
 
 ## 最终目标
 
-- 成功响应保留 `{ code: 0, message: "", data, meta? }`。
+- 成功 JSON 响应直接返回 endpoint 定义的资源表示；`204 No Content` 不返回 body。
 - 普通 HTTP 4xx/5xx 使用 `application/problem+json`，不再使用错误 success envelope。
 - HTTP status 是传输真相；业务码使用稳定字符串，如 `AUTH_TOKEN_EXPIRED`、`RECORD_ALREADY_EXISTS`。
 - 领域可恢复失败统一使用项目入口导出的 `neverthrow` `Result`/`ResultAsync`，失败类型命名为 `DomainFailure`。
@@ -25,7 +25,7 @@ Status: blocked until the Luminous 2026-08-16 plan gate is complete
 
 1. 在 Lucent 定义 Problem Details 类型、稳定字符串业务码、问题 URI 和安全的 validation `errors` 结构。
 2. 改造全局异常 filter：已知领域失败映射 HTTP status/Problem Details，未知异常记录 OTel 后映射安全的 5xx Problem Details。
-3. 保留成功 envelope interceptor；为健康检查、普通 JSON、空成功响应补齐 OpenAPI schema。
+3. 移除成功 envelope interceptor 和显式成功包装；为健康检查、普通 JSON、集合分页、异步任务和空成功响应补齐对应 OpenAPI schema。
 4. 为 SSE 定义 `event: error` 结构，明确事件中的 `status` 仅表示流终止原因。
 5. 实现 `retryAfter`/`Retry-After` 语义和幂等方法约束；不得因为错误体存在而自动重试写操作。
 6. 导出 OpenAPI，添加 validation/auth/conflict/not-found/dependency/internal 的合同测试。
@@ -60,7 +60,7 @@ Status: blocked until the Luminous 2026-08-16 plan gate is complete
 
 ## 验收
 
-- 2xx JSON 必为成功 envelope 且 `code == 0`；4xx/5xx 必为 `application/problem+json`。
+- 2xx JSON 必须符合 endpoint 的资源 schema，`204` 必须无 body；4xx/5xx 必为 `application/problem+json`。
 - Problem Details 不含 `statusCode`、`requestId`、堆栈或内部敏感信息。
 - 客户端只按 HTTP status、稳定业务码、幂等性和 Retry-After 决定重试。
 - 每类代表性错误均有 Lucent contract/e2e 测试和 Luminous mapper/provider 测试。

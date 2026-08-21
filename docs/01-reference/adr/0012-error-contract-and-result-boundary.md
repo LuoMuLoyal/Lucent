@@ -21,19 +21,25 @@ diagnosable without exposing implementation details.
 
 ### 1. Separate success and failure representations
 
-Successful JSON responses retain the established success envelope:
+Successful JSON responses return the endpoint's resource representation directly:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+```
 
 ```json
 {
-  "code": 0,
-  "message": "",
-  "data": { "id": "record_123" },
-  "meta": { "traceId": "4bf92f3577b34da6a3ce929d0e0e4736" }
+  "id": "record_123",
+  "date": "2026-08-21"
 }
 ```
 
-`code: 0` is the only success code. `data` may be `null` for a successful empty operation.
-The success envelope remains the generated-client contract and is not replaced by a bare DTO.
+The success body is defined by the endpoint's OpenAPI resource schema; it is not wrapped in a
+generic `code`/`message`/`data` object. `POST` may return `201 Created` with the created resource,
+`PUT`/`PATCH` may return the updated resource or `204 No Content`, and `DELETE` normally returns
+`204 No Content`. Collection pagination metadata belongs to the collection representation, such as
+`{ "items": [...], "nextCursor": "..." }`.
 
 All ordinary HTTP 4xx and 5xx responses use RFC 9457 Problem Details:
 
@@ -71,7 +77,7 @@ provider payloads, prompts, credentials, or internal URLs. `requestId` is retire
 
 The invariants are mandatory:
 
-1. Every 2xx JSON response is a successful envelope with `code: 0`.
+1. Every 2xx JSON response conforms to its endpoint resource schema; a `204` response has no body.
 2. Every ordinary 4xx/5xx JSON response is `application/problem+json` with an HTTP-consistent
    `code` and `type`.
 3. A business failure is never represented by HTTP 200.
@@ -122,8 +128,15 @@ SSE is a transport exception: once the stream is established its HTTP status can
 
 ### Keep one `{ code, message, data }` envelope for all responses
 
-Rejected. It makes HTTP failures look successful to generic clients and retries, and it keeps two
-status authorities in the body and the HTTP response.
+Rejected. It makes HTTP failures look successful to generic clients and retries, keeps two status
+authorities in the body and the HTTP response, and adds no useful semantics to successful resource
+representations.
+
+### Keep the generic envelope for successful responses only
+
+Rejected. HTTP status already communicates the transport result, while endpoint-specific OpenAPI
+schemas can describe the resource directly. A generic success wrapper adds an extra client parsing
+step without providing a stable contract for the resource itself.
 
 ### Use `@backendkit-labs/result` and its NestJS integration
 
@@ -141,7 +154,8 @@ leaving the API contract, HTTP status mapping, and OTel integration under projec
 - Controllers and application services must use one project Result boundary for expected failures.
 - The global exception filter becomes the final safety net for unexpected failures, not the normal
   business-control-flow mechanism.
-- The existing success interceptor remains, while the error filter changes to Problem Details.
+- The existing success interceptor and explicit success wrappers must be removed or adapted to return
+  resource representations.
 - OpenAPI and generated clients must be regenerated as one cross-repository contract change.
 - The migration is intentionally a hard cut: after the migration window, old error envelopes,
   business uses of numeric `HHHSSS` codes, and unclassified business throws are removed rather than

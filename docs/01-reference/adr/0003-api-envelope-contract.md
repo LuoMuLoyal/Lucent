@@ -1,22 +1,23 @@
 # ADR-0003: API Envelope Contract
 
-- **Status**: accepted (partially superseded by ADR-0012)
+- **Status**: superseded by ADR-0012
 - **Date**: 2026-05-27
 - **Deciders**: LuoMuLoyal
 
-> ADR-0012 supersedes the error-response portion of this decision. This ADR remains authoritative
-> only for the successful JSON response envelope.
+> This ADR records the historical envelope decision. The current HTTP response contract is defined
+> by ADR-0012: successful responses return resource representations directly and ordinary HTTP
+> failures use RFC 9457 Problem Details.
 
 ## Context
 
-The API needs a predictable successful response format so the Flutter client can decode endpoint
-payloads consistently. The original decision also placed errors in the same envelope, but that made
-HTTP failures appear successful to generic clients and retry infrastructure. The current error
-contract is now defined by ADR-0012.
+The original API used one generic `{ code, message, data }` envelope for successful and failed
+responses. That shape made endpoint payloads less direct and allowed HTTP failures to look like
+successful responses to generic clients. The current contract removes the generic success wrapper
+and gives failures their own standard media type.
 
-## Decision
+## Historical Decision
 
-Successful JSON API responses use this envelope:
+The API originally used this successful-response envelope:
 
 ```json
 {
@@ -27,28 +28,42 @@ Successful JSON API responses use this envelope:
 }
 ```
 
-- `code` is always `0` for a successful response.
-- `message` is empty for successful responses.
-- `data` contains the endpoint payload and may be `null` for a successful empty operation.
-- `meta` is optional and may contain safe diagnostic metadata such as `traceId`.
-- The success envelope is documented in OpenAPI and is the generated-client success contract.
-- Health checks remain successful envelope endpoints when they return JSON.
+That decision is superseded. It remains in this ADR only as historical context for the contract
+and generated-client changes that follow.
 
-Ordinary HTTP 4xx and 5xx responses are not covered by this success envelope. They use RFC 9457
-`application/problem+json` as specified by ADR-0012.
+## Current Contract
+
+Successful JSON responses return the endpoint's resource representation directly:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"id":"record_123","date":"2026-08-21"}
+```
+
+- `GET` returns the requested resource or an explicit collection representation.
+- `POST` may return `201 Created` with the created resource.
+- `PUT`/`PATCH` may return the updated resource or `204 No Content` when no representation is
+  needed.
+- `DELETE` normally returns `204 No Content`.
+- Collection pagination metadata belongs to the collection representation, such as
+  `{ "items": [...], "nextCursor": "..." }`; it is not placed inside a generic `data` wrapper.
+- OpenAPI success schemas describe the actual resource representation returned on the wire.
+
+Ordinary HTTP 4xx and 5xx responses use RFC 9457 `application/problem+json` as specified by
+ADR-0012.
 
 ## Historical Options Considered
 
 ### One envelope for both success and failure
 
-This was accepted in the original decision because it gave the client one parser. It is retained
-here as historical context only. ADR-0012 replaces it because a non-zero business code inside HTTP
-200 is misclassified by proxies, retries, caches, and generic clients.
+Rejected. It made HTTP failures appear successful to proxies, retries, caches, and generic clients.
 
-### HTTP status codes with varied successful bodies
+### HTTP status codes with endpoint-specific successful bodies
 
-Rejected for successful responses. It would force the generated client to handle many endpoint
-success shapes without the stable envelope.
+Accepted. HTTP status communicates the transport result, while each endpoint's schema describes its
+resource representation directly.
 
 ### GraphQL
 
@@ -56,7 +71,8 @@ Rejected as over-engineered for this API.
 
 ## Consequences
 
-- Successful endpoint DTOs continue to describe the success envelope.
-- The error filter and error DTOs follow ADR-0012 rather than this ADR's historical numeric error
-  envelope.
-- OpenAPI export and Luminous client generation remain required when the success contract changes.
+- Successful endpoint DTOs describe resource representations rather than a generic envelope.
+- OpenAPI export and Luminous client generation are required when the success contract changes.
+- The old success envelope interceptor and explicit success wrappers must be removed or adapted
+  during the contract migration.
+- The error filter and error DTOs follow ADR-0012.

@@ -310,11 +310,12 @@ the prefix is centralized.
 
 ## Error Handling
 
-All error responses use `api-errors.ts` helpers (`notFound`, `badRequest`, `unauthorized`,
-`forbidden`, `conflict`) with i18n keys. The global envelope is `{ code: ResultCode, message:
-string, data?: T }`. `ApiExceptionFilter` is now resolved from Nest DI instead
-of being `new`-ed in bootstrap code so it can emit structured Winston logs
-with `trace_id`, `span_id`, method, path, status, and stack metadata.
+All ordinary HTTP error responses use `application/problem+json` with the Problem Details fields
+defined by ADR-0012. `api-errors.ts` helpers (`notFound`, `badRequest`, `unauthorized`, `forbidden`,
+`conflict`) continue to provide localized error context. The final `ApiExceptionFilter` is resolved
+from Nest DI so it can emit structured Winston logs with `trace_id`, `span_id`, method, path, status,
+and stack metadata; its response body must not use the successful resource representation or a
+generic `{ code, message, data }` envelope.
 
 Health event API errors use the `health-events` i18n scope in `src/i18n/en/` and
 `src/i18n/zh-CN/`, keeping outcome, ownership, and date-validation messages localized.

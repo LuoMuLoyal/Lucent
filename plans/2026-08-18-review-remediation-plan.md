@@ -84,12 +84,12 @@ Status: active
 
 - 处置表 13 项全部关闭（修复 / 复核关闭 / 记录原因）。
 - `pnpm lint:check`、`pnpm typecheck`、`pnpm build`、`pnpm test:ci`、`pnpm docs:check` 全绿。
-- `pnpm export:openapi` 语义 diff 为空；成功 envelope 与错误 envelope 形状不变。
+- `pnpm export:openapi` 语义 diff 为空；在本计划执行范围内不改变响应形状。目标响应契约以 ADR-0012 为准。
 - grep 复核：无剩余「cache 失败静默」点（失败路径均有 warn 级日志）。
 
 ## 六、不做的事
 
 - 不启动 neverthrow / Problem Details 硬切（`2026-08-18-error-contract-and-neverthrow-migration-plan.md` 负责，本计划不为其预埋半成品）。
-- 不修改 SSE 事件结构、不改 `{ code, message, data }` 成功信封。
+- 本计划不修改 SSE 事件结构或响应契约；成功资源与 Problem Details 的目标形状以 ADR-0012 为准。
 - 不为「命名对称」做大规模重命名（#9 已记录原因关闭）。
 - 不处理 in-process 记忆注册表重启丢失（已文档化，另行评估）。

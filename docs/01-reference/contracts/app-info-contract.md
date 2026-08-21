@@ -14,7 +14,7 @@ Public (no authentication required). Returns server-side runtime configuration
 for the client. App name, version, and build number are **not** included —
 the client obtains those locally via `package_info_plus`.
 
-**Response:** `{ code: 0, data: AppInfoDto }`
+**Response:** `AppInfoDto`
 
 ```typescript
 interface AppInfoDto {

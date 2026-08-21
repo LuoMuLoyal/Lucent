@@ -39,7 +39,7 @@ returns a default region's data.
   - Required: no
   - Description: Longitude, approximate
 
-**Response envelope:** `{ code: 0, data: EnvironmentSnapshotDto }`
+**Response:** `EnvironmentSnapshotDto`
 
 ```typescript
 interface EnvironmentSnapshotDto {
