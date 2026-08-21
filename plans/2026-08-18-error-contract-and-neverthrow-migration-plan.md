@@ -15,7 +15,7 @@ Status: blocked until the Luminous 2026-08-16 plan gate is complete
 ## 最终目标
 
 - 成功 JSON 响应直接返回 endpoint 定义的资源表示；`204 No Content` 不返回 body。
-- 普通 HTTP 4xx/5xx 使用 `application/problem+json`，不再使用错误 success envelope。
+- 普通 HTTP 4xx/5xx 使用 `application/problem+json`，不再使用通用成功响应包装。
 - HTTP status 是传输真相；业务码使用稳定字符串，如 `AUTH_TOKEN_EXPIRED`、`RECORD_ALREADY_EXISTS`。
 - 领域可恢复失败统一使用项目入口导出的 `neverthrow` `Result`/`ResultAsync`，失败类型命名为 `DomainFailure`。
 - HTTP 层使用 `ProblemDetails` mapper；不使用第三方 NestJS Result interceptor。
@@ -25,7 +25,7 @@ Status: blocked until the Luminous 2026-08-16 plan gate is complete
 
 1. 在 Lucent 定义 Problem Details 类型、稳定字符串业务码、问题 URI 和安全的 validation `errors` 结构。
 2. 改造全局异常 filter：已知领域失败映射 HTTP status/Problem Details，未知异常记录 OTel 后映射安全的 5xx Problem Details。
-3. 移除成功 envelope interceptor 和显式成功包装；为健康检查、普通 JSON、集合分页、异步任务和空成功响应补齐对应 OpenAPI schema。
+3. 移除统一成功响应拦截器和显式成功包装；为健康检查、普通 JSON、集合分页、异步任务和空成功响应补齐对应 OpenAPI schema。
 4. 为 SSE 定义 `event: error` 结构，明确事件中的 `status` 仅表示流终止原因。
 5. 实现 `retryAfter`/`Retry-After` 语义和幂等方法约束；不得因为错误体存在而自动重试写操作。
 6. 导出 OpenAPI，添加 validation/auth/conflict/not-found/dependency/internal 的合同测试。
@@ -41,7 +41,7 @@ Status: blocked until the Luminous 2026-08-16 plan gate is complete
 
 ## 硬切删除清单
 
-- 旧的普通 HTTP 错误 envelope 和对应客户端 fallback；
+- 旧的普通 HTTP 错误响应格式和对应客户端 fallback；
 - 业务用途的 `HHHSSS` 数值错误码；
 - `api-errors.ts` 中仅为业务流程服务的 throw helper；
 - 未分类的业务 `throw error`；

@@ -64,8 +64,8 @@ What becomes easier or harder as a result of this decision?
   - Status: accepted
   - Date: 2026-06-12
 - [0003](0003-api-envelope-contract.md)
-  - Title: API Envelope Contract (successful responses; error portion superseded by 0012)
-  - Status: accepted (partially superseded by 0012)
+  - Title: API Envelope Contract (historical; fully superseded by 0012)
+  - Status: superseded by 0012
   - Date: 2026-05-27
 - [0004](0004-deployment-model.md)
   - Title: GitHub Actions + Tencent TCR Deployment Model

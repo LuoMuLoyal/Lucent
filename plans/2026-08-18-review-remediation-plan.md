@@ -6,7 +6,7 @@ Status: active
 > 来源：`plans/lucent-review-2026-08-18.md`（审查报告，已对照 HEAD `590de431` 实际代码复核改写；复核结论优先，审查报告中的误报不返工）。
 > 权威决策：[`ADR-0012`](../docs/01-reference/adr/0012-error-contract-and-result-boundary.md)。
 > 关联计划：[`2026-08-18-error-contract-and-neverthrow-migration-plan.md`](2026-08-18-error-contract-and-neverthrow-migration-plan.md)。
-> 本计划的「日志 + OTel + 安全化」整改与 ADR-0012 方向一致，但**不依赖**该计划的门禁：门禁计划启动前，错误仍走现有 envelope + Nest 异常过滤器，禁止提前引入 `application/problem+json` 或 neverthrow。
+> 本计划的「日志 + OTel + 安全化」整改与 ADR-0012 方向一致，但**不依赖**该计划的门禁：本计划执行期间不切换 HTTP 错误媒体类型，Problem Details 与资源响应契约按独立契约迁移计划实施。
 
 ## 一、目标与范围
 

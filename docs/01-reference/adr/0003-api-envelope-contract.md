@@ -4,7 +4,7 @@
 - **Date**: 2026-05-27
 - **Deciders**: LuoMuLoyal
 
-> This ADR records the historical envelope decision. The current HTTP response contract is defined
+> This ADR records the historical envelope decision. The target HTTP response contract is defined
 > by ADR-0012: successful responses return resource representations directly and ordinary HTTP
 > failures use RFC 9457 Problem Details.
 
@@ -12,8 +12,8 @@
 
 The original API used one generic `{ code, message, data }` envelope for successful and failed
 responses. That shape made endpoint payloads less direct and allowed HTTP failures to look like
-successful responses to generic clients. The current contract removes the generic success wrapper
-and gives failures their own standard media type.
+successful responses to generic clients. The target contract removes the generic success wrapper
+and gives failures their own standard media type; implementation remains pending.
 
 ## Historical Decision
 
@@ -31,7 +31,7 @@ The API originally used this successful-response envelope:
 That decision is superseded. It remains in this ADR only as historical context for the contract
 and generated-client changes that follow.
 
-## Current Contract
+## Target Contract
 
 Successful JSON responses return the endpoint's resource representation directly:
 
