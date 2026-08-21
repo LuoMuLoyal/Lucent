@@ -42,6 +42,7 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
   private readonly clientClient: S3Client;
   private readonly externalClient: S3Client | null;
   private bucketEnsured = false;
+  private bucketEnsurePromise: Promise<void> | null = null;
 
   constructor(configService: ConfigService) {
     super();
@@ -160,7 +161,13 @@ export class S3StorageRuntime extends ObjectStorageRuntime {
     if (this.bucketEnsured) {
       return;
     }
+    if (!this.bucketEnsurePromise) {
+      this.bucketEnsurePromise = this.doEnsureBucket();
+    }
+    await this.bucketEnsurePromise;
+  }
 
+  private async doEnsureBucket(): Promise<void> {
     try {
       await this.internalClient.send(
         new HeadBucketCommand({ Bucket: this.config.bucket }),
