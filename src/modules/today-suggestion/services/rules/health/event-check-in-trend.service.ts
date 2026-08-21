@@ -27,6 +27,7 @@ interface EventCheckInTrendPayload {
 
 const WORSENED_OUTCOME = 'worsened';
 const LOOKBACK_DAYS = 3;
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * Rule: event_check_in_trend
@@ -106,7 +107,7 @@ export class EventCheckInTrendRuleService implements SuggestionRule {
       primaryAction: {
         actionId: 'review_event',
         label: 'review_event',
-        route: `/report/review/${payload.eventId}`,
+        route: `/report/review/${encodeURIComponent(payload.eventId)}`,
         authRequired: true,
       },
       priorityScore: 750,
@@ -125,7 +126,13 @@ export class EventCheckInTrendRuleService implements SuggestionRule {
   }
 
   private buildLookbackWindow(date: string): string[] {
+    if (!DATE_ONLY_RE.test(date)) {
+      return [];
+    }
     const day = new Date(`${date}T00:00:00.000Z`);
+    if (Number.isNaN(day.getTime())) {
+      return [];
+    }
     const window: string[] = [];
     for (let offset = 0; offset < LOOKBACK_DAYS; offset++) {
       const current = new Date(day);
