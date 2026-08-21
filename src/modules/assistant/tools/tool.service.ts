@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import type {
@@ -47,6 +47,8 @@ const READ_TOOL_NAMES = new Set<AssistantToolName>(ASSISTANT_READ_TOOL_NAMES);
 
 @Injectable()
 export class AssistantToolService {
+  private readonly logger = new Logger(AssistantToolService.name);
+
   constructor(
     private readonly readService: AssistantToolReadService,
     private readonly leafletReadService: AssistantToolLeafletReadService,
@@ -163,7 +165,14 @@ export class AssistantToolService {
     // after the timeout already won — that rejection must not become
     // unhandled. Errors that settle BEFORE the timeout still propagate through
     // the race as before.
-    execution.catch(() => undefined);
+    execution.catch((err: unknown) => {
+      this.logger.warn(
+        `Tool "${toolName}" failed after timeout: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        err instanceof Error ? err.stack : undefined,
+      );
+    });
     return Promise.race([execution, timeout]);
   }
 
