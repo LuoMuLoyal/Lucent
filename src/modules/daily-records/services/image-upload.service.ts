@@ -1,14 +1,14 @@
 import { badRequest } from '../../../common';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
-import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
 import { ResultCode } from '../../../common';
-import { now } from '../../../common';
 import {
   ObjectStorageRuntime,
   type ObjectStorageConfig,
+  createDatePartitionedObjectKey,
+  buildPublicUrl,
 } from '../../../common';
 import type { CreateDailyRecordImageUploadDto } from '../dto/candidates/record-image-upload.dto';
 
@@ -73,13 +73,8 @@ export class DailyRecordImageUploadService {
     fileName: string | undefined,
     contentType: string,
   ): string {
-    const currentTime = now();
-    const year = String(currentTime.getUTCFullYear());
-    const month = String(currentTime.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(currentTime.getUTCDate()).padStart(2, '0');
     const extension = this.resolveExtension(fileName, contentType);
-
-    return `daily-records/${userId}/${year}/${month}/${day}/${randomUUID()}${extension}`;
+    return createDatePartitionedObjectKey('daily-records', userId, extension);
   }
 
   private resolveExtension(
@@ -109,18 +104,6 @@ export class DailyRecordImageUploadService {
     objectKey: string,
     config: ObjectStorageConfig,
   ): string | null {
-    const baseUrl = config.publicBaseUrl.trim();
-    if (!baseUrl) {
-      return null;
-    }
-
-    return `${baseUrl.replace(/\/+$/, '')}/${encodeObjectKey(objectKey)}`;
+    return buildPublicUrl(config.publicBaseUrl, objectKey);
   }
-}
-
-function encodeObjectKey(objectKey: string): string {
-  return objectKey
-    .split('/')
-    .map((part) => encodeURIComponent(part))
-    .join('/');
 }

@@ -1,8 +1,10 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
-import { ResultCode, ObjectStorageRuntime } from '../../../common';
-import { now } from '../../../common';
+import {
+  ResultCode,
+  ObjectStorageRuntime,
+  createDatePartitionedObjectKey,
+} from '../../../common';
 
 @Injectable()
 export class DataExportStorageService {
@@ -52,24 +54,17 @@ export class DataExportStorageService {
   }
 
   private assertConfigured(): void {
-    if (this.isConfigured()) {
-      return;
+    if (!this.runtime.isConfigured()) {
+      throw new ServiceUnavailableException({
+        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        message: 'Object storage is not configured',
+      });
     }
-
-    throw new ServiceUnavailableException({
-      code: ResultCode.EXTERNAL_SERVICE_ERROR,
-      message: 'Object storage is not configured',
-    });
   }
 
   private createObjectKey(userId: string, fileName: string): string {
-    const currentTime = now();
-    const year = String(currentTime.getUTCFullYear());
-    const month = String(currentTime.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(currentTime.getUTCDate()).padStart(2, '0');
     const extension = this.resolveExtension(fileName);
-
-    return `exports/${userId}/${year}/${month}/${day}/${randomUUID()}${extension}`;
+    return createDatePartitionedObjectKey('exports', userId, extension);
   }
 
   private resolveExtension(fileName: string): string {

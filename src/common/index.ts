@@ -38,6 +38,12 @@ export { SlowRequestInterceptor } from './interceptors/slow-request.interceptor'
 export { SseConnectionRegistry } from './api/sse/sse-connection-registry.service';
 export { SseModule } from './api/sse/sse.module';
 export { StorageModule } from './storage/storage.module';
+export {
+  createDatePartitionedObjectKey,
+  createFlatObjectKey,
+  encodeObjectKey,
+  buildPublicUrl,
+} from './storage/object-key.utils';
 export { RedisModule } from './redis/redis.module';
 export { RedisService } from './redis/redis.service';
 export { buildSearchText } from './helpers/format/search-text.utils';

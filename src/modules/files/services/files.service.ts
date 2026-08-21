@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { extname } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
@@ -6,7 +5,11 @@ import { I18nService } from 'nestjs-i18n';
 
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
 import { badRequest } from '../../../common';
-import { ObjectStorageRuntime } from '../../../common';
+import {
+  ObjectStorageRuntime,
+  createFlatObjectKey,
+  buildPublicUrl,
+} from '../../../common';
 import type { CreateFileUploadDto } from '../dto/create-file-upload.dto';
 
 @Injectable()
@@ -30,7 +33,7 @@ export class FilesService {
 
     const ext =
       contentType === 'image/jpeg' ? '.jpg' : extname(dto.fileName ?? '.bin');
-    const objectKey = `files/${userId}/${randomUUID()}${ext || '.bin'}`;
+    const objectKey = createFlatObjectKey('files', userId, ext || '.bin');
     const headers = { 'Content-Type': contentType };
     const uploadUrl = await this.runtime.createSignedPutUrl({
       objectKey,
@@ -46,9 +49,7 @@ export class FilesService {
       objectKey,
       uploadUrl,
       headers,
-      publicUrl: config.publicBaseUrl
-        ? `${config.publicBaseUrl.replace(/\/$/, '')}/${objectKey}`
-        : null,
+      publicUrl: buildPublicUrl(config.publicBaseUrl, objectKey),
       expiresAt,
       maxSizeBytes: config.maxUploadBytes,
     };
