@@ -1,5 +1,5 @@
 import COS from 'cos-nodejs-sdk-v5';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ConfigKey } from '../../config/env/config-keys.enum';
 import type { TencentCosConfig } from '../../config/services/tencent-cos.config';
@@ -17,10 +17,17 @@ import {
  * Wraps the `cos-nodejs-sdk-v5` SDK and implements the
  * `ObjectStorageRuntime` abstraction.  Used in production and test/e2e
  * environments (`STORAGE_PROVIDER` unset or `tencent-cos`).
+ *
+ * **Note on `audience`**: COS signed URLs are not audience-specific —
+ * both client and external audiences receive the same URL.  This
+ * differs from `S3StorageRuntime`, which uses separate endpoints.
+ * If external-access differentiation is needed, configure a CDN or
+ * public bucket policy at the COS level.
  */
 @Injectable()
 export class TencentCosStorageRuntime extends ObjectStorageRuntime {
   readonly provider = 'tencent-cos' as const;
+  private readonly logger = new Logger(TencentCosStorageRuntime.name);
 
   private readonly cos: COS;
   private readonly config: TencentCosConfig;
@@ -74,8 +81,13 @@ export class TencentCosStorageRuntime extends ObjectStorageRuntime {
   }
 
   createSignedGetUrl(input: SignedGetUrlInput): Promise<string> {
-    // COS URLs are not audience-specific; both client and external
-    // audiences receive the same signed URL.
+    if (input.audience === 'external') {
+      this.logger.warn(
+        'COS does not support audience-specific endpoints; ' +
+          'external audience will receive the same signed URL as client. ' +
+          'Configure a CDN or public bucket policy if external access differentiation is needed.',
+      );
+    }
     return Promise.resolve(
       this.cos.getObjectUrl({
         Bucket: this.config.bucket,

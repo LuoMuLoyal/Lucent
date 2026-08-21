@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Module, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EnvKey } from '../../config/env/env-keys.enum';
+import { ResultCode } from '../api/api-envelope';
 import { ObjectStorageRuntime } from './object-storage.runtime';
 import { TencentCosStorageRuntime } from './tencent-cos.runtime';
 import { S3StorageRuntime } from './s3.runtime';
@@ -29,10 +30,12 @@ import { S3StorageRuntime } from './s3.runtime';
         if (provider === 'tencent-cos') {
           return new TencentCosStorageRuntime(configService);
         }
-        throw new Error(
-          `STORAGE_PROVIDER "${provider}" is not supported. ` +
+        throw new ServiceUnavailableException({
+          code: ResultCode.EXTERNAL_SERVICE_ERROR,
+          message:
+            `STORAGE_PROVIDER "${provider}" is not supported. ` +
             'Use "tencent-cos" or "s3".',
-        );
+        });
       },
       inject: [ConfigService],
     },
