@@ -20,11 +20,13 @@ export interface TencentCosConfig {
 export const tencentCosConfig = registerAs(
   ConfigKey.TencentCos,
   (): TencentCosConfig => ({
-    secretId: process.env[EnvKey.TENCENT_COS_SECRET_ID] ?? '',
-    secretKey: process.env[EnvKey.TENCENT_COS_SECRET_KEY] ?? '',
-    bucket: process.env[EnvKey.TENCENT_COS_BUCKET] ?? '',
-    region: process.env[EnvKey.TENCENT_COS_REGION] ?? '',
-    publicBaseUrl: process.env[EnvKey.TENCENT_COS_PUBLIC_BASE_URL] ?? '',
+    secretId: (process.env[EnvKey.TENCENT_COS_SECRET_ID] ?? '').trim(),
+    secretKey: (process.env[EnvKey.TENCENT_COS_SECRET_KEY] ?? '').trim(),
+    bucket: (process.env[EnvKey.TENCENT_COS_BUCKET] ?? '').trim(),
+    region: (process.env[EnvKey.TENCENT_COS_REGION] ?? '').trim(),
+    publicBaseUrl: (
+      process.env[EnvKey.TENCENT_COS_PUBLIC_BASE_URL] ?? ''
+    ).trim(),
     uploadExpiresSeconds: Number(
       process.env[EnvKey.TENCENT_COS_UPLOAD_EXPIRES_SECONDS] ??
         DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,

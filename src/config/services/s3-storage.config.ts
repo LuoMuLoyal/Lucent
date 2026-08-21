@@ -23,14 +23,20 @@ export interface S3StorageConfig {
 export const s3StorageConfig = registerAs(
   ConfigKey.S3Storage,
   (): S3StorageConfig => ({
-    endpoint: process.env[EnvKey.STORAGE_S3_ENDPOINT] ?? '',
-    clientEndpoint: process.env[EnvKey.STORAGE_S3_CLIENT_ENDPOINT] ?? '',
-    externalEndpoint: process.env[EnvKey.STORAGE_S3_EXTERNAL_ENDPOINT] ?? '',
-    publicBaseUrl: process.env[EnvKey.STORAGE_S3_PUBLIC_BASE_URL] ?? '',
-    accessKey: process.env[EnvKey.STORAGE_S3_ACCESS_KEY] ?? '',
-    secretKey: process.env[EnvKey.STORAGE_S3_SECRET_KEY] ?? '',
-    bucket: process.env[EnvKey.STORAGE_S3_BUCKET] ?? '',
-    region: process.env[EnvKey.STORAGE_S3_REGION] ?? 'us-east-1',
+    endpoint: (process.env[EnvKey.STORAGE_S3_ENDPOINT] ?? '').trim(),
+    clientEndpoint: (
+      process.env[EnvKey.STORAGE_S3_CLIENT_ENDPOINT] ?? ''
+    ).trim(),
+    externalEndpoint: (
+      process.env[EnvKey.STORAGE_S3_EXTERNAL_ENDPOINT] ?? ''
+    ).trim(),
+    publicBaseUrl: (
+      process.env[EnvKey.STORAGE_S3_PUBLIC_BASE_URL] ?? ''
+    ).trim(),
+    accessKey: (process.env[EnvKey.STORAGE_S3_ACCESS_KEY] ?? '').trim(),
+    secretKey: (process.env[EnvKey.STORAGE_S3_SECRET_KEY] ?? '').trim(),
+    bucket: (process.env[EnvKey.STORAGE_S3_BUCKET] ?? '').trim(),
+    region: (process.env[EnvKey.STORAGE_S3_REGION] ?? 'us-east-1').trim(),
     uploadExpiresSeconds: Number(
       process.env[EnvKey.STORAGE_S3_UPLOAD_EXPIRES_SECONDS] ??
         DEFAULT_COS_UPLOAD_EXPIRY_SECONDS,
