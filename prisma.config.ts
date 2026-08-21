@@ -13,12 +13,20 @@ for (const envPath of getDotenvLoadOrder()) {
   });
 }
 
+const databaseUrl = process.env['DATABASE_URL'];
+if (!databaseUrl || databaseUrl.trim() === '') {
+  throw new Error(
+    'DATABASE_URL environment variable is required but not set. ' +
+      'Please define it in your .env file (see docs/environment.md for reference).',
+  );
+}
+
 export default defineConfig({
   schema: 'prisma/',
   migrations: {
     path: 'prisma/migrations',
   },
   datasource: {
-    url: process.env['DATABASE_URL'] ?? '',
+    url: databaseUrl,
   },
 });
