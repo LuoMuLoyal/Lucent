@@ -181,7 +181,11 @@ export class AssistantConversationRepository implements AssistantConversationRep
   ): Promise<ConversationWithMessages | null> {
     return this.prisma.assistantConversation.findFirst({
       ...conversationWithMessagesArgs,
-      where: { id: conversationId, userId },
+      where: {
+        id: conversationId,
+        userId,
+        status: { not: AssistantConversationStatus.deleted },
+      },
     });
   }
 
@@ -191,7 +195,11 @@ export class AssistantConversationRepository implements AssistantConversationRep
   ): Promise<ConversationWithMessages> {
     return this.prisma.assistantConversation.findFirstOrThrow({
       ...conversationWithMessagesArgs,
-      where: { id: conversationId, userId },
+      where: {
+        id: conversationId,
+        userId,
+        status: { not: AssistantConversationStatus.deleted },
+      },
     });
   }
 

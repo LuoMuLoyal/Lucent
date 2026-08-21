@@ -75,7 +75,11 @@ describe('AssistantConversationRepository', () => {
       await repository.findWithMessages('user-1', 'conv-1');
 
       const call = prisma.assistantConversation.findFirst.mock.calls[0]?.[0];
-      expect(call?.where).toEqual({ id: 'conv-1', userId: 'user-1' });
+      expect(call?.where).toEqual({
+        id: 'conv-1',
+        userId: 'user-1',
+        status: { not: AssistantConversationStatus.deleted },
+      });
     });
   });
 
@@ -93,7 +97,11 @@ describe('AssistantConversationRepository', () => {
         prisma.assistantConversation.findFirstOrThrow,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'conv-1', userId: 'user-1' },
+          where: {
+            id: 'conv-1',
+            userId: 'user-1',
+            status: { not: AssistantConversationStatus.deleted },
+          },
         }),
       );
     });
