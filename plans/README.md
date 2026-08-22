@@ -33,4 +33,4 @@ YYYY-MM-DD-short-task-name.md
 ## Current Plans
 
 - [`2026-08-18-error-contract-and-neverthrow-migration-plan.md`](2026-08-18-error-contract-and-neverthrow-migration-plan.md)
-  — RFC 9457 + neverthrow 错误处理硬切；等待 Luminous 2026-08-16 十份功能改造计划完成、验证并删除后启动
+  — RFC 9457 + neverthrow 错误处理硬切；2026-08-22 已进入冻结新功能的硬切窗口

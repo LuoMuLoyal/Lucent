@@ -2,12 +2,16 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-17
+updated: 2026-08-22
 ---
 
 # Code Quality / Maintainability
 
-Last updated: 2026-08-17
+Last updated: 2026-08-22
+
+- HTTP errors use the single `ApiExceptionFilter` Problem Details boundary: JSON errors are
+  `application/problem+json`, stable string `code` values, and never expose `statusCode`,
+  `requestId`, or internal exception details. Do not reintroduce success-envelope error payloads.
 
 - Barrel files (`index.ts`) must never export `.spec.ts` files — spec exports cause `nest build` to
   compile test files into `dist/`, and runtime barrel loading triggers `describe`/`it` calls that

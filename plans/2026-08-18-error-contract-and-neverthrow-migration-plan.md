@@ -1,14 +1,18 @@
 # Lucent 错误契约与 neverthrow 硬切计划
 
 Created: 2026-08-18
-Status: blocked until the Luminous 2026-08-16 plan gate is complete
+Status: active — hard-cut window opened 2026-08-22
 
 > 权威决策见 [`ADR-0012`](../docs/01-reference/adr/0012-error-contract-and-result-boundary.md)。
 > 本计划与 Luminous 的 `2026-08-17-error-handling-reform-plan.md` 成对执行。
 
 ## 启动门禁
 
-在 Luminous `plans/` 下 2026-08-16 的十份功能改造计划全部完成、验证通过、追加迁移日志、通过文档检查并按生命周期规则删除之前，不启动本计划，不修改 Lucent 的普通 HTTP 错误媒体类型或错误码。
+2026-08-22 启动决策：Luminous 2026-08-16 十份功能计划的 0.1.0 前工作已经完成；保留的
+0.1.0 后工作不再阻塞本计划。冻结新功能，在当前分支进入集中迁移窗口；不建立新旧契约
+并存的运行时兼容期。
+
+在上述启动决策之前，Luminous `plans/` 下 2026-08-16 的十份功能改造计划全部完成、验证通过、追加迁移日志并通过文档检查是启动条件；现该条件已由项目决策确认满足。剩余 0.1.0 后工作按原计划保留，不阻止本次 Lucent 普通 HTTP 错误媒体类型和错误码迁移。
 
 门禁满足后，Luminous 必须先具备能够解析 RFC 9457 Problem Details 的 `LucentFailure` 映射；随后两仓库进入一次冻结新功能的集中迁移窗口。本计划不是长期双轨兼容计划。
 

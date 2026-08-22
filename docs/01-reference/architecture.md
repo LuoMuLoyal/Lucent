@@ -2,10 +2,17 @@
 status: active
 owner: backend
 quadrant: explanation
-updated: 2026-08-20
+updated: 2026-08-22
 ---
 
 # Lucent Architecture
+
+## HTTP Boundary (2026-08-22)
+
+The target HTTP boundary separates representations: successful resources are returned directly,
+while ordinary 4xx/5xx responses use RFC 9457 `application/problem+json`. The global exception
+filter now owns the safe Problem Details shape and trace correlation; success-envelope removal and
+controller/OpenAPI resource schemas remain the next hard-cut phase.
 
 ## Module Dependency Graph
 

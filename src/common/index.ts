@@ -1,5 +1,14 @@
 export type { ApiEnvelope } from './api/api-envelope';
 export {
+  buildProblemDetails,
+  problemTypeForCode,
+  titleForStatus,
+} from './api/problem-details';
+export type {
+  BuildProblemDetailsInput,
+  ProblemDetails,
+} from './api/problem-details';
+export {
   parseWaterMetric,
   summarizeWaterMetrics,
   toObservedWaterMetric,

@@ -1,25 +1,52 @@
 import {
   ArgumentsHost,
   Catch,
-  Injectable,
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Injectable,
   Logger,
 } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { ResultCode, errorEnvelope } from '../api/api-envelope';
+import { ResultCode } from '../api/api-envelope';
+import {
+  buildProblemDetails,
+  problemTypeForCode,
+  titleForStatus,
+  type ProblemDetails,
+} from '../api/problem-details';
+import { getActiveTraceIds } from '../logger/trace-context.utils';
 
-interface ErrorResponseBody {
-  code?: string | number;
-  message?: string | string[];
-  error?: string;
+const LEGACY_RESULT_CODE_MAP: Readonly<Record<number, string>> = {
+  [ResultCode.BAD_REQUEST]: 'BAD_REQUEST',
+  [ResultCode.VALIDATION_FAILED]: 'VALIDATION_FAILED',
+  [ResultCode.UNAUTHORIZED]: 'AUTH_UNAUTHORIZED',
+  [ResultCode.TOKEN_EXPIRED]: 'AUTH_TOKEN_EXPIRED',
+  [ResultCode.REFRESH_TOKEN_INVALID]: 'AUTH_REFRESH_TOKEN_INVALID',
+  [ResultCode.LOGIN_RATE_LIMITED]: 'AUTH_LOGIN_RATE_LIMITED',
+  [ResultCode.WRONG_PASSWORD]: 'AUTH_WRONG_PASSWORD',
+  [ResultCode.FORBIDDEN]: 'AUTH_FORBIDDEN',
+  [ResultCode.NOT_FOUND]: 'RESOURCE_NOT_FOUND',
+  [ResultCode.CONFLICT]: 'CONFLICT',
+  [ResultCode.INTERNAL_ERROR]: 'INTERNAL_ERROR',
+  [ResultCode.DATABASE_ERROR]: 'DATABASE_ERROR',
+  [ResultCode.EXTERNAL_SERVICE_ERROR]: 'EXTERNAL_SERVICE_ERROR',
+};
+
+interface HttpErrorResponse {
+  type?: unknown;
+  title?: unknown;
+  detail?: unknown;
+  code?: unknown;
+  message?: unknown;
+  error?: unknown;
+  errors?: unknown;
+  retryable?: unknown;
+  retryAfter?: unknown;
+  traceId?: unknown;
 }
 
-/**
- * Global exception filter that converts any thrown error into the standard
- * `{ code, message, data }` response envelope.
- */
+/** Converts thrown Nest errors into RFC 9457 Problem Details. */
 @Catch()
 @Injectable()
 export class ApiExceptionFilter implements ExceptionFilter {
@@ -32,99 +59,146 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const status = this.resolveStatus(exception);
     const body = this.resolveBody(exception, status);
 
-    this.logException(exception, request, status, body.message);
+    this.logException(exception, request, status, body.detail);
 
-    response
-      .status(status)
-      .type('application/json')
-      .send(errorEnvelope(body.code, body.message));
+    response.status(status).type('application/problem+json').send(body);
   }
 
-  private logException(
-    exception: unknown,
-    request: FastifyRequest,
-    status: HttpStatus,
-    message: string,
-  ): void {
-    // The active trace ids are attached to every in-request log entry as
-    // top-level structured fields by the winston `otelTraceFormat`
-    // (OTel context), so they are not embedded in the message text.
-    const path = request.url;
-
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error(
-        `Unhandled exception: ${message} [${request.method} ${path} ${String(status)}]`,
-        exception instanceof Error ? exception.stack : undefined,
-      );
-      return;
-    }
-
-    this.logger.warn(
-      `Handled exception: ${message} [${request.method} ${path} ${String(status)}]`,
-    );
-  }
-
-  private resolveStatus(exception: unknown): HttpStatus {
+  private resolveStatus(exception: unknown): number {
     if (exception instanceof HttpException) {
       return exception.getStatus();
     }
     return HttpStatus.INTERNAL_SERVER_ERROR;
   }
 
-  private resolveBody(
-    exception: unknown,
-    status: HttpStatus,
-  ): { code: ResultCode; message: string } {
-    if (exception instanceof HttpException) {
-      const response = exception.getResponse();
-      if (typeof response === 'string') {
-        return {
-          code: this.defaultCode(status),
-          message: response,
-        };
-      }
+  private resolveBody(exception: unknown, status: number): ProblemDetails {
+    const traceId = getActiveTraceIds().traceId;
+    if (!(exception instanceof HttpException)) {
+      return buildProblemDetails({
+        status,
+        code: 'INTERNAL_ERROR',
+        title: 'Internal server error',
+        detail: 'Internal server error',
+        ...(traceId == null ? {} : { traceId }),
+      });
+    }
 
-      const body = response as ErrorResponseBody;
-      if (typeof body.code === 'number') {
-        return {
-          code: body.code,
-          message: this.normalizeMessage(body.message ?? body.error),
-        };
-      }
+    const response = exception.getResponse();
+    const raw = response as HttpErrorResponse | undefined;
+    const code = this.resolveCode(raw?.code, status);
+    const message = raw?.message ?? raw?.detail ?? raw?.error;
+    const validationErrors = this.resolveErrors(raw?.errors, message);
+    const detail = this.resolveDetail(message, status);
+    const explicitType = this.stringValue(raw?.type);
+    const explicitTitle = this.stringValue(raw?.title);
+    const retryable =
+      typeof raw?.retryable === 'boolean' ? raw.retryable : undefined;
+    const retryAfter = this.nonNegativeNumber(raw?.retryAfter);
+    const responseTraceId = this.stringValue(raw?.traceId);
 
+    return buildProblemDetails({
+      status,
+      code,
+      type: explicitType ?? problemTypeForCode(code),
+      title: explicitTitle ?? titleForStatus(status),
+      detail,
+      ...(validationErrors == null ? {} : { errors: validationErrors }),
+      ...(retryable == null ? {} : { retryable }),
+      ...(retryAfter == null ? {} : { retryAfter }),
+      ...((responseTraceId ?? traceId) == null
+        ? {}
+        : { traceId: responseTraceId ?? traceId }),
+    });
+  }
+
+  private resolveCode(rawCode: unknown, status: number): string {
+    if (typeof rawCode === 'string' && rawCode.trim().length > 0) {
+      return rawCode.trim();
+    }
+    if (typeof rawCode === 'number') {
+      const mapped = LEGACY_RESULT_CODE_MAP[rawCode];
+      if (mapped != null) return mapped;
+    }
+    return this.defaultCode(status);
+  }
+
+  private defaultCode(status: number): string {
+    switch (status) {
+      case 400:
+        return 'BAD_REQUEST';
+      case 401:
+        return 'AUTH_UNAUTHORIZED';
+      case 403:
+        return 'AUTH_FORBIDDEN';
+      case 404:
+        return 'RESOURCE_NOT_FOUND';
+      case 409:
+        return 'CONFLICT';
+      case 429:
+        return 'RATE_LIMITED';
+      default:
+        return 'INTERNAL_ERROR';
+    }
+  }
+
+  private resolveDetail(message: unknown, status: number): string {
+    if (Array.isArray(message)) {
+      return 'Request validation failed';
+    }
+    if (typeof message === 'string' && message.trim().length > 0) {
+      return message;
+    }
+    return status >= 500 ? 'Internal server error' : 'Request failed';
+  }
+
+  private resolveErrors(
+    rawErrors: unknown,
+    message: unknown,
+  ): Record<string, unknown> | undefined {
+    if (this.isRecord(rawErrors)) return rawErrors;
+    if (Array.isArray(message)) {
       return {
-        code: this.defaultCode(status),
-        message: this.normalizeMessage(body.message ?? body.error),
+        general: message.filter(
+          (item): item is string => typeof item === 'string',
+        ),
       };
     }
-
-    return {
-      code: ResultCode.INTERNAL_ERROR,
-      message: 'Internal server error',
-    };
+    return undefined;
   }
 
-  private defaultCode(status: HttpStatus): ResultCode {
-    switch (status) {
-      case HttpStatus.BAD_REQUEST:
-        return ResultCode.BAD_REQUEST;
-      case HttpStatus.UNAUTHORIZED:
-        return ResultCode.UNAUTHORIZED;
-      case HttpStatus.FORBIDDEN:
-        return ResultCode.FORBIDDEN;
-      case HttpStatus.NOT_FOUND:
-        return ResultCode.NOT_FOUND;
-      case HttpStatus.CONFLICT:
-        return ResultCode.CONFLICT;
-      default:
-        return ResultCode.INTERNAL_ERROR;
-    }
+  private stringValue(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : undefined;
   }
 
-  private normalizeMessage(message: string | string[] | undefined): string {
-    if (Array.isArray(message)) {
-      return message.join('; ');
+  private nonNegativeNumber(value: unknown): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0
+      ? value
+      : undefined;
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return value != null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private logException(
+    exception: unknown,
+    request: FastifyRequest,
+    status: number,
+    detail: string,
+  ): void {
+    const path = request.url;
+    if (status >= 500) {
+      this.logger.error(
+        `Unhandled exception: ${detail} [${request.method} ${path} ${String(status)}]`,
+        exception instanceof Error ? exception.stack : undefined,
+      );
+      return;
     }
-    return message ?? 'Request failed';
+
+    this.logger.warn(
+      `Handled exception: ${detail} [${request.method} ${path} ${String(status)}]`,
+    );
   }
 }
