@@ -28,13 +28,4 @@ export class NotificationPreferencesDataDto {
   updatedAt!: string | null;
 }
 
-export class NotificationPreferencesResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => NotificationPreferencesDataDto })
-  data!: NotificationPreferencesDataDto;
-}
+export class NotificationPreferencesResponseDto extends NotificationPreferencesDataDto {}

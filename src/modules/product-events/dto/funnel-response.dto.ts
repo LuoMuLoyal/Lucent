@@ -146,13 +146,4 @@ export class FunnelDataDto {
 }
 
 /** Full funnel aggregation response (admin endpoint). */
-export class FunnelResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => FunnelDataDto })
-  data!: FunnelDataDto;
-}
+export class FunnelResponseDto extends FunnelDataDto {}
