@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  HttpException,
   Logger,
   Param,
   Post,
@@ -27,6 +26,7 @@ import {
   prepareSse,
   writeSseEvent,
   SseConnectionRegistry,
+  SseProblemDetailsMapper,
   conflict,
 } from '../../common';
 import { extractErrorInfo } from '../../common';
@@ -86,6 +86,7 @@ export class TodayAnalysisController {
     private readonly todayRecommendationsService: TodayRecommendationsService,
     private readonly todayAnalysisQueueService: TodayAnalysisQueueService,
     private readonly sseRegistry: SseConnectionRegistry,
+    private readonly sseProblemDetails: SseProblemDetailsMapper,
     @Optional()
     private readonly materializationStore?: TodayAnalysisMaterializationStore,
   ) {}
@@ -331,7 +332,7 @@ export class TodayAnalysisController {
         schema: {
           type: 'string',
           description:
-            'Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisDataDto; event=error data={message,code?,statusCode?}; event=done data={}.',
+            'Each frame is UTF-8 SSE text. event=summary data={summary}; event=result data=TodayAnalysisDataDto; event=error data=TodayAnalysisStreamErrorDto; event=done data={}.',
         },
       },
     },
@@ -342,7 +343,7 @@ export class TodayAnalysisController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw, this.sseRegistry);
+    prepareSse(reply.raw, this.sseRegistry, language);
 
     try {
       const onSummary = ({ summary }: { summary: string }) => {
@@ -391,7 +392,7 @@ export class TodayAnalysisController {
       );
       writeSseEvent(reply.raw, {
         event: 'error',
-        data: httpExceptionPayload(error),
+        data: this.sseProblemDetails.build(error, { lang: language }),
       });
     } finally {
       endSse(reply.raw, this.sseRegistry);
@@ -448,64 +449,4 @@ interface ManualGenerationRequest {
   date: string;
   current: TodayAnalysisMaterializationView;
   pending: TodayAnalysisPendingResult | null;
-}
-
-function httpExceptionPayload(error: unknown): {
-  message: string;
-  code?: number;
-  statusCode?: number;
-} {
-  if (!(error instanceof HttpException)) {
-    return {
-      message: error instanceof Error ? error.message : 'Unexpected error.',
-    };
-  }
-
-  const response = error.getResponse();
-  if (typeof response === 'string') {
-    return withOptionalErrorFields(response, undefined, error.getStatus());
-  }
-
-  const message =
-    'message' in response
-      ? (response as { message?: unknown }).message
-      : undefined;
-  const code =
-    'code' in response ? (response as { code?: unknown }).code : undefined;
-  if (Array.isArray(message)) {
-    return withOptionalErrorFields(
-      message.join('; '),
-      typeof code === 'number' ? code : undefined,
-      error.getStatus(),
-    );
-  }
-  if (typeof message === 'string' && message.trim().length > 0) {
-    return withOptionalErrorFields(
-      message,
-      typeof code === 'number' ? code : undefined,
-      error.getStatus(),
-    );
-  }
-  return withOptionalErrorFields(
-    error.message,
-    typeof code === 'number' ? code : undefined,
-    error.getStatus(),
-  );
-}
-
-function withOptionalErrorFields(
-  message: string,
-  code?: number,
-  statusCode?: number,
-): { message: string; code?: number; statusCode?: number } {
-  const payload: { message: string; code?: number; statusCode?: number } = {
-    message,
-  };
-  if (code != null) {
-    payload.code = code;
-  }
-  if (statusCode != null) {
-    payload.statusCode = statusCode;
-  }
-  return payload;
 }

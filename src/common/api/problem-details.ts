@@ -9,6 +9,17 @@ export interface ProblemDetails {
   traceId?: string;
 }
 
+export type SseErrorStatus =
+  | 'client_error'
+  | 'server_error'
+  | 'cancelled'
+  | 'server_shutdown'
+  | 'unknown';
+
+export interface SseProblemDetails extends ProblemDetails {
+  status: SseErrorStatus;
+}
+
 export interface BuildProblemDetailsInput {
   status: number;
   code: string;

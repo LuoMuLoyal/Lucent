@@ -4,25 +4,8 @@ import {
   type BeforeApplicationShutdown,
 } from '@nestjs/common';
 import type { ServerResponse } from 'node:http';
-import {
-  writeSseEvent,
-  type SseConnectionTracker,
-  type SseMessage,
-} from './sse';
-
-/**
- * Terminal event pushed to every live SSE connection right before it is
- * closed on server shutdown. Reuses the existing `error` event shape
- * (`{ message }`, plus an additive `reason`) so current clients handle it
- * without any contract change.
- */
-const SHUTDOWN_MESSAGE: SseMessage = {
-  event: 'error',
-  data: {
-    message: 'Server is shutting down. Please retry your request.',
-    reason: 'server_shutdown',
-  },
-};
+import { writeSseEvent, type SseConnectionTracker } from './sse';
+import { SseProblemDetailsMapper } from './sse-problem-details';
 
 /**
  * Tracks every open SSE connection so a shutdown (SIGTERM →
@@ -37,15 +20,17 @@ export class SseConnectionRegistry
   implements SseConnectionTracker, BeforeApplicationShutdown
 {
   private readonly logger = new Logger(SseConnectionRegistry.name);
-  private readonly connections = new Set<ServerResponse>();
+  private readonly connections = new Map<ServerResponse, string>();
+
+  constructor(private readonly problemDetails: SseProblemDetailsMapper) {}
 
   /** Number of currently tracked connections. */
   get size(): number {
     return this.connections.size;
   }
 
-  register(response: ServerResponse): void {
-    this.connections.add(response);
+  register(response: ServerResponse, language = 'en'): void {
+    this.connections.set(response, language);
     // Client disconnects / network resets surface as `close`; drop the
     // connection so closeAll never writes to a dead socket.
     response.once('close', () => {
@@ -59,10 +44,17 @@ export class SseConnectionRegistry
 
   closeAll(): void {
     const count = this.connections.size;
-    for (const response of this.connections) {
+    for (const [response, language] of this.connections) {
       this.connections.delete(response);
       try {
-        writeSseEvent(response, SHUTDOWN_MESSAGE);
+        writeSseEvent(response, {
+          event: 'error',
+          data: this.problemDetails.build(new Error('server shutdown'), {
+            lang: language,
+            code: 'SERVER_SHUTDOWN',
+            status: 'server_shutdown',
+          }),
+        });
         if (!response.writableEnded) {
           response.end();
         }

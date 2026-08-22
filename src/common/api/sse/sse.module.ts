@@ -1,5 +1,7 @@
 import { Global, Module } from '@nestjs/common';
+import { ProblemCatalog } from '../problem-catalog';
 import { SseConnectionRegistry } from './sse-connection-registry.service';
+import { SseProblemDetailsMapper } from './sse-problem-details';
 
 /**
  * Global module exposing the SSE connection registry as a single shared
@@ -8,7 +10,7 @@ import { SseConnectionRegistry } from './sse-connection-registry.service';
  */
 @Global()
 @Module({
-  providers: [SseConnectionRegistry],
-  exports: [SseConnectionRegistry],
+  providers: [ProblemCatalog, SseProblemDetailsMapper, SseConnectionRegistry],
+  exports: [ProblemCatalog, SseProblemDetailsMapper, SseConnectionRegistry],
 })
 export class SseModule {}

@@ -15,7 +15,7 @@ export interface SseMessage<T = unknown> {
  * helpers stay free of dependency-injection concerns.
  */
 export interface SseConnectionTracker {
-  register(response: ServerResponse): void;
+  register(response: ServerResponse, language?: string): void;
   unregister(response: ServerResponse): void;
 }
 
@@ -27,6 +27,7 @@ export interface SseConnectionTracker {
 export function prepareSse(
   response: ServerResponse,
   tracker?: SseConnectionTracker,
+  language = 'en',
 ): void {
   response.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
@@ -34,7 +35,7 @@ export function prepareSse(
     Connection: 'keep-alive',
     'X-Accel-Buffering': 'no',
   });
-  tracker?.register(response);
+  tracker?.register(response, language);
 }
 
 /**

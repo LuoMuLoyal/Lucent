@@ -13,7 +13,7 @@ export class ReportSummaryStreamResultDto {
     type: 'object',
     additionalProperties: true,
     description:
-      'SSE payload object. event=summary => { summary }, event=result => ReportSummaryDataDto-like object, event=error => { message, code?, statusCode? }, event=done => {}.',
+      'SSE payload object. event=summary => { summary }, event=result => ReportSummaryDataDto-like object, event=error => { type, title, detail, code, retryable?, retryAfter?, status }, event=done => {}.',
   })
   data!: Record<string, unknown>;
 }

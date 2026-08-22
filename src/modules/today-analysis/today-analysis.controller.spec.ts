@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { FastifyReply } from 'fastify';
-import { SseConnectionRegistry } from '../../common';
+import { SseConnectionRegistry, SseProblemDetailsMapper } from '../../common';
 import { TodayAnalysisService } from './services/analysis.service';
 import { TodayAnalysisQueueService } from './services/analysis-queue.service';
 import { TodayRecommendationsService } from './services/pipeline/recommendations.service';
@@ -48,6 +48,19 @@ describe('TodayAnalysisController', () => {
             register: vi.fn(),
             unregister: vi.fn(),
             closeAll: vi.fn(),
+          },
+        },
+        {
+          provide: SseProblemDetailsMapper,
+          useValue: {
+            build: vi.fn().mockReturnValue({
+              type: 'https://api.lumos.example/problems/internal-error',
+              title: 'Internal server error',
+              detail: 'Internal server error',
+              code: 'INTERNAL_ERROR',
+              retryable: false,
+              status: 'server_error',
+            }),
           },
         },
       ],
@@ -243,7 +256,7 @@ describe('TodayAnalysisController', () => {
 
     // response.end should have been called (by endSse)
     expect(reply.raw.end).toHaveBeenCalled();
-    expect(sseRegistry.register).toHaveBeenCalledWith(reply.raw);
+    expect(sseRegistry.register).toHaveBeenCalledWith(reply.raw, 'zh-CN');
     expect(sseRegistry.unregister).toHaveBeenCalledWith(reply.raw);
   });
 
@@ -262,7 +275,14 @@ describe('TodayAnalysisController', () => {
 
     const errorEvent = events.find((e) => e.event === 'error')!;
     expect(errorEvent).toBeDefined();
-    expect(errorEvent.data).toEqual({ message: 'LLM down' });
+    expect(errorEvent.data).toEqual({
+      type: 'https://api.lumos.example/problems/internal-error',
+      title: 'Internal server error',
+      detail: 'Internal server error',
+      code: 'INTERNAL_ERROR',
+      retryable: false,
+      status: 'server_error',
+    });
 
     // Should still have ended the stream
     expect(reply.raw.end).toHaveBeenCalled();
@@ -282,7 +302,14 @@ describe('TodayAnalysisController', () => {
     );
 
     const errorEvent = events.find((e) => e.event === 'error')!;
-    expect(errorEvent.data).toEqual({ message: 'Unexpected error.' });
+    expect(errorEvent.data).toEqual({
+      type: 'https://api.lumos.example/problems/internal-error',
+      title: 'Internal server error',
+      detail: 'Internal server error',
+      code: 'INTERNAL_ERROR',
+      retryable: false,
+      status: 'server_error',
+    });
   });
 
   // ── generateAsync ────────────────────────────────────────────────────

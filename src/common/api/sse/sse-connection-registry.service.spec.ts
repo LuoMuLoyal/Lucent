@@ -1,6 +1,8 @@
 import { EventEmitter } from 'node:events';
 import type { ServerResponse } from 'node:http';
 import { Logger } from '@nestjs/common';
+import { ProblemCatalog } from '../problem-catalog';
+import { SseProblemDetailsMapper } from './sse-problem-details';
 import { SseConnectionRegistry } from './sse-connection-registry.service';
 
 interface MockSseResponse {
@@ -29,7 +31,11 @@ describe('SseConnectionRegistry', () => {
 
   beforeEach(() => {
     vi.spyOn(Logger.prototype, 'log').mockImplementation(vi.fn() as never);
-    registry = new SseConnectionRegistry();
+    registry = new SseConnectionRegistry(
+      new SseProblemDetailsMapper(
+        new ProblemCatalog({ t: vi.fn((key: string) => key) } as never),
+      ),
+    );
   });
 
   afterEach(() => {
@@ -74,18 +80,18 @@ describe('SseConnectionRegistry', () => {
   });
 
   describe('closeAll', () => {
-    it('writes a terminal error event with server_shutdown reason, then ends each connection', () => {
+    it('writes a Problem Details shutdown event, then ends each connection', () => {
       const first = createMockResponse();
       const second = createMockResponse();
-      registry.register(first.response);
-      registry.register(second.response);
+      registry.register(first.response, 'zh-CN');
+      registry.register(second.response, 'en');
 
       registry.closeAll();
 
       for (const { write, end } of [first, second]) {
         expect(write).toHaveBeenCalledWith('event: error\n');
         expect(write).toHaveBeenCalledWith(
-          'data: {"message":"Server is shutting down. Please retry your request.","reason":"server_shutdown"}\n\n',
+          'data: {"type":"https://api.lumos.example/problems/server-shutdown","title":"common.problem_server_shutdown_title","detail":"common.problem_server_shutdown_detail","code":"SERVER_SHUTDOWN","retryable":true,"status":"server_shutdown"}\n\n',
         );
         expect(end).toHaveBeenCalled();
       }

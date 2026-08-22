@@ -35,14 +35,11 @@ import { ConfigKey } from '../../config/env/config-keys.enum';
 import {
   endSse,
   prepareSse,
+  SseProblemDetailsMapper,
   writeSseEvent,
   SseConnectionRegistry,
 } from '../../common';
-import {
-  extractErrorInfo,
-  httpExceptionPayload,
-  enqueueOrFallback,
-} from '../../common';
+import { extractErrorInfo, enqueueOrFallback } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 
@@ -103,6 +100,7 @@ export class ReportsController {
     private readonly shareService: ShareService,
     private readonly eventReviewService: EventReviewService,
     private readonly sseRegistry: SseConnectionRegistry,
+    private readonly sseProblemDetails: SseProblemDetailsMapper,
     private readonly i18n: I18nService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     private readonly configService: ConfigService,
@@ -286,7 +284,7 @@ export class ReportsController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw, this.sseRegistry);
+    prepareSse(reply.raw, this.sseRegistry, language);
 
     try {
       const result = await this.reportsAiSummaryService.generateStream(
@@ -317,7 +315,7 @@ export class ReportsController {
       );
       writeSseEvent(reply.raw, {
         event: 'error',
-        data: httpExceptionPayload(error),
+        data: this.sseProblemDetails.build(error, { lang: language }),
       });
     } finally {
       endSse(reply.raw, this.sseRegistry);

@@ -9,6 +9,9 @@ export type {
 } from './api/problem-details';
 export { ProblemCatalog } from './api/problem-catalog';
 export type { ProblemCatalogOptions, ProblemCode } from './api/problem-catalog';
+export { SseProblemDetailsMapper } from './api/sse/sse-problem-details';
+export type { SseProblemDetailsOptions } from './api/sse/sse-problem-details';
+export type { SseErrorStatus, SseProblemDetails } from './api/problem-details';
 export {
   parseWaterMetric,
   summarizeWaterMetrics,
@@ -67,7 +70,6 @@ export {
   getRequestClientIp,
 } from './helpers/infra/client-ip';
 export { extractErrorInfo } from './helpers/errors/error-info.utils';
-export { httpExceptionPayload } from './helpers/errors/error-payload';
 export { nonDeleted } from './helpers/prisma/prisma.utils';
 export {
   normalizeNullableNumber,

@@ -43,7 +43,6 @@
 **Files:**
 
 - Modify: `Lucent/src/common/filters/api-exception.filter.ts`
-- Modify: `Lucent/src/common/helpers/errors/error-payload.ts` only if still used by SSE after Task 3
 - Test: `Lucent/src/common/filters/api-exception.target.spec.ts`
 - Test: controller/service contract tests covering auth, validation, conflict, not-found, rate-limit, dependency, and internal errors
 
@@ -70,12 +69,12 @@
 - Modify: `Lucent/src/common/api/sse/sse.ts` or create `Lucent/src/common/api/sse/sse-error.ts`
 - Modify: `Lucent/src/common/api/problem-details.ts`
 - Modify: `Lucent/src/common/api/index.ts`
-- Modify: `Lucent/src/common/helpers/errors/error-payload.ts`
 - Modify: `Lucent/src/common/api/sse/sse-connection-registry.service.ts`
 - Modify: `Lucent/src/modules/assistant/assistant.controller.ts`
 - Modify: `Lucent/src/modules/today-analysis/today-analysis.controller.ts`
 - Modify: `Lucent/src/modules/reports/reports.controller.ts`
-- Test: `Lucent/src/common/helpers/errors/error-payload.spec.ts`
+- Create/modify: `Lucent/src/common/api/sse/sse-problem-details.ts`
+- Test: `Lucent/src/common/api/sse/sse-problem-details.spec.ts`
 - Test: `Lucent/src/common/api/sse/sse-connection-registry.service.spec.ts`
 - Test: `Lucent/src/modules/assistant/assistant.controller.spec.ts`
 - Test: corresponding Today Analysis and Reports controller specs
@@ -84,7 +83,7 @@
 
 - [ ] **Step 2: Run the focused SSE tests and verify they fail against the current payloads.**
 
-  Run: `pnpm vitest run src/common/helpers/errors/error-payload.spec.ts src/common/api/sse src/modules/assistant/assistant.controller.spec.ts`
+  Run: `pnpm vitest run src/common/api/sse src/modules/assistant/assistant.controller.spec.ts`
 
 - [ ] **Step 3: Implement one SSE error mapper.** Map known `HttpException`/domain failures through the catalog, map dependency failures to `DEPENDENCY_UNAVAILABLE` or `DEPENDENCY_TIMEOUT`, map cancellation to `STREAM_CANCELLED`, and map shutdown to `SERVER_SHUTDOWN`. Pass the resolved locale from the controller/request context into i18n. Never reuse the ordinary HTTP `status` field as an HTTP status in the event.
 

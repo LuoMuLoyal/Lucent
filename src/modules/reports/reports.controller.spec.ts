@@ -6,7 +6,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { I18nService } from 'nestjs-i18n';
 import { HealthEventKind, HealthEventStatus } from '#generated/prisma/client';
 import type { ClinicSummaryShareField } from '#generated/prisma/client';
-import { SseConnectionRegistry } from '../../common';
+import { SseConnectionRegistry, SseProblemDetailsMapper } from '../../common';
 import {
   REPORT_RANGE_CUSTOM,
   REPORT_RANGE_LAST_30_DAYS,
@@ -135,6 +135,19 @@ describe('ReportsController', () => {
           },
         },
         {
+          provide: SseProblemDetailsMapper,
+          useValue: {
+            build: vi.fn().mockReturnValue({
+              type: 'https://api.lumos.example/problems/internal-error',
+              title: 'Internal server error',
+              detail: 'Internal server error',
+              code: 'INTERNAL_ERROR',
+              retryable: false,
+              status: 'server_error',
+            }),
+          },
+        },
+        {
           provide: I18nService,
           useValue: {
             t: vi.fn((key: string) => key),
@@ -259,7 +272,7 @@ describe('ReportsController', () => {
     expect(resultEvent.data).toEqual(summaryResult);
 
     expect(reply.raw.end).toHaveBeenCalled();
-    expect(sseRegistry.register).toHaveBeenCalledWith(reply.raw);
+    expect(sseRegistry.register).toHaveBeenCalledWith(reply.raw, 'zh-CN');
     expect(sseRegistry.unregister).toHaveBeenCalledWith(reply.raw);
   });
 
@@ -278,7 +291,14 @@ describe('ReportsController', () => {
 
     const errorEvent = events.find((e) => e.event === 'error')!;
     expect(errorEvent).toBeDefined();
-    expect(errorEvent.data).toEqual({ message: 'LLM down' });
+    expect(errorEvent.data).toEqual({
+      type: 'https://api.lumos.example/problems/internal-error',
+      title: 'Internal server error',
+      detail: 'Internal server error',
+      code: 'INTERNAL_ERROR',
+      retryable: false,
+      status: 'server_error',
+    });
     expect(reply.raw.end).toHaveBeenCalled();
   });
 

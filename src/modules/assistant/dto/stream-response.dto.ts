@@ -143,7 +143,7 @@ export class AssistantStreamResultDto {
     type: 'object',
     additionalProperties: true,
     description:
-      'SSE payload object. event=chunk => { content }, event=result => AssistantMessageDataDto-like object, event=error => { message, code?, statusCode? }, event=done => {}.',
+      'SSE payload object. event=chunk => { content }, event=result => AssistantMessageDataDto-like object, event=error => { type, title, detail, code, retryable?, retryAfter?, status }, event=done => {}.',
   })
   data!: Record<string, unknown>;
 }

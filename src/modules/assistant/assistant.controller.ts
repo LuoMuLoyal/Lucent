@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  HttpException,
   Logger,
   Param,
   Patch,
@@ -23,7 +22,9 @@ import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
 import {
   endSse,
+  extractErrorInfo,
   prepareSse,
+  SseProblemDetailsMapper,
   writeSseEvent,
   SseConnectionRegistry,
 } from '../../common';
@@ -63,6 +64,7 @@ export class AssistantController {
   constructor(
     private readonly assistantService: AssistantService,
     private readonly sseRegistry: SseConnectionRegistry,
+    private readonly sseProblemDetails: SseProblemDetailsMapper,
     private readonly auditLogService: AuditLogService,
   ) {}
 
@@ -212,7 +214,7 @@ export class AssistantController {
     @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw, this.sseRegistry);
+    prepareSse(reply.raw, this.sseRegistry, language);
 
     try {
       const result = await this.assistantService.streamMessages(
@@ -236,14 +238,14 @@ export class AssistantController {
         data: {},
       });
     } catch (error) {
-      const payload = this.resolveErrorPayload(error);
+      const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
-        `Assistant stream failed for user ${user.sub}: ${payload.logMessage}`,
-        error instanceof Error ? error.stack : undefined,
+        `Assistant stream failed for user ${user.sub}: ${reason}`,
+        stack,
       );
       writeSseEvent(reply.raw, {
         event: 'error',
-        data: { message: payload.clientMessage },
+        data: this.sseProblemDetails.build(error, { lang: language }),
       });
     } finally {
       endSse(reply.raw, this.sseRegistry);
@@ -268,9 +270,10 @@ export class AssistantController {
   async regenerateLastMessage(
     @CurrentUser() user: UserPayload,
     @Param('conversationId') conversationId: string,
+    @I18nLang() language: string,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    prepareSse(reply.raw, this.sseRegistry);
+    prepareSse(reply.raw, this.sseRegistry, language);
 
     try {
       const result = await this.assistantService.regenerateConversation(
@@ -293,52 +296,17 @@ export class AssistantController {
         data: {},
       });
     } catch (error) {
-      const payload = this.resolveErrorPayload(error);
+      const { message: reason, stack } = extractErrorInfo(error);
       this.logger.error(
-        `Assistant regenerate failed for user ${user.sub} conversation ${conversationId}: ${payload.logMessage}`,
-        error instanceof Error ? error.stack : undefined,
+        `Assistant regenerate failed for user ${user.sub} conversation ${conversationId}: ${reason}`,
+        stack,
       );
       writeSseEvent(reply.raw, {
         event: 'error',
-        data: { message: payload.clientMessage },
+        data: this.sseProblemDetails.build(error, { lang: language }),
       });
     } finally {
       endSse(reply.raw, this.sseRegistry);
     }
   }
-
-  private resolveErrorPayload(error: unknown): {
-    clientMessage: string;
-    logMessage: string;
-  } {
-    if (error instanceof HttpException) {
-      const response = error.getResponse();
-      const message =
-        typeof response === 'string' ? response : extractMessage(response);
-      return {
-        clientMessage: message,
-        logMessage: message,
-      };
-    }
-
-    const internal =
-      error instanceof Error ? error.message : 'Unexpected error.';
-    return {
-      clientMessage: 'An unexpected error occurred. Please try again.',
-      logMessage: internal,
-    };
-  }
-}
-
-function extractMessage(response: object): string {
-  if ('message' in response) {
-    const value = (response as { message?: unknown }).message;
-    if (Array.isArray(value)) {
-      return value.join('; ');
-    }
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value;
-    }
-  }
-  return 'Request failed.';
 }

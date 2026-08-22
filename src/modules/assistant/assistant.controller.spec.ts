@@ -21,7 +21,7 @@ vi.mock('../../common', async (importOriginal) => {
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
-import { ResultCode, SseConnectionRegistry } from '../../common';
+import { SseConnectionRegistry, SseProblemDetailsMapper } from '../../common';
 import { AssistantController } from './assistant.controller';
 import { AssistantService } from './services/core.service';
 import { AuditLogService } from '../audit-log';
@@ -64,6 +64,19 @@ describe('AssistantController', () => {
         {
           provide: AuditLogService,
           useValue: { logFireAndForget: vi.fn() },
+        },
+        {
+          provide: SseProblemDetailsMapper,
+          useValue: {
+            build: vi.fn().mockReturnValue({
+              type: 'https://api.lumos.example/problems/forbidden',
+              title: 'common.problem_forbidden_title',
+              detail: 'common.problem_forbidden_detail',
+              code: 'FORBIDDEN',
+              retryable: false,
+              status: 'client_error',
+            }),
+          },
         },
       ],
     }).compile();
@@ -245,7 +258,7 @@ describe('AssistantController', () => {
       response,
     );
 
-    expect(prepareSse).toHaveBeenCalledWith(response.raw, sseRegistry);
+    expect(prepareSse).toHaveBeenCalledWith(response.raw, sseRegistry, 'en-US');
     expect(writeSseEvent).toHaveBeenNthCalledWith(1, response.raw, {
       event: 'chunk',
       data: { content: 'Hello' },
@@ -543,7 +556,7 @@ describe('AssistantController', () => {
     const response = { raw: {} } as unknown as FastifyReply;
     service.streamMessages.mockRejectedValue(
       new ForbiddenException({
-        code: ResultCode.FORBIDDEN,
+        code: 'FORBIDDEN',
         message: 'forbidden',
       }),
     );
@@ -560,7 +573,12 @@ describe('AssistantController', () => {
     expect(writeSseEvent).toHaveBeenCalledWith(response.raw, {
       event: 'error',
       data: {
-        message: 'forbidden',
+        type: 'https://api.lumos.example/problems/forbidden',
+        title: 'common.problem_forbidden_title',
+        detail: 'common.problem_forbidden_detail',
+        code: 'FORBIDDEN',
+        retryable: false,
+        status: 'client_error',
       },
     });
     expect(endSse).toHaveBeenCalledWith(response.raw, sseRegistry);
@@ -584,6 +602,7 @@ describe('AssistantController', () => {
     await controller.regenerateLastMessage(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       'conversation-1',
+      'en-US',
       response,
     );
 
@@ -592,7 +611,7 @@ describe('AssistantController', () => {
       'conversation-1',
       expect.any(Function),
     );
-    expect(prepareSse).toHaveBeenCalledWith(response.raw, sseRegistry);
+    expect(prepareSse).toHaveBeenCalledWith(response.raw, sseRegistry, 'en-US');
     expect(writeSseEvent).toHaveBeenNthCalledWith(1, response.raw, {
       event: 'chunk',
       data: { content: '新的' },
@@ -618,7 +637,7 @@ describe('AssistantController', () => {
     const response = { raw: {} } as unknown as FastifyReply;
     service.regenerateConversation.mockRejectedValue(
       new ForbiddenException({
-        code: ResultCode.FORBIDDEN,
+        code: 'FORBIDDEN',
         message: 'regenerate-forbidden',
       }),
     );
@@ -626,12 +645,20 @@ describe('AssistantController', () => {
     await controller.regenerateLastMessage(
       { sub: 'u1', email: 'a@b.c', status: 'active' },
       'conversation-1',
+      'en-US',
       response,
     );
 
     expect(writeSseEvent).toHaveBeenCalledWith(response.raw, {
       event: 'error',
-      data: { message: 'regenerate-forbidden' },
+      data: {
+        type: 'https://api.lumos.example/problems/forbidden',
+        title: 'common.problem_forbidden_title',
+        detail: 'common.problem_forbidden_detail',
+        code: 'FORBIDDEN',
+        retryable: false,
+        status: 'client_error',
+      },
     });
     expect(endSse).toHaveBeenCalledWith(response.raw, sseRegistry);
   });

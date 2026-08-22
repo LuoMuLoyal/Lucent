@@ -8,13 +8,34 @@ export class TodayAnalysisStreamSummaryDto {
 
 export class TodayAnalysisStreamErrorDto {
   @ApiProperty({ type: String })
-  message!: string;
+  type!: string;
+
+  @ApiProperty({ type: String })
+  title!: string;
+
+  @ApiProperty({ type: String })
+  detail!: string;
+
+  @ApiProperty({ type: String })
+  code!: string;
+
+  @ApiProperty({ type: Boolean, required: false })
+  retryable?: boolean;
 
   @ApiProperty({ type: Number, required: false })
-  code?: number;
+  retryAfter?: number;
 
-  @ApiProperty({ type: Number, required: false })
-  statusCode?: number;
+  @ApiProperty({
+    enum: [
+      'client_error',
+      'server_error',
+      'cancelled',
+      'server_shutdown',
+      'unknown',
+    ],
+    type: String,
+  })
+  status!: string;
 }
 
 export class TodayAnalysisStreamResultDto {
