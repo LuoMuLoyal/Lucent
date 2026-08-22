@@ -7,6 +7,8 @@ export type {
   BuildProblemDetailsInput,
   ProblemDetails,
 } from './api/problem-details';
+export { ProblemCatalog } from './api/problem-catalog';
+export type { ProblemCatalogOptions, ProblemCode } from './api/problem-catalog';
 export {
   parseWaterMetric,
   summarizeWaterMetrics,
