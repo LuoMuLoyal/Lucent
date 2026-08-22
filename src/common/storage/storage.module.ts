@@ -1,7 +1,7 @@
 import { Module, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EnvKey } from '../../config/env/env-keys.enum';
-import { ResultCode } from '../api/api-envelope';
+import { ResultCode } from '../api/result-code';
 import { ObjectStorageRuntime } from './object-storage.runtime';
 import { TencentCosStorageRuntime } from './tencent-cos.runtime';
 import { S3StorageRuntime } from './s3.runtime';

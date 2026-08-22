@@ -2,7 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { ServiceUnavailableException } from '@nestjs/common';
 import { vi } from 'vitest';
-import { ResultCode } from '../../common/api/api-envelope';
+import { ResultCode } from '../../common/api/result-code';
 
 // ── Mock AWS SDK v3 (needed because S3StorageRuntime constructor
 //    creates S3Client instances) ──────────────────────────────────

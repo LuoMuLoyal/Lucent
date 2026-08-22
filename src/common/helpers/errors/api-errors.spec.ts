@@ -5,7 +5,7 @@ import {
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
-import { ResultCode } from '../../api/api-envelope';
+import { ResultCode } from '../../api/result-code';
 import {
   notFound,
   badRequest,

@@ -103,13 +103,4 @@ export class HealthProbeDto {
   components!: HealthComponentDto[];
 }
 
-export class HealthResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => HealthProbeDto })
-  data!: HealthProbeDto;
-}
+export class HealthResponseDto extends HealthProbeDto {}

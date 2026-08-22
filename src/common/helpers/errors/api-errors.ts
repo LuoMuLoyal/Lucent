@@ -5,7 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { ResultCode } from '../../api/api-envelope';
+import { ResultCode } from '../../api/result-code';
 
 /** Throws a {@link ResultCode.NOT_FOUND} HTTP exception. */
 export function notFound(message: string): never {

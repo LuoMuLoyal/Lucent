@@ -8,7 +8,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { ResultCode } from '../api/api-envelope';
+import { ResultCode } from '../api/result-code';
 import {
   buildProblemDetails,
   problemTypeForCode,

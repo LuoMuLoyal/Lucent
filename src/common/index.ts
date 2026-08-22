@@ -1,4 +1,3 @@
-export type { ApiEnvelope } from './api/api-envelope';
 export {
   buildProblemDetails,
   problemTypeForCode,
@@ -27,7 +26,6 @@ export type {
   ObservedMetricState,
 } from './types/observed-metric.types';
 export type { PromptCopy } from './helpers/format/localized-copy';
-export { ApiEnvelopeInterceptor } from './interceptors/api-envelope.interceptor';
 export { BaseAsyncQueueService } from './queue/base-async-queue.service';
 export { ObjectStorageRuntime } from './storage/object-storage.runtime';
 export type {
@@ -41,8 +39,7 @@ export type {
 export { TencentCosStorageRuntime } from './storage/tencent-cos.runtime';
 export { S3StorageRuntime } from './storage/s3.runtime';
 export { LlmCommonModule } from './llm/llm-common.module';
-export { ResultCode, successEnvelope } from './api/api-envelope';
-export { SkipApiEnvelope } from './interceptors/skip-api-envelope.decorator';
+export { ResultCode } from './api/result-code';
 export { SlowRequestInterceptor } from './interceptors/slow-request.interceptor';
 export { SseConnectionRegistry } from './api/sse/sse-connection-registry.service';
 export { SseModule } from './api/sse/sse.module';

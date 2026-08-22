@@ -1,6 +1,6 @@
 import { ensureOwnedByUser } from './prisma-ownership.utils';
 import { NotFoundException } from '@nestjs/common';
-import { ResultCode } from '../../api/api-envelope';
+import { ResultCode } from '../../api/result-code';
 
 describe('prisma-ownership.utils', () => {
   describe('ensureOwnedByUser', () => {

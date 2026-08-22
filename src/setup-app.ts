@@ -20,7 +20,6 @@ import { safeCompare } from './common';
 import { ConfigKey } from './config/env/config-keys.enum';
 import { ResultCode } from './common';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter';
-import { ApiEnvelopeInterceptor } from './common';
 import { SlowRequestInterceptor } from './common';
 import type { FastifyRequestWithMetrics } from './common/middleware/metrics.types';
 import { getActiveTraceIds } from './common/logger/trace-context.utils';
@@ -229,10 +228,7 @@ export async function setupApp(
         }),
     }),
   );
-  app.useGlobalInterceptors(
-    app.get(SlowRequestInterceptor),
-    new ApiEnvelopeInterceptor(),
-  );
+  app.useGlobalInterceptors(app.get(SlowRequestInterceptor));
   app.useGlobalFilters(app.get(ApiExceptionFilter));
 
   app.enableCors({
