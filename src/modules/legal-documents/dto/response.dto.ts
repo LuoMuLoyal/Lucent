@@ -52,25 +52,7 @@ export class LegalDocumentListDataDto {
 }
 
 /** Envelope for the list endpoint. */
-export class LegalDocumentListResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => LegalDocumentListDataDto })
-  data!: LegalDocumentListDataDto;
-}
+export class LegalDocumentListResponseDto extends LegalDocumentListDataDto {}
 
 /** Envelope for the detail endpoint. */
-export class LegalDocumentDetailResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => LegalDocumentDetailDto })
-  data!: LegalDocumentDetailDto;
-}
+export class LegalDocumentDetailResponseDto extends LegalDocumentDetailDto {}

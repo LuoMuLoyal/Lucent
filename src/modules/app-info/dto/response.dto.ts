@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class AppInfoDataDto {
   @ApiPropertyOptional({ type: String, nullable: true })
@@ -14,13 +14,4 @@ export class AppInfoDataDto {
   supportEmail!: string | null;
 }
 
-export class AppInfoResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => AppInfoDataDto })
-  data!: AppInfoDataDto;
-}
+export class AppInfoResponseDto extends AppInfoDataDto {}
