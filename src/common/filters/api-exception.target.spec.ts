@@ -6,7 +6,20 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
+import type { I18nService } from 'nestjs-i18n';
 import { ApiExceptionFilter } from './api-exception.filter';
+
+function createI18n(): I18nService {
+  const translations: Record<string, string> = {
+    'common.problem_internal_error_title': 'Internal server error',
+    'common.problem_internal_error_detail': 'Internal server error',
+    'common.problem_validation_failed_title': 'Validation failed',
+    'common.problem_validation_failed_detail': 'Validation failed',
+  };
+  return {
+    t: vi.fn((key: string) => translations[key] ?? key),
+  } as unknown as I18nService;
+}
 
 describe('ApiExceptionFilter target contract', () => {
   function createHost(
@@ -14,6 +27,7 @@ describe('ApiExceptionFilter target contract', () => {
     request: object,
   ): ArgumentsHost {
     return {
+      getType: () => 'http',
       switchToHttp: () => ({
         getResponse: () => response,
         getRequest: () => request,
@@ -31,7 +45,7 @@ describe('ApiExceptionFilter target contract', () => {
   });
 
   it('writes Problem Details with application/problem+json for a domain error', () => {
-    const filter = new ApiExceptionFilter();
+    const filter = new ApiExceptionFilter(createI18n());
     const response = {
       status: vi.fn().mockReturnThis(),
       type: vi.fn().mockReturnThis(),
@@ -64,7 +78,7 @@ describe('ApiExceptionFilter target contract', () => {
   });
 
   it('normalizes validation arrays into safe structured errors', () => {
-    const filter = new ApiExceptionFilter();
+    const filter = new ApiExceptionFilter(createI18n());
     const response = {
       status: vi.fn().mockReturnThis(),
       type: vi.fn().mockReturnThis(),
@@ -91,7 +105,7 @@ describe('ApiExceptionFilter target contract', () => {
   });
 
   it('maps unknown exceptions to a safe internal Problem Details body', () => {
-    const filter = new ApiExceptionFilter();
+    const filter = new ApiExceptionFilter(createI18n());
     const response = {
       status: vi.fn().mockReturnThis(),
       type: vi.fn().mockReturnThis(),
@@ -112,6 +126,62 @@ describe('ApiExceptionFilter target contract', () => {
       title: 'Internal server error',
       detail: 'Internal server error',
       code: 'INTERNAL_ERROR',
+      retryable: false,
     });
+  });
+
+  it('does not translate a retired numeric code into a stable business code', () => {
+    const filter = new ApiExceptionFilter(createI18n());
+    const response = {
+      status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    };
+
+    filter.catch(
+      new HttpException(
+        { code: 401002, message: 'legacy token expired' },
+        HttpStatus.UNAUTHORIZED,
+      ),
+      createHost(response, { method: 'GET', url: '/account' }),
+    );
+
+    expect(response.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'AUTH_REQUIRED',
+        type: 'https://api.lumos.example/problems/auth-required',
+      }),
+    );
+  });
+
+  it('uses localized catalog title and detail for a stable code', () => {
+    const i18n = {
+      t: vi.fn(
+        (key: string, options?: { lang?: string }) =>
+          `${key}@${options?.lang ?? 'missing'}`,
+      ),
+    };
+    const filter = new ApiExceptionFilter(i18n as never);
+    const response = {
+      status: vi.fn().mockReturnThis(),
+      type: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    };
+
+    filter.catch(
+      new HttpException(
+        { code: 'AUTH_TOKEN_EXPIRED' },
+        HttpStatus.UNAUTHORIZED,
+      ),
+      createHost(response, { method: 'GET', url: '/account' }),
+    );
+
+    expect(response.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'AUTH_TOKEN_EXPIRED',
+        title: 'common.problem_auth_token_expired_title@en',
+        detail: 'common.problem_auth_token_expired_detail@en',
+      }),
+    );
   });
 });

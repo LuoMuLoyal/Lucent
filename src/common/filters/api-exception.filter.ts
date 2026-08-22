@@ -8,30 +8,10 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { ResultCode } from '../api/result-code';
-import {
-  buildProblemDetails,
-  problemTypeForCode,
-  titleForStatus,
-  type ProblemDetails,
-} from '../api/problem-details';
+import { I18nContext, I18nService } from 'nestjs-i18n';
+import { ProblemCatalog, type ProblemCode } from '../api/problem-catalog';
+import type { ProblemDetails } from '../api/problem-details';
 import { getActiveTraceIds } from '../logger/trace-context.utils';
-
-const LEGACY_RESULT_CODE_MAP: Readonly<Record<number, string>> = {
-  [ResultCode.BAD_REQUEST]: 'BAD_REQUEST',
-  [ResultCode.VALIDATION_FAILED]: 'VALIDATION_FAILED',
-  [ResultCode.UNAUTHORIZED]: 'AUTH_UNAUTHORIZED',
-  [ResultCode.TOKEN_EXPIRED]: 'AUTH_TOKEN_EXPIRED',
-  [ResultCode.REFRESH_TOKEN_INVALID]: 'AUTH_REFRESH_TOKEN_INVALID',
-  [ResultCode.LOGIN_RATE_LIMITED]: 'AUTH_LOGIN_RATE_LIMITED',
-  [ResultCode.WRONG_PASSWORD]: 'AUTH_WRONG_PASSWORD',
-  [ResultCode.FORBIDDEN]: 'AUTH_FORBIDDEN',
-  [ResultCode.NOT_FOUND]: 'RESOURCE_NOT_FOUND',
-  [ResultCode.CONFLICT]: 'CONFLICT',
-  [ResultCode.INTERNAL_ERROR]: 'INTERNAL_ERROR',
-  [ResultCode.DATABASE_ERROR]: 'DATABASE_ERROR',
-  [ResultCode.EXTERNAL_SERVICE_ERROR]: 'EXTERNAL_SERVICE_ERROR',
-};
 
 interface HttpErrorResponse {
   type?: unknown;
@@ -51,13 +31,18 @@ interface HttpErrorResponse {
 @Injectable()
 export class ApiExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(ApiExceptionFilter.name);
+  private readonly catalog: ProblemCatalog;
+
+  constructor(i18n: I18nService) {
+    this.catalog = new ProblemCatalog(i18n);
+  }
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<FastifyReply>();
     const request = ctx.getRequest<FastifyRequest>();
     const status = this.resolveStatus(exception);
-    const body = this.resolveBody(exception, status);
+    const body = this.resolveBody(exception, status, host);
 
     this.logException(exception, request, status, body.detail);
 
@@ -71,37 +56,36 @@ export class ApiExceptionFilter implements ExceptionFilter {
     return HttpStatus.INTERNAL_SERVER_ERROR;
   }
 
-  private resolveBody(exception: unknown, status: number): ProblemDetails {
+  private resolveBody(
+    exception: unknown,
+    status: number,
+    host: ArgumentsHost,
+  ): ProblemDetails {
     const traceId = getActiveTraceIds().traceId;
+    const lang = this.resolveLanguage(host);
     if (!(exception instanceof HttpException)) {
-      return buildProblemDetails({
-        status,
-        code: 'INTERNAL_ERROR',
-        title: 'Internal server error',
-        detail: 'Internal server error',
+      return this.catalog.build('INTERNAL_ERROR', {
+        lang,
         ...(traceId == null ? {} : { traceId }),
       });
     }
 
     const response = exception.getResponse();
-    const raw = response as HttpErrorResponse | undefined;
-    const code = this.resolveCode(raw?.code, status);
-    const message = raw?.message ?? raw?.detail ?? raw?.error;
-    const validationErrors = this.resolveErrors(raw?.errors, message);
-    const detail = this.resolveDetail(message, status);
-    const explicitType = this.stringValue(raw?.type);
-    const explicitTitle = this.stringValue(raw?.title);
+    const raw = this.isErrorResponse(response) ? response : {};
+    const code = this.resolveCode(raw.code, status);
+    const message = raw.message;
+    const validationErrors = this.resolveErrors(raw.errors, message);
+    const detail = this.resolveDetail(raw);
+    const explicitTitle = this.stringValue(raw.title);
     const retryable =
-      typeof raw?.retryable === 'boolean' ? raw.retryable : undefined;
-    const retryAfter = this.nonNegativeNumber(raw?.retryAfter);
-    const responseTraceId = this.stringValue(raw?.traceId);
+      typeof raw.retryable === 'boolean' ? raw.retryable : undefined;
+    const retryAfter = this.nonNegativeNumber(raw.retryAfter);
+    const responseTraceId = this.stringValue(raw.traceId);
 
-    return buildProblemDetails({
-      status,
-      code,
-      type: explicitType ?? problemTypeForCode(code),
-      title: explicitTitle ?? titleForStatus(status),
-      detail,
+    return this.catalog.build(code, {
+      lang,
+      ...(explicitTitle == null ? {} : { title: explicitTitle }),
+      ...(detail == null ? {} : { detail }),
       ...(validationErrors == null ? {} : { errors: validationErrors }),
       ...(retryable == null ? {} : { retryable }),
       ...(retryAfter == null ? {} : { retryAfter }),
@@ -111,44 +95,64 @@ export class ApiExceptionFilter implements ExceptionFilter {
     });
   }
 
-  private resolveCode(rawCode: unknown, status: number): string {
-    if (typeof rawCode === 'string' && rawCode.trim().length > 0) {
-      return rawCode.trim();
-    }
-    if (typeof rawCode === 'number') {
-      const mapped = LEGACY_RESULT_CODE_MAP[rawCode];
-      if (mapped != null) return mapped;
+  private resolveCode(rawCode: unknown, status: number): ProblemCode {
+    if (typeof rawCode === 'string') {
+      const candidate = rawCode.trim();
+      if (this.catalog.isKnown(candidate)) return candidate;
     }
     return this.defaultCode(status);
   }
 
-  private defaultCode(status: number): string {
+  private defaultCode(status: number): ProblemCode {
     switch (status) {
       case 400:
-        return 'BAD_REQUEST';
+        return 'VALIDATION_FAILED';
       case 401:
-        return 'AUTH_UNAUTHORIZED';
+        return 'AUTH_REQUIRED';
       case 403:
-        return 'AUTH_FORBIDDEN';
+        return 'FORBIDDEN';
       case 404:
         return 'RESOURCE_NOT_FOUND';
       case 409:
-        return 'CONFLICT';
+        return 'RESOURCE_CONFLICT';
       case 429:
         return 'RATE_LIMITED';
+      case 502:
+      case 503:
+      case 504:
+        return 'DEPENDENCY_UNAVAILABLE';
       default:
         return 'INTERNAL_ERROR';
     }
   }
 
-  private resolveDetail(message: unknown, status: number): string {
-    if (Array.isArray(message)) {
-      return 'Request validation failed';
+  private resolveDetail(raw: HttpErrorResponse): string | undefined {
+    const candidates = [raw.detail, raw.message, raw.error];
+    for (const candidate of candidates) {
+      if (typeof candidate !== 'string' || candidate.trim().length === 0) {
+        continue;
+      }
+      if (!this.isGenericNestMessage(candidate)) return candidate;
     }
-    if (typeof message === 'string' && message.trim().length > 0) {
-      return message;
-    }
-    return status >= 500 ? 'Internal server error' : 'Request failed';
+    return undefined;
+  }
+
+  private isGenericNestMessage(message: string): boolean {
+    return new Set([
+      'Bad Request',
+      'Unauthorized',
+      'Forbidden',
+      'Not Found',
+      'Conflict',
+      'Too Many Requests',
+      'Internal Server Error',
+    ]).has(message.trim());
+  }
+
+  private resolveLanguage(host: ArgumentsHost): string {
+    return (
+      I18nContext.current(host)?.lang ?? I18nContext.current()?.lang ?? 'en'
+    );
   }
 
   private resolveErrors(
@@ -180,6 +184,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
 
   private isRecord(value: unknown): value is Record<string, unknown> {
     return value != null && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private isErrorResponse(value: unknown): value is HttpErrorResponse {
+    return this.isRecord(value);
   }
 
   private logException(

@@ -125,13 +125,14 @@ const definitions = {
   },
 } as const;
 
-type ProblemDefinition = (typeof definitions)[keyof typeof definitions];
-
 export type ProblemCode = keyof typeof definitions;
 
 export interface ProblemCatalogOptions {
   lang: string;
   args?: Record<string, string | number>;
+  title?: string;
+  detail?: string;
+  retryable?: boolean;
   errors?: Record<string, unknown>;
   retryAfter?: number;
   traceId?: string;
@@ -141,13 +142,15 @@ export interface ProblemCatalogOptions {
 export class ProblemCatalog {
   constructor(private readonly i18n: I18nService) {}
 
+  isKnown(code: string): code is ProblemCode {
+    return Object.prototype.hasOwnProperty.call(definitions, code);
+  }
+
   build(code: string, options: ProblemCatalogOptions): ProblemDetails {
-    const definition = (
-      definitions as Record<string, ProblemDefinition | undefined>
-    )[code];
-    if (definition == null) {
+    if (!this.isKnown(code)) {
       throw new Error(`Unknown Problem Details code: ${code}`);
     }
+    const definition = definitions[code];
 
     const translate = (key: string): string => {
       const translateOptions =
@@ -156,13 +159,14 @@ export class ProblemCatalog {
           : { lang: options.lang, args: options.args };
       return this.i18n.t(key, translateOptions);
     };
+    const retryable = options.retryable ?? definition.retryable;
 
     return buildProblemDetails({
       status: definition.status,
       code,
-      title: translate(definition.titleKey),
-      detail: translate(definition.detailKey),
-      retryable: definition.retryable,
+      title: options.title ?? translate(definition.titleKey),
+      detail: options.detail ?? translate(definition.detailKey),
+      retryable,
       ...(options.errors == null ? {} : { errors: options.errors }),
       ...(options.retryAfter == null ? {} : { retryAfter: options.retryAfter }),
       ...(options.traceId == null ? {} : { traceId: options.traceId }),
