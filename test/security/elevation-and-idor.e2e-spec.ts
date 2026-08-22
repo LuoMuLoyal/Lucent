@@ -12,9 +12,6 @@ import {
   SECURITY_ELEVATION_HEADER,
 } from '../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
-import { ResultCode } from '../../src/common';
-
-import type { ApiEnvelope } from '../../src/common';
 
 /**
  * Security tests:
@@ -99,8 +96,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
         .send({ kind: 'hospital', format: 'pdf', range: 'last_30_days' })
         .expect(201);
 
-      expect(res.body.code).toBe(0);
-      expect(res.body.data).toHaveProperty('id');
+      expect(res.body).toHaveProperty('id');
     });
 
     it('should accept data-export GET/latest without elevation token', async () => {
@@ -129,7 +125,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
           sourceRefId: 'DB00001',
         })
         .expect(201);
-      const medId = expectData(medRes.body as ApiEnvelope<{ id: string }>).id;
+      const medId = expectData(medRes.body as { id: string }).id;
 
       // Create a medicine reminder
       const reminderRes = await request(app.getHttpServer())
@@ -141,9 +137,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
           scheduledMinute: 0,
         })
         .expect(201);
-      const reminderId = expectData(
-        reminderRes.body as ApiEnvelope<{ id: string }>,
-      ).id;
+      const reminderId = expectData(reminderRes.body as { id: string }).id;
 
       // Create a dose log for Alice
       const doseLogRes = await request(app.getHttpServer())
@@ -155,9 +149,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
           status: 'taken',
         })
         .expect(201);
-      aliceDoseLogId = expectData(
-        doseLogRes.body as ApiEnvelope<{ id: string }>,
-      ).id;
+      aliceDoseLogId = expectData(doseLogRes.body as { id: string }).id;
     });
 
     it('Bob cannot list Alice dose logs', async () => {
@@ -167,7 +159,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
         .set('Authorization', bearer(bobToken))
         .expect(200);
 
-      const data = res.body.data as { items?: unknown[] };
+      const data = res.body as { items?: unknown[] };
       const found =
         Array.isArray(data.items) &&
         data.items.some((r) => (r as { id: string }).id === aliceDoseLogId);
@@ -213,7 +205,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
         .expect(400);
 
       // forbidNonWhitelisted rejects the request — mass assignment is prevented
-      expect(res.body.code).toBe(ResultCode.VALIDATION_FAILED);
+      expect(res.body['code']).toBe('VALIDATION_FAILED');
     });
 
     it('POST /daily-records should reject unknown fields (forbidNonWhitelisted)', async () => {
@@ -230,7 +222,7 @@ describe('Security: Elevation, IDOR & Mass Assignment (e2e)', () => {
         .expect(400);
 
       // forbidNonWhitelisted rejects the request — mass assignment is prevented
-      expect(res.body.code).toBe(ResultCode.VALIDATION_FAILED);
+      expect(res.body['code']).toBe('VALIDATION_FAILED');
     });
   });
 });

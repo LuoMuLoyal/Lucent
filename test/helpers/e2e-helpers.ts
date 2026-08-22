@@ -7,7 +7,6 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { AppModule } from '../../src/app.module';
 import { setupApp } from '../../src/setup-app';
 import { PrismaService } from '../../src/prisma';
-import type { ApiEnvelope } from '../../src/common';
 import { ConfigKey } from '../../src/config/env/config-keys.enum';
 import { SecurityPinService } from '../../src/modules/security-pin';
 import { UserStatus } from '#generated/prisma/client';
@@ -198,11 +197,11 @@ export function bearer(token: string): string {
 }
 
 /**
- * Assert that `body.data` is non-null and return it typed.
+ * Assert that `body` is non-null and return it typed.
  */
-export function expectData<T>(body: ApiEnvelope<T>): T {
-  expect(body.data).not.toBeNull();
-  return body.data as T;
+export function expectData<T>(body: T): T {
+  expect(body).toBeDefined();
+  return body;
 }
 
 /**

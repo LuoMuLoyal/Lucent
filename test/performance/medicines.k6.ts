@@ -63,10 +63,10 @@ export default function (): void {
 
   const searchOk = check(searchRes, {
     'search: status 200': (r) => r.status === 200,
-    'search: has envelope': (r) => {
+    'search: has resource items': (r) => {
       try {
         const body = JSON.parse(r.body as string);
-        return body.code === 0 && Array.isArray(body.data);
+        return Array.isArray(body.items);
       } catch {
         return false;
       }
@@ -95,7 +95,7 @@ export default function (): void {
     'safety-tips: has data array': (r) => {
       try {
         const body = JSON.parse(r.body as string);
-        return Array.isArray(body.data);
+        return Array.isArray(body);
       } catch {
         return false;
       }

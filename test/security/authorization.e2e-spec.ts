@@ -12,8 +12,6 @@ import {
   SECURITY_ELEVATION_HEADER,
 } from '../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
-import { ResultCode } from '../../src/common';
-import type { ApiEnvelope } from '../../src/common';
 import { UserStatus } from '#generated/prisma/client';
 
 /**
@@ -74,7 +72,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .send({ kind: 'drug', label: 'Penicillin', severity: 'severe' })
         .expect(201);
       const allergyData = expectData(
-        allergyRes.body as ApiEnvelope<{ allergies: { id: string }[] }>,
+        allergyRes.body as { allergies: { id: string }[] },
       );
       aliceAllergyId = allergyData.allergies[0]!.id;
 
@@ -84,7 +82,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .send({ label: 'Hypertension', status: 'active' })
         .expect(201);
       const condData = expectData(
-        condRes.body as ApiEnvelope<{ conditions: { id: string }[] }>,
+        condRes.body as { conditions: { id: string }[] },
       );
       aliceConditionId = condData.conditions[0]!.id;
     });
@@ -96,7 +94,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .set('Authorization', bearer(bobToken))
         .expect(200);
 
-      const data = res.body.data as {
+      const data = res.body as {
         allergies: unknown[];
         conditions: unknown[];
       };
@@ -150,7 +148,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
           payload: { mealType: 'breakfast', items: [] },
         })
         .expect(201);
-      aliceRecordId = expectData(res.body as ApiEnvelope<{ id: string }>).id;
+      aliceRecordId = expectData(res.body as { id: string }).id;
     });
 
     it('Bob cannot list Alice daily records', async () => {
@@ -160,7 +158,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .set('Authorization', bearer(bobToken))
         .expect(200);
 
-      const data = res.body.data as { items: unknown[] };
+      const data = res.body as { items: unknown[] };
       const found = data.items.some(
         (r) => (r as { id: string }).id === aliceRecordId,
       );
@@ -206,7 +204,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
           sourceRefId: 'DB00001',
         })
         .expect(201);
-      const medId = expectData(medRes.body as ApiEnvelope<{ id: string }>).id;
+      const medId = expectData(medRes.body as { id: string }).id;
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/user/medicine-reminders')
@@ -217,7 +215,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
           scheduledMinute: 0,
         })
         .expect(201);
-      aliceReminderId = expectData(res.body as ApiEnvelope<{ id: string }>).id;
+      aliceReminderId = expectData(res.body as { id: string }).id;
     });
 
     it('Bob cannot list Alice medicine reminders', async () => {
@@ -226,7 +224,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .set('Authorization', bearer(bobToken))
         .expect(200);
 
-      const data = res.body.data as { items: unknown[] };
+      const data = res.body as { items: unknown[] };
       const found = data.items.some(
         (r) => (r as { id: string }).id === aliceReminderId,
       );
@@ -264,9 +262,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
           content: 'Private content',
         })
         .expect(201);
-      aliceNotificationId = expectData(
-        res.body as ApiEnvelope<{ id: string }>,
-      ).id;
+      aliceNotificationId = expectData(res.body as { id: string }).id;
     });
 
     it('Bob cannot read Alice notification by ID', async () => {
@@ -301,19 +297,17 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .set('Authorization', bearer(bobToken))
         .expect(200);
 
-      expect(res.body.data.id).toBe(bob.id);
-      expect(res.body.data.id).not.toBe(alice.id);
+      expect(res.body.id).toBe(bob.id);
+      expect(res.body.id).not.toBe(alice.id);
     });
 
     it('Bob cannot delete Alice account (no endpoint to target another user)', async () => {
       // Account deletion only accepts the authenticated user's own password
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .delete('/api/v1/account')
         .set('Authorization', bearer(bobToken))
         .send({ password: 'wrong' })
         .expect(401);
-
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
     });
   });
 
@@ -339,7 +333,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .set('Authorization', bearer(aliceToken))
         .expect(200);
 
-      const sessions = res.body.data as Array<{ id: string }>;
+      const sessions = res.body as Array<{ id: string }>;
       aliceSessionId = sessions[0]!.id;
     });
 
@@ -349,7 +343,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .set('Authorization', bearer(bobToken))
         .expect(200);
 
-      const sessions = res.body.data as Array<{ id: string }>;
+      const sessions = res.body as Array<{ id: string }>;
       const found = sessions.some((s) => s.id === aliceSessionId);
       expect(found).toBe(false);
     });
@@ -419,7 +413,7 @@ describe('Security: Cross-User Authorization (e2e)', () => {
         .expect(200);
 
       // Bob should get null or his own (non-existent) export, not Alice's
-      const data = res.body.data as { id?: string } | null;
+      const data = res.body as { id?: string } | null;
       if (data) {
         expect(data.id).not.toBe(aliceExportId);
       }

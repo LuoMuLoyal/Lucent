@@ -47,18 +47,10 @@ export default function (): void {
 
     const ok = check(res, {
       [`${ep.name}: status is 200`]: (r) => r.status === 200,
-      [`${ep.name}: has envelope code`]: (r) => {
+      [`${ep.name}: status is valid`]: (r) => {
         try {
           const body = JSON.parse(r.body as string);
-          return body.code !== undefined;
-        } catch {
-          return false;
-        }
-      },
-      [`${ep.name}: status is ok`]: (r) => {
-        try {
-          const body = JSON.parse(r.body as string);
-          return body.data?.status === 'ok' || body.data?.status === 'error';
+          return body.status === 'ok' || body.status === 'error';
         } catch {
           return false;
         }

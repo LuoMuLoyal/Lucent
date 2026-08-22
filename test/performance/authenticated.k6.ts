@@ -61,7 +61,7 @@ export default function (): void {
       'account: has user data': (r) => {
         try {
           const body = JSON.parse(r.body as string);
-          return body.code === 0 && body.data?.id !== undefined;
+          return body.id !== undefined;
         } catch {
           return false;
         }
@@ -87,7 +87,7 @@ export default function (): void {
       'health-context: has summary': (r) => {
         try {
           const body = JSON.parse(r.body as string);
-          return body.code === 0 && body.data?.summary !== undefined;
+          return body.summary !== undefined;
         } catch {
           return false;
         }
@@ -113,7 +113,7 @@ export default function (): void {
       'dashboard: has data': (r) => {
         try {
           const body = JSON.parse(r.body as string);
-          return body.code === 0 && body.data !== null;
+          return body !== null;
         } catch {
           return false;
         }
@@ -139,7 +139,7 @@ export default function (): void {
       'today-suggestions: has suggestions array': (r) => {
         try {
           const body = JSON.parse(r.body as string);
-          return body.code === 0 && Array.isArray(body.data?.suggestions);
+          return Array.isArray(body.suggestions);
         } catch {
           return false;
         }

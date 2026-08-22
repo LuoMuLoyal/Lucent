@@ -9,7 +9,6 @@ import {
   uniqueEmail,
 } from '../helpers/e2e-helpers';
 import type { E2eTestContext, E2eApp, TestUser } from '../helpers/e2e-helpers';
-import { ResultCode } from '../../src/common';
 
 /**
  * Security tests: input fuzzing.
@@ -62,7 +61,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .send('{"email": "not closed')
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should reject SQL injection attempt in email', async () => {
@@ -75,7 +74,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should reject NoSQL injection attempt in email', async () => {
@@ -87,7 +86,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should reject oversized payload', async () => {
@@ -101,7 +100,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should reject null byte injection in email', async () => {
@@ -113,7 +112,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should reject path traversal in nickname', async () => {
@@ -139,7 +138,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .send({})
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should reject login with wrong types', async () => {
@@ -151,7 +150,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should not leak whether email exists (same error for unknown email)', async () => {
@@ -163,10 +162,11 @@ describe('Security: Input Fuzzing (e2e)', () => {
         })
         .expect(401);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
+
       // Should not contain stack trace or internal info
-      expect(res.body.message).not.toContain('Prisma');
-      expect(res.body.message).not.toContain('at Object');
+      expect(res.body['detail']).not.toContain('Prisma');
+      expect(res.body['detail']).not.toContain('at Object');
     });
   });
 
@@ -202,7 +202,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should reject invalid kind enum', async () => {
@@ -216,7 +216,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
   });
 
@@ -228,7 +228,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .send({ label: 'Test' })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should reject invalid allergy severity enum', async () => {
@@ -242,7 +242,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
   });
 
@@ -253,7 +253,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .query({ q: 'test', page: -1, pageSize: 10 })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should reject oversized page size', async () => {
@@ -262,7 +262,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .query({ q: 'test', page: 1, pageSize: 99999 })
         .expect(400);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
 
     it('should handle SQL injection in search query', async () => {
@@ -271,8 +271,9 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .query({ q: "'; DROP TABLE drugbank_drug; --" })
         .expect(200);
 
+      void res;
+
       // Should return empty results, not crash
-      expect(res.body.code).toBe(ResultCode.SUCCESS);
     });
   });
 
@@ -313,7 +314,7 @@ describe('Security: Input Fuzzing (e2e)', () => {
         .set('Authorization', `Bearer ${longToken}`)
         .expect(401);
 
-      expect(res.body.code).not.toBe(ResultCode.SUCCESS);
+      void res;
     });
   });
 });

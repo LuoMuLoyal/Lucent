@@ -80,7 +80,7 @@ export default function (): void {
       'create: has id': (r) => {
         try {
           const body = JSON.parse(r.body as string);
-          return body.code === 0 && body.data?.id !== undefined;
+          return body.id !== undefined;
         } catch {
           return false;
         }
@@ -89,7 +89,7 @@ export default function (): void {
 
     if (ok) {
       try {
-        recordId = JSON.parse(res.body as string).data.id;
+        recordId = JSON.parse(res.body as string).id;
       } catch {
         // ignore parse errors
       }
@@ -143,7 +143,7 @@ export default function (): void {
       'query: has items array': (r) => {
         try {
           const body = JSON.parse(r.body as string);
-          return body.code === 0 && body.data?.items !== undefined;
+          return body.items !== undefined;
         } catch {
           return false;
         }
