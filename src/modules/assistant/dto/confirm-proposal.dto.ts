@@ -49,13 +49,4 @@ export class AssistantConfirmResultDto {
   finalContent!: string | null;
 }
 
-export class AssistantConfirmResultResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => AssistantConfirmResultDto })
-  data!: AssistantConfirmResultDto;
-}
+export class AssistantConfirmResultResponseDto extends AssistantConfirmResultDto {}

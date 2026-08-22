@@ -132,13 +132,4 @@ export class AssistantCapabilitiesDataDto {
   updatedAt!: string | null;
 }
 
-export class AssistantCapabilitiesResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => AssistantCapabilitiesDataDto })
-  data!: AssistantCapabilitiesDataDto;
-}
+export class AssistantCapabilitiesResponseDto extends AssistantCapabilitiesDataDto {}

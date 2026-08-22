@@ -38,13 +38,4 @@ export class SuggestionFeedbackDataDto {
 }
 
 /** Envelope response for POST /today/suggestions/:id/feedback. */
-export class SuggestionFeedbackResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => SuggestionFeedbackDataDto })
-  data!: SuggestionFeedbackDataDto;
-}
+export class SuggestionFeedbackResponseDto extends SuggestionFeedbackDataDto {}

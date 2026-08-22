@@ -1,10 +1,5 @@
 import { TodayAnalysisController } from './today-analysis.controller';
-import {
-  TodayAnalysisAsyncResponseDto,
-  TodayAnalysisGenerateResponseDto,
-  TodayAnalysisReadResponseDto,
-  TodayAnalysisRefreshResponseDto,
-} from './dto/analysis-response.dto';
+import { TodayAnalysisReadResponseDto } from './dto/analysis-response.dto';
 
 describe('TodayAnalysisController OpenAPI contract', () => {
   const responsesFor = (method: keyof TodayAnalysisController) =>
@@ -13,21 +8,21 @@ describe('TodayAnalysisController OpenAPI contract', () => {
       TodayAnalysisController.prototype[method],
     ) as Record<string, { type?: unknown; schema?: unknown }> | undefined;
 
-  it('documents the read endpoint as an API envelope with read data', () => {
+  it('documents the read endpoint as direct read data', () => {
     expect(responsesFor('read')?.['200']?.type).toBe(
       TodayAnalysisReadResponseDto,
     );
   });
 
-  it('documents refresh, generate, and async data unions explicitly', () => {
-    expect(responsesFor('refresh')?.['201']?.type).toBe(
-      TodayAnalysisRefreshResponseDto,
-    );
-    expect(responsesFor('generate')?.['200']?.type).toBe(
-      TodayAnalysisGenerateResponseDto,
-    );
-    expect(responsesFor('generateAsync')?.['202']?.type).toBe(
-      TodayAnalysisAsyncResponseDto,
-    );
+  it('documents refresh, generate, and async direct unions explicitly', () => {
+    expect(responsesFor('refresh')?.['201']?.schema).toMatchObject({
+      oneOf: expect.any(Array),
+    });
+    expect(responsesFor('generate')?.['200']?.schema).toMatchObject({
+      oneOf: expect.any(Array),
+    });
+    expect(responsesFor('generateAsync')?.['202']?.schema).toMatchObject({
+      oneOf: expect.any(Array),
+    });
   });
 });

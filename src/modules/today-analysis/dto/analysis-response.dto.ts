@@ -107,16 +107,7 @@ export class TodayAnalysisReadDataDto {
   retryAfterSeconds!: number | null;
 }
 
-export class TodayAnalysisReadResponseDto {
-  @ApiProperty({ type: Number, example: 0 })
-  code!: number;
-
-  @ApiProperty({ type: String, example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => TodayAnalysisReadDataDto })
-  data!: TodayAnalysisReadDataDto;
-}
+export class TodayAnalysisReadResponseDto extends TodayAnalysisReadDataDto {}
 
 export class TodayAnalysisRefreshPendingDataDto {
   @ApiProperty({ enum: ['pending'], type: String })
@@ -132,44 +123,6 @@ export class TodayAnalysisRefreshReadyDataDto {
 
   @ApiProperty({ type: () => TodayAnalysisDataDto })
   analysis!: TodayAnalysisDataDto;
-}
-
-export class TodayAnalysisRefreshResponseDto {
-  @ApiProperty({ type: Number, example: 0 })
-  code!: number;
-
-  @ApiProperty({ type: String, example: '' })
-  message!: string;
-
-  @ApiProperty({
-    oneOf: [
-      { $ref: getSchemaPath(TodayAnalysisDataDto) },
-      { $ref: getSchemaPath(TodayAnalysisReadDataDto) },
-      { $ref: getSchemaPath(TodayAnalysisRefreshPendingDataDto) },
-      { $ref: getSchemaPath(TodayAnalysisRefreshReadyDataDto) },
-    ],
-  })
-  data!:
-    | TodayAnalysisDataDto
-    | TodayAnalysisReadDataDto
-    | TodayAnalysisRefreshPendingDataDto
-    | TodayAnalysisRefreshReadyDataDto;
-}
-
-export class TodayAnalysisGenerateResponseDto {
-  @ApiProperty({ type: Number, example: 0 })
-  code!: number;
-
-  @ApiProperty({ type: String, example: '' })
-  message!: string;
-
-  @ApiProperty({
-    oneOf: [
-      { $ref: getSchemaPath(TodayAnalysisDataDto) },
-      { $ref: getSchemaPath(TodayAnalysisReadDataDto) },
-    ],
-  })
-  data!: TodayAnalysisDataDto | TodayAnalysisReadDataDto;
 }
 
 export class TodayAnalysisAsyncJobDataDto {
@@ -193,24 +146,4 @@ export class TodayAnalysisAsyncStatusDataDto {
     type: String,
   })
   status!: 'empty' | 'pending' | 'ready' | 'stale' | 'failed';
-}
-
-export class TodayAnalysisAsyncResponseDto {
-  @ApiProperty({ type: Number, example: 0 })
-  code!: number;
-
-  @ApiProperty({ type: String, example: '' })
-  message!: string;
-
-  @ApiProperty({
-    oneOf: [
-      { $ref: getSchemaPath(TodayAnalysisAsyncJobDataDto) },
-      { $ref: getSchemaPath(TodayAnalysisAsyncResultDataDto) },
-      { $ref: getSchemaPath(TodayAnalysisAsyncStatusDataDto) },
-    ],
-  })
-  data!:
-    | TodayAnalysisAsyncJobDataDto
-    | TodayAnalysisAsyncResultDataDto
-    | TodayAnalysisAsyncStatusDataDto;
 }

@@ -8,13 +8,4 @@ export class AssistantClearMemoryDataDto {
   cleared!: number;
 }
 
-export class AssistantClearMemoryResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => AssistantClearMemoryDataDto })
-  data!: AssistantClearMemoryDataDto;
-}
+export class AssistantClearMemoryResponseDto extends AssistantClearMemoryDataDto {}

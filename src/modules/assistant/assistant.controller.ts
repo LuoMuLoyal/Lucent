@@ -16,6 +16,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
@@ -25,7 +26,6 @@ import {
   writeSseEvent,
   SseConnectionRegistry,
 } from '../../common';
-import { SkipApiEnvelope } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { AssistantService } from './services/core.service';
@@ -36,9 +36,10 @@ import { AssistantClearResultResponseDto } from './dto/stream-response.dto';
 
 import { AssistantClearMemoryResponseDto } from './dto/clear-memory-response.dto';
 
-import { AssistantConversationListResponseDto } from './dto/conversation-list-response.dto';
+import { AssistantConversationSummaryDto } from './dto/conversation-list-response.dto';
 
 import { AssistantConversationResponseDto } from './dto/conversation-response.dto';
+import { AssistantConversationDataDto } from './dto/conversation-response.dto';
 
 import { StreamAssistantMessagesDto } from './dto/stream-messages.dto';
 
@@ -74,7 +75,7 @@ export class AssistantController {
   @ApiOperation({
     summary: 'List recent persisted assistant conversations for the user',
   })
-  @ApiResponse({ status: 200, type: AssistantConversationListResponseDto })
+  @ApiResponse({ status: 200, type: [AssistantConversationSummaryDto] })
   async listRecentConversations(@CurrentUser() user: UserPayload) {
     return await this.assistantService.listRecentConversations(user.sub);
   }
@@ -84,7 +85,13 @@ export class AssistantController {
     summary:
       'Get the authenticated user latest persisted assistant conversation',
   })
-  @ApiResponse({ status: 200, type: AssistantConversationResponseDto })
+  @ApiResponse({
+    status: 200,
+    schema: {
+      nullable: true,
+      allOf: [{ $ref: getSchemaPath(AssistantConversationDataDto) }],
+    },
+  })
   async getLatestConversation(@CurrentUser() user: UserPayload) {
     return await this.assistantService.getLatestConversation(user.sub);
   }
@@ -182,7 +189,6 @@ export class AssistantController {
 
   @SkipThrottle()
   @Post('messages/stream')
-  @SkipApiEnvelope()
   @ApiOperation({
     summary: 'Stream authenticated user assistant response',
   })
@@ -241,7 +247,6 @@ export class AssistantController {
   }
   @SkipThrottle()
   @Post('conversations/:conversationId/regenerate')
-  @SkipApiEnvelope()
   @ApiOperation({
     summary:
       'Regenerate the last assistant message of a persisted conversation (SSE)',

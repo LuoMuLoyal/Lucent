@@ -94,24 +94,6 @@ export class DataExportRequestDataDto {
   errorMessage!: string | null;
 }
 
-export class DataExportRequestResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
+export class DataExportRequestResponseDto extends DataExportRequestDataDto {}
 
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => DataExportRequestDataDto })
-  data!: DataExportRequestDataDto;
-}
-
-export class DataExportLatestResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => DataExportRequestDataDto, nullable: true })
-  data!: DataExportRequestDataDto | null;
-}
+export class DataExportLatestResponseDto extends DataExportRequestDataDto {}

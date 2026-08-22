@@ -18,6 +18,7 @@ import {
   ApiQuery,
   ApiResponse,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { I18nLang } from 'nestjs-i18n';
@@ -29,7 +30,6 @@ import {
   conflict,
 } from '../../common';
 import { extractErrorInfo } from '../../common';
-import { SkipApiEnvelope } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { TodayAnalysisQueueService } from './services/analysis-queue.service';
@@ -47,13 +47,12 @@ import { GenerateTodayAnalysisDto } from './dto/generate-today-analysis.dto';
 import {
   TodayAnalysisAsyncJobDataDto,
   TodayAnalysisAsyncResultDataDto,
-  TodayAnalysisAsyncResponseDto,
   TodayAnalysisAsyncStatusDataDto,
-  TodayAnalysisGenerateResponseDto,
   TodayAnalysisReadResponseDto,
   TodayAnalysisRefreshPendingDataDto,
   TodayAnalysisRefreshReadyDataDto,
-  TodayAnalysisRefreshResponseDto,
+  TodayAnalysisDataDto,
+  TodayAnalysisReadDataDto,
 } from './dto/analysis-response.dto';
 import {
   TodayAnalysisStreamErrorDto,
@@ -68,13 +67,12 @@ import { TodayRecommendationResponseDto } from './dto/recommendation-response.dt
 @ApiExtraModels(
   TodayAnalysisAsyncJobDataDto,
   TodayAnalysisAsyncResultDataDto,
-  TodayAnalysisAsyncResponseDto,
   TodayAnalysisAsyncStatusDataDto,
-  TodayAnalysisGenerateResponseDto,
+  TodayAnalysisDataDto,
+  TodayAnalysisReadDataDto,
   TodayAnalysisReadResponseDto,
   TodayAnalysisRefreshPendingDataDto,
   TodayAnalysisRefreshReadyDataDto,
-  TodayAnalysisRefreshResponseDto,
   TodayAnalysisStreamErrorDto,
   TodayAnalysisStreamResultDto,
   TodayAnalysisStreamSummaryDto,
@@ -114,7 +112,17 @@ export class TodayAnalysisController {
 
   @Post('refresh')
   @ApiOperation({ summary: 'Request a bounded Today AI analysis refresh' })
-  @ApiResponse({ status: 201, type: TodayAnalysisRefreshResponseDto })
+  @ApiResponse({
+    status: 201,
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(TodayAnalysisDataDto) },
+        { $ref: getSchemaPath(TodayAnalysisReadDataDto) },
+        { $ref: getSchemaPath(TodayAnalysisRefreshPendingDataDto) },
+        { $ref: getSchemaPath(TodayAnalysisRefreshReadyDataDto) },
+      ],
+    },
+  })
   async refresh(
     @CurrentUser() user: UserPayload,
     @Body() dto: GenerateTodayAnalysisDto,
@@ -161,7 +169,15 @@ export class TodayAnalysisController {
 
   @Post('generate')
   @ApiOperation({ summary: 'Generate authenticated user today AI analysis' })
-  @ApiResponse({ status: 200, type: TodayAnalysisGenerateResponseDto })
+  @ApiResponse({
+    status: 200,
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(TodayAnalysisDataDto) },
+        { $ref: getSchemaPath(TodayAnalysisReadDataDto) },
+      ],
+    },
+  })
   async generate(
     @CurrentUser() user: UserPayload,
     @Body() dto: GenerateTodayAnalysisDto,
@@ -196,7 +212,13 @@ export class TodayAnalysisController {
   @ApiResponse({
     status: 202,
     description: 'Job enqueued. Returns jobId for polling.',
-    type: TodayAnalysisAsyncResponseDto,
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(TodayAnalysisAsyncJobDataDto) },
+        { $ref: getSchemaPath(TodayAnalysisAsyncResultDataDto) },
+        { $ref: getSchemaPath(TodayAnalysisAsyncStatusDataDto) },
+      ],
+    },
   })
   async generateAsync(
     @CurrentUser() user: UserPayload,
@@ -297,7 +319,6 @@ export class TodayAnalysisController {
 
   @SkipThrottle()
   @Post('generate/stream')
-  @SkipApiEnvelope()
   @ApiOperation({
     summary: 'Stream authenticated user today AI analysis generation',
   })

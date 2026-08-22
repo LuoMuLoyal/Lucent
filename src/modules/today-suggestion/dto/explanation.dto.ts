@@ -27,13 +27,4 @@ export class SuggestionExplanationDataDto {
 }
 
 /** Envelope response for POST /today/suggestions/:id/explain. */
-export class SuggestionExplanationResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => SuggestionExplanationDataDto })
-  data!: SuggestionExplanationDataDto;
-}
+export class SuggestionExplanationResponseDto extends SuggestionExplanationDataDto {}

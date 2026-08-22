@@ -56,13 +56,4 @@ export class TodaySuggestionsDataDto {
 }
 
 /** Envelope response for GET /today/suggestions. */
-export class TodaySuggestionsResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => TodaySuggestionsDataDto })
-  data!: TodaySuggestionsDataDto;
-}
+export class TodaySuggestionsResponseDto extends TodaySuggestionsDataDto {}

@@ -133,16 +133,7 @@ export class AssistantClearResultDataDto {
   archivedConversationId!: string | null;
 }
 
-export class AssistantClearResultResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => AssistantClearResultDataDto })
-  data!: AssistantClearResultDataDto;
-}
+export class AssistantClearResultResponseDto extends AssistantClearResultDataDto {}
 
 export class AssistantStreamResultDto {
   @ApiProperty({ enum: ['chunk', 'result', 'error', 'done'] })

@@ -1,9 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AssistantConversationSummaryDto {
-  @ApiProperty({
-    description: 'Stable persisted conversation identifier.',
-  })
+  @ApiProperty({ description: 'Stable persisted conversation identifier.' })
   id!: string;
 
   @ApiProperty({
@@ -26,29 +24,9 @@ export class AssistantConversationSummaryDto {
   })
   lastMessageAt!: string | null;
 
-  @ApiProperty({
-    description: 'ISO-8601 creation timestamp.',
-  })
+  @ApiProperty({ description: 'ISO-8601 creation timestamp.' })
   createdAt!: string;
 
-  @ApiProperty({
-    description: 'ISO-8601 update timestamp.',
-  })
+  @ApiProperty({ description: 'ISO-8601 update timestamp.' })
   updatedAt!: string;
-}
-
-export class AssistantConversationListResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({
-    type: () => AssistantConversationSummaryDto,
-    isArray: true,
-    description:
-      'Recent persisted conversations for the authenticated user, newest first.',
-  })
-  data!: AssistantConversationSummaryDto[];
 }

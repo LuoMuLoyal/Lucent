@@ -69,17 +69,4 @@ export class AssistantConversationDataDto {
   updatedAt!: string;
 }
 
-export class AssistantConversationResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({
-    type: () => AssistantConversationDataDto,
-    nullable: true,
-    description: 'Persisted conversation payload, or null when none exists.',
-  })
-  data!: AssistantConversationDataDto | null;
-}
+export class AssistantConversationResponseDto extends AssistantConversationDataDto {}

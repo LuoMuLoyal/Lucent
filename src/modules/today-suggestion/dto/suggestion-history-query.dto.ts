@@ -132,13 +132,4 @@ export class SuggestionHistoryDataDto {
 }
 
 /** Envelope response for GET /today/suggestions/history. */
-export class SuggestionHistoryResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => SuggestionHistoryDataDto })
-  data!: SuggestionHistoryDataDto;
-}
+export class SuggestionHistoryResponseDto extends SuggestionHistoryDataDto {}

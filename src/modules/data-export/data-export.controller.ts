@@ -12,6 +12,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { I18nLang } from 'nestjs-i18n';
 
@@ -22,7 +23,7 @@ import { RequireSecurityElevation } from '../security-pin';
 import { DataExportService } from './services/export.service';
 import {
   CreateDataExportRequestDto,
-  DataExportLatestResponseDto,
+  DataExportRequestDataDto,
   DataExportRequestResponseDto,
 } from './dto/export-response.dto';
 
@@ -48,7 +49,13 @@ export class DataExportController {
 
   @Get('latest')
   @ApiOperation({ summary: 'Get the latest data export request' })
-  @ApiResponse({ status: 200, type: DataExportLatestResponseDto })
+  @ApiResponse({
+    status: 200,
+    schema: {
+      nullable: true,
+      allOf: [{ $ref: getSchemaPath(DataExportRequestDataDto) }],
+    },
+  })
   async getLatestRequest(@CurrentUser() user: UserPayload) {
     return await this.exportService.getLatestRequest(user.sub);
   }
