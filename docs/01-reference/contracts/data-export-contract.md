@@ -114,3 +114,6 @@ interface DataExportRequestDto {
 `ClinicSummaryShareDataDto`。报告 dashboard、summary、review、share list、异步状态和
 PDF export JSON 也直接返回各自资源；撤销分享成功返回 `204 No Content`。错误响应使用
 `application/problem+json`。
+
+`docs/openapi.json` is the generated source for these direct resource and nullable response
+schemas; clients must not unwrap a success envelope.

@@ -246,6 +246,9 @@ All successful reminder, dose-log, medicine, delivery, and notification JSON res
 resources. They do not include a generic `{ code, message, data }` envelope. Successful delete
 operations return `204 No Content` without a response body.
 
+The exported OpenAPI schemas describe these resource bodies directly, including array responses and
+nullable latest/current reads.
+
 ## Explicit Non-Goals
 
 1. **No real-time / WebSocket notification.** The initial delivery model is polling-based: Luminous

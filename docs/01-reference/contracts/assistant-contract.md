@@ -131,6 +131,9 @@ All successful JSON responses from the assistant controller are direct resources
 include a generic `{ code, message, data }` envelope. SSE endpoints keep their event-specific
 `chunk`/`result`/`error`/`done` event contract.
 
+Today Analysis refresh/generate endpoints expose their direct response unions with OpenAPI
+`oneOf` schemas; the union alternatives are not nested under `data`.
+
 ## Settings Contract
 
 Assistant-related user settings now use assistant-facing API fields:

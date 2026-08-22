@@ -14,6 +14,9 @@ Lucent stores user-scoped notification preferences in
 `UserNotificationPreference` and exposes them through
 `GET/PATCH /api/v1/user/notification-preferences`.
 
+The response DTOs are direct resources in the exported OpenAPI contract; no global success
+interceptor or `{ code, message, data }` wrapper is used.
+
 - The preference row stores health, weekly insight, water, and sleep reminder
   intent for cross-device consumers.
 - Today health escalation reads `healthAlertsEnabled`; the water shortfall rule

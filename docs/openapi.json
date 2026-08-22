@@ -235,8 +235,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": ""
+          "204": {
+            "description": "Medicine reminder deleted."
           }
         },
         "security": [
@@ -1360,7 +1360,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Share revoked; the shared URL now returns 404."
           }
         },
@@ -1519,7 +1519,12 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EventReviewNullableResponseDto"
+                  "nullable": true,
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/EventReviewDataDto"
+                    }
+                  ]
                 }
               }
             }
@@ -1661,7 +1666,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssistantConversationListResponseDto"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AssistantConversationSummaryDto"
+                  }
                 }
               }
             }
@@ -1686,7 +1694,12 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssistantConversationResponseDto"
+                  "nullable": true,
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/AssistantConversationDataDto"
+                    }
+                  ]
                 }
               }
             }
@@ -2145,15 +2158,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessResponseDto"
-                }
-              }
-            }
+          "204": {
+            "description": "Password reset."
           }
         },
         "summary": "Reset password",
@@ -2505,15 +2511,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessResponseDto"
-                }
-              }
-            }
+          "204": {
+            "description": "Logged out."
           }
         },
         "security": [
@@ -2557,7 +2556,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": ""
           }
         },
@@ -2623,7 +2622,10 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MedicineSafetyTipListResponseDto"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MedicineSafetyTipResponseDto"
+                  }
                 }
               }
             }
@@ -3825,8 +3827,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": ""
+          "204": {
+            "description": "Daily record deleted."
           }
         },
         "security": [
@@ -3928,7 +3930,12 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HealthEventNullableResponseDto"
+                  "nullable": true,
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/HealthEventItemDto"
+                    }
+                  ]
                 }
               }
             }
@@ -4343,8 +4350,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": ""
+          "204": {
+            "description": "Dose log deleted."
           }
         },
         "security": [
@@ -4427,15 +4434,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessResponseDto"
-                }
-              }
-            }
+          "204": {
+            "description": "Account deleted."
           }
         },
         "security": [
@@ -4462,15 +4462,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessResponseDto"
-                }
-              }
-            }
+          "204": {
+            "description": "Password changed."
           }
         },
         "security": [
@@ -4497,15 +4490,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessResponseDto"
-                }
-              }
-            }
+          "204": {
+            "description": "Password set."
           }
         },
         "security": [
@@ -4790,7 +4776,20 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TodayAnalysisRefreshResponseDto"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TodayAnalysisDataDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TodayAnalysisRefreshPendingDataDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataDto"
+                    }
+                  ]
                 }
               }
             }
@@ -4825,7 +4824,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TodayAnalysisGenerateResponseDto"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TodayAnalysisDataDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
+                    }
+                  ]
                 }
               }
             }
@@ -4860,7 +4866,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TodayAnalysisAsyncResponseDto"
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TodayAnalysisAsyncJobDataDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TodayAnalysisAsyncStatusDataDto"
+                    }
+                  ]
                 }
               }
             }
@@ -5117,7 +5133,12 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataExportLatestResponseDto"
+                  "nullable": true,
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/DataExportRequestDataDto"
+                    }
+                  ]
                 }
               }
             }
@@ -5281,7 +5302,7 @@
           "details"
         ]
       },
-      "HealthProbeDto": {
+      "HealthResponseDto": {
         "type": "object",
         "properties": {
           "probe": {
@@ -5325,23 +5346,6 @@
           "summary",
           "components"
         ]
-      },
-      "HealthResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/HealthProbeDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "MedicineReminderItemDto": {
         "type": "object",
@@ -5413,7 +5417,7 @@
           "updatedAt"
         ]
       },
-      "MedicineReminderListDataDto": {
+      "MedicineReminderListResponseDto": {
         "type": "object",
         "properties": {
           "items": {
@@ -5424,23 +5428,6 @@
           }
         },
         "required": ["items"]
-      },
-      "MedicineReminderListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/MedicineReminderListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "CreateMedicineReminderDto": {
         "type": "object",
@@ -5501,19 +5488,72 @@
       "MedicineReminderResponseDto": {
         "type": "object",
         "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
+          "id": {
             "type": "string",
-            "example": ""
+            "description": "Reminder id."
           },
-          "data": {
-            "$ref": "#/components/schemas/MedicineReminderItemDto"
+          "currentMedicineId": {
+            "type": "string",
+            "description": "Linked current medicine id.",
+            "nullable": true
+          },
+          "label": {
+            "type": "string",
+            "description": "Reminder label.",
+            "nullable": true
+          },
+          "scheduledHour": {
+            "type": "number",
+            "description": "Scheduled local hour, 0-23."
+          },
+          "scheduledMinute": {
+            "type": "number",
+            "description": "Scheduled local minute, 0-59."
+          },
+          "daysOfWeek": {
+            "description": "Weekday numbers 0-6. Null means every day.",
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder starts.",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format when the reminder ends.",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether this reminder is active."
+          },
+          "note": {
+            "type": "string",
+            "description": "User note.",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "id",
+          "scheduledHour",
+          "scheduledMinute",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "UpdateMedicineReminderDto": {
         "type": "object",
@@ -5682,7 +5722,7 @@
         },
         "required": ["id", "channel", "status", "scheduledFor", "createdAt"]
       },
-      "ReminderDeliveryListDataDto": {
+      "ReminderDeliveryListResponseDto": {
         "type": "object",
         "properties": {
           "items": {
@@ -5693,23 +5733,6 @@
           }
         },
         "required": ["items"]
-      },
-      "ReminderDeliveryListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/ReminderDeliveryListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "ReminderDeliveryReceiptDto": {
         "type": "object",
@@ -5731,7 +5754,7 @@
         },
         "required": ["reminderId", "scheduledDate", "scheduledTime"]
       },
-      "ReminderDeliveryReceiptDataDto": {
+      "ReminderDeliveryReceiptResponseDto": {
         "type": "object",
         "properties": {
           "item": {
@@ -5739,23 +5762,6 @@
           }
         },
         "required": ["item"]
-      },
-      "ReminderDeliveryReceiptResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/ReminderDeliveryReceiptDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "LocalCapabilityStateDto": {
         "type": "object",
@@ -5769,7 +5775,7 @@
         },
         "required": ["state"]
       },
-      "LocalCapabilityDataDto": {
+      "LocalCapabilityResponseDto": {
         "type": "object",
         "properties": {
           "state": {
@@ -5780,23 +5786,6 @@
           }
         },
         "required": ["state"]
-      },
-      "LocalCapabilityResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/LocalCapabilityDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "UserNotificationType": {
         "type": "string",
@@ -5886,7 +5875,7 @@
         },
         "required": ["id", "type", "title", "content", "isRead", "createdAt"]
       },
-      "NotificationListDataDto": {
+      "NotificationListResponseDto": {
         "type": "object",
         "properties": {
           "items": {
@@ -5902,26 +5891,7 @@
         },
         "required": ["items", "total"]
       },
-      "NotificationListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/NotificationListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "UnreadCountDataDto": {
+      "UnreadCountResponseDto": {
         "type": "object",
         "properties": {
           "count": {
@@ -5932,26 +5902,7 @@
         },
         "required": ["count"]
       },
-      "UnreadCountResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/UnreadCountDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "NotificationDetailDto": {
+      "NotificationDetailResponseDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -5998,31 +5949,6 @@
           }
         },
         "required": ["id", "type", "title", "content", "isRead", "createdAt"]
-      },
-      "NotificationDetailResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/NotificationDetailDto"
-              }
-            ]
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "EvidenceItemDto": {
         "type": "object",
@@ -6246,7 +6172,7 @@
           "lifecycleState"
         ]
       },
-      "TodaySuggestionsDataDto": {
+      "TodaySuggestionsResponseDto": {
         "type": "object",
         "properties": {
           "generatedAt": {
@@ -6307,23 +6233,6 @@
           "retryAfterSeconds"
         ]
       },
-      "TodaySuggestionsResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/TodaySuggestionsDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "SuggestionFeedbackDto": {
         "type": "object",
         "properties": {
@@ -6335,7 +6244,7 @@
         },
         "required": ["feedback"]
       },
-      "SuggestionFeedbackDataDto": {
+      "SuggestionFeedbackResponseDto": {
         "type": "object",
         "properties": {
           "suggestionId": {
@@ -6362,24 +6271,7 @@
         },
         "required": ["suggestionId", "feedback", "appliedEffect"]
       },
-      "SuggestionFeedbackResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/SuggestionFeedbackDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "SuggestionExplanationDataDto": {
+      "SuggestionExplanationResponseDto": {
         "type": "object",
         "properties": {
           "suggestionId": {
@@ -6404,23 +6296,6 @@
           }
         },
         "required": ["suggestionId", "reason", "boundary", "aiGenerated"]
-      },
-      "SuggestionExplanationResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/SuggestionExplanationDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "SuggestionHistoryItemDto": {
         "type": "object",
@@ -6511,7 +6386,7 @@
           "generatedAt"
         ]
       },
-      "SuggestionHistoryDataDto": {
+      "SuggestionHistoryResponseDto": {
         "type": "object",
         "properties": {
           "items": {
@@ -6536,24 +6411,7 @@
         },
         "required": ["items", "total", "startDate", "endDate"]
       },
-      "SuggestionHistoryResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/SuggestionHistoryDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "NotificationPreferencesDataDto": {
+      "NotificationPreferencesResponseDto": {
         "type": "object",
         "properties": {
           "healthAlertsEnabled": {
@@ -6597,23 +6455,6 @@
           "configured",
           "updatedAt"
         ]
-      },
-      "NotificationPreferencesResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/NotificationPreferencesDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "UpdateNotificationPreferencesDto": {
         "type": "object",
@@ -6813,7 +6654,7 @@
         },
         "required": ["kind", "title", "status", "body", "sparkline"]
       },
-      "ReportDashboardDataDto": {
+      "ReportDashboardResponseDto": {
         "type": "object",
         "properties": {
           "range": {
@@ -6868,23 +6709,6 @@
           "patterns",
           "aiSummaryEnabled"
         ]
-      },
-      "ReportDashboardResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/ReportDashboardDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "GenerateReportSummaryDto": {
         "type": "object",
@@ -6959,7 +6783,7 @@
         },
         "required": ["label", "text"]
       },
-      "ReportSummaryDataDto": {
+      "ReportSummaryResponseDto": {
         "type": "object",
         "properties": {
           "range": {
@@ -7014,23 +6838,6 @@
           "coverage",
           "disclaimer"
         ]
-      },
-      "ReportSummaryResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/ReportSummaryDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "ClinicSummaryRequestDto": {
         "type": "object",
@@ -7267,7 +7074,7 @@
         },
         "required": ["date", "kind", "text"]
       },
-      "ClinicSummaryDto": {
+      "ClinicSummaryResponseDto": {
         "type": "object",
         "properties": {
           "generatedAt": {
@@ -7373,25 +7180,6 @@
           "disclaimer"
         ]
       },
-      "ClinicSummaryResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/ClinicSummaryDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "ClinicSummaryShareScopeDto": {
         "type": "object",
         "properties": {
@@ -7413,7 +7201,7 @@
         },
         "required": ["eventId", "dateFrom", "dateTo"]
       },
-      "ClinicSummaryShareDataDto": {
+      "ClinicSummaryShareResponseDto": {
         "type": "object",
         "properties": {
           "shareId": {
@@ -7444,25 +7232,6 @@
           }
         },
         "required": ["shareUrl", "expiresAt"]
-      },
-      "ClinicSummaryShareResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/ClinicSummaryShareDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "ClinicSummaryShareListItemDto": {
         "type": "object",
@@ -7521,7 +7290,7 @@
           "selectedFields"
         ]
       },
-      "ClinicSummaryShareListDataDto": {
+      "ClinicSummaryShareListResponseDto": {
         "type": "object",
         "properties": {
           "items": {
@@ -7534,30 +7303,13 @@
         },
         "required": ["items"]
       },
-      "ClinicSummaryShareListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/ClinicSummaryShareListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
+      "HealthEventStatus": {
+        "type": "string",
+        "enum": ["active", "ended"]
       },
       "HealthEventKind": {
         "type": "string",
         "enum": ["symptom", "other"]
-      },
-      "HealthEventStatus": {
-        "type": "string",
-        "enum": ["active", "ended"]
       },
       "HealthEventOutcome": {
         "type": "string",
@@ -7621,6 +7373,27 @@
           "outcome",
           "currentMedicineIds"
         ]
+      },
+      "EventReviewListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventReviewEventDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total matching events for the filter."
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true,
+            "description": "Cursor for the next page (last item startedAt in ISO 8601), or null on the last page."
+          }
+        },
+        "required": ["items", "total", "nextCursor"]
       },
       "EventReviewSectionFactsDto": {
         "type": "object",
@@ -7859,7 +7632,7 @@
         },
         "required": ["checkIns", "dailyRecords", "doseLogs"]
       },
-      "EventReviewDataDto": {
+      "EventReviewResponseDto": {
         "type": "object",
         "properties": {
           "event": {
@@ -7895,84 +7668,6 @@
           "availableActions",
           "generatedAt"
         ]
-      },
-      "EventReviewNullableResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/EventReviewDataDto"
-              }
-            ]
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "EventReviewListDataDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EventReviewEventDto"
-            }
-          },
-          "total": {
-            "type": "number",
-            "description": "Total matching events for the filter."
-          },
-          "nextCursor": {
-            "type": "string",
-            "nullable": true,
-            "description": "Cursor for the next page (last item startedAt in ISO 8601), or null on the last page."
-          }
-        },
-        "required": ["items", "total", "nextCursor"]
-      },
-      "EventReviewListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/EventReviewListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "EventReviewResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/EventReviewDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "AssistantContextSettingsDto": {
         "type": "object",
@@ -8073,7 +7768,7 @@
           "disabledReason"
         ]
       },
-      "AssistantCapabilitiesDataDto": {
+      "AssistantCapabilitiesResponseDto": {
         "type": "object",
         "properties": {
           "phase": {
@@ -8155,25 +7850,6 @@
           "updatedAt"
         ]
       },
-      "AssistantCapabilitiesResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/AssistantCapabilitiesDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "AssistantConversationSummaryDto": {
         "type": "object",
         "properties": {
@@ -8214,29 +7890,6 @@
           "updatedAt"
         ]
       },
-      "AssistantConversationListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "description": "Recent persisted conversations for the authenticated user, newest first.",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AssistantConversationSummaryDto"
-            }
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "AssistantConversationMessageDto": {
         "type": "object",
         "properties": {
@@ -8264,7 +7917,7 @@
         },
         "required": ["role", "content", "usedTools", "createdAt"]
       },
-      "AssistantConversationDataDto": {
+      "AssistantConversationResponseDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -8312,32 +7965,6 @@
           "updatedAt"
         ]
       },
-      "AssistantConversationResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "nullable": true,
-            "description": "Persisted conversation payload, or null when none exists.",
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/AssistantConversationDataDto"
-              }
-            ]
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "ConfirmAssistantProposalDto": {
         "type": "object",
         "properties": {
@@ -8358,7 +7985,7 @@
         },
         "required": ["proposalIds", "decision"]
       },
-      "AssistantConfirmResultDto": {
+      "AssistantConfirmResultResponseDto": {
         "type": "object",
         "properties": {
           "conversationId": {
@@ -8381,25 +8008,6 @@
         },
         "required": ["conversationId", "decision", "status", "finalContent"]
       },
-      "AssistantConfirmResultResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/AssistantConfirmResultDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "RenameConversationDto": {
         "type": "object",
         "properties": {
@@ -8410,7 +8018,7 @@
         },
         "required": ["title"]
       },
-      "AssistantClearMemoryDataDto": {
+      "AssistantClearMemoryResponseDto": {
         "type": "object",
         "properties": {
           "cleared": {
@@ -8421,26 +8029,7 @@
         },
         "required": ["cleared"]
       },
-      "AssistantClearMemoryResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/AssistantClearMemoryDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "AssistantClearResultDataDto": {
+      "AssistantClearResultResponseDto": {
         "type": "object",
         "properties": {
           "cleared": {
@@ -8456,25 +8045,6 @@
           }
         },
         "required": ["cleared", "archivedConversationId"]
-      },
-      "AssistantClearResultResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/AssistantClearResultDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "AssistantInputMessageDto": {
         "type": "object",
@@ -8603,7 +8173,7 @@
         },
         "required": ["accessToken", "refreshToken", "expiresIn"]
       },
-      "RegisterDataDto": {
+      "RegisterResponseDto": {
         "type": "object",
         "properties": {
           "user": {
@@ -8614,25 +8184,6 @@
           }
         },
         "required": ["user", "tokens"]
-      },
-      "RegisterResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "结果码",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "提示消息",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/RegisterDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "LoginDto": {
         "type": "object",
@@ -8717,7 +8268,7 @@
           "updatedAt"
         ]
       },
-      "LoginDataDto": {
+      "LoginResponseDto": {
         "type": "object",
         "properties": {
           "user": {
@@ -8728,25 +8279,6 @@
           }
         },
         "required": ["user", "tokens"]
-      },
-      "LoginResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "结果码",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "提示消息",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/LoginDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "SendVerificationCodeDto": {
         "type": "object",
@@ -8772,7 +8304,7 @@
         },
         "required": ["email", "scene"]
       },
-      "CooldownMessageDto": {
+      "SendVerificationCodeResponseDto": {
         "type": "object",
         "properties": {
           "cooldown": {
@@ -8787,25 +8319,6 @@
           }
         },
         "required": ["cooldown", "message"]
-      },
-      "SendVerificationCodeResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "结果码",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "提示消息",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/CooldownMessageDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "VerifyEmailDto": {
         "type": "object",
@@ -8825,7 +8338,7 @@
         },
         "required": ["email", "code"]
       },
-      "VerifyEmailDataDto": {
+      "VerifyEmailResponseDto": {
         "type": "object",
         "properties": {
           "emailVerified": {
@@ -8835,25 +8348,6 @@
           }
         },
         "required": ["emailVerified"]
-      },
-      "VerifyEmailResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "结果码",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "提示消息",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/VerifyEmailDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "ForgotPasswordDto": {
         "type": "object",
@@ -8869,21 +8363,18 @@
       "ForgotPasswordResponseDto": {
         "type": "object",
         "properties": {
-          "code": {
+          "cooldown": {
             "type": "number",
-            "description": "结果码",
-            "example": 0
+            "description": "冷却时间（秒）",
+            "example": 60
           },
           "message": {
             "type": "string",
             "description": "提示消息",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/CooldownMessageDto"
+            "example": "验证码已发送"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": ["cooldown", "message"]
       },
       "ResetPasswordDto": {
         "type": "object",
@@ -8910,28 +8401,6 @@
         },
         "required": ["email", "code", "password"]
       },
-      "SuccessResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "结果码",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "提示消息",
-            "example": ""
-          },
-          "data": {
-            "type": "object",
-            "description": "数据",
-            "nullable": true,
-            "example": null
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "OAuthAuthorizeDto": {
         "type": "object",
         "properties": {
@@ -8942,7 +8411,7 @@
           }
         }
       },
-      "OAuthAuthorizeDataDto": {
+      "OAuthAuthorizeResponseDto": {
         "type": "object",
         "properties": {
           "authorizeUrl": {
@@ -8965,25 +8434,6 @@
           }
         },
         "required": ["authorizeUrl", "state", "expiresIn"]
-      },
-      "OAuthAuthorizeResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "结果码",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "提示消息",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/OAuthAuthorizeDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "OAuthCallbackDto": {
         "type": "object",
@@ -9125,21 +8575,21 @@
       "RefreshResponseDto": {
         "type": "object",
         "properties": {
-          "code": {
-            "type": "number",
-            "description": "结果码",
-            "example": 0
-          },
-          "message": {
+          "accessToken": {
             "type": "string",
-            "description": "提示消息",
-            "example": ""
+            "description": "访问令牌"
           },
-          "data": {
-            "$ref": "#/components/schemas/TokensDto"
+          "refreshToken": {
+            "type": "string",
+            "description": "刷新令牌"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "访问令牌过期时间（秒）",
+            "example": 3600
           }
         },
-        "required": ["code", "message", "data"]
+        "required": ["accessToken", "refreshToken", "expiresIn"]
       },
       "DrugbankDrugInteractionDto": {
         "type": "object",
@@ -9573,36 +9023,69 @@
       "MedicineRiskCheckRecordResponseDto": {
         "type": "object",
         "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
+          "checkType": {
             "type": "string",
-            "example": ""
+            "enum": ["static", "llm"]
           },
-          "data": {
-            "$ref": "#/components/schemas/MedicineRiskCheckRecordDto"
+          "result": {
+            "$ref": "#/components/schemas/MedicineRiskCheckResponseDto"
+          },
+          "riskScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "riskLevel": {
+            "type": "string",
+            "enum": ["safe", "caution", "risk", "danger"]
+          },
+          "stale": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "checkType",
+          "result",
+          "riskScore",
+          "riskLevel",
+          "stale",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "MedicineRiskCheckRecordsResponseDto": {
         "type": "object",
         "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
+          "static": {
+            "nullable": true,
+            "description": "Latest static check record, null if never checked",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MedicineRiskCheckRecordDto"
+              }
+            ]
           },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/MedicineRiskCheckRecordsDto"
+          "llm": {
+            "nullable": true,
+            "description": "Latest LLM check record, null if never checked",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MedicineRiskCheckRecordDto"
+              }
+            ]
           }
         },
-        "required": ["code", "message", "data"]
+        "required": ["static", "llm"]
       },
       "MedicineSafetyTipResponseDto": {
         "type": "object",
@@ -9621,26 +9104,6 @@
           }
         },
         "required": ["id", "text", "category"]
-      },
-      "MedicineSafetyTipListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MedicineSafetyTipResponseDto"
-            }
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "MedicineSearchItemDto": {
         "type": "object",
@@ -9729,7 +9192,7 @@
         },
         "required": ["page", "pageSize", "total", "totalPages"]
       },
-      "MedicineSearchDataDto": {
+      "MedicineSearchResponseDto": {
         "type": "object",
         "properties": {
           "items": {
@@ -9744,24 +9207,7 @@
         },
         "required": ["items", "pagination"]
       },
-      "MedicineSearchResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/MedicineSearchDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "MedicineDetailDataDto": {
+      "MedicineDetailResponseDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -9794,23 +9240,6 @@
           }
         },
         "required": ["id", "source", "name", "subtitle", "detail"]
-      },
-      "MedicineDetailResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/MedicineDetailDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "RiskCheckCandidateDto": {
         "type": "object",
@@ -9872,7 +9301,7 @@
         },
         "required": ["enabled", "lastChangedAt"]
       },
-      "UserSettingsDataDto": {
+      "UserSettingsResponseDto": {
         "type": "object",
         "properties": {
           "aiSummariesEnabled": {
@@ -9928,25 +9357,6 @@
           "updatedAt",
           "securityPin"
         ]
-      },
-      "UserSettingsResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/UserSettingsDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "UpdateAssistantContextSettingsDto": {
         "type": "object",
@@ -10026,7 +9436,7 @@
         },
         "required": ["pin"]
       },
-      "SecurityPinElevationDataDto": {
+      "SecurityPinElevationResponseDto": {
         "type": "object",
         "properties": {
           "elevationToken": {
@@ -10039,25 +9449,6 @@
           }
         },
         "required": ["elevationToken", "expiresAt"]
-      },
-      "SecurityPinElevationResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/SecurityPinElevationDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "ChangeSecurityPinDto": {
         "type": "object",
@@ -10530,7 +9921,7 @@
           "updatedAt"
         ]
       },
-      "HealthContextDataDto": {
+      "HealthContextResponseDto": {
         "type": "object",
         "properties": {
           "summary": {
@@ -10565,25 +9956,6 @@
           "conditions",
           "currentMedicines"
         ]
-      },
-      "HealthContextResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Prompt message",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/HealthContextDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "UpdateHealthContextProfileDto": {
         "type": "object",
@@ -11141,7 +10513,7 @@
           "updatedAt"
         ]
       },
-      "DailyRecordListDataDto": {
+      "DailyRecordListResponseDto": {
         "type": "object",
         "properties": {
           "items": {
@@ -11156,23 +10528,6 @@
           }
         },
         "required": ["items", "total"]
-      },
-      "DailyRecordListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "DailyRecordSummaryDto": {
         "type": "object",
@@ -11199,7 +10554,7 @@
         },
         "required": ["kind", "count"]
       },
-      "DailyRecordSummaryDataDto": {
+      "DailyRecordSummaryResponseDto": {
         "type": "object",
         "properties": {
           "summaries": {
@@ -11210,23 +10565,6 @@
           }
         },
         "required": ["summaries"]
-      },
-      "DailyRecordSummaryResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordSummaryDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "CreateDailyRecordImageUploadDto": {
         "type": "object",
@@ -11249,7 +10587,7 @@
         },
         "required": ["contentType", "sizeBytes"]
       },
-      "DailyRecordImageUploadDto": {
+      "DailyRecordImageUploadResponseDto": {
         "type": "object",
         "properties": {
           "provider": {
@@ -11295,23 +10633,6 @@
           "expiresAt",
           "maxSizeBytes"
         ]
-      },
-      "DailyRecordImageUploadResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordImageUploadDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "GenerateDailyRecordCandidatesDto": {
         "type": "object",
@@ -11395,7 +10716,7 @@
         },
         "required": ["kind", "occurredAt", "rationale"]
       },
-      "DailyRecordCandidateDataDto": {
+      "DailyRecordCandidateResponseDto": {
         "type": "object",
         "properties": {
           "locale": {
@@ -11422,39 +10743,125 @@
         },
         "required": ["locale", "generatedAt", "confirmationHint", "items"]
       },
-      "DailyRecordCandidateResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordCandidateDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "DailyRecordResponseDto": {
         "type": "object",
         "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
+          "id": {
             "type": "string",
-            "example": ""
+            "description": "Record id."
           },
-          "data": {
-            "$ref": "#/components/schemas/DailyRecordItemDto"
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DailyRecordKind"
+              }
+            ]
+          },
+          "healthEventId": {
+            "type": "string",
+            "description": "Linked health event id.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "Date in YYYY-MM-DD format.",
+            "example": "2026-06-04"
+          },
+          "occurredTime": {
+            "type": "string",
+            "description": "Time in HH:mm 24-hour format when available.",
+            "example": "09:45",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "description": "Short label.",
+            "nullable": true
+          },
+          "value": {
+            "type": "string",
+            "description": "Measured value.",
+            "nullable": true
+          },
+          "unit": {
+            "type": "string",
+            "description": "Unit label.",
+            "example": "bpm",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "description": "Free-text note.",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "description": "Source.",
+            "example": "manual",
+            "nullable": true
+          },
+          "payload": {
+            "type": "object",
+            "description": "Structured payload for kind-specific data. For sleep: { startAt, endAt, durationMinutes, quality?, deepMinutes?, lightMinutes?, remMinutes? }. For vital: { vitalType, value, unit, secondaryValue?, secondaryUnit? }. For activity: { activityType, value, unit }.",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "mealAnalysisStatus": {
+            "type": "string",
+            "description": "Meal analysis status for meal records.",
+            "nullable": true
+          },
+          "mealAnalysisCoverage": {
+            "type": "string",
+            "description": "Meal analysis coverage for meal records.",
+            "nullable": true
+          },
+          "mealAnalysisUpdatedAt": {
+            "type": "string",
+            "description": "Meal analysis updated timestamp (ISO 8601).",
+            "nullable": true
+          },
+          "mealAnalysisFailureReason": {
+            "type": "string",
+            "description": "Display-safe meal analysis failure reason.",
+            "nullable": true
+          },
+          "mealShortDescription": {
+            "type": "string",
+            "description": "Short meal description for list reads.",
+            "nullable": true
+          },
+          "mealTopFoods": {
+            "description": "Top recognized foods for list reads.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyRecordAttachmentDto"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "id",
+          "kind",
+          "occurredAt",
+          "attachments",
+          "createdAt",
+          "updatedAt"
+        ]
       },
       "DailyRecordAttachmentInputDto": {
         "type": "object",
@@ -11729,6 +11136,84 @@
         },
         "required": ["checkInCount"]
       },
+      "HealthEventResponseDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventKind"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventStatus"
+              }
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "Start time in ISO 8601 format."
+          },
+          "endedAt": {
+            "type": "string",
+            "description": "End time in ISO 8601 format, or null while active.",
+            "nullable": true
+          },
+          "outcome": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventOutcome"
+              }
+            ]
+          },
+          "reasonRecordId": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentMedicineIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "checkIn": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/HealthEventCheckInResponseDto"
+              }
+            ]
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/HealthEventCoverageDto"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "title",
+          "status",
+          "startedAt",
+          "endedAt",
+          "outcome",
+          "reasonRecordId",
+          "currentMedicineIds",
+          "checkIn",
+          "coverage"
+        ]
+      },
       "HealthEventItemDto": {
         "type": "object",
         "properties": {
@@ -11807,47 +11292,7 @@
           "coverage"
         ]
       },
-      "HealthEventResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/HealthEventItemDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "HealthEventNullableResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/HealthEventItemDto"
-              }
-            ]
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "HealthEventListDataDto": {
+      "HealthEventListResponseDto": {
         "type": "object",
         "properties": {
           "items": {
@@ -11861,23 +11306,6 @@
           }
         },
         "required": ["items", "total"]
-      },
-      "HealthEventListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/HealthEventListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "UpsertHealthEventCheckInDto": {
         "type": "object",
@@ -12175,7 +11603,7 @@
         },
         "required": ["dateFrom", "dateTo", "generatedAt", "detailsSuppressed"]
       },
-      "FunnelDataDto": {
+      "FunnelResponseDto": {
         "type": "object",
         "properties": {
           "daily": {
@@ -12206,25 +11634,6 @@
           }
         },
         "required": ["daily", "optional", "totals", "window"]
-      },
-      "FunnelResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/FunnelDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "DoseLogStatus": {
         "type": "string",
@@ -12292,7 +11701,7 @@
         },
         "required": ["id", "status", "scheduledFor", "createdAt", "updatedAt"]
       },
-      "DoseLogListDataDto": {
+      "DoseLogListResponseDto": {
         "type": "object",
         "properties": {
           "items": {
@@ -12307,23 +11716,6 @@
           }
         },
         "required": ["items", "total"]
-      },
-      "DoseLogListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DoseLogListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "CreateDoseLogDto": {
         "type": "object",
@@ -12374,19 +11766,64 @@
       "DoseLogResponseDto": {
         "type": "object",
         "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
+          "id": {
             "type": "string",
-            "example": ""
+            "description": "Dose log id."
           },
-          "data": {
-            "$ref": "#/components/schemas/DoseLogItemDto"
+          "healthEventId": {
+            "type": "string",
+            "description": "Linked health event id.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "currentMedicineId": {
+            "type": "object",
+            "description": "Linked current medicine id."
+          },
+          "reminderId": {
+            "type": "object",
+            "description": "Linked reminder id for slot-aware logs."
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoseLogStatus"
+              }
+            ]
+          },
+          "scheduledFor": {
+            "type": "string",
+            "description": "Scheduled date in YYYY-MM-DD format.",
+            "example": "2026-06-04"
+          },
+          "scheduledTime": {
+            "type": "object",
+            "description": "Scheduled slot time in HH:mm format.",
+            "example": "08:30"
+          },
+          "doseText": {
+            "type": "object",
+            "description": "Dose text."
+          },
+          "note": {
+            "type": "object",
+            "description": "Free-text note."
+          },
+          "source": {
+            "type": "object",
+            "description": "Source.",
+            "example": "manual"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Created at (ISO 8601)."
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Updated at (ISO 8601)."
           }
         },
-        "required": ["code", "message", "data"]
+        "required": ["id", "status", "scheduledFor", "createdAt", "updatedAt"]
       },
       "MarkDoseLogDto": {
         "type": "object",
@@ -12486,7 +11923,7 @@
         },
         "required": ["id", "provider", "email", "emailVerifiedAt", "linkedAt"]
       },
-      "AccountDto": {
+      "AccountResponseDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -12557,25 +11994,6 @@
           "createdAt",
           "updatedAt"
         ]
-      },
-      "AccountResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/AccountDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "UpdateAccountDto": {
         "type": "object",
@@ -12652,7 +12070,7 @@
         },
         "required": ["newEmail", "code"]
       },
-      "AccountEmailDataDto": {
+      "AccountEmailResponseDto": {
         "type": "object",
         "properties": {
           "email": {
@@ -12667,25 +12085,6 @@
           }
         },
         "required": ["email", "emailVerifiedAt"]
-      },
-      "AccountEmailResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/AccountEmailDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "DeleteAccountDto": {
         "type": "object",
@@ -12816,7 +12215,7 @@
         },
         "required": ["percent"]
       },
-      "EnvironmentSnapshotDto": {
+      "EnvironmentSnapshotResponseDto": {
         "type": "object",
         "properties": {
           "dataSource": {
@@ -12864,23 +12263,6 @@
           "humidity"
         ]
       },
-      "EnvironmentSnapshotResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/EnvironmentSnapshotDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "TodayAnalysisAsyncJobDataDto": {
         "type": "object",
         "properties": {
@@ -12906,33 +12288,6 @@
         },
         "required": ["result"]
       },
-      "TodayAnalysisAsyncResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/TodayAnalysisAsyncJobDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TodayAnalysisAsyncResultDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TodayAnalysisAsyncStatusDataDto"
-              }
-            ]
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "TodayAnalysisAsyncStatusDataDto": {
         "type": "object",
         "properties": {
@@ -12942,30 +12297,6 @@
           }
         },
         "required": ["status"]
-      },
-      "TodayAnalysisGenerateResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/TodayAnalysisDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
-              }
-            ]
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "TodayAnalysisBulletDto": {
         "type": "object",
@@ -13134,19 +12465,42 @@
       "TodayAnalysisReadResponseDto": {
         "type": "object",
         "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
+          "analysis": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TodayAnalysisDataDto"
+              }
+            ]
           },
-          "message": {
+          "status": {
             "type": "string",
-            "example": ""
+            "enum": ["empty", "pending", "ready", "stale", "failed"]
           },
-          "data": {
-            "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
+          "sourceVersion": {
+            "type": "number"
+          },
+          "computedVersion": {
+            "type": "number"
+          },
+          "computedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "retryAfterSeconds": {
+            "type": "number",
+            "nullable": true
           }
         },
-        "required": ["code", "message", "data"]
+        "required": [
+          "analysis",
+          "status",
+          "sourceVersion",
+          "computedVersion",
+          "computedAt",
+          "retryAfterSeconds"
+        ]
       },
       "TodayAnalysisRefreshPendingDataDto": {
         "type": "object",
@@ -13173,36 +12527,6 @@
           }
         },
         "required": ["status", "analysis"]
-      },
-      "TodayAnalysisRefreshResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "example": ""
-          },
-          "data": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/TodayAnalysisDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TodayAnalysisReadDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TodayAnalysisRefreshPendingDataDto"
-              },
-              {
-                "$ref": "#/components/schemas/TodayAnalysisRefreshReadyDataDto"
-              }
-            ]
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "TodayAnalysisStreamErrorDto": {
         "type": "object",
@@ -13285,7 +12609,7 @@
         },
         "required": ["id", "text"]
       },
-      "AppInfoDataDto": {
+      "AppInfoResponseDto": {
         "type": "object",
         "properties": {
           "minClientVersion": {
@@ -13306,25 +12630,6 @@
           }
         }
       },
-      "AppInfoResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/AppInfoDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
       "LegalDocumentListItemDto": {
         "type": "object",
         "properties": {
@@ -13344,7 +12649,7 @@
         },
         "required": ["docType", "title", "updatedAt"]
       },
-      "LegalDocumentListDataDto": {
+      "LegalDocumentListResponseDto": {
         "type": "object",
         "properties": {
           "items": {
@@ -13360,26 +12665,7 @@
         },
         "required": ["items", "updatedAt"]
       },
-      "LegalDocumentListResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/LegalDocumentListDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "LegalDocumentDetailDto": {
+      "LegalDocumentDetailResponseDto": {
         "type": "object",
         "properties": {
           "docType": {
@@ -13401,25 +12687,6 @@
           }
         },
         "required": ["docType", "title", "content", "updatedAt"]
-      },
-      "LegalDocumentDetailResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/LegalDocumentDetailDto"
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "CreateDataExportRequestDto": {
         "type": "object",
@@ -13463,7 +12730,7 @@
           "unavailable"
         ]
       },
-      "DataExportRequestDataDto": {
+      "DataExportRequestResponseDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -13524,50 +12791,6 @@
           }
         },
         "required": ["id", "kind", "format", "range", "status", "requestedAt"]
-      },
-      "DataExportRequestResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "$ref": "#/components/schemas/DataExportRequestDataDto"
-          }
-        },
-        "required": ["code", "message", "data"]
-      },
-      "DataExportLatestResponseDto": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "number",
-            "description": "Result code.",
-            "example": 0
-          },
-          "message": {
-            "type": "string",
-            "description": "Message.",
-            "example": ""
-          },
-          "data": {
-            "nullable": true,
-            "type": "object",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DataExportRequestDataDto"
-              }
-            ]
-          }
-        },
-        "required": ["code", "message", "data"]
       },
       "CreateFileUploadDto": {
         "type": "object",

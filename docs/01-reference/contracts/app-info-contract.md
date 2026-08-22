@@ -30,4 +30,4 @@ interface AppInfoDto {
 
 Values are read from environment variables (`SUPPORT_EMAIL`,
 `MIN_CLIENT_VERSION`, `LATEST_VERSION`, `DOWNLOAD_URL`) at startup — no
-database, no `package.json`.
+database, no `package.json`. Ordinary failures use `application/problem+json`.

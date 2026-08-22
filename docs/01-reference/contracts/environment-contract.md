@@ -42,7 +42,7 @@ returns a default region's data.
 **Response:** `EnvironmentSnapshotDto`
 
 The JSON body is the `EnvironmentSnapshotDto` resource itself; it is not wrapped in
-`{ code, message, data }`.
+`{ code, message, data }`; ordinary failures use `application/problem+json`.
 
 ```typescript
 interface EnvironmentSnapshotDto {

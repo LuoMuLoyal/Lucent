@@ -182,6 +182,9 @@ after the update. Successful settings and Security PIN responses are direct reso
 they do not include a generic `{ code, message, data }` envelope. Empty successful
 operations use `204 No Content` where applicable.
 
+The same direct-resource rule applies to account, app-info, environment, and data-export response
+DTOs in the generated OpenAPI contract.
+
 **Storage:** `UserSetting` Prisma model — one row per user per setting key.
 
 Assistant-related persisted keys now use:

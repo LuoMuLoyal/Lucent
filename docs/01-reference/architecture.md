@@ -11,8 +11,9 @@ updated: 2026-08-22
 
 The target HTTP boundary separates representations: successful resources are returned directly,
 while ordinary 4xx/5xx responses use RFC 9457 `application/problem+json`. The global exception
-filter now owns the safe Problem Details shape and trace correlation; success-envelope removal and
-controller/OpenAPI resource schemas remain the next hard-cut phase.
+filter now owns the safe Problem Details shape and trace correlation. All controller success
+responses and OpenAPI response schemas now use direct resources; no global success interceptor or
+HTTP success envelope remains.
 
 ## Module Dependency Graph
 
@@ -255,7 +256,8 @@ particular, `mail/`, `prisma/`, `config/`, and `i18n/` remain root-level runtime
 - `common/helpers/` — pure helper functions, split by domain:
   `prisma/` (query helpers, ownership), `errors/` (API error factories, error info/payload),
   `format/` (string/number/json/date/search/localized-copy), `infra/` (array/crypto/hash/ip/pagination/queue/retry)
-- `common/api/` — API envelope + SSE infrastructure; SSE files live in `common/api/sse/`
+- `common/api/` — Problem Details, internal result-code mapping, and SSE infrastructure; SSE files
+  live in `common/api/sse/`
 - `common/services/` — shared injectable services
 - `common/logger/` — shared Nest logging module
 - `common/llm/`, `common/filters/`, `common/interceptors/`, `common/middleware/`,
