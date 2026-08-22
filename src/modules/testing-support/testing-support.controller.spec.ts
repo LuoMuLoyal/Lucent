@@ -1,7 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from 'nestjs-i18n';
-import { ResultCode } from '../../common';
 import { TestingSupportController } from './testing-support.controller';
 import { TestingSupportService } from './services/fixtures.service';
 import type { PrepareFullstackRecordLaneDto } from './dto/prepare-fullstack-record-lane.dto';
@@ -33,7 +32,7 @@ describe('TestingSupportController', () => {
     controller = module.get(TestingSupportController);
   });
 
-  it('delegates to service and wraps result in success envelope', async () => {
+  it('delegates to service and returns the resource', async () => {
     const dto: PrepareFullstackRecordLaneDto = {
       email: 'test@example.com',
       password: 'StrongPass123!',
@@ -55,11 +54,7 @@ describe('TestingSupportController', () => {
     const result = await controller.prepareFullstackRecordLane(dto);
 
     expect(service.prepareFullstackRecordLane).toHaveBeenCalledWith(dto);
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: mockResult,
-    });
+    expect(result).toEqual(mockResult);
   });
 
   it('works without optional nickname', async () => {
@@ -82,10 +77,6 @@ describe('TestingSupportController', () => {
 
     const result = await controller.prepareFullstackRecordLane(dto);
 
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: mockResult,
-    });
+    expect(result).toEqual(mockResult);
   });
 });

@@ -39,7 +39,7 @@ describe('FilesController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('should call filesService.createPresignedUpload and return success envelope', async () => {
+  it('should call filesService.createPresignedUpload and return the resource', async () => {
     const dto = {
       contentType: 'image/jpeg',
       sizeBytes: 204800,
@@ -54,10 +54,6 @@ describe('FilesController', () => {
       'user-1',
       dto,
     );
-    expect(result).toEqual({
-      code: 0,
-      message: '',
-      data: mockResult,
-    });
+    expect(result).toEqual(mockResult);
   });
 });

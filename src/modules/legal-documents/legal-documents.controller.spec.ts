@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common';
 import { LegalDocumentsController } from './legal-documents.controller';
 import { LegalDocumentsService } from './services/documents.service';
 
@@ -53,11 +52,10 @@ describe('LegalDocumentsController', () => {
   });
 
   describe('findAll', () => {
-    it('returns success envelope with document list', async () => {
+    it('returns the document list resource', async () => {
       const result = await controller.findAll({});
 
-      expect(result.code).toBe(ResultCode.SUCCESS);
-      expect(result.data).toEqual(mockListData);
+      expect(result).toEqual(mockListData);
       expect(service.findAll).toHaveBeenCalledWith({});
     });
 
@@ -69,11 +67,10 @@ describe('LegalDocumentsController', () => {
   });
 
   describe('findOne', () => {
-    it('returns success envelope with document detail', async () => {
+    it('returns the document detail resource', async () => {
       const result = await controller.findOne('terms', {});
 
-      expect(result.code).toBe(ResultCode.SUCCESS);
-      expect(result.data).toEqual(mockDetailData);
+      expect(result).toEqual(mockDetailData);
       expect(service.findOne).toHaveBeenCalledWith('terms', {});
     });
 

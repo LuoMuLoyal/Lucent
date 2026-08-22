@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common';
 import type { EnvironmentSnapshotDto } from './dto/snapshot.dto';
 import { EnvironmentController } from './environment.controller';
 import { EnvironmentService } from './services/snapshot.service';
@@ -25,17 +24,13 @@ describe('EnvironmentController', () => {
     service = module.get(EnvironmentService);
   });
 
-  it('should return an environment snapshot envelope for the default request', () => {
+  it('should return an environment snapshot resource for the default request', () => {
     const snapshot = makeSnapshot({
       regionHint: 'Global reference baseline',
     });
     service.getSnapshot.mockReturnValue(snapshot);
 
-    expect(controller.getSnapshot({})).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: snapshot,
-    });
+    expect(controller.getSnapshot({})).toEqual(snapshot);
     expect(service.getSnapshot).toHaveBeenCalledWith({});
   });
 
@@ -49,7 +44,7 @@ describe('EnvironmentController', () => {
     });
     service.getSnapshot.mockReturnValue(snapshot);
 
-    expect(controller.getSnapshot(query).data?.regionHint).toBe(
+    expect(controller.getSnapshot(query).regionHint).toBe(
       'China temperate latitude band',
     );
     expect(service.getSnapshot).toHaveBeenCalledWith(query);

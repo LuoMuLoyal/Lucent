@@ -1,6 +1,5 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { successEnvelope } from '../../common';
 import { Public } from '../auth';
 import { EnvironmentSnapshotQueryDto } from './dto/snapshot-query.dto';
 
@@ -35,6 +34,6 @@ export class EnvironmentController {
   })
   @ApiResponse({ status: 200, type: EnvironmentSnapshotResponseDto })
   getSnapshot(@Query() query: EnvironmentSnapshotQueryDto) {
-    return successEnvelope(this.environmentService.getSnapshot(query));
+    return this.environmentService.getSnapshot(query);
   }
 }

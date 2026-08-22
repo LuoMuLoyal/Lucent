@@ -1,6 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { ResultCode } from '../../common';
 import { AppInfoController } from './app-info.controller';
 import { AppInfoService } from './services/info.service';
 
@@ -27,9 +26,8 @@ describe('AppInfoController', () => {
   it('returns app info with support email and min client version', () => {
     const result = controller.getAppInfo();
 
-    expect(result.code).toBe(ResultCode.SUCCESS);
-    expect(result.data).toBeDefined();
-    expect(result.data?.supportEmail).toBeNull();
-    expect(result.data?.minClientVersion).toBeNull();
+    expect(result).toBeDefined();
+    expect(result.supportEmail).toBeNull();
+    expect(result.minClientVersion).toBeNull();
   });
 });

@@ -8,7 +8,6 @@ import {
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 
-import { successEnvelope } from '../../common';
 import { Public } from '../auth';
 import { TestingSharedSecretGuard } from './guards/testing-shared-secret.guard';
 import { TestingSupportService } from './services/fixtures.service';
@@ -24,8 +23,6 @@ export class TestingSupportController {
   @Post('record-lane/prepare')
   @HttpCode(HttpStatus.OK)
   async prepareFullstackRecordLane(@Body() dto: PrepareFullstackRecordLaneDto) {
-    return successEnvelope(
-      await this.testingSupportService.prepareFullstackRecordLane(dto),
-    );
+    return await this.testingSupportService.prepareFullstackRecordLane(dto);
   }
 }

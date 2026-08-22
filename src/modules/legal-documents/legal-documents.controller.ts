@@ -1,6 +1,5 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { successEnvelope } from '../../common';
 import { Public } from '../auth';
 import {
   LegalDocumentDetailResponseDto,
@@ -20,7 +19,7 @@ export class LegalDocumentsController {
   @ApiOperation({ summary: 'List all active legal documents' })
   @ApiResponse({ status: 200, type: LegalDocumentListResponseDto })
   async findAll(@Query() query: LegalDocumentQueryDto) {
-    return successEnvelope(await this.service.findAll(query));
+    return await this.service.findAll(query);
   }
 
   @Get(':docType')
@@ -31,6 +30,6 @@ export class LegalDocumentsController {
     @Param('docType') docType: string,
     @Query() query: LegalDocumentQueryDto,
   ) {
-    return successEnvelope(await this.service.findOne(docType, query));
+    return await this.service.findOne(docType, query);
   }
 }

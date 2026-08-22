@@ -2,7 +2,6 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
-import { successEnvelope } from '../../common';
 import { FilesService } from './services/files.service';
 import { CreateFileUploadDto } from './dto/create-file-upload.dto';
 
@@ -20,6 +19,6 @@ export class FilesController {
     @Body() dto: CreateFileUploadDto,
   ) {
     const result = await this.filesService.createPresignedUpload(user.sub, dto);
-    return successEnvelope(result);
+    return result;
   }
 }
