@@ -30,6 +30,7 @@ import { SkipApiEnvelope } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { AssistantService } from './services/core.service';
+import { AuditLogService } from '../audit-log';
 import { AssistantCapabilitiesResponseDto } from './dto/capabilities-response.dto';
 
 import { AssistantClearResultResponseDto } from './dto/stream-response.dto';
@@ -58,6 +59,7 @@ export class AssistantController {
   constructor(
     private readonly assistantService: AssistantService,
     private readonly sseRegistry: SseConnectionRegistry,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   @Get('capabilities')
@@ -168,9 +170,13 @@ export class AssistantController {
   })
   @ApiResponse({ status: 200, type: AssistantClearMemoryResponseDto })
   async clearMemory(@CurrentUser() user: UserPayload) {
-    return successEnvelope(
-      await this.assistantService.clearAssistantMemory(user.sub),
-    );
+    const result = await this.assistantService.clearAssistantMemory(user.sub);
+    this.auditLogService.logFireAndForget({
+      userId: user.sub,
+      action: 'assistant.memory.clear',
+      metadata: { deletedCount: result.cleared },
+    });
+    return successEnvelope(result);
   }
 
   @Post('latest/clear')

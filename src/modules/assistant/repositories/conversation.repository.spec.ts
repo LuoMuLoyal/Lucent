@@ -202,7 +202,10 @@ describe('AssistantConversationRepository', () => {
 
       await repository.activateConversation('user-1', 'conv-1');
 
-      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        maxWait: 5000,
+        timeout: 10000,
+      });
       expect(prisma.assistantConversation.updateMany).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
@@ -241,6 +244,10 @@ describe('AssistantConversationRepository', () => {
       });
 
       expect(result).toMatchObject({ id: 'conv-1' });
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        maxWait: 5000,
+        timeout: 10000,
+      });
       expect(prisma.assistantMessage.createMany).toHaveBeenCalled();
       expect(prisma.assistantMessage.create).toHaveBeenCalled();
       expect(prisma.assistantConversation.update).toHaveBeenCalledWith(
@@ -272,6 +279,23 @@ describe('AssistantConversationRepository', () => {
       });
 
       expect(prisma.assistantMessage.createMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('appendAssistantMessage', () => {
+    it('uses bounded transaction options', async () => {
+      prisma.assistantMessage.create.mockResolvedValue({} as never);
+      prisma.assistantConversation.update.mockResolvedValue({} as never);
+      prisma.assistantConversation.findFirstOrThrow.mockResolvedValue({
+        id: 'conv-1',
+      } as never);
+
+      await repository.appendAssistantMessage('conv-1', 'user-1', 'response');
+
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        maxWait: 5000,
+        timeout: 10000,
+      });
     });
   });
 });

@@ -48,11 +48,19 @@ export interface PersistTurnInput {
   assistantTimestamp: Date;
 }
 
-/** Input for recording a message→checkpoint mapping (F-5b regeneration). */
+/**
+ * Input for recording a message→checkpoint mapping (F-5b regeneration).
+ * `sourceMessageId` identifies the assistant message being regenerated and
+ * `checkpointId` identifies the LangGraph state from which the replay starts.
+ */
 export interface RegenerationRecordInput {
+  /** Conversation that owns the source message and checkpoint. */
   conversationId: string;
+  /** Authenticated user that owns the conversation. */
   userId: string;
+  /** Last persisted assistant message selected for regeneration. */
   sourceMessageId: string;
+  /** LangGraph checkpoint used as the replay fork point. */
   checkpointId: string;
 }
 
@@ -251,58 +259,64 @@ export class AssistantConversationRepository implements AssistantConversationRep
     userId: string,
     conversationId: string,
   ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.assistantConversation.updateMany({
-        where: {
-          userId,
-          status: AssistantConversationStatus.active,
-          id: { not: conversationId },
-        },
-        data: { status: AssistantConversationStatus.archived },
-      });
+    await this.prisma.$transaction(
+      async (tx) => {
+        await tx.assistantConversation.updateMany({
+          where: {
+            userId,
+            status: AssistantConversationStatus.active,
+            id: { not: conversationId },
+          },
+          data: { status: AssistantConversationStatus.archived },
+        });
 
-      await tx.assistantConversation.update({
-        where: { id: conversationId, userId },
-        data: { status: AssistantConversationStatus.active },
-      });
-    });
+        await tx.assistantConversation.update({
+          where: { id: conversationId, userId },
+          data: { status: AssistantConversationStatus.active },
+        });
+      },
+      { maxWait: 5000, timeout: 10000 },
+    );
   }
 
   async persistTurn(
     input: PersistTurnInput,
   ): Promise<ConversationWithMessages> {
-    await this.prisma.$transaction(async (tx) => {
-      if (input.messagesToAppend.length > 0) {
-        await tx.assistantMessage.createMany({
-          data: input.messagesToAppend.map((message) => ({
+    await this.prisma.$transaction(
+      async (tx) => {
+        if (input.messagesToAppend.length > 0) {
+          await tx.assistantMessage.createMany({
+            data: input.messagesToAppend.map((message) => ({
+              conversationId: input.conversationId,
+              userId: input.userId,
+              role: message.role,
+              content: message.content,
+              usedTools: [],
+            })),
+          });
+        }
+
+        await tx.assistantMessage.create({
+          data: {
             conversationId: input.conversationId,
             userId: input.userId,
-            role: message.role,
-            content: message.content,
-            usedTools: [],
-          })),
+            role: 'assistant',
+            content: input.assistantContent,
+            usedTools: input.usedTools,
+            createdAt: input.assistantTimestamp,
+          },
         });
-      }
 
-      await tx.assistantMessage.create({
-        data: {
-          conversationId: input.conversationId,
-          userId: input.userId,
-          role: 'assistant',
-          content: input.assistantContent,
-          usedTools: input.usedTools,
-          createdAt: input.assistantTimestamp,
-        },
-      });
-
-      await tx.assistantConversation.update({
-        where: { id: input.conversationId, userId: input.userId },
-        data: {
-          title: input.title,
-          lastMessageAt: input.assistantTimestamp,
-        },
-      });
-    });
+        await tx.assistantConversation.update({
+          where: { id: input.conversationId, userId: input.userId },
+          data: {
+            title: input.title,
+            lastMessageAt: input.assistantTimestamp,
+          },
+        });
+      },
+      { maxWait: 5000, timeout: 10000 },
+    );
 
     return this.findWithMessagesById(input.userId, input.conversationId);
   }
@@ -314,22 +328,25 @@ export class AssistantConversationRepository implements AssistantConversationRep
     usedTools: string[] = [],
   ): Promise<ConversationWithMessages> {
     const timestamp = new Date();
-    await this.prisma.$transaction(async (tx) => {
-      await tx.assistantMessage.create({
-        data: {
-          conversationId,
-          userId,
-          role: 'assistant',
-          content,
-          usedTools,
-          createdAt: timestamp,
-        },
-      });
-      await tx.assistantConversation.update({
-        where: { id: conversationId, userId },
-        data: { lastMessageAt: timestamp },
-      });
-    });
+    await this.prisma.$transaction(
+      async (tx) => {
+        await tx.assistantMessage.create({
+          data: {
+            conversationId,
+            userId,
+            role: 'assistant',
+            content,
+            usedTools,
+            createdAt: timestamp,
+          },
+        });
+        await tx.assistantConversation.update({
+          where: { id: conversationId, userId },
+          data: { lastMessageAt: timestamp },
+        });
+      },
+      { maxWait: 5000, timeout: 10000 },
+    );
 
     return this.findWithMessagesById(userId, conversationId);
   }

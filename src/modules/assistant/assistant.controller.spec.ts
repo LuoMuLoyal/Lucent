@@ -24,10 +24,12 @@ import type { FastifyReply } from 'fastify';
 import { ResultCode, SseConnectionRegistry } from '../../common';
 import { AssistantController } from './assistant.controller';
 import { AssistantService } from './services/core.service';
+import { AuditLogService } from '../audit-log';
 
 describe('AssistantController', () => {
   let controller: AssistantController;
   let service: vi.Mocked<AssistantService>;
+  let auditLogService: vi.Mocked<AuditLogService>;
   let sseRegistry: SseConnectionRegistry;
 
   beforeEach(async () => {
@@ -59,11 +61,16 @@ describe('AssistantController', () => {
             closeAll: vi.fn(),
           },
         },
+        {
+          provide: AuditLogService,
+          useValue: { logFireAndForget: vi.fn() },
+        },
       ],
     }).compile();
 
     controller = module.get(AssistantController);
     service = module.get(AssistantService);
+    auditLogService = module.get(AuditLogService);
     sseRegistry = module.get(SseConnectionRegistry);
   });
 
@@ -561,6 +568,11 @@ describe('AssistantController', () => {
       data: { cleared: 3 },
     });
     expect(service.clearAssistantMemory).toHaveBeenCalledWith('u1');
+    expect(auditLogService.logFireAndForget).toHaveBeenCalledWith({
+      userId: 'u1',
+      action: 'assistant.memory.clear',
+      metadata: { deletedCount: 3 },
+    });
   });
 
   it('streams an error SSE event when service throws', async () => {
