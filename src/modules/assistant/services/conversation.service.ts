@@ -1,6 +1,7 @@
 import { notFound } from '../../../common';
 import { truncate } from '../../../common';
 import { Injectable, Logger } from '@nestjs/common';
+import { trace } from '@opentelemetry/api';
 import { I18nService } from 'nestjs-i18n';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
@@ -379,9 +380,14 @@ export class AssistantConversationService {
       await this.repository.updateTitle(userId, conversationId, refined);
     } catch (error) {
       // Best-effort: title refinement must never break the persistence flow.
-      this.logger.debug(
-        `Title refinement skipped for conversation ${conversationId}: ${(error as Error).message}`,
+      const cause = error instanceof Error ? error : new Error(String(error));
+      this.logger.warn(
+        `Title refinement skipped for conversation ${conversationId}: ${cause.message}`,
+        cause.stack,
       );
+      trace.getActiveSpan()?.addEvent('assistant.title_refinement.failed', {
+        conversation_id: conversationId,
+      });
     }
   }
 

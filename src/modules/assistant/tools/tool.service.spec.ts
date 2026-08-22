@@ -596,6 +596,44 @@ describe('AssistantToolService', () => {
     expect(results[0]?.proposedActions).toBeUndefined();
   });
 
+  it('logs the duration when a timed-out tool rejects late', async () => {
+    const { service, deps } = buildExecutor();
+    let rejectLate!: (reason: unknown) => void;
+    deps.aiSummaryHistoryService.getLatestTodaySummaryByDate.mockReturnValue(
+      new Promise((_, reject) => {
+        rejectLate = reject;
+      }),
+    );
+    const logger = (
+      service as unknown as { logger: { warn: (...args: unknown[]) => void } }
+    ).logger;
+    const warnSpy = vi.spyOn(logger, 'warn');
+
+    const pending = service.executeMany(buildContext(), [
+      'get_today_summary_by_date',
+    ]);
+    await vi.advanceTimersByTimeAsync(TOOL_EXECUTION_TIMEOUT_MS);
+    await pending;
+    rejectLate(new Error('late tool failure'));
+    for (let index = 0; index < 4; index += 1) {
+      await Promise.resolve();
+    }
+
+    expect(
+      warnSpy.mock.calls.some(
+        ([message]) =>
+          typeof message === 'string' &&
+          /Tool "get_today_summary_by_date" failed after timeout/.test(message),
+      ),
+    ).toBe(true);
+    expect(
+      warnSpy.mock.calls.some(
+        ([message]) =>
+          typeof message === 'string' && /durationMs=\d+/.test(message),
+      ),
+    ).toBe(true);
+  });
+
   it('runs read tools in parallel and preserves the input order (F-6)', async () => {
     const { service, deps } = buildExecutor();
     let releaseSummary!: (value: unknown) => void;

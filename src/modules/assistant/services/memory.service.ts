@@ -11,6 +11,7 @@
  * the archive flow, and buildMemoryBlock returns '' when no memory exists.
  */
 import { Injectable, Logger } from '@nestjs/common';
+import { trace } from '@opentelemetry/api';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import { LlmRuntimeService } from '../../../llm-runtime';
@@ -19,6 +20,11 @@ import {
   type ConversationWithMessages,
 } from '../repositories/conversation.repository';
 import { AssistantMemoryRepositoryPort } from '../repositories/memory.repository';
+
+/** Independent guard for providers that ignore the model client's timeout. */
+export const MEMORY_EXTRACTION_TIMEOUT_MS = AI_MODEL_TIMEOUT_MS + 1_000;
+
+const MEMORY_EXTRACTION_TIMEOUT = Symbol('memory-extraction-timeout');
 
 /** Debounce window: extraction starts 30s after the last archive event. */
 const EXTRACTION_DEBOUNCE_MS = 30_000;
@@ -198,10 +204,27 @@ export class AssistantMemoryService {
 
     let rawContent: unknown;
     try {
-      const response = await model.invoke([
-        new SystemMessage(EXTRACTION_SYSTEM_PROMPT),
-        new HumanMessage(transcript),
+      const response = await Promise.race([
+        model.invoke([
+          new SystemMessage(EXTRACTION_SYSTEM_PROMPT),
+          new HumanMessage(transcript),
+        ]),
+        new Promise<typeof MEMORY_EXTRACTION_TIMEOUT>((resolve) => {
+          const timer = setTimeout(() => {
+            resolve(MEMORY_EXTRACTION_TIMEOUT);
+          }, MEMORY_EXTRACTION_TIMEOUT_MS);
+          timer.unref();
+        }),
       ]);
+      if (response === MEMORY_EXTRACTION_TIMEOUT) {
+        this.logger.warn(
+          `Memory extraction timed out after ${String(MEMORY_EXTRACTION_TIMEOUT_MS)}ms.`,
+        );
+        trace.getActiveSpan()?.addEvent('assistant.memory_extraction.timeout', {
+          timeout_ms: MEMORY_EXTRACTION_TIMEOUT_MS,
+        });
+        return [];
+      }
       rawContent = response.content;
     } catch (error) {
       this.logger.debug(

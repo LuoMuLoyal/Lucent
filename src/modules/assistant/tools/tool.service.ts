@@ -146,9 +146,12 @@ export class AssistantToolService {
     context: AssistantToolExecutionContext,
     toolName: AssistantToolName,
   ): Promise<AssistantToolExecutionResult> {
+    const startedAt = performance.now();
+    let timedOut = false;
     const execution = this.executeOne(context, toolName);
     const timeout = new Promise<AssistantToolExecutionResult>((resolve) => {
       const timer = setTimeout(() => {
+        timedOut = true;
         resolve({
           name: toolName,
           data: {
@@ -166,8 +169,11 @@ export class AssistantToolService {
     // unhandled. Errors that settle BEFORE the timeout still propagate through
     // the race as before.
     execution.catch((err: unknown) => {
+      if (!timedOut) {
+        return;
+      }
       this.logger.warn(
-        `Tool "${toolName}" failed after timeout: ${
+        `Tool "${toolName}" failed after timeout (durationMs=${String(Math.round(performance.now() - startedAt))}): ${
           err instanceof Error ? err.message : String(err)
         }`,
         err instanceof Error ? err.stack : undefined,

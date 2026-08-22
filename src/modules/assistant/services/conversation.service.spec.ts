@@ -440,6 +440,10 @@ describe('AssistantConversationService', () => {
         buildConversation({ id: 'new-conv', title: 'Hello' }),
       );
       invoke.mockRejectedValue(new Error('LLM unavailable'));
+      const logger = (
+        service as unknown as { logger: { warn: (...args: unknown[]) => void } }
+      ).logger;
+      const warnSpy = vi.spyOn(logger, 'warn');
 
       await expect(
         service.persistAssistantTurn({
@@ -454,6 +458,7 @@ describe('AssistantConversationService', () => {
         expect(invoke).toHaveBeenCalled();
       });
       expect(repo.updateTitle).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalled();
     });
 
     it('does not overwrite a title the user already renamed', async () => {

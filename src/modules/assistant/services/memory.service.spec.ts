@@ -1,4 +1,5 @@
 import type { AIMessage } from '@langchain/core/messages';
+import { AI_MODEL_TIMEOUT_MS } from '../../../config/constants';
 import type { LlmRuntimeService } from '../../../llm-runtime';
 import type { AssistantConversationRepositoryPort } from '../repositories/conversation.repository';
 import type {
@@ -6,6 +7,7 @@ import type {
   AssistantMemoryRow,
 } from '../repositories/memory.repository';
 import { AssistantMemoryService } from './memory.service';
+import { MEMORY_EXTRACTION_TIMEOUT_MS } from './memory.service';
 
 function buildConversation(
   messages: Array<{ role: 'user' | 'assistant'; content: string }>,
@@ -78,6 +80,27 @@ describe('AssistantMemoryService', () => {
   });
 
   describe('extractAndStore', () => {
+    it('times out a stuck extraction after the model timeout and logs a warning', async () => {
+      vi.useFakeTimers();
+      conversationRepository.findWithMessages.mockResolvedValue(
+        buildConversation([{ role: 'user', content: 'Hello' }]),
+      );
+      invoke.mockReturnValue(new Promise(() => undefined));
+      const logger = (
+        service as unknown as { logger: { warn: (...args: unknown[]) => void } }
+      ).logger;
+      const warnSpy = vi.spyOn(logger, 'warn');
+
+      const pending = service.extractAndStore('user-1', 'conv-1');
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(MEMORY_EXTRACTION_TIMEOUT_MS);
+
+      await expect(pending).resolves.toBeUndefined();
+      expect(MEMORY_EXTRACTION_TIMEOUT_MS).toBeGreaterThan(AI_MODEL_TIMEOUT_MS);
+      expect(memoryRepository.createMany).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalled();
+    });
+
     it('persists extracted items with the source conversation id', async () => {
       conversationRepository.findWithMessages.mockResolvedValue(
         buildConversation([
