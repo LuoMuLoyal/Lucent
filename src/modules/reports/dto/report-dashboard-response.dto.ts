@@ -149,13 +149,4 @@ export class ReportDashboardDataDto {
   aiSummaryEnabled!: boolean;
 }
 
-export class ReportDashboardResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: ReportDashboardDataDto })
-  data!: ReportDashboardDataDto;
-}
+export class ReportDashboardResponseDto extends ReportDashboardDataDto {}

@@ -83,13 +83,4 @@ export class ReportSummaryDataDto {
   disclaimer!: string;
 }
 
-export class ReportSummaryResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => ReportSummaryDataDto })
-  data!: ReportSummaryDataDto;
-}
+export class ReportSummaryResponseDto extends ReportSummaryDataDto {}

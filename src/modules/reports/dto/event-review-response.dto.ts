@@ -298,35 +298,8 @@ export class EventReviewListDataDto {
   nextCursor!: string | null;
 }
 
-export class EventReviewResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
+export class EventReviewResponseDto extends EventReviewDataDto {}
 
-  @ApiProperty({ example: '' })
-  message!: string;
+export class EventReviewNullableResponseDto extends EventReviewDataDto {}
 
-  @ApiProperty({ type: () => EventReviewDataDto })
-  data!: EventReviewDataDto;
-}
-
-export class EventReviewNullableResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => EventReviewDataDto, nullable: true })
-  data!: EventReviewDataDto | null;
-}
-
-export class EventReviewListResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => EventReviewListDataDto })
-  data!: EventReviewListDataDto;
-}
+export class EventReviewListResponseDto extends EventReviewListDataDto {}

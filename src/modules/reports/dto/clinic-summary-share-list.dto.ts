@@ -70,13 +70,4 @@ export class ClinicSummaryShareListDataDto {
   items!: ClinicSummaryShareListItemDto[];
 }
 
-export class ClinicSummaryShareListResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => ClinicSummaryShareListDataDto })
-  data!: ClinicSummaryShareListDataDto;
-}
+export class ClinicSummaryShareListResponseDto extends ClinicSummaryShareListDataDto {}

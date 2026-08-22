@@ -24,6 +24,7 @@ import {
   ApiParam,
   ApiResponse,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { I18nLang, I18nService } from 'nestjs-i18n';
@@ -41,7 +42,6 @@ import {
   httpExceptionPayload,
   enqueueOrFallback,
 } from '../../common';
-import { SkipApiEnvelope } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 
@@ -79,8 +79,8 @@ import { ReportsService } from './dashboard/dashboard.service';
 import { EventReviewListQueryDto } from './dto/event-review-list-query.dto';
 import {
   EventReviewListResponseDto,
-  EventReviewNullableResponseDto,
   EventReviewResponseDto,
+  EventReviewDataDto,
 } from './dto/event-review-response.dto';
 
 /** Milliseconds per day — used to materialize the default share range. */
@@ -265,7 +265,6 @@ export class ReportsController {
 
   @SkipThrottle()
   @Post('summary/generate/stream')
-  @SkipApiEnvelope()
   @ApiOperation({
     summary: 'Stream authenticated user AI summary generation for report',
   })
@@ -624,7 +623,13 @@ export class ReportsController {
   @ApiOperation({
     summary: 'Get the current event review for the authenticated user',
   })
-  @ApiResponse({ status: 200, type: EventReviewNullableResponseDto })
+  @ApiResponse({
+    status: 200,
+    schema: {
+      nullable: true,
+      allOf: [{ $ref: getSchemaPath(EventReviewDataDto) }],
+    },
+  })
   async getCurrentReview(@CurrentUser() user: UserPayload) {
     // Prefers the active event, then the most recent ended one. No events:
     // a successful 200 response with a null resource, not a 404.

@@ -304,16 +304,7 @@ export class ClinicSummaryDto {
   disclaimer!: string;
 }
 
-export class ClinicSummaryResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => ClinicSummaryDto })
-  data!: ClinicSummaryDto;
-}
+export class ClinicSummaryResponseDto extends ClinicSummaryDto {}
 
 export class ClinicSummaryShareScopeDto {
   @ApiProperty({ type: String, nullable: true, description: 'Event scope id' })
@@ -367,13 +358,4 @@ export class ClinicSummaryShareDataDto {
   selectedFields?: string[];
 }
 
-export class ClinicSummaryShareResponseDto {
-  @ApiProperty({ description: 'Result code.', example: 0 })
-  code!: number;
-
-  @ApiProperty({ description: 'Message.', example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => ClinicSummaryShareDataDto })
-  data!: ClinicSummaryShareDataDto;
-}
+export class ClinicSummaryShareResponseDto extends ClinicSummaryShareDataDto {}
