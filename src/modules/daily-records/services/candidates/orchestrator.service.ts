@@ -3,7 +3,6 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { ResultCode } from '../../../../common';
 import type { DailyRecordCandidateData } from '../../dto/candidates/record-candidate-response.dto';
 
 import type { GenerateDailyRecordCandidatesDto } from '../../dto/candidates/generate-record-candidates.dto';
@@ -36,7 +35,7 @@ export class DailyRecordCandidatesService {
 
     if (!this.generatorService.hasAnalysisModel()) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: this.copyService.serviceUnavailable(locale),
       });
     }

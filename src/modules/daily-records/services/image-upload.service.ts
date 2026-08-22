@@ -3,7 +3,6 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 import { extname } from 'node:path';
 import { ALLOWED_IMAGE_TYPES } from '../../../common/constants/mime-types';
-import { ResultCode } from '../../../common';
 import {
   ObjectStorageRuntime,
   type ObjectStorageConfig,
@@ -62,7 +61,7 @@ export class DailyRecordImageUploadService {
   private assertConfigured(): void {
     if (!this.runtime.isConfigured()) {
       throw new ServiceUnavailableException({
-        code: ResultCode.EXTERNAL_SERVICE_ERROR,
+        code: 'DEPENDENCY_UNAVAILABLE',
         message: 'Object storage is not configured',
       });
     }

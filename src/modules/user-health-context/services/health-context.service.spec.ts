@@ -28,7 +28,6 @@ import { UserHealthContextOwnershipService } from './ownership.service';
 import { UserHealthContextProfileWriteService } from './writes/profile-write.service';
 
 import { UserHealthContextService } from './health-context.service';
-import { ResultCode } from '../../../common';
 import { I18nService } from 'nestjs-i18n';
 
 const mockUserBase = {
@@ -126,7 +125,7 @@ describe('UserHealthContextService', () => {
 
     await expect(service.getForUser('missing-user')).rejects.toMatchObject({
       response: {
-        code: ResultCode.NOT_FOUND,
+        code: 'RESOURCE_NOT_FOUND',
         message: 'auth.user_not_found',
       },
     });
