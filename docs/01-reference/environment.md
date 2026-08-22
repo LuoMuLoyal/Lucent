@@ -2,14 +2,14 @@
 status: active
 owner: backend
 quadrant: reference
-updated: 2026-08-18
+updated: 2026-08-22
 ---
 
 # Lucent Environment
 
 本文档保留本地环境、Docker 和快速命令总览。
 
-详细参考：[[environment-variables]]
+详细参考：[[environment-variables]]。关于将普通配置迁移到 YAML、敏感值保留在环境/Secret 的可行性、Prisma 兼容性和部署边界，见 [[env-yaml-evaluation-research]]。
 
 ## Env Files
 
