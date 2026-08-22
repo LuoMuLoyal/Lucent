@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -17,7 +18,6 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { successEnvelope } from '../../common';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { CreateDailyRecordDto } from './dto/create-record.dto';
@@ -73,7 +73,7 @@ export class DailyRecordsController {
       query.page ?? 1,
       query.pageSize ?? 50,
     );
-    return successEnvelope(result);
+    return result;
   }
 
   @Get('summary')
@@ -82,7 +82,7 @@ export class DailyRecordsController {
   @ApiResponse({ status: 200, type: DailyRecordSummaryResponseDto })
   async summary(@CurrentUser() user: UserPayload, @Query('date') date: string) {
     const result = await this.dailyRecordsService.summary(user.sub, date);
-    return successEnvelope(result);
+    return result;
   }
 
   @Post('attachments/images/presign-upload')
@@ -98,7 +98,7 @@ export class DailyRecordsController {
       user.sub,
       dto,
     );
-    return successEnvelope(result);
+    return result;
   }
 
   @Post('candidate-records/generate')
@@ -117,7 +117,7 @@ export class DailyRecordsController {
       dto,
       language,
     );
-    return successEnvelope(result);
+    return result;
   }
 
   @Get(':id')
@@ -126,7 +126,7 @@ export class DailyRecordsController {
   @ApiResponse({ status: 200, type: DailyRecordResponseDto })
   async get(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     const result = await this.dailyRecordsService.get(user.sub, id);
-    return successEnvelope(result);
+    return result;
   }
 
   @Post()
@@ -137,7 +137,7 @@ export class DailyRecordsController {
     @Body() dto: CreateDailyRecordDto,
   ) {
     const result = await this.dailyRecordsService.create(user.sub, dto);
-    return successEnvelope(result);
+    return result;
   }
 
   @Patch(':id')
@@ -150,15 +150,16 @@ export class DailyRecordsController {
     @Body() dto: UpdateDailyRecordDto,
   ) {
     const result = await this.dailyRecordsService.update(user.sub, id, dto);
-    return successEnvelope(result);
+    return result;
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft-delete a daily record' })
   @ApiParam({ name: 'id' })
-  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 204, description: 'Daily record deleted.' })
   async delete(@CurrentUser() user: UserPayload, @Param('id') id: string) {
     await this.dailyRecordsService.delete(user.sub, id);
-    return successEnvelope(null);
+    return;
   }
 }

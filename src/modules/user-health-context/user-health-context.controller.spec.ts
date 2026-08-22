@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common';
 import { UserHealthContextController } from './user-health-context.controller';
 import { UserHealthContextService } from './services/health-context.service';
 import type { UserPayload } from '../auth';
@@ -43,19 +42,15 @@ describe('UserHealthContextController', () => {
     controller = module.get(UserHealthContextController);
   });
 
-  const expectEnvelope = (result: unknown) => {
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: mockResponse,
-    });
+  const expectResource = (result: unknown) => {
+    expect(result).toEqual(mockResponse);
   };
 
   describe('GET /', () => {
     it('returns health context for user', async () => {
       const result = await controller.getUserHealthContext(mockUser);
       expect(service.getForUser).toHaveBeenCalledWith('user-1');
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 
@@ -67,7 +62,7 @@ describe('UserHealthContextController', () => {
         dto,
       );
       expect(service.updateProfile).toHaveBeenCalledWith('user-1', dto);
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 
@@ -82,7 +77,7 @@ describe('UserHealthContextController', () => {
       } as never;
       const result = await controller.createAllergy(mockUser, dto);
       expect(service.createAllergy).toHaveBeenCalledWith('user-1', dto);
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 
@@ -95,7 +90,7 @@ describe('UserHealthContextController', () => {
         'allergy-1',
         dto,
       );
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 
@@ -103,7 +98,7 @@ describe('UserHealthContextController', () => {
     it('deletes allergy and returns health context', async () => {
       const result = await controller.deleteAllergy(mockUser, 'allergy-1');
       expect(service.deleteAllergy).toHaveBeenCalledWith('user-1', 'allergy-1');
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 
@@ -114,7 +109,7 @@ describe('UserHealthContextController', () => {
       const dto = { label: '高血压', status: 'active' } as never;
       const result = await controller.createCondition(mockUser, dto);
       expect(service.createCondition).toHaveBeenCalledWith('user-1', dto);
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 
@@ -127,7 +122,7 @@ describe('UserHealthContextController', () => {
         'cond-1',
         dto,
       );
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 
@@ -135,7 +130,7 @@ describe('UserHealthContextController', () => {
     it('deletes condition and returns health context', async () => {
       const result = await controller.deleteCondition(mockUser, 'cond-1');
       expect(service.deleteCondition).toHaveBeenCalledWith('user-1', 'cond-1');
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 
@@ -146,7 +141,7 @@ describe('UserHealthContextController', () => {
       const dto = { displayName: '氨氯地平片', doseText: '5mg' } as never;
       const result = await controller.createCurrentMedicine(mockUser, dto);
       expect(service.createCurrentMedicine).toHaveBeenCalledWith('user-1', dto);
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 
@@ -163,7 +158,7 @@ describe('UserHealthContextController', () => {
         'med-1',
         dto,
       );
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 
@@ -174,7 +169,7 @@ describe('UserHealthContextController', () => {
         'user-1',
         'med-1',
       );
-      expectEnvelope(result);
+      expectResource(result);
     });
   });
 });

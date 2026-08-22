@@ -14,7 +14,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { successEnvelope } from '../../common';
 import type { UserPayload } from '../auth';
 import { CurrentUser } from '../auth';
 import { UserSettingsService } from './services/user-settings.service';
@@ -43,7 +42,7 @@ export class UserSettingsController {
   @ApiOperation({ summary: 'Get authenticated user settings' })
   @ApiResponse({ status: 200, type: UserSettingsResponseDto })
   async getSettings(@CurrentUser() user: UserPayload) {
-    return successEnvelope(await this.settingsService.getSettings(user.sub));
+    return await this.settingsService.getSettings(user.sub);
   }
 
   @Patch()
@@ -53,9 +52,7 @@ export class UserSettingsController {
     @CurrentUser() user: UserPayload,
     @Body() dto: UpdateUserSettingsDto,
   ) {
-    return successEnvelope(
-      await this.settingsService.updateSettings(user.sub, dto),
-    );
+    return await this.settingsService.updateSettings(user.sub, dto);
   }
 
   @Post('security-pin')
@@ -68,7 +65,7 @@ export class UserSettingsController {
   ) {
     await this.securityPinService.enable(user.sub, dto);
     await this.settingsService.invalidateUserCache(user.sub);
-    return successEnvelope(await this.settingsService.getSettings(user.sub));
+    return await this.settingsService.getSettings(user.sub);
   }
 
   @Post('security-pin/verify')
@@ -79,7 +76,7 @@ export class UserSettingsController {
     @CurrentUser() user: UserPayload,
     @Body() dto: VerifySecurityPinDto,
   ) {
-    return successEnvelope(await this.securityPinService.verify(user.sub, dto));
+    return await this.securityPinService.verify(user.sub, dto);
   }
 
   @Post('security-pin/change')
@@ -92,7 +89,7 @@ export class UserSettingsController {
   ) {
     await this.securityPinService.change(user.sub, dto);
     await this.settingsService.invalidateUserCache(user.sub);
-    return successEnvelope(await this.settingsService.getSettings(user.sub));
+    return await this.settingsService.getSettings(user.sub);
   }
 
   @Post('security-pin/disable')
@@ -105,6 +102,6 @@ export class UserSettingsController {
   ) {
     await this.securityPinService.disable(user.sub, dto);
     await this.settingsService.invalidateUserCache(user.sub);
-    return successEnvelope(await this.settingsService.getSettings(user.sub));
+    return await this.settingsService.getSettings(user.sub);
   }
 }

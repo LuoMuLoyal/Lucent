@@ -8,7 +8,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { HealthEventKind } from '#generated/prisma/client';
-import { formatDateOnly, successEnvelope } from '../../common';
+import { formatDateOnly } from '../../common';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { CreateHealthEventDto } from './dto/create-event.dto';
@@ -47,7 +47,7 @@ export class HealthEventsController {
     @Body() dto: CreateHealthEventDto,
   ) {
     const event = await this.eventsService.create(user.sub, dto);
-    return successEnvelope(this.toItem(event));
+    return this.toItem(event);
   }
 
   @Get('active')
@@ -59,7 +59,7 @@ export class HealthEventsController {
     @Query() query: EventListQueryDto = new EventListQueryDto(),
   ) {
     const event = await this.eventsService.findActiveView(user.sub, query.date);
-    return successEnvelope(event == null ? null : this.toItem(event));
+    return event == null ? null : this.toItem(event);
   }
 
   @Get()
@@ -71,10 +71,10 @@ export class HealthEventsController {
     @Query() query: EventListQueryDto = new EventListQueryDto(),
   ) {
     const result = await this.eventsService.listViews(user.sub, query.date);
-    return successEnvelope({
+    return {
       items: result.items.map((event) => this.toItem(event)),
       total: result.total,
-    });
+    };
   }
 
   @Get(':id')
@@ -92,7 +92,7 @@ export class HealthEventsController {
       id,
       query.date,
     );
-    return successEnvelope(this.toItem(event));
+    return this.toItem(event);
   }
 
   @Put(':id/check-ins/:date')
@@ -108,7 +108,7 @@ export class HealthEventsController {
   ) {
     await this.checkInsService.upsertForDate(user.sub, id, date, dto);
     const event = await this.eventsService.findByIdView(user.sub, id, date);
-    return successEnvelope(this.toItem(event));
+    return this.toItem(event);
   }
 
   @Post(':id/end')
@@ -122,7 +122,7 @@ export class HealthEventsController {
   ) {
     await this.eventsService.end(user.sub, id, dto);
     const event = await this.eventsService.findByIdView(user.sub, id);
-    return successEnvelope(this.toItem(event));
+    return this.toItem(event);
   }
 
   private toItem(

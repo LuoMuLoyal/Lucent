@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common';
 import { DailyRecordsController } from './daily-records.controller';
 import { DailyRecordCandidatesService } from './services/candidates/orchestrator.service';
 import { DailyRecordImageUploadService } from './services/image-upload.service';
@@ -67,11 +66,7 @@ describe('DailyRecordsController', () => {
         1,
         50,
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data,
-      });
+      expect(result).toEqual(data);
     });
 
     it('passes kind, page, pageSize when provided', async () => {
@@ -110,11 +105,7 @@ describe('DailyRecordsController', () => {
         'user-1',
         '2026-07-10',
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data,
-      });
+      expect(result).toEqual(data);
     });
   });
 
@@ -137,11 +128,7 @@ describe('DailyRecordsController', () => {
         'user-1',
         dto,
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data,
-      });
+      expect(result).toEqual(data);
     });
   });
 
@@ -165,11 +152,7 @@ describe('DailyRecordsController', () => {
         dto,
         'zh-CN',
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data,
-      });
+      expect(result).toEqual(data);
     });
   });
 
@@ -181,11 +164,7 @@ describe('DailyRecordsController', () => {
       const result = await controller.get(mockUser, 'rec-1');
 
       expect(dailyRecordsService.get).toHaveBeenCalledWith('user-1', 'rec-1');
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data,
-      });
+      expect(result).toEqual(data);
     });
   });
 
@@ -203,11 +182,7 @@ describe('DailyRecordsController', () => {
       const result = await controller.create(mockUser, dto);
 
       expect(dailyRecordsService.create).toHaveBeenCalledWith('user-1', dto);
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data,
-      });
+      expect(result).toEqual(data);
     });
   });
 
@@ -224,11 +199,7 @@ describe('DailyRecordsController', () => {
         'rec-1',
         dto,
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data,
-      });
+      expect(result).toEqual(data);
     });
   });
 
@@ -236,17 +207,14 @@ describe('DailyRecordsController', () => {
     it('calls service.delete with userId and id', async () => {
       dailyRecordsService.delete.mockResolvedValue(undefined);
 
-      const result = await controller.delete(mockUser, 'rec-1');
+      await expect(
+        controller.delete(mockUser, 'rec-1'),
+      ).resolves.toBeUndefined();
 
       expect(dailyRecordsService.delete).toHaveBeenCalledWith(
         'user-1',
         'rec-1',
       );
-      expect(result).toEqual({
-        code: ResultCode.SUCCESS,
-        message: '',
-        data: null,
-      });
     });
   });
 });

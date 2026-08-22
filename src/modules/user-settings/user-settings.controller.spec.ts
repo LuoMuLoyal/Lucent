@@ -1,5 +1,4 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ResultCode } from '../../common';
 import { UserSettingsController } from './user-settings.controller';
 import { UserSettingsService } from './services/user-settings.service';
 import { SecurityPinService } from '../security-pin';
@@ -39,7 +38,7 @@ describe('UserSettingsController', () => {
     securityPinService = module.get(SecurityPinService);
   });
 
-  it('should return user settings envelope', async () => {
+  it('should return user settings resource', async () => {
     const settings = makeSettings();
     service.getSettings.mockResolvedValue(settings);
 
@@ -49,11 +48,7 @@ describe('UserSettingsController', () => {
         email: 'a@b.c',
         status: 'active',
       }),
-    ).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: settings,
-    });
+    ).toEqual(settings);
     expect(service.getSettings).toHaveBeenCalledWith('u1');
   });
 
@@ -66,8 +61,8 @@ describe('UserSettingsController', () => {
       { aiSummariesEnabled: false },
     );
 
-    expect(result.data).toBeDefined();
-    expect(result.data?.aiSummariesEnabled).toBe(false);
+    expect(result).toBeDefined();
+    expect(result.aiSummariesEnabled).toBe(false);
     expect(service.updateSettings).toHaveBeenCalledWith('u1', {
       aiSummariesEnabled: false,
     });
@@ -87,7 +82,7 @@ describe('UserSettingsController', () => {
       pin: '123456',
     });
     expect(service.getSettings).toHaveBeenCalledWith('u1');
-    expect(result.data).toBeDefined();
+    expect(result).toBeDefined();
   });
 
   it('verifies security pin and returns elevation token', async () => {
@@ -104,8 +99,8 @@ describe('UserSettingsController', () => {
     expect(securityPinService.verify).toHaveBeenCalledWith('u1', {
       pin: '123456',
     });
-    expect(result.data?.elevationToken).toBe('token');
-    expect(result.data?.expiresAt).toBe('2026-07-03T12:15:00.000Z');
+    expect(result.elevationToken).toBe('token');
+    expect(result.expiresAt).toBe('2026-07-03T12:15:00.000Z');
   });
 
   it('changes security pin and returns updated settings', async () => {
@@ -122,7 +117,7 @@ describe('UserSettingsController', () => {
       oldPin: '123456',
       newPin: '654321',
     });
-    expect(result.data).toBeDefined();
+    expect(result).toBeDefined();
   });
 
   it('disables security pin and returns updated settings', async () => {
@@ -138,7 +133,7 @@ describe('UserSettingsController', () => {
     expect(securityPinService.disable).toHaveBeenCalledWith('u1', {
       pin: '123456',
     });
-    expect(result.data).toBeDefined();
+    expect(result).toBeDefined();
   });
 });
 

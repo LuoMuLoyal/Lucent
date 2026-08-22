@@ -17,7 +17,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { successEnvelope } from '../../common';
 import { CurrentUser } from '../auth';
 import type { UserPayload } from '../auth';
 import { CreateCurrentMedicineDto } from './dto/create-current-medicine.dto';
@@ -53,7 +52,7 @@ export class UserHealthContextController {
       user.sub,
     );
 
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 
   @Patch('profile')
@@ -72,7 +71,7 @@ export class UserHealthContextController {
       dto,
     );
 
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 
   // ── Allergy endpoints ──
@@ -90,7 +89,7 @@ export class UserHealthContextController {
       user.sub,
       dto,
     );
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 
   @Patch('allergies/:id')
@@ -109,7 +108,7 @@ export class UserHealthContextController {
       id,
       dto,
     );
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 
   @Delete('allergies/:id')
@@ -125,7 +124,7 @@ export class UserHealthContextController {
       user.sub,
       id,
     );
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 
   // ── Condition endpoints ──
@@ -143,7 +142,7 @@ export class UserHealthContextController {
       user.sub,
       dto,
     );
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 
   @Patch('conditions/:id')
@@ -162,7 +161,7 @@ export class UserHealthContextController {
       id,
       dto,
     );
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 
   @Delete('conditions/:id')
@@ -178,7 +177,7 @@ export class UserHealthContextController {
       user.sub,
       id,
     );
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 
   // ── Current medicine endpoints ──
@@ -194,7 +193,7 @@ export class UserHealthContextController {
   ) {
     const healthContext =
       await this.userHealthContextService.createCurrentMedicine(user.sub, dto);
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 
   @Patch('current-medicines/:id')
@@ -214,7 +213,7 @@ export class UserHealthContextController {
         id,
         dto,
       );
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 
   @Delete('current-medicines/:id')
@@ -230,6 +229,6 @@ export class UserHealthContextController {
   ) {
     const healthContext =
       await this.userHealthContextService.deleteCurrentMedicine(user.sub, id);
-    return successEnvelope(healthContext);
+    return healthContext;
   }
 }

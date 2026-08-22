@@ -6,7 +6,6 @@ import {
   HealthEventOutcome,
   HealthEventStatus,
 } from '#generated/prisma/client';
-import { ResultCode } from '../../common';
 import type { UserPayload } from '../auth';
 import { HealthEventsController } from './health-events.controller';
 import { CreateHealthEventDto } from './dto/create-event.dto';
@@ -73,7 +72,7 @@ describe('HealthEventsController', () => {
     checkInsService = module.get(CheckInsService);
   });
 
-  it('creates an event for the authenticated user and returns an envelope', async () => {
+  it('creates an event for the authenticated user and returns a resource', async () => {
     const dto = {
       title: 'Headache',
       reasonRecordId: 'record-1',
@@ -84,11 +83,7 @@ describe('HealthEventsController', () => {
     const result = await controller.create(user, dto);
 
     expect(eventsService.create).toHaveBeenCalledWith(user.sub, dto);
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: eventView,
-    });
+    expect(result).toEqual(eventView);
   });
 
   it('lists the active event with an optional requested date', async () => {
@@ -100,7 +95,7 @@ describe('HealthEventsController', () => {
       user.sub,
       '2026-08-08',
     );
-    expect(result.data).toEqual(eventView);
+    expect(result).toEqual(eventView);
   });
 
   it('lists the authenticated user events and forwards the requested date', async () => {
@@ -115,11 +110,7 @@ describe('HealthEventsController', () => {
       user.sub,
       '2026-08-08',
     );
-    expect(result).toEqual({
-      code: ResultCode.SUCCESS,
-      message: '',
-      data: { items: [eventView], total: 1 },
-    });
+    expect(result).toEqual({ items: [eventView], total: 1 });
   });
 
   it('gets detail by user-scoped id and forwards the requested date', async () => {
@@ -134,7 +125,7 @@ describe('HealthEventsController', () => {
       'event-1',
       '2026-08-08',
     );
-    expect(result.data).toEqual(eventView);
+    expect(result).toEqual(eventView);
   });
 
   it('preserves the service not-found semantics for another user event', async () => {
@@ -196,14 +187,11 @@ describe('HealthEventsController', () => {
       '2026-08-08',
     );
     expect(result).toMatchObject({
-      code: ResultCode.SUCCESS,
-      data: {
-        checkIn: { date: '2026-08-08', outcome: HealthEventOutcome.improved },
-        coverage: {
-          checkInCount: 1,
-          firstCheckInDate: '2026-08-08',
-          lastCheckInDate: '2026-08-08',
-        },
+      checkIn: { date: '2026-08-08', outcome: HealthEventOutcome.improved },
+      coverage: {
+        checkInCount: 1,
+        firstCheckInDate: '2026-08-08',
+        lastCheckInDate: '2026-08-08',
       },
     });
   });
@@ -243,17 +231,14 @@ describe('HealthEventsController', () => {
       'event-1',
     );
     expect(result).toMatchObject({
-      code: ResultCode.SUCCESS,
-      data: {
-        status: HealthEventStatus.ended,
-        endedAt: '2026-08-09T12:00:00.000Z',
-        outcome: HealthEventOutcome.worsened,
-        checkIn: { date: '2026-08-08' },
-        coverage: {
-          checkInCount: 1,
-          firstCheckInDate: '2026-08-08',
-          lastCheckInDate: '2026-08-08',
-        },
+      status: HealthEventStatus.ended,
+      endedAt: '2026-08-09T12:00:00.000Z',
+      outcome: HealthEventOutcome.worsened,
+      checkIn: { date: '2026-08-08' },
+      coverage: {
+        checkInCount: 1,
+        firstCheckInDate: '2026-08-08',
+        lastCheckInDate: '2026-08-08',
       },
     });
   });
