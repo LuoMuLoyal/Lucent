@@ -60,24 +60,6 @@ class DoseLogListDataDto {
   total!: number;
 }
 
-export class DoseLogListResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
+export class DoseLogListResponseDto extends DoseLogListDataDto {}
 
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => DoseLogListDataDto })
-  data!: DoseLogListDataDto;
-}
-
-export class DoseLogResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => DoseLogItemDto })
-  data!: DoseLogItemDto;
-}
+export class DoseLogResponseDto extends DoseLogItemDto {}

@@ -41,16 +41,7 @@ class ReminderDeliveryListDataDto {
   items!: ReminderDeliveryItemDto[];
 }
 
-export class ReminderDeliveryListResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => ReminderDeliveryListDataDto })
-  data!: ReminderDeliveryListDataDto;
-}
+export class ReminderDeliveryListResponseDto extends ReminderDeliveryListDataDto {}
 
 class ReminderDeliveryReceiptDataDto {
   @ApiProperty({ type: () => ReminderDeliveryItemDto })
@@ -58,16 +49,7 @@ class ReminderDeliveryReceiptDataDto {
 }
 
 /** 本地通知回执响应信封：`{ code, message, data: { item } }`。 */
-export class ReminderDeliveryReceiptResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => ReminderDeliveryReceiptDataDto })
-  data!: ReminderDeliveryReceiptDataDto;
-}
+export class ReminderDeliveryReceiptResponseDto extends ReminderDeliveryReceiptDataDto {}
 
 class LocalCapabilityDataDto {
   @ApiProperty({
@@ -79,13 +61,4 @@ class LocalCapabilityDataDto {
 }
 
 /** 本地调度能力上报响应信封：`{ code, message, data: { state } }`。 */
-export class LocalCapabilityResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => LocalCapabilityDataDto })
-  data!: LocalCapabilityDataDto;
-}
+export class LocalCapabilityResponseDto extends LocalCapabilityDataDto {}

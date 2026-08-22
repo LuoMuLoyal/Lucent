@@ -10,15 +10,3 @@ export class MedicineSafetyTipResponseDto {
   @ApiProperty({ example: 'alcohol' })
   category!: string;
 }
-
-/** Envelope wrapper for GET /safety-tips (array of tips). */
-export class MedicineSafetyTipListResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => [MedicineSafetyTipResponseDto] })
-  data!: MedicineSafetyTipResponseDto[];
-}

@@ -41,7 +41,7 @@ import {
   MedicineSearchResponseDto,
 } from './dto/response.dto';
 
-import { MedicineSafetyTipListResponseDto } from './dto/safety-tip-response.dto';
+import { MedicineSafetyTipResponseDto } from './dto/safety-tip-response.dto';
 
 import { RecognizeMedicineDto } from './dto/recognize-medicine.dto';
 import { RunRiskCheckDto } from './dto/risk/risk-check-request.dto';
@@ -65,7 +65,7 @@ import { MedicineRiskCheckService } from './services/risk/risk-check.service';
   MedicineRiskCheckRecordsDto,
   MedicineRiskCheckRecordResponseDto,
   MedicineRiskCheckRecordsResponseDto,
-  MedicineSafetyTipListResponseDto,
+  MedicineSafetyTipResponseDto,
 )
 @ApiBearerAuth('access-token')
 @Controller('medicines')
@@ -89,7 +89,7 @@ export class MedicinesController {
     description:
       'Safety tip IDs from the last response, used for deduplication',
   })
-  @ApiResponse({ status: 200, type: MedicineSafetyTipListResponseDto })
+  @ApiResponse({ status: 200, type: [MedicineSafetyTipResponseDto] })
   async getSafetyTips(
     @Query('exclude') exclude?: string | string[],
     @I18nLang() lang?: string,

@@ -68,24 +68,6 @@ export class MedicineReminderListDataDto {
   items!: MedicineReminderItemDto[];
 }
 
-export class MedicineReminderListResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
+export class MedicineReminderListResponseDto extends MedicineReminderListDataDto {}
 
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => MedicineReminderListDataDto })
-  data!: MedicineReminderListDataDto;
-}
-
-export class MedicineReminderResponseDto {
-  @ApiProperty({ example: 0 })
-  code!: number;
-
-  @ApiProperty({ example: '' })
-  message!: string;
-
-  @ApiProperty({ type: () => MedicineReminderItemDto })
-  data!: MedicineReminderItemDto;
-}
+export class MedicineReminderResponseDto extends MedicineReminderItemDto {}
